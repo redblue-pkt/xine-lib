@@ -465,7 +465,6 @@ static char * exec_path_append_subdir( char * string )
 	return tmp_win32_path;
 }
 
-#define XINE_HOMEDIR	exec_path_append_subdir( 0 )
 #define XINE_PLUGINDIR	exec_path_append_subdir( "plugins" )
 #define XINE_FONTDIR	exec_path_append_subdir( "fonts" )
 #define XINE_LOCALEDIR	exec_path_append_subdir( "locale" )

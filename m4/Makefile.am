@@ -15,9 +15,11 @@ EXTRA_DIST = \
 	as.m4 \
 	caca.m4 \
 	codeset.m4 \
+	dl.m4 \
 	dvdnav.m4 \
 	esd.m4 \
 	ffmpeg.m4 \
+	freetype2.m4 \
 	gettext.m4 \
 	glibc21.m4 \
 	iconv.m4 \

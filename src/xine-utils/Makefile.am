@@ -9,7 +9,13 @@ if PPC_ARCH
 pppc_files = ppcasm_string.S 
 endif
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
+if WIN32
+TIMER_LIB = $(top_builddir)/win32/contrib/libtimer.la
+else
+#lib_thr = $(THREAD_LIBS)
+endif
+
+AM_CFLAGS = $(X_CFLAGS)
 
 libxineutils_la_SOURCES = $(pppc_files) \
 	cpu_accel.c \
@@ -25,7 +31,8 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmlparser.c \
 	xine_buffer.c 
 
-libxineutils_la_LIBADD = $(THREAD_LIBS)
+libxineutils_la_DEPENDENCIES = $(TIMER_LIB)
+libxineutils_la_LIBADD = $(lib_thr) $(TIMER_LIB)
 
 include_HEADERS = \
 	attributes.h \
@@ -36,3 +43,6 @@ include_HEADERS = \
 	xmlparser.h
 
 noinst_HEADERS = ppcasm_string.h xine_check.h
+
+$(TIMER_LIB):
+	$(MAKE) -C $(top_builddir)/win32/contrib libtimer.la

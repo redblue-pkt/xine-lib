@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: bits.h,v 1.7 2004/01/26 22:34:10 jstembridge Exp $
+** $Id: bits.h,v 1.8 2004/08/27 19:33:20 valtri Exp $
 **/
 
 #ifndef __BITS_H__
@@ -56,9 +56,9 @@ typedef struct _bitfile
 } bitfile;
 
 
-#if defined (_WIN32) && !defined(_WIN32_WCE)
+#if defined(_MSC_VER)
 #define BSWAP(a) __asm mov eax,a __asm bswap eax __asm mov a, eax
-#elif defined(LINUX) || defined(DJGPP)
+#elif defined(LINUX) || defined(DJGPP) || defined (__MINGW32__) || defined (__CYGWIN__)
 #define BSWAP(a) __asm__ ( "bswapl %0\n" : "=r" (a) : "0" (a) )
 #else
 #define BSWAP(a) \

@@ -123,6 +123,7 @@ dnl ---------------------------------------------
 
 AC_LIBTOOL_DLOPEN
 AC_DISABLE_STATIC
+AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 AC_PROG_LIBTOOL_SANITYCHECK
 AC_SUBST(LIBTOOL_DEPS)
@@ -147,7 +148,7 @@ AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
 if test x"$USE_INCLUDED_LIBINTL" = x"yes"; then
    INTLDIR="-I\$(top_builddir)/intl -I\$(top_srcdir)/intl"
 fi
-dnl AC_SUBST(INTLDIR)
+AC_SUBST(INTLDIR)
 
 
 dnl ---------------------------------------------
@@ -164,22 +165,11 @@ AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(long)
 dnl AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_GENERATE_INTTYPES([include])
+AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
 
 dnl ---------------------------------------------
-dnl debug cflags
-dnl ---------------------------------------------
-
-AC_SUBST(DEBUG_CFLAGS)
-DEBUG_CFLAGS="-g -DDEBUG $CFLAGS"
-
-dnl dummy
-ASFLAGS="$ASFLAGS"
-AC_SUBST(ASFLAGS)
-
-
-dnl ---------------------------------------------
-dnl threads
+dnl threads and OS specific stuff
 dnl ---------------------------------------------
 
 case "$host" in
@@ -188,7 +178,6 @@ case "$host" in
     THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
 
     CFLAGS="$THREAD_CFLAGS $CFLAGS"
-    DEBUG_CFLAGS="$DEBUG_CFLAGS"
 
     ;;
 
@@ -199,27 +188,69 @@ case "$host" in
 
     ;;
 
+  *-*-mingw* | *-*-cygwin*)
+    dnl check if we are using the cygwin, mingw or cygwin with mno-cygwin mode
+    dnl in which case we are actually dealing with a mingw32 compiler
+    case "$host" in
+      *-*-mingw32*)
+        SYS=mingw32
+        ;;
+      *-*-cygwin*)
+        AC_EGREP_CPP(pattern, 
+                     [#ifdef WIN32
+                      yes
+                      #endif],
+                     SYS=mingw32, SYS=cygwin)
+        ;;
+    esac
+
+    if test "$SYS" = "mingw32"; then
+      THREAD_INCLUDES='-I$(top_srcdir)/win32/contrib/pthreads'
+      THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
+      THREAD_CFLAGS_CONFIG=" "
+      THREAD_LIBS_CONFIG=" "
+      WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent -I$(top_srcdir)/win32/contrib/timer'
+      CFLAGS="$CFLAGS -DHAVE_NANOSLEEP"
+      LIBS="$LIBS -lwinmm -lwsock32"
+      GOOM_LIBS="-liberty"
+
+      need_internal_zlib=yes
+    fi
+    LDFLAGS="-no-undefined $LDFLAGS"
+    ;;
+    
+
   *)
     AC_CHECK_LIB(pthread, pthread_create,
   	     [THREAD_LIBS="-lpthread"],
  	     [AC_MSG_ERROR(pthread needed)])
     ;;
 esac
-AC_SUBST(THREAD_LIBS)
-dnl needed for xine-config
+dnl different thread cflags and libs for libxine and for external 
+dnl application linking libxine
+if test "x$THREAD_CFLAGS_CONFIG" = "x"; then
+  THREAD_CFLAGS_CONFIG=$THREAD_CFLAGS
+fi
+if test "x$THREAD_LIBS_CONFIG" = "x"; then
+  THREAD_LIBS_CONFIG=$THREAD_LIBS
+fi
+dnl used for building xine
 AC_SUBST(THREAD_CFLAGS)
+AC_SUBST(THREAD_INCLUDES)
+AC_SUBST(THREAD_LIBS)
+AC_SUBST(GOOM_LIBS)
+dnl needed for xine-config
+AC_SUBST(THREAD_CFLAGS_CONFIG)
+AC_SUBST(THREAD_LIBS_CONFIG)
+dnl WIN32 platform
+AC_SUBST(WIN32_CPPFLAGS)
+AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
 
 
 dnl ---------------------------------------------
 dnl dynamic linker
 dnl ---------------------------------------------
-
-AC_CHECK_LIB(c, dlopen,
-	     DYNAMIC_LD_LIBS="",
-	     AC_CHECK_LIB(dl, dlopen,
-             	          DYNAMIC_LD_LIBS="-ldl",
-	                  AC_MSG_ERROR(dynamic linker needed)))
-AC_SUBST(DYNAMIC_LD_LIBS)
+AM_DL()
 
 
 dnl ---------------------------------------------
@@ -383,12 +414,23 @@ dnl ---------------------------------------------
 dnl zlib
 dnl ---------------------------------------------
 
-dnl Test for libz
-AC_CHECK_LIB(z, gzsetparams,
-	[ AC_CHECK_HEADER(zlib.h,
-	  have_zlib=yes
-	  ZLIB_LIBS="-lz",)], AC_MSG_ERROR(zlib needed))
+dnl internal zlib permited only in MINGW-like platform
+if test "x$need_internal_zlib" = "xyes"; then
+  have_zlib=no
+  ZLIB_INCLUDES='-I$(top_srcdir)/win32/contrib/zlib'
+  ZLIB_LIBS='$(top_builddir)/win32/contrib/zlib/libzlib.la'
+  ZLIB_LIBS_CONFIG=""
+else
+  AC_CHECK_LIB(z, gzsetparams,
+    [AC_CHECK_HEADER(zlib.h,
+       have_zlib=yes
+       ZLIB_LIBS="-lz"
+       ZLIB_LIBS_CONFIG="-lz",)], AC_MSG_ERROR(zlib needed))
+fi
+AM_CONDITIONAL(HAVE_ZLIB, [test x"$have_zlib" = "xyes"])
+AC_SUBST(ZLIB_INCLUDES)
 AC_SUBST(ZLIB_LIBS)
+AC_SUBST(ZLIB_LIBS_CONFIG)
 
 
 dnl ---------------------------------------------
@@ -930,19 +972,7 @@ dnl ---------------------------------------------
 dnl freetype2 lib.
 dnl ---------------------------------------------
 
-AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
-if test "$FREETYPE_CONFIG" = "no" ; then
-  AC_MSG_RESULT([*** freetype-config not found, freetype2 support disabled ***])
-else
-  FT2_CFLAGS=`$FREETYPE_CONFIG --cflags`
-  FT2_LIBS=`$FREETYPE_CONFIG --libs`
-  have_ft2="yes"
-  AC_DEFINE(HAVE_FT2,1,[Define this if you have freetype2 library])
-fi
-
-dnl AM_CONDITIONAL(HAVE_FT2, test x"$have_ft2" = "xyes" )
-AC_SUBST(FT2_CFLAGS)
-AC_SUBST(FT2_LIBS)
+AM_PATH_FREETYPE2()
 
 
 dnl ---------------------------------------------
@@ -1371,10 +1401,23 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename hstrerror])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename hstrerror memset])
 AC_FUNC_FSEEKO
-AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h)
+AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h sys/times.h sys/ioctl.h)
+AM_CONDITIONAL(HAVE_SETENV, test x$ac_have_setenv = "xyes")
 
+
+dnl ---------------------------------------------
+dnl cflags and debug cflags
+dnl ---------------------------------------------
+ 
+AC_SUBST(DEBUG_CFLAGS)
+DEBUG_CFLAGS="-g -DDEBUG $CFLAGS"
+
+dnl dummy
+ASFLAGS="$ASFLAGS"
+AC_SUBST(ASFLAGS)
+ 
 
 if test "$GCC" = yes; then
     dnl
@@ -1563,7 +1606,6 @@ case "$host_or_hostalias" in
         case "$host_or_hostalias" in
 	*-*-cygwin) 
           enable_w32dll="no" 
-	  LDFLAGS="-no-undefined @INTLLIBS@ $LDFLAGS"
 	  ;;
 	esac
     else
@@ -1891,7 +1933,7 @@ dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl ---------------------------------------------
 
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) $(THREAD_INCLUDES) $(ZLIB_INCLUDES)'
 AC_SUBST(INCLUDES)
 
 
@@ -2048,7 +2090,11 @@ src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
-src/xine-engine/xineintl.h])
+src/xine-engine/xineintl.h
+win32/Makefile
+win32/contrib/Makefile
+win32/contrib/pthreads/Makefile
+win32/contrib/zlib/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
 
@@ -2436,7 +2482,8 @@ if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
 fi
 
 dnl warn if no X11 plugins will be built
-if test x"$no_x" = "xyes" ; then
+if test x"$no_x" = "xyes" \
+        -a x$SYS != "xmingw32" -a x$SYS = "xcygwin" ; then
   echo
   echo "****************************************************************"
   echo "WARNING! No X11 output plugins will be built."

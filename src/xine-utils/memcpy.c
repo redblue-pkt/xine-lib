@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2003 the xine project
+ * Copyright (C) 2001-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -37,7 +37,7 @@
 #include "ppcasm_string.h"
 #endif
 
-#ifndef _MSC_VER
+#ifdef HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
 
@@ -408,7 +408,7 @@ static struct {
   { NULL, NULL, 0, 0 }
 };
 
-#if defined(ARCH_X86) && !defined(_MSC_VER)
+#if defined(ARCH_X86) && defined(HAVE_SYS_TIMES_H)
 static unsigned long long int rdtsc(int config_flags)
 {
   unsigned long long int x;
@@ -427,12 +427,12 @@ static uint64_t rdtsc(int config_flags)
 {
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
-#ifndef _MSC_VER
+#ifdef HAVE_SYS_TIMES_H
   struct tms tp;
   return times(&tp);
 #else
 	return ((uint64_t)0);
-#endif /* _MSC_VER */
+#endif /* HAVE_SYS_TIMES_H */
 }
 #endif
 

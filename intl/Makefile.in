@@ -117,9 +117,10 @@ libintl.a libgnuintl.a: $(OBJECTS)
 	$(RANLIB) $@
 
 # No -rpath, this is only a convenience library
+# -static is not used because we need link against shared library
 libintl.la libgnuintl.la: $(OBJECTS)
 	$(LIBTOOL) --mode=link \
-	  $(CC) $(CPPFLAGS) $(CFLAGS) $(XCFLAGS) $(LDFLAGS) -static -o $@ \
+	  $(CC) $(CPPFLAGS) $(CFLAGS) $(XCFLAGS) $(LDFLAGS) -o $@ \
 	  $(OBJECTS) @LIBICONV@ \
 	  -no-undefined
 

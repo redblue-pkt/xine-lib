@@ -142,7 +142,7 @@ xineplug_dmx_nsv_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_nsv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_matroska_la_SOURCES = demux_matroska.c ebml.c
-xineplug_dmx_matroska_la_LIBADD = $(XINE_LIB)
+xineplug_dmx_matroska_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS)
 xineplug_dmx_matroska_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_iff_la_SOURCES = demux_iff.c

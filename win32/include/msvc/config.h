@@ -6,12 +6,12 @@
  *    x86 disabled
  *    inline defined to __inline
  *    HAVE_SYS_PARAM_H disabled
- *    XINE_HOMEDIR
  *    XINE_PLUGINDIR
  *    XINE_FONTDIR
  *    XINE_LOCALEDIR
  *    HAVE_DLFCN_H 1
  *    HAVE_SETENV 1 (FIXME: into utils.c)
+ *    define ssize_t as __int64
  */
 
 #if defined(WIN32)
@@ -25,20 +25,6 @@
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
 #endif
-
-/* Ridiculous hack to return valid xine support
- * directories. These should be read from
- * a registry entry set at install time.
- */
-#define XINE_HOMEDIR	exec_path_append_subdir( 0 )
-#define XINE_PLUGINDIR  exec_path_append_subdir( "plugins" )
-#define XINE_FONTDIR  exec_path_append_subdir( "plugins" )
-#define XINE_LOCALEDIR  exec_path_append_subdir( "plugins" )
-
-#define S_ISDIR(m) ((m) & _S_IFDIR)
-#define S_ISREG(m) ((m) & _S_IFREG)
-#define S_ISBLK(m) 0
-#define S_ISCHR(m) 0
 
 #endif
 

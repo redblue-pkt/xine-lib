@@ -1,5 +1,9 @@
 include $(top_srcdir)/misc/Makefile.common
 
+if !WIN32
+  w32dll = libw32dll
+endif
+
 # Order is important be careful changing SUBDIRS
 SUBDIRS = \
 	xine-utils \
@@ -17,7 +21,7 @@ SUBDIRS = \
 	libsputext \
 	libdts \
 	libmad \
-	libw32dll \
+	$(w32dll) \
 	liblpcm \
 	libxinevdec \
 	libxineadec \

@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.63 2004/07/27 18:06:45 mroi Exp $
+ * $Id: input_cdda.c,v 1.64 2004/08/27 19:33:20 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,11 +37,17 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#ifndef _MSC_VER 
-#include <sys/ioctl.h>
-#include <netdb.h>
+#ifdef HAVE_SYS_IOCTL_H
+#  include <sys/ioctl.h>
 #else
-#include <timer.h> /* alarm() */
+/* for WIN32 */
+#  include <winioctl.h>
+#endif
+
+#include <netdb.h>
+
+#ifdef _MSC_VER 
+#  include <timer.h> /* alarm() */
 #endif /* _MSC_VER */
 
 #include <signal.h>
@@ -60,10 +66,6 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "media_helper.h"
-
-#ifdef WIN32
-#include <winioctl.h>
-#endif
 
 #if defined(__sun)
 #define	DEFAULT_CDDA_DEVICE	"/vol/dev/aliases/cdrom0"
@@ -942,6 +944,7 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
 }
 
 
+#ifndef WIN32
 static int network_connect(xine_stream_t *stream,  char *url )
 {
   char *host;
@@ -970,7 +973,7 @@ static int network_connect(xine_stream_t *stream,  char *url )
   }
   return fd;
 }
-                   
+
 static int network_read_cdrom_toc(xine_stream_t *stream, int fd, cdrom_toc *toc) {
 
   char buf[_BUFSIZ];
@@ -1033,6 +1036,8 @@ static int network_read_cdrom_toc(xine_stream_t *stream, int fd, cdrom_toc *toc)
 
   return 0;
 }
+#endif /* WIN32 */
+
 
 static int network_read_cdrom_frames(xine_stream_t *stream, int fd, int first_frame, int num_frames,
   unsigned char data[CD_RAW_FRAME_SIZE]) {
@@ -1812,9 +1817,8 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 
   int fd = -1;
 
-  if ( !cdda_device ) return -1;
-
 #ifndef WIN32
+  if ( !cdda_device ) return -1;
  
   *fdd = -1;
 
@@ -1846,6 +1850,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   return 0;
 
 #else /* WIN32 */
+  if ( !cdda_device ) return -1;
 
   *fdd = -1;
 

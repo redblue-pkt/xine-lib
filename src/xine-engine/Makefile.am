@@ -6,6 +6,16 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool
 lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
+if !HAVE_ZLIB
+INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
+endif
+if WIN32
+DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
+INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
+endif
+if !SETENV
+SETENV_LIB = $(top_builddir)/win32/contrib/libsetenv.la
+endif
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
@@ -17,9 +27,12 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
 
-libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
+libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(INTERNAL_ZLIB_LIB) \
+                          $(DIRENT_LIB) $(INTERNAL_PTHREAD_LIB) \
+                          $(SETENV_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS)
+		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
+                    $(DIRENT_LIB) $(SETENV_LIB)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
@@ -37,4 +50,16 @@ noinst_HEADERS = bswap.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 $(XINEUTILS_LIB):
-	cd $(top_srcdir)/src/xine-utils && $(MAKE) libxineutils.la
+	$(MAKE) -C $(top_builddir)/src/xine-utils libxineutils.la
+
+$(INTERNAL_PTHREAD_LIB):
+	$(MAKE) -C $(top_builddir)/win32/contrib/pthreads libpthread.la
+
+$(INTERNAL_ZLIB_LIB):
+	$(MAKE) -C $(top_builddir)/win32/contrib/zlib libzlib.la
+
+$(DIRENT_LIB):
+	$(MAKE) -C $(top_builddir)/win32/contrib libdirent.la
+
+$(SETENV_LIB):
+	$(MAKE) -C $(top_builddir)/win32/contrib libsetenv.la

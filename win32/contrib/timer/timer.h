@@ -1,6 +1,6 @@
 #include <time.h>
 #include <winsock.h>
-#include "pthread.h"
+#include <pthread.h>
 
 #ifndef _ITIMER_
 #define _ITIMER_

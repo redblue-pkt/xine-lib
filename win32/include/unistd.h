@@ -45,23 +45,43 @@
 #define lstat			stat
 
 #ifndef S_ISDIR
-#define S_ISDIR(A)		( S_IFDIR & A )
+# define S_ISDIR(m) ((m) & _S_IFDIR)
 #endif
 
-#define S_IXUSR			S_IEXEC
-#define S_IXGRP			S_IEXEC
-#define S_IXOTH			S_IEXEC
+#ifndef S_ISDIR
+#  define S_ISREG(m) ((m) & _S_IFREG)
+#endif
+
+#ifndef S_ISDIR
+#  define S_ISBLK(m) 0
+#endif
+
+#ifndef S_ISDIR
+#  define S_ISCHR(m) 0
+#endif
+
+#ifndef S_IXUSR
+#  define S_IXUSR S_IEXEC
+#endif
+
+#ifndef S_IXGRP
+#  define S_IXGRP S_IEXEC
+#endif
+
+#ifndef S_IXOTH
+#  define S_IXOTH S_IEXEC
+#endif
 
 #define  M_PI			3.14159265358979323846  /* pi */
 
 #define bzero( A, B ) memset( A, 0, B )
 
 #ifndef strcasecmp
-#define strcasecmp _stricmp
+#  define strcasecmp _stricmp
 #endif
 
 #ifndef strncasecmp
-#define strncasecmp _strnicmp
+#  define strncasecmp _strnicmp
 #endif
 
 #define snprintf _snprintf

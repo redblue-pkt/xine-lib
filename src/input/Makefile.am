@@ -44,6 +44,12 @@ DVD_CFLAGS = -I$(top_srcdir)/src/input/libdvdnav/
 link_dvdnav = libdvdnav/libdvdnav.la
 endif
 
+# not ported to native Windows
+if !WIN32
+in_rtp = xineplug_inp_rtp.la
+in_dvb = xineplug_inp_dvb.la 
+endif
+
 AM_CFLAGS = -D_LARGEFILE64_SOURCE $(GNOME_VFS_CFLAGS) $(ALSA_CFLAGS) $(DVD_CFLAGS)
 
 lib_LTLIBRARIES = \
@@ -56,11 +62,11 @@ lib_LTLIBRARIES = \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
 	xineplug_inp_pnm.la \
-	xineplug_inp_rtp.la \
+	$(in_rtp) \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la \
 	$(in_pvr) \
-	xineplug_inp_dvb.la \
+	$(in_dvb) \
 	xineplug_inp_cdda.la
 
 

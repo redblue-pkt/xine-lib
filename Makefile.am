@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = 1.3
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc m4 intl po misc include src
+SUBDIRS = doc m4 intl po misc include src win32
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
@@ -85,11 +85,6 @@ install-data-hook:
 	@if test -x "$(top_srcdir)/post-install.sh" ; then \
 	  $(top_srcdir)/post-install.sh ; \
 	fi
-
-
-dist-hook:
-	cp -r $(srcdir)/win32 $(distdir)/win32
-	rm -rf `find $(distdir)/win32 -name CVS`
 
 
 mostlyclean-generic:

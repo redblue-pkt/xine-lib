@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.29 2004/07/25 17:47:01 mroi Exp $
+ * $Id: utils.c,v 1.30 2004/08/27 19:33:37 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -349,7 +349,7 @@ char *exec_path_append_subdir(char *string) {
 const char *xine_get_homedir(void) {
 
 #ifdef WIN32
-	return XINE_HOMEDIR;
+  return exec_path_append_subdir(NULL);
 #else
 
   struct passwd pwd, *pw = NULL;
