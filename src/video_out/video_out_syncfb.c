@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.67 2002/05/02 17:51:47 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.68 2002/05/02 20:32:36 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -326,7 +326,7 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422))
 	write_frame_YUY2(this, frame);
       else
-	 printf("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n");	
+	printf("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n");	
       break;
       
     case IMGFMT_YV12:
@@ -836,7 +836,7 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
 	           
 	syncfb_compute_ideal_size (this);
 */
-     printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)");
+     printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)\n");
      break;
      
     case VO_PROP_CONTRAST:
