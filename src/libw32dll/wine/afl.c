@@ -36,6 +36,7 @@
 #include "msacmdrv.h"
 #include "wineacm.h"
 #include "ext.h"
+#include "debugtools.h"
 
 #include "driver.h"
 

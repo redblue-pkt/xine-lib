@@ -33,7 +33,6 @@ extern void dump_exports(HMODULE hModule);
 /*---------------- END HACKS ---------------*/
 
 //char *extra_ld_library_path = "/usr/lib/win32";
-extern char* win32_def_path;
 
 struct elfdll_image
 {

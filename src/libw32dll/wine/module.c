@@ -130,8 +130,10 @@ static WIN_BOOL MODULE_InitDll( WINE_MODREF *wm, DWORD type, LPVOID lpReserved )
 {
     WIN_BOOL retv = TRUE;
 
+#ifdef LOG
     static LPCSTR typeName[] = { "PROCESS_DETACH", "PROCESS_ATTACH",
                                  "THREAD_ATTACH", "THREAD_DETACH" };
+#endif
     assert( wm );
 
 
@@ -353,7 +355,6 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 {
 	WINE_MODREF *wm = 0;
 	char* listpath[] = { "", "", "/usr/lib/win32", "/usr/local/lib/win32", 0 };
-	extern char* win32_def_path;
 	char path[512];
 	char checked[2000];
         int i = -1;
@@ -428,10 +429,10 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 
 //	    dispatch_addr = GetProcAddress(wm->module, "theQuickTimeDispatcher", TRUE);
 	    dispatch_addr = PE_FindExportedFunction(wm, "theQuickTimeDispatcher", TRUE);
-	    if (dispatch_addr == 0x62924c30)
+	    if (dispatch_addr == (void *)0x62924c30)
 	    {
 	        printf ("wine/module: QuickTime5 DLLs found\n");
-		ptr = 0x62b75ca4; // dispatch_ptr
+		ptr = (void **)0x62b75ca4; // dispatch_ptr
 	        for (i=0;i<5;i++)  ((char*)0x6299e842)[i]=0x90; // make_new_region ?
 	        for (i=0;i<28;i++) ((char*)0x6299e86d)[i]=0x90; // call__call_CreateCompatibleDC ?
 		for (i=0;i<5;i++)  ((char*)0x6299e898)[i]=0x90; // jmp_to_call_loadbitmap ?
@@ -456,10 +457,10 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 		((char *)0x6288e0ae)[0] = 0xc3; // font/dc remover
 		for (i=0;i<24;i++) ((char*)0x6287a1ad)[i]=0x90; // destroy window
 #endif
-	    } else if (dispatch_addr == 0x6693b330)
+	    } else if (dispatch_addr == (void *)0x6693b330)
 	    {
 	        printf ("wine/module: QuickTime6 DLLs found\n");
-		ptr = 0x66bb9524; // dispatcher_ptr
+		ptr = (void **)0x66bb9524; // dispatcher_ptr
 		for (i=0;i<5;i++)  ((char *)0x66a730cc)[i]=0x90; // make_new_region
 		for (i=0;i<28;i++) ((char *)0x66a730f7)[i]=0x90; // call__call_CreateCompatibleDC
 		for (i=0;i<5;i++)  ((char *)0x66a73122)[i]=0x90; // jmp_to_call_loadbitmap
@@ -467,9 +468,9 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 		for (i=0;i<96;i++) ((char *)0x66aac852)[i]=0x90; // disable threads
 	    } else
 	    {
-	        printf ("wine/module: Unsupported QuickTime version (0x%x)\n",
+	        printf ("wine/module: Unsupported QuickTime version (%p)\n",
 			dispatch_addr);
-		return NULL;
+		return 0;
 	    }
 
 	    printf ("wine/module: QuickTime.qts patched!!! old entry=%p\n",ptr[0]);
@@ -722,15 +723,15 @@ static int report_func(void *stack_base, int stack_size, reg386_t *reg, u_int32_
   // memory management:
   case 0x150011: //NewPtrClear
   case 0x150012: //NewPtrSysClear
-      reg->eax=malloc(((u_int32_t *)stack_base)[1]);
-      memset(reg->eax,0,((u_int32_t *)stack_base)[1]);
+      reg->eax=(u_int32_t)malloc(((u_int32_t *)stack_base)[1]);
+      memset((void *)reg->eax,0,((u_int32_t *)stack_base)[1]);
 #ifdef DEBUG_QTX_API
       printf("%*sLEAVE(%d): EMULATED! 0x%X\n",ret_i*2,"",ret_i, reg->eax);
 #endif
       return 1;
   case 0x15000F: //NewPtr
   case 0x150010: //NewPtrSys
-      reg->eax=malloc(((u_int32_t *)stack_base)[1]);
+      reg->eax=(u_int32_t)malloc(((u_int32_t *)stack_base)[1]);
 #ifdef DEBUG_QTX_API
       printf("%*sLEAVE(%d): EMULATED! 0x%X\n",ret_i*2,"",ret_i, reg->eax);
 #endif
@@ -739,7 +740,7 @@ static int report_func(void *stack_base, int stack_size, reg386_t *reg, u_int32_
       if(((u_int32_t *)stack_base)[1]>=0x60000000)
           printf("WARNING! Invalid Ptr handle!\n");
       else
-          free(((u_int32_t *)stack_base)[1]);
+          free((void *)(((u_int32_t *)stack_base)[1]));
       reg->eax=0;
 #ifdef DEBUG_QTX_API
       printf("%*sLEAVE(%d): EMULATED! 0x%X\n",ret_i*2,"",ret_i, reg->eax);
@@ -840,8 +841,10 @@ static int report_func(void *stack_base, int stack_size, reg386_t *reg, u_int32_
 
 static int report_func_ret(void *stack_base, int stack_size, reg386_t *reg, u_int32_t *flags)
 {
+#ifdef DEBUG_QTX_API
   int i;
   short err;
+#endif
 
   // restore ret addr:
   --ret_i;
@@ -953,8 +956,8 @@ FARPROC MODULE_GetProcAddress(
 	fprintf(stderr,"theQuickTimeDispatcher caught -> %p\n",retproc);
       report_entry = report_func;
       report_ret   = report_func_ret;
-      wrapper_target=retproc;
-      retproc=wrapper;
+      wrapper_target=(void *)retproc;
+      retproc=(void *)wrapper;
     }
 
     }

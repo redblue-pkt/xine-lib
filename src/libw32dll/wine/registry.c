@@ -15,6 +15,8 @@
 #include "ext.h"
 #include "registry.h"
 
+#include "debugtools.h"
+
 #ifdef XINE_MAJOR
 #include "xineutils.h"
 #endif
@@ -180,6 +182,7 @@ void free_registry(void)
 }
 
 
+#if 0
 static reg_handle_t* find_handle_by_name(const char* name)
 {
 	reg_handle_t* t;
@@ -192,6 +195,7 @@ static reg_handle_t* find_handle_by_name(const char* name)
 	}
 	return 0;
 }
+#endif
 static struct reg_value* find_value_by_name(const char* name)
 {
 	int i;

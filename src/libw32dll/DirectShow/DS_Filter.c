@@ -236,7 +236,7 @@ DS_Filter* DS_FilterCreate(const char* dllname, const GUID* id,
     if (!init)
     {
 	DS_Filter_Destroy(This);
-	printf("Warning: DS_Filter() %s.  (DLL=%.200s, r=0x%x)\n", em, dllname, result);
+	printf("Warning: DS_Filter() %s.  (DLL=%.200s, r=0x%x)\n", em, dllname, (unsigned)result);
         This = 0;
     }
     return This;

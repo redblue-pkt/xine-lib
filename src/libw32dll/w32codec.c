@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.135 2003/12/14 22:13:24 siggi Exp $
+ * $Id: w32codec.c,v 1.136 2003/12/24 16:55:36 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -132,7 +132,6 @@ static GUID wmav_clsid =
 static pthread_mutex_t win32_codec_mutex;
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 static char*   win32_codec_name; 
-extern char*   win32_def_path;
 
 #define VIDEOBUFSIZE 128*1024
 

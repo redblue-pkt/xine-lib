@@ -7,6 +7,8 @@
 #include "winbase.h"
 #include "com.h"
 
+extern char* win32_def_path;
+
 extern void my_garbagecollection(void);
 
 typedef struct {

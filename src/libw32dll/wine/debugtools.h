@@ -12,8 +12,13 @@
 
 struct _GUID;
 
-#define TRACE __vprintf
-#define dbg_printf __vprintf
+#ifdef LOG
+#  define TRACE __vprintf
+#  define dbg_printf __vprintf
+#else
+#  define TRACE(...)
+#  define dbg_printf(...)
+#endif
 
 /* Internal definitions (do not use these directly) */
 
@@ -66,10 +71,12 @@ static inline LPCSTR debugstr_a( LPCSTR s )  { return debugstr_an( s, 80 ); }
 static inline LPCSTR debugstr_w( LPCWSTR s ) { return debugstr_wn( s, 80 ); }
 #endif
 
+#if 0 /* dbg_printf already defined as a macro */
 #ifdef __GNUC__
 extern int dbg_printf(const char *format, ...) __attribute__((format (printf,1,2)));
 #else
 extern int dbg_printf(const char *format, ...);
+#endif
 #endif
 
 #define TRACE_(X) TRACE

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.29 2003/12/14 22:13:24 siggi Exp $
+ * $Id: qt_decoder.c,v 1.30 2003/12/24 16:55:35 mroi Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -45,6 +45,7 @@
 #include "buffer.h"
 
 #include "qtx/qtxsdk/components.h"
+#include "wine/win32.h"
 #include "wine/windef.h"
 #include "wine/ldt_keeper.h"
 
@@ -74,7 +75,6 @@ int       WINAPI FreeLibrary(HMODULE);
  */
 static pthread_once_t   once_control = PTHREAD_ONCE_INIT;
 static pthread_mutex_t  win32_codec_mutex;
-extern char            *win32_def_path;
 
 static void init_routine(void) {
 
@@ -789,20 +789,20 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
     return;
   }
 
-  this->InitializeQTML = GetProcAddress (this->qtml_dll, "InitializeQTML");
-  this->EnterMovies = GetProcAddress (this->qtml_dll, "EnterMovies");
-  this->FindNextComponent = GetProcAddress (this->qtml_dll, "FindNextComponent");
-  this->CountComponents = GetProcAddress (this->qtml_dll, "CountComponents");
-  this->GetComponentInfo = GetProcAddress (this->qtml_dll, "GetComponentInfo");
-  this->OpenComponent = GetProcAddress (this->qtml_dll, "OpenComponent");
-  this->ImageCodecInitialize = GetProcAddress (this->qtml_dll, "ImageCodecInitialize");
-  this->ImageCodecGetCodecInfo = GetProcAddress (this->qtml_dll, "ImageCodecGetCodecInfo");
-  this->ImageCodecBeginBand = GetProcAddress (this->qtml_dll, "ImageCodecBeginBand");
-  this->ImageCodecPreDecompress = GetProcAddress (this->qtml_dll, "ImageCodecPreDecompress");
-  this->ImageCodecBandDecompress = GetProcAddress (this->qtml_dll, "ImageCodecBandDecompress");
-  this->GetGWorldPixMap = GetProcAddress (this->qtml_dll, "GetGWorldPixMap");
-  this->QTNewGWorldFromPtr = GetProcAddress (this->qtml_dll, "QTNewGWorldFromPtr");
-  this->NewHandleClear = GetProcAddress (this->qtml_dll, "NewHandleClear");
+  this->InitializeQTML = (OSErr(*)(long))GetProcAddress(this->qtml_dll, "InitializeQTML");
+  this->EnterMovies = (OSErr(*)(void))GetProcAddress(this->qtml_dll, "EnterMovies");
+  this->FindNextComponent = (Component(*)(Component,ComponentDescription*))GetProcAddress(this->qtml_dll, "FindNextComponent");
+  this->CountComponents = (long(*)(ComponentDescription*))GetProcAddress(this->qtml_dll, "CountComponents");
+  this->GetComponentInfo = (OSErr(*)(Component,ComponentDescription*,Handle,Handle,Handle))GetProcAddress(this->qtml_dll, "GetComponentInfo");
+  this->OpenComponent = (ComponentInstance(*)(Component))GetProcAddress(this->qtml_dll, "OpenComponent");
+  this->ImageCodecInitialize = (ComponentResult(*)(ComponentInstance,ImageSubCodecDecompressCapabilities*))GetProcAddress(this->qtml_dll, "ImageCodecInitialize");
+  this->ImageCodecGetCodecInfo = (ComponentResult(*)(ComponentInstance,CodecInfo*))GetProcAddress(this->qtml_dll, "ImageCodecGetCodecInfo");
+  this->ImageCodecBeginBand = (ComponentResult(*)(ComponentInstance,CodecDecompressParams*,ImageSubCodecDecompressRecord*,long))GetProcAddress(this->qtml_dll, "ImageCodecBeginBand");
+  this->ImageCodecPreDecompress = (ComponentResult(*)(ComponentInstance,CodecDecompressParams*))GetProcAddress(this->qtml_dll, "ImageCodecPreDecompress");
+  this->ImageCodecBandDecompress = (ComponentResult(*)(ComponentInstance,CodecDecompressParams*))GetProcAddress(this->qtml_dll, "ImageCodecBandDecompress");
+  this->GetGWorldPixMap = (PixMapHandle(*)(GWorldPtr))GetProcAddress(this->qtml_dll, "GetGWorldPixMap");
+  this->QTNewGWorldFromPtr = (OSErr(*)(GWorldPtr*,OSType,const Rect*,CTabHandle,void*,GWorldFlags,void*,long))GetProcAddress(this->qtml_dll, "QTNewGWorldFromPtr");
+  this->NewHandleClear = (OSErr(*)(Size))GetProcAddress(this->qtml_dll, "NewHandleClear");
     
   if (!this->InitializeQTML || !this->EnterMovies || !this->FindNextComponent 
       || !this->ImageCodecBandDecompress){
@@ -938,7 +938,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   this->decpar.matrix           = 0;
   this->decpar.capabilities     = &this->codeccap;
   this->decpar.accuracy         = codecNormalQuality;
-  this->decpar.port             = this->OutBufferGWorld;
+  this->decpar.port             = (CGrafPtr)this->OutBufferGWorld;
   this->decpar.srcRect          = this->OutBufferRect;
       
   this->decpar.transferMode     = srcCopy;
@@ -1015,7 +1015,7 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       if (cres&0xFFFF){
 	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		"qt_video: ImageCodecBandDecompress cres=0x%X (-0x%X) %d :(\n", cres,-cres,cres);
+		"qt_video: ImageCodecBandDecompress cres=0x%lX (-0x%lX) %ld :(\n", cres,-cres,cres);
       }
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
