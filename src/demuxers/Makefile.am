@@ -125,7 +125,7 @@ xineplug_dmx_yuv_frames_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_slave_la_SOURCES = demux_slave.c
-xineplug_dmx_slave_la_LIBADD = $(XINELIB)
+xineplug_dmx_slave_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_slave_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_image_la_SOURCES = demux_image.c
