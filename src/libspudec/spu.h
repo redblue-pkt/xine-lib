@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.5 2001/09/27 02:11:16 miguelfreitas Exp $
+ * $Id: spu.h,v 1.6 2001/10/20 17:51:59 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -80,6 +80,7 @@ typedef struct {
   int modified;     /* Was the sub-picture modified? */
   int visible;      /* Must the sub-picture be shown? */
   int menu;         /* This overlay is a menu */
+  int delay;        /* Delay in 90Khz / 1000 */
   int b_show;       /* is a button shown? */
   int need_clut;    /* doesn't have the right clut yet */
   int cur_colors[4];/* current 4 colors been used */
@@ -87,11 +88,11 @@ typedef struct {
   uint32_t clut[16];
 } spu_state_t;
 
-int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
-int spuNextEvent (spu_state_t *state, spu_seq_t* seq, int pts);
-void spuDoCommands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
-void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
-void spuDiscoverClut (spu_state_t *state, vo_overlay_t *ovl);
-void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl);
+int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
+int spu_next_event (spu_state_t *state, spu_seq_t* seq, int pts);
+void spu_do_commands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spu_discover_clut (spu_state_t *state, vo_overlay_t *ovl);
+void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl);
 
 #endif

@@ -1,29 +1,7 @@
-/*****
-*
+/*
+ *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
- * This file is part of xine
- * This file was originally part of the OMS program.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by 
-* the Free Software Foundation; either version 2, or (at your option)
-* any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; see the file COPYING.  If not, write to
-* the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-*
-* $Id: spu.c,v 1.15 2001/10/09 22:20:11 miguelfreitas Exp $
-*
-*****/
-
-/*
  * spu.c - converts DVD subtitles to an XPM image
  *
  * Mostly based on hard work by:
@@ -40,11 +18,13 @@
  *		... and yes, it works now with oms
  *		added tranparency (provided by the SPU hdr) 
  *		changed structures for easy porting to MGAs DVD mode
+ * This file is part of xine
+ * This file was originally part of the OMS program.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -52,9 +32,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *                                                     
+ * along with this program; see the file COPYING.  If not, write to
+ * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id: spu.c,v 1.16 2001/10/20 17:51:58 jcdutton Exp $
+ *
  */
 
 #include <stdio.h>
@@ -92,9 +74,10 @@
 
 
 /* Return value: reassembly complete = 1 */
-int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
+int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
 {
-  LOG (LOG_DEBUG, "pkt_len: %d", pkt_len);
+  LOG (LOG_DEBUG, "pkt_len: %d\n", pkt_len);
+  LOG (LOG_DEBUG, "Reassembly: start=%d seq=%p\n", start,seq);
 
   if (start) {
     seq->seq_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
@@ -109,8 +92,8 @@ int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
     }
     seq->ra_offs = 0;
     
-    LOG (LOG_DEBUG, "buf_len: %d", seq->buf_len);
-    LOG (LOG_DEBUG, "cmd_off: %d", seq->cmd_offs);
+    LOG (LOG_DEBUG, "buf_len: %d\n", seq->buf_len);
+    LOG (LOG_DEBUG, "cmd_off: %d\n", seq->cmd_offs);
   }
 
   if (seq->ra_offs < seq->buf_len) {
@@ -129,7 +112,7 @@ int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
   return 0;	
 }
 
-int spuNextEvent(spu_state_t *state, spu_seq_t* seq, int pts)
+int spu_next_event(spu_state_t *state, spu_seq_t* seq, int pts)
 {
   uint8_t *buf = state->cmd_ptr;
 
@@ -149,16 +132,23 @@ int spuNextEvent(spu_state_t *state, spu_seq_t* seq, int pts)
 #define CMD_SPU_SET_ALPHA	0x04
 #define CMD_SPU_SET_SIZE	0x05
 #define CMD_SPU_SET_PXD_OFFSET	0x06
+#define CMD_SPU_WIPE		0x07  /* Not currently implemented */
 #define CMD_SPU_EOF		0xff
 
-void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
+void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 {
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
 
-  next_seq = seq->buf + (buf[0] << 8) + buf[1];
-  buf += 2;
+  LOG (LOG_DEBUG, "SPU EVENT\n");
+  
+  state->delay = (buf[0] << 8) + buf[1];
+  LOG (LOG_DEBUG, "\tdelay=%d\n",state->delay);
+  next_seq = seq->buf + (buf[2] << 8) + buf[3];
+  buf += 4;
 
+/* if next equals current, this is the last one
+ */
   if (state->cmd_ptr >= next_seq)
     next_seq = seq->buf + seq->seq_len; /* allow to run until end */
 
@@ -167,29 +157,31 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   while (buf < next_seq && *buf != CMD_SPU_EOF) {
     switch (*buf) {
     case CMD_SPU_SHOW:		/* show subpicture */
-      LOG (LOG_DEBUG, "\tshow subpicture");
+      LOG (LOG_DEBUG, "\tshow subpicture\n");
       state->visible = 1;
       buf++;
       break;
       
     case CMD_SPU_HIDE:		/* hide subpicture */
-      LOG (LOG_DEBUG, "\thide subpicture");
-      state->visible = 0;
+      LOG (LOG_DEBUG, "\thide subpicture\n");
+      state->visible = 2;
       buf++;
       break;
       
     case CMD_SPU_SET_PALETTE: {	/* CLUT */
       spu_clut_t *clut = (spu_clut_t *) (buf+1);
       
-      state->cur_colors[3] = clut->entry0;
+/*      state->cur_colors[3] = clut->entry0;
       state->cur_colors[2] = clut->entry1;
       state->cur_colors[1] = clut->entry2;
       state->cur_colors[0] = clut->entry3;
-      ovl->color[3] = state->clut[clut->entry0];
+ */
+/* This is a bit out of context for now */
+      ovl->color[3] = state->clut[clut->entry0]; 
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
       ovl->color[0] = state->clut[clut->entry3];
-      LOG (LOG_DEBUG, "\tclut [%x %x %x %x]",
+      LOG (LOG_DEBUG, "\tclut [%x %x %x %x]\n",
 	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
       state->modified = 1;
       buf += 3;
@@ -197,6 +189,7 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     }	
     case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
       spu_clut_t *trans = (spu_clut_t *) (buf+1);
+/* This should go into state for now */
       
       ovl->trans[3] = trans->entry0;
       ovl->trans[2] = trans->entry1;
@@ -210,28 +203,38 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     }
     
     case CMD_SPU_SET_SIZE:		/* image coordinates */
-      state->o_left  = (buf[1] << 4) | (buf[2] >> 4);
+/*    state->o_left  = (buf[1] << 4) | (buf[2] >> 4);
       state->o_right = (((buf[2] & 0x0f) << 8) | buf[3]);
 
       state->o_top    = (buf[4]  << 4) | (buf[5] >> 4);
       state->o_bottom = (((buf[5] & 0x0f) << 8) | buf[6]);
+ */
+      ovl->x      = (buf[1] << 4) | (buf[2] >> 4);
+      ovl->y      = (buf[4]  << 4) | (buf[5] >> 4);
+      ovl->width  = (((buf[2] & 0x0f) << 8) | buf[3]) - ovl->x + 1; 
+      ovl->height = (((buf[5] & 0x0f) << 8) | buf[6]) - ovl->y + 1;
+      ovl->clip_top    = 0;
+      ovl->clip_bottom = ovl->height - 1;
+      ovl->clip_left   = 0;
+      ovl->clip_right  = ovl->width - 1;
 
-      LOG (LOG_DEBUG, "\ttop = %d bottom = %d left = %d right = %d",
-	   state->o_left, state->o_right, state->o_top, state->o_bottom);
+      LOG (LOG_DEBUG, "\tx = %d y = %d width = %d height = %d\n",
+	   ovl->x, ovl->y, ovl->width, ovl->height );
       state->modified = 1;
       buf += 7;
       break;
       
-    case CMD_SPU_SET_PXD_OFFSET:	/* image 1 / image 2 offsets */
+    case CMD_SPU_SET_PXD_OFFSET:	/* image top[0] field / image bottom[1] field*/
       state->field_offs[0] = (((u_int)buf[1]) << 8) | buf[2];
       state->field_offs[1] = (((u_int)buf[3]) << 8) | buf[4];
-      LOG (LOG_DEBUG, "\toffset[0] = %d offset[1] = %d",
+      LOG (LOG_DEBUG, "\toffset[0] = %d offset[1] = %d\n",
 	   state->field_offs[0], state->field_offs[1]);
       state->modified = 1;
       buf += 5;
       break;
       
     case CMD_SPU_MENU:
+      LOG (LOG_DEBUG, "\tForce Display/Menu\n");
       state->menu = 1;
       buf++;
       break;
@@ -244,7 +247,13 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   }
   if (next_seq >= seq->buf + seq->seq_len)
     seq->finished = 1;       /* last sub-sequence */
+  
   state->next_pts = -1;      /* invalidate timestamp */
+
+
+  state->cmd_ptr = next_seq;
+
+
 }
 
 static uint8_t *bit_ptr[2];
@@ -294,7 +303,7 @@ static int spu_next_line (vo_overlay_t *spu)
   return 0;
 }
 
-void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
+void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 {
   rle_elem_t *rle;
 
@@ -304,26 +313,27 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   put_x = put_y = 0;
   get_bits (0);	/* Reset/init bit code */
 
-  ovl->x      = state->o_left;
-  ovl->y      = state->o_top;
-  ovl->width  = state->o_right - state->o_left + 1;
-  ovl->height = state->o_bottom - state->o_top + 1;
+/*  ovl->x      = state->o_left;
+ *  ovl->y      = state->o_top;
+ *  ovl->width  = state->o_right - state->o_left + 1;
+ *  ovl->height = state->o_bottom - state->o_top + 1;
 
-  ovl->clip_top    = 0;
-  ovl->clip_bottom = ovl->height - 1;
-  ovl->clip_left   = 0;
-  ovl->clip_right  = ovl->width - 1;
+ *  ovl->clip_top    = 0;
+ *  ovl->clip_bottom = ovl->height - 1;
+ *  ovl->clip_left   = 0;
+ *  ovl->clip_right  = ovl->width - 1;
+ */
 
-  spuUpdateMenu(state, ovl);
+/*  spu_update_menu(state, ovl); FIXME: What is this for? */
 
   /* buffer is believed to be sufficiently large
    * with cmd_offs * 2 * sizeof(rle_elem_t), is that true? */
-  if (seq->cmd_offs * 2 * sizeof(rle_elem_t) > ovl->data_size) {
-    if (ovl->rle)
-      free(ovl->rle);
+//  if (seq->cmd_offs * 2 * sizeof(rle_elem_t) > ovl->data_size) {
+//    if (ovl->rle)
+//      free(ovl->rle);
     ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
     ovl->rle = malloc(ovl->data_size);
-  }
+//  }
 
   state->modified = 0; /* mark as already processed */
   rle = ovl->rle;
@@ -371,7 +381,7 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
    MINFOUND is the number of ocurrences threshold.
 */
 #define MINFOUND 25
-void spuDiscoverClut(spu_state_t *state, vo_overlay_t *ovl)
+void spu_discover_clut(spu_state_t *state, vo_overlay_t *ovl)
 {
   int bg,c;
   int seqcolor[10];
@@ -448,7 +458,7 @@ void spuDiscoverClut(spu_state_t *state, vo_overlay_t *ovl)
 }
 
 
-void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl) {
+void spu_update_menu (spu_state_t *state, vo_overlay_t *ovl) {
 
   if (!state->menu)
     return;

@@ -29,7 +29,7 @@
  *
  * for a dynamic plugin make sure you provide this function call:
  * spu_decoder_t *init_spu_decoder_plugin (int iface_version,
- *                                         xine_t *xine);
+ *                                             xine_t *xine);
  */
 
 typedef struct spu_decoder_s spu_decoder_t;
