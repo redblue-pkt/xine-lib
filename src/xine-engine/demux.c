@@ -65,6 +65,11 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
   }
+  
+  /* FIXME: Messing with the clock is bad as long as the clock is global to all streams.
+   * But it is currently the best solution to have good seeking performance. */
+  stream->xine->clock->adjust_clock(stream->xine->clock,
+    stream->xine->clock->get_current_time(stream->xine->clock) + 30 * 90000 );
 }
 
 
