@@ -6,7 +6,7 @@ retrieving revision 1.87
 diff -u -r1.87 common.h
 --- libavcodec/common.h	26 Mar 2003 10:39:34 -0000	1.87
 +++ libavcodec/common.h	26 Mar 2003 13:49:18 -0000
-@@ -177,11 +177,19 @@
+@@ -178,11 +178,19 @@
  
  #    else
  
@@ -38,7 +38,7 @@ retrieving revision 1.60
 diff -u -r1.60 dsputil.h
 --- libavcodec/dsputil.h	15 Mar 2003 02:06:09 -0000	1.60
 +++ libavcodec/dsputil.h	26 Mar 2003 13:49:18 -0000
-@@ -27,9 +27,14 @@
+@@ -29,9 +29,14 @@
  
  #include "common.h"
  #include "avcodec.h"
@@ -54,7 +54,7 @@ diff -u -r1.60 dsputil.h
  /* dct code */
  typedef short DCTELEM;
  //typedef int DCTELEM;
-@@ -257,21 +262,25 @@
+@@ -310,21 +315,25 @@
  
  #undef emms_c
  
@@ -497,13 +497,31 @@ diff -u -r1.83 postprocess.c
  #include "postprocess.h"
  #include "postprocess_internal.h"
  
-@@ -151,37 +152,6 @@
- static inline void unusedVariableWarningFixer()
- {
- 	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
--}
--#endif
--
+@@ -104,13 +105,13 @@
+ //#define NUM_BLOCKS_AT_ONCE 16 //not used yet
+ 
+ #ifdef ARCH_X86
+-static uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
+-static uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
+-static uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
+-static uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
+-static uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
+-static uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
+-static uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
++static const uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
++static const uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
++             uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
++static const uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
++static const uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
++static const uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
++static const uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
+ #endif
+ 
+ 
+@@ -159,37 +160,6 @@
+ }
+ #endif
+ 
 -
 -#ifdef ARCH_X86
 -static inline void prefetchnta(void *p)
@@ -532,9 +550,12 @@ diff -u -r1.83 postprocess.c
 -	asm volatile(	"prefetcht2 (%0)\n\t"
 -		: : "r" (p)
 -	);
- }
- #endif
+-}
+-#endif
+-
+ // The horizontal Functions exist only in C cuz the MMX code is faster with vertical filters and transposing
  
+ /**
 Index: libavcodec/mjpeg.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mjpeg.c,v
@@ -655,3 +676,19 @@ diff -u -r1.29 h263.c
      }
  
  //printf("User Data: %s\n", buf);
+Index: libavcodec/i386/motion_est_mmx.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavcodec/i386/motion_est_mmx.c,v
+retrieving revision 1.8
+diff -u -r1.8 motion_est_mmx.c
+--- libavcodec/i386/motion_est_mmx.c	26 Mar 2003 14:44:17 -0000	1.8
++++ libavcodec/i386/motion_est_mmx.c	2 Jul 2003 14:31:19 -0000
+@@ -26,7 +26,7 @@
+ 0x0002000200020002,
+ };
+ 
+-static __attribute__ ((aligned(8))) uint64_t bone= 0x0101010101010101LL;
++static const __attribute__ ((aligned(8))) uint64_t bone= 0x0101010101010101LL;
+ 
+ static inline void sad8_mmx(uint8_t *blk1, uint8_t *blk2, int stride, int h)
+ {

@@ -13,6 +13,12 @@ install-data-hook:
 	  fi \
 	fi
 
+pass1:
+	@$(MAKE) MULTIPASS_CFLAGS="$(PASS1_CFLAGS)"
+
+pass2:
+	@$(MAKE) MULTIPASS_CFLAGS="$(PASS2_CFLAGS)"
+
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 

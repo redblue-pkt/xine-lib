@@ -31,7 +31,7 @@
 #endif
 
 /* disable GNU __attribute__ extension, when not compiling with GNU C */
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined (__ICC)
 #ifndef ATTRIBUTE_PACKED
 #define	ATTRIBUTE_PACKED 1
 #endif 

@@ -63,7 +63,7 @@
  *   Modified for readability by Nick Kurshev
 */
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__ICC)
 #if defined(__alpha__)
 #include "sysdep/AsmMacros_alpha.h"
 #elif defined(__ia64__)

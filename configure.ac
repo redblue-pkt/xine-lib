@@ -930,6 +930,13 @@ if test "$GCC" = yes; then
     dnl
     ANSI_FLAGS="-std=gnu89"
     AC_SUBST(ANSI_FLAGS)
+    dnl
+    dnl Multipass compilation
+    dnl
+    AC_TRY_CFLAGS("-fprofile-arcs", PASS1_CFLAGS="$PASS1_CFLAGS -fprofile_arcs",)
+    AC_TRY_CFLAGS("-fbranch-probabilities", PASS2_CFLAGS="$PASS2_CFLAGS -fbranch-probabilities",)
+    AC_SUBST(PASS1_CFLAGS)
+    AC_SUBST(PASS2_CFLAGS)
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -937,7 +944,7 @@ AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
 
 dnl Common cflags for all platforms
-CFLAGS="$CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+CFLAGS="$CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS)"
 DEBUG_CFLAGS="$DEBUG_CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 
 enable_w32dll="no"
@@ -960,7 +967,9 @@ case "$host_or_hostalias" in
 
 
   i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-* | pentium*)
-    if test "$GCC" = yes; then
+    if test "$GCC" = yes -o "${CC##*/}x" = "iccx" ; then
+
+      if test "$GCC" = yes ; then
 	dnl Check for gcc cpu optimization support
 	AC_TRY_CFLAGS("-mcpu=i386", 
 		sarchopt="-mcpu",
@@ -1031,7 +1040,15 @@ case "$host_or_hostalias" in
 	    fi
 	    ]
 	fi
-
+      else
+	dnl we have the Intel compiler
+	CFLAGS="$CFLAGS -unroll -ipo -ipo_obj -O3"
+	PASS1_CFLAGS="$PASS1_CFLAGS -prof_genx -prof_dir \$(PWD)/\$(top_builddir)/"
+	PASS2_CFLAGS="$PASS2_CFLAGS -prof_use -prof_dir \$(PWD)/\$(top_builddir)/"
+	AC_SUBST(PASS1_CFLAGS)
+	AC_SUBST(PASS2_CFLAGS)
+      fi
+	
     	dnl enable x86 specific parts of the code
 	dnl
 	dnl all of this stuff needs gcc/gas; it uses gnu c compiler extensions

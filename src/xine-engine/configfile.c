@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.48 2003/07/10 14:14:40 mroi Exp $
+ * $Id: configfile.c,v 1.49 2003/07/12 12:31:14 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdio.h>

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.28 2003/07/04 04:09:23 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.29 2003/07/12 12:31:14 mroi Exp $
  */
 
 /**************************************************************************
@@ -104,6 +104,10 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 #ifdef USE_V4L2
+  #ifdef __ICC
+    /* __u64 will be undefined for icc, so we handle it here */
+    #define __u64 unsigned long long
+  #endif
   #include "videodev2.h"
 #else
   #include <linux/videodev.h>

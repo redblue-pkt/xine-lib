@@ -105,13 +105,13 @@ try to unroll inner for(x=0 ... loop to avoid these damn if(x ... checks
 //#define NUM_BLOCKS_AT_ONCE 16 //not used yet
 
 #ifdef ARCH_X86
-static uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
-static uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
-static uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
-static uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
-static uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
-static uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
-static uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
+static const uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
+static const uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
+             uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
+static const uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
+static const uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
+static const uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
+static const uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
 #endif
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.55 2003/07/12 03:10:15 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.56 2003/07/12 12:31:13 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -830,7 +830,7 @@ extern int v_b_table[256];
 void xine_print_trace(void);
 
 
-#ifdef DEBUG                                                       
+#ifdef DEBUG
 # define XINE_ABORT()                            \
   abort();
 #else
@@ -842,7 +842,7 @@ void xine_print_trace(void);
  * Provide assert like feature with better description of failure 
  * Thanks to Mark Thomas 
  */ 
-#if __GNUC__
+#ifdef __GNUC__
 # define XINE_ASSERT(exp, desc, args...)                            \
   do {                                                              \
     if (!(exp)) {                                                   \
@@ -910,17 +910,17 @@ void xine_print_trace(void);
         printf( fmt, ##args );        \
       }while(0)
   #else
-    #define lprintf(fmt, ...)         \
+    #define lprintf(...)              \
       do{                             \
         LONG_LOG_MODULE_STRING        \
-        printf( fmt, __VA_ARGS__ );   \
+        printf( __VA_ARGS__ );        \
       }while(0)
   #endif /* __GNUC__ */
 #else
   #ifdef __GNUC__
     #define lprintf(fmt, args...)     ;
   #else
-    #define lprintf(fmt, ...)         ;
+    #define lprintf(...)              ;
   #endif /* __GNUC__ */
 #endif /* LOG */
 
@@ -933,11 +933,11 @@ void xine_print_trace(void);
       }                                  \
     }while(0)
 #else
-  #define llprintf(cat, fmt, ...)        \
+  #define llprintf(cat, ...)             \
     do{                                  \
       if(cat){                           \
         LONG_LOG_MODULE_STRING           \
-        printf( fmt, __VA_ARGS__ );      \
+        printf( __VA_ARGS__ );           \
       }                                  \
     }while(0)
 #endif /* __GNUC__ */
@@ -951,11 +951,11 @@ void xine_print_trace(void);
       }                                         \
     } while(0)
 #else
-  #define xprintf(xine, verbose, fmt, ...)      \
+  #define xprintf(xine, verbose, ...)           \
     do {                                        \
       if((xine)->verbosity >= verbose){         \
         LOG_MODULE_STRING                       \
-        printf(fmt, __VA_ARGS__);               \
+        printf(__VA_ARGS__);                    \
       }                                         \
     } while(0)
 #endif /* __GNUC__ */

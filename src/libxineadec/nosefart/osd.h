@@ -20,14 +20,14 @@
 ** osd.h
 **
 ** O/S dependent routine defintions (must be customized)
-** $Id: osd.h,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: osd.h,v 1.2 2003/07/12 12:31:14 mroi Exp $
 */
 
 #ifndef _OSD_H_
 #define _OSD_H_
 
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__ICC)
 #define  __PACKED__  __attribute__ ((packed))
 #define  PATH_SEP    '/'
 #ifdef __DJGPP__
@@ -79,6 +79,10 @@ extern void osd_shutdown(void);
 
 /*
 ** $Log: osd.h,v $
+** Revision 1.2  2003/07/12 12:31:14  mroi
+** - adding support for the Intel compiler icc
+** - general multipass compilation make targets
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **

@@ -32,7 +32,7 @@
 #undef PRAGMA_PACK_BEGIN 
 #undef PRAGMA_PACK_END
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || defined(__ICC)
 #define ATTRIBUTE_PACKED __attribute__ ((packed))
 #define PRAGMA_PACK 0
 #endif

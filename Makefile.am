@@ -41,6 +41,13 @@ docs:
 	@cd doc && $(MAKE) $@
 
 
+pass1:
+	@$(MAKE) MULTIPASS_CFLAGS='$(PASS1_CFLAGS)'
+
+pass2:
+	@$(MAKE) MULTIPASS_CFLAGS='$(PASS2_CFLAGS)'
+
+
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit;\

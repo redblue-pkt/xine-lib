@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.169 2003/05/31 18:33:31 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.170 2003/07/12 12:31:14 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -41,6 +41,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#if defined (__SVR4) && defined (__sun)
+# include <sys/int_types.h>
+#else
+# include <stdint.h>
+#endif
 
 #if defined(__FreeBSD__)
 #include <machine/param.h>
