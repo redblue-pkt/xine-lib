@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3.h,v 1.5 2002/10/26 14:35:04 mroi Exp $
+ * $Id: dxr3.h,v 1.6 2003/01/11 11:18:00 mroi Exp $
  */
 
 #ifndef HAVE_DXR3_H
 #define HAVE_DXR3_H
 
-#include <linux/em8300.h>
+#include "em8300.h"
 
 #include "xine_internal.h"
 
