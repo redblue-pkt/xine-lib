@@ -11,14 +11,16 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec_armv4l.la
 
-EXTRA_DIST =  jrevdct_arm.S dsputil_arm.c
+libavcodec_armv4l_src =  jrevdct_arm.S dsputil_arm.c
+libavcodec_armv4l_dummy =  libavcodec_armv4l_dummy.c
+EXTRA_DIST =  $(libavcodec_armv4l_src) $(libavcodec_armv4l_dummy)
 
 #if HAVE_ARMV4L
-#armv4l_modules = $(EXTRA_DIST)
+#armv4l_modules = $(libavcodec_armv4l_src)
 #endif
-armv4l_modules =
+armv4l_modules = 
 
-libavcodec_armv4l_la_SOURCES = $(armv4l_modules)
+libavcodec_armv4l_la_SOURCES = $(armv4l_modules) $(libavcodec_armv4l_dummy)
 
 noinst_HEADERS = 
 

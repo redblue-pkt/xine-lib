@@ -14,17 +14,20 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec_mmx.la
 
-EXTRA_DIST =  fdct_mmx.c \
+libavcodec_mmx_src =  fdct_mmx.c \
               dsputil_mmx.c mpegvideo_mmx.c \
               idct_mmx.c motion_est_mmx.c \
               simple_idct_mmx.c
+libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
+
+EXTRA_DIST =  $(libavcodec_mmx_src) $(libavcodec_mmx_dummy)
 
 if HAVE_FFMMX
-mmx_modules = $(EXTRA_DIST)
+mmx_modules = $(libavcodec_mmx_src)
 endif
 
 
-libavcodec_mmx_la_SOURCES = $(mmx_modules)
+libavcodec_mmx_la_SOURCES = $(mmx_modules) $(libavcodec_mmx_dummy)
 
 noinst_HEADERS = dsputil_mmx_avg.h  mmx.h
 

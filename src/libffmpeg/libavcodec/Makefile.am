@@ -18,7 +18,7 @@ libavcodec_la_SOURCES = common.c utils.c mpegvideo.c h263.c jrevdct.c jfdctfst.c
 			motion_est.c imgconvert.c msmpeg4.c \
 			mpeg12.c h263dec.c rv10.c simple_idct.c
 #imgresample.c
- 
+
 libavcodec_la_LDFLAGS = \
 		$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
 		$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
