@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.106 2004/12/12 22:01:04 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.107 2005/01/18 21:33:33 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -333,7 +333,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 	"this setting can be \"fame\", \"rte\", \"libavcodec\" or \"none\".\n"
 	"The \"libavcodec\" encoder makes use of the ffmpeg plugin that already ships with xine, "
 	"so you do not need to install any additional library for that. Even better is that "
-	"libdavcodec also provides high quality with low CPU usage. Using \"libavcodec\" is "
+	"libavcodec also provides high quality with low CPU usage. Using \"libavcodec\" is "
 	"therefore strongly suggested.\n\"fame\" and \"rte\" are still there, "
 	"but xine support for them is outdated, so these might fail to work."),
       0, NULL, NULL);
