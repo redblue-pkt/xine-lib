@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.3 2001/04/28 19:47:42 guenter Exp $
+ * $Id: audio_out.h,v 1.4 2001/05/07 03:40:35 f1rmb Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -33,17 +33,6 @@
 #define AUDIO_OUT_IFACE_VERSION  1
 
 /*
- * audio output modes  Used as Bitfield in AC3 decoder
- */
-
-#define AO_MODE_AC3      1
-#define AO_MODE_AC5      2
-#define AO_MODE_MONO     4  /* 1 sample ==  2 bytes */
-#define AO_MODE_STEREO   8  /* 1 sample ==  4 bytes */
-#define AO_MODE_4CHANNEL 16 /* 1 sample ==  8 bytes */
-#define AO_MODE_5CHANNEL 32 /* 1 sample == 10 bytes */
-
-/*
  * ao_functions_s contains the functions every audio output
  * driver plugin has to implement.
  */
@@ -52,12 +41,14 @@ typedef struct ao_functions_s ao_functions_t;
 
 struct ao_functions_s {
 
-  /*
-   * find out what output modes are supported by this plugin
-   * (constants for the bit vector to return see above)
+  /* 
+   *
+   * find out what output modes + capatilities are supported by 
+   * this plugin (constants for the bit vector to return see above)
+   *
+   * See AO_CAP_* bellow.
    */
-
-  uint32_t (*get_supported_modes) (ao_functions_t *this);
+  uint32_t (*get_capabilities) (ao_functions_t *this);
 
   /*
    * connect this driver to the xine engine
@@ -96,7 +87,19 @@ struct ao_functions_s {
 
   void (*exit) (ao_functions_t *this);
 
-} ;
+  /*
+   * Get, Set a property of audio driver.
+   *
+   * get_property() return 1 in success, 0 on failure.
+   * set_property() return value on success, ~value on failure.
+   *
+   * See AC_PROP_* bellow for available properties.
+   */
+  int (*get_property) (ao_functions_t *this, int property);
+
+  int (*set_property) (ao_functions_t *this,  int property, int value);
+
+};
 
 
 /*
@@ -113,6 +116,30 @@ struct ao_functions_s {
  * peek at some (static) information about the plugin without initializing it
  *
  */
+
+/*
+ * audio output modes + capabilities
+ */
+
+#define AO_CAP_NOCAP            0x00000000 /* Driver have no capabilities  */
+#define AO_CAP_MODE_AC3         0x00000001 /* Driver support AC3 output    */
+#define AO_CAP_MODE_AC5         0x00000002 /* Driver support AC5 output    */
+/* 1 sample ==  2 bytes */
+#define AO_CAP_MODE_MONO        0x00000004 /* Driver support mono output   */
+ /* 1 sample ==  4 bytes */
+#define AO_CAP_MODE_STEREO      0x00000008 /* Driver support stereo output */
+ /* 1 sample ==  8 bytes */
+#define AO_CAP_MODE_4CHANNEL    0x00000010 /* Driver support 4 channels    */
+/* 1 sample == 10 bytes */
+#define AO_CAP_MODE_5CHANNEL    0x00000020 /* Driver support 5 channels    */
+#define AO_CAP_MIXER_VOL        0x00000040 /* Driver support mixer control */
+#define AO_CAP_PCM_VOL          0x00000080 /* Driver support pcm control   */
+#define AO_CAP_MUTE_VOL         0x00000100 /* Driver can mute volume       */
+
+/* properties supported by get/set_property() */
+#define AO_PROP_MIXER_VOL       0
+#define AO_PROP_PCM_VOL         1
+#define AO_PROP_MUTE_VOL        2
 
 typedef struct ao_info_s {
 

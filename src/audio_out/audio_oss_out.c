@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.4 2001/05/07 02:25:00 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.5 2001/05/07 03:40:35 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,7 +106,7 @@ static int ao_open(ao_functions_t *this_gen,
 
   printf ("audio_oss_out: ao_open rate=%d, mode=%d\n", rate, mode);
 
-  if ((mode != AO_MODE_STEREO) && (mode != AO_MODE_MONO)) {
+  if (((mode & AO_CAP_MODE_STEREO) == 0) && ((mode & AO_CAP_MODE_MONO) == 0)) {
     printf ("OSS Driver only supports mono/stereo output modes at the moment\n");
     return -1;
   }
@@ -145,7 +145,7 @@ static int ao_open(ao_functions_t *this_gen,
    * configure audio device
    */
 
-  tmp = (mode == AO_MODE_STEREO) ? 1 : 0;
+  tmp = (mode & AO_CAP_MODE_STEREO) ? 1 : 0;
   ioctl(this->audio_fd,SNDCTL_DSP_STEREO,&tmp);
 
   this->num_channels = tmp+1;
@@ -377,8 +377,8 @@ static void ao_close(ao_functions_t *this_gen)
   this->audio_fd = -1;
 }
 
-static uint32_t ao_get_supported_modes (ao_functions_t *this) {
-  return AO_MODE_STEREO | AO_MODE_MONO;
+static uint32_t ao_get_capabilities (ao_functions_t *this) {
+  return AO_CAP_MODE_STEREO | AO_CAP_MODE_MONO;
 }
 
 static void ao_connect (ao_functions_t *this_gen, metronom_t *metronom) {
@@ -396,6 +396,43 @@ static void ao_exit(ao_functions_t *this_gen)
 
   free (this->zero_space);
   free (this);
+}
+
+/*
+ *
+ */
+static int ao_get_property (ao_functions_t *this, int property) {
+
+  /* FIXME: implement some properties
+  switch(property) {
+  case AO_PROP_MIXER_VOL:
+    break;
+  case AO_PROP_PCM_VOL:
+    break;
+  case AO_PROP_MUTE_VOL:
+    break;
+  }
+  */
+  return 0;
+}
+
+/*
+ *
+ */
+static int ao_set_property (ao_functions_t *this, int property, int value) {
+
+  /* FIXME: Implement property support.
+  switch(property) {
+  case AO_PROP_MIXER_VOL:
+    break;
+  case AO_PROP_PCM_VOL:
+    break;
+  case AO_PROP_MUTE_VOL:
+    break;
+  }
+  */
+
+  return ~value;
 }
 
 ao_functions_t *init_audio_out_plugin (config_values_t *config) {
@@ -482,7 +519,9 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   this->zero_space = malloc (8192);
   memset (this->zero_space, 0, 8192);
 
-  this->ao_functions.get_supported_modes = ao_get_supported_modes;
+  this->ao_functions.get_capabilities    = ao_get_capabilities;
+  this->ao_functions.get_property        = ao_get_property;
+  this->ao_functions.set_property        = ao_set_property;
   this->ao_functions.connect             = ao_connect;
   this->ao_functions.open                = ao_open;
   this->ao_functions.write_audio_data    = ao_write_audio_data;

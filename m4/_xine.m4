@@ -6,7 +6,7 @@ AC_DEFUN([AC_PREREQ_LIBTOOL],
     lt_min_full=ifelse([$1], ,1.3.5,$1)
     lt_min=`echo $lt_min_full | sed -e 's/\.//g'`
     AC_MSG_CHECKING(checking for libtool >= $lt_min_full)
-    lt_version="`grep ^VERSION ./libtool | sed -e 's/\.//g' | sed -e 's/VERSION\=//'`"
+    lt_version="`grep ^VERSION ./ltconfig | sed -e 's/\.//g' | sed -e 's/VERSION\=//'`"
 
     if test $lt_version -lt 100; then
       lt_version=`expr $lt_version \* 10`

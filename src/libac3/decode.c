@@ -137,7 +137,7 @@ static uint32_t decode_buffer_syncframe (syncinfo_t *syncinfo, uint8_t **start, 
 	//if we got to this point, we found a valid ac3 frame to decode
 	//
 
-	if ((ac3_config.flags & AO_MODE_AC3) == 0) {
+	if ((ac3_config.flags & AO_CAP_MODE_AC3) == 0) {
 		bitstream_init (buffer);
 		//get rid of the syncinfo struct as we already parsed it
 		bitstream_get (24);
@@ -213,7 +213,7 @@ size_t ac3_decode_data (uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
 			goto error;
 #endif
 
-		if ((ac3_config.flags & AO_MODE_AC3) == 0) {
+		if ((ac3_config.flags & AO_CAP_MODE_AC3) == 0) {
 		   parse_bsi (&bsi);
 
 		   // compute downmix parameters
@@ -286,11 +286,11 @@ size_t ac3_decode_data (uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
 
 		if (!is_output_initialized) {
 			ac3_output->open (ac3_output, 16, syncinfo.sampling_rate, 
-					  (ac3_config.flags & AO_MODE_AC3) ? AO_MODE_AC3 : AO_MODE_STEREO);
+					  (ac3_config.flags & AO_CAP_MODE_AC3) ? AO_CAP_MODE_AC3 : AO_CAP_MODE_STEREO);
 			is_output_initialized = 1;
 		}
 
-		if ((ac3_config.flags & AO_MODE_AC3) == 0) {
+		if ((ac3_config.flags & AO_CAP_MODE_AC3) == 0) {
 			ac3_output->write_audio_data(ac3_output,
 						     s16_samples, 256*6, pts_);
 		}
