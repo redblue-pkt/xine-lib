@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.7 2005/01/08 11:59:27 rockyb Exp $
+  $Id: vcdplayer.h,v 1.8 2005/02/20 17:04:58 mroi Exp $
 
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -28,6 +28,7 @@
 #include "libvcd/info.h"
 #endif
 
+#ifndef _
 #ifdef ENABLE_NLS
 #include <locale.h>
 #    include <libintl.h>
@@ -35,6 +36,7 @@
 #else
 /* Stubs that do something close enough.  */
 #    define _(String) (String)
+#endif
 #endif
 
 /*------------------------------------------------------------------
