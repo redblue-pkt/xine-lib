@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.39 2002/06/03 13:55:46 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.40 2002/06/03 17:03:25 miguelfreitas Exp $
  *
  */
 
@@ -1254,19 +1254,11 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     this->bih.biHeight = this->qt->video_height;
 
     /* fourcc was stored in opposite byte order that mapping routine wants */
-    le_fourcc =
-      ((this->qt->video_codec & 0xFF000000) >> 24) |
-      ((this->qt->video_codec & 0x00FF0000) >>  8) |
-      ((this->qt->video_codec & 0x0000FF00) <<  8) |
-      ((this->qt->video_codec & 0x000000FF) << 24);
-    this->qt->video_type = fourcc_to_buf_video(&le_fourcc);
+    this->bih.biCompression = bswap_32( this->qt->video_codec );
+    this->qt->video_type = fourcc_to_buf_video(&this->bih.biCompression);
 
     /* fourcc was stored in opposite byte order that mapping routine wants */
-    le_fourcc =
-      ((this->qt->audio_codec & 0xFF000000) >> 24) |
-      ((this->qt->audio_codec & 0x00FF0000) >>  8) |
-      ((this->qt->audio_codec & 0x0000FF00) <<  8) |
-      ((this->qt->audio_codec & 0x000000FF) << 24);
+    le_fourcc = bswap_32( this->qt->audio_codec );
     this->qt->audio_type = formattag_to_buf_audio(le_fourcc);
 
     /* print vital stats */
