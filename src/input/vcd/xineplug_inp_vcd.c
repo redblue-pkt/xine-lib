@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.14 2004/03/31 10:13:00 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.15 2004/04/05 18:01:09 hadess Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -1550,7 +1550,7 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
   dbg_print(INPUT_DBG_CALL, "Called setting %s\n", entry->str_value); \
   if ( NULL == entry->str_value ) return; \
 \
-  free(var); \
+  if ( var ) free(var); \
   var = strdup(entry->str_value); \
 }
 
@@ -1665,14 +1665,14 @@ _("What play unit to use when none is specified in an MRL, e.g. "
     
     
     class->vcd_device = 
-      config->register_string(config, 
+      strdup (config->register_string(config, 
                               "vcd.default_device",
                               "",
           _("default CD drive used for VCD when none given"),
 _("What to use if no drive specified. If null, we'll scan for CD drives."), 
                               20,
                               vcd_default_dev_changed_cb, 
-                              (void *) class);
+                              (void *) class));
 
     my_vcd.player.slider_length =
       config->register_enum(config, 

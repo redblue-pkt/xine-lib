@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.27 2004/03/16 11:43:38 mroi Exp $
+ * $Id: vm.c,v 1.28 2004/04/05 18:01:09 hadess Exp $
  *
  */
 
@@ -135,7 +135,7 @@ static void dvd_read_name(char *name, const char *device) {
     uint8_t data[DVD_VIDEO_LB_LEN];
 
     /* Read DVD name */
-    fd = open(device, O_RDONLY | O_EXCL);
+    fd = open(device, O_RDONLY);
     if (fd > 0) { 
       off = lseek( fd, 32 * (off_t) DVD_VIDEO_LB_LEN, SEEK_SET );
       if( off == ( 32 * (off_t) DVD_VIDEO_LB_LEN ) ) {
