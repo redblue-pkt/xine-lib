@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.46 2001/09/25 23:27:02 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.47 2001/09/25 23:44:46 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -706,7 +706,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
       start_pos *= (off_t) this->blocksize;
 
       this->input->seek (this->input, start_pos, SEEK_SET);
-    }
+    } else 
+      this->input->seek (this->input, 0, SEEK_SET);
   }
 
   /*
