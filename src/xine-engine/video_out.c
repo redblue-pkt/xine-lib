@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.48 2001/10/03 13:45:04 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.49 2001/10/03 14:11:54 miguelfreitas Exp $
  *
  */
 
@@ -63,20 +63,10 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
   return queue;
 }
 
-//static (just for debuging)
- void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
+static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
 					vo_frame_t *img) {
-vo_frame_t *tst;
 
   pthread_mutex_lock (&queue->mutex);
-
-  tst = queue->first;
-  while( tst )
-  {
-    if( tst == img )
-      printf("WARNING!!! DUPLICATED IMG %p QUEUE %p\n", img, queue);
-    tst=tst->next;
-  }
 
   img->next = NULL;
 
@@ -96,8 +86,7 @@ vo_frame_t *tst;
   pthread_mutex_unlock (&queue->mutex);
 }
 
-//static (just for debuging)
- vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
+static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   vo_frame_t *img;
 
   pthread_mutex_lock (&queue->mutex);
