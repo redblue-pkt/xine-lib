@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.62 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_ogg.c,v 1.63 2003/01/26 23:48:47 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -958,6 +958,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 	      || (buf[2] != 'g')
 	      || (buf[3] != 'S')) 
 	    return NULL;
+	} else {
+	  return NULL;
 	}
       } else if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
 	if ((buf[0] != 'O')
