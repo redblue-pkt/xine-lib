@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.32 2003/08/11 22:19:33 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.33 2003/08/12 00:43:48 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -360,12 +360,10 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     this->buf_num = 1 - this->buf_num;
   }
 
-  /*if ((this->current != NULL) && (this->current != frame)) {
+  if ((this->current != NULL) && (this->current != frame)) {
     frame->vo_frame.free(&this->current->vo_frame);
   }
-  this->current = frame;*/
-
-  frame->vo_frame.free(&frame->vo_frame);
+  this->current = frame;
 }
 
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
