@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.198 2005/02/13 14:24:26 tmattern Exp $
+ * $Id: load_plugins.c,v 1.199 2005/02/13 16:12:35 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -369,7 +369,7 @@ static void _insert_node (xine_t *this,
   entry->info         = xine_xmalloc(sizeof(plugin_info_t));
   *(entry->info)      = *info;
   entry->info->id     = strdup(info->id);
-  entry->info->init   = NULL;
+  entry->info->init   = info->init;
   entry->plugin_class = NULL;
   entry->file         = file;
   entry->ref          = 0;
@@ -728,42 +728,50 @@ static int _load_plugin_class(xine_t *this,
   void *lib;
   plugin_info_t *info;
 
-  /* load the dynamic library if needed */
-  if (!node->file->lib_handle) {
-    lprintf("dlopen %s\n", filename);
-    if ((lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
-      const char *error = dlerror();
+  if (node->file) {
+    /* load the dynamic library if needed */
+    if (!node->file->lib_handle) {
+      lprintf("dlopen %s\n", filename);
+      if ((lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL)) == NULL) {
+	const char *error = dlerror();
 
-      xine_log (this, XINE_LOG_PLUGIN,
-		_("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"), filename, error);
-      return 0;
-    } else {
-      node->file->lib_handle = lib;
-    }
-  } else {
-    lprintf("%s already loaded\n", filename);
-  }
-
-  if ((info = dlsym(node->file->lib_handle, "xine_plugin_info"))) {
-    /* TODO: use sigsegv handler */
-    while (info->type != PLUGIN_NONE){
-      if (info->type == target->type
-	  && info->API == target->API
-	  && !strcasecmp(info->id, target->id)
-	  && info->version == target->version){
-	inc_file_ref(node->file);
-	node->plugin_class =  info->init(this, data);
-	return 1;
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"), filename, error);
+	return 0;
+      } else {
+	node->file->lib_handle = lib;
       }
-      info++;
+    } else {
+      lprintf("%s already loaded\n", filename);
     }
-    lprintf("plugin not found\n");
+
+    if ((info = dlsym(node->file->lib_handle, "xine_plugin_info"))) {
+      /* TODO: use sigsegv handler */
+      while (info->type != PLUGIN_NONE){
+	if (info->type == target->type
+	    && info->API == target->API
+	    && !strcasecmp(info->id, target->id)
+	    && info->version == target->version){
+	  inc_file_ref(node->file);
+	  node->plugin_class = info->init(this, data);
+	  return 1;
+	}
+	info++;
+      }
+      lprintf("plugin not found\n");
     
+    } else {
+      xine_log (this, XINE_LOG_PLUGIN,
+		_("load_plugins: Yikes! %s doesn't contain plugin info.\n"), filename);
+    }
   } else {
-    xine_log (this, XINE_LOG_PLUGIN,
-	      _("load_plugins: Yikes! %s doesn't contain plugin info.\n"), filename);
+    /* statically linked plugin */
+    lprintf("statically linked plugin\n");
+    if (node->info->init) {
+      node->plugin_class = node->info->init(this, data);
+      return 1;
+    }
   }
-  
   return 0; /* something failed if we came here... */
 }
 
