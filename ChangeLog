@@ -11,6 +11,7 @@ xine-lib (1-beta9)
   * fix segfault with non-multiple of 16 height video and XShm
   * fix BAD STATE error on seek with ALSA audio driver
   * fix artefacts when playing certain DivX video streams on i386
+  * libavcodec divx/xvid qpel bug workaround ported from ffmpeg cvs
 
 xine-lib (1-beta8)
   * fix DVD highlight problems

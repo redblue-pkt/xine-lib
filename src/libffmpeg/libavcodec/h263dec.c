@@ -497,6 +497,10 @@ retry:
             s->workaround_bugs|= FF_BUG_QPEL_CHROMA;
         }
 
+        if(s->divx_version>502){
+            s->workaround_bugs|= FF_BUG_QPEL_CHROMA2;
+        }
+
         if(s->avctx->fourcc == ff_get_fourcc("XVID") && s->xvid_build==0)
             s->workaround_bugs|= FF_BUG_QPEL_CHROMA;
         
@@ -508,6 +512,9 @@ retry:
         
         if(s->xvid_build && s->xvid_build<=1)
             s->workaround_bugs|= FF_BUG_QPEL_CHROMA;
+
+        if(s->xvid_build && s->xvid_build>=8)
+            s->workaround_bugs|= FF_BUG_QPEL_CHROMA2;
 
 #define SET_QPEL_FUNC(postfix1, postfix2) \
     s->dsp.put_ ## postfix1 = ff_put_ ## postfix2;\
