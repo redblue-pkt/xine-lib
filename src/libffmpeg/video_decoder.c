@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.2 2004/01/31 17:10:08 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.3 2004/02/01 06:00:56 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -236,6 +236,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   if((this->context->pix_fmt == PIX_FMT_RGBA32) ||
      (this->context->pix_fmt == PIX_FMT_RGB565) ||
      (this->context->pix_fmt == PIX_FMT_RGB555) ||
+     (this->context->pix_fmt == PIX_FMT_BGR24) ||
+     (this->context->pix_fmt == PIX_FMT_RGB24) ||
      (this->context->pix_fmt == PIX_FMT_PAL8)) {
     this->output_format = XINE_IMGFMT_YUY2;
     init_yuv_planes(&this->yuv, this->context->width, this->context->height);
@@ -599,6 +601,54 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
             
     yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
           
+  } else if (this->context->pix_fmt == PIX_FMT_BGR24) {
+
+    int x, plane_ptr = 0;
+    uint8_t *src;
+
+    for(y = 0; y < this->context->height; y++) {
+      src = sy;
+      for(x = 0; x < this->context->width; x++) {
+        uint8_t r, g, b;
+              
+        b = *src++;
+        g = *src++;
+        r = *src++;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
+  } else if (this->context->pix_fmt == PIX_FMT_RGB24) {
+
+    int x, plane_ptr = 0;
+    uint8_t *src;
+
+    for(y = 0; y < this->context->height; y++) {
+      src = sy;
+      for(x = 0; x < this->context->width; x++) {
+        uint8_t r, g, b;
+              
+        r = *src++;
+        g = *src++;
+        b = *src++;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
   } else if (this->context->pix_fmt == PIX_FMT_PAL8) {
           
     int x, plane_ptr = 0;
@@ -723,7 +773,17 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_IDCIN,       CODEC_ID_IDCIN,     "Id Software CIN (ffmpeg)"},
   {BUF_VIDEO_WC3,         CODEC_ID_XAN_WC3,   "Xan (ffmpeg)"},
   {BUF_VIDEO_VQA,         CODEC_ID_WS_VQA,    "Westwood Studios VQA (ffmpeg)"},
-  {BUF_VIDEO_INTERPLAY,   CODEC_ID_INTERPLAY_VIDEO, "Interplay MVE (ffmpeg)"} };
+  {BUF_VIDEO_INTERPLAY,   CODEC_ID_INTERPLAY_VIDEO, "Interplay MVE (ffmpeg)"},
+  {BUF_VIDEO_FLI,         CODEC_ID_FLIC,      "FLIC Video (ffmpeg)"},
+  {BUF_VIDEO_8BPS,        CODEC_ID_8BPS,      "Planar RGB (ffmpeg)"},
+  {BUF_VIDEO_SMC,         CODEC_ID_SMC,       "Apple Quicktime Graphics/SMC (ffmpeg)"},
+  {BUF_VIDEO_DUCKTM1,     CODEC_ID_TRUEMOTION1,"Duck TrueMotion v1 (ffmpeg)"},
+  {BUF_VIDEO_VMD,         CODEC_ID_VMDVIDEO,   "Sierra VMD Video (ffmpeg)"},
+  {BUF_VIDEO_ZLIB,        CODEC_ID_ZLIB,       "ZLIB Video (ffmpeg)"},
+  {BUF_VIDEO_MSZH,        CODEC_ID_MSZH,       "MSZH Video (ffmpeg)"},
+  {BUF_VIDEO_ASV1,        CODEC_ID_ASV1,       "ASV v1 Video (ffmpeg)"},
+  {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
+  {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"} };
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
@@ -1176,6 +1236,16 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_WC3,
   BUF_VIDEO_VQA,
   BUF_VIDEO_INTERPLAY,
+  BUF_VIDEO_FLI,
+  BUF_VIDEO_8BPS,
+  BUF_VIDEO_SMC,
+  BUF_VIDEO_VMD,
+  BUF_VIDEO_DUCKTM1,
+  BUF_VIDEO_ZLIB,
+  BUF_VIDEO_MSZH,
+  BUF_VIDEO_ASV1,
+  BUF_VIDEO_ASV2,
+  BUF_VIDEO_ATIVCR1,
   0 
 };
 

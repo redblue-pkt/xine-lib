@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.1 2004/01/31 01:19:17 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.2 2004/02/01 06:00:56 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -93,7 +93,11 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_MULAW,      CODEC_ID_PCM_MULAW,      "mu-law logarithmic PCM (ffmpeg)"},
   {BUF_AUDIO_ALAW,       CODEC_ID_PCM_ALAW,       "A-law logarithmic PCM (ffmpeg)"},
   {BUF_AUDIO_ROQ,        CODEC_ID_ROQ_DPCM,       "RoQ DPCM (ffmpeg)"},
-  {BUF_AUDIO_INTERPLAY,  CODEC_ID_INTERPLAY_DPCM, "Interplay DPCM (ffmpeg)"} };
+  {BUF_AUDIO_INTERPLAY,  CODEC_ID_INTERPLAY_DPCM, "Interplay DPCM (ffmpeg)"},
+  {BUF_AUDIO_MAC3,       CODEC_ID_MACE3,          "MACE 3:1 (ffmpeg)"},
+  {BUF_AUDIO_MAC6,       CODEC_ID_MACE6,          "MACE 6:1 (ffmpeg)"},
+  {BUF_AUDIO_XAN_DPCM,   CODEC_ID_XAN_DPCM,       "Origin Xan DPCM (ffmpeg)"},
+  {BUF_AUDIO_VMD,        CODEC_ID_VMDAUDIO,       "Sierra VMD Audio (ffmpeg)"} };
 
 
 static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -359,6 +363,10 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_INTERPLAY,
   BUF_AUDIO_VQA_IMA,
   BUF_AUDIO_4X_ADPCM,
+  BUF_AUDIO_MAC3,
+  BUF_AUDIO_MAC6,
+  BUF_AUDIO_XAN_DPCM,
+  BUF_AUDIO_VMD,
   /* BUF_AUDIO_MPEG, */
   0
 };
