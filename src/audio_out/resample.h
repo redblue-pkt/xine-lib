@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.h,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: resample.h,v 1.2 2001/07/22 11:22:00 ehasenle Exp $
  *
  * utilitiy functions for audio drivers
  *
@@ -37,6 +37,9 @@ void audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples,
 				 int16_t* output_samples, uint32_t out_samples);
 
 void audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
+				 int16_t* output_samples, uint32_t out_samples);
+
+void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
 				 int16_t* output_samples, uint32_t out_samples);
 
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.21 2001/07/20 22:37:56 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.22 2001/07/22 11:22:00 ehasenle Exp $
  */
 
 /* required for swab() */
@@ -108,6 +108,7 @@ typedef struct oss_functions_s {
   
   int            audio_started;
   uint32_t       last_audio_vpts;
+  int            do_resample;
 } oss_functions_t;
 
 /*
@@ -243,6 +244,8 @@ static int ao_open(ao_functions_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
+  this->do_resample = this->output_sample_rate != this->input_sample_rate;
+
   return 1;
 }
 
@@ -348,7 +351,10 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   if (!bDropPackage) {
     int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
 
-    switch (this->mode) {
+    if (!this->do_resample) {
+      write(this->audio_fd, output_samples,
+	    num_output_samples * this->num_channels * 2);
+    } else switch (this->mode) {
     case AO_CAP_MODE_MONO:
       audio_out_resample_mono (output_samples, num_samples,
 			       this->sample_buffer, num_output_samples);
@@ -368,6 +374,11 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
       audio_out_resample_5channel (output_samples, num_samples,
 				   this->sample_buffer, num_output_samples);
       write(this->audio_fd, this->sample_buffer, num_output_samples * 10);
+      break;
+    case AO_CAP_MODE_5_1CHANNEL:
+      audio_out_resample_6channel (output_samples, num_samples,
+				   this->sample_buffer, num_output_samples);
+      write(this->audio_fd, this->sample_buffer, num_output_samples * 12);
       break;
     case AO_CAP_MODE_AC3:
       num_output_samples = num_samples+8;
@@ -394,7 +405,8 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
     this->bytes_in_buffer += num_output_samples * 2 * this->num_channels;
     this->audio_started    = 1;
   } else {
-    printf ("audio_oss_out: audio package (vpts = %d) dropped\n", vpts);
+    xprintf (VERBOSE|AUDIO, "audio_oss_out: audio package (vpts = %d %d)"
+	     "dropped\n", vpts, gap);
   }
 
   return 1;
