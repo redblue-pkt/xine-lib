@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.36 2001/11/27 00:00:35 jcdutton Exp $
+ * $Id: audio_out.c,v 1.37 2001/12/09 18:31:02 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -74,55 +74,6 @@
 #define AUDIO_BUF_SIZE       32768
 
 #define ZERO_BUF_SIZE         5000
-
-struct frmsize_s
-{
-  uint16_t bit_rate;
-  uint16_t frm_size[3];
-};
-
-
-static const struct frmsize_s frmsizecod_tbl[64] =
-{
-  { 32  ,{64   ,69   ,96   } },
-  { 32  ,{64   ,70   ,96   } },
-  { 40  ,{80   ,87   ,120  } },
-  { 40  ,{80   ,88   ,120  } },
-  { 48  ,{96   ,104  ,144  } },
-  { 48  ,{96   ,105  ,144  } },
-  { 56  ,{112  ,121  ,168  } },
-  { 56  ,{112  ,122  ,168  } },
-  { 64  ,{128  ,139  ,192  } },
-  { 64  ,{128  ,140  ,192  } },
-  { 80  ,{160  ,174  ,240  } },
-  { 80  ,{160  ,175  ,240  } },
-  { 96  ,{192  ,208  ,288  } },
-  { 96  ,{192  ,209  ,288  } },
-  { 112 ,{224  ,243  ,336  } },
-  { 112 ,{224  ,244  ,336  } },
-  { 128 ,{256  ,278  ,384  } },
-  { 128 ,{256  ,279  ,384  } },
-  { 160 ,{320  ,348  ,480  } },
-  { 160 ,{320  ,349  ,480  } },
-  { 192 ,{384  ,417  ,576  } },
-  { 192 ,{384  ,418  ,576  } },
-  { 224 ,{448  ,487  ,672  } },
-  { 224 ,{448  ,488  ,672  } },
-  { 256 ,{512  ,557  ,768  } },
-  { 256 ,{512  ,558  ,768  } },
-  { 320 ,{640  ,696  ,960  } },
-  { 320 ,{640  ,697  ,960  } },
-  { 384 ,{768  ,835  ,1152 } },
-  { 384 ,{768  ,836  ,1152 } },
-  { 448 ,{896  ,975  ,1344 } },
-  { 448 ,{896  ,976  ,1344 } },
-  { 512 ,{1024 ,1114 ,1536 } },
-  { 512 ,{1024 ,1115 ,1536 } },
-  { 576 ,{1152 ,1253 ,1728 } },
-  { 576 ,{1152 ,1254 ,1728 } },
-  { 640 ,{1280 ,1393 ,1920 } },
-  { 640 ,{1280 ,1394 ,1920 } }
-};
 
 struct audio_fifo_s {
   audio_buffer_t    *first;
@@ -284,15 +235,9 @@ static void *ao_loop (void *this_gen) {
   audio_buffer_t *buf;
   int32_t         gap;
   int             delay;
-  int             frame_size;
-  int             fscod;
-  int             frmsizecod;
   uint8_t        *data;
   uint32_t        cur_time;
   int             num_output_frames ;
-  uint32_t        ac5_type;
-  uint32_t        ac5_length;
-  uint32_t        ac5_pcm_length;
   int             paused_wait;
   
   this->audio_loop_running = 1;
@@ -420,86 +365,8 @@ static void *ao_loop (void *this_gen) {
 	this->driver->write(this->driver, this->frame_buffer, num_output_frames);
 	break;
       case AO_CAP_MODE_A52:
-	
-	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
-	this->frame_buffer[1] = 0x4e1f;  /* .............  */
-	this->frame_buffer[2] = 0x0001;  /* AC3 data       */
-	
-	data = (uint8_t *)&buf->mem[1]; /* skip AC3 sync */
-	fscod = (data[2] >> 6) & 0x3;
-	frmsizecod = data[2] & 0x3f;
-	frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
-	this->frame_buffer[3] = frame_size;
-	
-	/* ac3 seems to be swabbed data */
-	swab(buf->mem,this->frame_buffer+4,  buf->num_frames  );
-	this->driver->write(this->driver, this->frame_buffer, 1536);
-	
-	break;
       case AO_CAP_MODE_AC5:
-	memset(this->frame_buffer,0x00,6144);
-	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
-	this->frame_buffer[1] = 0x4e1f;  /* .............  */
-        data = (uint8_t *)&buf->mem[0];
-        
-        if ((data[0] != 0x7f) ||
-            (data[1] != 0xfe) ||
-            (data[2] != 0x80) ||
-            (data[3] != 0x01)) {
-          continue;
-        }
-        ac5_type=((data[4] & 0x01) << 6) | ((data[5] >>2) & 0x3f);
-        /* printf("AC5 type=%d\n",ac5_type); */
-        switch(ac5_type) {
-        case 0x0f:
-          this->frame_buffer[2] = 0x000b;  /* DTS          */
-          break;
-        case 0x1f:
-          this->frame_buffer[2] = 0x000c;  /* DTS          */
-          break;
-        case 0x3f:
-          this->frame_buffer[2] = 0x000d;  /* DTS          */
-          break;
-        default:
-          this->frame_buffer[2] = 0x0000;  /* DTS          */
-          break;
-        }
-
-        ac5_length=((data[5] & 0x03) << 12) |
-                   ((data[6] & 0xff) << 4)  |
-                   ((data[7] & 0xf0) >> 4);
-        ac5_length++;
-        ac5_length=ac5_length * buf->frame_header_count ;
-
-        if (ac5_length > 4088) {
-          /* Biggest PCM length from AC5 is 4096 */
-          break;
-        }
-	this->frame_buffer[3] = ac5_length << 3; /* Convert bytes to bits */
-	
-	/* ac3 seems to be swabbed data */
-	swab(buf->mem,this->frame_buffer+4,  ac5_length );
-
-        if (ac5_length <= 248) {
-          ac5_pcm_length = 64;
-        } else if (ac5_length <= 504) {
-          ac5_pcm_length = 128;
-        } else if (ac5_length <= 1016) {
-          ac5_pcm_length = 256;
-        } else if (ac5_length <= 2040) {
-          ac5_pcm_length = 512;
-        } else if (ac5_length <= 4088) {
-          ac5_pcm_length = 1024;
-        } else {
-          printf("BAD AC5 length\n");
-          break; 
-        }
-        if (ac5_pcm_length < (512 * buf->frame_header_count)) {
-          ac5_pcm_length = 512 * buf->frame_header_count ;
-        }
-        /* printf("DTS length=%d\n",ac5_pcm_length); */
-        this->driver->write(this->driver, this->frame_buffer, ac5_pcm_length);
-	
+	this->driver->write(this->driver, buf->mem, buf->num_frames);
 	break;
       }
       
