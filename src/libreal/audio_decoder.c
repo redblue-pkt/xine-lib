@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.19 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.20 2003/01/23 12:47:24 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -138,7 +138,7 @@ void *__builtin_new(unsigned long size) {
 }
 
 void __builtin_delete (void *foo) {
-  printf ("libareal: __builtin_delete called\n");
+  /* printf ("libareal: __builtin_delete called\n"); */
   free (foo);
 }
 
