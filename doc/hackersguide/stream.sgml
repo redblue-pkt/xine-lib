@@ -611,6 +611,19 @@
     <programlisting>&nbsp;&nbsp;&nbsp;vpts = metronom->got_spu_packet(metronom, buf->pts);</programlisting>
    </para>
    <para>
+    Another difference is that while both audio and video decoders are automatically
+    blocked in their <function>get_buffer()</function>/<function>get_frame()</function>
+    methods when the output cannot take any more data, this does not work for SPU,
+    because it could take minutes before the next free slot becomes available and we must not
+    block the decoder thread for that long since it might be shared with a video decoder.
+    But when a SPU decoder does not share the thread and we let it run without any
+    blocking, it will overflow the available overlay slots very soon. Since SPU
+    decoders should not have to know, whether they share the thread or not, a helper
+    function <function>_x_spu_decoder_sleep()</function> is provided, which, when told
+    the timestamp of the next overlay, will wait long enough to not overflow the
+    overlay slots, but short enough to not hinder a video decoder in the same thread.
+   </para>
+   <para>
     There are also two functions in the SPU decoder API, which have not been discussed above:
    </para>
    <para>
