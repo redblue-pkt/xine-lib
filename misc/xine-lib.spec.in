@@ -81,7 +81,7 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{?buildroot:%{buildroot}} install
+make DESTDIR=%{?buildroot:%{buildroot}} LIBRARY_PATH=%{?buildroot:%{buildroot}}%{_libdir} install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
