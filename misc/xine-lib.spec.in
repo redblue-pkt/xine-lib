@@ -10,6 +10,7 @@ Name:        %{name}
 Summary:     A portable video/audio library for unix-like systems.
 Summary(cs): Pøenositelná video/audio knihovna pro unixovské systémy
 Summary(de): Eine portabele Audio-/Video-Bibliothek für unixartige Systeme.
+Summary(fi): Joustava video- ja ääniohjelmointikirjasto Unix-tyylisille käyttöjärjestelmille.
 Version:     %{version}
 Release:     %{release}
 License:     GPL
@@ -23,13 +24,14 @@ BuildRoot:   %{_tmppath}/%{name}-buildroot
 %description
 %{name} is the beating heart of xine (a free gpl-licensed video player for
 unix-like systems) which among others provides support for decoding (and
-playing back) of many today available audio/video codecs, like mpeg-4, mpeg-2
-and mpeg-1 just to name a few. This library contains (and uses) numerous
-processor specific optimizations to provide a smooth playback and to minimize
-the overall demand of CPU power.
+playing back) of many today available audio/video codecs, like mpeg-4 (DivX),
+mpeg-2 (DVD, SVCD), mpeg-1 (VCD), Quicktime and RealMedia just to name a few.
+This library contains (and uses) numerous processor specific optimizations to
+provide a smooth playback and to minimize the overall demand of CPU power.
 
 Don't hesitate to use %{name} in your own projects as long as your usage
-complies to the GPL.
+complies to the GPL. More information about GPL-license can be found at
+http://www.gnu.org/licenses/gpl.html
 
 %description -l cs
 %{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
@@ -46,18 +48,35 @@ projektech.
 %{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
 Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
 zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
-Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Verfügung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
+Quicktime und RealMedia um nur einige zu nennen.
 Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
 Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
 gewährleisten zu könnnen.
 
 Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
-hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen. Weitere
+Informationen zur GPL-Lizenz finden Sie unter http://www.gnu.org/licenses/gpl.html
+
+%description -l fi
+%{name} on xinen sydän (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
+käyttöjärjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
+ja äänen purkamiseen (sekä näyttämiseen) suurimmalla osalla nykyaikaista äänen-
+ja kuvanpakkausformaateista.
+Tällaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
+mainitaksemme. xinen purkukirjasto käyttää monia matalan tason prosessoripohjaisia
+optimisaatiomenetelmiä tarjotakseen sulavan kuvantoistokokemuksen. Tämä on tarpeen
+myös minimoimaan tarvittavaa prosessoritehoa.
+
+Olet tervetullut käyttämään %{name}:a omissa projekteissasi kunhan ne ovat GPL-
+lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteesta:
+http://www.gnu.org/licenses/gpl.html
 
 %package -n %{libname}
 Summary:   Required libs to run programs dynamically linked with %{name}.
 Summary(cs): Knihovny nutné pro bìh programù dynamicky linkovaných s %{name}
 Summary(de): Benötigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu können.
+Summary(fi): Tarvittavat kirjastot ohjelman ajamiseen linkitettynä %{name}:n kanssa.
 Group:	   Development/Libraries
 Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis libxine0
 Provides:  %{name} = %{version}-%{release}
@@ -68,13 +87,14 @@ This package is required to run programs dynamically linked with %{name}.
 
 %{name} is the beating heart of xine (a free gpl-licensed video player for
 unix-like systems) which among others provides support for decoding (and
-playing back) of many today available audio/video codecs, like mpeg-4, mpeg-2
-and mpeg-1 just to name a few. This library contains (and uses) numerous
-processor specific optimizations to provide a smooth playback and to minimize
-the overall demand of CPU power.
+playing back) of many today available audio/video codecs, like mpeg-4 (DivX),
+mpeg-2 (DVD, SVCD), mpeg-1 (VCD), Quicktime and RealMedia just to name a few.
+This library contains (and uses) numerous processor specific optimizations to
+provide a smooth playback and to minimize the overall demand of CPU power.
 
 Don't hesitate to use %{name} in your own projects as long as your usage
-complies to the GPL.
+complies to the GPL. More information about GPL-license can be found at
+http://www.gnu.org/licenses/gpl.html
 
 %description -n %{libname} -l cs
 Tento balíèek je nutný pro bìh programù dynamicky linkovaných s %{name}.
@@ -96,18 +116,35 @@ gelinkt sind, benutzen zu können.
 %{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
 Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
 zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
-Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Verfügung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
+Quicktime und RealMedia um nur einige zu nennen.
 Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
 Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
 gewährleisten zu könnnen.
 
 Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
-hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen. Weitere
+Informationen zur GPL-Lizenz finden Sie unter http://www.gnu.org/licenses/gpl.html
+
+%description -n %{libname} -l fi
+%{name} on xinen sydän (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
+käyttöjärjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
+ja äänen purkamiseen (sekä näyttämiseen) suurimmalla osalla nykyaikaista äänen-
+ja kuvanpakkausformaateista.
+Tällaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
+mainitaksemme. xinen purkukirjasto käyttää monia matalan tason prosessoripohjaisia
+optimisaatiomenetelmiä tarjotakseen sulavan kuvantoistokokemuksen. Tämä on tarpeen
+myös minimoimaan tarvittavaa prosessoritehoa.
+
+Olet tervetullut käyttämään %{name}:a omissa projekteissasi kunhan ne ovat GPL-
+lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteesta:
+http://www.gnu.org/licenses/gpl.html
 
 %package -n %{libname}-devel
 Summary:   Header files and documentation to develope programs with %{name}.
 Summary(cs): Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících %{name}.
 Summary(de): Headerdateien und Dokumentationen, um Programme mit %{name} entwickeln zu können.
+Summary(fi): Header-tiedostot ja dokumentaatio, joita tarvitset kehittäessäsi ohjelmia %{name}:n kanssa.
 Group:	   Development/Libraries
 Obsoletes: xine-lib-devel libxine0-devel
 Provides:  %{name}-devel = %{version}-%{release}
@@ -119,13 +156,14 @@ programs with %{name}.
 
 %{name} is the beating heart of xine (a free gpl-licensed video player for
 unix-like systems) which among others provides support for decoding (and
-playing back) of many today available audio/video codecs, like mpeg-4, mpeg-2
-and mpeg-1 just to name a few. This library contains (and uses) numerous
-processor specific optimizations to provide a smooth playback and to minimize
-the overall demand of CPU power.
+playing back) of many today available audio/video codecs, like mpeg-4 (DivX),
+mpeg-2 (DVD, SVCD), mpeg-1 (VCD), Quicktime and RealMedia just to name a few.
+This library contains (and uses) numerous processor specific optimizations to
+provide a smooth playback and to minimize the overall demand of CPU power.
 
 Don't hesitate to use %{name} in your own projects as long as your usage
-complies to the GPL.
+complies to the GPL. More information about GPL-license can be found at
+http://www.gnu.org/licenses/gpl.html
 
 %description -n %{libname}-devel -l cs
 Tento balíèek obsahuje hlavièkové soubory a dokumentaci potøebnou pro vývoj
@@ -148,13 +186,29 @@ mit %{name} entwickeln zu können.
 %{name} ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
 Video-Abspielprogramm für unixartige Systeme). %{name} stellt die Funktionen
 zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
-Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu nennen.
+Verfügung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
+Quicktime und RealMedia um nur einige zu nennen.
 Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
 Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
 gewährleisten zu könnnen.
 
 Zögern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
-hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen. Weitere
+Informationen zur GPL-Lizenz finden Sie unter http://www.gnu.org/licenses/gpl.html
+
+%description -n %{libname}-devel -l fi
+%{name} on xinen sydän (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
+käyttöjärjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
+ja äänen purkamiseen (sekä näyttämiseen) suurimmalla osalla nykyaikaista äänen-
+ja kuvanpakkausformaateista.
+Tällaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
+mainitaksemme. xinen purkukirjasto käyttää monia matalan tason prosessoripohjaisia
+optimisaatiomenetelmiä tarjotakseen sulavan kuvantoistokokemuksen. Tämä on tarpeen
+myös minimoimaan tarvittavaa prosessoritehoa.
+
+Olet tervetullut käyttämään %{name}:a omissa projekteissasi kunhan ne ovat GPL-
+lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteesta:
+http://www.gnu.org/licenses/gpl.html
 
 %prep
 %setup -q -n @TAR_NAME@
@@ -221,6 +275,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Dec 07 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added translation for finnish by Tuukka Pasanen <illuusio@mailcity.com>
+- some updates to german and english descriptions
 * Sat Nov 09 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Final changes for libxine 1.0alpha1
 * Mon Nov 04 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
