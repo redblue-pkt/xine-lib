@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.69 2002/12/09 17:33:36 guenter Exp $
+ * $Id: demux_ts.c,v 1.70 2002/12/17 16:42:29 jkeil Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1503,8 +1503,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     
     int t = originalPkt[data_offset+3];
     
-    switch (t) {
-    case VIDEO_STREAM_S ... VIDEO_STREAM_E:
+    if (t >= VIDEO_STREAM_S && t <= VIDEO_STREAM_E) {
       if ( this->videoPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected video pid %d\n",
@@ -1514,9 +1513,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 	this->videoMedia = this->media_num;
 	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, t);
       }
-      break;
-    case PRIVATE_STREAM1:
-    case AUDIO_STREAM_S ... AUDIO_STREAM_E:
+    } else if (t == PRIVATE_STREAM1 ||
+	       t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E) {
       if ( this->audioPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected audio pid %d\n",
@@ -1526,7 +1524,6 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 	this->audioMedia = this->media_num;
 	demux_ts_pes_new(this, this->media_num++, pid, this->audio_fifo, t);
       }
-      break;
     }
   }
   
