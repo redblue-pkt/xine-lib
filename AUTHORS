@@ -79,7 +79,10 @@ James Stembridge <jstembridge@users.sourceforge.net>
 Frantisek Dvorak <valtri@atlas.cz>
   czech translations and multilanguage support (xine lib/ui),
   RIP Input Plugin, WIN32 porting, lots of other improvements and bugfixes
-  
+
+Darren Salt <dsalt@users.sourceforge.net>
+  occasional misc bug fixes
+
 xine is using
 =============
 
