@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.17 2003/05/02 15:02:11 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.18 2003/05/06 00:22:39 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -161,29 +161,36 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
      tocentry.cdte_addr.msf.frame;
 }
 
-static void read_cdrom_frame(int fd, int frame,
-  unsigned char data[CD_RAW_FRAME_SIZE]) {
+static int read_cdrom_frames(int fd, int frame, int num_frames,
+  unsigned char *data) {
 
   struct cdrom_msf msf;
 
-  /* read from starting frame... */
-  msf.cdmsf_min0 = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
-  msf.cdmsf_sec0 = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
-  msf.cdmsf_frame0 = frame % CD_FRAMES_PER_SECOND;
+  while( num_frames ) {
+    /* read from starting frame... */
+    msf.cdmsf_min0 = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
+    msf.cdmsf_sec0 = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
+    msf.cdmsf_frame0 = frame % CD_FRAMES_PER_SECOND;
 
-  /* read until ending track (starting frame + 1)... */
-  msf.cdmsf_min1 = (frame + 1) / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
-  msf.cdmsf_sec1 = ((frame + 1) / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
-  msf.cdmsf_frame1 = (frame + 1) % CD_FRAMES_PER_SECOND;
+    /* read until ending track (starting frame + 1)... */
+    msf.cdmsf_min1 = (frame + 1) / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
+    msf.cdmsf_sec1 = ((frame + 1) / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
+    msf.cdmsf_frame1 = (frame + 1) % CD_FRAMES_PER_SECOND;
 
-  /* MSF structure is the input to the ioctl */
-  memcpy(data, &msf, sizeof(msf));
+    /* MSF structure is the input to the ioctl */
+    memcpy(data, &msf, sizeof(msf));
 
-  /* read a frame */
-  if(ioctl(fd, CDROMREADRAW, data, data) < 0) {
-    perror("CDROMREADRAW");
-    return;
+    /* read a frame */
+    if(ioctl(fd, CDROMREADRAW, data, data) < 0) {
+      perror("CDROMREADRAW");
+      return -1;
+    }
+
+    data += CD_RAW_FRAME_SIZE;
+    frame++;
+    num_frames--;
   }
+  return 0;
 }
 
 #elif defined(__sun)
@@ -256,21 +263,28 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
      tocentry.cdte_addr.msf.frame;
 }
 
-static void read_cdrom_frame(int fd, int frame,
-  unsigned char data[CD_RAW_FRAME_SIZE]) {
+static int read_cdrom_frames(int fd, int frame, int num_frames,
+  unsigned char *data) {
 
   struct cdrom_cdda cdda;
 
-  cdda.cdda_addr = frame - 2 * CD_FRAMES_PER_SECOND;
-  cdda.cdda_length = 1;
-  cdda.cdda_data = data;
-  cdda.cdda_subcode = CDROM_DA_NO_SUBCODE;
+  while( num_frames ) {
+    cdda.cdda_addr = frame - 2 * CD_FRAMES_PER_SECOND;
+    cdda.cdda_length = 1;
+    cdda.cdda_data = data;
+    cdda.cdda_subcode = CDROM_DA_NO_SUBCODE;
 
-  /* read a frame */
-  if(ioctl(fd, CDROMCDDA, &cdda) < 0) {
-    perror("CDROMCDDA");
-    return;
+    /* read a frame */
+    if(ioctl(fd, CDROMCDDA, &cdda) < 0) {
+      perror("CDROMCDDA");
+      return -1;
+    }
+
+    data += CD_RAW_FRAME_SIZE;
+    frame++;
+    num_frames--;
   }
+  return 0;
 }
 
 #elif defined(__FreeBSD__)
@@ -343,23 +357,30 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
      tocentry.entry.addr.msf.frame;
 }
 
-static void read_cdrom_frame(int fd, int frame,
-  unsigned char data[CD_RAW_FRAME_SIZE]) {
+static int read_cdrom_frames(int fd, int frame, int num_frames,
+  unsigned char *data) {
 
   struct ioc_read_audio cdda;
 
-  cdda.address_format = CD_MSF_FORMAT;
-  cdda.address.msf.minute = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
-  cdda.address.msf.second = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
-  cdda.address.msf.frame = frame % CD_FRAMES_PER_SECOND;
-  cdda.nframes = 1;
-  cdda.buffer = data;
+  while( num_frames ) {
+    cdda.address_format = CD_MSF_FORMAT;
+    cdda.address.msf.minute = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
+    cdda.address.msf.second = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
+    cdda.address.msf.frame = frame % CD_FRAMES_PER_SECOND;
+    cdda.nframes = 1;
+    cdda.buffer = data;
 
-  /* read a frame */
-  if(ioctl(fd, CDIOCREADAUDIO, &cdda) < 0) {
-    perror("CDIOCREADAUDIO");
-    return;
+    /* read a frame */
+    if(ioctl(fd, CDIOCREADAUDIO, &cdda) < 0) {
+      perror("CDIOCREADAUDIO");
+      return -1;
+    }
+    
+    data += CD_RAW_FRAME_SIZE;
+    frame++;
+    num_frames--;
   }
+  return 0;
 }
 
 #else
@@ -371,8 +392,8 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
 }
 
 
-static void read_cdrom_frame(int fd, int frame,
-  unsigned char data[CD_RAW_FRAME_SIZE]) {
+static int read_cdrom_frames(int fd, int frame, int num_frames,
+  unsigned char *data) {
 
 }
 
@@ -385,6 +406,7 @@ static void read_cdrom_frame(int fd, int frame,
  *************************************************************************/
 
 #define MAX_TRACKS     99
+#define CACHED_FRAMES  100
 
 typedef struct {
   int                  start;
@@ -423,6 +445,10 @@ typedef struct {
   int                  first_frame;
   int                  current_frame;
   int                  last_frame;
+
+  unsigned char        cache[CACHED_FRAMES][CD_RAW_FRAME_SIZE];
+  int                  cache_first;
+  int                  cache_last;
 
 } cdda_input_plugin_t;
 
@@ -1163,7 +1189,23 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   if (this->current_frame >= this->last_frame)
     return NULL;
 
-  read_cdrom_frame(this->fd, this->current_frame++, frame_data);
+  /* populate frame cache */
+  if( this->cache_first == -1 ||
+      this->current_frame < this->cache_first ||
+      this->current_frame > this->cache_last ) {
+
+    this->cache_first = this->current_frame;
+    this->cache_last = this->current_frame + CACHED_FRAMES - 1;
+    if( this->cache_last > this->last_frame )
+      this->cache_last = this->last_frame;
+    
+    read_cdrom_frames(this->fd, this->cache_first,
+                      this->cache_last - this->cache_first + 1,
+                      this->cache[0]);
+  }
+    
+  memcpy(frame_data, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
+  this->current_frame++;
 
   buf = fifo->buffer_pool_alloc(fifo);
   buf->content = buf->mem;
@@ -1267,7 +1309,11 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     this->last_frame = toc.leadout_track.first_frame - 1;
   else
     this->last_frame = toc.toc_entries[this->track + 1].first_frame - 1;
+
+  /* invalidate cache */
+  this->cache_first = this->cache_last = -1;
   
+    
   /*
    * CDDB
    */
