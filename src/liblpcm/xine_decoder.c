@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2001/09/23 15:19:36 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.12 2001/10/18 14:32:28 jkeil Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -93,8 +93,8 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if (!this->output_open) {      
     /*
-     * with dvdnav we not get a preview buffer with audio format information
-     * (buf->decoder_info[0] == 0).
+     * with dvdnav we do not get a preview buffer with audio format
+     * information (buf->decoder_info[0] == 0).
      * grab the audio format from the first audio data buffer, in case
      * the audio format is not yet known.
      */
