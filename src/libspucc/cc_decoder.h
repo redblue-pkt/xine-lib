@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.h,v 1.6 2003/12/09 00:02:33 f1rmb Exp $
+ * $Id: cc_decoder.h,v 1.7 2004/05/05 17:36:48 mroi Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -45,17 +45,26 @@ typedef struct cc_config_s {
   int center;                 /* true if captions should be centered */
                               /* according to text width */
   int cc_scheme;              /* which captioning scheme to use */
+  
+  int config_version;         /* the decoder should be updated when this is increased */
+} cc_config_t;
 
+typedef struct spucc_class_s {
+  spu_decoder_class_t spu_class;
+  cc_config_t         cc_cfg;
+} spucc_class_t;
+
+typedef struct cc_state_s {
+  cc_config_t *cc_cfg;
   /* the following variables are not controlled by configuration files; they */
   /* are intrinsic to the properties of the configuration options and the */
   /* currently played video */
-  int can_cc;                 /* true if captions can be displayed */
+  int            can_cc;      /* true if captions can be displayed */
                               /* (e.g., font fits on screen) */
-
   cc_renderer_t *renderer;    /* closed captioning renderer */
-} cc_config_t;
+} cc_state_t;
 
-cc_decoder_t *cc_decoder_open(cc_config_t *cc_cfg);
+cc_decoder_t *cc_decoder_open(cc_state_t *cc_state);
 void cc_decoder_close(cc_decoder_t *this_obj);
 void cc_decoder_init(void);
 
@@ -64,7 +73,7 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
 
 /* Instantiates a new closed captioning renderer. */
 cc_renderer_t *cc_renderer_open(osd_renderer_t *osd_renderer,
-				metronom_t *metronom, cc_config_t *cc_cfg,
+				metronom_t *metronom, cc_state_t *cc_state,
 				int video_width, int video_height);
 
 /* Destroys a closed captioning renderer. */

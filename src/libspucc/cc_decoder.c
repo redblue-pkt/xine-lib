@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.24 2003/12/09 00:02:33 f1rmb Exp $
+ * $Id: cc_decoder.c,v 1.25 2004/05/05 17:36:48 mroi Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -286,7 +286,7 @@ struct cc_renderer_s {
 
   metronom_t *metronom;       /* the active xine metronom */
 
-  cc_config_t *cc_cfg;        /* captioning configuration */
+  cc_state_t *cc_state;        /* captioning configuration */
 };
 
 
@@ -357,7 +357,7 @@ struct cc_decoder_s {
   int displayed;
 
   /* configuration and intrinsics of CC decoder */
-  cc_config_t *cc_cfg;
+  cc_state_t *cc_state;
 
   metronom_t *metronom;
 };
@@ -528,7 +528,7 @@ static void ccrow_set_attributes(cc_renderer_t *renderer, cc_row_t *this,
 {
   const cc_attribute_t *attr = &this->cells[pos].attributes;
   const char *fontname;
-  cc_config_t *cap_info = renderer->cc_cfg;
+  cc_config_t *cap_info = renderer->cc_state->cc_cfg;
 
   if (attr->italic)
     fontname = cap_info->italic_font;
@@ -544,7 +544,7 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
   char buf[CC_COLUMNS + 1];
   int base_y;
   int pos = ccrow_find_next_text_part(this, 0);
-  cc_config_t *cap_info = renderer->cc_cfg;
+  cc_config_t *cap_info = renderer->cc_state->cc_cfg;
   osd_renderer_t *osd_renderer = renderer->osd_renderer;
 
   /* find y coordinate of caption */
@@ -806,8 +806,8 @@ static void ccmem_exit(cc_memory_t *this)
 static void cc_renderer_build_palette(cc_renderer_t *this)
 {
   int i, j;
-  colorinfo_t *cc_text = cc_text_palettes[this->cc_cfg->cc_scheme];
-  uint8_t *cc_alpha = cc_alpha_palettes[this->cc_cfg->cc_scheme];
+  colorinfo_t *cc_text = cc_text_palettes[this->cc_state->cc_cfg->cc_scheme];
+  uint8_t *cc_alpha = cc_alpha_palettes[this->cc_state->cc_cfg->cc_scheme];
   
   memset(this->cc_palette, 0, sizeof (this->cc_palette));
   memset(this->cc_trans, 0, sizeof (this->cc_trans));
@@ -925,14 +925,14 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
 
 
 cc_renderer_t *cc_renderer_open(osd_renderer_t *osd_renderer,
-				metronom_t *metronom, cc_config_t *cc_cfg,
+				metronom_t *metronom, cc_state_t *cc_state,
 				int video_width, int video_height)
 {
   cc_renderer_t *this = (cc_renderer_t *) xine_xmalloc(sizeof (cc_renderer_t));
 
   this->osd_renderer = osd_renderer;
   this->metronom = metronom;
-  this->cc_cfg = cc_cfg;
+  this->cc_state = cc_state;
   cc_renderer_update_cfg(this, video_width, video_height);
 #ifdef LOG_DEBUG
   printf("spucc: cc_renderer: open\n");
@@ -972,12 +972,12 @@ void cc_renderer_update_cfg(cc_renderer_t *this_obj, int video_width,
 
   /* find maximum text width and height for normal & italic captioning */
   /* font */
-  get_font_metrics(this_obj->osd_renderer, this_obj->cc_cfg->font,
-		   this_obj->cc_cfg->font_size, &fontw, &fonth);
+  get_font_metrics(this_obj->osd_renderer, this_obj->cc_state->cc_cfg->font,
+		   this_obj->cc_state->cc_cfg->font_size, &fontw, &fonth);
   this_obj->max_char_width = fontw;
   this_obj->max_char_height = fonth;
-  get_font_metrics(this_obj->osd_renderer, this_obj->cc_cfg->italic_font,
-		   this_obj->cc_cfg->font_size, &fontw, &fonth);
+  get_font_metrics(this_obj->osd_renderer, this_obj->cc_state->cc_cfg->italic_font,
+		   this_obj->cc_state->cc_cfg->font_size, &fontw, &fonth);
   this_obj->max_char_width = MAX(fontw, this_obj->max_char_width);
   this_obj->max_char_height = MAX(fonth, this_obj->max_char_height);
 #ifdef LOG_DEBUG
@@ -1007,11 +1007,11 @@ void cc_renderer_update_cfg(cc_renderer_t *this_obj, int video_width,
 
   if (required_w <= this_obj->video_width && 
       required_h <= this_obj->video_height) {
-    this_obj->cc_cfg->can_cc = 1;
+    this_obj->cc_state->can_cc = 1;
     cc_renderer_adjust_osd_object(this_obj);
   }
   else {
-    this_obj->cc_cfg->can_cc = 0;
+    this_obj->cc_state->can_cc = 0;
     cc_renderer_free_osd_object(this_obj);
     printf("spucc: required captioning area %dx%d exceeds screen %dx%d!\n"
 	   "       Captions disabled. Perhaps you should choose a smaller"
@@ -1052,13 +1052,13 @@ static void cc_hide_displayed(cc_decoder_t *this)
   printf("cc_decoder: cc_hide_displayed\n");
 #endif
 
-  if (cc_renderer_on_display(this->cc_cfg->renderer)) {
-    int64_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
+  if (cc_renderer_on_display(this->cc_state->renderer)) {
+    int64_t vpts = cc_renderer_calc_vpts(this->cc_state->renderer, this->pts,
 					  this->f_offset); 
 #ifdef LOG_DEBUG
     printf("cc_decoder: cc_hide_displayed: hiding caption %u at vpts %u\n", this->capid, vpts);
 #endif    
-    cc_renderer_hide_caption(this->cc_cfg->renderer, vpts);
+    cc_renderer_hide_caption(this->cc_state->renderer, vpts);
   }
 }
 
@@ -1070,13 +1070,13 @@ static void cc_show_displayed(cc_decoder_t *this)
 #endif
 
   if (cc_onscreen_displayable(this)) {
-    int64_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
+    int64_t vpts = cc_renderer_calc_vpts(this->cc_state->renderer, this->pts,
 					  this->f_offset);
 #ifdef LOG_DEBUG
     printf("cc_decoder: cc_show_displayed: showing caption %u at vpts %u\n", this->capid, vpts);
 #endif    
     this->capid++;
-    cc_renderer_show_caption(this->cc_cfg->renderer,
+    cc_renderer_show_caption(this->cc_state->renderer,
 			     &this->on_buf->channel[this->on_buf->channel_no],
 			     vpts);
   }
@@ -1443,11 +1443,11 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
 
 
 
-cc_decoder_t *cc_decoder_open(cc_config_t *cc_cfg)
+cc_decoder_t *cc_decoder_open(cc_state_t *cc_state)
 {
   cc_decoder_t *this = (cc_decoder_t *) xine_xmalloc(sizeof (cc_decoder_t));
   /* configfile stuff */
-  this->cc_cfg = cc_cfg;
+  this->cc_state = cc_state;
 
   ccmem_init(&this->buffer[0]);
   ccmem_init(&this->buffer[1]);
