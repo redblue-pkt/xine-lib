@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.7 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: idcinvideo.c,v 1.8 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -334,6 +334,9 @@ static void idcinvideo_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void idcinvideo_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -363,6 +366,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = idcinvideo_decode_data;
   this->video_decoder.flush               = idcinvideo_flush;
   this->video_decoder.reset               = idcinvideo_reset;
+  this->video_decoder.discontinuity       = idcinvideo_discontinuity;
   this->video_decoder.dispose             = idcinvideo_dispose;
   this->size                              = 0;
 
@@ -411,6 +415,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.h,v 1.5 2002/10/17 17:43:44 mroi Exp $
+ * $Id: audio_decoder.h,v 1.6 2002/11/12 18:40:54 miguelfreitas Exp $
  *
  * xine audio decoder plugin interface
  *
@@ -29,7 +29,7 @@
 #include <inttypes.h>
 #include "buffer.h"
 
-#define AUDIO_DECODER_IFACE_VERSION 10
+#define AUDIO_DECODER_IFACE_VERSION 11
 
 /*
  * generic xine audio decoder plugin interface
@@ -77,6 +77,12 @@ struct audio_decoder_s {
    * audio data not related to recently decoded data)
    */
   void (*reset) (audio_decoder_t *this);
+  
+  /*
+   * inform decoder that a time reference discontinuity has happened.
+   * that is, it must forget any currently held pts value
+   */
+  void (*discontinuity) (audio_decoder_t *this);  
   
   /*
    * close down, free all resources

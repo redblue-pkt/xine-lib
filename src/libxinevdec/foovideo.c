@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.9 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: foovideo.c,v 1.10 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -183,6 +183,11 @@ static void foovideo_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void foovideo_discontinuity (video_decoder_t *this_gen) {
+  foovideo_decoder_t *this = (foovideo_decoder_t *) this_gen;
+
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -216,6 +221,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = foovideo_decode_data;
   this->video_decoder.flush               = foovideo_flush;
   this->video_decoder.reset               = foovideo_reset;
+  this->video_decoder.discontinuity       = foovideo_discontinuity;
   this->video_decoder.dispose             = foovideo_dispose;
   this->size                              = 0;
 
@@ -300,6 +306,6 @@ static decoder_info_t dec_info_video = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API, "name", version, special_info, init_function } */
-  { PLUGIN_VIDEO_DECODER, 11, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.10 2002/11/11 05:55:52 tmmm Exp $
+ * $Id: yuv.c,v 1.11 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -263,6 +263,9 @@ static void yuv_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void yuv_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -293,6 +296,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = yuv_decode_data;
   this->video_decoder.flush               = yuv_flush;
   this->video_decoder.reset               = yuv_reset;
+  this->video_decoder.discontinuity       = yuv_discontinuity;
   this->video_decoder.dispose             = yuv_dispose;
   this->size                              = 0;
 
@@ -349,6 +353,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

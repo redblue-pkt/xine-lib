@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.99 2002/10/31 05:23:02 tmmm Exp $
+ * $Id: w32codec.c,v 1.100 2002/11/12 18:40:52 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -873,6 +873,9 @@ static void w32v_reset (video_decoder_t *this_gen) {
   pthread_mutex_unlock(&win32_codec_mutex);
 }
 
+static void w32v_discontinuity (video_decoder_t *this_gen) {
+}
+
 
 static void w32v_dispose (video_decoder_t *this_gen) {
 
@@ -981,6 +984,12 @@ static void w32a_reset (audio_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void w32a_discontinuity (audio_decoder_t *this_gen) {
+
+  w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
+
+  this->pts = 0;
+}
 
 static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
 
@@ -1330,6 +1339,7 @@ static video_decoder_t *open_video_decoder_plugin (video_decoder_class_t *class_
   this->video_decoder.decode_data         = w32v_decode_data;
   this->video_decoder.flush               = w32v_flush;
   this->video_decoder.reset               = w32v_reset;
+  this->video_decoder.discontinuity       = w32v_discontinuity;
   this->video_decoder.dispose             = w32v_dispose;
 
   this->stream      = stream;
@@ -1402,6 +1412,7 @@ static audio_decoder_t *open_audio_decoder_plugin (audio_decoder_class_t *class_
 
   this->audio_decoder.decode_data         = w32a_decode_data;
   this->audio_decoder.reset               = w32a_reset;
+  this->audio_decoder.discontinuity       = w32a_discontinuity;
   this->audio_decoder.dispose             = w32a_dispose;
   
   this->stream      = stream;
@@ -1491,7 +1502,7 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
-  { PLUGIN_AUDIO_DECODER, 10, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
+  { PLUGIN_VIDEO_DECODER, 12, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
+  { PLUGIN_AUDIO_DECODER, 11, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.10 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: cyuv.c,v 1.11 2002/11/12 18:40:53 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -219,6 +219,9 @@ static void cyuv_flush (video_decoder_t *this_gen) {
 static void cyuv_reset (video_decoder_t *this_gen) {
 }
 
+static void cyuv_discontinuity (video_decoder_t *this_gen) {
+}
+
 static void cyuv_dispose (video_decoder_t *this_gen) {
 
   cyuv_decoder_t *this = (cyuv_decoder_t *) this_gen;
@@ -237,6 +240,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = cyuv_decode_data;
   this->video_decoder.flush               = cyuv_flush;
   this->video_decoder.reset               = cyuv_reset;
+  this->video_decoder.discontinuity       = cyuv_discontinuity;
   this->video_decoder.dispose             = cyuv_dispose;
   this->size                              = 0;
 
@@ -290,6 +294,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

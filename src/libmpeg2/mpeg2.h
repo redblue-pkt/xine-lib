@@ -66,6 +66,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
 void mpeg2_flush (mpeg2dec_t * mpeg2dec);
 void mpeg2_reset (mpeg2dec_t * mpeg2dec);
+void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec);
 
 /* Not needed, it is defined as static in decode.c, and no-one else called it
  * currently

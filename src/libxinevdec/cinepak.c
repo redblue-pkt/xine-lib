@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.19 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: cinepak.c,v 1.20 2002/11/12 18:40:53 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -464,6 +464,9 @@ static void cvid_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void cvid_discontinuity (video_decoder_t *this_gen) {
+}
+
 static void cvid_dispose (video_decoder_t *this_gen) {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
 
@@ -494,6 +497,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = cvid_decode_data;
   this->video_decoder.flush               = cvid_flush;
   this->video_decoder.reset               = cvid_reset;
+  this->video_decoder.discontinuity       = cvid_discontinuity;
   this->video_decoder.dispose             = cvid_dispose;
   this->size                              = 0;
 
@@ -549,6 +553,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

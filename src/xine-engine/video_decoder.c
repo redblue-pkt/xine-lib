@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.108 2002/11/02 15:18:40 mroi Exp $
+ * $Id: video_decoder.c,v 1.109 2002/11/12 18:40:55 miguelfreitas Exp $
  *
  */
 
@@ -244,18 +244,25 @@ void *video_decoder_loop (void *stream_gen) {
 #ifdef LOG
       printf ("video_decoder: discontinuity ahead\n");
 #endif
-
+      if (stream->video_decoder_plugin) {
+        stream->video_decoder_plugin->discontinuity (stream->video_decoder_plugin);
+      }
+      
       stream->video_in_discontinuity = 1;
 
       stream->metronom->handle_video_discontinuity (stream->metronom, DISC_RELATIVE, buf->disc_off);
       
       stream->video_in_discontinuity = 0;
+      
       break;
     
     case BUF_CONTROL_NEWPTS:
 #ifdef LOG
       printf ("video_decoder: new pts %lld\n", buf->disc_off);
 #endif
+      if (stream->video_decoder_plugin) {
+        stream->video_decoder_plugin->discontinuity (stream->video_decoder_plugin);
+      }
       
       stream->video_in_discontinuity = 1;
       
@@ -265,7 +272,7 @@ void *video_decoder_loop (void *stream_gen) {
 	stream->metronom->handle_video_discontinuity (stream->metronom, DISC_ABSOLUTE, buf->disc_off);
       }
       stream->video_in_discontinuity = 0;
-      
+     
       break;
       
     case BUF_CONTROL_AUDIO_CHANNEL:

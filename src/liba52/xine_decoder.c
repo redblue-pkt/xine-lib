@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2002/10/27 18:02:52 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.39 2002/11/12 18:40:50 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -140,6 +140,13 @@ void a52dec_reset (audio_decoder_t *this_gen) {
 
   this->syncword      = 0;
   this->sync_todo     = 7;
+  this->pts           = 0;
+}
+
+void a52dec_discontinuity (audio_decoder_t *this_gen) {
+
+  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
+
   this->pts           = 0;
 }
 
@@ -474,6 +481,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = a52dec_decode_data;
   this->audio_decoder.reset               = a52dec_reset;
+  this->audio_decoder.discontinuity       = a52dec_discontinuity;
   this->audio_decoder.dispose             = a52dec_dispose;
   this->stream                            = stream;
   this->class                             = (a52dec_class_t *) class_gen;
@@ -634,6 +642,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_AUDIO_DECODER, 10, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

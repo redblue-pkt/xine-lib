@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.14 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: msvc.c,v 1.15 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -320,6 +320,9 @@ static void msvc_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void msvc_discontinuity (video_decoder_t *this_gen) {
+}
+
 static void msvc_dispose (video_decoder_t *this_gen) {
 
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
@@ -351,6 +354,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = msvc_decode_data;
   this->video_decoder.flush               = msvc_flush;
   this->video_decoder.reset               = msvc_reset;
+  this->video_decoder.discontinuity       = msvc_discontinuity;
   this->video_decoder.dispose             = msvc_dispose;
   this->size                              = 0;
 
@@ -405,6 +409,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "msvc", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "msvc", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.8 2002/10/23 03:21:20 tmmm Exp $
+ * $Id: fli.c,v 1.9 2002/11/12 18:40:53 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -506,6 +506,9 @@ static void fli_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void fli_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -538,6 +541,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = fli_decode_data;
   this->video_decoder.flush               = fli_flush;
   this->video_decoder.reset               = fli_reset;
+  this->video_decoder.discontinuity       = fli_discontinuity;
   this->video_decoder.dispose             = fli_dispose;
   this->size                              = 0;
 
@@ -592,7 +596,7 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "fli", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "fli", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.99 2002/11/10 13:33:16 mroi Exp $
+ * $Id: metronom.c,v 1.100 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -260,24 +260,15 @@ static void metronom_set_audio_rate (metronom_t *this, int64_t pts_per_smpls) {
 }
 
 static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
-  int64_t vpts, video_vpts, vpts_old, vpts_new;
+  int64_t vpts;
 
   pthread_mutex_lock (&this->lock);
-  vpts_old = pts + this->old_vpts_offset;
-  vpts_new = pts + this->vpts_offset;
-  video_vpts = this->video_vpts;
 
   if (pts >= 0 ) {
-    if ( abs(vpts_old - video_vpts) > abs(vpts_new - video_vpts) ) {
-      vpts = vpts_new;
-    } else {
-      vpts = vpts_old;
-    }
-    /* printf ("metronom: WARNING:got_spu_packet: vpts=%lld, old offset=%lld, new offset=%lld, video_vpts=%lld\n", vpts, vpts_old, vpts_new, video_vpts); */
+    vpts = pts + this->vpts_offset;
   } else {
     /* pts < 0 */
     vpts = this->vpts_offset;
-    /* printf ("metronom: WARNING:got_spu_packet: vpts_offset=%lld\n", vpts); */
   }
 
   pthread_mutex_unlock (&this->lock);
@@ -325,30 +316,12 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   printf ("metronom: video_vpts: %lld, audio_vpts: %lld\n", this->video_vpts, this->audio_vpts);
 #endif
 
-/* What does this stuff ?
-  diff = this->video_vpts - this->audio_vpts;
-  if (abs(diff) > AV_DIFF_TOLERANCE) {
-    if (this->video_vpts > this->audio_vpts)
-      this->audio_vpts = this->video_vpts;
-    else
-      this->video_vpts = this->audio_vpts;
-  } else {
-    this->video_drift      = diff;
-    this->video_drift_step = diff / 30;
-  }
-*/
-  this->old_vpts_offset = this->vpts_offset;
-   
   switch (type) {
   case DISC_STREAMSTART:
 #ifdef LOG
     printf ("metronom: DISC_STREAMSTART\n");
 #endif
     this->vpts_offset = this->video_vpts;
-    this->video_discontinuity_pts = disc_off;
-    this->audio_discontinuity_pts = disc_off;
-    this->in_video_discontinuity  = 0;
-    this->in_audio_discontinuity  = 0;
     this->force_audio_jump        = 1;
     this->force_video_jump        = 1;
     this->video_drift             = 0;
@@ -358,10 +331,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     printf ("metronom: DISC_ABSOLUTE\n");
 #endif
     this->vpts_offset             = this->video_vpts - disc_off;
-    this->video_discontinuity_pts = disc_off;
-    this->audio_discontinuity_pts = disc_off;
-    this->in_video_discontinuity  = 30;
-    this->in_audio_discontinuity  = 30;
     this->force_audio_jump        = 0;
     this->force_video_jump        = 0;
     break;
@@ -370,10 +339,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     printf ("metronom: DISC_RELATIVE\n");
 #endif
     this->vpts_offset             = this->vpts_offset - disc_off;
-    this->video_discontinuity_pts = this->video_vpts - this->vpts_offset;
-    this->audio_discontinuity_pts = this->audio_vpts - this->vpts_offset;
-    this->in_video_discontinuity  = 30;
-    this->in_audio_discontinuity  = 30;
     this->force_audio_jump        = 0;
     this->force_video_jump        = 0;
     break;
@@ -382,10 +347,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     printf ("metronom: DISC_STREAMSEEK\n");
 #endif
     this->vpts_offset             = this->video_vpts - disc_off;
-    this->video_discontinuity_pts = disc_off;
-    this->audio_discontinuity_pts = disc_off;
-    this->in_video_discontinuity  = 30;
-    this->in_audio_discontinuity  = 30;
     this->force_audio_jump        = 1;
     this->force_video_jump        = 1;
     this->video_drift             = 0;
@@ -411,16 +372,6 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   printf("metronom: got_video_frame pts = %lld\n", pts );
 #endif
 
-  if (this->in_video_discontinuity) {
-    this->in_video_discontinuity--;
-
-    if (pts  && (pts > this->video_discontinuity_pts)) {
-      this->in_video_discontinuity = 0;
-    } else {
-      pts = 0; /* ignore pts during discontinuities */
-    }
-  }
-  
   this->img_cpt++;
 
   if (pts) {
@@ -541,16 +492,6 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 #endif
 
   pthread_mutex_lock (&this->lock);
-
-  if (this->in_audio_discontinuity) {
-    this->in_audio_discontinuity--;
-
-    if (pts && (pts > this->audio_discontinuity_pts)) {
-      this->in_audio_discontinuity = 0;
-    } else {
-      pts = 0; /* ignore pts during discontinuities */
-    }
-  }
 
   if (pts) {
     vpts = pts + this->vpts_offset;
@@ -785,7 +726,6 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 
   this->av_offset                   = 0;
   this->vpts_offset                 = 0;
-  this->old_vpts_offset             = 0;
 
   /* initialize video stuff */
 
@@ -793,7 +733,6 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   this->video_drift                 = 0;
   this->video_drift_step            = 0;
   this->video_discontinuity_count   = 0;
-  this->in_video_discontinuity      = 0;
   this->discontinuity_handled_count = 0;
   pthread_cond_init (&this->video_discontinuity_reached, NULL);
   this->img_duration              = 3000;
@@ -805,7 +744,6 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 
   this->have_audio                  = have_audio;
   this->audio_vpts                  = PREBUFFER_PTS_OFFSET;
-  this->in_audio_discontinuity      = 0;
   this->audio_discontinuity_count   = 0;
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2002/10/27 01:52:15 guenter Exp $
+ * $Id: xine_decoder.c,v 1.21 2002/11/12 18:40:52 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -77,6 +77,9 @@ static void vorbis_reset (audio_decoder_t *this_gen) {
 
   vorbis_synthesis_init(&this->vd,&this->vi); 
   vorbis_block_init(&this->vd,&this->vb);     
+}
+
+static void vorbis_discontinuity (audio_decoder_t *this_gen) {
 }
 
 /* Known vorbis comment keys from ogg123 sources*/
@@ -274,6 +277,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
 
   this->audio_decoder.decode_data         = vorbis_decode_data;
   this->audio_decoder.reset               = vorbis_reset;
+  this->audio_decoder.discontinuity       = vorbis_discontinuity;
   this->audio_decoder.dispose             = vorbis_dispose;
   this->stream                            = stream;
 
@@ -328,6 +332,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

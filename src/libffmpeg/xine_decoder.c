@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.65 2002/11/11 16:22:58 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.66 2002/11/12 18:40:51 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -598,6 +598,12 @@ static void ff_reset (video_decoder_t *this_gen) {
 #endif
 }
 
+static void ff_discontinuity (video_decoder_t *this_gen) {
+#ifdef LOG
+  printf ("ffmpeg: ff_discontinuity\n");
+#endif
+}
+
 void avcodec_register_all(void)
 {
     static int inited = 0;
@@ -663,6 +669,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->video_decoder.decode_data         = ff_decode_data;
   this->video_decoder.flush               = ff_flush;
   this->video_decoder.reset               = ff_reset;
+  this->video_decoder.discontinuity       = ff_discontinuity;
   this->video_decoder.dispose             = ff_dispose;
   this->size				  = 0;
 
@@ -897,6 +904,9 @@ printf("      2) bytes/send = %d\n", bytes_to_send);
 static void ff_audio_reset (audio_decoder_t *this_gen) {
 }
 
+static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
+}
+
 static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
@@ -925,6 +935,7 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
 
   this->audio_decoder.decode_data         = ff_audio_decode_data;
   this->audio_decoder.reset               = ff_audio_reset;
+  this->audio_decoder.discontinuity       = ff_audio_discontinuity;
   this->audio_decoder.dispose             = ff_audio_dispose;
 
   this->output_open = 0;
@@ -1006,7 +1017,7 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
-  { PLUGIN_AUDIO_DECODER, 10, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

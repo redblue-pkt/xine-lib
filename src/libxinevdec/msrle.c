@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.9 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: msrle.c,v 1.10 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -292,6 +292,9 @@ static void msrle_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void msrle_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -320,6 +323,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = msrle_decode_data;
   this->video_decoder.flush               = msrle_flush;
   this->video_decoder.reset               = msrle_reset;
+  this->video_decoder.discontinuity       = msrle_discontinuity;
   this->video_decoder.dispose             = msrle_dispose;
   this->size                              = 0;
 
@@ -374,6 +378,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "msrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "msrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.7 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: qtsmc.c,v 1.8 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -618,6 +618,9 @@ static void qtsmc_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void qtsmc_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -647,6 +650,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = qtsmc_decode_data;
   this->video_decoder.flush               = qtsmc_flush;
   this->video_decoder.reset               = qtsmc_reset;
+  this->video_decoder.discontinuity       = qtsmc_discontinuity;
   this->video_decoder.dispose             = qtsmc_dispose;
   this->size                              = 0;
 
@@ -695,7 +699,7 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "smc", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "smc", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.8 2002/11/11 05:01:32 tmmm Exp $
+ * $Id: logpcm.c,v 1.9 2002/11/12 18:40:53 miguelfreitas Exp $
  *
  */
 
@@ -232,6 +232,12 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 static void logpcm_reset (audio_decoder_t *this_gen) {
 }
 
+static void logpcm_discontinuity (audio_decoder_t *this_gen) {
+  logpcm_decoder_t *this = (logpcm_decoder_t *) this_gen;
+
+  this->pts = 0;
+}
+
 static void logpcm_dispose (audio_decoder_t *this_gen) {
 
   logpcm_decoder_t *this = (logpcm_decoder_t *) this_gen;
@@ -254,6 +260,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = logpcm_decode_data;
   this->audio_decoder.reset               = logpcm_reset;
+  this->audio_decoder.discontinuity       = logpcm_discontinuity;
   this->audio_decoder.dispose             = logpcm_dispose;
 
   this->output_open = 0;
@@ -300,6 +307,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

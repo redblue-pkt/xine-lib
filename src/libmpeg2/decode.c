@@ -557,6 +557,21 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     return ret;
 }
 
+void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec) {
+  picture_t *picture = mpeg2dec->picture;
+
+  if( !picture )
+    return;
+  
+  mpeg2dec->pts = 0;  
+  if ( picture->current_frame )
+    picture->current_frame->pts = 0;
+  if ( picture->forward_reference_frame )
+    picture->forward_reference_frame->pts = 0;
+  if ( picture->backward_reference_frame )
+    picture->backward_reference_frame->pts = 0;
+}
+
 void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   
   picture_t *picture = mpeg2dec->picture;
@@ -564,7 +579,7 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   if( !picture )
     return;
   
-  mpeg2dec->pts = 0;
+  mpeg2_discontinuity(mpeg2dec);
   
   if( !picture->mpeg1 ) 
     mpeg2dec->is_sequence_needed = 1;

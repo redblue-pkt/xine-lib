@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.8 2002/11/11 05:55:52 tmmm Exp $
+ * $Id: wc3video.c,v 1.9 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -463,6 +463,9 @@ static void wc3video_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void wc3video_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -492,6 +495,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = wc3video_decode_data;
   this->video_decoder.flush               = wc3video_flush;
   this->video_decoder.reset               = wc3video_reset;
+  this->video_decoder.discontinuity       = wc3video_discontinuity;
   this->video_decoder.dispose             = wc3video_dispose;
   this->size                              = 0;
 
@@ -540,6 +544,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

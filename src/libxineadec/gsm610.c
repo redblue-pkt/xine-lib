@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.4 2002/11/11 05:01:32 tmmm Exp $
+ * $Id: gsm610.c,v 1.5 2002/11/12 18:40:53 miguelfreitas Exp $
  *
  */
 
@@ -212,6 +212,9 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 static void gsm610_reset (audio_decoder_t *this_gen) {
 }
 
+static void gsm610_discontinuity (audio_decoder_t *this_gen) {
+}
+
 static void gsm610_dispose (audio_decoder_t *this_gen) {
 
   gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
@@ -237,6 +240,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = gsm610_decode_data;
   this->audio_decoder.reset               = gsm610_reset;
+  this->audio_decoder.discontinuity       = gsm610_discontinuity;
   this->audio_decoder.dispose             = gsm610_dispose;
 
   this->output_open = 0;
@@ -287,6 +291,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

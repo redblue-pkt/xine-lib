@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2002/10/29 01:29:46 guenter Exp $
+ * $Id: xine_decoder.c,v 1.43 2002/11/12 18:40:52 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -113,6 +113,15 @@ static void mpeg2dec_reset (video_decoder_t *this_gen) {
   pthread_mutex_unlock (&this->lock);
 }
 
+static void mpeg2dec_discontinuity (video_decoder_t *this_gen) {
+  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+
+  pthread_mutex_lock (&this->lock);
+
+  mpeg2_discontinuity (&this->mpeg2);
+
+  pthread_mutex_unlock (&this->lock);
+}
 
 static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 
@@ -143,6 +152,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = mpeg2dec_decode_data;
   this->video_decoder.flush               = mpeg2dec_flush;
   this->video_decoder.reset               = mpeg2dec_reset;
+  this->video_decoder.discontinuity       = mpeg2dec_discontinuity;
   this->video_decoder.dispose             = mpeg2dec_dispose;
   this->stream                            = stream;
   this->class                             = (mpeg2_class_t *) class_gen;
@@ -203,6 +213,6 @@ static decoder_info_t dec_info_mpeg2 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

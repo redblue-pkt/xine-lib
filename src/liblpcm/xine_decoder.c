@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/11/11 05:51:14 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/11/12 18:40:51 miguelfreitas Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -61,6 +61,9 @@ void lpcm_reset (audio_decoder_t *this_gen) {
 
   /* lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen; */
 
+}
+
+void lpcm_discontinuity (audio_decoder_t *this_gen) {
 }
 
 void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -192,6 +195,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = lpcm_decode_data;
   this->audio_decoder.reset               = lpcm_reset;
+  this->audio_decoder.discontinuity       = lpcm_discontinuity;
   this->audio_decoder.dispose             = lpcm_dispose;
 
   this->output_open   = 0;
@@ -243,6 +247,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "pcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "pcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

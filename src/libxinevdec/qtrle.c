@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.5 2002/11/11 05:55:51 tmmm Exp $
+ * $Id: qtrle.c,v 1.6 2002/11/12 18:40:54 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -827,6 +827,9 @@ static void qtrle_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+static void qtrle_discontinuity (video_decoder_t *this_gen) {
+}
+
 /*
  * This function frees the video decoder instance allocated to the decoder.
  */
@@ -856,6 +859,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.decode_data         = qtrle_decode_data;
   this->video_decoder.flush               = qtrle_flush;
   this->video_decoder.reset               = qtrle_reset;
+  this->video_decoder.discontinuity       = qtrle_discontinuity;
   this->video_decoder.dispose             = qtrle_dispose;
   this->size                              = 0;
 
@@ -909,6 +913,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

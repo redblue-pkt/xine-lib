@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.2 2002/11/11 05:01:35 tmmm Exp $
+ * $Id: fooaudio.c,v 1.3 2002/11/12 18:40:53 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -225,6 +225,15 @@ static void fooaudio_reset (audio_decoder_t *this_gen) {
   this->last_pts = -1;
 }
 
+/* This function resets the last pts value of the audio decoder. */
+static void fooaudio_discontinuity (audio_decoder_t *this_gen) {
+
+  fooaudio_decoder_t *this = (fooaudio_decoder_t *) this_gen;
+
+  /* this is specific to fooaudio */
+  this->last_pts = -1;
+}
+
 /* This function closes the audio output and frees the private audio decoder
  * structure. */
 static void fooaudio_dispose (audio_decoder_t *this_gen) {
@@ -252,6 +261,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   /* connect the member functions */
   this->audio_decoder.decode_data         = fooaudio_decode_data;
   this->audio_decoder.reset               = fooaudio_reset;
+  this->audio_decoder.discontinuity       = fooaudio_discontinuity;
   this->audio_decoder.dispose             = fooaudio_dispose;
 
   /* connect the stream */
@@ -333,7 +343,7 @@ static decoder_info_t dec_info_audio = {
  * will export to the public. */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API version, "name", version, special_info, init_function }, */
-  { PLUGIN_AUDIO_DECODER, 10, "fooaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "fooaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

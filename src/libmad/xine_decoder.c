@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.33 2002/10/21 23:22:29 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.34 2002/11/12 18:40:51 miguelfreitas Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -74,6 +74,13 @@ static void mad_reset (audio_decoder_t *this_gen) {
   mad_frame_init  (&this->frame);
 }
 
+
+static void mad_discontinuity (audio_decoder_t *this_gen) {
+
+  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+  
+  this->pts = 0;
+}
 
 /* utility to scale and round samples to 16 bits */
 
@@ -276,6 +283,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = mad_decode_data;
   this->audio_decoder.reset               = mad_reset;
+  this->audio_decoder.discontinuity       = mad_discontinuity;
   this->audio_decoder.dispose             = mad_dispose;
 
   this->output_open     = 0;
@@ -335,6 +343,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.22 2002/11/11 05:01:31 tmmm Exp $
+ * $Id: adpcm.c,v 1.23 2002/11/12 18:40:53 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1253,6 +1253,12 @@ static void adpcm_reset (audio_decoder_t *this_gen) {
 
 }
 
+static void adpcm_discontinuity (audio_decoder_t *this_gen) {
+
+  /* adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen; */
+
+}
+
 static void adpcm_dispose (audio_decoder_t *this_gen) {
 
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
@@ -1281,6 +1287,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = adpcm_decode_data;
   this->audio_decoder.reset               = adpcm_reset;
+  this->audio_decoder.discontinuity       = adpcm_discontinuity;
   this->audio_decoder.dispose             = adpcm_dispose;
 
   this->output_open = 0;
@@ -1335,6 +1342,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
