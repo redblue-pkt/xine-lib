@@ -375,30 +375,31 @@ _ACEOF
 dnl Check for the type of the third argument of getsockname
 AC_DEFUN([AC_CHECK_SOCKLEN_T], [
   AC_MSG_CHECKING(for socklen_t)
+  AC_LANG_PUSH(C++)
+
   AC_CACHE_VAL(ac_cv_socklen_t, [
-    AC_LANG_SAVE
-    AC_LANG_CPLUSPLUS
-    AC_TRY_COMPILE([
+    AC_TRY_COMPILE(
 #include <sys/types.h>
 #include <sys/socket.h>
-      ],[
+      ,
 socklen_t a=0;
 getsockname(0,(struct sockaddr*)0, &a);
-      ],
+      ,
       ac_cv_socklen_t=socklen_t,
-      AC_TRY_COMPILE([
+      [
+        AC_TRY_COMPILE(
 #include <sys/types.h>
 #include <sys/socket.h>
-        ],[
+        ,
 int a=0;
 getsockname(0,(struct sockaddr*)0, &a);
-        ],
+        ,
         ac_cv_socklen_t=int,
         ac_cv_socklen_t=size_t
-      )
+      )]
     )
-    AC_LANG_RESTORE
   ])
+  AC_LANG_POP([C++])
 
   AC_MSG_RESULT($ac_cv_socklen_t)
   if test "$ac_cv_socklen_t" != "socklen_t"; then
