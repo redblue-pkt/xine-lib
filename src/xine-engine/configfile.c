@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.10 2001/11/20 17:22:14 miguelfreitas Exp $
+ * $Id: configfile.c,v 1.11 2001/11/20 19:13:28 guenter Exp $
  *
  * config file management - implementation
  *
@@ -381,6 +381,13 @@ static void config_file_update_num (config_values_t *this,
 
   }
 
+  if ((entry->type == CONFIG_TYPE_UNKNOWN) 
+      || (entry->type == CONFIG_TYPE_STRING)) {
+    printf ("configfile: error - tried to update non-num type %d (key %s, value %d)\n",
+	    entry->type, entry->key, value);
+    return;
+  }
+
   entry->num_value = value;
 
   if (entry->callback) 
@@ -396,12 +403,16 @@ static void config_file_update_string (config_values_t *this,
 
   if (!entry) {
 
-#ifdef CONFIG_LOG
-    printf ("configfile: WARNING! tried to update unknown key %s (to %s)\n",
+    printf ("configfile: error - tried to update unknown key %s (to %s)\n",
 	    key, value);
-#endif
     return;
 
+  }
+
+  if (entry->type != CONFIG_TYPE_STRING) {
+    printf ("configfile: error - tried to update non-string type %d (key %s, value %s)\n",
+	    entry->type, entry->key, value);
+    return;
   }
 
   entry->str_value = copy_string (value);
@@ -561,6 +572,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.11  2001/11/20 19:13:28  guenter
+ * add more checks against incorrect configfile usage
+ *
  * Revision 1.10  2001/11/20 17:22:14  miguelfreitas
  * testing some configfile stuff...
  *
