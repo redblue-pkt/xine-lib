@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/12/01 22:38:32 guenter Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/12/02 15:27:20 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -44,12 +44,14 @@
 #include "osd.h"
 
 /*
-#define LOG_DEBUG 1
+#define LOG 1
 */
 
 #define ERR (void *)-1
 
-#define SUB_MAX_TEXT 5
+#define SUB_MAX_TEXT  5
+#define LINE_HEIGHT  20
+#define LINE_WIDTH  300
 
 typedef struct {
 
@@ -737,8 +739,10 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
   this->format             = 0;
   this->previous_aqt_sub   = NULL;
 
-  this->osd = osd_open (this->xine->osd_renderer, 500, 100);
+  this->osd = osd_open (this->xine->osd_renderer, LINE_WIDTH, SUB_MAX_TEXT * LINE_HEIGHT);
 
+  osd_renderer_load_font (this->xine->osd_renderer, "vga");
+  
   osd_set_font (this->osd,"vga");
   osd_render_text (this->osd, 0, 0, "sputext decoder");
   osd_set_position (this->osd, 10, 30);
@@ -773,7 +777,7 @@ static void *spudec_loop (void *this_gen) {
 
   while (current && this->running) {
 
-    int32_t diff, sub_pts, wrap_offset, pts;
+    int32_t diff, sub_pts, pts;
 
     pts = this->xine->metronom->get_current_time (this->xine->metronom);
 
@@ -783,7 +787,7 @@ static void *spudec_loop (void *this_gen) {
       pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
 
 #ifdef LOG
-    printf ("pts_factor : %d\n", pts_factor);
+    printf ("sputext: pts_factor : %d\n", pts_factor);
 #endif
 
     if (!pts_factor) {
@@ -817,12 +821,22 @@ static void *spudec_loop (void *this_gen) {
 
     if (diff < 30000) {
 
-      int line;
+      int line, y;
 
-      osd_filled_rect (this->osd, 0, 0, 499, 99, 0);
+      osd_filled_rect (this->osd, 0, 0, LINE_WIDTH-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
 
-      for (line=0; line<current->lines; line++)
-	osd_render_text (this->osd, 0, line*20, current->text[line]);
+      y = (SUB_MAX_TEXT - current->lines) * LINE_HEIGHT;
+
+      for (line=0; line<current->lines; line++) {
+	int w,h,x;
+
+	osd_get_text_size( this->osd, current->text[line], 
+			   & w, &h);
+
+	x = (LINE_WIDTH - w) / 2;
+
+	osd_render_text (this->osd, x, y + line*20, current->text[line]);
+      }
       
       osd_show (this->osd, sub_pts);
       osd_hide (this->osd, current->end * pts_factor + this->xine->metronom->video_wrap_offset);      
@@ -848,22 +862,37 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
   int err;
 
-  this->fd = (FILE *) buf->content;
+  if (buf->decoder_info[0] == 0) {
+
+    int x, y;
+
+    x = buf->decoder_info[1] / 2 - LINE_WIDTH / 2;
+    if (x<0)
+      x = 0;
+
+    y = buf->decoder_info[2] - (SUB_MAX_TEXT * LINE_HEIGHT) - 5;
+
+    osd_set_position (this->osd, x, y); 
+
+    printf ("sputext: position is %d / %d\n", x, y);
+
+    this->fd = (FILE *) buf->content;
   
-  this->subtitles = sub_read_file (this);
+    this->subtitles = sub_read_file (this);
 
-  printf ("sputext: subtitle format %s time.\n", this->uses_time?"uses":"doesn't use");
-  printf ("sputext: read %i subtitles, %i errors.\n", this->num, this->errs);
+    printf ("sputext: subtitle format %s time.\n", this->uses_time?"uses":"doesn't use");
+    printf ("sputext: read %i subtitles, %i errors.\n", this->num, this->errs);
 
-  /* start thread */
+    /* start thread */
 
-  this->running = 1;
-
-  if ((err = pthread_create (&this->spu_thread,
-			     NULL, spudec_loop, this)) != 0) {
-    printf ("sputext: can't create new thread (%s)\n",
-	    strerror(err));
-    exit (1);
+    this->running = 1;
+    
+    if ((err = pthread_create (&this->spu_thread,
+			       NULL, spudec_loop, this)) != 0) {
+      printf ("sputext: can't create new thread (%s)\n",
+	      strerror(err));
+      exit (1);
+    }
   }
 
 }  
@@ -880,6 +909,12 @@ static void spudec_close (spu_decoder_t *this_gen) {
   pthread_join (this->spu_thread, &p);
 
   printf ("sputext: ...thread stopped\n");
+
+  if (this->osd) {
+    osd_close (this->osd);
+    this->osd = NULL;
+  }
+
 }
 
 static char *spudec_get_id(void) {
@@ -908,7 +943,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;
-  
+
   return (spu_decoder_t *) this;
 }
 

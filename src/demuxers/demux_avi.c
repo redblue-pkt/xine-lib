@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.55 2001/12/01 22:38:31 guenter Exp $
+ * $Id: demux_avi.c,v 1.56 2001/12/02 15:27:19 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1005,6 +1005,10 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
     buf->type = BUF_SPU_TEXT;
     
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->avi->width;
+    buf->decoder_info[2] = this->avi->height;
+
     this->video_fifo->put (this->video_fifo, buf);
 
     printf ("demux_avi: text subtitle file available\n");
