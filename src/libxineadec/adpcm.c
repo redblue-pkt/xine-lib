@@ -1,0 +1,467 @@
+/*
+ * Copyright (C) 2000-2001 the xine project
+ *
+ * This file is part of xine, a free video player.
+ *
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * ADPCM Decoders by Mike Melanson (melanson@pcisys.net)
+ *
+ * This file is in charge of decoding all of the various ADPCM data
+ * formats that various entities have created. Details about the data
+ * formats can be found here:
+ *   http://www.pcisys.net/~melanson/codecs/
+ *
+ * $Id: adpcm.c,v 1.1 2002/06/06 05:00:32 tmmm Exp $
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "audio_out.h"
+#include "buffer.h"
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "bswap.h"
+
+#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
+#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
+#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
+#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
+
+/* pertinent tables */
+static int ima_adpcm_step[89] = {
+  7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
+  19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
+  50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
+  130, 143, 157, 173, 190, 209, 230, 253, 279, 307,
+  337, 371, 408, 449, 494, 544, 598, 658, 724, 796,
+  876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066,
+  2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358,
+  5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
+  15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+};
+
+static int ima_adpcm_index[16] = {
+  -1, -1, -1, -1, 2, 4, 6, 8,
+  -1, -1, -1, -1, 2, 4, 6, 8
+};
+
+static int ms_adapt_table[] = {
+  230, 230, 230, 230, 307, 409, 512, 614,
+  768, 614, 512, 409, 307, 230, 230, 230
+};
+
+static int ms_adapt_coeff1[] = {
+  256, 512, 0, 192, 240, 460, 392
+};
+
+static int ms_adapt_coeff2[] = {
+  0, -256, 0, 64, 0, -208, -232
+};
+
+#define QT_IMA_ADPCM_PREAMBLE_SIZE 2
+#define QT_IMA_ADPCM_BLOCK_SIZE 0x22
+#define QT_IMA_ADPCM_SAMPLES_PER_BLOCK \
+  ((QT_IMA_ADPCM_BLOCK_SIZE - QT_IMA_ADPCM_PREAMBLE_SIZE) * 2)
+
+#define MS_ADPCM_PREAMBLE_SIZE 7
+#define MS_ADPCM_SAMPLES_PER_BLOCK \
+  ((sh_audio->wf->nBlockAlign - MS_ADPCM_PREAMBLE_SIZE) * 2)
+
+#define DK4_ADPCM_PREAMBLE_SIZE 4
+#define DK4_ADPCM_SAMPLES_PER_BLOCK \
+  (((sh_audio->wf->nBlockAlign - DK4_ADPCM_PREAMBLE_SIZE) * 2) + 1)
+
+// pretend there's such a thing as mono for this format
+#define DK3_ADPCM_PREAMBLE_SIZE 8
+#define DK3_ADPCM_BLOCK_SIZE 0x400
+// this isn't exact
+#define DK3_ADPCM_SAMPLES_PER_BLOCK 6000
+
+/* useful macros */
+/* clamp a number between 0 and 88 */
+#define CLAMP_0_TO_88(x)  if (x < 0) x = 0; else if (x > 88) x = 88;
+/* clamp a number within a signed 16-bit range */
+#define CLAMP_S16(x)  if (x < -32768) x = -32768; \
+  else if (x > 32767) x = 32767;
+/* clamp a number above 16 */
+#define CLAMP_ABOVE_16(x)  if (x < 16) x = 16;
+/* sign extend a 16-bit value */
+#define SE_16BIT(x)  if (x & 0x8000) x -= 0x10000;
+/* sign extend a 4-bit value */
+#define SE_4BIT(x)  if (x & 0x8) x -= 0x10;
+
+#define AUDIOBUFSIZE 128*1024
+
+typedef struct adpcm_decoder_s {
+  audio_decoder_t  audio_decoder;
+
+  uint32_t         rate;
+  uint32_t         bits_per_sample;
+  uint32_t         channels;
+  uint32_t         ao_cap_mode;
+
+  unsigned int     buf_type;
+  ao_instance_t   *audio_out;
+  int              output_open;
+
+  unsigned char    *buf;
+  int               bufsize;
+  int               size;
+
+} adpcm_decoder_t;
+
+static void decode_ima_nibbles(unsigned short *output,
+  int output_size, int channels,
+  int predictor_l, int index_l,
+  int predictor_r, int index_r) {
+  int step[2];
+  int predictor[2];
+  int index[2];
+  int diff;
+  int i;
+  int sign;
+  int delta;
+  int channel_number = 0;
+
+  step[0] = ima_adpcm_step[index_l];
+  step[1] = ima_adpcm_step[index_r];
+  predictor[0] = predictor_l;
+  predictor[1] = predictor_r;
+  index[0] = index_l;
+  index[1] = index_r;
+
+  for (i = 0; i < output_size; i++) {
+    delta = output[i];
+
+    index[channel_number] += ima_adpcm_index[delta];
+    CLAMP_0_TO_88(index[channel_number]);
+
+    sign = delta & 8;
+    delta = delta & 7;
+
+    diff = step[channel_number] >> 3;
+    if (delta & 4) diff += step[channel_number];
+    if (delta & 2) diff += step[channel_number] >> 1;
+    if (delta & 1) diff += step[channel_number] >> 2;
+
+    if (sign)
+      predictor[channel_number] -= diff;
+    else
+      predictor[channel_number] += diff;
+
+    CLAMP_S16(predictor[channel_number]);
+    output[i] = predictor[channel_number];
+    step[channel_number] = ima_adpcm_step[index[channel_number]];
+
+    /* toggle channel */
+    channel_number ^= channels - 1;
+  }
+}
+
+static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  int predictor_l = 0;
+  int predictor_r = 0;
+  int index_l = 0;
+  int index_r = 0;
+
+  int i;
+  unsigned short *output;
+  unsigned int out_ptr;
+  audio_buffer_t *audio_buffer;
+
+  /* allocate an output buffer */
+  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+  output = (unsigned short *)audio_buffer->mem;
+  out_ptr = 0;
+
+  /* the first predictor value goes straight to the output */
+  predictor_l = output[0] = LE_16(&this->buf[0]);
+  SE_16BIT(predictor_l);
+  index_l = this->buf[2];
+  if (this->channels == 2)
+  {
+    predictor_r = output[1] = LE_16(&this->buf[4]);
+    SE_16BIT(predictor_r);
+    index_r = this->buf[6];
+  }
+
+  /* break apart the ADPCM nibbles */
+  out_ptr = this->channels;
+  for (i = DK4_ADPCM_PREAMBLE_SIZE * this->channels; i < this->size; i++) {
+    output[out_ptr++] = this->buf[i] >> 4;
+    output[out_ptr++] = this->buf[i] & 0x0F;
+  }
+
+  /* process the nibbles */
+printf ("size = %d, channels = %d, out_ptr = %d\n", this->size, this->channels, out_ptr);
+  decode_ima_nibbles(&output[this->channels],
+//    (buf->size - DK4_ADPCM_PREAMBLE_SIZE * this->channels) * 2 - this->channels,
+out_ptr - this->channels,
+    this->channels,
+    predictor_l, index_l,
+    predictor_r, index_r);
+
+  audio_buffer->vpts = buf->pts;
+  audio_buffer->num_frames = out_ptr / this->channels;
+//printf ("sending %d frames\n", audio_buffer->num_frames);
+  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+  /* reset buffer */
+  this->size = 0;
+}
+
+void qt_ima_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  int initial_predictor_l = 0;
+  int initial_predictor_r = 0;
+  int initial_index_l = 0;
+  int initial_index_r = 0;
+
+  int i, j;
+  unsigned short *output;
+  unsigned int out_ptr;
+  audio_buffer_t *audio_buffer;
+
+  /* check the size */
+  if ((this->size % (QT_IMA_ADPCM_BLOCK_SIZE * this->channels) != 0)) {
+    printf ("adpcm: received QT IMA block that does not line up\n");
+    this->size = 0;
+    return;
+  }
+
+  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+  output = (unsigned short *)audio_buffer->mem;
+  out_ptr = 0;
+
+  /* iterate through the blocks (and there are 2 bytes/sample) */
+  for (i = 0; i < this->size; i+=
+    (QT_IMA_ADPCM_BLOCK_SIZE * this->channels)) {
+
+    /* send the buffer if it gets full */
+    if ((audio_buffer->mem_size / 2) <= 
+      out_ptr + (QT_IMA_ADPCM_SAMPLES_PER_BLOCK * this->channels)) {
+
+      audio_buffer->vpts = buf->pts;
+      buf->pts = 0;
+      audio_buffer->num_frames = out_ptr / this->channels;
+printf ("send 1, out buffer max size = %d bytes, sending %d bytes, pts = %lld\n", 
+  audio_buffer->mem_size, out_ptr * 2, audio_buffer->vpts);
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+      /* get a new audio buffer */
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      output = (unsigned short *)audio_buffer->mem;
+      out_ptr = 0;
+    }
+
+    /* get the left (or mono) channel preamble bytes */
+    initial_predictor_l = BE_16(&this->buf[i]);
+    initial_index_l = initial_predictor_l;
+
+    /* mask, sign-extend, and clamp the predictor portion */
+    initial_predictor_l &= 0xFF80;
+    SE_16BIT(initial_predictor_l);
+    CLAMP_S16(initial_predictor_l);
+
+    /* mask and clamp the index portion */
+    initial_index_l &= 0x7F;
+    CLAMP_0_TO_88(initial_index_l);
+
+    /* if stereo, handle the right channel too */
+    if (this->channels > 1) {
+      initial_predictor_r = BE_16(&this->buf[i + QT_IMA_ADPCM_BLOCK_SIZE]);
+      initial_index_r = initial_predictor_r;
+
+      /* mask, sign-extend, and clamp the predictor portion */
+      initial_predictor_r &= 0xFF80;
+      SE_16BIT(initial_predictor_r);
+      CLAMP_S16(initial_predictor_r);
+
+      /* mask and clamp the index portion */
+      initial_index_r &= 0x7F;
+      CLAMP_0_TO_88(initial_index_r);
+    }
+
+    /* break apart all of the nibbles in the block */
+    if (this->channels == 1)
+      for (j = 0; j < QT_IMA_ADPCM_SAMPLES_PER_BLOCK / 2; j++) {
+        output[out_ptr + j * 2 + 0] = this->buf[i + 2 + j] & 0x0F;
+        output[out_ptr + j * 2 + 1] = this->buf[i + 2 + j] >> 4;
+      } 
+    else
+      for (j = 0; j < QT_IMA_ADPCM_SAMPLES_PER_BLOCK / 2 * 2; j++) {
+        output[out_ptr + j * 4 + 0] = this->buf[i + 2 + j] & 0x0F;
+        output[out_ptr + j * 4 + 1] = 
+          this->buf[i + 2 + QT_IMA_ADPCM_BLOCK_SIZE + j] & 0x0F;
+        output[out_ptr + j * 4 + 2] = this->buf[i + 2 + j] >> 4;
+        output[out_ptr + j * 4 + 3] = 
+          this->buf[i + 2 + QT_IMA_ADPCM_BLOCK_SIZE + j] >> 4;
+      }
+
+    /* process the nibbles */
+    decode_ima_nibbles(&output[out_ptr],
+      QT_IMA_ADPCM_SAMPLES_PER_BLOCK * this->channels, 
+      this->channels,
+      initial_predictor_l, initial_index_l,
+      initial_predictor_r, initial_index_r);
+
+    out_ptr += QT_IMA_ADPCM_SAMPLES_PER_BLOCK * this->channels;
+  }
+
+  audio_buffer->vpts = buf->pts;
+  audio_buffer->num_frames = out_ptr / this->channels;
+
+
+printf ("send 2, out buffer max size = %d bytes, sending %d bytes, pts = %lld\n", 
+  audio_buffer->mem_size, out_ptr * 2, audio_buffer->vpts);
+
+
+
+  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+  this->size = 0;
+}
+
+int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
+  buf_type &= 0xFFFF0000;
+
+  return ( /* buf_type == BUF_AUDIO_MSADPCM || */
+           /* buf_type == BUF_AUDIO_IMAADPCM || */
+           buf_type == BUF_AUDIO_QTIMAADPCM ||
+           /* buf_type == BUF_AUDIO_DK3ADPCM || */
+           buf_type == BUF_AUDIO_DK4ADPCM );
+}
+
+void adpcm_reset (audio_decoder_t *this_gen) {
+
+  /* adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen; */
+
+}
+
+void adpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
+  adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
+
+  this->audio_out = audio_out;
+  this->output_open = 0;
+  this->rate = 0;
+  this->bits_per_sample = 16;  /* these codecs always output 16-bit PCM */
+  this->channels = 0;
+  this->ao_cap_mode = 0;
+}
+
+void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+  adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    this->rate = buf->decoder_info[1];
+    this->channels = buf->decoder_info[3];
+    this->ao_cap_mode =
+      (this->channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO;
+
+    this->buf = xine_xmalloc(AUDIOBUFSIZE);
+    this->bufsize = AUDIOBUFSIZE;
+    this->size = 0;
+
+    return;
+  }
+
+  if (!this->output_open) {
+    printf ("adpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
+            this->rate, this->ao_cap_mode);
+    this->output_open = this->audio_out->open (this->audio_out,
+      this->bits_per_sample, this->rate, this->ao_cap_mode);
+  }
+
+  /* if the audio still isn't open, bail */
+  if (!this->output_open)
+    return;
+
+  /* accumulate compressed audio data */
+  if( this->size + buf->size > this->bufsize ) {
+    this->bufsize = this->size + 2 * buf->size;
+    printf("adpcm: increasing source buffer to %d to avoid overflow.\n",
+      this->bufsize);
+    this->buf = realloc( this->buf, this->bufsize );
+  }
+
+  xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+  this->size += buf->size;
+
+  /* time to decode a frame */
+  if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
+printf ("received buffer with %d bytes and pts %lld\n", this->size, buf->pts);
+
+    switch(buf->type) {
+
+      case BUF_AUDIO_QTIMAADPCM:
+        qt_ima_adpcm_decode_block(this, buf);
+        break;
+
+      case BUF_AUDIO_DK4ADPCM:
+        dk4_adpcm_decode_block(this, buf);
+        break;
+
+    }
+  }
+}
+
+void adpcm_close (audio_decoder_t *this_gen) {
+
+  adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
+
+  if (this->output_open)
+    this->audio_out->close (this->audio_out);
+  this->output_open = 0;
+}
+
+static char *adpcm_get_id(void) {
+  return "ADPCM";
+}
+
+static void adpcm_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
+}
+
+audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+
+  adpcm_decoder_t *this ;
+
+  if (iface_version != 8) {
+    printf( "libadpcm: plugin doesn't support plugin API version %d.\n"
+            "libadpcm: this means there's a version mismatch between xine and this "
+            "libadpcm: decoder plugin.\nInstalling current plugins should help.\n",
+            iface_version);
+    return NULL;
+  }
+
+  this = (adpcm_decoder_t *) malloc (sizeof (adpcm_decoder_t));
+
+  this->audio_decoder.interface_version   = iface_version;
+  this->audio_decoder.can_handle          = adpcm_can_handle;
+  this->audio_decoder.init                = adpcm_init;
+  this->audio_decoder.decode_data         = adpcm_decode_data;
+  this->audio_decoder.reset               = adpcm_reset;
+  this->audio_decoder.close               = adpcm_close;
+  this->audio_decoder.get_identifier      = adpcm_get_id;
+  this->audio_decoder.dispose             = adpcm_dispose;
+  this->audio_decoder.priority            = 1;
+
+  return (audio_decoder_t *) this;
+}
