@@ -233,9 +233,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
     this->video_decoder.close		  = xvid_close_plugin;
     this->video_decoder.get_identifier	  = xvid_get_id;
     this->video_decoder.dispose		  = xvid_dispose;
-    this->video_decoder.priority          = xine->config->register_num (xine->config, "codec.xvid_priority", 3,
-                                                         _("priority of the xvid plugin (>5 => enable)"),
-									NULL, 0, NULL, NULL); 
     this->frame_size			  = 0;
     
     return (video_decoder_t *) this;
