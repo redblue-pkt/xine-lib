@@ -103,6 +103,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
 # audio driver plugins
 @HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
 @HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
@@ -121,6 +123,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
+@HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
