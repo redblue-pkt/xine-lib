@@ -918,11 +918,26 @@ dnl ---------------------------------------------
 dnl Ogg/Speex libs.
 dnl ---------------------------------------------
 
-AM_PATH_OGG(
-           [ AM_PATH_SPEEX(AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex]),
-                           AC_MSG_RESULT([*** All OGG/SPEEX dependent parts will be disabled ***]))
-          ],
-           AC_MSG_RESULT([*** All of OGG/Speex dependent parts will be disabled ***]))
+PKG_CHECK_MODULES(SPEEX, speex, no_speex="no", no_speex="yes")
+
+if test "x$no_speex" = "xyes" ; then
+  AM_PATH_OGG([ AM_PATH_SPEEX(no_speex="no")])
+fi
+
+if test "x$no_speex" = "xyes" ; then
+  AC_MSG_RESULT([*** All OGG/SPEEX dependent parts will be disabled ***])
+else
+  AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex])
+
+  dnl Test whether Speex headers are eg. <speex.h> or <speex/speex.h>
+  dnl Speex headers were moved in mid-2004; 1.0.x has backwards compatible headers, 1.1.x does not
+  AC_CHECK_HEADER([speex/speex.h],
+                  AC_DEFINE(HAVE_SPEEX_SUBDIR, [1], [Define to 1 if speex headers are eg. <speex/speex.h>])
+  )
+
+  AC_SUBST(SPEEX_CFLAGS)
+  AC_SUBST(SPEEX_LIBS)
+fi
 AM_CONDITIONAL(HAVE_SPEEX, [test x"$no_ogg" != "xyes" -a x"$no_speex" != "xyes"])
 
 
