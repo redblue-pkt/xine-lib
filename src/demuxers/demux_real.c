@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.42 2003/02/14 19:45:58 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.43 2003/02/22 16:46:49 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -314,6 +314,7 @@ static void real_parse_headers (demux_real_t *this) {
       chunk_buffer = xine_xmalloc(chunk_size);
       if (this->input->read(this->input, chunk_buffer, chunk_size) != 
 	  chunk_size) {
+	free (chunk_buffer);
 	this->status = DEMUX_FINISHED;
 	return;
       }
@@ -413,6 +414,7 @@ static void real_parse_headers (demux_real_t *this) {
 		  free (mdpr->mime_type);
 		  free (mdpr->type_specific_data);
 		  free (mdpr);
+		  free (chunk_buffer);
 
 		  this->status = DEMUX_FINISHED;
 		  return;
@@ -532,7 +534,8 @@ static void real_parse_headers (demux_real_t *this) {
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
         this->stream->meta_info[XINE_META_INFO_TITLE] =
-          xine_xmalloc(field_size + 1);
+          realloc (this->stream->meta_info[XINE_META_INFO_TITLE],
+                   field_size + 1);
         strncpy(this->stream->meta_info[XINE_META_INFO_TITLE],
           &chunk_buffer[stream_ptr], field_size);
         this->stream->meta_info[XINE_META_INFO_TITLE][field_size] = '\0';
@@ -542,7 +545,8 @@ static void real_parse_headers (demux_real_t *this) {
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
         this->stream->meta_info[XINE_META_INFO_ARTIST] =
-          xine_xmalloc(field_size + 1);
+          realloc (this->stream->meta_info[XINE_META_INFO_ARTIST],
+                   field_size + 1);
         strncpy(this->stream->meta_info[XINE_META_INFO_ARTIST],
           &chunk_buffer[stream_ptr], field_size);
         this->stream->meta_info[XINE_META_INFO_ARTIST][field_size] = '\0';
@@ -552,7 +556,8 @@ static void real_parse_headers (demux_real_t *this) {
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
         this->stream->meta_info[XINE_META_INFO_YEAR] =
-          xine_xmalloc(field_size + 1);
+          realloc (this->stream->meta_info[XINE_META_INFO_YEAR],
+                   field_size + 1);
         strncpy(this->stream->meta_info[XINE_META_INFO_YEAR],
           &chunk_buffer[stream_ptr], field_size);
         this->stream->meta_info[XINE_META_INFO_YEAR][field_size] = '\0';
@@ -562,7 +567,8 @@ static void real_parse_headers (demux_real_t *this) {
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
         this->stream->meta_info[XINE_META_INFO_COMMENT] =
-          xine_xmalloc(field_size + 1);
+          realloc (this->stream->meta_info[XINE_META_INFO_COMMENT],
+                   field_size + 1);
         strncpy(this->stream->meta_info[XINE_META_INFO_COMMENT],
           &chunk_buffer[stream_ptr], field_size);
         this->stream->meta_info[XINE_META_INFO_COMMENT][field_size] = '\0';
