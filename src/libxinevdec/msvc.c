@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.2 2002/05/01 19:42:57 guenter Exp $
+ * $Id: msvc.c,v 1.3 2002/05/25 19:19:19 siggi Exp $
  */
 
 #include <stdlib.h>
@@ -335,7 +335,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   msvc_decoder_t *this ;
 
-  if (iface_version != 8) {
+  if (iface_version != 9) {
     printf( "msvc: plugin doesn't support plugin API version %d.\n"
 	    "msvc: this means there's a version mismatch between xine and this "
 	    "msvc: decoder plugin.\nInstalling current plugins should help.\n",

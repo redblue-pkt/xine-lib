@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.3 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: dxr3_decode_spu.c,v 1.4 2002/05/25 19:19:17 siggi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -96,7 +96,7 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   const char *confstr;
   int dashpos;
   
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf( "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
       "dxr3_decode_spu: this means there's a version mismatch between xine and this "
       "dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n",

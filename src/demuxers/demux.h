@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.14 2002/05/21 00:12:31 siggi Exp $
+ * $Id: demux.h,v 1.15 2002/05/25 19:19:16 siggi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    7
+#define DEMUXER_PLUGIN_IFACE_VERSION    8
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1

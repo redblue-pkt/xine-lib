@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.25 2002/05/21 00:12:32 siggi Exp $
+ * $Id: demux_ogg.c,v 1.26 2002/05/25 19:19:17 siggi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -693,7 +693,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_ogg_t     *this;
 
-  if (iface != 7) {
+  if (iface != 8) {
     printf( _("demux_ogg: plugin doesn't support plugin API version %d.\n"
 	      "           this means there's a version mismatch between xine and this "
 	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),

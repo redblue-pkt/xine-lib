@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2002/05/01 19:42:56 guenter Exp $
+ * $Id: xine_decoder.c,v 1.13 2002/05/25 19:19:18 siggi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -385,7 +385,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   spucc_decoder_t *this ;
 
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf("libspucc: doesn't support plugin api version %d.\n"
 	   "libspucc: This means there is a version mismatch between xine and\n"
 	   "libspucc: this plugin.\n", iface_version);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.32 2002/05/21 00:17:55 tmattern Exp $
+ * $Id: demux_qt.c,v 1.33 2002/05/25 19:19:17 siggi Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -4437,7 +4437,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_qt_t      *this;
 
-  if (iface != 7) {
+  if (iface != 8) {
     printf ("demux_qt: plugin doesn't support plugin API version %d.\n"
 	    "          this means there's a version mismatch between xine and this "
 	    "          demuxer plugin.\nInstalling current demux plugins should help.\n",

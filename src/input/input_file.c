@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.48 2002/05/05 20:20:10 f1rmb Exp $
+ * $Id: input_file.c,v 1.49 2002/05/25 19:19:17 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -854,7 +854,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   file_input_plugin_t *this;
   config_values_t     *config;
 
-  if (iface != 6) {
+  if (iface != 7) {
     LOG_MSG(xine,
 	    _("file input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"

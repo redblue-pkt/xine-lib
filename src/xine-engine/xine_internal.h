@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.84 2002/05/21 00:50:22 siggi Exp $
+ * $Id: xine_internal.h,v 1.85 2002/05/25 19:19:19 siggi Exp $
  *
  */
 
@@ -55,8 +55,8 @@ extern "C" {
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
 #define DECODER_PLUGIN_MAX     256
-#define VIDEO_DECODER_IFACE_VERSION      8
-#define AUDIO_DECODER_IFACE_VERSION      7
+#define VIDEO_DECODER_IFACE_VERSION      9
+#define AUDIO_DECODER_IFACE_VERSION      8
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define XINE_MAX_EVENT_LISTENERS 50

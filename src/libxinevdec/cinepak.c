@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.4 2002/05/06 20:32:36 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.5 2002/05/25 19:19:19 siggi Exp $
  */
 
 #include <stdlib.h>
@@ -442,7 +442,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   cvid_decoder_t *this ;
 
-  if (iface_version != 8) {
+  if (iface_version != 9) {
     printf( "cinepak: plugin doesn't support plugin API version %d.\n"
 	    "cinepak: this means there's a version mismatch between xine and this "
 	    "cinepak: decoder plugin.\nInstalling current plugins should help.\n",

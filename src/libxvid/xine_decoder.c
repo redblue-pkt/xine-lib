@@ -236,7 +236,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     xvid_decoder_t *this;
     XVID_INIT_PARAM xinit;
     
-    if (iface_version != 8) {
+    if (iface_version != 9) {
 	printf ("xvid: plugin doesn't support plugin API version %d.\n"
 		"xvid: this means there's a version mismatch between xine and this\n"
 		"xvid: decoder plugin. Installing current plugins should help.\n",

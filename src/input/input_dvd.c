@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.48 2002/05/03 02:20:29 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.49 2002/05/25 19:19:17 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -809,7 +809,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
   int i;
 
-  if (iface != 6) {
+  if (iface != 7) {
     LOG_MSG(xine,
 	    _("dvd input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"

@@ -24,7 +24,7 @@
 #ifndef HAVE_SPU_API_H
 #define HAVE_SPU_API_H
 
-#define SPU_DECODER_IFACE_VERSION 7
+#define SPU_DECODER_IFACE_VERSION 8
 
 /*
  * generic xine spu decoder plugin interface

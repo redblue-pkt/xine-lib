@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.23 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: input_cda.c,v 1.24 2002/05/25 19:19:17 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1792,7 +1792,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   _ENTER_FUNC();
 
-  if (iface != 6) {
+  if (iface != 7) {
     LOG_MSG(xine,
 	    _("cda input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"
