@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/08/05 00:59:51 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/08/05 08:24:56 ehasenle Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -162,8 +162,10 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 void spudec_close (spu_decoder_t *this_gen) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
-  if (this->clut)
+  if (this->clut) {
     free(this->clut);
+    this->clut = 0;
+  }
 
 /* FIXME not implemented */
 //  if (this->output_open) 

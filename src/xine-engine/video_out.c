@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.37 2001/07/25 23:26:14 richwareham Exp $
+ * $Id: video_out.c,v 1.38 2001/08/05 08:24:56 ehasenle Exp $
  *
  */
 
@@ -370,6 +370,7 @@ static void vo_open (vo_instance_t *this) {
       overlay=this->first_overlay;
       while (overlay) {
         overlay->state=OVERLAY_FREE;
+        overlay->clut_tbl=NULL;
         overlay=overlay->next;
       }
     }
