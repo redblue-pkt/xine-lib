@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.23 2003/05/07 17:54:18 tchamp Exp $
+ * $Id: video_out_sdl.c,v 1.24 2003/05/14 16:27:22 mroi Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -598,11 +598,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_VIDEO_OUT, 14, "sdl", XINE_VERSION_CODE, &vo_info_sdl, init_class },
   { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
-
-#ifdef _MSC_VER
-/* This probably really isn't needed! */
-vo_info_t * get_video_out_plugin_info()
-{
-	return &vo_info_sdl;
-}
-#endif

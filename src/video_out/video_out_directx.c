@@ -1282,8 +1282,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_VIDEO_OUT, 14, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
-vo_info_t * get_video_out_plugin_info()
-{
-	return &vo_info_win32;
-}
