@@ -239,8 +239,8 @@ enable_w32dll="no"
 case $host in
   i386-*-freebsd*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -D_REENTRANT"
-    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -D_REENTRANT -DDEBUG"
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS"
+    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -DDEBUG"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
 
