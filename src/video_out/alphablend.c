@@ -225,8 +225,8 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 	BLEND (32, img, img_overl, dst_width, dst_height);
 }
 
-// #define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
-#define BLEND_YUV(dst, src, o) ( (((uint16_t)src)*o + ((uint16_t)dst)*(0xf-o)) >> 4 )
+#define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
+
 /* FIXME: my_clut should disappear once I find out how to get the clut from the MPEG2 stream. */
 /* It looks like it comes from the ,IFO file, so will have to wait for IFO parser in xine.
  * Here is an extract of another DVD player (oms)
