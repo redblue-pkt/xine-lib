@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.60 2003/02/12 22:22:31 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.61 2003/02/20 18:09:09 siggi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1151,6 +1151,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_QUIT                   7 /* last event sent when stream is disposed */
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
 #define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
+#define XINE_EVENT_UI_NUM_BUTTONS        10 /* number of buttons for interactive menus */
 
 /* input events coming from frontend */
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101

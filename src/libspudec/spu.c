@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.59 2003/02/12 17:29:30 heikos Exp $
+ * $Id: spu.c,v 1.60 2003/02/20 18:09:10 siggi Exp $
  *
  */
 
@@ -171,12 +171,36 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
         }
       }
       xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      if (this->button_filter) {
+	/* we possibly had buttons before, so we update the UI info */
+	xine_event_t   event;
+	xine_ui_data_t data;
+	
+	event.type = XINE_EVENT_UI_NUM_BUTTONS;
+	event.data = &data;
+	event.data_length = sizeof(data);
+	data.num_buttons = 0;
+	
+	xine_event_send(this->stream, &event);
+      }
       this->button_filter=0;
 
       break;
     case 1: 
       /* All New Highlight information for this VOBU */
       xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      if (!this->button_filter) {
+	/* we possibly entered a menu, so we update the UI button info */
+	xine_event_t   event;
+	xine_ui_data_t data;
+	
+	event.type = XINE_EVENT_UI_NUM_BUTTONS;
+	event.data = &data;
+	event.data_length = sizeof(data);
+	data.num_buttons = pci.hli.hl_gi.btn_ns;
+	
+	xine_event_send(this->stream, &event);
+      }
       this->button_filter=1;
       /*******************************
        * We should do something about fosl_btnn, but
