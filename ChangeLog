@@ -1,5 +1,6 @@
 xine (0.9.10) unstable; urgency=low
 
+  * fixed snapshot: capture current frame with overlays
   * AVI progressive index reconstruction
   * demuxers seeking cleanup and fixes
   * "streaming" AVI support (plays growing files)
