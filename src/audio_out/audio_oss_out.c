@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.15 2001/06/23 19:45:47 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.16 2001/06/24 02:19:29 guenter Exp $
  */
 
 /* required for swab() */
@@ -214,8 +214,8 @@ static int ao_open(ao_functions_t *this_gen,
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
   printf ("audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
 
-  this->metronom->set_audio_rate(this->metronom, this->audio_step);
-
+  this->metronom->set_audio_rate(this->metronom, this->audio_step); 
+  
   /*
    * audio buffer size handling
    */

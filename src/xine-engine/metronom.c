@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.9 2001/06/23 19:45:47 guenter Exp $
+ * $Id: metronom.c,v 1.10 2001/06/24 02:19:29 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +43,90 @@
 #define WRAP_START_TIME    100000
 #define WRAP_TRESHOLD      30000 
 #define MAX_NUM_WRAP_DIFF  100
+
+
+/*
+ * ****************************************
+ *       master clock feature
+ * ****************************************
+ */
+
+
+static void metronom_start_clock (metronom_t *this, uint32_t pts) {
+
+  pthread_mutex_lock (&this->lock);
+
+  gettimeofday(&this->start_time, NULL);
+  this->last_pts = this->start_pts = pts;
+  this->stopped  = 0;
+
+  pthread_mutex_unlock (&this->lock);
+
+}
+
+
+static uint32_t metronom_get_current_time (metronom_t *this) {
+
+  uint32_t pts;
+  struct timeval tv;
+
+  pthread_mutex_lock (&this->lock);
+
+  gettimeofday(&tv, NULL);
+  pts  = (tv.tv_sec  - this->start_time.tv_sec) * 90000;
+  pts += (tv.tv_usec - this->start_time.tv_usec) / 10 * 9 / 10;
+  pts += this->start_pts;
+  
+  if (this->stopped || (this->last_pts > pts)) {
+    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
+    pts = this->last_pts;
+  }
+
+  pthread_mutex_unlock (&this->lock);
+
+  return pts;
+}
+
+
+static void metronom_stop_clock(metronom_t *this) {
+
+  uint32_t current_time = this->get_current_time(this);
+
+  pthread_mutex_lock (&this->lock);
+
+  this->stopped = 1;
+  this->last_pts = current_time;
+
+  pthread_mutex_unlock (&this->lock);
+
+}
+
+
+static void metronom_resume_clock(metronom_t *this) {
+  this->start_clock(this, this->last_pts);
+}
+
+
+
+static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
+{
+  int      delta;
+  uint32_t current_time = this->get_current_time(this);
+
+  pthread_mutex_lock (&this->lock);
+
+  /* FIXME: this should be softer than a brute force warp... */
+  delta  = desired_pts;
+  delta -= current_time;
+  this->start_pts += delta;
+  printf("adjusting start_pts to %d\n", this->start_pts);  
+
+  pthread_mutex_unlock (&this->lock);
+}
+
+/*
+ * virtual pts calculation
+*/
 
 static void metronom_video_stream_start (metronom_t *this) {
 
@@ -80,6 +164,24 @@ static void metronom_video_stream_start (metronom_t *this) {
   metronom_start_clock (this, 0);
 }
 
+
+static void metronom_video_stream_end (metronom_t *this) {
+  
+  pthread_mutex_lock (&this->lock);
+  this->video_stream_running = 0;
+
+  if (this->have_audio) {
+    while (this->audio_stream_running) {
+      printf ("waiting for audio to end...\n");
+      pthread_cond_wait (&this->audio_ended, &this->lock);
+    }
+  }
+  pthread_cond_signal (&this->video_ended);
+
+
+  pthread_mutex_unlock (&this->lock);
+}
+
 static void metronom_audio_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
@@ -111,6 +213,20 @@ static void metronom_audio_stream_start (metronom_t *this) {
   printf ("audio stream start...done\n");
 
   metronom_start_clock (this, 0);
+}
+
+static void metronom_audio_stream_end (metronom_t *this) {
+  
+  pthread_mutex_lock (&this->lock);
+  this->audio_stream_running = 0;
+  while (this->video_stream_running) {
+    
+    printf ("waiting for video to start...\n");
+    pthread_cond_wait (&this->video_ended, &this->lock);
+  }
+
+  pthread_cond_signal (&this->audio_ended);
+  pthread_mutex_unlock (&this->lock);
 }
 
 static void metronom_set_video_rate (metronom_t *this, uint32_t pts_per_frame) {
@@ -346,91 +462,14 @@ static int32_t metronom_get_av_offset (metronom_t *this) {
 
 
 
-/*
- * ****************************************
- *       master clock feature
- * ****************************************
- */
-
-
-static void metronom_start_clock (metronom_t *this, uint32_t pts) {
-
-  pthread_mutex_lock (&this->lock);
-
-  gettimeofday(&this->start_time, NULL);
-  this->last_pts = this->start_pts = pts;
-  this->stopped  = 0;
-
-  pthread_mutex_unlock (&this->lock);
-
-}
-
-
-static uint32_t metronom_get_current_time (metronom_t *this) {
-
-  uint32_t pts;
-  struct timeval tv;
-
-  pthread_mutex_lock (&this->lock);
-
-  gettimeofday(&tv, NULL);
-  pts  = (tv.tv_sec  - this->start_time.tv_sec) * 90000;
-  pts += (tv.tv_usec - this->start_time.tv_usec) / 10 * 9 / 10;
-  pts += this->start_pts;
-  
-  if (this->stopped || (this->last_pts > pts)) {
-    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
-    pts = this->last_pts;
-  }
-
-  pthread_mutex_unlock (&this->lock);
-
-  return pts;
-}
-
-
-static void metronom_stop_clock(metronom_t *this) {
-
-  uint32_t current_time = this->get_current_time(this);
-
-  pthread_mutex_lock (&this->lock);
-
-  this->stopped = 1;
-  this->last_pts = current_time;
-
-  pthread_mutex_unlock (&this->lock);
-
-}
-
-
-static void metronom_resume_clock(metronom_t *this) {
-  this->start_clock(this, this->last_pts);
-}
-
-
-
-static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
-{
-  int      delta;
-  uint32_t current_time = this->get_current_time(this);
-
-  pthread_mutex_lock (&this->lock);
-
-  /* FIXME: this should be softer than a brute force warp... */
-  delta  = desired_pts;
-  delta -= current_time;
-  this->start_pts += delta;
-  printf("adjusting start_pts to %d\n", this->start_pts);  
-
-  pthread_mutex_unlock (&this->lock);
-}
-
 metronom_t * metronom_init (int have_audio) {
 
   metronom_t *this = xmalloc (sizeof (metronom_t));
 
   this->audio_stream_start= metronom_audio_stream_start;
+  this->audio_stream_end  = metronom_audio_stream_end  ;
   this->video_stream_start= metronom_video_stream_start;
+  this->video_stream_end  = metronom_video_stream_end  ;
   this->set_video_rate    = metronom_set_video_rate;
   this->get_video_rate    = metronom_get_video_rate;
   this->set_audio_rate    = metronom_set_audio_rate;
@@ -448,6 +487,8 @@ metronom_t * metronom_init (int have_audio) {
   pthread_mutex_init (&this->lock, NULL);
   pthread_cond_init (&this->video_started, NULL);
   pthread_cond_init (&this->audio_started, NULL);
+  pthread_cond_init (&this->video_ended, NULL);
+  pthread_cond_init (&this->audio_ended, NULL);
     
   this->av_offset   = 0;
   this->have_audio  = have_audio;

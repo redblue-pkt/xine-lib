@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.4 2001/06/23 19:45:47 guenter Exp $
+ * $Id: metronom.h,v 1.5 2001/06/24 02:19:29 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -189,6 +189,8 @@ struct metronom_s {
   int             audio_stream_running;
   pthread_cond_t  video_started;
   pthread_cond_t  audio_started;
+  pthread_cond_t  video_ended;
+  pthread_cond_t  audio_ended;
 
 };
 
