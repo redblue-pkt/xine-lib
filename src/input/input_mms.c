@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 major mms
+ * Copyright (C) 2000-2001 major mms
  * 
  * This file is part of xine-mms
  * 
@@ -43,9 +43,6 @@
 #include "mms.h"
 #include "strict_scr.h"
 
-/*
-#define LOG
-*/
 
 extern int errno;
 
@@ -74,37 +71,49 @@ typedef struct {
 
 } mms_input_plugin_t;
 
+extern char  *mms_url_s[];
+extern char  *mms_url_e[];
 
 static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   char* nmrl=NULL;
+  char* uptr;
+  int error_id;
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-
   
-  asx_parse(mrl,&nmrl);
+  error_id=asx_parse(mrl,&nmrl);
+  
+  if(error_id)
+    return 0;
   
   if(!nmrl)
     nmrl=mrl;
   
   printf("mms_plugin_open: using mrl <%s> \n", nmrl);
-  if (strncasecmp (nmrl, "mms://",6))
+  
+  uptr=strdup(nmrl);
+  if (!mms_url_is(nmrl,mms_url_s)){
+    
     return 0;
-
+ }
+  
+ 
   this->mrl = strdup(nmrl); /* FIXME: small memory leak */
 
   this->mms = mms_connect (nmrl);
 
-  if (!this->mms)
+  if (!this->mms){
+   
     return 0;
-
+  }
+ 
   this->curpos    = 0;
   this->buffering = 0;
+ 
 
   /* register our scr plugin */
-
-  this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
-  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
-
+   this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
+   this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
   return 1;
 }
 
@@ -123,6 +132,7 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 #endif
 
   fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+
 
   if (fifo_fill<LOW_WATER_MARK) {
     

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 major mms
+ * Copyright (C) 2000-2001 major mms
  * 
  * This file is part of libmms
  * 
@@ -19,6 +19,7 @@
  *
  * libmms public header
  */
+
 #ifndef HAVE_MMS_H
 #define HAVE_MMS_H
 
@@ -26,14 +27,17 @@
 
 typedef struct mms_s mms_t;
 
+char *strupr(char *string);
+int asx_parse (char* fname, char** rname);
+int mms_start_where(char* url);
+int mms_url_is(char* url, char** mms_url);
+char* mms_connect_common(int *s ,int port,char *url, char **host , char** hostend,
+			 char  **path,char **file);
 mms_t *mms_connect (char *url);
 
 int mms_read (mms_t *this, char *data, int len);
-
-void mms_close (mms_t *this);
-int asx_parse (char* fname, char** rname);
-
 uint32_t mms_get_length (mms_t *this);
+void mms_close (mms_t *this);
 
 #endif
 
