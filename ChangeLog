@@ -1,3 +1,17 @@
+xine (0.9.2) unstable; urgency=low
+
+  * bugfixes
+  * ogg/vorbis support
+  * improved softsync (esd, oss) support
+  * ASF support
+  * non-gcc compiler support
+  * improved spu/menu support
+  * fast, specialized scaling functions
+  * documentation cleanup
+  * audio volume slider
+
+ -- Guenter Bartsch <guenter@users.sourceforge.net> Sun Oct 14 20:13:20 CEST 2001
+
 xine (0.9.1) unstable; urgency=low
 
   * support for subtitle names

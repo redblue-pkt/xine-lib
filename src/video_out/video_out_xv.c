@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.66 2001/10/10 10:07:00 jkeil Exp $
+ * $Id: video_out_xv.c,v 1.67 2001/10/14 20:34:40 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -125,6 +125,7 @@ typedef struct {
 
   xv_frame_t         deinterlace_frame;
   int                deinterlace_method;
+  int                deinterlace_enabled;
 
   /* display anatomy */
   double             display_ratio;        /* given by visual parameter
@@ -168,7 +169,6 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
 
   free (frame);
 }
-
 
 static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
@@ -657,9 +657,7 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
 }
 #endif
 
-/*
- *
- */
+
 static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -680,16 +678,16 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
-// Alpha Blend here
-//   if (this->overlay) {
-//        blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
-// }
-
-    if( this->deinterlace_method )
+    /* Alpha Blend here
+       if (this->overlay) {
+       blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
+       } */
+    
+    if (this->deinterlace_enabled && this->deinterlace_method)
       xv_deinterlace_frame (this);
-
+    
     XLockDisplay (this->display);
-
+    
     if (this->use_shm) {
       XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
@@ -709,14 +707,14 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     XFlush(this->display);
 
     XUnlockDisplay (this->display);
-
+    
   }
 }
 
 static int xv_get_property (vo_driver_t *this_gen, int property) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
-
+  
   return this->props[property].value;
 }
 
@@ -724,7 +722,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
-
+  
   if (this->props[property].atom != None) {
     XvSetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom, value);
@@ -742,6 +740,7 @@ static int xv_set_property (vo_driver_t *this_gen,
       this->props[property].value = value;
       printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
+      this->deinterlace_enabled = value;
       break;
     case VO_PROP_ASPECT_RATIO:
 
@@ -754,12 +753,6 @@ static int xv_set_property (vo_driver_t *this_gen,
 
       xv_calc_format (this, this->delivered_width, this->delivered_height,
 		      this->delivered_ratio_code) ;
-      break;
-    case VO_PROP_SOFT_DEINTERLACE:
-      this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_SOFT_DEINTERLACE (%d)\n",
-	     this->props[property].value);
-      this->deinterlace_method = value;
       break;
     }
   }
@@ -1171,6 +1164,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   myimage = create_ximage (this, &myshminfo, 100, 100, IMGFMT_YV12);
   dispose_ximage (this, &myshminfo, myimage);
 
+  this->deinterlace_method = config->lookup_int (config, "deinterlace_method", 4);
+  this->deinterlace_enabled = 0;
 
   return &this->vo_driver;
 }
@@ -1188,3 +1183,4 @@ vo_info_t *get_video_out_plugin_info() {
 }
 
 #endif
+
