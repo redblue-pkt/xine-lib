@@ -6,6 +6,7 @@ xine (0.9.11) unstable; urgency=low
   * new FILM (CPK) demuxer
   * new RoQ demuxer
   * new QuickTime demuxer
+  * DXR3 overlay mode fixed
   * DXR3 support for libfame 0.8.10 and above
   * fixes for transport streams demuxer
   * VIDIX video out driver (experimental)
