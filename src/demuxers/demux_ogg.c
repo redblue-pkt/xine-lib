@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.154 2004/09/01 18:32:53 athp Exp $
+ * $Id: demux_ogg.c,v 1.155 2004/09/09 06:29:20 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -696,6 +696,37 @@ static void send_ogg_buf (demux_ogg_t *this,
         update_chapter_display(this, stream_num, op);
       }
     }
+  } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
+
+    buf_element_t *buf;
+    int i, lenbytes;
+    uint32_t *val;
+    char *str;
+
+    for (i = 0, lenbytes = 0; i < hdrlen; i++) {
+      lenbytes = lenbytes << 8;
+      lenbytes += *((unsigned char *) op->packet + hdrlen - i);
+    }
+
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+    buf->type = this->si[stream_num]->buf_types;
+
+    /* CMML granulepos is (1000 * seconds); pts is (90000 * seconds) */
+    buf->pts = op->granulepos * (90000 / 1000);
+
+    val = (uint32_t * )buf->content;
+    str = (char *)val;
+
+    memcpy(str, op->packet, op->bytes);
+    str[op->bytes] = '\0';
+
+    buf->size = 12 + op->bytes + 1;
+
+    lprintf ("CMML stream %d: PTS %d: %s\n", stream_num, buf->pts, str);
+
+    this->video_fifo->put (this->video_fifo, buf);
+
   } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_SPU_BASE) {
 
     buf_element_t *buf;
@@ -1210,6 +1241,10 @@ static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_
 #else
     this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 #endif
+  } else if (!strncmp(content_type, "text/x-cmml", content_type_length)) {
+    unsigned int channel = this->num_spu_streams++;
+    this->si[stream_num]->headers = 0;
+    this->si[stream_num]->buf_types = BUF_SPU_CMML | channel;
   } else {
     this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
   }

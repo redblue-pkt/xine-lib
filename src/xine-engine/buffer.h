@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.142 2004/09/01 12:52:34 hadess Exp $
+ * $Id: buffer.h,v 1.143 2004/09/09 06:29:20 athp Exp $
  *
  *
  * contents:
@@ -236,6 +236,7 @@ extern "C" {
 #define BUF_SPU_SVCD            0x04040000
 #define BUF_SPU_CVD             0x04050000
 #define BUF_SPU_OGM             0x04060000
+#define BUF_SPU_CMML            0x04070000
 
 /* demuxer block types: */
 
