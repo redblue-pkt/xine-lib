@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.3 2002/08/09 22:52:14 mroi Exp $
+ * $Id: dvdnav.c,v 1.4 2002/08/19 17:17:00 mroi Exp $
  *
  */
 
@@ -567,7 +567,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 #ifdef LOG_DEBUG
     fprintf(stderr,"libdvdnav:SPU_CLUT_CHANGE\n");
 #endif
-    (*len) = sizeof(dvdnav_still_event_t);
+    (*len) = 16 * sizeof(uint32_t);
     memcpy(*buf, &(state->pgc->palette), 16 * sizeof(uint32_t));
     this->spu_clut_changed = 0;
 #ifdef LOG_DEBUG
@@ -754,6 +754,10 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
         this->vobu.vobu_length = 0; 
         this->vobu.blockN = this->vobu.vobu_length + 1; 
         /* Make blockN > vobu_next to do expected_nav */
+        /* update the spu palette on PGC changes */
+        this->spu_clut_changed = 1;
+        this->position_current.spu_channel = -1; /* Force an update */
+        this->position_current.audio_channel = -1; /* Force an update */;
         (*event) = DVDNAV_CELL_CHANGE;
         (*len) = 0;
         pthread_mutex_unlock(&this->vm_lock); 
@@ -995,6 +999,11 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.4  2002/08/19 17:17:00  mroi
+ * sync to libdvdnav cvs
+ *  - update clut and spu/audio channel more often
+ *  - align read cache in memory to allow use of raw devices
+ *
  * Revision 1.3  2002/08/09 22:52:14  mroi
  * change includes from system include to local include where the file is in
  * our tree now to avoid version clashes
