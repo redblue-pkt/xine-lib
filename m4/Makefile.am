@@ -38,4 +38,5 @@ EXTRA_DIST = \
 	speex.m4 \
 	theora.m4 \
 	xine.m4 \
-	_xine.m4
+	_xine.m4 \
+	xv.m4
