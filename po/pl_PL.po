@@ -1,13 +1,13 @@
 # Polish xine-lib translation file.
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # Bart³omiej Muryn <_4ever_@irc.pl>, 2002.
-# 
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-03 20:55+0200\n"
-"PO-Revision-Date: 2002-07-22 22:42+0200\n"
-"Last-Translator: Bartlomiej Muryn <forever@klub.chip.pl>\n"
+"PO-Revision-Date: 2002-08-17 11:47+0200\n"
+"Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-2\n"
@@ -81,8 +81,7 @@ msgstr "/dev/dsp# urz±dzenie u¿ywane dla wyj¶cia oss, - 1 => auto_detect"
 # src/audio_out/audio_oss_out.c:708
 #: src/audio_out/audio_oss_out.c:708
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
-msgstr ""
-"metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
+msgstr "metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
 
 # src/audio_out/audio_oss_out.c:775
 #: src/audio_out/audio_oss_out.c:775
@@ -134,14 +133,12 @@ msgstr "urz±dzenie u¿ywane do wyj¶cia d¼wiêku z wtyczk± d¼wiêku 'Sun'"
 # src/audio_out/audio_sun_out.c:748
 #: src/audio_out/audio_sun_out.c:748
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
 
 # src/audio_out/audio_arts_out.c:359
 #: src/audio_out/audio_arts_out.c:359
 msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami arts"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami arts"
 
 # src/audio_out/audio_irixal_out.c:382
 #: src/audio_out/audio_irixal_out.c:382
@@ -162,8 +159,7 @@ msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT zrzuca wiele pakietów TS\n"
 #: src/demuxers/demux_ts.c:343
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-msgstr ""
-"demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
+msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
 
 # src/demuxers/demux_ts.c:353
 #: src/demuxers/demux_ts.c:353
@@ -457,12 +453,11 @@ msgstr "demux_qt: '%c%c%c%c', d¼wiêk %d Hz, %d bits, %d %s\n"
 # src/demuxers/demux_wav.c:322
 #: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
 #: src/demuxers/demux_wav.c:322
-#, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "kana³"
-msgstr[1] "kana³"
-msgstr[2] "kana³"
+msgstr[1] "kana³y"
+msgstr[2] "kana³ów"
 
 # src/demuxers/demux_qt.c:1548
 #: src/demuxers/demux_qt.c:1758
@@ -738,9 +733,9 @@ msgstr "demux_fli: %d ramek, %dx%d\n"
 
 # src/demuxers/demux_wav.c:324
 #: src/demuxers/demux_fli.c:312
-#, fuzzy, c-format
+#, c-format
 msgid "demux_fli: running time: %d min, %d sec\n"
-msgstr "demux_wav: czas odtwarzania = %d min, %d sek\n"
+msgstr "demux_fli: czas odtwarzania = %d min, %d sek\n"
 
 # src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:420
 #: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:417
@@ -823,9 +818,9 @@ msgstr "demux_wav: format 0x%X d¼wiêk, %d Hz, %d bitów/sample, %d %s\n"
 
 # src/demuxers/demux_wav.c:324
 #: src/demuxers/demux_wav.c:324
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wav: running time = %lld min, %lld sec\n"
-msgstr "demux_wav: czas odtwarzania = %d min, %d sek\n"
+msgstr "demux_wav: czas odtwarzania = %lld min, %lld sek\n"
 
 # src/demuxers/demux_wav.c:328
 #: src/demuxers/demux_wav.c:328
@@ -1073,8 +1068,7 @@ msgstr "input_dvd: krótki odczyt we wtyczce input_dvd (%d != %d)\n"
 #: src/input/input_dvd.c:475
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr ""
-"input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
+msgstr "input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
 
 # src/input/input_dvd.c:487
 #: src/input/input_dvd.c:487
@@ -1216,8 +1210,7 @@ msgstr "input_vcd : b³±d w ioctl CDROMREADTOCHDR\n"
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr ""
-"input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
+msgstr "input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
 
 # src/input/input_vcd.c:178
 #: src/input/input_vcd.c:178
@@ -1677,10 +1670,8 @@ msgstr "wêze³ urz±dzenia syncfb (teletux)"
 
 # src/video_out/video_out_syncfb.c:1170
 #: src/video_out/video_out_syncfb.c:1175
-msgid ""
-"xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
+msgid "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
 
 # src/video_out/video_out_fb.c:705 src/video_out/video_out_xshm.c:1283
 #: src/video_out/video_out_fb.c:708 src/video_out/video_out_xshm.c:1300
@@ -1695,8 +1686,7 @@ msgstr "korekta gamma dla sterownika XShm"
 # src/video_out/video_out_xshm.c:1445
 #: src/video_out/video_out_xshm.c:1462
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
 
 # src/video_out/video_out_xv.c:1160 src/video_out/video_out_xv.c:1166
 #: src/video_out/video_out_xv.c:1186 src/video_out/video_out_xv.c:1192
@@ -1731,8 +1721,7 @@ msgstr "urz±dzenie buforu ramki"
 # src/video_out/video_out_fb.c:885
 #: src/video_out/video_out_fb.c:888
 msgid "xine video output plugin using linux framebuffer device"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
 
 # src/video_out/video_out_sdl.c:696
 #: src/video_out/video_out_sdl.c:700
@@ -1761,27 +1750,27 @@ msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca libvidix"
 
 #: src/xine-engine/tvmode.c:589
 msgid "TV System"
-msgstr ""
+msgstr "System TV"
 
 #: src/xine-engine/tvmode.c:594
 msgid "Mode Selection Policy"
-msgstr ""
+msgstr "Polityka wyboru trybu"
 
 #: src/xine-engine/tvmode.c:617
 msgid "Modes"
-msgstr ""
+msgstr "Tryby"
 
 #: src/xine-engine/tvmode.c:627
 msgid "Prefer PAL"
-msgstr ""
+msgstr "Preferowany PAL"
 
 #: src/xine-engine/tvmode.c:633
 msgid "Verbose resolution selection"
-msgstr ""
+msgstr "Przyja¼niejsza selekcja rozdzielczo¶ci"
 
 #: src/xine-engine/tvmode.c:639
 msgid "Screen Aspect Ratio"
-msgstr ""
+msgstr "Proporcje ekranu"
 
 # src/xine-engine/video_out.c:308
 #: src/xine-engine/video_out.c:306
@@ -1883,7 +1872,7 @@ msgstr "je¶li !=0 zawsze ponowne próbkowanie do podanej czêstotliwo¶ci"
 
 #: src/xine-engine/audio_out.c:834
 msgid "adjust if audio is offsync"
-msgstr ""
+msgstr "Dopasuj je¶li d¼wiêk nie jest zsynchronizowany"
 
 # src/xine-engine/audio_out.c:868
 #: src/xine-engine/audio_out.c:874
@@ -2169,8 +2158,7 @@ msgstr "dxr3: priorytet dekodera obrazu"
 # src/dxr3/dxr3_decode_video.c:169
 #: src/dxr3/dxr3_decode_video.c:171
 msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
-msgstr ""
-"priorytet dekodera wiêkszy ni¿ 5 w³±cza dekodowanie sprzêtowe, 0 wy³±cza go."
+msgstr "priorytet dekodera wiêkszy ni¿ 5 w³±cza dekodowanie sprzêtowe, 0 wy³±cza go."
 
 # src/dxr3/dxr3_decode_video.c:176
 #: src/dxr3/dxr3_decode_video.c:178
@@ -2217,8 +2205,7 @@ msgstr "dxr3enc: czêstotliwo¶æ wyj¶æia rte mpeg (kbit/s)"
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr ""
-"czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
+msgstr "czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
 
 # src/dxr3/dxr3_mpeg_encoders.c:389
 #: src/dxr3/dxr3_mpeg_encoders.c:389
@@ -2516,3 +2503,4 @@ msgstr ""
 
 #~ msgid "mpgaudio: bitrate = %.2fkbps\n"
 #~ msgstr "mpgaudio: bitrate = %.2fkbps\n"
+
