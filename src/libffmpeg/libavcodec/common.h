@@ -110,6 +110,8 @@ typedef signed char INT8;
 typedef signed int INT32;
 typedef signed long long INT64;
 
+#include "xine-engine/bswap.h"
+
 #ifdef HAVE_AV_CONFIG_H
 
 #ifdef __FreeBSD__
@@ -120,8 +122,6 @@ typedef signed long long INT64;
 #define INT64_C(c)     (c ## LL)
 #define UINT64_C(c)    (c ## ULL)
 #endif
-
-#include "xine-engine/bswap.h"
 
 #ifdef USE_FASTMEMCPY
 #include "fastmemcpy.h"
