@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.1 2005/02/04 22:31:32 valtri Exp $
+ * $Id: audio_directx2_out.c,v 1.2 2005/02/06 19:16:18 valtri Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -425,7 +425,7 @@ static int audio_fill(dx2_driver_t *this, char *data, size_t size) {
   err = IDirectSoundBuffer_Lock(this->dsbuffer, (this->count * this->part_size + this->read_size) % this->buffer_size, size, &ptr1, &size1, &ptr2, &size2, 0);
   /* try to restore the buffer, if necessary */
   if (err == DSERR_BUFFERLOST) {
-    xine_log(this->class->xine, XINE_LOG_MSG, _(LOG_MODULE ": buffer lost, try to restore\n"));
+    xine_log(this->class->xine, XINE_LOG_MSG, _(LOG_MODULE ": buffer lost, tryig to restore\n"));
     IDirectSoundBuffer_Restore(this->dsbuffer);
     err = IDirectSoundBuffer_Lock(this->dsbuffer, (this->count * this->part_size + this->read_size) % this->buffer_size, size, &ptr1, &size1, &ptr2, &size2, 0);  }
   if (err != DS_OK) {

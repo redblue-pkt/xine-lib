@@ -269,6 +269,9 @@ _x_stream_info_public_reset
 _x_stream_info_get
 _x_stream_info_get_public
 _x_meta_info_set
+_x_meta_info_set_utf8
+_x_meta_info_set_generic
+_x_meta_info_set_multi
 _x_meta_info_n_set
 _x_meta_info_reset
 _x_meta_info_public_reset
@@ -298,3 +301,9 @@ v_b_table
 yv12_to_yv12
 yuy2_to_yuy2
 
+_x_cache_plugin_get_instance
+
+_x_new_refcounter
+_x_refcounter_inc
+_x_refcounter_dec
+_x_refcounter_dispose

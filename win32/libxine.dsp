@@ -149,6 +149,10 @@ SOURCE="..\src\xine-engine\info_helper.c"
 # End Source File
 # Begin Source File
 
+SOURCE="..\src\xine-engine\input_cache.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\src\xine-engine\input_rip.c"
 # End Source File
 # Begin Source File
@@ -174,6 +178,10 @@ SOURCE="..\src\xine-engine\osd.c"
 # Begin Source File
 
 SOURCE="..\src\xine-engine\post.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-engine\refcounter.c"
 # End Source File
 # Begin Source File
 

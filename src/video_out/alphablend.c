@@ -863,7 +863,7 @@ static uint8_t *(*blend_yuv_grow_extra_data(alphablend_t *extra_data, int osd_wi
     uint8_t *data[ 3 ][ 2 ];
   } **header = (struct header_s **)&extra_data->buffer;
   
-  int needed_buffer_size = sizeof (**header) + sizeof (uint8_t[ 3 ][ 2 ][ osd_width ]);
+  int needed_buffer_size = sizeof (**header) + osd_width * sizeof (uint8_t[ 3 ][ 2 ]);
   
   if (extra_data->buffer_size < needed_buffer_size) {
     
@@ -1248,7 +1248,7 @@ static uint8_t *(*blend_yuy2_grow_extra_data(alphablend_t *extra_data, int osd_w
     uint8_t *data[ 3 ];
   } **header = (struct header_s **)&extra_data->buffer;
   
-  int needed_buffer_size = sizeof (**header) + sizeof (uint8_t[ 3 ][ osd_width ]);
+  int needed_buffer_size = sizeof (**header) + osd_width * sizeof (uint8_t[ 3 ]);
   
   if (extra_data->buffer_size < needed_buffer_size) {
     
