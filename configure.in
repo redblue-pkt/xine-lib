@@ -571,6 +571,7 @@ src/demuxers/Makefile
 src/dxr3/Makefile
 src/libmpeg2/Makefile
 src/libac3/Makefile
+src/liblpcm/Makefile
 src/libmpg123/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile

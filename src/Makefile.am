@@ -1,6 +1,6 @@
 
 SUBDIRS = audio_out video_out dxr3 input libmpeg2 libspudec demuxers \
-	libac3 libmpg123 libw32dll xine-engine
+	libac3 libmpg123 liblpcm libw32dll xine-engine
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
