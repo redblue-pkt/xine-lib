@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.13 2004/01/03 17:19:39 jstembridge Exp $
+ * $Id: real.c,v 1.14 2004/04/22 15:20:53 hadess Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -38,6 +38,7 @@
 #include "sdpplin.h"
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "bswap.h"
 
 const unsigned char xor_table[] = {
     0x05, 0x18, 0x74, 0xd0, 0x0d, 0x09, 0x02, 0x53,
@@ -46,18 +47,8 @@ const unsigned char xor_table[] = {
     0x63, 0x11, 0x03, 0x71, 0x08, 0x08, 0x70, 0x02,
     0x10, 0x57, 0x05, 0x18, 0x54, 0x00, 0x00, 0x00 };
 
-
-#define BE_32C(x,y) x[3]=(char)(y & 0xff);\
-    x[2]=(char)((y >> 8) & 0xff);\
-    x[1]=(char)((y >> 16) & 0xff);\
-    x[0]=(char)((y >> 24) & 0xff);
-
-#define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
-
-#define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
-                   (((uint8_t*)(x))[1] << 16) | \
-                   (((uint8_t*)(x))[2] << 8) | \
-                    ((uint8_t*)(x))[3])
+#define BE_32C(x,y) do { *(uint32_t *)(x) = be2me_32((y)); } while(0)
+#define LE_32C(x,y) do { *(uint32_t *)(x) = le2me_32((y)); } while(0)
 
 #define MAX(x,y) ((x>y) ? x : y)
 
@@ -68,10 +59,10 @@ static void hash(char *field, char *param) {
  
 
   /* fill variables */
-  memcpy(&a, field, sizeof(uint32_t));
-  memcpy(&b, &field[4], sizeof(uint32_t));
-  memcpy(&c, &field[8], sizeof(uint32_t));
-  memcpy(&d, &field[12], sizeof(uint32_t));
+  a = LE_32(field);
+  b = LE_32(field+4);
+  c = LE_32(field+8);
+  d = LE_32(field+12);
   
   lprintf("hash input: %x %x %x %x\n", a, b, c, d);
   lprintf("hash parameter:\n");
@@ -79,158 +70,163 @@ static void hash(char *field, char *param) {
   xine_hexdump(param, 64);
 #endif
   
-  a = ((b & c) | (~b & d)) + *((uint32_t*)(param+0x00)) + a - 0x28955B88;
+  a = ((b & c) | (~b & d)) + LE_32((param+0x00)) + a - 0x28955B88;
   a = ((a << 0x07) | (a >> 0x19)) + b;
-  d = ((a & b) | (~a & c)) + *((uint32_t*)(param+0x04)) + d - 0x173848AA;
+  d = ((a & b) | (~a & c)) + LE_32((param+0x04)) + d - 0x173848AA;
   d = ((d << 0x0c) | (d >> 0x14)) + a;
-  c = ((d & a) | (~d & b)) + *((uint32_t*)(param+0x08)) + c + 0x242070DB;
+  c = ((d & a) | (~d & b)) + LE_32((param+0x08)) + c + 0x242070DB;
   c = ((c << 0x11) | (c >> 0x0f)) + d;
-  b = ((c & d) | (~c & a)) + *((uint32_t*)(param+0x0c)) + b - 0x3E423112;
+  b = ((c & d) | (~c & a)) + LE_32((param+0x0c)) + b - 0x3E423112;
   b = ((b << 0x16) | (b >> 0x0a)) + c;
-  a = ((b & c) | (~b & d)) + *((uint32_t*)(param+0x10)) + a - 0x0A83F051;
+  a = ((b & c) | (~b & d)) + LE_32((param+0x10)) + a - 0x0A83F051;
   a = ((a << 0x07) | (a >> 0x19)) + b;
-  d = ((a & b) | (~a & c)) + *((uint32_t*)(param+0x14)) + d + 0x4787C62A;
+  d = ((a & b) | (~a & c)) + LE_32((param+0x14)) + d + 0x4787C62A;
   d = ((d << 0x0c) | (d >> 0x14)) + a;
-  c = ((d & a) | (~d & b)) + *((uint32_t*)(param+0x18)) + c - 0x57CFB9ED;
+  c = ((d & a) | (~d & b)) + LE_32((param+0x18)) + c - 0x57CFB9ED;
   c = ((c << 0x11) | (c >> 0x0f)) + d;
-  b = ((c & d) | (~c & a)) + *((uint32_t*)(param+0x1c)) + b - 0x02B96AFF;
+  b = ((c & d) | (~c & a)) + LE_32((param+0x1c)) + b - 0x02B96AFF;
   b = ((b << 0x16) | (b >> 0x0a)) + c;
-  a = ((b & c) | (~b & d)) + *((uint32_t*)(param+0x20)) + a + 0x698098D8;
+  a = ((b & c) | (~b & d)) + LE_32((param+0x20)) + a + 0x698098D8;
   a = ((a << 0x07) | (a >> 0x19)) + b;
-  d = ((a & b) | (~a & c)) + *((uint32_t*)(param+0x24)) + d - 0x74BB0851;
+  d = ((a & b) | (~a & c)) + LE_32((param+0x24)) + d - 0x74BB0851;
   d = ((d << 0x0c) | (d >> 0x14)) + a;
-  c = ((d & a) | (~d & b)) + *((uint32_t*)(param+0x28)) + c - 0x0000A44F;
+  c = ((d & a) | (~d & b)) + LE_32((param+0x28)) + c - 0x0000A44F;
   c = ((c << 0x11) | (c >> 0x0f)) + d;
-  b = ((c & d) | (~c & a)) + *((uint32_t*)(param+0x2C)) + b - 0x76A32842;
+  b = ((c & d) | (~c & a)) + LE_32((param+0x2C)) + b - 0x76A32842;
   b = ((b << 0x16) | (b >> 0x0a)) + c;
-  a = ((b & c) | (~b & d)) + *((uint32_t*)(param+0x30)) + a + 0x6B901122;
+  a = ((b & c) | (~b & d)) + LE_32((param+0x30)) + a + 0x6B901122;
   a = ((a << 0x07) | (a >> 0x19)) + b;
-  d = ((a & b) | (~a & c)) + *((uint32_t*)(param+0x34)) + d - 0x02678E6D;
+  d = ((a & b) | (~a & c)) + LE_32((param+0x34)) + d - 0x02678E6D;
   d = ((d << 0x0c) | (d >> 0x14)) + a;
-  c = ((d & a) | (~d & b)) + *((uint32_t*)(param+0x38)) + c - 0x5986BC72;
+  c = ((d & a) | (~d & b)) + LE_32((param+0x38)) + c - 0x5986BC72;
   c = ((c << 0x11) | (c >> 0x0f)) + d;
-  b = ((c & d) | (~c & a)) + *((uint32_t*)(param+0x3c)) + b + 0x49B40821;
+  b = ((c & d) | (~c & a)) + LE_32((param+0x3c)) + b + 0x49B40821;
   b = ((b << 0x16) | (b >> 0x0a)) + c;
   
-  a = ((b & d) | (~d & c)) + *((uint32_t*)(param+0x04)) + a - 0x09E1DA9E;
+  a = ((b & d) | (~d & c)) + LE_32((param+0x04)) + a - 0x09E1DA9E;
   a = ((a << 0x05) | (a >> 0x1b)) + b;
-  d = ((a & c) | (~c & b)) + *((uint32_t*)(param+0x18)) + d - 0x3FBF4CC0;
+  d = ((a & c) | (~c & b)) + LE_32((param+0x18)) + d - 0x3FBF4CC0;
   d = ((d << 0x09) | (d >> 0x17)) + a;
-  c = ((d & b) | (~b & a)) + *((uint32_t*)(param+0x2c)) + c + 0x265E5A51;
+  c = ((d & b) | (~b & a)) + LE_32((param+0x2c)) + c + 0x265E5A51;
   c = ((c << 0x0e) | (c >> 0x12)) + d;
-  b = ((c & a) | (~a & d)) + *((uint32_t*)(param+0x00)) + b - 0x16493856;
+  b = ((c & a) | (~a & d)) + LE_32((param+0x00)) + b - 0x16493856;
   b = ((b << 0x14) | (b >> 0x0c)) + c;
-  a = ((b & d) | (~d & c)) + *((uint32_t*)(param+0x14)) + a - 0x29D0EFA3;
+  a = ((b & d) | (~d & c)) + LE_32((param+0x14)) + a - 0x29D0EFA3;
   a = ((a << 0x05) | (a >> 0x1b)) + b;
-  d = ((a & c) | (~c & b)) + *((uint32_t*)(param+0x28)) + d + 0x02441453;
+  d = ((a & c) | (~c & b)) + LE_32((param+0x28)) + d + 0x02441453;
   d = ((d << 0x09) | (d >> 0x17)) + a;
-  c = ((d & b) | (~b & a)) + *((uint32_t*)(param+0x3c)) + c - 0x275E197F;
+  c = ((d & b) | (~b & a)) + LE_32((param+0x3c)) + c - 0x275E197F;
   c = ((c << 0x0e) | (c >> 0x12)) + d;
-  b = ((c & a) | (~a & d)) + *((uint32_t*)(param+0x10)) + b - 0x182C0438;
+  b = ((c & a) | (~a & d)) + LE_32((param+0x10)) + b - 0x182C0438;
   b = ((b << 0x14) | (b >> 0x0c)) + c;
-  a = ((b & d) | (~d & c)) + *((uint32_t*)(param+0x24)) + a + 0x21E1CDE6;
+  a = ((b & d) | (~d & c)) + LE_32((param+0x24)) + a + 0x21E1CDE6;
   a = ((a << 0x05) | (a >> 0x1b)) + b;
-  d = ((a & c) | (~c & b)) + *((uint32_t*)(param+0x38)) + d - 0x3CC8F82A;
+  d = ((a & c) | (~c & b)) + LE_32((param+0x38)) + d - 0x3CC8F82A;
   d = ((d << 0x09) | (d >> 0x17)) + a;
-  c = ((d & b) | (~b & a)) + *((uint32_t*)(param+0x0c)) + c - 0x0B2AF279;
+  c = ((d & b) | (~b & a)) + LE_32((param+0x0c)) + c - 0x0B2AF279;
   c = ((c << 0x0e) | (c >> 0x12)) + d;
-  b = ((c & a) | (~a & d)) + *((uint32_t*)(param+0x20)) + b + 0x455A14ED;
+  b = ((c & a) | (~a & d)) + LE_32((param+0x20)) + b + 0x455A14ED;
   b = ((b << 0x14) | (b >> 0x0c)) + c;
-  a = ((b & d) | (~d & c)) + *((uint32_t*)(param+0x34)) + a - 0x561C16FB;
+  a = ((b & d) | (~d & c)) + LE_32((param+0x34)) + a - 0x561C16FB;
   a = ((a << 0x05) | (a >> 0x1b)) + b;
-  d = ((a & c) | (~c & b)) + *((uint32_t*)(param+0x08)) + d - 0x03105C08;
+  d = ((a & c) | (~c & b)) + LE_32((param+0x08)) + d - 0x03105C08;
   d = ((d << 0x09) | (d >> 0x17)) + a;
-  c = ((d & b) | (~b & a)) + *((uint32_t*)(param+0x1c)) + c + 0x676F02D9;
+  c = ((d & b) | (~b & a)) + LE_32((param+0x1c)) + c + 0x676F02D9;
   c = ((c << 0x0e) | (c >> 0x12)) + d;
-  b = ((c & a) | (~a & d)) + *((uint32_t*)(param+0x30)) + b - 0x72D5B376;
+  b = ((c & a) | (~a & d)) + LE_32((param+0x30)) + b - 0x72D5B376;
   b = ((b << 0x14) | (b >> 0x0c)) + c;
   
-  a = (b ^ c ^ d) + *((uint32_t*)(param+0x14)) + a - 0x0005C6BE;
+  a = (b ^ c ^ d) + LE_32((param+0x14)) + a - 0x0005C6BE;
   a = ((a << 0x04) | (a >> 0x1c)) + b;
-  d = (a ^ b ^ c) + *((uint32_t*)(param+0x20)) + d - 0x788E097F;
+  d = (a ^ b ^ c) + LE_32((param+0x20)) + d - 0x788E097F;
   d = ((d << 0x0b) | (d >> 0x15)) + a;
-  c = (d ^ a ^ b) + *((uint32_t*)(param+0x2c)) + c + 0x6D9D6122;
+  c = (d ^ a ^ b) + LE_32((param+0x2c)) + c + 0x6D9D6122;
   c = ((c << 0x10) | (c >> 0x10)) + d;
-  b = (c ^ d ^ a) + *((uint32_t*)(param+0x38)) + b - 0x021AC7F4;
+  b = (c ^ d ^ a) + LE_32((param+0x38)) + b - 0x021AC7F4;
   b = ((b << 0x17) | (b >> 0x09)) + c;
-  a = (b ^ c ^ d) + *((uint32_t*)(param+0x04)) + a - 0x5B4115BC;
+  a = (b ^ c ^ d) + LE_32((param+0x04)) + a - 0x5B4115BC;
   a = ((a << 0x04) | (a >> 0x1c)) + b;
-  d = (a ^ b ^ c) + *((uint32_t*)(param+0x10)) + d + 0x4BDECFA9;
+  d = (a ^ b ^ c) + LE_32((param+0x10)) + d + 0x4BDECFA9;
   d = ((d << 0x0b) | (d >> 0x15)) + a;
-  c = (d ^ a ^ b) + *((uint32_t*)(param+0x1c)) + c - 0x0944B4A0;
+  c = (d ^ a ^ b) + LE_32((param+0x1c)) + c - 0x0944B4A0;
   c = ((c << 0x10) | (c >> 0x10)) + d;
-  b = (c ^ d ^ a) + *((uint32_t*)(param+0x28)) + b - 0x41404390;
+  b = (c ^ d ^ a) + LE_32((param+0x28)) + b - 0x41404390;
   b = ((b << 0x17) | (b >> 0x09)) + c;
-  a = (b ^ c ^ d) + *((uint32_t*)(param+0x34)) + a + 0x289B7EC6;
+  a = (b ^ c ^ d) + LE_32((param+0x34)) + a + 0x289B7EC6;
   a = ((a << 0x04) | (a >> 0x1c)) + b;
-  d = (a ^ b ^ c) + *((uint32_t*)(param+0x00)) + d - 0x155ED806;
+  d = (a ^ b ^ c) + LE_32((param+0x00)) + d - 0x155ED806;
   d = ((d << 0x0b) | (d >> 0x15)) + a;
-  c = (d ^ a ^ b) + *((uint32_t*)(param+0x0c)) + c - 0x2B10CF7B;
+  c = (d ^ a ^ b) + LE_32((param+0x0c)) + c - 0x2B10CF7B;
   c = ((c << 0x10) | (c >> 0x10)) + d;
-  b = (c ^ d ^ a) + *((uint32_t*)(param+0x18)) + b + 0x04881D05;
+  b = (c ^ d ^ a) + LE_32((param+0x18)) + b + 0x04881D05;
   b = ((b << 0x17) | (b >> 0x09)) + c;
-  a = (b ^ c ^ d) + *((uint32_t*)(param+0x24)) + a - 0x262B2FC7;
+  a = (b ^ c ^ d) + LE_32((param+0x24)) + a - 0x262B2FC7;
   a = ((a << 0x04) | (a >> 0x1c)) + b;
-  d = (a ^ b ^ c) + *((uint32_t*)(param+0x30)) + d - 0x1924661B;
+  d = (a ^ b ^ c) + LE_32((param+0x30)) + d - 0x1924661B;
   d = ((d << 0x0b) | (d >> 0x15)) + a;
-  c = (d ^ a ^ b) + *((uint32_t*)(param+0x3c)) + c + 0x1fa27cf8;
+  c = (d ^ a ^ b) + LE_32((param+0x3c)) + c + 0x1fa27cf8;
   c = ((c << 0x10) | (c >> 0x10)) + d;
-  b = (c ^ d ^ a) + *((uint32_t*)(param+0x08)) + b - 0x3B53A99B;
+  b = (c ^ d ^ a) + LE_32((param+0x08)) + b - 0x3B53A99B;
   b = ((b << 0x17) | (b >> 0x09)) + c;
   
-  a = ((~d | b) ^ c)  + *((uint32_t*)(param+0x00)) + a - 0x0BD6DDBC;
+  a = ((~d | b) ^ c)  + LE_32((param+0x00)) + a - 0x0BD6DDBC;
   a = ((a << 0x06) | (a >> 0x1a)) + b; 
-  d = ((~c | a) ^ b)  + *((uint32_t*)(param+0x1c)) + d + 0x432AFF97;
+  d = ((~c | a) ^ b)  + LE_32((param+0x1c)) + d + 0x432AFF97;
   d = ((d << 0x0a) | (d >> 0x16)) + a; 
-  c = ((~b | d) ^ a)  + *((uint32_t*)(param+0x38)) + c - 0x546BDC59;
+  c = ((~b | d) ^ a)  + LE_32((param+0x38)) + c - 0x546BDC59;
   c = ((c << 0x0f) | (c >> 0x11)) + d; 
-  b = ((~a | c) ^ d)  + *((uint32_t*)(param+0x14)) + b - 0x036C5FC7;
+  b = ((~a | c) ^ d)  + LE_32((param+0x14)) + b - 0x036C5FC7;
   b = ((b << 0x15) | (b >> 0x0b)) + c; 
-  a = ((~d | b) ^ c)  + *((uint32_t*)(param+0x30)) + a + 0x655B59C3;
+  a = ((~d | b) ^ c)  + LE_32((param+0x30)) + a + 0x655B59C3;
   a = ((a << 0x06) | (a >> 0x1a)) + b; 
-  d = ((~c | a) ^ b)  + *((uint32_t*)(param+0x0C)) + d - 0x70F3336E;
+  d = ((~c | a) ^ b)  + LE_32((param+0x0C)) + d - 0x70F3336E;
   d = ((d << 0x0a) | (d >> 0x16)) + a; 
-  c = ((~b | d) ^ a)  + *((uint32_t*)(param+0x28)) + c - 0x00100B83;
+  c = ((~b | d) ^ a)  + LE_32((param+0x28)) + c - 0x00100B83;
   c = ((c << 0x0f) | (c >> 0x11)) + d; 
-  b = ((~a | c) ^ d)  + *((uint32_t*)(param+0x04)) + b - 0x7A7BA22F;
+  b = ((~a | c) ^ d)  + LE_32((param+0x04)) + b - 0x7A7BA22F;
   b = ((b << 0x15) | (b >> 0x0b)) + c; 
-  a = ((~d | b) ^ c)  + *((uint32_t*)(param+0x20)) + a + 0x6FA87E4F;
+  a = ((~d | b) ^ c)  + LE_32((param+0x20)) + a + 0x6FA87E4F;
   a = ((a << 0x06) | (a >> 0x1a)) + b; 
-  d = ((~c | a) ^ b)  + *((uint32_t*)(param+0x3c)) + d - 0x01D31920;
+  d = ((~c | a) ^ b)  + LE_32((param+0x3c)) + d - 0x01D31920;
   d = ((d << 0x0a) | (d >> 0x16)) + a; 
-  c = ((~b | d) ^ a)  + *((uint32_t*)(param+0x18)) + c - 0x5CFEBCEC;
+  c = ((~b | d) ^ a)  + LE_32((param+0x18)) + c - 0x5CFEBCEC;
   c = ((c << 0x0f) | (c >> 0x11)) + d; 
-  b = ((~a | c) ^ d)  + *((uint32_t*)(param+0x34)) + b + 0x4E0811A1;
+  b = ((~a | c) ^ d)  + LE_32((param+0x34)) + b + 0x4E0811A1;
   b = ((b << 0x15) | (b >> 0x0b)) + c; 
-  a = ((~d | b) ^ c)  + *((uint32_t*)(param+0x10)) + a - 0x08AC817E;
+  a = ((~d | b) ^ c)  + LE_32((param+0x10)) + a - 0x08AC817E;
   a = ((a << 0x06) | (a >> 0x1a)) + b; 
-  d = ((~c | a) ^ b)  + *((uint32_t*)(param+0x2c)) + d - 0x42C50DCB;
+  d = ((~c | a) ^ b)  + LE_32((param+0x2c)) + d - 0x42C50DCB;
   d = ((d << 0x0a) | (d >> 0x16)) + a; 
-  c = ((~b | d) ^ a)  + *((uint32_t*)(param+0x08)) + c + 0x2AD7D2BB;
+  c = ((~b | d) ^ a)  + LE_32((param+0x08)) + c + 0x2AD7D2BB;
   c = ((c << 0x0f) | (c >> 0x11)) + d; 
-  b = ((~a | c) ^ d)  + *((uint32_t*)(param+0x24)) + b - 0x14792C6F;
+  b = ((~a | c) ^ d)  + LE_32((param+0x24)) + b - 0x14792C6F;
   b = ((b << 0x15) | (b >> 0x0b)) + c; 
 
   lprintf("hash output: %x %x %x %x\n", a, b, c, d);
   
-  *((uint32_t *)(field+0)) += a;
-  *((uint32_t *)(field+4)) += b;
-  *((uint32_t *)(field+8)) += c;
-  *((uint32_t *)(field+12)) += d;
+  a += LE_32(field);
+  b += LE_32(field+4);
+  c += LE_32(field+8);
+  d += LE_32(field+12);
+
+  LE_32C(field, a);
+  LE_32C(field+4, b);
+  LE_32C(field+8, c);
+  LE_32C(field+12, d);
 }
 
 static void call_hash (char *key, char *challenge, int len) {
 
-  uint32_t *ptr1, *ptr2;
-  uint32_t a, b, c, d;
+  uint8_t *ptr1, *ptr2;
+  uint32_t a, b, c, d, tmp;
   
-  ptr1=(uint32_t*)(key+16);
-  ptr2=(uint32_t*)(key+20);
+  ptr1=(key+16);
+  ptr2=(key+20);
   
-  a = *ptr1;
+  a = LE_32(ptr1);
   b = (a >> 3) & 0x3f;
   a += len * 8;
-  *ptr1 = a;
+  LE_32C(ptr1, a);
   
   if (a < (len << 3))
   {
@@ -238,7 +234,8 @@ static void call_hash (char *key, char *challenge, int len) {
     ptr2 += 4;
   }
 
-  *ptr2 += (len >> 0x1d);
+  tmp = LE_32(ptr2) + (len >> 0x1d);
+  LE_32C(ptr2, tmp);
   a = 64 - b;
   c = 0;  
   if (a <= len)
@@ -272,7 +269,7 @@ static void calc_response (char *result, char *field) {
   
   memcpy (buf2, field+16, 8);
   
-  i = ( *((uint32_t*)(buf2)) >> 3 ) & 0x3f;
+  i = ( LE_32((buf2)) >> 3 ) & 0x3f;
  
   if (i < 56) {
     i = 56 - i;
@@ -333,10 +330,13 @@ void real_calc_response_and_checksum (char *response, char *chksum, char *challe
   /* initialize buffer */
   memset(buf, 0, 128);
   ptr=buf;
+  printf("ptr at %p\n", ptr);
   BE_32C(ptr, 0xa1e9149d);
   ptr+=4;
+  printf("ptr at %p\n", ptr);
   BE_32C(ptr, 0x0e6b3b59);
   ptr+=4;
+  printf("ptr at %p\n", ptr);
 
   /* some (length) checks */
   if (challenge != NULL)

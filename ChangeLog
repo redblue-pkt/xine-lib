@@ -27,6 +27,7 @@ xine-lib (1-rc4)
     some frames out of order when multi-buffering.
   * DXR3: option to use Pan & Scan information embedded in MPEG and DVB streams
   * disable AUD content detection because of false positives
+  * fix Real pnm/rtsp streaming on big endian platforms
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
