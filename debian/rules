@@ -91,9 +91,10 @@ binary-arch: build install
 	dh_testroot
 	#
 	# build libxine${major} package by moving files from libxine-dev
-	#
+	#TODO (when sarge is stable):
+	#use this dh_install line, and remove debian/tmp/ from *.install!
 	#dh_install --autodest --sourcedir=debian/tmp --list-missing
-	dh_install --autodest --sourcedir=debian/tmp
+	dh_install --autodest
 	dh_installdocs
 	dh_installchangelogs -k ChangeLog
 	dh_link
