@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.15 2002/09/05 22:19:01 mroi Exp $
+ * $Id: adpcm.c,v 1.16 2002/09/13 03:03:42 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -1153,7 +1153,8 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 static uint32_t audio_types[] = { 
   BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
   BUF_AUDIO_QTIMAADPCM, BUF_AUDIO_DK3ADPCM,
-  BUF_AUDIO_DK4ADPCM, 0
+  BUF_AUDIO_DK4ADPCM, BUF_AUDIO_SMJPEG_IMA,
+  BUF_AUDIO_VQA_IMA, 0
  };
 
 static decoder_info_t dec_info_audio = {
