@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.42 2001/06/17 20:33:47 guenter Exp $
+ * $Id: video_out_xv.c,v 1.43 2001/06/17 22:34:36 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -454,6 +454,12 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   } else {
 
+    if (this->cur_frame) {
+      this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+      this->cur_frame = NULL;
+    }
+
+
     if ( (frame->width != this->delivered_width)
 	 || (frame->height != this->delivered_height) 
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
@@ -569,10 +575,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
 
-      if (this->cur_frame) {
-	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
-	this->cur_frame = NULL;
-      }
     }
 
   }
