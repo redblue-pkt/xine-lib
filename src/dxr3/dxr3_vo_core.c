@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.4 2001/11/08 08:49:26 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.5 2001/11/08 12:14:17 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -367,31 +367,33 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data)
 {
 	dxr3_driver_t *this = (dxr3_driver_t*) this_gen;
-	x11_rectangle_t *area;
-	XWindowAttributes a;
+
 	
 	if (!this->overlay_enabled && !this->tv_switchable) return 0;
 
 	switch (data_type) {
-	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
-		area = (x11_rectangle_t*) data;
-		dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:{
+			x11_rectangle_t *area = (x11_rectangle_t*) data;
+			dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+		}
 		break;
-	case GUI_DATA_EX_EXPOSE_EVENT:
-		XLockDisplay(this->display);
-		XFillRectangle(this->display, this->win,
-		 this->gc, 0, 0, this->width, this->height);
-		XUnlockDisplay(this->display);
+	case GUI_DATA_EX_EXPOSE_EVENT:{
+			XLockDisplay(this->display);
+			XFillRectangle(this->display, this->win,
+				 this->gc, 0, 0, this->width, this->height);
+			XUnlockDisplay(this->display);
+		}
 		break;
-	case GUI_DATA_EX_DRAWABLE_CHANGED:
-		this->win = (Drawable) data;
-		this->gc = XCreateGC(this->display, this->win, 0, NULL);
-		XGetWindowAttributes(this->display, this->win, &a);
-		dxr3_set_property((vo_driver_t*) this,
-		 VO_PROP_ASPECT_RATIO, this->aspectratio);
+	case GUI_DATA_EX_DRAWABLE_CHANGED:{
+			XWindowAttributes a;
+			this->win = (Drawable) data;
+			this->gc = XCreateGC(this->display, this->win, 0, NULL);
+			XGetWindowAttributes(this->display, this->win, &a);
+			dxr3_set_property((vo_driver_t*) this,
+				 VO_PROP_ASPECT_RATIO, this->aspectratio);
+		}
 		break;
-	case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
-		{
+	case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:{
 			int x1, y1, x2, y2;
 			x11_rectangle_t *rect = data;
 
@@ -405,8 +407,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 			rect->h = y2-y1;
 		}
 		break;
-	case GUI_DATA_EX_VIDEOWIN_VISIBLE:
-		{ 
+	case GUI_DATA_EX_VIDEOWIN_VISIBLE:{ 
 			int window_showing;
 			(int *)window_showing = (int *)data;
 			if(!window_showing){
@@ -419,8 +420,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 				this->overlay_enabled=1;
 			}
 		dxr3_set_property((vo_driver_t*) this,
-		 VO_PROP_ASPECT_RATIO, this->aspectratio);
-		dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+			 VO_PROP_ASPECT_RATIO, this->aspectratio);
 		break;
 		}
 
