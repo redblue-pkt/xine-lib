@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/07/30 19:21:28 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/08/07 14:15:04 guenter Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -67,7 +67,15 @@ void mpgdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   mpgdec_decoder_t *this = (mpgdec_decoder_t *) this_gen;
 
+  /*
+    printf ("libmpg123: decode data\n");
+    fflush (stdout);
+  */
   if (buf->decoder_info[0] >0) {
+    /*
+      printf ("libmpg123: decode data - doing it\n");
+      fflush (stdout);
+      */
     mpg_audio_decode_data (this->mpg, buf->content, buf->content + buf->size,
 			   buf->PTS);
   }

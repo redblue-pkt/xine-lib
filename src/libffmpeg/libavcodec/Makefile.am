@@ -9,7 +9,8 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 noinst_LTLIBRARIES = libavcodec.la
 
 if HAVE_FFMMX
-mmx_modules = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c
+#mmx_modules = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c
+mmx_modules = mpegvideo_mmx.c sad_mmx.s
 endif
 
 libavcodec_la_SOURCES = dsputil.c   fdctref.c   jfdctfst.c  mpeg12.c   \
@@ -24,7 +25,7 @@ noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
 		 mpeg12data.h
 
 debug:
-	$(MAKE) CFLAGS="-Wall -DDEBUG -g -DXINE_COMPILE"
+	$(MAKE) CFLAGS="-Wall -DDEBUG -O -finline-functions -g -DXINE_COMPILE"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

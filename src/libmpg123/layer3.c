@@ -1205,7 +1205,23 @@ static void dct36(real *inbuf,real *o1,real *o2,real *wintab,real *tsbuf)
       tmp2a = in[2*0+0] + in[2*2+0] * c[2] + in[2*4+0] * c[4] + ta66 + in[2*8+0] * c[8];
       tmp2b = in[2*0+1] + in[2*2+1] * c[2] + in[2*4+1] * c[4] + tb66 + in[2*8+1] * c[8];
 
-      MACRO1(0);
+      { 
+	real sum0,sum1; 
+	sum0 = tmp1a + tmp2a; 
+	sum1 = (tmp1b + tmp2b) * tfcos36[(0)]; 
+	{ 
+	  real tmp; 
+	  out2[9+(0)] = (tmp = sum0 + sum1) * w[27+(0)]; 
+	  out2[8-(0)] = tmp * w[26-(0)];  
+	} 
+	sum0 -= sum1; 
+	ts[SBLIMIT*(8-(0))] = 0;
+	ts[SBLIMIT*(9+(0))] = 0;
+	ts[SBLIMIT*(8-(0))] = out1[8-(0)] + sum0 * w[8-(0)]; 
+	ts[SBLIMIT*(9+(0))] = out1[9+(0)] + sum0 * w[9+(0)]; 
+      }
+
+      //MACRO1(0);
       MACRO2(8);
     }
 
@@ -1503,9 +1519,10 @@ void do_layer3(mpgaudio_t *mp)
 
   for (gr=0;gr<granules;gr++) 
   {
+    /*
     real hybridIn[2][SBLIMIT][SSLIMIT];
     real hybridOut[2][SSLIMIT][SBLIMIT];
-
+    */
     {
       struct gr_info_s *gr_info = &(sideinfo.ch[0].gr[gr]);
       long part2bits;
@@ -1518,7 +1535,7 @@ void do_layer3(mpgaudio_t *mp)
 	fprintf(stderr,"Not supported\n");
 #endif
       }
-      if(III_dequantize_sample(hybridIn[0], scalefacs[0],gr_info,sfreq,part2bits)) {
+      if(III_dequantize_sample(mp->hybridIn[0], scalefacs[0],gr_info,sfreq,part2bits)) {
 	printf ("III_dequantize_sample failed.\n");
 	return;
       }
@@ -1536,7 +1553,7 @@ void do_layer3(mpgaudio_t *mp)
 #endif
       }
 
-      if(III_dequantize_sample(hybridIn[1],scalefacs[1],gr_info,sfreq,part2bits)) {
+      if(III_dequantize_sample(mp->hybridIn[1],scalefacs[1],gr_info,sfreq,part2bits)) {
 	printf ("III_dequantize_sample failed.\n");
 	return;
       }
@@ -1545,15 +1562,15 @@ void do_layer3(mpgaudio_t *mp)
         int i;
         for(i=0;i<SBLIMIT*SSLIMIT;i++) {
           real tmp0,tmp1;
-          tmp0 = ((real *) hybridIn[0])[i];
-          tmp1 = ((real *) hybridIn[1])[i];
-          ((real *) hybridIn[0])[i] = tmp0 + tmp1;
-          ((real *) hybridIn[1])[i] = tmp0 - tmp1;  
+          tmp0 = ((real *) mp->hybridIn[0])[i];
+          tmp1 = ((real *) mp->hybridIn[1])[i];
+          ((real *) mp->hybridIn[0])[i] = tmp0 + tmp1;
+          ((real *) mp->hybridIn[1])[i] = tmp0 - tmp1;  
         }
       }
 
       if(i_stereo)
-        III_i_stereo(hybridIn,scalefacs[1],gr_info,sfreq,ms_stereo,fr->lsf);
+        III_i_stereo(mp->hybridIn,scalefacs[1],gr_info,sfreq,ms_stereo,fr->lsf);
 
       if(ms_stereo || i_stereo || (single == 3) ) {
         if(gr_info->maxb > sideinfo.ch[0].gr[gr].maxb) 
@@ -1566,7 +1583,7 @@ void do_layer3(mpgaudio_t *mp)
         case 3:
           {
             register int i;
-            register real *in0 = (real *) hybridIn[0],*in1 = (real *) hybridIn[1];
+            register real *in0 = (real *) mp->hybridIn[0],*in1 = (real *) mp->hybridIn[1];
             for(i=0;i<SSLIMIT*gr_info->maxb;i++,in0++)
               *in0 = (*in0 + *in1++); /* *0.5 done by pow-scale */ 
           }
@@ -1574,7 +1591,7 @@ void do_layer3(mpgaudio_t *mp)
         case 1:
           {
             register int i;
-            register real *in0 = (real *) hybridIn[0],*in1 = (real *) hybridIn[1];
+            register real *in0 = (real *) mp->hybridIn[0],*in1 = (real *) mp->hybridIn[1];
             for(i=0;i<SSLIMIT*gr_info->maxb;i++)
               *in0++ = *in1++;
           }
@@ -1584,18 +1601,18 @@ void do_layer3(mpgaudio_t *mp)
 
     for(ch=0;ch<stereo1;ch++) {
       struct gr_info_s *gr_info = &(sideinfo.ch[ch].gr[gr]);
-      III_antialias(hybridIn[ch],gr_info);
-      III_hybrid(mp, hybridIn[ch], hybridOut[ch], ch,gr_info);
+      III_antialias(mp->hybridIn[ch],gr_info);
+      III_hybrid(mp, mp->hybridIn[ch], mp->hybridOut[ch], ch,gr_info);
     }
 
     for(ss=0;ss<SSLIMIT;ss++) {
       if(single >= 0) {
-        clip += synth_1to1_mono(mp, hybridOut[0][ss],mp->osspace,&num_bytes);
+        clip += synth_1to1_mono(mp, mp->hybridOut[0][ss],mp->osspace,&num_bytes);
       }
       else {
         int p1 = num_bytes;
-        clip += synth_1to1(mp, hybridOut[0][ss],0,mp->osspace,&p1);
-        clip += synth_1to1(mp, hybridOut[1][ss],1,mp->osspace,&num_bytes);
+        clip += synth_1to1(mp, mp->hybridOut[0][ss],0,mp->osspace,&p1);
+        clip += synth_1to1(mp, mp->hybridOut[1][ss],1,mp->osspace,&num_bytes);
       }
     }
   }

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.4 2001/05/27 23:48:12 guenter Exp $
+ * $Id: mpglib.h,v 1.5 2001/08/07 14:15:04 guenter Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
@@ -41,6 +41,10 @@ typedef struct mpstr {
   int             hybrid_blc[2];
   real            synth_buffs[2][2][0x110];
   int             synth_bo;
+
+  real            hybridIn[2][SBLIMIT][SSLIMIT];
+  real            hybridOut[2][SSLIMIT][SBLIMIT];
+
 
   int             is_output_initialized;
   int             sample_rate_device;
