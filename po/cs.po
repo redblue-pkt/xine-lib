@@ -2462,7 +2462,7 @@ msgstr "libareal: jejda, real může mít více než 2 kanály?\n"
 
 #: src/libreal/audio_decoder.c:731 src/libreal/xine_decoder.c:611
 msgid "path to RealPlayer codecs"
-msgstr "Cesta ke kodekům Real Playeru"
+msgstr "cesta ke kodekům Real Playeru"
 
 #: src/libreal/audio_decoder.c:732 src/libreal/xine_decoder.c:612
 msgid ""
@@ -3726,7 +3726,7 @@ msgstr "video_out_xv: tento adaptér podporuje formát yuy2.\n"
 
 #: src/video_out/video_out_xv.c:1517
 msgid "pitch alignment workaround"
-msgstr "Obcházet chybu zarovnávání rozteče"
+msgstr "obcházet chybu zarovnávání rozteče"
 
 #: src/video_out/video_out_xv.c:1518
 msgid "Some buggy video drivers need a workaround to function properly."
@@ -4265,7 +4265,7 @@ msgstr "osd: chyba při renderování\n"
 
 #: src/xine-engine/osd.c:1421
 msgid "palette (foreground-border-background) to use for subtitles and OSD"
-msgstr "Paleta (popředí-okraj-pozadí) použitá na titulky a OSD"
+msgstr "paleta (popředí-okraj-pozadí) použitá na titulky a OSD"
 
 #: src/xine-engine/osd.c:1422
 msgid ""
