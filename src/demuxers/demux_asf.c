@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.89 2002/12/13 21:13:17 guenter Exp $
+ * $Id: demux_asf.c,v 1.90 2002/12/18 03:41:59 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -47,6 +47,7 @@
 /*
 #define LOG
 */
+
 #define CODEC_TYPE_AUDIO       0
 #define CODEC_TYPE_VIDEO       1
 #define CODEC_TYPE_CONTROL     2
@@ -491,7 +492,8 @@ static int asf_read_header (demux_asf_t *this) {
               printf ("demux_asf: invalid bih_size received (%d), v_stream ignored.\n", i );
 
 #ifdef LOG
-            printf ("demux_asf: found a video stream id=%d \n", stream_id);
+            printf ("demux_asf: found a video stream id=%d, buf_type=%08x \n", 
+		    stream_id, this->streams[this->num_streams].buf_type);
 #endif
             this->num_video_streams++;
           }
