@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.38 2002/08/28 22:16:53 guenter Exp $
+ * $Id: demux_ogg.c,v 1.39 2002/09/01 20:50:57 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -47,8 +47,12 @@
 
 #define CHUNKSIZE                8500
 #define PACKET_TYPE_HEADER       0x01
+#define PACKET_TYPE_COMMENT      0x03
+#define PACKET_TYPE_CODEBOOK     0x05
+#define PACKET_TYPE_BITS	 0x07
 #define PACKET_LEN_BITS01        0xc0
 #define PACKET_LEN_BITS2         0x02
+#define PACKET_IS_SYNCPOINT      0x08
 
 #define MAX_STREAMS              16
 
@@ -138,33 +142,16 @@ typedef struct demux_ogg_s {
 
 
 static void hex_dump (uint8_t *p, int length) {
-
-  int i;
-
-  for (i=0; i<length; i++) {
-    unsigned char c = p[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\n");
-
-    if ((i % 2) == 1)
-      printf (" ");
-
+  int i,j;
+  unsigned char c;
+  for (j=0;j<length;j=i) {
+    printf ("%04X ",j);
+    for (i=j;i<(j+16<length?j+16:length);i++) 
+      printf ("%02X ", c=p[i]);
+    for (i=j;i<(j+16<length?j+16:length);i++) 
+      if ( ((c=p[i])>=20) && (c<128)) printf ("%c", c); else printf (".");
+    printf("\n");
   }
-  printf ("\n");
-
-  for (i=0; i<length; i++) {
-    unsigned char c = p[i];
-    if ( (c>=20) && (c<128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-  
-
 }
 
 /* redefine abs as macro to handle 64-bit diffs.
@@ -765,11 +752,17 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
       }
 
       if (this->keyframe_needed) {
-	printf ("keyframe needed...\n");
-	if (*op.packet & 8)
+//	printf ("keyframe needed...\n");
+	if (((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) &&
+	    (*op.packet == PACKET_IS_SYNCPOINT)) {
+/*
+	  printf("keyframe: l%ld b%ld e%ld g%ld p%ld str%d\n", 
+	    op.bytes,op.b_o_s,op.e_o_s,(long) op.granulepos,
+	    (long) op.packetno,stream_num);
+	  hex_dump (op.packet, op.bytes);
+*/
 	  this->keyframe_needed = 0;
-	else
-	  continue;
+	} else continue;
       }
 
       send_ogg_buf (this, &op, stream_num, 0);
