@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.22 2001/11/11 02:31:34 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.23 2001/11/11 16:23:50 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -692,8 +692,10 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
   uint32_t    elementary_stream_priority_indicator;
   uint32_t    PCR_flag;
   uint32_t    PCR;
+  uint32_t    EPCR;
   uint32_t    OPCR_flag;
   uint32_t    OPCR;
+  uint32_t    EOPCR;
   uint32_t    slicing_point_flag;
   uint32_t    transport_private_data_flag;
   uint32_t    adaptation_field_extension_flag;
@@ -728,10 +730,9 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
     PCR |= data[offset+2] << 9;
     PCR |= data[offset+3] << 1;
     PCR |= (data[offset+4] >> 7) & 0x01;
-    PCR *=300;
-    PCR += ((data[offset+4] & 0x1) << 8) | data[offset+5];
-    printf("\tPCR=%u\n",
-       PCR);
+    EPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
+    printf("\tPCR=%u, EPCR=%u\n",
+       PCR,EPCR);
     offset+=6;
   }
   if(OPCR_flag) {
@@ -740,10 +741,9 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
     OPCR |= data[offset+2] << 9;
     OPCR |= data[offset+3] << 1;
     OPCR |= (data[offset+4] >> 7) & 0x01;
-    OPCR *=300;
-    OPCR += ((data[offset+4] & 0x1) << 8) | data[offset+5];
-    printf("\tOPCR=%u\n",
-       OPCR);
+    EOPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
+    printf("\tOPCR=%u,EOPCR=%u\n",
+       OPCR,EOPCR);
     offset+=6;
   }
   if(slicing_point_flag) {
@@ -810,7 +810,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
     if (adaptation_field_control & 0x2) {
       uint32_t adaptation_field_length = originalPkt[4];
       if( adaptation_field_length > 0) {
-        /* demux_ts_adaptation_field_parse( originalPkt+5, adaptation_field_length); */
+        demux_ts_adaptation_field_parse( originalPkt+5, adaptation_field_length); 
       }
       /*
        * Skip adaptation header.
