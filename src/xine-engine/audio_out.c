@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.153 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: audio_out.c,v 1.154 2003/12/03 10:24:41 andruil Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -474,7 +474,7 @@ static audio_buffer_t * swap_frame_buffers ( aos_t *this ) {
   return this->frame_buf[0];
 }
 
-static int mode_channels( int mode ) {
+int _x_ao_mode2channels( int mode ) {
   switch( mode ) {
   case AO_CAP_MODE_MONO:
     return 1;
@@ -496,7 +496,7 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
   double f_max;
   int    num_channels;
 
-  num_channels = mode_channels (this->input.mode);
+  num_channels = _x_ao_mode2channels (this->input.mode);
   if (!num_channels)
     return;
 
@@ -538,7 +538,7 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
   int    i;
   int    num_channels;
 
-  num_channels = mode_channels (this->input.mode);
+  num_channels = _x_ao_mode2channels (this->input.mode);
   if (!num_channels)
     return;
 
@@ -555,7 +555,7 @@ static void audio_filter_equalize (aos_t *this,
   int64_t l;
   int       num_channels;
 
-  num_channels = mode_channels (this->input.mode);
+  num_channels = _x_ao_mode2channels (this->input.mode);
   if (!num_channels)
     return;
 
@@ -648,10 +648,10 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   if ( this->input.bits == 8 &&
        (this->resample_sync_method || this->do_resample ||
         this->output.bits != 8 || this->input.mode != this->output.mode) ) {
-    ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
-		       buf->num_frames );
+    int channels = _x_ao_mode2channels(this->input.mode);
+    ensure_buffer_size(this->frame_buf[1], 2*channels, buf->num_frames );
     _x_audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
-			     mode_channels(this->input.mode) * buf->num_frames );
+                                channels * buf->num_frames );
     buf = swap_frame_buffers(this);
   }
 
@@ -724,12 +724,13 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   }
 
   /* convert back to 8 bits after resampling */
-  if( this->output.bits == 8 && (this->resample_sync_method || this->do_resample ||
-				 this->input.mode != this->output.mode) ) {
-    ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
-		       buf->num_frames );
+  if( this->output.bits == 8 &&
+        (this->resample_sync_method || this->do_resample ||
+         this->input.mode != this->output.mode) ) {
+    int channels = _x_ao_mode2channels(this->output.mode);
+    ensure_buffer_size(this->frame_buf[1], channels, buf->num_frames );
     _x_audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
-			     mode_channels(this->output.mode) * buf->num_frames );
+                                channels * buf->num_frames );
     buf = swap_frame_buffers(this);
   }
   return buf;
@@ -1148,7 +1149,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   frame->vpts            = out_buf->vpts;
   frame->num_samples     = out_buf->num_frames;
   frame->sample_rate     = this->input.rate;
-  frame->num_channels    = mode_channels (this->input.mode);
+  frame->num_channels    = _x_ao_mode2channels (this->input.mode);
   frame->bits_per_sample = this->input.bits;
   frame->pos_stream      = out_buf->extra_info->input_pos;
   frame->pos_time        = out_buf->extra_info->input_time;
@@ -1254,6 +1255,7 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
  
   aos_t *this = (aos_t *) this_gen;
+  int channels;
 
   if( !this->driver_open || bits != this->input.bits || rate != this->input.rate || mode != this->input.mode ) {
     int ret;
@@ -1277,28 +1279,12 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   /* 
    * set metainfo
    */
+  channels = _x_ao_mode2channels( mode );
+  if( channels == 0 )
+    channels = 255; /* unknown */
+
   _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_MODE, mode);
-  switch (mode) {
-  case AO_CAP_MODE_MONO:
-    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 1);
-    break;
-  case AO_CAP_MODE_STEREO:
-    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 2);
-    break;
-  case AO_CAP_MODE_4CHANNEL:
-    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 4);
-    break;
-  case AO_CAP_MODE_4_1CHANNEL:
-  case AO_CAP_MODE_5CHANNEL:
-  case AO_CAP_MODE_5_1CHANNEL:
-    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 6);
-    break;
-  case AO_CAP_MODE_A52:
-  case AO_CAP_MODE_AC5:
-  default:
-    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 255); /* unknown */
-  }
-  
+  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, channels);
   _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
   _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
 

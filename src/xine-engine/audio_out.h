@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.61 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.62 2003/12/03 10:24:41 andruil Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -284,6 +284,12 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_o
 #define AO_CAP_MODE_5CHANNEL    0x00000040 /* driver supports 5 channels    */
 /* 1 sample == 12 bytes (L,R,LR,RR,C,LFE) */
 #define AO_CAP_MODE_5_1CHANNEL  0x00000080 /* driver supports 5.1 channels  */
+
+/*
+ * converts the audio output mode into the number of channels
+ */
+int _x_ao_mode2channels( int mode );
+
 #define AO_CAP_MIXER_VOL        0x00000100 /* driver supports mixer control */
 #define AO_CAP_PCM_VOL          0x00000200 /* driver supports pcm control   */
 #define AO_CAP_MUTE_VOL         0x00000400 /* driver can mute volume        */
