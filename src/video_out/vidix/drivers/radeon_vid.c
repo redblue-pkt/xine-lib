@@ -3233,11 +3233,6 @@ static void set_gr_key( void )
 #endif
 		break;
 	case 24:
-		besr.graphics_key_clr=
-			  ((radeon_grkey.ckey.blue &0xFF))
-			| ((radeon_grkey.ckey.green&0xFF)<<8)
-			| ((radeon_grkey.ckey.red  &0xFF)<<16);
-		break;
 	case 32:
 		besr.graphics_key_clr=
 			  ((radeon_grkey.ckey.blue &0xFF))
