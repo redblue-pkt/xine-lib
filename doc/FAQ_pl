@@ -7,14 +7,14 @@
 zakres tego dokumentu FAQ
 -------------------------
 
-Ten FAQ pokrywa xine w wersji 0.5 i nowszej, pokrywa obydwa pakiety:
+Ten FAQ odnosi siê do xine w wersji 0.5 i nowszej i i dotyczy obydwu pakietów:
 xine-lib (biblioteki i domy¶lne wtyczki) i xine-ui (xlib i implementacja
 interfejsu u¿ytkownika).
 
 Jak to najlepiej skompilowaæ?
 -----------------------------
 
-Po pierwsze upewnij siê ¿e u¿ywasz stabilnej, oficjalnej dystrybucji
+Przede wszystkim upewnij siê ¿e u¿ywasz stabilnej, oficjalnej dystrybucji
 'gcc' do kompilacji. Mo¿esz próbowaæ poprawianych versji, ale one
 nie s± wspierane i prawdopodobnie nie bêd± dzia³aæ (np. pgcc znany
 jest z "psucia" biblioteki libmpeg).
