@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.159 2004/05/16 18:01:26 tmattern Exp $
+ * $Id: demux_asf.c,v 1.160 2004/05/30 14:38:02 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1240,7 +1240,6 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
         (*stream)->skip      =  1;
         this->keyframe_found =  0;
       }
-      this->send_newpts =  1;
     }
   }
 
