@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.58 2001/10/20 20:13:08 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.59 2001/10/21 12:09:06 jcdutton Exp $
  *
  */
 
@@ -102,6 +102,17 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_SPU_CLUT:
+      profiler_start_count (prof_spu_decode);
+
+      spu_decoder = update_spu_decoder(this, buf->type);
+
+      if (spu_decoder)
+        spu_decoder->decode_data (spu_decoder, buf);
+
+      profiler_stop_count (prof_spu_decode);
+      break;
+
+    case BUF_SPU_SUBP_CONTROL:
       profiler_start_count (prof_spu_decode);
 
       spu_decoder = update_spu_decoder(this, buf->type);

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2001/10/20 20:13:08 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.19 2001/10/21 12:09:06 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -37,6 +37,9 @@
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
+
+
+void print_overlay( vo_overlay_t *ovl );
 
 #define LOG_DEBUG 1
 
@@ -164,7 +167,7 @@ typedef struct spudec_decoder_s {
 
 int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
   int type = buf_type & 0xFFFF0000;
-  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT) ;
+  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || type == BUF_SPU_SUBP_CONTROL) ;
 }
 
 /* FIXME: This function needs checking */
@@ -180,10 +183,10 @@ static void spudec_reset (spudec_decoder_t *this) {
 //    this->seq_list[i].finished = 2; /* free for reassembly */
 //  }
   for (i=0; i < MAX_STREAMS; i++) {
-    this->spu_stream_state[i].stream_filter = 1;
+    this->spu_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
     this->spu_stream_state[i].ra_complete = 1;
   }
-//  this->spu_events[i].next_event = 1;
+
   for (i=0; i < MAX_EVENTS; i++) {
     if (this->spu_events[i].event == NULL) {
       this->spu_events[i].event = malloc (sizeof(spu_overlay_event_t));
@@ -305,7 +308,8 @@ int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
   this->spu_events[new_event].event->object.overlay = malloc (sizeof(vo_overlay_t));
   memcpy(this->spu_events[new_event].event->object.overlay, 
     event->object.overlay, sizeof(vo_overlay_t));
-  
+  print_overlay( event->object.overlay );
+  print_overlay( this->spu_events[new_event].event->object.overlay );  
   pthread_mutex_unlock (&this->spu_events_mutex);
    
   return new_event;
@@ -355,8 +359,9 @@ void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
        *        For subtitles, open event.
        *        For menus, store it for later.
        */
-      if (this->xine->spu_channel != stream_id) {
-        LOG (LOG_DEBUG, "Wrong SPU channel\n");
+      if ((this->xine->spu_channel != stream_id) &&
+           (this->state.menu == 0) ) {
+        LOG (LOG_DEBUG, "Dropping SPU channel %d\n", stream_id);
         spu_free_handle(this, handle);
         return;
       }
@@ -411,8 +416,21 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     this->state.need_clut = 0;
     return;
   }
+  
+  if (buf->type == BUF_SPU_SUBP_CONTROL) {
+    int i;
+    uint32_t *subp_control = (uint32_t*) buf->content;
+    for (i = 0; i < 32; i++) {
+      this->spu_stream_state[i].stream_filter = subp_control[i]; 
+    }
+    return;
+  }
+
 
   if (buf->decoder_info[0] == 0)  /* skip preview data */
+    return;
+
+  if ( this->spu_stream_state[stream_id].stream_filter == 0) 
     return;
 
   if (buf->PTS) {
@@ -468,6 +486,19 @@ static void spudec_nextseq(spudec_decoder_t* this) {
     this->state.menu = 0;
   }
 }
+
+void print_overlay( vo_overlay_t *ovl ) {
+  LOG (LOG_DEBUG, "OVERLAY to show\n");
+  LOG (LOG_DEBUG, "\tx = %d y = %d width = %d height = %d\n",
+	   ovl->x, ovl->y, ovl->width, ovl->height );
+  LOG (LOG_DEBUG, "\tclut [%x %x %x %x]\n",
+	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+  LOG (LOG_DEBUG, "\ttrans [%d %d %d %d]\n",
+	   ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+  LOG (LOG_DEBUG, "\tclip top=%d bottom=%d left=%d right=%d\n",
+	   ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+  return;
+} 
 
 /* FIXME:Some optimization needs to happen here. */
 void spu_process_event( spudec_decoder_t *this, int vpts ) {
@@ -528,6 +559,7 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->color[1] |
             event_overlay->color[2] |
             event_overlay->color[3]) > 0 ) {
+          LOG (LOG_DEBUG, "mixing clut\n");
           overlay->color[0] = event_overlay->color[0];
           overlay->color[1] = event_overlay->color[1];
           overlay->color[2] = event_overlay->color[2];
@@ -537,12 +569,14 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->trans[1] |
             event_overlay->trans[2] |
             event_overlay->trans[3]) > 0 ) {
+          LOG (LOG_DEBUG, "mixing trans\n");
           overlay->trans[0] = event_overlay->trans[0];
           overlay->trans[1] = event_overlay->trans[1];
           overlay->trans[2] = event_overlay->trans[2];
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+        print_overlay(overlay);
       }
       break;
 
@@ -557,25 +591,28 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         overlay->clip_left = event_overlay->clip_left;
         overlay->clip_right = event_overlay->clip_right;
         //overlay->rgb_clut = event_overlay->rgb_clut;  /* May needed later for OSD */
-        if((event_overlay->color[0] |
-            event_overlay->color[1] |
-            event_overlay->color[2] |
+        if((event_overlay->color[0] +
+            event_overlay->color[1] +
+            event_overlay->color[2] +
             event_overlay->color[3]) > 0 ) {
+          LOG (LOG_DEBUG, "mixing clut\n");
           overlay->color[0] = event_overlay->color[0];
           overlay->color[1] = event_overlay->color[1];
           overlay->color[2] = event_overlay->color[2];
           overlay->color[3] = event_overlay->color[3];
         }
-        if((event_overlay->trans[0] |
-            event_overlay->trans[1] |
-            event_overlay->trans[2] |
+        if((event_overlay->trans[0] +
+            event_overlay->trans[1] +
+            event_overlay->trans[2] +
             event_overlay->trans[3]) > 0 ) {
+          LOG (LOG_DEBUG, "mixing trans\n");
           overlay->trans[0] = event_overlay->trans[0];
           overlay->trans[1] = event_overlay->trans[1];
           overlay->trans[2] = event_overlay->trans[2];
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+        print_overlay(overlay);
       }
       break;
 
@@ -658,24 +695,14 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay->clip_bottom = but->bottom;
         overlay->clip_left = but->left;
         overlay->clip_right = but->right;
-        if((but->color[0] |
-            but->color[1] |
-            but->color[2] |
-            but->color[3]) > 0 ) {
-          overlay->color[0] = but->color[0];
-          overlay->color[1] = but->color[1];
-          overlay->color[2] = but->color[2];
-          overlay->color[3] = but->color[3];
-        }
-        if((but->trans[0] |
-            but->trans[1] |
-            but->trans[2] |
-            but->trans[3]) > 0 ) {
-          overlay->trans[0] = but->trans[0];
-          overlay->trans[1] = but->trans[1];
-          overlay->trans[2] = but->trans[2];
-          overlay->trans[3] = but->trans[3];
-        }
+        overlay->color[0] = but->color[0];
+        overlay->color[1] = but->color[1];
+        overlay->color[2] = but->color[2];
+        overlay->color[3] = but->color[3];
+        overlay->trans[0] = but->trans[0];
+        overlay->trans[1] = but->trans[1];
+        overlay->trans[2] = but->trans[2];
+        overlay->trans[3] = but->trans[3];
         spu_add_event(this, overlay_event);
       } else {
         overlay_event->object.handle = spu_get_menu_handle(this);
