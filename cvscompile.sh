@@ -2,19 +2,21 @@
 # Run this to generate all the initial Makefiles, etc.
 
 ## extract automake version
-automake_1_6x=no
-AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
-if test $AM -lt 100 ; then
-  AM=`expr $AM \* 10`
-fi
-if [ `expr $AM` -ge 160 ]; then
-    automake_1_6x=yes
-fi
-if [ -z "$NO_AUTOCONF_CHECK" ]; then
-  if test x"$automake_1_6x" = x"no"; then
-	  echo "To compile xine-lib from CVS requires automake >= 1.6"
-	  exit
+
+if [ -f automake-1.6 ]; then
+  automake_1_6x=yes
+else
+  AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
+  if test $AM -lt 100 ; then
+    AM=`expr $AM \* 10`
   fi
+  if [ `expr $AM` -ge 160 ]; then
+    automake_1_6x=yes
+  fi
+fi
+
+if test x"$automake_1_6x" = x"no"; then
+  echo "Warning: automake < 1.6. Some warning message might occur from automake"
 fi
 
 ## extract autoconf version
@@ -42,5 +44,6 @@ test -z "$srcdir" && srcdir=.
     exit 1
 }
 
-. $srcdir/misc/autogen.sh
+configure_flags=$@
+. $srcdir/misc/autogen.sh $automake_1_6x $configure_flags
 
