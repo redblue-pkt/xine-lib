@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.31 2004/02/14 20:29:53 jstembridge Exp $
+ * $Id: yuv.c,v 1.32 2004/03/07 22:45:23 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -120,6 +120,10 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     /* load the stream/meta info */
     switch (buf->type) {
 
+      case BUF_VIDEO_YUY2:
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YUY2");
+        break;
+      
       case BUF_VIDEO_YV12:
         _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YV12");
         break;
@@ -144,19 +148,43 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
     return;
   } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
+    uint8_t *src;
 
-    if (this->size + buf->size > this->bufsize) {
-      this->bufsize = this->size + 2 * buf->size;
-      this->buf = realloc (this->buf, this->bufsize);
+    /* if buffer contains an entire frame then there's no need to copy it
+     * into our internal buffer */
+    if ((buf->decoder_flags & BUF_FLAG_FRAME_START) &&
+        (buf->decoder_flags & BUF_FLAG_FRAME_END))
+      src = buf->content;
+    else {
+      if (this->size + buf->size > this->bufsize) {
+        this->bufsize = this->size + 2 * buf->size;
+        this->buf = realloc (this->buf, this->bufsize);
+      }
+
+      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+
+      this->size += buf->size;
+      
+      src = this->buf;
     }
-
-    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-
-    this->size += buf->size;
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      if (buf->type == BUF_VIDEO_YV12) {
+      if (buf->type == BUF_VIDEO_YUY2) {
+      
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                          this->width, this->height,
+                                          this->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+
+        yuy2_to_yuy2(
+         /* src */
+          src, this->width*2,
+         /* dst */
+          img->base[0], img->pitches[0],
+         /* width x height */
+          this->width, this->height);      
+      
+      } else if (buf->type == BUF_VIDEO_YV12) {
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
@@ -164,13 +192,13 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         
         yv12_to_yv12(
          /* Y */
-          this->buf, this->width,
+          src, this->width,
           img->base[0], img->pitches[0],
          /* U */
-          this->buf + (this->width * this->height * 5/4), this->width/2,
+          src + (this->width * this->height * 5/4), this->width/2,
           img->base[1], img->pitches[1],
          /* V */
-          this->buf + (this->width * this->height), this->width/2,
+          src + (this->width * this->height), this->width/2,
           img->base[2], img->pitches[2],
          /* width x height */
           this->width, this->height);
@@ -183,13 +211,13 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         yv12_to_yv12(
          /* Y */
-          this->buf, this->width,
+          src, this->width,
           img->base[0], img->pitches[0],
          /* U */
-          this->buf + (this->width * this->height), this->width/2,
+          src + (this->width * this->height), this->width/2,
           img->base[1], img->pitches[1],
          /* V */
-          this->buf + (this->width * this->height * 5/4), this->width/2,
+          src + (this->width * this->height * 5/4), this->width/2,
           img->base[2], img->pitches[2],
          /* width x height */
           this->width, this->height);
@@ -203,17 +231,17 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         yuv9_to_yv12(
          /* Y */
-          this->buf, 
+          src, 
           this->width,
           img->base[0], 
           img->pitches[0],
          /* U */
-          this->buf + (this->width * this->height), 
+          src + (this->width * this->height), 
           this->width / 4,
           img->base[1],
           img->pitches[1],
          /* V */
-          this->buf + (this->width * this->height) + 
+          src + (this->width * this->height) + 
             (this->width * this->height / 16),
           this->width / 4,
           img->base[2],
@@ -228,7 +256,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
                                           this->width, this->height,
                                           this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
-        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
+        xine_fast_memcpy(img->base[0], src, this->width * this->height);
         memset( img->base[1], 0x80, this->width * this->height / 4 );
         memset( img->base[2], 0x80, this->width * this->height / 4 );
 
@@ -344,6 +372,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  */
 
 static uint32_t video_types[] = { 
+  BUF_VIDEO_YUY2, 
   BUF_VIDEO_YV12,
   BUF_VIDEO_YVU9,
   BUF_VIDEO_GREY,
