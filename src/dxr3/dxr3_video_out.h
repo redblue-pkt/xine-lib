@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.7 2001/11/25 20:21:25 hrm Exp $
+ * $Id: dxr3_video_out.h,v 1.8 2001/11/29 07:17:07 mlampard Exp $
  *
  */
 
@@ -106,6 +106,7 @@ typedef struct dxr3_driver_s {
 	int 		width, height; 
 	int 		overlay_enabled;
 	int		tv_switchable;	/* can switch from overlay<->tvout */
+	int		fullscreen_rectangle;
 	float 		desired_ratio;
 
 	int 		zoom_enabled;   /* zoomed 16:9 mode */

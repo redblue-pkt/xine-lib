@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.10 2001/11/19 17:07:15 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.11 2001/11/29 07:17:08 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -106,6 +106,8 @@ void dxr3_read_config(dxr3_driver_t *this)
 	this->bcs.contrast = config->register_range(config, "dxr3.contrast", this->bcs.contrast,100,900,"Dxr3: contrast control",NULL,NULL,NULL);
 	this->bcs.saturation = config->register_range(config, "dxr3.saturation", this->bcs.saturation,100,900,"Dxr3: saturation control",NULL,NULL,NULL);
 	this->bcs.brightness = config->register_range(config, "dxr3.brightness", this->bcs.brightness,100,900,"Dxr3: brightness control",NULL,NULL,NULL);
+
+	this->fullscreen_rectangle = config->register_bool(config, "dxr3.fullscreen_rectangle",0,"Dxr3: Fullscreen Rectangle Mode",NULL,NULL,NULL);
 
 	this->vo_driver.set_property(&this->vo_driver,
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
@@ -399,6 +401,11 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:{
 			x11_rectangle_t *area = (x11_rectangle_t*) data;
 			dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
+  			
+			if(is_fullscreen(this) && this->fullscreen_rectangle)
+				dxr3_overlay_set_mode(&this->overlay,EM8300_OVERLAY_MODE_RECTANGLE);
+			else if (this->fullscreen_rectangle)
+				dxr3_overlay_set_mode(&this->overlay,EM8300_OVERLAY_MODE_OVERLAY);
 		}
 		break;
 	case GUI_DATA_EX_EXPOSE_EVENT:{
