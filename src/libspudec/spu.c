@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.70 2003/11/09 21:49:36 mroi Exp $
+ * $Id: spu.c,v 1.71 2003/11/12 17:53:01 mroi Exp $
  *
  */
 
@@ -382,7 +382,10 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
           /* current button does not exist -> use another one */
 	  xine_event_t event;
 	  
-          this->buttonN     = 1;
+	  if (this->buttonN > this->pci.hli.hl_gi.btn_ns)
+	    this->buttonN = this->pci.hli.hl_gi.btn_ns;
+	  else
+	    this->buttonN = 1;
           event.type        = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream      = this->stream;
 	  event.data        = &this->buttonN;

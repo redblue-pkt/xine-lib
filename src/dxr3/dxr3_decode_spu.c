@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.38 2003/11/09 21:49:36 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.39 2003/11/12 17:52:59 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -332,7 +332,10 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	  
 	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "requested button not available\n");
 	  
-	  this->buttonN      = 1;
+	  if (this->buttonN > this->pci.hli.hl_gi.btn_ns)
+	    this->buttonN = this->pci.hli.hl_gi.btn_ns;
+	  else
+	    this->buttonN = 1;
           event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream       = this->stream;
 	  event.data         = &this->buttonN;
