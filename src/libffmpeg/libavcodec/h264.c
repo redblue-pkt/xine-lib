@@ -2428,7 +2428,10 @@ static void hl_decode_mb(H264Context *h){
                     int tr;
 
                     if(!topright_avail){
-                        tr= ptr[3 - linesize]*0x01010101;
+                        /* xine: avoid (negative) buffer overflow */
+                        tr= (!mb_y && linesize > h->block_offset[i]) ?
+                             ptr[3]*0x01010101 :
+                             ptr[3 - linesize]*0x01010101;
                         topright= (uint8_t*) &tr;
                     }else if(i==5 && h->deblocking_filter){
                         tr= *(uint32_t*)h->top_border[mb_x+1];
