@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2004/01/26 22:33:08 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.31 2004/01/28 12:38:37 miguelfreitas Exp $
  *
  */
 
@@ -96,12 +96,44 @@ static int faad_open_dec( faad_decoder_t *this ) {
     if( this->faac_cfg ) {
       this->faac_cfg->defSampleRate = this->rate;
       this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
+      this->bits_per_sample = 16;
       this->faac_cfg->useOldADTSFormat = 0;
       faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
     }
   }
 
   return 0;
+}
+
+static int faad_open_output( faad_decoder_t *this ) {
+  this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
+       
+  switch( this->num_channels ) {
+    case 1:
+      this->ao_cap_mode=AO_CAP_MODE_MONO; 
+      break;
+    case 6:
+      if(this->stream->audio_out->get_capabilities(this->stream->audio_out) &
+         AO_CAP_MODE_5_1CHANNEL) {
+        this->ao_cap_mode = AO_CAP_MODE_5_1CHANNEL;
+        break;
+      } else {
+        this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
+        this->faac_cfg->downMatrix = 1;
+        faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
+        this->num_channels = 2;
+      }
+    case 2:
+      this->ao_cap_mode=AO_CAP_MODE_STEREO;
+      break; 
+  }
+   
+  this->output_open = this->stream->audio_out->open (this->stream->audio_out,
+                                             this->stream,
+                                             this->bits_per_sample,
+                                             this->rate,
+                                             this->ao_cap_mode) ;
+  return this->output_open;
 }
 
 static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
@@ -121,6 +153,18 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     sample_buffer = faacDecDecode(this->faac_dec, 
                                   &this->faac_finfo, inbuf, sample_size);
  
+    /* raw AAC parameters is only known after decoding the first frame */
+    if( !this->mp4_mode &&
+        (this->num_channels != this->faac_finfo.channels||
+         this->rate != this->faac_finfo.samplerate) ) {
+    
+      this->num_channels = this->faac_finfo.channels;
+      this->rate = this->faac_finfo.samplerate;
+      this->stream->audio_out->close (this->stream->audio_out, this->stream);
+      this->output_open = 0;
+      faad_open_output( this );
+    }
+    
     used = this->faac_finfo.bytesconsumed;
 
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
@@ -256,9 +300,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       used = faacDecInit(this->faac_dec, this->buf, this->size,
                          &this->rate, &this->num_channels);
-// MAJOR HACK: faacDecInit always initializes a raw AAC stream as having
-// 1 audio channel; hardcode it to 2 here because...just because...
-this->num_channels = 2;
+      
       if( used < 0 ) {
         xine_log (this->stream->xine, XINE_LOG_MSG,
 		  _("libfaad: libfaad faacDecInit() failed.\n"));
@@ -278,33 +320,7 @@ this->num_channels = 2;
 
     /* open audio device as needed */
     if (!this->output_open) {
-      this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
-    
-      switch( this->num_channels ) {
-        case 1:
-          this->ao_cap_mode=AO_CAP_MODE_MONO; 
-          break;
-        case 6:
-          if(this->stream->audio_out->get_capabilities(this->stream->audio_out) &
-             AO_CAP_MODE_5_1CHANNEL) {
-            this->ao_cap_mode = AO_CAP_MODE_5_1CHANNEL;
-            break;
-          } else {
-            this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
-            this->faac_cfg->downMatrix = 1;
-            faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
-            this->num_channels = 2;
-          }
-        case 2:
-          this->ao_cap_mode=AO_CAP_MODE_STEREO;
-          break; 
-      }
-
-      this->output_open = this->stream->audio_out->open (this->stream->audio_out,
-                                                 this->stream,
-                                                 this->bits_per_sample,
-                                                 this->rate,
-                                                 this->ao_cap_mode) ;
+      faad_open_output( this );
     }
 
     faad_decode_audio(this, buf->decoder_flags & BUF_FLAG_FRAME_END );
