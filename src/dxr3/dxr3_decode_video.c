@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.19 2002/11/10 13:12:47 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.20 2002/11/12 21:29:34 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -72,7 +72,7 @@ static decoder_info_t dxr3_video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 11, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
+  { PLUGIN_VIDEO_DECODER, 12, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -86,6 +86,7 @@ static void             dxr3_class_dispose(video_decoder_class_t *class_gen);
 /* plugin instance functions */
 static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf);
 static void dxr3_reset(video_decoder_t *this_gen);
+static void dxr3_discontinuity(video_decoder_t *this_gen);
 static void dxr3_flush(video_decoder_t *this_gen);
 static void dxr3_dispose(video_decoder_t *this_gen);
 
@@ -197,15 +198,16 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   
   cfg = stream->xine->config;
   
-  this->video_decoder.decode_data = dxr3_decode_data;
-  this->video_decoder.reset       = dxr3_reset;
-  this->video_decoder.flush       = dxr3_flush;
-  this->video_decoder.dispose     = dxr3_dispose;
+  this->video_decoder.decode_data   = dxr3_decode_data;
+  this->video_decoder.reset         = dxr3_reset;
+  this->video_decoder.discontinuity = dxr3_discontinuity;
+  this->video_decoder.flush         = dxr3_flush;
+  this->video_decoder.dispose       = dxr3_dispose;
   
-  this->class                     = class;
-  this->stream                    = stream;
-  this->scr                       = NULL;
-  this->dxr3_vo                   = (dxr3_driver_t *)stream->video_driver;
+  this->class                       = class;
+  this->stream                      = stream;
+  this->scr                         = NULL;
+  this->dxr3_vo                     = (dxr3_driver_t *)stream->video_driver;
   
   snprintf(tmpstr, sizeof(tmpstr), "%s%s", class->devname, class->devnum);
 #if LOG_VID
@@ -535,6 +537,10 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 }
 
 static void dxr3_reset(video_decoder_t *this_gen)
+{
+}
+
+static void dxr3_discontinuity(video_decoder_t *this_gen)
 {
 }
 
