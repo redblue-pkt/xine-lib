@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.200 2004/06/25 16:09:31 mroi Exp $
+ * $Id: video_out.c,v 1.201 2004/06/26 13:51:13 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -259,10 +259,11 @@ static void vo_frame_driver_proc(vo_frame_t *img)
   if (img->proc_called) return;
   
   if (img->proc_slice) {
-    if (img->format == XINE_IMGFMT_YV12) {
-      int height = img->height;
-      uint8_t* src[3];
-  
+    int height = img->height;
+    uint8_t* src[3];
+    
+    switch (img->format) {
+    case XINE_IMGFMT_YV12:
       src[0] = img->base[0];
       src[1] = img->base[1];
       src[2] = img->base[2];
@@ -272,16 +273,14 @@ static void vo_frame_driver_proc(vo_frame_t *img)
         src[1] +=  8 * img->pitches[1];
         src[2] +=  8 * img->pitches[2];
       }
-    } else {
-      int height = img->height;
-      uint8_t* src[3];
-      
+      break;
+    case XINE_IMGFMT_YUY2:
       src[0] = img->base[0];
-      
       while ((height -= 16) > -16) {
         img->proc_slice(img, src);
         src[0] += 16 * img->pitches[0];
       }
+      break;
     }
   }
 }
