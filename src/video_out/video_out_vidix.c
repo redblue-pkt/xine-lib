@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.34 2003/03/14 19:46:52 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.35 2003/03/16 22:28:14 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -1103,10 +1103,12 @@ static void *vidix_init_class (xine_t *xine, void *visual_gen) {
 
   vidix_class_t *this = init_class (xine, visual_gen);
   
-  this->driver_class.open_plugin     = vidix_open_plugin;
-  this->driver_class.get_identifier  = vidix_get_identifier;
-  this->driver_class.get_description = vidix_get_description;
-  this->driver_class.dispose         = dispose_class;
+  if(this) {
+    this->driver_class.open_plugin     = vidix_open_plugin;
+    this->driver_class.get_identifier  = vidix_get_identifier;
+    this->driver_class.get_description = vidix_get_description;
+    this->driver_class.dispose         = dispose_class;
+  }
   
   return this;
 }
@@ -1176,10 +1178,12 @@ static void *vidixfb_init_class (xine_t *xine, void *visual_gen) {
 
   vidix_class_t *this = init_class (xine, visual_gen);
   
-  this->driver_class.open_plugin     = vidixfb_open_plugin;
-  this->driver_class.get_identifier  = vidixfb_get_identifier;
-  this->driver_class.get_description = vidixfb_get_description;
-  this->driver_class.dispose         = dispose_class;
+  if(this) {
+    this->driver_class.open_plugin     = vidixfb_open_plugin;
+    this->driver_class.get_identifier  = vidixfb_get_identifier;
+    this->driver_class.get_description = vidixfb_get_description;
+    this->driver_class.dispose         = dispose_class;
+  }
   
   return this;
 }
