@@ -14,7 +14,7 @@
 
 #include "../../config.h"
 
-#if ARCH_PPC
+#ifdef ARCH_PPC
 
 #warning Be forewarned - using PowerPC assembly
 
