@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.16 2002/10/20 16:47:05 tmmm Exp $
+ * $Id: cinepak.c,v 1.17 2002/10/23 19:25:44 jkeil Exp $
  */
 
 #include <stdlib.h>
@@ -486,6 +486,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   this->decoder_ok    = 0;
   this->buf           = NULL;
+  this->img_buffer    = NULL;
 
   return &this->video_decoder;
 }
