@@ -14,7 +14,6 @@
  * cdrom_dev = Name of the device link for the cdrom drive (e.g. /dev/cdrom)
  * dvd_dev = Name of the device link for the dvd drive (e.g. /dev/dvd)
  */
-//xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
 
 /* Get Kernel information */
 xine_health_check_t* _x_health_check_kernel(xine_health_check_t*);
