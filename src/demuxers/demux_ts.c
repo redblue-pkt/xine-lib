@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.21 2001/11/11 01:45:44 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.22 2001/11/11 02:31:34 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -101,6 +101,7 @@ typedef struct {
   uint32_t         size;
   uint32_t         type;
   uint32_t         PTS;
+  uint32_t         PCR;
   buf_element_t   *buf;
   int              pes_buf_next;
   int              pes_len;
@@ -685,15 +686,18 @@ static unsigned char * demux_synchronise(demux_ts * this) {
   return return_pointer;
 }
 
-static void demux_ts_adaption_field_parse( uint8_t *data, uint32_t adaption_field_length) {
+static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_field_length) {
   uint32_t    discontinuity_indicator;
   uint32_t    random_access_indicator;
   uint32_t    elementary_stream_priority_indicator;
   uint32_t    PCR_flag;
+  uint32_t    PCR;
   uint32_t    OPCR_flag;
+  uint32_t    OPCR;
   uint32_t    slicing_point_flag;
   uint32_t    transport_private_data_flag;
-  uint32_t    adaption_field_extension_flag;
+  uint32_t    adaptation_field_extension_flag;
+  uint32_t    offset = 1;
 
   discontinuity_indicator = ((data[0] >> 7) & 0x01);
   random_access_indicator = ((data[0] >> 6) & 0x01);
@@ -702,10 +706,10 @@ static void demux_ts_adaption_field_parse( uint8_t *data, uint32_t adaption_fiel
   OPCR_flag = ((data[0] >> 3) & 0x01);
   slicing_point_flag = ((data[0] >> 2) & 0x01);
   transport_private_data_flag = ((data[0] >> 1) & 0x01);
-  adaption_field_extension_flag = (data[0] & 0x01);
+  adaptation_field_extension_flag = (data[0] & 0x01);
   
-  printf("ADAPTION FIELD length=%d\n", 
-    adaption_field_length);
+  printf("ADAPTATION FIELD length=%d\n", 
+    adaptation_field_length);
   if(discontinuity_indicator) {
     printf("\tDiscontinuity indicator=%d\n",
       discontinuity_indicator);
@@ -719,12 +723,28 @@ static void demux_ts_adaption_field_parse( uint8_t *data, uint32_t adaption_fiel
       elementary_stream_priority_indicator);
   }
   if(PCR_flag) {
-    printf("\tPCR_flag=%d\n",
-      PCR_flag);
+    PCR = data[offset] << 25;
+    PCR |= data[offset+1] << 17;
+    PCR |= data[offset+2] << 9;
+    PCR |= data[offset+3] << 1;
+    PCR |= (data[offset+4] >> 7) & 0x01;
+    PCR *=300;
+    PCR += ((data[offset+4] & 0x1) << 8) | data[offset+5];
+    printf("\tPCR=%u\n",
+       PCR);
+    offset+=6;
   }
   if(OPCR_flag) {
-    printf("\tOPCR flag=%d",
-      OPCR_flag);
+    OPCR = data[offset] << 25;
+    OPCR |= data[offset+1] << 17;
+    OPCR |= data[offset+2] << 9;
+    OPCR |= data[offset+3] << 1;
+    OPCR |= (data[offset+4] >> 7) & 0x01;
+    OPCR *=300;
+    OPCR += ((data[offset+4] & 0x1) << 8) | data[offset+5];
+    printf("\tOPCR=%u\n",
+       OPCR);
+    offset+=6;
   }
   if(slicing_point_flag) {
     printf("\tslicing_point_flag=%d\n",
@@ -734,10 +754,10 @@ static void demux_ts_adaption_field_parse( uint8_t *data, uint32_t adaption_fiel
     printf("\ttransport_private_data_flag=%d\n",
       transport_private_data_flag);
   }
-  printf("\tadaption_field_extension_flag=%d\n",
-    adaption_field_extension_flag);
-
-;
+  if(adaptation_field_extension_flag) {
+    printf("\tadaptation_field_extension_flag=%d\n",
+      adaptation_field_extension_flag);
+  }
 }
 /* transport stream packet layer */
 
@@ -750,7 +770,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
   unsigned int   transport_priority;
   unsigned int   pid;
   unsigned int   transport_scrambling_control;
-  unsigned int   adaption_field_control;
+  unsigned int   adaptation_field_control;
   unsigned int   continuity_counter;
   unsigned int   data_offset;
   unsigned int   data_len;
@@ -767,7 +787,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
   transport_priority             = (originalPkt[1] >> 5) & 0x01;
   pid                            = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
   transport_scrambling_control   = (originalPkt[3] >> 6)  & 0x03;
-  adaption_field_control         = (originalPkt[3] >> 4) & 0x03;
+  adaptation_field_control         = (originalPkt[3] >> 4) & 0x03;
   continuity_counter             = originalPkt[3] & 0x0f;
   
   /*
@@ -783,19 +803,19 @@ static void demux_ts_parse_packet (demux_ts *this) {
   }
   
   data_offset=4;
-  if (adaption_field_control & 0x1) {
+  if (adaptation_field_control & 0x1) {
     /*
      * Has a payload! Calculate & check payload length.
      */
-    if (adaption_field_control & 0x2) {
-      uint32_t adaption_field_length = originalPkt[4];
-      if( adaption_field_length > 0) {
-        /* demux_ts_adaption_field_parse( originalPkt+5, adaption_field_length); */
+    if (adaptation_field_control & 0x2) {
+      uint32_t adaptation_field_length = originalPkt[4];
+      if( adaptation_field_length > 0) {
+        /* demux_ts_adaptation_field_parse( originalPkt+5, adaptation_field_length); */
       }
       /*
        * Skip adaptation header.
        */
-      data_offset += adaption_field_length + 1;
+      data_offset += adaptation_field_length + 1;
     }
 
     data_len = PKT_SIZE - data_offset;
