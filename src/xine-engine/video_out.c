@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.34 2001/07/11 23:31:45 guenter Exp $
+ * $Id: video_out.c,v 1.35 2001/07/22 11:29:56 guenter Exp $
  *
  */
 
@@ -212,16 +212,16 @@ static void *video_out_loop (void *this_gen) {
       
       if (diff >this->pts_per_half_frame) {
     
+	xprintf (VERBOSE|VIDEO, "video_out : throwing away image with pts %d because "
+		 "it's too old (diff : %d > %d).\n",pts,diff,
+		 this->pts_per_half_frame);
+	
 	/*
-	  xprintf (VERBOSE|VIDEO, "video_out : throwing away image with pts %d because "
-	  "it's too old (diff : %d > %d).\n",pts,diff,
-	  this->pts_per_half_frame);
-	*/
-
 	fprintf (stderr,
 		 "video_out : throwing away image with pts %d because "
 		 "it's too old (diff : %d > %d).\n",pts,diff,
 		 this->pts_per_half_frame);
+		 */
 
 	this->num_frames_discarded++;
 
@@ -362,7 +362,7 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
 }
 
 static void vo_open (vo_instance_t *this) {
-  printf("vo_open\n");
+
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
     if(this->first_overlay) {
