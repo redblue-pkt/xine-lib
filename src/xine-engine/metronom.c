@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.27 2001/09/22 13:28:41 mshopf Exp $
+ * $Id: metronom.c,v 1.28 2001/09/25 23:30:38 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -404,14 +404,14 @@ static void metronom_expect_audio_discontinuity (metronom_t *this) {
 
   printf ("metronom: expecting audio discontinuity\n");
 
-  this->audio_discontinuity  = 1;
+  this->audio_discontinuity  = 10;
 }
 
 static void metronom_expect_video_discontinuity (metronom_t *this) {
 
   printf ("metronom: expecting video discontinuity\n");
 
-  this->video_discontinuity  = 1;
+  this->video_discontinuity  = 10;
 }
 
 static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
@@ -457,6 +457,10 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
       printf ("metronom: video pts wraparound detected, wrap_offset = %d\n",
 	      this->video_wrap_offset);
     }
+
+    /* don't expect discontinuities forever */
+    if (this->video_discontinuity)
+      this->video_discontinuity--;
 
     /*
      * audio and video wrap are not allowed to differ
@@ -577,6 +581,10 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
       printf ("metronom: audio pts wraparound detected, wrap_offset = %d\n",
 	      this->audio_wrap_offset);
     }
+
+    /* don't expect discontinuities forever */
+    if (this->audio_discontinuity)
+      this->audio_discontinuity--;
 
     /*
      * audio and video wrap are not allowed to differ
