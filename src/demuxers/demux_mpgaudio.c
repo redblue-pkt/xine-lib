@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.41 2002/05/15 22:52:14 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.42 2002/05/16 22:18:39 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -354,8 +354,22 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
          start_pos = start_time * this->input->get_length(this->input) /
                      this->stream_length;
 
-
     this->input->seek (this->input, start_pos, SEEK_SET);
+
+    /* send a new pts */
+    if( this->thread_running ) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_CONTROL_NEWPTS;
+      buf->disc_off = start_pos /90;
+      this->video_fifo->put (this->video_fifo, buf);
+
+      if (this->audio_fifo) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = BUF_CONTROL_NEWPTS;
+        buf->disc_off = start_pos /90;
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
   }
   
   if( !this->thread_running ) {
