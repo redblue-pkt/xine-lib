@@ -54,6 +54,7 @@ debug:
 	  (cd $$subdir && $(MAKE) $@) || exit;\
 	done;
 
+debug-install: install-debug
 
 install-debug: debug
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
