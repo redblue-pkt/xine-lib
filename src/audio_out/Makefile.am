@@ -11,10 +11,6 @@ if HAVE_OSS
 oss_module = xineplug_ao_out_oss.la
 endif
 
-#
-# alsa plugin is completely broken due to major api change
-# on the alsa project side
-#
 if HAVE_ALSA
 if HAVE_ALSA09
 alsa_module = xineplug_ao_out_alsa.la
