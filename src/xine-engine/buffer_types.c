@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.47 2002/11/28 18:49:10 tmmm Exp $
+ * $Id: buffer_types.c,v 1.48 2002/12/01 17:04:30 tmmm Exp $
  *
  *
  * contents:
@@ -483,6 +483,15 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_MVI2,
   "Motion Pixels"
+},
+{
+  {
+    meFOURCC('u', 'c', 'o', 'd'),
+    meFOURCC('U', 'C', 'O', 'D'),
+    0
+  },
+  BUF_VIDEO_UCOD,
+  "ClearVideo"
 },
 { { 0 }, 0, "last entry" }
 };
