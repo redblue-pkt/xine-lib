@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.51 2001/11/18 15:08:30 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.52 2001/11/30 00:53:50 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -61,6 +61,7 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "compat.h"
 #include "audio_out.h"
 
 #include <sys/time.h>
@@ -432,7 +433,7 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
     }
     else
       printf("%s(): open() %s failed: %s\n", 
-	     __FUNCTION__, this->mixer.name, strerror(errno));
+	     __XINE_FUNCTION__, this->mixer.name, strerror(errno));
     
     return this->mixer.volume;
     break;
@@ -482,7 +483,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
       }
       else
 	printf("%s(): open() %s failed: %s\n", 
-	       __FUNCTION__, this->mixer.name, strerror(errno));
+	       __XINE_FUNCTION__, this->mixer.name, strerror(errno));
     }
     else
       this->mixer.volume = value;
@@ -518,7 +519,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
       }
       else
 	printf("%s(): open() %s failed: %s\n", 
-	       __FUNCTION__, this->mixer.name, strerror(errno));
+	       __XINE_FUNCTION__, this->mixer.name, strerror(errno));
     }
     else
       (void) ao_oss_set_property(&this->ao_driver, this->mixer.prop, this->mixer.volume);

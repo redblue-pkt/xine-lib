@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.3 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_irixal_out.c,v 1.4 2001/11/30 00:53:50 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,23 +36,9 @@
 
 #include <dmedia/audio.h>
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#define error(...) do {\
-        fprintf(stderr, "XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __FUNCTION__); \
-        fprintf(stderr, __VA_ARGS__); \
-        putc('\n', stderr); \
-} while (0)
-#else
-#define error(args...) do {\
-        fprintf(stderr, "XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __FUNCTION__); \
-        fprintf(stderr, ##args); \
-        putc('\n', stderr); \
-} while (0)
-#endif
-
-
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "compat.h"
 #include "audio_out.h"
 
 //#ifndef AFMT_S16_NE
@@ -124,18 +110,18 @@ static int ao_irixal_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, i
     break;
 #endif
   default:
-    error ("irixal Driver does not support the requested mode: 0x%x",mode);
+    xlerror ("irixal Driver does not support the requested mode: 0x%x",mode);
     return 0;
   } 
 
   if (! (config = alNewConfig ()))
   {
-    error ("cannot get new config: %s", strerror (oserror()));
+    xlerror ("cannot get new config: %s", strerror (oserror()));
     return 0;
   }
   if ( (alSetChannels (config, this->num_channels)) == -1)
   {
-    error ("cannot set to %d channels: %s", this->num_channels, strerror (oserror()));
+    xlerror ("cannot set to %d channels: %s", this->num_channels, strerror (oserror()));
     alFreeConfig (config);
     return 0;
   }
@@ -144,7 +130,7 @@ static int ao_irixal_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, i
     case 8:
       if ( (alSetWidth (config, AL_SAMPLE_8)) == -1)
       {
-        error ("cannot set 8bit mode: %s", strerror (oserror()));
+        xlerror ("cannot set 8bit mode: %s", strerror (oserror()));
         alFreeConfig (config);
         return 0;
       }
@@ -153,7 +139,7 @@ static int ao_irixal_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, i
       /* Default format is 16bit PCM */
       break;
     default:
-      error ("irixal Driver does not support %dbit audio", bits);
+      xlerror ("irixal Driver does not support %dbit audio", bits);
       alFreeConfig (config);
       return 0;
   }
@@ -164,7 +150,7 @@ static int ao_irixal_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, i
    * Try to open audio port
    */
   if (! (this->port = alOpenPort ("xine", "w", config))) {
-    error ("irixal Driver does not support the audio configuration");
+    xlerror ("irixal Driver does not support the audio configuration");
     alFreeConfig (config);
     return 0;
   }
@@ -193,7 +179,7 @@ static int ao_irixal_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, i
     printf ("audio_irixal: FYI: cannot set sample rate, using software resampling\n");
   if (alGetParams (resource, &parvalue, 1) == -1)
   {
-    error ("cannot ask for current sample rate, assuming everything worked...");
+    xlerror ("cannot ask for current sample rate, assuming everything worked...");
     this->output_sample_rate = this->input_sample_rate;
   }
   else
@@ -231,7 +217,7 @@ static int ao_irixal_delay (ao_driver_t *this_gen)
   int frames_left;
 
   if (alGetFrameTime (this->port, &stamp, &time) == -1)
-    error ("alGetFrameNumber failed");
+    xlerror ("alGetFrameNumber failed");
   frames_left = this->frames_in_buffer - stamp;
   if (frames_left <= 0) /* buffer ran dry */
     frames_left = 0;
@@ -249,7 +235,7 @@ static int ao_irixal_write(ao_driver_t *this_gen,int16_t *data, uint32_t num_fra
   /* get absolute number of samples played so far
    * note: this counts up when run dry as well... */
   if (alGetFrameNumber (this->port, &stamp) == -1)
-    error ("alGetFrameNumber failed");
+    xlerror ("alGetFrameNumber failed");
   if (this->frames_in_buffer < stamp) /* dry run */
   {
     if (this->frames_in_buffer > 0)
@@ -327,7 +313,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config)
   }
   if (useresource == -1)
   {
-    error ("cannot find output resource");
+    xlerror ("cannot find output resource");
     return NULL;
   }
 

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.37 2001/11/30 00:53:51 f1rmb Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -42,24 +42,6 @@
 /*
 #define LOG_DEBUG 1
 */
-
-#ifdef DEBUG
-
-# ifdef	__GNUC__
-#  define LOG(lvl, fmt...)	fprintf (stderr, fmt);
-# else
-#  define LOG(lvl, ...)		fprintf (stderr, __VA_ARGS__);
-# endif
-
-#else /* !DEBUG */
-
-# ifdef __GNUC__
-#  define LOG(lvl, fmt...)
-# else
-#  define LOG(lvl, ...)
-# endif
-
-#endif /* !DEBUG */
 
 static clut_t __default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
@@ -371,35 +353,35 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       vo_overlay_t        *overlay = NULL;
       spu_button_t        *but = event->data;
 #ifdef LOG_DEBUG
-      xprintf (VERBOSE|SPU, "MALLOC1: overlay_event %p, len=%d\n",
-               overlay_event,
-               sizeof(spu_overlay_event_t));
+      printf ("MALLOC1: overlay_event %p, len=%d\n",
+	      overlay_event,
+	      sizeof(spu_overlay_event_t));
 #endif
       overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
 #ifdef LOG_DEBUG
-      xprintf (VERBOSE|SPU, "MALLOC2: overlay_event %p, len=%d\n",
-               overlay_event,
-               sizeof(spu_overlay_event_t));
-      xprintf (VERBOSE|SPU, "MALLOC1: overlay %p, len=%d\n",
-               overlay,
-               sizeof(vo_overlay_t));
+      printf("MALLOC2: overlay_event %p, len=%d\n",
+	     overlay_event,
+	     sizeof(spu_overlay_event_t));
+      printf ("MALLOC1: overlay %p, len=%d\n",
+	      overlay,
+	      sizeof(vo_overlay_t));
 #endif
       overlay = xine_xmalloc (sizeof(vo_overlay_t));
 #ifdef LOG_DEBUG
-      xprintf (VERBOSE|SPU, "MALLOC2: overlay %p, len=%d\n",
-               overlay,
-               sizeof(vo_overlay_t));
+      printf ("MALLOC2: overlay %p, len=%d\n",
+	      overlay,
+	      sizeof(vo_overlay_t));
 #endif
       overlay_event->object.overlay=overlay;
 
 #ifdef LOG_DEBUG
-      xprintf (VERBOSE|SPU, "BUTTON\n");
-      xprintf (VERBOSE|SPU, "\tshow=%d\n",but->show);
-      xprintf (VERBOSE|SPU, "\tclut [%x %x %x %x]\n",
+      printf ("BUTTON\n");
+      printf ("\tshow=%d\n",but->show);
+      printf ("\tclut [%x %x %x %x]\n",
 	   but->color[0], but->color[1], but->color[2], but->color[3]);
-      xprintf (VERBOSE|SPU, "\ttrans [%d %d %d %d]\n",
+      printf ("\ttrans [%d %d %d %d]\n",
 	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
-      xprintf (VERBOSE|SPU, "\tleft = %d right = %d top = %d bottom = %d\n",
+      printf ("\tleft = %d right = %d top = %d bottom = %d\n",
 	   but->left, but->right, but->top, but->bottom );
 #endif
       if (!this->state.menu) return;

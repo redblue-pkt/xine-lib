@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.81 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: xine.c,v 1.82 2001/11/30 00:53:51 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -53,10 +53,7 @@
 #include "osd.h"
 
 #include "xineutils.h"
-
-#ifndef	__GNUC__
-#define	__FUNCTION__	__func__
-#endif
+#include "compat.h"
 
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
@@ -161,7 +158,7 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 
   if(stages[0] == -1) {
     fprintf(stderr, "%s(%d) wrong first stage = %d !!\n", 
-	    __FUNCTION__, __LINE__, stage1);
+	    __XINE_FUNCTION__, __LINE__, stage1);
     return 0;
   }
 
@@ -435,6 +432,8 @@ xine_t *xine_init (vo_driver_t *vo,
 
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
+
+#ifdef USE_OSD
   this->osd_renderer = osd_renderer_init( this->video_out->overlay_source );
   osd_renderer_load_font( this->osd_renderer, "vga" ); 
   
@@ -447,6 +446,7 @@ xine_t *xine_init (vo_driver_t *vo,
     osd_set_position(osd,10,10);
     osd_show(osd,0);
   }
+#endif
   
   if(ao) 
     this->audio_out = ao_new_instance (ao, this->metronom, config);

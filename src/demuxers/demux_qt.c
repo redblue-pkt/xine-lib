@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.15 2001/11/24 16:30:31 jkeil Exp $
+ * $Id: demux_qt.c,v 1.16 2001/11/30 00:53:51 f1rmb Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -53,6 +53,8 @@
 #include "libw32dll/wine/windef.h"
 #include "libw32dll/wine/vfw.h"
 #include "libw32dll/wine/mmreg.h"
+
+#define VALID_ENDS   "mov"
 
 /* OpenQuicktime Codec Parameter Types */
 #define QUICKTIME_UNKNOWN_PARAMETER         -1
@@ -513,6 +515,8 @@ typedef struct quicktime_struc {
 
 typedef struct demux_qt_s {
   demux_plugin_t        demux_plugin;
+
+  config_values_t      *config;
 
   fifo_buffer_t        *audio_fifo;
   fifo_buffer_t        *video_fifo;
@@ -4334,6 +4338,7 @@ static int demux_qt_open(demux_plugin_t *this_gen,
   case STAGE_BY_EXTENSION: {
     char *suffix;
     char *MRL;
+    char *m, *valid_ends;
     
     MRL = input->get_mrl (input);
     
@@ -4342,9 +4347,18 @@ static int demux_qt_open(demux_plugin_t *this_gen,
     if(!suffix)
       return DEMUX_CANNOT_HANDLE;
     
-    if (!strcasecmp(suffix, ".mov")) {
-      this->input = input;
-      return DEMUX_CAN_HANDLE;
+    xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							    "mrl.ends_qt", VALID_ENDS,
+							    "valid mrls ending for qt demuxer",
+							    NULL, NULL, NULL)));
+    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+      
+      while(*m == ' ' || *m == '\t') m++;
+      
+      if(!strcasecmp((suffix + 1), m)) {
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }
     }
       return DEMUX_CANNOT_HANDLE;
     
@@ -4378,7 +4392,6 @@ static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_qt_t      *this;
-  config_values_t *config;
 
   if (iface != 6) {
     printf( "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -4388,8 +4401,13 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xine_xmalloc (sizeof (demux_qt_t));
-  config      = xine->config;
+  this         = xine_xmalloc (sizeof (demux_qt_t));
+  this->config = xine->config;
+
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_qt", VALID_ENDS,
+					"valid mrls ending for qt demuxer",
+					NULL, NULL, NULL);    
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_qt_open;

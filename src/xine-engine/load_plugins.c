@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.58 2001/11/25 13:31:24 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.59 2001/11/30 00:53:51 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -45,10 +45,7 @@
 #include "metronom.h"
 #include "configfile.h"
 #include "xineutils.h"
-
-#ifndef	__GNUC__
-#define	__FUNCTION__	__func__
-#endif
+#include "compat.h"
 
 /*
 #define LOAD_LOG
@@ -93,7 +90,7 @@ void load_demux_plugins (xine_t *this,
 
   if(this == NULL || config == NULL) {
     printf("%s(%s@%d): parameter should be non null, exiting\n",
-	   __FILE__, __FUNCTION__, __LINE__);
+	   __FILE__, __XINE_FUNCTION__, __LINE__);
     exit(1);
   }
 
@@ -343,7 +340,7 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
       plugin_ids[n] = (char *) malloc (strlen(ip->get_identifier(ip)) + 1 );
       strcpy (plugin_ids[n], ip->get_identifier(ip));
       /* printf("%s(%d): %s is featured\n",  */
-      /*        __FUNCTION__, feature, ip->get_identifier(ip)); */
+      /*        __XINE_FUNCTION__, feature, ip->get_identifier(ip)); */
       n++;
     }
 
@@ -416,7 +413,7 @@ void load_decoder_plugins (xine_t *this,
 
   if(this == NULL || config == NULL) {
     printf("%s(%s@%d): parameter should be non null, exiting\n",
-	   __FILE__, __FUNCTION__, __LINE__);
+	   __FILE__, __XINE_FUNCTION__, __LINE__);
     exit(1);
   }
 
@@ -667,7 +664,7 @@ char **xine_list_video_output_plugins (int visual_type) {
     }
   } else {
     fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
-	    __FUNCTION__, strerror(errno));
+	    __XINE_FUNCTION__, strerror(errno));
   }
   
   remove_segv_handler();
@@ -856,7 +853,7 @@ char **xine_list_audio_output_plugins(void) {
     }
   } else {
     fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
-	     __FUNCTION__, strerror(errno));
+	     __XINE_FUNCTION__, strerror(errno));
   }
   
   remove_segv_handler();

@@ -31,10 +31,7 @@
 #include <fcntl.h>
 
 #include "dvd_udf.h"
-
-#ifndef	__GNUC__
-#define	__FUNCTION__	__func__
-#endif
+#include "compat.h"
 
 static int _Unicodedecode (uint8_t *data, int len, char *target);
 
@@ -288,7 +285,7 @@ int UDFMapICB (int fd, const struct AD *ICB, uint8_t *FileType, struct AD *File)
   uint16_t TagID;
 
   if ((LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN)) == NULL) {
-    fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
+    fprintf(stderr, "%s: malloc failed\n", __XINE_FUNCTION__);
     return 0;
   }
 
@@ -327,13 +324,13 @@ int UDFScanDir (int fd, const struct AD *Dir, char *FileName, struct AD *FileICB
   
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
   if ( !LogBlock ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN * 30);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, DVD_VIDEO_LB_LEN * 30);
     goto error_0;
   }
 
   filename = (char*)malloc(MAX_FILE_LEN);
   if ( !filename ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, MAX_FILE_LEN);
     goto error_1;
   }
 
@@ -399,13 +396,13 @@ int UDFFindPartition (int fd, int partnum, struct Partition *part)
 
   Anchor = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   if ( !Anchor ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, DVD_VIDEO_LB_LEN);
     goto error_0;
   }
 
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   if ( !LogBlock ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, DVD_VIDEO_LB_LEN);
     goto error_1;
   }
 
@@ -496,13 +493,13 @@ off_t UDFFindFile (int fd, char *filename, off_t *size)
 
   tokenline = (char*)malloc(MAX_FILE_LEN);
   if ( !tokenline ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, MAX_FILE_LEN);
     goto error_0;
   }
 
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   if ( !LogBlock ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, DVD_VIDEO_LB_LEN);
     goto error_1;
   }
 
@@ -584,21 +581,21 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
   filename = (char*)malloc(MAX_FILE_LEN);
   if ( !filename )
   {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, MAX_FILE_LEN);
     goto error_0;
   }
 
   tokenline = (char*)malloc(MAX_FILE_LEN);
   if ( !tokenline )
   {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, MAX_FILE_LEN);
     goto error_1;
   }
 
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
   if ( !LogBlock )
   {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN*30);
+    fprintf(stderr, MALLOC_FAILED, __XINE_FUNCTION__, DVD_VIDEO_LB_LEN*30);
     goto error_2;
   }
  

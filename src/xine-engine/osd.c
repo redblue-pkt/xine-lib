@@ -40,26 +40,14 @@
 #define LOG_DEBUG 1
 */
 
-#ifdef DEBUG
-
-# ifdef	__GNUC__
-#  define LOG(lvl, fmt...)	fprintf (stderr, fmt);
-# else
-#  define LOG(lvl, ...)		fprintf (stderr, __VA_ARGS__);
-# endif
-
-#else /* !DEBUG */
-
-# ifdef __GNUC__
-#  define LOG(lvl, fmt...)
-# else
-#  define LOG(lvl, ...)
-# endif
-
-#endif /* !DEBUG */
-
-
+#ifdef MAX
+#undef MAX
+#endif
 #define MAX(a,b) ( (a) > (b) ) ? (a) : (b)
+
+#ifdef MIN
+#undef MIN
+#endif
 #define MIN(a,b) ( (a) < (b) ) ? (a) : (b)
 
 /*

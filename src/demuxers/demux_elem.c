@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_elem.c,v 1.30 2001/11/30 00:53:51 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -36,19 +36,20 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "compat.h"
 #include "demux.h"
-
-#ifndef	__GNUC__
-#define	__FUNCTION__	__func__
-#endif
 
 #define NUM_PREVIEW_BUFFERS 50
 
 #define DEMUX_MPEG_ELEM_IFACE_VERSION 1
 
+#define VALID_ENDS  ".mpv"
+
 typedef struct {  
 
   demux_plugin_t   demux_plugin;
+
+  config_values_t *config;
 
   fifo_buffer_t   *video_fifo;
   fifo_buffer_t   *audio_fifo;
@@ -276,18 +277,28 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
   case STAGE_BY_EXTENSION: {
     char *suffix;
     char *MRL;
+    char *m, *valid_ends;
 
     MRL = input->get_mrl (input);
 
     suffix = strrchr(MRL, '.');
     
     if(suffix) {
-      if(!strcasecmp(suffix, ".mpv")) {
-	this->input = input;
-	return DEMUX_CAN_HANDLE;
+      xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							      "mrl.ends_elem", VALID_ENDS,
+							      "valid mrls ending for elementary demuxer",
+							      NULL, NULL, NULL)));
+      while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+	
+	while(*m == ' ' || *m == '\t') m++;
+	
+	if(!strcasecmp((suffix + 1), m)) {
+	  this->input = input;
+	  return DEMUX_CAN_HANDLE;
+	}
       }
     }
-
+    
     return DEMUX_CANNOT_HANDLE;
   }
   break;
@@ -324,7 +335,6 @@ static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_mpeg_elem_t *this;
-  config_values_t   *config;
 
   if (iface != 6) {
     printf( "demux_elem: plugin doesn't support plugin API version %d.\n"
@@ -334,8 +344,13 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = malloc (sizeof (demux_mpeg_elem_t));
-  config      = xine->config;
+  this         = malloc (sizeof (demux_mpeg_elem_t));
+  this->config = xine->config;
+
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_elem", VALID_ENDS,
+					"valid mrls ending for elementary demuxer",
+					NULL, NULL, NULL);    
 
   this->demux_plugin.interface_version = DEMUX_MPEG_ELEM_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_elem_open;
@@ -349,4 +364,3 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   
   return &this->demux_plugin;
 }
-

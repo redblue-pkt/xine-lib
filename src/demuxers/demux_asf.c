@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.15 2001/11/26 13:29:54 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.16 2001/11/30 00:53:51 f1rmb Exp $
  *
  * demultiplexer for asf streams
  *
@@ -56,6 +56,8 @@
 
 #define DEFRAG_BUFSIZE    65536
 
+#define VALID_ENDS    "asf,wmv"
+
 typedef struct {
   int               num;
   int               seq;
@@ -74,6 +76,8 @@ typedef struct {
 
 typedef struct demux_asf_s {
   demux_plugin_t    demux_plugin;
+
+  config_values_t  *config;
 
   fifo_buffer_t    *audio_fifo;
   fifo_buffer_t    *video_fifo;
@@ -1160,6 +1164,7 @@ static int demux_asf_open(demux_plugin_t *this_gen,
   case STAGE_BY_EXTENSION: {
     char *ending;
     char *MRL;
+    char *m, *valid_ends;
     
     MRL = input->get_mrl (input);
     
@@ -1172,12 +1177,18 @@ static int demux_asf_open(demux_plugin_t *this_gen,
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
     
-    if(!strcasecmp(ending, ".asf")) {
-      this->input = input;
-      return DEMUX_CAN_HANDLE;
-    } else if(!strcasecmp(ending, ".wmv")) {
-      this->input = input;
-      return DEMUX_CAN_HANDLE;
+    xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							    "mrl.ends_asf", VALID_ENDS,
+							    "valid mrls ending for asf demuxer",
+							    NULL, NULL, NULL)));
+    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+      
+      while(*m == ' ' || *m == '\t') m++;
+      
+      if(!strcasecmp((ending + 1), m)) {
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }
     }
   }
   break;
@@ -1205,7 +1216,6 @@ static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_asf_t     *this;
-  config_values_t *config;
 
   if (iface != 6) {
     printf( "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1214,10 +1224,15 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 	    iface);
     return NULL;
   }
+  
+  this         = xine_xmalloc (sizeof (demux_asf_t));
+  this->config = xine->config;
 
-  this        = xine_xmalloc (sizeof (demux_asf_t));
-  config      = xine->config;
-
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_asf", VALID_ENDS,
+					"valid mrls ending for asf demuxer",
+					NULL, NULL, NULL);    
+  
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_asf_open;
   this->demux_plugin.start             = demux_asf_start;

@@ -8,6 +8,8 @@
 #include "config.h"
 #include "windef.h"
 
+#include "compat.h"
+
 struct _GUID;
 
 #define TRACE __vprintf
@@ -38,12 +40,8 @@ enum __DEBUG_CLASS { __DBCL_FIXME, __DBCL_ERR, __DBCL_WARN, __DBCL_TRACE, __DBCL
 #define __SET_DEBUGGING(dbcl,dbch,on) \
     ((on) ? ((dbch)[0] |= 1 << (dbcl)) : ((dbch)[0] &= ~(1 << (dbcl))))
 
-#ifndef __GNUC__
-#define __FUNCTION__ ""
-#endif
-
 #define __DPRINTF(dbcl,dbch) \
-  (!__GET_DEBUGGING(dbcl,(dbch)) || (dbg_header_##dbcl((dbch),__FUNCTION__),0)) ? \
+  (!__GET_DEBUGGING(dbcl,(dbch)) || (dbg_header_##dbcl((dbch),__XINE_FUNCTION__),0)) ? \
      (void)0 : (void)dbg_printf
 
 /* Exported definitions and macros */

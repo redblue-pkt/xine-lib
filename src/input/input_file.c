@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
+ * $Id: input_file.c,v 1.30 2001/11/30 00:53:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,13 +37,10 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "compat.h"
 #include "input_plugin.h"
 
 extern int errno;
-
-#ifndef	__GNUC__
-#define	__FUNCTION__	__func__
-#endif
 
 #define MAXFILES      65535
 
@@ -456,7 +453,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	
 	if(linksize < 0) {
 	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __FUNCTION__, __LINE__, strerror(errno));
+		  __XINE_FUNCTION__, __LINE__, strerror(errno));
 	}
 	else {
 	  dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
@@ -490,7 +487,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	
 	if(linksize < 0) {
 	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __FUNCTION__, __LINE__, strerror(errno));
+		  __XINE_FUNCTION__, __LINE__, strerror(errno));
 	}
 	else {
 	  hide_files[num_hide_files].link = (char *) 
@@ -524,7 +521,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	
 	if(linksize < 0) {
 	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __FUNCTION__, __LINE__, strerror(errno));
+		  __XINE_FUNCTION__, __LINE__, strerror(errno));
 	}
 	else {
 	  norm_files[num_norm_files].link = (char *) 

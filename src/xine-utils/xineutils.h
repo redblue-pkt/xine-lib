@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.3 2001/11/18 03:53:25 guenter Exp $
+ * $Id: xineutils.h,v 1.4 2001/11/30 00:53:51 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -30,6 +30,7 @@ extern "C" {
 #include <unistd.h>
 #include <inttypes.h>
 #include "attributes.h"
+#include "compat.h"
 
 			/* CPU Acceleration */
 
@@ -540,11 +541,26 @@ void xine_probe_fast_memcpy(config_values_t *config);
 
 		      /* Debugging/Monitoring */
 
-#ifdef	__GNUC__
+#ifdef __GNUC__
 #define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
-#else	/* C99 version: */
+#else /* C99 version: */
 #define perr(...)	  {fprintf(stderr, __VA_ARGS__);fflush(stderr);}
 #endif
+
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#define xlerror(...) do {                                                     \
+        printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
+        printf(__VA_ARGS__);                                                     \
+	printf("\n");                                                            \
+} while (0)
+#else
+#define xlerror(args...) do {                                                 \
+        printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
+        printf(##args);                                                          \
+        printf("\n");                                                            \
+} while (0)
+#endif
+
 
 #ifdef DEBUG
 /*
@@ -606,6 +622,79 @@ char *xine_chomp (char *str);
  * A thread-safe usecond sleep
  */
 void xine_usec_sleep(unsigned usec);
+
+
+  /*
+   * Some string functions
+   */
+
+
+void xine_strdupa(char *dest, char *src);
+#define xine_strdupa(d, s) {                                        \
+  (d) = NULL;                                                       \
+  if((s) != NULL) {                                                 \
+    (d) = (char *) alloca(strlen((s)) + 1);                         \
+    strcpy((d), (s));                                               \
+  }                                                                 \
+}
+
+/* Shamefully copied from glibc 2.2.3 */
+#ifdef HAVE_STRPBRK
+#define xine_strpbrk strpbrk
+#else
+static inline char *_x_strpbrk(const char *s, const char *accept) {
+
+  while(*s != '\0') {
+    const char *a = accept;
+    while(*a != '\0')
+      if(*a++ == *s)
+	return(char *) s;
+    ++s;
+  }
+
+  return NULL;
+}
+#define xine_strpbrk _x_strpbrk
+#endif
+
+#ifdef HAVE_STRSEP
+#define xine_strsep strsep
+#else
+static inline char *_x_strsep(char **stringp, const char *delim) {
+  char *begin, *end;
+  
+  begin = *stringp;
+  if(begin == NULL)
+    return NULL;
+  
+  if(delim[0] == '\0' || delim[1] == '\0') {
+    char ch = delim[0];
+    
+    if(ch == '\0')
+      end = NULL;
+    else {
+      if(*begin == ch)
+	end = begin;
+      else if(*begin == '\0')
+	end = NULL;
+      else
+	end = strchr(begin + 1, ch);
+    }
+  }
+  else
+    end = xine_strpbrk(begin, delim);
+  
+  if(end) {
+    *end++ = '\0';
+    *stringp = end;
+  }
+  else
+    *stringp = NULL;
+  
+  return begin;
+}
+#define xine_strsep _x_strsep
+#endif
 
 
 #ifdef __cplusplus

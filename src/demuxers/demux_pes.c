@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_pes.c,v 1.15 2001/11/30 00:53:51 f1rmb Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -43,9 +43,14 @@
 
 #define NUM_PREVIEW_BUFFERS 400
 
+#define VALID_MRLS          "fifo,stdin"
+#define VALID_ENDS          "vdr"
+
 typedef struct demux_pes_s {
 
   demux_plugin_t       demux_plugin;
+
+  config_values_t     *config;
 
   fifo_buffer_t       *audio_fifo;
   fifo_buffer_t       *video_fifo;
@@ -479,20 +484,31 @@ static int demux_pes_open(demux_plugin_t *this_gen,
   case STAGE_BY_EXTENSION: {
     char *media;
     char *ending;
+    char *m, *valid_mrls, *valid_ends;
     char *MRL = input->get_mrl(input);
+    
+    xine_strdupa(valid_mrls, (this->config->register_string(this->config,
+							    "mrl.mrls_pes", VALID_MRLS,
+							    "valid mrls for pes demuxer",
+							    NULL, NULL, NULL)));
     
     media = strstr(MRL, "://");
     if(media) {
-      if((!(strncasecmp(MRL, "stdin", 5))) 
-	 || (!(strncasecmp(MRL, "fifo", 4)))) {
-	if(!(strncasecmp(media+3, "pes", 3))) {
-	  this->input = input;
-	  return DEMUX_CAN_HANDLE;
+      while((m = xine_strsep(&valid_mrls, ",")) != NULL) { 
+	
+	while(*m == ' ' || *m == '\t') m++;
+	
+	if(!strncmp(MRL, m, strlen(m))) {
+	  
+	  if(!strncmp((media + 3), "pes", 3)) {
+	    this->input = input;
+	    return DEMUX_CAN_HANDLE;
+	  }
+	  return DEMUX_CANNOT_HANDLE;
 	}
-	return DEMUX_CANNOT_HANDLE;
-      }
-      else if(strncasecmp(MRL, "file", 4)) {
-	return DEMUX_CANNOT_HANDLE;
+	else if(strncasecmp(MRL, "file", 4)) {
+	  return DEMUX_CANNOT_HANDLE;
+	}
       }
     }
 
@@ -501,9 +517,18 @@ static int demux_pes_open(demux_plugin_t *this_gen,
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
     
-    if(!strcasecmp(ending, ".vdr"))  {
-      this->input = input;
-      return DEMUX_CAN_HANDLE;
+    xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							    "mrl.ends_pes", VALID_ENDS,
+							    "valid mrls ending for pes demuxer",
+							    NULL, NULL, NULL)));
+    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+      
+      while(*m == ' ' || *m == '\t') m++;
+      
+      if(!strcasecmp((ending + 1), m)) {
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }
     }
   }
   break;
@@ -538,7 +563,6 @@ static int demux_pes_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_pes_t     *this;
-  config_values_t *config;
 
   if (iface != 6) {
     printf( "demux_pes: plugin doesn't support plugin API version %d.\n"
@@ -548,9 +572,17 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xine_xmalloc (sizeof (demux_pes_t));
-  config      = xine->config;
+  this         = xine_xmalloc (sizeof (demux_pes_t));
+  this->config = xine->config;
 
+  (void*) this->config->register_string(this->config, "mrl.mrls_pes", VALID_MRLS,
+					"valid mrls for pes demuxer",
+					NULL, NULL, NULL);
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_pes", VALID_ENDS,
+					"valid mrls ending for pes demuxer",
+					NULL, NULL, NULL);    
+  
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_pes_open;
   this->demux_plugin.start             = demux_pes_start;

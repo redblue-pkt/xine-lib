@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.39 2001/11/28 23:15:09 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.40 2001/11/30 00:53:50 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,23 +45,9 @@
 #include <sys/ioctl.h>
 #include <inttypes.h>
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#define error(...) do {\
-        fprintf(stderr, "XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __FUNCTION__); \
-        fprintf(stderr, __VA_ARGS__); \
-        putc('\n', stderr); \
-} while (0)
-#else
-#define error(args...) do {\
-        fprintf(stderr, "XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __FUNCTION__); \
-        fprintf(stderr, ##args); \
-        putc('\n', stderr); \
-} while (0)
-#endif
-
-
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "compat.h"
 #include "audio_out.h"
 
 #ifndef AFMT_S16_NE
@@ -236,7 +222,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   printf("audio_alsa_out: Number of channels = %d\n",this->num_channels);
 
   if (this->audio_fd != NULL) {
-    error ("Already open...WHY!");
+    xlerror ("Already open...WHY!");
     snd_pcm_close (this->audio_fd);
   }
 
@@ -351,7 +337,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     tmp = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params,
                                                  period_size, 0);
     printf("audio_alsa_out:open:period_size=%ld tmp=%ld\n",period_size,tmp);
-
+    
     if (period_size < 0) {
       printf ("audio_alsa_out: period size not available");
       goto __close;
@@ -843,8 +829,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   
   err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 0);
   if(err <0 ) {
-    error("snd_pcm_open() failed: %d", err); 
-    error(">>> Check if another program don't already use PCM <<<"); 
+    xlerror("snd_pcm_open() failed: %d", err); 
+    xlerror(">>> Check if another program don't already use PCM <<<"); 
     return NULL; 
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_ts.c,v 1.30 2001/11/30 00:53:51 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -67,6 +67,9 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+
+#define VALID_MRLS   "fifo,stdin"
+#define VALID_ENDS   "m2t,ts,trp"
 
 /*
 #define TS_LOG
@@ -120,6 +123,8 @@ typedef struct {
    */
   demux_plugin_t   plugin;
   
+  config_values_t *config;
+
   fifo_buffer_t   *fifoAudio;
   fifo_buffer_t   *fifoVideo;
   
@@ -1075,35 +1080,61 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
   char     *mrl;
   char     *media;
   char     *ending;
-  
+  char     *m, *valid_mrls, *valid_ends;
+
   switch (stage) {
   case STAGE_BY_EXTENSION:
+
+    xine_strdupa(valid_mrls, (this->config->register_string(this->config,
+							    "mrl.mrls_ts", VALID_MRLS,
+							    "valid mrls for ts demuxer",
+							    NULL, NULL, NULL)));
+    
     mrl = input->get_mrl(input);
     media = strstr(mrl, "://");
+
     if (media) {
       fprintf (stderr, "demux %u ts_open! \n", __LINE__);
-      if ((!(strncasecmp(mrl, "stdin", 5))) || (!(strncasecmp(mrl, "fifo", 4)))) {
-	if(!(strncasecmp(media+3, "ts", 3))) {
-	  break;
+      while((m = xine_strsep(&valid_mrls, ",")) != NULL) { 
+	
+	while(*m == ' ' || *m == '\t') m++;
+	
+	if(!strncmp(mrl, m, strlen(m))) {
+	  
+	  if(!strncmp((media + 3), "ts", 2)) {
+	    break;
+	  }
+	  return DEMUX_CANNOT_HANDLE;
+	  
 	}
-	return DEMUX_CANNOT_HANDLE;
-      }
-      else if (strncasecmp(mrl, "file", 4)) {
-	return DEMUX_CANNOT_HANDLE;
+	else if(strncasecmp(mrl, "file", 4)) {
+	  return DEMUX_CANNOT_HANDLE;
+	}
       }
     }
+    
     ending = strrchr(mrl, '.');
     if (ending) {
 #ifdef TS_LOG
-      xprintf(VERBOSE|DEMUX, "demux_ts_open: ending %s of %s\n", ending, mrl);
+      printf("demux_ts_open: ending %s of %s\n", ending, mrl);
 #endif
-      if ((!strcasecmp(ending, ".m2t")) ||
-          (!strcasecmp(ending, ".ts"))  ||
-          (!strcasecmp(ending, ".trp")) ) {
-	break;
+      
+      xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							      "mrl.ends_ts", VALID_ENDS,
+							      "valid mrls ending for ts demuxer",
+							      NULL, NULL, NULL)));
+      while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+	
+	while(*m == ' ' || *m == '\t') m++;
+	
+	if(!strcasecmp((ending + 1), m)) {
+	  break;
+	}
       }
     }
     return DEMUX_CANNOT_HANDLE;
+    break;
+    
   default:
     return DEMUX_CANNOT_HANDLE;
   }
@@ -1208,7 +1239,6 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_ts        *this;
-  config_values_t *config;
   int              i;
   
   if (iface != 6) {
@@ -1222,8 +1252,16 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   /*
    * Initialise the generic plugin.
    */
-  this = xine_xmalloc(sizeof(*this));
-  config = xine->config;
+  this         = xine_xmalloc(sizeof(*this));
+  this->config = xine->config;
+
+  (void*) this->config->register_string(this->config, "mrl.mrls_ts", VALID_MRLS,
+					"valid mrls for ts demuxer",
+					NULL, NULL, NULL);
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_ts", VALID_ENDS,
+					"valid mrls ending for ts demuxer",
+					NULL, NULL, NULL);    
 
   this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->plugin.open              = demux_ts_open;

@@ -12,7 +12,7 @@ libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 	-release $(LT_RELEASE)
 
-include_HEADERS = xineutils.h attributes.h
+include_HEADERS = xineutils.h attributes.h compat.h
 
 
 debug:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.45 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.46 2001/11/30 00:53:51 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -42,11 +42,16 @@
 #include "demux.h"
 #include "xineutils.h"
 
+#define VALID_MRLS          "stdin,fifo"
+#define VALID_ENDS          "mpg,mpeg,mpe"
+
 #define NUM_PREVIEW_BUFFERS 150
 
 typedef struct demux_mpeg_s {
 
   demux_plugin_t       demux_plugin;
+
+  config_values_t     *config;
 
   fifo_buffer_t       *audio_fifo;
   fifo_buffer_t       *video_fifo;
@@ -821,21 +826,32 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
     char *media;
     char *ending;
     char *MRL = input->get_mrl(input);
+    char *m, *valid_mrls, *valid_ends;
+
+    xine_strdupa(valid_mrls, (this->config->register_string(this->config,
+							    "mrl.mrls_mpeg", VALID_MRLS,
+							    "valid mrls for mpeg demuxer",
+							    NULL, NULL, NULL)));
     
     media = strstr(MRL, "://");
     if (media) {
-      if ((!(strncasecmp(MRL, "stdin", 5))) 
-	 || (!(strncasecmp(MRL, "fifo", 4)))) {
-
-	if(!(strncasecmp(media+3, "mpeg1", 5))) {
-	  this->input = input;
-	  return DEMUX_CAN_HANDLE;
-	}
-	else if(!(strncasecmp((media+3), "mpeg2", 5))) {
+      while((m = xine_strsep(&valid_mrls, ",")) != NULL) { 
+	
+	while(*m == ' ' || *m == '\t') m++;
+	
+	if(!strncmp(MRL, m, strlen(m))) {
+	  
+	  if(!strncmp((media + 3), "mpeg1", 5)) {
+	    this->input = input;
+	    return DEMUX_CAN_HANDLE;
+	  }
+	  else if(!strncasecmp((media + 3), "mpeg2", 5)) {
+	    return DEMUX_CANNOT_HANDLE;
+	  }
+	  
+	  fprintf(stderr, "You should specify mpeg(mpeg1/mpeg2) stream type.\n");
 	  return DEMUX_CANNOT_HANDLE;
 	}
-	fprintf(stderr, "You should specify mpeg(mpeg1/mpeg2) stream type.\n");
-	return DEMUX_CANNOT_HANDLE;
       }
     }
 
@@ -844,15 +860,22 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
     
-    if(!strcasecmp(ending, ".mpg") 
-       || (!strcasecmp(ending, ".mpeg"))
-       || (!strcasecmp(ending, ".mpe"))) {
-      this->input = input;
-      return DEMUX_CAN_HANDLE;
+    xine_strdupa(valid_ends, (this->config->register_string(this->config,
+							    "mrl.ends_mpeg", VALID_ENDS,
+							    "valid mrls ending for mpeg demuxer",
+							    NULL, NULL, NULL)));
+    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
+      
+      while(*m == ' ' || *m == '\t') m++;
+      
+      if(!strcasecmp((ending + 1), m)) {
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }
     }
   }
   break;
-
+  
   default:
     return DEMUX_CANNOT_HANDLE;
     break;
@@ -888,7 +911,6 @@ static int demux_mpeg_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_mpeg_t    *this;
-  config_values_t *config;
 
   if (iface != 6) {
     printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
@@ -898,9 +920,18 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
 
-  this        = xine_xmalloc (sizeof (demux_mpeg_t));
-  config      = xine->config;
+  this          = xine_xmalloc (sizeof (demux_mpeg_t));
+  this->config = xine->config;
 
+  /* Calling register_string() configure valid mrls in configfile */
+  (void*) this->config->register_string(this->config, "mrl.mrls_mpeg", VALID_MRLS,
+					"valid mrls for mpeg demuxer",
+					NULL, NULL, NULL);
+  (void*) this->config->register_string(this->config,
+					"mrl.ends_mpeg", VALID_ENDS,
+					"valid mrls ending for mpeg demuxer",
+					NULL, NULL, NULL);    
+    
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_open;
   this->demux_plugin.start             = demux_mpeg_start;
@@ -913,3 +944,4 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   
   return (demux_plugin_t *) this;
 }
+
