@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2003/01/13 02:15:08 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.50 2003/01/13 02:33:36 miguelfreitas Exp $
  *
  */
 
@@ -79,7 +79,6 @@ typedef struct sputext_decoder_s {
 
   char              *font;
   subtitle_size      subtitle_size;
-  int                time_offset;       /* offset in 1/100sec to add to vpts */
 
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
@@ -350,15 +349,6 @@ static void update_subtitle_size(void *this_gen, xine_cfg_entry_t *entry)
   update_font_size (this_gen);
 }
 
-static void update_time_offset(void *this_gen, xine_cfg_entry_t *entry)
-{
-  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
-
-  this->time_offset = entry->num_value;
-
-  printf("libsputext: time_offset = %d\n", this->time_offset );
-}
-
 static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   sputext_class_t *class = (sputext_class_t *)class_gen;
@@ -389,12 +379,6 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 			       subtitle_size_strings,
 			       _("subtitle size (relative window size)"), 
 			       NULL, 0, update_subtitle_size, this);
-  this->time_offset    = class->xine->config->register_num   (class->xine->config, 
-			        "codec.spu_time_offset", 
-			        0,
-			        _("subtitle time offset in 1/100 sec"), 
-			        NULL, 10, update_time_offset, this);
-
 
   return (spu_decoder_t *) this;
 }
