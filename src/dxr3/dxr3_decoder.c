@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.11 2001/08/14 19:43:43 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.12 2001/08/16 12:54:58 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -321,7 +321,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	ssize_t written;
 
 	if (buf->type == BUF_SPU_CLUT) {
-		swab_clut((int*)buf->content);
+		if (buf->content[0] == 0)  /* cheap endianess detection */
+			swab_clut((int*)buf->content);
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
 			fprintf(stderr, "dxr3: failed to set CLUT (%s)\n", strerror(errno));
 		return;
@@ -390,7 +391,9 @@ static void spudec_event (spu_decoder_t *this_gen, spu_event_t *event) {
 	case SPU_EVENT_CLUT:
 		{
 			spu_cltbl_t *clut = event->data;
+#ifdef WORDS_BIGENDIAN
 			swab_clut(clut->clut);
+#endif
 
 			if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, clut->clut))
 				fprintf(stderr, "dxr3: failed to set CLUT (%s)\n",
