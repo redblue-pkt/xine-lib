@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.4 2002/06/12 15:09:08 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.5 2002/07/03 19:38:45 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -146,6 +146,11 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     this->context = 0;
   }
   
+  if ((drv->video_width % 16 != 0) || (drv->video_oheight % 16 != 0)) {
+    printf("dxr3_mpeg_encoder: rte only handles video dimensions which are multiples of 16\n");
+    return 0;
+  }
+  
   this->width = drv->video_width;
   this->height = drv->video_oheight;
 
@@ -245,18 +250,16 @@ static int rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   int size;
   rte_data_t* this = (rte_data_t *)drv->enc;
 
-  if ((this->width != frame->width) || (this->height != frame->oheight))
-    /* maybe we were reinitialized and get an old frame. */
-    return 1;
-  
-  size = frame->width * frame->oheight;
-  if (frame->vo_frame.format == IMGFMT_YV12)
-    xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 3/2);
-  else
-    xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 2);
-  this->rte_ptr = rte_push_video_data(this->context, this->rte_ptr,
-    frame->vo_frame.vpts / 90000.0);
-  
+  if ((this->width == frame->width) && (this->height == frame->oheight)) {
+    /* This frame belongs to current context. */
+    size = frame->width * frame->oheight;
+    if (frame->vo_frame.format == IMGFMT_YV12)
+      xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 3/2);
+    else
+      xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 2);
+    this->rte_ptr = rte_push_video_data(this->context, this->rte_ptr,
+      frame->vo_frame.vpts / 90000.0);
+  }
   frame->vo_frame.displayed(&frame->vo_frame);
   return 1;
 }
@@ -452,9 +455,11 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   ssize_t written;
   int size;
 
-  if ((frame->width != this->fp.width) || (frame->oheight != this->fp.height))
+  if ((frame->width != this->fp.width) || (frame->oheight != this->fp.height)) {
     /* probably an old frame for a previous context. ignore it */
+    frame->vo_frame.displayed(&frame->vo_frame);
     return 1;
+  }
 
   fame_prepare_frame(this, drv, frame);
 #ifdef HAVE_NEW_LIBFAME
