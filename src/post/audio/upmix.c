@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.14 2004/05/29 14:45:25 mroi Exp $
+ * $Id: upmix.c,v 1.15 2004/07/26 22:23:34 miguelfreitas Exp $
  *
  */
 
@@ -34,12 +34,6 @@
 #include "post.h"
 #include "dsp.h"
 
-#define FPS 20
-
-#define FOO_WIDTH  320
-#define FOO_HEIGHT 240
-
-#define NUMSAMPLES 512
 
 typedef struct post_plugin_upmix_s post_plugin_upmix_t;
 
@@ -103,16 +97,10 @@ struct post_plugin_upmix_s {
   pthread_mutex_t    lock;
   xine_post_in_t params_input;
   upmix_parameters_t params;
-  double         ratio;
-  int            data_idx;
-  short          data [2][NUMSAMPLES];
   audio_buffer_t *buf;   /* dummy buffer just to hold a copy of audio data */
   af_sub_t       *sub;
   int            channels;
   int            channels_out;
-  int            sample_counter;
-  int            samples_per_frame;
-
 };
 
 /**************************************************************************
@@ -183,7 +171,6 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   port->mode = mode;
   capabilities = port->original_port->get_capabilities(port->original_port);
   
-  this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
   this->channels = _x_ao_mode2channels(mode);
   /* FIXME: Handle all desired output formats */
   if ((capabilities & AO_CAP_MODE_5_1CHANNEL) && (capabilities & AO_CAP_FLOAT32)) {
@@ -212,8 +199,6 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
     return 0;
   }
 
-  this->samples_per_frame = rate / FPS;
-  this->data_idx = 0;
   pthread_mutex_unlock (&this->lock);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
@@ -446,7 +431,7 @@ static void upmix_class_dispose(post_class_t *class_gen)
 }
 
 /* plugin class initialization function */
-static void *upmix_init_plugin(xine_t *xine, void *data)
+void *upmix_init_plugin(xine_t *xine, void *data)
 {
   post_class_upmix_t *class = (post_class_upmix_t *)malloc(sizeof(post_class_upmix_t));
   
@@ -462,13 +447,3 @@ static void *upmix_init_plugin(xine_t *xine, void *data)
   
   return class;
 }
-
-/* plugin catalog information */
-/* post_info_t upmix_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION }; */
-post_info_t upmix_special_info = { XINE_POST_TYPE_AUDIO_FILTER };
-
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 9, "upmix", XINE_VERSION_CODE, &upmix_special_info, &upmix_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
