@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.137 2004/04/09 15:06:02 mroi Exp $
+ * $Id: metronom.c,v 1.138 2004/04/22 23:19:03 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,6 @@
 #define LOG
 #define LOG_AUDIO
 */
-
 #define METRONOM_INTERNAL
 #define METRONOM_CLOCK_INTERNAL
 
@@ -54,6 +53,10 @@
 #define MAX_SCR_PROVIDERS        10
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
+
+/* metronom video modes */
+#define VIDEO_PREDICTION_MODE     0      /* use pts + frame duration */
+#define VIDEO_PTS_MODE            1      /* use only pts */
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
@@ -456,20 +459,25 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   this->img_cpt++;
 
+  if (img->duration) {
+    this->video_mode = VIDEO_PREDICTION_MODE;
+    this->img_duration = img->duration;
+  } else {
+    /* will skip the whole predicted vpts stuff */
+    this->video_mode = VIDEO_PTS_MODE;
+  }
+
   if (pts && pts != this->last_video_pts) {
 
-    /*
-     * Compute img duration if it's not provided by the decoder
-     * example: mpeg streams with an invalid frame rate
-     */
     if (!img->duration) {
+      /* Compute the duration of previous frames using this formula:
+       * duration = (curent_pts - last_pts) / (frame count between the 2 pts)
+       * This duration will be used to predict the next frame vpts.
+       */
       if (this->last_video_pts && this->img_cpt) {
         this->img_duration = (pts - this->last_video_pts) / this->img_cpt;
         lprintf("computed frame_duration = %" PRId64 "\n", this->img_duration );
       }
-      img->duration = this->img_duration;
-    } else {
-      this->img_duration = img->duration;  
     }
     this->img_cpt = 0;
     this->last_video_pts = pts;
@@ -484,49 +492,53 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
     
     vpts = pts + this->vpts_offset;
 
-    diff = this->video_vpts - vpts;
+    if (this->video_mode == VIDEO_PREDICTION_MODE) {
+    
+      diff = this->video_vpts - vpts;
 
-    lprintf("video diff is %" PRId64 " (predicted %" PRId64 ", given %" PRId64 ")\n", diff, this->video_vpts, vpts);
-
-    if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->force_video_jump)) {
-      this->force_video_jump = 0;
-      this->video_vpts       = vpts;
-      this->video_drift      = 0;
+      lprintf("video diff is %" PRId64 " (predicted %" PRId64 ", given %" PRId64 ")\n", diff, this->video_vpts, vpts);
       
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video jump\n");
 
+      if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->force_video_jump)) {
+        this->force_video_jump = 0;
+        this->video_vpts       = vpts;
+        this->video_drift      = 0;
+
+        xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video jump\n");
+
+      } else {
+
+        this->video_drift = diff;
+        this->video_drift_step = diff / 30;
+        /* this will fix video drift with a constant compensation each
+  	 frame for about 1 second of video.  */
+
+        if (diff) lprintf("video drift, drift is %" PRId64 "\n", this->video_drift);
+      }
     } else {
-
-      this->video_drift = diff;
-      this->video_drift_step = diff / 30;
-      /* this will fix video drift with a constant compensation each
-	 frame for about 1 second of video.  */
-
-      if (diff) lprintf("video drift, drift is %" PRId64 "\n", this->video_drift);
-    }
-  } else {
-    if (!img->duration) {
-      img->duration = this->img_duration;
-    } else {
-      this->img_duration = img->duration;  
+      /* VIDEO_PTS_MODE: do not use the predicted value */
+      this->video_vpts = vpts;
     }
   }
 
-  
   img->vpts = this->video_vpts + this->av_offset;
 
-  lprintf("video vpts for %10lld : %10lld (duration:%d drift:%" PRId64 " step:%" PRId64 ")\n", 
-	  pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
-  
-  if( this->video_drift * this->video_drift_step > 0 )
-  {
-    img->duration -= this->video_drift_step;
+  if (this->video_mode == VIDEO_PREDICTION_MODE) {
+    lprintf("video vpts for %10lld : %10lld (duration:%d drift:%" PRId64 " step:%" PRId64 ")\n",
+  	  pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
 
-    this->video_drift -= this->video_drift_step;
+    if (this->video_drift * this->video_drift_step > 0) {
+      img->duration -= this->video_drift_step;
+      this->img_duration = img->duration;
+      this->video_drift -= this->video_drift_step;
+    }
   }
-  
-  this->video_vpts += img->duration;
 
+  /* We need to update this->video_vpts is both modes.
+   * this->video_vpts is used as the next frame vpts if next frame pts=0
+   */
+  this->video_vpts += this->img_duration;
+  
   pthread_mutex_unlock (&this->lock);
 }
 

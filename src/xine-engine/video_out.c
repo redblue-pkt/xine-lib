@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.189 2004/03/23 15:38:04 mroi Exp $
+ * $Id: video_out.c,v 1.190 2004/04/22 23:19:04 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -51,7 +51,9 @@
 #include "metronom.h"
 #include "xineutils.h"
 
-#define NUM_FRAME_BUFFERS     15
+#define NUM_FRAME_BUFFERS          15
+#define MAX_USEC_TO_SLEEP       20000
+#define DEFAULT_FRAME_DURATION   3000    /* 30 frames per second */
 
 #define NULL_STREAM    (xine_stream_t *)-1
 
@@ -373,9 +375,10 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     this->num_frames_delivered++;
 
     diff = pic_vpts - cur_vpts;
+    
     /* avoid division by zero */
     if( img->duration <= 0 )
-      img->duration = 3000;
+      img->duration = DEFAULT_FRAME_DURATION;
     
     /* Frame dropping slow start:
      *   The engine starts to drop frames if there is less than frame_drop_limit
@@ -619,6 +622,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   int64_t       pts;
   int64_t       diff;
   vo_frame_t   *img;
+  int           duration;
 
   pthread_mutex_lock(&this->display_img_buf_queue->mutex);
   
@@ -629,8 +633,9 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
    */
 
   diff = 1000000; /* always enter the while-loop */
+  duration = 0;
 
-  while (img && (diff > img->duration || this->discard_frames)) {
+  while (img) {
 
     if (img->is_first) {
       lprintf("expire_frames: first_frame !\n");
@@ -645,10 +650,18 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       break;
     }
 
+    if( !img->duration ) {
+      if( img->next )
+        duration = img->next->vpts - img->vpts;
+      else
+        duration = DEFAULT_FRAME_DURATION;
+    } else
+      duration = img->duration;
+    
     pts = img->vpts;
     diff = cur_vpts - pts;
       
-    if (diff > img->duration || this->discard_frames) {
+    if (diff > duration || this->discard_frames) {
   
       if( !this->discard_frames ) {
         xine_log(this->xine, XINE_LOG_MSG,
@@ -700,19 +713,27 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
         }
       }
       img = this->display_img_buf_queue->first;
-    }
+      
+    } else
+      break;
   }
   
   pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 }
 
-static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
+/* If it's not the time to display the next frame,
+ * the vpts of the next frame (if any) is returned, 0 otherwise.
+ */
+static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts,
+                                   int64_t *next_frame_vpts) {
   
   vo_frame_t   *img;
 
   pthread_mutex_lock(&this->display_img_buf_queue->mutex);
   
   img = this->display_img_buf_queue->first;
+
+  *next_frame_vpts = 0;
 
   /* 
    * still frame detection:
@@ -764,6 +785,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     lprintf ("diff %" PRId64 "\n", diff);
 
     if (diff < 0) {
+      *next_frame_vpts = img->vpts;
       pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
       return NULL;
     }
@@ -933,7 +955,7 @@ static void *video_out_loop (void *this_gen) {
   int64_t            vpts, diff;
   vo_frame_t        *img;
   vos_t             *this = (vos_t *) this_gen;
-  int64_t            next_frame_vpts;
+  int64_t            next_frame_vpts = 0;
   int64_t            usec_to_sleep;
  
 #ifndef WIN32
@@ -950,8 +972,6 @@ static void *video_out_loop (void *this_gen) {
    * of xine) : the video output loop
    */
    
-  next_frame_vpts = this->clock->get_current_time (this->clock);
-
   lprintf ("loop starting...\n");
 
   while ( this->video_loop_running ) {
@@ -965,7 +985,8 @@ static void *video_out_loop (void *this_gen) {
     lprintf ("loop iteration at %" PRId64 "\n", vpts);
 
     expire_frames (this, vpts);
-    img = get_next_frame (this, vpts);
+
+    img = get_next_frame (this, vpts, &next_frame_vpts);
 
     /*
      * if we have found a frame, display it
@@ -1015,13 +1036,10 @@ static void *video_out_loop (void *this_gen) {
     /*
      * wait until it's time to display next frame
      */
-
     if (img) {
       next_frame_vpts = img->vpts + img->duration;
-    } else {
-      /* we do not know, when the next frame is due, so only wait a little */
-      next_frame_vpts += 1000;
     }
+    /* else next_frame_vpts is returned by get_next_frame */
     
     lprintf ("next_frame_vpts is %" PRId64 "\n", next_frame_vpts);
  
@@ -1031,7 +1049,17 @@ static void *video_out_loop (void *this_gen) {
       if (this->clock->speed == XINE_SPEED_PAUSE)
         paused_loop (this, vpts);
 
-      usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
+      if (next_frame_vpts) {
+        usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
+      } else {
+        /* we don't know when the next frame is due, only wait a little */
+        usec_to_sleep = 1000;
+        next_frame_vpts = vpts; /* wait only once */
+      }
+
+      /* limit usec_to_sleep to maintain responsiveness */
+      if (usec_to_sleep > MAX_USEC_TO_SLEEP)
+        usec_to_sleep = MAX_USEC_TO_SLEEP;
 
       lprintf ("%" PRId64 " usec to sleep at master vpts %" PRId64 "\n", usec_to_sleep, vpts);
       
@@ -1039,8 +1067,8 @@ static void *video_out_loop (void *this_gen) {
         xprintf(this->xine, XINE_VERBOSITY_DEBUG,
 		"video_out: vpts/clock error, next_vpts=%" PRId64 " cur_vpts=%" PRId64 "\n", next_frame_vpts,vpts);
                
-      if (usec_to_sleep>0) 
-	xine_usec_sleep (usec_to_sleep);
+      if (usec_to_sleep > 0) 
+        xine_usec_sleep (usec_to_sleep);
 
     } while ( (usec_to_sleep > 0) && this->video_loop_running);
   }
