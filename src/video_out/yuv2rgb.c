@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.15 2001/09/11 17:12:39 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.16 2001/09/16 23:13:45 f1rmb Exp $
  */
 
 #include "config.h"
@@ -767,9 +767,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
 static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 			       uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
 {
-  int U, V, Y;
   uint8_t * py_1, * py_2, * pu, * pv;
-  uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
   int width, height, dst_height;
   int dy;

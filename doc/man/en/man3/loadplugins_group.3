@@ -1,4 +1,4 @@
-.TH "Loading plugins" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "Loading plugins" 3 "17 Sep 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -33,7 +33,7 @@ Loading plugins \-
 .br
 .RI "\fIgenerate a list of all available audio output plugins.\fP"
 .ti -1c
-.RI "\fBao_functions_t\fP* \fBxine_load_audio_output_plugin\fP (\fBconfig_values_t\fP *config, char *id)"
+.RI "\fBao_driver_t\fP* \fBxine_load_audio_output_plugin\fP (\fBconfig_values_t\fP *config, char *id)"
 .br
 .RI "\fIload a specific audio output plugin.\fP"
 .in -1c
@@ -77,7 +77,7 @@ Valid visual types
 .TP
 \fB\fIvisual_type\fP\fP
  
-.SS "\fBao_functions_t\fP * xine_load_audio_output_plugin (\fBconfig_values_t\fP * config, char * id)"
+.SS "\fBao_driver_t\fP * xine_load_audio_output_plugin (\fBconfig_values_t\fP * config, char * id)"
 .PP
 load a specific audio output plugin.
 .PP
@@ -92,7 +92,7 @@ driver name.
 .PP
 \fBSee also: \fP
 .in +1c
-\fBao_functions_t\fP 
+\fBao_driver_t\fP 
 .PP
 \fBParameters: \fP
 .in +1c

@@ -87,7 +87,6 @@ static NPDRVR DrvAlloc(HDRVR*lpDriver, LPUINT lpDrvResult)
                                                                                                                     
 static void DrvFree(HDRVR hDriver)
 {
-    int i;
     if(hDriver)
     	if(((DRVR*)hDriver)->hDriverModule)
     	if(((DRVR*)hDriver)->DriverProc)
@@ -113,7 +112,7 @@ char* win32_def_path  =NULL;  // must be set before calling DrvOpen() !!!
 HDRVR
 DrvOpen(LPARAM lParam2)
 {
-    ICOPEN *icopen=(ICOPEN*)lParam2;
+  //    ICOPEN *icopen=(ICOPEN*)lParam2;
     UINT uDrvResult;
     HDRVR hDriver;
     NPDRVR npDriver;

@@ -3,7 +3,7 @@
  * \author Guenter Bartsch <guenter@users.sourceforge.net>
  * \author Siegfried Langauf <siggi@users.sourceforge.net>
  * \author Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
- * \date 25/07/2001
+ * \date 16/09/2001
  *
  * API of XINE library.
  \verbatim
@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.40 2001/09/01 14:32:59 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.41 2001/09/16 23:13:45 f1rmb Exp $
  *
  */
 
@@ -235,49 +235,55 @@ int xine_check_version(int major, int minor, int sub);
  * Interleave property.
  * \sa vo_driver_t
  */
-#define VO_PROP_INTERLACED      0
+#define VO_PROP_INTERLACED        0
 /**
  * \def VO_PROP_ASPECT_RATIO
  * Aspect ratio property.
  * \sa vo_driver_t, video_ratio
  */
-#define VO_PROP_ASPECT_RATIO    1
+#define VO_PROP_ASPECT_RATIO      1
 /**
  * \def VO_PROP_HUE
  * Hue property.
  * \sa vo_driver_t
  */
-#define VO_PROP_HUE             2
+#define VO_PROP_HUE               2
 /**
  * \def VO_PROP_SATURATION
  * Saturation property.
  * \sa vo_driver_t
  */
-#define VO_PROP_SATURATION      3
+#define VO_PROP_SATURATION        3
 /**
  * \def VO_PROP_CONTRAST
  * Contrast property.
  * \sa vo_driver_t
  */
-#define VO_PROP_CONTRAST        4
+#define VO_PROP_CONTRAST          4
 /**
  * \def VO_PROP_BRIGHTNESS
  * Brightness property.
  * \sa vo_driver_t
  */
-#define VO_PROP_BRIGHTNESS      5
+#define VO_PROP_BRIGHTNESS        5
 /**
  * \def VO_PROP_COLORKEY
  * Colorkey property.
  * \sa vo_driver_t
  */
-#define VO_PROP_COLORKEY        6
+#define VO_PROP_COLORKEY          6
+/**
+ * \def VO_PROP_SOFT_DEINTERLACE
+ * Software deinterlacing (BOB) property.
+ * \sa vo_driver_t
+ */
+#define VO_PROP_SOFT_DEINTERLACE  7
 /**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES       7
+#define VO_NUM_PROPERTIES         8
 
                /** @} end of video_prop */
 
@@ -594,7 +600,7 @@ void xine_exit (xine_t *self);
 	   * @{
 	   */
 /**
- * \fn void xine_play (xine_t *self, char *MRL, int pos)
+ * \fn void xine_play (xine_t *self, char *MRL, int start_pos, int start_time)
  * \brief Start to play a stream
  * \param self Current xine engine configuration ( #see xine_init() )
  * \param MRL Media Resource Location to open
@@ -609,28 +615,85 @@ void xine_exit (xine_t *self);
  */
 void xine_play (xine_t *self, char *MRL, int start_pos, int start_time);
 
-/*
- * set playback speed
+/**
+ * \fn void xine_set_speed (xine_t *self, int speed)
+ * \brief Set playback speed.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param speed Desired playback speed ( #see SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4 )
+ * \return Nothing
  *
- * constants see below
+ * Set the playback speed to desired speed, according of SPEED_x constant.
+ *
  */
+void xine_set_speed (xine_t *self, int speed);
 
-void xine_set_speed (xine_t *this, int speed);
-int xine_get_speed (xine_t *this);
+/**
+ * \fn xine_get_speed (xine_t *self)
+ * \brief Get the playback speed.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return speed value ( #see SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4 )
+ *
+ * Get the current speed playback. Possible values are SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4.
+ */
+int xine_get_speed (xine_t *self);
 
+/**
+ * \def SPEED_PAUSE
+ * Playback pause.
+ * \sa xine_set_speed(), xine_get_speed()
+ */
 #define SPEED_PAUSE   0
+/**
+ * \def SPEED_SLOW_4
+ * Playback at 25% speed.
+ *\sa xine_set_speed(), xine_get_speed()
+ */
 #define SPEED_SLOW_4  1
+/**
+ * \def SPEED_SLOW_2
+ * Playback at 50% speed.
+ * \sa xine_set_speed(), xine_get_speed()
+ */
 #define SPEED_SLOW_2  2
+/**
+ * \def SPEED_NORMAL
+ * Playback at 100% speed.
+ * \sa xine_set_speed(), xine_get_speed()
+ */ 
 #define SPEED_NORMAL  4
+/**
+ * \def SPEED_FAST_2
+ * Playback at 200% speed.
+ * \sa xine_set_speed(), xine_get_speed()
+ */
 #define SPEED_FAST_2  8
+/**
+ * \def SPEED_FAST_4
+ * Playback at 400% speed.
+ * \sa xine_set_speed(), xine_get_speed()
+ */
 #define SPEED_FAST_4 16
 
-/*
- * manually adjust a/v sync
+/**
+ * \fn void xine_set_av_offset (xine_t *self, int offset_pts)
+ * \brief Set audio/video sync.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param offset_pts New pts.
+ * \return Nothing
+ *
+ * Set audio/video sync offset, according to offset_pts value ( #see xine_get_av_offset() ).
  */
+void xine_set_av_offset (xine_t *self, int offset_pts);
 
-void xine_set_av_offset (xine_t *this, int offset_pts);
-int xine_get_av_offset (xine_t *this);
+/**
+ * \fn int xine_get_av_offset (xine_t *self)
+ * \brief Get audio/video sync.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return Current audio/video offset.
+ *
+ * Return the current audio/video sync offset ( #see xine_set_av_offset() ).
+ */
+int xine_get_av_offset (xine_t *self);
 
 /**
  * \fn void xine_stop (xine_t *self)
@@ -981,7 +1044,6 @@ typedef struct {
  * returns <start_mrl> if <start_mrl> is a valid MRL, not a directory
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
-
 mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, int *num_mrls);
 
           /** @} end of browse_group */

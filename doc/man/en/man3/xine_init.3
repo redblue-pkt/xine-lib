@@ -1,4 +1,4 @@
-.TH "Init functions" 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "Init functions" 3 "17 Sep 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -24,7 +24,7 @@ Init functions \-
 .br
 .RI "\fIConfiguration file initialisation.\fP"
 .ti -1c
-.RI "\fBxine_t\fP* \fBxine_init\fP (\fBvo_driver_t\fP *vo, \fBao_functions_t\fP *ao, \fBconfig_values_t\fP *config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
+.RI "\fBxine_t\fP* \fBxine_init\fP (\fBvo_driver_t\fP *vo, \fBao_driver_t\fP *ao, \fBconfig_values_t\fP *config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
 .br
 .RI "\fIInitialisation of xine.\fP"
 .ti -1c
@@ -88,7 +88,7 @@ De-init xine engine.
 .TP
 \fB\fIself\fP\fP
  
-.SS "\fBxine_t\fP * xine_init (\fBvo_driver_t\fP * vo, \fBao_functions_t\fP * ao, \fBconfig_values_t\fP * config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
+.SS "\fBxine_t\fP * xine_init (\fBvo_driver_t\fP * vo, \fBao_driver_t\fP * ao, \fBconfig_values_t\fP * config, \fBgui_stream_end_cb_t\fP stream_end_cb, \fBgui_get_next_mrl_cb_t\fP get_next_mrl_cb, \fBgui_branched_cb_t\fP branched_cb)"
 .PP
 Initialisation of xine.
 .PP
@@ -119,7 +119,7 @@ Current xine engine configuration
 .PP
 \fBSee also: \fP
 .in +1c
-\fBvo_driver_t\fP, \fBao_functions_t\fP, \fBconfig_values_t\fP, \fBgui_stream_end_cb_t\fP, \fBgui_get_next_mrl_cb_t\fP, \fBgui_branched_cb_t\fP 
+\fBvo_driver_t\fP, \fBao_driver_t\fP, \fBconfig_values_t\fP, \fBgui_stream_end_cb_t\fP, \fBgui_get_next_mrl_cb_t\fP, \fBgui_branched_cb_t\fP 
 .PP
 \fBWarning: \fP
 .in +1c

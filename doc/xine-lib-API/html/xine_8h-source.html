@@ -10,7 +10,7 @@
 <a class="qindex" href="index.html">Main Page</a> &nbsp; <a class="qindex" href="modules.html">Modules</a> &nbsp; <a class="qindex" href="annotated.html">Data Structures</a> &nbsp; <a class="qindex" href="files.html">File List</a> &nbsp; <a class="qindex" href="functions.html">Data Fields</a> &nbsp; <a class="qindex" href="globals.html">Globals</a> &nbsp; </center>
 <hr><h1>xine.h</h1><a href="xine_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre>00001 <font class="comment">/* !! DO NO EDIT THIS FILE, it is automatically generated */</font>
 00031 <font class="comment">/*</font>
-00032 <font class="comment"> * $Id: xine_8h-source.html,v 1.1 2001/07/26 11:12:26 f1rmb Exp $</font>
+00032 <font class="comment"> * $Id: xine_8h-source.html,v 1.2 2001/09/16 23:13:45 f1rmb Exp $</font>
 00033 <font class="comment"> *</font>
 00034 <font class="comment"> */</font>
 00035 
@@ -25,319 +25,350 @@
 00044 <font class="preprocessor">#include &lt;unistd.h&gt;</font>
 00045 <font class="preprocessor">#include &lt;sys/types.h&gt;</font>
 00046 
-00047 <font class="preprocessor">#ifndef DOC_HIDDEN</font>
-00048 <font class="preprocessor"></font><font class="preprocessor">#include &lt;xine/events.h&gt;</font>
+00047 <font class="preprocessor">#ifndef XINE_COMPILE</font>
+00048 <font class="preprocessor"></font><font class="preprocessor">#include &lt;xine/video_out.h&gt;</font>
 00049 <font class="preprocessor">#endif</font>
 00050 <font class="preprocessor"></font>
-<a name="l00055"></a><a class="code" href="xine_8h.html#a0">00055</a> <font class="preprocessor">#define XINE_SKINDIR    "/usr/local/share/xine/skins"</font>
-00056 <font class="preprocessor"></font>
-00066 <font class="preprocessor">#define XINE_BUILD_CC      "gcc version 2.95.3 20010315 (release)"</font>
-00067 <font class="preprocessor"></font>
-00070 <font class="preprocessor">#define XINE_BUILD_OS      "Linux 2.4.5 i686"</font>
+00051 <font class="preprocessor">#ifndef DOC_HIDDEN</font>
+00052 <font class="preprocessor"></font><font class="preprocessor">#include &lt;xine/events.h&gt;</font>
+00053 <font class="preprocessor">#endif</font>
+00054 <font class="preprocessor"></font>
+<a name="l00059"></a><a class="code" href="xine_8h.html#a0">00059</a> <font class="preprocessor">#define XINE_SKINDIR    "/usr/local/share/xine/skins"</font>
+00060 <font class="preprocessor"></font>
+00070 <font class="preprocessor">#define XINE_BUILD_CC      "gcc version 2.95.3 20010315 (release)"</font>
 00071 <font class="preprocessor"></font>
-00074 <font class="preprocessor">#define XINE_BUILD_DATE    "Thu 26 Jul 2001 09:17:10"</font>
+00074 <font class="preprocessor">#define XINE_BUILD_OS      "Linux 2.4.8 i686"</font>
 00075 <font class="preprocessor"></font>
-00093 <font class="preprocessor">#define XINE_STOP      0</font>
-00094 <font class="preprocessor"></font>
-00099 <font class="preprocessor">#define XINE_PLAY      1</font>
-00100 <font class="preprocessor"></font>
-00105 <font class="preprocessor">#define XINE_PAUSE     2</font>
-00106 <font class="preprocessor"></font>
-00111 <font class="preprocessor">#define XINE_QUIT      3</font>
-00112 <font class="preprocessor"></font>
-00124 <font class="preprocessor">#define XINE_MAJOR_VERSION 0</font>
-00125 <font class="preprocessor"></font>
-00129 <font class="preprocessor">#define XINE_MINOR_VERSION 5</font>
-00130 <font class="preprocessor"></font>
-00134 <font class="preprocessor">#define XINE_SUB_VERSION   0</font>
-00135 <font class="preprocessor"></font>
-00150 <font class="keywordtype">char</font> *<a class="code" href="xine_8h.html#a0">xine_get_str_version</a>(<font class="keywordtype">void</font>);
-00151 
-00159 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a1">xine_get_major_version</a>(<font class="keywordtype">void</font>);
-00160 
-00168 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a2">xine_get_minor_version</a>(<font class="keywordtype">void</font>);
-00169 
-00177 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a3">xine_get_sub_version</a>(<font class="keywordtype">void</font>);
-00178 
-00189 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a4">xine_check_version</a>(<font class="keywordtype">int</font> major, <font class="keywordtype">int</font> minor, <font class="keywordtype">int</font> sub);
-00190 
-00207 <font class="preprocessor">#define VO_CAP_HUE          0x00000010</font>
-00208 <font class="preprocessor"></font>
-00212 <font class="preprocessor">#define VO_CAP_SATURATION   0x00000020</font>
-00213 <font class="preprocessor"></font>
-00217 <font class="preprocessor">#define VO_CAP_BRIGHTNESS   0x00000040</font>
-00218 <font class="preprocessor"></font>
-00222 <font class="preprocessor">#define VO_CAP_CONTRAST     0x00000080</font>
-00223 <font class="preprocessor"></font>
-00227 <font class="preprocessor">#define VO_CAP_COLORKEY     0x00000100</font>
-00228 <font class="preprocessor"></font>
-00241 <font class="preprocessor">#define VO_PROP_INTERLACED      0</font>
-00242 <font class="preprocessor"></font>
-00247 <font class="preprocessor">#define VO_PROP_ASPECT_RATIO    1</font>
-00248 <font class="preprocessor"></font>
-00253 <font class="preprocessor">#define VO_PROP_HUE             2</font>
-00254 <font class="preprocessor"></font>
-00259 <font class="preprocessor">#define VO_PROP_SATURATION      3</font>
-00260 <font class="preprocessor"></font>
-00265 <font class="preprocessor">#define VO_PROP_CONTRAST        4</font>
-00266 <font class="preprocessor"></font>
-00271 <font class="preprocessor">#define VO_PROP_BRIGHTNESS      5</font>
-00272 <font class="preprocessor"></font>
-00277 <font class="preprocessor">#define VO_PROP_COLORKEY        6</font>
-00278 <font class="preprocessor"></font>
-00283 <font class="preprocessor">#define VO_NUM_PROPERTIES       7</font>
-00284 <font class="preprocessor"></font>
-<a name="l00298"></a><a class="code" href="group__video__ratio.html#a0">00298</a> <font class="preprocessor">#define ASPECT_AUTO        0</font>
-00299 <font class="preprocessor"></font>
-<a name="l00304"></a><a class="code" href="group__video__ratio.html#a1">00304</a> <font class="preprocessor">#define ASPECT_ANAMORPHIC  1</font>
-00305 <font class="preprocessor"></font>
-<a name="l00310"></a><a class="code" href="group__video__ratio.html#a2">00310</a> <font class="preprocessor">#define ASPECT_FULL        2</font>
-00311 <font class="preprocessor"></font>
-<a name="l00316"></a><a class="code" href="group__video__ratio.html#a3">00316</a> <font class="preprocessor">#define ASPECT_DVB         3</font>
-00317 <font class="preprocessor"></font>
-00325 <font class="keyword">typedef</font> <font class="keywordtype">void</font> vo_frame_t;
-00331 <font class="keyword">typedef</font> <font class="keywordtype">void</font> vo_overlay_t;
-00332 
-00338 <font class="keyword">typedef</font> <font class="keyword">struct </font><a class="code" href="structvo__driver__s.html">vo_driver_s</a> <a class="code" href="structvo__driver__s.html">vo_driver_t</a>;
-00339 
-00344 <font class="keyword">struct </font><a class="code" href="structvo__driver__s.html">vo_driver_s</a> {
-00349   uint32_t (*get_capabilities) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
-00354   vo_frame_t* (*alloc_frame) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
-00359   void (*update_frame_format) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *img,
-00360                                uint32_t width, uint32_t height, 
-00361                                <font class="keywordtype">int</font> ratio_code, <font class="keywordtype">int</font> format);
-00365   void (*display_frame) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *vo_img);
-00369   void (*overlay_blend) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
-00377   int (*get_property) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, <font class="keywordtype">int</font> property);
-00382   int (*set_property) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, 
-00383                        <font class="keywordtype">int</font> property, <font class="keywordtype">int</font> value);
-00388   void (*get_property_min_max) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self,
-00389                                 <font class="keywordtype">int</font> property, <font class="keywordtype">int</font> *min, <font class="keywordtype">int</font> *max);
-00396   int (*gui_data_exchange) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, <font class="keywordtype">int</font> data_type,
-00397                             <font class="keywordtype">void</font> *data);
-00401   void (*exit) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
-00402 
-00403 };
-00404 
-00422 <font class="keyword">typedef</font> <font class="keywordtype">void</font> xine_t;
-00427 <font class="keyword">typedef</font> <font class="keywordtype">void</font> ao_functions_t;
-00432 <font class="keyword">typedef</font> <font class="keywordtype">void</font> cfg_data_t;
-00438 <font class="keyword">typedef</font> <font class="keyword">struct </font><a class="code" href="structconfig__values__s.html">config_values_s</a> <a class="code" href="structconfig__values__s.html">config_values_t</a>;
-00444 <font class="keyword">struct </font><a class="code" href="structconfig__values__s.html">config_values_s</a> {
-00448   <font class="keywordtype">char</font>* (*lookup_str) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
-00449                        <font class="keywordtype">char</font> *key, <font class="keywordtype">char</font> *str_default);
-00453   int (*lookup_int) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
-00454                      <font class="keywordtype">char</font> *key, <font class="keywordtype">int</font> n_default);
-00458   void (*set_str) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
-00459                    <font class="keywordtype">char</font> *key, <font class="keywordtype">char</font> *value) ;
-00463   void (*set_int) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
-00464                    <font class="keywordtype">char</font> *key, <font class="keywordtype">int</font> value) ;
-00468   void (*save) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self);
-00474   void (*read) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self, <font class="keywordtype">char</font> *filename);
-<a name="l00478"></a><a class="code" href="structconfig__values__s.html#m6">00478</a>   cfg_data_t *data;
-00479 };
-00480 
-00494 <a class="code" href="structconfig__values__s.html">config_values_t</a> *<a class="code" href="xine_8h.html#a0">config_file_init</a> (<font class="keywordtype">char</font> *filename);
-00495 
-00506 <font class="keyword">typedef</font> void (*gui_stream_end_cb_t) (<font class="keywordtype">int</font> nStatus);
-00511 <font class="keyword">typedef</font> <font class="keywordtype">char</font>* (*gui_get_next_mrl_cb_t) (<font class="keywordtype">void</font>);
-00516 <font class="keyword">typedef</font> void (*gui_branched_cb_t) (<font class="keywordtype">void</font>);
-00517 
-<a name="l00532"></a><a class="code" href="group__demux__strategy.html#a0">00532</a> <font class="preprocessor">#define DEMUX_DEFAULT_STRATEGY    0</font>
-00533 <font class="preprocessor"></font>
-<a name="l00538"></a><a class="code" href="group__demux__strategy.html#a1">00538</a> <font class="preprocessor">#define DEMUX_REVERT_STRATEGY     1</font>
-00539 <font class="preprocessor"></font>
-<a name="l00544"></a><a class="code" href="group__demux__strategy.html#a2">00544</a> <font class="preprocessor">#define DEMUX_CONTENT_STRATEGY    2</font>
-00545 <font class="preprocessor"></font>
-<a name="l00550"></a><a class="code" href="group__demux__strategy.html#a3">00550</a> <font class="preprocessor">#define DEMUX_EXTENSION_STRATEGY  3</font>
-00551 <font class="preprocessor"></font>
-00572 xine_t *<a class="code" href="xine_8h.html#a1">xine_init</a> (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *vo, 
-00573                    ao_functions_t *ao,
-00574                    <a class="code" href="structconfig__values__s.html">config_values_t</a> *config,
-00575                    gui_stream_end_cb_t stream_end_cb,
-00576                    gui_get_next_mrl_cb_t get_next_mrl_cb,
-00577                    gui_branched_cb_t branched_cb);
-00578 
-00588 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a2">xine_exit</a> (xine_t *self);
-00589 
-00607 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a0">xine_play</a> (xine_t *self, <font class="keywordtype">char</font> *MRL, <font class="keywordtype">int</font> pos);
-00608 
-00617 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a1">xine_pause</a> (xine_t *self);
+00078 <font class="preprocessor">#define XINE_BUILD_DATE    "Mon 17 Sep 2001 00:59:15"</font>
+00079 <font class="preprocessor"></font>
+00097 <font class="preprocessor">#define XINE_STOP      0</font>
+00098 <font class="preprocessor"></font>
+00103 <font class="preprocessor">#define XINE_PLAY      1</font>
+00104 <font class="preprocessor"></font>
+00109 <font class="preprocessor">#define XINE_QUIT      2</font>
+00110 <font class="preprocessor"></font>
+00122 <font class="preprocessor">#define XINE_MAJOR_VERSION 0</font>
+00123 <font class="preprocessor"></font>
+00127 <font class="preprocessor">#define XINE_MINOR_VERSION 9</font>
+00128 <font class="preprocessor"></font>
+00132 <font class="preprocessor">#define XINE_SUB_VERSION   1</font>
+00133 <font class="preprocessor"></font>
+00148 <font class="keywordtype">char</font> *<a class="code" href="xine_8h.html#a0">xine_get_str_version</a>(<font class="keywordtype">void</font>);
+00149 
+00157 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a1">xine_get_major_version</a>(<font class="keywordtype">void</font>);
+00158 
+00166 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a2">xine_get_minor_version</a>(<font class="keywordtype">void</font>);
+00167 
+00175 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a3">xine_get_sub_version</a>(<font class="keywordtype">void</font>);
+00176 
+00187 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a4">xine_check_version</a>(<font class="keywordtype">int</font> major, <font class="keywordtype">int</font> minor, <font class="keywordtype">int</font> sub);
+00188 
+00205 <font class="preprocessor">#define VO_CAP_HUE          0x00000010</font>
+00206 <font class="preprocessor"></font>
+00210 <font class="preprocessor">#define VO_CAP_SATURATION   0x00000020</font>
+00211 <font class="preprocessor"></font>
+00215 <font class="preprocessor">#define VO_CAP_BRIGHTNESS   0x00000040</font>
+00216 <font class="preprocessor"></font>
+00220 <font class="preprocessor">#define VO_CAP_CONTRAST     0x00000080</font>
+00221 <font class="preprocessor"></font>
+00225 <font class="preprocessor">#define VO_CAP_COLORKEY     0x00000100</font>
+00226 <font class="preprocessor"></font>
+00239 <font class="preprocessor">#define VO_PROP_INTERLACED        0</font>
+00240 <font class="preprocessor"></font>
+00245 <font class="preprocessor">#define VO_PROP_ASPECT_RATIO      1</font>
+00246 <font class="preprocessor"></font>
+00251 <font class="preprocessor">#define VO_PROP_HUE               2</font>
+00252 <font class="preprocessor"></font>
+00257 <font class="preprocessor">#define VO_PROP_SATURATION        3</font>
+00258 <font class="preprocessor"></font>
+00263 <font class="preprocessor">#define VO_PROP_CONTRAST          4</font>
+00264 <font class="preprocessor"></font>
+00269 <font class="preprocessor">#define VO_PROP_BRIGHTNESS        5</font>
+00270 <font class="preprocessor"></font>
+00275 <font class="preprocessor">#define VO_PROP_COLORKEY          6</font>
+00276 <font class="preprocessor"></font>
+00281 <font class="preprocessor">#define VO_PROP_SOFT_DEINTERLACE  7</font>
+00282 <font class="preprocessor"></font>
+00287 <font class="preprocessor">#define VO_NUM_PROPERTIES         8</font>
+00288 <font class="preprocessor"></font>
+<a name="l00302"></a><a class="code" href="group__video__ratio.html#a0">00302</a> <font class="preprocessor">#define ASPECT_AUTO        0</font>
+00303 <font class="preprocessor"></font>
+<a name="l00308"></a><a class="code" href="group__video__ratio.html#a1">00308</a> <font class="preprocessor">#define ASPECT_ANAMORPHIC  1</font>
+00309 <font class="preprocessor"></font>
+<a name="l00314"></a><a class="code" href="group__video__ratio.html#a2">00314</a> <font class="preprocessor">#define ASPECT_FULL        2</font>
+00315 <font class="preprocessor"></font>
+<a name="l00320"></a><a class="code" href="group__video__ratio.html#a3">00320</a> <font class="preprocessor">#define ASPECT_DVB         3</font>
+00321 <font class="preprocessor"></font>
+00324 <font class="preprocessor">#ifdef DOC_HIDDEN</font>
+00325 <font class="preprocessor"></font>
+00330 <font class="keyword">typedef</font> <font class="keywordtype">void</font> vo_frame_t;
+00336 <font class="keyword">typedef</font> <font class="keywordtype">void</font> vo_overlay_t;
+00337 
+00343 <font class="keyword">typedef</font> <font class="keyword">struct </font><a class="code" href="structvo__driver__s.html">vo_driver_s</a> <a class="code" href="structvo__driver__s.html">vo_driver_t</a>;
+00344 
+00349 <font class="keyword">struct </font><a class="code" href="structvo__driver__s.html">vo_driver_s</a> {
+00354   uint32_t (*get_capabilities) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
+00359   vo_frame_t* (*alloc_frame) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
+00364   void (*update_frame_format) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *img,
+00365                                uint32_t width, uint32_t height, 
+00366                                <font class="keywordtype">int</font> ratio_code, <font class="keywordtype">int</font> format);
+00370   void (*display_frame) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *vo_img);
+00374   void (*overlay_blend) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
+00382   int (*get_property) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, <font class="keywordtype">int</font> property);
+00387   int (*set_property) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, 
+00388                        <font class="keywordtype">int</font> property, <font class="keywordtype">int</font> value);
+00393   void (*get_property_min_max) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self,
+00394                                 <font class="keywordtype">int</font> property, <font class="keywordtype">int</font> *min, <font class="keywordtype">int</font> *max);
+00401   int (*gui_data_exchange) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self, <font class="keywordtype">int</font> data_type,
+00402                             <font class="keywordtype">void</font> *data);
+00406   void (*exit) (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *self);
+00407 
+00408 };
+00409 <font class="preprocessor">#endif</font>
+00410 <font class="preprocessor"></font>
+00427 <font class="keyword">typedef</font> <font class="keywordtype">void</font> xine_t;
+00432 <font class="keyword">typedef</font> <font class="keywordtype">void</font> ao_driver_t;
+00438 <font class="preprocessor">#ifdef DOC_HIDDEN</font>
+00439 <font class="preprocessor"></font><font class="keyword">typedef</font> <font class="keywordtype">void</font> cfg_data_t;
+00445 <font class="keyword">typedef</font> <font class="keyword">struct </font><a class="code" href="structconfig__values__s.html">config_values_s</a> <a class="code" href="structconfig__values__s.html">config_values_t</a>;
+00451 <font class="keyword">struct </font><a class="code" href="structconfig__values__s.html">config_values_s</a> {
+00455   <font class="keywordtype">char</font>* (*lookup_str) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
+00456                        <font class="keywordtype">char</font> *key, <font class="keywordtype">char</font> *str_default);
+00460   int (*lookup_int) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
+00461                      <font class="keywordtype">char</font> *key, <font class="keywordtype">int</font> n_default);
+00465   void (*set_str) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
+00466                    <font class="keywordtype">char</font> *key, <font class="keywordtype">char</font> *value) ;
+00470   void (*set_int) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self,
+00471                    <font class="keywordtype">char</font> *key, <font class="keywordtype">int</font> value) ;
+00475   void (*save) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self);
+00481   void (*read) (<a class="code" href="structconfig__values__s.html">config_values_t</a> *self, <font class="keywordtype">char</font> *filename);
+<a name="l00485"></a><a class="code" href="structconfig__values__s.html#m6">00485</a>   cfg_data_t *data;
+00486 };
+00487 <font class="preprocessor">#endif</font>
+00488 <font class="preprocessor"></font>
+00501 <a class="code" href="structconfig__values__s.html">config_values_t</a> *<a class="code" href="xine_8h.html#a0">config_file_init</a> (<font class="keywordtype">char</font> *filename);
+00502 
+00513 <font class="keyword">typedef</font> void (*gui_stream_end_cb_t) (<font class="keywordtype">int</font> nStatus);
+00518 <font class="keyword">typedef</font> <font class="keywordtype">char</font>* (*gui_get_next_mrl_cb_t) (<font class="keywordtype">void</font>);
+00523 <font class="keyword">typedef</font> void (*gui_branched_cb_t) (<font class="keywordtype">void</font>);
+00524 
+<a name="l00539"></a><a class="code" href="group__demux__strategy.html#a0">00539</a> <font class="preprocessor">#define DEMUX_DEFAULT_STRATEGY    0</font>
+00540 <font class="preprocessor"></font>
+<a name="l00545"></a><a class="code" href="group__demux__strategy.html#a1">00545</a> <font class="preprocessor">#define DEMUX_REVERT_STRATEGY     1</font>
+00546 <font class="preprocessor"></font>
+<a name="l00551"></a><a class="code" href="group__demux__strategy.html#a2">00551</a> <font class="preprocessor">#define DEMUX_CONTENT_STRATEGY    2</font>
+00552 <font class="preprocessor"></font>
+<a name="l00557"></a><a class="code" href="group__demux__strategy.html#a3">00557</a> <font class="preprocessor">#define DEMUX_EXTENSION_STRATEGY  3</font>
+00558 <font class="preprocessor"></font>
+00579 xine_t *<a class="code" href="xine_8h.html#a1">xine_init</a> (<a class="code" href="structvo__driver__s.html">vo_driver_t</a> *vo, 
+00580                    ao_driver_t *ao,
+00581                    <a class="code" href="structconfig__values__s.html">config_values_t</a> *config,
+00582                    gui_stream_end_cb_t stream_end_cb,
+00583                    gui_get_next_mrl_cb_t get_next_mrl_cb,
+00584                    gui_branched_cb_t branched_cb);
+00585 
+00595 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a2">xine_exit</a> (xine_t *self);
+00596 
+00617 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a0">xine_play</a> (xine_t *self, <font class="keywordtype">char</font> *MRL, <font class="keywordtype">int</font> start_pos, <font class="keywordtype">int</font> start_time);
 00618 
-00627 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a2">xine_stop</a> (xine_t *self);
-00628 
-00637 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a3">xine_eject</a>(xine_t *self);
-00638 
-00647 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a4">xine_get_status</a> (xine_t *self);
-00648 
-00657 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a5">xine_get_current_position</a> (xine_t *self);
-00658 
-00667 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a6">xine_get_audio_channel</a> (xine_t *self);
-00668 
-00677 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a7">xine_select_audio_channel</a> (xine_t *self, <font class="keywordtype">int</font> channel);
-00678 
-00687 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a8">xine_get_spu_channel</a> (xine_t *self);
+00629 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a1">xine_set_speed</a> (xine_t *self, <font class="keywordtype">int</font> speed);
+00630 
+00639 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a2">xine_get_speed</a> (xine_t *self);
+00640 
+00646 <font class="preprocessor">#define SPEED_PAUSE   0</font>
+00647 <font class="preprocessor"></font>
+00652 <font class="preprocessor">#define SPEED_SLOW_4  1</font>
+00653 <font class="preprocessor"></font>
+00658 <font class="preprocessor">#define SPEED_SLOW_2  2</font>
+00659 <font class="preprocessor"></font>
+00664 <font class="preprocessor">#define SPEED_NORMAL  4</font>
+00665 <font class="preprocessor"></font>
+00670 <font class="preprocessor">#define SPEED_FAST_2  8</font>
+00671 <font class="preprocessor"></font>
+00676 <font class="preprocessor">#define SPEED_FAST_4 16</font>
+00677 <font class="preprocessor"></font>
+00687 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a3">xine_set_av_offset</a> (xine_t *self, <font class="keywordtype">int</font> offset_pts);
 00688 
-00697 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a9">xine_select_spu_channel</a> (xine_t *self, <font class="keywordtype">int</font> channel);
+00697 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a4">xine_get_av_offset</a> (xine_t *self);
 00698 
-00715 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a0">xine_get_browsable_input_plugin_ids</a> (xine_t *self) ;
-00716 
-<a name="l00729"></a><a class="code" href="group__mrl__types.html#a0">00729</a> <font class="preprocessor">#define mrl_unknown        (0 &lt;&lt; 0)</font>
-00730 <font class="preprocessor"></font>
-<a name="l00735"></a><a class="code" href="group__mrl__types.html#a1">00735</a> <font class="preprocessor">#define mrl_dvd            (1 &lt;&lt; 0)</font>
-00736 <font class="preprocessor"></font>
-<a name="l00741"></a><a class="code" href="group__mrl__types.html#a2">00741</a> <font class="preprocessor">#define mrl_vcd            (1 &lt;&lt; 1)</font>
-00742 <font class="preprocessor"></font>
-<a name="l00747"></a><a class="code" href="group__mrl__types.html#a3">00747</a> <font class="preprocessor">#define mrl_net            (1 &lt;&lt; 2)</font>
-00748 <font class="preprocessor"></font>
-<a name="l00753"></a><a class="code" href="group__mrl__types.html#a4">00753</a> <font class="preprocessor">#define mrl_rtp            (1 &lt;&lt; 3)</font>
-00754 <font class="preprocessor"></font>
-<a name="l00759"></a><a class="code" href="group__mrl__types.html#a5">00759</a> <font class="preprocessor">#define mrl_stdin          (1 &lt;&lt; 4)</font>
-00760 <font class="preprocessor"></font>
-<a name="l00765"></a><a class="code" href="group__mrl__types.html#a6">00765</a> <font class="preprocessor">#define mrl_file           (1 &lt;&lt; 5)</font>
-00766 <font class="preprocessor"></font>
-<a name="l00771"></a><a class="code" href="group__mrl__types.html#a7">00771</a> <font class="preprocessor">#define mrl_file_fifo      (1 &lt;&lt; 6)</font>
-00772 <font class="preprocessor"></font>
-<a name="l00777"></a><a class="code" href="group__mrl__types.html#a8">00777</a> <font class="preprocessor">#define mrl_file_chardev   (1 &lt;&lt; 7)</font>
-00778 <font class="preprocessor"></font>
-<a name="l00783"></a><a class="code" href="group__mrl__types.html#a9">00783</a> <font class="preprocessor">#define mrl_file_directory (1 &lt;&lt; 8)</font>
-00784 <font class="preprocessor"></font>
-<a name="l00789"></a><a class="code" href="group__mrl__types.html#a10">00789</a> <font class="preprocessor">#define mrl_file_blockdev  (1 &lt;&lt; 9)</font>
-00790 <font class="preprocessor"></font>
-<a name="l00795"></a><a class="code" href="group__mrl__types.html#a11">00795</a> <font class="preprocessor">#define mrl_file_normal    (1 &lt;&lt; 10)</font>
-00796 <font class="preprocessor"></font>
-<a name="l00801"></a><a class="code" href="group__mrl__types.html#a12">00801</a> <font class="preprocessor">#define mrl_file_symlink   (1 &lt;&lt; 11)</font>
-00802 <font class="preprocessor"></font>
-<a name="l00807"></a><a class="code" href="group__mrl__types.html#a13">00807</a> <font class="preprocessor">#define mrl_file_sock      (1 &lt;&lt; 12)</font>
-00808 <font class="preprocessor"></font>
-<a name="l00813"></a><a class="code" href="group__mrl__types.html#a14">00813</a> <font class="preprocessor">#define mrl_file_exec      (1 &lt;&lt; 13)</font>
-00814 <font class="preprocessor"></font>
-<a name="l00819"></a><a class="code" href="group__mrl__types.html#a15">00819</a> <font class="preprocessor">#define mrl_file_backup    (1 &lt;&lt; 14)</font>
-00820 <font class="preprocessor"></font>
-<a name="l00825"></a><a class="code" href="group__mrl__types.html#a16">00825</a> <font class="preprocessor">#define mrl_file_hidden    (1 &lt;&lt; 15)</font>
-00826 <font class="preprocessor"></font>
-00834 <font class="preprocessor">#define MRL_ZERO(m) {                                                         \</font>
-00835 <font class="preprocessor">  if((m)) {                                                                   \</font>
-00836 <font class="preprocessor">    if((m)-&gt;origin)                                                           \</font>
-00837 <font class="preprocessor">      free((m)-&gt;origin);                                                      \</font>
-00838 <font class="preprocessor">    if((m)-&gt;mrl)                                                              \</font>
-00839 <font class="preprocessor">      free((m)-&gt;mrl);                                                         \</font>
-00840 <font class="preprocessor">    if((m)-&gt;link)                                                             \</font>
-00841 <font class="preprocessor">      free((m)-&gt;link);                                                        \</font>
-00842 <font class="preprocessor">    (m)-&gt;origin = NULL;                                                       \</font>
-00843 <font class="preprocessor">    (m)-&gt;mrl    = NULL;                                                       \</font>
-00844 <font class="preprocessor">    (m)-&gt;link   = NULL;                                                       \</font>
-00845 <font class="preprocessor">    (m)-&gt;type   = 0;                                                          \</font>
-00846 <font class="preprocessor">    (m)-&gt;size   = (off_t) 0;                                                  \</font>
-00847 <font class="preprocessor">  }                                                                           \</font>
-00848 <font class="preprocessor">}</font>
-00849 <font class="preprocessor"></font>
-00855 <font class="preprocessor">#define MRL_DUPLICATE(s, d) {                                                 \</font>
-00856 <font class="preprocessor">  assert((s) != NULL);                                                        \</font>
-00857 <font class="preprocessor">  assert((d) != NULL);                                                        \</font>
-00858 <font class="preprocessor">                                                                              \</font>
-00859 <font class="preprocessor">  if((s)-&gt;origin) {                                                           \</font>
-00860 <font class="preprocessor">    if((d)-&gt;origin) {                                                         \</font>
-00861 <font class="preprocessor">      (d)-&gt;origin = (char *) realloc((d)-&gt;origin, strlen((s)-&gt;origin) + 1);   \</font>
-00862 <font class="preprocessor">      sprintf((d)-&gt;origin, "%s", (s)-&gt;origin);                                \</font>
-00863 <font class="preprocessor">    }                                                                         \</font>
-00864 <font class="preprocessor">    else                                                                      \</font>
-00865 <font class="preprocessor">      (d)-&gt;origin = strdup((s)-&gt;origin);                                      \</font>
-00866 <font class="preprocessor">  }                                                                           \</font>
-00867 <font class="preprocessor">  else                                                                        \</font>
-00868 <font class="preprocessor">    (d)-&gt;origin = NULL;                                                       \</font>
-00869 <font class="preprocessor">                                                                              \</font>
-00870 <font class="preprocessor">  if((s)-&gt;mrl) {                                                              \</font>
-00871 <font class="preprocessor">    if((d)-&gt;mrl) {                                                            \</font>
-00872 <font class="preprocessor">      (d)-&gt;mrl = (char *) realloc((d)-&gt;mrl, strlen((s)-&gt;mrl) + 1);            \</font>
-00873 <font class="preprocessor">      sprintf((d)-&gt;mrl, "%s", (s)-&gt;mrl);                                      \</font>
-00874 <font class="preprocessor">    }                                                                         \</font>
-00875 <font class="preprocessor">    else                                                                      \</font>
-00876 <font class="preprocessor">      (d)-&gt;mrl = strdup((s)-&gt;mrl);                                            \</font>
-00877 <font class="preprocessor">  }                                                                           \</font>
-00878 <font class="preprocessor">  else                                                                        \</font>
-00879 <font class="preprocessor">    (d)-&gt;mrl = NULL;                                                          \</font>
-00880 <font class="preprocessor">                                                                              \</font>
-00881 <font class="preprocessor">  if((s)-&gt;link) {                                                             \</font>
-00882 <font class="preprocessor">    if((d)-&gt;link) {                                                           \</font>
-00883 <font class="preprocessor">      (d)-&gt;link = (char *) realloc((d)-&gt;link, strlen((s)-&gt;link) + 1);         \</font>
-00884 <font class="preprocessor">      sprintf((d)-&gt;link, "%s", (s)-&gt;link);                                    \</font>
-00885 <font class="preprocessor">    }                                                                         \</font>
-00886 <font class="preprocessor">    else                                                                      \</font>
-00887 <font class="preprocessor">      (d)-&gt;link = strdup((s)-&gt;link);                                          \</font>
-00888 <font class="preprocessor">  }                                                                           \</font>
-00889 <font class="preprocessor">  else                                                                        \</font>
-00890 <font class="preprocessor">    (d)-&gt;link = NULL;                                                         \</font>
-00891 <font class="preprocessor">                                                                              \</font>
-00892 <font class="preprocessor">  (d)-&gt;type = (s)-&gt;type;                                                      \</font>
-00893 <font class="preprocessor">  (d)-&gt;size = (s)-&gt;size;                                                      \</font>
-00894 <font class="preprocessor">}</font>
-00895 <font class="preprocessor"></font>
-00901 <font class="preprocessor">#define MRLS_DUPLICATE(s, d) {                                                \</font>
-00902 <font class="preprocessor">  int i = 0;                                                                  \</font>
-00903 <font class="preprocessor">                                                                              \</font>
-00904 <font class="preprocessor">  assert((s) != NULL);                                                        \</font>
-00905 <font class="preprocessor">  assert((d) != NULL);                                                        \</font>
-00906 <font class="preprocessor">                                                                              \</font>
-00907 <font class="preprocessor">  while((s) != NULL) {                                                        \</font>
-00908 <font class="preprocessor">    d[i] = (mrl_t *) malloc(sizeof(mrl_t));                                   \</font>
-00909 <font class="preprocessor">    MRL_DUPLICATE(s[i], d[i]);                                                \</font>
-00910 <font class="preprocessor">    i++;                                                                      \</font>
-00911 <font class="preprocessor">  }                                                                           \</font>
-00912 <font class="preprocessor">}</font>
-00913 <font class="preprocessor"></font>
-00919 <font class="keyword">typedef</font> <font class="keyword">struct </font>{
-<a name="l00921"></a><a class="code" href="structmrl__t.html#m0">00921</a>   <font class="keywordtype">char</font>         *origin;
-<a name="l00923"></a><a class="code" href="structmrl__t.html#m1">00923</a>   <font class="keywordtype">char</font>         *mrl;
-<a name="l00925"></a><a class="code" href="structmrl__t.html#m2">00925</a>   <font class="keywordtype">char</font>         *link;
-<a name="l00927"></a><a class="code" href="structmrl__t.html#m3">00927</a>   uint32_t      type;
-<a name="l00929"></a><a class="code" href="structmrl__t.html#m4">00929</a>   off_t         size;
-00930 } <a class="code" href="structmrl__t.html">mrl_t</a>;
-00931 
-00949 <a class="code" href="structmrl__t.html">mrl_t</a> **<a class="code" href="xine_8h.html#a1">xine_get_browse_mrls</a> (xine_t *self, <font class="keywordtype">char</font> *plugin_id, <font class="keywordtype">char</font> *start_mrl, <font class="keywordtype">int</font> *num_mrls);
-00950 
-00966 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a0">xine_get_autoplay_input_plugin_ids</a> (xine_t *self) ;
-00967 
-00978 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a1">xine_get_autoplay_mrls</a> (xine_t *self, <font class="keywordtype">char</font> *plugin_id, <font class="keywordtype">int</font> *num_mrls);
-00979 
-<a name="l00993"></a><a class="code" href="group__loadplugins__group.html#a4">00993</a> <font class="preprocessor">#define XINE_PLUGINDIR  "/usr/local/lib/xine/plugins"</font>
-00994 <font class="preprocessor"></font>
-01005 <font class="preprocessor">#define VISUAL_TYPE_X11   1</font>
-01006 <font class="preprocessor"></font>
-01011 <font class="preprocessor">#define VISUAL_TYPE_AA    2</font>
-01012 <font class="preprocessor"></font>
-01017 <font class="preprocessor">#define VISUAL_TYPE_FB    3</font>
-01018 <font class="preprocessor"></font>
-01023 <font class="preprocessor">#define VISUAL_TYPE_GTK   4</font>
-01024 <font class="preprocessor"></font>
-01034 <font class="keywordtype">char</font> **<a class="code" href="group__loadplugins__group.html#a0">xine_list_video_output_plugins</a> (<font class="keywordtype">int</font> visual_type);
-01035 
-01045 <a class="code" href="structvo__driver__s.html">vo_driver_t</a> *<a class="code" href="group__loadplugins__group.html#a1">xine_load_video_output_plugin</a>(<a class="code" href="structconfig__values__s.html">config_values_t</a> *config,
-01046                                            <font class="keywordtype">char</font> *id, <font class="keywordtype">int</font> visual_type, <font class="keywordtype">void</font> *visual);
-01047 
-01053 <font class="keywordtype">char</font> **<a class="code" href="group__loadplugins__group.html#a2">xine_list_audio_output_plugins</a> (<font class="keywordtype">void</font>);
-01054 
-01062 ao_functions_t *<a class="code" href="group__loadplugins__group.html#a3">xine_load_audio_output_plugin</a>(<a class="code" href="structconfig__values__s.html">config_values_t</a> *config, <font class="keywordtype">char</font> *id);
-01063 
-01073 <font class="preprocessor">#ifdef DOC_HIDDEN</font>
-01074 <font class="preprocessor"></font>
-<a name="l01078"></a><a class="code" href="group__event__group.html#a0">01078</a> <font class="keyword">typedef</font> <font class="keywordtype">void</font> event_t;
-01079 <font class="preprocessor">#endif</font>
-01080 <font class="preprocessor"></font>
-<a name="l01085"></a><a class="code" href="group__event__group.html#a1">01085</a> <font class="keyword">typedef</font> void (*event_listener_t) (xine_t *xine, event_t *event, <font class="keywordtype">void</font> *data);
-01086 
-01095 <font class="keywordtype">int</font> <a class="code" href="group__event__group.html#a2">xine_register_event_listener</a>(xine_t *self, event_listener_t listener);
-01096 
-01105 <font class="keywordtype">int</font> <a class="code" href="group__event__group.html#a3">xine_remove_event_listener</a>(xine_t *self, event_listener_t listener);
-01106 
-01115 <font class="keywordtype">void</font> <a class="code" href="group__event__group.html#a4">xine_send_event</a>(xine_t *self, event_t *event, <font class="keywordtype">void</font> *data);
-01116 
-01121 <font class="preprocessor">#ifdef __cplusplus</font>
-01122 <font class="preprocessor"></font>}
-01123 <font class="preprocessor">#endif</font>
-01124 <font class="preprocessor"></font>
-01125 <font class="preprocessor">#endif</font>
-</font></pre></div><hr><address><small>Generated at Thu Jul 26 11:29:45 2001 for XINE, A Free Video Player Project - API reference by
+00707 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a5">xine_stop</a> (xine_t *self);
+00708 
+00717 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a6">xine_eject</a>(xine_t *self);
+00718 
+00727 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a7">xine_get_status</a> (xine_t *self);
+00728 
+00737 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a8">xine_get_current_position</a> (xine_t *self);
+00738 
+00747 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a9">xine_get_current_time</a> (xine_t *self);
+00748 
+00757 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a10">xine_get_stream_length</a> (xine_t *self);
+00758 
+00767 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a11">xine_get_audio_channel</a> (xine_t *self);
+00768 
+00777 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a12">xine_select_audio_channel</a> (xine_t *self, <font class="keywordtype">int</font> channel);
+00778 
+00787 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a13">xine_get_spu_channel</a> (xine_t *self);
+00788 
+00797 <font class="keywordtype">void</font> <a class="code" href="xine_8h.html#a14">xine_select_spu_channel</a> (xine_t *self, <font class="keywordtype">int</font> channel);
+00798 
+00815 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a0">xine_get_browsable_input_plugin_ids</a> (xine_t *self) ;
+00816 
+<a name="l00829"></a><a class="code" href="group__mrl__types.html#a0">00829</a> <font class="preprocessor">#define mrl_unknown        (0 &lt;&lt; 0)</font>
+00830 <font class="preprocessor"></font>
+<a name="l00835"></a><a class="code" href="group__mrl__types.html#a1">00835</a> <font class="preprocessor">#define mrl_dvd            (1 &lt;&lt; 0)</font>
+00836 <font class="preprocessor"></font>
+<a name="l00841"></a><a class="code" href="group__mrl__types.html#a2">00841</a> <font class="preprocessor">#define mrl_vcd            (1 &lt;&lt; 1)</font>
+00842 <font class="preprocessor"></font>
+<a name="l00847"></a><a class="code" href="group__mrl__types.html#a3">00847</a> <font class="preprocessor">#define mrl_net            (1 &lt;&lt; 2)</font>
+00848 <font class="preprocessor"></font>
+<a name="l00853"></a><a class="code" href="group__mrl__types.html#a4">00853</a> <font class="preprocessor">#define mrl_rtp            (1 &lt;&lt; 3)</font>
+00854 <font class="preprocessor"></font>
+<a name="l00859"></a><a class="code" href="group__mrl__types.html#a5">00859</a> <font class="preprocessor">#define mrl_stdin          (1 &lt;&lt; 4)</font>
+00860 <font class="preprocessor"></font>
+<a name="l00865"></a><a class="code" href="group__mrl__types.html#a6">00865</a> <font class="preprocessor">#define mrl_file           (1 &lt;&lt; 5)</font>
+00866 <font class="preprocessor"></font>
+<a name="l00871"></a><a class="code" href="group__mrl__types.html#a7">00871</a> <font class="preprocessor">#define mrl_file_fifo      (1 &lt;&lt; 6)</font>
+00872 <font class="preprocessor"></font>
+<a name="l00877"></a><a class="code" href="group__mrl__types.html#a8">00877</a> <font class="preprocessor">#define mrl_file_chardev   (1 &lt;&lt; 7)</font>
+00878 <font class="preprocessor"></font>
+<a name="l00883"></a><a class="code" href="group__mrl__types.html#a9">00883</a> <font class="preprocessor">#define mrl_file_directory (1 &lt;&lt; 8)</font>
+00884 <font class="preprocessor"></font>
+<a name="l00889"></a><a class="code" href="group__mrl__types.html#a10">00889</a> <font class="preprocessor">#define mrl_file_blockdev  (1 &lt;&lt; 9)</font>
+00890 <font class="preprocessor"></font>
+<a name="l00895"></a><a class="code" href="group__mrl__types.html#a11">00895</a> <font class="preprocessor">#define mrl_file_normal    (1 &lt;&lt; 10)</font>
+00896 <font class="preprocessor"></font>
+<a name="l00901"></a><a class="code" href="group__mrl__types.html#a12">00901</a> <font class="preprocessor">#define mrl_file_symlink   (1 &lt;&lt; 11)</font>
+00902 <font class="preprocessor"></font>
+<a name="l00907"></a><a class="code" href="group__mrl__types.html#a13">00907</a> <font class="preprocessor">#define mrl_file_sock      (1 &lt;&lt; 12)</font>
+00908 <font class="preprocessor"></font>
+<a name="l00913"></a><a class="code" href="group__mrl__types.html#a14">00913</a> <font class="preprocessor">#define mrl_file_exec      (1 &lt;&lt; 13)</font>
+00914 <font class="preprocessor"></font>
+<a name="l00919"></a><a class="code" href="group__mrl__types.html#a15">00919</a> <font class="preprocessor">#define mrl_file_backup    (1 &lt;&lt; 14)</font>
+00920 <font class="preprocessor"></font>
+<a name="l00925"></a><a class="code" href="group__mrl__types.html#a16">00925</a> <font class="preprocessor">#define mrl_file_hidden    (1 &lt;&lt; 15)</font>
+00926 <font class="preprocessor"></font>
+00934 <font class="preprocessor">#define MRL_ZERO(m) {                                                         \</font>
+00935 <font class="preprocessor">  if((m)) {                                                                   \</font>
+00936 <font class="preprocessor">    if((m)-&gt;origin)                                                           \</font>
+00937 <font class="preprocessor">      free((m)-&gt;origin);                                                      \</font>
+00938 <font class="preprocessor">    if((m)-&gt;mrl)                                                              \</font>
+00939 <font class="preprocessor">      free((m)-&gt;mrl);                                                         \</font>
+00940 <font class="preprocessor">    if((m)-&gt;link)                                                             \</font>
+00941 <font class="preprocessor">      free((m)-&gt;link);                                                        \</font>
+00942 <font class="preprocessor">    (m)-&gt;origin = NULL;                                                       \</font>
+00943 <font class="preprocessor">    (m)-&gt;mrl    = NULL;                                                       \</font>
+00944 <font class="preprocessor">    (m)-&gt;link   = NULL;                                                       \</font>
+00945 <font class="preprocessor">    (m)-&gt;type   = 0;                                                          \</font>
+00946 <font class="preprocessor">    (m)-&gt;size   = (off_t) 0;                                                  \</font>
+00947 <font class="preprocessor">  }                                                                           \</font>
+00948 <font class="preprocessor">}</font>
+00949 <font class="preprocessor"></font>
+00955 <font class="preprocessor">#define MRL_DUPLICATE(s, d) {                                                 \</font>
+00956 <font class="preprocessor">  assert((s) != NULL);                                                        \</font>
+00957 <font class="preprocessor">  assert((d) != NULL);                                                        \</font>
+00958 <font class="preprocessor">                                                                              \</font>
+00959 <font class="preprocessor">  if((s)-&gt;origin) {                                                           \</font>
+00960 <font class="preprocessor">    if((d)-&gt;origin) {                                                         \</font>
+00961 <font class="preprocessor">      (d)-&gt;origin = (char *) realloc((d)-&gt;origin, strlen((s)-&gt;origin) + 1);   \</font>
+00962 <font class="preprocessor">      sprintf((d)-&gt;origin, "%s", (s)-&gt;origin);                                \</font>
+00963 <font class="preprocessor">    }                                                                         \</font>
+00964 <font class="preprocessor">    else                                                                      \</font>
+00965 <font class="preprocessor">      (d)-&gt;origin = strdup((s)-&gt;origin);                                      \</font>
+00966 <font class="preprocessor">  }                                                                           \</font>
+00967 <font class="preprocessor">  else                                                                        \</font>
+00968 <font class="preprocessor">    (d)-&gt;origin = NULL;                                                       \</font>
+00969 <font class="preprocessor">                                                                              \</font>
+00970 <font class="preprocessor">  if((s)-&gt;mrl) {                                                              \</font>
+00971 <font class="preprocessor">    if((d)-&gt;mrl) {                                                            \</font>
+00972 <font class="preprocessor">      (d)-&gt;mrl = (char *) realloc((d)-&gt;mrl, strlen((s)-&gt;mrl) + 1);            \</font>
+00973 <font class="preprocessor">      sprintf((d)-&gt;mrl, "%s", (s)-&gt;mrl);                                      \</font>
+00974 <font class="preprocessor">    }                                                                         \</font>
+00975 <font class="preprocessor">    else                                                                      \</font>
+00976 <font class="preprocessor">      (d)-&gt;mrl = strdup((s)-&gt;mrl);                                            \</font>
+00977 <font class="preprocessor">  }                                                                           \</font>
+00978 <font class="preprocessor">  else                                                                        \</font>
+00979 <font class="preprocessor">    (d)-&gt;mrl = NULL;                                                          \</font>
+00980 <font class="preprocessor">                                                                              \</font>
+00981 <font class="preprocessor">  if((s)-&gt;link) {                                                             \</font>
+00982 <font class="preprocessor">    if((d)-&gt;link) {                                                           \</font>
+00983 <font class="preprocessor">      (d)-&gt;link = (char *) realloc((d)-&gt;link, strlen((s)-&gt;link) + 1);         \</font>
+00984 <font class="preprocessor">      sprintf((d)-&gt;link, "%s", (s)-&gt;link);                                    \</font>
+00985 <font class="preprocessor">    }                                                                         \</font>
+00986 <font class="preprocessor">    else                                                                      \</font>
+00987 <font class="preprocessor">      (d)-&gt;link = strdup((s)-&gt;link);                                          \</font>
+00988 <font class="preprocessor">  }                                                                           \</font>
+00989 <font class="preprocessor">  else                                                                        \</font>
+00990 <font class="preprocessor">    (d)-&gt;link = NULL;                                                         \</font>
+00991 <font class="preprocessor">                                                                              \</font>
+00992 <font class="preprocessor">  (d)-&gt;type = (s)-&gt;type;                                                      \</font>
+00993 <font class="preprocessor">  (d)-&gt;size = (s)-&gt;size;                                                      \</font>
+00994 <font class="preprocessor">}</font>
+00995 <font class="preprocessor"></font>
+01001 <font class="preprocessor">#define MRLS_DUPLICATE(s, d) {                                                \</font>
+01002 <font class="preprocessor">  int i = 0;                                                                  \</font>
+01003 <font class="preprocessor">                                                                              \</font>
+01004 <font class="preprocessor">  assert((s) != NULL);                                                        \</font>
+01005 <font class="preprocessor">  assert((d) != NULL);                                                        \</font>
+01006 <font class="preprocessor">                                                                              \</font>
+01007 <font class="preprocessor">  while((s) != NULL) {                                                        \</font>
+01008 <font class="preprocessor">    d[i] = (mrl_t *) malloc(sizeof(mrl_t));                                   \</font>
+01009 <font class="preprocessor">    MRL_DUPLICATE(s[i], d[i]);                                                \</font>
+01010 <font class="preprocessor">    i++;                                                                      \</font>
+01011 <font class="preprocessor">  }                                                                           \</font>
+01012 <font class="preprocessor">}</font>
+01013 <font class="preprocessor"></font>
+01019 <font class="keyword">typedef</font> <font class="keyword">struct </font>{
+<a name="l01021"></a><a class="code" href="structmrl__t.html#m0">01021</a>   <font class="keywordtype">char</font>         *origin;
+<a name="l01023"></a><a class="code" href="structmrl__t.html#m1">01023</a>   <font class="keywordtype">char</font>         *mrl;
+<a name="l01025"></a><a class="code" href="structmrl__t.html#m2">01025</a>   <font class="keywordtype">char</font>         *link;
+<a name="l01027"></a><a class="code" href="structmrl__t.html#m3">01027</a>   uint32_t      type;
+<a name="l01029"></a><a class="code" href="structmrl__t.html#m4">01029</a>   off_t         size;
+01030 } <a class="code" href="structmrl__t.html">mrl_t</a>;
+01031 
+01048 <a class="code" href="structmrl__t.html">mrl_t</a> **<a class="code" href="xine_8h.html#a1">xine_get_browse_mrls</a> (xine_t *self, <font class="keywordtype">char</font> *plugin_id, <font class="keywordtype">char</font> *start_mrl, <font class="keywordtype">int</font> *num_mrls);
+01049 
+01065 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a0">xine_get_autoplay_input_plugin_ids</a> (xine_t *self) ;
+01066 
+01077 <font class="keywordtype">char</font> **<a class="code" href="xine_8h.html#a1">xine_get_autoplay_mrls</a> (xine_t *self, <font class="keywordtype">char</font> *plugin_id, <font class="keywordtype">int</font> *num_mrls);
+01078 
+<a name="l01092"></a><a class="code" href="group__loadplugins__group.html#a4">01092</a> <font class="preprocessor">#define XINE_PLUGINDIR  "/usr/local/lib/xine/plugins"</font>
+01093 <font class="preprocessor"></font>
+01104 <font class="preprocessor">#define VISUAL_TYPE_X11   1</font>
+01105 <font class="preprocessor"></font>
+01110 <font class="preprocessor">#define VISUAL_TYPE_AA    2</font>
+01111 <font class="preprocessor"></font>
+01116 <font class="preprocessor">#define VISUAL_TYPE_FB    3</font>
+01117 <font class="preprocessor"></font>
+01122 <font class="preprocessor">#define VISUAL_TYPE_GTK   4</font>
+01123 <font class="preprocessor"></font>
+01133 <font class="keywordtype">char</font> **<a class="code" href="group__loadplugins__group.html#a0">xine_list_video_output_plugins</a> (<font class="keywordtype">int</font> visual_type);
+01134 
+01144 <a class="code" href="structvo__driver__s.html">vo_driver_t</a> *<a class="code" href="group__loadplugins__group.html#a1">xine_load_video_output_plugin</a>(<a class="code" href="structconfig__values__s.html">config_values_t</a> *config,
+01145                                            <font class="keywordtype">char</font> *id, <font class="keywordtype">int</font> visual_type, <font class="keywordtype">void</font> *visual);
+01146 
+01152 <font class="keywordtype">char</font> **<a class="code" href="group__loadplugins__group.html#a2">xine_list_audio_output_plugins</a> (<font class="keywordtype">void</font>);
+01153 
+01161 ao_driver_t *<a class="code" href="group__loadplugins__group.html#a3">xine_load_audio_output_plugin</a>(<a class="code" href="structconfig__values__s.html">config_values_t</a> *config, <font class="keywordtype">char</font> *id);
+01162 
+01171 <font class="preprocessor">#ifdef DOC_HIDDEN</font>
+01172 <font class="preprocessor"></font>
+<a name="l01176"></a><a class="code" href="group__event__group.html#a0">01176</a> <font class="keyword">typedef</font> <font class="keywordtype">void</font> event_t;
+01177 <font class="preprocessor">#endif</font>
+01178 <font class="preprocessor"></font>
+<a name="l01183"></a><a class="code" href="group__event__group.html#a1">01183</a> <font class="keyword">typedef</font> void (*event_listener_t) (xine_t *xine, event_t *event, <font class="keywordtype">void</font> *data);
+01184 
+01193 <font class="keywordtype">int</font> <a class="code" href="group__event__group.html#a2">xine_register_event_listener</a>(xine_t *self, event_listener_t listener);
+01194 
+01203 <font class="keywordtype">int</font> <a class="code" href="group__event__group.html#a3">xine_remove_event_listener</a>(xine_t *self, event_listener_t listener);
+01204 
+01213 <font class="keywordtype">void</font> <a class="code" href="group__event__group.html#a4">xine_send_event</a>(xine_t *self, event_t *event, <font class="keywordtype">void</font> *data);
+01214 
+01219 <font class="preprocessor">#ifdef __cplusplus</font>
+01220 <font class="preprocessor"></font>}
+01221 <font class="preprocessor">#endif</font>
+01222 <font class="preprocessor"></font>
+01223 <font class="preprocessor">#endif</font>
+</font></pre></div><hr><address><small>Generated at Mon Sep 17 01:05:55 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

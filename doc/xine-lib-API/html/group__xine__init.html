@@ -18,7 +18,7 @@
 <a class="el" href="structconfig__values__t.html">config_values_t</a>*&nbsp;</td><td valign=bottom><a class="el" href="group__xine__init.html#a0">config_file_init</a> (char *filename)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Configuration file initialisation.</em></font><br><br></td></tr>
 <tr><td nowrap align=right valign=top><a name="a1" doxytag="xine_init::xine_init"></a>
-<a class="el" href="structxine__t.html">xine_t</a>*&nbsp;</td><td valign=bottom><a class="el" href="group__xine__init.html#a1">xine_init</a> (<a class="el" href="structvo__driver__t.html">vo_driver_t</a> *vo, <a class="el" href="structao__functions__t.html">ao_functions_t</a> *ao, <a class="el" href="structconfig__values__t.html">config_values_t</a> *config, <a class="el" href="xine_8h.html#a0">gui_stream_end_cb_t</a> stream_end_cb, <a class="el" href="xine_8h.html#a1">gui_get_next_mrl_cb_t</a> get_next_mrl_cb, <a class="el" href="xine_8h.html#a2">gui_branched_cb_t</a> branched_cb)</td></tr>
+<a class="el" href="structxine__t.html">xine_t</a>*&nbsp;</td><td valign=bottom><a class="el" href="group__xine__init.html#a1">xine_init</a> (<a class="el" href="structvo__driver__t.html">vo_driver_t</a> *vo, <a class="el" href="structao__driver__t.html">ao_driver_t</a> *ao, <a class="el" href="structconfig__values__t.html">config_values_t</a> *config, <a class="el" href="xine_8h.html#a0">gui_stream_end_cb_t</a> stream_end_cb, <a class="el" href="xine_8h.html#a1">gui_get_next_mrl_cb_t</a> get_next_mrl_cb, <a class="el" href="xine_8h.html#a2">gui_branched_cb_t</a> branched_cb)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Initialisation of xine.</em></font><br><br></td></tr>
 <tr><td nowrap align=right valign=top><a name="a2" doxytag="xine_init::xine_exit"></a>
 void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__init.html#a2">xine_exit</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
@@ -145,7 +145,7 @@ Nothing </dl><dl compact><dt>
         <tr>
           <td></td>
           <td><b>
-<a class="el" href="structao__functions__t.html">ao_functions_t</a> * <em>ao</em>, 
+<a class="el" href="structao__driver__t.html">ao_driver_t</a> * <em>ao</em>, 
           </b></td>
         </tr>
         <tr>
@@ -213,7 +213,7 @@ called if seamless branch was taken </td></tr>
 <b>Returns: </b><dd>
 Current xine engine configuration </dl><dl compact><dt>
 <b>See also: </b><dd>
-<a class="el" href="structvo__driver__t.html">vo_driver_t</a>, <a class="el" href="structao__functions__t.html">ao_functions_t</a>, <a class="el" href="structconfig__values__t.html">config_values_t</a>, <a class="el" href="xine_8h.html#a0">gui_stream_end_cb_t</a>, <a class="el" href="xine_8h.html#a1">gui_get_next_mrl_cb_t</a>, <a class="el" href="xine_8h.html#a2">gui_branched_cb_t</a> </dl><dl compact><dt>
+<a class="el" href="structvo__driver__t.html">vo_driver_t</a>, <a class="el" href="structao__driver__t.html">ao_driver_t</a>, <a class="el" href="structconfig__values__t.html">config_values_t</a>, <a class="el" href="xine_8h.html#a0">gui_stream_end_cb_t</a>, <a class="el" href="xine_8h.html#a1">gui_get_next_mrl_cb_t</a>, <a class="el" href="xine_8h.html#a2">gui_branched_cb_t</a> </dl><dl compact><dt>
 <b>Warning: </b><dd>
 This function should be called before any other xine_*() function.
 <p>
@@ -242,7 +242,7 @@ This function should be called before any other xine_*() function.
 </dl>    </td>
   </tr>
 </table>
-<hr><address><small>Generated at Thu Jul 26 11:29:46 2001 for XINE, A Free Video Player Project - API reference by
+<hr><address><small>Generated at Mon Sep 17 01:05:55 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

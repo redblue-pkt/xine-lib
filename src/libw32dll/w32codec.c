@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.23 2001/09/14 14:20:51 jcdutton Exp $
+ * $Id: w32codec.c,v 1.24 2001/09/16 23:13:45 f1rmb Exp $
  *
  * routines for using w32 codecs
  *
@@ -132,7 +132,13 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   return NULL;
 }
 
+#ifdef IMGFMT_YUY2
+#undef IMGFMT_YUY2
+#endif
 #define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
+#ifdef IMGFMT_YV12
+#undef IMGFMT_YV12
+#endif
 #define IMGFMT_YV12  mmioFOURCC('Y','V','1','2')
 #define IMGFMT_32RGB mmioFOURCC( 32,'R','G','B')
 #define IMGFMT_24RGB mmioFOURCC( 24,'R','G','B')
@@ -188,7 +194,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     return;
   }
 
-  printf ("w32codec: video output format: %.4s %08x\n",
+  printf ("w32codec: video output format: %.4s %08lx\n",
 	  (char*)&this->o_bih.biCompression,
 	  this->o_bih.biCompression);
 
@@ -295,7 +301,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    uint8_t   y,u,v;
 	    
 	    pixel = this->img_buffer + 2 * (row * this->o_bih.biWidth + col);
-	    out = img->base[0] + 2 * (row * this->o_bih.biWidth + col);
+	    out = (uint16_t *) img->base[0] + 2 * (row * this->o_bih.biWidth + col);
 	
 	    b = (*pixel & 0x003C) << 3;
 	    g = (*pixel & 0x03E0) >> 5 << 3;

@@ -13,6 +13,7 @@
 #include "win32.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <pthread.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -387,7 +388,7 @@ void* WINAPI expCreateEventA(void* pSecAttr, char bManualReset,
 	{
 	    if(strcmp(pp->name, name)==0)
 		return pp->pm;
-	}while(pp=pp->prev);
+	} while((pp=pp->prev));
     }	
     pm=my_mreq(sizeof(pthread_mutex_t), 0);
     pthread_mutex_init(pm, NULL);
@@ -419,11 +420,13 @@ void* WINAPI expSetEvent(void* event)
 {
     dbgprintf("Trying to lock %X\n", event);
     pthread_mutex_lock(event);
+    return event;
 }
 void* WINAPI expResetEvent(void* event)
 {
     dbgprintf("Unlocking %X\n", event);
     pthread_mutex_unlock(event);    
+    return event;
 }
 
 void* WINAPI expWaitForSingleObject(void* object, int duration)
@@ -432,6 +435,7 @@ void* WINAPI expWaitForSingleObject(void* object, int duration)
     dbgprintf("WaitForSingleObject: duration %d\n", duration);
     pthread_mutex_lock(object);
     pthread_mutex_unlock(object);
+    return object;
 }    
 
 static BYTE PF[64] = {0,};
@@ -441,7 +445,7 @@ void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
     	/* FIXME: better values for the two entries below... */
 	static int cache = 0;
 	static SYSTEM_INFO cachedsi;
-	HKEY	xhkey=0,hkey;
+	HKEY	xhkey=0;
         dbgprintf("GetSystemInfo()\n");
 
 	if (cache) {
@@ -889,7 +893,7 @@ long WINAPI expReleaseSemaphore(long hsem, long increment, long* prev_count)
 // is greater than zero and nonsignaled when its count is equal to zero
 // Each time a waiting thread is released because of the semaphore's signaled
 // state, the count of the semaphore is decreased by one. 
-    struct sembuf buf[1];
+  //    struct sembuf buf[1];
     dbgprintf("ReleaseSemaphore\n");
     dbgprintf("WARNING: Unsupported call: ReleaseSemaphoreA\n");       
 /*    if(hsem==-1)return 0;
@@ -1148,7 +1152,7 @@ LPCSTR WINAPI expGetEnvironmentStrings()
 
 int WINAPI expGetStartupInfoA(STARTUPINFOA *s)
 {
-    int i;    
+  /*    int i;    */
     dbgprintf("GetStartupInfoA\n");
 /*    
     for(i=0; i<sizeof(STARTUPINFOA)/4; i++)
@@ -1354,7 +1358,7 @@ int WINAPI expGetPrivateProfileStringA(const char* appname, const char* keyname,
 int WINAPI expWritePrivateProfileStringA(const char* appname, const char* keyname,
 	const char* string, const char* filename)
 {
-    int size=256;
+  /*    int size=256; */
     char* fullname;
     dbgprintf("WritePrivateProfileStringA(%s, %s, %s, %s)\n", appname, keyname, string, filename );
     if(!(appname && keyname && filename) ) return -1;
@@ -1424,7 +1428,7 @@ char* expstrchr(char* string, int value)
 
 int WINAPI expGetFileVersionInfoSizeA(const char* name, int* lpHandle)
 {
-    printf("GetFileVersionInfoSizeA(%s,0x%X)\n", name, lpHandle);
+    printf("GetFileVersionInfoSizeA(%s,0x%X)\n", name, *lpHandle);
     return 0;
 }    
 
@@ -1530,13 +1534,13 @@ int WINAPI expGetSystemTime(SYSTEMTIME* systime)
     systime->wMinute = local_tm->tm_min;
     systime->wSecond = local_tm->tm_sec;
     systime->wMilliseconds = (tv.tv_usec / 1000) % 1000;
-    
+    return 0;
 }
 
 int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int size)
 {
     dbgprintf("GetEnvironmentVariableA\n");
-    printf("%s %x %x\n", name, field, size);
+    printf("%s %x %x\n", name, *field, size);
     if(field)field[0]=0;
     return 0;
 }
@@ -1546,7 +1550,7 @@ int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int size)
 //HDRVR WINAPI expOpenDriverW(LPCWSTR szDriverName, LPCWSTR szSectionName, LPARAM lParam2);
 HDRVR WINAPI expOpenDriver(LPCSTR szDriverName, LPCSTR szSectionName, LPARAM lParam2){
   printf("winmm32::OpenDriver() called\n");
-  return NULL;
+  return (HDRVR) NULL;
 }
 
 
@@ -1724,7 +1728,7 @@ void* LookupExternal(const char* library, int ordinal)
 	{
 	    if(ordinal!=libraries[i].exps[j].id)
 		continue;
-	    printf("Hit: 0x%08X\n", libraries[i].exps[j].func);
+	    printf("Hit: 0x%08X\n", (int) libraries[i].exps[j].func);
 	    return libraries[i].exps[j].func;
 	}
     }

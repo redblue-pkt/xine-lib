@@ -1,7 +1,7 @@
 # Note that this is NOT a relocatable package
 %define ver     @SPEC_VERSION@
 %define rel     0
-%define prefix  @prefix@
+%define prefix  /usr
 %define name    @PACKAGE@
 
 Name:        %{name}
@@ -19,47 +19,47 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_OSS_TRUE@%package oss
 @HAVE_OSS_TRUE@Summary:     XINE - oss support.
 @HAVE_OSS_TRUE@Group:       Development/Libraries
-@HAVE_OSS_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_OSS_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_ALSA05_TRUE@%package alsa05
 @HAVE_ALSA05_TRUE@Summary:     XINE - alsa 0.5.x support.
 @HAVE_ALSA05_TRUE@Group:       Development/Libraries
-@HAVE_ALSA05_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_ALSA05_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_ALSA09_TRUE@%package alsa09
 @HAVE_ALSA09_TRUE@Summary:     XINE - alsa >= 0.9.x support.
 @HAVE_ALSA09_TRUE@Group:       Development/Libraries
-@HAVE_ALSA09_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_ALSA09_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_ARTS_TRUE@%package arts
 @HAVE_ARTS_TRUE@Summary:     XINE - arts support.
 @HAVE_ARTS_TRUE@Group:       Development/Libraries
-@HAVE_ARTS_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_ARTS_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_ESD_TRUE@%package esd
 @HAVE_ESD_TRUE@Summary:     XINE - esd support.
 @HAVE_ESD_TRUE@Group:       Development/Libraries
-@HAVE_ESD_TRUE@Requires:    xine-lib >= 0.9.0, libesd
+@HAVE_ESD_TRUE@Requires:    xine-lib >= %{ver}, esound
 
 @HAVE_DXR3_TRUE@%package dxr3
 @HAVE_DXR3_TRUE@Summary:     XINE - DXR3 support.
 @HAVE_DXR3_TRUE@Group:       Development/Libraries
-@HAVE_DXR3_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_DXR3_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_XV_TRUE@%package xv
 @HAVE_XV_TRUE@Summary:     XINE - XFree XVideo support.
 @HAVE_XV_TRUE@Group:       Development/Libraries
-@HAVE_XV_TRUE@Requires:    xine-lib >= 0.9.0
+@HAVE_XV_TRUE@Requires:    xine-lib >= %{ver}
 
 @HAVE_AA_TRUE@%package aa
 @HAVE_AA_TRUE@Summary:     XINE - Ascii Art support.
 @HAVE_AA_TRUE@Group:       Development/Libraries
-@HAVE_AA_TRUE@Requires:    xine-lib >= 0.9.0, libaa
+@HAVE_AA_TRUE@Requires:    xine-lib >= %{ver}, aalib
 
 @W32DLL_DEP@%package w32dll
 @W32DLL_DEP@Summary:     XINE - win32dll decoder support.
 @W32DLL_DEP@Group:       Development/Libraries
-@W32DLL_DEP@Requires:    xine-lib >= 0.9.0
+@W32DLL_DEP@Requires:    xine-lib >= %{ver}
 
 %package docs
 Summary:     XINE - html API documentation.
@@ -90,6 +90,16 @@ la lecture aura besoin de plus ou moins de puissance du processeur,
 xine ´Â GPL¶óÀÌ¼±½º¸¦ µû¸£´Â UNIX¿ë °ø°³ µ¿¿µ»ó ÇÃ·¹ÀÌ¾îÀÔ´Ï´Ù. ÀÌ
 ÇÃ·¹ÀÌ¾î´Â mpeg-2 ¿Í mpeg 1 ½ºÆ®¸²À» Áö¿øÇÏ¸ç, ÇöÀç´Â Áö¿øÇÏÁö
 ¾ÊÁö¸¸ ³ªÁß¿¡´Â mpeg-4 ¿Í ´Ù¸¥ Çü½ÄÀÇ µ¿¿µ»óµµ Áö¿øÇÒ ¿¹Á¤ÀÔ´Ï´Ù.
+
+%description -l pt
+O xine é um leitor de vídeo livre ao abrigo da GPL para sistemas tipo 
+Unix. Lê ficheiros MPEG-2 e MPEG-1, bem como AVIs que contenham
+MS MPEG-4 / OpenDivX Video.
+
+O xine lê o conteúdo vídeo e áudio e sincroniza-os em tempo-real. As 
+necessidades de processador dependem das propriedades de cada ficheiro.
+Em princípio, um sistema equipado com um Pentium-II a 400 MHz consegue 
+ler qualquer vídeo com máximo desempenho.
 
 @HAVE_OSS_TRUE@%description oss
 @HAVE_OSS_TRUE@audio plugin with oss support.
@@ -140,38 +150,39 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{prefix}/bin/xine-config
-%{prefix}/man/man3/xine-lib.3
-%{prefix}/man/man3/ao_functions_t.3
-%{prefix}/man/man3/demux_strategy.3
-%{prefix}/man/man3/video_cap.3
-%{prefix}/man/man3/vo_overlay_t.3
-%{prefix}/man/man3/autoplay_group.3
-%{prefix}/man/man3/event_group.3
-%{prefix}/man/man3/video_group.3
-%{prefix}/man/man3/xine.h.3
-%{prefix}/man/man3/browse_group.3
-%{prefix}/man/man3/loadplugins_group.3
-%{prefix}/man/man3/video_prop.3
-%{prefix}/man/man3/xine_api.3
-%{prefix}/man/man3/build_info.3
-%{prefix}/man/man3/mrl_t.3
-%{prefix}/man/man3/video_ratio.3
-%{prefix}/man/man3/xine_init.3
-%{prefix}/man/man3/cfg_data_t.3
-%{prefix}/man/man3/mrl_types.3
-%{prefix}/man/man3/visual_types.3
-%{prefix}/man/man3/xine_management.3
-%{prefix}/man/man3/config_group.3
-%{prefix}/man/man3/status_group.3
-%{prefix}/man/man3/vo_driver_s.3
-%{prefix}/man/man3/xine_t.3
-%{prefix}/man/man3/config_values_s.3
-%{prefix}/man/man3/ui_callbacks.3
-%{prefix}/man/man3/vo_driver_t.3
-%{prefix}/man/man3/xine_version.3
-%{prefix}/man/man3/config_values_t.3
-%{prefix}/man/man3/version_group.3
-%{prefix}/man/man3/vo_frame_t.3
+%{prefix}/man/man3/xine-lib.3*
+%{prefix}/man/man3/ao_driver_t.3*
+%{prefix}/man/man3/ao_functions_t.3*
+%{prefix}/man/man3/demux_strategy.3*
+%{prefix}/man/man3/video_cap.3*
+%{prefix}/man/man3/vo_overlay_t.3*
+%{prefix}/man/man3/autoplay_group.3*
+%{prefix}/man/man3/event_group.3*
+%{prefix}/man/man3/video_group.3*
+%{prefix}/man/man3/xine.h.3*
+%{prefix}/man/man3/browse_group.3*
+%{prefix}/man/man3/loadplugins_group.3*
+%{prefix}/man/man3/video_prop.3*
+%{prefix}/man/man3/xine_api.3*
+%{prefix}/man/man3/build_info.3*
+%{prefix}/man/man3/mrl_t.3*
+%{prefix}/man/man3/video_ratio.3*
+%{prefix}/man/man3/xine_init.3*
+%{prefix}/man/man3/cfg_data_t.3*
+%{prefix}/man/man3/mrl_types.3*
+%{prefix}/man/man3/visual_types.3*
+%{prefix}/man/man3/xine_management.3*
+%{prefix}/man/man3/config_group.3*
+%{prefix}/man/man3/status_group.3*
+%{prefix}/man/man3/vo_driver_s.3*
+%{prefix}/man/man3/xine_t.3*
+%{prefix}/man/man3/config_values_s.3*
+%{prefix}/man/man3/ui_callbacks.3*
+%{prefix}/man/man3/vo_driver_t.3*
+%{prefix}/man/man3/xine_version.3*
+%{prefix}/man/man3/config_values_t.3*
+%{prefix}/man/man3/version_group.3*
+%{prefix}/man/man3/vo_frame_t.3*
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
 # input plugins
@@ -202,6 +213,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_qt.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_qt.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.la
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.so
@@ -232,7 +245,7 @@ rm -rf $RPM_BUILD_ROOT
 # lib and logo.
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
-%{prefix}/share/xine/skins/*
+%{prefix}/share/xine/skins/xine_logo.png
 
 @HAVE_OSS_TRUE@%files oss
 @HAVE_OSS_TRUE@%defattr(-,root,root)
@@ -289,6 +302,11 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/README.dxr3
 
 %changelog
+* Sun Sep 16 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- Merge patch from José Carlos Monteiro <jcm@netcabo.pt>:
+  - Filelist and other minor updates,
+  - Fixed some SuSE compatibility issues,
+  - Added Portuguese summary.
 * Sun Sep 16 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - Add missing files.
 * Sun Aug 19 2001 Matthias Dahl <matthew2k@web.de>

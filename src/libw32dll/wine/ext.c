@@ -133,9 +133,9 @@ LPSTR WINAPI lstrcpynWtoA(LPSTR dest, LPCWSTR src, INT count)
 int wcsnicmp(const unsigned short* s1, const unsigned short* s2, int n)
 {
     if(s1==0)
-	return;
+	return 0;
     if(s2==0)
-        return;
+        return 0;
     while(n>0)
     {
 	if(*s1<*s2)
@@ -303,7 +303,7 @@ int FILE_munmap( LPVOID start, DWORD size_high, DWORD size_low )
       printf("offsets larger than 4Gb not supported\n");
     return munmap( start, size_low );
 }
-static int mapping_size=0;
+//static int mapping_size=0;
 
 struct file_mapping_s;
 typedef struct file_mapping_s
@@ -475,7 +475,7 @@ void* WINAPI VirtualAlloc(void* address, DWORD size, DWORD type,  DWORD protecti
     if(answer==(void*)-1)
     {
 	printf("Error no %d\n", errno);
-	printf("VirtualAlloc(0x%08X, %d) failed\n", address, size);
+	printf("VirtualAlloc(0x%08X, %ld) failed\n", (int) address, size);
 	return NULL;
     }
     else

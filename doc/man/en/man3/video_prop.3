@@ -1,4 +1,4 @@
-.TH "Constants for the get/set properties functions." 3 "26 Jul 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "Constants for the get/set properties functions." 3 "17 Sep 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -28,12 +28,15 @@ Constants for the get/set properties functions. \-
 .RI "#define \fBVO_PROP_COLORKEY\fP   6"
 .br
 .ti -1c
-.RI "#define \fBVO_NUM_PROPERTIES\fP   7"
+.RI "#define \fBVO_PROP_SOFT_DEINTERLACE\fP   7"
+.br
+.ti -1c
+.RI "#define \fBVO_NUM_PROPERTIES\fP   8"
 .br
 .in -1c
 .SH "DEFINE DOCUMENTATION"
 .PP 
-.SS "#define VO_NUM_PROPERTIES   7"
+.SS "#define VO_NUM_PROPERTIES   8"
 .PP
 Number of available properties property. 
 .PP
@@ -85,6 +88,13 @@ Interleave property.
 .SS "#define VO_PROP_SATURATION   3"
 .PP
 Saturation property. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBvo_driver_t\fP 
+.SS "#define VO_PROP_SOFT_DEINTERLACE   7"
+.PP
+Software deinterlacing (BOB) property. 
 .PP
 \fBSee also: \fP
 .in +1c

@@ -280,7 +280,7 @@ static DWORD fixup_imports( WINE_MODREF *wm )
      */
  
     for (i = 0, pe_imp = pem->pe_import; pe_imp->Name ; pe_imp++) {
-    	WINE_MODREF		*wmImp;
+      //    	WINE_MODREF		*wmImp;
 	IMAGE_IMPORT_BY_NAME	*pe_name;
 	PIMAGE_THUNK_DATA	import_list,thunk_list;
  	char			*name = (char *) RVA(pe_imp->Name);
@@ -381,7 +381,7 @@ static void do_relocations( unsigned int load_addr, IMAGE_BASE_RELOCATION *r )
 		char *page = (char*) RVA(r->VirtualAddress);
 		int count = (r->SizeOfBlock - 8)/2;
 		int i;
-		TRACE_(fixup)("%x relocations for page %lx\n",
+		TRACE_(fixup,"%x relocations for page %lx\n",
 			count, r->VirtualAddress);
 		
 		for(i=0;i<count;i++)
@@ -439,7 +439,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
     IMAGE_NT_HEADERS *nt;
     IMAGE_SECTION_HEADER *pe_sec;
     IMAGE_DATA_DIRECTORY *dir;
-    BY_HANDLE_FILE_INFORMATION bhfi;
+    //    BY_HANDLE_FILE_INFORMATION bhfi;
     int	i, rawsize, lowest_va, vma_size, file_size = 0;
     DWORD load_addr = 0, aoep, reloc = 0;
 //    struct get_read_fd_request *req = get_req_buffer();
@@ -596,15 +596,15 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
 					 MEM_RESERVE | MEM_COMMIT,
 					 PAGE_EXECUTE_READWRITE );
 	if (!load_addr) {
-            FIXME_(win32)(
-                   "FATAL: Couldn't load module %s (out of memory, %d needed)!\n", filename, vma_size);
+	  FIXME_(win32,
+		 "FATAL: Couldn't load module %s (out of memory, %d needed)!\n", filename, vma_size);
             goto error;
 	}
     }
 
     TRACE("Load addr is %lx (base %lx), range %x\n",
           load_addr, nt->OptionalHeader.ImageBase, vma_size );
-    TRACE_(segment)("Loading %s at %lx, range %x\n",
+    TRACE_(segment,"Loading %s at %lx, range %x\n",
                     filename, load_addr, vma_size );
 
 #if 0
@@ -622,7 +622,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
                      0, 0, PROT_EXEC | PROT_WRITE | PROT_READ,
                      MAP_PRIVATE | MAP_FIXED ) != (void*)load_addr)
     {
-        ERR_(win32)( "Critical Error: failed to map PE header to necessary address.\n");	
+        ERR_(win32, "Critical Error: failed to map PE header to necessary address.\n");	
         goto error;
     }
 
@@ -640,7 +640,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
                          MAP_PRIVATE | MAP_FIXED ) != (void*)RVA(pe_sec->VirtualAddress))
         {
             
-            ERR_(win32)( "Critical Error: failed to map PE section to necessary address.\n");
+            ERR_(win32, "Critical Error: failed to map PE section to necessary address.\n");
             goto error;
         }
         if ((pe_sec->SizeOfRawData < pe_sec->Misc.VirtualSize) &&
@@ -698,10 +698,7 @@ WINE_MODREF *PE_CreateModule( HMODULE hModule,
     IMAGE_EXPORT_DIRECTORY *pe_export = NULL;
     IMAGE_RESOURCE_DIRECTORY *pe_resource = NULL;
     WINE_MODREF *wm;
-    int	result;
-
-
-    
+    //    int	result;
 
     dir = nt->OptionalHeader.DataDirectory+IMAGE_DIRECTORY_ENTRY_EXPORT;
     if (dir->Size)
@@ -898,7 +895,7 @@ WIN_BOOL PE_InitDLL( WINE_MODREF *wm, DWORD type, LPVOID lpReserved )
 	if(entry==NULL)
 	    entry = (void*)RVA_PTR( wm->module,OptionalHeader.AddressOfEntryPoint );
         
-	TRACE_(relay)("CallTo32(entryproc=%p,module=%08x,type=%ld,res=%p)\n",
+	TRACE_(relay,"CallTo32(entryproc=%p,module=%08x,type=%ld,res=%p)\n",
                        entry, wm->module, type, lpReserved );
 	printf("Entering DllMain(");
 	switch(type)

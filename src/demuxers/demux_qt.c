@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.3 2001/09/11 23:02:47 guenter Exp $
+ * $Id: demux_qt.c,v 1.4 2001/09/16 23:13:45 f1rmb Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -1221,6 +1221,7 @@ static int quicktime_read_udta(quicktime_t *file, quicktime_udta_t *udta, quickt
   return result;
 }
 
+#if 0
 static int quicktime_set_udta_string(char **string, int *size, char *new_string)
 {
   if(*size) free(*string);
@@ -1229,6 +1230,7 @@ static int quicktime_set_udta_string(char **string, int *size, char *new_string)
   strcpy(*string, new_string);
   return 0;
 }
+#endif
 
 static int quicktime_ctab_init(quicktime_ctab_t *ctab)
 {
@@ -2714,6 +2716,7 @@ static int quicktime_read_trak(quicktime_t *file, quicktime_trak_t *trak, quickt
   return 0;
 }
 
+#if 0
 static longest quicktime_track_end(quicktime_trak_t *trak)
 {
 /* get the byte endpoint of the track in the file */
@@ -2753,6 +2756,7 @@ static longest quicktime_track_end(quicktime_trak_t *trak)
   
   return size;
 }
+#endif
 
 static long quicktime_sample_of_chunk(quicktime_trak_t *trak, long chunk)
 {
@@ -3015,6 +3019,7 @@ static long quicktime_offset_to_sample(quicktime_trak_t *trak, longest offset)
   return sample;
 }
 
+#if 0
 static int quicktime_update_tables(quicktime_t *file, 
 			    quicktime_trak_t *trak, 
 			    longest offset, 
@@ -3029,6 +3034,7 @@ static int quicktime_update_tables(quicktime_t *file,
   quicktime_update_stsc(&(trak->mdia.minf.stbl.stsc), chunk, samples);
   return 0;
 }
+#endif
 
 static int quicktime_trak_duration(quicktime_trak_t *trak, 
 			    long *duration, 
@@ -3583,7 +3589,7 @@ static long quicktime_frame_size(quicktime_t *file, long frame, int track)
   return bytes;
 }
 
-
+#if 0
 static longest quicktime_read_next_packet(quicktime_t *file, unsigned char *outbuf, int *isVideo, int *thetrak)
 {
   longest packet_start;
@@ -3642,8 +3648,7 @@ static longest quicktime_read_next_packet(quicktime_t *file, unsigned char *outb
 
   return 0;
 }
-
-
+#endif
 
 static long quicktime_read_frame(quicktime_t *file, unsigned char *video_buffer, int track)
 {
@@ -3984,7 +3989,7 @@ static void *demux_qt_loop (void *this_gen) {
 	buf->free_buffer (buf);
       } else {
 
-	int count;
+	/* int count; */
       
 	buf->PTS             = audio_pts;
 	buf->type            = this->audio_type;
@@ -4220,7 +4225,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
     return;
   }
 
-  printf ("demux_qt: video codec %s (%f fps), audio codec %s (%d Hz, %d bits)\n",
+  printf ("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n",
 	  quicktime_video_compressor (this->qt,0),
 	  quicktime_frame_rate (this->qt,0),
 	  quicktime_audio_compressor (this->qt,0),

@@ -9,40 +9,219 @@
 <center>
 <a class="qindex" href="index.html">Main Page</a> &nbsp; <a class="qindex" href="modules.html">Modules</a> &nbsp; <a class="qindex" href="annotated.html">Data Structures</a> &nbsp; <a class="qindex" href="files.html">File List</a> &nbsp; <a class="qindex" href="functions.html">Data Fields</a> &nbsp; <a class="qindex" href="globals.html">Globals</a> &nbsp; </center>
 <hr><h1>Engine management</h1><table border=0 cellpadding=0 cellspacing=0>
+<tr><td colspan=2><br><h2>Defines</h2></td></tr>
+<tr><td nowrap align=right valign=top><a name="a15" doxytag="xine_management::SPEED_PAUSE"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a15">SPEED_PAUSE</a>&nbsp;&nbsp;&nbsp;0</td></tr>
+<tr><td nowrap align=right valign=top><a name="a16" doxytag="xine_management::SPEED_SLOW_4"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a16">SPEED_SLOW_4</a>&nbsp;&nbsp;&nbsp;1</td></tr>
+<tr><td nowrap align=right valign=top><a name="a17" doxytag="xine_management::SPEED_SLOW_2"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a17">SPEED_SLOW_2</a>&nbsp;&nbsp;&nbsp;2</td></tr>
+<tr><td nowrap align=right valign=top><a name="a18" doxytag="xine_management::SPEED_NORMAL"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a18">SPEED_NORMAL</a>&nbsp;&nbsp;&nbsp;4</td></tr>
+<tr><td nowrap align=right valign=top><a name="a19" doxytag="xine_management::SPEED_FAST_2"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a19">SPEED_FAST_2</a>&nbsp;&nbsp;&nbsp;8</td></tr>
+<tr><td nowrap align=right valign=top><a name="a20" doxytag="xine_management::SPEED_FAST_4"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a20">SPEED_FAST_4</a>&nbsp;&nbsp;&nbsp;16</td></tr>
 <tr><td colspan=2><br><h2>Functions</h2></td></tr>
 <tr><td nowrap align=right valign=top><a name="a0" doxytag="xine_management::xine_play"></a>
-void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a0">xine_play</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, char *MRL, int pos)</td></tr>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a0">xine_play</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, char *MRL, int start_pos, int start_time)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Start to play a stream.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a1" doxytag="xine_management::xine_pause"></a>
-void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a1">xine_pause</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
-<tr><td>&nbsp;</td><td><font size=-1><em>Pause toggle.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a2" doxytag="xine_management::xine_stop"></a>
-void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a2">xine_stop</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a1" doxytag="xine_management::xine_set_speed"></a>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a1">xine_set_speed</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int speed)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>Set playback speed.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a2" doxytag="xine_management::xine_get_speed"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a2">xine_get_speed</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>Get the playback speed.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a3" doxytag="xine_management::xine_set_av_offset"></a>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a3">xine_set_av_offset</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int offset_pts)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>Set audio/video sync.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a4" doxytag="xine_management::xine_get_av_offset"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a4">xine_get_av_offset</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>Get audio/video sync.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a5" doxytag="xine_management::xine_stop"></a>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a5">xine_stop</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Stop playing.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a3" doxytag="xine_management::xine_eject"></a>
-int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a3">xine_eject</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a6" doxytag="xine_management::xine_eject"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a6">xine_eject</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Eject media.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a4" doxytag="xine_management::xine_get_status"></a>
-int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a4">xine_get_status</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a7" doxytag="xine_management::xine_get_status"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a7">xine_get_status</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Get current xine status.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a5" doxytag="xine_management::xine_get_current_position"></a>
-int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a5">xine_get_current_position</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a8" doxytag="xine_management::xine_get_current_position"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a8">xine_get_current_position</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Get current position.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a6" doxytag="xine_management::xine_get_audio_channel"></a>
-int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a6">xine_get_audio_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a9" doxytag="xine_management::xine_get_current_time"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a9">xine_get_current_time</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>get current pos in seconds.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a10" doxytag="xine_management::xine_get_stream_length"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a10">xine_get_stream_length</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>estimate length of input stream in seconds.</em></font><br><br></td></tr>
+<tr><td nowrap align=right valign=top><a name="a11" doxytag="xine_management::xine_get_audio_channel"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a11">xine_get_audio_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Get current audio channel.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a7" doxytag="xine_management::xine_select_audio_channel"></a>
-void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a7">xine_select_audio_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int channel)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a12" doxytag="xine_management::xine_select_audio_channel"></a>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a12">xine_select_audio_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int channel)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Set audio channel.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a8" doxytag="xine_management::xine_get_spu_channel"></a>
-int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a8">xine_get_spu_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a13" doxytag="xine_management::xine_get_spu_channel"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a13">xine_get_spu_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Get current sub-title channel.</em></font><br><br></td></tr>
-<tr><td nowrap align=right valign=top><a name="a9" doxytag="xine_management::xine_select_spu_channel"></a>
-void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a9">xine_select_spu_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int channel)</td></tr>
+<tr><td nowrap align=right valign=top><a name="a14" doxytag="xine_management::xine_select_spu_channel"></a>
+void&nbsp;</td><td valign=bottom><a class="el" href="group__xine__management.html#a14">xine_select_spu_channel</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int channel)</td></tr>
 <tr><td>&nbsp;</td><td><font size=-1><em>Set sub-title channel.</em></font><br><br></td></tr>
 </table>
+<hr><h2>Define Documentation</h2>
+<a name="a19" doxytag="xine.h::SPEED_FAST_2"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_FAST_2&nbsp;&nbsp;&nbsp;8
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback at 200% speed. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
+<a name="a20" doxytag="xine.h::SPEED_FAST_4"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_FAST_4&nbsp;&nbsp;&nbsp;16
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback at 400% speed. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
+<a name="a18" doxytag="xine.h::SPEED_NORMAL"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_NORMAL&nbsp;&nbsp;&nbsp;4
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback at 100% speed. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
+<a name="a15" doxytag="xine.h::SPEED_PAUSE"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_PAUSE&nbsp;&nbsp;&nbsp;0
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback pause. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
+<a name="a17" doxytag="xine.h::SPEED_SLOW_2"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_SLOW_2&nbsp;&nbsp;&nbsp;2
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback at 50% speed. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
+<a name="a16" doxytag="xine.h::SPEED_SLOW_4"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define SPEED_SLOW_4&nbsp;&nbsp;&nbsp;1
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Playback at 25% speed. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a1">xine_set_speed</a>(), <a class="el" href="xine_8h.html#a2">xine_get_speed</a>() </dl>    </td>
+  </tr>
+</table>
 <hr><h2>Function Documentation</h2>
-<a name="a3" doxytag="xine.h::xine_eject"></a><p>
+<a name="a6" doxytag="xine.h::xine_eject"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -91,7 +270,7 @@ Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xin
 </dl>    </td>
   </tr>
 </table>
-<a name="a6" doxytag="xine.h::xine_get_audio_channel"></a><p>
+<a name="a11" doxytag="xine.h::xine_get_audio_channel"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -140,7 +319,56 @@ Current audio chennel
 </dl>    </td>
   </tr>
 </table>
-<a name="a5" doxytag="xine.h::xine_get_current_position"></a><p>
+<a name="a4" doxytag="xine.h::xine_get_av_offset"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+int xine_get_av_offset (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Get audio/video sync.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+Current audio/video offset.
+<p>
+</dl>Return the current audio/video sync offset ( see <a class="el" href="xine_8h.html#a3">xine_set_av_offset</a>() ). <dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<a name="a8" doxytag="xine.h::xine_get_current_position"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -189,7 +417,105 @@ Current position ( 0..65535 )
 </dl>    </td>
   </tr>
 </table>
-<a name="a8" doxytag="xine.h::xine_get_spu_channel"></a><p>
+<a name="a9" doxytag="xine.h::xine_get_current_time"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+int xine_get_current_time (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+get current pos in seconds.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+current position measured in seconds from the beginning of the stream
+<p>
+</dl>get current position measured in seconds from the beginning of the stream <dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<a name="a2" doxytag="xine.h::xine_get_speed"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+int xine_get_speed (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Get the playback speed.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+speed value ( see SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4 )
+<p>
+</dl>Get the current speed playback. Possible values are SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4. <dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<a name="a13" doxytag="xine.h::xine_get_spu_channel"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -238,7 +564,7 @@ Current sub-title channel
 </dl>    </td>
   </tr>
 </table>
-<a name="a4" doxytag="xine.h::xine_get_status"></a><p>
+<a name="a7" doxytag="xine.h::xine_get_status"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -287,14 +613,14 @@ Current status ( see <a href="group__status__group.html">Player status constants
 </dl>    </td>
   </tr>
 </table>
-<a name="a1" doxytag="xine.h::xine_pause"></a><p>
+<a name="a10" doxytag="xine.h::xine_get_stream_length"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
       <table cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td nowrap valign="top"><b> 
-void xine_pause (
+int xine_get_stream_length (
           </b></td>
           <td valign="bottom"><b>
 <a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>&nbsp;)
@@ -313,7 +639,7 @@ void xine_pause (
     <td>
 
 <p>
-Pause toggle.
+estimate length of input stream in seconds.
 <p>
 <dl compact><dt>
 <b>Parameters: </b><dd>
@@ -324,9 +650,9 @@ Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xin
 </table>
 </dl><dl compact><dt>
 <b>Returns: </b><dd>
-Nothing
+length of input stream in seconds or 0 if stream is not seekable
 <p>
-</dl>Toggle pause mode. <dl compact><dt>
+</dl>estimate length of input stream in seconds <dl compact><dt>
 <b>Parameters: </b><dd>
 <table border=0 cellspacing=2 cellpadding=0>
 <tr><td valign=top><em>self</em>
@@ -358,7 +684,13 @@ char * <em>MRL</em>,
         <tr>
           <td></td>
           <td><b>
-int <em>pos</em>&nbsp;)
+int <em>start_pos</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int <em>start_time</em>&nbsp;)
           </b></td>
         </tr>
 
@@ -385,15 +717,18 @@ Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xin
 <tr><td valign=top><em>MRL</em>
 &nbsp;</td><td>
 Media Resource Location to open </td></tr>
-<tr><td valign=top><em>pos</em>
+<tr><td valign=top><em>start_pos</em>
 &nbsp;</td><td>
-Start from position (0..65535) </td></tr>
+position in input source (0..65535) </td></tr>
+<tr><td valign=top><em>start_time</em>
+&nbsp;</td><td>
+position measured in seconds from stream start </td></tr>
 </table>
 </dl><dl compact><dt>
 <b>Returns: </b><dd>
 Nothing
 <p>
-</dl>Open a stream and play it <dl compact><dt>
+</dl>Open a stream and play it. If both start position parameters  are !=0 start_pos will be used for non-seekable streams both values will be ignored <dl compact><dt>
 <b>Parameters: </b><dd>
 <table border=0 cellspacing=2 cellpadding=0>
 <tr><td valign=top><em>self</em>
@@ -402,14 +737,17 @@ Nothing
 <tr><td valign=top><em>MRL</em>
 &nbsp;</td><td>
  </td></tr>
-<tr><td valign=top><em>pos</em>
+<tr><td valign=top><em>start_pos</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>start_time</em>
 &nbsp;</td><td>
  </td></tr>
 </table>
 </dl>    </td>
   </tr>
 </table>
-<a name="a7" doxytag="xine.h::xine_select_audio_channel"></a><p>
+<a name="a12" doxytag="xine.h::xine_select_audio_channel"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -467,7 +805,7 @@ Nothing
 </dl>    </td>
   </tr>
 </table>
-<a name="a9" doxytag="xine.h::xine_select_spu_channel"></a><p>
+<a name="a14" doxytag="xine.h::xine_select_spu_channel"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -525,7 +863,129 @@ Nothing
 </dl>    </td>
   </tr>
 </table>
-<a name="a2" doxytag="xine.h::xine_stop"></a><p>
+<a name="a3" doxytag="xine.h::xine_set_av_offset"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+void xine_set_av_offset (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int <em>offset_pts</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set audio/video sync.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+<tr><td valign=top><em>offset_pts</em>
+&nbsp;</td><td>
+New pts. </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+Nothing
+<p>
+</dl>Set audio/video sync offset, according to offset_pts value ( see <a class="el" href="xine_8h.html#a4">xine_get_av_offset</a>() ). <dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>offset_pts</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<a name="a1" doxytag="xine.h::xine_set_speed"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+void xine_set_speed (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int <em>speed</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set playback speed.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+<tr><td valign=top><em>speed</em>
+&nbsp;</td><td>
+Desired playback speed ( see SPEED_PAUSE, SPEED_SLOW_4, SPEED_SLOW_2, SPEED_NORMAL, SPEED_FAST_2, SPEED_FAST_4 ) </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+Nothing
+<p>
+</dl>Set the playback speed to desired speed, according of SPEED_x constant. <dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>speed</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<a name="a5" doxytag="xine.h::xine_stop"></a><p>
 <table width="100%" cellpadding="2" cellspacing="0" border="0">
   <tr>
     <td class="md">
@@ -574,7 +1034,7 @@ Nothing
 </dl>    </td>
   </tr>
 </table>
-<hr><address><small>Generated at Thu Jul 26 11:29:46 2001 for XINE, A Free Video Player Project - API reference by
+<hr><address><small>Generated at Mon Sep 17 01:05:55 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

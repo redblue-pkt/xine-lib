@@ -253,7 +253,7 @@ WINE_MODREF *MODULE32_LookupHMODULE(HMODULE m)
 	if(list==NULL)
 	    return NULL;
     }	
-    TRACE("LookupHMODULE hit %X\n", list->wm);
+    TRACE("LookupHMODULE hit %X\n", (int)list->wm);
     return list->wm;
 }    
 
@@ -290,7 +290,7 @@ static WIN_BOOL MODULE_InitDll( WINE_MODREF *wm, DWORD type, LPVOID lpReserved )
         break;
 
     default:
-        ERR("wine_modref type %d not handled.\n", wm->type );
+        ERR("wine_modref type %d not handled.\n", wm->type);
         retv = FALSE;
         break;
     }
@@ -425,7 +425,7 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 	{
 		if ( !MODULE_DllProcessAttach( wm, NULL ) )
 		{
-			WARN_(module)("Attach failed for module '%s', \n", libname);
+			WARN_(module, "Attach failed for module '%s', \n", libname);
 			MODULE_FreeLibrary(wm);
 			SetLastError(ERROR_DLL_INIT_FAILED);
 			MODULE_RemoveFromList(wm);
@@ -590,9 +590,9 @@ FARPROC MODULE_GetProcAddress(
     FARPROC	retproc;
 
     if (HIWORD(function))
-	TRACE_(win32)("(%08lx,%s)\n",(DWORD)hModule,function);
+	TRACE_(win32,"(%08lx,%s)\n",(DWORD)hModule,function);
     else
-	TRACE_(win32)("(%08lx,%p)\n",(DWORD)hModule,function);
+	TRACE_(win32,"(%08lx,%p)\n",(DWORD)hModule,function);
     if (!wm) {
     	SetLastError(ERROR_INVALID_HANDLE);
         return (FARPROC)0;

@@ -28,6 +28,9 @@
 
 #include "cpu_accel.h"
 
+#ifdef ATTR_ALIGN
+#undef ATTR_ALIGN
+#endif
 #define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 #define ROW_SHIFT 11

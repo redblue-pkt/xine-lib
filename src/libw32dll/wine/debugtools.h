@@ -70,13 +70,27 @@ extern int dbg_printf(const char *format, ...) __attribute__((format (printf,1,2
 extern int dbg_printf(const char *format, ...);
 #endif
 
-#define TRACE_(X) 
-#define WARN_(X) 
-#define WARN 
-#define ERR_(X) 
-#define ERR 
-#define FIXME_(X) 
-#define FIXME 
+#ifdef  __GNUC__
+#define TRACE_(X, Y...) 
+#define WARN_(X, Y...)
+#define WARN(X,Y...) 
+#define ERR(X,Y...) 
+#define FIXME(X,Y...)
+#define DPRINTF(X,Y...)
+#define MESSAGE(X,Y...)
+#define ERR_(X,Y...) 
+#define FIXME_(X,Y...) 
+#else
+#define WARN_(...) 
+#define WARN(...)
+#define TRACE_(...) 
+#define ERR(...) 
+#define FIXME(...)
+#define DPRINTF(...)
+#define MESSAGE(...)
+#define ERR_(...) 
+#define FIXME_(...) 
+#endif
 
 #define TRACE_ON(X) 1
 #define ERR_ON(X) 1
@@ -86,7 +100,5 @@ extern int dbg_printf(const char *format, ...);
 #define DEFAULT_DEBUG_CHANNEL(ch) \
     extern char dbch_##ch[]; static char * const __dbch_default = dbch_##ch;
 
-#define DPRINTF 
-#define MESSAGE 
 
 #endif  /* __WINE_DEBUGTOOLS_H */

@@ -58,8 +58,6 @@ static void videofill_decode_data (video_decoder_t *this_gen, buf_element_t *buf
 
   videofill_decoder_t *this = (videofill_decoder_t *) this_gen;
   vo_frame_t *img, *last_img;
-  metronom_t *metronom;
-
 
   last_img = this->video_out->get_last_frame (this->video_out);
 
