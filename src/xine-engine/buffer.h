@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.65 2002/08/29 06:06:03 tmmm Exp $
+ * $Id: buffer.h,v 1.66 2002/08/30 14:19:48 f1rmb Exp $
  *
  *
  * contents:
@@ -210,6 +210,7 @@ struct buf_element_s {
 #define BUF_FLAG_FRAMERATE   0x0080
 #define BUF_FLAG_SEEK        0x0100
 #define BUF_FLAG_SPECIAL     0x0200
+#define BUF_FLAG_NO_VIDEO    0x0400
 
 /* these are the types of special buffers */
 /* 

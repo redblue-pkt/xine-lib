@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.57 2002/08/25 11:15:10 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.58 2002/08/30 14:19:48 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -156,7 +156,7 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
   pos = this->input->get_length(this->input) - 128;
   this->input->seek (this->input, pos, SEEK_SET);
 
-  len = this->input->read (this->input, &tag, 128);
+  len = this->input->read (this->input, (char *)&tag, 128);
 
   if (len>0) {
 
@@ -313,8 +313,15 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
 
 static void *demux_mpgaudio_loop (void *this_gen) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+  buf_element_t *buf;
 
   pthread_mutex_lock( &this->mutex );
+  
+  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+  buf->type = BUF_CONTROL_NOP;
+  buf->decoder_flags = BUF_FLAG_NO_VIDEO;
+  this->video_fifo->put(this->video_fifo, buf);
+  
   /* do-while needed to seek after demux finished */
   do {
 
@@ -478,7 +485,7 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
 
   if( !this->thread_running ) {
     xine_demux_control_start(this->xine);
-  
+    
     /*
      * now start demuxing
      */

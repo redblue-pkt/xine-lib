@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.92 2002/07/14 20:55:17 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.93 2002/08/30 14:19:48 f1rmb Exp $
  *
  */
 
@@ -97,25 +97,24 @@ void *video_decoder_loop (void *this_gen) {
 
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_START:
-
+      
       if (this->cur_video_decoder_plugin) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
 	this->cur_video_decoder_plugin = NULL;
       }
-
+      
       if (this->cur_spu_decoder_plugin) {
         this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
         this->cur_spu_decoder_plugin = NULL;
       }
-
+      
       pthread_mutex_lock (&this->finished_lock);
       this->video_finished = 0;
       this->spu_finished = 0;
-
+      
       pthread_mutex_unlock (&this->finished_lock);
- 
+      
       this->metronom->handle_video_discontinuity (this->metronom, DISC_STREAMSTART, 0);
-
       break;
 
     case BUF_SPU_SUBP_CONTROL:
@@ -219,18 +218,18 @@ void *video_decoder_loop (void *this_gen) {
     
     case BUF_CONTROL_NEWPTS:
       printf ("video_decoder: new pts %lld\n", buf->disc_off);
-
+      
       this->video_in_discontinuity = 1;
-
+      
       if (buf->decoder_flags && BUF_FLAG_SEEK) {
-        this->metronom->handle_video_discontinuity (this->metronom, DISC_STREAMSEEK, buf->disc_off);
+	this->metronom->handle_video_discontinuity (this->metronom, DISC_STREAMSEEK, buf->disc_off);
       } else {
-        this->metronom->handle_video_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
+	this->metronom->handle_video_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
       }
-
       this->video_in_discontinuity = 0;
+      
       break;
-
+      
     case BUF_CONTROL_AUDIO_CHANNEL:
       {
 	xine_ui_event_t  ui_event;
@@ -242,8 +241,16 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_NOP:
+      /* Inform UI of NO_VIDEO usage */
+      if(buf->decoder_flags & BUF_FLAG_NO_VIDEO) {
+	xine_ui_event_t  ui_event;
+	
+	ui_event.event.type = XINE_EVENT_OUTPUT_NO_VIDEO;
+	ui_event.data       = this->cur_mrl;
+	xine_send_event(this, &ui_event.event);
+      }
       break;
-
+      
     default:
       xine_profiler_start_count (prof_video_decode);
 
@@ -259,8 +266,9 @@ void *video_decoder_loop (void *this_gen) {
 	decoder = this->video_decoder_plugins [streamtype];
 	
 	if (decoder) {
-	  
+
 	  if (this->cur_video_decoder_plugin != decoder) {
+	    xine_ui_event_t  ui_event;
 	    
 	    if (this->cur_video_decoder_plugin) {
 	      this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
@@ -278,10 +286,14 @@ void *video_decoder_loop (void *this_gen) {
     
 	    xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 1);
 	    
+	    ui_event.event.type = XINE_EVENT_OUTPUT_VIDEO;
+	    ui_event.data       = this->cur_mrl;
+	    xine_send_event(this, &ui_event.event);
+	    
 	  }
 
 	  decoder->decode_data (this->cur_video_decoder_plugin, buf);  
-	
+
 	} else if( buf->type != buftype_unknown ) {
 	    xine_log (this, XINE_LOG_MSG, "video_decoder: no plugin available to handle '%s'\n",
 		        buf_video_name( buf->type ) );

@@ -79,7 +79,8 @@ extern "C" {
 #define XINE_EVENT_INPUT_NUMBER_10_ADD  40
 
 #define XINE_EVENT_ASPECT_CHANGE	41 /* Generally should be viewed as a hint to the GUI */
-
+#define XINE_EVENT_OUTPUT_VIDEO         42
+#define XINE_EVENT_OUTPUT_NO_VIDEO      43
 
 
 /*
