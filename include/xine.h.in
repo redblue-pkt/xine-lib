@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.39 2002/11/20 18:38:08 mroi Exp $
+ * $Id: xine.h.in,v 1.40 2002/11/21 00:26:06 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -455,14 +455,6 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_VO_ASPECT_DONT_TOUCH          42
 
 /*
- * audio stuff
- */
-
-#define XINE_PARAM_AO_MIXER_VOL            0x02000000
-#define XINE_PARAM_AO_PCM_VOL              0x02000001
-#define XINE_PARAM_AO_MUTE                 0x02000002
-
-/*
  * plugin management / autoplay / mrl browsing
  *
  * note: the pointers to strings or string arrays returned
@@ -677,10 +669,12 @@ typedef struct {
 #define CHECK_XV        6
 
 struct xine_health_check_s {
-  int status;
+  int         status;
   const char* cdrom_dev;
   const char* dvd_dev;
-  char* msg;
+  char*       msg;
+  char*       title;
+  char*       explanation;
 };
 
 typedef struct xine_health_check_s xine_health_check_t;

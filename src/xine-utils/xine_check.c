@@ -72,19 +72,19 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
   int       n, size;
 
   if (!hc) {
-    printf("%s() GASP, hc is NULL\n", __XINE_FUNCTION__);
+    printf ("xine_check: GASP, hc is NULL\n");
     abort();
   }
 
   if (!format) {
-    printf("%s() GASP, format is NULL\n", __XINE_FUNCTION__);
+    printf ("xine_check: GASP, format is NULL\n");
     abort();
   }
 
   size = strlen(format) + 1;
 
-  if((buf = malloc(size)) == NULL) {
-    printf("%s() GASP, malloc() failed\n", __XINE_FUNCTION__);
+  if ((buf = malloc(size)) == NULL) {
+    printf ("xine_heck: GASP, malloc() failed\n");
     abort();
   }
 
@@ -110,8 +110,8 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
     }
   }
 
-  hc->msg = buf;
-  hc->status = state;
+  hc->msg         = buf;
+  hc->status      = state;
 }
 
 #if defined(__linux__)
@@ -150,6 +150,9 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
 xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
   struct utsname kernel;
 
+  hc->title       = "Check for kernel version";
+  hc->explanation = "Probably you're not running a Linux-Like system.";
+
   if (uname (&kernel) == 0) {
     fprintf (stdout,"  sysname: %s\n", kernel.sysname);
     fprintf (stdout,"  release: %s\n", kernel.release);
@@ -157,7 +160,8 @@ xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
     hc->status = XINE_HEALTH_CHECK_OK;
   }
   else {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - Could not get kernel information.");
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, 
+		   "FAILED - Could not get kernel information.");
   }
   return hc;
 }
@@ -167,9 +171,13 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
   char *file = "/proc/mtrr";
   FILE *fd;
 
+  hc->title       = "Check for MTRR support";
+  hc->explanation = "Make sure your kernel has MTRR support compiled in.";
+
   fd = fopen(file, "r");
   if (fd < 0) {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED: mtrr is not enabled.");
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, 
+		   "FAILED: mtrr is not enabled.");
   }
   else {
     hc->status = XINE_HEALTH_CHECK_OK;
@@ -180,8 +188,11 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
 #else
 xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
 
-  set_hc_result (hc, XINE_HEALTH_CHECK_OK, "FAILED: mtrr does not apply on this hw platform.");
+  hc->title       = "Check for MTRR support";
+  hc->explanation = "Don't worry about this one";
 
+  set_hc_result (hc, XINE_HEALTH_CHECK_OK, 
+		 "mtrr does not apply on this hw platform.");
   return hc;
 }
 #endif
@@ -189,8 +200,13 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
 xine_health_check_t* xine_health_check_cdrom (xine_health_check_t* hc) {
   struct stat cdrom_st;
 
+  hc->title       = "Check for CDROM drive";
+  hc->explanation = "Either create a symbolic link /dev/cdrom pointing to"
+                    "your cdrom device or set your cdrom device in the"
+                    "preferences dialog.";
+
   if (stat (hc->cdrom_dev,&cdrom_st) < 0) {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not cdrom: %s\n", hc->cdrom_dev);
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not access cdrom: %s\n", hc->cdrom_dev);
     return hc;
   }
   else {
@@ -213,8 +229,13 @@ xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
 
   struct stat dvdrom_st;
 
+  hc->title       = "Check for DVD drive";
+  hc->explanation = "Either create a symbolic link /dev/dvd pointing to"
+                    "your cdrom device or set your cdrom device in the"
+                    "preferences dialog.";
+
   if (stat (hc->dvd_dev,&dvdrom_st) < 0) {
-    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not dvdrom: %s\n", hc->dvd_dev);
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not access dvdrom: %s\n", hc->dvd_dev);
     return hc;
   }
 
@@ -235,10 +256,16 @@ xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
 
 xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
 
-  int is_scsi_dev = 0;
-  int fd = 0;
+  int         is_scsi_dev = 0;
+  int         fd = 0;
   static long param = 0;
   struct stat st;
+
+  hc->title       = "Check for DMA mode on DVD drive";
+  hc->explanation = "If you are using the ide-cd module ensure\n"
+                    "that you have the following entry in /etc/modules.conf:\n"
+                    "options ide-cd dma=1\n Reload ide-cd module.\n"
+	            "otherwise run hdparm -d 1 on your dvd-device.";
 
   /* If /dev/dvd points to /dev/scd0 but the drive is IDE (e.g. /dev/hdc)
    * and not scsi how do we detect the correct one */
@@ -263,19 +290,15 @@ xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
 
     if(ioctl (fd, HDIO_GET_DMA, &param)) {
       set_hc_result(hc, XINE_HEALTH_CHECK_FAIL,
-          "FAILED -  HDIO_GET_DMA failed. Ensure the permissions for %s are 0664.\n",
-          hc->dvd_dev);
+		    "FAILED -  HDIO_GET_DMA failed. Ensure the permissions for %s are 0664.\n",
+		    hc->dvd_dev);
       return hc;
     }
 
     if (param != 1) {
-      char* instructions = "If you are using the ide-cd module ensure \
-        that you have the following entry in /etc/modules.conf:\n \
-        options ide-cd dma=1\n Reload ide-cd module.";
       set_hc_result(hc, XINE_HEALTH_CHECK_FAIL,
-          "FAILED - DMA not turned on for %s.\n%s\n",
-          hc->dvd_dev,
-          instructions);
+		    "FAILED - DMA not turned on for %s.",
+		    hc->dvd_dev);
       return hc;
     }
   }
@@ -287,6 +310,10 @@ xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
 
 xine_health_check_t* xine_health_check_x (xine_health_check_t* hc) {
   char* env_display = getenv("DISPLAY");
+
+  hc->title       = "Check for X11 environment";
+  hc->explanation = "Make sure you're running X11, if this is an ssh connection,\n" 
+                    "make sure you have X11 forwarding enabled (ssh -X ...)";
 
   if (strlen (env_display) == 0) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - DISPLAY environment variable not set.");
@@ -311,6 +338,10 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   int                   formats, adaptors, i;
   XvImageFormatValues   *img_formats;
   XvAdaptorInfo     *adaptor_info;
+
+  hc->title       = "Check for MIT Xv extension";
+  hc->explanation = "You can improve performance by installing an X11\n"
+    "driver that supports the Xv protocol extentsion.";
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
@@ -398,10 +429,18 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 
   return hc;
 #else
+  hc->title       = "Check for MIT Xv extension";
+  hc->explanation = "You can improve performance by installing an X11\n"
+    "driver that supports the Xv protocol extentsion.";
+
   set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X-Video Extension");
   return hc;
 #endif /* ! HAVE_HV */
 #else
+  hc->title       = "Check for MIT Xv extension";
+  hc->explanation = "You can improve performance by installing an X11\n"
+    "driver that supports the Xv protocol extentsion.";
+
   set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X11 windowing system");
   return hc;
 #endif /* ! HAVE_X11 */
@@ -409,7 +448,10 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 
 #else	/* !__linux__ */
 xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
-  set_hc_result(hc, XINE_HEALTH_CHECK_UNSUPPORTED, "Xine health check not supported on the OS.\n");
+  hc->title       = "xine health check not supported on this platform";
+  hc->explanation = "contact the xine-devel mailing list if you'd like to\n"
+                    "contribute code for your platform."
+  set_hc_result(hc, XINE_HEALTH_CHECK_UNSUPPORTED, "xine health check not supported on the OS.\n");
   return hc;
 }
 #endif	/* !__linux__ */
