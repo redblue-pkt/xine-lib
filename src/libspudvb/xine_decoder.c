@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2004/12/04 07:50:11 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.7 2004/12/04 17:47:43 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -458,11 +458,6 @@ void draw_subtitles (dvb_spu_decoder_t * this)
   int r;
   int x, y, out_y;
   char bitmap[720*576];
-  /* update clipping area */
-  this->osd->x1 = 1;
-  this->osd->x2 = 720;
-  this->osd->y1 = 1;
-  this->osd->y2 = 576;
 
   /* clear it */
   memset (bitmap, 0, 720 * 576);
