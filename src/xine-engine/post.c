@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.13 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: post.c,v 1.14 2003/08/15 14:38:04 mroi Exp $
  */
  
 /*
@@ -65,9 +65,9 @@ static void post_video_exit(xine_video_port_t *port_gen) {
   port->original_port->exit(port->original_port);
 }
 
-static video_overlay_instance_t *post_video_get_overlay_instance(xine_video_port_t *port_gen) {
+static video_overlay_manager_t *post_video_get_overlay_manager(xine_video_port_t *port_gen) {
   post_video_port_t *port = (post_video_port_t *)port_gen;
-  return port->original_port->get_overlay_instance(port->original_port);
+  return port->original_port->get_overlay_manager(port->original_port);
 }
 
 static void post_video_flush(xine_video_port_t *port_gen) {
@@ -105,7 +105,7 @@ post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_por
   post_port->port.enable_ovl             = post_video_enable_ovl;
   post_port->port.close                  = post_video_close;
   post_port->port.exit                   = post_video_exit;
-  post_port->port.get_overlay_instance   = post_video_get_overlay_instance;
+  post_port->port.get_overlay_manager    = post_video_get_overlay_manager;
   post_port->port.flush                  = post_video_flush;
   post_port->port.status                 = post_video_status;
   post_port->port.get_property           = post_video_get_property;
@@ -187,6 +187,73 @@ void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->dispose                  = port->original_frame.dispose;
 }
 
+
+/* dummy intercept functions that just pass the call on to the original overlay manager */
+static void post_overlay_init(video_overlay_manager_t *ovl_gen) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  ovl->original_manager->init(ovl->original_manager);
+}
+
+static void post_overlay_dispose(video_overlay_manager_t *ovl_gen) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  ovl->original_manager->dispose(ovl->original_manager);
+}
+
+static int32_t post_overlay_get_handle(video_overlay_manager_t *ovl_gen, int object_type) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  return ovl->original_manager->get_handle(ovl->original_manager, object_type);
+}
+
+static void post_overlay_free_handle(video_overlay_manager_t *ovl_gen, int32_t handle) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  ovl->original_manager->free_handle(ovl->original_manager, handle);
+}
+
+static int32_t post_overlay_add_event(video_overlay_manager_t *ovl_gen, void *event) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  return ovl->original_manager->add_event(ovl->original_manager, event);
+}
+
+static void post_overlay_flush_events(video_overlay_manager_t *ovl_gen) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  ovl->original_manager->flush_events(ovl->original_manager);
+}
+
+static int post_overlay_redraw_needed(video_overlay_manager_t *ovl_gen, int64_t vpts) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  return ovl->original_manager->redraw_needed(ovl->original_manager, vpts);
+}
+
+static void post_overlay_multiple_overlay_blend(video_overlay_manager_t *ovl_gen, int64_t vpts, 
+	      vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
+  post_overlay_manager_t *ovl = (post_overlay_manager_t *)ovl_gen;
+  ovl->original_manager->multiple_overlay_blend(ovl->original_manager, vpts, output, vo_img, enabled);
+}
+
+
+post_overlay_manager_t *post_intercept_overlay_manager(post_plugin_t *post,
+			  video_overlay_manager_t *original) {
+  post_overlay_manager_t *post_ovl = (post_overlay_manager_t *)malloc(sizeof(post_overlay_manager_t));
+  
+  if (!post_ovl)
+    return NULL;
+  
+  post_ovl->manager.init                   = post_overlay_init;
+  post_ovl->manager.dispose                = post_overlay_dispose;
+  post_ovl->manager.get_handle             = post_overlay_get_handle;
+  post_ovl->manager.free_handle            = post_overlay_free_handle;
+  post_ovl->manager.add_event              = post_overlay_add_event;
+  post_ovl->manager.flush_events           = post_overlay_flush_events;
+  post_ovl->manager.redraw_needed          = post_overlay_redraw_needed;
+  post_ovl->manager.multiple_overlay_blend = post_overlay_multiple_overlay_blend;
+  
+  post_ovl->original_manager               = original;
+  post_ovl->post                           = post;
+  
+  return post_ovl;
+}
+
+
 /* dummy intercept functions that just pass the call on to the original port */
 static uint32_t post_audio_get_capabilities(xine_audio_port_t *port_gen) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
@@ -254,6 +321,7 @@ static int post_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
   return port->original_port->status(port->original_port, stream, bits, rate, mode);
 }
+
 
 post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *original) {
   post_audio_port_t *post_port = (post_audio_port_t *)malloc(sizeof(post_audio_port_t));

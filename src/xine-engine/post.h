@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.10 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: post.h,v 1.11 2003/08/15 14:38:04 mroi Exp $
  *
  * post plugin definitions
  *
@@ -111,6 +111,7 @@ struct post_plugin_s {
  * set of functions attached that you might need to decorate.
  */
 
+
 /* helper structure for intercepting video port calls */
 typedef struct post_video_port_s post_video_port_t;
 struct post_video_port_s {
@@ -137,6 +138,28 @@ post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_por
  * can be replaced with own implementations */
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
+
+
+/* helper structure for intercepting overlay manager calls */
+typedef struct post_overlay_manager_s post_overlay_manager_t;
+struct post_overlay_manager_s {
+
+  /* the new public overlay manager with replaced function pointers */
+  video_overlay_manager_t   manager;
+  
+  /* the original manager to call its functions from inside yours */
+  video_overlay_manager_t  *original_manager;
+  
+  /* backward reference so that you have access to the post plugin
+   * when the call only gives you the overlay manager */
+  post_plugin_t            *post;
+};
+
+/* use this to create a new, trivially decorated overlay manager in which
+ * port functions can be replaced with own implementations */
+post_overlay_manager_t *post_intercept_overlay_manager(post_plugin_t *post,
+			  video_overlay_manager_t *original);
+
 
 /* helper structure for intercepting audio port calls */
 typedef struct post_audio_port_s post_audio_port_t;
