@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.19 2001/10/30 09:42:26 guenter Exp $
+ * $Id: buffer.h,v 1.20 2001/11/06 21:46:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -181,6 +181,7 @@ struct fifo_buffer_s
   pthread_cond_t   buffer_pool_cond_not_empty;
   int              buffer_pool_num_free;
   int		   buffer_pool_capacity;
+  int		   buffer_pool_buf_size;
 } ;
 
 /*

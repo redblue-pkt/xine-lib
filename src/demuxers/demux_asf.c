@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.5 2001/10/30 09:42:26 guenter Exp $
+ * $Id: demux_asf.c,v 1.6 2001/11/06 21:46:05 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -105,7 +105,10 @@ typedef struct demux_asf_s {
   
   /* only for reading */
   int               packet_padsize;
-
+  int               nb_frames;
+  int               segtype;
+  int               frame;
+  
   pthread_t         thread;
 
   int               status;
@@ -632,23 +635,32 @@ static int asf_get_packet(demux_asf_t *this) {
   }
 
   this->packet_flags = get_byte(this);
-  get_byte(this);
+  this->segtype = get_byte(this);
   this->packet_padsize = 0;
+  
+  if (this->packet_flags & 0x40) {
+    get_le16(this);
+    printf("demux_asf: absolute size ignored\n");
+    hdr_size += 2;
+  }
+      
   if (this->packet_flags & 0x10) {
     this->packet_padsize = get_le16(this);
     hdr_size += 2;
   } else if (this->packet_flags & 0x08) {
-    
     this->packet_padsize = get_byte(this);
     hdr_size++;
-    
   }
   timestamp = get_le32(this);
   get_le16(this); /* duration */
   if (this->packet_flags & 0x01) {
-    get_byte(this); /* nb_frames */
+    this->nb_frames = get_byte(this); /* nb_frames */
     hdr_size++;
   }
+  else
+    this->nb_frames = 1;
+  this->frame = 0;
+    
   this->packet_size_left = this->packet_size - hdr_size;
 
   /*
@@ -703,7 +715,9 @@ static void asf_send_buffer (demux_asf_t *this, asf_stream_t *stream,
   printf ("demux_asf: read %d bytes :", frag_len);
   hexdump (buf->content, frag_len);
   */
-
+  if( frag_len > stream->fifo->buffer_pool_buf_size )
+    printf("demux_asf: fragment may be larger than fifo buffer (frag_len=%d)\n", frag_len );
+  
   stream->frag_offset += frag_len;
 
   if (stream->fifo == this->video_fifo) {
@@ -735,11 +749,12 @@ static void asf_read_packet(demux_asf_t *this) {
   asf_stream_t  *stream;
 
   if ((this->packet_size_left < FRAME_HEADER_SIZE) ||
-      (this->packet_size_left <= this->packet_padsize)) {
+      (this->packet_size_left <= this->packet_padsize) ||
+      (++this->frame == (this->nb_frames & 0x3f)) ) {
     /* fail safe */
 
-    /* printf ("demux_asf: reading new packet, packet size left %d\n", this->packet_size_left); */
-
+    /* printf ("demux_asf: reading new packet, packet size left %d\n", this->packet_size_left);
+    */
     if (this->packet_size_left)
       this->input->seek (this->input, this->packet_size_left, SEEK_CUR);
     
@@ -764,7 +779,25 @@ static void asf_read_packet(demux_asf_t *this) {
   }
 
   seq           = get_byte(this);
-  frag_offset   = get_le32(this);
+  switch (this->segtype){
+  case 0x55:
+    frag_offset = get_byte(this);
+    this->packet_size_left -= 1;
+    break;
+  case 0x59:
+    frag_offset = get_le16(this);
+    this->packet_size_left -= 2;
+    break;
+  case 0x5D:
+    frag_offset = get_le32(this);
+    this->packet_size_left -= 4;
+    break;
+  default:
+    printf("demux_asf: unknow segtype %d\n",this->segtype);
+    frag_offset = get_le32(this);
+    this->packet_size_left -= 4;
+    break;
+  }
   flags         = get_byte(this); 
 
   /*
@@ -780,9 +813,15 @@ static void asf_read_packet(demux_asf_t *this) {
 
 
     if (this->packet_flags & 0x01) {
-
-      data_length = get_le16 (this);
-      this->packet_size_left -= data_length + 10;
+      if( (this->nb_frames & 0xc0) == 0x40 ) {
+        data_length = get_byte (this);
+	this->packet_size_left --;
+      } else {
+        data_length = get_le16 (this);
+	this->packet_size_left -= 2;
+      }
+      this->packet_size_left -= data_length + 4;
+      
       /*
       printf ("demux_asf: reading grouping part segment, size = %d\n",
 	      data_length);
@@ -790,7 +829,7 @@ static void asf_read_packet(demux_asf_t *this) {
 
     } else {
 
-      data_length = this->packet_size_left - 8 - this->packet_padsize; 
+      data_length = this->packet_size_left - 4 - this->packet_padsize; 
       this->packet_size_left = this->packet_padsize;
 
       /*
@@ -809,7 +848,7 @@ static void asf_read_packet(demux_asf_t *this) {
 	asf_send_buffer (this, stream, 0, seq, timestamp, 
 			 object_length, object_length);
       else {
-	/* printf ("demux_asf: unhandled stream type, id %d\n", stream_id); */
+	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
 	this->input->seek (this->input, object_length, SEEK_CUR);
       }
 
@@ -825,15 +864,14 @@ static void asf_read_packet(demux_asf_t *this) {
     timestamp     = get_le32(this);
     if (this->packet_flags & 0x01) {
       frag_len      = get_le16(this);
-      this->packet_size_left -= FRAME_HEADER_SIZE + frag_len;
-
+      this->packet_size_left -= FRAME_HEADER_SIZE + frag_len - 4;
       /*
       printf ("demux_asf: reading part segment, size = %d\n",
 	      frag_len);
       */
 
     } else {
-      frag_len = this->packet_size_left-15 - this->packet_padsize; 
+      frag_len = this->packet_size_left - 11 - this->packet_padsize; 
       this->packet_size_left = this->packet_padsize;
       
       /*
@@ -1076,7 +1114,8 @@ static char *demux_asf_get_id(void) {
 }
 
 static char *demux_asf_get_mimetypes(void) {
-  return "";
+  return "video/x-ms-asf: asf: ASF animation;"
+         "video/x-ms-wmv: wmv: WMV animation;";
 }
 
 static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {

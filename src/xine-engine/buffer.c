@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.10 2001/10/14 19:20:01 jkeil Exp $
+ * $Id: buffer.c,v 1.11 2001/11/06 21:46:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -277,6 +277,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   }
   this->buffer_pool_num_free = num_buffers;
   this->buffer_pool_capacity = num_buffers;
+  this->buffer_pool_buf_size = buf_size;
   this->buffer_pool_alloc    = buffer_pool_alloc;
 
   return this;

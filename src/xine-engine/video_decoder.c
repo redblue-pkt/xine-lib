@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.60 2001/10/24 22:23:10 guenter Exp $
+ * $Id: video_decoder.c,v 1.61 2001/11/06 21:46:05 miguelfreitas Exp $
  *
  */
 
@@ -245,7 +245,7 @@ void video_decoder_init (xine_t *this) {
   struct sched_param   pth_params;
   int		       err;
 
-  this->video_fifo = fifo_buffer_new (500, 4096);
+  this->video_fifo = fifo_buffer_new (500, 8192);
 
   pthread_attr_init(&pth_attrs);
   pthread_attr_getschedparam(&pth_attrs, &pth_params);
