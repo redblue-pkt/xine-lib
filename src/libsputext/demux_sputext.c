@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.40 2004/10/30 14:29:23 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.41 2004/11/03 19:17:54 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -999,7 +999,7 @@ static subtitle_t *sub_read_line_subrip09 (demux_sputext_t *this, subtitle_t *cu
 ** Sylvain "Skarsnik" Colinet <scolinet@gmail.com>
 */
 
-subtitle_t *sub_read_line_mpl2(demux_sputext_t *this, subtitle_t *current) {
+static subtitle_t *sub_read_line_mpl2(demux_sputext_t *this, subtitle_t *current) {
   char line[LINE_LEN+1];
   char line2[LINE_LEN+1];
   char *p, *next;
