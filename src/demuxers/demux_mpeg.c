@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.129 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.130 2003/11/18 04:35:14 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -98,6 +98,7 @@ typedef struct {
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define WAVE_TAG FOURCC_TAG('W', 'A', 'V', 'E')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
+#define FOURXM_TAG FOURCC_TAG('4', 'X', 'M', 'V')
 
 /* arbitrary number of initial file bytes to check for an MPEG marker */
 #define RIFF_CHECK_KILOBYTES 1024
@@ -1072,7 +1073,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       /* disregard the RIFF file if it is certainly a better known
        * format like AVI or WAVE */
       if ((fourcc_tag == WAVE_TAG) ||
-	  (fourcc_tag == AVI_TAG)) {
+	  (fourcc_tag == AVI_TAG) ||
+	  (fourcc_tag == FOURXM_TAG)) {
 	free (this);
 	return NULL;
       }
