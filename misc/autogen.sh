@@ -49,7 +49,7 @@ aclocalinclude="$ACLOCAL_FLAGS"; \
     aclocal $aclocalinclude; \
  echo "done.") && \
 (echo -n " + Running libtoolize: "; \
-    libtoolize --force; \
+    libtoolize --force >/dev/null 2>&1; \
  echo "done.") && \
 (echo -n " + Running autoheader: "; \
     autoheader; \
