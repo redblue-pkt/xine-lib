@@ -405,6 +405,8 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
 
     tuner_t *this;
     int x;
+    int test_video;
+    char *video_device=xine_xmalloc(200);
     
     this = (tuner_t *) xine_xmalloc(sizeof(tuner_t));
     
@@ -418,6 +420,7 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
     snprintf(this->frontend_device,100,"/dev/dvb/adapter%i/frontend0",this->adapter_num);
     snprintf(this->demux_device,100,"/dev/dvb/adapter%i/demux0",this->adapter_num);
     snprintf(this->dvr_device,100,"/dev/dvb/adapter%i/dvr0",this->adapter_num);
+    snprintf(video_device,100,"/dev/dvb/adapter%i/video0",this->adapter_num);
     
     if ((this->fd_frontend = open(this->frontend_device, O_RDWR)) < 0) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "FRONTEND DEVICE: %s\n", strerror(errno));
@@ -448,6 +451,19 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
     /* and the frontend */
     fcntl(this->fd_frontend, F_SETFL, O_NONBLOCK);
    
+   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Frontend is <%s> ",this->feinfo.name);
+   if(this->feinfo.type==FE_QPSK) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"SAT Card\n");
+   if(this->feinfo.type==FE_QAM) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"CAB Card\n");
+   if(this->feinfo.type==FE_OFDM) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"TER Card\n");
+
+   if ((test_video=open(video_device, O_RDWR)) < 0) {
+       xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Card has no hardware decoder\n");
+   }else{
+       xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Card HAS HARDWARE DECODER\n");
+       close(test_video);
+  }
+  free(video_device);
+  
   return this;
 }
 
@@ -456,10 +472,10 @@ static int dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid, 
 {
     tuner_t *tuner = this->tuner;
 
-    if(this->channels[this->channel].pid [filter] !=NOPID) {
+   if(this->channels[this->channel].pid [filter] !=NOPID) {
       ioctl(tuner->fd_pidfilter[filter], DMX_STOP);
     }
-    
+   
     this->channels[this->channel].pid [filter] = pid;
     tuner->pesFilterParams[filter].pid = pid;
     tuner->pesFilterParams[filter].input = DMX_IN_FRONTEND;
@@ -475,12 +491,15 @@ static int dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid, 
 }
 
 
-static void dvb_set_sectfilter(dvb_input_plugin_t * this, int filter, ushort pid, int pidtype, char table, char mask)
+static int dvb_set_sectfilter(dvb_input_plugin_t * this, int filter, ushort pid, int pidtype, char table, char mask)
 {
     tuner_t *tuner = this->tuner;
+
+    if(this->channels[this->channel].pid [filter] !=NOPID) {
+      ioctl(tuner->fd_pidfilter[filter], DMX_STOP);
+    }
     
     this->channels[this->channel].pid [filter] = pid;
-    
     tuner->sectFilterParams[filter].pid = pid;
     memset(&tuner->sectFilterParams[filter].filter.filter,0,DMX_FILTER_SIZE);
     memset(&tuner->sectFilterParams[filter].filter.mask,0,DMX_FILTER_SIZE);
@@ -488,9 +507,11 @@ static void dvb_set_sectfilter(dvb_input_plugin_t * this, int filter, ushort pid
     tuner->sectFilterParams[filter].filter.filter[0] = table;
     tuner->sectFilterParams[filter].filter.mask[0] = mask;
     tuner->sectFilterParams[filter].flags = DMX_IMMEDIATE_START;
-    if (ioctl(tuner->fd_pidfilter[filter], DMX_SET_FILTER, &tuner->sectFilterParams[filter]) < 0)
-	   xprintf(tuner->xine, XINE_VERBOSITY_DEBUG, "input_dvb: set_pid: %s\n", strerror(errno));
-
+    if (ioctl(tuner->fd_pidfilter[filter], DMX_SET_FILTER, &tuner->sectFilterParams[filter]) < 0){
+	   xprintf(tuner->xine, XINE_VERBOSITY_DEBUG, "input_dvb: set_sectionfilter: %s\n", strerror(errno));
+	   return 0;
+    }
+    return 1;
 }
 
 
@@ -639,7 +660,8 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
     if (!(field = strsep(&tmp, ":")))
         return -1;
     channel->service_id = strtoul(field, NULL, 0);
-
+  
+        
 	return 0;
 }
 
@@ -698,7 +720,13 @@ static channel_t *load_channels(dvb_input_plugin_t *this, int *num_ch, fe_type_t
     free(channels);
     return NULL;
   }
-
+  /* is this a valid channels.conf file? */
+  if(channels[0].service_id==0) {
+     xprintf(xine, XINE_VERBOSITY_LOG, "input_dvb:  problem with channels.conf format - is it in *zap format? - Exiting \n");
+     free(channels);
+     return NULL;
+  }
+  
   *num_ch = num_channels;
   return channels;
 }
@@ -915,23 +943,23 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   bufptr = tmpbuffer;
 
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
-  pfd.events = POLLPRI | POLLIN;
+  pfd.events = POLLIN;
 
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
   /* first - the PAT */  
   if(dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP)==0)
   {
-    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PAT filter - reverting to rc6 hehaviour\n");
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error setting up Internal PAT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
 
   /* wait for up to 15 seconds */
-  if(poll(&pfd,1,15000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
+  if(poll(&pfd,1,12000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
   {
-    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PAT filter - reverting to rc6 hehaviour\n");
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error setting up Internal PAT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
@@ -964,8 +992,9 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   }
 
   bufptr = tmpbuffer;
+
     /* next - the PMT */
-  xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PMT filter\n");
+  xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PMT filter for pid %x\n",this->channels[this->channel].pmtpid);
 
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
   if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
