@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.6 2002/07/08 16:35:32 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.7 2002/07/16 16:21:14 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -149,13 +149,13 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     this->context = 0;
   }
   
-  if ((drv->video_width % 16 != 0) || (drv->video_oheight % 16 != 0)) {
+  if ((frame->vo_frame.pitches[0] % 16 != 0) || (frame->oheight % 16 != 0)) {
     printf("dxr3_mpeg_encoder: rte only handles video dimensions which are multiples of 16\n");
     return 0;
   }
   
-  this->width = drv->video_width;
-  this->height = drv->video_oheight;
+  this->width = frame->vo_frame.pitches[0];
+  this->height = frame->oheight;
 
   /* create new rte context */
   this->context = rte_context_new(this->width, this->height, "mp1e", drv);
@@ -253,9 +253,9 @@ static int rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   int size;
   rte_data_t* this = (rte_data_t *)drv->enc;
 
-  if ((this->width == frame->width) && (this->height == frame->oheight)) {
+  if ((this->width == frame->vo_frame.pitches[0]) && (this->height == frame->oheight)) {
     /* This frame belongs to current context. */
-    size = frame->width * frame->oheight;
+    size = frame->vo_frame.pitches[0] * frame->oheight;
     if (frame->vo_frame.format == IMGFMT_YV12)
       xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 3/2);
     else

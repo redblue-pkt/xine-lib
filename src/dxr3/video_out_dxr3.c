@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.39 2002/07/10 14:09:56 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.40 2002/07/16 16:21:14 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -507,8 +507,8 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     }
     
     /* find closest multiple of 16 */
-    oheight = 16*(int)(oheight / 16. + 0.5);
-    if (oheight < height) oheight = height;
+    oheight = 16 * (int)(oheight / 16. + 0.5);
+    if (oheight < height) oheight += 16;
 
     /* Tell the viewers about the aspect ratio stuff. */
     if (oheight - height > 0)
@@ -542,62 +542,67 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
      * so old and new macroblocks overlap */ 
     this->top_bar = ((oheight - height) / 32) * 16;
     if (format == IMGFMT_YUY2) {
-      int image_size = width * oheight; /* includes black bars */
+      int image_size;
+      
+      /* calculate pitch and size including black bars */
+      frame->vo_frame.pitches[0] = 32*((width + 15) / 16);
+      image_size = frame->vo_frame.pitches[0] * oheight;
       
       /* planar format, only base[0] */
       /* add one extra line for field swap stuff */
-      frame->real_base[0] = xine_xmalloc_aligned(16, (image_size + width) * 2,
+      frame->real_base[0] = xine_xmalloc_aligned(16, image_size + frame->vo_frame.pitches[0],
         (void**)&frame->mem);
 
       /* don't use first line */
-      frame->real_base[0] += width * 2;
+      frame->real_base[0] += frame->vo_frame.pitches[0];
       frame->real_base[1] = frame->real_base[2] = 0;
 
       /* fix offset, so the decoder does not see the top black bar */
-      frame->vo_frame.base[0] = frame->real_base[0] + width * 2 * this->top_bar;
+      frame->vo_frame.base[0] = frame->real_base[0] + frame->vo_frame.pitches[0] * this->top_bar;
       frame->vo_frame.base[1] = frame->vo_frame.base[2] = 0;
 
       /* fill with black (yuy2 16,128,16,128,...) */
-      memset(frame->real_base[0], 128, 2 * image_size); /* U and V */
-      for (i = 0; i < 2 * image_size; i += 2) /* Y */
+      memset(frame->real_base[0], 128, image_size); /* U and V */
+      for (i = 0; i < image_size; i += 2) /* Y */
         *(frame->real_base[0] + i) = 16;
 
     } else { /* IMGFMT_YV12 */
-      int image_size = width * oheight; /* includes black bars */
+      int image_size_y, image_size_u, image_size_v;
       
+      /* calculate pitches and sizes including black bars */
+      frame->vo_frame.pitches[0] = 16*((width + 15) / 16);
+      frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+      frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+      image_size_y = frame->vo_frame.pitches[0] * oheight;
+      image_size_u = frame->vo_frame.pitches[1] * ((oheight + 1) / 2);
+      image_size_v = frame->vo_frame.pitches[2] * ((oheight + 1) / 2);
+
       /* add one extra line for field swap stuff */
-      frame->real_base[0] = xine_xmalloc_aligned(16, (image_size + width) * 3/2,
-        (void**)&frame->mem);
+      frame->real_base[0] = xine_xmalloc_aligned(16, image_size_y + frame->vo_frame.pitches[0] +
+        image_size_u + image_size_v, (void**)&frame->mem);
 
       /* don't use first line */
-      frame->real_base[0] += width;
-      frame->real_base[1] = frame->real_base[0] + image_size;
-      frame->real_base[2] = frame->real_base[1] + image_size/4;
+      frame->real_base[0] += frame->vo_frame.pitches[0];
+      frame->real_base[1] = frame->real_base[0] + image_size_y;
+      frame->real_base[2] = frame->real_base[1] + image_size_u;
 
       /* fix offsets, so the decoder does not see the top black bar */
-      frame->vo_frame.base[0] = frame->real_base[0] + width * this->top_bar;
-      frame->vo_frame.base[1] = frame->real_base[1] + width * this->top_bar/4;
-      frame->vo_frame.base[2] = frame->real_base[2] + width * this->top_bar/4;
+      frame->vo_frame.base[0] = frame->real_base[0] + frame->vo_frame.pitches[0] * this->top_bar;
+      frame->vo_frame.base[1] = frame->real_base[1] + frame->vo_frame.pitches[1] * this->top_bar / 2;
+      frame->vo_frame.base[2] = frame->real_base[2] + frame->vo_frame.pitches[2] * this->top_bar / 2;
       
       /* fill with black (yuv 16,128,128) */
-      memset(frame->real_base[0], 16, image_size);
-      memset(frame->real_base[1], 128, image_size/4);
-      memset(frame->real_base[2], 128, image_size/4);
+      memset(frame->real_base[0], 16, image_size_y);
+      memset(frame->real_base[1], 128, image_size_u);
+      memset(frame->real_base[2], 128, image_size_v);
     }
   }
 
   if (this->swap_fields != frame->swap_fields) {
-    if (format == IMGFMT_YUY2) {
-      if (this->swap_fields) 
-        frame->vo_frame.base[0] -= width *2;
-      else  
-        frame->vo_frame.base[0] += width *2;
-    } else {
-      if (this->swap_fields) 
-        frame->vo_frame.base[0] -= width;
-      else  
-        frame->vo_frame.base[0] += width;
-    }
+    if (this->swap_fields) 
+      frame->vo_frame.base[0] -= frame->vo_frame.pitches[0];
+    else  
+      frame->vo_frame.base[0] += frame->vo_frame.pitches[0];
   }
  
   frame->width       = width;
