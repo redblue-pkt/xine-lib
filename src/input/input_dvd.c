@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.108 2002/10/31 17:00:45 mroi Exp $
+ * $Id: input_dvd.c,v 1.109 2002/11/01 11:48:59 tmattern Exp $
  *
  */
 
@@ -755,22 +755,37 @@ static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
 }
 
 static void flush_buffers(dvd_input_plugin_t *this) {
-  /* Small hack for still menus with audio. Thanks to
-   * the Captain for doing this in d5d. The changes are necessary to
-   * stop some audio problems (esp. with R2 'Dalekmania').
+  /*
+   * This code comes from xine_demux_flush_engine
    */
+  xine_stream_t *stream = this->stream;  
+  buf_element_t *buf;
+  
+  stream->video_fifo->clear(stream->video_fifo);
 
-   if (this->stream->audio_fifo)
-    this->stream->audio_fifo->clear (this->stream->audio_fifo); 
-   
-   if (this->stream->video_fifo)
-    this->stream->video_fifo->clear (this->stream->video_fifo); 
+  if( stream->audio_fifo )
+    stream->audio_fifo->clear(stream->audio_fifo);
+  
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
+  buf->type            = BUF_CONTROL_RESET_DECODER;
+  stream->video_fifo->put (stream->video_fifo, buf);
 
+  if(stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
+    buf->type            = BUF_CONTROL_RESET_DECODER;
+    stream->audio_fifo->put (stream->audio_fifo, buf);
+  }
 
-   if (this->stream->audio_decoder_plugin)
-    this->stream->audio_decoder_plugin->reset(this->stream->audio_decoder_plugin);
-   if (this->stream->video_decoder_plugin)
-    this->stream->video_decoder_plugin->flush(this->stream->video_decoder_plugin);
+  if (stream->video_out) {
+    stream->video_out->flush(stream->video_out);
+  }
+
+  if (stream->audio_out) {
+    stream->audio_out->flush(stream->audio_out);
+  }
+  
+  stream->metronom->adjust_clock(stream->metronom,
+    stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -1653,6 +1668,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.109  2002/11/01 11:48:59  tmattern
+ * Time for fast navigation now !
+ *
  * Revision 1.108  2002/10/31 17:00:45  mroi
  * adapt input plugins to new MRL syntax
  * (mostly turning :// into :/)
