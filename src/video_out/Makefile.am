@@ -39,11 +39,8 @@ endif
 # all xine video out plugins should be named  
 # "xineplug_vo_out_*"
 
-# FIXME: temporarily disabled until they're adapted to new interface
-#                  $(sdl_module) $(opengl_module) 
-
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module) $(aa_module) \
-                  $(syncfb_module) $(fb_module) $(opengl_module)
+                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext \
@@ -78,9 +75,9 @@ xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
 xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS)
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
-#xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
-#xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)
-#xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
+xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)
+xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h deinterlace.h
 

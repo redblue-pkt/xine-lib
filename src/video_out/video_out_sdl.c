@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.6 2002/03/07 13:26:16 jcdutton Exp $
+ * $Id: video_out_sdl.c,v 1.7 2002/05/13 02:42:12 miguelfreitas Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -28,9 +28,10 @@
  * xine version by Miguel Freitas (Jan/2002)
  *   Missing features:
  *    - mouse position translation
- *    - logo state aware
  *    - fullscreen
  *    - stability, testing, etc?? ;) 
+ *   Known bugs:
+ *    - without X11, a resize is need to show image (?)
  *
  *  BIG WARNING HERE: if you use RedHat SDL packages you will probably
  *  get segfault when no hwaccel is available. more info at:
@@ -45,6 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <math.h>
 #include <SDL/SDL.h>
 
 #include "video_out.h"
@@ -93,23 +95,53 @@ struct sdl_driver_s {
   Drawable           drawable;
 #endif
 
-  /* size / aspect ratio calculations */
-  /* delivered images */
-  int                delivered_width;      /* everything is set up for
-					      these frame dimensions          */
-  int                delivered_height;     /* the dimension as they come
-					      from the decoder                */
+  /* 
+   * "delivered" size:
+   * frame dimension / aspect as delivered by the decoder
+   * used (among other things) to detect frame size changes
+   */
+  int                delivered_width;   
+  int                delivered_height;     
   int                delivered_ratio_code;
+
+  /* 
+   * displayed part of delivered images,
+   * taking zoom into account
+   */
+
+  int                displayed_xoffset;
+  int                displayed_yoffset;
+  int                displayed_width;
+  int                displayed_height;
+  
+  /* 
+   * "ideal" size :
+   * displayed width/height corrected by aspect ratio
+   */
+
+  int                ideal_width, ideal_height;
   double             ratio_factor;         /* output frame must fullfill:
 					      height = width * ratio_factor   */
- 
-  /* Window */
-  int                window_width;
-  int                window_height;
+
+  /*
+   * "gui" size / offset:
+   * what gui told us about where to display the video
+   */
   
-  /* output screen area */
-  int                output_width;         /* frames will appear in this
-					      size (pixels) on screen         */
+  int                gui_x, gui_y;
+  int                gui_width, gui_height;
+  int                gui_win_x, gui_win_y;
+  
+  /*
+   * "output" size:
+   *
+   * this is finally the ideal size "fitted" into the
+   * gui size while maintaining the aspect ratio
+   * 
+   */
+
+  /* Window */
+  int                output_width;
   int                output_height;
   int                output_xoffset;
   int                output_yoffset;
@@ -122,10 +154,11 @@ struct sdl_driver_s {
 
   /* gui callback */
 
-  void             (*request_dest_size) (void *user_data,
-					 int video_width, int video_height,
-					 int *dest_x, int *dest_y,
-					 int *dest_height, int *dest_width);
+  void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   int *dest_x, int *dest_y, 
+			   int *dest_height, int *dest_width,
+			   int *win_x, int *win_y);
 };
 
 static uint32_t sdl_get_capabilities (vo_driver_t *this_gen) {
@@ -172,87 +205,67 @@ static vo_frame_t *sdl_alloc_frame (vo_driver_t *this_gen) {
 
   return (vo_frame_t *) frame;
 }
+/*
+ * make ideal width/height "fit" into the gui
+ */
 
-static void sdl_adapt_to_output_area (sdl_driver_t *this,
-				     int dest_x, int dest_y,
-				     int dest_width, int dest_height) {
-
-#ifdef SDL_LOG
-  printf ("video_out_sdl: dest_width %d, dest_height %d\n",
-	  dest_width, dest_height );
-#endif
- 
-  /*
-   * make the frames fit into the given destination area
-   */
-  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
-    this->output_width   = dest_width;
-    this->output_height  = (double) dest_width / this->ratio_factor ;
-    this->output_xoffset = 0;
-    this->output_yoffset = (dest_height - this->output_height) / 2;
-  } else {
-    this->output_width   = (double) dest_height * this->ratio_factor ;
-    this->output_height  = dest_height;
-    this->output_xoffset = (dest_width - this->output_width) / 2;
-    this->output_yoffset = 0;
-  }
+static void sdl_compute_output_size (sdl_driver_t *this) {
   
-  if( dest_width != this->window_width || dest_height != this->window_height ) {
-    this->window_width = dest_width;
-    this->window_height = dest_height;
-    this->surface = SDL_SetVideoMode (this->window_width, this->window_height, 
-                                      this->bpp, this->sdlflags);
+  double x_factor, y_factor;
+
+  x_factor = (double) this->gui_width  / (double) this->ideal_width;
+  y_factor = (double) this->gui_height / (double) this->ideal_height;
+  
+  if ( x_factor < y_factor ) {
+    this->output_width   = (double) this->gui_width;
+    this->output_height  = (double) this->ideal_height * x_factor ;
+  } else {
+    this->output_width   = (double) this->ideal_width  * y_factor ;
+    this->output_height  = (double) this->gui_height;
   }
+
+  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
+  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
+
+#ifdef LOG
+  printf ("video_out_sdl: frame source %d x %d => screen output %d x %d\n",
+	  this->delivered_width, this->delivered_height,
+	  this->output_width, this->output_height);
+#endif
 }
 
+static void sdl_compute_ideal_size (sdl_driver_t *this) {
 
-static void sdl_calc_format (sdl_driver_t *this,
-			    int width, int height, int ratio_code) {
+  double image_ratio, desired_ratio, corr_factor;
+  
+  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
+  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
 
-  double image_ratio, desired_ratio;
-  double corr_factor;
-  int ideal_width, ideal_height;
-  int dest_x, dest_y, dest_width, dest_height;
-
-  this->delivered_width      = width;
-  this->delivered_height     = height;
-  this->delivered_ratio_code = ratio_code;
-
-  if ( (!width) || (!height) )
-    return;
-
-  /*
-   * aspect ratio calculation
+  /* 
+   * aspect ratio
    */
 
-  image_ratio =
-    (double) this->delivered_width / (double) this->delivered_height;
-
-#ifdef SDL_LOG
-  printf ("video_out_sdl: display_ratio : %f\n", this->display_ratio);
-  printf ("video_out_sdl: stream aspect ratio : %f , code : %d\n",
-	  image_ratio, ratio_code);
-#endif
-
+  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
+  
   switch (this->user_ratio) {
   case ASPECT_AUTO:
-    switch (ratio_code) {
+    switch (this->delivered_ratio_code) {
     case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
       desired_ratio = 16.0 /9.0;
       break;
-    case XINE_ASPECT_RATIO_211_1:        /* 2.11:1 */
+    case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
       desired_ratio = 2.11/1.0;
       break;
-    case XINE_ASPECT_RATIO_SQUARE:       /* "square" source pels */
-    case XINE_ASPECT_RATIO_DONT_TOUCH:   /* probably non-mpeg stream => don't touch aspect ratio */
+    case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
+    case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
       desired_ratio = image_ratio;
       break;
-    case 0:                              /* forbidden       */
-      fprintf (stderr, "invalid ratio, using 4:3\n");
+    case 0:                             /* forbidden -> 4:3 */
+      printf ("video_out_sdl: invalid ratio, using 4:3\n");
     default:
       printf ("video_out_sdl: unknown aspect ratio (%d) in stream => using 4:3\n",
-	      ratio_code);
-    case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
+	      this->delivered_ratio_code);
+    case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
     }
@@ -271,46 +284,26 @@ static void sdl_calc_format (sdl_driver_t *this,
     desired_ratio = 4.0 / 3.0;
   }
 
-  /* this->ratio_factor = display_ratio * desired_ratio / image_ratio ;  */
   this->ratio_factor = this->display_ratio * desired_ratio;
-
-  /*
-   * calc ideal output frame size
-   */
 
   corr_factor = this->ratio_factor / image_ratio ;
 
-  if (corr_factor >= 1.0) {
-    ideal_width  = this->delivered_width * corr_factor;
-    ideal_height = this->delivered_height ;
-  }
-  else {
-    ideal_width  = this->delivered_width;
-    ideal_height = this->delivered_height / corr_factor;
-  }
+  if (fabs(corr_factor - 1.0) < 0.005) {
+    this->ideal_width  = this->delivered_width;
+    this->ideal_height = this->delivered_height;
 
-  /* little hack to zoom mpeg1 / other small streams  by default*/
-  if ( ideal_width<400 ) {
-    ideal_width  *=2;
-    ideal_height *=2;
+  } else {
+
+    if (corr_factor >= 1.0) {
+      this->ideal_width  = this->delivered_width * corr_factor + 0.5;
+      this->ideal_height = this->delivered_height;
+    } else {
+      this->ideal_width  = this->delivered_width;
+      this->ideal_height = this->delivered_height / corr_factor + 0.5;
+    }
   }
-
-  /*
-   * ask gui to adapt to this size
-   */
-#ifdef HAVE_X11                             
-  this->request_dest_size (this->user_data,
-			   ideal_width, ideal_height,
-			   &dest_x, &dest_y, &dest_width, &dest_height);
-#else
-  dest_x = 0;
-  dest_y = 0;
-  dest_width = ideal_width;
-  dest_height = ideal_height;
-#endif
-
-  sdl_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
+
 
 static void sdl_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
@@ -351,10 +344,6 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     if (frame->overlay == NULL)
       return;
  
-#ifdef SDL_LOG
-      printf ("[%p %p %p]\n", frame->overlay->pixels[0], frame->overlay->pixels[1],
-                              frame->overlay->pixels[2] );
-#endif
     frame->vo_frame.base[0] = frame->overlay->pixels[0];
     frame->vo_frame.base[1] = frame->overlay->pixels[2];
     frame->vo_frame.base[2] = frame->overlay->pixels[1];
@@ -390,14 +379,65 @@ static void sdl_check_events (sdl_driver_t * this)
   SDL_Event event;
 
   while (SDL_PollEvent (&event)) {
-    if (event.type == SDL_VIDEORESIZE)
-      sdl_adapt_to_output_area(this, 0, 0, event.resize.w, event.resize.h);
-      /*
-      this->surface = SDL_SetVideoMode (event.resize.w, event.resize.h,
-                                        this->bpp, this->sdlflags);
-      */                               
+    if (event.type == SDL_VIDEORESIZE) {
+      if( event.resize.w != this->gui_width || event.resize.h != this->gui_height ) {
+        this->gui_width = event.resize.w;
+        this->gui_height = event.resize.h;
+        
+        sdl_compute_output_size(this);
+        
+        this->surface = SDL_SetVideoMode (this->gui_width, this->gui_height, 
+                                      this->bpp, this->sdlflags);
+      }
+    }
   }
 }
+
+static int sdl_redraw_needed (vo_driver_t *this_gen) {
+  sdl_driver_t  *this = (sdl_driver_t *) this_gen;
+  int ret = 0;
+#ifdef HAVE_X11
+  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
+  
+  this->frame_output_cb (this->user_data,
+			 this->ideal_width, this->ideal_height, 
+			 &gui_x, &gui_y, &gui_width, &gui_height,
+			 &gui_win_x, &gui_win_y );
+
+  if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
+      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
+      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
+
+    this->gui_x      = gui_x;
+    this->gui_y      = gui_y;
+    this->gui_width  = gui_width;
+    this->gui_height = gui_height;
+    this->gui_win_x  = gui_win_x;
+    this->gui_win_y  = gui_win_y;
+
+    sdl_compute_output_size (this);
+
+    ret = 1;
+  }
+  
+  return ret;
+#else
+  static int last_gui_width, last_gui_height;
+  
+  if( last_gui_width != this->gui_width ||
+      last_gui_height != this->gui_height ) {
+    
+    last_gui_width = this->gui_width;
+    last_gui_height = this->gui_height;
+  
+    sdl_compute_output_size (this);
+
+    ret = 1;
+  }
+  return 0;
+#endif
+}
+
 
 static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
@@ -411,8 +451,20 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
 	 printf("video_out_sdl: change frame format\n");
-      sdl_calc_format (this, frame->width, frame->height, frame->ratio_code);
+      
+      this->delivered_width      = frame->width;
+      this->delivered_height     = frame->height;
+      this->delivered_ratio_code = frame->ratio_code;
+
+      sdl_compute_ideal_size( this );
   }
+    
+  /* 
+   * tell gui that we are about to display a frame,
+   * ask for offset and output size
+   */
+  sdl_check_events (this);
+  sdl_redraw_needed (this_gen);
     
   SDL_UnlockYUVOverlay (frame->overlay);
   /*
@@ -424,7 +476,6 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   clip_rect.h = this->output_height;  
   SDL_DisplayYUVOverlay (frame->overlay, &clip_rect);
   
-  sdl_check_events (this);
   frame->vo_frame.displayed (&frame->vo_frame);
   
   pthread_mutex_unlock(&this->mutex);
@@ -471,9 +522,7 @@ static int sdl_set_property (vo_driver_t *this_gen,
     printf("video_out_sdl: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));
     
-    sdl_calc_format (this, this->delivered_width, this->delivered_height,
-                    this->delivered_ratio_code) ;
-
+    sdl_compute_ideal_size (this);
   } 
   
   return value;
@@ -497,19 +546,10 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
   int ret = 0;
 #ifdef HAVE_X11
   sdl_driver_t     *this = (sdl_driver_t *) this_gen;
-  x11_rectangle_t *area;
 
   pthread_mutex_lock(&this->mutex);
     
   switch (data_type) {
-  case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
-#ifdef SDL_LOG
-      printf ("video_out_sdl: GUI_DATA_EX_DEST_POS_SIZE_CHANGED\n");
-#endif
-
-    area = (x11_rectangle_t *) data;
-    sdl_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
-    break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
 #ifdef SDL_LOG
@@ -575,7 +615,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->screen            = visual->screen;
   this->display_ratio     = visual->display_ratio;
   this->drawable          = visual->d;
-  this->request_dest_size = visual->request_dest_size;
+  this->frame_output_cb   = visual->frame_output_cb;
   this->user_data         = visual->user_data;
   
   /* set SDL to use our existing X11 window */
@@ -617,14 +657,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
 #ifdef HAVE_X11  
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
-  this->window_width         = window_attributes.width;
-  this->window_height        = window_attributes.height;
+  this->gui_width         = window_attributes.width;
+  this->gui_height        = window_attributes.height;
 #else
-  this->window_width         = 320;
-  this->window_height        = 240;
+  this->gui_width         = 320;
+  this->gui_height        = 240;
 #endif
 
-  this->surface = SDL_SetVideoMode (this->window_width, this->window_height,
+  this->surface = SDL_SetVideoMode (this->gui_width, this->gui_height,
                                     this->bpp, this->sdlflags);
   
   this->vo_driver.get_capabilities     = sdl_get_capabilities;
@@ -637,6 +677,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = sdl_get_property_min_max;
   this->vo_driver.gui_data_exchange    = sdl_gui_data_exchange;
   this->vo_driver.exit                 = sdl_exit;
+  this->vo_driver.redraw_needed        = sdl_redraw_needed;
 
   printf ("video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
   printf ("video_out_sdl: fullscreen mode is NOT supported\n");
@@ -644,7 +685,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_sdl = {
-  3,
+  5,
   "sdl",
   "xine video output plugin using Simple DirectMedia Layer",
   VISUAL_TYPE_X11,
