@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.94 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.95 2002/12/27 03:40:07 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1126,6 +1126,27 @@ static void ao_flush (xine_audio_port_t *this_gen) {
   }
 }
 
+static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
+	       uint32_t *bits, uint32_t *rate, int *mode) {
+  aos_t *this = (aos_t *) this_gen;
+  xine_stream_t *cur;
+  int ret = 0;
+            
+  pthread_mutex_lock(&this->streams_lock);
+  for (cur = xine_list_first_content(this->streams); cur;
+       cur = xine_list_next_content(this->streams))
+    if (cur == stream) {
+      *bits = this->input.bits;
+      *rate = this->input.rate;
+      *mode = this->input.mode;
+      ret = 1;
+      break;
+    }
+  pthread_mutex_unlock(&this->streams_lock);
+  
+  return ret;        
+}
+
 xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
  
   config_values_t *config = xine->config;
@@ -1153,7 +1174,8 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
   this->ao.set_property           = ao_set_property;
   this->ao.control                = ao_control;
   this->ao.flush                  = ao_flush;
-
+  this->ao.status                 = ao_status;
+  
   this->audio_loop_running     = 0;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;

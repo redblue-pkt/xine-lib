@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.125 2002/12/23 21:04:02 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.126 2002/12/27 03:40:07 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -933,6 +933,25 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
   pthread_mutex_unlock(&this->streams_lock);
 }
 
+static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream) {
+
+  vos_t      *this = (vos_t *) this_gen;
+  xine_stream_t *cur;
+  int ret = 0;
+
+  pthread_mutex_lock(&this->streams_lock);
+  for (cur = xine_list_first_content(this->streams); cur;
+       cur = xine_list_next_content(this->streams))
+    if (cur == stream) {
+      ret = 1;
+      break;
+    }
+  pthread_mutex_unlock(&this->streams_lock);
+  
+  return ret;
+}
+
+
 static void vo_free_img_buffers (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   vo_frame_t *img;
@@ -1068,6 +1087,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
   this->vo.enable_ovl            = vo_enable_overlay;
   this->vo.get_overlay_instance  = vo_get_overlay_instance;
   this->vo.flush                 = vo_flush;
+  this->vo.status                = vo_status;
   this->vo.driver                = driver;
 
   this->num_frames_delivered  = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.48 2002/12/25 15:02:23 mroi Exp $
+ * $Id: xine.h.in,v 1.49 2002/12/27 03:40:07 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -407,6 +407,22 @@ const xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
  * returns 1 on success, 0 on failure
  */
 int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
+
+/*
+ * wire a video port to an output
+ * returns 1 on success, 0 on failure
+ */
+int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo);
+
+/*
+ * wire an audio port to an output
+ * returns 1 on success, 0 on failure
+ */
+int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *vo);
+
+
+xine_post_out_t * xine_get_video_source(xine_stream_t *stream);
+xine_post_out_t * xine_get_audio_source(xine_stream_t *stream);
 
 
 /*

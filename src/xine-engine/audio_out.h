@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.47 2002/12/27 02:03:06 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.48 2002/12/27 03:40:07 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -220,6 +220,12 @@ struct xine_audio_port_s {
    * Flush audio_out fifo.
    */
   void (*flush) (xine_audio_port_t *this);
+  
+  /*
+   * Check if port is opened for this stream and get parameters.
+   */
+  int (*status) (xine_audio_port_t *this, xine_stream_t *stream,
+	       uint32_t *bits, uint32_t *rate, int *mode);
 
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.204 2002/12/27 00:53:50 guenter Exp $
+ * $Id: xine.c,v 1.205 2002/12/27 03:40:07 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -275,6 +275,46 @@ void xine_close (xine_stream_t *stream) {
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
+static int xine_stream_rewire_audio(xine_post_out_t *output, void *data)
+{
+  xine_stream_t *stream = (xine_stream_t *)output->data;
+  xine_audio_port_t *new_port = (xine_audio_port_t *)data;
+  uint32_t bits, rate;
+  int mode;
+  
+  if (!data)
+    return 0;
+    
+  if (stream->audio_out && 
+      stream->audio_out->status(stream->audio_out, stream, &bits, &rate, &mode)) {
+    /* register our stream at the new output port */
+    stream->audio_out->close(stream->audio_out, stream);
+    new_port->open(new_port, stream, bits, rate, mode);
+  }
+  /* reconnect ourselves */
+  stream->audio_out = new_port;
+  return 1;
+}
+
+static int xine_stream_rewire_video(xine_post_out_t *output, void *data)
+{
+  xine_stream_t *stream = (xine_stream_t *)output->data;
+  xine_video_port_t *new_port = (xine_video_port_t *)data;
+  
+  if (!data)
+    return 0;
+    
+  if (stream->video_out && 
+      stream->video_out->status(stream->video_out, stream)) {
+    /* register our stream at the new output port */
+    stream->video_out->close(stream->video_out, stream);
+    new_port->open(new_port, stream);
+  }
+  /* reconnect ourselves */
+  stream->video_out = new_port;
+  return 1;
+}
+
 
 xine_stream_t *xine_stream_new (xine_t *this, 
 				xine_audio_port_t *ao, xine_video_port_t *vo) {
@@ -375,6 +415,16 @@ xine_stream_t *xine_stream_new (xine_t *this,
 
   pthread_mutex_unlock (&this->streams_lock);
 
+  stream->video_source.name   = "video source";
+  stream->video_source.type   = XINE_POST_DATA_VIDEO;
+  stream->video_source.data   = stream;
+  stream->video_source.rewire = xine_stream_rewire_video;
+  
+  stream->audio_source.name   = "audio source";
+  stream->audio_source.type   = XINE_POST_DATA_AUDIO;
+  stream->audio_source.data   = stream;
+  stream->audio_source.rewire = xine_stream_rewire_audio;
+  
   return stream;
 }
 

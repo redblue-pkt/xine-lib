@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.76 2002/12/27 02:03:06 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.77 2002/12/27 03:40:07 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -173,6 +173,9 @@ struct xine_video_port_s {
   /* flush video_out fifo */
   void (*flush) (xine_video_port_t *this);
 
+  /* return true if port is opened for this stream */
+  int (*status) (xine_video_port_t *this, xine_stream_t *stream);
+  
   /* the driver in use */
   vo_driver_t *driver;
 

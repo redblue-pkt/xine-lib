@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.5 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: post.c,v 1.6 2002/12/27 03:40:07 miguelfreitas Exp $
  */
  
 /*
@@ -75,6 +75,10 @@ static void post_video_flush(xine_video_port_t *port_gen) {
   port->original_port->flush(port->original_port);
 }
 
+static int post_video_status(xine_video_port_t *port_gen, xine_stream_t *stream) {
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  return port->original_port->status(port->original_port, stream);
+}
 
 post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
   post_video_port_t *post_port = (post_video_port_t *)malloc(sizeof(post_video_port_t));
@@ -91,6 +95,7 @@ post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_por
   post_port->port.exit                   = post_video_exit;
   post_port->port.get_overlay_instance   = post_video_get_overlay_instance;
   post_port->port.flush                  = post_video_flush;
+  post_port->port.status                 = post_video_status;
   post_port->port.driver                 = original->driver;
   
   post_port->original_port               = original;
@@ -230,6 +235,12 @@ static void post_audio_flush(xine_audio_port_t *port_gen) {
   return port->original_port->flush(port->original_port);
 }
 
+static int post_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
+	       uint32_t *bits, uint32_t *rate, int *mode) {
+  post_audio_port_t *port = (post_audio_port_t *)port_gen;
+  return port->original_port->status(port->original_port, stream, bits, rate, mode);
+}
+
 post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *original) {
   post_audio_port_t *post_port = (post_audio_port_t *)malloc(sizeof(post_audio_port_t));
   
@@ -246,6 +257,7 @@ post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_por
   post_port->port.set_property           = post_audio_set_property;
   post_port->port.control                = post_audio_control;
   post_port->port.flush                  = post_audio_flush;
+  post_port->port.status                 = post_audio_status;
     
   post_port->original_port               = original;
   post_port->post                        = post;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.35 2002/12/25 15:02:23 mroi Exp $
+ * $Id: xine_interface.c,v 1.36 2002/12/27 03:40:08 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -646,3 +646,38 @@ int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target) {
   }
   return 0;
 }
+
+int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo) {
+  if (source && source->rewire) {
+    if (vo) {
+      if (source->type == XINE_POST_DATA_VIDEO)
+        return source->rewire(source, vo);
+      else
+        return 0;
+    } else
+      return source->rewire(source, NULL);
+  }
+  return 0;
+}
+
+int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *ao) {
+  if (source && source->rewire) {
+    if (ao) {
+      if (source->type == XINE_POST_DATA_AUDIO)
+        return source->rewire(source, ao);
+      else
+        return 0;
+    } else
+      return source->rewire(source, NULL);
+  }
+  return 0;
+}
+
+xine_post_out_t * xine_get_video_source(xine_stream_t *stream) {
+  return &stream->video_source;  
+}
+
+xine_post_out_t * xine_get_audio_source(xine_stream_t *stream) {
+  return &stream->audio_source;
+}
+
