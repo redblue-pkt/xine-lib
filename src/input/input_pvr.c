@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.32 2003/08/29 17:53:21 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.33 2003/09/02 14:29:29 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -683,10 +683,10 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
   /* check for realtime. don't switch back unless enough buffers are
    * free to not block the pvr thread */
   if( this->new_session ||
-      (this->play_blk >= this->rec_blk-1 && speed >= XINE_SPEED_NORMAL &&
+      (this->play_blk+1 >= this->rec_blk && speed >= XINE_SPEED_NORMAL &&
        (this->play_fd == -1 || fifo->size(fifo) < fifo->num_free(fifo))) ) {
      
-    this->play_blk = this->rec_blk-1;
+    this->play_blk = (this->rec_blk) ? (this->rec_blk-1) : 0;
      
     if( speed > XINE_SPEED_NORMAL ) {
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
@@ -716,12 +716,12 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     
   } else {
 
-    if( this->rec_fd == -1 )
+    if( this->rec_fd == -1 ) 
       return 1;
 
     if(speed != XINE_SPEED_PAUSE) {
       /* cannot run faster than the writing thread */
-      while( this->play_blk >= this->rec_blk-1 )
+      while( this->play_blk+1 >= this->rec_blk )
         pthread_cond_wait (&this->has_valid_data, &this->lock);
     }
 
@@ -752,7 +752,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
        
        /* that should be impossible */
        if( this->play_page > this->rec_page ||
-           this->play_blk >= this->rec_blk-1 ) {
+           this->play_blk+1 >= this->rec_blk ) {
          this->play_page = this->rec_page;
          this->play_blk = this->page_block[this->play_page];
        }
@@ -980,6 +980,8 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
   if( this->save_name )
     free( this->save_name );
   this->save_name = NULL;
+  this->valid_data = 0;
+  pthread_cond_signal (&this->wake_pvr);
 }
 
 /*
@@ -1257,6 +1259,7 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   
   if( this->pvr_playing )
     if( !pvr_play_file(this, fifo, buf->content, speed) ) {
+      buf->free_buffer(buf);
       pthread_mutex_unlock(&this->lock);
       return NULL;
     }
