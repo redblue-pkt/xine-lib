@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.77 2004/01/11 15:55:42 jstembridge Exp $
+ * $Id: demux_real.c,v 1.78 2004/01/11 23:05:11 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +78,8 @@
 
 #define MAX_VIDEO_STREAMS 10
 #define MAX_AUDIO_STREAMS 8
+
+#define FRAGMENT_TAB_SIZE 256
 
 typedef struct {
   uint16_t   object_version;
@@ -151,6 +153,9 @@ typedef struct {
   int                  buf_flag_seek;
 
   int                  fragment_size; /* video sub-demux */
+  int                  fragment_count;
+  uint32_t            *fragment_tab;
+  int                  fragment_tab_max;
 
   int                  reference_mode;
 } demux_real_t ;
@@ -693,6 +698,10 @@ unknown:
                          this->video_stream->fourcc);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
                          this->video_stream->mdpr->avg_bit_rate);
+                         
+    /* Allocate fragment offset table */
+    this->fragment_tab = xine_xmalloc(FRAGMENT_TAB_SIZE*sizeof(uint32_t));
+    this->fragment_tab_max = FRAGMENT_TAB_SIZE;
   }
 
   if(this->audio_stream) {
@@ -858,11 +867,11 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   demux_real_t   *this = (demux_real_t *) this_gen;
   char            header[DATA_PACKET_HEADER_SIZE];
-  int             stream, size, keyframe;
+  int             stream, size, keyframe, input_time = 0;
   unsigned short  version;
   uint32_t        id, timestamp;
   int64_t         pts;
-  off_t           offset;
+  off_t           offset, input_length = 0;
 
   if(this->reference_mode)
     return demux_real_parse_references(this);
@@ -913,6 +922,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     int            vpkg_subseq = 0;
     buf_element_t *buf;
     int            n, fragment_size;
+    uint32_t       decoder_flags;
 
     lprintf ("video chunk detected.\n");
 
@@ -992,38 +1002,54 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	this->old_seqnum = vpkg_seqnum;
       }
 
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-      buf->content       = buf->mem;
-      buf->pts           = pts;
-      buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-
       /* if we have a seekable stream then use the timestamp for the data
        * packet for more accurate seeking - if not then estimate time using
        * average bitrate */
       if(this->video_stream->index)
-        buf->extra_info->input_time = timestamp;
+        input_time = timestamp;
       else
-        buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                             * 8 * 1000 / this->avg_bitrate);
+        input_time = (int)((int64_t) this->input->get_current_pos(this->input) 
+                           * 8 * 1000 / this->avg_bitrate);
 
-      buf->type          = this->video_stream->buf_type;
-      
       if(this->data_start && this->data_chunk_size)
-        buf->extra_info->input_length = this->data_start + 18 + this->data_chunk_size;
+        input_length = this->data_start + 18 + this->data_chunk_size;
         
-      if(this->duration)
-        buf->extra_info->total_time = this->duration;
-      
       check_newpts (this, pts, PTS_VIDEO, 0);
 
       if (this->fragment_size == 0) {
 	lprintf ("new packet starting\n");
-	buf->decoder_flags = BUF_FLAG_FRAME_START;
+        
+        /* send fragment offset table */
+        if(this->fragment_count) {
+          lprintf("sending fragment offset table\n");
+        
+          buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+
+          buf->decoder_flags = BUF_FLAG_SPECIAL;
+          buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
+          buf->decoder_info[2] = this->fragment_count - 1;
+          buf->decoder_info_ptr[2] = buf->content;
+          buf->decoder_info[3] = 0;
+          buf->size = this->fragment_count*8;
+          buf->type = this->video_stream->buf_type;
+
+          xine_fast_memcpy(buf->decoder_info_ptr[2], this->fragment_tab, buf->size);
+          
+          this->video_fifo->put(this->video_fifo, buf);
+        
+          this->fragment_count = 0;
+        }
+        
+	decoder_flags = BUF_FLAG_FRAME_START;
       } else {
 	lprintf ("continuing packet \n");
-	buf->decoder_flags = 0;
+	decoder_flags = 0;
       }
+      
+      /* add entry to fragment offset table */
+      this->fragment_tab[2*this->fragment_count]   = 1;
+      this->fragment_tab[2*this->fragment_count+1] = this->fragment_size;
+      this->fragment_count++;
 
       /*
        * calc size of fragment
@@ -1042,19 +1068,40 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       /*
        * read fragment_size bytes of data
        */
+       
+      n = fragment_size;
+      while(n) {
+        buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+        
+        if(n>buf->max_size)
+          buf->size          = buf->max_size;
+        else
+          buf->size          = n;
 
-      n = this->input->read (this->input, buf->content, fragment_size);
-
-      buf->size = fragment_size;
-
-      if (n<fragment_size) {
-	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error %d/%d\n", n, fragment_size);
-	buf->free_buffer(buf);
-	this->status = DEMUX_FINISHED;
-	return this->status;
+        buf->decoder_flags = decoder_flags;
+        decoder_flags &= ~BUF_FLAG_FRAME_START;
+      
+        if(this->input->read(this->input, buf->content, buf->size) < buf->size) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                  "read error %d/%d\n", n, fragment_size);
+          buf->free_buffer(buf);
+          this->status = DEMUX_FINISHED;
+          return this->status;
+        }
+        n -= buf->size;
+        
+        buf->pts = pts;
+        pts = 0;
+        
+        buf->extra_info->input_pos     = this->input->get_current_pos(this->input);
+        buf->extra_info->input_length  = input_length;
+        buf->extra_info->input_time    = input_time;
+        buf->extra_info->total_time    = this->duration;
+        
+        buf->type = this->video_stream->buf_type;
+        
+        this->video_fifo->put(this->video_fifo, buf);
       }
-
-      this->video_fifo->put (this->video_fifo, buf);
 
       size -= fragment_size;
       lprintf ("size left %d\n", size);
@@ -1070,9 +1117,6 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   } else if (this->audio_fifo && this->audio_stream &&
              (stream == this->audio_stream->mdpr->stream_number)) {
-
-    int            input_time;
-    off_t          input_length;
 
     lprintf ("audio chunk detected.\n");
 
@@ -1264,6 +1308,9 @@ static void demux_real_dispose (demux_plugin_t *this_gen) {
     if(this->audio_streams[i].index)
       free(this->audio_streams[i].index);
   }
+  
+  if(this->fragment_tab)
+    free(this->fragment_tab);
   
   free(this);
 }
