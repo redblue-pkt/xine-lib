@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.40 2001/10/25 00:46:59 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.41 2001/10/27 13:59:31 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -470,7 +470,7 @@ static uint32_t parse_pack(demux_mpeg_t *this)
     buf = read_bytes (this,1);
     this->rate |= (buf >> 1);
 
-    /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
+    /* printf ("demux_mpeg: mux_rate = %d\n",this->rate);  */
 
   } else
     buf = read_bytes (this, 3) ;
@@ -531,7 +531,21 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
   }
 
   buf = read_bytes (this, 4);
-  buf = read_bytes (this, 3) ;
+
+  /* mux_rate */
+
+  if (!this->rate) {
+    buf = read_bytes (this,1);
+    this->rate = (buf & 0x7F) << 15;
+    buf = read_bytes (this,1);
+    this->rate |= (buf << 7);
+    buf = read_bytes (this,1);
+    this->rate |= (buf >> 1);
+
+    /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
+
+  } else
+    buf = read_bytes (this, 3) ;
 
   /* system header */
 
@@ -702,6 +716,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
       num_buffers --;
 
     } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
+
+    /* printf ("demux_mpeg: rate %d\n", this->rate); */
 
     if ( (!start_pos) && (start_time))
       start_pos = start_time * this->rate * 50;
