@@ -19,8 +19,8 @@ xine-lib (1-beta13)
   * speex (http://www.speex.org) audio decoder support
   * dxr3: libavcodec from xine's ffmpeg plugin can now be used for MPEG reencoding
     (so reencoding is now possible without installing any additional libraries)
-  * add support seeking in real media files
-  * fix playback of real video versions 1 (rv10) and 4 (rv40)
+  * add support for seeking in real media files
+  * improved support for real video codecs
   * new deinterlacer (tvtime) plugin with more algorithms, full framerate output, 
     2-3 pulldown detection, judder correction, chroma upsampling error free,
     works with all video drivers. warning: cpu intensive :)
