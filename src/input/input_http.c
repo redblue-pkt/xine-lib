@@ -231,8 +231,10 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
     
     if (filename != NULL)
       *filename = slash + 1;
-  } else
-    *filename = urlbuf + strlen(urlbuf);
+  } else {
+    if (filename != NULL)
+      *filename = urlbuf + strlen(urlbuf);
+  }
   
   if (portcolon != NULL)
   {
