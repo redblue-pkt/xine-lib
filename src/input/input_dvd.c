@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.160 2003/05/06 14:02:25 tchamp Exp $
+ * $Id: input_dvd.c,v 1.161 2003/05/07 17:54:18 tchamp Exp $
  *
  */
 
@@ -143,7 +143,11 @@
 #  ifndef _MSC_VER
 #    define trace_print(s, ...) /* Nothing */
 #  else
-#    define trace_print printf
+#    ifdef INPUT_DEBUG_TRACE
+#      define trace_print printf
+#    else
+#      define trace_print() /* Nothing */
+#    endif /* INPUT_DEBUG_TRACE */
 #  endif /* _MSC_VER */
 #endif
 
@@ -1244,14 +1248,16 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     intended_dvd_device = locator;
     intended_dvd_device[last_slash] = '\0';
     locator += last_slash;
+
+#ifdef _MSC_VER
+	locator++;
+#endif
+
   }else{
     intended_dvd_device=class->dvd_device;
   }
 
-#ifdef _MSC_VER
-  if (*locator == '/')
-	  locator++;
-#else
+#ifndef _MSC_VER
   locator++;
 #endif
 
@@ -1621,6 +1627,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.161  2003/05/07 17:54:18  tchamp
+ * DVD play sort of works on Win32. Also added a couple more plugings to the Win32 build.
+ *
  * Revision 1.160  2003/05/06 14:02:25  tchamp
  * This is some general Win32 cleanup and getting ready for DVD support.
  *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.22 2003/02/13 19:04:52 heikos Exp $
+ * $Id: video_out_sdl.c,v 1.23 2003/05/07 17:54:18 tchamp Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -208,6 +208,12 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     if (frame->overlay == NULL)
       return;
 
+	/* 
+	 * This needs to be done becuase I have found that 
+	 * pixels isn't setup until this is called.
+	 */
+    SDL_LockYUVOverlay (frame->overlay);
+
     frame->vo_frame.pitches[0] = frame->overlay->pitches[0];
     frame->vo_frame.pitches[1] = frame->overlay->pitches[2];
     frame->vo_frame.pitches[2] = frame->overlay->pitches[1];
@@ -219,9 +225,12 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     frame->height = height;
     frame->format = format;
   }
+  else {
+
+    SDL_LockYUVOverlay (frame->overlay);
+  }
 
   frame->ratio_code = ratio_code;
-  SDL_LockYUVOverlay (frame->overlay);
 }
 
 
@@ -590,3 +599,10 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
 
+#ifdef _MSC_VER
+/* This probably really isn't needed! */
+vo_info_t * get_video_out_plugin_info()
+{
+	return &vo_info_sdl;
+}
+#endif

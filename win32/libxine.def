@@ -70,6 +70,8 @@ xine_config_register_enum
 xine_demux_control_newpts
 xine_demux_control_start
 xine_demux_flush_engine
+xine_demux_check_extension
+xine_demux_read_header
 
 fourcc_to_buf_video
 formattag_to_buf_audio
@@ -77,3 +79,9 @@ xine_bmiheader_le2me
 xine_waveformatex_le2me
 buf_video_name
 buf_audio_name
+
+vo_scale_init
+vo_scale_compute_output_size
+vo_scale_compute_ideal_size
+vo_scale_aspect_ratio_name
+

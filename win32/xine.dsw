@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "libdvdcss"=".\contrib\dirent\contrib\dirent\libdvdcss.dsp" - Package Owner=<4>
+Project: "libdvdcss"="..\src\src\src\demuxers\contrib\dirent\contrib\dirent\libdvdcss.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -139,24 +139,6 @@ Package=<4>
 ###############################################################################
 
 Project: "xineplug_decode_dts"=".\xineplug_decode_dts.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "xineplug_decode_ff"=".\xineplug_decode_ff.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -336,6 +318,27 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_dmx_audio"=".\xineplug_dmx_audio.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxineutils
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "xineplug_dmx_avi"=".\xineplug_dmx_avi.dsp" - Package Owner=<4>
 
 Package=<5>
@@ -352,27 +355,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxine
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "xineplug_dmx_cda"=".\xineplug_dmx_cda.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
     End Project Dependency
 }}}
 
@@ -399,49 +381,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "xineplug_dmx_mpeg_audio"=".\xineplug_dmx_mpeg_audio.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "xineplug_dmx_mpeg_block"=".\xineplug_dmx_mpeg_block.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "xineplug_dmx_mpeg_pes"=".\xineplug_dmx_mpeg_pes.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -538,6 +478,27 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libxineutils
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "xineplug_vo_out_sdl"=".\xineplug_vo_out_sdl.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxineutils
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
     End Project Dependency
 }}}
 

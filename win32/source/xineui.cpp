@@ -83,7 +83,7 @@ static void config_update_num(char *key, int value) {
 static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_t *vis) {
   xine_video_port_t      *video_port = NULL;
   int                     driver_num;
-
+  int                     visual_type;
 
   /*
    * Setting default (configfile stuff need registering before updating, etc...).
@@ -137,12 +137,16 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
       printf (("main: probing <%s> video output plugin\n"), driver_ids[i]);
       
       /*vis = (win32_visual_t *) xine_xmalloc(sizeof(win32_visual_t));*/
+
+	  visual_type = XINE_VISUAL_TYPE_DIRECTX;
+	  /*visual_type = XINE_VISUAL_TYPE_X11;*/
+
       video_port = xine_open_video_driver(gGui->xine, 
 					  driver_ids[i],
-					  XINE_VISUAL_TYPE_DIRECTX, 
+					  visual_type, 
 					  (void *) vis);
       if (video_port) {
-	return video_port;
+		return video_port;
       }
      
       i++;
@@ -175,11 +179,9 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
 					  XINE_VISUAL_TYPE_DIRECTX, 
 					  (void *) &vis);
       
-#if (0)
       /* save requested driver (-V) */ 
       if(video_port)
         config_update_num("video.driver", driver_number);
-#endif
     }
     
     if(!video_port) {
@@ -763,7 +765,7 @@ bool _XINE_UI::Play( int newindex )
 
 	// store our new mrl info
 
-#if (1)
+#if (0)
 	mrl_long_name   = strdup("file:");
 	strcat(mrl_long_name, playlist[ playindex ]->mrl_long_name);
 
@@ -771,7 +773,7 @@ bool _XINE_UI::Play( int newindex )
 	/*mrl_long_name   = strdup("dvd:/");*/
 
 	/* DVD Drive */
-	/*strcat(mrl_long_name, "d:\\\\1.1");*/
+	/*strcat(mrl_long_name, "d:\\");*/
 
 	/* \\Title.Part */
 	/*strcat(mrl_long_name, "1.1");*/
