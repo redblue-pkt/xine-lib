@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.63 2004/03/16 20:50:08 mroi Exp $
+ * $Id: configfile.c,v 1.64 2004/03/16 21:32:23 siggi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -127,7 +127,9 @@ static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
     if (new_entry->exp_level < cur->exp_level) break;
     if (new_entry->exp_level > cur->exp_level) continue;
     /* sort by entry name */
-    {
+    if (!new_name &&  cur_name) break;
+    if ( new_name && !cur_name) continue;
+    if ( new_name &&  cur_name) {
       int cmp = strcmp(new_name, cur_name);
       if (cmp < 0) break;
       if (cmp > 0) continue;
