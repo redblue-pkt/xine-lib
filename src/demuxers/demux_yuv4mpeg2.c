@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.25 2003/07/30 22:00:42 jstembridge Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.26 2003/08/12 18:41:08 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -64,7 +65,13 @@ typedef struct {
 
   xine_bmiheader       bih;
 
-  unsigned int         fps;
+  int                  fps_n;
+  int                  fps_d;
+  int                  aspect_n;
+  int                  aspect_d;
+  int                  progressive;
+  int                  top_field_first;
+  
   unsigned int         frame_pts_inc;
   unsigned int         frame_size;
 
@@ -77,10 +84,12 @@ typedef struct {
 
 /* returns 1 if the YUV4MPEG2 file was opened successfully, 0 otherwise */
 static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
-  unsigned char header[Y4M_HEADER_BYTES];
-  int i;
+  char header[Y4M_HEADER_BYTES+1];
+  char *header_ptr, *header_endptr, *header_end;
 
-  this->bih.biWidth = this->bih.biHeight = this->fps = this->data_start = 0;
+  this->bih.biWidth = this->bih.biHeight = this->fps_n = this->fps_d =
+    this->aspect_n = this->aspect_d = this->progressive = 
+    this->top_field_first = this->data_start = 0;
 
   if (xine_demux_read_header(this->input, header, Y4M_HEADER_BYTES) != Y4M_HEADER_BYTES)
     return 0;
@@ -89,59 +98,128 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
   if (memcmp(header, Y4M_SIGNATURE, Y4M_SIGNATURE_SIZE) != 0)
     return 0;
 
-  /* seek for the width (starts with " W") */
-  i = 0;
-  while ((header[i] != ' ') || (header[i + 1] != 'W'))
-    if (i < Y4M_HEADER_BYTES - 2)
-      i++;
-    else
+  /* null terminate the read data */
+  header[Y4M_HEADER_BYTES] = '\0';
+  
+  /* check for stream header terminator */
+  if ((header_end = strchr(header, '\n')) == NULL)
+    return 0;
+  
+  /* read tagged fields in stream header */
+  header_ptr = &header[Y4M_SIGNATURE_SIZE];
+  while (header_ptr < header_end) {
+    /* tagged fields should all start with a space */
+    if(*header_ptr != ' ')
       break;
-  i += 2;
-  this->bih.biWidth = atoi(&header[i]);
-
-  /* go after the height next (starts with " H") */
-  while ((header[i] != ' ') || (header[i + 1] != 'H'))
-    if (i < Y4M_HEADER_BYTES - 2)
-      i++;
     else
-      break;
-  i += 2;
-  this->bih.biHeight = atoi(&header[i]);
+      header_ptr++;
+  
+    switch (*header_ptr) {
+      case 'W':
+        /* read the width */
+        this->bih.biWidth = strtol(header_ptr + 1, &header_endptr, 10);
+        if(header_endptr == header_ptr + 1)
+          return 0;
+        else
+          header_ptr = header_endptr;
+        break;
+      case 'H':
+        /* read the height */
+        this->bih.biHeight = strtol(header_ptr + 1, &header_endptr, 10);
+        if (header_endptr == header_ptr + 1)
+          return 0;
+        else
+          header_ptr = header_endptr;
+        break;
+      case 'I':
+        /* read interlacing spec */
+        switch (*(header_ptr + 1)) {
+          case 'p':
+            this->progressive = 1;
+            break;
+          case 't':
+            this->top_field_first = 1;
+            break;
+          case 'b':
+          case '?':
+          default:
+            break;
+        }
+        header_ptr += 2;
+        break;
+      case 'F':
+        /* read frame rate - stored as a ratio
+         * numberator */
+        this->fps_n = strtol(header_ptr + 1, &header_endptr, 10);
+        if ((header_end_ptr == header_ptr + 1) || (*header_endptr != ':'))
+          return 0;
+        else
+          header_ptr = header_endptr;
+          
+        /* denominator */
+        this->fps_d = strtol(header_ptr + 1, &header_endptr, 10);
+        if (header_endptr == header_ptr + 1)
+          return 0;
+        else
+          header_ptr = header_endptr;
+        
+        break;
+      case 'A':
+        /* read aspect ratio - stored as a ratio(!) 
+         * numberator */
+        this->aspect_n = strtol(header_ptr + 1, &header_endptr, 10);
+        if ((header_endptr == header_ptr + 1) || (*header_endptr != ':'))
+          return 0;
+        else
+          header_ptr = header_endptr;
+          
+        /* denominator */
+        this->aspect_d = strtol(header_ptr + 1, &header_endptr, 10);
+        if (header_endptr == header_ptr + 1)
+          return 0;
+        else
+          header_ptr = header_endptr;
+        
+        break;
+      default:
+        /* skip whatever this is */
+        while ((*header_ptr != ' ') && (header_ptr < header_end))
+          header_ptr++;
+    }
+  }
+  
+  /* make sure all the data was found */
+  if (!this->bih.biWidth || !this->bih.biHeight || !this->fps_n || !this->fps_d)
+    return 0;
 
   /* compute the size of an individual frame */
   this->frame_size = this->bih.biWidth * this->bih.biHeight * 3 / 2;
 
-  /* find the frames/sec (starts with " F") */
-  while ((header[i] != ' ') || (header[i + 1] != 'F'))
-    if (i < Y4M_HEADER_BYTES - 2)
-      i++;
-    else
-      break;
-  i += 2;
-  this->fps = atoi(&header[i]);
-  this->frame_pts_inc = 90000 / this->fps;
-
+  /* pts difference between frames */
+  this->frame_pts_inc = (90000 * this->fps_d) / this->fps_n;  
+  
   /* finally, look for the first frame */
-  while ((header[i + 0] != 'F') ||
-         (header[i + 1] != 'R') ||
-         (header[i + 2] != 'A') ||
-         (header[i + 3] != 'M') ||
-         (header[i + 4] != 'E'))
-    if (i < Y4M_HEADER_BYTES - 5)
-      i++;
-    else
+  while ((header_ptr - header) < (Y4M_HEADER_BYTES - 4)) {
+    if((header_ptr[0] == 'F') &&
+       (header_ptr[1] == 'R') &&
+       (header_ptr[2] == 'A') &&
+       (header_ptr[3] == 'M') &&
+       (header_ptr[4] == 'E')) {
+      this->data_start = header_ptr - header;
       break;
-
-  this->data_start = i;
+    } else 
+      header_ptr++;
+  }
+  
+  /* make sure the first frame was found */
+  if(!this->data_start)
+    return 0;
+  
+  /* compute size of all frames */
   if (INPUT_IS_SEEKABLE(this->input)) {
     this->data_size = this->input->get_length(this->input) -
       this->data_start;
   }
-
-  /* make sure all the data was found */
-  if (!this->bih.biWidth || !this->bih.biHeight ||
-      !this->fps || !this->data_start)
-    return 0;
 
   /* file is qualified; seek to first frame */
   this->input->seek(this->input, this->data_start, SEEK_SET);
@@ -233,8 +311,11 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_HEADER;
-  buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
+  buf->decoder_info[0] = this->progressive;
+  buf->decoder_info[1] = this->frame_pts_inc;  /* initial video step */
+  buf->decoder_info[2] = this->top_field_first;
+  buf->decoder_info[3] = this->aspect_n;
+  buf->decoder_info[4] = this->aspect_d;
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_I420;
@@ -294,8 +375,8 @@ static int demux_yuv4mpeg2_get_status (demux_plugin_t *this_gen) {
 static int demux_yuv4mpeg2_get_stream_length (demux_plugin_t *this_gen) {
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
-  return (int)((int64_t) this->data_size * 1000 / 
-               (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE) / this->fps);
+  return (int)(((int64_t) this->data_size * 1000 * this->fps_d) / 
+               ((this->frame_size + Y4M_FRAME_SIGNATURE_SIZE) * this->fps_n));
 }
 
 static uint32_t demux_yuv4mpeg2_get_capabilities(demux_plugin_t *this_gen) {
