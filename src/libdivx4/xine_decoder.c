@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2002/04/06 21:08:29 guenter Exp $
+ * $Id: xine_decoder.c,v 1.25 2002/04/07 09:37:11 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -60,7 +60,7 @@
 #if CATCH_SIGSEGV
 #include <signal.h>
 
-/*  #define LOG */
+/* #define LOG */
 
 /* to be able to restore the old handler */
 void (*old_handler)(int);
@@ -217,6 +217,14 @@ static void divx4_set_pp(divx4_decoder_t *this) {
   setpp.dering_chr = 0;
   setpp.pp_semaphore = 0;
 
+  setpp.deblock_hor_luma = 0;
+  setpp.deblock_ver_luma = 0;
+  setpp.deblock_hor_chr = 0;
+  setpp.deblock_ver_chr = 0;
+  setpp.dering_luma = 0;
+  setpp.dering_chr = 0;
+  setpp.pp_semaphore = 0;
+
   ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
   if (ret != DEC_OK)
   {
@@ -251,6 +259,10 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
     }
     break;
   case BUF_VIDEO_MPEG4:
+    printf("divx4: foo2\n");
+    if (this->version >= 20020303)
+      param.codec_version=500;
+
     this->use_311_compat = 0;
     if (this->version >= 20020303)
       param.codec_version=500;
@@ -264,6 +276,9 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
   param.x_dim=this->biWidth;
   param.y_dim=this->biHeight;
   param.time_incr = 15; /* no idea what this does */
+
+  param.build_number=0;
+
   param.output_format=DEC_USER;
   param.build_number=0;
   memset(&param.buffers, 0, sizeof(param.buffers));
