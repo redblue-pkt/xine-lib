@@ -68,14 +68,65 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/man/fr/man3/xine-lib.*
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
-%{prefix}/lib/xine/plugins/*.la
-%{prefix}/lib/xine/plugins/*.so
+# input plugins
+%{prefix}/lib/xine/plugins/xineplug_inp_dvd.la
+%{prefix}/lib/xine/plugins/xineplug_inp_dvd.so
+%{prefix}/lib/xine/plugins/xineplug_inp_file.la
+%{prefix}/lib/xine/plugins/xineplug_inp_file.so
+%{prefix}/lib/xine/plugins/xineplug_inp_net.la
+%{prefix}/lib/xine/plugins/xineplug_inp_net.so
+%{prefix}/lib/xine/plugins/xineplug_inp_rtp.la
+%{prefix}/lib/xine/plugins/xineplug_inp_rtp.so
+%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.la
+%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.so
+%{prefix}/lib/xine/plugins/xineplug_inp_vcd.la
+%{prefix}/lib/xine/plugins/xineplug_inp_vcd.so
+# demuxer plugins
+%{prefix}/lib/xine/plugins/xineplug_dmx_avi.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_avi.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.so
+# decoder plugins
+%{prefix}/lib/xine/plugins/xineplug_decode_ac3.la
+%{prefix}/lib/xine/plugins/xineplug_decode_ac3.so
+%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.so
+%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
+%{prefix}/lib/xine/plugins/xineplug_decode_spu.la
+%{prefix}/lib/xine/plugins/xineplug_decode_spu.so
+%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
+%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
+# audio driver plugins
+%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
+%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
+%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
+%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
+# video driver plugins
+%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
+%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
 %{prefix}/share/doc/xine/*
 
 %changelog
+* Wed Jul 18 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- list all plugins to avoid *strange* inclusion ;-).
 * Sun Jun 10 2001 Matthias Dahl <matthew2k@web.de>
 - updated filelist
 - re-activated execution of /sbin/ldconfig as post install script
