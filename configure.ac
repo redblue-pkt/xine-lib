@@ -926,10 +926,22 @@ case "$host_or_hostalias" in
 	sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
 	sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
 	sun4u)
-          cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
-          if test x$enable_vis = xyes; then
-	    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-          fi
+	  case `$CC --version 2>/dev/null` in
+	  [12].*)
+	    # -mcpu=ultrasparc triggers a GCC 2.95.x compiler bug when
+	    # compiling video_out.c:
+	    #   gcc: Internal compiler error: program cc1 got fatal signal 11
+	    # avoid -mcpu=ultrasparc with gcc 2.*
+            cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
+	    ;;
+          *)
+	    # GCC 3 or newer should have no problem with -mcpu=ultrasparc 
+            cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
+            if test x$enable_vis = xyes; then
+	      AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+            fi
+	    ;;
+	  esac
           ;;
 	*)     cpu_cflags= ;;
 	esac
