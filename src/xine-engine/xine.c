@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.307 2005/01/18 22:38:31 holstsn Exp $
+ * $Id: xine.c,v 1.308 2005/01/21 18:47:54 hadess Exp $
  */
 
 /*
@@ -625,8 +625,10 @@ void _x_flush_events_queues (xine_stream_t *stream) {
     pthread_mutex_lock (&queue->lock);
     pthread_mutex_unlock (&stream->event_queues_lock);
 
-    while (!xine_list_is_empty (queue->events)) {
-      pthread_cond_wait (&queue->events_processed, &queue->lock);
+    if (queue->listener_thread != NULL) {
+      while (!xine_list_is_empty (queue->events)) {
+        pthread_cond_wait (&queue->events_processed, &queue->lock);
+      }
     }
 
     pthread_mutex_unlock (&queue->lock);
