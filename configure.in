@@ -26,7 +26,7 @@ dnl
 XINE_MAJOR=0
 XINE_MINOR=9
 XINE_SUB=6
-XINE_PRE=""
+XINE_PRE="`if test -f ./.cvsversion; then echo cvs;fi`"
 XINE_IFACE_AGE=1
 XINE_BIN_AGE=1
 
