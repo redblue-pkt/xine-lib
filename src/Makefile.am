@@ -26,6 +26,7 @@ SUBDIRS = \
 	libvorbis \
 	libreal \
 	libfaad \
+	libflac \
 	post
 
 debug:

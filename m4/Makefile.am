@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	irixal.m4 \
 	isc-posix.m4 \
 	lcmessage.m4 \
+	libFLAC.m4 \
 	libfame.m4 \
 	ogg.m4 \
 	pkg.m4 \
