@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.100 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.101 2002/12/21 20:19:50 esnel Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -1034,9 +1034,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       /* disregard the RIFF file if it is certainly a better known
        * format like AVI or WAVE */
       if ((fourcc_tag == WAVE_TAG) ||
-	  (fourcc_tag == AVI_TAG))
+	  (fourcc_tag == AVI_TAG)) {
+	free (this);
 	return DEMUX_CANNOT_HANDLE;
-	
+      }
+
       /* Iterate through first n kilobytes of RIFF file searching for
        * MPEG video marker. No, it's not a very efficient approach, but
        * if execution has reached this special case, this is currently
