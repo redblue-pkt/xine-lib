@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.32 2001/11/14 15:17:01 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.33 2001/11/14 17:37:02 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -326,8 +326,8 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 static void dxr3_flush (video_decoder_t *this_gen) 
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
-	puts("DXR3 Flushing!!");
-	dxr3_mvcommand(this->fd_control, 0x11);
+	fprintf(stderr,"DXR3 Flushing!!");
+/*	dxr3_mvcommand(this->fd_control, 0x10); */
 
 }
 
@@ -433,9 +433,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.priority            = 10;
 
 	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10); 
-/* temporarily force the dxr3 to be master - otherwise the plugin locks
-   whenever there is an audio disconuity... still does sometimes :( */
-//FIXME        this->scr_prio = 20;
         
 	this->enhanced_mode = cfg->lookup_int(cfg,"dxr3_buffer_mode", 0);
 	if(this->enhanced_mode)
