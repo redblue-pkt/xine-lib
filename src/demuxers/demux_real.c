@@ -21,7 +21,14 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.28 2002/12/22 16:46:27 holstsn Exp $
+ * video packet sub-demuxer ported from mplayer code (www.mplayerhq.hu):
+ *   Real parser & demuxer
+ *   
+ *   (C) Alex Beregszaszi <alex@naxine.org>
+ *   
+ *   Based on FFmpeg's libav/rm.c.
+ *
+ * $Id: demux_real.c,v 1.29 2003/01/01 20:39:19 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -448,91 +455,64 @@ static void real_parse_headers (demux_real_t *this) {
 		break;  /* audio */
 	      } 
 	      if (!strncmp (mdpr->type_specific_data+off, "VIDO", 4)) {
+                const char *video_fmt = (mdpr->type_specific_data + off + 4);
 #ifdef LOG
 		printf ("demux_real: video detected\n");
 #endif
 		this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = mdpr->avg_bit_rate;
-		/* FIXME: insert video codec detection code here */
-		
+
+                if ( strncmp(video_fmt, "RV20", 4) == 0 ) {
+                  this->video_stream_num = mdpr->stream_number;
+                  this->video_buf_type   = BUF_VIDEO_RV20;
+                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+#ifdef LOG
+                  printf("demux_real: RV20 video detected\n");
+#endif
+                } else if ( strncmp(video_fmt, "RV30", 4) == 0 ) {
+                  this->video_stream_num = mdpr->stream_number;
+                  this->video_buf_type   = BUF_VIDEO_RV30;
+                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+
+#ifdef LOG
+                  printf("demux_real: RV30 video detected\n");
+#endif
+                } else if ( strncmp(video_fmt, "RV40", 4) == 0 ) {
+                  this->video_stream_num = mdpr->stream_number;
+                  this->video_buf_type   = BUF_VIDEO_RV40;
+                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+#ifdef LOG
+                  printf("demux_real: RV40 video detected\n");
+#endif
+                } else {
+                  fprintf(stderr, "demux_real: codec not recognized as video\n");
+                }
+
+                if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] ) {
+                  buf_element_t *buf;
+
+                  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+
+                  buf->content = buf->mem;
+
+                  memcpy(buf->content, mdpr->type_specific_data,
+                         mdpr->type_specific_len);
+
+                  buf->size = mdpr->type_specific_len;
+
+                  buf->type = this->video_buf_type;
+                  buf->decoder_flags = BUF_FLAG_HEADER;
+                  buf->extra_info->input_pos  = 0;
+                  buf->extra_info->input_time = 0;
+
+                  this->video_fifo->put (this->video_fifo, buf);
+                }
+
 		break;  /* video */
 	      }
 	      off++;
-	    }
+	    } /* while */
 	  }
-	
-	
 
-	  /* detect video streamtype */
-
-	  if (!strncmp (mdpr->type_specific_data+4, "VIDORV20", 8)) {
-
-	    buf_element_t *buf;
-
-	    this->video_stream_num = mdpr->stream_number;
-	    this->video_buf_type   = BUF_VIDEO_RV20;
-
-#ifdef LOG
-	    printf ("demux_real: RV20 video detected\n");
-#endif
-
-	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-
-	    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-	    buf->content = buf->mem;
-
-	    memcpy (buf->content, mdpr->type_specific_data, 
-		    mdpr->type_specific_len);
-
-	    buf->size = mdpr->type_specific_len;
-
-	    buf->extra_info->input_pos     = 0 ; 
-	    buf->extra_info->input_time    = 0 ; 
-	    buf->type          = BUF_VIDEO_RV20;
-	    buf->decoder_flags = BUF_FLAG_HEADER;
-    
-	    this->video_fifo->put (this->video_fifo, buf);  
-	
-	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-
-	  } else if (!strncmp (mdpr->type_specific_data+4, "VIDORV30", 8)) {
-
-	    buf_element_t *buf;
-
-	    this->video_stream_num = mdpr->stream_number;
-	    this->video_buf_type   = BUF_VIDEO_RV30;
-
-#ifdef LOG
-	    printf ("demux_real: RV30 video detected\n");
-#endif
-
-	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-
-	    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-	    buf->content = buf->mem;
-
-	    memcpy (buf->content, mdpr->type_specific_data, 
-		    mdpr->type_specific_len);
-
-	    buf->size = mdpr->type_specific_len;
-
-	    buf->extra_info->input_pos     = 0 ; 
-	    buf->extra_info->input_time    = 0 ; 
-	    buf->type          = BUF_VIDEO_RV30;
-	    buf->decoder_flags = BUF_FLAG_HEADER;
-    
-	    this->video_fifo->put (this->video_fifo, buf);  
-	
-	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-
-	  }  else {
-
-#ifdef LOG
-	    printf ("demux_real: codec not recognized as video\n");
-#endif
-
-	  }
 	}
 
 	free (mdpr);

@@ -17,11 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.5 2002/12/30 05:09:53 tmmm Exp $
+ * $Id: qt_decoder.c,v 1.6 2003/01/01 20:39:20 guenter Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
  * authors: A'rpi and Sascha Sommer
+ *
+ * rv40 support by Chris Rankin <cj.rankin@ntlworld.com>
  */
 
 #ifdef HAVE_CONFIG_H
