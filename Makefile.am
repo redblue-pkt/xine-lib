@@ -4,6 +4,8 @@
 
 AUTOMAKE_OPTIONS = 1.3
 
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS = doc m4 intl po misc include src
 
 EXTRA_DIST = cvscompile.sh automake.diff \
