@@ -70,6 +70,8 @@ void (*filter_luma_14641_packed422_inplace_scanline)( uint8_t *data, int width )
 unsigned int (*diff_factor_packed422_scanline)( uint8_t *cur, uint8_t *old, int width );
 unsigned int (*comb_factor_packed422_scanline)( uint8_t *top, uint8_t *mid,
                                                 uint8_t *bot, int width );
+void (*linearblend_chroma_packed422_scanline)( uint8_t *output, int width,
+                                               uint8_t *m, uint8_t *t, uint8_t *b);
 void (*kill_chroma_packed422_inplace_scanline)( uint8_t *data, int width );
 void (*mirror_packed422_inplace_scanline)( uint8_t *data, int width );
 void (*halfmirror_packed422_inplace_scanline)( uint8_t *data, int width );
@@ -518,6 +520,70 @@ void packed422_to_packed444_rec601_scanline( uint8_t *dest, uint8_t *src, int wi
             dest[ (i*6) + 4 ] = src[ (i*4) + 1 ];
             dest[ (i*6) + 5 ] = src[ (i*4) + 3 ];
         }
+    }
+}
+
+static void linearblend_chroma_packed422_scanline_mmx( uint8_t *output, int width,
+                                                       uint8_t *m, uint8_t *t, uint8_t *b)
+{
+#ifdef ARCH_X86
+    int i;
+    const mmx_t ymask = { 0x00ff00ff00ff00ffULL };
+    const mmx_t cmask = { 0xff00ff00ff00ff00ULL };
+
+    // Get width in bytes.
+    width *= 2;
+    i = width / 8;
+    width -= i * 8;
+
+    movq_m2r( ymask, mm7 );
+    movq_m2r( cmask, mm6 );
+
+    while( i-- ) {
+        movq_m2r( *t, mm0 );
+        movq_m2r( *b, mm1 );
+        movq_m2r( *m, mm2 );
+
+        movq_r2r ( mm2, mm3 );
+        pand_r2r ( mm7, mm3 );
+
+        pand_r2r ( mm6, mm0 );
+        pand_r2r ( mm6, mm1 );
+        pand_r2r ( mm6, mm2 );
+
+        psrlq_i2r( 8, mm0 );
+        psrlq_i2r( 8, mm1 );
+        psrlq_i2r( 7, mm2 );
+
+        paddw_r2r( mm0, mm2 );
+        paddw_r2r( mm1, mm2 );
+
+        psllw_i2r( 6, mm2 );
+        pand_r2r( mm6, mm2 );
+
+        por_r2r ( mm3, mm2 );
+
+        movq_r2m( mm2, *output );
+        output += 8;
+        t += 8;
+        b += 8;
+        m += 8;
+    }
+    while( width-- ) {
+        output++; t++; b++; m++;
+        *output++ = (*t++ + *b++ + (*m++ << 1)) >> 2;
+    }
+
+    emms();
+#endif
+}
+
+static void linearblend_chroma_packed422_scanline_c( uint8_t *output, int width,
+                                                     uint8_t *m, uint8_t *t, uint8_t *b)
+{
+    while( width-- ) {
+        output++; t++; b++; m++;
+        *output++ = (*t++ + *b++ + (*m++ << 1)) >> 2;
     }
 }
 
@@ -2016,6 +2082,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
     filter_luma_14641_packed422_inplace_scanline = filter_luma_14641_packed422_inplace_scanline_c;
     comb_factor_packed422_scanline = 0;
     diff_factor_packed422_scanline = diff_factor_packed422_scanline_c;
+    linearblend_chroma_packed422_scanline = linearblend_chroma_packed422_scanline_c;
     kill_chroma_packed422_inplace_scanline = kill_chroma_packed422_inplace_scanline_c;
     mirror_packed422_inplace_scanline = mirror_packed422_inplace_scanline_c;
     halfmirror_packed422_inplace_scanline = halfmirror_packed422_inplace_scanline_c;
@@ -2038,6 +2105,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
         composite_packed4444_alpha_to_packed422_scanline = composite_packed4444_alpha_to_packed422_scanline_mmxext;
         composite_alphamask_to_packed4444_scanline = composite_alphamask_to_packed4444_scanline_mmxext;
         premultiply_packed4444_scanline = premultiply_packed4444_scanline_mmxext;
+        linearblend_chroma_packed422_scanline = linearblend_chroma_packed422_scanline_mmx;
         kill_chroma_packed422_inplace_scanline = kill_chroma_packed422_inplace_scanline_mmx;
         blend_packed422_scanline = blend_packed422_scanline_mmxext;
         diff_factor_packed422_scanline = diff_factor_packed422_scanline_mmx;
@@ -2055,6 +2123,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
         blit_packed422_scanline = blit_packed422_scanline_mmx;
         diff_factor_packed422_scanline = diff_factor_packed422_scanline_mmx;
         comb_factor_packed422_scanline = comb_factor_packed422_scanline_mmx;
+        linearblend_chroma_packed422_scanline = linearblend_chroma_packed422_scanline_mmx;
         kill_chroma_packed422_inplace_scanline = kill_chroma_packed422_inplace_scanline_mmx;
         diff_packed422_block8x8 = diff_packed422_block8x8_mmx;
         speedy_memcpy = speedy_memcpy_mmx;

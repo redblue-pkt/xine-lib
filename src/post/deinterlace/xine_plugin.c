@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.4 2003/06/16 18:28:11 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.5 2003/06/17 17:14:13 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -67,6 +67,7 @@ typedef struct deinterlace_parameters_s {
   int framerate_mode;
   int judder_correction;
   int use_progressive_frame_flag;
+  int chroma_filter;
 
 } deinterlace_parameters_t;
 
@@ -86,6 +87,8 @@ PARAM_ITEM( POST_PARAM_TYPE_BOOL, judder_correction, NULL, 0, 1, 0,
             "make frames evenly spaced for film mode (24 fps)" )
 PARAM_ITEM( POST_PARAM_TYPE_BOOL, use_progressive_frame_flag, NULL, 0, 1, 0,
             "disable deinterlacing when progressive_frame flag is set" )
+PARAM_ITEM( POST_PARAM_TYPE_BOOL, chroma_filter, NULL, 0, 1, 0,
+            "apply chroma filter after deinterlacing" )
 END_PARAM_DESCR( param_descr )
 
 
@@ -107,6 +110,7 @@ struct post_plugin_deinterlace_s {
   int                framerate_mode;
   int                judder_correction;
   int                use_progressive_frame_flag;
+  int                chroma_filter;
   tvtime_t          *tvtime;
 
   int                framecounter;
@@ -148,6 +152,7 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen) {
   this->framerate_mode = param->framerate_mode;
   this->judder_correction = param->judder_correction;
   this->use_progressive_frame_flag = param->use_progressive_frame_flag;
+  this->chroma_filter = param->chroma_filter;
 
   this->tvtime->pulldown_alg = this->pulldown;
   this->tvtime->curmethod = get_deinterlace_method( this->cur_method-1 );
@@ -167,6 +172,7 @@ int get_parameters (xine_post_t *this_gen, void *param_gen) {
   param->framerate_mode = this->framerate_mode;
   param->judder_correction = this->judder_correction;
   param->use_progressive_frame_flag = this->use_progressive_frame_flag;
+  param->chroma_filter = this->chroma_filter;
 
   return 1;
 }
@@ -292,6 +298,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   this->framerate_mode = 0;
   this->judder_correction = 1;
   this->use_progressive_frame_flag = 1;
+  this->chroma_filter = 1;
   this->framecounter = 0;
   memset( &this->recent_frame, 0, sizeof(this->recent_frame) );
 
@@ -499,6 +506,22 @@ static void deinterlace_close(xine_video_port_t *port_gen, xine_stream_t *stream
 }
 
 
+static void apply_chroma_filter( uint8_t *data, int stride, int width, int height )
+{
+  int i;
+
+  /* ok, using linearblend inplace is a bit weird: the result of a scanline
+   * interpolation will affect the next scanline. this might not be a problem
+   * at all, we just want a kind of filter here.
+   */
+  for( i = 0; i < height; i++, data += stride ) {
+    linearblend_chroma_packed422_scanline( data, width,
+                                           data, 
+                                           (i) ? (data - stride) : data,
+                                           (i < height-1) ? (data + stride) : data );
+  }
+}
+
 static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)frame->port;
@@ -639,6 +662,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
           } else
             deinterlaced_frame->pts = 0;
           deinterlaced_frame->duration = FPS_24_DURATION;
+          if( this->chroma_filter )
+            apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                                 frame->width, frame->height );
           skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
         } else {
           skip = 0;
@@ -647,6 +673,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
         deinterlaced_frame->pts = frame->pts;
         deinterlaced_frame->duration = (this->framerate_mode == FRAMERATE_FULL)?
                                        frame->duration/2:frame->duration;
+        if( this->chroma_filter && !deinterlaced_frame->bad_frame )
+          apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                               frame->width, frame->height );
         skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
       }
   
@@ -704,6 +733,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
             } else
               deinterlaced_frame->pts = 0;
             deinterlaced_frame->duration = FPS_24_DURATION;
+            if( this->chroma_filter )
+              apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                                   frame->width, frame->height );
             skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
           } else {
             skip = 0;
@@ -711,6 +743,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
         } else {
           deinterlaced_frame->pts = 0;
           deinterlaced_frame->duration = frame->duration/2;
+          if( this->chroma_filter && !deinterlaced_frame->bad_frame )
+            apply_chroma_filter( deinterlaced_frame->base[0], deinterlaced_frame->pitches[0], 
+                                 frame->width, frame->height );
           skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
         }
   
