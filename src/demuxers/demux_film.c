@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.70 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_film.c,v 1.71 2003/11/17 05:42:07 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -655,6 +655,8 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 static void demux_film_send_headers(demux_plugin_t *this_gen) {
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf;
+  int64_t initial_duration = 3000;
+  int i;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -681,10 +683,17 @@ static void demux_film_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   if (this->video_type) {
+    /* find the first video frame duration */
+    for (i = 0; i < this->sample_count; i++)
+      if (!this->sample_table[i].audio) {
+        initial_duration = this->sample_table[i].duration;
+        break;
+      }
+
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = 3000;  /* initial video_step */
+    buf->decoder_info[1] = initial_duration;
     memcpy(buf->content, &this->bih, sizeof(this->bih));
     buf->size = sizeof(this->bih);
     buf->type = this->video_type;
