@@ -19,7 +19,7 @@
  *
  * Time stretch by a given factor, optionally preserving pitch
  *
- * $Id: stretch.c,v 1.1 2004/07/26 22:23:34 miguelfreitas Exp $
+ * $Id: stretch.c,v 1.2 2004/07/26 22:34:00 miguelfreitas Exp $
  *
  */
 
@@ -631,7 +631,7 @@ static post_plugin_t *stretch_open_plugin(post_class_t *class_gen, int inputs,
   _x_post_init(&this->post, 1, 0);
 
   init_params.preserve_pitch = 1;
-  init_params.factor = 1.01;
+  init_params.factor = 0.80;
   
   pthread_mutex_init (&this->lock, NULL);
 
