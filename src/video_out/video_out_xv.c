@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.164 2003/04/24 17:39:05 hadess Exp $
+ * $Id: video_out_xv.c,v 1.165 2003/04/30 22:14:59 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -494,13 +494,21 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
        they have that components 1:1 at the same table.
     */
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-	+ frame->width*frame->height : NULL;
+      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
+          this->recent_frames[i]->height == frame->height )
+        recent_bitmaps[i] = this->recent_frames[i]->image->data + frame->width*frame->height;
+      else
+        recent_bitmaps[i] = NULL;
+
     deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
 		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-	+ frame->width*frame->height*5/4 : NULL;
+      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
+          this->recent_frames[i]->height == frame->height )
+        recent_bitmaps[i] = this->recent_frames[i]->image->data + frame->width*frame->height*5/4;
+      else
+        recent_bitmaps[i] = NULL;
+
     deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
 		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
 
@@ -514,8 +522,11 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
 #endif
 
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
-      NULL;
+      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
+          this->recent_frames[i]->height == frame->height )
+        recent_bitmaps[i] = this->recent_frames[i]->image->data;
+      else
+        recent_bitmaps[i] = NULL;
 
     deinterlace_yuv( this->deinterlace_frame.image->data, recent_bitmaps,
                      frame->width, frame->height, this->deinterlace_method );
