@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.255 2003/09/15 19:02:23 f1rmb Exp $
+ * $Id: xine.c,v 1.256 2003/10/04 15:19:23 siggi Exp $
  */
 
 /*
@@ -576,12 +576,12 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	}
 	continue;
       }
-      if (strncasecmp(stream_setup, "rip", 3) == 0) {
-        if (*(stream_setup += 3) == ':') {
-	  /* filename to rip */
+      if (strncasecmp(stream_setup, "save", 4) == 0) {
+        if (*(stream_setup += 4) == ':') {
+	  /* filename to save */
 	  const char     *tmp = ++stream_setup;
 	  char           *filename;
-	  input_plugin_t *input_rip;
+	  input_plugin_t *input_saver;
 
 	  stream_setup = strchr(stream_setup, ';');
 	  if (stream_setup) {
@@ -594,12 +594,13 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    filename[strlen(tmp)] = '\0';
 	  }
 
-	  xine_log(stream->xine, XINE_LOG_MSG, _("xine: join rip input plugin\n"));
-	  input_rip = rip_plugin_get_instance (stream, filename);
-	  if( input_rip ) {
-	    stream->input_plugin = input_rip;
+	  xine_log(stream->xine, XINE_LOG_MSG, 
+		   _("xine: join rip input plugin\n"));
+	  input_saver = rip_plugin_get_instance (stream, filename);
+	  if( input_saver ) {
+	    stream->input_plugin = input_saver;
 	  } else {
-	    printf("xine: error opening rip plugin instance\n");
+	    printf("xine: error opening rip input plugin instance\n");
 	    stream->err = XINE_ERROR_MALFORMED_MRL;
 	    stream->status = XINE_STATUS_STOP;
 	    return 0;
