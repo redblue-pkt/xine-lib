@@ -359,10 +359,10 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         /* discontinuity management */
         if (fifo == this->video_fifo) {
           this->video_in_disc++;
-          printf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
+          lprintf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
         } else {
           this->audio_in_disc++;
-          printf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
+          lprintf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
         }
         break;
     }
@@ -423,10 +423,10 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
     if (buf->type == BUF_CONTROL_NEWPTS) {
       if (fifo == this->video_fifo) {
         this->video_in_disc--;
-        printf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
+        lprintf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
       } else {
         this->audio_in_disc--;
-        printf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
+        lprintf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
       }
     }
   }
