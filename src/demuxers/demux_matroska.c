@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.15 2004/01/22 00:41:53 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.16 2004/01/22 21:32:48 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1670,8 +1670,29 @@ static int demux_matroska_seek (demux_plugin_t *this_gen,
 }
 
 
-static void demux_matroska_dispose (demux_plugin_t *this) {
+static void demux_matroska_dispose (demux_plugin_t *this_gen) {
+  
+  demux_matroska_t *this = (demux_matroska_t *) this_gen;
+  int i;
 
+  /* free tracks */
+  for (i = 0; i < this->num_tracks; i++) {
+    matroska_track_t *track;
+
+    track = this->tracks[i];
+    if (track->language)
+      free (track->language);
+    if (track->codec_id)
+      free (track->codec_id);
+    if (track->codec_private)
+      free (track->codec_private);
+    if (track->video_track)
+      free (track->video_track);
+    if (track->audio_track)
+      free (track->audio_track);
+    
+    free (track);
+  }
   free (this);
 }
 
@@ -1711,7 +1732,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
                 /* the string got truncated */
                 str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
             } else {
-              snprintf(str, XINE_LANG_MAX, "channel %d",channel);
+              snprintf(str, XINE_LANG_MAX, "eng",channel);
             }
             return DEMUX_OPTIONAL_SUCCESS;
           }
@@ -1733,7 +1754,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
                 /* the string got truncated */
                 str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
             } else {
-              snprintf(str, XINE_LANG_MAX, "channel %d", channel);
+              snprintf(str, XINE_LANG_MAX, "eng", channel);
             }
             return DEMUX_OPTIONAL_SUCCESS;
           }
