@@ -27,6 +27,10 @@
 #include <string.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
@@ -327,3 +331,64 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
 
   return 0;
 }
+
+
+/*
+ * read from socket/file descriptor checking demux_action_pending
+ *
+ * network input plugins should use this function in order to
+ * not freeze the engine.
+ *
+ * aborts with zero if no data is available and demux_action_pending is set
+ */
+off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
+
+  off_t ret, total;
+
+  total = 0;
+
+  while (total < todo) {
+
+    fd_set rset;
+    struct timeval timeout;
+
+    while(1) {
+
+      FD_ZERO (&rset);
+      FD_SET  (fd, &rset);
+
+      timeout.tv_sec  = 0;
+      timeout.tv_usec = 50000;
+
+      if( select (fd+1, &rset, NULL, NULL, &timeout) <= 0 ) {
+        /* aborts current read if action pending. otherwise xine
+         * cannot be stopped when no more data is available.
+         */
+        if( stream->demux_action_pending )
+          return 0;
+      } else {
+        break;
+      }
+    }
+
+    ret = read (fd, &buf[total], todo - total);
+
+    /* check EOF */
+    if (!ret)
+      break;
+
+    /* check errors */
+    if(ret < 0) {
+      if(errno == EAGAIN)
+        continue;
+
+      perror("xine_read_abort");
+      return ret;
+    }
+
+    total += ret;
+  }
+
+  return total;
+}
+
