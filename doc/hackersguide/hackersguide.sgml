@@ -9,6 +9,7 @@
   <authorgroup>
     <author><firstname>G&uuml;nter</firstname><surname>Bartsch</surname></author>
     <author><firstname>Heiko</firstname><surname>Sch&auml;fer</surname></author>
+    <author><firstname>Richard</firstname><surname>Wareham</surname></author>
 
   </authorgroup>
   <copyright>
@@ -463,7 +464,286 @@ struct demux_plugin_s
   <sect1>
     <title>Adding support for a new type of video output
            (e.g. framebuffer device)</title>
-    <para></para>
+    <para>
+      The xine plugin system makes it easy to create a new video
+      output target for xine. Video output plugins, like all
+      plugins are installed in a special xine plugins directory
+      which can be found using the 
+      <command>xine-config --plugindir</command>
+      command.
+    </para>
+    <para>
+      In order to allow for device-dependant acceleration features, xine
+      calls on the video output plugin for more than just displaying
+      images. The tasks performed by the video plugins are:
+    </para>
+    <para>
+    <itemizedlist>
+    <listitem>
+      <para>Allocation of a <type>vo_frame_s</type> structure and its
+      subsequent destruction.
+      </para>
+    </listitem>
+    <listitem>
+      <para>Allocation of memory for use by one frame (this is to allow
+      for the ability of some video output plugins to map frames directly
+      into video-card memory hence removing the need for the frame to
+      be copied across the PCI/AGP bus at display time).
+      </para>
+    </listitem>
+    <listitem>
+      <para>Most importantly, the ability to render/copy a given 
+      frame to the output device.
+      </para>
+    </listitem>
+    <listitem>
+      <para>(Optional) The copying of the frame from a file dependant 
+      colour-space and depth into the frame structure. This is to allow for
+      on-the fly
+      colour-space conversion and scalaing if required (e.g. the XShm
+      ouput plugin uses this mechanism).
+    </listitem>
+    </itemizedlist>
+    </para>
+    <para>
+    Although these extra responsibilities add great complexity to your
+    plugin it should be noted that they allow plugins to take full advantage
+    of any special hardware-acceleration without sacrificing flexibility.
+    </para>
+    <para>
+    All video plugins take the form of a shared library which exports at least
+    the functions <function>init_video_out_plugin()</function> and
+    <function>get_video_out_plugin_info()</function> which
+    returns a pointer to a <type>vo_info_s</type>. This structure has the
+    following declaration:
+    </para>
+    <programlisting>
+ struct vo_info_s {
+   int    interface_version; /* plugin interface version                  */
+   char  *id;                /* id of this plugin                         */
+   char  *description;       /* human-readable description of this plugin */
+   int    visual_type;       /* visual type supported by this plugin      */
+   int    priority;          /* priority of this plugin for auto-probing  */
+ };</programlisting>
+    <para>
+      At the time of writing, the current interface version was `3' but
+      you may wish to look at an existing plugin's source-code to check.
+    </para>
+    <para>
+      The <varname>visual_type</varname> field is used by the Xine UI to
+      determine if it is supported by the UI (e.g. X11 output plugins require
+      the GUI to be running under the X Windowing system) and also to 
+      determine the information passed to the 
+      <function>init_video_out_plugin()</function> function.
+      The library must also export this function and it has the following
+      declaration:
+    </para>
+    <programlisting>
+ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)</programlisting>
+    <para>
+      The arguments to the function are as follows
+    </para>
+    <itemizedlist>
+    <listitem>
+      <para><varname>config</varname> -- A pointer to an object which
+      allows you to register, change and access configuration information.
+      See elsewhere in this document for more information.</para>
+    </listitem>
+    <listitem>
+      <para><varname>visual_gen</varname> -- A pointer to a visual-dependant
+      structure/variable. For example, if you had previously claimed your
+      plugin was of the VISUAL_TYPE_X11 type, this would be a pointer
+      to the <type>Display</type> variable associated with the
+      X-server xine is running under. See plugin source-code for other
+      VISUAL_TYPE_... constants and associated structures. Note that this
+      field is provided by the UI and so if you wish to add another visual
+      type you will either need to extend an existing UI or write a new
+      one.</para>
+    </listitem>
+    </itemizedlist>
+    <para>
+      The function creates and returns a pointer to a <type>vo_driver_s</type>
+      structure which contains the following function pointers:
+    </para>
+    <programlisting>
+struct vo_driver_s {
+
+  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
+
+  /*
+   * allocate an vo_frame_t struct,
+   * the driver must supply the copy, field and dispose functions
+   */
+  vo_frame_t* (*alloc_frame) (vo_driver_t *this);
+
+
+  /* 
+   * check if the given image fullfills the format specified
+   * (re-)allocate memory if necessary
+   */
+  void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
+			       uint32_t width, uint32_t height,
+			       int ratio_code, int format, int flags);
+
+  /* display a given frame */
+  void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+
+  /* overlay functions */
+  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
+
+  /*
+   * these can be used by the gui directly:
+   */
+
+  int (*get_property) (vo_driver_t *this, int property);
+  int (*set_property) (vo_driver_t *this, 
+		       int property, int value);
+  void (*get_property_min_max) (vo_driver_t *this,
+				int property, int *min, int *max);
+
+  /*
+   * general purpose communication channel between gui and driver
+   *
+   * this should be used to propagate events, display data, window sizes
+   * etc. to the driver
+   */
+
+  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
+			    void *data);
+
+  void (*exit) (vo_driver_t *this);
+  vo_info_t* (*get_info) ();
+
+};</programlisting>
+    <para>
+      The <varname>get_info</varname> field is simply a pointer to the
+      <function>get_video_out_plugin_info()</function> function described
+      above.
+    </para>
+    <para>
+      The <varname>get_capbilities</varname> field points to a function
+      which returns a bit-wise ORed combination of the following constants
+      which reflects the video output plugin's capabilities.
+    </para>
+<programlisting>
+#define VO_CAP_COPIES_IMAGE 0x00000001 /* driver will copy image rather than providing */
+                                       /* a buffer for xine to write the image into    */
+
+#define VO_CAP_RGB          0x00000002 /* driver can handle 24bit rgb pictures */
+#define VO_CAP_YV12         0x00000004 /* driver can handle YUV 4:2:0 pictures */
+#define VO_CAP_YUY2         0x00000008 /* driver can handle YUY2      pictures */
+
+#define VO_CAP_HUE                    0x00000010 /* driver can set HUE value                */
+#define VO_CAP_SATURATION             0x00000020 /* driver can set SATURATION value         */
+#define VO_CAP_BRIGHTNESS             0x00000040 /* driver can set BRIGHTNESS value         */
+#define VO_CAP_CONTRAST               0x00000080 /* driver can set CONTRAST value           */
+#define VO_CAP_COLORKEY               0x00000100 /* driver can set COLORKEY value           */
+#define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */</programlisting>
+    <para>
+      A plugin should use the VO_CAP_COPIES_IMAGE flag if it wishes to provide a
+      copy function to perform on-the-fly colour-space conversion and
+      scaling.
+    </para>
+    <para>
+      The <varname>get_property</varname>, <varname>set_proprty</varname> and
+      <varname>get_property_min_max</varname> fields point to functions which
+      handle the getting, setting of properties and define their bounds. 
+      Valid property IDs can be found in the <filename>video_out.h</filename>
+      header file.
+    </para>
+    <para>
+      The <varname>gui_data_exchange</varname> field points to a function which can
+      accept various forms of data from the UI (e.g. the mouse has moved or the
+      window has been hidden). Look at existing plugins for examples of data
+      exchanges from various UIs.
+    </para>
+    <para>
+      The <varname>alloc_frame</varname> field points to a function which returns
+      a pointer to a <type>vo_frame_s</type> structure which is defined as:
+    </para>
+    <programlisting>
+/* public part, video drivers may add private fields */
+struct vo_frame_s {
+  struct vo_frame_s         *next;
+
+  uint32_t                   PTS;
+  uint32_t                   pts_corrector; /* Repeat first field tricks */
+  uint32_t                   SCR;
+  int                        bad_frame; /* e.g. frame skipped or based on skipped frame */
+  int                        drawn;
+  uint8_t                   *base[3];
+
+
+  /* additional information to be able to duplicate frames: */
+  int                        width, height;
+  int                        ratio, format;
+  int duration;
+  int aspect_ratio;
+  int frame_rate_code;
+  int progressive_sequence;
+  int top_field_first;
+  int repeat_first_field;
+  int progressive_frame;
+  int picture_coding_type;
+  int bitrate;
+
+  int                        display_locked, decoder_locked, driver_locked;
+  pthread_mutex_t            mutex; /* so the various locks will be serialized */
+
+  vo_instance_t             *instance;
+
+  /*
+   * member functions
+   */
+
+  /* this frame is no longer used by decoder */
+  void (*free) (vo_frame_t *vo_img);
+
+  /* tell video driver to copy/convert a slice of this frame */
+  void (*copy) (vo_frame_t *vo_img, uint8_t **src);
+
+  /* tell video driver that the decoder starts a new field */
+  void (*field) (vo_frame_t *vo_img, int which_field);
+
+  /* append this frame to the display queue,
+     returns number of frames to skip if decoder is late */
+  int (*draw) (vo_frame_t *vo_img);
+
+  /* this frame is no longer used by the video driver */
+  void (*displayed) (vo_frame_t *vo_img);
+
+  /* free memory/resources for this frame */
+  void (*dispose) (vo_frame_t *vo_img);
+}</programlisting>
+  <para>
+    Typically the video plugin will add private fields to the end of this structure
+    which are used for internal purposes by the plugin.
+  </para>
+  <para>
+    The function pointers within the frame structure provides a mechanism for the
+    driver to retain full control of how the frames are managed and rendered to. If
+    the VO_CAP_COPIES_IMAGE flag was set in the plugins capabilities then the
+    copy field is required and will be called sequentially for each 16-pixel high
+    strip in the image. The plugin may then decide, based on the frame's format, how
+    this is copied into the frame.
+  </para>
+  <para>
+    Returning to the <type>vo_driver_s</type> structure, the 
+    <function>update_frame_format</function> field points to a function which will
+    be called each time the colour-depth/space or size of a frame changes. Typically
+    this function would allocate sufficient memory for the frame, assign the pointers
+    to the individual planes of the frame to the <varname>base</varname> field of the
+    frame and perform and driver-specific changes.
+  </para>
+  <para>
+    The <varname>display_frame</varname> field points to a function to render a
+    given frame to the output device.
+  </para>
+  <para>
+    The <varname>overlay_blend</varname> field points to a function which accepts
+    an association between a frame and overlay which will result in the latter
+    being overlayed on the former.
+  </para>
   </sect1>
   <sect1>
     <title>Adding support for a new type of audio output</title>
