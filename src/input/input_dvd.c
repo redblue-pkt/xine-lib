@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.97 2002/10/23 11:44:31 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.98 2002/10/23 11:59:52 jcdutton Exp $
  *
  */
 
@@ -1585,7 +1585,6 @@ static void *init_class (xine_t *xine, void *data) {
 					     "device used for dvd drive",
 					     NULL,
 					     0, device_change_cb, (void *)this);
-*/
 #if 0
 /*  this->current_dvd_device = this->dvd_device; */
   printf("input_dvd.c:init_class:dvd_device=%s\n",this->dvd_device); 
@@ -1657,6 +1656,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.98  2002/10/23 11:59:52  jcdutton
+ * Oops...will compile now.
+ *
  * Revision 1.97  2002/10/23 11:44:31  jcdutton
  * input_dvd.c now listens for keyboard events from xine-ui.
  *
