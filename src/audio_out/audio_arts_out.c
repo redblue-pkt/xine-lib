@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.9 2002/03/11 19:58:00 jkeil Exp $
+ * $Id: audio_arts_out.c,v 1.10 2002/04/06 14:19:12 miguelfreitas Exp $
  */
 
 /* required for swab() */
@@ -46,9 +46,7 @@
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
 
-/*#define GAP_TOLERANCE         5000 */
-#define GAP_TOLERANCE        15000
-#define MAX_GAP              90000
+#define GAP_TOLERANCE        AO_MAX_GAP 
 
 typedef struct arts_driver_s {
 
