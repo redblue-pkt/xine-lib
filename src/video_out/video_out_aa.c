@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.3 2001/06/11 03:18:55 heikos Exp $
+ * $Id: video_out_aa.c,v 1.4 2001/06/13 17:53:42 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -161,11 +161,12 @@ static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   src_image = frame->vo_frame.base[0];
   img = aa_image(this->context); /* pointer to the beginning of the output */
 
+  /*
   fprintf(stderr,
 	  "aalib sez: width: %d, height: %d\n",
 	  aa_imgwidth (this->context),
 	  aa_imgheight (this->context));
-
+  */
   for (y = 0; y<aa_imgheight (this->context); y++) {
     for (x = 0; x<aa_imgwidth (this->context); x++) {
       
