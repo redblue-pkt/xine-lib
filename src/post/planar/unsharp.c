@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.9 2003/11/01 18:34:22 miguelfreitas Exp $
+ * $Id: unsharp.c,v 1.10 2003/11/02 12:57:27 miguelfreitas Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -27,11 +27,6 @@
 #include "post.h"
 #include "xineutils.h"
 #include <pthread.h>
-
-#ifndef HAVE_MEMALIGN
-#define memalign(a,b) malloc(b)
-#endif
-
 
 #ifndef MIN
 #define        MIN(a,b) (((a)<(b))?(a):(b))
@@ -308,7 +303,7 @@ static post_plugin_t *unsharp_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_unsharp_t *this = (post_plugin_unsharp_t *)malloc(sizeof(post_plugin_unsharp_t));
+  post_plugin_unsharp_t *this = (post_plugin_unsharp_t *)xine_xmalloc(sizeof(post_plugin_unsharp_t));
   xine_post_in_t            *input = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
   xine_post_in_t            *input_api = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
   post_unsharp_out_t    *output = (post_unsharp_out_t *)malloc(sizeof(post_unsharp_out_t));
@@ -389,6 +384,25 @@ static void unsharp_class_dispose(post_class_t *class_gen)
   free(class_gen);
 }
 
+static void unsharp_free_SC(post_plugin_unsharp_t *this)
+{
+  int i;
+
+  for( i = 0; i < MAX_MATRIX_SIZE-1; i++ ) {
+    if( this->priv.lumaParam.SC[i] ) {
+      free( this->priv.lumaParam.SC[i] );
+      this->priv.lumaParam.SC[i] = NULL;
+    }
+  }
+
+  for( i = 0; i < MAX_MATRIX_SIZE-1; i++ ) {
+    if( this->priv.chromaParam.SC[i] ) {
+      free( this->priv.chromaParam.SC[i] );
+      this->priv.chromaParam.SC[i] = NULL;
+    }
+  }
+}
+
 
 static void unsharp_dispose(post_plugin_t *this_gen)
 {
@@ -398,6 +412,8 @@ static void unsharp_dispose(post_plugin_t *this_gen)
 
   if (this->stream)
     port->close(port, this->stream);
+
+  unsharp_free_SC(this);
 
   free(this->post.xine_post.audio_input);
   free(this->post.xine_post.video_input);
@@ -470,7 +486,6 @@ static void unsharp_close(xine_video_port_t *port_gen, xine_stream_t *stream)
 
 
 
-
 static int unsharp_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)frame->port;
@@ -525,19 +540,19 @@ static int unsharp_draw(vo_frame_t *frame, xine_stream_t *stream)
        this->priv.width = frame->width;
        this->priv.height = frame->height;
 
+       unsharp_free_SC(this);
+
        fp = &this->priv.lumaParam;
-       memset( fp->SC, 0, sizeof( fp->SC ) );
        stepsX = fp->msizeX/2;
        stepsY = fp->msizeY/2;
        for( z=0; z<2*stepsY; z++ )
-         fp->SC[z] = memalign( 16, sizeof(*(fp->SC[z])) * (frame->width+2*stepsX) );
+         fp->SC[z] = malloc( sizeof(*(fp->SC[z])) * (frame->width+2*stepsX) );
      
        fp = &this->priv.chromaParam;
-       memset( fp->SC, 0, sizeof( fp->SC ) );
        stepsX = fp->msizeX/2;
        stepsY = fp->msizeY/2;
        for( z=0; z<2*stepsY; z++ )
-         fp->SC[z] = memalign( 16, sizeof(*(fp->SC[z])) * (frame->width+2*stepsX) );
+         fp->SC[z] = malloc( sizeof(*(fp->SC[z])) * (frame->width+2*stepsX) );
     }
 
     unsharp( out_frame->base[0], yv12_frame->base[0], out_frame->pitches[0], yv12_frame->pitches[0], yv12_frame->width,   yv12_frame->height,   &this->priv.lumaParam );
