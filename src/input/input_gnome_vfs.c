@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.21 2004/06/13 21:28:56 miguelfreitas Exp $
+ * $Id: input_gnome_vfs.c,v 1.22 2004/09/17 19:21:45 valtri Exp $
  */
 
 
@@ -223,7 +223,7 @@ static char
 	return _("gnome-vfs input plugin as shipped with xine");
 }
 
-static char
+static const char
 *gnomevfs_klass_get_identifier (input_class_t *this_gen)
 {
 	return "gnomevfs";

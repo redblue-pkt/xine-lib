@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.3 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_flv.c,v 1.4 2004/09/17 19:21:34 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,7 +99,8 @@ static int open_flv_file(demux_flv_t *this) {
 
   first_offset = BE_32(buffer);
   this->input->seek(this->input, first_offset, SEEK_SET);
-printf ("  qualified FLV file, repositioned @ offset 0x%llX\n", first_offset);
+  lprintf("  qualified FLV file, repositioned @ offset 0x%" PRIXMAX "\n", 
+          (intmax_t)first_offset);
 
   return 1;
 }
@@ -114,7 +115,7 @@ static int demux_flv_send_chunk(demux_plugin_t *this_gen) {
 
   unsigned char buffer[12];
 
-printf ("  sending FLV chunk...\n");
+  lprintf ("  sending FLV chunk...\n");
   this->input->seek(this->input, 4, SEEK_CUR);
   if (this->input->read(this->input, buffer, 12) != 12) {
     this->status = DEMUX_FINISHED;
@@ -131,8 +132,8 @@ printf ("  sending FLV chunk...\n");
   /* Flash timestamps are in milliseconds; multiply by 90 to get xine pts */
   pts *= 90;
 
-printf ("  chunk_type = %X, 0x%X -1 bytes, pts %lld, sub-type = %X\n",
-  chunk_type, remaining_bytes, pts, sub_type);
+  lprintf ("  chunk_type = %X, 0x%X -1 bytes, pts %lld, sub-type = %X\n",
+           chunk_type, remaining_bytes, pts, sub_type);
 
   /* only handle the chunk right now if chunk type is 9 and lower nibble
    * of sub-type is 2 */

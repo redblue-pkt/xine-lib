@@ -121,7 +121,8 @@ static off_t pnm_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-	   "input_pnm: seek %lld bytes, origin %d\n", offset, origin);
+           "input_pnm: seek %" PRIiMAX " bytes, origin %d\n", (intmax_t)offset,
+           origin);
 
   /* only realtive forward-seeking is implemented */
 

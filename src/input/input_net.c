@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.59 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_net.c,v 1.60 2004/09/17 19:21:46 valtri Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -119,8 +119,8 @@ static int host_connect_attempt_ipv4(struct in_addr ia, int port, xine_t *xine) 
 
   s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s==-1) {
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: socket(): %s\n"), strerror(errno));
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: socket(): %s\n"), strerror(errno));
     return -1;
   }
 
@@ -134,8 +134,8 @@ static int host_connect_attempt_ipv4(struct in_addr ia, int port, xine_t *xine) 
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif
   {
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: connect(): %s\n"), strerror(errno));
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: connect(): %s\n"), strerror(errno));
     close(s);
     return -1;
   }	
@@ -149,8 +149,8 @@ static int host_connect_attempt(int family, struct sockaddr* sin, int addrlen, x
   
   s = socket(family, SOCK_STREAM, IPPROTO_TCP);
   if (s==-1) {
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: socket(): %s\n"), strerror(errno));
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: socket(): %s\n"), strerror(errno));
     return -1;
   }
 
@@ -160,8 +160,8 @@ static int host_connect_attempt(int family, struct sockaddr* sin, int addrlen, x
   if (connect(s, sin, addrlen)==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif
   {
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: connect(): %s\n"), strerror(errno));
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: connect(): %s\n"), strerror(errno));
     close(s);
     return -1;
   }	
@@ -178,8 +178,8 @@ static int host_connect_ipv4(const char *host, int port, xine_t *xine) {
 	
   h = gethostbyname(host);
   if (h==NULL) {
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: unable to resolve '%s'.\n"), host);
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: unable to resolve '%s'.\n"), host);
     return -1;
   }
 	
@@ -191,8 +191,8 @@ static int host_connect_ipv4(const char *host, int port, xine_t *xine) {
       return s;
   }
 
-  xine_log (xine, XINE_LOG_MSG,
-	    _("input_net: unable to connect to '%s'.\n"), host);
+  xine_log(xine, XINE_LOG_MSG,
+           _("input_net: unable to connect to '%s'.\n"), host);
   return -1;
 }
 #endif
@@ -221,8 +221,8 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   
   if (error) {
       
-    xine_log (xine, XINE_LOG_MSG,
-	      _("input_net: unable to resolve '%s'.\n"), host);
+    xine_log(xine, XINE_LOG_MSG,
+             _("input_net: unable to resolve '%s'.\n"), host);
     return -1;
   }
   
@@ -238,8 +238,8 @@ static int host_connect(const char *host, int port, xine_t *xine) {
       tmpaddr = tmpaddr->ai_next;
   }
   
-  xine_log (xine, XINE_LOG_MSG,
-	    _("input_net: unable to connect to '%s'.\n"), host);
+  xine_log(xine, XINE_LOG_MSG,
+           _("input_net: unable to connect to '%s'.\n"), host);
   return -1;
 
 #endif
@@ -254,7 +254,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
 
-  lprintf ("reading %d bytes...\n", len);
+  lprintf("reading %d bytes...\n", len);
 
   total=0;
   if (this->curpos < this->preview_size) {
@@ -262,7 +262,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
     if (n > (len - total))
       n = len - total;
 
-    lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
+    lprintf("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
 
     memcpy (&buf[total], &this->preview[this->curpos], n);
     this->curpos += n;
@@ -272,8 +272,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   if( (len-total) > 0 ) {
     n = _x_read_abort (this->stream, this->fh, &buf[total], len-total);
 
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-	     "input_net: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_net: got %" PRIiMAX " bytes (%" PRIiMAX "/%" PRIiMAX " bytes read)\n", (intmax_t)n, (intmax_t)total, (intmax_t)len);
   
     if (n < 0) {
       _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
@@ -349,8 +348,9 @@ static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
       if( this->curpos <= this->preview_size )
         this->curpos = offset;
       else
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-		 "input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "input_net: cannot seek back! (%" PRIiMAX " > %" PRIiMAX ")\n",
+                (intmax_t)this->curpos, (intmax_t)offset);
 
     } else {
       offset -= this->curpos;

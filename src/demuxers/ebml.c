@@ -20,7 +20,7 @@
  * EBML parser
  * a lot of ideas from the gstreamer parser
  *
- * $Id: ebml.c,v 1.1 2004/01/05 00:40:54 tmattern Exp $
+ * $Id: ebml.c,v 1.2 2004/09/17 19:21:45 valtri Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -107,7 +107,8 @@ static int ebml_read_elem_id(ebml_parser_t *ebml, uint32_t *id) {
   if (size > 4) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: invalid EBML ID size (0x%x) at position %llu\n", data[0], pos);
+            "ebml: invalid EBML ID size (0x%x) at position %" PRIiMAX "\n",
+            data[0], (intmax_t)pos);
     return 0;
   }
 
@@ -115,7 +116,7 @@ static int ebml_read_elem_id(ebml_parser_t *ebml, uint32_t *id) {
   if (ebml->input->read(ebml->input, data + 1, size - 1) != (size - 1)) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: read error at position %llu\n", pos);
+            "ebml: read error at position %" PRIiMAX "\n", (intmax_t)pos);
     return 0;
   }
   for(i = 1; i < size; i++) {
@@ -138,7 +139,7 @@ static int ebml_read_elem_len(ebml_parser_t *ebml, uint64_t *len) {
   if (ebml->input->read(ebml->input, data, 1) != 1) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: read error at position %llu\n", pos);
+            "ebml: read error at position %" PRIiMAX "\n", (intmax_t)pos);
     return 0;
   }
   value = data[0];
@@ -151,7 +152,8 @@ static int ebml_read_elem_len(ebml_parser_t *ebml, uint64_t *len) {
   if (size > 8) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: Invalid EBML length size (0x%x) at position %llu\n", data[0], pos);
+            "ebml: Invalid EBML length size (0x%x) at position %" PRIiMAX "\n",
+             data[0], (intmax_t)pos);
     return 0;
   }
 
@@ -168,7 +170,7 @@ static int ebml_read_elem_len(ebml_parser_t *ebml, uint64_t *len) {
   if (ebml->input->read(ebml->input, data + 1, size - 1) != (size - 1)) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: read error at position %llu\n", pos);
+            "ebml: read error at position %" PRIiMAX "\n", (intmax_t)pos);
     return 0;
   }
   for (i = 1; i < size; i++) {
@@ -191,7 +193,7 @@ static int ebml_read_elem_data(ebml_parser_t *ebml, int8_t *buf, int64_t len) {
   if (ebml->input->read(ebml->input, buf, len) != len) {
     off_t pos = ebml->input->get_current_pos(ebml->input);
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: read error at position %llu\n", pos);
+            "ebml: read error at position %" PRIiMAX "\n", (intmax_t)pos);
     return 0;
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.59 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_stdin_fifo.c,v 1.60 2004/09/17 19:21:46 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -158,7 +158,8 @@ static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int orig
         this->curpos = offset;
       else
         xprintf (this->xine, XINE_VERBOSITY_LOG, 
-		 _("stdin: cannot seek back! (%lld > %lld)\n"), this->curpos, offset);
+                 _("stdin: cannot seek back! (%" PRIiMAX " > %" PRIiMAX ")\n"), 
+                 (intmax_t)this->curpos, (intmax_t)offset);
 
     } else {
       offset -= this->curpos;
