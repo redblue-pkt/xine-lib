@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.30 2003/05/26 11:33:01 hadess Exp $
+ * $Id: adpcm.c,v 1.31 2003/06/06 14:29:41 mroi Exp $
  */
 
 #include <stdio.h>
@@ -753,9 +753,9 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     upper_nibble = 1;
     current_channel = 0;
     out_ptr = 0;
-    if (this->buf[j] > 6)
 #ifdef LOG
-    printf("MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
+    if (this->buf[j] > 6)
+      printf("MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
         this->buf[j]);
 #endif
     coeff1[0] = ms_adapt_coeff1[this->buf[j]];
