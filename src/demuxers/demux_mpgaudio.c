@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.100 2003/03/21 14:37:40 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.101 2003/03/26 15:16:55 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -268,7 +268,7 @@ static void chomp (char *str) {
   len = strlen(str);
   i = len - 1;
   
-  while ((str[i] <= 32) && (i >= 0)) {
+  while (((unsigned char)str[i] <= 32) && (i >= 0)) {
     str[i] = 0;
     i--;
   }
