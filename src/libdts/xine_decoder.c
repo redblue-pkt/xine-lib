@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2003/05/24 13:21:24 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.41 2003/05/25 15:23:51 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -282,32 +282,60 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   printf("\n");
 
   getbits_init(&state, &data_in[4]);
+
+  /* B.2 Unpack Frame Header Routine */
+  /* Frame Type V FTYPE 1 bit */
   frame_type = getbits(&state, 1); /* 1: Normal Frame, 2:Termination Frame */
+  /* Deficit Sample Count V SHORT 5 bits */
   deficit_sample_count = getbits(&state, 5);
+  /* CRC Present Flag V CPF 1 bit */
   crc_present_flag = getbits(&state, 1);
+  /* Number of PCM Sample Blocks V NBLKS 7 bits */
   number_of_pcm_blocks = getbits(&state, 7);
+  /* Primary Frame Byte Size V FSIZE 14 bits */
   primary_frame_byte_size = getbits(&state, 14);
+  /* Audio Channel Arrangement ACC AMODE 6 bits */
   audio_channel_arrangement = getbits(&state, 6);
+  /* Core Audio Sampling Frequency ACC SFREQ 4 bits */
   core_audio_sampling_frequency = getbits(&state, 4);
+  /* Transmission Bit Rate ACC RATE 5 bits */
   transmission_bit_rate = getbits(&state, 5);
+  /* Embedded Down Mix Enabled V MIX 1 bit */
   embedded_down_mix_enabled = getbits(&state, 1);
+  /* Embedded Dynamic Range Flag V DYNF 1 bit */
   embedded_dynamic_range_flag = getbits(&state, 1);
+  /* Embedded Time Stamp Flag V TIMEF 1 bit */
   embedded_time_stamp_flag = getbits(&state, 1);
+  /* Auxiliary Data Flag V AUXF 1 bit */
   auxiliary_data_flag = getbits(&state, 1);
+  /* HDCD NV HDCD 1 bits */
   hdcd = getbits(&state, 1);
+  /* Extension Audio Descriptor Flag ACC EXT_AUDIO_ID 3 bits */
   extension_audio_descriptor_flag = getbits(&state, 3);
+  /* Extended Coding Flag ACC EXT_AUDIO 1 bit */
   extended_coding_flag = getbits(&state, 1);
+  /* Audio Sync Word Insertion Flag ACC ASPF 1 bit */
   audio_sync_word_insertion_flag = getbits(&state, 1);
+  /* Low Frequency Effects Flag V LFF 2 bits */
   low_frequency_effects_flag = getbits(&state, 2);
+  /* Predictor History Flag Switch V HFLAG 1 bit */
   predictor_history_flag_switch = getbits(&state, 1);
+  /* Header CRC Check Bytes V HCRC 16 bits */
   if (crc_present_flag == 1) 
     header_crc_check_bytes  = getbits(&state, 16);
+  /* Multirate Interpolator Switch NV FILTS 1 bit */
   multirate_interpolator_switch = getbits(&state, 1);
+  /* Encoder Software Revision ACC/NV VERNUM 4 bits */
   encoder_software_revision = getbits(&state, 4);
+  /* Copy History NV CHIST 2 bits */
   copy_history = getbits(&state, 2);
+  /* Source PCM Resolution ACC/NV PCMR 3 bits */
   source_pcm_resolution = getbits(&state, 3);
+  /* Front Sum/Difference Flag V SUMF 1 bit */
   front_sum_difference_flag = getbits(&state, 1);
+  /* Surrounds Sum/Difference Flag V SUMS 1 bit */
   surrounds_sum_difference_flag = getbits(&state, 1);
+  /* Dialog Normalisation Parameter/Unspecified V DIALNORM/UNSPEC 4 bits */
   switch (encoder_software_revision) {
   case 6:
     dialog_normalisation_unspecified = 0;
@@ -325,28 +353,38 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     break;
   }
 
+  /* B.3 Audio Decoding */
+  /* B.3.1 Primary Audio Coding Header */
 
+  /* Number of Subframes V SUBFS 4 bits */
   number_of_subframes = getbits(&state, 4) + 1 ;
+  /* Number of Primary Audio Channels V PCHS 3 bits */
   number_of_primary_audio_channels = getbits(&state, 3) + 1 ;
+  /* Subband Activity Count V SUBS 5 bits per channel */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     subband_activity_count[ch] = getbits(&state, 5) + 2 ;
   }
+  /* High Frequency VQ Start Subband V VQSUB 5 bits per channel */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     high_frequency_VQ_start_subband[ch] = getbits(&state, 5) + 1 ;
   }
+  /* Joint Intensity Coding Index V JOINX 3 bits per channel */
   for (n=0; ch<number_of_primary_audio_channels; ch++) {
     joint_intensity_coding_index[ch] = getbits(&state, 3) ;
   }
+  /* Transient Mode Code Book V THUFF 2 bits per channel */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     transient_mode_code_book[ch] = getbits(&state, 2) ;
   }
+  /* Scale Factor Code Book V SHUFF 3 bits per channel */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     scales_factor_code_book[ch] = getbits(&state, 3) ;
   }
+  /* Bit Allocation Quantizer Select BHUFF V 3 bits per channel */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     bit_allocation_quantizer_select[ch] = getbits(&state, 3) ;
   }
-
+  /* Quantization Index Codebook Select V SEL variable bits */
   /* ABITS=1: */
   n=0;
   for (ch=0; ch<number_of_primary_audio_channels; ch++)
@@ -363,7 +401,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   for (n=10; n<26; n++)
     for (ch=0; ch<number_of_primary_audio_channels; ch++)
       quantization_index_codebook_select[ch][n] = 0; /* Not transmitted, set to zero. */
-
+  /* Scale Factor Adjustment Index V ADJ 2 bits per occasion */
   /* ABITS = 1: */
   n = 0;
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
@@ -404,6 +442,380 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     audio_header_crc_check_word = getbits(&state, 16);
   }
 
+#if 0
+
+/* FIXME: ALL CODE BELOW HERE does not compile yet. */
+
+/* B.3.2          Unpack Subframes */
+/* B.3.2.1 Primary Audio Coding Side Information */
+
+/* Subsubframe Count V SSC 2 bit */
+  subsubframe_count = getbits(&state, 2) + 1;
+/* Partial Subsubframe Sample Count V PSC 3 bit */
+  partial_subsubframe_sample_count = getbits(&state, 3);
+/* Prediction Mode V PMODE 1 bit per subband */
+  for (ch=0; ch<number_of_primary_audio_channels; ch++)
+    for (n=0; n<subband_activity_count[ch]; n++)
+      prediction_mode[ch][n] = getbits(&state, 1);
+
+/* Prediction Coefficients VQ Address V PVQ 12 bits per occurrence */
+  int32_t nVQIndex;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    for (n=0; n<subband_activity_count[ch]; n++) {
+      if ( prediction_mode[ch][n]>0 ) { /* Transmitted only when ADPCM active */
+        /* Extract the VQindex */
+        nVQIndex = getbits(&state,12);
+        /* Look up the VQ table for prediction coefficients. */
+        /* FIXME: How to implement LookUp? */
+        ADPCMCoeffVQ.LookUp(nVQIndex, PVQ[ch][n]); /*  4 coefficients  FIXME: Need to work out what this does. */
+      }
+    }
+  }
+
+
+  /* Bit Allocation Index V ABITS variable bits */
+  /* FIXME: No getbits here */
+  /* FIXME: What is InverseQ? */
+  int32_t nQSelect;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    /* Bit Allocation Quantizer Select tells which codebook was used */
+    nQSelect = bit_allocation_quantizer_select[ch]; 
+    /* Use this codebook to decode the bit stream for bit_allocation_index[ch][n] */
+    for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) {
+      /* Not for VQ encoded subbands. */
+      /* QABITS.ppQ[nQSelect]->InverseQ(InputFrame, bit_allocation_index[ch][n]); */
+    }
+  }
+
+  /* Transition Mode V TMODE variable bits */
+
+  /* Always assume no transition unless told */
+  int32_t nQSelect;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++){
+    for (n=0; n<subband_activity_count[ch]; n++) {
+      transition_mode[ch][n] = 0;
+    } 
+    /* Decode transition_mode[ch][n] */
+    if ( subsubframe_count>1 ) {
+      /* Transient possible only if more than one subsubframe. */
+      for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+        /* transition_mode[ch][n] is encoded by a codebook indexed by transient_mode_code_book[ch] */
+        nQSelect = transient_mode_code_book[ch];
+        for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) {
+          /* No VQ encoded subbands */
+          if ( bit_allocation_index[ch][n] >0 ) {
+            /* Present only if bits allocated */
+            /* Use codebook nQSelect to decode transition_mode from the bit stream */
+            QTMODE.ppQ[nQSelect]->InverseQ(InputFrame,transition_mode[ch][n]);
+          }
+        }
+      }
+    }
+  }
+
+  /* Scale Factors V SCALES variable bits */
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    /* Clear scale_factors */
+    for (n=0; n<subband_activity_count[ch]; n++) {
+      scale_factors[ch][n][0] = 0;
+      scale_factors[ch][n][1] = 0;
+    }
+    /* scales_factor_code_book indicates which codebook was used to encode scale_factors */
+    nQSelect = scales_factor_code_book[ch];
+    /* Select the root square table (scale_factors were nonlinearly */
+    /* quantized). */
+    if ( nQSelect == 6 ) {
+      pScaleTable = &RMS7Bit; /* 7-bit root square table */
+    } else {
+      pScaleTable = &RMS6Bit; /* 6-bit root square table */
+    }
+    /*
+     * Clear accumulation (if Huffman code was used, the difference
+     * of scale_factors was encoded).
+     */
+    nScaleSum = 0;
+    /*
+     * Extract scale_factors for Subbands up to high_frequency_VQ_start_subband[ch]
+     */
+    for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) {
+      if ( bit_allocation_index[ch][n] >0 ) { /* Not present if no bit allocated */
+        /*
+         * First scale factor
+         */
+        /* Use the (Huffman) code indicated by nQSelect to decode */
+        /* the quantization index of scale_factors from the bit stream */
+        /* FIXME: What is InverseQ ??? */
+        QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
+        /* Take care of difference encoding */
+        if ( nQSelect < 5 ) { /* Huffman encoded, nScale is the difference */
+          nScaleSum += nScale; /* of the quantization indexes of scale_factors. */
+        } else { /* Otherwise, nScale is the quantization */
+          nScaleSum = nScale; /* level of scale_factors. */
+        }
+        /* Look up scale_factors from the root square table */
+        /* FIXME: How to implement LookUp? */
+        pScaleTable->LookUp(nScaleSum, scale_factors[ch][n][0])
+        /*
+         * Two scale factors transmitted if there is a transient
+         */
+        if (transition_mode[ch][n]>0) {
+          /* Use the (Huffman) code indicated by nQSelect to decode */
+          /* the quantization index of scale_factors from the bit stream */
+          QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
+          /* Take care of difference encoding */
+          if ( nQSelect < 5 ) /* Huffman encoded, nScale is the difference */
+            nScaleSum += nScale; /* of the quantization indexes of scale_factors. */
+          else /* Otherwise, nScale is the quantization */
+            nScaleSum = nScale; /* level of scale_factors. */
+          /* Look up scale_factors from the root square table */
+          /* FIXME: How to implement LookUp? */
+          pScaleTable->LookUp(nScaleSum, scale_factors[ch][n][1]);
+        }
+      }
+    }
+    /*
+     * High frequency VQ subbands
+     */
+    for (n=high_frequency_VQ_start_subband[ch]; n<subband_activity_count[ch]; n++) {
+      /* Use the code book indicated by nQSelect to decode */
+      /* the quantization index of scale_factors from the bit stream */
+      QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
+      /* Take care of difference encoding */
+      if ( nQSelect < 5 ) /* Huffman encoded, nScale is the difference */
+        nScaleSum += nScale; /* of the quantization indexes of scale_factors. */
+      else /* Otherwise, nScale is the quantization */
+        nScaleSum = nScale; /* level of scale_factors. */
+      /* Look up scale_factors from the root square table */
+      /* FIXME: How to implement LookUp? */
+      pScaleTable->LookUp(nScaleSum, scale_factors[ch][n][0])
+    }
+  }
+
+
+
+  /* Joint Subband Scale Factor Codebook Select V JOIN SHUFF 3 bits per channel */
+  for (ch=0; ch<number_of_primary_audio_channels; ch++)
+    if (joint_intensity_coding_index[ch]>0 ) /* Transmitted only if joint subband coding enabled. */
+      joint_subband_scale_factor_codebook_select[ch] = getbits(&state,3);
+
+  /* Scale Factors for Joint Subband Coding V JOIN SCALES variable bits */
+  int nSourceCh;
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    if (joint_intensity_coding_index[ch]>0 ) { /* Only if joint subband coding enabled. */
+      nSourceCh = joint_intensity_coding_index[ch]-1; /* Get source channel. joint_intensity_coding_index counts */
+      /* channels as 1,2,3,4,5, so minus 1. */
+      nQSelect = joint_subband_scale_factor_codebook_select[ch]; /* Select code book. */
+      for (n=subband_activity_count[ch]; n<subband_activity_count[nSourceCh]; n++) {
+        /* Use the code book indicated by nQSelect to decode */
+        /* the quantization index of scale_factors_for_joint_subband_coding */
+        QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nJScale);
+        /* Bias by 64 */
+        nJScale = nJScale + 64;
+        /* Look up scale_factors_for_joint_subband_coding from the joint scale table */
+        /* FIXME: How to implement LookUp? */
+        JScaleTbl.LookUp(nJScale, scale_factors_for_joint_subband_coding[ch][n]);
+      }
+    }
+  }
+
+  /* Stereo Down-Mix Coefficients NV DOWN 7 bits per coefficient */
+  if ( (MIX!=0) && (number_of_primary_audio_channels>2) ) {
+    /* Extract down mix indexes */
+    for (ch=0; ch<number_of_primary_audio_channels; ch++) { /* Each primary channel */
+      stereo_down_mix_coefficients[ch][0] = getbits(&state,7);
+      stereo_down_mix_coefficients[ch][1] = getbits(&state,7);
+    }
+  }
+  /* Look up down mix coefficients */
+  for (n=0; n<subband_activity_count; n++) { /* Each active subbands */
+    LeftChannel = 0;
+    RightChannel = 0;
+    for (ch=0; ch<number_of_primary_audio_channels; ch++) { /* Each primary channels */
+      LeftChannel += stereo_down_mix_coefficients[ch][0]*Sample[Ch];
+      RightChannel += stereo_down_mix_coefficients[ch][1]*Sample[Ch];
+    }
+  }
+  /* Down mixing may also be performed on the PCM samples after the filterbank reconstruction. */
+
+  /* Dynamic Range Coefficient NV RANGE 8 bits */
+  if ( embedded_dynamic_range_flag != 0 ) {
+    nIndex = getbits(&state,8);
+    /* FIXME: How to implement LookUp? */
+    RANGEtbl.LookUp(nIndex,dynamic_range_coefficient);
+    /* The following range adjustment is to be performed */
+    /* after QMF reconstruction */
+    for (ch=0; ch<number_of_primary_audio_channels; ch++)
+      for (n=0; n<nNumSamples; n++)
+        AudioCh[ch].ReconstructedSamples[n] *= dynamic_range_coefficient;
+  }
+
+  /* Side Information CRC Check Word V SICRC 16 bits */
+  if ( CPF==1 ) /* Present only if CPF=1. */
+    SICRC = getbits(&state,16);
+
+  /* B.3.3 Primary Audio Data Arrays */
+
+  /* VQ Encoded High Frequency Subbands NV HFREQ 10 bits per applicable subbands */
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    for (n=high_frequency_VQ_start_subband[ch]; n<subband_activity_count[ch]; n++) {
+      /* Extract the VQ address from the bit stream */
+      nVQIndex = getbits(&state,10);
+      /* Look up the VQ code book for 32 subband samples. */
+      /* FIXME: How to implement LookUp? */
+      HFreqVQ.LookUp(nVQIndex, VQ_encoded_high_frequency_subbands[ch][n])
+      /* Scale and take the samples */
+      Scale = (real)scale_factors[ch][n][0]; /* Get the scale factor */
+      for (m=0; m<subsubframe_count*8; m++, nSample++) {
+        aPrmCh[ch].aSubband[n].raSample[m] = rScale*VQ_encoded_high_frequency_subbands[ch][n][m];
+      }
+    }
+  }
+
+  /* Low Frequency Effect Data V LFE 8 bits per sample */
+  if ( low_frequency_effects_flag>0 ) { /* Present only if flagged by low_frequency_effects_flag */
+    /* extract low_frequency_effect_data samples from the bit stream */
+    for (n=0; n<2*low_frequency_effects_flag*subsubframe_count; n++) {
+      low_frequency_effect_data[n] = (signed int)(signed char)getbits(&state,8);
+      /* Use char to get sign extension because it */
+      /* is 8-bit 2's compliment. */
+      /* Extract scale factor index from the bit stream */
+    }
+    LFEscaleIndex = getbits(&state,8);
+    /* Look up the 7-bit root square quantization table */
+    /* FIXME: How to implement LookUp? */
+    pLFE_RMS->LookUp(LFEscaleIndex,nScale);
+    /* Account for the quantizer step size which is 0.035 */
+    rScale = nScale*0.035;
+    /* Get the actual low_frequency_effect_data samples */
+    for (n=0; n<2*low_frequency_effects_flag*subsubframe_count; n++) {
+      LFECh.rLFE[k] = low_frequency_effect_data[n]*rScale;
+    }
+    /* Interpolation low_frequency_effect_data samples */
+    LFECh.InterpolationFIR(low_frequency_effects_flag); /* low_frequency_effects_flag indicates which */
+    /* interpolation filter to use */
+  }
+
+  /* Audio Data V AUDIO variable bits */
+  /*
+   * Select quantization step size table
+   */
+  if ( RATE == 0x1f ) {
+    pStepSizeTable = &StepSizeLossLess; /* Lossless quantization */
+  } else {
+    pStepSizeTable = &StepSizeLossy; /* Lossy */
+  }
+  /*
+   * Unpack the subband samples
+   */
+  for (nSubSubFrame=0; nSubSubFrame<subsubframe_count; nSubSubFrame++) {
+    for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+      for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) { /* Not high frequency VQ subbands */
+      /*
+       * Select the mid-tread linear quantizer
+       */
+      nABITS = bit_allocation_index[ch][n]; /* Select the mid-tread quantizer */
+      pCQGroup = &pCQGroupAUDIO[nABITS-1];/* Select the group of */
+      /* code books corresponding to the */
+      /* the mid-tread linear quantizer. */
+      nNumQ = pCQGroupAUDIO[nABITS-1].nNumQ-1;/* Number of code */
+      /* books in this group */
+      /*
+       * Determine quantization index code book and its type
+       */
+      /* Select quantization index code book */
+      nSEL = SEL[ch][nABITS-1];
+      /* Determine its type */
+      nQType = 1; /* Assume Huffman type by default */
+      if ( nSEL==nNumQ ) { /* Not Huffman type */
+        if ( nABITS<=7 ) {
+          nQType = 3; /* Block code */
+        } else {
+          nQType = 2; /* No further encoding */
+        }
+      }
+      if ( nABITS==0 ) { /* No bits allocated */
+        nQType = 0;
+      }
+      /*
+       * Extract bits from the bit stream
+       */
+      switch ( nQType ) {
+        case 0: /* No bits allocated */
+          for (m=0; m<8; m++)
+            AUDIO[m] = 0;
+          break;
+        case 1: /* Huffman code */
+          for (m=0; m<8; m++)
+            pCQGroup->ppQ[nSEL]->InverseQ(InputFrame,AUDIO[m]);
+          break;
+        case 2: /* No further encoding */
+          for (m=0; m<8; m++) {
+            /* Extract quantization index from the bit stream */
+            pCQGroup->ppQ[nSEL]->InverseQ(InputFrame, nCode)
+            /* Take care of 2's compliment */
+            AUDIO[m] = pCQGroup->ppQ[nSEL]->SignExtension(nCode);
+          }
+          break;
+        case 3: /* Block code */
+          pCBQ = &pCBlockQ[nABITS-1]; /* Select block code book */
+          m = 0;
+          for (nBlock=0; nBlock<2; nBlock++) {
+            /* Extract the block code index from the bit stream */
+            pCQGroup->ppQ[nSEL]->InverseQ(InputFrame, nCode)
+            /* Look up 4 samples from the block code book */
+            /* FIXME: How to implement LookUp? */
+            pCBQ->LookUp(nCode,&AUDIO[m])
+            m += 4;
+          }
+          break;
+        default: /* Undefined */
+          printf("ERROR: Unknown AUDIO quantization index code book.");
+      }
+      /*
+       * Account for quantization step size and scale factor
+       */
+      /* Look up quantization step size */
+      nABITS = bit_allocation_index[ch][n];
+      /* FIXME: How to implement LookUp? */
+      pStepSizeTable->LookUp(nABITS, rStepSize);
+      /* Identify transient location */
+      nTmode = transition_mode[ch][n];
+      if ( nTmode == 0 ) /* No transient */
+        nTmode = subsubframe_count;
+      /* Determine proper scale factor */
+      if (nSubSubFrame<nTmode) /* Pre-transient */
+        rScale = rStepSize * scale_factors[ch][n][0]; /* Use first scale factor */
+      else /* After-transient */
+        rScale = rStepSize * scale_factors[ch][n][1]; /* Use second scale factor */
+      /* Adjustmemt of scale factor */
+      rScale *= arADJ[ch][SEL[ch][nABITS-1]]; /* arADJ[ ][ ] are assumed 1 */
+      /* unless changed by bit */
+      /* stream when SEL indicates */
+      /* Huffman code. */
+      /* Scale the samples */
+      nSample = 8*nSubSubFrame; /* Set sample index */
+      for (m=0; m<8; m++, nSample++)
+        aPrmCh[ch].aSubband[n].aSample[nSample] = rScale*AUDIO[m];
+      /*
+       * Inverse ADPCM
+       */
+      if ( PMODE[ch][n] != 0 ) /* Only when prediction mode is on. */
+        aPrmCh[ch].aSubband[n].InverseADPCM();
+      /*
+       * Check for DSYNC
+       */
+      if ( (nSubSubFrame==(subsubframe_count-1)) || (ASPF==1) ) {
+        DSYNC = getbits(&state,16);
+        if ( DSYNC != 0xffff )
+          printf("DSYNC error at end of subsubframe #%d", nSubSubFrame);
+      }
+    }
+  }
+/* B.3.4 Unpack Optional Information */
+/* TODO ^^^ */
+
+#endif
+/* CODE BELOW here does compile */
 
   printf("getbits status: byte_pos = %d, bit_pos = %d\n", 
           state.byte_position,
