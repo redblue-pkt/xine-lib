@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2002/11/26 03:12:57 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.12 2002/12/04 04:08:42 tmmm Exp $
  *
  */
 
@@ -54,7 +54,6 @@ typedef struct faad_decoder_s {
   int                     faac_failed;
  
   int              mp4_mode;
-  unsigned int    *sample_size_table;
   
   unsigned char   *buf;
   int              size;
@@ -107,6 +106,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
   uint8_t *sample_buffer;
   uint8_t *inbuf;
   audio_buffer_t *audio_buffer;
+  int sample_size = this->size;
     
   if( !this->faac_dec )
     return;
@@ -118,10 +118,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     sample_buffer = faacDecDecode(this->faac_dec, 
                                   &this->faac_finfo, inbuf);
  
-    if( this->mp4_mode && this->sample_size_table  )
-      used = *this->sample_size_table++;
-    else
-      used = this->faac_finfo.bytesconsumed;
+    used = sample_size;
 
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
     
@@ -164,12 +161,10 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     }
   }
 
-  if( this->mp4_mode && this->sample_size_table )
+  if( this->mp4_mode )
     this->size = 0;   
   else if( this->size )
     memmove( this->buf, inbuf, this->size);
-
-  this->sample_size_table = NULL;
 }
 
 static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -210,6 +205,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
   }
 
+#if 0
   /* get sample sizes table. this is needed since sample size 
      might differ from faac_finfo.bytesconsumed */
   if( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
@@ -219,7 +215,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
      this->sample_size_table = (unsigned int *)buf->decoder_info[3];
   }
-
+#endif
 
   /* get audio parameters from file header 
      (may be overwritten by libfaad returned parameters) */  
@@ -247,7 +243,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     if( (int)buf->size <= 0 || this->faac_failed )
       return;
-  
+
     if( !this->size )
       this->pts = buf->pts;
   
@@ -329,7 +325,6 @@ static void faad_dispose (audio_decoder_t *this_gen) {
   this->buf = NULL;
   this->size = 0;
   this->max_audio_src_size = 0;
-  this->sample_size_table = NULL;
   
   if( this->faac_dec )
     faacDecClose(this->faac_dec);
@@ -351,13 +346,13 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.discontinuity       = faad_discontinuity;
   this->audio_decoder.dispose             = faad_dispose;
 
+  this->stream             = stream;
   this->output_open        = 0;
   this->faac_dec           = NULL; 
   this->faac_failed        = 0;
   this->buf                = NULL;
   this->size               = 0;
   this->max_audio_src_size = 0;
-  this->sample_size_table  = NULL;
 
   return &this->audio_decoder;
 }
@@ -398,8 +393,7 @@ static decoder_info_t dec_info_audio = {
 };
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-/* disable plugin catalog entry until the decoder works again */
-/*  { PLUGIN_AUDIO_DECODER, 12, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },*/
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_AUDIO_DECODER, 12, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
