@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.29 2002/05/14 21:32:06 tmattern Exp $
+ * $Id: demux_qt.c,v 1.30 2002/05/16 21:45:10 f1rmb Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -3215,7 +3215,8 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	
 	if (tlen != 1) { 
 	  printf ("demux_qt: QT cmov: read err tlen %llu\n", tlen);
-	  free(cmov_buf);
+	  if(cmov_buf)
+	    free(cmov_buf);
 	  return 0;
 	}
 	
@@ -3286,7 +3287,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	   || (quicktime_position(file) < file->decompressed_buffer_size 
 	       && file->decompressed_buffer!=NULL));
     
-  return 0;
+  return 1;
 }
 
 
@@ -3585,8 +3586,7 @@ static int quicktime_read_info(quicktime_t *file, xine_t *xine) {
 	quicktime_read_mdat(file, &(file->mdat), &leaf_atom, xine);
 	found_mdat = 1;
       } else if(quicktime_atom_is(&leaf_atom, "moov")) {
-	quicktime_read_moov(file, &(file->moov), &leaf_atom, xine);
-	found_moov = 1;
+	found_moov = quicktime_read_moov(file, &(file->moov), &leaf_atom, xine);
       } else {
 	quicktime_atom_skip(file, &leaf_atom);
       }
@@ -4232,19 +4232,19 @@ static void demux_qt_start (demux_plugin_t *this_gen,
       return;
     }
 
-    xine_log (this->xine, XINE_LOG_FORMAT,
-	    _("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"),
-	    quicktime_video_compressor (this->qt,0),
-	    quicktime_frame_rate (this->qt,0),
-	    quicktime_audio_compressor (this->qt,0),
-	    quicktime_sample_rate (this->qt,0),
-	    quicktime_audio_bits (this->qt,0));
-
     if (!demux_qt_detect_compressors (this)) {
       this->status = DEMUX_FINISHED;
       pthread_mutex_unlock( &this->mutex );
       return;
     }
+
+    xine_log (this->xine, XINE_LOG_FORMAT,
+	      _("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"),
+	      quicktime_video_compressor (this->qt,0),
+	      quicktime_frame_rate (this->qt,0),
+	      quicktime_audio_compressor (this->qt,0),
+	      quicktime_sample_rate (this->qt,0),
+	      quicktime_audio_bits (this->qt,0));
 
     /*
      * generate index
