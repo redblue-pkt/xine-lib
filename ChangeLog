@@ -1,6 +1,7 @@
 xine (0.9.5) unstable; urgency=low
 
   * input_http bugfixes, proxy, auth and proxy-auth support
+  * snapshots of YUY2 images should work now
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov  6 11:06:53 CET 2001
 
