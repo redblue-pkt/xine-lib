@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.58 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.59 2001/12/08 00:45:27 guenter Exp $
  *
  */
 
@@ -48,6 +48,7 @@ extern "C" {
 #else
 #include "spu_decoder_api.h"
 #endif
+#include "osd.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
@@ -182,7 +183,7 @@ struct xine_s {
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
   
-  void                      *osd_renderer;
+  osd_renderer_t            *osd_renderer;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;
@@ -563,6 +564,8 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
 #define XINE_ASPECT_RATIO_ANAMORPHIC  3
 #define XINE_ASPECT_RATIO_211_1       4
 #define XINE_ASPECT_RATIO_DONT_TOUCH 42
+
+osd_renderer_t *xine_get_osd_renderer (xine_t *this);
 
 #ifdef __cplusplus
 }

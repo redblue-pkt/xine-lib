@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.84 2001/12/01 15:11:57 miguelfreitas Exp $
+ * $Id: xine.c,v 1.85 2001/12/08 00:45:27 guenter Exp $
  *
  * top-level xine functions
  *
@@ -713,4 +713,9 @@ int xine_is_stream_seekable (xine_t *this) {
   if (this->cur_input_plugin) 
     return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SEEKABLE;
   return 0;
+}
+
+osd_renderer_t *xine_get_osd_renderer (xine_t *this) {
+
+  return this->osd_renderer;
 }
