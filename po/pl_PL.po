@@ -62,7 +62,7 @@ msgstr "b³±d demultiplexera! PMT z b³êdnym kursorem\n"
 #: src/demuxers/demux_ts.c:775
 #, c-format
 msgid ""
-"demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
+"demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
 "demux_ts: b³±d demultipleksera! PMT z b³êdnym CRC32: crc32 pakietu %#.8x "
@@ -171,14 +171,14 @@ msgstr ""
 
 #: src/demuxers/demux_mpeg.c:937
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr "demux_mpeg: proszê podaæ typ strumienia mpeg(mpeg1/mpeg2).\n"
+msgstr "demux_mpeg: proszê podaæ typ strumienia mpeg(mpeg1/mpeg2)\n"
 
 #: src/demuxers/demux_mpeg_block.c:287
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
-"demux_mpeg_block: zbyt wiele b³êdów, zatrzymanie odtwarzania. Mo¿e strumieñ "
+"demux_mpeg_block: zbyt wiele b³êdów, zatrzymanie odtwarzania Mo¿e strumieñ "
 "jest zaszyfrowany?\n"
 
 #: src/demuxers/demux_mpeg_block.c:446
@@ -311,7 +311,7 @@ msgstr "bind(): %s.\n"
 
 #: src/input/input_rtp.c:185
 #, c-format
-msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
+msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s\n"
 msgstr "setsockopt(IP_ADD_MEMBERSHIP) zawiod³o (multicast kernel?): %s.\n"
 
 #: src/input/input_rtp.c:205
@@ -1014,4 +1014,5 @@ msgstr "znaleziono wtyczkê dekodera obrazu : %s\n"
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "znaleziono wtyczkê dekodera d¼wiêku : %s\n"
+
 
