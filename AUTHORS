@@ -344,4 +344,7 @@ Mattias Eriksson <snaggen@acc.umu.se>
 John McCutchan <ttb@tentacle.dhs.org>
   flac demuxer and decoder
 
+Fredrik Noring <noring@nocrew.org>
+  linux fb frontend. fb plugin enhancements.
+
 (let us know if we've forgotten anyone)
