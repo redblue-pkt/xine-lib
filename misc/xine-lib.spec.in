@@ -285,11 +285,10 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
 # lib, logo and fonts.
-@HAVE_IMLIB_TRUE@%{prefix}/bin/xine-logoconv
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/xine_logo.png
-%{prefix}/share/xine/skins/xine_logo.zyuy2
+%{prefix}/share/xine/skins/xine_logo.mpg
 %{prefix}/share/xine/fonts/*
 ## intl files
 %{prefix}/share/locale/fr/LC_MESSAGES/xine-lib.mo
@@ -365,6 +364,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Thu May 2 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- sync with new logo stuff.
 * Wed May 1 2002 Matthias Dahl <matthew2k@web.de>
 - added cinepak, cyuv and msvc decode plugins
 - commented out sdl related parts because this is currently broken in xine-lib

@@ -9,17 +9,6 @@ data_DATA = xine_logo.png xine_logo.mpg
 
 bin_SCRIPTS = xine-config
 
-if HAVE_IMLIB
-logoconv = xine-logoconv
-endif
-
-bin_PROGRAMS = $(logoconv)
-
-CFLAGS = $(IMLIB_CFLAGS)
-xine_logoconv_SOURCES = xine-logoconv.c
-xine_logoconv_LDADD = $(IMLIB_LIBS)
-
-
 debug:
 
 install-debug: install
