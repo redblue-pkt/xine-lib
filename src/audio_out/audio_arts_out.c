@@ -17,11 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.18 2002/12/06 01:00:16 miguelfreitas Exp $
+ * $Id: audio_arts_out.c,v 1.19 2002/12/15 16:38:04 jkeil Exp $
  */
 
-/* required for swab() */
+#ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
+/* required for swab() */	/* XXX: but swab is not used here at all? */
 #define _XOPEN_SOURCE 500
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
