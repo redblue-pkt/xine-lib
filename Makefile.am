@@ -8,11 +8,37 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = doc m4 intl po misc include src
 
-EXTRA_DIST = autogen.sh automake.diff \
-             debian/README.Debian debian/changelog debian/control \
-             debian/copyright debian/dirs debian/docs debian/libxine0.postinst \
-             debian/postrm debian/preinst debian/prerm debian/rules \
-             debian/overrides.libxine debian/shlibdeps.sh @DEPCOMP@
+EXTRA_DIST = autogen.sh \
+	     automake.diff \
+	     ChangeLog \
+	     configure \
+	     config.guess \
+	     config.sub \
+	     COPYING \
+             debian/README.Debian \
+	     debian/changelog \
+	     debian/control \
+	     debian/copyright \
+	     debian/dirs \
+	     debian/docs \
+	     debian/libxine0.postinst \
+             debian/postrm \
+	     debian/preinst \
+	     debian/prerm \
+	     debian/rules \
+             debian/overrides.libxine \
+	     debian/shlibdeps.sh \
+	     INSTALL \
+	     install-sh \
+	     libtool \
+	     ltmain.sh \
+	     missing \
+	     mkinstalldirs \
+	     NEWS \
+	     README \
+	     TODO \
+	     depcomp \
+	     @DEPCOMP@
 
 noinst_HEADERS = config.h
 
