@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.45 2001/12/17 16:20:42 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.46 2001/12/17 22:28:33 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -72,6 +72,8 @@
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
+#define METRONOM_HACK 0
+
 #define MV_COMMAND 0
 #define MV_STATUS  1
 #ifndef MVCOMMAND_SCAN
@@ -87,7 +89,6 @@ typedef struct dxr3_decoder_s {
 	int fd_control;
 	int fd_video;
 	int last_pts;
-	int last_scr;
 	scr_plugin_t *scr;
 	int scr_prio;
 	int width;
@@ -95,6 +96,8 @@ typedef struct dxr3_decoder_s {
 	int aspect;
 	int duration;
 	int enhanced_mode;
+	int have_header_info;
+	int in_buffer_fill;
 } dxr3_decoder_t;
 
 /* Function to check whether the dxr3 video out plugin is active.
@@ -356,74 +359,55 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
    frame width & height, aspect ratio, and framerate, and sends it to the 
    video_out plugin via get_frame 
 */
-#define HEADER_OFFSET 4
+#define HEADER_OFFSET 0
 static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 {
-	/* only carry on if we have a legitimate mpeg header... */
-	if (buffer[1]==0 && buffer[0]==0 && buffer[2]==1 && buffer[3]==0xb3) {
-		int old_h = this->height;
-		int old_w = this->width;
-		int old_a = this->aspect;
+	/* framerate code... needed for metronom */
+	int framecode = buffer[HEADER_OFFSET+3] & 15;
+	
+	/* grab video resolution and aspect ratio from the stream */
+	this->height = (buffer[HEADER_OFFSET+0] << 16) |
+	               (buffer[HEADER_OFFSET+1] <<  8) |
+			    buffer[HEADER_OFFSET+2];
+	this->width  = ((this->height >> 12) + 15) & ~15;
+	this->height = ((this->height & 0xfff) + 15) & ~15;
+	this->aspect = buffer[HEADER_OFFSET+3] >> 4;
 
-		/* framerate code... needed for metronom */
-		int framecode = buffer[HEADER_OFFSET+3] & 15;
-		
-		/* grab video resolution and aspect ratio from the stream */
-		this->height = (buffer[HEADER_OFFSET+0] << 16) |
-		               (buffer[HEADER_OFFSET+1] <<  8) |
-					    buffer[HEADER_OFFSET+2];
-		this->width  = ((this->height >> 12) + 15) & ~15;
-		this->height = ((this->height & 0xfff) + 15) & ~15;
-		this->aspect = buffer[HEADER_OFFSET+3] >> 4;
-
-		switch (framecode){
-		case 1: /* 23.976 */
-			this->duration=3913;
-			break;
-		case 2: /* 24.000 */
-			this->duration=3750;
-			break;
-		case 3: /* 25.000 */
-			this->duration=3600;
-			break;
-		case 4: /* 29.970 */
-			this->duration=3003;
-			break;
-		case 5: /* 30.000 */
-			this->duration=3000;
-			break;
-		case 6: /* 50.000 */
-			this->duration=1800;
-			break;
-		case 7: /* 59.940 */
-			this->duration=1525;
-			break;
-		case 8: /* 60.000 */
-			this->duration=1509;
-			break;
-		default:
-			/* only print this warning once */
-			if (this->duration != 3600) {
-				printf("dxr3: warning: unknown frame rate code %d: using PAL\n", framecode);
-			}
-			this->duration=3600;  /* PAL 25fps */
-			break;
+	switch (framecode){
+	case 1: /* 23.976 */
+		this->duration=3913;
+		break;
+	case 2: /* 24.000 */
+		this->duration=3750;
+		break;
+	case 3: /* 25.000 */
+		this->duration=3600;
+		break;
+	case 4: /* 29.970 */
+		this->duration=3003;
+		break;
+	case 5: /* 30.000 */
+		this->duration=3000;
+		break;
+	case 6: /* 50.000 */
+		this->duration=1800;
+		break;
+	case 7: /* 59.940 */
+		this->duration=1525;
+		break;
+	case 8: /* 60.000 */
+		this->duration=1509;
+		break;
+	default:
+		/* only print this warning once */
+		if (this->duration != 3600) {
+			printf("dxr3: warning: unknown frame rate code %d: using PAL\n", framecode);
 		}
-				
-		/* and ship the data if different ... appeasing any other vo plugins
-		that are active ... */
-		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
-		{
-			vo_frame_t *img;
-			/* call with flags=DXR3_VO_UPDATE_FLAG, so that the 
-			   dxr3 vo driver will update sizes and aspect ratio */
-			img = this->video_out->get_frame(this->video_out,
-				 this->width,this->height,this->aspect,
-				 IMGFMT_YV12, this->duration, 
-				 DXR3_VO_UPDATE_FLAG); 
-			img->free(img);				 
-		}
+		this->duration=3600;  /* PAL 25fps */
+		break;
 	}
+	
+	this->have_header_info = 1;
 }
 
 
@@ -436,6 +420,9 @@ static void dxr3_flush (video_decoder_t *this_gen)
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	printf("dxr3_decoder: flushing\n");
 	dxr3_mvcommand(this->fd_control, 0x11); 
+	this->have_header_info = 0;
+	if (this->fd_video >= 0)
+		fsync(this->fd_video);
 }
 
 
@@ -443,48 +430,24 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-	int vpts;
+	int vpts, i;
         vo_frame_t *img;
-	
-	/* The dxr3 does not need the preview-data */
-	if (buf->decoder_info[0] == 0) {
-		return;
-	}
+	uint8_t *buffer, byte;
+	uint32_t shift;
 
-	/* examine mpeg header, if this buffer's contents has one, and
-	   send an update message to the dxr3 vo driver if needed */
-	parse_mpeg_header(this, buf->content);	
-
-	/* not sure if this is supposed to ever happen, but 
-	   checking is cheap enough... */	
-	if (buf->SCR < this->last_scr) { /* wrapped ? */
-		this->last_scr = buf->SCR; 
-	}
-
-
-	/* Now try to make metronom happy by calling get_frame,draw,free.
-	   There are two conditions when we need to do this:
-	   (1) Normal mpeg decoding; we want to make the calls for each
-	   frame, but the problem is that dxr3_decode_data is called more 
-	   frequently than once per frame (not sure why). We'd have to analyse
-	   the mpeg data to find out whether or not a new frame should be
-	   announced. That defeats the point of hardware mpeg decoding
-	   somewhat, so we'll just look at the clock value; if the time
-	   elapsed since the previous image get_frame/draw/free trio is
-	   more than the frame's duration, we draw. 
-	   (2) Still pictures; A buffer type of BUF_VIDEO_FILL is used 
-	   when still frames are required (after an initial frame is sent 
-	   for display, BUF_VIDEO_FILL grabs and re-displays the last frame) 
-	   the dxr3 doesn't require this functionality (just do nothing and
-	   the last frame will stick), but for interoperability purposes
-	   this plugin must implement it in order to override xine's 
-	   builtin version - so we just pretend to be outputting the same
-	   old frame at the correct frame rate.  
-	*/
 	vpts = 0;
-	if ( buf->SCR >= this->last_scr + this->duration
-		|| buf->type == BUF_VIDEO_FILL ) /* time to draw */
-	{ 
+
+	/* if we're just coming from a BUF_VIDEO_FILL situation,
+	 * do a flush for good riddance. (doesn't help much though) */
+	if (this->in_buffer_fill && buf->type != BUF_VIDEO_FILL)
+		dxr3_flush(this_gen);
+	this->in_buffer_fill = (buf->type == BUF_VIDEO_FILL);
+
+	/* FIXME What are we supposed to do with this? */
+	if (buf->type == BUF_VIDEO_FILL && this->have_header_info) {
+		/* printf("dxr3enc: BUF_VIDEO_FILL\n"); */
+		/* require have_header_info, otherwise width and height
+	 	 * settings may be random */
     		img = this->video_out->get_frame (this->video_out,
                              this->width,
                              this->height,
@@ -492,15 +455,54 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              IMGFMT_YV12,
                              this->duration,
                              DXR3_VO_UPDATE_FLAG);
-		/* copy PTS from buffer to img, img->draw uses it. 
-		   leaving img->SCR alone seems to work best */
-		if (buf->type != BUF_VIDEO_FILL) {
-			img->PTS=buf->PTS;
+		img->PTS=0;
+		img->bad_frame = 0;
+	        img->draw(img);
+		vpts = img->PTS;
+		img->free(img);
+		return;
+	}
+
+	/* count the number of frame codes in this block of data 
+	 * this code borrowed from libmpeg2. 
+	 * Note: this uses the 'naive' approach of constant durations,
+	 * not the real NTSC-like durations that vary dep on repeat first
+	 * field flags and stuff. */
+	buffer = buf->content;
+	shift = 0xffffff00;
+	for (i=0; i<buf->size; i++) {
+		byte = *buffer++;
+		if (shift != 0x00000100) {
+			shift = (shift | byte) << 8;
+			continue;
 		}
-		else {
-			/* force zero, value in buf may be undefined */
-			img->PTS = 0;
+		/* header code of some kind found */
+		/* printf("dxr3: have header %x\n", byte); */
+		shift = 0xffffff00;
+		if (byte == 0xb3) {
+			/* sequence data, also borrowed from libmpeg2 */
+			/* will enable have_header_info */
+			parse_mpeg_header(this, buffer);
+			continue;
 		}
+		if (byte != 0x00) {
+			/* not a new frame */
+			continue;
+		}
+		/* we have a code for a new frame */
+		if (! this->have_header_info) {
+			/* this->width et al may still be undefined */
+			continue;
+		}
+		/* pretend like we have decoded a frame */
+    		img = this->video_out->get_frame (this->video_out,
+                             this->width,
+                             this->height,
+                             this->aspect,
+                             IMGFMT_YV12,
+                             this->duration,
+                             DXR3_VO_UPDATE_FLAG);
+		img->PTS=buf->PTS;
 		img->bad_frame = 0;
 		/* draw calls metronom->got_video_frame with img pts and scr
 		   and stores the return value back in img->PTS
@@ -509,21 +511,13 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	        img->draw(img);
 		vpts = img->PTS; /* copy so we can free img */
 		/* store at what time we called draw last */
-		this->last_scr = buf->SCR;
 		img->free(img);
 	}
 
-	/* Every once in a while a buffer has a PTS value associated with it.  
-	   From my testing, once around every 12-13 frames, the 
-	   buf->PTS is non-zero, which is around every .5 seconds or so...
-	   If vpts is non-zero, we already called img->draw which in 
-	   turn has called got_video_frame, so we have vpts already */
-	if (buf->PTS && vpts == 0) {
-		/* receive an updated pts value from metronom... */
-		vpts = this->video_decoder.metronom->got_video_frame(
-		 this->video_decoder.metronom, buf->PTS, buf->SCR );
-	}
-	/* ensure video device is open */
+
+	/* ensure video device is open 
+	 * (we open it late because on occasion the dxr3 video out driver
+	 * wants to open it) */
 	if (this->fd_video < 0) {	
 		char tmpstr[128];
 		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
@@ -534,10 +528,9 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		}
 	}
 
-	/* Now that we have a PTS value from the stream, not a metronom
-	   interpolated one, it's a good time to make sure the dxr3 pts
-           is in sync. Checking every 0.5 seconds should be enough... */
-	if (buf->PTS && this->last_pts < vpts)
+	/* From time to time, update the pts value 
+	 * FIXME: the exact conditions here are a bit uncertain... */
+	if (buf->PTS && vpts && this->last_pts < vpts)
 	{
 		this->last_pts = vpts;
 		/* update the dxr3's current pts value */	
@@ -547,13 +540,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 				 strerror(errno));
 		}
 	}
-
-	/* for stills we're done now */
-	if(buf->type == BUF_VIDEO_FILL) {
-		return;
-	}
-
-
 	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
@@ -584,6 +570,7 @@ static void dxr3_close (video_decoder_t *this_gen)
 	this->fd_video = -1;
 
 	this->video_out->close(this->video_out);
+	this->have_header_info = 0;
 }
 
 static char *dxr3_get_id(void) {
@@ -626,6 +613,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 
 	if(this->enhanced_mode)
 	  printf("Dxr3: Using Mode 6 for playback\n");
+	this->have_header_info = 0;
+	this->in_buffer_fill = 0;
 	return (video_decoder_t *) this;
 }
 
