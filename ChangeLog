@@ -39,6 +39,7 @@ xine-lib (1-rc4)
   * fix a crash when using the gnome-vfs plugin with newer gnome-vfs versions
   * new "file" (wave) audio out plugin
     example: XINE_WAVE_OUTPUT=/tmp/file.wav xine -A file music.mp3
+  * autoscan devices /dev/dsp* and /dev/sound/dsp* in OSS audio plugin
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

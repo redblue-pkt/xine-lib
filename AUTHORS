@@ -448,6 +448,7 @@ Drew 'dantealiegri' Ogle <dantealiegri@umbc.edu>
 Stephen Birch <sgbirch@imsmail.org>
   RTP/UDP plugin fixes
   Debian woody backport
+  autoprobe devfs in OSS audio output plugin
 
 Tilmann Bitterberg <transcode@tibit.org>
   OpenDML (AVI2.0) support

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.100 2004/01/01 15:55:24 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.101 2004/03/04 16:06:03 valtri Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -108,16 +108,10 @@
 #define OSS_SYNC_SOFTSYNC     3
 #define OSS_SYNC_PROBEBUFFER  4
 
-#ifdef CONFIG_DEVFS_FS
-#define DSP_TEMPLATE "/dev/sound/dsp%d"
-#else
-#define DSP_TEMPLATE "/dev/dsp%d"
-#endif
-
 typedef struct oss_driver_s {
 
   ao_driver_t      ao_driver;
-  char             audio_dev[20];
+  char             audio_dev[30];
   int              audio_fd;
   int              capabilities;
   int              mode;
@@ -678,23 +672,58 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
+/* Probe /dev/dsp,       /dev/dsp1,       /dev/dsp2 ...
+ *       /dev/sound/dsp, /dev/sound/dsp1, /dev/sound/dsp2, ...
+ * If one is found, the name of the winner is placed in this->audio_dev
+ * and the function returns the audio rate.
+ * If not, the function returns 0.
+ */
+static int probe_audio_devices(oss_driver_t *this) {
+  const char *base_names[2] = {"/dev/dsp", "/dev/sound/dsp"};
+  int base_num, i;
+  int audio_fd, rate;
+  int best_rate;
+  char devname[30];
+
+  strcpy(this->audio_dev, "auto");
+
+  best_rate = 0;
+  for(base_num = 0; base_num < 2; ++base_num) {
+    for(i = -1; i < 16; i++) {
+      if (i == -1) strcpy(devname, base_names[base_num]);
+      else sprintf(devname, "%s%d", base_names[base_num], i);
+
+      /* Test the device */
+      audio_fd = open(devname, O_WRONLY|O_NONBLOCK);
+      if (audio_fd >= 0) {
+
+	/* test bitrate capability */
+	rate = 48000;
+	ioctl(audio_fd, SNDCTL_DSP_SPEED, &rate);
+	if (rate > best_rate) {
+	  strcpy(this->audio_dev, devname); /* Better, keep this one */
+	  best_rate = rate;
+	}
+	
+	close (audio_fd);
+      }
+    }
+  }
+  return best_rate; /* Will be zero if we did not find one */
+}  
+  
+
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   oss_class_t     *class = (oss_class_t *) class_gen;
   config_values_t *config = class->config;
   oss_driver_t    *this;
   int              caps;
-#ifdef CONFIG_DEVFS_FS
-  char             devname[] = "/dev/sound/dsp\0\0\0";
-#else
-  char             devname[] = "/dev/dsp\0\0\0";
-#endif
-  int              best_rate;
-  int              rate ;
-  int              devnum;
   int              audio_fd;
   int              num_channels, status, arg;
   static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", "probebuffer", NULL};
+  static char     *devname_opts[] = {"auto", "/dev/dsp", "/dev/sound/dsp", NULL};
+  int devname_val, devname_num;
   
   this = (oss_driver_t *) xine_xmalloc (sizeof (oss_driver_t));
 
@@ -704,42 +733,37 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: Opening audio device...\n");
 
-  best_rate = 0;
-  devnum = config->register_num (config, "audio.oss_device_num", -1,
-				 _("/dev/dsp# device to use for oss output, -1 => auto_detect"),
-				 NULL, 10, NULL, NULL);
-
-  if (devnum >= 0) {
-    sprintf (this->audio_dev, DSP_TEMPLATE, devnum);
-    devnum = 30; /* skip while loop */
-  } else {
-    devnum = 0;
-    sprintf (this->audio_dev, "/dev/dsp");
+  /* devname_val is offset used to select auto, /dev/dsp, or /dev/sound/dsp */
+  devname_val = config->register_enum (config, "audio.oss_device_name", 0,
+				       devname_opts,
+				       _("OSS audio device name"),
+				       _("Specify base part of the audio device name "
+					 "then use oss_device_number to set the device number. "
+					 "Select auto if you want to probe for the device."),
+					10, NULL, NULL);
+  /* devname_num is the N in '/dev[/sound]/dsp[N]'. Set to -1 for nothing */
+  devname_num = config->register_num(config, "audio.oss_device_number", -1,
+				     _("OSS number N to append to audio device name /dev/dsp[N], -1 for none"),
+				     _("The audio device name is created by concatenating the "
+				       "oss_device_name and the audio device number (eg /dev/sound/dsp2). "
+				       "If you do not need a "
+				       "number, set to -1 (eg /dev/sound/dsp. "
+				       "The range of this variable is -1 or 0-15."),
+				     10, NULL, NULL);
+  if (devname_val == 0) {
+    xprintf(class->xine, XINE_VERBOSITY_LOG,
+	    _("audio_oss_out: audio.oss_device_name = auto, probing devs\n"));
+    if ( ! probe_audio_devices(this)) {  /* Returns zero on fail */
+      xprintf(class->xine, XINE_VERBOSITY_LOG, 
+	      _("audio_oss_out: Auto probe for audio device failed\n"));
+    free (this);
+    return NULL;
+    }
   }
-
-  while (devnum<16) {
-
-    audio_fd=open(devname,O_WRONLY|O_NONBLOCK);
-
-    if (audio_fd>0) {
-
-      /* test bitrate capability */
-      
-      rate = 48000;
-      ioctl(audio_fd,SNDCTL_DSP_SPEED, &rate);
-      if (rate>best_rate) {
-	strncpy (this->audio_dev, devname, 19);
-	best_rate = rate;
-      }
-      
-      close (audio_fd);
-    } /*else
-      printf("audio_oss_out: opening audio device %s failed:\n%s\n",
-	     this->audio_dev, strerror(errno));
-	     */
-
-    sprintf(devname, DSP_TEMPLATE, devnum);
-    devnum++;
+  else {
+    /* Create the device name /dev[/sound]/dsp[0-15] */
+    if (devname_num < 0) strcpy(this->audio_dev, devname_opts[devname_val]);
+    else sprintf(this->audio_dev, "%s%d", devname_opts[devname_val], devname_num);
   }
 
   /*
@@ -749,7 +773,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   xprintf(class->xine, XINE_VERBOSITY_LOG,
 	  _("audio_oss_out: using device >%s<\n"), this->audio_dev);
 
-  audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
+  audio_fd = open(this->audio_dev, O_WRONLY|O_NONBLOCK);
 
   if (audio_fd < 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG, 
@@ -932,7 +956,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
    */
 
   this->mixer.name = config->register_string(config, "audio.mixer_name", "/dev/mixer",
-					     _("oss mixer device"), NULL, 
+					     _("OSS mixer device"), NULL, 
 					     10, NULL, NULL);
   {
     int mixer_fd;
