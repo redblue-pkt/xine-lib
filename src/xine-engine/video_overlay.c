@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.12 2002/01/06 19:48:18 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.13 2002/01/07 16:57:48 jcdutton Exp $
  *
  */
 
@@ -511,6 +511,8 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
             overlay->color[1] = event_overlay->color[1];
             overlay->color[2] = event_overlay->color[2];
             overlay->color[3] = event_overlay->color[3];
+            
+            overlay->rgb_clut = event_overlay->rgb_clut;
           }
           if((event_overlay->trans[0] +
               event_overlay->trans[1] +
