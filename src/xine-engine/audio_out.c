@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.86 2002/12/01 01:32:47 guenter Exp $
+ * $Id: audio_out.c,v 1.87 2002/12/06 01:13:17 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -577,7 +577,7 @@ static void *ao_loop (void *this_gen) {
      * hardware audio buffer at the moment?
      */
 
-    cur_time = this->clock->get_current_time (this->clock);
+    cur_time = this->clock->get_current_time (this->clock);  
     hw_vpts = cur_time;
   
 #ifdef LOG
@@ -596,7 +596,7 @@ static void *ao_loop (void *this_gen) {
     gap = in_buf->vpts - hw_vpts;
 #ifdef LOG
     printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
-	    hw_vpts, buf->vpts, gap);
+	    hw_vpts, in_buf->vpts, gap);
 #endif
 
     /*
@@ -611,12 +611,12 @@ static void *ao_loop (void *this_gen) {
       printf ("audio_out:loop: next fifo\n");
 #endif
       fifo_append (this->free_fifo, in_buf);
-      in_buf = NULL;
 
 #ifdef LOG
       printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
-	      buf->vpts, gap);
+	      in_buf->vpts, gap);
 #endif
+      in_buf = NULL;
 
       
       /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.90 2002/11/29 17:25:26 mroi Exp $
+ * $Id: audio_decoder.c,v 1.91 2002/12/06 01:13:15 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -102,8 +102,10 @@ void *audio_decoder_loop (void *stream_gen) {
 
       stream->finished_count_audio++;
 
+#ifdef LOG
       printf ("audio_decoder: reached end marker # %d\n", 
 	      stream->finished_count_audio);
+#endif
 
       pthread_cond_broadcast (&stream->counter_changed);
 
