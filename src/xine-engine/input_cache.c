@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.4 2004/11/16 21:16:43 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.5 2004/12/13 18:19:48 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -210,7 +210,10 @@ static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origi
     this->main_seek_call++;
   } else {
     cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);
-    cur_pos -= (this->buf_len - this->buf_pos);
+    if( cur_pos >= (this->buf_len - this->buf_pos) )
+      cur_pos -= (this->buf_len - this->buf_pos);
+    else
+      cur_pos = 0;
 
     switch (origin) {
     case SEEK_CUR:
@@ -254,8 +257,12 @@ static off_t cache_plugin_get_current_pos(input_plugin_t *this_gen) {
   off_t cur_pos;
   
   cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);
-  if( this->buf_len )
-    cur_pos -= (this->buf_len - this->buf_pos);
+  if( this->buf_len ) {
+    if( cur_pos >= (this->buf_len - this->buf_pos) )
+      cur_pos -= (this->buf_len - this->buf_pos);
+    else
+      cur_pos = 0;
+  }
 
   return cur_pos;
 }
