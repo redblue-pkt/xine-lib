@@ -117,7 +117,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
   default:
        /* printf ("invalid/unknown frame rate code : %d \n",
                frame->frame_rate_code); */
-    frame->duration      = 3000;
+    frame->duration      = 0;
   }
   
   /* this should be used to detect any special rff pattern */
