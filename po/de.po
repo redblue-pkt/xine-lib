@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "POT-Creation-Date: 2003-01-29 12:09+0100\n"
-"PO-Revision-Date: 2003-01-07 11:47+0100\n"
+"PO-Revision-Date: 2003-02-18 09:04+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -638,9 +638,9 @@ msgstr ""
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:395
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
-msgstr "load_plugins: Unbekannter Plugintyp %d in %s\n"
+msgstr "load_plugins: Überspringe unlesbares Pluginverzeichnis %s.\n"
 
 #: src/xine-engine/load_plugins.c:413
 #, c-format
