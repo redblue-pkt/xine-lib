@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.3 2002/12/15 16:54:10 holstsn Exp $
+ * $Id: rtsp_session.c,v 1.4 2002/12/16 21:50:55 holstsn Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -97,6 +97,12 @@ connect:
 	rtsp_close(rtsp_session->s);
 	free(server);
 	goto connect; /* *shudder* i made a design mistake somewhere */
+      } else
+      {
+        printf("rtsp_session: session can not be established.\n");
+        rtsp_close(rtsp_session->s);
+        free(rtsp_session);
+        return NULL;
       }
     }
 	

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.2 2002/12/14 00:02:31 holstsn Exp $
+ * $Id: real.c,v 1.3 2002/12/16 21:50:54 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -895,7 +895,15 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   rtsp_schedule_field(rtsp_session, "Require: com.real.retain-entity-for-setup");
   status=rtsp_request_describe(rtsp_session,NULL);
 
-  if (status != 200) return NULL;
+  if ( status<200 || status>299 )
+  {
+    char *alert=rtsp_search_answers(rtsp_session,"Alert");
+    if (alert) {
+      printf("real: got message from server:\n%s\n", alert);
+    }
+    rtsp_send_ok(rtsp_session);
+    return NULL;
+  }
 
   /* receive description */
   size=0;

@@ -236,6 +236,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   if (!rtsp) {
     free (mrl);
+#ifdef LOG
+    printf ("input_rtsp: returning null.\n");
+#endif
     return NULL;
   }
 

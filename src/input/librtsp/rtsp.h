@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.h,v 1.1 2002/12/12 22:14:56 holstsn Exp $
+ * $Id: rtsp.h,v 1.2 2002/12/16 21:50:55 holstsn Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -35,6 +35,11 @@
 #define uint8_t unsigned char
 #endif
 
+/* some codes returned by rtsp_request_* functions */
+
+#define RTSP_STATUS_SET_PARAMETER  10
+#define RTSP_STATUS_OK            200
+
 typedef struct rtsp_s rtsp_t;
 
 rtsp_t*  rtsp_connect (const char *mrl, const char *user_agent);
@@ -45,6 +50,8 @@ int rtsp_request_setup(rtsp_t *s, const char *what);
 int rtsp_request_setparameter(rtsp_t *s, const char *what);
 int rtsp_request_play(rtsp_t *s, const char *what);
 int rtsp_request_tearoff(rtsp_t *s, const char *what);
+
+int rtsp_send_ok(rtsp_t *s);
 
 int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size);
 

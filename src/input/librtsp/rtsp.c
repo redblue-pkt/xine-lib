@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.2 2002/12/14 00:02:31 holstsn Exp $
+ * $Id: rtsp.c,v 1.3 2002/12/16 21:50:55 holstsn Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -301,11 +301,17 @@ static void rtsp_put(rtsp_t *s, const char *string) {
 static int rtsp_get_code(const char *string) {
 
   char buf[4];
-  int code;
-
-  memcpy(buf, string+strlen(rtsp_protocol_version)+1, 3);
-  buf[3]=0;
-  code=atoi(buf);
+  int code=0;
+ 
+  if (!strncmp(string, rtsp_protocol_version, strlen(rtsp_protocol_version)))
+  {
+    memcpy(buf, string+strlen(rtsp_protocol_version)+1, 3);
+    buf[3]=0;
+    code=atoi(buf);
+  } else if (!strncmp(string, "SET_PARAMETER",8))
+  {
+    return RTSP_STATUS_SET_PARAMETER;
+  }
 
   if(code != 200) printf("librtsp: server responds: '%s'\n",string);
 
@@ -367,8 +373,12 @@ static int rtsp_get_answers(rtsp_t *s) {
     if (!strncmp(answer,"Cseq:",5)) {
       sscanf(answer,"Cseq: %u",&answer_seq);
       if (s->cseq != answer_seq) {
+#ifdef LOG
         printf("librtsp: warning: Cseq mismatch. got %u, assumed %u", answer_seq, s->cseq);
-      }
+#endif
+        s->cseq=answer_seq;
+      } else
+        s->cseq++;
     }
     if (!strncmp(answer,"Server:",7)) {
       sscanf(answer,"Server: %s",s->buffer);
@@ -397,10 +407,23 @@ static int rtsp_get_answers(rtsp_t *s) {
   } while (strlen(answer)!=0);
   
   *answer_ptr=NULL;
-  s->cseq++;
   rtsp_schedule_standard(s);
     
   return code;
+}
+
+/*
+ * send an ok message
+ */
+
+int rtsp_send_ok(rtsp_t *s) {
+  char cseq[16];
+  
+  rtsp_put(s, "RTSP/1.0 200 OK");
+  sprintf(cseq,"CSeq: %u", s->cseq);
+  rtsp_put(s, cseq);
+  rtsp_put(s, "");
+
 }
 
 /*
@@ -568,6 +591,7 @@ rtsp_t *rtsp_connect(const char *mrl, const char *user_agent) {
   s->host=NULL;
   s->port=554; /* rtsp standard port */
   s->path=NULL;
+  s->mrl=NULL;
   s->mrl=strdup(mrl);
   
   s->server=NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.3 2002/12/15 01:34:56 holstsn Exp $
+ * $Id: pnm.c,v 1.4 2002/12/16 21:50:54 holstsn Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -176,6 +176,8 @@ unsigned char after_chunks[]={
     0x50, 0x84, /* seems to be fixated */
     0x1f, 0x3a  /* varies on each request (checksum ?)*/
     };
+
+static void hexdump (char *buf, int length);
 
 /*
  * network utilities
@@ -346,7 +348,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
   switch (*chunk_type) {
     case PNA_TAG:
       ptr=&data[PREAMBLE_SIZE];
-      rm_read (p->s, ptr, 0x0b - PREAMBLE_SIZE);
+      rm_read (p->s, ptr, 0x0c - PREAMBLE_SIZE);
       ptr+=0x0b-PREAMBLE_SIZE;
       if (data[PREAMBLE_SIZE+0x01] == 'X') /* checking for server message */
       {
@@ -355,16 +357,16 @@ static unsigned int pnm_get_chunk(pnm_t *p,
         rm_read (p->s, &data[PREAMBLE_SIZE+0x04], n);
         data[PREAMBLE_SIZE+0x04+n]=0;
         printf("%s\n",&data[PREAMBLE_SIZE+0x04]);
-        exit(0);
+        return -1;
       }
       if (data[PREAMBLE_SIZE+0x01] == 'F')
       {
         printf("input_pnm: server error.\n");
-        exit(0);
+        return -1;
       }
 
       /* expecting following chunk format: 0x4f <chunk size> <data...> */
-      rm_read (p->s, ptr, 2);
+      rm_read (p->s, ptr+1, 1);
       while (*ptr == 0x4f) {
         ptr++;
         n=(*ptr);
@@ -384,7 +386,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
         printf("error: max chunk size exeeded (max was 0x%04x)\n", max);
         n=rm_read (p->s, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
         hexdump(data,n+PREAMBLE_SIZE);
-        exit(0);
+        return -1;
       }
       rm_read (p->s, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
       break;
@@ -494,9 +496,11 @@ static void pnm_send_response(pnm_t *p, const char *response) {
  * get headers and challenge and fix headers
  * write headers to p->header
  * write challenge to p->buffer
+ *
+ * return 0 on error.  != 0 on success
  */
 
-static void pnm_get_headers(pnm_t *p) {
+static int pnm_get_headers(pnm_t *p) {
 
   uint32_t chunk_type;
   uint8_t  *ptr=p->header;
@@ -508,9 +512,10 @@ static void pnm_get_headers(pnm_t *p) {
     if (HEADER_SIZE-size<=0)
     {
       printf("input_pnm: header buffer overflow. exiting\n");
-      exit(1);
+      return 0;
     }
     chunk_size=pnm_get_chunk(p,HEADER_SIZE-size,&chunk_type,ptr);
+    if (chunk_size < 0) return 0;
     if (chunk_type == 0) break;
     if (chunk_type == PNA_TAG)
     {
@@ -658,15 +663,15 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   {
     int size=BE_16(&p->buffer[1]);
 
-    rm_read (p->s, &p->buffer[8], size-8);
-    p->buffer[size+8]=0;
-    printf("input_pnm: got message from server:\n%s\n", &p->buffer[3]);
-    exit(0);
+    rm_read (p->s, &p->buffer[8], size-5);
+    p->buffer[size+3]=0;
+    printf("input_pnm: got message from server while reading stream:\n%s\n", &p->buffer[3]);
+    return 0;
   }
   if (p->buffer[0] == 'F')
   {
     printf("input_pnm: server error.\n");
-    exit(0);
+    return 0;
   }
 
   /* skip bytewise to next chunk.
@@ -803,7 +808,14 @@ pnm_t *pnm_connect(const char *mrl) {
   p->s=fd;
 
   pnm_send_request(p,pnm_available_bandwidths[10]);
-  pnm_get_headers(p);
+  if (!pnm_get_headers(p)) {
+    printf ("input_pnm: failed to set up stream\n");
+    free(p->path);
+    free(p->host);
+    free(p->url);
+    free(p);
+    return NULL;
+  }
   pnm_send_response(p, pnm_response);
   p->ts_last[0]=0;
   p->ts_last[1]=0;
