@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.64 2002/11/14 12:45:33 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.65 2002/11/15 00:20:31 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -501,7 +501,7 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
 
       m->content   = p+1;
       m->size      = packet_len-1;
-      m->type      = BUF_SPU_PACKAGE + spu_id;
+      m->type      = BUF_SPU_DVD + spu_id;
       return 1;
     } else if ((p[0] & 0xF0) == 0x80) {
 
@@ -590,6 +590,11 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->content = m->buf->mem;
       m->buf->size = m->buffered_bytes;
       m->buf->type = m->type;
+      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVD ) {
+        m->buf->decoder_flags |= BUF_FLAG_SPECIAL;
+        m->buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+        m->buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
+      }
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
       m->buf->input_pos = this->input->get_current_pos(this->input);

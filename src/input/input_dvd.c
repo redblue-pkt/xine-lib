@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.113 2002/11/03 23:03:31 siggi Exp $
+ * $Id: input_dvd.c,v 1.114 2002/11/15 00:20:32 miguelfreitas Exp $
  *
  */
 
@@ -617,7 +617,10 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
      case DVDNAV_SPU_CLUT_CHANGE:
        {
 	buf->content = block;
-	buf->type = BUF_SPU_CLUT;
+	buf->type = BUF_SPU_DVD;
+	buf->decoder_flags |= BUF_FLAG_SPECIAL;
+	buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+	buf->decoder_info[2] = SPU_DVD_SUBTYPE_CLUT;
 	finished = 1;
        }
       break;
@@ -1676,6 +1679,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.114  2002/11/15 00:20:32  miguelfreitas
+ * cleaning up spu types. now avi subtitles may be enabled again.
+ * (+ missed ffmpeg/dv patch)
+ *
  * Revision 1.113  2002/11/03 23:03:31  siggi
  * some more release-related fixes...
  *

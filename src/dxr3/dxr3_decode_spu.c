@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.24 2002/10/26 20:52:08 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.25 2002/11/15 00:20:31 miguelfreitas Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -57,7 +57,7 @@ static void   *dxr3_spudec_init_plugin(xine_t *xine, void *);
 
 
 /* plugin catalog information */
-static uint32_t supported_types[] = { BUF_SPU_PACKAGE, BUF_SPU_CLUT, BUF_SPU_NAV, BUF_SPU_SUBP_CONTROL, 0 };
+static uint32_t supported_types[] = { BUF_SPU_DVD, 0 };
 
 static decoder_info_t dxr3_spudec_info = {
   supported_types,     /* supported types */
@@ -259,7 +259,12 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   
   dxr3_spudec_handle_event(this);
   
-  if (buf->type == BUF_SPU_CLUT) {
+  if ( (buf->type & 0xffff0000) != BUF_SPU_DVD ||
+       !(buf->decoder_flags & BUF_FLAG_SPECIAL) || 
+       buf->decoder_info[1] != BUF_SPECIAL_SPU_DVD_SUBTYPE )
+    return;
+
+  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT ) {
 #if LOG_SPU
     printf("dxr3_decode_spu: BUF_SPU_CLUT\n");
 #endif
@@ -274,7 +279,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     return;
   }
-  if(buf->type == BUF_SPU_SUBP_CONTROL) {
+  if( buf->decoder_info[2] == SPU_DVD_SUBTYPE_SUBP_CONTROL ) {
     /* FIXME: is BUF_SPU_SUBP_CONTROL used anymore? */
     int i;
     uint32_t *subp_control = (uint32_t *)buf->content;
@@ -283,7 +288,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       this->spu_stream_state[i].stream_filter = subp_control[i];
     return;
   }
-  if(buf->type == BUF_SPU_NAV) {
+  if( buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV ) {
     uint8_t *p = buf->content;
     
 #if LOG_BTN

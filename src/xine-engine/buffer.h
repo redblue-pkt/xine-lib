@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.77 2002/11/09 23:22:33 guenter Exp $
+ * $Id: buffer.h,v 1.78 2002/11/15 00:20:34 miguelfreitas Exp $
  *
  *
  * contents:
@@ -172,12 +172,9 @@ extern "C" {
 /* spu buffer types:    */
  
 #define BUF_SPU_BASE		0x04000000
-#define BUF_SPU_CLUT		0x04000000
-#define BUF_SPU_PACKAGE		0x04010000
-#define BUF_SPU_SUBP_CONTROL	0x04020000
-#define BUF_SPU_NAV		0x04030000
-#define BUF_SPU_TEXT            0x04040000
-#define BUF_SPU_CC              0x04050000
+#define BUF_SPU_DVD		0x04000000
+#define BUF_SPU_TEXT            0x04010000
+#define BUF_SPU_CC              0x04020000
 
 /* demuxer block types: */
 
@@ -305,6 +302,19 @@ struct buf_element_s {
  * from the VQA demuxer to the VQA video decoder.
  */
 #define BUF_SPECIAL_VQA_VECTOR_SIZE 7
+
+/*
+ * In a BUF_SPECIAL_SPU_DVD_SUBTYPE:
+ * decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE
+ * decoder_info[2] = subtype
+ * decoder_info[3] = 
+ * This buffer is pass SPU subtypes from DVDs
+ */
+#define BUF_SPECIAL_SPU_DVD_SUBTYPE 8
+#define SPU_DVD_SUBTYPE_CLUT		1
+#define SPU_DVD_SUBTYPE_PACKAGE		2
+#define SPU_DVD_SUBTYPE_SUBP_CONTROL	3
+#define SPU_DVD_SUBTYPE_NAV		4
 
 
 typedef struct palette_entry_s palette_entry_t;

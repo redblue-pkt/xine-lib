@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.109 2002/11/12 18:40:55 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.110 2002/11/15 00:20:34 miguelfreitas Exp $
  *
  */
 
@@ -50,11 +50,6 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
     stream->spu_decoder_streamtype = streamtype;
     stream->spu_decoder_plugin = get_spu_decoder (stream, streamtype);
 
-    /* obsolete?
-    if (this->spu_decoder_plugin )
-      this->spu_decoder_plugin->init (this->spu_decoder_plugin,
-                                        this->video_out);
-    */                                       
   }
   return ;
 }
@@ -116,35 +111,6 @@ void *video_decoder_loop (void *stream_gen) {
       
       stream->metronom->handle_video_discontinuity (stream->metronom, 
 						    DISC_STREAMSTART, 0);
-      break;
-
-/* case BUF_SPU_TEXT is not handled yet.
- * There is a need to multiply plugins to be loaded at once.
- * E.g. The DVD SPU decoder and the DVD NAV decoder need
- *      to be open at the same time for the entire DVD.
- * BUF_SPU_TEXT can also happen at the same time as playing a DVD,
- * so two or more subtitle plugins need to be able to co-exist at the same time.
- * Currently, if we see a BUF_SPU_NAV and then a BUF_SPU_PACKAGE,
- * we call dispose for changing to NAV to PACKAGE. This causes
- * libspudec to looses NAV state, and thus no menus appear.
- * As a work around, once libspudec is opened, we will never close it.
- * 
- */
-    case BUF_SPU_SUBP_CONTROL:
-    case BUF_SPU_CLUT:
-    case BUF_SPU_PACKAGE:
-    case BUF_SPU_NAV:
-      xine_profiler_start_count (prof_spu_decode);
-      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
-        break;
-      if (!stream->spu_decoder_plugin) {
-        update_spu_decoder(stream, buf->type);
-      }
-      if (stream->spu_decoder_plugin) {
-        stream->spu_decoder_plugin->decode_data (stream->spu_decoder_plugin, buf);
-      }
-
-      xine_profiler_stop_count (prof_spu_decode);
       break;
 
     case BUF_CONTROL_SPU_CHANNEL:
@@ -289,13 +255,14 @@ void *video_decoder_loop (void *stream_gen) {
       break;
       
     default:
-      xine_profiler_start_count (prof_video_decode);
-      
-      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO])
-        break;
 
       if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
 
+        if (stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO])
+          break;
+
+        xine_profiler_start_count (prof_video_decode);
+      
 	/*
 	  printf ("video_decoder: got package %d, decoder_info[0]:%d\n", 
 	  buf, buf->decoder_info[0]);
@@ -324,14 +291,31 @@ void *video_decoder_loop (void *stream_gen) {
 		    buf_video_name( buf->type ) );
 	  buftype_unknown = buf->type;
         }
+
+        xine_profiler_stop_count (prof_video_decode);
+
+      } else if ( (buf->type & 0xFF000000) == BUF_SPU_BASE ) {
+
+        if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
+          break;
+
+        xine_profiler_start_count (prof_spu_decode);
+
+        update_spu_decoder(stream, buf->type);
+
+        if (stream->spu_decoder_plugin) {
+          stream->spu_decoder_plugin->decode_data (stream->spu_decoder_plugin, buf);
+        }
+
+        xine_profiler_stop_count (prof_spu_decode);
+        break;
+
       } else if (buf->type != buftype_unknown) {
 	xine_log (stream->xine, XINE_LOG_MSG, 
 		  "video_decoder: unknown buffer type: %08x\n",
 		  buf->type );
 	buftype_unknown = buf->type;
       }
-
-      xine_profiler_stop_count (prof_video_decode);
 
       break;
 

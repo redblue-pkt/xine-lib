@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.84 2002/11/01 11:02:52 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.85 2002/11/15 00:20:33 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -77,7 +77,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG_DEBUG
   printf("libspudec:got buffer type = %x\n", buf->type);
 #endif
-  if (buf->type == BUF_SPU_CLUT) {
+  if ( (buf->type & 0xffff0000) != BUF_SPU_DVD ||
+       !(buf->decoder_flags & BUF_FLAG_SPECIAL) || 
+       buf->decoder_info[1] != BUF_SPECIAL_SPU_DVD_SUBTYPE )
+    return;
+
+  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT ) {
     printf("libspudec: SPU CLUT\n");
     if (buf->content[0]) { /* cheap endianess detection */
       xine_fast_memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
@@ -91,7 +96,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
  
-  if (buf->type == BUF_SPU_SUBP_CONTROL) {
+  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_SUBP_CONTROL ) {
     /* FIXME: I don't think SUBP_CONTROL is used any more */
     int i;
     uint32_t *subp_control = (uint32_t*) buf->content;
@@ -100,7 +105,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     }
     return;
   }
-  if (buf->type == BUF_SPU_NAV) {
+  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV ) {
 #ifdef LOG_DEBUG
     printf("libspudec:got nav packet 1\n");
 #endif
@@ -443,7 +448,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 }
 
 /* plugin catalog information */
-static uint32_t supported_types[] = { BUF_SPU_PACKAGE, BUF_SPU_CLUT, BUF_SPU_NAV, BUF_SPU_SUBP_CONTROL, 0 };
+static uint32_t supported_types[] = { BUF_SPU_DVD, 0 };
 
 static decoder_info_t dec_info_data = {
   supported_types,     /* supported types */

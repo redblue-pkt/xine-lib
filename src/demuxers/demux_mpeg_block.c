@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.137 2002/11/10 13:33:14 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.138 2002/11/15 00:20:31 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -323,7 +323,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     buf->content   = p;
     buf->size      = packet_len;
-    buf->type      = BUF_SPU_NAV;
+    buf->type      = BUF_SPU_DVD;
+    buf->decoder_flags |= BUF_FLAG_SPECIAL;
+    buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+    buf->decoder_info[2] = SPU_DVD_SUBTYPE_NAV;
     buf->pts       = 0;   /* NAV packets do not have PES values */
     buf->input_pos = this->input->get_current_pos(this->input);
     buf->input_length = this->input->get_length (this->input);
@@ -460,7 +463,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
       buf->content   = p+1;
       buf->size      = packet_len-1;
-      buf->type      = BUF_SPU_PACKAGE + spu_id;
+      buf->type      = BUF_SPU_DVD + spu_id;
+      buf->decoder_flags |= BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+      buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
       buf->pts       = pts;
       if( !preview_mode )
         check_newpts( this, pts, PTS_VIDEO );
