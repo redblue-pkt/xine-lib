@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.168 2004/03/14 23:07:25 valtri Exp $
+ * $Id: audio_out.c,v 1.169 2004/03/16 12:25:05 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -330,12 +330,22 @@ static void fifo_append (audio_fifo_t *fifo,
   pthread_mutex_unlock (&fifo->mutex);
 }
 
-static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo) {
+static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo, int blocking) {
   audio_buffer_t *buf;
 
   while (!fifo->first) {
     pthread_cond_signal (&fifo->empty);
-    pthread_cond_wait (&fifo->not_empty, &fifo->mutex);
+    if (blocking)
+      pthread_cond_wait (&fifo->not_empty, &fifo->mutex);
+    else {
+      struct timeval tv;
+      struct timespec ts;
+      gettimeofday(&tv, NULL);
+      ts.tv_sec  = tv.tv_sec + 1;
+      ts.tv_nsec = tv.tv_usec * 1000;
+      if (pthread_cond_timedwait (&fifo->not_empty, &fifo->mutex, &ts) != 0)
+        return NULL;
+    }
   }
 
   buf = fifo->first;
@@ -363,7 +373,18 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
   audio_buffer_t *buf;
 
   pthread_mutex_lock (&fifo->mutex);
-  buf = fifo_remove_int(fifo);
+  buf = fifo_remove_int(fifo, 1);
+  pthread_mutex_unlock (&fifo->mutex);
+
+  return buf;
+}
+
+static audio_buffer_t *fifo_remove_nonblock (audio_fifo_t *fifo) {
+
+  audio_buffer_t *buf;
+
+  pthread_mutex_lock (&fifo->mutex);
+  buf = fifo_remove_int(fifo, 0);
   pthread_mutex_unlock (&fifo->mutex);
 
   return buf;
@@ -1157,7 +1178,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
     }
   }
 
-  in_buf = fifo_remove_int (this->out_fifo);
+  in_buf = fifo_remove_int (this->out_fifo, 1);
   pthread_mutex_unlock(&this->out_fifo->mutex);
 
   out_buf = prepare_samples (this, in_buf);
@@ -1340,7 +1361,10 @@ static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
    
-  buf = fifo_remove (this->free_fifo);
+  while (!(buf = fifo_remove_nonblock (this->free_fifo)))
+    if (this->xine->port_ticket->ticket_revoked)
+      this->xine->port_ticket->renew(this->xine->port_ticket, 1);
+  
   _x_extra_info_reset( buf->extra_info );
   
   return buf;
@@ -1654,7 +1678,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
   
       while ((buf = this->out_fifo->first)) {
         lprintf ("flushing out frame\n");
-        buf = fifo_remove_int (this->out_fifo);
+        buf = fifo_remove_int (this->out_fifo, 1);
         fifo_append (this->free_fifo, buf);
       }
       pthread_mutex_unlock (&this->out_fifo->mutex);
