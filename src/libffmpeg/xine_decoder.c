@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.62 2002/10/31 05:26:46 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.63 2002/10/31 17:02:42 mroi Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1004,12 +1004,12 @@ static uint32_t supported_audio_types[] = {
 
 static decoder_info_t dec_info_ffmpeg_video = {
   supported_video_types,   /* supported types */
-  9                        /* priority        */
+  5                        /* priority        */
 };
 
 static decoder_info_t dec_info_ffmpeg_audio = {
   supported_audio_types,   /* supported types */
-  9                        /* priority        */
+  5                        /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {
