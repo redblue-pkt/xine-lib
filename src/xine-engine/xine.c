@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.289 2004/04/09 11:26:10 f1rmb Exp $
+ * $Id: xine.c,v 1.290 2004/04/16 16:34:22 hadess Exp $
  */
 
 /*
@@ -623,6 +623,29 @@ static void __mrl_unescape(char *mrl) {
   mrl[len] = 0;
 }
 
+void _x_flush_events_queues (xine_stream_t *stream) {
+
+  xine_event_queue_t *queue;
+
+  pthread_mutex_lock (&stream->event_queues_lock);
+
+  /* No events queue? */
+  for (queue = xine_list_first_content (stream->event_queues);
+       queue; queue = xine_list_next_content (stream->event_queues)) {
+    pthread_mutex_lock (&queue->lock);
+    pthread_mutex_unlock (&stream->event_queues_lock);
+
+    while (!xine_list_is_empty (queue->events)) {
+      pthread_cond_wait (&queue->events_processed, &queue->lock);
+    }
+
+    pthread_mutex_unlock (&queue->lock);
+    pthread_mutex_lock (&stream->event_queues_lock);
+  }
+
+  pthread_mutex_unlock (&stream->event_queues_lock);
+}
+
 static int __open_internal (xine_stream_t *stream, const char *mrl) {
 
   const char *stream_setup;
@@ -689,6 +712,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
   if (!stream->input_plugin) {
     xine_log (stream->xine, XINE_LOG_MSG, _("xine: cannot find input plugin for MRL [%s]\n"),mrl);
     stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
+    _x_flush_events_queues (stream);
     return 0;
   }
 

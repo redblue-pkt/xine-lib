@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.7 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: list.c,v 1.8 2004/04/16 16:34:23 hadess Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -107,7 +107,7 @@ int xine_list_is_empty (xine_list_t *l) {
 	fprintf(stderr, "%s(): list is NULL\n", __XINE_FUNCTION__);
 	return -1;
   }
-  return (l->first != NULL);
+  return (l->first == NULL);
 }
 
 void *xine_list_last_content (xine_list_t *l) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.155 2004/03/23 22:54:32 valtri Exp $
+ * $Id: xine_internal.h,v 1.156 2004/04/16 16:34:22 hadess Exp $
  *
  */
 
@@ -178,6 +178,7 @@ struct xine_event_queue_s {
   xine_list_t               *events;
   pthread_mutex_t            lock;
   pthread_cond_t             new_event;
+  pthread_cond_t             events_processed;
   xine_stream_t             *stream;
   pthread_t                 *listener_thread;
   xine_event_listener_cb_t   callback;
@@ -337,6 +338,11 @@ void _x_handle_stream_end      (xine_stream_t *stream, int non_user);
 /* report message to UI. usually these are async errors */
 
 int _x_message(xine_stream_t *stream, int type, ...);
+
+/* flush the message queues */
+
+void _x_flush_events_queues (xine_stream_t *stream);
+
 
 /* find and instantiate input and demux plugins */
 
