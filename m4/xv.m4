@@ -25,11 +25,13 @@ AC_DEFUN([AC_TEST_LIBXV],
 
      ac_have_xv="yes"
      if test x$XV_LIB = "xlibXv.a" ; then
-
+     
         AC_DEFINE(HAVE_XV_STATIC,
                 1,
                 [Define this if you have libXv.a])
-
+        ac_have_xv_static="yes"
+        XV_LIB="$xv_path/$XV_LIB"
+        
   fi],
      ,
   [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
@@ -65,6 +67,15 @@ AC_DEFUN([AC_FIND_LIBXV],
     AC_PATH_LIBXV_IMPL([libXv.so])
   else
     AC_PATH_LIBXV_IMPL([libXv.a])
+  fi
+  
+  # Try the other lib if prefered failed
+  if test -z $XV_LIB; then
+    if ! test "x$xv_prefer_shared" = "xyes"; then  
+      AC_PATH_LIBXV_IMPL([libXv.so])
+    else
+      AC_PATH_LIBXV_IMPL([libXv.a])
+    fi
   fi
 
   if ! test -z $XV_LIB; then
