@@ -643,9 +643,6 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   
   int n;
 
-  static mmx_t Mask1 = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
-  static mmx_t Mask2 = {ub:{0xfc,0xfc,0xfc,0xfc,0xfc,0xfc,0xfc,0xfc}};
-
   for (Line = 0; Line < height - 2; ++Line)
   {
     YVal1 = (uint64_t *)(psrc[0] + Line * LineLength);
@@ -656,20 +653,39 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     n = LineLength >> 3;
     while( n-- )
     {
+      /* load data from 3 lines */
       movq_m2r (*YVal1++, mm0);
       movq_m2r (*YVal2++, mm1);
       movq_m2r (*YVal3++, mm2);
+      
+      /* expand bytes to words */
+      punpckhbw_r2r (mm0, mm3);
+      punpckhbw_r2r (mm1, mm4);
+      punpckhbw_r2r (mm2, mm5);
+      punpcklbw_r2r (mm0, mm0);
+      punpcklbw_r2r (mm1, mm1);
+      punpcklbw_r2r (mm2, mm2);
+      
+      /* 
+       * deinterlacing:
+       * deint_line = (line0 + 2*line1 + line2) / 4
+       */
+      psrlw_i2r (07, mm0);
+      psrlw_i2r (06, mm1);
+      psrlw_i2r (07, mm2);
+      psrlw_i2r (07, mm3);
+      psrlw_i2r (06, mm4);
+      psrlw_i2r (07, mm5);
+      paddw_r2r (mm1, mm0);
+      paddw_r2r (mm2, mm0);
+      paddw_r2r (mm4, mm3);
+      paddw_r2r (mm5, mm3);
+      psrlw_i2r (03, mm0);
+      psrlw_i2r (03, mm3);
 
-      // get (mm0/4 + mm1/2 + mm2/4) average in mm0
-      pand_m2r ( Mask2, mm0 );
-      pand_m2r ( Mask1, mm1 );
-      pand_m2r ( Mask2, mm2 );
-      psrlw_i2r ( 02, mm0 );
-      psrlw_i2r ( 01, mm1 );
-      psrlw_i2r ( 02, mm2 );
-      paddw_r2r ( mm1, mm0 );
-      paddw_r2r ( mm2, mm0 );
-
+      /* pack 8 words to 8 bytes in mm0 */
+      packuswb_r2r (mm3, mm0);
+      
       movq_r2m ( mm0, *Dest++ );
     }
   }
