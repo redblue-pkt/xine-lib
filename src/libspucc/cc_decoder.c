@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.4 2002/01/08 16:47:56 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.5 2002/01/08 20:31:10 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -41,6 +41,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "osd.h"
+#include "video_out/alphablend.h"
 #include "cc_decoder.h"
 
 #ifdef XINE_COMPILE
@@ -64,8 +65,145 @@
 /* 1 is the caption background color index in the OSD palettes. */
 #define CAP_BG_COL 1
 
+/* number of text colors specified by EIA-608 standard */
+#define NUM_FG_COL 7
+
 /* colors specified by the EIA 608 standard */
 enum { WHITE, GREEN, BLUE, CYAN, RED, YELLOW, MAGENTA, BLACK, TRANSPARENT };
+
+/* color mapping to OSD text color indices */
+static int text_colormap[NUM_FG_COL] = {
+  OSD_TEXT1, OSD_TEXT2, OSD_TEXT3, OSD_TEXT4, OSD_TEXT5, OSD_TEXT6, OSD_TEXT7
+};
+
+/* text colors */
+/* FIXME: The colors look fine on an XShm display, but they look *terrible*
+   with the Xv display on the NVidia driver on a GeForce 3. The colors bleed
+   into each other. Not sure at this moment whether the YUV values
+   may be off, whether it is a bug in the NVidia Xv driver, or whether
+   it is a bug in the blending functions.
+*/
+static clut_t cc_text[NUM_FG_COL][TEXT_PALETTE_SIZE] = {
+  /* white, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //7
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //8
+    CLUT_Y_CR_CB_INIT(0xc0, 0x80, 0x80), //9
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //10
+  },
+
+  /* green, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x20, 0x6a, 0x65), //7
+    CLUT_Y_CR_CB_INIT(0x4a, 0x50, 0x55), //8
+    CLUT_Y_CR_CB_INIT(0x70, 0x3a, 0x45), //9
+    CLUT_Y_CR_CB_INIT(0x90, 0x22, 0x35), //10
+  },
+
+  /* blue, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x0c, 0x7c, 0xa0), //7
+    CLUT_Y_CR_CB_INIT(0x18, 0x78, 0xc0), //8
+    CLUT_Y_CR_CB_INIT(0x20, 0x74, 0xe0), //9
+    CLUT_Y_CR_CB_INIT(0x29, 0x6e, 0xff), //10
+  },
+
+  /* cyan, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x28, 0x64, 0x8a), //7
+    CLUT_Y_CR_CB_INIT(0x50, 0x48, 0x94), //8
+    CLUT_Y_CR_CB_INIT(0x78, 0x2c, 0x9e), //9
+    CLUT_Y_CR_CB_INIT(0xaa, 0x10, 0xa6), //10
+  },
+
+  /* red, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x14, 0x9c, 0x77), //7
+    CLUT_Y_CR_CB_INIT(0x28, 0xb8, 0x6e), //8
+    CLUT_Y_CR_CB_INIT(0x3c, 0xd4, 0x65), //9
+    CLUT_Y_CR_CB_INIT(0x52, 0xf0, 0x5a), //10
+  },
+
+  /* yellow, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x34, 0x84, 0x64), //7
+    CLUT_Y_CR_CB_INIT(0x68, 0x8a, 0x48), //8
+    CLUT_Y_CR_CB_INIT(0x9c, 0x8e, 0x2c), //9
+    CLUT_Y_CR_CB_INIT(0xd4, 0x92, 0x10), //10
+  },
+
+  /* magenta, black border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x60, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x20, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x1a, 0x98, 0x92), //7
+    CLUT_Y_CR_CB_INIT(0x34, 0xb0, 0xa6), //8
+    CLUT_Y_CR_CB_INIT(0x4e, 0xc8, 0xb8), //9
+    CLUT_Y_CR_CB_INIT(0x6b, 0xde, 0xca), //10
+  },
+
+};
+
+static uint8_t cc_text_trans[NUM_FG_COL][TEXT_PALETTE_SIZE] = {
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 }
+};
+
+/* caption palette and alpha channel */
+static uint32_t cc_palette[OVL_PALETTE_SIZE];
+static uint8_t cc_trans[OVL_PALETTE_SIZE];
 
 #define TRANSP_SPACE 0x19   /* code for transparent space, essentially 
 			       arbitrary */
@@ -276,6 +414,21 @@ static void build_char_table(void)
 }
 
 
+static void build_palette(void)
+{
+  int i, j;
+
+  memset(cc_palette, 0, sizeof (cc_palette));
+  memset(cc_trans, 0, sizeof (cc_trans));
+  for (i = 0; i < NUM_FG_COL; i++) {
+    for (j = 0; j < TEXT_PALETTE_SIZE; j++) {
+      cc_palette[i * 11 + j + OSD_TEXT1] = *(uint32_t *) &cc_text[i][j];
+      cc_trans[i * 11 + j + OSD_TEXT1] = cc_text_trans[i][j];
+    }
+  }
+}
+
+
 /*----------------- cc_row_t methods --------------------------------*/
 
 static void ccrow_fill_transp(cc_row_t *rowbuf)
@@ -372,6 +525,7 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
     int x, y;
     int seg_w, seg_h;
     int seg_pos[CC_COLUMNS + 1];
+    int seg_attr[CC_COLUMNS];
     int cumulative_seg_width[CC_COLUMNS + 1];
     int num_seg = 0;
     int seg;
@@ -396,6 +550,7 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
       text_w += seg_w;
       text_h += seg_h;
       seg_pos[num_seg + 1] = seg_end;
+      seg_attr[num_seg] = attr_pos;
       cumulative_seg_width[num_seg + 1] = text_w;
       num_seg++;
 
@@ -421,29 +576,36 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
     printf("cc from %d to %d; text plotting from %d, %d (basey = %d)\n", pos, endpos, x, y, base_y);
 #endif
 
-    /* make caption background a uniform box. Without this line, the */
-    /* background is uneven for superscript characters. Also, pad left and */
-    /* right with one character width to make text more readable. */
-#warning "FIXME: There may be off-by one errors in the rendering - check with Miguel"
-    osd_renderer->filled_rect(renderer->cap_display,
-			      x - renderer->max_char_width, y,
-			      x + text_w + renderer->max_char_width,
-			      y + renderer->max_char_height, CAP_BG_COL);
-
     /* render text part by rendering each attributed text segment */
     for (seg = 0; seg < num_seg; seg++) {
+      int textcol = text_colormap[this->cells[seg_attr[seg]].attributes.foreground];
+      int box_x1 = x + cumulative_seg_width[seg];
+      int box_x2 = x + cumulative_seg_width[seg + 1];
+ 
 #ifdef LOG_DEBUG
       printf("ccrow_render: rendering segment %d from %d to %d / %d to %d\n",
 	     seg, seg_pos[seg], seg_pos[seg + 1],
 	     x + cumulative_seg_width[seg], x + cumulative_seg_width[seg + 1]);
 #endif
+      /* make caption background a uniform box. Without this line, the */
+      /* background is uneven for superscript characters. */
+      /* Also pad left & right ends of caption to make it more readable */
+#warning "FIXME: There may be off-by one errors in the rendering - check with Miguel"
+      if (seg == 0)
+	box_x1 -= renderer->max_char_width;
+      if (seg == num_seg - 1)
+	box_x2 += renderer->max_char_width;
+      osd_renderer->filled_rect(renderer->cap_display, box_x1, y, box_x2,
+				y + renderer->max_char_height,
+				textcol + CAP_BG_COL);
+
       for (i = seg_pos[seg]; i < seg_pos[seg + 1]; i++)
 	buf[i - seg_pos[seg]] = this->cells[i].c;
       buf[seg_pos[seg + 1] - seg_pos[seg]] = '\0';
-      ccrow_set_attributes(renderer, this, seg_pos[seg]);
+      ccrow_set_attributes(renderer, this, seg_attr[seg]);
       osd_renderer->render_text(renderer->cap_display,
 				x + cumulative_seg_width[seg], y, buf,
-				OSD_TEXT1);
+				textcol);
     }
 
     pos = ccrow_find_next_text_part(this, endpos);
@@ -668,7 +830,7 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
   this->cap_display = this->osd_renderer->new_object(this->osd_renderer,
 						     this->width,
 						     this->height);
-  this->osd_renderer->set_text_palette(this->cap_display, 2, OSD_TEXT1);  
+  this->osd_renderer->set_palette(this->cap_display, cc_palette, cc_trans);
 }
 
 
@@ -871,11 +1033,11 @@ static void cc_decode_PAC(cc_decoder_t *this, int channel,
   row = rowdata[((c1 & 0x07) << 1) | ((c2 & 0x20) >> 5)];
   if (c2 & 0x10) {
     column = ((c2 & 0x0e) >> 1) * 4;   /* preamble indentation */
-    color = 0;                         /* indented lines have white color */
+    color = WHITE;                     /* indented lines have white color */
   }
   else if ((c2 & 0x0e) == 0x0e) {
     italics = 1;                       /* italics, they are always white */
-    color = 0;
+    color = WHITE;
   }
   else
     color = (c2 & 0x0e) >> 1;
@@ -1190,5 +1352,6 @@ void cc_decoder_init(void)
 {
   build_parity_table();
   build_char_table();
+  build_palette();
 }
 
