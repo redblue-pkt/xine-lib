@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.5 2004/10/12 19:43:20 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.6 2004/10/14 23:03:18 miguelfreitas Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -2479,7 +2479,10 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xxmc = {
-  9,                    /* priority    */
+  /* keep priority lower than Xv for now. we may increase this
+   * when the xxmc driver is more mature/tested.
+   */
+  5,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 
