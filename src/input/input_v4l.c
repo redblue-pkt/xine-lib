@@ -746,11 +746,6 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   
   lprintf("open_radio_capture_device\n");
   
-  pthread_mutex_init (&this->vid_frames_lock, NULL);
-  pthread_cond_init  (&this->vid_frame_freed, NULL);
-  pthread_mutex_init (&this->aud_frames_lock, NULL);
-  pthread_cond_init  (&this->aud_frame_freed, NULL); 
-  
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config,
                                                    "input.v4l_radio_device_path");
   
@@ -805,14 +800,9 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   
   lprintf("open_video_capture_device\n");
   
-  pthread_mutex_init (&this->vid_frames_lock, NULL);
-  pthread_cond_init  (&this->vid_frame_freed, NULL);
-  pthread_mutex_init (&this->aud_frames_lock, NULL);
-  pthread_cond_init  (&this->aud_frame_freed, NULL); 
-  
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
                                                    "input.v4l_video_device_path");
-  
+
   /* Try to open the video device */
   if((this->video_fd = open(entry->str_value, O_RDWR)) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -822,18 +812,6 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   }
   
   lprintf("Device opened, tv %d\n", this->video_fd);
-  
-  /* Get capabilities */
-  if (ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
-    lprintf ("VIDIOCGCAP ioctl went wrong\n");
-    return 0;
-  }
-  
-  if (!(this->video_cap.type & VID_TYPE_CAPTURE)) {
-    /* Capture is not supported by the device. This is a must though! */
-    lprintf("Grab device does not handle capture\n");
-    return 0;
-  }
   
   /* figure out the resolution */
   for (j = 0; j < NUM_RESOLUTIONS; j++)
@@ -1638,6 +1616,7 @@ static int v4l_plugin_get_optional_data (input_plugin_t *this_gen,
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
+
 static int v4l_plugin_radio_open (input_plugin_t *this_gen)
 {
   v4l_input_plugin_t *this = (v4l_input_plugin_t *) this_gen;
@@ -1700,23 +1679,16 @@ static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
 {
   /* v4l_input_class_t  *cls = (v4l_input_class_t *) cls_gen; */
   v4l_input_plugin_t *this;
-  char               *locator = NULL;
   char               *mrl     = strdup(data);
   
   /* Example mrl:  v4l:/Television/62500 */
-  
-  if (strncasecmp (mrl, "v4l:/", 5)) {
-    free (mrl);
+  if(!mrl || strncasecmp(mrl, "v4l:/", 5)) {
+    free(mrl);
     return NULL;
   }
   
   this = (v4l_input_plugin_t *) xine_xmalloc (sizeof (v4l_input_plugin_t));
     
-  if (mrl != NULL) {
-    for (locator = mrl; *locator != '\0' && *locator !=  '/' ; locator++);
-  } else
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: EUhmz, mrl was NULL?\n");
-  
   extract_mrl(this, mrl);
   
   this->stream        = stream; 
@@ -1779,49 +1751,37 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
                                                    "input.v4l_video_device_path");
   
-  /* Try to see if the MRL contains a v4l device we understand */
-  if (is_ok)
-    extract_mrl(this, this->mrl);
-  
   /* Try to open the video device */
-  if (is_ok)
-    this->video_fd = open(entry->str_value, O_RDWR);
-  
-  if (is_ok && this->video_fd < 0) {
-    lprintf("(%d) Cannot open v4l device: %s\n", this->video_fd, 
-	     strerror(errno));
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Sorry, could not open %s\n"), entry->str_value);
+  if((this->video_fd = open(entry->str_value, O_RDWR)) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: error opening v4l device (%s): %s\n", 
+            entry->str_value, strerror(errno));
     is_ok = 0;
   } else
     lprintf("Device opened, tv %d\n", this->video_fd);
   
   /* Get capabilities */
-  if (is_ok && ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Sorry your v4l card doesn't support some features needed by xine\n"));
-    lprintf ("VIDIOCGCAP ioctl went wrong\n");
+  if (is_ok && ioctl(this->video_fd, VIDIOCGCAP, &this->video_cap) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: v4l card doesn't support some features needed by xine\n");
     is_ok = 0;;
   }
   
   if (is_ok && !(this->video_cap.type & VID_TYPE_CAPTURE)) {
     /* Capture is not supported by the device. This is a must though! */
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Sorry, your v4l card doesn't support frame grabbing."
-	       " This is needed by xine though\n"));
-    
-    lprintf("Grab device does not handle capture\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: v4l card doesn't support frame grabbing\n");
     is_ok = 0;
   }
   
   if (is_ok && set_input_source(this, this->tuner_name) <= 0) {
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Could not locate the tuner name [%s] on your v4l card\n"),
-	     this->tuner_name);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: unable to locate the tuner name (%s) on your v4l card\n",
+            this->tuner_name);
     is_ok = 0;
   }
   
-  if (is_ok && this->video_fd > 0) {
+  if (this->video_fd > 0) {
     close(this->video_fd);
     this->video_fd = -1;
   }
@@ -1855,30 +1815,30 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
                                                    "input.v4l_radio_device_path");
   
-  if (is_ok)
-    this->radio_fd = open(entry->str_value, O_RDWR);
-  
-  if (this->radio_fd < 0) {
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Allthough normally we would be able to handle this MRL,\n"
-	       "input_v4l:  I am unable to open the radio device.[%s]\n"),
-	     entry->str_value);
+  if((this->radio_fd = open(entry->str_value, O_RDWR)) < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: error opening v4l device (%s): %s\n", 
+            entry->str_value, strerror(errno));
     is_ok = 0;
   } else
     lprintf("Device opened, radio %d\n", this->radio_fd);
   
   if (is_ok && set_input_source(this, this->tuner_name) <= 0) {
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-	     _("input_v4l:  Sorry, you Radio device doesn't support this tunername\n"));
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: unable to locate the tuner name (%s) on your v4l card\n",
+            this->tuner_name);
     is_ok = 0;
+  }
+  
+  if (this->radio_fd > 0) {
+    close(this->radio_fd);
+    this->radio_fd = -1;
   }
   
   if (!is_ok) {
     v4l_plugin_dispose((input_plugin_t *) this);
     return NULL;
   }
-  
-  close(this->radio_fd);
   
   return &this->input_plugin;
 }
