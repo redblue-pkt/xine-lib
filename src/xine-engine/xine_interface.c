@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.83 2004/08/02 12:51:21 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.84 2004/10/26 20:10:24 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -441,6 +441,10 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
+  case XINE_PARAM_VO_CROP_LEFT:
+  case XINE_PARAM_VO_CROP_RIGHT:
+  case XINE_PARAM_VO_CROP_TOP:
+  case XINE_PARAM_VO_CROP_BOTTOM:
     stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     stream->video_out->set_property(stream->video_out, param, value);
     stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
@@ -586,6 +590,10 @@ int xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
+  case XINE_PARAM_VO_CROP_LEFT:
+  case XINE_PARAM_VO_CROP_RIGHT:
+  case XINE_PARAM_VO_CROP_TOP:
+  case XINE_PARAM_VO_CROP_BOTTOM:
     stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     ret = stream->video_out->get_property(stream->video_out, param);
     stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.212 2004/10/18 21:07:38 f1rmb Exp $
+ * $Id: video_out.c,v 1.213 2004/10/26 20:10:20 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -120,6 +120,7 @@ typedef struct {
   int64_t                   current_duration;
   int                       frame_drop_limit;
   int                       frame_drop_cpt;
+  int                       crop_left, crop_right, crop_top, crop_bottom;
 } vos_t;
 
 
@@ -437,6 +438,12 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   if (!img->bad_frame) {
   
     int img_already_locked = 0;
+    
+    /* add cropping requested by frontend */
+    img->crop_left   += this->crop_left;
+    img->crop_right  += this->crop_right;
+    img->crop_top    += this->crop_top;
+    img->crop_bottom += this->crop_bottom;
     
     /* perform cropping when vo driver does not support it */
     if( (img->crop_left || img->crop_top || 
@@ -1305,6 +1312,19 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
   /*
    * handle XINE_PARAM_xxx properties (convert from driver's range)
    */
+  case XINE_PARAM_VO_CROP_LEFT:
+    ret = this->crop_left;
+    break;
+  case XINE_PARAM_VO_CROP_RIGHT:
+    ret = this->crop_right;
+    break;
+  case XINE_PARAM_VO_CROP_TOP:
+    ret = this->crop_top;
+    break;
+  case XINE_PARAM_VO_CROP_BOTTOM:
+    ret = this->crop_bottom;
+    break;
+  
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:
@@ -1373,6 +1393,27 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   /*
    * handle XINE_PARAM_xxx properties (convert to driver's range)
    */
+  case XINE_PARAM_VO_CROP_LEFT:
+    if( value < 0 )
+      value = 0;
+    ret = this->crop_left = value;
+    break;
+  case XINE_PARAM_VO_CROP_RIGHT:
+    if( value < 0 )
+      value = 0;
+    ret = this->crop_right = value;
+    break;
+  case XINE_PARAM_VO_CROP_TOP:
+    if( value < 0 )
+      value = 0;
+    ret = this->crop_top = value;
+    break;
+  case XINE_PARAM_VO_CROP_BOTTOM:
+    if( value < 0 )
+      value = 0;
+    ret = this->crop_bottom = value;
+    break;
+  
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:

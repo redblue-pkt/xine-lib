@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.34 2004/10/09 06:44:52 mroi Exp $
+ * $Id: vo_scale.c,v 1.35 2004/10/26 20:10:25 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -56,8 +56,12 @@ void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
      * aspect ratio
      */
   
+    /*
     image_ratio = (double) (this->delivered_width - (this->crop_left + this->crop_right)) /
                   (double) (this->delivered_height - (this->crop_top + this->crop_bottom));
+    */
+    image_ratio = (double) (this->delivered_width) /
+                  (double) (this->delivered_height);
     
     switch (this->user_ratio) {
     case XINE_VO_ASPECT_AUTO:
