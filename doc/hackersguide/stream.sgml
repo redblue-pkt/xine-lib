@@ -542,7 +542,11 @@
     This function performs the bulk of the decoding work. The xine engine
     delivers buffers (xine_buffer_t data types) to this function and it is up
     to this function to assemble the parts of the buffer, decode the data, and
-    send the decoded data to the proper output unit.
+    send the decoded data to the proper output unit. The constraint is that
+    you must never call a port function of the output port when the port has
+    not been opened by you. (See the <function>open()</function> and
+    <function>close()</function> functions of <type>xine_video_port_t</type>
+    and <type>xine_audio_port_t</type>.)
    </para>
    <para>
     A buffer has a <varname>decoder_flags</varname> field which can have

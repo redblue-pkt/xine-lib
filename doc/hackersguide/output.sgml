@@ -2,6 +2,365 @@
  <title>xine's output layer</title>
 
  <sect1>
+  <title>Post plugin layer</title>
+  <para>
+   In this section you will learn, how the powerful post plugin architecture
+   works and how to write post plugins.
+  </para>
+  <sect2>
+   <title>General principle of post plugins</title>
+   <para>
+    The name "post plugin" comes from "postprocessing" which already describes
+    what these plugins are supposed to do: they take video frames, audio
+    buffers or subpicture planes as they leave the decoders and apply arbitrary
+    processing to them. Then they pass processed elements on to the output
+    loops. Post plugins can not only be chained to process the predecessor's
+    output and advance the data to their successor, they can form arbitrary trees,
+    since post plugins can have any number of inputs and outputs. Additionally,
+    the interconnection of the plugins currently inserted in such a tree can
+    be changed on the fly during playback. The public function
+    <function>xine_post_wire()</function> is used by frontends to form such
+    connections.
+   </para>
+   <para>
+    Due to the variety of possible applications, the interface post plugins have
+    to implement is just the basic foundation. The complexity comes from hooking
+    your post plugin into the engine data paths for video frames and audio buffers,
+    intercepting the data and performing your operation on them. This is done by
+    taking the interface of a video or audio port, replacing some of the functions
+    with your own ones and passing the interface to the decoder or predecessor
+    post plugin that is going to feed you with data by accessing this interface
+    and by doing that, calling the functions you provide. From there you can do
+    almost anything you want. Constructing video frames from audio buffers to
+    visualize sound is possible as well as just outputting an integer giving the
+    average brightness of an image. It is also possible to invent post plugins
+    with no output (not very useful, unless the plugin has some side-effect) or
+    no input at all; for the latter you have to create your own pthread, otherwise
+    your plugin will not do anything. An audio signal generator could be
+    implemented like this. The various data types, post plugins can
+    accept as input or offer as output are defined in <filename>xine.h</filename>
+    as <varname>XINE_POST_DATA_*</varname> defines.
+   </para>
+   <para>
+    Some terminology used in the following explanations:
+    <itemizedlist>
+     <listitem>
+      <para>
+       <varname>down direction</varname>:
+       The direction from the decoders to the output. This is the way video or audio
+       data (actual content and meta information) usually travels through the engine.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       <varname>up direction</varname>:
+       The direction from the output to the decoders. This is the way some video or audio
+       metadata like metronom timestamps travel through the engine.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       <varname>interception</varname>:
+       Post plugins are inserted into the engine data paths by the means of the decorator
+       design pattern. This works by taking engine structures with member funtions like
+       video or audio ports, video frames or overlay managers and inserting your own functions
+       into a copy of this structure. This is called interception. This modified structure
+       is then passed up to the plugin that uses it and thus calls your replaced functions.
+      </para>
+     </listitem>
+    </itemizedlist>
+   </para>
+  </sect2>
+  <sect2>
+   <title>Writing a xine post plugin</title>
+   <para>
+    The post plugin API is declared in <filename>src/xine-engine/post.h</filename>
+    The plugin info of post plugins contains the post plugin type, which is one of the
+    <varname>XINE_POST_TYPE_*</varname> defines and the init_class function of the plugin.
+   </para>
+   <para>
+    <programlisting>&nbsp;&nbsp;&nbsp;post_plugin_t *open_plugin(post_class_t *class_gen, int inputs, xine_audio_port_t **audio_target, xine_video_port_t **video_target);</programlisting>
+    Returns an instance of the plugin. Some post plugins evaluate <varname>inputs</varname>
+    to open a variable number of inputs. Since almost all post plugins have audio or video
+    outputs, you can hand in a NULL-terminated array of ports to connect to these outputs.
+    In this function you can also intercept these ports so that your plugin is actually used.
+    There is a helper function to initialize a <type>post_plugin_t</type>, which you are
+    encouraged to use: <function>_x_post_init()</function>.
+   </para>
+   <para>
+    <programlisting>&nbsp;&nbsp;&nbsp;char *get_identifier(post_class_t *class_gen);</programlisting>
+    This function returns a short identifier describing the plugin.
+   </para>
+   <para>
+    <programlisting>&nbsp;&nbsp;&nbsp;char *get_description(post_class_t *class_gen);</programlisting>
+    This function returns a plaintext, one-line string describing the plugin.
+   </para>
+   <para>
+    <programlisting>&nbsp;&nbsp;&nbsp;void dispose(post_class_t *class_gen);</programlisting>
+    This function frees the memory used by the video out plugin class object.
+   </para>
+   <para>
+    The <type>post_plugin_t</type> structure contains the publicly visible
+    part of the post plugin with the audio and video inputs and the type of
+    the post plugin. Not publicly visible are the lists of all inputs and outputs,
+    the <function>dispose()</function> function and some internal stuff which
+    plugins do not have to worry about.
+   </para>
+   <para>
+    <programlisting>&nbsp;&nbsp;&nbsp;void dispose(post_plugin_t *this_gen);</programlisting>
+    This function frees the memory used by the plugin instance, but not necessarily
+    immediately. Since post plugins enter their own functions into engine structures,
+    they might still be needed when <function>dispose()</function> is being called.
+    They maintain a usage counter to detect that. To check for such a condition, you
+    should use the <function>_x_post_dispose()</function> helper function like that:
+    <programlisting>
+&nbsp;&nbsp;&nbsp;if (_x_post_dispose(this))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;really_free(this);</programlisting>
+    <function>_x_post_dispose()</function> frees any ressources allocated by any of the 
+    post plugin helper functions and returns boolean true, if the plugin is not needed
+    any more.
+   </para>
+  </sect2>
+  <sect2>
+   <title>Interception</title>
+   <para>
+    Currently, we have four engine structures which can be intercepted by post plugins:
+    video ports, video frames, overlay managers and audio ports. You could do this
+    interception manually, but since this is quite a complex process, there are helper
+    functions to assist you and their usage is encouraged.
+   </para>
+   <sect3>
+    <title>Intercepting a video port</title>
+    <para>
+     <programlisting>
+&nbsp;&nbsp;&nbsp;post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xine_video_port_t *port, post_in_t **input, post_out_t **output);</programlisting>
+     This function will intercept <varname>port</varname> and returns a structure
+     for you to pass up. All functions in the port will be replaced with dummy
+     pass through functions that do nothing but relaying the call down to the original
+     port. If you want (that is, <varname>input</varname> or <varname>output</varname> are
+     not NULL), this function will also create the input and output descriptors complete
+     with rewiring functions and add them to the relevant lists.
+     This is required, if you want this port to be advertised by the plugin to the outside world.
+    </para>
+    <para>
+     <type>post_video_port_t</type> makes a variety of interception schemes very easy.
+     If you want to replace any of the default functions with your own, just enter it
+     into <varname>new_port</varname>. You can use <varname>original_port</varname>
+     from within your function to propagate calls down to the original port.
+     The constraint is that your functions have to ensure that every original
+     port held open scores one usage counter point, so that opened ports are always
+     closed before the plugin is disposed. Therefore, you should use the macro
+     <function>_x_post_inc_usage()</function> before calling
+     <function>original_port-&gt;open()</function> and use the macro
+     <function>_x_post_dec_usage()</function> after calling
+     <function>original_port-&gt;close()</function>. Note that <function>_x_post_dec_usage()</function>
+     might dispose the plugin, when <function>dispose()</function> has been called
+     earlier and usage count drops to zero, so do never touch plugin structures after
+     <function>_x_post_dec_usage()</function>. In addition, you must never call a port
+     function of the original port when the port is not open.
+    </para>
+    <para>
+     Intercepting video frames or the overlay manager of the port is even easier.
+     You do not have to reimplement <function>get_frame()</function> or
+     <function>get_overlay_manager()</function>. Just enter a <varname>intercept_frame</varname>
+     or <varname>intercept_ovl</varname> function which returns boolean true, if
+     you want to intercept. The functions to insert in the intercepted frame or overlay
+     manager are taken from <varname>new_frame</varname> and <varname>new_manager</varname>
+     respectively. Note that the defaults are reversed: If you do not enter such a
+     decision function for either one, all frames and no overlay manager will be intercepted.
+    </para>
+    <para>
+     For convenience <type>post_video_port_t</type> also contains pointers to the
+     current stream and to the current post plugin and a user_data pointer, where you
+     can put in anything you need in addition. If your port is used by more than one
+     thread, you can also enforce locking on the port, frame or overlay manager level
+     by entering a lock into <varname>port_lock</varname>, <varname>frame_lock</varname> or
+     <varname>manager_lock</varname> respectively.
+    </para>
+   </sect3>
+   <sect3>
+    <title>Intercepting an audio port</title>
+    <para>
+     Audio port interception is just a stripped down version of video port interception.
+     Everything related to frames and overlay manager is not needed and audio buffers
+     do not need to be intercepted, since they have no member functions. Everything else
+     of the above still applies.
+    </para>
+   </sect3>
+   <sect3>
+    <title>Intercepting overlay manager</title>
+    <para>
+     <programlisting>&nbsp;&nbsp;&nbsp;void _x_post_intercept_overlay_manager(video_overlay_manager_t *original, post_video_port_t *port);</programlisting>
+     Interception of the overlay manager is done automatically when your
+     <function>intercept_ovl()</function> decision function returns boolean true.
+     Should you ever decide not to use that, interception can be done with this helper
+     function, which simply creates an intercepted overlay manager with dummy
+     pass through functions in <varname>port-&gt;new_manager</varname> and stores the original
+     manager in <varname>port-&gt;original_manager</varname>.
+    </para>
+    <para>
+     No matter how you intercepted the overlay manager, your own replacement
+     functions will receive <varname>port-&gt;new_manager</varname> as the overlay manager
+     argument. But you most likely want to have access to the <type>post_video_port_t</type>
+     from within your functions. For that, there exists a pointer retrieval function:
+     <programlisting>&nbsp;&nbsp;&nbsp;post_video_port_t *_x_post_ovl_manager_to_port(video_overlay_manager_t *manager);</programlisting>
+    </para>
+   </sect3>
+   <sect3>
+    <title>Intercepting a video frame</title>
+    <para>
+     <programlisting>
+&nbsp;&nbsp;&nbsp;vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
+&nbsp;&nbsp;&nbsp;vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);</programlisting>
+     Interception of video frames is done automatically when your
+     <function>intercept_frame()</function> decision function returns boolean true or
+     when there is no such function in <type>post_video_port_t</type>.
+     Should you ever decide not to use that, interception can be done with the helper
+     function <function>_x_post_intercept_video_frame()</function>.
+    </para>
+    <para>
+     Since the same video frame can be in use in the decoder and in the output and in
+     any post plugin in between at the same time, simply modifying the frame
+     structure does not work, because every user of the frame needs to see his version
+     and the frame must always travel along the same path through the plugins for its
+     entire lifetime. To ensure that, <function>_x_post_intercept_video_frame()</function>
+     provides a shallow copy of the frame structure with the original frame attached to
+     <varname>copy-&gt;next</varname>. This copy will be filled with your own
+     frame functions from <varname>port-&gt;new_frame</varname> and with dummy pass
+     through functions for those you did not provide. This way, every part of xine
+     using this frame will see its own frame structure with a list of frame
+     contexts from down the data path attached to <varname>frame-&gt;next</varname>.
+     <function>_x_post_restore_video_frame()</function> reverses this and should be
+     used when the frame is freed or disposed.
+    </para>
+    <para>
+     Your own replacement functions will receive the copied frame as as argument.
+     But you most likely want to have access to the <type>post_video_port_t</type>
+     from within your functions. For that, there exists a pointer retrieval function:
+     <programlisting>&nbsp;&nbsp;&nbsp;post_video_port_t *_x_post_video_frame_to_port(vo_frame_t *frame);</programlisting>
+     The constraint is that your functions have to ensure that every intercepted
+     frame scores one usage counter point, so that these frames are always
+     freed or disposed before the plugin is disposed. Therefore, you should use the macro
+     <function>_x_post_inc_usage()</function> before calling
+     <function>_x_post_intercept_video_frame()</function> and use the macro
+     <function>_x_post_dec_usage()</function> after calling
+     <function>_x_post_restore_video_frame()</function>. Note that <function>_x_post_dec_usage()</function>
+     might dispose the plugin, when <function>dispose()</function> has been called
+     earlier and usage count drops to zero, so do never touch plugin structures after
+     <function>_x_post_dec_usage()</function>.
+    </para>
+    <para>
+     From within your own frame functions, you can propagate calls to the original
+     frame by calling a function on <varname>frame-&gt;next</varname>. Since
+     modifications to the frame can travel both upwards and downwards (decoders and
+     output can modify the frame), changes need to be copied between the frame
+     structure contexts. You should use the <function>_x_post_frame_copy_down()</function>
+     and <function>_x_post_frame_copy_up()</function> helper functions like that:
+     <programlisting>
+&nbsp;&nbsp;&nbsp;_x_post_frame_copy_down(frame, frame-&gt;next);
+&nbsp;&nbsp;&nbsp;frame-&gt;next-&gt;draw(frame-&gt;next, stream);
+&nbsp;&nbsp;&nbsp;_x_post_frame_copy_up(frame, frame-&gt;next);</programlisting>
+    </para>
+    <para>
+     If your post plugin modifies the content of the frame, you have to modify
+     a deep copy of the frame, because the decoder might still use the frame as
+     a reference frame for future decoding. The usual procedure is:
+     <programlisting>
+&nbsp;&nbsp;&nbsp;modified_frame = port-&gt;original_port-&gt;get_frame(port->original_port, ...);
+&nbsp;&nbsp;&nbsp;_x_post_frame_copy_down(frame, modified_frame);
+&nbsp;&nbsp;&nbsp;copy_and_modify(frame, modified_frame);
+&nbsp;&nbsp;&nbsp;skip = modified_frame-&gt;draw(modified_frame, stream);
+&nbsp;&nbsp;&nbsp;_x_post_frame_copy_up(frame, modified_frame);
+&nbsp;&nbsp;&nbsp;modified_frame-&gt;free(modified_frame);</programlisting>
+    </para>
+    <para>
+     When the output receives a frame via <function>draw()</function>,
+     it usually receives the stream where the frame
+     originates as well and modifies the state of this stream by passing
+     the frame through the stream's metronom. Sometimes this is unwanted.
+     For example, when you pass the same frame to the output more than once, it
+     will confuse metronom. To solve this, you can call
+     <function>frame-&gt;next-&gt;draw()</function> with NULL as the stream.
+     You might also want to prevent frames from being passed down to the output
+     completely, because your post plugin creates something else from these frames,
+     but does not need them to be drawn. In both these situations, you have
+     to call the helper function <function>_x_post_frame_u_turn()</function>
+     when the frame is drawn, because this does some housekeeping which the
+     decoder might expect to take place.
+    </para>
+    <para>
+     The following diagram summarizes the situations of a video frame passing
+     through a post plugin:
+    </para>
+    <mediaobject>
+     <imageobject>
+      <imagedata fileref="post_frame.png" format="PNG">
+     </imageobject>
+     <imageobject>
+      <imagedata fileref="post_frame.eps" format="EPS">
+     </imageobject>
+     <caption>
+      <para>video frame passing through a post plugin</para>
+     </caption>
+    </mediaobject>
+   </sect3>
+   <sect3>
+    <title>Summary of constraints</title>
+    <itemizedlist>
+     <listitem>
+      <para>
+       Call <function>_x_post_inc_usage()</function> before port <function>open()</function>
+       before any other port function.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Call <function>_x_post_inc_usage()</function> before issueing an intercepted frame.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Call <function>_x_post_dec_usage()</function> after port <function>close()</function>
+       and do not call any port functions after that.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Call <function>_x_post_dec_usage()</function> after restoring a frame.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       When a frame is drawn through your plugin, it must either be drawn on the original
+       port with the correct stream as argument or U-turned.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       If your post plugin keeps locked frames, release them when your input port is being
+       closed.
+      </para>
+     </listitem>
+     <listitem>
+      <para>
+       Do not assume your plugin is alive after <function>_x_post_dec_usage()</function>.
+      </para>
+     </listitem>
+    </itemizedlist>
+   </sect3>
+  </sect2>
+<!--
+  <sect2>
+   <title>Rewiring and the ticket system</title>
+   <para>
+    TODO
+   </para>
+  </sect2>
+-->
+ </sect1>
+ 
+ <sect1>
   <title>Video output</title>
   <para>
    In order to allow for device-dependant acceleration features, xine
