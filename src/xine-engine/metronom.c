@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.119 2003/07/12 12:31:14 mroi Exp $
+ * $Id: metronom.c,v 1.120 2003/09/13 15:31:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -366,6 +366,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   }
   
   this->last_video_pts = 0;
+  this->last_audio_pts = 0;
   this->discontinuity_handled_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
 
@@ -386,7 +387,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   this->img_cpt++;
 
-  if (pts) {
+  if (pts && pts != this->last_video_pts) {
 
     /*
      * Compute img duration if it's not provided by the decoder
@@ -399,12 +400,12 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
         printf("metronom: computed frame_duration = %lld\n", this->img_duration );
 #endif
       }
-      this->img_cpt = 0;
-      this->last_video_pts = pts;
       img->duration = this->img_duration;
     } else {
       this->img_duration = img->duration;  
     }
+    this->img_cpt = 0;
+    this->last_video_pts = pts;
   
   
     /*
@@ -512,9 +513,10 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 
   pthread_mutex_lock (&this->lock);
 
-  if (pts) {
+  if (pts && pts != this->last_audio_pts) {
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
+    this->last_audio_pts = pts;
 
     /* compare predicted and given vpts */
     if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->force_audio_jump)) {
@@ -795,6 +797,7 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   this->img_duration              = 3000;
   this->img_cpt                   = 0;
   this->last_video_pts            = 0;
+  this->last_audio_pts            = 0;
   
   
   /* initialize audio stuff */

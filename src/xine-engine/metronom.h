@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.50 2003/05/20 13:50:56 mroi Exp $
+ * $Id: metronom.h,v 1.51 2003/09/13 15:31:53 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -212,6 +212,7 @@ struct metronom_s {
   int64_t         img_duration;
   int             img_cpt;
   int64_t         last_video_pts;
+  int64_t         last_audio_pts;
   
 };
 
