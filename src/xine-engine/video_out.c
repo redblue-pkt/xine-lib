@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.58 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.59 2001/12/24 00:45:03 guenter Exp $
  *
  */
 
@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include "video_out.h"
+#include "xine_internal.h"
 #include "xineutils.h"
 
 /*
@@ -49,7 +50,6 @@ struct img_buf_fifo_s {
   pthread_mutex_t    mutex;
   pthread_cond_t     not_empty;
 } ;
-
 
 static img_buf_fifo_t *vo_new_img_buf_queue () {
 
@@ -95,7 +95,6 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   pthread_mutex_lock (&queue->mutex);
 
   while (!queue->first) {
-    /* printf ("video_out: queue %d empty...\n", queue); */
     pthread_cond_wait (&queue->not_empty, &queue->mutex);
   }
 
@@ -138,19 +137,37 @@ void video_timer_handler (int hubba) {
 #endif
 }
 
+/* send a buf to force video_decoder->flush */
+static void video_out_send_decoder_flush( fifo_buffer_t *video_fifo ) {
+  buf_element_t   *buf;
+
+  if( !video_fifo )
+    return;
+    
+  buf = video_fifo->buffer_pool_alloc (video_fifo);
+  
+  buf->type = BUF_CONTROL_FLUSH ;
+  buf->PTS  = 0;
+  buf->SCR  = 0;
+  buf->input_pos = 0;
+  buf->input_time = 0;
+
+  video_fifo->put (video_fifo, buf);      
+
+}
+
+
+
 static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
-  int                pts_absdiff, diff, absdiff, pts=0;
-  vo_frame_t        *img;
+  int                diff, absdiff, pts=0;
+  vo_frame_t        *img, *img_backup;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
-  sigset_t           vo_mask;
   static int	     prof_video_out = -1;
   static int	     prof_spu_blend = -1;
-  /*
-  int                dummysignum;
-  */
+  sigset_t           vo_mask;
 
   /* printf ("%d video_out start\n", getpid());  */
 
@@ -159,19 +176,19 @@ static void *video_out_loop (void *this_gen) {
   if (prof_spu_blend == -1)
     prof_spu_blend = xine_profiler_allocate_slot ("spu blend");
 
-  /*
-  sigemptyset(&vo_mask);
-  sigaddset(&vo_mask, SIGALRM);
-  pthread_sigmask(SIG_UNBLOCK, &vo_mask, NULL);
-  */
+  img_backup    = NULL;
+  this->still_counter = 0;
 
+  /*
+   * set up timer signal
+   */
   
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
     printf ("video_out: sigprocmask failed.\n");
   }
-#if	HAVE_SIGACTION
+#if HAVE_SIGACTION
   {
     struct sigaction   sig_act;
     memset (&sig_act, 0, sizeof(sig_act));
@@ -185,49 +202,52 @@ static void *video_out_loop (void *this_gen) {
   video_step = this->metronom->get_video_rate (this->metronom);
   vo_set_timer (video_step); 
 
+  /*
+   * here it is - the big video output loop
+   */
 
   while ((this->video_loop_running) ||
 	 (!this->video_loop_running && this->display_img_buf_queue->first)) {
+
+    /*
+     * wait until it's time to display a frame
+     */
  
-    /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 
-    if( this->video_paused )
-      continue;
-    
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
       vo_set_timer (video_step);
     }
-    pts_absdiff = 1000000;
     
+    /*
+     * now, look at the frame queue and decide which frame to display
+     * or generate still frames if no frames are available
+     */
+
     xine_profiler_start_count (prof_video_out);
 
     cur_pts = this->metronom->get_current_time (this->metronom);
-    
+
 #ifdef VIDEO_OUT_LOG
     printf ("video_out : video loop iteration at audio pts %d\n", cur_pts);
 #endif
     
     img = this->display_img_buf_queue->first;
-    
-    if (!img) {
-      xine_profiler_stop_count (prof_video_out);
-      continue;
-    }
 
     /*
      * throw away expired frames
      */
-    
-    do {
+
+    diff = 1000000;
+
+    while (img && (diff >this->pts_per_half_frame)) {
       pts = img->PTS;
       diff = cur_pts - pts;
       absdiff = abs(diff);
       
       if (diff >this->pts_per_half_frame) {
-    
 	printf ( "video_out : throwing away image with pts %d because "
 		 "it's too old (diff : %d > %d).\n",pts,diff,
 		 this->pts_per_half_frame);
@@ -239,8 +259,25 @@ static void *video_out_loop (void *this_gen) {
 
 	img->display_locked = 0;
 
-	if (!img->decoder_locked) 
-	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
+	/*
+	 * last frame? back it up for 
+	 * still frame creation
+	 */
+
+	if (img && !img->next) {
+	  
+	  if (img_backup) {
+#ifdef VIDEO_OUT_LOG
+	    printf("video_out : overwriting frame backup\n");
+#endif
+	    vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+	  }
+	  
+	  img_backup = img;
+	} else {
+	  if (!img->decoder_locked) 
+	    vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
+	}
 
 	pthread_mutex_unlock (&img->mutex);
 
@@ -249,44 +286,141 @@ static void *video_out_loop (void *this_gen) {
 	if (!img)
 	  diff = -1;
       }
-    } while (diff >this->pts_per_half_frame); 
+    } 
 
-    /*
-     * time to display frame 0 ?
+    /* 
+     * still frame detection:
      */
+
+    /* no frame? => still frame detection */
+
+    if (!img) {
 
 #ifdef VIDEO_OUT_LOG
-    printf ("video_out: diff %d\n", diff);
+      printf ("video_out : no frame\n");
 #endif
 
-    if (diff<0) {
-      xine_profiler_stop_count (prof_video_out);
-      continue;
+      if (!this->xine->video_fifo->first || this->xine->video_in_discontinuity) {
+
+	this->still_counter++;
+
+	if (this->still_counter%8 == 0) {
+#ifdef VIDEO_OUT_LOG
+	  printf("video_out : sending decoder flush due to inactivity\n");
+#endif
+	  video_out_send_decoder_flush( this->xine->video_fifo );
+	} 
+
+	if (this->still_counter<8) {
+#ifdef VIDEO_OUT_LOG
+	  printf("video_out : no frame - waiting %d/8 frames\n", this->still_counter);
+#endif
+	  continue;
+	}
+
+	if (img_backup) {
+
+#ifdef VIDEO_OUT_LOG
+	  printf("video_out : generating still frame \n");
+#endif
+
+	  /* keep playing still frames */
+	  img = this->duplicate_frame( this, img_backup );
+	  img->display_locked = 1;
+	  do {
+	    img->PTS = this->metronom->got_video_frame(this->metronom, 0, 0);
+	    pts = img->PTS;
+	    diff = cur_pts - pts;
+	    
+	  } while (diff >this->pts_per_half_frame) ;
+
+	  /*
+	   * wait until it's time to display this still frame
+	   */
+	  
+	  while (pts > cur_pts) {
+	    xine_usec_sleep ( 10000 );
+	    cur_pts = this->metronom->get_current_time (this->metronom);
+
+#ifdef VIDEO_OUT_LOG
+	    printf ("video_out: waiting until it's time to display this still frame\n");
+#endif
+	  }
+
+
+        } else {
+#ifdef VIDEO_OUT_LOG
+	  printf ("video_out : no frame, but no backup frame\n");
+#endif
+	  continue;
+	}
+
+
+      } else {
+#ifdef VIDEO_OUT_LOG
+	printf ("video_out : no frame, but video_fifo size is %d and not in discontinuity\n",
+		this->xine->video_fifo->size(this->xine->video_fifo));
+#endif
+	continue;
+      }
+
+    } else {
+
+      this->still_counter = 0;
+
+      /*
+       * time to display frame >img< ?
+       */
+
+#ifdef VIDEO_OUT_LOG
+      printf ("video_out : diff %d\n", diff);
+#endif
+
+      if (diff<0) {
+	xine_profiler_stop_count (prof_video_out);
+	continue;
+      }
+
+      /* 
+       * last frame? make backup for possible still image 
+       */
+      if (img && !img->next) {
+	
+	if (img_backup) {
+	  printf("video_out : overwriting frame backup\n");
+	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+	}
+        
+	img_backup = this->duplicate_frame(this, img);
+      }
+
+      /*
+       * remove frame from display queue and show it
+       */
+    
+      img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+      
+      if (!img) {
+	xine_profiler_stop_count (prof_video_out);
+	continue;
+      }
     }
 
-
     /*
-     * remove frame from display queue and show it
+     * from this point on, img must be a valid frame for
+     * overlay and output
      */
-    
+
 #ifdef VIDEO_OUT_LOG
     printf ("video_out : displaying image with pts = %d (diff=%d)\n", pts, diff);
 #endif
-    
-    img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
-
-
-    if (!img) {
-      xine_profiler_stop_count (prof_video_out);
-      continue;
-    }
 
     pthread_mutex_lock (&img->mutex);
     img->driver_locked = 1;
 
 #ifdef VIDEO_OUT_LOG
     if (!img->display_locked)
-      printf ("video_out: ALERT! frame was not locked for display queue\n");
+      printf ("video_out : ALERT! frame was not locked for display queue\n");
 #endif
 
     img->display_locked = 0;
@@ -331,6 +465,10 @@ static void *video_out_loop (void *this_gen) {
     img = this->display_img_buf_queue->first;
   }
 
+  if( img_backup ) {
+     vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+  }
+ 
   pthread_exit(NULL);
 }
 
@@ -345,6 +483,7 @@ static void vo_open (vo_instance_t *this) {
 
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
+    this->decoder_started_flag = 0;
 
     pthread_attr_init(&pth_attrs);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
@@ -352,15 +491,15 @@ static void vo_open (vo_instance_t *this) {
     if((err = pthread_create (&this->video_thread,
 			      &pth_attrs, video_out_loop, this)) != 0) {
 
-      printf ("video_out: can't create thread (%s)\n", strerror(err));
+      printf ("video_out : can't create thread (%s)\n", strerror(err));
       /* FIXME: how does this happen ? */
-      printf ("video_out: sorry, this should not happen. please restart xine.\n");
+      printf ("video_out : sorry, this should not happen. please restart xine.\n");
       exit(1);
     }
     else
-      printf ("video_out: thread created\n");
+      printf ("video_out : thread created\n");
   } else
-    printf ("video_out: vo_open : warning! video thread already running\n");
+    printf ("video_out : vo_open : warning! video thread already running\n");
 
 }
 
@@ -372,7 +511,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   vo_frame_t *img;
 
   /*
-  printf ("video_out: get_frame %d x %d from queue %d\n",
+  printf ("video_out : get_frame %d x %d from queue %d\n",
 	  width, height, this->free_img_buf_queue);
   fflush(stdout);
   */
@@ -402,6 +541,57 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   pthread_mutex_unlock (&img->mutex);
   
   return img;
+}
+
+static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
+  vo_frame_t *dupl;
+  int image_size;
+    
+  pthread_mutex_unlock (&img->mutex);
+  
+  dupl = vo_get_frame( this, img->width, img->height, img->ratio,
+		       img->format, img->duration, VO_BOTH_FIELDS );
+ 
+  pthread_mutex_lock (&dupl->mutex);
+  
+  dupl->display_locked = 0;
+  dupl->decoder_locked = 0;
+  dupl->driver_locked  = 0;
+  
+  image_size = img->width * img->height;
+
+  if (img->format == IMGFMT_YV12) {
+    xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
+    xine_fast_memcpy(dupl->base[1], img->base[1], image_size >> 2);
+    xine_fast_memcpy(dupl->base[2], img->base[2], image_size >> 2);
+  } else {
+    xine_fast_memcpy(dupl->base[0], img->base[0], image_size * 2);
+  }  
+  
+  dupl->bad_frame = 0;
+  dupl->PTS = dupl->SCR = 0;
+  
+  if (img->copy) {
+    int height = img->height;
+    int stride = img->width;
+    uint8_t* src[3];
+  
+    src[0] = dupl->base[0];
+    src[1] = dupl->base[1];
+    src[2] = dupl->base[2];
+    while ((height -= 16) >= 0) {
+      dupl->copy(dupl, src);
+      src[0] += 16 * stride;
+      src[1] +=  4 * stride;
+      src[2] +=  4 * stride;
+    }
+  }
+  
+  pthread_mutex_unlock (&dupl->mutex);
+  
+  pthread_mutex_unlock (&img->mutex);
+
+  return dupl;
 }
 
 static void vo_close (vo_instance_t *this) {
@@ -481,7 +671,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS, img->SCR);
 
 #ifdef VIDEO_OUT_LOG
-  printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n",
+  printf ("video_out : got image %d. vpts for picture is %d (pts was %d)\n",
 	  img, pic_vpts, img->PTS);
 #endif
 
@@ -489,30 +679,29 @@ static int vo_frame_draw (vo_frame_t *img) {
   this->num_frames_delivered++;
 
   cur_vpts = this->metronom->get_current_time(this->metronom);
-
+  
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / this->pts_per_frame + 3) * 2;
 
-
 #ifdef VIDEO_OUT_LOG
-  printf ("video_out: delivery diff : %d\n",diff);
+  printf ("video_out : delivery diff : %d\n",diff);
 #endif
 
   if (img->display_locked) {
-    printf ("video_out: ALERT! frame is already locked for displaying\n");
+    printf ("video_out : ALERT! frame is already locked for displaying\n");
     return frames_to_skip;
   }
 
   if (cur_vpts>0) {
 
-    if (diff<(-1 * this->pts_per_half_frame)) {
+    if (diff<(-1 * this->pts_per_half_frame) && img->drawn != 2 ) {
 
       this->num_frames_discarded++;
 #ifdef VIDEO_OUT_LOG
-      printf ("video_out: frame rejected, %d frames to skip\n", frames_to_skip);
+      printf ("video_out : frame rejected, %d frames to skip\n", frames_to_skip);
 #endif
 
-      /* printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip); */
+      printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
 
       pthread_mutex_lock (&img->mutex);
       img->display_locked = 0;
@@ -533,7 +722,7 @@ static int vo_frame_draw (vo_frame_t *img) {
      */
 
 #ifdef VIDEO_OUT_LOG
-    printf ("video_out: frame is ok => appending to display buffer\n");
+    printf ("video_out : frame is ok => appending to display buffer\n");
 #endif
 
     this->last_frame = img;
@@ -575,22 +764,29 @@ static void vo_enable_overlay (vo_instance_t *this, int overlay_enabled) {
   this->overlay_enabled = overlay_enabled;
 }
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
+static void vo_decoder_started (vo_instance_t *this) {
+  this->decoder_started_flag = 1;
+}
+
+vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 
   vo_instance_t *this;
   int            i;
 
   this = xine_xmalloc (sizeof (vo_instance_t)) ;
   this->driver                = driver;
-  this->metronom              = metronom;
+  this->xine                  = xine;
+  this->metronom              = xine->metronom;
 
   this->open                  = vo_open;
   this->get_frame             = vo_get_frame;
+  this->duplicate_frame       = vo_duplicate_frame;
   this->get_last_frame        = vo_get_last_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
   this->get_capabilities      = vo_get_capabilities;
   this->enable_ovl            = vo_enable_overlay;
+  this->decoder_started       = vo_decoder_started;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

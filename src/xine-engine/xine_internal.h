@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.65 2001/12/13 22:47:14 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.66 2001/12/24 00:45:03 guenter Exp $
  *
  */
 
@@ -141,8 +141,6 @@ struct audio_decoder_s {
 #define XINE_LOG_CODEC  1
 #define XINE_LOG_NUM    2 /* # of log buffers defined */
 
-typedef struct xine_s xine_t;
-
 typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
 
 struct xine_s {
@@ -192,6 +190,7 @@ struct xine_s {
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
+  int                        video_in_discontinuity;
   
   osd_renderer_t            *osd_renderer;
   osd_object_t              *osd;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.32 2001/12/14 16:50:57 f1rmb Exp $
+ * $Id: video_out.h,v 1.33 2001/12/24 00:45:03 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -41,9 +41,11 @@ extern "C" {
 #if defined(XINE_COMPILE)
 #include "configfile.h"
 #include "metronom.h"
+#include "buffer.h"
 #else
 #include "xine/configfile.h"
 #include "xine/metronom.h"
+#include "xine/buffer.h"
 #endif
 
 #define VIDEO_OUT_PLUGIN_IFACE_VERSION 1
@@ -54,6 +56,7 @@ typedef struct vo_instance_s vo_instance_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
 typedef struct vo_overlay_s vo_overlay_t;
 typedef struct video_overlay_instance_s video_overlay_instance_t;
+typedef struct xine_s xine_t;
 
 
 /* public part, video drivers may add private fields */
@@ -124,10 +127,19 @@ struct vo_instance_s {
 
   vo_frame_t* (*get_last_frame) (vo_instance_t *this);
   
+  /* 
+   * duplicate_frame - allocate an image buffer from display driver
+   * and copy the frame into it.
+   */
+  vo_frame_t* (*duplicate_frame) (vo_instance_t *this, vo_frame_t *img );
+    
   /* overlay stuff */
   void (*enable_ovl) (vo_instance_t *this, int ovl_enable);
   video_overlay_instance_t *overlay_source;
   int                       overlay_enabled;
+  
+  /* this is just a hint to video_out to detect single frame streams */
+  void (*decoder_started) (vo_instance_t *this);
 
   /* video driver is no longer used by decoder => close */
   void (*close) (vo_instance_t *this);
@@ -139,6 +151,7 @@ struct vo_instance_s {
 
   vo_driver_t       *driver;
   metronom_t        *metronom;
+  xine_t            *xine;
   
   img_buf_fifo_t    *free_img_buf_queue;
   img_buf_fifo_t    *display_img_buf_queue;
@@ -156,6 +169,8 @@ struct vo_instance_s {
   int                num_frames_skipped;
   int                num_frames_discarded;
 
+  int                decoder_started_flag;
+  int                still_counter;/* still_counter>8 => still frames will be generated */
 } ;
 
 /* constants for the get/set property functions */
@@ -337,7 +352,7 @@ video_overlay_instance_t *video_overlay_new_instance ();
  * a given video driver
  */
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
+vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) ;
 
 /*
  * to build a dynamic video output plugin

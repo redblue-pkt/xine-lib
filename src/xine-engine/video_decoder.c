@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.66 2001/12/01 22:38:32 guenter Exp $
+ * $Id: video_decoder.c,v 1.67 2001/12/24 00:45:03 guenter Exp $
  *
  */
 
@@ -75,27 +75,6 @@ void *video_decoder_loop (void *this_gen) {
 #ifdef VIDEO_DECODER_LOG
     printf ("video_decoder: getting buffer...\n");  
 #endif
-
-    /*
-
-      I dont know if this will ever work - highly experimental,
-      let xine itself detect when to insert still images
-
-    if (!this->video_fifo->first) {
-
-#ifdef VIDEO_DECODER_LOG
-      printf ("video_decoder: ... inserting still ...\n");  
-#endif
-
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-      buf->type = BUF_VIDEO_FILL ;
-      buf->PTS  = 0;
-      buf->SCR  = 0;
-      this->cur_input_pos = 0;
-      this->cur_input_time = 0;
-
-    } else */
 
     buf = this->video_fifo->get (this->video_fifo);
 
@@ -202,7 +181,20 @@ void *video_decoder_loop (void *this_gen) {
       if (this->cur_video_decoder_plugin) 
 	this->cur_video_decoder_plugin->flush (this->cur_video_decoder_plugin);
 
+      this->video_in_discontinuity = 1;
+
       this->metronom->expect_video_discontinuity (this->metronom);
+
+      this->video_in_discontinuity = 0;
+      this->video_out->still_counter = 0;
+      break;
+    
+    case BUF_VIDEO_FILL:
+      break;
+      
+    case BUF_CONTROL_FLUSH:
+      if (this->cur_video_decoder_plugin) 
+	this->cur_video_decoder_plugin->flush (this->cur_video_decoder_plugin);
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
@@ -277,6 +269,8 @@ void video_decoder_init (xine_t *this) {
 	     strerror(err));
     exit (1);
   }
+
+  this->video_in_discontinuity = 0;
 }
 
 void video_decoder_shutdown (xine_t *this) {

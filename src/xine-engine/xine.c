@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.92 2001/12/14 23:54:56 f1rmb Exp $
+ * $Id: xine.c,v 1.93 2001/12/24 00:45:03 guenter Exp $
  *
  * top-level xine functions
  *
@@ -486,7 +486,7 @@ xine_t *xine_init (vo_driver_t *vo,
 
   load_decoder_plugins (this, config, DECODER_PLUGIN_IFACE_VERSION);
 
-  this->video_out = vo_new_instance (vo, this->metronom);
+  this->video_out = vo_new_instance (vo, this);
   video_decoder_init (this);
 
   this->osd_renderer = osd_renderer_init( this->video_out->overlay_source, config );

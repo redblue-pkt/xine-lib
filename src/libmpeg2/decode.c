@@ -362,12 +362,26 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     picture_t *picture = mpeg2dec->picture;
 
     if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn) {
+      vo_frame_t        *img;
+      
       printf ("libmpeg2: blasting out backward reference frame on flush\n");
       picture->backward_reference_frame->PTS = 0;
       picture->backward_reference_frame->SCR = mpeg2dec->scr;
       picture->backward_reference_frame->bad_frame = 0;
       picture->backward_reference_frame->drawn = 1;
-      picture->backward_reference_frame->draw (picture->backward_reference_frame);
+      picture->backward_reference_frame->displayed (picture->backward_reference_frame);
+      
+      /* output a copy instead of the frame used by decoder */
+      img = picture->backward_reference_frame->instance->duplicate_frame(
+            picture->backward_reference_frame->instance, 
+            picture->backward_reference_frame);
+      img->PTS = 0;
+      img->SCR = mpeg2dec->scr;
+      img->bad_frame = 0;
+      img->drawn = 2;
+      img->draw(img);
+      
+      img->free(img);
     }
 
 }
@@ -407,12 +421,13 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->throwaway_frame->free (picture->throwaway_frame);
     }
 
-    if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn) {
+    if (picture->backward_reference_frame) {
       printf ("libmpeg2: blasting out backward reference frame on close\n");
       picture->backward_reference_frame->PTS = 0;
       picture->backward_reference_frame->SCR = mpeg2dec->scr;
       picture->backward_reference_frame->bad_frame = 0;
-      picture->backward_reference_frame->draw (picture->backward_reference_frame);
+      if( !picture->backward_reference_frame->drawn)
+        picture->backward_reference_frame->draw (picture->backward_reference_frame);
       picture->backward_reference_frame->free (picture->backward_reference_frame);
     }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.67 2001/12/01 22:38:31 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.68 2001/12/24 00:45:03 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -37,6 +37,10 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+
+/*
+#define LOG
+*/
 
 #define VALID_MRLS          "dvd,stdin,fifo"
 #define VALID_ENDS          "vob"
@@ -253,9 +257,19 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   /* discontinuity ? */
   {  
     int32_t scr_diff = scr - this->last_scr;
+
+#ifdef LOG
+    printf ("demux_mpeg_block: scr %d last_scr %d diff %d\n",
+	    scr, this->last_scr, scr_diff);
+#endif
+
     if (abs(scr_diff) > 60000) {
       
       buf_element_t *buf;
+
+#ifdef LOG
+      printf ("demux_mpeg_block: DISCONTINUITY!\n");
+#endif
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_CONTROL_AVSYNC_RESET;
