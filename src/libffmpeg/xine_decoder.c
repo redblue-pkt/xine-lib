@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/09/11 14:11:56 guenter Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/09/11 16:15:42 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -235,7 +235,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	sy = this->av_picture.data[0];
 	su = this->av_picture.data[1];
 	sv = this->av_picture.data[2];
-	
+
 	for (y=0; y<this->biHeight; y++) {
 	  
 	  memcpy (dy, sy, this->biWidth);
@@ -246,15 +246,45 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	}
 	
 	for (y=0; y<(this->biHeight/2); y++) {
+
+	  if (this->context.pix_fmt != PIX_FMT_YUV444P) {
 	  
-	  memcpy (du, su, this->biWidth/2);
-	  memcpy (dv, sv, this->biWidth/2);
+	    memcpy (du, su, this->biWidth/2);
+	    memcpy (dv, sv, this->biWidth/2);
+
+	  } else {
+
+	    int x;
+	    uint8_t *src;
+	    uint8_t *dst;
+	    
+	    /* subsample */
+
+	    src = su; dst = du;
+	    for (x=0; x<(this->biWidth/2); x++) {
+	      *dst = *src;
+	      dst++;
+	      src += 2;
+	    }
+	    src = sv; dst = dv;
+	    for (x=0; x<(this->biWidth/2); x++) {
+	      *dst = *src;
+	      dst++;
+	      src += 2;
+	    }
+
+	  }
 	  
 	  du += this->biWidth/2;
 	  dv += this->biWidth/2;
 	  
-	  su += this->av_picture.linesize[1];
-	  sv += this->av_picture.linesize[2];
+	  if (this->context.pix_fmt != PIX_FMT_YUV420P) {
+	    su += 2*this->av_picture.linesize[1];
+	    sv += 2*this->av_picture.linesize[2];
+	  } else {
+	    su += this->av_picture.linesize[1];
+	    sv += this->av_picture.linesize[2];
+	  }
 	}
 	
 	if (img->copy) {
