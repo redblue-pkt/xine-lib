@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.19 2001/08/17 16:15:36 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.20 2001/09/01 22:47:59 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -967,7 +967,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
     char mrl[1024];
     
-    memset(&mrl, 0, strlen(mrl));
+    memset(&mrl, 0, sizeof (mrl));
     sprintf(mrl, "vcd://%d",i);
     
     if((i-1) >= this->mrls_allocated_entries

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.19 2001/08/17 16:15:36 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.20 2001/09/01 22:47:59 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -481,7 +481,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 	this->mrls[nFiles2]->type   = (0 | mrl_dvd);
 
 	/* determine size */
-	memset(&str, 0, strlen(str));
+	memset(&str, 0, sizeof(str));
 	sprintf (str, "/VIDEO_TS/%s", this->filelist[i]);
 	UDFFindFile(fd, str, &this->mrls[nFiles2]->size);
 
