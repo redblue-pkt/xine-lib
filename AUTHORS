@@ -410,4 +410,7 @@ Laurent Aimar <fenrir@videolan.org>
 Adrian Schroeter <adrian@suse.de>
   AMD64 support
 
+Simon Truss <simon@bigblue.demon.co.uk>
+  metronom fix for duplicated pts
+
 (let us know if we've forgotten anyone)
