@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.14 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: video_out_xshm.c,v 1.15 2001/07/06 11:14:38 heikos Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -347,6 +347,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   uint32_t cycles;
 #endif
 
+  
   this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
 			      src[0], src[1], src[2]);
   
@@ -640,7 +641,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       XPutImage(this->display, 
 		this->drawable, this->gc, frame->image,
-		0, 0,  0, 0,
+		0, 0,  this->output_xoffset, this->output_yoffset,
 		frame->rgb_width, frame->rgb_height);
       
       XFlush(this->display); 
