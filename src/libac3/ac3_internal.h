@@ -85,10 +85,7 @@ typedef struct ac3_ba_s {
     uint16_t fsnroffst;	// fine SNR offset
     uint16_t fgaincod;	// fast gain
     uint16_t deltbae;	// delta bit allocation exists
-    uint16_t deltnseg;	// number of delta bit segments
-    uint16_t deltoffst[8];	// delta bit offset
-    uint16_t deltlen[8];	// delta bit length
-    uint16_t deltba[8];		// delta bit value
+    int8_t deltba[50];	// per-band delta bit allocation
 } ac3_ba_t;
 
 /* more pain */
@@ -155,9 +152,9 @@ typedef struct audblk_s {
 	uint8_t lfe_exp[7];
 
 	/* Bit allocation pointer results */
-	uint16_t fbw_bap[5][256];
-	uint16_t cpl_bap[256];
-	uint16_t lfe_bap[7];
+	int8_t fbw_bap[5][256];
+	int8_t cpl_bap[256];
+	int8_t lfe_bap[7];
 	
 	uint32_t	magic3;
 } audblk_t;
