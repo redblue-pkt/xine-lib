@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.4 2002/12/16 21:50:54 holstsn Exp $
+ * $Id: pnm.c,v 1.5 2002/12/16 23:29:59 miguelfreitas Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -34,7 +34,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include "pnm.h"
 #include "libreal/rmff.h"
@@ -554,6 +555,8 @@ static int pnm_get_headers(pnm_t *p) {
   rmff_dump_header(h, p->header, HEADER_SIZE);
 */
   p->header_len=size;
+  
+  return 1;
 }
 
 /* 
