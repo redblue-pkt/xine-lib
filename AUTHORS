@@ -156,4 +156,7 @@ Contributions
   Thibaut Mattern <tmattern@noos.fr>
     zooming feature for Xv video-out plugin
 
+  Matthias Dahl <matthew2k@web.de>
+    rpm .spec file maintainer, syncfb and other patches
+
   (let us know if we've forgotten anyone)
