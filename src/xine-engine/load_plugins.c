@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.150 2003/05/13 18:31:16 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.151 2003/05/20 14:50:47 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -95,15 +95,20 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 				  char *id) {
 
   char str[80];
+  int result;
 
   sprintf (str, "decoder.%s_priority", id);
 
-  return this->config->register_num (this->config,
+  result = this->config->register_num (this->config,
 				     str,
-				     default_priority,
+				     0,
 				     "decoder's priority compared to others",
-				     NULL, 20,
+				     "The priority provides a ranking in case some media "
+				     "can be handled by more than one decoder.\n"
+				     "A priority of 0 enables the decoders default priority.", 20,
 				     NULL, NULL /*FIXME: implement callback*/);
+
+  return result ? result : default_priority;
 }
 
 
