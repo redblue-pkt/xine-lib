@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.1 2004/10/27 13:09:07 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.2 2004/10/30 13:34:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -243,7 +243,10 @@ static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origi
 
 static off_t cache_plugin_get_current_pos(input_plugin_t *this_gen) {
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
-  
+
+  if (!this->buf_len)
+    this->cur_pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);  
+
   return this->cur_pos;
 }
 
