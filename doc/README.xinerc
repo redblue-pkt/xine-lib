@@ -15,7 +15,7 @@ audio_driver_name       audio driver to use, same as command line
                         (e.g. alsa05, alsa09, arts, esd, sun)
 
 colorkey                colorkey to use, may be usefull to change
-                        if parts of your desktio become transparent
+                        if parts of your desktop become transparent
 
 dvd_device              path to your local dvd device file
 			(e.g. /dev/hdc, /dev/cdrom, /dev/dvd)
