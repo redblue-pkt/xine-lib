@@ -65,6 +65,8 @@ if test x"$enable_alsa" != "xno"; then
   fi
   ALSA_CFLAGS="$ALSA_CFLAGS"
 
+  ac_save_CPPFLAGS="$CPPLAGS"
+  CPPFLAGS="$CPPFLAGS $ALSA_CFLAGS"
   AC_CHECK_HEADER(alsa/asoundlib.h,
          [
            asoundlib_h="alsa/asoundlib.h"
@@ -246,6 +248,7 @@ dnl
     ifelse([$3], , :, [$3])
   fi
 
+  CPPFLAGS="$ac_save_CPPFLAGS"
 fi
 
   AC_SUBST(ALSA_CFLAGS)
