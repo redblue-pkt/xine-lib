@@ -53,7 +53,7 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_progress_data_t     prg;
 
   prg.description = _("Buffering...");
-  prg.percent = p;
+  prg.percent = (p>100)?100:p;
   
   event.type = XINE_EVENT_PROGRESS;
   event.data = &prg;
