@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.152 2004/12/27 16:49:28 hadess Exp $
+ * $Id: audio_alsa_out.c,v 1.153 2004/12/27 16:55:39 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1057,7 +1057,9 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
           xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		  "audio_alsa_out: Resume call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
-        }
+        } else {
+          this->is_paused = 0;
+	}
       }
     }
     break;
