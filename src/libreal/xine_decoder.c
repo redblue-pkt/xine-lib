@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2003/07/16 21:57:42 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.44 2003/07/18 23:37:38 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -228,13 +228,20 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
     cmsg24[0]=this->width;
     cmsg24[1]=this->height;
-    cmsg24[2]=this->width;
-    cmsg24[3]=this->height;
-    cmsg24[4]=0x00b0; /* FIXME: what does this value mean? */
-    cmsg24[5]=0x0090; /* FIXME: what does this value mean? */
-    cmsg24[6]=this->width;
-    cmsg24[7]=this->height;
-
+    switch(buf->content[3]) {
+      case 0x28:
+        cmsg24[7]=4*buf->content[39];
+        cmsg24[6]=4*buf->content[38];
+      case 0x26:
+        cmsg24[5]=4*buf->content[37];
+        cmsg24[4]=4*buf->content[36];
+      case 0x24:
+        cmsg24[3]=4*buf->content[35];
+        cmsg24[2]=4*buf->content[34];
+        break;
+      default:
+        printf("libreal: error, unrecognised custom message data\n");
+    }
 
     cmsg_data[0]=0x24;
     cmsg_data[1]=1+((init_data.subformat>>16)&7);
