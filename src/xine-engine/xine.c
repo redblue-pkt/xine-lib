@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.61 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: xine.c,v 1.62 2001/10/03 15:16:02 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -115,9 +115,11 @@ void xine_stop (xine_t *this) {
 static int try_demux_with_stages(xine_t *this, const char *MRL, 
 				 int stage1, int stage2) {
   int s = 0, i;
-  int stages[3] = {
-    stage1, stage2, -1
-  };
+  int stages[3];
+
+  stages[0] = stage1;
+  stages[1] = stage2;
+  stages[2] = -1;
 
   if(stages[0] == -1) {
     fprintf(stderr, "%s(%d) wrong first stage = %d !!\n", 
