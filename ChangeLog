@@ -5,6 +5,8 @@
   * add support for upmixing. Currently only stereo -> Surround 5.1
   * Software decode for DTS audio updated for Surround 5.1 output.
   * fixed compilation of libmad on AMD64
+  * fixed double-free in the yuv decoder (fixes crashes when switching
+    away from v4l:/ MRLs)
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
