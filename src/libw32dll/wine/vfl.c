@@ -10,13 +10,13 @@
 #include "win32.h"
 #include "loader.h"
 
-#include "wine/winbase.h"
-#include "wine/windef.h"
-#include "wine/winuser.h"
-#include "wine/vfw.h"
-#include "wine/winestring.h"
-#include "wine/driver.h"
-#include "wine/avifmt.h"
+#include "winbase.h"
+#include "windef.h"
+#include "winuser.h"
+#include "vfw.h"
+#include "winestring.h"
+#include "driver.h"
+#include "avifmt.h"
 #include "driver.h"
 
 

@@ -9,10 +9,10 @@
 #endif
 
 #include "win32.h"
-#include "wine/driver.h"
-#include "wine/pe_image.h"
-#include "wine/winreg.h"
-#include "wine/vfw.h"
+#include "driver.h"
+#include "pe_image.h"
+#include "winreg.h"
+#include "vfw.h"
 #include "registry.h"
 #include "ldt_keeper.h"
 #include "driver.h"

@@ -13,12 +13,12 @@ for DLL to know too much about its environment.
 
 #include "config.h"
 
-#include "wine/winbase.h"
-#include "wine/winreg.h"
-#include "wine/winnt.h"
-#include "wine/winerror.h"
-#include "wine/debugtools.h"
-#include "wine/module.h"
+#include "winbase.h"
+#include "winreg.h"
+#include "winnt.h"
+#include "winerror.h"
+#include "debugtools.h"
+#include "module.h"
 
 #include <stdio.h>
 #include "win32.h"
