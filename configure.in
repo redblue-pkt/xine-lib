@@ -450,13 +450,41 @@ case $host in
 	FORCE_44K_MAX=yes
 	AC_DEFINE(FPM_PPC)
         ;;
-    sparc64-*-linux-* | sparc-*)
-	dnl hard code cpu target as sparcv8, hopefully no one wants to watch
-	dnl mpeg videos on his old SPARCstation2 :-)
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+
+    sparc*-*-linux-*)
+        case $host_cpu in
+        sparc-*)
+            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            ;;
+        sparc64-*)
+            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+            ;;
+	esac
+
 	AC_DEFINE(FPM_SPARC)
         ;;
+
+    sparc-*-solaris*)
+        case `uname -m` in
+        sun4c)
+            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v7 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v7 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            ;;
+        sun4m)
+            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            ;;
+        sun4u)  
+            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+
+	    ;;
+	esac
+	AC_DEFINE(FPM_SPARC)
+	;;
+
     mips-*)
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
@@ -591,7 +619,6 @@ src/libac3/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
 src/liblpcm/Makefile
-src/libmpg123/Makefile
 src/libmad/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
