@@ -1159,6 +1159,8 @@ src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
 src/input/libdvdread/Makefile
+src/input/librtsp/Makefile
+src/input/libreal/Makefile
 src/liba52/Makefile
 src/libdts/Makefile
 src/libfaad/Makefile

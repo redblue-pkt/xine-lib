@@ -17,16 +17,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.h,v 1.1 2002/11/23 00:04:32 guenter Exp $
+ * $Id: pnm.h,v 1.2 2002/12/12 22:08:15 holstsn Exp $
  *
  * pnm util functions header by joschka
- *
  */
  
 #ifndef HAVE_PNM_H
 #define HAVE_PNM_H
 
+#ifndef __CYGWIN__
 #include <inttypes.h>
+#endif
 /*#include "xine_internal.h" */
 
 typedef struct pnm_s pnm_t;

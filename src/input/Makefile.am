@@ -3,9 +3,9 @@
 ##
 
 if HAVE_DVDNAV
-SUBDIRS = libdvdread
+SUBDIRS = libreal librtsp libdvdread
 else
-SUBDIRS = libdvdread libdvdnav
+SUBDIRS = libreal librtsp libdvdread libdvdnav
 endif
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -48,7 +48,8 @@ lib_LTLIBRARIES = \
 	$(in_vcd) \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
-	xineplug_inp_pnm.la
+	xineplug_inp_pnm.la \
+	xineplug_inp_rtsp.la
 
 #lib_LTLIBRARIES = \
 #	$(in_cda) \
@@ -101,6 +102,10 @@ xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_inp_pnm_la_SOURCES = input_pnm.c net_buf_ctrl.c pnm.c
 xineplug_inp_pnm_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pnm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
+xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
+xineplug_inp_rtsp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h pnm.h

@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.22 2002/12/12 17:51:03 holstsn Exp $
+ * $Id: demux_real.c,v 1.23 2002/12/12 22:08:11 holstsn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -92,7 +92,6 @@ typedef struct {
   int                  status;
   unsigned int         duration;
   int                  packet_count;
-  int                  bitrate;
 
   int                  video_stream_num;
   uint32_t             video_buf_type;
@@ -328,9 +327,6 @@ static void real_parse_headers (demux_real_t *this) {
 
 	mdpr = pnm_parse_mdpr (chunk_buffer);
 
-	this->bitrate = mdpr->avg_bit_rate;
-	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = mdpr->avg_bit_rate;
-
 #ifdef LOG
 	printf ("demux_real: parsing type specific data...\n");
 #endif
@@ -359,6 +355,8 @@ static void real_parse_headers (demux_real_t *this) {
 		printf ("demux_real: audio detected %.3s\n", 
 			mdpr->type_specific_data+off+4);
 #endif
+		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = mdpr->avg_bit_rate;
+
 		
 		version = BE_16 (mdpr->type_specific_data+off);
 		
@@ -453,6 +451,7 @@ static void real_parse_headers (demux_real_t *this) {
 #ifdef LOG
 		printf ("demux_real: video detected\n");
 #endif
+		this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = mdpr->avg_bit_rate;
 		/* FIXME: insert video codec detection code here */
 		
 		break;  /* video */

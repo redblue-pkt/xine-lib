@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.1 2002/11/23 00:04:32 guenter Exp $
+ * $Id: pnm.c,v 1.2 2002/12/12 22:08:14 holstsn Exp $
  *
  * pnm protocol implementation by joschka
  */
@@ -29,7 +29,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -37,8 +36,11 @@
 #include <time.h>
 
 #include "pnm.h"
+#include "libreal/rmff.h"
 
+/*
 #define LOG
+*/
 
 #define BUF_SIZE 1024
 #define HEADER_SIZE 1024
@@ -64,18 +66,14 @@ struct pnm_s {
   int           header_read;
   unsigned int  seq_num[4];     /* two streams with two indices   */
 	unsigned int  seq_current[2]; /* seqs of last stream chunk read */
+  uint32_t      ts_current;     /* timestamp of current chunk     */
+  uint32_t      ts_last[2];     /* timestamps of last chunks      */
 	unsigned int  packet;         /* number of last recieved packet */
 };
 
 /*
  * utility macros
  */
-
-#define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
-        ( (long)(unsigned char)(ch3) | \
-        ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | \
-        ( (long)(unsigned char)(ch0) << 24 ) )
 
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
@@ -85,24 +83,6 @@ struct pnm_s {
 
 /* D means direct (no pointer) */
 #define BE_16D(x) ((x & 0xff00) >> 8)|((x & 0x00ff) << 8)
-
-/*
- * constants
- */
-
-#define RMF_TAG   FOURCC_TAG('.', 'R', 'M', 'F')
-#define PROP_TAG  FOURCC_TAG('P', 'R', 'O', 'P')
-#define MDPR_TAG  FOURCC_TAG('M', 'D', 'P', 'R')
-#define CONT_TAG  FOURCC_TAG('C', 'O', 'N', 'T')
-#define DATA_TAG  FOURCC_TAG('D', 'A', 'T', 'A')
-#define INDX_TAG  FOURCC_TAG('I', 'N', 'D', 'X')
-#define PNA_TAG   FOURCC_TAG('P', 'N', 'A',  0 )
-
-/* prop flags */
-#define PN_SAVE_ENABLED         0x01
-#define PN_PERFECT_PLAY_ENABLED 0x02
-#define PN_LIVE_BROADCAST       0x04
-
 
 /* sizes */
 #define PREAMBLE_SIZE 8
@@ -181,24 +161,6 @@ const unsigned char pnm_client_caps[] = {
 const uint32_t pnm_default_bandwidth=10485800;
 const uint32_t pnm_available_bandwidths[]={14400,19200,28800,33600,34430,57600,
                                   115200,262200,393216,524300,1544000,10485800};
-
-/* some unknown chunks */
-#define PNM_AFTER_CLIENT_CAPS_SIZE 18
-const unsigned char pnm_after_client_caps[]={
-    0x00, 0x0a, 0x00, 0x00, 
-    0x00, 0x0c, 0x00, 0x00,
-    0x00, 0x0d, 0x00, 0x00,
-    0x00, 0x16, 0x00, 0x02, 0x00, 0x01 };
-
-#define PNM_AFTER_BANDWIDTH_SIZE 28
-const unsigned char pnm_after_bandwidth[]={
-    0x00, 0x08, 0x00, 0x00,
-    0x00, 0x0e, 0x00, 0x00,
-    0x00, 0x0f, 0x00, 0x00,
-    0x00, 0x11, 0x00, 0x00,
-    0x00, 0x10, 0x00, 0x00,
-    0x00, 0x15, 0x00, 0x00,
-    0x00, 0x12, 0x00, 0x00 };
 
 #define PNM_TWENTYFOUR_SIZE 16
 unsigned char pnm_twentyfour[]={
@@ -302,7 +264,7 @@ static ssize_t rm_read(int fd, void *buf, size_t count) {
     FD_ZERO (&rset);
     FD_SET  (fd, &rset);
     
-    timeout.tv_sec  = 30;
+    timeout.tv_sec  = 3;
     timeout.tv_usec = 0;
     
     if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
@@ -357,23 +319,6 @@ static void hexdump (char *buf, int length) {
 }
 
 /*
- * basic stream reading
- */
-
-static char *pnm_get_string(unsigned char *data) {
-
-  char *string;
-  int length;
-  
-  length=BE_16(data);
-  string=malloc(sizeof(char)*(length+1));
-  memcpy(string,&data[2],length);
-  string[length]=0;
-  
-  return string;
-}
-
-/*
  * pnm_get_chunk gets a chunk from stream
  * and returns number of bytes read 
  */
@@ -411,6 +356,12 @@ static unsigned int pnm_get_chunk(pnm_t *p,
         printf("%s\n",&data[PREAMBLE_SIZE+0x04]);
         exit(0);
       }
+      if (data[PREAMBLE_SIZE+0x01] == 'F')
+      {
+        printf("pnm: server error.\n");
+        exit(0);
+      }
+
       /* expecting following chunk format: 0x4f <chunk size> <data...> */
       rm_read (p->s, ptr, 2);
       while (*ptr == 0x4f) {
@@ -467,7 +418,6 @@ static int pnm_write_chunk(uint16_t chunk_id, uint16_t length,
 static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
 
   uint16_t i16;
-  uint32_t bw;
   int c=PNM_HEADER_SIZE;
 	char fixme[]={0,1};
 
@@ -502,7 +452,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
 
 	/* client id string */
 	p->buffer[c]=PNA_CLIENT_STRING;
-  i16=BE_16D(strlen(client_string)-1); /* dont know why do we have -1 here */
+  i16=BE_16D((strlen(client_string)-1)); /* dont know why do we have -1 here */
   memcpy(&p->buffer[c+1],&i16,2);
   memcpy(&p->buffer[c+3],client_string,strlen(client_string)+1);
   c=c+3+strlen(client_string)+1;
@@ -551,7 +501,8 @@ static void pnm_get_headers(pnm_t *p) {
 	uint8_t  *ptr=p->header;
 	uint8_t  *prop_hdr=NULL;
 	int      chunk_size,size=0;
-		
+/*  rmff_header_t *h; */
+
 	while(1) {
 		if (HEADER_SIZE-size<=0)
 		{
@@ -572,13 +523,16 @@ static void pnm_get_headers(pnm_t *p) {
 	}
 	
 	/* set pre-buffer to a low number */
-  prop_hdr[36]=0x01;
-	prop_hdr[37]=0xd6;
+  /* prop_hdr[36]=0x01;
+	prop_hdr[37]=0xd6; */
 
+  /* set data offset */
+  size--;
 	prop_hdr[42]=(size>>24)%0xff;
 	prop_hdr[43]=(size>>16)%0xff;
 	prop_hdr[44]=(size>>8)%0xff;
 	prop_hdr[45]=(size)%0xff;
+  size++;
 
 	/* read challenge */
 	memcpy (p->buffer, ptr, PREAMBLE_SIZE);
@@ -587,7 +541,12 @@ static void pnm_get_headers(pnm_t *p) {
 	/* now write a data header */
 	memcpy(ptr, pnm_data_header, PNM_DATA_HEADER_SIZE);
 	size+=PNM_DATA_HEADER_SIZE;
-	
+/*	
+  h=rmff_scan_header(p->header);
+  rmff_fix_header(h);
+  p->header_len=rmff_get_header_size(h);
+  rmff_dump_header(h, p->header, HEADER_SIZE);
+*/
 	p->header_len=size;
 }
 
@@ -620,7 +579,7 @@ static int pnm_calc_stream(pnm_t *p) {
       }
       break;
     case 0:
-    case 2: /* both types or none  possible, not so good */
+    case 2: /* both types or none possible, not so good */
       /* try to figure out by second index */
       if (  (p->seq_current[1] == p->seq_num[1])
           &&(p->seq_current[1] != p->seq_num[3]))
@@ -638,8 +597,14 @@ static int pnm_calc_stream(pnm_t *p) {
         p->seq_num[3]++;
         return 1;
       }
-      /* wow, both streams match, or not. */
-      /* in this case, we guess type 0    */
+      /* wow, both streams match, or not.   */
+      /* now we try to decide by timestamps */
+      if (p->ts_current < p->ts_last[1])
+        return 0;
+      if (p->ts_current < p->ts_last[0])
+        return 1;
+      /* does not help, we guess type 0     */
+      printf("guessing stream# 0\n");
 			p->seq_num[0]=p->seq_current[0]+1;
       p->seq_num[1]=p->seq_current[1]+1;
       return 0;
@@ -680,6 +645,9 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 	{
 		n = rm_read (p->s, p->buffer, 8);
 		if (n<8) return 0;
+#ifdef LOG
+    printf("pnm: had to seek 8 bytes on 0x62\n");
+#endif
 	}
 	
 	/* a server message */
@@ -690,6 +658,11 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 		rm_read (p->s, &p->buffer[8], size-8);
 		p->buffer[size+8]=0;
 		printf("pnm: got message from server:\n%s\n", &p->buffer[3]);
+		exit(0);
+	}
+  if (p->buffer[0] == 'F')
+	{
+		printf("pnm: server error.\n");
 		exit(0);
 	}
 
@@ -706,8 +679,9 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 		rm_read (p->s, &p->buffer[7], 1);
 		n++;
 	}
+
 	if (n) printf("pnm: had to seek %i bytes to next chunk\n", n);
-	
+
 	/* check for 'Z's */
 	if ((p->buffer[0] != 0x5a)||(p->buffer[7] != 0x5a))
 	{
@@ -735,8 +709,14 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 	/* get second index */
 	p->seq_current[1]=p->recv[5];
 
+  /* get timestamp */
+  p->ts_current=BE_32(&p->recv[6]);
+  
 	/* get stream number */
 	stream=pnm_calc_stream(p);
+
+  /* saving timestamp */
+  p->ts_last[stream]=p->ts_current;
 	
 	/* constructing a data packet header */
 	
@@ -843,80 +823,51 @@ pnm_t *pnm_connect(const char *mrl) {
 	pnm_send_request(p,pnm_available_bandwidths[10]);
 	pnm_get_headers(p);
 	pnm_send_response(p, pnm_response);
+  p->ts_last[0]=0;
+  p->ts_last[1]=0;
+  
+  /* copy header to recv */
+
+  memcpy(p->recv, p->header, p->header_len);
+  p->recv_size = p->header_len;
+  p->recv_read = 0;
 
 	return p;
 }
 
 int pnm_read (pnm_t *this, char *data, int len) {
-  int total;
+  
+  int to_copy=len;
+  char *dest=data;
+  char *source=this->recv + this->recv_read;
+  int fill=this->recv_size - this->recv_read;
+  
+  if (len < 0) return 0;
+  while (to_copy > fill) {
+    
+    memcpy(dest, source, fill);
+    to_copy -= fill;
+    dest += fill;
+    this->recv_read=0;
 
-  total = 0;
-
-  while (total < len) {
-
+    if (!pnm_get_stream_chunk (this)) {
 #ifdef LOG
-    printf ("libpnm: read, got %d / %d bytes\n", total, len);
+      printf ("libpnm: %d of %d bytes provided\n", len-to_copy, len);
 #endif
-
-    if (this->header_read < this->header_len) {
-      int n, bytes_left ;
-
-      printf ("libpnm: reading from header (%d<%d)\n",
-	      this->header_read, this->header_len);
-	      
-      bytes_left = this->header_len - this->header_read ;
-
-      if ((len-total) < bytes_left)
-        n = len-total;
-      else
-        n = bytes_left;
-
-      memcpy (&data[total], &this->header[this->header_read], n);
-
-      printf ("libpnm: copied %d bytes\n", n);
-
-      this->header_read += n;
-      total += n;
-    } else {
-
-      int n, bytes_left ;
-
-      printf ("libpnm: reading from chunk (%d>=%d)\n",
-	      this->header_read, this->header_len);
-
-      bytes_left = this->recv_size - this->recv_read;
-
-      while (!bytes_left) {
-        
-        this->recv_read = 0;
-
-        if (!pnm_get_stream_chunk (this)) {
-          printf ("libpnm: pnm_get_stream_chunk failed\n");
-          return total;
-        }
-        bytes_left = this->recv_size - this->recv_read;
-      }
-      
-
-      if ((len-total)<bytes_left)
-        n = len-total;
-      else
-        n = bytes_left;
-
-      memcpy (&data[total], &this->recv[this->recv_read], n);
-
-      printf ("libpnm: copied %d bytes\n", n);
-
-      this->recv_read += n;
-      total += n;
+      return len-to_copy;
     }
+    source = this->recv;
+    fill = this->recv_size - this->recv_read;
   }
 
-  printf ("libpnm: total=%d\n", total);
+  memcpy(dest, source, to_copy);
+  this->recv_read += to_copy;
 
-  hexdump (data, total);
+#ifdef LOG
+  printf ("libpnm: %d bytes provided\n", len);
+#endif
 
-  return total;
+  return len;
 }
 
 int pnm_peek_header (pnm_t *this, char *data) {
@@ -933,6 +884,4 @@ void pnm_close(pnm_t *p) {
 	free(p->url);
 	free(p);	
 }
-
-
 
