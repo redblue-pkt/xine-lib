@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.17 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.18 2003/01/13 23:36:01 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -43,6 +43,7 @@
 
 #include "xine.h"
 #include "vidixlib.h"
+#include "fourcc.h"
 
 #include "video_out.h"
 #include "xine_internal.h"
@@ -53,9 +54,21 @@
 #undef LOG
            
 
-#define NUM_FRAMES 1
+#define NUM_FRAMES 3
 
 typedef struct vidix_driver_s vidix_driver_t;
+
+
+typedef struct vidix_property_s {
+  int                value;
+  int                min;
+  int                max;
+
+  cfg_entry_t       *entry;
+
+  vidix_driver_t       *this;
+} vidix_property_t;
+
 
 typedef struct vidix_frame_s {
     vo_frame_t vo_frame;
@@ -74,26 +87,33 @@ struct vidix_driver_s {
   uint8_t            *vidix_mem;
   vidix_capability_t  vidix_cap;
   vidix_playback_t    vidix_play;
-  vidix_fourcc_t      vidix_fourcc;
+  vidix_grkey_t       vidix_grkey;
+  vidix_video_eq_t    vidix_eq;
   vidix_yuv_t         dstrides;
   int                 vidix_started;
   int                 next_frame;
 
+  int                 use_colourkey;
+  uint32_t            colourkey;
+  int                 use_doublebuffer;
+    
   int                 yuv_format;
           
   pthread_mutex_t     mutex;
 
+  vidix_property_t    props[VO_NUM_PROPERTIES];
   uint32_t            capabilities;
 
    /* X11 / Xv related stuff */
   Display            *display;
   int                 screen;
   Drawable            drawable;
+  GC                  gc;
+  int                 depth;
 
   vo_scale_t          sc;
 
   int                 delivered_format;
-  int                 zoom_x, zoom_y;
 };
 
 typedef struct {
@@ -287,6 +307,65 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 }
 
 
+static void vidix_clean_output_area(vidix_driver_t *this) {
+
+  XLockDisplay(this->display);      
+      
+  XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
+  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[0].x, this->sc.border[0].y, this->sc.border[0].w, this->sc.border[0].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[1].x, this->sc.border[1].y, this->sc.border[1].w, this->sc.border[1].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[2].x, this->sc.border[2].y, this->sc.border[2].w, this->sc.border[2].h);
+  XFillRectangle(this->display, this->drawable, this->gc, this->sc.border[3].x, this->sc.border[3].y, this->sc.border[3].w, this->sc.border[3].h);
+  
+  if(this->use_colourkey) {
+    XSetForeground(this->display, this->gc, this->colourkey);
+    XFillRectangle(this->display, this->drawable, this->gc, this->sc.output_xoffset, this->sc.output_yoffset, this->sc.output_width, this->sc.output_height);
+  }
+  
+  XFlush(this->display);
+
+  XUnlockDisplay(this->display);
+}
+
+
+static void vidix_update_colourkey(vidix_driver_t *this) {
+
+  if(this->use_colourkey) {
+    this->vidix_grkey.ckey.op = CKEY_TRUE;
+    
+    switch(this->depth) {
+    
+      case 15:
+        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 7) |
+                          ((this->vidix_grkey.ckey.green & 0xF8) << 2) |
+                          ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
+        break;
+        
+      case 16:
+        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xF8) << 8) |
+                          ((this->vidix_grkey.ckey.green & 0xFC) << 3) |
+                          ((this->vidix_grkey.ckey.blue  & 0xF8) >> 3);
+        break;
+        
+      case 24:
+      case 32:
+        this->colourkey = ((this->vidix_grkey.ckey.red   & 0xFF) << 16) |
+                          ((this->vidix_grkey.ckey.green & 0xFF) << 8) |
+                          ((this->vidix_grkey.ckey.blue  & 0xFF));
+        break;
+      
+      default:
+        break;
+    }
+                  
+    vidix_clean_output_area(this);
+  } else
+    this->vidix_grkey.ckey.op = CKEY_FALSE;
+
+  vdlSetGrKeys(this->vidix_handler, &this->vidix_grkey);
+}
+    
+
 static uint32_t vidix_get_capabilities (vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
@@ -378,7 +457,7 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   this->vidix_play.dest.y = this->sc.gui_win_y+this->sc.output_yoffset;
   this->vidix_play.dest.w = this->sc.output_width;
   this->vidix_play.dest.h = this->sc.output_height;
-  this->vidix_play.num_frames=NUM_FRAMES;
+  this->vidix_play.num_frames= this->use_doublebuffer ? NUM_FRAMES : 1;
   this->vidix_play.src.pitch.y = this->vidix_play.src.pitch.u = this->vidix_play.src.pitch.v = 0;
 
   if((err=vdlConfigPlayback(this->vidix_handler,&this->vidix_play))!=0)
@@ -499,6 +578,7 @@ static int vidix_redraw_needed (vo_driver_t *this_gen) {
   if( vo_scale_redraw_needed( &this->sc ) ) {
 
     vidix_compute_output_size (this);
+    vidix_clean_output_area(this);
 
     ret = 1;
   }
@@ -548,16 +628,12 @@ static int vidix_get_property (vo_driver_t *this_gen, int property) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
   
-  if ( property == VO_PROP_ASPECT_RATIO)
-    return this->sc.user_ratio ;
-  
-  if ( property == VO_PROP_ZOOM_X )
-    return this->zoom_x;
+#ifdef LOG  
+  printf ("video_out_vidix: property #%d = %d\n", property,
+	  this->props[property].value);
+#endif
 
-  if ( property == VO_PROP_ZOOM_Y )
-    return this->zoom_y;
-
-  return 0;
+  return this->props[property].value;
 }
 
 
@@ -565,11 +641,14 @@ static int vidix_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
+  int err;
+    
+  if ((value >= this->props[property].min) && 
+      (value <= this->props[property].max))
+  {
+  this->props[property].value = value;
   
   if ( property == VO_PROP_ASPECT_RATIO) {
-    if (value>=NUM_ASPECT_RATIOS)
-      value = ASPECT_AUTO;
-    this->sc.user_ratio = value;
     printf("video_out_vidix: aspect ratio changed to %s\n",
 	   vo_scale_aspect_ratio_name(value));
     
@@ -578,37 +657,93 @@ static int vidix_set_property (vo_driver_t *this_gen,
   } 
 
   if ( property == VO_PROP_ZOOM_X ) {
-    if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
-      this->zoom_x = value;
       this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
 
       vidix_compute_ideal_size (this);
       this->sc.force_redraw = 1;
-    }
   } 
 
   if ( property == VO_PROP_ZOOM_Y ) {
-    if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
-      this->zoom_y = value;
       this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
 
       vidix_compute_ideal_size (this);
       this->sc.force_redraw = 1;
-    }
   } 
   
+  if ( property == VO_PROP_HUE ) {
+    this->vidix_eq.cap = VEQ_CAP_HUE;
+    this->vidix_eq.hue = value;
+      
+    if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
+      printf("video_out_vidix:\n");
+  }
+      
+  if ( property == VO_PROP_SATURATION ) {
+    this->vidix_eq.cap = VEQ_CAP_SATURATION;
+    this->vidix_eq.saturation = value;
+      
+    if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
+      printf("video_out_vidix:\n");
+  }
+    
+  if ( property == VO_PROP_BRIGHTNESS ) {
+    this->vidix_eq.cap = VEQ_CAP_BRIGHTNESS;
+    this->vidix_eq.brightness = value;
+      
+    if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
+      printf("video_out_vidix:\n");
+  }
+      
+  if ( property == VO_PROP_CONTRAST ) {
+    this->vidix_eq.cap = VEQ_CAP_CONTRAST;
+    this->vidix_eq.contrast = value;
+      
+    if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
+        printf("video_out_vidix:\n");
+  }
+  }
+    
   return value;
 }
+
+
+static void vidix_config_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
+
+  vidix_driver_t *this = (vidix_driver_t *) this_gen;  
+  
+  if(strcmp(entry->key, "video.vidix_use_double_buffer") == 0) {
+    this->use_doublebuffer = entry->num_value;
+    this->sc.force_redraw = 1;
+    return;
+  }
+  
+  if(strcmp(entry->key, "video.vidix_use_colour_key") == 0) {
+    this->use_colourkey = entry->num_value;
+  }
+  
+  if(strcmp(entry->key, "video.vidix_colour_key_red") == 0) {
+    this->vidix_grkey.ckey.red = entry->num_value;
+  }
+  
+  if(strcmp(entry->key, "video.vidix_colour_key_green") == 0) {
+    this->vidix_grkey.ckey.green = entry->num_value;
+  }
+  
+  if(strcmp(entry->key, "video.vidix_colour_key_blue") == 0) {
+    this->vidix_grkey.ckey.blue = entry->num_value;
+  }
+  
+  vidix_update_colourkey(this);
+}
+
 
 static void vidix_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
-/*  vidix_driver_t *this = (vidix_driver_t *) this_gen; */
+  vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
-  if ( property == VO_PROP_ZOOM_X || property == VO_PROP_ZOOM_Y ) {
-    *min = VO_ZOOM_MIN;
-    *max = VO_ZOOM_MAX;
-  }
+  *min = this->props[property].min;
+  *max = this->props[property].max;
 }
 
 static int vidix_gui_data_exchange (vo_driver_t *this_gen,
@@ -627,12 +762,17 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
 #endif
     
     this->drawable = (Drawable) data;
+    XLockDisplay(this->display);
+    XFreeGC(this->display, this->gc);
+    this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+    XUnlockDisplay(this->display);
     break;
   
   case XINE_GUI_SEND_EXPOSE_EVENT:
 #ifdef LOG
       printf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
 #endif
+    vidix_clean_output_area(this);
     break;
 
   case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
@@ -675,6 +815,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   vidix_driver_t       *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes     window_attributes;
+  vidix_fourcc_t        vidix_fourcc;
   int                   err;
     
   this = malloc (sizeof (vidix_driver_t));
@@ -693,20 +834,123 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->drawable          = visual->d;
+  this->gc                = XCreateGC(this->display, this->drawable, 0, NULL);
  
   vo_scale_init( &this->sc, 1, /*this->vidix_cap.flags & FLAG_UPSCALER,*/ 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
-  this->zoom_x = this->zoom_y = 100;
   
   this->config            = config;
   
-  this->capabilities      = VO_CAP_YUY2 | VO_CAP_YV12;
+  this->capabilities      = 0;
 
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
   this->sc.gui_width         = window_attributes.width;
   this->sc.gui_height        = window_attributes.height;
-
+  this->depth                = window_attributes.depth;
+  
+  /* Detect if YUY2 is supported */
+  memset(&vidix_fourcc, 0, sizeof(vidix_fourcc_t));
+  vidix_fourcc.fourcc = IMGFMT_YUY2;
+  vidix_fourcc.depth = this->depth;
+  
+  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
+    this->capabilities |= VO_CAP_YUY2;
+    printf("video_out_vidix: adaptor supports the yuy2 format\n");
+  }
+    
+  /* Detect if YV12 is supported */
+  vidix_fourcc.fourcc = IMGFMT_YV12;
+  
+  if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
+    this->capabilities |= VO_CAP_YV12;
+    printf("video_out_vidix: adaptor supports the yuy2 format\n");
+  }
+    
+  /* Find what equalizer flags are supported */  
+  if(this->vidix_cap.flags & FLAG_EQUALIZER) {
+    if((err = vdlPlaybackGetEq(this->vidix_handler, &this->vidix_eq)) != 0) {
+      printf("video_out_vidix: Couldn't get equalizer capabilities: %s\n", strerror(err));
+    } else {
+      if(this->vidix_eq.cap & VEQ_CAP_BRIGHTNESS) {
+        this->capabilities |= VO_CAP_BRIGHTNESS;
+        
+        this->props[VO_PROP_BRIGHTNESS].value = 0;
+        this->props[VO_PROP_BRIGHTNESS].min = -1000;
+        this->props[VO_PROP_BRIGHTNESS].max = 1000;
+     }
+      
+      if(this->vidix_eq.cap & VEQ_CAP_CONTRAST) {
+        this->capabilities |= VO_CAP_CONTRAST;
+        
+        this->props[VO_PROP_CONTRAST].value = 0;
+        this->props[VO_PROP_CONTRAST].min = -1000;
+        this->props[VO_PROP_CONTRAST].max = 1000;
+      }
+      
+      if(this->vidix_eq.cap & VEQ_CAP_SATURATION) {
+        this->capabilities |= VO_CAP_SATURATION;
+        
+        this->props[VO_PROP_SATURATION].value = 0;
+        this->props[VO_PROP_SATURATION].min = -1000;
+        this->props[VO_PROP_SATURATION].max = 1000;
+      }
+            
+      if(this->vidix_eq.cap & VEQ_CAP_HUE) {
+        this->capabilities |= VO_CAP_HUE;
+        
+        this->props[VO_PROP_HUE].value = 0;
+        this->props[VO_PROP_HUE].min = -1000;
+        this->props[VO_PROP_HUE].max = 1000;
+      }
+    }
+  }
+  
+  /* We'll assume all drivers support colour keying (which they do 
+     at the moment) */
+  this->capabilities |= VO_CAP_COLORKEY;
+  
+  /* Someone might want to disable colour keying (?) */
+  this->use_colourkey = config->register_bool(config, 
+    "video.vidix_use_colour_key", 1, "enable use of overlay colour key", 
+    NULL, 10, (void*) vidix_config_callback, this);
+    
+  /* Colour key components */
+  this->vidix_grkey.ckey.red = config->register_range(config,
+    "video.vidix_colour_key_red", 255, 0, 255, 
+    "video overlay colour key red component", NULL, 10,
+    (void*) vidix_config_callback, this); 
+  
+  this->vidix_grkey.ckey.green = config->register_range(config,
+    "video.vidix_colour_key_green", 0, 0, 255, 
+    "video overlay colour key green component", NULL, 10,
+    (void*) vidix_config_callback, this);     
+  
+  this->vidix_grkey.ckey.blue = config->register_range(config,
+    "video.vidix_colour_key_blue", 255, 0, 255, 
+    "video overlay colour key blue component", NULL, 10,
+    (void*) vidix_config_callback, this);     
+    
+  vidix_update_colourkey(this);
+  
+  /* Configuration for double buffering */
+  this->use_doublebuffer = config->register_bool(config,
+    "video.vidix_use_double_buffer", 1, "double buffer to sync video to retrace", NULL, 10,
+    (void*) vidix_config_callback, this);
+    
+  /* Set up remaining props */
+  this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
+  this->props[VO_PROP_ASPECT_RATIO].min = 0;
+  this->props[VO_PROP_ASPECT_RATIO].max = NUM_ASPECT_RATIOS;
+  
+  this->props[VO_PROP_ZOOM_X].value = 100;
+  this->props[VO_PROP_ZOOM_X].min = VO_ZOOM_MIN;
+  this->props[VO_PROP_ZOOM_X].max = VO_ZOOM_MAX;
+  
+  this->props[VO_PROP_ZOOM_Y].value = 100;
+  this->props[VO_PROP_ZOOM_Y].min = VO_ZOOM_MIN;
+  this->props[VO_PROP_ZOOM_Y].max = VO_ZOOM_MAX;
+     
   this->vo_driver.get_capabilities     = vidix_get_capabilities;
   this->vo_driver.alloc_frame          = vidix_alloc_frame;
   this->vo_driver.update_frame_format  = vidix_update_frame_format;

@@ -27,3 +27,54 @@ static long pci_config_read_long(
     return retval;
 }
 
+static long pci_config_read_word(
+          unsigned char bus,
+          unsigned char dev,
+          int func, 
+          unsigned cmd)
+{
+    unsigned long retval;
+    pciconfig_read(bus, dev<<3, cmd, 2, &retval);
+    return retval;
+}
+
+static long pci_config_read_byte(
+          unsigned char bus,
+          unsigned char dev,
+          int func, 
+          unsigned cmd)
+{
+    unsigned long retval;
+    pciconfig_read(bus, dev<<3, cmd, 1, &retval);
+    return retval;
+}
+
+static void pci_config_write_long(
+          unsigned char bus,
+          unsigned char dev,
+          int func, 
+          unsigned cmd,
+	  long val)
+{
+    pciconfig_write(bus, dev<<3, cmd, 4, val);
+}
+
+static void pci_config_write_word(
+          unsigned char bus,
+          unsigned char dev,
+          int func, 
+          unsigned cmd,
+	  long val)
+{
+    pciconfig_write(bus, dev<<3, cmd, 2, val);
+}
+
+static void pci_config_write_byte(
+          unsigned char bus,
+          unsigned char dev,
+          int func, 
+          unsigned cmd,
+	  long val)
+{
+    pciconfig_write(bus, dev<<3, cmd, 1, val);
+}

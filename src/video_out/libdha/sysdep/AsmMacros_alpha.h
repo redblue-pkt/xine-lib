@@ -17,7 +17,7 @@ extern u_int8_t inb(u_int32_t port);
 extern u_int16_t inw(u_int32_t port);
 extern u_int32_t inl(u_int32_t port);
 #else
-#error This stuff is not ported on your system
+#include "sysdep/AsmMacros_generic.h"
 #endif
 
 #define intr_disable()

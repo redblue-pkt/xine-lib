@@ -1,6 +1,7 @@
 /* Memory manager interface */
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h> /* mlock */
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -9,7 +10,7 @@
 
 static int libdha_fd=-1;
 
-#define ALLOWED_VER 2
+#define ALLOWED_VER 0x10
 int bm_open( void )
 {
   int retv;
@@ -54,4 +55,51 @@ int bm_virt_to_bus( void * virt_addr, unsigned long length, unsigned long * barr
     vmi.realaddr = barray;
     if(libdha_fd > 0) return ioctl(libdha_fd,DHAHELPER_VIRT_TO_BUS,&vmi);
     return ENXIO;
+}
+
+void *	bm_alloc_pa( unsigned long length )
+{
+    dhahelper_mem_t vmi;
+    vmi.length = length;
+    if(libdha_fd > 0) 
+    {
+	if(ioctl(libdha_fd,DHAHELPER_ALLOC_PA,&vmi) == 0)
+		return vmi.addr;
+    }
+    return 0;
+}
+
+void	bm_free_pa( void * virt_addr, unsigned long length )
+{
+    dhahelper_mem_t vmi;
+    vmi.addr = virt_addr;
+    vmi.length = length;
+    if(libdha_fd > 0) 
+    {
+	ioctl(libdha_fd,DHAHELPER_FREE_PA,&vmi);
+    }
+}
+
+int	bm_lock_mem( const void *addr, unsigned long length )
+{
+    dhahelper_mem_t vmi;
+    vmi.addr = (void *) addr;
+    vmi.length = length;
+    if(libdha_fd > 0) 
+    {
+	return ioctl(libdha_fd,DHAHELPER_LOCK_MEM,&vmi);
+    }
+    return mlock(addr,length);
+}
+
+int	bm_unlock_mem( const void * addr, unsigned long length )
+{
+    dhahelper_mem_t vmi;
+    vmi.addr = (void *) addr;
+    vmi.length = length;
+    if(libdha_fd > 0) 
+    {
+	return ioctl(libdha_fd,DHAHELPER_UNLOCK_MEM,&vmi);
+    }
+    return munlock(addr,length);
 }

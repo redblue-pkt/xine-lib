@@ -10,7 +10,7 @@
 #if defined(linux)
 #include <sys/io.h>
 #else
-#error This stuff is not ported on your system
+#include "sysdep/AsmMacros_generic.h"
 #endif
 
 #endif

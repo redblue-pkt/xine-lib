@@ -7,11 +7,13 @@
 
 #include "vidix.h"
 #include "fourcc.h"
-#include "libdha.h"
-#include "pci_ids.h"
-#include "pci_names.h"
+#include "libdha/libdha.h"
+#include "libdha/pci_ids.h"
+#include "libdha/pci_names.h"
 
 #include "nvidia.h"
+
+#define VIDIX_STATIC nvidia_
 
 static void *ctrl_base = 0;
 static void *fb_base = 0;
@@ -56,9 +58,9 @@ static const struct nv_card_id_s nv_card_id;
 
 static const struct nv_card_id_s nv_card_ids[]=
 {
-    { DEVICE_NVIDIA_RIVA_TNT2_NV5, "nVidia TNT2 (NV5) ", 5, CARD_FLAGS_NOTSUPPORTED},
-    { DEVICE_NVIDIA_VANTA_NV6, "nVidia Vanta (NV6.1)", 6, CARD_FLAGS_NOTSUPPORTED},
-    { DEVICE_NVIDIA_VANTA_NV62, "nVidia Vanta (NV6.2)", 6, CARD_FLAGS_NOTSUPPORTED}
+    { DEVICE_NVIDIA_NV5_RIVA_TNT2, "nVidia TNT2 (NV5) ", 5, CARD_FLAGS_NOTSUPPORTED},
+    { DEVICE_NVIDIA_NV6_VANTA, "nVidia Vanta (NV6.1)", 6, CARD_FLAGS_NOTSUPPORTED},
+    { DEVICE_NVIDIA_RIVA_TNT2_MODEL, "nVidia Vanta (NV6.2)", 6, CARD_FLAGS_NOTSUPPORTED}
 };
 
 static int find_chip(unsigned int chip_id)
@@ -93,12 +95,12 @@ static vidix_capability_t nvidia_cap =
     { 0, 0, 0, 0 }
 };
 
-unsigned int vixGetVersion(void)
+unsigned int VIDIX_NAME(vixGetVersion)(void)
 {
     return(VIDIX_VERSION);
 }
 
-int vixProbe(int verbose,int force)
+int VIDIX_NAME(vixProbe)(int verbose,int force)
 {
     pciinfo_t lst[MAX_PCI_DEVICES];
     unsigned int i, num_pci;
@@ -158,7 +160,7 @@ int vixProbe(int verbose,int force)
     return(err);
 }
 
-int vixInit(void)
+int VIDIX_NAME(vixInit)(const char *args)
 {
     int card_option;
     
@@ -255,18 +257,18 @@ int vixInit(void)
     return 0;
 }
 
-void vixDestroy(void)
+void VIDIX_NAME(vixDestroy)(void)
 {
     printf(NVIDIA_MSG"destory\n");
 }
 
-int vixGetCapability(vidix_capability_t *to)
+int VIDIX_NAME(vixGetCapability)(vidix_capability_t *to)
 {
     memcpy(to, &nvidia_cap, sizeof(vidix_capability_t));
     return(0);
 }
 
-int vixQueryFourcc(vidix_fourcc_t *to)
+int VIDIX_NAME(vixQueryFourcc)(vidix_fourcc_t *to)
 {
     printf(NVIDIA_MSG"query fourcc (%x)\n", to->fourcc);
     to->flags = 0;
@@ -274,7 +276,7 @@ int vixQueryFourcc(vidix_fourcc_t *to)
     return 0;
 }
 
-int vixConfigPlayback(vidix_playback_t *info)
+int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 {
     int fb_pixel_size = 32/8;
     int fb_line_len = 1280*4;
@@ -315,13 +317,13 @@ int vixConfigPlayback(vidix_playback_t *info)
     return 0;
 }
 
-int vixPlaybackOn(void)
+int VIDIX_NAME(vixPlaybackOn)(void)
 {
     printf(NVIDIA_MSG"playback on\n");
     return 0;
 }
 
-int vixPlaybackOff(void)
+int VIDIX_NAME(vixPlaybackOff)(void)
 {
     printf(NVIDIA_MSG"playback off\n");
     return 0;

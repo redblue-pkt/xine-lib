@@ -24,15 +24,19 @@
 #include <string.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include "vidix.h"
 #include "fourcc.h"
 #include "libdha.h"
 #include "pci_ids.h"
 #include "pci_names.h"
-#include "config.h"
 
 #include "pm3_regs.h"
+
+#define PM3_MSG "pm3_vid:"
+
+#define VIDIX_STATIC pm3_
 
 /* MBytes of video memory to use */
 #define PM3_VIDMEM 24
@@ -45,12 +49,16 @@
 #define TRACE_EXIT()
 #endif
 
-pciinfo_t pci_info;
+static pciinfo_t pci_info;
 
-void *pm3_reg_base;
-void *pm3_mem;
+static void *pm3_reg_base;
+static void *pm3_mem;
 
-int pm3_vidmem = PM3_VIDMEM;
+static int pm3_vidmem = PM3_VIDMEM;
+static int pm3_blank = 0;
+static int pm3_dma = 0;
+
+static u_int page_size;
 
 static vidix_capability_t pm3_cap =
 {
@@ -63,14 +71,14 @@ static vidix_capability_t pm3_cap =
     4,
     4,
     -1,
-    FLAG_UPSCALER|FLAG_DOWNSCALER,
+    FLAG_UPSCALER | FLAG_DOWNSCALER,
     VENDOR_3DLABS,
     -1,
     { 0, 0, 0, 0 }
 };
 
 
-unsigned int vixGetVersion(void)
+unsigned int VIDIX_NAME(vixGetVersion)(void)
 {
     return(VIDIX_VERSION);
 }
@@ -90,7 +98,7 @@ static int find_chip(unsigned chip_id)
   return -1;
 }
 
-int vixProbe(int verbose, int force)
+int VIDIX_NAME(vixProbe)(int verbose, int force)
 {
     pciinfo_t lst[MAX_PCI_DEVICES];
     unsigned i,num_pci;
@@ -99,7 +107,7 @@ int vixProbe(int verbose, int force)
     err = pci_scan(lst,&num_pci);
     if(err)
     {
-	printf("[pm3] Error occured during pci scan: %s\n",strerror(err));
+	printf(PM3_MSG" Error occured during pci scan: %s\n",strerror(err));
 	return err;
     }
     else
@@ -116,7 +124,8 @@ int vixProbe(int verbose, int force)
 		    continue;
 		dname = pci_device_name(VENDOR_3DLABS, lst[i].device);
 		dname = dname ? dname : "Unknown chip";
-		printf("[pm3] Found chip: %s\n", dname);
+		printf(PM3_MSG" Found chip: %s with IRQ %i\n",
+		       dname, lst[i].irq);
 		pm3_cap.device_id = lst[i].device;
 		err = 0;
 		memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
@@ -124,34 +133,62 @@ int vixProbe(int verbose, int force)
 	    }
 	}
     }
-    if(err && verbose) printf("[pm3] Can't find chip\n");
+    if(err && verbose) printf(PM3_MSG" Can't find chip\n");
     return err;
 }
 
 #define PRINT_REG(reg)							\
 {									\
     long _foo = READ_REG(reg);						\
-    printf("[pm3] " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
+    printf(PM3_MSG" " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
 }
 
-int vixInit(void)
+int VIDIX_NAME(vixInit)(const char *args)
 {
-    char *vm;
+    char *ac = strdup(args), *s, *opt;
+
+    opt = strtok_r(ac, ",", &s);
+    while(opt){
+	char *a = strchr(opt, '=');
+
+	if(a)
+	    *a++ = 0;
+	if(!strcmp(opt, "mem")){
+	    if(a)
+		pm3_vidmem = strtol(a, NULL, 0);
+	} else if(!strcmp(opt, "blank")){
+	    pm3_blank = a? strtol(a, NULL, 0): 1;
+	}
+
+	opt = strtok_r(NULL, ",", &s);
+    }
+
+    free(ac);
+
     pm3_reg_base = map_phys_mem(pci_info.base0, 0x20000);
     pm3_mem = map_phys_mem(pci_info.base1, 0x2000000);
-    if((vm = getenv("PM3_VIDMEM"))){
-	pm3_vidmem = strtol(vm, NULL, 0);
+
+    if(bm_open() == 0){
+	printf(PM3_MSG" Using DMA.\n");
+	pm3_cap.flags |= FLAG_DMA;
+	page_size = sysconf(_SC_PAGESIZE);
+	hwirq_install(pci_info.bus, pci_info.card, pci_info.func,
+		      0, PM3IntFlags, -1);
+	pm3_dma = 1;
     }
+
     return 0;
 }
 
-void vixDestroy(void)
+void VIDIX_NAME(vixDestroy)(void)
 {
     unmap_phys_mem(pm3_reg_base, 0x20000);
     unmap_phys_mem(pm3_mem, 0x2000000);
+    hwirq_uninstall(pci_info.bus, pci_info.card, pci_info.func);
+    bm_close();
 }
 
-int vixGetCapability(vidix_capability_t *to)
+int VIDIX_NAME(vixGetCapability)(vidix_capability_t *to)
 {
     memcpy(to, &pm3_cap, sizeof(vidix_capability_t));
     return 0;
@@ -168,7 +205,7 @@ static int is_supported_fourcc(uint32_t fourcc)
     }
 }
 
-int vixQueryFourcc(vidix_fourcc_t *to)
+int VIDIX_NAME(vixQueryFourcc)(vidix_fourcc_t *to)
 {
     if(is_supported_fourcc(to->fourcc))
     {
@@ -183,6 +220,12 @@ int vixQueryFourcc(vidix_fourcc_t *to)
     else  to->depth = to->flags = 0;
     return ENOSYS;
 }
+
+static int frames[VID_PLAY_MAXFRAMES], vid_base;
+static long overlay_mode, overlay_control, video_control, int_enable;
+static int src_w, drw_w;
+static int src_h, drw_h;
+static int drw_x, drw_y;
 
 #define FORMAT_RGB8888	PM3VideoOverlayMode_COLORFORMAT_RGB8888 
 #define FORMAT_RGB4444	PM3VideoOverlayMode_COLORFORMAT_RGB4444
@@ -202,9 +245,8 @@ int vixQueryFourcc(vidix_fourcc_t *to)
 
 /* Notice, have to check that we dont overflow the deltas here ... */
 static void
-compute_scale_factor(
-    short* src_w, short* dst_w,
-    unsigned int* shrink_delta, unsigned int* zoom_delta)
+compute_scale_factor(int* src_w, int* dst_w,
+		     u_int* shrink_delta, u_int* zoom_delta)
 {
     /* NOTE: If we don't return reasonable values here then the video
      * unit can potential shut off and won't display an image until re-enabled.
@@ -228,21 +270,13 @@ compute_scale_factor(
     }
 }
 
-static int frames[VID_PLAY_MAXFRAMES];
-
-static long overlay_mode, overlay_control;
-
-int vixConfigPlayback(vidix_playback_t *info)
+static void
+pm3_setup_overlay(vidix_playback_t *info)
 {
     int shrink, zoom;
-    short src_w, drw_w;
-    short src_h, drw_h;
-    long base0;
-    int pitch;
-    int format;
-    unsigned int i;
-
-    TRACE_ENTER();
+    int format = 0;
+    int filter = 0;
+    int sw = src_w;
 
     switch(info->fourcc){
     case IMGFMT_YUY2:
@@ -251,97 +285,46 @@ int vixConfigPlayback(vidix_playback_t *info)
     case IMGFMT_UYVY:
 	format = FORMAT_VUY422;
 	break;
-    default:
-	return -1;
     }
 
-    src_w = info->src.w;
-    src_h = info->src.h;
+    compute_scale_factor(&sw, &drw_w, &shrink, &zoom);
 
-    drw_w = info->dest.w;
-    drw_h = info->dest.h;
-
-    pitch = src_w;
-
-    info->num_frames = pm3_vidmem*1024*1024 / (pitch * src_h * 2);
-    if(info->num_frames > VID_PLAY_MAXFRAMES)
-	info->num_frames = VID_PLAY_MAXFRAMES;
-
-    /* Use end of video memory. Assume the card has 32 MB */
-    base0 = (32-pm3_vidmem)*1024*1024;
-    info->dga_addr = pm3_mem + base0;
-
-    if(info->fourcc == IMGFMT_YV12){
-	info->dest.pitch.y = 2;
-	info->dest.pitch.u = 2;
-	info->dest.pitch.y = 2;
-	info->offset.y = 0;
-	info->offset.v = src_w * src_h;
-	info->offset.u = src_w * src_h * 3/2;
-    } else {
-	info->dest.pitch.y = 2;
-	info->dest.pitch.u = 0;
-	info->dest.pitch.v = 0;
-	info->offset.y = 0;
-	info->offset.v = 0;
-	info->offset.u = 0;
-    }
-    info->frame_size = pitch * src_h * 2;
-
-    for(i = 0; i < info->num_frames; i++){
-	info->offsets[i] = info->frame_size * i;
-	frames[i] = (base0 + info->offsets[i]) >> 1;
-    }
-
-    compute_scale_factor(&src_w, &drw_w, &shrink, &zoom);
-
-#if 0
-    aperture_mode = READ_REG(PM3ByAperture1Mode);
-    if(info->fourcc == IMGFMT_YV12){
-/*     WRITE_REG(PM3Aperture0, base0 >> 1); */
-	WRITE_REG(PM3ByAperture1Mode,
-		  PM3ByApertureMode_FORMAT_YUYV |
-		  PM3ByApertureMode_PIXELSIZE_32BIT);
-	WRITE_REG(PM3Aperture1Stride, pitch);
-	WRITE_REG(PM3Aperture1YStart, base0 / 16);
-	WRITE_REG(PM3Aperture1VStart, (base0 + info->offset.v) / 16);
-	WRITE_REG(PM3Aperture1UStart, (base0 + info->offset.u) / 16);
-    }
-#endif
-
-    WRITE_REG(PM3VideoOverlayBase0, base0 >> 1);
-    WRITE_REG(PM3VideoOverlayStride, PM3VideoOverlayStride_STRIDE(pitch));
-    WRITE_REG(PM3VideoOverlayWidth, PM3VideoOverlayWidth_WIDTH(src_w));
+    WRITE_REG(PM3VideoOverlayBase0, vid_base >> 1);
+    WRITE_REG(PM3VideoOverlayStride, PM3VideoOverlayStride_STRIDE(src_w));
+    WRITE_REG(PM3VideoOverlayWidth, PM3VideoOverlayWidth_WIDTH(sw));
     WRITE_REG(PM3VideoOverlayHeight, PM3VideoOverlayHeight_HEIGHT(src_h));
     WRITE_REG(PM3VideoOverlayOrigin, 0);
 
     /* Scale the source to the destinationsize */
-    if (src_h == drw_h) {
-	WRITE_REG(PM3VideoOverlayYDelta, PM3VideoOverlayYDelta_NONE);
-    } else {
-	WRITE_REG(PM3VideoOverlayYDelta,
-		  PM3VideoOverlayYDelta_DELTA(src_h, drw_h));
-    }
     if (src_w == drw_w) {
     	WRITE_REG(PM3VideoOverlayShrinkXDelta, 1<<16);
     	WRITE_REG(PM3VideoOverlayZoomXDelta, 1<<16);
     } else {
     	WRITE_REG(PM3VideoOverlayShrinkXDelta, shrink);
     	WRITE_REG(PM3VideoOverlayZoomXDelta, zoom);
+	filter = PM3VideoOverlayMode_FILTER_PARTIAL;
     }
+    if (src_h == drw_h) {
+	WRITE_REG(PM3VideoOverlayYDelta, PM3VideoOverlayYDelta_NONE);
+    } else {
+	WRITE_REG(PM3VideoOverlayYDelta,
+		  PM3VideoOverlayYDelta_DELTA(src_h, drw_h));
+	filter = PM3VideoOverlayMode_FILTER_FULL;
+    }
+
     WRITE_REG(PM3VideoOverlayIndex, 0);
 
     /* Now set the ramdac video overlay region and mode */
-    RAMDAC_SET_REG(PM3RD_VideoOverlayXStartLow, (info->dest.x & 0xff));
-    RAMDAC_SET_REG(PM3RD_VideoOverlayXStartHigh, (info->dest.x & 0xf00)>>8);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayXEndLow, (info->dest.x+drw_w) & 0xff);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayXStartLow, (drw_x & 0xff));
+    RAMDAC_SET_REG(PM3RD_VideoOverlayXStartHigh, (drw_x & 0xf00)>>8);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayXEndLow, (drw_x+drw_w) & 0xff);
     RAMDAC_SET_REG(PM3RD_VideoOverlayXEndHigh,
-		   ((info->dest.x+drw_w) & 0xf00)>>8);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayYStartLow, (info->dest.y & 0xff)); 
-    RAMDAC_SET_REG(PM3RD_VideoOverlayYStartHigh, (info->dest.y & 0xf00)>>8);
-    RAMDAC_SET_REG(PM3RD_VideoOverlayYEndLow, (info->dest.y+drw_h) & 0xff); 
+		   ((drw_x+drw_w) & 0xf00)>>8);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayYStartLow, (drw_y & 0xff)); 
+    RAMDAC_SET_REG(PM3RD_VideoOverlayYStartHigh, (drw_y & 0xf00)>>8);
+    RAMDAC_SET_REG(PM3RD_VideoOverlayYEndLow, (drw_y+drw_h) & 0xff); 
     RAMDAC_SET_REG(PM3RD_VideoOverlayYEndHigh,
-		   ((info->dest.y+drw_h) & 0xf00)>>8);
+		   ((drw_y+drw_h) & 0xf00)>>8);
 
     RAMDAC_SET_REG(PM3RD_VideoOverlayKeyR, 0xff);
     RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, 0x00);
@@ -350,20 +333,71 @@ int vixConfigPlayback(vidix_playback_t *info)
     overlay_mode =
 	1 << 5 |
 	format |
-	PM3VideoOverlayMode_FILTER_FULL |
+	filter |
 	PM3VideoOverlayMode_BUFFERSYNC_MANUAL |
 	PM3VideoOverlayMode_FLIP_VIDEO;
 
     overlay_control = 
 	PM3RD_VideoOverlayControl_KEY_COLOR |
-	PM3RD_VideoOverlayControl_MODE_OVERLAYKEY |
+	PM3RD_VideoOverlayControl_MODE_ALWAYS |
 	PM3RD_VideoOverlayControl_DIRECTCOLOR_ENABLED;
+}
+
+int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
+{
+    unsigned int i;
+    u_int frame_size;
+    u_int vidmem_size;
+    u_int max_frames;
+
+    TRACE_ENTER();
+
+    src_w = info->src.w;
+    src_h = info->src.h;
+    drw_w = info->dest.w;
+    drw_h = info->dest.h;
+    drw_x = info->dest.x;
+    drw_y = info->dest.y;
+
+    frame_size = src_w * src_h * 2;
+    vidmem_size = pm3_vidmem*1024*1024;
+    max_frames = vidmem_size / frame_size;
+    if(max_frames > VID_PLAY_MAXFRAMES)
+	max_frames = VID_PLAY_MAXFRAMES;
+
+    src_h--; /* ugh */
+
+    if(info->num_frames > max_frames)
+	info->num_frames = max_frames;
+    vidmem_size = info->num_frames * frame_size;
+
+    /* Use end of video memory. Assume the card has 32 MB */
+    vid_base = 32*1024*1024 - vidmem_size;
+    info->dga_addr = pm3_mem + vid_base;
+
+    info->dest.pitch.y = 2;
+    info->dest.pitch.u = 0;
+    info->dest.pitch.v = 0;
+    info->offset.y = 0;
+    info->offset.v = 0;
+    info->offset.u = 0;
+    info->frame_size = frame_size;
+
+    for(i = 0; i < info->num_frames; i++){
+	info->offsets[i] = frame_size * i;
+	frames[i] = (vid_base + info->offsets[i]) >> 1;
+    }
+
+    pm3_setup_overlay(info);
+
+    video_control = READ_REG(PM3VideoControl);
+    int_enable = READ_REG(PM3IntEnable);
 
     TRACE_EXIT();
     return 0;
 }
 
-int vixPlaybackOn(void)
+int VIDIX_NAME(vixPlaybackOn)(void)
 {
     TRACE_ENTER();
 
@@ -374,11 +408,15 @@ int vixPlaybackOn(void)
     WRITE_REG(PM3VideoOverlayUpdate,
 	      PM3VideoOverlayUpdate_ENABLE);
 
+    if(pm3_blank)
+	WRITE_REG(PM3VideoControl,
+		  video_control | PM3VideoControl_DISPLAY_ENABLE);
+
     TRACE_EXIT();
     return 0;
 }
 
-int vixPlaybackOff(void)
+int VIDIX_NAME(vixPlaybackOff)(void)
 {
     RAMDAC_SET_REG(PM3RD_VideoOverlayControl,
 		   PM3RD_VideoOverlayControl_DISABLE);
@@ -389,12 +427,115 @@ int vixPlaybackOff(void)
     RAMDAC_SET_REG(PM3RD_VideoOverlayKeyG, 0x01);
     RAMDAC_SET_REG(PM3RD_VideoOverlayKeyB, 0xfe);
 
+    if(video_control)
+	WRITE_REG(PM3VideoControl, video_control);
+
+    if(pm3_dma)
+	WRITE_REG(PM3IntEnable, 0);
+
     return 0;
 }
 
-int vixPlaybackFrameSelect(unsigned int frame)
+int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 {
     WRITE_REG(PM3VideoOverlayBase0, frames[frame]);
-/*     WRITE_REG(PM3Aperture0, frames[frame]); */
+
     return 0;
+}
+
+struct pm3_bydma_cmd {
+    uint32_t bus_addr;
+    uint32_t fb_addr;
+    uint32_t mask;
+    uint32_t count;
+};
+
+struct pm3_bydma_frame {
+    struct pm3_bydma_cmd *cmds;
+    u_long bus_addr;
+    uint32_t count;
+};
+
+static struct pm3_bydma_frame *
+pm3_setup_bydma(vidix_dma_t *dma)
+{
+    u_int size = dma->size;
+    u_int pages = (size + page_size-1) / page_size;
+    struct pm3_bydma_frame *bdf;
+    long baddr[pages];
+    u_int i;
+    uint32_t dest;
+
+    if(bm_virt_to_bus(dma->src, dma->size, baddr))
+	return NULL;
+
+    bdf = malloc(sizeof(*bdf));
+    bdf->cmds = valloc(pages * sizeof(struct pm3_bydma_cmd));
+
+    dest = vid_base + dma->dest_offset;
+    for(i = 0; i < pages; i++, dest += page_size, size -= page_size){
+	bdf->cmds[i].bus_addr = baddr[i];
+	bdf->cmds[i].fb_addr = dest;
+	bdf->cmds[i].mask = ~0;
+	bdf->cmds[i].count = ((size > page_size)? page_size: size) / 16;
+    }
+
+    bdf->count = pages;
+
+    if(bm_virt_to_bus(bdf->cmds, page_size, &bdf->bus_addr) != 0){
+	free(bdf->cmds);
+	free(bdf);
+	return NULL;
+    }
+
+    return bdf;
+}
+
+extern int
+VIDIX_NAME(vixPlaybackCopyFrame)(vidix_dma_t *dma)
+{
+    u_int frame = dma->idx;
+    struct pm3_bydma_frame *bdf;
+
+    if(dma->internal[frame]){
+	bdf = dma->internal[frame];
+    } else {
+	if(!(bdf = pm3_setup_bydma(dma))){
+	    return -1;
+	} else if(dma->flags & BM_DMA_FIXED_BUFFS){
+	    if(mlock(bdf->cmds, page_size) == 0){
+		dma->internal[frame] = bdf;
+	    } else {
+		printf(PM3_MSG" Can't lock page @ %p\n", bdf->cmds);
+	    }
+	}
+    }
+
+    if(dma->flags & BM_DMA_SYNC){
+	WRITE_REG(PM3IntEnable, (1 << 7));
+	while(READ_REG(PM3ByDMAReadMode) & PM3ByDMAReadMode_Active){
+	    hwirq_wait(pci_info.irq);
+	}
+	WRITE_REG(PM3IntEnable, 0);
+    }
+
+    WAIT_FIFO(3);
+    WRITE_REG(PM3ByDMAReadCommandBase, bdf->bus_addr);
+    WRITE_REG(PM3ByDMAReadCommandCount, bdf->count);
+    WRITE_REG(PM3ByDMAReadMode,
+	      PM3ByDMAReadMode_ByteSwap_NONE |
+	      PM3ByDMAReadMode_Format_RAW |
+	      PM3ByDMAReadMode_PixelSize(16) |
+	      PM3ByDMAReadMode_Active |
+	      PM3ByDMAReadMode_Burst(7) |
+	      PM3ByDMAReadMode_Align);
+
+    return 0;
+}
+
+extern int
+VIDIX_NAME(vixQueryDMAStatus)(void)
+{
+    uint32_t bdm = READ_REG(PM3ByDMAReadMode);
+    return (bdm & PM3ByDMAReadMode_Active)? 1: 0;
 }

@@ -22,38 +22,22 @@ int main(int argc, char *argv[])
 	printf("incompatible api!\n");
 
     {
- 	dhahelper_memory_t mem;
-
-	mem.operation = MEMORY_OP_MAP;
-	//mem.start = 0xe0000000;
-	mem.start = 0xe4000008;
- 	mem.offset = 0;
- 	mem.size = 0x4000;
-	mem.ret = 0;
-
-	ret = ioctl(fd, DHAHELPER_MEMORY, &mem);
-
-	printf("ret: %s\n", strerror(errno));
-
-	mem.ret = (int)mmap(NULL, (size_t)mem.size, PROT_READ, MAP_SHARED, fd, (off_t)0);
-	printf("allocated to %x\n", mem.ret); 
+	void *mem;
+	unsigned long size=256;
+	mem = mmap(0,size,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
+	printf("allocated to %p\n", mem); 
 
 	if (argc > 1)
-	    if (mem.ret != 0)
+	    if (mem != 0)
 	    {
  		int i;
  
 		for (i = 0; i < 256; i++)
-		    printf("[%x] ", *(int *)(mem.ret+i));
+		    printf("[%x] ", *(int *)(mem+i));
 		printf("\n");
 	    }
 
-	munmap((void *)mem.ret, mem.size);
-
-	mem.operation = MEMORY_OP_UNMAP;
-	mem.start = mem.ret;
-
-	ioctl(fd, DHAHELPER_MEMORY, &mem);
+	munmap((void *)mem, size);
     }
 
     return(0);

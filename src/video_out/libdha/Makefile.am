@@ -12,7 +12,7 @@ awk_generated = pci_dev_ids.c pci_ids.h pci_names.c pci_names.h pci_vendors.h
 
 noinst_LTLIBRARIES = $(dha_lib)
 
-libdha_la_SOURCES = libdha.c mtrr.c pci.c pci_names.c mmi.c
+libdha_la_SOURCES = libdha.c mtrr.c pci.c pci_names.c mmi.c ports.c irq.c cpu_flush.c
 
 EXTRA_PROGRAMS = test
 

@@ -1,7 +1,7 @@
 /* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/glint/pm3_regs.h,v 1.9 2001/11/20 00:09:15 alanh Exp $ */
 
 /*
- * glint register file 
+ * glint register file
  *
  * Copyright by Sven Luther
  * Authors: Sven Luther, <luther@dpt-info.u-strasbg.fr>
@@ -9,10 +9,16 @@
  *
  * this work is sponsored by Appian Graphics.
  *
- */ 
+ */
 
 #ifndef _PM3_REG_H_
 #define _PM3_REG_H_
+
+#define PM3FIFOSize 120
+
+#define PM3Tag(r) ((r>>3)&0x7ff)
+
+#define PM3OutputFIFO						0x2000
 
 /**********************************************
 *  GLINT Permedia3 Control Status registers   *
@@ -90,7 +96,35 @@
 #define PM3Aperture2YStart					0x0338
 #define PM3Aperture2UStart					0x0340
 #define PM3Aperture2VStart					0x0348
-	
+
+#define PM3ByDMAReadCommandBase					0x0378
+#define PM3ByDMAReadCommandCount				0x0380
+#define PM3ByDMAReadMode					0x0350
+	#define PM3ByDMAReadMode_ByteSwap_NONE			(0<<0)
+	#define PM3ByDMAReadMode_ByteSwap_BYTE			(1<<0)
+	#define PM3ByDMAReadMode_ByteSwap_HWORD			(2<<0)
+	#define PM3ByDMAReadMode_ByteSwap_FULL			(3<<0)
+	#define PM3ByDMAReadMode_PatchEnable			(1<<2)
+	#define PM3ByDMAReadMode_Format_RAW			(0<<3)
+	#define PM3ByDMAReadMode_Format_YUYV			(1<<3)
+	#define PM3ByDMAReadMode_Format_UYVY			(2<<3)
+	#define PM3ByDMAReadMode_PixelSize(s)			(((s>>4)&3)<<5)
+	#define PM3ByDMAReadMode_EffectiveStride(s)		((s&3)<<7)
+	#define PM3ByDMAReadMode_PatchOffsetX(x)		((x&0x3f)<<9)
+	#define PM3ByDMAReadMode_PatchOffsetY(y)		((y&0x3f)<<16)
+	#define PM3ByDMAReadMode_Buffer_FB			(0<<21)
+	#define PM3ByDMAReadMode_Buffer_LB			(1<<21)
+	#define PM3ByDMAReadMode_Active				(1<<22)
+	#define PM3ByDMAReadMode_MemType_PCI			(0<<23)
+	#define PM3ByDMAReadMode_MemType_AGP			(1<<23)
+	#define PM3ByDMAReadMode_Burst(b)			((b&7)<<24)
+	#define PM3ByDMAReadMode_Align				(1<<27)
+#define PM3ByDMAReadStride					0x0358
+#define PM3ByDMAReadUStart					0x0368
+#define PM3ByDMAReadVStart					0x0370
+#define PM3ByDMAReadYStart					0x0360
+
+
 /**********************************************
 *  GLINT Permedia3 Memory Control (0x1000)    *
 ***********************************************/
@@ -520,8 +554,12 @@
 #define PM3AntialiasMode					0x8808
 #define PM3AntialiasModeAnd					0xac00
 #define PM3AntialiasModeOr					0xac08
+#define PM3AreaStippleMode					0x81a0
 /* ... */
 #define PM3BackgroundColor					0xb0c8
+#define PM3BasePageOfWorkingSet					0xb4c8
+/* ... */
+#define PM3ChromaTestMode					0x8f18
 /* ... */
 #define PM3ColorDDAMode						0x87e0
 #define PM3ColorDDAModeAnd					0xabe0
@@ -547,11 +585,41 @@
 #define PM3DeltaMode						0x9300
 #define PM3DeltaModeAnd						0xaad0
 #define PM3DeltaModeOr						0xaad8
+
+#define PM3DepthMode						0x89a0
 /* ... */
 #define PM3DitherMode						0x8818
 #define PM3DitherModeAnd					0xacd0
 #define PM3DitherModeOr						0xacd8
 /* ... */
+#define PM3DMARectangleRead					0xa9a8
+	#define PM3DMARectangleRead_Width(w)			(w&0xfff)
+	#define PM3DMARectangleRead_Height(h)			((h&0xfff)<<12)
+	#define PM3DMARectangleRead_PixelSize(s)		((s&0x3)<<24)
+	#define PM3DMARectangleRead_Pack			(1<<26)
+	#define PM3DMARectangleRead_ByteSwap(b)			((b&0x3)<<27)
+	#define PM3DMARectangleRead_Alignment			(1<<30)
+#define PM3DMARectangleReadAddress				0xa9b0
+#define PM3DMARectangleReadLinePitch				0xa9b8
+#define PM3DMARectangleReadTarget				0xa9c0
+/* ... */
+#define PM3DownloadAddress					0xb0d0
+#define PM3DownloadData						0xb0d8
+/* ... */
+#define PM3dBdx							0x87b8
+#define PM3dBdyDom						0x87c0
+#define PM3dGdx							0x87a0
+#define PM3dGdyDom						0x87a8
+#define PM3dQdx							0x83c0
+#define PM3dQdyDom						0x83c8
+#define PM3dRdx							0x8788
+#define PM3dRdyDom						0x8790
+#define PM3dSdx							0x8390
+#define PM3dSdy							0x83d8
+#define PM3dSdyDom						0x8398
+#define PM3dTdx							0x83a8
+#define PM3dTdy							0x83e0
+#define PM3dTdyDom						0x83b0
 #define PM3dXDom						0x8008
 #define PM3dXSub						0x8018
 #define PM3dY							0x8028
@@ -587,47 +655,47 @@
 #define PM3FBDestReadEnablesAnd					0xad20
 #define PM3FBDestReadEnablesOr					0xad28
 	#define PM3FBDestReadEnables_E(e)		((e)&0xff)
-	#define PM3FBDestReadEnables_E0				1<<0
-	#define PM3FBDestReadEnables_E1				1<<1
-	#define PM3FBDestReadEnables_E2				1<<2
-	#define PM3FBDestReadEnables_E3				1<<3
-	#define PM3FBDestReadEnables_E4				1<<4
-	#define PM3FBDestReadEnables_E5				1<<5
-	#define PM3FBDestReadEnables_E6				1<<6
-	#define PM3FBDestReadEnables_E7				1<<7
+	#define PM3FBDestReadEnables_E0				(1<<0)
+	#define PM3FBDestReadEnables_E1				(1<<1)
+	#define PM3FBDestReadEnables_E2				(1<<2)
+	#define PM3FBDestReadEnables_E3				(1<<3)
+	#define PM3FBDestReadEnables_E4				(1<<4)
+	#define PM3FBDestReadEnables_E5				(1<<5)
+	#define PM3FBDestReadEnables_E6				(1<<6)
+	#define PM3FBDestReadEnables_E7				(1<<7)
 	#define PM3FBDestReadEnables_R(r)		(((r)&0xff)<<8)
-	#define PM3FBDestReadEnables_R0				1<<8
-	#define PM3FBDestReadEnables_R1				1<<9
-	#define PM3FBDestReadEnables_R2				1<<10
-	#define PM3FBDestReadEnables_R3				1<<11
-	#define PM3FBDestReadEnables_R4				1<<12
-	#define PM3FBDestReadEnables_R5				1<<13
-	#define PM3FBDestReadEnables_R6				1<<14
-	#define PM3FBDestReadEnables_R7				1<<15
+	#define PM3FBDestReadEnables_R0				(1<<8)
+	#define PM3FBDestReadEnables_R1				(1<<9)
+	#define PM3FBDestReadEnables_R2				(1<<10)
+	#define PM3FBDestReadEnables_R3				(1<<11)
+	#define PM3FBDestReadEnables_R4				(1<<12)
+	#define PM3FBDestReadEnables_R5				(1<<13)
+	#define PM3FBDestReadEnables_R6				(1<<14)
+	#define PM3FBDestReadEnables_R7				(1<<15)
 	#define PM3FBDestReadEnables_ReferenceAlpha(a)	(((a)&0xff)<<24)
 
 #define PM3FBDestReadMode					0xaee0
 #define PM3FBDestReadModeAnd					0xac90
 #define PM3FBDestReadModeOr					0xac98
-	#define PM3FBDestReadMode_ReadDisable			0<<0
-	#define PM3FBDestReadMode_ReadEnable			1<<0
+	#define PM3FBDestReadMode_ReadDisable			(0<<0)
+	#define PM3FBDestReadMode_ReadEnable			(1<<0)
 	#define PM3FBDestReadMode_StripePitch(sp)	(((sp)&0x7)<<2)
 	#define PM3FBDestReadMode_StripeHeight(sh)	(((sh)&0x7)<<7)
-	#define PM3FBDestReadMode_Enable0			1<<8
-	#define PM3FBDestReadMode_Enable1			1<<9
-	#define PM3FBDestReadMode_Enable2			1<<10
-	#define PM3FBDestReadMode_Enable3			1<<11
+	#define PM3FBDestReadMode_Enable0			(1<<8)
+	#define PM3FBDestReadMode_Enable1			(1<<9)
+	#define PM3FBDestReadMode_Enable2			(1<<10)
+	#define PM3FBDestReadMode_Enable3			(1<<11)
 	#define PM3FBDestReadMode_Layout0(l)		(((l)&0x3)<<12)
 	#define PM3FBDestReadMode_Layout1(l)		(((l)&0x3)<<14)
 	#define PM3FBDestReadMode_Layout2(l)		(((l)&0x3)<<16)
 	#define PM3FBDestReadMode_Layout3(l)		(((l)&0x3)<<18)
-	#define PM3FBDestReadMode_Origin0			1<<20
-	#define PM3FBDestReadMode_Origin1			1<<21
-	#define PM3FBDestReadMode_Origin2			1<<22
-	#define PM3FBDestReadMode_Origin3			1<<23
-	#define PM3FBDestReadMode_Blocking			1<<24
-	#define PM3FBDestReadMode_UseReadEnabled		1<<26
-	#define PM3FBDestReadMode_AlphaFiltering		1<<27
+	#define PM3FBDestReadMode_Origin0			(1<<20)
+	#define PM3FBDestReadMode_Origin1			(1<<21)
+	#define PM3FBDestReadMode_Origin2			(1<<22)
+	#define PM3FBDestReadMode_Origin3			(1<<23)
+	#define PM3FBDestReadMode_Blocking			(1<<24)
+	#define PM3FBDestReadMode_UseReadEnabled		(1<<26)
+	#define PM3FBDestReadMode_AlphaFiltering		(1<<27)
 
 #define PM3FBHardwareWriteMask					0x8ac0
 #define PM3FBSoftwareWriteMask					0x8820
@@ -647,14 +715,14 @@
 	#define PM3FBSourceReadMode_StripePitch(sp)	(((sp)&0x7)<<2)
 	#define PM3FBSourceReadMode_StripeHeight(sh)	(((sh)&0x7)<<7)
 	#define PM3FBSourceReadMode_Layout(l)		(((l)&0x3)<<8)
-	#define PM3FBSourceReadMode_Origin			1<<10
-	#define PM3FBSourceReadMode_Blocking			1<<11
-	#define PM3FBSourceReadMode_UserTexelCoord		1<<13
-	#define PM3FBSourceReadMode_WrapXEnable			1<<14
-	#define PM3FBSourceReadMode_WrapYEnable			1<<15
+	#define PM3FBSourceReadMode_Origin			(1<<10)
+	#define PM3FBSourceReadMode_Blocking			(1<<11)
+	#define PM3FBSourceReadMode_UseTexelCoord		(1<<13)
+	#define PM3FBSourceReadMode_WrapXEnable			(1<<14)
+	#define PM3FBSourceReadMode_WrapYEnable			(1<<15)
 	#define PM3FBSourceReadMode_WrapX(w)		(((w)&0xf)<<16)
 	#define PM3FBSourceReadMode_WrapY(w)		(((w)&0xf)<<20)
-	#define PM3FBSourceReadMode_ExternalSourceData		1<<24
+	#define PM3FBSourceReadMode_ExternalSourceData		(1<<24)
 #define PM3FBWriteBufferAddr0                                   0xb000
 #define PM3FBWriteBufferAddr1                                   0xb008
 #define PM3FBWriteBufferAddr2                                   0xb010
@@ -694,11 +762,18 @@
 	#define PM3FBWriteMode_Origin1                          1<<25
 	#define PM3FBWriteMode_Origin2                          1<<26
 	#define PM3FBWriteMode_Origin3                          1<<27
+
+#define PM3FogMode						0x8690
 #define PM3ForegroundColor					0xb0c0
 /* ... */
 #define PM3GIDMode						0xb538
 #define PM3GIDModeAnd						0xb5b0
 #define PM3GIDModeOr						0xb5b8
+/* ... */
+#define PM3HeadPhysicalPageAllocation0				0xb480
+#define PM3HeadPhysicalPageAllocation1				0xb488
+#define PM3HeadPhysicalPageAllocation2				0xb490
+#define PM3HeadPhysicalPageAllocation3				0xb498
 /* ... */
 #define PM3LBDestReadBufferAddr					0xb510
 #define PM3LBDestReadBufferOffset				0xb518
@@ -708,14 +783,14 @@
 #define PM3LBDestReadMode					0xb500
 #define PM3LBDestReadModeAnd					0xb580
 #define PM3LBDestReadModeOr					0xb588
-	#define PM3LBDestReadMode_Disable			0<<0
-	#define PM3LBDestReadMode_Enable			1<<0
+	#define PM3LBDestReadMode_Disable			(0<<0)
+	#define PM3LBDestReadMode_Enable			(1<<0)
 	#define PM3LBDestReadMode_StripePitch(p)		(((p)&0x7)<<2)
 	#define PM3LBDestReadMode_StripeHeight(h)		(((h)&0x7)<<5)
-	#define PM3LBDestReadMode_Layout			1<<8
-	#define PM3LBDestReadMode_Origin			1<<9
-	#define PM3LBDestReadMode_UserReadEnables		1<<10
-	#define PM3LBDestReadMode_Packed16			1<<11
+	#define PM3LBDestReadMode_Layout			(1<<8)
+	#define PM3LBDestReadMode_Origin			(1<<9)
+	#define PM3LBDestReadMode_UserReadEnables		(1<<10)
+	#define PM3LBDestReadMode_Packed16			(1<<11)
 	#define PM3LBDestReadMode_Width(w)			(((w)&0xfff)<<12)
 #define PM3LBReadFormat						0x8888
 	#define PM3LBReadFormat_DepthWidth(w)			(((w)&0x3)<<0)
@@ -730,12 +805,12 @@
 #define PM3LBSourceReadMode					0xb520
 #define PM3LBSourceReadModeAnd					0xb5a0
 #define PM3LBSourceReadModeOr					0xb5a8
-	#define PM3LBSourceReadMode_Enable			1<<0
+	#define PM3LBSourceReadMode_Enable			(1<<0)
 	#define PM3LBSourceReadMode_StripePitch(p)		(((p)&0x7)<<2)
 	#define PM3LBSourceReadMode_StripeHeight(h)		(((h)&0x7)<<5)
-	#define PM3LBSourceReadMode_Layout			1<<8
-	#define PM3LBSourceReadMode_Origin			1<<9
-	#define PM3LBSourceReadMode_Packed16			1<<10
+	#define PM3LBSourceReadMode_Layout			(1<<8)
+	#define PM3LBSourceReadMode_Origin			(1<<9)
+	#define PM3LBSourceReadMode_Packed16			(1<<10)
 	#define PM3LBSourceReadMode_Width(w)			(((w)&0xfff)<<11)
 #define PM3LBStencil						0x88a8
 #define PM3LBWriteBufferAddr					0xb540
@@ -749,13 +824,13 @@
 #define PM3LBWriteMode						0x88c0
 #define PM3LBWriteModeAnd					0xac80
 #define PM3LBWriteModeOr					0xac88
-	#define PM3LBWriteMode_WriteDisable			0<<0
-	#define PM3LBWriteMode_WriteEnable			1<<0
+	#define PM3LBWriteMode_WriteDisable			(0<<0)
+	#define PM3LBWriteMode_WriteEnable			(1<<0)
 	#define PM3LBWriteMode_StripePitch(p)			(((p)&0x7)<<3)
 	#define PM3LBWriteMode_StripeHeight(h)			(((h)&0x7)<<6)
-	#define PM3LBWriteMode_Layout				1<<9
-	#define PM3LBWriteMode_Origin				1<<10
-	#define PM3LBWriteMode_Packed16				1<<11
+	#define PM3LBWriteMode_Layout				(1<<9)
+	#define PM3LBWriteMode_Origin				(1<<10)
+	#define PM3LBWriteMode_Packed16				(1<<11)
 	#define PM3LBWriteMode_Width(w)				(((w)&0xfff)<<12)
 /* ... */
 #define PM3LineStippleMode					0x81a8
@@ -777,6 +852,8 @@
 	#define PM3LogicalOpMode_UseConstantSource_Disable	(0<<11)
 	#define PM3LogicalOpMode_UseConstantSource_Enable	(1<<11)
 
+#define PM3LogicalTexturePageAddr				0xb4d0
+#define PM3LogicalTexturePageTableLength			0xb4d8
 /* ... */
 #define PM3LUT							0x8e80
 /* ... */
@@ -788,6 +865,8 @@
 #define PM3LUTModeAnd						0xad70
 #define PM3LUTModeOr						0xad78
 #define PM3LUTTransfer						0x84d8
+/* ... */
+#define PM3PhysicalPageAllocationTableAddr			0xb4c0
 /* ... */
 #define PM3PixelSize						0x80c0
 	#define PM3PixelSize_GLOBAL_32BIT			(0<<0)
@@ -820,6 +899,8 @@
 	#define PM3PixelSize_GLOBAL				(0<<31)
 	#define PM3PixelSize_INDIVIDUAL				(1<<31)
 /* ... */
+#define PM3QStart						0x83b8
+
 #define PM3Render						0x8038
 	#define PM3Render_AreaStipple_Disable			(0<<0)
 	#define PM3Render_AreaStipple_Enable			(1<<0)
@@ -858,7 +939,6 @@
 #define PM3RasterizerModeAnd					0xaba0
 #define PM3RasterizerModeOr					0xabb8
 #define PM3RectangleHeight					0x94e0
-#define PM3Render						0x8038
 #define PM3RepeatLine						0x9328
 #define PM3ResetPickResult					0x8c20
 #define PM3RLEMask						0x8c48
@@ -881,11 +961,33 @@
 #define PM3StartY						0x8020
 /* ... */
 #define PM3SpanColorMask					0x8168
+
+#define PM3StencilMode						0x8988
+/* ... */
+#define PM3TailPhysicalPageAllocation0				0xb4a0
+#define PM3TailPhysicalPageAllocation1				0xb4a8
+#define PM3TailPhysicalPageAllocation2				0xb4b0
+#define PM3TailPhysicalPageAllocation3				0xb4b8
 /* ... */
 #define PM3TextureApplicationMode				0x8680
 #define PM3TextureApplicationModeAnd				0xac50
 #define PM3TextureApplicationModeOr				0xac58
-#define PM3TextureBaseAddr					0x8500
+#define PM3TextureBaseAddr0					0x8500
+#define PM3TextureBaseAddr1					0x8508
+#define PM3TextureBaseAddr2					0x8510
+#define PM3TextureBaseAddr3					0x8518
+#define PM3TextureBaseAddr4					0x8520
+#define PM3TextureBaseAddr5					0x8528
+#define PM3TextureBaseAddr6					0x8530
+#define PM3TextureBaseAddr7					0x8538
+#define PM3TextureBaseAddr8					0x8540
+#define PM3TextureBaseAddr9					0x8548
+#define PM3TextureBaseAddr10    				0x8550
+#define PM3TextureBaseAddr11    				0x8558
+#define PM3TextureBaseAddr12    				0x8560
+#define PM3TextureBaseAddr13    				0x8568
+#define PM3TextureBaseAddr14    				0x8570
+#define PM3TextureBaseAddr15    				0x8578
 #define PM3TextureCacheControl					0x8490
 #define PM3TextureChromaLower0					0x84f0
 #define PM3TextureChromaLower1					0x8608
@@ -943,22 +1045,36 @@
 #define PM3TextureReadMode1					0xb408
 #define PM3TextureReadMode1And					0xad40
 #define PM3TextureReadMode1Or					0xad48
+
+#define PM3TouchLogicalPage					0xb370
+	#define PM3TouchLogicalPage_Page(p)			(p&0xffff)
+	#define PM3TouchLogicalPage_Count(c)		((c&0x3fff)<<16)
+	#define PM3TouchLogicalPage_Mode(m)		((m&0x3)<<30)
+
+#define PM3TStart						0x83a0
+
+#define PM3UpdateLogicalTextureInfo				0xb368
+	#define PM3UpdateLogicalTextureInfo_Length(l)		((l)&0x1ff)
+	#define PM3UpdateLogicalTextureInfo_MemoryPool(m)	(((m)&0x3)<<9)
+	#define PM3UpdateLogicalTextureInfo_VirtualHostPage	(1<<11)
+	#define PM3UpdateLogicalTextureInfo_HostPage(p)	   (((p)&0xfffff)<<12)
+
 /* ... */
 #define PM3WaitForCompletion					0x80b8
 #define PM3Window						0x8980
-	#define PM3Window_ForceLBUpdate				1<<3
-	#define PM3Window_LBUpdateSource			1<<4
+	#define PM3Window_ForceLBUpdate				(1<<3)
+	#define PM3Window_LBUpdateSource			(1<<4)
 	#define PM3Window_FrameCount(c)				(((c)&0xff)<<9)
-	#define PM3Window_StencilFCP				1<<17
-	#define PM3Window_DepthFCP				1<<18
-	#define PM3Window_OverrideWriteFiltering		1<<19
+	#define PM3Window_StencilFCP				(1<<17)
+	#define PM3Window_DepthFCP				(1<<18)
+	#define PM3Window_OverrideWriteFiltering		(1<<19)
 #define PM3WindowAnd						0xab80
 #define PM3WindowOr						0xab88
 #define PM3WindowOrigin						0x81c8
 #define PM3XBias						0x9480
 #define PM3YBias						0x9488
 #define PM3YLimits						0x80a8
-#define PM3UVMode						0x8f00
+#define PM3YUVMode						0x8f00
 #define PM3ZFogBias						0x86b8
 #define PM3ZStart						0xadd8
 #define PM3ZStartL						0x89b8
@@ -969,21 +1085,21 @@
 *  GLINT Permedia3 2D setup Unit              *
 ***********************************************/
 #define PM3Config2D						0xb618
-	#define PM3Config2D_OpaqueSpan				1<<0
-	#define PM3Config2D_MultiRXBlit				1<<1
-	#define PM3Config2D_UserScissorEnable			1<<2
-	#define PM3Config2D_FBDestReadEnable			1<<3
-	#define PM3Config2D_AlphaBlendEnable			1<<4
-	#define PM3Config2D_DitherEnable			1<<5
-	#define PM3Config2D_ForegroundROPEnable			1<<6
+	#define PM3Config2D_OpaqueSpan				(1<<0)
+	#define PM3Config2D_MultiRXBlit				(1<<1)
+	#define PM3Config2D_UserScissorEnable			(1<<2)
+	#define PM3Config2D_FBDestReadEnable			(1<<3)
+	#define PM3Config2D_AlphaBlendEnable			(1<<4)
+	#define PM3Config2D_DitherEnable			(1<<5)
+	#define PM3Config2D_ForegroundROPEnable			(1<<6)
 	#define PM3Config2D_ForegroundROP(rop)		(((rop)&0xf)<<7)
-	#define PM3Config2D_BackgroundROPEnable			1<<11
+	#define PM3Config2D_BackgroundROPEnable			(1<<11)
 	#define PM3Config2D_BackgroundROP(rop)		(((rop)&0xf)<<12)
-	#define PM3Config2D_UseConstantSource			1<<16
-	#define PM3Config2D_FBWriteEnable			1<<17
-	#define PM3Config2D_Blocking				1<<18
-	#define PM3Config2D_ExternalSourceData			1<<19
-	#define PM3Config2D_LUTModeEnable			1<<20
+	#define PM3Config2D_UseConstantSource			(1<<16)
+	#define PM3Config2D_FBWriteEnable			(1<<17)
+	#define PM3Config2D_Blocking				(1<<18)
+	#define PM3Config2D_ExternalSourceData			(1<<19)
+	#define PM3Config2D_LUTModeEnable			(1<<20)
 #define PM3DownloadGlyphwidth					0xb658
 	#define PM3DownloadGlyphwidth_GlyphWidth(gw)	((gw)&0xffff)
 #define PM3DownloadTarget					0xb650
@@ -1000,17 +1116,17 @@
 	#define PM3RectanglePosition_YOffset(y)		(((y)&0xffff)<<16)
 #define PM3Render2D						0xb640
 	#define PM3Render2D_Width(w)			((w)&0x0fff)
-	#define PM3Render2D_Operation_Normal			0<<12
-	#define PM3Render2D_Operation_SyncOnHostData		1<<12
-	#define PM3Render2D_Operation_SyncOnBitMask		2<<12
-	#define PM3Render2D_Operation_PatchOrderRendering	3<<12
-	#define PM3Render2D_FBSourceReadEnable			1<<14
-	#define PM3Render2D_SpanOperation			1<<15
+	#define PM3Render2D_Operation_Normal			(0<<12)
+	#define PM3Render2D_Operation_SyncOnHostData		(1<<12)
+	#define PM3Render2D_Operation_SyncOnBitMask		(2<<12)
+	#define PM3Render2D_Operation_PatchOrderRendering	(3<<12)
+	#define PM3Render2D_FBSourceReadEnable			(1<<14)
+	#define PM3Render2D_SpanOperation			(1<<15)
 	#define PM3Render2D_Height(h)			(((h)&0x0fff)<<16)
-	#define PM3Render2D_XPositive				1<<28
-	#define PM3Render2D_YPositive				1<<29
-	#define PM3Render2D_AreaStippleEnable			1<<30
-	#define PM3Render2D_TextureEnable			1<<31
+	#define PM3Render2D_XPositive				(1<<28)
+	#define PM3Render2D_YPositive				(1<<29)
+	#define PM3Render2D_AreaStippleEnable			(1<<30)
+	#define PM3Render2D_TextureEnable			(1<<31)
 #define PM3Render2DGlyph					0xb648
 	#define PM3Render2DGlyph_Width(w)		((w)&0x7f)
 	#define PM3Render2DGlyph_Height(h)		(((h)&0x7f)<<7)
@@ -1059,33 +1175,49 @@
 	#define PM3FillRectanglePosition_XOffset(x)            ((x)&0xffff)
 	#define PM3FillRectanglePosition_YOffset(y)            (((y)&0xffff)<<16)
 
-#if 1
-
 /**********************************************
 *  GLINT Permedia3 Macros                     *
 ***********************************************/
 
+#ifdef __alpha__
+#define mem_barrier()        asm volatile ("mb"  : : : "memory")
+#define write_mem_barrier()  asm volatile ("wmb" : : : "memory")
+#else
+#define mem_barrier()
+#define write_mem_barrier()
+#endif
+
 extern void *pm3_reg_base;
 
-#define WRITE_REG(offset,val)				\
-    *(volatile unsigned long *)(((unsigned char *)(pm3_reg_base)) + offset) = (val)
-	
-#define READ_REG(offset)					\
-    *(volatile unsigned long *)(((unsigned char *)(pm3_reg_base)) + offset)
+#define WRITE_REG(offset,val)						\
+    do {								\
+	write_mem_barrier();						\
+	*(volatile uint32_t *)						\
+	    (((unsigned char *)(pm3_reg_base)) + offset) = (val);	\
+    } while(0)
 
-#define UPDATE_SET_REG(offset,val)				\
-    {								\
-	unsigned long temp;					\
-	temp = READ_REG(offset);				\
-	WRITE_REG(offset,temp|(val));			\
-    } 
+static inline uint32_t
+READ_REG(uint32_t offset)
+{
+    mem_barrier();
+    return *(volatile uint32_t *)(((unsigned char *)(pm3_reg_base)) + offset);
+}
 
-#define UPDATE_CLEAR_REG(offset,val)			\
-    {								\
-	unsigned long temp;					\
-	temp = READ_REG(offset);				\
-	WRITE_REG(offset,temp&(~(val)));			\
+#define UPDATE_SET_REG(offset,val)		\
+    {						\
+	unsigned long temp;			\
+	temp = READ_REG(offset);		\
+	WRITE_REG(offset,temp|(val));		\
     }
+
+#define UPDATE_CLEAR_REG(offset,val)		\
+    {						\
+	unsigned long temp;			\
+	temp = READ_REG(offset);		\
+	WRITE_REG(offset,temp&(~(val)));	\
+    }
+
+#define WAIT_FIFO(n) while(READ_REG(PM3InFIFOSpace) < (n))
 
 #define RAMDAC_DELAY(x) do {					\
 	int delay = x;						\
@@ -1112,10 +1244,10 @@ do{						\
     SLOW_WRITE_REG(PM3RD_IndexedData, data);			\
 }
 
-#define RAMDAC_GET_REG(index, temp)				\
-{								\
-    RAMDAC_SET_INDEX(index);					\
-    temp = READ_REG(PM3RD_IndexedData);			\
+#define RAMDAC_GET_REG(index, temp)		\
+{						\
+    RAMDAC_SET_INDEX(index);			\
+    temp = READ_REG(PM3RD_IndexedData);		\
 }
-#endif
+
 #endif /* _PM3_REG_H_ */

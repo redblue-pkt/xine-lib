@@ -11,7 +11,6 @@
 #include <string.h>
 #include <errno.h>
 #include "libdha.h"
-#include "AsmMacros.h"
 
 #if defined (__i386__) && defined (__NetBSD__)
 #include <sys/param.h>

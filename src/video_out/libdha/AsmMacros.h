@@ -74,8 +74,10 @@
 #include "sysdep/AsmMacros_arm32.h"
 #elif defined(__powerpc__)
 #include "sysdep/AsmMacros_powerpc.h"
-#else
+#elif defined (__i386__)
 #include "sysdep/AsmMacros_x86.h"
+#else
+#include "sysdep/AsmMacros_generic.h"
 #endif
 
 #else /* __GNUC__ */
@@ -85,12 +87,12 @@
 /* inb, outb, inw and outw are defined in the library */
 /* ... but I've no idea if the same is true for inl & outl */
 
-u8_t inb(U16_t);
-void outb(U16_t, U8_t);
-u16_t inw(U16_t);
-void outw(U16_t, U16_t);
-u32_t inl(U16_t);
-void outl(U16_t, U32_t);
+extern u8_t inb(U16_t);
+extern void outb(U16_t, U8_t);
+extern u16_t inw(U16_t);
+extern void outw(U16_t, U16_t);
+extern u32_t inl(U16_t);
+extern void outl(U16_t, U32_t);
 
 #else /* not _MINIX and _ACK */
 

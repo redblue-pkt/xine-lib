@@ -6,13 +6,14 @@
 #include <inttypes.h>
 #include <fcntl.h>
 
-#include "vidix.h"
-#include "fourcc.h"
-#include "libdha.h"
-#include "pci_ids.h"
-#include "pci_names.h"
+#include "../vidix.h"
+#include "../fourcc.h"
+#include "../../libdha/libdha.h"
+#include "../../libdha/pci_ids.h"
+#include "../../libdha/pci_names.h"
 
 #define DEMO_DRIVER 1
+#define VIDIX_STATIC genfb_
 
 #define GENFB_MSG "[genfb-demo-driver] "
 
@@ -44,12 +45,12 @@ static vidix_capability_t genfb_cap =
     { 0, 0, 0, 0 }
 };
 
-unsigned int vixGetVersion(void)
+unsigned int VIDIX_NAME(vixGetVersion)(void)
 {
     return(VIDIX_VERSION);
 }
 
-int vixProbe(int verbose,int force)
+int VIDIX_NAME(vixProbe)(int verbose,int force)
 {
 #if 0
     int err = 0;
@@ -96,7 +97,7 @@ int vixProbe(int verbose,int force)
 #endif
 }
 
-int vixInit(void)
+int VIDIX_NAME(vixInit)(const char *args)
 {
     printf(GENFB_MSG"init\n");
     
@@ -109,19 +110,19 @@ int vixInit(void)
     return(0);
 }
 
-void vixDestroy(void)
+void VIDIX_NAME(vixDestroy)(void)
 {
     printf(GENFB_MSG"destory\n");
     return;
 }
 
-int vixGetCapability(vidix_capability_t *to)
+int VIDIX_NAME(vixGetCapability)(vidix_capability_t *to)
 {
     memcpy(to, &genfb_cap, sizeof(vidix_capability_t));
     return(0);
 }
 
-int vixQueryFourcc(vidix_fourcc_t *to)
+int VIDIX_NAME(vixQueryFourcc)(vidix_fourcc_t *to)
 {
     printf(GENFB_MSG"query fourcc (%x)\n", to->fourcc);
 
@@ -135,7 +136,7 @@ int vixQueryFourcc(vidix_fourcc_t *to)
     return(0);
 }
 
-int vixConfigPlayback(vidix_playback_t *info)
+int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 {
     printf(GENFB_MSG"config playback\n");
 
@@ -155,19 +156,19 @@ int vixConfigPlayback(vidix_playback_t *info)
     return(0);
 }
 
-int vixPlaybackOn(void)
+int VIDIX_NAME(vixPlaybackOn)(void)
 {
     printf(GENFB_MSG"playback on\n");
     return(0);
 }
 
-int vixPlaybackOff(void)
+int VIDIX_NAME(vixPlaybackOff)(void)
 {
     printf(GENFB_MSG"playback off\n");
     return(0);
 }
 
-int vixPlaybackFrameSelect(unsigned int frame)
+int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 {
     printf(GENFB_MSG"frameselect: %d\n", frame);
     return(0);

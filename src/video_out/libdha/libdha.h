@@ -16,6 +16,8 @@
 #ifndef LIBDHA_H
 #define LIBDHA_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,16 +32,18 @@ typedef struct pciinfo_s
   int		bus,card,func;			/* PCI/AGP bus:card:func */
   unsigned short vendor,device;			/* Card vendor+device ID */
   unsigned	base0,base1,base2,baserom;	/* Memory and I/O base addresses */
+  unsigned	base3,base4,base5;		/* Memory and I/O base addresses */
+  unsigned char irq,ipin,gnt,lat;		/* assigned IRQ parameters for this card */
 //  unsigned	base0_limit, base1_limit, base2_limit, baserom_limit;
 }pciinfo_t;
 
-/* needed for mga_vid */
 extern int pci_config_read(unsigned char bus, unsigned char dev, unsigned char func,
 			unsigned char cmd, int len, unsigned long *val);
+extern int pci_config_write(unsigned char bus, unsigned char dev, unsigned char func,
+			unsigned char cmd, int len, unsigned long val);
 			/* Fill array pci_list which must have size MAX_PCI_DEVICES
 			   and return 0 if sucessful */
 extern int  pci_scan(pciinfo_t *pci_list,unsigned *num_card);
-
 
 	    /* Enables/disables accessing to IO space from application side.
 	       Should return 0 if o'k or errno on error. */
@@ -89,6 +93,20 @@ extern int	bm_virt_to_phys( void * virt_addr, unsigned long length,
 extern int	bm_virt_to_bus( void * virt_addr, unsigned long length,
 			    unsigned long * barray );
 
+extern void *	bm_alloc_pa( unsigned long length );
+extern void	bm_free_pa( void * virt_addr, unsigned long length );
+extern int	bm_lock_mem( const void * addr, unsigned long length );
+extern int	bm_unlock_mem( const void * addr, unsigned long length );
+
+/* HWIRQ support */
+
+extern int	hwirq_install(int bus, int dev, int func,
+			      int areg, unsigned long aoff, uint32_t adata);
+extern int	hwirq_wait(unsigned irqnum);
+extern int	hwirq_uninstall(int bus, int dev, int func);
+
+/* CPU flushing support */
+extern void	cpu_flush(void *va,unsigned long length);
 #ifdef __cplusplus
 }
 #endif

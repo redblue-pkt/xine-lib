@@ -58,38 +58,6 @@
 #ifdef __unix__
 #include <unistd.h>
 #endif
-#include "AsmMacros.h"
-/* OS depended stuff */
-#if defined (linux)
-#include "sysdep/pci_linux.c"
-#elif defined (__FreeBSD__)
-#include "sysdep/pci_freebsd.c"
-#elif defined (__386BSD__)
-#include "sysdep/pci_386bsd.c"
-#elif defined (__NetBSD__)
-#include "sysdep/pci_netbsd.c"
-#elif defined (__OpenBSD__)
-#include "sysdep/pci_openbsd.c"
-#elif defined (__bsdi__)
-#include "sysdep/pci_bsdi.c"
-#elif defined (Lynx)
-#include "sysdep/pci_lynx.c"
-#elif defined (MACH386)
-#include "sysdep/pci_mach386.c"
-#elif defined (__SVR4)
-#if !defined(SVR4)
-#define SVR4
-#endif
-#include "sysdep/pci_svr4.c"
-#elif defined (SCO)
-#include "sysdep/pci_sco.c"
-#elif defined (ISC)
-#include "sysdep/pci_isc.c"
-#elif defined (__EMX__)
-#include "sysdep/pci_os2.c"
-#elif defined (_WIN32) || defined(__CYGWIN__)
-#include "sysdep/pci_win32.c"
-#endif
 
 #if 0
 #if defined(__SUNPRO_C) || defined(sun) || defined(__sun)
@@ -456,6 +424,9 @@ struct pci_config_reg {
 #define PCI_MAP_REG_START       0x10
 #define PCI_MAP_ROM_REG         0x30
 #define PCI_INTERRUPT_REG       0x3C
+#define PCI_INTERRUPT_PIN	0x3D	/* 8 bits */
+#define PCI_MIN_GNT		0x3E	/* 8 bits */
+#define PCI_MAX_LAT		0x3F	/* 8 bits */
 #define PCI_REG_USERCONFIG      0x40
  
 static int pcibus=-1, pcicard=-1, pcifunc=-1 ;
@@ -488,11 +459,12 @@ static int pcibus=-1, pcicard=-1, pcifunc=-1 ;
 #include "sysdep/pci_arm32.c"
 #elif defined(__powerpc__)
 #include "sysdep/pci_powerpc.c"
-#else
+#elif defined( __i386__ )
 #include "sysdep/pci_x86.c"
+#else
+#include "sysdep/pci_generic_cpu.c"
 #endif
 
- 
 static int pcicards=0 ;
 static pciinfo_t *pci_lst;
  
@@ -509,6 +481,9 @@ static void identify_card(struct pci_config_reg *pcr)
   pci_lst[pcicards].base0   = 0xFFFFFFFF ;
   pci_lst[pcicards].base1   = 0xFFFFFFFF ;
   pci_lst[pcicards].base2   = 0xFFFFFFFF ;
+  pci_lst[pcicards].base3   = 0xFFFFFFFF ;
+  pci_lst[pcicards].base4   = 0xFFFFFFFF ;
+  pci_lst[pcicards].base5   = 0xFFFFFFFF ;
   pci_lst[pcicards].baserom = 0x000C0000 ;
   if (pcr->_base0) pci_lst[pcicards].base0 = pcr->_base0 &
                      ((pcr->_base0&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
@@ -516,7 +491,17 @@ static void identify_card(struct pci_config_reg *pcr)
                      ((pcr->_base1&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
   if (pcr->_base2) pci_lst[pcicards].base2 = pcr->_base2 &
                      ((pcr->_base2&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
+  if (pcr->_base3) pci_lst[pcicards].base3 = pcr->_base3 &
+                     ((pcr->_base0&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
+  if (pcr->_base4) pci_lst[pcicards].base4 = pcr->_base4 &
+                     ((pcr->_base1&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
+  if (pcr->_base5) pci_lst[pcicards].base5 = pcr->_base5 &
+                     ((pcr->_base2&0x1) ? 0xFFFFFFFC : 0xFFFFFFF0) ;
   if (pcr->_baserom) pci_lst[pcicards].baserom = pcr->_baserom ;
+  pci_lst[pcicards].irq = pcr->_int_line;
+  pci_lst[pcicards].ipin= pcr->_int_pin;
+  pci_lst[pcicards].gnt = pcr->_min_gnt;
+  pci_lst[pcicards].lat = pcr->_max_lat;
  
   pcicards++;
 }
@@ -531,8 +516,9 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
     int ret = -1;
     
     pci_lst = pci_list;
+    pcicards = 0;
  
-    ret = enable_os_io();
+    ret = enable_app_io();
     if (ret != 0)
 	return(ret);
 
@@ -589,8 +575,19 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
 					pcr._cardnum,func,PCI_MAP_REG_START+0x14);
 	    pcr._baserom = pci_config_read_long(pcr._pcibuses[pcr._pcibusidx],
 					pcr._cardnum,func,PCI_MAP_ROM_REG);
+#if 0
+	    pcr._int_pin = pci_config_read_byte(pcr._pcibuses[pcr._pcibusidx],
+					pcr._cardnum,func,PCI_INTERRUPT_PIN);
+	    pcr._int_line = pci_config_read_byte(pcr._pcibuses[pcr._pcibusidx],
+					pcr._cardnum,func,PCI_INTERRUPT_REG);
+	    pcr._min_gnt = pci_config_read_byte(pcr._pcibuses[pcr._pcibusidx],
+					pcr._cardnum,func,PCI_MIN_GNT);
+	    pcr._max_lat = pci_config_read_byte(pcr._pcibuses[pcr._pcibusidx],
+					pcr._cardnum,func,PCI_MAX_LAT);
+#else
 	    pcr._max_min_ipin_iline = pci_config_read_long(pcr._pcibuses[pcr._pcibusidx],
 					pcr._cardnum,func,PCI_INTERRUPT_REG);
+#endif
 	    pcr._user_config = pci_config_read_long(pcr._pcibuses[pcr._pcibusidx],
 					pcr._cardnum,func,PCI_REG_USERCONFIG);
             /* check for pci-pci bridges */
@@ -633,8 +630,8 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
     /* Now try pci config 2 probe (deprecated) */
  
     if ((pcr._configtype == 2) || do_mode2_scan) {
-    outb(PCI_MODE2_ENABLE_REG, 0xF1);
-    outb(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
+    OUTPORT8(PCI_MODE2_ENABLE_REG, 0xF1);
+    OUTPORT8(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
  
     /*printf("\nPCI probing configuration type 2\n");*/
  
@@ -645,9 +642,9 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
  
     do {
         for (pcr._ioaddr = 0xC000; pcr._ioaddr < 0xD000; pcr._ioaddr += 0x0100){
-	    outb(PCI_MODE2_FORWARD_REG, pcr._pcibuses[pcr._pcibusidx]); /* bus 0 for now */
-            pcr._device_vendor = inl(pcr._ioaddr);
-	    outb(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
+	    OUTPORT8(PCI_MODE2_FORWARD_REG, pcr._pcibuses[pcr._pcibusidx]); /* bus 0 for now */
+            pcr._device_vendor = INPORT32(pcr._ioaddr);
+	    OUTPORT8(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
  
             if ((pcr._vendor == 0xFFFF) || (pcr._device == 0xFFFF))
                 continue;
@@ -660,20 +657,20 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
 	    pcibus = pcr._pcibuses[pcr._pcibusidx] ;
 	    pcicard = pcr._ioaddr ; pcifunc = 0 ;
  
-	    outb(PCI_MODE2_FORWARD_REG, pcr._pcibuses[pcr._pcibusidx]); /* bus 0 for now */
-            pcr._status_command = inl(pcr._ioaddr + 0x04);
-            pcr._class_revision = inl(pcr._ioaddr + 0x08);
-            pcr._bist_header_latency_cache = inl(pcr._ioaddr + 0x0C);
-            pcr._base0 = inl(pcr._ioaddr + 0x10);
-            pcr._base1 = inl(pcr._ioaddr + 0x14);
-            pcr._base2 = inl(pcr._ioaddr + 0x18);
-            pcr._base3 = inl(pcr._ioaddr + 0x1C);
-            pcr._base4 = inl(pcr._ioaddr + 0x20);
-            pcr._base5 = inl(pcr._ioaddr + 0x24);
-            pcr._baserom = inl(pcr._ioaddr + 0x30);
-            pcr._max_min_ipin_iline = inl(pcr._ioaddr + 0x3C);
-            pcr._user_config = inl(pcr._ioaddr + 0x40);
-	    outb(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
+	    OUTPORT8(PCI_MODE2_FORWARD_REG, pcr._pcibuses[pcr._pcibusidx]); /* bus 0 for now */
+            pcr._status_command = INPORT32(pcr._ioaddr + 0x04);
+            pcr._class_revision = INPORT32(pcr._ioaddr + 0x08);
+            pcr._bist_header_latency_cache = INPORT32(pcr._ioaddr + 0x0C);
+            pcr._base0 = INPORT32(pcr._ioaddr + 0x10);
+            pcr._base1 = INPORT32(pcr._ioaddr + 0x14);
+            pcr._base2 = INPORT32(pcr._ioaddr + 0x18);
+            pcr._base3 = INPORT32(pcr._ioaddr + 0x1C);
+            pcr._base4 = INPORT32(pcr._ioaddr + 0x20);
+            pcr._base5 = INPORT32(pcr._ioaddr + 0x24);
+            pcr._baserom = INPORT32(pcr._ioaddr + 0x30);
+            pcr._max_min_ipin_iline = INPORT8(pcr._ioaddr + 0x3C);
+            pcr._user_config = INPORT32(pcr._ioaddr + 0x40);
+	    OUTPORT8(PCI_MODE2_FORWARD_REG, 0x00); /* bus 0 for now */
  
             /* check for pci-pci bridges (currently we only know Digital) */
             if ((pcr._vendor == 0x1011) && (pcr._device == 0x0001))
@@ -687,12 +684,12 @@ int pci_scan(pciinfo_t *pci_list,unsigned *num_pci)
 	}
     } while (++pcr._pcibusidx < pcr._pcinumbus);
  
-    outb(PCI_MODE2_ENABLE_REG, 0x00);
+    OUTPORT8(PCI_MODE2_ENABLE_REG, 0x00);
     }
  
 #endif /* __alpha__ */
  
-    disable_os_io();
+    disable_app_io();
     *num_pci = pcicards;
  
     return 0 ;
@@ -712,28 +709,52 @@ int pci_config_read(unsigned char bus, unsigned char dev, unsigned char func,
 {
     int ret;
     
-    if (len != 4)
-    {
-	printf("pci_config_read: reading non-dword not supported!\n");
-	return(ENOTSUP);
-    }
-    
-    ret = enable_os_io();
+    ret = enable_app_io();
     if (ret != 0)
 	return(ret);
-    ret = pci_config_read_long(bus, dev, func, cmd);
-    disable_os_io();
+    switch(len)
+    {
+	case 4:
+	    ret = pci_config_read_long(bus, dev, func, cmd);
+	    break;
+	case 2:
+	    ret = pci_config_read_word(bus, dev, func, cmd);
+	    break;
+	case 1:
+	    ret = pci_config_read_byte(bus, dev, func, cmd);
+	    break;
+	default:
+	    printf("libdha_pci: wrong length to read: %u\n",len);
+    }
+    disable_app_io();
 
     *val = ret;
     return(0);
 }
 
-int enable_app_io( void )
+int pci_config_write(unsigned char bus, unsigned char dev, unsigned char func,
+		    unsigned char cmd, int len, unsigned long val)
 {
-  return enable_os_io();  
-}
+    int ret;
+    
+    ret = enable_app_io();
+    if (ret != 0)
+	return ret;
+    switch(len)
+    {
+	case 4:
+	    pci_config_write_long(bus, dev, func, cmd, val);
+	    break;
+	case 2:
+	    pci_config_write_word(bus, dev, func, cmd, val);
+	    break;
+	case 1:
+	    pci_config_write_byte(bus, dev, func, cmd, val);
+	    break;
+	default:
+	    printf("libdha_pci: wrong length to read: %u\n",len);
+    }
+    disable_app_io();
 
-int disable_app_io( void )
-{
-  return disable_os_io();
+    return 0;
 }

@@ -1,4 +1,5 @@
 #include "libdha.h"
+#include "pci_names.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,12 +17,27 @@ int main( void )
   }
   else
   {
-    printf(" Bus:card:func vend:dev  base0   :base1   :base2   :baserom\n");
+    printf(" Bus:card:func vend:dev  base0   :base1   :base2   :baserom :irq:pin:gnt:lat\n");
     for(i=0;i<num_pci;i++)
-      printf("%04X:%04X:%04X %04X:%04X %08X:%08X:%08X:%08X\n"
+	printf("%04X:%04X:%04X %04X:%04X %08X:%08X:%08X:%08X:%02X :%02X :%02X :%02X\n"
     	    ,lst[i].bus,lst[i].card,lst[i].func
 	    ,lst[i].vendor,lst[i].device
-	    ,lst[i].base0,lst[i].base1,lst[i].base2,lst[i].baserom);
+	    ,lst[i].base0,lst[i].base1,lst[i].base2,lst[i].baserom
+	    ,lst[i].irq,lst[i].ipin,lst[i].gnt,lst[i].lat);
+    printf("Additional info:\n");
+    printf("================\n");
+    printf("base3   :base4   :base5   :name (vendor)\n");
+    for(i=0;i<num_pci;i++)
+    {
+	const char *vname,*dname;
+	dname = pci_device_name(lst[i].vendor,lst[i].device);
+	dname = dname ? dname : "Unknown chip";
+	vname = pci_vendor_name(lst[i].vendor);
+	vname = vname ? vname : "Unknown chip";
+	printf("%08X:%08X:%08X:%s (%s)\n"
+		,lst[i].base3,lst[i].base4,lst[i].base5
+		,dname,vname);
+    }
   }
   return EXIT_SUCCESS;
 }

@@ -33,8 +33,10 @@ extern unsigned vixGetVersion( void );
 			             device_id (danger but useful for new devices)
 			   Returns 0 if ok else errno */
 extern int	vixProbe( int verbose, int force );
-			/* Initializes driver. Returns 0 if ok else errno */
-extern int	vixInit( void );
+			/* Initializes driver.
+			   args	    - specifies driver specific parameters
+			   Returns 0 if ok else errno */
+extern int	vixInit( const char *args );
 			/* Destroys driver */
 extern void	vixDestroy( void );
 
@@ -72,7 +74,9 @@ extern int	vixGetCapability(vidix_capability_t *);
 
 typedef struct vidix_fourcc_s
 {
-	unsigned fourcc;
+	unsigned fourcc;		/* input: requested fourcc */
+	unsigned srcw;			/* input: hint: width of source */
+	unsigned srch;			/* input: hint: height of source */
 #define VID_DEPTH_NONE		0x0000
 #define VID_DEPTH_1BPP		0x0001
 #define VID_DEPTH_2BPP		0x0002
@@ -83,7 +87,7 @@ typedef struct vidix_fourcc_s
 #define VID_DEPTH_16BPP		0x0040
 #define VID_DEPTH_24BPP		0x0080
 #define VID_DEPTH_32BPP		0x0100
-	unsigned depth;
+	unsigned depth;			/* output: screen depth for given fourcc */
 #define VID_CAP_NONE			0x0000
 #define VID_CAP_EXPAND			0x0001 /* if overlay can be bigger than source */
 #define VID_CAP_SHRINK			0x0002 /* if overlay can be smaller than source */
@@ -96,7 +100,7 @@ typedef struct vidix_fourcc_s
 #define VID_CAP_COLORKEY_ISOVERLAY	0x0100 /* colorkey is checked against overlay */
 #define VID_CAP_ALPHAKEY_ISMAIN		0x0200 /* alphakey is checked against framebuffer */
 #define VID_CAP_ALPHAKEY_ISOVERLAY	0x0400 /* alphakey is checked against overlay */
-	unsigned flags;
+	unsigned flags;			/* output: capability */
 }vidix_fourcc_t;
 
 			/* Returns 0 if ok else errno */
@@ -150,7 +154,7 @@ typedef struct vidix_playback_s
 	/* memory model */
 	unsigned	frame_size;		/* driver -> app: destinition frame size */
 	unsigned	num_frames;		/* app -> driver: after call: driver -> app */
-#define VID_PLAY_MAXFRAMES 64		/* reasonable limitation for decoding ahead */
+#define VID_PLAY_MAXFRAMES 1024			/* unreal limitation */
 	unsigned	offsets[VID_PLAY_MAXFRAMES];	/* driver -> app */
 	vidix_yuv_t	offset;			/* driver -> app: relative offsets within frame for yuv planes */
 	void*		dga_addr;		/* driver -> app: linear address */
@@ -289,6 +293,12 @@ extern int	vixGetOemEffect( vidix_oem_fx_t * );
 
 			/* Returns 0 if ok else errno */
 extern int	vixSetOemEffect( const vidix_oem_fx_t * );
+
+#ifdef VIDIX_BUILD_STATIC
+#define VIDIX_NAME(name) VIDIX_STATIC##name
+#else
+#define VIDIX_NAME(name) name
+#endif
 
 #ifdef __cplusplus
 }
