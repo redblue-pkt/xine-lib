@@ -5,8 +5,12 @@ xine-lib (0.9.2-1) unstable; urgency=high
   * build-Dependancy on liblircclient-dev => lirc support on non-i386
   * new upstream release
     * deinterlace.c should compile everywhere (closes: #112748)
+    * including string.h in m4 test (closes: #115271)
+    * aclocal file is in /usr/share/aclocal (just as 0.9.1)  (closes: #115033)
+    * enables -fPIC on (all?) architectures that need it (closes: #115006)
+    * many more fixes/features (see upstream changelog)
 
- -- Siggi Langauf <siggi@debian.org>  Thu,  4 Oct 2001 00:09:41 +0200
+ -- Siggi Langauf <siggi@debian.org>  Sun, 14 Oct 2001 22:22:38 +0200
 
 xine-lib (0.9.1-1) unstable; urgency=low
 

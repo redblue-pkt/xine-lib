@@ -1,6 +1,7 @@
 # in this case, -fPIC would _only_ degrade performance, as there's only one
 # instance of any plugin in memory unless the user plays 2 foles at the same
 # (which doesn't make any sense...)
+libxine0: shlib-with-non-pic-code usr/lib/libxine-0.9.so.0.0.1
 libxine0: shlib-with-non-pic-code usr/lib/xine/plugins/xineplug_ao_out_alsa05.so
 libxine0: shlib-with-non-pic-code usr/lib/xine/plugins/xineplug_ao_out_esd.so
 libxine0: shlib-with-non-pic-code usr/lib/xine/plugins/xineplug_ao_out_oss.so

@@ -8,7 +8,7 @@
 
 installdir=debian/$1
 
-OPTIONAL="$installdir/usr/lib/xine/plugins/xineplug_ao_out_alsa05.so
+OPTIONAL="$installdir/usr/lib/xine/plugins/xineplug_ao_out_alsa.so
 	  $installdir/usr/lib/xine/plugins/xineplug_ao_out_arts.so
 	  $installdir/usr/lib/xine/plugins/xineplug_ao_out_esd.so
 	  $installdir/usr/lib/xine/plugins/xineplug_ao_out_oss.so
