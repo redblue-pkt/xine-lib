@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.71 2002/07/03 07:44:04 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.72 2002/07/03 07:50:20 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -245,8 +245,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   this->input_sample_rate      = rate;
   this->bits_per_sample        = bits;
   this->bytes_in_buffer        = 0;
-  /* FIXME: Can use an ALSA function here */
-  this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   /*
    * open audio device
    */
@@ -333,6 +331,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
+  this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
   /*
    * audio buffer size handling
    */
@@ -456,8 +455,7 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
       buffer += result * this->bytes_per_frame;
     }
   }
-  /* FIXME: What should this really be? */
-  return 1;
+  return 1; /* audio samples were processed ok */
 }
 
 static void ao_alsa_close(ao_driver_t *this_gen)
