@@ -867,7 +867,8 @@ are some hints for individual gfx chips:
     depth, disable DRI (looks like you ran out of video RAM)
    
   * Trident card: If you see vertical bands jumbled, upgrade to the latest
-    xfree/experimental trident drivers
+    xfree/experimental trident drivers (for the CyberBlade XP a driver exists
+    here: http://www.xfree86.org/~alanh/
    
   * nvidia: With newer GeForce cards, Xv should work with XFree 4.2.0 or newer,
     for older RivaTNT cards use the binary drivers from nvidia (of course the

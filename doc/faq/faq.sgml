@@ -1188,7 +1188,10 @@
         <listitem>
 	  <para> 
 	    Trident card: If you see vertical bands jumbled, upgrade to the latest
-	    xfree/experimental trident drivers
+	    xfree/experimental trident drivers (for the CyberBlade XP
+	    a driver exists here:
+	    <ulink url="http://www.xfree86.org/~alanh/"> 
+	    http://www.xfree86.org/~alanh/ </ulink>)
 	  </para>
 	</listitem>
         <listitem>
