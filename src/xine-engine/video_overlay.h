@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.5 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_overlay.h,v 1.6 2002/03/08 13:50:41 jcdutton Exp $
  *
  */
 
@@ -46,6 +46,35 @@
 #define EVENT_SHOW_OSD         7 /* Not yet implemented */
 #define EVENT_FREE_HANDLE      8 /* Frees a handle, previous allocated via get_handle */
 
+/* number of colors in the overlay palette. Currently limited to 256
+   at most, because some alphablend functions use an 8-bit index into
+   the palette. This should probably be classified as a bug. */
+/* FIXME: Also defines in video_out.h */
+#define OVL_PALETTE_SIZE 256
+
+typedef struct vo_buttons_s {
+  int32_t           auto_action; /* -1:Button not valid, 
+                                     0:Button Valid, no auto_action,
+                                     1:Button Valid, auto_action.
+                                  */
+  int32_t           clip_top;
+  int32_t           clip_bottom;
+  int32_t           clip_left;
+  int32_t           clip_right;
+  int32_t           up; 
+  int32_t           down; 
+  int32_t           left; 
+  int32_t           right; 
+  uint32_t          select_color[OVL_PALETTE_SIZE];
+  uint8_t           select_trans[OVL_PALETTE_SIZE];
+  xine_menu_event_t select_event;
+  uint32_t          active_color[OVL_PALETTE_SIZE];
+  uint8_t           active_trans[OVL_PALETTE_SIZE];
+  xine_menu_event_t active_event;
+  int32_t           clip_rgb_clut;      /* true if clut was converted to rgb*/
+                                        /* FIXME: Probably not needed ^^^ */
+} vo_buttons_t;
+  
 typedef struct video_overlay_object_s {
   int32_t	 handle;       /* Used to match Show and Hide events. */
   uint32_t	 object_type;  /* 0=Subtitle, 1=Menu */
@@ -53,6 +82,8 @@ typedef struct video_overlay_object_s {
   vo_overlay_t  *overlay;      /* The image data. */
   uint32_t       palette_type; /* 1 Y'CrCB, 2 R'G'B' */
   uint32_t	*palette;      /* If NULL, no palette contained in this event. */
+  int32_t        buttonN;      /* Current highlighed button. -1 means no buttons present */
+  vo_buttons_t   button[32];   /* Info regarding each button on the overlay */
 } video_overlay_object_t;
 
 /* This will hold all details of an event item, needed for event queue to function */

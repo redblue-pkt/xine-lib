@@ -80,6 +80,16 @@ typedef struct {
 } xine_input_event_t;
 
 /*
+ * Menu events
+ */
+typedef struct {
+  xine_event_t     event;
+  uint8_t          button; /* Generally 1 = left, 2 = mid, 3 = right */
+  uint16_t         status; /* 0:no status, 1:selected, 2:actioned */
+  uint8_t          command[8]; /* DVD virtual machine command. */
+} xine_menu_event_t;
+
+/*
  * SPU event - send control events to the spu decoder
  */
 typedef struct {
