@@ -917,6 +917,17 @@ if test "$GCC" = yes; then
         f_al="-malign-loops=4")
     AC_TRY_CFLAGS("-falign-jumps=4", f_aj="-falign-jumps=4",
         f_aj="-malign-jumps=4")
+    dnl
+    dnl Check for some optimization disabling
+    dnl needed for win32 code
+    dnl
+    AC_TRY_CFLAGS("-fno-omit-frame-pointer", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-omit-frame-pointer",)
+    AC_TRY_CFLAGS("-fno-inline-functions", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-inline-functions",)
+    AC_TRY_CFLAGS("-fno-rename-registers", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-rename-registers",)
+    AC_SUBST(W32_NO_OPTIMIZE)
+    dnl
+    dnl C standard
+    dnl
     ANSI_FLAGS="-std=gnu89"
     AC_SUBST(ANSI_FLAGS)
 fi
