@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.131 2003/10/27 15:24:38 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.132 2003/10/27 22:26:03 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -99,7 +99,7 @@ struct ff_video_decoder_s {
 
   int               is_continous;
 
-  float             aspect_ratio;
+  double            aspect_ratio;
   int               frame_flags;
   
   int               output_format;
@@ -165,7 +165,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   img = this->stream->video_out->get_frame (this->stream->video_out,
 					    width,
 					    height,
-					    (double)this->aspect_ratio, 
+					    this->aspect_ratio, 
 					    this->output_format,
 					    VO_BOTH_FIELDS|this->frame_flags);
 
@@ -1072,7 +1072,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	printf ("ffmpeg: got a picture\n");
 #endif
 
-	this->aspect_ratio = av_q2d (this->context->sample_aspect_ratio);
+	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
+            (double) this->context->width / (double) this->context->height;
+
 
 	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
 	  img = (vo_frame_t*)this->av_frame->opaque;
@@ -1081,7 +1083,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
 						    this->context->width,
 						    this->context->height,
-						    (double)this->aspect_ratio, 
+						    this->aspect_ratio, 
 						    this->output_format,
 						    VO_BOTH_FIELDS|this->frame_flags);
 	  free_img = 1;
@@ -1106,7 +1108,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        img->width,
 						        img->height,
-						        (double)this->aspect_ratio, 
+						        this->aspect_ratio, 
 						        this->output_format,
 						        VO_BOTH_FIELDS|this->frame_flags);
 	      free_img = 1;
