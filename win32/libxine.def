@@ -279,5 +279,7 @@ u_b_table
 v_r_table
 v_g_table
 v_b_table
+yv12_to_yv12
+yuy2_to_yuy2
 
 

@@ -221,6 +221,10 @@ SOURCE="..\src\xine-utils\color.c"
 # End Source File
 # Begin Source File
 
+SOURCE="..\src\xine-utils\copy.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\src\xine-utils\cpu_accel.c"
 # End Source File
 # Begin Source File
