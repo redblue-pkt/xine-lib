@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.110 2002/04/01 22:19:27 esnel Exp $
+ * $Id: video_out_xv.c,v 1.111 2002/04/02 19:29:09 esnel Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -744,6 +744,7 @@ static void xv_add_recent_frame (xv_driver_t *this, xv_frame_t *frame) {
 }
 
 /* currently not used - we could have a method to call this from video loop */
+#if 0
 static void xv_flush_recent_frames (xv_driver_t *this) {
 
   int i;
@@ -756,6 +757,7 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
     this->recent_frames[i] = NULL;
   }
 }
+#endif
 
 static int xv_redraw_needed (vo_driver_t *this_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -1073,6 +1075,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
+  int i;
 
   if (this->deinterlace_frame.image) {
     dispose_ximage (this, &this->deinterlace_frame.shminfo,
@@ -1086,7 +1089,13 @@ static void xv_exit (vo_driver_t *this_gen) {
   }
   XUnlockDisplay (this->display);
 
-  xv_flush_recent_frames (this);
+  for( i=0; i < VO_NUM_RECENT_FRAMES; i++ )
+  {
+    if( this->recent_frames[i] )
+      this->recent_frames[i]->vo_frame.dispose
+         (&this->recent_frames[i]->vo_frame);
+    this->recent_frames[i] = NULL;
+  }
 
   free (this);
 }

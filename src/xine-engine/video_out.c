@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.91 2002/04/01 22:19:28 esnel Exp $
+ * $Id: video_out.c,v 1.92 2002/04/02 19:29:09 esnel Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -849,9 +849,9 @@ static void vo_exit (vo_instance_t *this_gen) {
     pthread_join (this->video_thread, &p);
   }
 
-  this->driver->exit (this->driver);
-
   vo_free_img_buffers (this_gen);
+
+  this->driver->exit (this->driver);
 
 #ifdef LOG
   printf ("video_out: vo_exit... done\n");
