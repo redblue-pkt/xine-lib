@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.192 2004/02/02 17:58:34 tmattern Exp $
+ * $Id: demux_avi.c,v 1.193 2004/02/02 21:32:40 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1543,6 +1543,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       /* read audio */
 
       buf->pts    = audio_pts;
+      
       buf->size   = AVI_read_audio (this, audio, buf->mem, buf->max_size, &buf->decoder_flags);
       buf->decoder_flags |= decoder_flags;
 
@@ -1553,6 +1554,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       }
 
       buf->type = audio->audio_type | i;
+      buf->extra_info->input_time = audio_pts / 90;
+      buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
 
       check_newpts (this, buf->pts, PTS_AUDIO);
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -1692,6 +1695,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         /* read audio */
         buf->pts = audio_pts;
+
         if (left > this->audio_fifo->buffer_pool_buf_size) {
           buf->size = this->audio_fifo->buffer_pool_buf_size;
           buf->decoder_flags = 0;
@@ -1834,14 +1838,17 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   }
   this->no_audio = 0;
 
+  this->avi->video_type = _x_fourcc_to_buf_video(this->avi->bih->biCompression);
+  
   for(i=0; i < this->avi->n_audio; i++) {
     this->avi->audio[i]->audio_type = _x_formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
 
     /* special case time: An AVI file encoded with Xan video will have Xan
      * DPCM audio marked as PCM; hack around this */
-    if (_x_fourcc_to_buf_video(this->avi->bih->biCompression) == 
-      BUF_VIDEO_XXAN)
-        this->avi->audio[i]->audio_type = BUF_AUDIO_XAN_DPCM;
+    if (this->avi->video_type == BUF_VIDEO_XXAN) {
+      this->avi->audio[i]->audio_type = BUF_AUDIO_XAN_DPCM;
+      this->avi->audio[i]->dwRate = 11025; /* why this ??? */
+    }
 
     if( !this->avi->audio[i]->audio_type ) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "unknown audio type 0x%x\n",
@@ -1871,8 +1878,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     buf->decoder_info[1] = this->video_step;
     memcpy (buf->content, this->avi->bih, this->avi->bih->biSize);
     buf->size = this->avi->bih->biSize;
-
-    this->avi->video_type = _x_fourcc_to_buf_video(this->avi->bih->biCompression);
     
     if (this->avi->video_type) {
       this->avi->compressor = this->avi->bih->biCompression;
