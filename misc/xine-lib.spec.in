@@ -184,6 +184,9 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/man/man3/config_values_t.3*
 %{prefix}/man/man3/version_group.3*
 %{prefix}/man/man3/vo_frame_t.3*
+%{prefix}/man/man3/audio_cap.3*
+%{prefix}/man/man3/audio_group.3*
+%{prefix}/man/man3/audio_prop.3*
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
 @INSTALL_M4_TRUE@@ACLOCAL_DIR@/xine.m4
@@ -217,6 +220,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_qt.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_qt.so
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.la
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.la
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.so
@@ -236,6 +241,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_dts.so
 %{prefix}/lib/xine/plugins/xineplug_decode_vfill.la
 %{prefix}/lib/xine/plugins/xineplug_decode_vfill.so
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.la
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.so
 # audio driver plugins
 # see other packages.
 #
@@ -302,6 +309,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Wed Oct 10 2001 Matthias Dahl <matthew2k@web.de>
+- added vorbis files and missing man pages to filelist.
 * Thu Sep 27 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - Add desktop stuff from patches by Miguel Freitas <miguel@cetuc.puc-rio.br>
 - Fixed xine.m4 installation from Andrew Meredith <andrew@anvil.org>
