@@ -229,4 +229,10 @@ Contributions
   Rogério Brito <rbrito@ime.usp.br>
     C version for linear blend deinterlacer
 
+  Mike Melanson <melanson@pcisys.net>
+    FILM and RoQ file demuxers
+
+  Tim Ferguson <timf@mail.csse.monash.edu.au>
+    CYUV and RoQ video decoders
+
     (let us know if we've forgotten anyone)
