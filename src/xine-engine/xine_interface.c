@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.21 2002/09/21 12:20:48 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.22 2002/09/22 14:29:40 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -74,7 +74,7 @@ int xine_check_version(int major, int minor, int sub) {
  * public config object access functions
  */
 
-const char* xine_config_register_string (xine_p self,
+const char* xine_config_register_string (xine_t *self,
 					 const char *key,
 					 const char *def_value,
 					 const char *description,
@@ -94,7 +94,7 @@ const char* xine_config_register_string (xine_p self,
 
 }
   
-int xine_config_register_range (xine_p self,
+int xine_config_register_range (xine_t *self,
 				const char *key,
 				int def_value,
 				int min, int max,
@@ -110,7 +110,7 @@ int xine_config_register_range (xine_p self,
 }
   
 
-int xine_config_register_enum (xine_p self,
+int xine_config_register_enum (xine_t *self,
 			       const char *key,
 			       int def_value,
 			       char **values,
@@ -126,7 +126,7 @@ int xine_config_register_enum (xine_p self,
 }
   
 
-int xine_config_register_num (xine_p self,
+int xine_config_register_num (xine_t *self,
 			      const char *key,
 			      int def_value,
 			      const char *description,
@@ -141,7 +141,7 @@ int xine_config_register_num (xine_p self,
 }
 
 
-int xine_config_register_bool (xine_p self,
+int xine_config_register_bool (xine_t *self,
 			       const char *key,
 			       int def_value,
 			       const char *description,
@@ -163,7 +163,7 @@ int xine_config_register_bool (xine_p self,
  * and return status
  */
 
-static int xine_config_get_current_entry (xine_p this, 
+static int xine_config_get_current_entry (xine_t *this, 
 					  xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
@@ -194,7 +194,7 @@ static int xine_config_get_current_entry (xine_p this,
 /*
  * get first config item 
  */
-int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
+int  xine_config_get_first_entry (xine_t *this, xine_cfg_entry_t *entry) {
   int result;
   config_values_t *config = this->config;
 
@@ -215,7 +215,7 @@ int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
  * get next config item (iterate through the items)
  * this will return NULL when called after returning the last item
  */     
-int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
+int xine_config_get_next_entry (xine_t *this, xine_cfg_entry_t *entry) {
   int result;
   config_values_t *config = this->config;
 
@@ -241,7 +241,7 @@ int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
  * search for a config entry by key 
  */
 
-int xine_config_lookup_entry (xine_p this, const char *key,
+int xine_config_lookup_entry (xine_t *this, const char *key,
 			      xine_cfg_entry_t *entry) {
   int result;
   config_values_t *config = this->config;
@@ -261,7 +261,7 @@ int xine_config_lookup_entry (xine_p this, const char *key,
 /*
  * update a config entry (which was returned from lookup_entry() )
  */
-void xine_config_update_entry (xine_p this, xine_cfg_entry_t *entry) {
+void xine_config_update_entry (xine_t *this, const xine_cfg_entry_t *entry) {
 
   switch (entry->type) {
   case XINE_CONFIG_TYPE_RANGE:
@@ -283,7 +283,7 @@ void xine_config_update_entry (xine_p this, xine_cfg_entry_t *entry) {
 }
   
 
-void xine_config_reset (xine_p this) {
+void xine_config_reset (xine_t *this) {
 
   config_values_t *config = this->config;
   cfg_entry_t *entry;
@@ -304,14 +304,13 @@ void xine_config_reset (xine_p this) {
   pthread_mutex_unlock(&config->config_lock);
 }
   
-int xine_gui_send_vo_data (xine_p this,
+int xine_gui_send_vo_data (xine_t *this,
 			   int type, void *data) {
 
   return this->video_driver->gui_data_exchange (this->video_driver, type, data);
 }
 
-void xine_set_param (xine_p this_ro, int param, int value) {
-  xine_t *this = (xine_t *)this_ro;
+void xine_set_param (xine_t *this, int param, int value) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
@@ -366,7 +365,7 @@ void xine_set_param (xine_p this_ro, int param, int value) {
   }
 }
 
-int  xine_get_param (xine_p this, int param) {
+int  xine_get_param (xine_t *this, int param) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
@@ -410,7 +409,7 @@ int  xine_get_param (xine_p this, int param) {
   return 0;
 }
 
-uint32_t xine_get_stream_info (xine_p this, int info) {
+uint32_t xine_get_stream_info (xine_t *this, int info) {
 
   switch (info) {
 
@@ -445,7 +444,7 @@ uint32_t xine_get_stream_info (xine_p this, int info) {
   return 0;
 }
 
-const char *xine_get_meta_info (xine_p this, int info) {
+const char *xine_get_meta_info (xine_t *this, int info) {
 
   return this->meta_info[info];
 }

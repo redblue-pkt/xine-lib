@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.59 2002/09/19 00:23:29 guenter Exp $
+ * $Id: input_file.c,v 1.60 2002/09/22 14:29:40 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -427,7 +427,7 @@ static int is_a_dir(char *filepathname) {
 /*
  *
  */
-static const xine_mrl_t *const *file_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen, 
 						     const char *filename, int *nFiles) {
   file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
   struct dirent        *pdirent;
@@ -740,7 +740,7 @@ static const xine_mrl_t *const *file_plugin_get_dir (input_plugin_t *this_gen,
   }
   */
 
-  return (const xine_mrl_t *const *)this->mrls;
+  return this->mrls;
 }
 
 /*

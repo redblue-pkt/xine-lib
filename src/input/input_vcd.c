@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.51 2002/09/06 18:13:11 mroi Exp $
+ * $Id: input_vcd.c,v 1.52 2002/09/22 14:29:40 mroi Exp $
  *
  */
 
@@ -974,7 +974,7 @@ static char *vcd_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  *
  */
-static const xine_mrl_t *const *vcd_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
 						    const char *filename, int *nEntries) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
@@ -1054,13 +1054,13 @@ static const xine_mrl_t *const *vcd_plugin_get_dir (input_plugin_t *this_gen,
 
   this->mrls[*nEntries] = NULL;
   
-  return (const xine_mrl_t *const *)this->mrls;
+  return this->mrls;
 }
 
 /*
  *
  */
-static const char *const *vcd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
+static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
 							int *nFiles) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
@@ -1101,7 +1101,7 @@ static const char *const *vcd_plugin_get_autoplay_list (input_plugin_t *this_gen
   this->filelist[i - 1] = (char *) realloc(this->filelist[i-1], sizeof(char *));
   this->filelist[i - 1] = NULL;
 
-  return (const char *const *)this->filelist;
+  return this->filelist;
 }
 
 /*

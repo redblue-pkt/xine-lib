@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.33 2002/09/06 18:13:10 mroi Exp $
+ * $Id: input_cda.c,v 1.34 2002/09/22 14:29:40 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1619,7 +1619,7 @@ static char *cda_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  * Get dir.
  */
-static const xine_mrl_t *const *cda_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen, 
 						    const char *filename, int *nEntries) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
@@ -1695,13 +1695,13 @@ static const xine_mrl_t *const *cda_plugin_get_dir (input_plugin_t *this_gen,
   
   _LEAVE_FUNC();
 
-  return (const xine_mrl_t *const *)this->mrls;
+  return this->mrls;
 }
 
 /*
  * Get autoplay.
  */
-static const char *const *cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFiles) {
+static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFiles) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
 
@@ -1743,7 +1743,7 @@ static const char *const *cda_plugin_get_autoplay_list (input_plugin_t *this_gen
   
   _LEAVE_FUNC();
 
-  return (const char *const *)this->filelist;
+  return this->filelist;
 }
 
 /*

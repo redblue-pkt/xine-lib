@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.30 2002/09/06 18:13:11 mroi Exp $
+ * $Id: input_plugin.h,v 1.31 2002/09/22 14:29:40 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -199,7 +199,7 @@ struct input_plugin_s
    * ls function
    * return value: NULL => filename is a file, **char=> filename is a dir
    */
-  const xine_mrl_t *const * (*get_dir) (input_plugin_t *this, const char *filename, int *nFiles);
+  xine_mrl_t ** (*get_dir) (input_plugin_t *this, const char *filename, int *nFiles);
 
 
   /*
@@ -246,7 +246,7 @@ struct input_plugin_s
    * generate autoplay list
    * return value: list of MRLs
    */
-  const char *const * (*get_autoplay_list) (input_plugin_t *this, int *nFiles);
+  char ** (*get_autoplay_list) (input_plugin_t *this, int *nFiles);
 
 
   /*

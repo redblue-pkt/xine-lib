@@ -29,10 +29,9 @@
 
 #include "xine_internal.h"
 
-int xine_register_event_listener (xine_p this_ro, 
+int xine_register_event_listener (xine_t *this, 
 				  xine_event_listener_cb_t listener,
 				  void *user_data) {
-  xine_t *this = (xine_t *)this_ro;
   /* Ensure the listener is non-NULL */
   if(listener == NULL) {
     return 0;
@@ -55,7 +54,7 @@ int xine_register_event_listener (xine_p this_ro,
   return 0;
 }
 
-void xine_send_event(xine_p this, xine_event_t *event) {
+void xine_send_event(xine_t *this, xine_event_t *event) {
   uint16_t i;
   
   pthread_mutex_lock(&this->event_lock);
@@ -74,9 +73,8 @@ void xine_send_event(xine_p this, xine_event_t *event) {
   pthread_cond_signal(&this->event_handled);
 }
 
-int xine_remove_event_listener(xine_p this_ro, 
+int xine_remove_event_listener(xine_t *this, 
 			       xine_event_listener_cb_t listener) {
-  xine_t *this = (xine_t *)this_ro;
   uint16_t i, found, pending;
 
   found = 1;

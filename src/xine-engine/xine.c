@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.160 2002/09/18 15:37:11 mroi Exp $
+ * $Id: xine.c,v 1.161 2002/09/22 14:29:40 mroi Exp $
  *
  * top-level xine functions
  *
@@ -164,10 +164,9 @@ void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t 
   }
 }
 
-int xine_register_report_codec_cb(xine_p this_ro, 
+int xine_register_report_codec_cb(xine_t *this, 
 				  xine_report_codec_cb_t report_codec,
 				  void *user_data) {
-  xine_t *this = (xine_t *)this_ro;
   
   this->report_codec_cb = report_codec;
   this->report_codec_user_data = user_data;
@@ -265,8 +264,7 @@ void xine_stop_internal (xine_t *this) {
   printf ("xine_stop: done\n");
 }
 
-void xine_stop (xine_p this_ro) {
-  xine_t *this = (xine_t *)this_ro;
+void xine_stop (xine_t *this) {
   pthread_mutex_lock (&this->xine_lock);
   xine_stop_internal(this);
   
@@ -560,8 +558,7 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
   return 1;
 }             
 
-int xine_open (xine_p this_ro, const char *mrl) {
-  xine_t *this = (xine_t *)this_ro;
+int xine_open (xine_t *this, const char *mrl) {
   int ret;
 
   pthread_mutex_lock (&this->xine_lock);
@@ -571,8 +568,7 @@ int xine_open (xine_p this_ro, const char *mrl) {
   return ret;
 }
 
-int  xine_play (xine_p this_ro, int start_pos, int start_time) {
-  xine_t *this = (xine_t *)this_ro;
+int  xine_play (xine_t *this, int start_pos, int start_time) {
   int ret;
 
   pthread_mutex_lock (&this->xine_lock);
@@ -583,8 +579,7 @@ int  xine_play (xine_p this_ro, int start_pos, int start_time) {
 }
 
 
-int xine_eject (xine_p this_ro) {
-  xine_t *this = (xine_t *)this_ro;
+int xine_eject (xine_t *this) {
   
   int status;
 
@@ -604,8 +599,7 @@ int xine_eject (xine_p this_ro) {
   return status;
 }
 
-void xine_exit (xine_p this_ro) {
-  xine_t *this = (xine_t *)this_ro;
+void xine_exit (xine_t *this) {
 
   int i;
 
@@ -656,7 +650,7 @@ void xine_exit (xine_p this_ro) {
 
 }
 
-xine_p xine_new (void) {
+xine_t *xine_new (void) {
 
   xine_t      *this;
   int          i;
@@ -758,12 +752,9 @@ xine_p xine_new (void) {
 }
 
 
-void xine_init (xine_p this_ro,
-		xine_ao_driver_p ao_ro, 
-		xine_vo_driver_p vo_ro) {
-  xine_t *this = (xine_t *)this_ro;
-  xine_ao_driver_t *ao = (xine_ao_driver_t *)ao_ro;
-  xine_vo_driver_t *vo = (xine_vo_driver_t *)vo_ro;
+void xine_init (xine_t *this,
+		xine_ao_driver_t *ao,
+		xine_vo_driver_t *vo) {
 
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
@@ -889,8 +880,7 @@ static int xine_get_current_position (xine_t *this) {
   return (int) share;
 }
 
-int xine_get_status(xine_p this_ro) {
-  xine_t *this = (xine_t *)this_ro;
+int xine_get_status(xine_t *this) {
   int status;
 
   status = this->status;
@@ -960,9 +950,8 @@ static int xine_get_stream_length (xine_t *this) {
   return 0;
 }
 
-int xine_get_pos_length (xine_p this_ro, int *pos_stream, 
+int xine_get_pos_length (xine_t *this, int *pos_stream, 
 			 int *pos_time, int *length_time) {
-  xine_t *this = (xine_t *)this_ro;
   
   if (pos_stream)
     *pos_stream  = xine_get_current_position (this); 
@@ -998,10 +987,9 @@ static int xine_set_audio_property(xine_t *this, int property, int value) {
   return ~value;
 }
 
-int xine_get_current_frame (xine_p this_ro, int *width, int *height,
+int xine_get_current_frame (xine_t *this, int *width, int *height,
 			    int *ratio_code, int *format,
 			    uint8_t *img) {
-  xine_t *this = (xine_t *)this_ro;
 
   vo_frame_t *frame;
 
@@ -1040,8 +1028,7 @@ int xine_get_current_frame (xine_p this_ro, int *width, int *height,
   return 1;
 }
 
-const char * xine_get_spu_lang (xine_p this_ro, int channel) {
-  xine_t *this = (xine_t *)this_ro;
+const char * xine_get_spu_lang (xine_t *this, int channel) {
 
   if (this->cur_input_plugin) {
     if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SPULANG) {
@@ -1055,8 +1042,7 @@ const char * xine_get_spu_lang (xine_p this_ro, int channel) {
   return NULL;
 }
 
-const char* xine_get_audio_lang (xine_p this_ro, int channel) {
-  xine_t *this = (xine_t *)this_ro;
+const char* xine_get_audio_lang (xine_t *this, int channel) {
 
   if (this->cur_input_plugin) {
     if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_AUDIOLANG) {
@@ -1083,11 +1069,11 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this) {
 /*
  * log functions
  */
-int xine_get_log_section_count (xine_p this_ro) {
+int xine_get_log_section_count (xine_t *this) {
   return XINE_LOG_NUM;
 }
 
-const char *const *xine_get_log_names (xine_p this_ro) {
+const char *const *xine_get_log_names (xine_t *this) {
   static const char *log_sections[XINE_LOG_NUM + 1];
 
   log_sections[XINE_LOG_MSG]      = _("messages");  
@@ -1097,8 +1083,7 @@ const char *const *xine_get_log_names (xine_p this_ro) {
   return log_sections;
 }
 
-void xine_log (xine_p this_ro, int buf, const char *format, ...) {
-  xine_t *this = (xine_t *)this_ro;
+void xine_log (xine_t *this, int buf, const char *format, ...) {
 
   va_list argp;
 
@@ -1114,8 +1099,7 @@ void xine_log (xine_p this_ro, int buf, const char *format, ...) {
   va_end (argp);
 }
 
-const char *const *xine_get_log (xine_p this_ro, int buf) {
-  xine_t *this = (xine_t *)this_ro;
+const char *const *xine_get_log (xine_t *this, int buf) {
   
   if(buf >= XINE_LOG_NUM)
     return NULL;
@@ -1123,18 +1107,18 @@ const char *const *xine_get_log (xine_p this_ro, int buf) {
   return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
 }
 
-void xine_register_log_cb (xine_p this_ro, xine_log_cb_t cb, void *user_data) {
+void xine_register_log_cb (xine_t *this, xine_log_cb_t cb, void *user_data) {
 
   printf ("xine: xine_register_log_cb: not implemented yet.\n");
   abort();
 }
 
 
-int xine_get_error (xine_p this_ro) {
-  return this_ro->err;
+int xine_get_error (xine_t *this) {
+  return this->err;
 }
 
-int xine_trick_mode (xine_p this_ro, int mode, int value) {
+int xine_trick_mode (xine_t *this, int mode, int value) {
   printf ("xine: xine_trick_mode not implemented yet.\n");
   abort ();
 }

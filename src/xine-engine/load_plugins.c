@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.97 2002/09/19 00:53:43 guenter Exp $
+ * $Id: load_plugins.c,v 1.98 2002/09/22 14:29:40 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -594,7 +594,7 @@ void scan_plugins (xine_t *this) {
   map_decoders (this);
 }
 
-static const char **_xine_get_featured_input_plugin_ids(xine_p this, int feature) {
+static const char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
 
   plugin_catalog_t   *catalog;
   int                 i;
@@ -622,17 +622,17 @@ static const char **_xine_get_featured_input_plugin_ids(xine_p this, int feature
   return catalog->ids;
 }
 
-const char *const *xine_get_autoplay_input_plugin_ids(xine_p this) {
+const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
 
   return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_AUTOPLAY));
 }
 
-const char *const *xine_get_browsable_input_plugin_ids(xine_p this) {
+const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
 
   return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_GET_DIR));
 }
 
-const char *xine_get_input_plugin_description(xine_p this, const char *plugin_id) {
+const char *xine_get_input_plugin_description(xine_t *this, const char *plugin_id) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;
@@ -657,10 +657,9 @@ const char *xine_get_input_plugin_description(xine_p this, const char *plugin_id
  *  video out plugins section
  */
 
-xine_vo_driver_p xine_open_video_driver (xine_p this_ro,
+xine_vo_driver_t *xine_open_video_driver (xine_t *this,
 					 const char *id, 
 					 int visual_type, void *visual) {
-  xine_t *this = (xine_t *)this_ro;
 
   plugin_node_t      *node;
   xine_vo_driver_t   *driver;
@@ -690,9 +689,9 @@ xine_vo_driver_p xine_open_video_driver (xine_p this_ro,
 
 	  /* remember plugin id */
 	  
-	  if (xine_config_lookup_entry (this_ro, "video.driver", &entry)) {
+	  if (xine_config_lookup_entry (this, "video.driver", &entry)) {
 	    entry.str_value = node->info->id;
-	    xine_config_update_entry (this_ro, &entry);
+	    xine_config_update_entry (this, &entry);
 	  }
 
 	  break;
@@ -713,7 +712,7 @@ xine_vo_driver_p xine_open_video_driver (xine_p this_ro,
  *  audio output plugins section
  */
 
-const char *const *xine_list_audio_output_plugins (xine_p this) {
+const char *const *xine_list_audio_output_plugins (xine_t *this) {
 
   plugin_catalog_t   *catalog;
   int                 i;
@@ -737,7 +736,7 @@ const char *const *xine_list_audio_output_plugins (xine_p this) {
   return catalog->ids;
 }
 
-const char *const *xine_list_video_output_plugins (xine_p this) {
+const char *const *xine_list_video_output_plugins (xine_t *this) {
 
   plugin_catalog_t   *catalog;
   int                 i;
@@ -761,9 +760,8 @@ const char *const *xine_list_video_output_plugins (xine_p this) {
   return catalog->ids;
 }
 
-xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, const char *id,
+xine_ao_driver_t *xine_open_audio_driver (xine_t *this, const char *id,
 					 void *data) {
-  xine_t *this = (xine_t *)this_ro;
   
   plugin_node_t      *node;
   xine_ao_driver_t   *driver;
@@ -789,9 +787,9 @@ xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, const char *id,
 
 	/* remember plugin id */
 
-	if (xine_config_lookup_entry (this_ro, "audio.driver", &entry)) {
+	if (xine_config_lookup_entry (this, "audio.driver", &entry)) {
 	  entry.str_value = node->info->id;
-	  xine_config_update_entry (this_ro, &entry);
+	  xine_config_update_entry (this, &entry);
 	}
 
 	break;
@@ -814,8 +812,8 @@ xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, const char *id,
  * get autoplay mrl list from input plugin
  */
 
-const char *const *xine_get_autoplay_mrls (xine_p this, const char *plugin_id, 
-					   int *num_mrls) {
+char **xine_get_autoplay_mrls (xine_t *this, const char *plugin_id, 
+			       int *num_mrls) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;
@@ -844,8 +842,8 @@ const char *const *xine_get_autoplay_mrls (xine_p this, const char *plugin_id,
 /*
  * input plugin mrl browser support
  */
-const xine_mrl_t *const *xine_get_browse_mrls (xine_p this, const char *plugin_id, 
-				               const char *start_mrl, int *num_mrls) {
+xine_mrl_t **xine_get_browse_mrls (xine_t *this, const char *plugin_id, 
+				   const char *start_mrl, int *num_mrls) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;

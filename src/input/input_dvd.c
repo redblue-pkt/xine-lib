@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.88 2002/09/20 13:24:53 mroi Exp $
+ * $Id: input_dvd.c,v 1.89 2002/09/22 14:29:40 mroi Exp $
  *
  */
 
@@ -82,7 +82,7 @@
 #include "xine_internal.h"
 
 /* Print debug messages? */
-#define INPUT_DEBUG
+/* #define INPUT_DEBUG */
 
 /* Print trace messages? */
 /* #define INPUT_DEBUG_TRACE */
@@ -874,7 +874,7 @@ static uint32_t dvdnav_plugin_get_blocksize (input_plugin_t *this_gen) {
   return DVD_BLOCK_SIZE;
 }
 
-static const xine_mrl_t *const *dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
 						       const char *filename, int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t*)this_gen;
 
@@ -883,7 +883,7 @@ static const xine_mrl_t *const *dvdnav_plugin_get_dir (input_plugin_t *this_gen,
 
   dvdnav_build_mrl_list((dvdnav_input_plugin_t *) this_gen);
   *nFiles = this->num_mrls;
-  return (const xine_mrl_t *const *)this->mrls;
+  return this->mrls;
 }
 
 static int dvdnav_umount_media(char *device)
@@ -1354,7 +1354,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
+static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
 							   int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
   int titles, i;
@@ -1376,7 +1376,7 @@ static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_
     filelist2[i] = &(filelist[i][0]);
   }
   filelist2[*nFiles] = NULL;
-  return (const char *const *)filelist2;
+  return filelist2;
   /* Return a list of all titles */
   snprintf (&(filelist[0][0]), MAX_STR_LEN, "dvd://");
   filelist2[0] = &(filelist[0][0]);
@@ -1392,7 +1392,7 @@ static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_
   printf("input_dvd: get_autoplay_list exiting opened=%d dvdnav=%p\n",this->opened, this->dvdnav); 
 #endif
 
-  return (const char *const *)filelist2;
+  return filelist2;
 }
 
 void dvdnav_plugin_dispose(input_plugin_t *this_gen) {
@@ -1547,8 +1547,12 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
- * Revision 1.88  2002/09/20 13:24:53  mroi
- * another bit of language display tweaking
+ * Revision 1.89  2002/09/22 14:29:40  mroi
+ * API review part I
+ * - bring our beloved xine_t * back (no more const there)
+ * - remove const on some input plugin functions
+ *   where the data changes with media (dvd, ...) changes
+ *   and is therefore not const
  *
  * Revision 1.86  2002/09/18 10:03:07  jcdutton
  * Fix a seg fault.
