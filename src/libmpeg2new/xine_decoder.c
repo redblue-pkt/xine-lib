@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2003/06/10 22:01:54 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.4 2003/06/11 00:22:57 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -37,8 +37,10 @@
 #include "video_out.h"
 #include "buffer.h"
 
-/*
+
 #define LOG
+/*
+#define LOG_FRAME_ALLOC_FREE
 */
 
 typedef struct {
@@ -58,9 +60,11 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
   uint8_t * current = buf_element->content;
   uint8_t * end = buf_element->content + buf_element->size;
   const mpeg2_info_t * info;
+  uint32_t pts;
   mpeg2_state_t state;
   vo_frame_t * img;
   if (buf_element->decoder_flags != 0) return;
+  pts=buf_element->pts;
 
   mpeg2_buffer (this->mpeg2dec, current, end);
 
@@ -71,6 +75,25 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         /* might set nb fbuf, convert format, stride */
         /* might set fbufs */
         mpeg2_custom_fbuf (this->mpeg2dec, 1);  /* <- Force libmpeg2 to use xine frame buffers. */
+        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]     = info->sequence->picture_width;
+        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]    = info->sequence->picture_height;
+        this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]  = info->sequence->frame_period / 300;
+        switch (info->sequence->pixel_width) {
+          case XINE_VO_ASPECT_PAN_SCAN:
+          case XINE_VO_ASPECT_ANAMORPHIC:
+            this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
+            break;
+          case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
+            this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
+            break;
+          case XINE_VO_ASPECT_SQUARE:      /* square pels */
+            this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
+            break;
+          default:
+            this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+            break;
+        }
+        this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]  = strdup ("MPEG-new");
         break;
       case STATE_PICTURE:
         /* might skip */
@@ -79,12 +102,12 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                               info->sequence->picture_width,
                                               info->sequence->picture_height,
-                                              //picture->aspect_ratio_information,
-                                              1,
+                                              info->sequence->pixel_width,  /* Aspect ratio */
                                               XINE_IMGFMT_YV12,
                                               //picture->picture_structure);
                                               0);
-#ifdef LOG
+        img->pts=buf_element->pts;
+#ifdef LOG_FRAME_ALLOC_FREE
         printf ("libmpeg2:decode_data:get_frame id=%d\n", img->id);
 #endif
         mpeg2_set_buf (this->mpeg2dec, img->base, img);
@@ -95,16 +118,15 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         /* might free frame buffer */
         if (info->display_fbuf) {
           img = (vo_frame_t *) info->display_fbuf->id;
-          //img->pts=0;
-          img->duration=3600;
-#ifdef LOG
+          img->duration=info->sequence->frame_period / 300;
+#ifdef LOG_FRAME_ALLOC_FREE
           printf ("libmpeg2:decode_data:draw_frame id=%d\n", img->id);
 #endif
           img->draw (img, this->stream);
         }
         img = (vo_frame_t *) info->discard_fbuf->id; 
         if (info->discard_fbuf && img) {
-#ifdef LOG
+#ifdef LOG_FRAME_ALLOC_FREE
           printf ("libmpeg2:decode_data:free_frame id=%d\n", img->id);
 #endif
           img->free(img);
@@ -125,7 +147,7 @@ static void mpeg2_video_flush (video_decoder_t *this_gen) {
   printf ("libmpeg2: flush\n");
 #endif
 
-//  mpeg2_flush (&this->mpeg2);
+/*  mpeg2_flush (&this->mpeg2); */
 }
 
 static void mpeg2_video_reset (video_decoder_t *this_gen) {
@@ -134,7 +156,7 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 #ifdef LOG
   printf ("libmpeg2: reset\n");
 #endif
-//  mpeg2_reset (&this->mpeg2dec);
+/*  mpeg2_reset (&this->mpeg2dec); */
 }
 
 static void mpeg2_video_discontinuity (video_decoder_t *this_gen) {
@@ -143,7 +165,7 @@ static void mpeg2_video_discontinuity (video_decoder_t *this_gen) {
 #ifdef LOG
   printf ("libmpeg2: dicontinuity\n");
 #endif
-//  mpeg2_discontinuity (&this->mpeg2dec);
+/*  mpeg2_discontinuity (&this->mpeg2dec); */
 }
 
 static void mpeg2_video_dispose (video_decoder_t *this_gen) {
@@ -177,7 +199,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   this->mpeg2dec = mpeg2_init ();
   stream->video_out->open(stream->video_out, stream);
-//  this->mpeg2.force_aspect = 0;
+/*  this->mpeg2.force_aspect = 0; */
 
   return &this->video_decoder;
 }
