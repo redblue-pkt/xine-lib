@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.28 2001/08/28 19:16:20 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.29 2001/09/01 18:11:04 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -521,7 +521,19 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     ideal_height *=2;
   }
 
-  ideal_width &= 0xFFFFFE0;
+  /*
+   * XXX: Why is ideal_width rounded down to an exact multiple of 32?
+   *
+   * AVI DivX sometimes use a width with "width % 32 == 16", so that
+   * "ideal_width &= 0xFFFFFE0;" modifies the width and triggers the
+   * yuv2rgb do_scale code...
+   * E.g. a 720x540 video is scaled to 704x5XX
+   *
+   * Round down to a multiple of 16 for now,
+   * maybe we should delete the ideal_width &= 0xFFFFFF0; ?
+   */
+  /* ideal_width &= 0xFFFFFE0; */
+  ideal_width &= 0xFFFFFF0;
 
   this->calc_dest_size (ideal_width, ideal_height, 
 			&dest_width, &dest_height);
