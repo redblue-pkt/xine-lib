@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.17 2003/11/29 11:08:31 f1rmb Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -229,7 +229,7 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     ret=theora_decode_packetin( &this->t_state, &this->op);
 
     if ( ret!=0) {
-      xprintf(this->stream, XINE_VERBOSITY_LOG, "libtheora:Received an bad packet\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "libtheora:Received an bad packet\n");
     } else if (!this->skipframes) {
 
       theora_decode_YUVout(&this->t_state,&yuv);
