@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.27 2003/01/12 20:54:14 f1rmb Exp $
+ * $Id: dxr3_decode_video.c,v 1.28 2003/01/13 18:09:58 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -99,9 +99,6 @@ typedef struct dxr3_decoder_class_s {
   
   int                    instance;             /* we allow only one instance of this plugin */
   
-  char                   devname[128];
-  char                   devnum[3];
-  
   metronom_clock_t      *clock;                /* used for syncing */
 } dxr3_decoder_class_t;
 
@@ -112,6 +109,8 @@ typedef struct dxr3_decoder_s {
   dxr3_scr_t            *scr;
   dxr3_driver_t         *dxr3_vo;              /* we need to talk to the dxr3 video out */
   
+  char                   devname[128];
+  char                   devnum[3];
   int                    fd_control;
   int                    fd_video;             /* to access the dxr3 devices */
   
@@ -156,27 +155,9 @@ static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t 
 static void *dxr3_init_plugin(xine_t *xine, void *data)
 {
   dxr3_decoder_class_t *this;
-  config_values_t *cfg;
-  const char *confstr;
-  int dashpos;
   
   this = (dxr3_decoder_class_t *)malloc(sizeof (dxr3_decoder_class_t));
   if (!this) return NULL;
-  
-  cfg = xine->config;
-  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
-  strncpy(this->devname, confstr, 128);
-  this->devname[127] = '\0';
-  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
-  if (this->devname[dashpos] == '-') {
-    /* use new device naming scheme with trailing number */
-    strncpy(this->devnum, &this->devname[dashpos], 3);
-    this->devname[dashpos] = '\0';
-  } else {
-    /* use old device naming scheme without trailing number */
-    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
-    this->devnum[0] = '\0';
-  }
   
   this->video_decoder_class.open_plugin     = dxr3_open_plugin;
   this->video_decoder_class.get_identifier  = dxr3_get_identifier;
@@ -196,6 +177,8 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   dxr3_decoder_t *this;
   dxr3_decoder_class_t *class = (dxr3_decoder_class_t *)class_gen;
   config_values_t *cfg;
+  const char *confstr;
+  int dashpos;
   char tmpstr[128];
   
   if (class->instance) return NULL;
@@ -217,7 +200,21 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->scr                         = NULL;
   this->dxr3_vo                     = (dxr3_driver_t *)stream->video_driver;
   
-  snprintf(tmpstr, sizeof(tmpstr), "%s%s", class->devname, class->devnum);
+  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
+  strncpy(this->devname, confstr, 128);
+  this->devname[127] = '\0';
+  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
+  if (this->devname[dashpos] == '-') {
+    /* use new device naming scheme with trailing number */
+    strncpy(this->devnum, &this->devname[dashpos], 3);
+    this->devname[dashpos] = '\0';
+  } else {
+    /* use old device naming scheme without trailing number */
+    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
+    this->devnum[0] = '\0';
+  }
+  
+  snprintf(tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
 #if LOG_VID
   printf("dxr3_decode_video: Entering video init, devname=%s.\n",tmpstr);
 #endif
@@ -465,7 +462,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
    */
   if (this->fd_video < 0) {
     char tmpstr[128];
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->class->devname, this->class->devnum);
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
       printf("dxr3_decode_video: Failed to open video device %s (%s)\n",
         tmpstr, strerror(errno)); 
