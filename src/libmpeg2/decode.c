@@ -396,6 +396,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    data.aspect = picture->aspect_ratio_information;
 	    xine_event_send(mpeg2dec->stream, &event);
 
+            mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
+              = picture->coded_picture_width;
+	    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
+              = picture->coded_picture_height;
+
 	    if (picture->forward_reference_frame &&
 		picture->forward_reference_frame != picture->current_frame &&
 		picture->forward_reference_frame != picture->backward_reference_frame)
@@ -782,6 +787,11 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	data.height = picture->coded_picture_height;
 	data.aspect = picture->aspect_ratio_information;
 	xine_event_send(mpeg2dec->stream, &event);
+
+	mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
+          = picture->coded_picture_width;
+	mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
+          = picture->coded_picture_height;
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (mpeg2_header_extension (picture, mpeg2dec->chunk_buffer)) {
@@ -825,6 +835,11 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       data.height = mpeg2dec->picture->coded_picture_height;
       data.aspect = mpeg2dec->picture->aspect_ratio_information;
       xine_event_send(mpeg2dec->stream, &event);
+
+      mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
+        = mpeg2dec->picture->coded_picture_width;
+      mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
+        = mpeg2dec->picture->coded_picture_height;
     }
     
     if (mpeg2dec->cc_dec) {
