@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.17 2001/11/03 00:13:11 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.18 2001/11/03 13:57:34 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -282,19 +282,19 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
      this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
      this->output_yoffset  = dest_y;
    }
-   
-   /*
-    * set up the syncfb module
-    */
+
+   //
+   // configuring SyncFB module from this point on.
+   //
 
    if(ioctl(this->fd, SYNCFB_OFF))
      printf("video_out_syncfb: error. (off ioctl failed)\n");
    else
      this->overlay_state = 0;
 
-   // in case we have the window somewhere *off* the desktop, this *could*
-   // cause some screen corruption... so better leave things deactivated.
-   if(posx >= 0 && posy >= 0) {
+   // sanity checking - certain situations *may* crash the SyncFB module, so
+   // take care that we always have valid numbers.
+   if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0) {
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
@@ -322,7 +322,6 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 
       if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
 	printf("video_out_syncfb: error. (set_config ioctl failed)\n");
-   
       if(ioctl(this->fd, SYNCFB_ON))
 	printf("video_out_syncfb: error. (on ioctl failed)\n");
       else
@@ -610,17 +609,14 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
    frame->ratio_code = ratio_code;
 }
 
-// FIXME: not yet implemented, being worked on!
-/*
 static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
 {
   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
 
   if(overlay->rle) {
-    blend_yuv(frame->XXX, overlay, frame->width, frame->height);
+    blend_yuv_vo_frame(&frame->vo_frame, overlay);
   }
 }
-*/
 
 static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
 {
@@ -859,8 +855,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
   this->vo_driver.get_capabilities     = syncfb_get_capabilities;
   this->vo_driver.alloc_frame          = syncfb_alloc_frame;
   this->vo_driver.update_frame_format  = syncfb_update_frame_format;
-//  this->vo_driver.overlay_blend        = syncfb_overlay_blend;
-  this->vo_driver.overlay_blend        = NULL; // FIXME: support coming soon
+  this->vo_driver.overlay_blend        = syncfb_overlay_blend;
   this->vo_driver.display_frame        = syncfb_display_frame;
   this->vo_driver.get_property         = syncfb_get_property;
   this->vo_driver.set_property         = syncfb_set_property;

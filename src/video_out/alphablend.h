@@ -1,4 +1,3 @@
-
 /*
  *
  * Copyright (C) 2000  Thomas Mirlacher
@@ -35,17 +34,23 @@ typedef struct {         /* CLUT == Color LookUp Table */
   uint8_t foo   : 8;
 } __attribute__ ((packed)) clut_t;
 
-void blend_rgb16 (uint8_t * img, vo_overlay_t * overlay,
+void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
-		  int delivered_width, int delivered_height);
-void blend_rgb24 (uint8_t * img, vo_overlay_t * overlay,
+		  int dst_width, int dst_height);
+
+void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
-		  int delivered_iwdth, int delivered_height);
-void blend_rgb32 (uint8_t * img, vo_overlay_t * overlay,
+		  int dst_width, int dst_height);
+
+void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
-		  int delivered_iwdth, int delivered_height);
-void blend_yuv (uint8_t * img, vo_overlay_t * overlay,
-		int width, int height);
+		  int dst_width, int dst_height);
+
+void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
+                int dst_width, int dst_height);
+
+void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl);
+
 void crop_overlay (vo_overlay_t * overlay);
 
 #endif

@@ -383,3 +383,71 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
     }
   }
 }
+
+void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl)
+{
+  clut_t *my_clut;
+  uint8_t *my_trans;
+
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int mask;
+  int x, y;
+
+  uint8_t *dst_y = dst_img->base[0] + dst_img->width * y_off + x_off;
+  uint8_t *dst_cr = dst_img->base[1] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
+  uint8_t *dst_cb = dst_img->base[2] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
+   
+  my_clut = (clut_t*) img_overl->color;
+  my_trans = img_overl->trans;
+
+  for (y = 0; y < src_height; y++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    for (x = 0; x < src_width;) {
+      uint8_t clr;
+      uint16_t o;
+
+      clr = rle->color;
+      o   = my_trans[clr];
+
+      /* These three lines assume that menu buttons are "clean" separated
+       * and do not overlap with the button clip borders */
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x)
+		   o = 0;
+
+      if (o && mask) {
+	if (o >= 15) {
+	  memset(dst_y + x, my_clut[clr].y, rle->len);
+	  if (y & 1) {
+	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rle->len >> 1);
+	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rle->len >> 1);
+	  }
+	} else {
+	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle->len);
+	  if (y & 1) {
+	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rle->len >> 1);
+	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rle->len >> 1);
+	  }
+	}
+      }
+
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+
+    dst_y += dst_img->width;
+
+    if (y & 1) {
+      dst_cr += (dst_img->width + 1) / 2;
+      dst_cb += (dst_img->width + 1) / 2;
+    }
+  }
+}
