@@ -1633,6 +1633,11 @@ case "$host_or_hostalias" in
     dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
     dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
     dnl from automake 1.6.
+    if test x$enable_altivec = xyes; then
+        AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
+        CFLAGS="$CFLAGS -faltivec"
+        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec"
+    fi
     ;;
 
   ppc-*-linux* | powerpc-*) 
