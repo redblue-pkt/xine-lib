@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.61 2002/04/28 15:20:38 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.62 2002/04/28 16:11:12 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -261,17 +261,26 @@ static int ao_oss_open(ao_driver_t *this_gen,
   case AO_CAP_MODE_5CHANNEL:
   case AO_CAP_MODE_5_1CHANNEL:
     if (bits==8)
-       tmp = AFMT_U8;
+      tmp = AFMT_U8;
     else
-       tmp = AFMT_S16_NE;
+      tmp = AFMT_S16_NE;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0
-	|| tmp != AFMT_S16_NE) {
-      printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
-      if (tmp != AFMT_S16_NE)
-	printf("audio_oss_out: ioctl succeeded but set format to %x.\n", tmp);
-      else
-	printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
-      return 0;
+	|| (tmp!=AFMT_S16_NE && tmp!=AFMT_U8)) {
+      if (bits==8) {
+	printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_U8.\n");
+        if (tmp != AFMT_U8)
+          printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
+        else
+          printf("audio_oss_out: The AFMT_U8 ioctl failed.\n");
+        return 0;
+      } else {
+	printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
+        if (tmp != AFMT_S16_NE)
+          printf("audio_oss_out: ioctl succeeded but set format to 0x%x.\n",tmp);
+        else
+          printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
+        return 0;
+      }          
     }
     break;
   case AO_CAP_MODE_A52:

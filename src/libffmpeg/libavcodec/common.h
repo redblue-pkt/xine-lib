@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#undef DEBUG
+
 #define FFMPEG_VERSION_INT 0x000406
 #define FFMPEG_VERSION     "0.4.6"
 
