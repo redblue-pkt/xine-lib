@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-04-29 00:54+0100\n"
+"POT-Creation-Date: 2002-04-29 22:45+0200\n"
 "PO-Revision-Date: 2002-03-31 01:00+0100\n"
 "Last-Translator: Bart³omiej MURYN <forever@klub.chip.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"

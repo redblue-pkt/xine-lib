@@ -946,7 +946,6 @@ src/libw32dll/DirectShow/Makefile
 src/libspudec/Makefile
 src/libsputext/Makefile
 src/libspucc/Makefile
-src/libvfill/Makefile
 src/libvorbis/Makefile
 src/libxvid/Makefile
 src/libdivx4/Makefile
