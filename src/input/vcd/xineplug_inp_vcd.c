@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.3 2003/10/19 23:47:34 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.4 2003/10/20 01:14:33 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -460,6 +460,8 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
   char *p;
   unsigned int num = 0;
 
+  printf("1111\n");
+  
   dbg_print(INPUT_DBG_CALL, "called mrl %s\n", mrl);
 
   type_str[0]   ='\0';
@@ -472,6 +474,7 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
     return false;
   }
 
+  printf("222\n");
   count = sscanf (p, "%[^@]@%1[EePpSsTt]%u", 
 		  device_str, type_str, &num);
   itemid->num = num;
@@ -523,6 +526,9 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
       }
     }
   }
+
+  printf("3333\n");
+
   /* We have some sort of track/selection/entry number */
   switch (type_str[0]) {
   case 'E': 
@@ -1437,12 +1443,16 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called with %s\n", mrl);
 
+  if ( strncasecmp(check_mrl, MRL_PREFIX, MRL_PREFIX_LEN) ) {
+    return NULL;
+  }
+
   vcd_get_default_device(class, false);
 
   if (!vcd_parse_mrl(class->vcd_device, check_mrl, 
                      intended_vcd_device, &itemid,
                      my_vcd.player.default_autoplay, &used_default)) {
-    dbg_print(INPUT_DBG_MRL, "parsing MRL %s failed", check_mrl);
+    dbg_print(INPUT_DBG_MRL, "parsing MRL %s failed\n", check_mrl);
     goto free_and_return;
   }
 
