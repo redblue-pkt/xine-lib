@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.78 2002/11/11 23:41:25 tmattern Exp $
+ * $Id: audio_out.c,v 1.79 2002/11/12 00:15:08 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -137,7 +137,7 @@ static audio_fifo_t *fifo_new () {
 }
 
 static void fifo_append_int (audio_fifo_t *fifo,
-			 audio_buffer_t *buf) {
+			     audio_buffer_t *buf) {
 
   buf->next = NULL;
 
@@ -159,6 +159,8 @@ static void fifo_append_int (audio_fifo_t *fifo,
 
 static void fifo_append (audio_fifo_t *fifo,
 			 audio_buffer_t *buf) {
+
+  assert (!buf->next);
 
   pthread_mutex_lock (&fifo->mutex);
   fifo_append_int (fifo, buf);
@@ -187,6 +189,8 @@ static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo) {
       fifo->num_buffers--;
 
   }
+
+  buf->next = NULL;
     
   return buf;
 }
@@ -203,8 +207,8 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
 }
 
 
-void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
-{ 
+void write_pause_burst(ao_instance_t *this, uint32_t num_frames) {
+ 
   int error = 0;
   unsigned char buf[8192];
   unsigned short *sbuf = (unsigned short *)&buf[0];
@@ -226,10 +230,14 @@ void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
   memset(&sbuf[6], 0, 6144 - 96);
   while (num_frames > 1536) {
     if(num_frames > 1536) {
+      pthread_mutex_lock( &this->driver_lock );
       this->driver->write(this->driver, sbuf, 1536);
+      pthread_mutex_unlock( &this->driver_lock );
       num_frames -= 1536;
     } else {
+      pthread_mutex_lock( &this->driver_lock );
       this->driver->write(this->driver, sbuf, num_frames);
+      pthread_mutex_unlock( &this->driver_lock );
       num_frames = 0;
     }
   }
@@ -253,10 +261,14 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
 
   while (num_frames > 0) {
     if (num_frames > ZERO_BUF_SIZE) {
+      pthread_mutex_lock( &this->driver_lock );
       this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
+      pthread_mutex_unlock( &this->driver_lock );
       num_frames -= ZERO_BUF_SIZE;
     } else {
+      pthread_mutex_lock( &this->driver_lock );
       this->driver->write(this->driver, this->zero_space, num_frames);
+      pthread_mutex_unlock( &this->driver_lock );
       num_frames = 0;
     }
   }
@@ -478,7 +490,7 @@ static void *ao_loop (void *this_gen) {
 
   ao_instance_t  *this = (ao_instance_t *) this_gen;
   int64_t         hw_vpts;
-  audio_buffer_t *buf, *in_buf, *out_buf;
+  audio_buffer_t *in_buf, *out_buf;
   int64_t         gap;
   int64_t         delay;
   int64_t         cur_time;
@@ -486,17 +498,26 @@ static void *ao_loop (void *this_gen) {
   int             bufs_since_sync;
 
   last_sync_time = bufs_since_sync = 0;
-#ifdef LOG
-  printf ("audio_out:loop: next fifo\n");
-#endif
-  in_buf = buf = fifo_remove (this->out_fifo);
-  bufs_since_sync++;
-#ifdef LOG
-  printf ("audio_out: got a buffer\n");
-#endif
-  
+  in_buf = NULL;
+
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
+
+    /*
+     * get buffer to process for this loop iteration
+     */
+    
+    if (!in_buf) {
+
+#ifdef LOG
+      printf ("audio_out:loop: get buf from fifo\n");
+#endif
+      in_buf = fifo_remove (this->out_fifo);
+      bufs_since_sync++;
+#ifdef LOG
+      printf ("audio_out: got a buffer\n");
+#endif
+    }
 
     if (this->flush_audio_driver) {
 #ifdef LOG
@@ -506,48 +527,47 @@ static void *ao_loop (void *this_gen) {
       this->flush_audio_driver = 0;
     }
 
-    /* wait until user unpauses stream
-       audio_paused == 1 means we are playing at a different speed
-       them we must process buffers otherwise the entire engine will stop.
-    */
+    /* 
+     * wait until user unpauses stream
+     * audio_paused == 1 means we are playing at a different speed
+     * them we must process buffers otherwise the entire engine will stop.
+     */
     
-    while ( this->audio_paused && this->audio_loop_running )  {
-      switch (this->audio_paused) {
-      case 1:
-        { 
-        cur_time = this->metronom->get_current_time (this->metronom);
-        if (buf->vpts < cur_time ) {
+    if ( this->audio_paused && this->audio_loop_running )  {
+
+      if (this->audio_paused == 1) {
+
+	cur_time = this->metronom->get_current_time (this->metronom);
+	if (in_buf->vpts < cur_time ) {
 #ifdef LOG
-          printf ("audio_out:loop: next fifo\n");
+	  printf ("audio_out:loop: next fifo\n");
 #endif
-          fifo_append (this->free_fifo, in_buf);
-          in_buf = buf = fifo_remove (this->out_fifo);
-          bufs_since_sync++;
-        }
-        /* We want it to fall through to case 2: */
-        }
-      case 2:
-        {
-        this->allow_full_ao_fill_gap = 1;
-#ifdef LOG
-        printf ("audio_out:loop:pause: I feel sleepy.\n");
-#endif
-        xine_usec_sleep (10000);
-#ifdef LOG
-        printf ("audio_out:loop:pause: I wake up.\n");
-#endif
-        break;
-        }
+	  fifo_append (this->free_fifo, in_buf);
+	  in_buf = NULL;
+	}
       }
+
+      this->allow_full_ao_fill_gap = 1;
+#ifdef LOG
+      printf ("audio_out:loop:pause: I feel sleepy.\n");
+#endif
+      xine_usec_sleep (10000);
+#ifdef LOG
+      printf ("audio_out:loop:pause: I wake up.\n");
+#endif
+      continue;
     }
-    /* pthread_mutex_lock( &this->driver_lock ); What is this lock for ? */
+
+
+    pthread_mutex_lock( &this->driver_lock );
     delay = this->driver->delay(this->driver);
     while (delay < 0 && this->audio_loop_running) {
       /* Get the audio card into RUNNING state. */
       ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
       delay = this->driver->delay(this->driver);
     }
-    /* pthread_mutex_unlock( &this->driver_lock ); */
+    pthread_mutex_unlock( &this->driver_lock ); 
+
     /*
      * where, in the timeline is the "end" of the 
      * hardware audio buffer at the moment?
@@ -569,7 +589,7 @@ static void *ao_loop (void *this_gen) {
     /*
      * calculate gap:
      */
-    gap = buf->vpts - hw_vpts;
+    gap = in_buf->vpts - hw_vpts;
 #ifdef LOG
     printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
 	    hw_vpts, buf->vpts, gap);
@@ -580,15 +600,14 @@ static void *ao_loop (void *this_gen) {
      */
     /* pthread_mutex_lock( &this->driver_lock ); */
     
-    if (gap < (-1 * AO_MAX_GAP) || !buf->num_frames ) {
+    if (gap < (-1 * AO_MAX_GAP) || !in_buf->num_frames ) {
 
       /* drop package */
 #ifdef LOG
       printf ("audio_out:loop: next fifo\n");
 #endif
       fifo_append (this->free_fifo, in_buf);
-      in_buf = buf = fifo_remove (this->out_fifo);
-      bufs_since_sync++;
+      in_buf = NULL;
 
 #ifdef LOG
       printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
@@ -629,7 +648,7 @@ static void *ao_loop (void *this_gen) {
         printf("\n");
       }
 #endif
-      out_buf = prepare_samples(this, buf);
+      out_buf = prepare_samples (this, in_buf);
 #if 0
       {
         int count;
@@ -640,17 +659,23 @@ static void *ao_loop (void *this_gen) {
         printf("\n");
       }
 #endif
+
+      pthread_mutex_lock( &this->driver_lock );
       this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
+      pthread_mutex_unlock( &this->driver_lock ); 
+
 #ifdef LOG
-      printf ("audio_out:loop: next fifo\n");
+      printf ("audio_out:loop: next buf from fifo\n");
 #endif
       fifo_append (this->free_fifo, in_buf);
-      in_buf = buf = fifo_remove (this->out_fifo);
-      bufs_since_sync++;
-
+      in_buf = NULL;
     }
     /* pthread_mutex_unlock( &this->driver_lock ); */
   }
+
+  if (in_buf)
+    fifo_append (this->free_fifo, in_buf);
+
   pthread_exit(NULL);
   return NULL;
 }
@@ -833,8 +858,6 @@ static void ao_close(ao_instance_t *this) {
 
   audio_buffer_t *audio_buffer;
 
-  printf ("audio_out: stopping thread...\n");
-
   if (this->audio_loop_running) {
     void *p;
 
@@ -848,8 +871,6 @@ static void ao_close(ao_instance_t *this) {
     pthread_join (this->audio_thread, &p);
     this->audio_thread = 0;
   }
-
-  printf ("audio_out: thread stopped, closing driver\n");
 
   pthread_mutex_lock( &this->driver_lock );
   this->driver->close(this->driver);  
@@ -978,13 +999,23 @@ static void ao_flush (ao_instance_t *this) {
 
   pthread_mutex_lock (&this->out_fifo->mutex);
   pthread_mutex_lock (&this->free_fifo->mutex);
+
   num_buffers = this->out_fifo->num_buffers;
+
   printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
 
   for (i = 0; i < num_buffers; i++) {
     buf = fifo_remove_int (this->out_fifo);
     fifo_append_int (this->free_fifo, buf);
   }
+
+  /* 
+   * make sure ao_loop can savely quit
+   */
+
+  buf = fifo_remove_int (this->free_fifo);
+  buf->num_frames = 0;
+  fifo_append_int (this->out_fifo, buf);
 
   this->flush_audio_driver = 1;
   this->allow_full_ao_fill_gap = 1;
