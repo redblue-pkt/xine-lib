@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.6 2001/11/19 17:07:15 mlampard Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.7 2001/11/21 20:40:47 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -179,7 +179,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; 
   int aspect;  
   dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
-  int image_size, oheight;
+  int image_size, oheight, top_bar;
   float fps;
 
   /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
@@ -279,10 +279,13 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       memset(frame->real_base[1], 128, image_size/4);
       memset(frame->real_base[2], 128, image_size/4);
 
+      /* make top black bar multiple of 16, 
+       * so old and new macroblocks overlap */ 
+      top_bar = ((oheight - height) / 16) * 8; 
       /* fix offsets, so the decoder does not see the top black bar */
-      frame->vo_frame.base[0] = frame->real_base[0] + width * (oheight - height)/2;
-      frame->vo_frame.base[1] = frame->real_base[1] + width/2 * (oheight - height)/4;
-      frame->vo_frame.base[2] = frame->real_base[2] + width/2 * (oheight - height)/4;
+      frame->vo_frame.base[0] = frame->real_base[0] + width * top_bar;
+      frame->vo_frame.base[1] = frame->real_base[1] + width * top_bar/4;
+      frame->vo_frame.base[2] = frame->real_base[2] + width * top_bar/4;
     }
   }
       
@@ -303,7 +306,11 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
    
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
     fp.quality=this->config->register_range(this->config,"dxr3enc.quality",90, 10,100, "Dxr3enc: mpeg encoding quality",NULL,NULL,NULL);
-
+    /* the really interesting bit is the quantizer scale. The formula
+     * below is copied from libfame's sources (could be changed in the
+     * future) */
+    printf("dxr3enc: quality %d -> quant scale = %d\n", fp.quality,
+           1 + (30*(100-fp.quality)+50)/100);
     fp.width = width;
     fp.height = oheight;
     fp.profile = "mpeg1";
@@ -334,7 +341,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
              fp.frame_rate_num);
     }
     fame_init (fc, &fp, buffer, DEFAULT_BUFFER_SIZE);
-    
   }
 #endif
 #if USE_FFMPEG

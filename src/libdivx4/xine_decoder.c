@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2001/11/18 03:53:24 guenter Exp $
+ * $Id: xine_decoder.c,v 1.12 2001/11/21 20:40:47 hrm Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -136,6 +136,61 @@ static char* decore_retval(int ret)
   }
   sprintf(buf, "[Unknown code %d]", ret);
   return buf;	
+}
+
+/* try to get the version libdivxdecore */
+static void divx4_get_version(divx4_decoder_t *this)
+{
+  /* if version set in xine config file, do not attempt further checking
+   * (but do print a warning about this!) */
+  if (this->version) {
+    /* this dangerous stuff warrants an extra warning */
+    printf("divx4: assuming libdivxdecore version is %d\n", this->version);
+    return;
+  }
+
+#if CATCH_SIGSEGV
+  /* try to catch possible segmentation fault triggered by version check.
+   * old versions of OpenDivx are known to do this. 
+   * we have to exit(1) in case it happens, but at least the user'll know
+   * what happened */
+  old_handler = signal(SIGSEGV, catch_sigsegv); 
+  if (old_handler == SIG_ERR)
+    printf("divx4: failed to set SIGSEGV handler for libdivxdecore version check. Danger!\n");
+  /* ask decore for version, using arbitrary handle 123 */
+  this->version = this->decore(123, DEC_OPT_VERSION, 0, 0);
+  /* restore old signal handler */
+  if (old_handler != SIG_ERR)
+    signal(SIGSEGV, old_handler);
+#else
+  /* no SIGSEGV catching, let's hope survive this... */
+  this->version = this->decore(123, DEC_OPT_VERSION, 0, 0);
+#endif
+
+  if (this->version < 100) { /* must be an error code */
+    printf("divx4: libdivxdecore failed to return version number (returns %s)\n",
+           decore_retval(this->version));
+    this->version = 0;
+  }
+  printf("divx4: found divx4 or OpenDivx decore library, version %d\n", 
+         this->version);
+}
+
+/* check to see if the libdivxdecore version is recent enough. 
+ * returns 1 if ok, 0 if not. */
+static int divx4_check_version(divx4_decoder_t *this)
+{
+  /* now check the version 
+   * oktober '01 and later are ok. (early august releases had a (possible)
+   * problem with DEC_OPT_RELEASE, which is very important currently) */
+  if (this->version < 20011000) { 
+    printf("divx4: libdivxdecore version \"%d\" too old. Need 20011000 or later\n"
+           "divx4: see README.divx4 for details on where to find libdivxdecore.\n", 
+           this->version);
+    return 0; 
+  }
+
+  return 1;
 }
 
 /* helper function to initialize decore */
@@ -290,14 +345,22 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
   if (buf->decoder_info[0] == 0) { /* need to initialize */
-    this->decoder_ok = divx4_init_decoder(this, buf);
+    /* only proceed if version is good and initialization succeeded */
+    divx4_get_version(this);	
+    this->decoder_ok = ( divx4_check_version(this) &&
+                         divx4_init_decoder(this, buf) );
     if (this->decoder_ok)
       this->video_out->open (this->video_out);
     return;
   }
 
-  if (! this->decoder_ok) /* don't try to do anything */
+  if (! this->decoder_ok) { /* don't try to do anything */
+    /* if it is because of the version, print the warning again.
+     * otherwise it's an unknown internal error. */
+    if (divx4_check_version(this) != 0) /* version is good */
+      printf("divx4: internal error; decoder not initialized.\n");
     return;
+  }
 
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
   this->size += buf->size;
@@ -346,13 +409,13 @@ static void divx4_close (video_decoder_t *this_gen)  {
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
   if (this->decoder_ok) {
-    /* FIXME: this segfaults here
-      (note: avifile also has the release command commented out;
-       probably a known 'feature')
-      this->decore((unsigned long)this, DEC_OPT_RELEASE, 0, 0);*/
-
-    this->video_out->close(this->video_out);
+    /* FIXME: this segfaults here */
+    /* Note: we NEED this; after 0.9.4, xine closes and reopens
+     * decoders when seeking. If DEC_OPT_RELEASE is disabled, it will
+     * cause a memory leak of plusminus 5M per shot */ 
+    this->decore((unsigned long)this, DEC_OPT_RELEASE, 0, 0); 
     this->decoder_ok = 0;
+    this->video_out->close(this->video_out);
   }
 }
 
@@ -368,7 +431,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   char *libdecore_name;
   void *libdecore_handle;
   decoreFunc libdecore_func = 0;
-  int version;
 
   if (iface_version != 3) {
     printf( "divx4: plugin doesn't support plugin API version %d.\n"
@@ -382,7 +444,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   /* Try to dlopen libdivxdecore, then look for decore function 
      if it fails, print a message and return 0 so that xine ignores
      us from then on. */
-
   libdecore_name = cfg->register_string (cfg, "codec.divx4_libdivxdecore", "libdivxdecore.so",
 					 "Relative path to libdivxdecore.so to open",
 					 NULL, NULL, NULL);  
@@ -391,56 +452,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   if (libdecore_handle)
     libdecore_func = dlsym(libdecore_handle, "decore"); 
   if (! libdecore_func) {
-/* This message caused some people to think there was a problem with xine
-    printf("divx4: could not find decore function in library \"%s\"\n"
-           "divx4: system returned \"%s\"\n"
-           "divx4: libdivxdecore unavailable; this plugin will be disabled.\n", 
-           libdecore_name, dlerror()); 
-*/
+    /* no library or no decore function. this plugin can do nothing */
     return NULL;
   }
-
-  /* allow override of version checking by user */
-  version = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
-			      "Divx version to check for (set to 0 (default) if unsure)",
-			      NULL, NULL, NULL);
-  if (version) {
-    /* this dangerous stuff warrants an extra warning */
-    printf("divx4: assuming libdivxdecore version is %d\n", version);
-  }
-  else {
-#if CATCH_SIGSEGV
-    /* try to catch possible segmentation fault triggered by version check.
-     * old versions of OpenDivx are known to do this. 
-     * we have to exit(1) in case it happens, but at least the user'll know
-     * what happened */
-    old_handler = signal(SIGSEGV, catch_sigsegv); 
-    if (old_handler == SIG_ERR)
-      printf("divx4: failed to set SIGSEGV handler for libdivxdecore version check. Danger!\n");
-    /* ask decore for version, using arbitrary handle 123 */
-    version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
-    /* restore old signal handler */
-    if (old_handler != SIG_ERR)
-      signal(SIGSEGV, old_handler);
-#else
-    /* no SIGSEGV catching, let's hope survive this... */
-    version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
-#endif
-    if (version < 100) { /* must be an error code */
-      printf("divx4: libdivxdecore failed to return version number (returns %s)\n",
-	     decore_retval(version));
-      version = 0;
-    }
-  }
-
-  /* now check the version */
-  if (version < 20010800) { /* august 2001 and later are ok. */
-    printf("divx4: libdivxdecore version \"%d\" too old. Need 20010800 or later\n", version);
-    /* bye bye */
-    return 0; 
-  }  
-  printf("divx4: successfully opened decore library \"%s\", version %d\n", 
-         libdecore_name, version);
 
   this = (divx4_decoder_t *) malloc (sizeof (divx4_decoder_t));
 
@@ -462,8 +476,19 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 								"use divx4 plugin for msmpeg4v3 streams",
 								NULL, NULL, NULL);
   this->size				  = 0;
-  this->version				  = version;
+   /* allow override of version checking by user */
+  this->version 			  = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
+							      "Divx version to check for (set to 0 (default) if unsure)",
+							      NULL, NULL, NULL);
 
+  /* if the version set in the config file, we can check right now. 
+   * otherwise postpone until we retrieve the version from the library
+   * in the first decoding call (we'll only ever get there if this
+   * plugin has the highest priority, which by default it has not). */
+  if ( this->version != 0 && divx4_check_version(this) == 0 ) { /* failed */
+    free(this);
+    return 0;
+  }
   /* at the moment availabe values are 0-6, but future versions may support
      higher levels. Internally, postproc is multiplied by 10 and values 
      between 0 and 100 are valid */
