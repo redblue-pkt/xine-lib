@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.1 2002/07/07 01:24:40 tmmm Exp $
+ * $Id: demux_fli.c,v 1.2 2002/07/11 03:57:23 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,7 +62,6 @@ typedef struct {
   config_values_t     *config;
 
   fifo_buffer_t       *video_fifo;
-  fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
 
@@ -95,9 +94,12 @@ static void *demux_fli_loop (void *this_gen) {
   unsigned int chunk_magic;
   int64_t pts_counter = 0;
   off_t current_file_pos;
+  off_t stream_len;
 
   /* make sure to start just after the header */
   this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
+
+  stream_len = this->input->get_length(this->input);
 
   /* do-while needed to seek after demux finished */
   do {
@@ -128,13 +130,14 @@ static void *demux_fli_loop (void *this_gen) {
       if ((chunk_magic = FLI_CHUNK_MAGIC_1) || 
           (chunk_magic = FLI_CHUNK_MAGIC_2)) {
         while (chunk_size) {
-//printf ("check 1\n");
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->content = buf->mem;
           buf->type = BUF_VIDEO_FLI;
           buf->input_pos = current_file_pos;
+          buf->input_time = pts_counter / 90000;
+          buf->input_length = stream_len;
           buf->pts = pts_counter;
-//printf ("check 2\n");
+          buf->decoder_flags = 0;
 
           if (chunk_size > buf->max_size)
             buf->size = buf->max_size;
@@ -142,14 +145,11 @@ static void *demux_fli_loop (void *this_gen) {
             buf->size = chunk_size;
           chunk_size -= buf->size;
 
-//printf ("check 3\n");
           if (this->input->read(this->input, buf->content, buf->size) !=
             buf->size) {
-//printf ("check 4\n");
             this->status = DEMUX_FINISHED;
             break;
           }
-//printf ("check 5\n");
 
           if (!chunk_size)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
@@ -268,7 +268,6 @@ static int demux_fli_start (demux_plugin_t *this_gen,
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
     this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
 
     /* read the whole header */
     this->input->seek(this->input, 0, SEEK_SET);
@@ -320,32 +319,6 @@ static int demux_fli_start (demux_plugin_t *this_gen,
 
     /* send new pts */
     xine_demux_control_newpts(this->xine, 0, 0);
-
-#if 0
-    /* send start buffers */
-    buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-    buf->type = BUF_CONTROL_START;
-    this->video_fifo->put(this->video_fifo, buf);
-    if (audio_fifo) {
-      buf = audio_fifo->buffer_pool_alloc(audio_fifo);
-      buf->type = BUF_CONTROL_START;
-      audio_fifo->put(audio_fifo, buf);
-    }
-
-    /* send new pts */
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type = BUF_CONTROL_NEWPTS;
-    buf->disc_off = 0;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    /* notify the engine that there will be no audio */
-    if (audio_fifo) {
-      buf = audio_fifo->buffer_pool_alloc (audio_fifo);
-      buf->type = BUF_CONTROL_NOP;
-      buf->disc_off = 0;
-      audio_fifo->put (audio_fifo, buf);
-    }
-#endif
 
     /* send init info to FLI decoder */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
