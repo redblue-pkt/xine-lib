@@ -1,3 +1,6 @@
+xine-lib (1-beta6)
+
+
 xine-lib (1-beta5)
   * new AV sync strategy (audio resample) for DXR3 users
   * improved fb driver with zero copy
