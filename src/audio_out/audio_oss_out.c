@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.56 2002/01/28 06:20:17 siggi Exp $
+ * $Id: audio_oss_out.c,v 1.57 2002/02/11 13:00:46 richwareham Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -182,7 +182,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
    * configure audio device
    * In A52 mode, skip all other SNDCTL commands
    */
-  if(!(mode & AO_CAP_MODE_A52)) {
+  if(!(mode & (AO_CAP_MODE_A52 | AO_CAP_MODE_AC5))) {
     tmp = (mode & AO_CAP_MODE_STEREO) ? 1 : 0;
     ioctl(this->audio_fd,SNDCTL_DSP_STEREO,&tmp);
 
