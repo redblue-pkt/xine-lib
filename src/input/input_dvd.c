@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.70 2002/09/03 07:51:34 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.71 2002/09/04 10:48:36 mroi Exp $
  *
  */
 
@@ -141,6 +141,7 @@ typedef struct {
   int               pause_counter;
   time_t	    pause_end_time;
   int32_t           buttonN;
+  int               typed_buttonN;/* for XINE_EVENT_INPUT_NUMBER_* */
 
   /* Flags */
   int               opened;       /* 1 if the DVD device is already open */
@@ -318,7 +319,9 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
     for (i = 1; i <= num_titles; i++) {
       num_parts[i-1] = 0;
       dvdnav_title_play(this->dvdnav, i);
-      dvdnav_get_number_of_programs(this->dvdnav, &num_parts[i-1]);
+      /* This doesn't wok currently. Use 0 for now. */
+      /* dvdnav_get_number_of_programs(this->dvdnav, &num_parts[i-1]); */
+      num_parts[i-1] = 0;
       num_mrls += num_parts[i-1]; /* num_mrls = total number of programs */
     }
 
@@ -1175,6 +1178,32 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
     dvdnav_right_button_select(this->dvdnav);
     xine_dvdnav_send_button_update(this, 0);
     break;
+   case XINE_EVENT_INPUT_NUMBER_9:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_8:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_7:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_6:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_5:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_4:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_3:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_2:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_1:
+    this->typed_buttonN++;
+   case XINE_EVENT_INPUT_NUMBER_0:
+    dvdnav_button_select(this->dvdnav, this->typed_buttonN);
+    xine_dvdnav_send_button_update(this, 1);
+    dvdnav_button_activate(this->dvdnav);
+    this->typed_buttonN = 0;
+    break;
+   case XINE_EVENT_INPUT_NUMBER_10_ADD:
+    this->typed_buttonN += 10;
   }
    
   return;
@@ -1392,6 +1421,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     this->dvdnav                 = NULL;
     this->opened                 = 0;
     this->buttonN                = 0;
+    this->typed_buttonN          = 0;
     this->dvd_name[0]            = 0;
     this->dvd_name_length        = 0;
     this->mrls                   = NULL;
@@ -1477,6 +1507,11 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.71  2002/09/04 10:48:36  mroi
+ * - handle numeric events for button selection (maybe this makes some
+ *   dvd's easter eggs accesible)
+ * - workaround current breakage in libdvdnav concerning mrl list building
+ *
  * Revision 1.70  2002/09/03 07:51:34  jcdutton
  * Improve chapter selection functions.
  *
