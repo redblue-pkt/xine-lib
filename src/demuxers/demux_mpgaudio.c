@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.111 2003/10/04 10:54:14 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.112 2003/10/04 17:24:10 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -861,13 +861,14 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   else
     this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->br;
 
-  if (this->cur_frame.layer == 1)
-    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
-      384000 / this->cur_frame.samplerate;
-  else
-    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
-      1152000 / this->cur_frame.samplerate;
-
+  if (this->cur_frame.samplerate) {
+    if (this->cur_frame.layer == 1)
+      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
+        384000 / this->cur_frame.samplerate;
+    else
+      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
+        1152000 / this->cur_frame.samplerate;
+  }
   this->status = DEMUX_OK;
 }
 
@@ -1068,12 +1069,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (!ok)
         return NULL;
 
+#if 0
+    /* flac files can contain id3v2 tags */
     } else if (head == ID3V22_TAG) {
       lprintf("id3v2.2 tag detected (but not parsed)\n");
     } else if (head == ID3V23_TAG) {
       lprintf("id3v2.3 tag detected (but not parsed)\n");
     } else if (head == ID3V24_TAG) {
       lprintf("id3v2.4 tag detected (but not parsed)\n");
+#endif
     } else if (!sniff_buffer_looks_like_mp3 (input)) {
       lprintf ("head_check failed\n");
       return NULL;
