@@ -41,7 +41,7 @@ Thibaut Mattern <tmattern@noos.fr>
 
 Michael Roitzsch <mroi@users.sourceforge.net>
   several dxr3 fixes, massive engine contributions, multistream and
-  post plugin architecture
+  post plugin architecture, DVD navigation
 
 Mike Melanson <melanson@pcisys.net>
   a whole bunch of file demuxers, lots of audio and video decoders,
