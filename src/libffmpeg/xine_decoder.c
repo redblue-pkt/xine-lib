@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2002/06/03 13:31:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.39 2002/06/04 15:31:08 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -60,8 +60,6 @@ typedef struct ff_decoder_s {
   int               decoder_ok;
 
   xine_bmiheader    bih;
-  long		    biWidth;
-  long		    biHeight;
   unsigned char     *buf;
   int               bufsize;
   int               size;
@@ -138,26 +136,13 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /* init package containing bih */
 
     memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
-    this->biWidth = str2ulong(&this->bih.biWidth);
-    this->biHeight = str2ulong(&this->bih.biHeight);
     this->video_step = buf->decoder_info[1];
 
     /* init codec */
 
     codec_type = buf->type & 0xFFFF0000;
 
-    /*
-    if (str2ulong(&this->bih.biCompression) == mmioFOURCC('D', 'I', 'V', 'X')) {
-      printf ("ffmpeg: mpeg4 (opendivx) format detected\n");
-
-      codec = avcodec_find_decoder (CODEC_ID_OPENDIVX);
-    } else {
-      printf ("ffmpeg: ms mpeg4 format detected\n");
-      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
-    }
-    */
-
-    switch (buf->type & 0xFFFF0000) {
+    switch (codec_type) {
     case BUF_VIDEO_MSMPEG4_V12:
     case BUF_VIDEO_MSMPEG4_V3:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
@@ -191,8 +176,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     memset(&this->context, 0, sizeof(this->context));
-    this->context.width = this->biWidth;
-    this->context.height = this->biHeight;
+    this->context.width = this->bih.biWidth;
+    this->context.height = this->bih.biHeight;
 
     if (avcodec_open (&this->context, codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
@@ -262,8 +247,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img = this->video_out->get_frame (this->video_out,
 					/* this->av_picture.linesize[0],  */
-					this->biWidth,
-					this->biHeight,
+					this->bih.biWidth,
+					this->bih.biHeight,
 					ratio, 
 					IMGFMT_YV12,
 					VO_BOTH_FIELDS);
@@ -284,21 +269,21 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	su = this->av_picture.data[1];
 	sv = this->av_picture.data[2];
 
-	for (y=0; y<this->biHeight; y++) {
+	for (y=0; y<this->bih.biHeight; y++) {
 	  
-	  xine_fast_memcpy (dy, sy, this->biWidth);
+	  xine_fast_memcpy (dy, sy, this->bih.biWidth);
 	  
-	  dy += this->biWidth;
+	  dy += this->bih.biWidth;
 	  
 	  sy += this->av_picture.linesize[0];
 	}
 	
-	for (y=0; y<(this->biHeight/2); y++) {
+	for (y=0; y<(this->bih.biHeight/2); y++) {
 
 	  if (this->context.pix_fmt != PIX_FMT_YUV444P) {
 	  
-	    xine_fast_memcpy (du, su, this->biWidth/2);
-	    xine_fast_memcpy (dv, sv, this->biWidth/2);
+	    xine_fast_memcpy (du, su, this->bih.biWidth/2);
+	    xine_fast_memcpy (dv, sv, this->bih.biWidth/2);
 
 	  } else {
 
@@ -309,13 +294,13 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    /* subsample */
 
 	    src = su; dst = du;
-	    for (x=0; x<(this->biWidth/2); x++) {
+	    for (x=0; x<(this->bih.biWidth/2); x++) {
 	      *dst = *src;
 	      dst++;
 	      src += 2;
 	    }
 	    src = sv; dst = dv;
-	    for (x=0; x<(this->biWidth/2); x++) {
+	    for (x=0; x<(this->bih.biWidth/2); x++) {
 	      *dst = *src;
 	      dst++;
 	      src += 2;
@@ -323,8 +308,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  }
 	  
-	  du += this->biWidth/2;
-	  dv += this->biWidth/2;
+	  du += this->bih.biWidth/2;
+	  dv += this->bih.biWidth/2;
 	  
 	  if (this->context.pix_fmt != PIX_FMT_YUV420P) {
 	    su += 2*this->av_picture.linesize[1];
@@ -337,8 +322,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	
 	if (img->copy) {
 	  
-	  int height = abs(this->biHeight);
-	  int stride = this->biWidth;
+	  int height = abs(this->bih.biHeight);
+	  int stride = this->bih.biWidth;
 	  uint8_t* src[3];
 	  
 	  src[0] = img->base[0];
