@@ -269,7 +269,7 @@ AC_CHECK_DECL(lrintf,[
 	AC_DEFINE(_ISOC9X_SOURCE,1,[Define this if you are ISO C9X compliant])
       ],,[
 #define _ISOC9X_SOURCE
-#include "math.h"
+#include <math.h>
 ])
 
 AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -DEMULATE_FAST_INT"])
@@ -329,23 +329,7 @@ AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 AC_SUBST(MLIB_LIBS)
 AC_SUBST(MLIB_CFLAGS)
 
-AC_ARG_WITH(external-ffmpeg,
-  AC_HELP_STRING(
-    [--with-external-ffmpeg],
-    [use external ffmpeg library]
-  ),
-  [external_ffmpeg="$withval"],
-  [external_ffmpeg="no"]
-)
-
-if test x"$external_ffmpeg" != "xno"; then
-  AM_PATH_FFMPEG(
-    AC_DEFINE(HAVE_FFMPEG, 1, [Define this if you have ffmpeg library])
-  )
-else
-  AC_MSG_RESULT([Use included ffmpeg])
-fi
-
+AM_PATH_FFMPEG(AC_DEFINE(HAVE_FFMPEG, 1, [Define this if you have ffmpeg library]))
 AM_CONDITIONAL(HAVE_FFMPEG, test x"$external_ffmpeg_found" = "xyes")
 
 
@@ -412,14 +396,13 @@ dnl Check for OpenGL & [GLut | GLU]
 dnl ---------------------------------------------
 
 case "$host" in
-	*darwin*) dnl Use native interface
+    *darwin*) dnl Use native interface
         OPENGL_LIBS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
         OPENGL_CFLAGS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
         AC_SUBST(OPENGL_LIBS)
         AC_SUBST(OPENGL_CFLAGS)
         ;;
-        *)
-
+    *)
 	AC_CHECK_LIB(GL, glBegin,
 		[AC_CHECK_HEADER(GL/gl.h,
 		     [ ac_have_opengl="yes"
@@ -682,6 +665,7 @@ AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer
 	      have_fb=$enableval)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
+
 dnl ---------------------------------------------
 dnl Check whether to build Mac OS X video output driver
 dnl ---------------------------------------------
@@ -690,6 +674,7 @@ AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable supp
               have_macosx_video=$enableval)
 AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test x"$have_macosx_video" = "xyes"])
 
+
 dnl ---------------------------------------------
 dnl Check whether to build Mac OS X audio output driver
 dnl ---------------------------------------------
@@ -697,6 +682,7 @@ dnl ---------------------------------------------
 AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for Mac OS X Coreaudio output]),
               have_coreaudio=$enableval)
 AM_CONDITIONAL(HAVE_COREAUDIO, [test x"$have_coreaudio" = "xyes"])
+
 
 dnl ---------------------------------------------
 dnl Find pkg-config
