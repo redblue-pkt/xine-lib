@@ -14,7 +14,9 @@ xine-lib (0.9.13) unstable; urgency=low
   * Raw YUV video support
   * Microsoft RLE decoder
   * AAC decoder (FAAD2 library)
-  * Reworked ALSA audio support
+  * Reworked ALSA audio support 
+  * demux_qt improvements to handle .mp4
+  * initial support of Quicktime6 files
 
 xine-lib (0.9.12) unstable; urgency=low
 
