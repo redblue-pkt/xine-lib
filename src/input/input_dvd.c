@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.145 2003/04/06 13:06:03 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.146 2003/04/06 13:19:59 mroi Exp $
  *
  */
 
@@ -140,7 +140,7 @@
 # define lseek64 lseek
 #endif
 
-static const char *dvdnav_menu_tsble[] = {
+static const char *dvdnav_menu_table[] = {
   NULL,
   NULL,
   "Title",
@@ -163,6 +163,7 @@ typedef struct {
   int64_t           pg_length;
   int64_t           pgc_length;
   int64_t           cell_start;
+  int64_t           pg_start;
   int32_t           buttonN;
   int               typed_buttonN;/* for XINE_EVENT_INPUT_NUMBER_* */
 
@@ -329,7 +330,7 @@ void update_title_display(dvd_input_plugin_t *this) {
   } else if (tt == 0) {
     snprintf(this->ui_title, MAX_STR_LEN,
              "DVD %s Menu",
-             dvdnav_menu_tsble[pr]);
+             dvdnav_menu_table[pr]);
   } else {
     strcpy(this->ui_title, "DVD Navigator: Menu");
   }
@@ -645,6 +646,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	this->pg_length  = cell_event->pg_length;
 	this->pgc_length = cell_event->pgc_length;
 	this->cell_start = cell_event->cell_start;
+	this->pg_start   = cell_event->pg_start;
       }
       break;
     case DVDNAV_HOP_CHANNEL:
@@ -729,7 +731,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       break;
     case 1: /* PG based seeking */
       buf->extra_info->total_time = this->pg_length  / 90;
-      buf->extra_info->input_time = 0;
+      buf->extra_info->input_time = (this->cell_start - this->pg_start) / 90;
       break;
     }
   }
@@ -871,11 +873,11 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
 	  dvdnav_next_pg_search(this->dvdnav);
 	  break;
 	case 1: /* skip by part */
-	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part) && title > 0)
 	    dvdnav_part_play(this->dvdnav, title, ++part);
 	  break;
 	case 2: /* skip by title */
-	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part) && title > 0)
 	    dvdnav_part_play(this->dvdnav, ++title, 1);
 	  break;
 	}
@@ -890,11 +892,11 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
 	  dvdnav_prev_pg_search(this->dvdnav);
 	  break;
 	case 1: /* skip by part */
-	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part) && title > 0)
 	    dvdnav_part_play(this->dvdnav, title, --part);
 	  break;
 	case 2: /* skip by title */
-	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part) && title > 0)
 	    dvdnav_part_play(this->dvdnav, --title, 1);
 	  break;
 	}
@@ -1568,6 +1570,13 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.146  2003/04/06 13:19:59  mroi
+ * * fix input_time reporting for PG based seeking
+ *   (with more than one cell per PG, only the first cell starts at 0; for the others,
+ *   we need pg_start)
+ * * check for title sanity
+ * * fix tsble -> table typo
+ *
  * Revision 1.145  2003/04/06 13:06:03  jcdutton
  * Enable display of DVD Menu types.
  * Currently needs libdvdnav cvs, but does not break xine's own libdvdnav version.
