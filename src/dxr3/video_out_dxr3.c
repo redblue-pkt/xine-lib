@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.40 2002/07/16 16:21:14 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.41 2002/07/17 11:00:09 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -416,7 +416,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen; 
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen; 
   int i;
-  int aspect, oheight;
+  int oheight;
 
   /* update the overlay window co-ords if required */
   dxr3_overlay_update(this);
@@ -450,28 +450,22 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       frame_gen->base[0] = frame_gen->base[1] = frame_gen->base[2] = NULL;
     }
     
-    aspect = this->aspect;
+    frame->vo_frame.ratio = this->aspect;
+    frame->pan_scan = 0;
     if (ratio_code == XINE_ASPECT_RATIO_SQUARE || ratio_code == XINE_ASPECT_RATIO_4_3)
-      aspect = ASPECT_FULL;
+      frame->vo_frame.ratio = ASPECT_FULL;
     if (ratio_code == XINE_ASPECT_RATIO_ANAMORPHIC || ratio_code == XINE_ASPECT_RATIO_211_1)
-      aspect = ASPECT_ANAMORPHIC;
-    if (ratio_code == XINE_ASPECT_RATIO_PAN_SCAN && !this->pan_scan) {
-      dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
-      this->pan_scan = 1;
-    }
-    if (ratio_code != XINE_ASPECT_RATIO_PAN_SCAN && this->pan_scan) {
-      this->pan_scan = 0;
-      dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, -1);
-    }
-    if (this->aspect != aspect)
-      dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, aspect);
+      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
+    if (ratio_code == XINE_ASPECT_RATIO_PAN_SCAN)
+      frame->pan_scan = 1;
       
     return;
   }
 
   /* the following is for the mpeg encoding part only */
   
-  aspect = this->aspect;
+  frame->vo_frame.ratio = this->aspect;
+  frame->pan_scan = 0;
   oheight = this->video_oheight;
 
   if (this->fd_video == CLOSED_FOR_DECODER) { /* decoder should have released it */
@@ -489,19 +483,19 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     /* check aspect ratio, see if we need to add black borders */
     switch (ratio_code) {
     case XINE_ASPECT_RATIO_4_3:
-      aspect = ASPECT_FULL;
+      frame->vo_frame.ratio = ASPECT_FULL;
       oheight = height;
       break;
     case XINE_ASPECT_RATIO_ANAMORPHIC:
     case XINE_ASPECT_RATIO_PAN_SCAN:
-      aspect = ASPECT_ANAMORPHIC;
+      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
       oheight = height;
       break;
     default: /* assume square pixel */
-      aspect = ASPECT_ANAMORPHIC;
+      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
       oheight = (int)(width * 9./16.);
       if (oheight < height) { /* frame too high, try 4:3 */
-        aspect = ASPECT_FULL;
+        frame->vo_frame.ratio = ASPECT_FULL;
         oheight = (int)(width * 3./4.);
       }
     }
@@ -513,7 +507,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     /* Tell the viewers about the aspect ratio stuff. */
     if (oheight - height > 0)
       printf("video_out_dxr3: adding %d black lines to get %s aspect ratio.\n",
-        oheight - height, aspect == ASPECT_FULL ? "4:3" : "16:9");
+        oheight - height, frame->vo_frame.ratio == ASPECT_FULL ? "4:3" : "16:9");
 
     this->video_width   = width;
     this->video_iheight = height;
@@ -609,9 +603,6 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   frame->iheight     = height;
   frame->oheight     = oheight;
   frame->swap_fields = this->swap_fields;
-
-  if(this->aspect != aspect)
-    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, aspect);
 }
 
 static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
@@ -636,6 +627,18 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
 
+  /* use correct aspect and pan&scan setting */
+  if (frame->vo_frame.ratio != this->aspect)
+    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->vo_frame.ratio);
+  if (frame->pan_scan && !this->pan_scan) {
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
+    this->pan_scan = 1;
+  }
+  if (!frame->pan_scan && this->pan_scan) {
+    this->pan_scan = 0;
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, -1);
+  }
+  
   if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_display_frame) {
     if (this->need_update) {
       /* we cannot do this earlier, because vo_frame.duration is only valid here */

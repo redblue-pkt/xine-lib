@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.5 2002/07/08 17:07:19 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.6 2002/07/17 11:00:09 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -115,6 +115,7 @@ typedef struct dxr3_driver_s {
 typedef struct dxr3_frame_s {
   vo_frame_t       vo_frame;
   int              width, iheight, oheight;
+  int              pan_scan;
   uint8_t         *mem;           /* allocated for YV12 or YUY2 buffers */
   uint8_t         *real_base[3];  /* yuv/yuy2 buffers in mem aligned on 16 */
   int              swap_fields;   /* shifts Y buffer one line to exchange odd/even lines */
