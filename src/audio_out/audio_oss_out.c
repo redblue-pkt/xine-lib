@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.82 2002/11/20 11:57:40 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.83 2002/11/28 08:03:23 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -503,11 +503,11 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
 	ioctl(mixer_fd, cmd, &v);
 	this->mixer.volume = (((v & 0xFF00) >> 8) + (v & 0x00FF)) / 2;
 	close(mixer_fd);
-      }
-      else
-	printf("%s(): open() %s failed: %s\n", 
-	       __XINE_FUNCTION__, this->mixer.name, strerror(errno));
+      } else {
+	printf("audio_oss_out: open() %s failed: %s\n", 
+	       this->mixer.name, strerror(errno));
 	return -1;
+      }
     }
     return this->mixer.volume;
     break;
