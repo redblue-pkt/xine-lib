@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.26 2002/03/17 00:05:03 guenter Exp $
+ * $Id: demux_asf.c,v 1.27 2002/03/17 14:34:06 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -585,9 +585,10 @@ static void asf_reorder(demux_asf_t *this, uint8_t *src, int len){
 
 static int asf_get_packet(demux_asf_t *this) {
 
-  int timestamp, hdr_size;
+  int      timestamp, hdr_size;
   uint32_t sig = 0;
-  int duration;
+  int      duration;
+  int      packet_size;
 
   hdr_size = 11;
 
@@ -599,23 +600,33 @@ static int asf_get_packet(demux_asf_t *this) {
   this->segtype = get_byte(this);
   this->packet_padsize = 0;
 
-  /* FIXME: really not necessary?
-     patch submitted by Andrei Lahun <Uman@editec-lotteries.com>
+  if (this->packet_flags & 0x40) { 
 
-     if (this->packet_flags & 0x40) {
-     get_le16(this);
-     printf ("demux_asf: absolute size ignored\n");
-     hdr_size += 2;
-  }
-  */
-      
-  if (this->packet_flags & 0x10) {
-    this->packet_padsize = get_le16(this);
+    /* packet size given */
+
+    packet_size = get_le16(this);
+    printf ("demux_asf: absolute packet size is %d\n", packet_size);
     hdr_size += 2;
-  } else if (this->packet_flags & 0x08) {
-    this->packet_padsize = get_byte(this);
-    hdr_size++;
+
+    if (this->packet_flags & 0x10) {
+      /* FIXME: ignore ? this->packet_padsize =*/ get_le16(this);
+      hdr_size += 2;
+    } else if (this->packet_flags & 0x08) {
+      /* FIXME: ignore ? this->packet_padsize =*/ get_byte(this);
+      hdr_size++;
+    }
+  } else {
+    packet_size = this->packet_size;
+      
+    if (this->packet_flags & 0x10) {
+      this->packet_padsize = get_le16(this);
+      hdr_size += 2;
+    } else if (this->packet_flags & 0x08) {
+      this->packet_padsize = get_byte(this);
+      hdr_size++;
+    }
   }
+
   timestamp = get_le32(this);
   duration  = get_le16(this) ; /* duration */
   if (this->packet_flags & 0x01) {
@@ -627,11 +638,11 @@ static int asf_get_packet(demux_asf_t *this) {
 
   this->frame = 0;
     
-  this->packet_size_left = this->packet_size - hdr_size;
+  this->packet_size_left = packet_size - hdr_size;
 
   /*
-  printf ("demux_asf: new packet, size = %d, flags = 0x%02x, padsize = %d\n",
-	  this->packet_size_left, this->packet_flags, this->packet_padsize);
+    printf ("demux_asf: new packet, size = %d, flags = 0x%02x, padsize = %d\n",
+    this->packet_size_left, this->packet_flags, this->packet_padsize);
   */
 
   return 1;
