@@ -18,8 +18,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * Creative Voice File Demuxer by Mike Melanson (melanson@pcisys.net)
+ * Note that this demuxer does not yet support very many things that can
+ * possibly be seen in a VOC file. It only plays the first block in a file.
+ * It will only play that block if it is PCM data. More variations will be
+ * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.1 2002/08/12 00:14:58 tmmm Exp $
+ * $Id: demux_voc.c,v 1.2 2002/08/12 03:53:49 tmmm Exp $
  *
  */
 
@@ -77,6 +81,7 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
   off_t                data_end;
+  unsigned int         running_time;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_voc_t;
@@ -102,7 +107,7 @@ static void *demux_voc_loop (void *this_gen) {
       pthread_mutex_lock( &this->mutex );
 
       /* just load data chunks from wherever the stream happens to be
-       * pointing; issue a DEMUX_FINISHED status is EOF is reached */
+       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
       remaining_sample_bytes = PCM_BLOCK_ALIGN;
       current_file_pos = this->input->get_current_pos(this->input);
 
@@ -311,11 +316,15 @@ static int demux_voc_start (demux_plugin_t *this_gen,
     this->data_end = this->data_start + this->data_size;
     this->audio_bits = 8;
     this->audio_channels = 1;
+    this->running_time = this->data_size / this->audio_sample_rate;
 
     /* print vital stats */
     xine_log(this->xine, XINE_LOG_FORMAT,
-      _("demux_voc: VOC format 0x%X audio, %d Hz\n"),
-      preamble[1], this->audio_sample_rate);
+      _("demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"),
+      preamble[1], 
+      this->audio_sample_rate,
+      this->running_time / 60,
+      this->running_time % 60);
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
@@ -439,7 +448,7 @@ static int demux_voc_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
-  return 0;
+  return this->running_time;
 }
 
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
