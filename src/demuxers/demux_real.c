@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.25 2002/12/14 20:00:38 guenter Exp $
+ * $Id: demux_real.c,v 1.26 2002/12/15 21:23:39 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -641,18 +641,6 @@ static void check_newpts (demux_real_t *this, int64_t pts, int video, int previe
 
   if (!preview && pts )
     this->last_pts[video] = pts;
-
-#if 0
-  /* use pts for bitrate measurement */
-
-  if (pts>180000) {
-    this->avg_bitrate = this->input->get_current_pos (this->input) * 8 * 90000/ pts;
-
-    if (this->avg_bitrate<1)
-      this->avg_bitrate = 1;
-
-  }
-#endif
 }
 
 static int stream_read_char (demux_real_t *this) {
@@ -802,7 +790,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
       buf->content       = buf->mem;
-      buf->pts           = timestamp*90;
+      buf->pts           = pts;
       buf->input_pos     = this->input->get_current_pos (this->input);
 
       buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
@@ -883,7 +871,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
     buf->content       = buf->mem;
-    buf->pts           = timestamp*90;
+    buf->pts           = pts;
     buf->input_pos     = this->input->get_current_pos (this->input);
     buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
     buf->type          = this->audio_buf_type;
