@@ -26,6 +26,11 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_ALSA09_TRUE@Group:       Development/Libraries
 @HAVE_ALSA09_TRUE@Requires:    xine-lib >= 0.5.0
 
+@HAVE_ARTS_TRUE@%package arts
+@HAVE_ARTS_TRUE@Summary:     XINE - arts support.
+@HAVE_ARTS_TRUE@Group:       Development/Libraries
+@HAVE_ARTS_TRUE@Requires:    xine-lib >= 0.5.0
+
 @HAVE_DXR3_TRUE@%package dxr3
 @HAVE_DXR3_TRUE@Summary:     XINE - DXR3 support.
 @HAVE_DXR3_TRUE@Group:       Development/Libraries
@@ -66,6 +71,9 @@ xine 는 GPL라이선스를 따르는 UNIX용 공개 동영상 플레이어입니다. 이
 
 @HAVE_ALSA09_TRUE@%description alsa09
 @HAVE_ALSA09_TRUE@audio plugin with alsa >= 0.9.x support.
+
+@HAVE_ARTS_TRUE@%description arts
+@HAVE_ARTS_TRUE@audio plugin with arts support.
 
 @HAVE_DXR3_TRUE@%description dxr3
 @HAVE_DXR3_TRUE@video/decoder plugins for DXR3 card support.
@@ -150,6 +158,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_ac3.la
 %{prefix}/lib/xine/plugins/xineplug_decode_ac3.so
@@ -188,6 +198,10 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
 @HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
 
+@HAVE_ARTS_TRUE@%files arts
+@HAVE_ARTS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.la
+@HAVE_ARTS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.so
+
 @HAVE_DXR3_TRUE@%files dxr3
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
@@ -198,6 +212,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Thu Jul 26 2001 Matthias Dahl <matthew2k@web.de>
+- added seperate arts package and one missing demuxer plugin to filelist
 * Wed Jul 18 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - list all plugins to avoid *strange* inclusion ;-).
 * Sun Jun 10 2001 Matthias Dahl <matthew2k@web.de>
