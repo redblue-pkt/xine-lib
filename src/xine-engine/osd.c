@@ -757,6 +757,7 @@ static void osd_load_fonts (osd_renderer_t *this, char *path) {
 
       }
     }
+    closedir (dir);
   }
 }
 

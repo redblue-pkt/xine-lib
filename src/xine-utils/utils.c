@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.8 2002/06/23 09:12:45 esnel Exp $
+ * $Id: utils.c,v 1.9 2002/07/30 13:28:47 mroi Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -66,38 +66,37 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
   return ptr;
 }
 
+#ifndef BUFSIZ
+#define BUFSIZ 256
+#endif
 
 const char *xine_get_homedir(void) {
-  struct passwd *pw = NULL;
-  char *homedir = NULL;
-#ifdef HAVE_GETPWUID_R
-  int ret;
-  struct passwd pwd;
-  char *buffer = NULL;
-  int bufsize = 256;
+  struct passwd pwd, *pw = NULL;
+  static char homedir[BUFSIZ] = {0,};
 
-  buffer = (char *) xine_xmalloc(bufsize);
-  
-  if((ret = getpwuid_r(getuid(), &pwd, buffer, bufsize, &pw)) != 0) {
+  if(homedir[0])
+    return homedir;
+
+#ifdef HAVE_GETPWUID_R
+  if(getpwuid_r(getuid(), &pwd, homedir, sizeof(homedir), &pw) != 0 && pw == NULL) {
 #else
   if((pw = getpwuid(getuid())) == NULL) {
 #endif
-    if((homedir = getenv("HOME")) == NULL) {
-      fprintf(stderr, "Unable to get home directory, set it to /tmp.\n");
-      homedir = strdup("/tmp");
+    char *tmp = getenv("HOME");
+    if(tmp) {
+      strncpy(homedir, tmp, sizeof(homedir));
+      homedir[sizeof(homedir) - 1] = '\0';
     }
+  } else {
+    strncpy(homedir, pw->pw_dir, sizeof(homedir));
+    homedir[sizeof(homedir) - 1] = '\0';
   }
-  else {
-    if(pw) 
-      homedir = strdup(pw->pw_dir);
+
+  if(!homedir[0]) {
+    printf("xine_get_homedir: Unable to get home directory, set it to /tmp.\n");
+    strcpy(homedir, "/tmp");
   }
-  
-  
-#ifdef HAVE_GETPWUID_R
-  if(buffer) 
-    free(buffer);
-#endif
-  
+
   return homedir;
 }
 
