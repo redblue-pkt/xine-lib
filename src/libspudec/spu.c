@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.43 2002/07/20 16:28:14 mroi Exp $
+ * $Id: spu.c,v 1.44 2002/09/01 06:02:53 jcdutton Exp $
  *
  */
 
@@ -112,7 +112,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 #endif
       nav_read_pci(&pci, p+1);
 #ifdef LOG_NAV
-      printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%llu\n",
+      printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%lli\n",
        pci.hli.hl_gi.hli_ss,
        pci.hli.hl_gi.hli_s_ptm,
        pci.hli.hl_gi.hli_e_ptm,
@@ -176,13 +176,13 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
           /* This corrects for errors during estimation around discontinuity */
           if( this->event.vpts < this->last_event_vpts ) {
 #ifdef LOG_BUTTON
-            fprintf(stdout, "libspudec: add_event estimation correction. vpts was %lld\n", this->event.vpts);
+            fprintf(stdout, "libspudec: add_event estimation correction. vpts was %lli\n", this->event.vpts);
 #endif
             this->event.vpts = this->last_event_vpts + 1;
           }
           this->last_event_vpts = this->event.vpts;
 #ifdef LOG_BUTTON
-          fprintf(stdout, "libspudec: add_event HIDE_MENU type=%d : current time=%lld, spu vpts=%lld, vpts_offset=%lld\n",
+          fprintf(stdout, "libspudec: add_event HIDE_MENU type=%d : current time=%lld, spu vpts=%lli, vpts_offset=%lli\n",
                   this->event.event_type,
                   this->xine->metronom->get_current_time(this->xine->metronom),
                   this->event.vpts,
@@ -283,7 +283,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
   cur_seq = &this->spudec_stream_state[stream_id].ra_seq;
 
 #ifdef LOG_DEBUG
-  printf ("spu: Found SPU from stream %d pts=%lld vpts=%lld\n",stream_id, 
+  printf ("spu: Found SPU from stream %d pts=%lli vpts=%lli\n",stream_id, 
           this->spudec_stream_state[stream_id].pts,
           this->spudec_stream_state[stream_id].vpts); 
 #endif
@@ -387,7 +387,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
      
       this->event.event_type = this->state.visible;
       /*
-      printf("spu event %d handle: %d vpts: %d\n", this->event.event_type,
+      printf("spu event %d handle: %d vpts: %lli\n", this->event.event_type,
          this->event.object.handle, this->event.vpts ); 
       */
       
@@ -412,7 +412,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       this->last_event_vpts = this->event.vpts;
 
 #ifdef LOG_BUTTON
-      fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lld\n",
+      fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
         this->event.event_type,
         this->xine->metronom->get_current_time(this->xine->metronom),
         this->event.vpts);

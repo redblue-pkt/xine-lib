@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.71 2002/07/06 16:36:43 mroi Exp $
+ * $Id: xine_decoder.c,v 1.72 2002/09/01 06:02:53 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -209,7 +209,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
       printf ("\tleft = %u right = %u top = %u bottom = %u\n",
 	   but->left, but->right, but->top, but->bottom );
-      printf ("\tpts = %u\n",
+      printf ("\tpts = %lli\n",
 	   but->pts );
 #endif
       /* FIXME: Watch out for threads. We should really put a lock on this 
@@ -260,7 +260,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       if (this->vo_out) {
         ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
 #ifdef LOG_NAV
-        fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lld\n",
+        fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
           overlay_event->event_type,
           this->xine->metronom->get_current_time(this->xine->metronom),
           overlay_event->vpts);
