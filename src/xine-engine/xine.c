@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.16 2001/05/16 15:32:04 guenter Exp $
+ * $Id: xine.c,v 1.17 2001/05/26 20:47:14 siggi Exp $
  *
  * top-level xine functions
  *
@@ -60,13 +60,11 @@
 uint32_t   xine_debug;
 
 void xine_notify_stream_finished (xine_t *this) {
-  printf ("xine.c: FIXME xine_notify_stream_finished not implemented\n");
-
-  /*
+  
   xine_stop (this);
 
   this->status_callback (this->status);
-  */
+  
 }
 
 /*
