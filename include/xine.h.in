@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.16 2002/09/18 00:51:33 guenter Exp $
+ * $Id: xine.h.in,v 1.17 2002/09/21 11:58:40 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1012,7 +1012,7 @@ void        xine_osd_get_palette   (xine_osd_p self, const uint32_t *color,
  */
 
 /* dynamic info from actually linked libxine */
-
+const char *xine_get_version_string(void);
 void xine_get_version (int *major, int *minor, int *sub);
 
 /* compare given version to libxine version, 

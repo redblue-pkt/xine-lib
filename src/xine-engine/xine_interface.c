@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.19 2002/09/21 11:39:45 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.20 2002/09/21 11:58:40 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -50,7 +50,7 @@
  * version information / checking
  */
 
-char *xine_get_version_string(void) {
+const char *xine_get_version_string(void) {
   return VERSION;
 }
 
