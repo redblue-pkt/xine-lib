@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: specrec.c,v 1.2 2002/12/16 19:01:14 miguelfreitas Exp $
+** $Id: specrec.c,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 /*
@@ -73,7 +73,10 @@ uint8_t window_grouping_info(faacDecHandle hDecoder, ic_stream *ics)
                 ics->num_swb = num_swb_480_window[sf_index];
         } else {
 #endif
-            ics->num_swb = num_swb_1024_window[sf_index];
+            if (hDecoder->frameLength == 1024)
+                ics->num_swb = num_swb_1024_window[sf_index];
+            else /* if (hDecoder->frameLength == 960) */
+                ics->num_swb = num_swb_960_window[sf_index];
 #ifdef LD_DEC
         }
 #endif
@@ -253,39 +256,36 @@ void build_tables(real_t *pow2_table)
 
 static INLINE real_t iquant(int16_t q)
 {
-    if (q > 0)
+    int16_t sgn = 1;
+
+    if (q == 0) return 0;
+
+    if (q < 0)
     {
-        if (q < IQ_TABLE_SIZE)
-            return iq_table[q];
-        else
-            return iq_table[q>>3] * 16;
-    } else if (q < 0) {
         q = -q;
-        if (q < IQ_TABLE_SIZE)
-            return -iq_table[q];
-        else
-          return -iq_table[q>>3] * 16;
-    } else {
-        return 0;
+        sgn = -1;
     }
+
+    if (q >= IQ_TABLE_SIZE)
+        return sgn * iq_table[q>>3] * 16;
+
+    return sgn * iq_table[q];
 }
 
 void inverse_quantization(real_t *x_invquant, int16_t *x_quant, uint16_t frame_len)
 {
-    int8_t i;
+    int16_t i;
     int16_t *in_ptr = x_quant;
     real_t *out_ptr = x_invquant;
 
-    for(i = frame_len/8-1; i >= 0; --i)
+    for(i = frame_len/4-1; i >= 0; --i)
     {
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
-        *out_ptr++ = iquant(*in_ptr++);
+        out_ptr[0] = iquant(in_ptr[0]);
+        out_ptr[1] = iquant(in_ptr[1]);
+        out_ptr[2] = iquant(in_ptr[2]);
+        out_ptr[3] = iquant(in_ptr[3]);
+        out_ptr += 4;
+        in_ptr += 4;
     }
 }
 

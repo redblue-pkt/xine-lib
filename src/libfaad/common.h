@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.6 2003/01/31 01:20:27 storri Exp $
+** $Id: common.h,v 1.7 2003/04/12 14:58:46 miguelfreitas Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -55,7 +55,7 @@ extern "C" {
 /* Allow decoding of MAIN profile AAC */
 #define MAIN_DEC
 /* Allow decoding of SSR profile AAC */
-#define SSR_DEC
+//#define SSR_DEC
 /* Allow decoding of LTP profile AAC */
 #define LTP_DEC
 /* Allow decoding of LD profile AAC */
@@ -258,6 +258,9 @@ typedef real_t complex_t[2];
 
 /* common functions */
 uint32_t int_log2(uint32_t val);
+
+uint8_t get_sr_index(uint32_t samplerate);
+int8_t can_decode_ot(uint8_t object_type);
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f

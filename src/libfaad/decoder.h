@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: decoder.h,v 1.2 2002/12/16 18:59:59 miguelfreitas Exp $
+** $Id: decoder.h,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #ifndef __DECODER_H__
@@ -45,17 +45,29 @@ extern "C" {
 #include "ic_predict.h"
 
 
-#define FAAD_FMT_16BIT 1
-#define FAAD_FMT_24BIT 2
-#define FAAD_FMT_32BIT 3
-#define FAAD_FMT_FLOAT 4
-#define FAAD_FMT_16BIT_DITHER 5
-#define FAAD_FMT_16BIT_L_SHAPE 6
-#define FAAD_FMT_16BIT_M_SHAPE 7
-#define FAAD_FMT_16BIT_H_SHAPE 8
+/* library output formats */
+#define FAAD_FMT_16BIT  1
+#define FAAD_FMT_24BIT  2
+#define FAAD_FMT_32BIT  3
+#define FAAD_FMT_FLOAT  4
+#define FAAD_FMT_DOUBLE 5
+#define FAAD_FMT_16BIT_DITHER  6
+#define FAAD_FMT_16BIT_L_SHAPE 7
+#define FAAD_FMT_16BIT_M_SHAPE 8
+#define FAAD_FMT_16BIT_H_SHAPE 9
 
+#define FAAD_FMT_DITHER_LOWEST FAAD_FMT_16BIT_DITHER
+
+#define LC_DEC_CAP            (1<<0)
+#define MAIN_DEC_CAP          (1<<1)
+#define LTP_DEC_CAP           (1<<2)
+#define LD_DEC_CAP            (1<<3)
+#define ERROR_RESILIENCE_CAP  (1<<4)
+#define FIXED_POINT_CAP       (1<<5)
 
 int8_t* FAADAPI faacDecGetErrorMessage(uint8_t errcode);
+
+uint32_t FAADAPI faacDecGetCapabilities();
 
 faacDecHandle FAADAPI faacDecOpen();
 

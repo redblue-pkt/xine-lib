@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad.h,v 1.2 2002/12/16 19:00:02 miguelfreitas Exp $
+** $Id: faad.h,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #ifndef __AACDEC_H__
@@ -55,14 +55,23 @@ extern "C" {
 #define ADTS       2
 
 /* library output formats */
-#define FAAD_FMT_16BIT 1
-#define FAAD_FMT_24BIT 2
-#define FAAD_FMT_32BIT 3
-#define FAAD_FMT_FLOAT 4
-#define FAAD_FMT_16BIT_DITHER 5
-#define FAAD_FMT_16BIT_L_SHAPE 6
-#define FAAD_FMT_16BIT_M_SHAPE 7
-#define FAAD_FMT_16BIT_H_SHAPE 8
+#define FAAD_FMT_16BIT  1
+#define FAAD_FMT_24BIT  2
+#define FAAD_FMT_32BIT  3
+#define FAAD_FMT_FLOAT  4
+#define FAAD_FMT_DOUBLE 5
+#define FAAD_FMT_16BIT_DITHER  6
+#define FAAD_FMT_16BIT_L_SHAPE 7
+#define FAAD_FMT_16BIT_M_SHAPE 8
+#define FAAD_FMT_16BIT_H_SHAPE 9
+    
+/* Capabilities */
+#define LC_DEC_CAP            (1<<0)
+#define MAIN_DEC_CAP          (1<<1)
+#define LTP_DEC_CAP           (1<<2)
+#define LD_DEC_CAP            (1<<3)
+#define ERROR_RESILIENCE_CAP  (1<<4)
+#define FIXED_POINT_CAP       (1<<5)
 
 /* A decode call can eat up to FAAD_MIN_STREAMSIZE octets per decoded channel,
    so at least so much octets per channel should be available in this stream */
@@ -71,6 +80,25 @@ extern "C" {
 
 typedef void *faacDecHandle;
 
+typedef struct mp4AudioSpecificConfig
+{
+    /* Audio Specific Info */
+    unsigned char objectTypeIndex;
+    unsigned char samplingFrequencyIndex;
+    unsigned long samplingFrequency;
+    unsigned char channelsConfiguration;
+
+    /* GA Specific Info */
+    unsigned char frameLengthFlag;
+    unsigned char dependsOnCoreCoder;
+    unsigned long coreCoderDelay;
+    unsigned char extensionFlag;
+    unsigned char aacSectionDataResilienceFlag;
+    unsigned char aacScalefactorDataResilienceFlag;
+    unsigned char aacSpectralDataResilienceFlag;
+    unsigned char epConfig;
+
+} mp4AudioSpecificConfig;
 
 typedef struct faacDecConfiguration
 {
@@ -85,9 +113,12 @@ typedef struct faacDecFrameInfo
     unsigned long samples;
     unsigned char channels;
     unsigned char error;
+    unsigned long samplerate;
 } faacDecFrameInfo;
 
 char* FAADAPI faacDecGetErrorMessage(unsigned char errcode);
+
+unsigned long FAADAPI faacDecGetCapabilities();
 
 faacDecHandle FAADAPI faacDecOpen();
 
@@ -121,14 +152,7 @@ void* FAADAPI faacDecDecode(faacDecHandle hDecoder,
 
 char FAADAPI AudioSpecificConfig(unsigned char *pBuffer,
                                  unsigned long buffer_size,
-                                 unsigned long *samplerate,
-                                 unsigned char *channels,
-                                 unsigned char *sf_index,
-                                 unsigned char *object_type,
-                                 unsigned char *aacSectionDataResilienceFlag,
-                                 unsigned char *aacScalefactorDataResilienceFlag,
-                                 unsigned char *aacSpectralDataResilienceFlag,
-                                 unsigned char *frameLengthFlag);
+                                 mp4AudioSpecificConfig *mp4ASC);
 
 #ifdef _WIN32
   #pragma pack(pop)

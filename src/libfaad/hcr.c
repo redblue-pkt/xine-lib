@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: hcr.c,v 1.1 2002/12/16 19:00:10 miguelfreitas Exp $
+** $Id: hcr.c,v 1.2 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -547,6 +547,10 @@ uint8_t reordered_spectral_data(faacDecHandle hDecoder, ic_stream *ics, bitfile 
              } /* of w */
          } /* of sfb */
     } /* of presort */
+
+    /* Avoid divide by zero */
+    if (numberOfSegments == 0)
+        return 10; /* this is not good... */
 
     numberOfSets = NrCodeWords / numberOfSegments;     
 

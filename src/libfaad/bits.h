@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: bits.h,v 1.3 2002/12/16 18:59:53 miguelfreitas Exp $
+** $Id: bits.h,v 1.4 2003/04/12 14:58:46 miguelfreitas Exp $
 **/
 
 #ifndef __BITS_H__
@@ -41,6 +41,9 @@ typedef struct _bitfile
     uint32_t bufb;
     uint32_t bits_left;
     uint32_t buffer_size; /* size of the buffer in bytes */
+    uint32_t bytes_used;
+    uint8_t no_more_reading;
+    uint8_t error;
     uint32_t *tail;
     uint32_t *start;
     void *buffer;
@@ -103,6 +106,10 @@ static INLINE uint32_t faad_showbits(bitfile *ld, uint32_t bits)
 
 static INLINE void faad_flushbits(bitfile *ld, uint32_t bits)
 {
+    /* do nothing if error */
+    if (ld->error != 0)
+        return;
+
     if (bits < ld->bits_left)
     {
         ld->bits_left -= bits;
@@ -117,6 +124,11 @@ static INLINE void faad_flushbits(bitfile *ld, uint32_t bits)
 #endif
         ld->bufb = tmp;
         ld->bits_left += (32 - bits);
+        ld->bytes_used += 4;
+        if (ld->bytes_used == ld->buffer_size)
+            ld->no_more_reading = 1;
+        if (ld->bytes_used > ld->buffer_size)
+            ld->error = 1;
     }
 }
 
@@ -124,6 +136,9 @@ static INLINE void faad_flushbits(bitfile *ld, uint32_t bits)
 static INLINE uint32_t faad_getbits(bitfile *ld, uint32_t n DEBUGDEC)
 {
     uint32_t ret;
+
+    if (ld->no_more_reading)
+        return 0;
 
     if (n == 0)
         return 0;
@@ -141,7 +156,15 @@ static INLINE uint32_t faad_getbits(bitfile *ld, uint32_t n DEBUGDEC)
 
 static INLINE uint8_t faad_get1bit(bitfile *ld DEBUGDEC)
 {
-    return (uint8_t)faad_getbits(ld, 1 DEBUGVAR(print,var,dbg));
+    uint8_t r;
+
+    if (ld->bits_left == 0)
+        return (uint8_t)faad_getbits(ld, 1 DEBUGVAR(print,var,dbg));
+
+    ld->bits_left--;
+    r = (ld->bufa >> ld->bits_left) & 1;
+
+    return r;
 }
 
 /* reversed bitreading routines */
@@ -175,6 +198,10 @@ static INLINE uint32_t faad_showbits_rev(bitfile *ld, uint32_t bits)
 
 static INLINE void faad_flushbits_rev(bitfile *ld, uint32_t bits)
 {
+    /* do nothing if error */
+    if (ld->error != 0)
+        return;
+
     if (bits < ld->bits_left)
     {
         ld->bits_left -= bits;
@@ -189,6 +216,12 @@ static INLINE void faad_flushbits_rev(bitfile *ld, uint32_t bits)
         ld->bufb = tmp;
         ld->start--;
         ld->bits_left += (32 - bits);
+
+        ld->bytes_used += 4;
+        if (ld->bytes_used == ld->buffer_size)
+            ld->no_more_reading = 1;
+        if (ld->bytes_used > ld->buffer_size)
+            ld->error = 1;
     }
 }
 
@@ -196,6 +229,9 @@ static INLINE uint32_t faad_getbits_rev(bitfile *ld, uint32_t n
                                         DEBUGDEC)
 {
     uint32_t ret;
+
+    if (ld->no_more_reading)
+        return 0;
 
     if (n == 0)
         return 0;

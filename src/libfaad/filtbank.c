@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: filtbank.c,v 1.4 2003/02/28 02:51:49 storri Exp $
+** $Id: filtbank.c,v 1.5 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -25,9 +25,9 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32_WCE
-#define XINE_ASSERT(x)
+#define assert(x)
 #else
-#include "xineutils.h"
+#include <assert.h>
 #endif
 
 #include "filtbank.h"
@@ -82,13 +82,16 @@ fb_info *filter_bank_init(uint16_t frame_len)
 
 void filter_bank_end(fb_info *fb)
 {
-    faad_mdct_end(fb->mdct256);
-    faad_mdct_end(fb->mdct2048);
+    if (fb != NULL)
+    {
+        faad_mdct_end(fb->mdct256);
+        faad_mdct_end(fb->mdct2048);
 #ifdef LD_DEC
-    faad_mdct_end(fb->mdct1024);
+        faad_mdct_end(fb->mdct1024);
 #endif
 
-    if (fb) free(fb);
+        free(fb);
+    }
 }
 
 static INLINE void imdct(fb_info *fb, real_t *in_data, real_t *out_data, uint16_t len)
@@ -265,9 +268,7 @@ void filter_bank_ltp(fb_info *fb, uint8_t window_sequence, uint8_t window_shape,
     uint16_t nshort = frame_len/8;
     uint16_t nflat_ls = (nlong-nshort)/2;
 
-    XINE_ASSERT(window_sequence != EIGHT_SHORT_SEQUENCE,
-		"%window_sequence (%d) == EIGHT_SHORT_SEQUENCE (%d)",
-		window_sequence, EIGHT_SHORT_SEQUENCE);
+    assert(window_sequence != EIGHT_SHORT_SEQUENCE);
 
     windowed_buf = (real_t*)malloc(nlong*2*sizeof(real_t));
 

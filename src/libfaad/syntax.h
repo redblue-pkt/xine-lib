@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: syntax.h,v 1.4 2002/12/16 19:02:08 miguelfreitas Exp $
+** $Id: syntax.h,v 1.5 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #ifndef __SYNTAX_H__
@@ -49,8 +49,11 @@ extern "C" {
 #define LEN_TAG   4
 #define LEN_BYTE  8
 
-#define EXT_FILL_DATA     1
+#define EXT_FIL            0
+#define EXT_FILL_DATA      1
+#define EXT_DATA_ELEMENT   2
 #define EXT_DYNAMIC_RANGE 11
+#define ANC_DATA           0
 
 /* Syntax elements */
 #define ID_SCE 0x0
@@ -78,52 +81,18 @@ extern "C" {
 #define INTENSITY_HCB  15
 
 
-int8_t GASpecificConfig(bitfile *ld, uint8_t *channelConfiguration,
-                        uint8_t object_type,
-#ifdef ERROR_RESILIENCE
-                        uint8_t *aacSectionDataResilienceFlag,
-                        uint8_t *aacScalefactorDataResilienceFlag,
-                        uint8_t *aacSpectralDataResilienceFlag,
-#endif
-                        uint8_t *frameLengthFlag);
+int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC);
 
 uint8_t adts_frame(adts_header *adts, bitfile *ld);
 void get_adif_header(adif_header *adif, bitfile *ld);
 
 
-/* static functions */
-static uint8_t single_lfe_channel_element(faacDecHandle hDecoder,
-                                          element *sce, bitfile *ld,
-                                          int16_t *spec_data);
-static uint8_t channel_pair_element(faacDecHandle hDecoder, element *cpe,
-                                    bitfile *ld, int16_t *spec_data1,
-                                    int16_t *spec_data2);
-static uint16_t data_stream_element(bitfile *ld);
-static uint8_t program_config_element(program_config *pce, bitfile *ld);
-static uint8_t fill_element(bitfile *ld, drc_info *drc);
-static uint8_t individual_channel_stream(faacDecHandle hDecoder, element *ele,
-                                         bitfile *ld, ic_stream *ics, uint8_t scal_flag,
-                                         int16_t *spec_data);
-static uint8_t ics_info(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld,
-                        uint8_t common_window);
-static void section_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld);
-static uint8_t scale_factor_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld);
-static void gain_control_data(bitfile *ld, ic_stream *ics);
-static uint8_t spectral_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld,
-                             int16_t *spectral_data);
-static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count);
+/* static declarations moved to avoid compiler warnings [MF] */
+
 #ifdef ERROR_RESILIENCE
 uint8_t reordered_spectral_data(faacDecHandle hDecoder, ic_stream *ics,
                                 bitfile *ld, int16_t *spectral_data);
 #endif
-static void pulse_data(pulse_info *pul, bitfile *ld);
-static void tns_data(ic_stream *ics, tns_info *tns, bitfile *ld);
-static void ltp_data(faacDecHandle hDecoder, ic_stream *ics, ltp_info *ltp, bitfile *ld);
-static uint8_t adts_fixed_header(adts_header *adts, bitfile *ld);
-static void adts_variable_header(adts_header *adts, bitfile *ld);
-static void adts_error_check(adts_header *adts, bitfile *ld);
-static uint8_t dynamic_range_info(bitfile *ld, drc_info *drc);
-static uint8_t excluded_channels(bitfile *ld, drc_info *drc);
 
 
 #ifdef __cplusplus

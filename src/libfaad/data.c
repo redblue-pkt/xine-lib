@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: data.c,v 1.2 2002/12/16 18:59:57 miguelfreitas Exp $
+** $Id: data.c,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -32,6 +32,11 @@ extern uint8_t num_swb_480_window[] =
     0, 0, 0, 35, 35, 37, 30, 30, 0, 0, 0, 0
 };
 #endif
+
+extern uint8_t num_swb_960_window[] =
+{
+    40, 40, 45, 49, 49, 49, 46, 46, 42, 42, 42, 40
+};
 
 extern uint8_t num_swb_1024_window[] =
 {

@@ -1,22 +1,22 @@
 /*
 ** FAAD - Freeware Advanced Audio Decoder
 ** Copyright (C) 2002 M. Bakker
-**  
+**
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation; either version 2 of the License, or
 ** (at your option) any later version.
-** 
+**
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
-** 
+**
 ** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software 
+** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: bits.c,v 1.3 2002/12/16 18:59:52 miguelfreitas Exp $
+** $Id: bits.c,v 1.4 2003/04/12 14:58:46 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -53,11 +53,16 @@ void faad_initbits(bitfile *ld, void *_buffer, uint32_t buffer_size)
     ld->tail = ((uint32_t*)ld->buffer + 2);
 
     ld->bits_left = 32;
+
+    ld->bytes_used = 0;
+    ld->no_more_reading = 0;
+    ld->error = 0;
 }
 
 void faad_endbits(bitfile *ld)
 {
-    if (ld->buffer) free(ld->buffer);
+    if (ld)
+        if (ld->buffer) free(ld->buffer);
 }
 
 
@@ -96,13 +101,15 @@ void faad_rewindbits(bitfile *ld)
     ld->bufb = tmp;
     ld->bits_left = 32;
     ld->tail = &ld->start[2];
+    ld->bytes_used = 0;
+    ld->no_more_reading = 0;
 }
 
 uint8_t *faad_getbitbuffer(bitfile *ld, uint32_t bits
                        DEBUGDEC)
 {
     uint16_t i;
-	uint8_t temp;
+    uint8_t temp;
     uint16_t bytes = (uint16_t)bits / 8;
     uint8_t remainder = (uint8_t)bits % 8;
 
@@ -153,4 +160,8 @@ void faad_initbits_rev(bitfile *ld, void *buffer,
     ld->bits_left = bits_in_buffer % 32;
     if (ld->bits_left == 0)
         ld->bits_left = 32;
+
+    ld->bytes_used = 0;
+    ld->no_more_reading = 0;
+    ld->error = 0;
 }

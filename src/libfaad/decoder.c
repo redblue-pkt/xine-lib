@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: decoder.c,v 1.3 2002/12/16 18:59:59 miguelfreitas Exp $
+** $Id: decoder.c,v 1.4 2003/04/12 14:58:47 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -52,6 +52,32 @@ uint16_t dbg_count;
 int8_t* FAADAPI faacDecGetErrorMessage(uint8_t errcode)
 {
     return err_msg[errcode];
+}
+
+uint32_t FAADAPI faacDecGetCapabilities()
+{
+    uint32_t cap = 0;
+
+    /* can't do without it */
+    cap += LC_DEC_CAP;
+
+#ifdef MAIN_DEC
+    cap += MAIN_DEC_CAP;
+#endif
+#ifdef LTP_DEC
+    cap += LTP_DEC_CAP;
+#endif
+#ifdef LD_DEC
+    cap += LD_DEC_CAP;
+#endif
+#ifdef ERROR_RESILIENCE
+    cap += ERROR_RESILIENCE_CAP;
+#endif
+#ifdef FIXED_POINT
+    cap += FIXED_POINT_CAP;
+#endif
+
+    return cap;
 }
 
 faacDecHandle FAADAPI faacDecOpen()
@@ -149,6 +175,7 @@ int32_t FAADAPI faacDecInit(faacDecHandle hDecoder, uint8_t *buffer,
             hDecoder->adif_header_present = 1;
 
             get_adif_header(&adif, &ld);
+            faad_byte_align(&ld);
 
             hDecoder->sf_index = adif.pce.sf_index;
             hDecoder->object_type = adif.pce.object_type;
@@ -172,6 +199,11 @@ int32_t FAADAPI faacDecInit(faacDecHandle hDecoder, uint8_t *buffer,
                 2 : adts.channel_configuration;
         }
 
+        if (ld.error)
+        {
+            faad_endbits(&ld);
+            return -1;
+        }
         faad_endbits(&ld);
     }
     hDecoder->channelConfiguration = *channels;
@@ -193,8 +225,8 @@ int32_t FAADAPI faacDecInit(faacDecHandle hDecoder, uint8_t *buffer,
         return -1;
 
 #ifndef FIXED_POINT
-    if (hDecoder->config.outputFormat >= 5)
-        Init_Dither(16, hDecoder->config.outputFormat - 5);
+    if (hDecoder->config.outputFormat >= FAAD_FMT_DITHER_LOWEST)
+        Init_Dither(16, hDecoder->config.outputFormat - FAAD_FMT_DITHER_LOWEST);
 #endif
 
     return bits;
@@ -206,7 +238,7 @@ int8_t FAADAPI faacDecInit2(faacDecHandle hDecoder, uint8_t *pBuffer,
                             uint32_t *samplerate, uint8_t *channels)
 {
     int8_t rc;
-    uint8_t frameLengthFlag;
+    mp4AudioSpecificConfig mp4ASC;
 
     hDecoder->adif_header_present = 0;
     hDecoder->adts_header_present = 0;
@@ -220,17 +252,18 @@ int8_t FAADAPI faacDecInit2(faacDecHandle hDecoder, uint8_t *pBuffer,
         return -1;
     }
 
-    rc = AudioSpecificConfig(pBuffer, SizeOfDecoderSpecificInfo,
-        samplerate, channels,
-        &hDecoder->sf_index, &hDecoder->object_type,
-#ifdef ERROR_RESILIENCE
-        &hDecoder->aacSectionDataResilienceFlag,
-        &hDecoder->aacScalefactorDataResilienceFlag,
-        &hDecoder->aacSpectralDataResilienceFlag,
-#else
-        NULL, NULL, NULL,
-#endif
-        &frameLengthFlag);
+    /* decode the audio specific config */
+    rc = AudioSpecificConfig(pBuffer, SizeOfDecoderSpecificInfo, &mp4ASC);
+
+    /* copy the relevant info to the decoder handle */
+    *samplerate = mp4ASC.samplingFrequency;
+    *channels = mp4ASC.channelsConfiguration;
+    hDecoder->sf_index = mp4ASC.samplingFrequencyIndex;
+    hDecoder->object_type = mp4ASC.objectTypeIndex;
+    hDecoder->aacSectionDataResilienceFlag = mp4ASC.aacSectionDataResilienceFlag;
+    hDecoder->aacScalefactorDataResilienceFlag = mp4ASC.aacScalefactorDataResilienceFlag;
+    hDecoder->aacSpectralDataResilienceFlag = mp4ASC.aacSpectralDataResilienceFlag;
+
     if (hDecoder->object_type < 5)
         hDecoder->object_type--; /* For AAC differs from MPEG-4 */
     if (rc != 0)
@@ -238,7 +271,7 @@ int8_t FAADAPI faacDecInit2(faacDecHandle hDecoder, uint8_t *pBuffer,
         return rc;
     }
     hDecoder->channelConfiguration = *channels;
-    if (frameLengthFlag)
+    if (mp4ASC.frameLengthFlag)
         hDecoder->frameLength = 960;
 
     /* must be done before frameLength is divided by 2 for LD */
@@ -255,8 +288,8 @@ int8_t FAADAPI faacDecInit2(faacDecHandle hDecoder, uint8_t *pBuffer,
 #endif
 
 #ifndef FIXED_POINT
-    if (hDecoder->config.outputFormat >= 5)
-        Init_Dither(16, hDecoder->config.outputFormat - 5);
+    if (hDecoder->config.outputFormat >= FAAD_FMT_DITHER_LOWEST)
+        Init_Dither(16, hDecoder->config.outputFormat - FAAD_FMT_DITHER_LOWEST);
 #endif
 
     return 0;
@@ -281,8 +314,8 @@ int8_t FAADAPI faacDecInitDRM(faacDecHandle hDecoder, uint32_t samplerate,
     hDecoder->fb = filter_bank_init(hDecoder->frameLength);
 
 #ifndef FIXED_POINT
-    if (hDecoder->config.outputFormat >= 5)
-        Init_Dither(16, hDecoder->config.outputFormat - 5);
+    if (hDecoder->config.outputFormat >= FAAD_FMT_DITHER_LOWEST)
+        Init_Dither(16, hDecoder->config.outputFormat - FAAD_FMT_DITHER_LOWEST);
 #endif
 
     return 0;
@@ -291,6 +324,9 @@ int8_t FAADAPI faacDecInitDRM(faacDecHandle hDecoder, uint32_t samplerate,
 void FAADAPI faacDecClose(faacDecHandle hDecoder)
 {
     uint8_t i;
+
+    if (hDecoder == NULL)
+        return;
 
     for (i = 0; i < MAX_CHANNELS; i++)
     {
@@ -412,24 +448,30 @@ void* FAADAPI faacDecDecode(faacDecHandle hDecoder,
     elements = raw_data_block(hDecoder, hInfo, ld, syntax_elements,
         spec_data, spec_coef, &pce, drc);
 
-    if (hInfo->error > 0)
-        goto error;
-
     ch_ele = hDecoder->fr_ch_ele;
     channels = hDecoder->fr_channels;
 
+    if (hInfo->error > 0)
+        goto error;
+
 
     /* no more bit reading after this */
-    faad_byte_align(ld);
     hInfo->bytesconsumed = bit2byte(faad_get_processed_bits(ld));
+    if (ld->error)
+    {
+        hInfo->error = 14;
+        goto error;
+    }
     faad_endbits(ld);
     if (ld) free(ld);
     ld = NULL;
 
     /* number of samples in this frame */
     hInfo->samples = frame_len*channels;
-    /* number of samples in this frame */
+    /* number of channels in this frame */
     hInfo->channels = channels;
+    /* samplerate */
+    hInfo->samplerate = sample_rates[hDecoder->sf_index];
 
     /* check if frame has channel elements */
     if (channels == 0)
@@ -439,7 +481,12 @@ void* FAADAPI faacDecDecode(faacDecHandle hDecoder,
     }
 
     if (hDecoder->sample_buffer == NULL)
-        hDecoder->sample_buffer = malloc(frame_len*channels*sizeof(real_t));
+    {
+        if (hDecoder->config.outputFormat == FAAD_FMT_DOUBLE)
+            hDecoder->sample_buffer = malloc(frame_len*channels*sizeof(double));
+        else
+            hDecoder->sample_buffer = malloc(frame_len*channels*sizeof(real_t));
+    }
 
     sample_buffer = hDecoder->sample_buffer;
 
