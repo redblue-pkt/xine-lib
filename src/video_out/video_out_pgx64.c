@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.66 2004/06/01 18:11:52 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.67 2004/06/18 23:52:15 komadori Exp $
  *
  * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
@@ -65,7 +65,8 @@
 
 /* m64 register defines */
 
-#define M64_MMAPLEN 0x00800000
+#define M64_VRAM_MMAPBASE 0x00000000
+#define M64_VRAM_MMAPLEN 0x00800000
 
 #define M64_BUS_CNTL 0x128
 #define M64_BUS_EXT_REG_EN 0x08000000
@@ -118,7 +119,9 @@ static const int m64_bufaddr_regs_tbl[2][3] = {
 
 /* pfb register defines */
 
+#define PFB_VRAM_MMAPBASE 0x08000000
 #define PFB_VRAM_MMAPLEN 0x02000000
+#define PFB_REGS_MMAPBASE 0x10000000
 #define PFB_REGS_MMAPLEN 0x00040000
 
 #define PFB_CLOCK_CNTL_INDEX 0x002
@@ -251,6 +254,15 @@ typedef struct {
 } pgx64_driver_t;
 
 /*
+ * Dummy X11 error handler
+ */
+
+static int dummy_error_handler(Display *disp, XErrorEvent *errev)
+{
+  return 0;
+}
+
+/*
  * Setup X11/DGA
  */
 
@@ -318,18 +330,22 @@ static int setup_dga(pgx64_driver_t *this)
   if (XGetWindowProperty(this->display, RootWindow(this->display, this->screen), VIDEO_OVERLAY_WINDOW, 0, 1, False, XA_WINDOW, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
     if ((type_return == XA_WINDOW) && (format_return == 32) && (nitems_return == 1)) {
       Window wins = *(Window *)(void *)prop_return;
+      XErrorHandler old_error_handler;
 
+      old_error_handler = XSetErrorHandler(dummy_error_handler);
       if (XGetWindowProperty(this->display, wins, VIDEO_OVERLAY_IN_USE, 0, 0, False, AnyPropertyType, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
         XFree(prop_return);
         if (type_return != None) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: video overlay on this screen is already in use\n"));
           close(this->devfd);
+          XSetErrorHandler(old_error_handler);
           XUngrabServer(this->display);
           XDgaUnGrabDrawable(this->dgadraw);
           XUnlockDisplay(this->display);
           return 0;
         }
       }
+      XSetErrorHandler(old_error_handler);
     }
   }
 
@@ -368,17 +384,6 @@ static void cleanup_dga(pgx64_driver_t *this)
   XDeleteProperty(this->display, this->drawable, XInternAtom(this->display, "VIDEO_OVERLAY_IN_USE", True));
   XDgaUnGrabDrawable(this->dgadraw);
   XUnlockDisplay(this->display);
-}
-
-/*
- * Round up the size of an address range to the nearest page
- */
-
-static size_t round_up_to_page(size_t len)
-{
-  long page_size = sysconf(_SC_PAGE_SIZE);
-
-  return ((len + page_size - 1) / page_size) * page_size;
 }
 
 /*
@@ -1262,20 +1267,23 @@ static int pgx64_redraw_needed(vo_driver_t *this_gen)
 static void pgx64_dispose(vo_driver_t *this_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
+  long page_size;
 
   cleanup_dga(this);
+
+  page_size = sysconf(_SC_PAGE_SIZE);
 
   switch (this->fb_type) {
     case FB_TYPE_M64:
       this->vregs[M64_OVERLAY_EXCLUSIVE_HORZ] = 0;
       this->vregs[M64_OVERLAY_SCALE_CNTL] = 0;
-      munmap(this->vbase, M64_MMAPLEN);
+      munmap(this->vbase, (((M64_VRAM_MMAPLEN + page_size - 1) / page_size) * page_size));
       break;
 
     case FB_TYPE_PFB:
       this->vregs[PFB_OV0_SCALE_CNTL] = 0;
-      munmap(this->vbase, PFB_VRAM_MMAPLEN);
-      munmap((void *)this->vregs, PFB_REGS_MMAPLEN);
+      munmap(this->vbase, (((PFB_VRAM_MMAPLEN + page_size - 1) / page_size) * page_size));
+      munmap((void *)this->vregs, (((PFB_REGS_MMAPLEN + page_size - 1) / page_size) * page_size));
       break;
   }
 
@@ -1327,6 +1335,7 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
   pgx64_driver_class_t *class = (pgx64_driver_class_t *)(void *)class_gen;
   pgx64_driver_t *this;
   struct fbgattr attr;
+  long page_size;
 
   this = (pgx64_driver_t *)xine_xmalloc(sizeof(pgx64_driver_t));
   if (!this) {
@@ -1372,9 +1381,11 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
     return NULL;
   }
 
+  page_size = sysconf(_SC_PAGE_SIZE);
+
   switch (this->fb_type) {
     case FB_TYPE_M64:
-      if ((this->vbase = mmap(NULL, round_up_to_page(M64_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0)) == MAP_FAILED) {
+      if ((this->vbase = mmap(NULL, (((M64_VRAM_MMAPLEN + page_size - 1) / page_size) * page_size), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0)) == MAP_FAILED) {
         xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
         cleanup_dga(this);
         close(this->devfd);
@@ -1400,7 +1411,7 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
       break;
 
     case FB_TYPE_PFB:
-      if ((this->vbase = mmap(NULL, round_up_to_page(PFB_VRAM_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x08000000)) == MAP_FAILED) {
+      if ((this->vbase = mmap(NULL, (((PFB_VRAM_MMAPLEN + page_size - 1) / page_size) * page_size), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, PFB_VRAM_MMAPBASE)) == MAP_FAILED) {
         xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
         cleanup_dga(this);
         close(this->devfd);
@@ -1408,9 +1419,9 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
         return NULL;
       }
 
-      if ((this->vregs = (uint32_t *)(void *)mmap(NULL, round_up_to_page(PFB_REGS_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x10000000)) == MAP_FAILED) {
+      if ((this->vregs = (uint32_t *)(void *)mmap(NULL, (((PFB_REGS_MMAPLEN + page_size - 1) / page_size) * page_size), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, PFB_REGS_MMAPBASE)) == MAP_FAILED) {
         xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
-        munmap(this->vbase, PFB_VRAM_MMAPLEN);
+        munmap(this->vbase, (((PFB_VRAM_MMAPLEN + page_size - 1) / page_size) * page_size));
         cleanup_dga(this);
         close(this->devfd);
         free(this);
