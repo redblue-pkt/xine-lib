@@ -61,6 +61,7 @@ lib_LTLIBRARIES = \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
 	xineplug_inp_pnm.la \
+	xineplug_inp_rtp.la \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la \
 	xineplug_inp_pvr.la \
@@ -104,9 +105,9 @@ xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
 xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB)
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_inp_rtp_la_SOURCES = input_rtp.c
-#xineplug_inp_rtp_la_LIBADD = $(XINE_LIB)
-#xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_inp_rtp_la_SOURCES = input_rtp.c
+xineplug_inp_rtp_la_LIBADD = $(XINE_LIB)
+xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
 xineplug_inp_http_la_LIBADD = $(XINE_LIB)

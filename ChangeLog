@@ -4,7 +4,13 @@ xine-lib (1-beta7)
   * libdvdread updated to 0.9.4
   * streaming of avi files (e.g. via http)
   * experimental TiVo-like functionality using WinTV-PVR cards (pvr plugin)
-  
+  * rtp input updated to latest API, and rewritten to handle arbitrary
+    packet sizes, and both real RTP packets and a stream sent as raw UDP
+    packets (common in IP-TV).  RTP packet parsing not tested, and does
+    not handle sequence counter.  There's also a deadlock in many demuxers
+    when trying to stop during a network timeout, xine has to be SIGKILLED
+    in this case.
+
 xine-lib (1-beta6)
   * inform the width and height for the v4l input plugin
   * ffmpeg aspect ratio detection code fixed
