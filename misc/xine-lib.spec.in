@@ -77,7 +77,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Sun Jun 10 2001 Matthias Dahl <matthew2k@web.de>
-- fixed filelist
+- updated filelist
 - re-activated execution of /sbin/ldconfig as post install script
 * Thu Mar 28 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - add korean summary, patch from Louis JANG <louis@ns.mizi.com>
