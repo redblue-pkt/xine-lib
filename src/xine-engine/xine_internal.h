@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.30 2001/07/14 23:17:37 richwareham Exp $
+ * $Id: xine_internal.h,v 1.31 2001/07/15 10:43:35 guenter Exp $
  *
  */
 
@@ -65,6 +65,8 @@ struct video_decoder_s {
   void (*close) (video_decoder_t *this);
 
   char* (*get_identifier) (void);
+
+  metronom_t *metronom;
 
 };
 

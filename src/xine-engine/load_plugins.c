@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.29 2001/07/10 21:07:56 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.30 2001/07/15 10:43:35 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -349,6 +349,7 @@ void load_decoder_plugins (xine_t *this,
 	    int              streamtype;
 	      
 	    vdp = (video_decoder_t *) initplug(iface_version, config);
+	    vdp->metronom = this->metronom;
 
 	    for (streamtype = 0; streamtype<256; streamtype++) {
 	      if (vdp->can_handle (vdp, (streamtype<<16) | BUF_VIDEO_BASE))
