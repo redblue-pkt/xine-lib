@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.4 2004/05/16 14:44:42 jcdutton Exp $
+ * $Id: upmix.c,v 1.5 2004/05/16 15:13:34 jcdutton Exp $
  *
  */
 
@@ -56,8 +56,8 @@ struct post_class_upmix_s {
                                                                                                                            
 /* Analog domain biquad section */
 typedef struct{
-  float a[3];           // Numerator coefficients
-  float b[3];           // Denominator coefficients
+  float a[3];           /* Numerator coefficients */
+  float b[3];           /* Denominator coefficients */
 } biquad_t;
                                                                                                                            
 /* S-parameters for designing 4th order Butterworth filter */
