@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.116 2003/05/05 22:29:30 tmattern Exp $
+ * $Id: metronom.c,v 1.117 2003/05/06 20:50:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -386,11 +386,6 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   this->img_cpt++;
 
-  if (img->bad_frame) {
-    pthread_mutex_unlock (&this->lock);
-    return;
-  }
-  
   if (pts) {
 
     /*
