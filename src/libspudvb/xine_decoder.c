@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2004/12/03 04:55:54 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.6 2004/12/04 07:50:11 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -309,7 +309,8 @@ void process_page_composition_segment (dvb_spu_decoder_t * this)
     return;
   }
   else {
-    draw_subtitles (this);
+    if(dvbsub->page.page_state==1)
+      draw_subtitles (this);
   }
 
   for (r = 0; r < MAX_REGIONS; r++) {
@@ -456,13 +457,15 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 {
   int r;
   int x, y, out_y;
-
-  pthread_mutex_lock (&this->osd->renderer->osd_mutex);
+  char bitmap[720*576];
   /* update clipping area */
   this->osd->x1 = 1;
   this->osd->x2 = 720;
   this->osd->y1 = 1;
   this->osd->y2 = 576;
+
+  /* clear it */
+  memset (bitmap, 0, 720 * 576);
 
   /* render all regions onto the page */
   /* FIXME: we ought to have an osd per region, to allow for multiple CLUTs */
@@ -472,22 +475,18 @@ void draw_subtitles (dvb_spu_decoder_t * this)
       if (this->dvbsub->page.regions[r].is_visible) {
 
 	out_y = this->dvbsub->page.regions[r].y * 720;
-	/* clear it */
-	memset (this->osd->area + (out_y), 0, (720 * 576) - out_y - (this->dvbsub->regions[r].height * 720));
 	for (y = 0; y < this->dvbsub->regions[r].height; y++) {
 	  for (x = 0; x < this->dvbsub->regions[r].width; x++) {
-	    this->osd->area[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];
+	    bitmap[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];
 	  }
 	  out_y += 720;
 	}
       }
     }
   }
-
-  pthread_mutex_unlock (&this->osd->renderer->osd_mutex);
-
   /* display immediately */
   /* FIXME: we should use the page timeout */
+  this->stream->osd_renderer->draw_bitmap(this->osd,bitmap, 1,1,720,576,NULL);
   this->stream->osd_renderer->show (this->osd, 0);
 }
 
@@ -499,7 +498,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
-	this->stream->osd_renderer->clear (this->osd);
 	this->stream->osd_renderer->hide (this->osd, 0);
 	this->show = 0;
       }
@@ -543,7 +541,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   /* process the pes section */
   if (this->show)
     if (((this->pes_pkt_wrptr - this->pes_pkt) == this->pes_pkt_size)) {
-      char *buf = this->pes_pkt;
       int new_i;
       int data_identifier, subtitle_stream_id;
 
@@ -558,16 +555,16 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       PES_header_data_length = 0;
       this->dvbsub->i = 0;
 
-      data_identifier = buf[this->dvbsub->i++];
-      subtitle_stream_id = buf[this->dvbsub->i++];
+      data_identifier = this->dvbsub->buf[this->dvbsub->i++];
+      subtitle_stream_id = this->dvbsub->buf[this->dvbsub->i++];
 
       while (this->dvbsub->i <= (PES_packet_length)) {
 	/* SUBTITLING SEGMENT */
 	this->dvbsub->i++;
-	segment_type = buf[this->dvbsub->i++];
+	segment_type = this->dvbsub->buf[this->dvbsub->i++];
 
-	this->dvbsub->page.page_id = (buf[this->dvbsub->i] << 8) | buf[this->dvbsub->i + 1];
-	segment_length = (buf[this->dvbsub->i + 2] << 8) | buf[this->dvbsub->i + 3];
+	this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
+	segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
 	new_i = this->dvbsub->i + segment_length + 4;
 
 	/* SEGMENT_DATA_FIELD */
