@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.137 2003/03/29 13:19:08 mroi Exp $
+ * $Id: input_dvd.c,v 1.138 2003/03/30 10:57:48 mroi Exp $
  *
  */
 
@@ -1334,7 +1334,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
-    int titles;
+    int titles, parts;
     
     /* A program and/or VTS was specified */
 
@@ -1361,6 +1361,14 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     pr = -1;
     if(found != -1) {
       pr = strtol(locator+found+1, NULL,10);
+    }
+    dvdnav_get_number_of_parts(this->dvdnav, tt, &parts);
+    if ((pr == 0) || (pr > parts)) {
+      printf("input_dvd: Part %i is out of range (1 to %i).\n", pr,
+	      parts);
+      dvdnav_close(this->dvdnav);
+      this->dvdnav = NULL;
+      return 0;
     }
 #ifdef INPUT_DEBUG
     printf("input_dvd: Jumping to TT >%i<, PTT >%i<\n", tt, pr);
@@ -1617,6 +1625,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.138  2003/03/30 10:57:48  mroi
+ * additional sanity check on the part number
+ *
  * Revision 1.137  2003/03/29 13:19:08  mroi
  * sync to libdvdnav cvs once again
  *  * some changes to mutual header inclusion to make it compile warning-less
