@@ -1,3 +1,6 @@
+xine-lib (1-beta11)
+  * fix fastforward bug (slow playback with unused cpu cicles)
+
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)
   * capability of on-the-fly stream rewiring
