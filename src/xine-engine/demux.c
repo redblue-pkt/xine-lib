@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <sched.h>
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
@@ -158,6 +159,7 @@ static void *demux_loop (void *stream_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &stream->demux_lock );
+      sched_yield();
       pthread_mutex_lock( &stream->demux_lock );
     }
 
