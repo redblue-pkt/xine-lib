@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/04/23 22:43:59 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/04/29 14:32:11 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -71,7 +71,7 @@ void mpeg2dec_close (video_decoder_t *this_gen) {
 }
 
 static char *mpeg2dec_get_id(void) {
-  return "MPEG2DEC";
+  return "mpeg2dec";
 }
 
 video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *cfg) {

@@ -47,8 +47,7 @@ typedef struct ac3_config_s {
 
 void ac3_init(ac3_config_t *,ao_functions_t*);
 
-size_t ac3_decode_data(metronom_t *metronom, 
-		       uint8_t *data_start,uint8_t *data_end,uint32_t pts);
+size_t ac3_decode_data(uint8_t *data_start,uint8_t *data_end,uint32_t pts);
 
 void ac3_reset(void);
 

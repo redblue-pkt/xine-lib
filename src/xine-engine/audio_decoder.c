@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.5 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.6 2001/04/29 14:32:11 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -76,7 +76,7 @@ void *audio_decoder_loop (void *this_gen) {
 
 	  }
 	
-	  decoder->decode_data (this->metronom, decoder, buf);
+	  decoder->decode_data (decoder, buf);
 	}
 
 	break;

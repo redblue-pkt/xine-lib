@@ -1,10 +1,16 @@
-CFLAGS = @BUILD_LIB_STATIC@ @GLOBAL_CFLAGS@ 
+CFLAGS = @GLOBAL_CFLAGS@ 
 
-noinst_LTLIBRARIES = libac3.la
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
-libac3_la_SOURCES =  bitstream.c bit_allocate.c \
+libdir = $(XINE_PLUGINDIR)
+
+lib_LTLIBRARIES = xineplug_decode_ac3.la
+
+xineplug_decode_ac3_la_SOURCES =  bitstream.c bit_allocate.c \
 	decode.c coeff.c exponent.c parse.c crc.c rematrix.c \
-	dither.c sanity_check.c srfft.c imdct.c downmix.c 
+	dither.c sanity_check.c srfft.c imdct.c downmix.c \
+	xine_decoder.c
+xineplug_decode_ac3_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = ac3.h ac3_internal.h bitstream.h \
 	imdct.h coeff.h exponent.h bit_allocate.h parse.h \

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.14 2001/04/29 01:09:23 guenter Exp $
+ * $Id: xine_internal.h,v 1.15 2001/04/29 14:32:11 guenter Exp $
  *
  */
 
@@ -56,8 +56,7 @@ struct video_decoder_s {
 
   void (*init) (video_decoder_t *this, vo_instance_t *video_out);
 
-  void (*decode_data) (metronom_t *metronom,
-		       video_decoder_t *this, buf_element_t *buf);
+  void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
 
   void (*release_img_buffers) (video_decoder_t *this);
 
@@ -69,6 +68,10 @@ struct video_decoder_s {
 
 /*
  * generic xine audio decoder plugin interface
+ *
+ * for a dynamic plugin make sure you provide this function call:
+ * audio_decoder_t *init_audio_decoder_plugin (int iface_version,  
+ *                                             config_values_t *cfg);
  */
 
 typedef struct audio_decoder_s audio_decoder_t;
@@ -81,8 +84,7 @@ struct audio_decoder_s {
 
   void (*init) (audio_decoder_t *this, ao_functions_t *audio_out);
 
-  void (*decode_data) (metronom_t *metronom,
-		       audio_decoder_t *this, buf_element_t *buf);
+  void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
 
   void (*close) (audio_decoder_t *this);
 

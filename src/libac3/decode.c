@@ -194,8 +194,7 @@ void ac3_reset ()
 
 }
 
-size_t ac3_decode_data (metronom_t *metronom, 
-			uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
+size_t ac3_decode_data (uint8_t *data_start, uint8_t *data_end, uint32_t pts_)
 {
 	uint32_t i;
 

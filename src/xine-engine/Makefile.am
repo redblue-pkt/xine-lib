@@ -11,8 +11,6 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
 	audio_decoder.c video_out.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
-##	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
-	$(top_srcdir)/src/libac3/libac3.la       \
 	$(top_srcdir)/src/libmpg123/libmpg123.la \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
@@ -47,8 +45,6 @@ debug:
 
 
 libsdeps:
-##	@cd $(top_builddir)/src/libmpeg2  &&  $(MAKE) libmpeg2.la
-	@cd $(top_builddir)/src/libac3    && $(MAKE) libac3.la
 	@cd $(top_builddir)/src/libmpg123 && $(MAKE) libmpg123.la
 ##	@cd $(top_builddir)/src/libspudec && $(MAKE) libspudec.la
 
