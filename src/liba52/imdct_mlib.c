@@ -24,6 +24,7 @@
 #ifdef LIBA52_MLIB
 
 #include <inttypes.h>
+#include <string.h>
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_signal.h>
