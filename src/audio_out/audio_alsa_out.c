@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.74 2002/07/08 15:16:11 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.75 2002/07/31 06:29:08 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -280,7 +280,13 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   /* set the sample format ([SU]{8,16{LE,BE}})*/
-  err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ? SND_PCM_FORMAT_S16_LE : SND_PCM_FORMAT_U8);
+  err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ?
+#ifdef WORDS_BIGENDIAN
+		  SND_PCM_FORMAT_S16_BE
+#else
+		  SND_PCM_FORMAT_S16_LE
+#endif
+		  : SND_PCM_FORMAT_U8);
   if (err < 0) {
     printf ("audio_alsa_out: sample format non available\n");
     goto __close;
