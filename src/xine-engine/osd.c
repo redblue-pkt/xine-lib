@@ -746,7 +746,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   osd_font_t *font;
   int i, y;
   uint8_t *dst, *src;
-  char *inbuf;
+  const char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
 
@@ -932,7 +932,9 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   }
 
 #ifndef _MSC_VER
-  iconv_close(cd);
+  if (cd != (iconv_t)-1) {
+    iconv_close(cd);
+  }
 #endif /* _MSC_VER */
 
   pthread_mutex_unlock (&this->osd_mutex);
