@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.1 2003/01/14 03:41:00 tmmm Exp $
+ * $Id: fftscope.c,v 1.2 2003/01/14 06:30:43 tmmm Exp $
  *
  */
 
@@ -333,7 +333,7 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
     for (i = 0; i < NUMSAMPLES / 2; i++) {
 
       map_ptr = ((FFT_HEIGHT - 1) * FFT_WIDTH + i * 2) / 2;
-      amp_int = (int)amp(i, this->wave[0], LOG_BITS);
+      amp_int = (int)amp(i, this->wave[1], LOG_BITS);
       amp_int >>= 4;
       if (amp_int > 127)
         amp_int = 127;
