@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2004/05/24 22:17:58 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.33 2004/06/01 21:37:16 jstembridge Exp $
  *
  */
 
@@ -286,10 +286,10 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if( !this->bits_per_sample )
       this->bits_per_sample = 16;
     
-    if( buf->size ) {
+    if( buf->size > sizeof(xine_waveformatex) ) {
       xine_waveformatex *wavex = (xine_waveformatex *) buf->content;
 
-      if( wavex->cbSize ) {
+      if( wavex->cbSize > 0 ) {
         this->dec_config = xine_xmalloc(wavex->cbSize);
         this->dec_config_size = wavex->cbSize;
         memcpy(this->dec_config, buf->content + sizeof(xine_waveformatex),
