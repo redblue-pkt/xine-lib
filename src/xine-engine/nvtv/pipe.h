@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pipe.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: pipe.h,v 1.3 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *
@@ -34,10 +34,10 @@
 #define CONFIG_PIPE_PATH "/var/run"
 #endif
 
-#define PIPE_IN  CONFIG_PIPE_PATH ## "/nvtv-in"
-#define PIPE_OUT CONFIG_PIPE_PATH ## "/nvtv-out"
+#define PIPE_IN  CONFIG_PIPE_PATH "/nvtv-in"
+#define PIPE_OUT CONFIG_PIPE_PATH "/nvtv-out"
 
-#define PIPE_VERSION	0x000403 /* 0.4.3 */
+#define PIPE_VERSION	0x000404 /* 0.4.4 */
 
 /* even numbered commands expect no return, odd numbered commands do */
 
@@ -60,6 +60,7 @@ typedef enum {
   PCmd_GetConnection    = 25, /* In: None;                   Out: connect   */
   PCmd_FindBySize       = 31, /* In: System, x, y, size;     Out: mode      */
   PCmd_FindByOverscan   = 33, /* In: System, x, y, hoc, voc; Out: mode      */
+  PCmd_ListModes	= 35, /* In: System                Out: int, modes  */
   PCmd_SetHeads         = 40, /* In: 3 heads                                */
   PCmd_GetHeads         = 41, /* In: None;                 Out: 3 heads     */
   PCmd_GetHeadDev       = 43, /* In: Head;                 Out: Dev Flags   */
@@ -78,5 +79,8 @@ void pipeWriteArgs (FILE *pipe, int n, ...);
 
 void* pipeReadList (FILE *pipe, int size);
 void  pipeWriteList (FILE *pipe, int size, void *list);
+
+void pipeReadArray (FILE *pipe, int *nelem);
+void pipeWriteArray (FILE *pipe, int nelem, int nsub);
 
 #endif /* _PIPE_H */

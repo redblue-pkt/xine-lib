@@ -7,6 +7,8 @@
 #ifndef _XFREE_H
 #define _XFREE_H 1
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,20 +19,6 @@
 #include "miscstruct.h"
 
 #define __inline__ inline
-
-/**** libc_wrapper.c */
-
-void xf86usleep(unsigned long usec);
-void xf86getsecs(long * secs, long * usecs);
-
-/**** include/os.h */
-
-/* modified for stdlib */
-
-#define xalloc(size) malloc(size)
-#define xnfcalloc(_num, _size) calloc(_num, _size)
-#define xcalloc(_num, _size) calloc(_num, _size)
-#define xfree(ptr) free(ptr)
 
 /**** common/compiler.h */
 

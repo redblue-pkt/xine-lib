@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: local.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: local.h,v 1.3 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *
@@ -25,31 +25,51 @@
  * - Defines for GTK2 vs. GTK.
  * - Define for Bool (must be included after xfree.h for this reason)
  *
+ * Defines for all basic types, for 
+ *   a) without X, b) with xfree.h, c) under windows.
+ * Map allocations a) X to normal  b) normal to X
  */
 
 #ifndef _LOCAL_H
 #define _LOCAL_H
 
-#ifdef __BORLANDC__
-#define inline
-#endif
+#include "config.h"
+#include "debug.h"
+#include "error.h"
+
+/* -------- GTK -------- */
 
 #ifdef HAVE_GTK
 
-#if GTK_MAJOR_VERSION >= 2
-
-#define gdk_screen gdk_x11_get_default_screen()
-#define gdk_root_window gdk_x11_get_default_root_xwindow()
-#define gtk_spin_button_set_shadow_type(x, y) 
-
+#if HAVE_GTK_VERSION == 1
+#define my_gdk_screen gdk_screen
+#define my_gdk_root_window gdk_root_window
+#define my_gtk_spin_button_set_shadow_type(x, y) gtk_spin_button_set_shadow_type (x,y)
 #endif
+
+#if HAVE_GTK_VERSION == 2
+#define my_gdk_screen gdk_x11_get_default_screen()
+#define my_gdk_root_window gdk_x11_get_default_root_xwindow()
+#define my_gtk_spin_button_set_shadow_type(x, y) 
+#endif
+
 #endif /* HAVE_GTK */
+
+/* -------- Allocation layer -------- */
+
+/* Simulate X via stdlib. nf means 'no failure' */
+
+#define xalloc(_size) malloc(_size)
+#define xnfcalloc(_num, _size) calloc(_num, _size)
+#define xcalloc(_num, _size) calloc(_num, _size)
+#define xfree(_ptr) free(_ptr)
+#define xrealloc(_ptr, _size) realloc(_ptr, _size)
+
+/* -------- Basic types -------- */
 
 #ifndef _XDEFS_H
 
-#ifndef __BORLANDC__
-typedef int Bool;
-#endif
+#define Bool int
 
 #ifndef TRUE
 #define TRUE 1

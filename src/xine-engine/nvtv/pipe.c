@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pipe.c,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: pipe.c,v 1.3 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *
@@ -24,14 +24,24 @@
  *
  */
 
+#include "local.h" /* before everything else */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 
-#include "debug.h"
-#include "error.h"
 #include "pipe.h"
+
+/* 
+ * The communication will always include sizes and number of elements
+ * sent, so even if there are version mismatches, the other end will be
+ * able to properly synchronize.
+ * A message consists of
+ * - the command
+ * - the number of arguments
+ * - the size of each argument, followed by the argument itself
+ */
 
 /* 
  *  Read a command from a pipe
@@ -251,3 +261,36 @@ void pipeWriteList (FILE *pipe, int size, void *list)
   fflush (pipe);
 }
 
+/*
+ * Read an array with 'nelem' elements. The elements themselves are
+ * written by their own pipeWrite commands to allow the transfer of
+ * embedded strings.  
+ */
+
+void pipeReadArray (FILE *pipe, int *nelem)
+{
+  int n;
+
+  DPRINTF ("pipe read array ");
+  fread (&n, sizeof(n), 1, pipe);
+  fread (nelem, sizeof(int), 1, pipe);
+  DPRINTF ("%i (%i)\n", *nelem, n);
+}
+
+/*
+ * Write an array with 'nelem' elements, each of which has 'nsub' elements 
+ * of size 'size' to the pipe. The elements themselves are written
+ * by their own pipeWrite commands to allow the transfer of embedded 
+ * strings.
+ */
+
+void pipeWriteArray (FILE *pipe, int nelem, int nsub)
+{
+  int n;
+
+  DPRINTF ("pipe write array %i * %i\n", nelem, nsub);
+  n = nelem * nsub + 1;
+  fwrite (&n, sizeof(n), 1, pipe);
+  fwrite (&nelem, sizeof(nelem), 1, pipe);
+  fflush (pipe);
+}

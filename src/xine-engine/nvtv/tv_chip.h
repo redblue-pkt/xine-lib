@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tv_chip.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: tv_chip.h,v 1.3 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *
@@ -63,24 +63,23 @@ typedef enum {
 typedef enum {
   TV_CHIP_BY_ADDR   = -1,
   TV_NO_CHIP        = 0,
-  TV_CHRONTEL       = 0x1000,
-  TV_BROOKTREE      = 0x2000,
-  TV_CONEXANT       = 0x2100,
+  TV_CHRONTEL       = 0x1100,
+  TV_BROOKTREE      = 0x2100,
+  TV_CONEXANT       = 0x2200,
   TV_PHILIPS        = 0x3000,
-  TV_PHILIPS_7102   = 0x3010, 
-  TV_PHILIPS_7103   = 0x3011,
-  TV_PHILIPS_7108   = 0x3012, 
-  TV_PHILIPS_7109   = 0x3013,
-  TV_PHILIPS_7104   = 0x3020,
-  TV_PHILIPS_7105   = 0x3021,
-  TV_PHILIPS_7108A  = 0x3022, 
-  TV_PHILIPS_7109A  = 0x3023,
+  TV_PHILIPS_MODEL1 = 0x3100,
+  TV_PHILIPS_MODEL2 = 0x3200,
+  TV_PHILIPS_7102   = 0x3100, 
+  TV_PHILIPS_7103   = 0x3101,
+  TV_PHILIPS_7108   = 0x3102, 
+  TV_PHILIPS_7109   = 0x3103,
+  TV_PHILIPS_7104   = 0x3200,
+  TV_PHILIPS_7105   = 0x3201,
+  TV_PHILIPS_7108A  = 0x3202, 
+  TV_PHILIPS_7109A  = 0x3203,
 } TVChip;
 
-#define TV_PHILIPS_MODEL	0x00f0
-#define TV_PHILIPS_MODEL1	0x0010
-#define TV_PHILIPS_MODEL2	0x0020
-
+#define TV_COMPANY 0xf000  /* mask for company encoder type */
 #define TV_ENCODER 0xff00  /* mask for principal encoder type */
 
 /* -------- Host interface flags, all chips -------- */
@@ -313,10 +312,13 @@ typedef struct {
 
 #define CH_FLAG_DAC		1:0
 #define CH_FLAG_DAC_MASK	3
+#define CH_FLAG_DAC_PD0		(1 << 0)
+#define CH_FLAG_DAC_PD1		(1 << 1)
 #define CH_FLAG_FBAS		2
 #define CH_FLAG_SVHS		0
 #define CH_FLAG_BOTH		3
 
+#define CH_FLAG_POUTP		(1 << 3)
 #define CH_FLAG_ACIV		(1 << 4)
 #define CH_FLAG_CFRB		(1 << 5)
 #define CH_FLAG_CVBW		(1 << 6)
@@ -362,15 +364,19 @@ typedef struct {
 #define PH_FLAG1_SCBW		(1 << 2)
 #define PH_FLAG1_YGS		(1 << 4)
 #define PH_FLAG1_YFIL		(1 << 8)
-#define PH_FLAG1_EDGE		(1 << 9)
 
 #define PH_FLAG1_MASK		(PH_FLAG1_FISE | PH_FLAG1_PAL | \
 				 PH_FLAG1_SCBW | PH_FLAG1_YGS)
 
+#define PH_FLAG2_CVBSEN2	(1 << 1) /* Model2 only */
 #define PH_FLAG2_CEN		(1 << 4)
 #define PH_FLAG2_CVBSEN0	(1 << 5)
 #define PH_FLAG2_CVBSEN1	(1 << 6)
 #define PH_FLAG2_VBSEN		(1 << 7)
+
+#define PH_FLAG2_MASK		(PH_FLAG2_CEN     | PH_FLAG2_CVBSEN0 | \
+				 PH_FLAG2_CVBSEN1 | PH_FLAG2_CVBSEN2 | \
+				 PH_FLAG2_VBSEN)
 
 #define PH_FLAG2_NORMAL		(PH_FLAG2_CEN | PH_FLAG2_CVBSEN0 | \
 				 PH_FLAG2_VBSEN)
@@ -379,8 +385,6 @@ typedef struct {
 #define PH_FLAG2_FBAS		PH_FLAG2_NORMAL
 #define PH_FLAG2_SVHS		PH_FLAG2_NORMAL
 #define PH_FLAG2_BOTH		PH_FLAG2_NORMAL
-
-#define PH_FLAG3_DOUBLE		(1 << 0)
 
 typedef struct {
   int adwhs;  /* time */
@@ -421,7 +425,22 @@ typedef struct {
   int flags2;  
   int flags3;
   int macro;   
-} TVPhRegs;
+} TVPh1Regs;
+
+#define PH_FLAG3_XINT		(1 << 0) /* interpol. filter for upscaling */
+#define PH_FLAG3_IFBP		(1 << 4) /* (for high pixel rates) */
+#define PH_FLAG3_IFRA		(1 << 5)
+#define PH_FLAG3_YUPSC		(1 << 6) /* y upscaling enabled */
+#define PH_FLAG3_EIDIV		(1 << 7)
+
+typedef struct {
+  TVPh1Regs super; /* watch alignment? */
+  int yfil;
+  int fili;
+  int pcle;
+  int pcli;
+  int flags3;
+} TVPh2Regs;
 
 /* -------- CRT -------- */
 
@@ -563,7 +582,8 @@ typedef union {
   TVBtRegs bt;
   TVCxRegs cx;
   TVChRegs ch;
-  TVPhRegs ph;
+  TVPh1Regs ph1;
+  TVPh2Regs ph2;
 } TVEncoderRegs;
 
 typedef union {

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: back_client.c,v 1.2 2003/02/05 00:14:02 miguelfreitas Exp $
+ * $Id: back_client.c,v 1.3 2003/05/04 01:35:05 hadess Exp $
  *
  * Contents:
  *
@@ -24,6 +24,9 @@
  *
  */
 
+#include "local.h" /* before everything else */
+
+#include <stdlib.h> /* for free */
 #include <string.h>
 
 #ifdef HAVE_UNISTD_H
@@ -33,11 +36,8 @@
 #include <sys/stat.h>
 #endif
 
-
 #include <fcntl.h>
 
-#include "debug.h"
-#include "error.h"
 #include "backend.h"
 #include "back_client.h"
 #include "pipe.h"
@@ -49,6 +49,51 @@ static FILE *pipe_out = NULL;
 
 static CardPtr bcl_root = NULL;
 static CardPtr bcl_card = NULL;
+
+/* -------- String pool -------- */
+
+/*
+ * Add string to pool, and free original if already in pool.
+ */
+
+static int pool_size = 0;
+static char** pool_list = NULL;
+
+char* pool_addFree (char *s)
+{
+  int l, r, i;
+
+  DPRINTF ("pool %s ", s);
+  if (!s) return NULL;
+  l = 0; r = pool_size-1;
+  while (l <= r) {
+    register int c;
+
+    i = (l + r) / 2;
+    c = strcmp (s, pool_list[i]);
+    if (c < 0) r = i-1; else 
+    if (c > 0) l = i+1; else
+    {
+      DPRINTF ("found\n"); 
+      xfree (s); 
+      return pool_list [i];
+    }
+  }
+  /* Must insert between r and l */
+  if (r < 0) r = 0; /* sanitize for DPRINTF */
+  if (pool_list && r >= 0) DPRINTF (" %i=%s ", r, pool_list[r]);
+  DPRINTF ("*");
+  if (pool_list && l < pool_size) DPRINTF (" %i=%s ", l, pool_list[l]);
+  DPRINTF ("\n");
+  pool_size++;
+  pool_list = xrealloc (pool_list, pool_size * sizeof (char *));
+  i = l+1;
+  if (pool_size > 1) {
+    memmove (pool_list+i, pool_list+l, (pool_size-i) * sizeof(char *));
+  }
+  pool_list[l] = s;
+  return s;
+}
 
 /* -------- Driver routines -------- */
 
@@ -226,9 +271,27 @@ TVConnect bcl_getConnection (void)
   return c;
 }
 
-/* Attention! The 'size' and 'aspect' strings returned mode.spec are 
-   allocated, and should be freed when not needed anymore.
-*/
+int bcl_listModes (TVSystem system, TVMode *(list[]))
+{
+  TVMode *m, *r;
+  int n, i, c;
+
+  DPRINTF ("bcl_listModes %i\n", system);
+  pipeWriteCmd (pipe_out, PCmd_ListModes);
+  pipeWriteArgs (pipe_out, 1, sizeof(system), &system);
+  pipeReadCmd (pipe_in);
+  pipeReadArray (pipe_in, &c);
+  m = r = xcalloc (sizeof (TVMode), c);
+  *list = r;  
+  for (i = 1; i <= c; i++, m++) {
+    n = pipeReadArgs (pipe_in, 3, sizeof(TVMode), m, 
+		      0, &m->spec.size, 0, &m->spec.aspect); 
+    /* assert n == 3 */
+    m->spec.size   = pool_addFree (m->spec.size);
+    m->spec.aspect = pool_addFree (m->spec.aspect);
+  }
+  return c;
+}
 
 Bool bcl_findBySize (TVSystem system, int xres, int yres, char *size, 
     TVMode *mode)
@@ -244,6 +307,8 @@ Bool bcl_findBySize (TVSystem system, int xres, int yres, char *size,
   mode->spec.size = mode->spec.aspect = NULL;
   n = pipeReadArgs (pipe_in, 3, sizeof(TVMode), mode, 
 		    0, &mode->spec.size, 0, &mode->spec.aspect); 
+  mode->spec.size   = pool_addFree (mode->spec.size);
+  mode->spec.aspect = pool_addFree (mode->spec.aspect);
   return (n >= 3);
 }
 
@@ -261,6 +326,8 @@ Bool bcl_findByOverscan (TVSystem system, int xres, int yres,
   mode->spec.size = mode->spec.aspect = NULL;
   n = pipeReadArgs (pipe_in, 3, sizeof(TVMode), mode, 
 		    0, &mode->spec.size, 0, &mode->spec.aspect); 
+  mode->spec.size   = pool_addFree (mode->spec.size);
+  mode->spec.aspect = pool_addFree (mode->spec.aspect);
   return (n >= 3);
 }
 
@@ -366,6 +433,7 @@ BackCardRec bcl_card_func = {
   setTestImage:          bcl_setTestImage, 
   getStatus:             bcl_getStatus,    
   getConnection:         bcl_getConnection,
+  listModes:		 bcl_listModes,
   findBySize:            bcl_findBySize, 
   findByOverscan:        bcl_findByOverscan,
   initSharedView:        bcl_initSharedView,

@@ -279,7 +279,7 @@ dnl ---------------------------------------------
 dnl tvmode support using nvtv
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV  [default=no]], enable_nvtv="$enableval", enable_nvtv=no)
+AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV  [default=yes]], enable_nvtv="$enableval", enable_nvtv=yes)
 
 AC_MSG_CHECKING(for nvtv support)
 

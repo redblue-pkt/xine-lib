@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.12 2003/02/05 00:14:02 miguelfreitas Exp $
+ * $Id: tvmode.c,v 1.13 2003/05/04 01:35:05 hadess Exp $
  *
  * tvmode - TV output selection
  *
@@ -71,11 +71,22 @@ static TVConnect opt_connect = CONNECT_NONE;
  * if select_origsize == true:
  *   The first available mode is selected (stick to tv resolution) */
 static int scan_mode_pal[][2] = {
-    { 768, 576 }, { 800, 576 }, { 720, 576 },
+    { 768, 576 }, 
+    { 720, 576 },
+    { 800, 576 }, 
     { 800, 600 },
-    { 720, 480 }, { 640, 480 },
+    { 720, 480 }, 
     { 800, 450 },
     { 1024, 768 },
+    { 640, 480 },
+    { 0 }
+} ;
+
+static int scan_mode_ntsc[][2] = {
+    { 720, 480 }, 
+    { 800, 600 },
+    { 1024, 768 },
+    { 640, 480 }, 
     { 0 }
 } ;
 
@@ -87,13 +98,9 @@ static char *scan_overscan[] = {
 /* TODO: flexible */
 static double opt_aspect  = 4.0 / 3.0;
 
-/* Just turn off warnings */
-static void  _tvmode_init(xine_t *this);
-void xine_tvmode_exit (xine_t *this);
 
 /*
  * Config callback for tvmode enability.
- */
 static void nvtvmode_enable_cb(void *this_gen, xine_cfg_entry_t *entry) {
   xine_t *this = (xine_t *) this_gen;
 
@@ -104,6 +111,7 @@ static void nvtvmode_enable_cb(void *this_gen, xine_cfg_entry_t *entry) {
     was_enabled = 0;
   }
 }
+ */
 
 
 
@@ -183,26 +191,34 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
  /*   TVRegs     tv; */
     int        found = 0;
     int        *scanm;
+    int        tmp_fps;
     char       **scano;
   
     
     /* TODO: do that at initialization and save possible combinations */
     /* Find supported TV mode */
-    for (scanm = &scan_mode_pal[0][0]; *scanm && ! found; scanm += 2) {
-	for (scano = scan_overscan; *scano && ! found; scano++) {
-            fprintf(stderr,"tvmode: trying to use %dx%d %s\n",
-		     scanm[0], scanm[1], *scano);
+    if (opt_system == TV_SYSTEM_NTSC) {
+        scanm = &scan_mode_ntsc[0][0];
+        tmp_fps = 29.97;
+    } else {
+        scanm = &scan_mode_pal[0][0];
+        tmp_fps = 25;
+    }
+    
+    for (; *scanm && ! found; scanm += 2) {
 
-	    if (back_card->findBySize (opt_system, scanm[0], scanm[1], *scano,
-                        &mode)) {
-		current_width  = scanm[0];
-		current_height = scanm[1];
-                current_fps    = 25;	
+        if ((width <= scanm[0]) && (height <= scanm[1]) &&
+                (back_card->findByOverscan (opt_system, scanm[0], scanm[1], 0.1,0.1, &mode))) {
+            current_width  = mode.spec.res_x;
+            current_height = mode.spec.res_y;
+            current_fps = tmp_fps;
                 found++;
 	    }
 	}
+/*
     }
-  
+    }
+*/
     /* Switch to mode */
     if (found) {
         back_card->getSettings (&settings);
@@ -238,7 +254,7 @@ int xine_tvmode_switch (xine_t *this, int type, int width, int height, double fp
      * Wasn't initialized
      */
       if(!was_enabled) {
-      _tvmode_init(this);
+          xine_tvmode_init(this);
       }
     if (back_card) {
           fprintf(stderr, "tvmode: switching to %s\n", type ? "TV" : "default");
@@ -286,16 +302,44 @@ void xine_tvmode_size (xine_t *this, int *width, int *height,
   }
 }
 
-/* Connect to nvtvd server if possible and  fetch settings */
-static void  _tvmode_init(xine_t *this) {
-  if(tvmode_enabled) {
-    tvmode_connect (this);
-    if (back_card)
-      tvmode_savestate (this);
-  } else {
-      printf("tvmode: not enabled\n");
+/* Connect to nvtvd server if possible and store settings */
+int  xine_tvmode_init(xine_t *self) {
+   
+    tvmode_connect (self);
+    if (back_card) {
+        tvmode_savestate (self);
+        return 1;
   }
+
+    return 0;
 }
+
+int xine_tvmode_use(xine_t *self, int use_tvmode) {
+    
+    tvmode_enabled = 0;
+    if (use_tvmode) {
+        if (was_enabled || xine_tvmode_init(self)) {
+            tvmode_enabled = 1;
+        } 
+    }
+
+    return (tvmode_enabled);
+}
+
+void xine_tvmode_set_tvsystem(xine_t *self, xine_tvsystem system) {
+    
+    switch (system) {
+        case XINE_TVSYSTEM_PAL:
+            opt_system  = TV_SYSTEM_PAL;
+            break;
+        case XINE_TVSYSTEM_NTSC:
+            opt_system  = TV_SYSTEM_NTSC;
+            break;
+        default:
+            opt_system  = TV_SYSTEM_PAL;
+    }
+}
+/*
 void xine_tvmode_init (xine_t *this) {
   
   printf("tvmode: Initializing tvmode\n");
@@ -303,6 +347,7 @@ void xine_tvmode_init (xine_t *this) {
   
   _tvmode_init(this);
 }
+*/
 
 /* Restore old CRT and TV registers and close nvtvd connection */
 void xine_tvmode_exit (xine_t *this) {
@@ -328,10 +373,17 @@ void xine_tvmode_size (xine_t *this, int *width, int *height,
 		       double *pixelratio, double *fps) {
 }
 
-void xine_tvmode_init (xine_t *this) {
+int xine_tvmode_init (xine_t *this) {
+    return 0;
 }
 
 void xine_tvmode_exit (xine_t *this) {
 }
 
+void xine_tvmode_set_tvsystem(xine_t *self, xine_tvsystem system) {
+}
+
+int xine_tvmode_use(xine_t *self, int use_tvmode) {
+    return 0;
+}
 #endif

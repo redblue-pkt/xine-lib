@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: error.h,v 1.1 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: error.h,v 1.2 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: backend.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: backend.h,v 1.3 2003/05/04 01:35:06 hadess Exp $
  *
  * Contents:
  *
@@ -33,7 +33,7 @@
 #include "tv_common.h"
 #endif
 
-#include "local.h" /* for Bool, after xfree.h */
+#include "local.h" /* for Bool */
 
 /* WARNING! The first entry of the two following data structures MUST be
    the 'next' field, and the second entry MUST be a string. If they are not,
@@ -84,6 +84,11 @@ typedef struct {
 #endif
 } BackAccessRec, *BackAccessPtr;
 
+/* 
+ * listModes: Allocate a list of modes matching system, and return
+ *   size of list. System may be TV_SYSTEM_NONE to match all systems.
+ */
+
 typedef struct {
   void (*openCard) (CardPtr card);
   void (*closeCard) (void);
@@ -104,6 +109,7 @@ typedef struct {
   void (*setTestImage) (TVEncoderRegs *tv, TVSettings *set);
   long (*getStatus) (int index);
   TVConnect (*getConnection) (void);
+  int (*listModes) (TVSystem system, TVMode *(modes[]));
   Bool (*findBySize) (TVSystem system, int xres, int yres, char *size, 
     TVMode *mode);
   Bool (*findByOverscan) (TVSystem system, int xres, int yres, 

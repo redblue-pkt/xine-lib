@@ -1,5 +1,6 @@
 xine-lib (1-beta12)
   * playback of theorastreams added
+  * updated nvtv support, and bug fixes
 
 xine-lib (1-beta11)
   * fix bugs in selecting ogm subtitles
