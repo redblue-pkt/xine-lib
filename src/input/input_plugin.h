@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.7 2001/06/02 21:44:01 guenter Exp $
+ * $Id: input_plugin.h,v 1.8 2001/07/01 23:37:04 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -28,7 +28,7 @@
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   1
+#define INPUT_PLUGIN_IFACE_VERSION   2
  
 #ifndef CLUT_T
 #define CLUT_T
@@ -182,6 +182,19 @@ struct input_plugin_s
    */
   int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
 
+  /*
+   * deliver an input event (mouse press/move, keypress)
+   * optional: may be NULL
+   */
+  void (*handle_input_event) (input_plugin_t *this, int event_type, int key,
+			      int x, int y);
+
+  /*
+   * check if it is possible/valid to directly branch to this MRL
+   * optional: may be NULL
+   */
+  
+  int (*is_branch_possible) (input_plugin_t *this, char *next_mrl);
 };
 
 /*
@@ -203,4 +216,9 @@ struct input_plugin_s
 #define INPUT_OPTIONAL_DATA_CLUT      1
 #define INPUT_OPTIONAL_DATA_AUDIOLANG 2
 
+#define INPUT_EVENT_MOUSEBUTTON 1
+#define INPUT_EVENT_KEYPRESS    2
+#define INPUT_EVENT_MOUSEMOVE   3
+
 #endif
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.6 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.7 2001/07/01 23:37:04 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -249,43 +249,41 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 
-  switch (iface) {
-  case 1:
-    this = (stdin_input_plugin_t *) malloc (sizeof (stdin_input_plugin_t));
-
-    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
-    this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
-    this->input_plugin.open              = stdin_plugin_open;
-    this->input_plugin.read              = stdin_plugin_read;
-    this->input_plugin.read_block        = stdin_plugin_read_block;
-    this->input_plugin.seek              = NULL;
-    this->input_plugin.get_current_pos   = stdin_plugin_get_current_pos;
-    this->input_plugin.get_length        = stdin_plugin_get_length;
-    this->input_plugin.get_blocksize     = stdin_plugin_get_blocksize;
-    this->input_plugin.get_dir           = NULL;
-    this->input_plugin.eject_media       = stdin_plugin_eject_media;
-    this->input_plugin.get_mrl           = stdin_plugin_get_mrl;
-    this->input_plugin.close             = stdin_plugin_close;
-    this->input_plugin.get_description   = stdin_plugin_get_description;
-    this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
-    this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
-
-    this->fh      = -1;
-    this->mrl     = NULL;
-    this->config  = config;
-    this->curpos  = 0;
-
-    return (input_plugin_t *) this;
-    break;
-  default:
-    fprintf(stderr,
-	    "Stdin input plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this input"
-	    "plugin.\nInstalling current input plugins should help.\n",
-	    iface);
+  if (iface != 2) {
+    printf("rtp input plugin doesn't support plugin API version %d.\n"
+	   "PLUGIN DISABLED.\n"
+	   "This means there's a version mismatch between xine and this input"
+	   "plugin.\nInstalling current input plugins should help.\n",
+	   iface);
     return NULL;
   }
+
+  this = (stdin_input_plugin_t *) malloc (sizeof (stdin_input_plugin_t));
+  
+  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+  this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
+  this->input_plugin.open              = stdin_plugin_open;
+  this->input_plugin.read              = stdin_plugin_read;
+  this->input_plugin.read_block        = stdin_plugin_read_block;
+  this->input_plugin.seek              = NULL;
+  this->input_plugin.get_current_pos   = stdin_plugin_get_current_pos;
+  this->input_plugin.get_length        = stdin_plugin_get_length;
+  this->input_plugin.get_blocksize     = stdin_plugin_get_blocksize;
+  this->input_plugin.get_dir           = NULL;
+  this->input_plugin.eject_media       = stdin_plugin_eject_media;
+  this->input_plugin.get_mrl           = stdin_plugin_get_mrl;
+  this->input_plugin.close             = stdin_plugin_close;
+  this->input_plugin.get_description   = stdin_plugin_get_description;
+  this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
+  this->input_plugin.get_autoplay_list = NULL;
+  this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
+  this->input_plugin.handle_input_event= NULL;
+  this->input_plugin.is_branch_possible= NULL;
+
+  this->fh      = -1;
+  this->mrl     = NULL;
+  this->config  = config;
+  this->curpos  = 0;
+  
+  return (input_plugin_t *) this;
 }
-/* ------------------------------------------------------------------------- */

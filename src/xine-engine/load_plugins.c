@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.26 2001/06/23 14:05:47 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.27 2001/07/01 23:37:05 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -99,12 +99,14 @@ void load_demux_plugins (xine_t *this,
 	    demux_plugin_t *dxp;
 	      
 	    dxp = (demux_plugin_t *) initplug(iface_version, config);
-	    this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
+	    if (dxp) {
+	      this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
 	    
-	    printf("load_plugins: demux plugin found : %s\n", 
-		   this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
+	      printf("load_plugins: demux plugin found : %s\n", 
+		     this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
 
-	    this->num_demuxer_plugins++;
+	      this->num_demuxer_plugins++;
+	    }
 	  }
 	  
 	  if(this->num_demuxer_plugins > DEMUXER_PLUGIN_MAX) {
@@ -173,12 +175,14 @@ void load_input_plugins (xine_t *this,
 	    input_plugin_t *ip;
 	      
 	    ip = (input_plugin_t *) initplug(iface_version, config);
-	    this->input_plugins[this->num_input_plugins] = ip; 
+	    if (ip) {
+	      this->input_plugins[this->num_input_plugins] = ip; 
 	    
-	    printf("load_plugins: input plugin found : %s\n", 
-		   this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
+	      printf("load_plugins: input plugin found : %s\n", 
+		     this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
 
-	    this->num_input_plugins++;
+	      this->num_input_plugins++;
+	    }
 	  } else {
 	    printf ("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n", str);
 	  }

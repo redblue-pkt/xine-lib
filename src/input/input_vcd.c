@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.11 2001/06/23 14:05:47 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.12 2001/07/01 23:37:04 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1031,58 +1031,56 @@ static int vcd_plugin_get_optional_data (input_plugin_t *this_gen,
  *
  */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+
   vcd_input_plugin_t *this;
+  int i;
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
-  switch (iface) {
-  case 1: {
-    int i;
-    
-    this = (vcd_input_plugin_t *) calloc (1, sizeof (vcd_input_plugin_t));
-
-    for (i = 0; i < 100; i++) {
-      this->filelist[i]       = (char *) malloc (256);
-      this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
-      this->mrls[i]->mrl      = (char *) malloc (256);
-      this->mrls[i]->size     = 0;
-    }
-
-    this->mrls_allocated_entries = 100;
-
-    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
-    this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
-    this->input_plugin.open              = vcd_plugin_open;
-    this->input_plugin.read              = vcd_plugin_read;
-    this->input_plugin.read_block        = vcd_plugin_read_block;
-    this->input_plugin.seek              = vcd_plugin_seek;
-    this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
-    this->input_plugin.get_length        = vcd_plugin_get_length;
-    this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
-    this->input_plugin.eject_media       = vcd_plugin_eject_media;
-    this->input_plugin.close             = vcd_plugin_close;
-    this->input_plugin.get_identifier    = vcd_plugin_get_identifier;
-    this->input_plugin.get_description   = vcd_plugin_get_description;
-    this->input_plugin.get_dir           = vcd_plugin_get_dir;
-    this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
-    this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
-    this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
-
-    this->fd      = -1;
-    this->mrl     = NULL;
-    this->config  = config;
-    
-    return (input_plugin_t *) this;
-  }
-    break;
-  default:
-    fprintf(stderr,
-	    "Dvd input plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this input"
-	    "plugin.\nInstalling current input plugins should help.\n",
-	    iface);
+  if (iface != 2) {
+    printf("vcd input plugin doesn't support plugin API version %d.\n"
+	   "PLUGIN DISABLED.\n"
+	   "This means there's a version mismatch between xine and this input"
+	   "plugin.\nInstalling current input plugins should help.\n",
+	   iface);
     return NULL;
   }
-}
 
+    
+  this = (vcd_input_plugin_t *) calloc (1, sizeof (vcd_input_plugin_t));
+  
+  for (i = 0; i < 100; i++) {
+    this->filelist[i]       = (char *) malloc (256);
+    this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
+    this->mrls[i]->mrl      = (char *) malloc (256);
+    this->mrls[i]->size     = 0;
+  }
+  
+  this->mrls_allocated_entries = 100;
+  
+  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+  this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
+  this->input_plugin.open              = vcd_plugin_open;
+  this->input_plugin.read              = vcd_plugin_read;
+  this->input_plugin.read_block        = vcd_plugin_read_block;
+  this->input_plugin.seek              = vcd_plugin_seek;
+  this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
+  this->input_plugin.get_length        = vcd_plugin_get_length;
+  this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
+  this->input_plugin.eject_media       = vcd_plugin_eject_media;
+  this->input_plugin.close             = vcd_plugin_close;
+  this->input_plugin.get_identifier    = vcd_plugin_get_identifier;
+  this->input_plugin.get_description   = vcd_plugin_get_description;
+  this->input_plugin.get_dir           = vcd_plugin_get_dir;
+  this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
+  this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
+  this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
+  this->input_plugin.handle_input_event= NULL;
+  this->input_plugin.is_branch_possible= NULL;
+  
+  this->fd      = -1;
+  this->mrl     = NULL;
+  this->config  = config;
+  
+  return (input_plugin_t *) this;
+}

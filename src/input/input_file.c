@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.14 2001/06/23 20:47:29 f1rmb Exp $
+ * $Id: input_file.c,v 1.15 2001/07/01 23:37:04 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -395,46 +395,43 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
 
-  switch (iface) {
-  case 1:
-    this = (file_input_plugin_t *) malloc (sizeof (file_input_plugin_t));
-
-    this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
-    this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
-    this->input_plugin.open               = file_plugin_open;
-    this->input_plugin.read               = file_plugin_read;
-    this->input_plugin.read_block         = file_plugin_read_block;
-    this->input_plugin.seek               = file_plugin_seek;
-    this->input_plugin.get_current_pos    = file_plugin_get_current_pos;
-    this->input_plugin.get_length         = file_plugin_get_length;
-    this->input_plugin.get_blocksize      = file_plugin_get_blocksize;
-    this->input_plugin.get_dir            = file_plugin_get_dir;
-    this->input_plugin.eject_media        = file_plugin_eject_media;
-    this->input_plugin.get_mrl            = file_plugin_get_mrl;
-    this->input_plugin.close              = file_plugin_close;
-    this->input_plugin.get_description    = file_plugin_get_description;
-    this->input_plugin.get_identifier     = file_plugin_get_identifier;
-    this->input_plugin.get_autoplay_list  = NULL;
-    this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
-
-    this->fh                     = -1;
-    this->mrl                    = NULL;
-    this->config                 = config;
-
-    this->mrls = (mrl_t **) malloc(sizeof(mrl_t));
-    this->mrls_allocated_entries = 0;
-
-    return (input_plugin_t *) this;
-    break;
-  default:
-    fprintf(stderr,
-	    "File input plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this input"
-	    "plugin.\nInstalling current input plugins should help.\n",
-	    iface);
+  if (iface != 2) {
+    printf("file input plugin doesn't support plugin API version %d.\n"
+	   "PLUGIN DISABLED.\n"
+	   "This means there's a version mismatch between xine and this input"
+	   "plugin.\nInstalling current input plugins should help.\n",
+	   iface);
     return NULL;
   }
+
+  this = (file_input_plugin_t *) malloc (sizeof (file_input_plugin_t));
+  
+  this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
+  this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
+  this->input_plugin.open               = file_plugin_open;
+  this->input_plugin.read               = file_plugin_read;
+  this->input_plugin.read_block         = file_plugin_read_block;
+  this->input_plugin.seek               = file_plugin_seek;
+  this->input_plugin.get_current_pos    = file_plugin_get_current_pos;
+  this->input_plugin.get_length         = file_plugin_get_length;
+  this->input_plugin.get_blocksize      = file_plugin_get_blocksize;
+  this->input_plugin.get_dir            = file_plugin_get_dir;
+  this->input_plugin.eject_media        = file_plugin_eject_media;
+  this->input_plugin.get_mrl            = file_plugin_get_mrl;
+  this->input_plugin.close              = file_plugin_close;
+  this->input_plugin.get_description    = file_plugin_get_description;
+  this->input_plugin.get_identifier     = file_plugin_get_identifier;
+  this->input_plugin.get_autoplay_list  = NULL;
+  this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
+  this->input_plugin.handle_input_event= NULL;
+  this->input_plugin.is_branch_possible= NULL;
+
+  this->fh                     = -1;
+  this->mrl                    = NULL;
+  this->config                 = config;
+  
+  this->mrls = (mrl_t **) malloc(sizeof(mrl_t));
+  this->mrls_allocated_entries = 0;
+  
+  return (input_plugin_t *) this;
 }
-
-

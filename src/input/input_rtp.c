@@ -444,63 +444,62 @@ static int rtp_plugin_get_optional_data (input_plugin_t *this_gen,
  *
  */
 input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+
   rtp_input_plugin_t *this;
+  int bufn;
 
   xine_debug = config->lookup_int (config, "xine_debug", 0);
   
-  switch (iface) {
-  case 1: {
-    int bufn;
-    
-    this = (rtp_input_plugin_t *) malloc (sizeof (rtp_input_plugin_t));
-
-    for (bufn = 0; bufn < N_BUFFERS; bufn++) {
-	input_buffer_t *buf = malloc(sizeof(input_buffer_t));
-	if (!buf) {
-	    fprintf(stderr, "unable to allocate input buffer.\n");
-	    exit(1);
-	}
-	buf->buf = malloc(IBUFFER_SIZE);
-	if (!buf->buf) {
-	    fprintf(stderr, "unable to allocate input buffer.\n");
-	    exit(1);
-	}
-	buf->next = this->free_buffers;
-	this->free_buffers = buf;
-    }
-    
-    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
-    this->input_plugin.get_capabilities  = rtp_plugin_get_capabilities;
-    this->input_plugin.open              = rtp_plugin_open;
-    this->input_plugin.read              = rtp_plugin_read;
-    this->input_plugin.read_block        = NULL;
-    this->input_plugin.seek              = NULL;
-    this->input_plugin.get_current_pos   = rtp_plugin_get_current_pos;
-    this->input_plugin.get_length        = rtp_plugin_get_length;
-    this->input_plugin.get_blocksize     = rtp_plugin_get_blocksize;
-    this->input_plugin.eject_media       = rtp_plugin_eject_media;
-    this->input_plugin.close             = rtp_plugin_close;
-    this->input_plugin.get_identifier    = rtp_plugin_get_identifier;
-    this->input_plugin.get_description   = rtp_plugin_get_description;
-    this->input_plugin.get_dir           = NULL;
-    this->input_plugin.get_mrl           = rtp_plugin_get_mrl;
-    this->input_plugin.get_autoplay_list = NULL;
-    this->input_plugin.get_optional_data = rtp_plugin_get_optional_data;
-
-    this->fh      = -1;
-    this->mrl     = NULL;
-    this->config  = config;
-    
-    return (input_plugin_t *) this;
-  }
-    break;
-  default:
-    fprintf(stderr,
-	    "Rtp input plugin doesn't support plugin API version %d.\n"
-	    "PLUGIN DISABLED.\n"
-	    "This means there's a version mismatch between xine and this input"
-	    "plugin.\nInstalling current input plugins should help.\n",
-	    iface);
+  if (iface != 2) {
+    printf("rtp input plugin doesn't support plugin API version %d.\n"
+	   "PLUGIN DISABLED.\n"
+	   "This means there's a version mismatch between xine and this input"
+	   "plugin.\nInstalling current input plugins should help.\n",
+	   iface);
     return NULL;
   }
+
+    
+  this = (rtp_input_plugin_t *) malloc (sizeof (rtp_input_plugin_t));
+  
+  for (bufn = 0; bufn < N_BUFFERS; bufn++) {
+    input_buffer_t *buf = malloc(sizeof(input_buffer_t));
+    if (!buf) {
+      fprintf(stderr, "unable to allocate input buffer.\n");
+      exit(1);
+    }
+    buf->buf = malloc(IBUFFER_SIZE);
+    if (!buf->buf) {
+      fprintf(stderr, "unable to allocate input buffer.\n");
+      exit(1);
+    }
+    buf->next = this->free_buffers;
+    this->free_buffers = buf;
+  }
+  
+  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+  this->input_plugin.get_capabilities  = rtp_plugin_get_capabilities;
+  this->input_plugin.open              = rtp_plugin_open;
+  this->input_plugin.read              = rtp_plugin_read;
+  this->input_plugin.read_block        = NULL;
+  this->input_plugin.seek              = NULL;
+  this->input_plugin.get_current_pos   = rtp_plugin_get_current_pos;
+  this->input_plugin.get_length        = rtp_plugin_get_length;
+  this->input_plugin.get_blocksize     = rtp_plugin_get_blocksize;
+  this->input_plugin.eject_media       = rtp_plugin_eject_media;
+  this->input_plugin.close             = rtp_plugin_close;
+  this->input_plugin.get_identifier    = rtp_plugin_get_identifier;
+  this->input_plugin.get_description   = rtp_plugin_get_description;
+  this->input_plugin.get_dir           = NULL;
+  this->input_plugin.get_mrl           = rtp_plugin_get_mrl;
+  this->input_plugin.get_autoplay_list = NULL;
+  this->input_plugin.get_optional_data = rtp_plugin_get_optional_data;
+  this->input_plugin.handle_input_event= NULL;
+  this->input_plugin.is_branch_possible= NULL;
+  
+  this->fh      = -1;
+  this->mrl     = NULL;
+  this->config  = config;
+    
+  return (input_plugin_t *) this;
 }
