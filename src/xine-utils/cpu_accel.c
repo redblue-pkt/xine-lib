@@ -30,7 +30,7 @@
 #include "xineutils.h"
 
 #ifdef ARCH_X86
-static uint32_t x86_accel (void)
+static uint32_t arch_accel (void)
 {
   uint32_t eax, ebx, ecx, edx;
   int AMD;
@@ -108,8 +108,6 @@ static uint32_t x86_accel (void)
 
   return caps;
 }
-#endif
-
 
 static jmp_buf sigill_return;
 
@@ -117,14 +115,51 @@ static void sigill_handler (int n) {
   printf ("cpu_accel: OS doesn't support SSE instructions.\n");
   longjmp(sigill_return, 1);
 }
+#endif /* ARCH_X86 */
+
+#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
+static sigjmp_buf jmpbuf;
+static volatile sig_atomic_t canjump = 0;
+
+static void sigill_handler (int sig)
+{
+    if (!canjump) {
+	signal (sig, SIG_DFL);
+	raise (sig);
+    }
+
+    canjump = 0;
+    siglongjmp (jmpbuf, 1);
+}
+
+static uint32_t arch_accel (void)
+{
+    signal (SIGILL, sigill_handler);
+    if (sigsetjmp (jmpbuf, 1)) {
+	signal (SIGILL, SIG_DFL);
+	return 0;
+    }
+
+    canjump = 1;
+
+    asm volatile ("mtspr 256, %0\n\t"
+		  "vand %%v0, %%v0, %%v0"
+		  :
+		  : "r" (-1));
+
+    signal (SIGILL, SIG_DFL);
+    return MM_ACCEL_PPC_ALTIVEC;
+}
+#endif /* ARCH_PPC */
 
 uint32_t xine_mm_accel (void)
 {
-#ifdef ARCH_X86
+#if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
   static uint32_t accel;
 
-  accel = x86_accel ();
+  accel = arch_accel ();
 
+#ifdef ARCH_X86
   /* test OS support for SSE */
   if( accel & MM_ACCEL_X86_SSE ) {
     if (setjmp(sigill_return)) {
@@ -135,17 +170,16 @@ uint32_t xine_mm_accel (void)
       signal (SIGILL, SIG_DFL);
     }
   }
+#endif /* ARCH_X86 */
 
   return accel;
-#endif
+
+#else /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
 #ifdef HAVE_MLIB
   return MM_ACCEL_MLIB;
-#endif
-#ifdef ARCH_PPC
-#ifdef ENABLE_ALTIVEC
-  return MM_ACCEL_PPC_ALTIVEC;
-#endif
-#endif
+#else
   return 0;
+#endif
+#endif /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
 }
 
