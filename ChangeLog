@@ -30,6 +30,9 @@ xine-lib (1-rc4)
   * fix Real pnm/rtsp streaming on big endian platforms
   * big endian fix, and delay fixes for the file (wave) audio output plugin
   * RTSP security fixes
+  * mmst big cleanup and fixes
+  * asf codec initialization fix
+  * engine improvement to handle unknown frame rate correctly
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
