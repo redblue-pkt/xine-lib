@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.63 2001/11/27 00:00:34 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.64 2001/11/28 16:13:07 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -910,7 +910,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     
     media = strstr(MRL, "://");
     if(media) {
-      if(!strncmp(MRL, "dvd", 3) || !strncmp(MRL, "d4d", 3)
+      if(!strncmp(MRL, "dvd", 3) || !strncmp(MRL, "d4d", 3) || !strncmp(MRL, "dmd", 3)
 	 || (((!strncmp(MRL, "stdin", 5) || !strncmp(MRL, "fifo", 4))
 	      && (!strncmp((media+3), "mpeg2", 5) ))) 
 	 ) {
