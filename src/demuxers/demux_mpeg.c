@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.117 2003/05/02 20:48:35 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.118 2003/05/05 20:34:24 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -280,13 +280,15 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       header_len -= 5 ;
     }
 
+    this->input->read (this->input, this->dummy_space, header_len);
+
     i = this->input->read (this->input, this->dummy_space, 1);
     track = this->dummy_space[0] & 0x0F ;
 
     /* DVD spu/subtitles */
     if((this->dummy_space[0] & 0xE0) == 0x20) {
 
-      buf = this->input->read_block (this->input, this->video_fifo, header_len+len-1);
+      buf = this->input->read_block (this->input, this->video_fifo, len-1);
 
       track = (this->dummy_space[0] & 0x1f);
 
@@ -301,11 +303,48 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       return;
     }
 
-    /* LPCM audio */
-    if((this->dummy_space[0] & 0xf0) == 0xa0) {
+    if((this->dummy_space[0] & 0xf0) == 0x80) {
+
+      /* read rest of header - AC3 */
+      i = this->input->read (this->input, this->dummy_space+1, 3);
+
+      /* contents */
+      for (i = len - 4; i > 0; i -= (this->audio_fifo)
+           ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
+        if(this->audio_fifo) {
+          buf = this->input->read_block (this->input, this->audio_fifo,
+            (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
+
+          if (buf == NULL) {
+            this->status = DEMUX_FINISHED;
+            return;
+          }
+
+          buf->type      = BUF_AUDIO_A52 + track;
+          buf->pts       = pts;
+          check_newpts( this, pts, PTS_AUDIO );
+          pts = 0;
+
+          if (this->preview_mode)
+            buf->decoder_flags = BUF_FLAG_PREVIEW;
+
+          buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+          if (this->rate)
+            buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos
+                                                  * 1000 / (this->rate * 50));
+
+          this->audio_fifo->put (this->audio_fifo, buf);
+
+        } else
+          this->input->read (this->input, this->dummy_space, i);
+
+      }
+      return;
+
+    } else if((this->dummy_space[0] & 0xf0) == 0xa0) {
       i = this->input->read (this->input, this->dummy_space+1, 6);
 
-      buf = this->input->read_block (this->input, this->video_fifo, header_len+len-7);
+      buf = this->input->read_block (this->input, this->video_fifo, len-7);
 
       buf->type      = BUF_AUDIO_LPCM_BE + track;
       buf->decoder_flags |= BUF_FLAG_SPECIAL;
@@ -321,41 +360,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
         buf->free_buffer(buf);
 
       return;
-    }
-    
-    /* read rest of header - assume AC3 */
-    i = this->input->read (this->input, this->dummy_space+1, header_len+3);
 
-    /* contents */
-    for (i = len - 4; i > 0; i -= (this->audio_fifo) 
-	   ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
-      if(this->audio_fifo) {
-	buf = this->input->read_block (this->input, this->audio_fifo,
-	  (i > this->audio_fifo->buffer_pool_buf_size) ? this->audio_fifo->buffer_pool_buf_size : i);
-
-	if (buf == NULL) {
-	  this->status = DEMUX_FINISHED;
-	  return;
-	}
-
-	buf->type      = BUF_AUDIO_A52 + track;
-	buf->pts       = pts;
-	check_newpts( this, pts, PTS_AUDIO );
-	pts = 0;
-
-	if (this->preview_mode)
-	  buf->decoder_flags = BUF_FLAG_PREVIEW;
-
-	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
-	if (this->rate)
-	  buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-					* 1000 / (this->rate * 50));
-
-	this->audio_fifo->put (this->audio_fifo, buf);
-
-      } else
-	this->input->read (this->input, this->dummy_space, i);
-
+    } else {
+      for (i = len-1; i > 0; i -= 10000)
+        this->input->read (this->input, this->dummy_space, (i > 10000) ? 10000 : i);
     }
 
   } else if ((stream_id & 0xe0) == 0xc0) {
