@@ -108,7 +108,7 @@ xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
 xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
 xineplug_inp_rtsp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_cdda_la_SOURCES = input_cdda.c media_helper.c
+xineplug_inp_cdda_la_SOURCES = input_cdda.c media_helper.c sha1.c sha1.h base64.c base64.h
 xineplug_inp_cdda_la_LIBADD = $(XINE_LIB)
 xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

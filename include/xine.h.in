@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.120 2004/04/15 00:14:56 hadess Exp $
+ * $Id: xine.h.in,v 1.121 2004/05/05 09:11:38 hadess Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -879,6 +879,7 @@ const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 #define XINE_META_INFO_AUDIOCODEC          7
 #define XINE_META_INFO_SYSTEMLAYER         8
 #define XINE_META_INFO_INPUT_PLUGIN        9
+#define XINE_META_INFO_CDINDEX_DISCID      10
 
 
 /*********************************************************************

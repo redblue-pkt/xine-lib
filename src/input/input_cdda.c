@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.52 2004/05/02 15:17:39 valtri Exp $
+ * $Id: input_cdda.c,v 1.53 2004/05/05 09:11:39 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -54,6 +54,7 @@
 #define LOG
 */
 
+#include "sha1.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -452,14 +453,20 @@ static int read_cdrom_toc(int fd, cdrom_toc *toc) {
     return -1;
   }
 
+#define XA_INTERVAL ((60 + 90 + 2) * CD_FRAMES)
+
   toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
   toc->leadout_track.first_frame_minute = tocentry.cdte_addr.msf.minute;
   toc->leadout_track.first_frame_second = tocentry.cdte_addr.msf.second;
   toc->leadout_track.first_frame_frame = tocentry.cdte_addr.msf.frame;
-  toc->leadout_track.first_frame =
-    (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
-    (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
-     tocentry.cdte_addr.msf.frame;
+  if (!ms.xa_flag) {
+    toc->leadout_track.first_frame =
+      (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+      (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
+       tocentry.cdte_addr.msf.frame;
+  } else {
+    toc->leadout_track.first_frame = ms.addr.lba - XA_INTERVAL + 150;
+  }
 
   return 0;
 }
@@ -1693,6 +1700,46 @@ static unsigned long _cdda_calc_cddb_id(cdda_input_plugin_t *this) {
 }
 
 /*
+ * Compute Musicbrainz CDIndex ID
+ */
+static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc *toc) {
+  char temp[10];
+  SHA_INFO sha;
+  unsigned char digest[33], *base64;
+  int i, size;
+
+  sha_init(&sha);
+
+  sprintf(temp, "%02X", toc->first_track);
+  sha_update(&sha, (unsigned char*) temp, strlen(temp));
+
+  sprintf(temp, "%02X", toc->last_track - toc->ignore_last_track);
+  sha_update(&sha, (unsigned char*) temp, strlen(temp));
+
+  sprintf (temp, "%08X", toc->leadout_track.first_frame);// + 150);
+  sha_update(&sha, (unsigned char*) temp, strlen(temp));
+
+  for (i = toc->first_track; i <= toc->last_track - toc->ignore_last_track; i++) {
+    sprintf(temp, "%08X", toc->toc_entries[i - 1].first_frame);
+    sha_update(&sha, (unsigned char*) temp, strlen(temp));
+  }
+
+  for (i = toc->last_track - toc->ignore_last_track + 1; i < 100; i++) {
+    sha_update(&sha, (unsigned char*) temp, strlen(temp));
+  }
+
+  sha_final(digest, &sha);
+
+  base64 = rfc822_binary(digest, 20, &size);
+  base64[size] = 0;
+
+  printf ("disc id: %s\n", base64);
+  //_x_meta_info_set(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
+
+  free (base64);
+}
+
+/*
  * return cbbd disc id.
  */
 static unsigned long _cdda_get_cddb_id(cdda_input_plugin_t *this) {
@@ -2137,7 +2184,9 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 
   /* invalidate cache */
   this->cache_first = this->cache_last = -1;
-  
+
+  /* get the Musicbrainz CDIndex */
+  _cdda_cdindex (this, toc); 
     
   /*
    * CDDB
