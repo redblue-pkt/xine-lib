@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.6 2003/02/23 03:56:10 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.7 2003/03/03 07:37:23 esnel Exp $
  */
 
 
@@ -108,27 +108,12 @@ gnomevfs_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
 	return num_bytes;
 }
 
-/*
- * helper function to release buffer
- * in case demux thread is cancelled
- */
-static void
-pool_release_buffer (void *arg)
-{
-	buf_element_t *buf = (buf_element_t *) arg;
-	if( buf != NULL )
-		buf->free_buffer(buf);
-}
-
 static buf_element_t*
 gnomevfs_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
 		off_t todo)
 {
 	off_t total_bytes;
 	buf_element_t *buf = fifo->buffer_pool_alloc (fifo);
-
-	pthread_setcancelstate (PTHREAD_CANCEL_ENABLE,NULL);
-	pthread_cleanup_push (pool_release_buffer, buf);
 
 	buf->content = buf->mem;
 	buf->type = BUF_DEMUX_BLOCK;
@@ -143,9 +128,6 @@ gnomevfs_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
 
 	if (buf != NULL)
 		buf->size = total_bytes;
-
-	pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
-	pthread_cleanup_pop (0);
 
 	return buf;
 }
