@@ -142,7 +142,7 @@ void flattop(int n,_ftype_t* w)
  */
 #define BIZ_EPSILON 1E-21 /* Max error acceptable */
 
-_ftype_t besselizero(_ftype_t x)
+static _ftype_t besselizero(_ftype_t x)
 { 
   _ftype_t temp;
   _ftype_t sum   = 1.0;

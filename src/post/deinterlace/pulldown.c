@@ -151,6 +151,7 @@ static int bothistory_diff[ 5 ];
 
 static int histpos = 0;
 
+#if 0  /* FIXME: unused */
 static void fill_history( int tff )
 {
     if( tff ) {
@@ -181,6 +182,7 @@ static void fill_history( int tff )
 
     histpos = 0;
 }
+#endif
 
 
 int determine_pulldown_offset_history( int top_repeat, int bot_repeat, int tff, int *realbest )
