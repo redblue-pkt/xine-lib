@@ -8,6 +8,9 @@ xine-lib (1-beta9)
   * fix libmpeg2 to not wait endlessly for I/P frames,
   fix MPEG artifacts on seek
   * fix the MP3 by content detection for some streams
+  * fix segfault with non-multiple of 16 height video and XShm
+  * fix BAD STATE error on seek with ALSA audio driver
+  * fix artefacts when playing certain DivX video streams on i386
 
 xine-lib (1-beta8)
   * fix DVD highlight problems
