@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.77 2004/02/15 18:52:42 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.78 2004/03/13 13:59:19 mroi Exp $
  *
  */
 
@@ -35,6 +35,10 @@
 /*
 #define LOG
 */
+
+/* FIXME: evil, evil, evil! */
+#define XINE_ENGINE_INTERNAL
+
 #include "buffer.h"
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -557,6 +561,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if( this->ogm )
       return;
     
+    if (this->class->xine->port_ticket->ticket_revoked)
+      this->class->xine->port_ticket->renew(this->class->xine->port_ticket, 0);
     xine_usec_sleep (50000);
 
   }
