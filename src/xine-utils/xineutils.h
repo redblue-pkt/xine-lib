@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.45 2003/03/05 17:13:09 esnel Exp $
+ * $Id: xineutils.h,v 1.46 2003/03/07 19:58:32 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -38,7 +38,10 @@ extern "C" {
 #include "xmlparser.h"
 #include "xine_buffer.h"
 #include "configfile.h"
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
   
 #include <stdio.h>
 #include <string.h>
