@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2002/04/27 23:00:40 cvogler Exp $
+ * $Id: xine_decoder.c,v 1.11 2002/04/27 23:31:33 cvogler Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -281,9 +281,8 @@ void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
 /*------------------- implementation of spudec interface -------------------*/
 
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
-  /*int type = buf_type & 0xFFFF0000;
-  return (type == BUF_SPU_TEXT);  */
-  return 0;
+  int type = buf_type & 0xFFFF0000;
+  return (type == BUF_SPU_CC);
 }
 
 
