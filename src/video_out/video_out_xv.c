@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.141 2002/10/17 17:43:43 mroi Exp $
+ * $Id: video_out_xv.c,v 1.142 2002/10/26 10:20:20 tmattern Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -571,7 +571,7 @@ static void xv_compute_output_size (xv_driver_t *this) {
   if (this->deinterlace_enabled
       && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
       && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
-    this->sc.displayed_height  = this->sc.displayed_height / 2;
+    this->sc.displayed_height  = this->sc.displayed_height / 2 - 1;
     this->sc.displayed_yoffset = this->sc.displayed_yoffset / 2;
   }
 }
@@ -674,14 +674,6 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
     this->cur_frame = frame;
 
-    /* 
-     * deinterlace frame if necessary
-     * (currently only working for YUV images)
-     */
-
-    if (this->deinterlace_enabled && this->deinterlace_method 
-	&& frame->format == XINE_IMGFMT_YV12)
-      xv_deinterlace_frame (this);
 
     /*
      * let's see if this frame is different in size / aspect
@@ -689,18 +681,11 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
      */
 
     if ( (frame->width != this->sc.delivered_width)
-	 || (frame->height != this->sc.delivered_height)
-	 || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
+         || (frame->height != this->sc.delivered_height)
+         || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
 #ifdef LOG
       printf("video_out_xv: frame format changed\n");
 #endif
-
-      this->sc.delivered_width      = frame->width;
-      this->sc.delivered_height     = frame->height;
-      this->sc.delivered_ratio_code = frame->ratio_code;
-
-      xv_compute_ideal_size (this);
-      
       this->sc.force_redraw = 1;    /* trigger re-calc of output size */
     }
 
@@ -709,6 +694,15 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
      * ask for offset and output size
      */
     xv_redraw_needed (this_gen);
+    
+    /* 
+     * deinterlace frame if necessary
+     * (currently only working for YUV images)
+     */
+
+    if (this->deinterlace_enabled && this->deinterlace_method 
+        && frame->format == XINE_IMGFMT_YV12)
+      xv_deinterlace_frame (this);
 
     XLockDisplay (this->display);
 
