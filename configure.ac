@@ -975,6 +975,7 @@ AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
 dnl check for __attribute__ ((aligned ()))
 dnl WARNING! Do not move this check behind the $(MULTIPASS_CFLAGS)!
+dnl (the alignment test macro does not like variables in the CFLAGS)
 AC_C_ATTRIBUTE_ALIGNED
 
 dnl Common cflags for all platforms
