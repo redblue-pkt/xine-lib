@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.54 2005/01/13 20:59:05 tmattern Exp $
+ * $Id: mms.c,v 1.55 2005/01/18 23:25:34 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -931,13 +931,23 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   /* command 0x5 */
   {
     mms_buffer_t command_buffer;
+    char *path;
+    int pathlen;
+
+    /* remove the first '/' */
+    path = this->uri;
+    pathlen = strlen(path);
+    if (pathlen > 1) {
+      path++;
+      pathlen--;
+    }
     
     lprintf("send command 0x05\n");
     mms_buffer_init(&command_buffer, this->scmd_body);
     mms_buffer_put_32 (&command_buffer, 0x00000000); /* ?? */
     mms_buffer_put_32 (&command_buffer, 0x00000000); /* ?? */
-    string_utf16 (url_conv, this->scmd_body + command_buffer.pos, this->uri, strlen(this->uri));
-    if (!send_command (this, 5, 1, 0xffffffff, strlen(this->uri) * 2 + 12))
+    string_utf16 (url_conv, this->scmd_body + command_buffer.pos, path, pathlen);
+    if (!send_command (this, 5, 1, 0xffffffff, pathlen * 2 + 12))
       goto fail;
   }
   
