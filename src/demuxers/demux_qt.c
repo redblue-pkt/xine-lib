@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.183 2004/05/30 01:33:59 tmmm Exp $
+ * $Id: demux_qt.c,v 1.184 2004/06/01 04:34:01 tmmm Exp $
  *
  */
 
@@ -95,6 +95,7 @@ typedef unsigned int qt_atom;
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
 #define SAMR_FOURCC QT_ATOM('s', 'a', 'm', 'r')
+#define ALAC_FOURCC QT_ATOM('a', 'l', 'a', 'c')
 #define DRMS_FOURCC QT_ATOM('d', 'r', 'm', 's')
 #define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
 #define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
@@ -1122,6 +1123,9 @@ static qt_error parse_trak_atom (qt_trak *trak,
           if (BE_32(&trak_atom[atom_pos + 0x0]) == SAMR_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
+          if (BE_32(&trak_atom[atom_pos + 0x0]) == ALAC_FOURCC)
+            trak->stsd_atoms[k].audio.vbr = 1;
+
           if (BE_32(&trak_atom[atom_pos + 0x0]) == DRMS_FOURCC) {
             last_error = QT_DRM_NOT_SUPPORTED;
             goto free_trak;
@@ -1767,11 +1771,6 @@ static qt_error build_frame_table(qt_trak *trak,
 
           /* the chunk size is actually the audio frame count */
           audio_frame_counter += trak->frames[j].size;
-
-          /* Work-around for the ALAC codec (iTunes Lossless Codec) */
-	  if (trak->properties->audio.samples_per_frame == 0) {
-	    return QT_HEADER_TROUBLE;
-	  }
 
 	  /* compute the actual chunk size */
           trak->frames[j].size =
