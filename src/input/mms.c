@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.6 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: mms.c,v 1.7 2002/05/06 21:40:02 f1rmb Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -39,6 +39,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
+
+#include "xineutils.h"
 
 #include "bswap.h"
 #include "mms.h"
@@ -90,13 +92,21 @@ struct mms_s {
 };
 
 /* network/socket utility functions */
+/*
+ * Small sighandler ;-)
+ */
+static void die(int signal) {
+  printf("Signal %d\n", signal);
+  abort();
+}
 
 static int host_connect_attempt(struct in_addr ia, int port) {
 
-  int                s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  int                s;
   struct sockaddr_in sin;
-  
-  if (s==-1) {
+
+  s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
+  if (s == -1) {
     printf ("libmms: socket(): %s\n", strerror(errno));
     return -1;
   }
@@ -115,20 +125,21 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   return s;
 }
 
-int host_connect(const char *host, int port) {
+static int host_connect(const char *host, int port) {
 
   struct hostent *h;
-  int i, s;
+  int             i, s;
   
-  h=gethostbyname(host);
-  if (h==NULL) {
+  h = gethostbyname(host);
+  if (h == NULL) {
     printf ("libmms: unable to resolve '%s'.\n", host);
     return -1;
   }
 	
-  for (i=0; h->h_addr_list[i]; i++) {
+  for (i = 0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
-    memcpy (&ia, h->h_addr_list[i],4);
+
+    memcpy (&ia, h->h_addr_list[i], 4);
     s = host_connect_attempt(ia, port);
     if(s != -1)
       return s;
@@ -153,14 +164,14 @@ static void put_32 (mms_t *this, uint32_t value) {
 static int send_data (int s, char *buf, int len) {
   int total;
 
-  total=0;
-  while (total<len){ 
+  total = 0;
+  while (total < len){ 
     int n;
 
-    n = write (s, &buf[total], len-total);
+    n = write (s, &buf[total], len - total);
     if (n > 0)
       total += n;
-    else if (n<0 && errno!=EAGAIN) 
+    else if (n < 0 && errno != EAGAIN) 
       return total;
   }
   return total;
@@ -171,19 +182,18 @@ static uint32_t get_32 (unsigned char *cmd, int offset) {
   uint32_t ret;
 
   ret = cmd[offset] ;
-  ret |= cmd[offset+1]<<8 ;
-  ret |= cmd[offset+2]<<16 ;
-  ret |= cmd[offset+3]<<24 ;
+  ret |= cmd[offset+1] << 8 ;
+  ret |= cmd[offset+2] << 16 ;
+  ret |= cmd[offset+3] << 24 ;
 
   return ret;
 }
 
 static void send_command (mms_t *this, int command, uint32_t switches, 
 			  uint32_t extra, int length) {
-  
   int        len8;
 
-  len8 = (length + (length%8)) / 8;
+  len8 = (length + (length % 8)) / 8;
 
   this->scmd_len = 0;
 
@@ -192,7 +202,8 @@ static void send_command (mms_t *this, int command, uint32_t switches,
   put_32 (this, length + 32);
   put_32 (this, 0x20534d4d); /* protocol type "MMS " */
   put_32 (this, len8 + 4);
-  put_32 (this, this->seq_num); this->seq_num++;
+  put_32 (this, this->seq_num);
+  this->seq_num++;
   put_32 (this, 0x0);        /* unknown */
   put_32 (this, 0x0);
   put_32 (this, len8+2);
@@ -210,7 +221,7 @@ static void send_command (mms_t *this, int command, uint32_t switches,
   {
     int i;
 
-  printf ("\nlibmms: ***************************************************\ncommand sent, %d bytes\n", length+48);
+  printf ("\nlibmms: ***************************************************\ncommand sent, %d bytes\n", length + 48);
 
   printf ("start sequence %08x\n", get_32 (this->scmd,  0));
   printf ("command id     %08x\n", get_32 (this->scmd,  4));
@@ -222,10 +233,10 @@ static void send_command (mms_t *this, int command, uint32_t switches,
   printf ("switches       %08x\n", get_32 (this->scmd, 40));
 
   printf ("ascii contents>");
-  for (i=48; i<(length+48); i+=2) {
+  for (i = 48; i < (length + 48); i += 2) {
     unsigned char c = this->scmd[i];
 
-    if ((c>=32) && (c<=128))
+    if ((c >= 32) && (c <= 128))
       printf ("%c", c);
     else
       printf (".");
@@ -233,7 +244,7 @@ static void send_command (mms_t *this, int command, uint32_t switches,
   printf ("\n");
 
   printf ("libmms: complete hexdump of package follows:\n");
-  for (i=0; i<(length+48); i++) {
+  for (i = 0; i < (length + 48); i++) {
     unsigned char c = this->scmd[i];
 
     printf ("%02x", c);
@@ -255,13 +266,13 @@ static void string_utf16(char *dest, char *src, int len) {
 
   memset (dest, 0, 1000);
 
-  for (i=0; i<len; i++) {
-    dest[i*2] = src[i];
-    dest[i*2+1] = 0;
+  for (i = 0; i < len; i++) {
+    dest[i * 2] = src[i];
+    dest[i * 2 + 1] = 0;
   }
 
-  dest[i*2] = 0;
-  dest[i*2+1] = 0;
+  dest[i * 2] = 0;
+  dest[i * 2 + 1] = 0;
 }
 
 static void print_answer (char *data, int len) {
@@ -280,10 +291,10 @@ static void print_answer (char *data, int len) {
   printf ("dir | comm     %08x\n", get_32 (data, 36));
   printf ("switches       %08x\n", get_32 (data, 40));
 
-  for (i=48; i<len; i+=2) {
+  for (i = 48; i < len; i += 2) {
     unsigned char c = data[i];
     
-    if ((c>=32) && (c<128))
+    if ((c >= 32) && (c < 128))
       printf ("%c", c);
     else
       printf (" %02x ", c);
@@ -306,7 +317,7 @@ static void get_answer (mms_t *this) {
       printf ("\nalert! eof\n");
       return;
     }
-
+    
     print_answer (this->buf, len);
 
     command = get_32 (this->buf, 36) & 0xFFFF;
@@ -314,6 +325,7 @@ static void get_answer (mms_t *this) {
     if (command == 0x1b) 
       send_command (this, 0x1b, 0, 0, 0);
   }
+
 }
 
 static int receive (int s, char *buf, size_t count) {
@@ -324,7 +336,7 @@ static int receive (int s, char *buf, size_t count) {
 
   while (total < count) {
     len = read (s, &buf[total], count-total);
-    if (len<0) {
+    if (len < 0) {
       perror ("read error:");
       return 0;
     }
@@ -360,7 +372,7 @@ static void get_header (mms_t *this) {
 #ifdef LOG    
     {
       int i;
-    for (i=0; i<8; i++)
+    for (i = 0; i < 8; i++)
       printf ("libmms: pre_header[%d] = %02x (%d)\n",
 	      i, pre_header[i], pre_header[i]);
     }
@@ -384,8 +396,8 @@ static void get_header (mms_t *this) {
 
       this->asf_header_len += packet_len;
 
-      if ( (this->asf_header[this->asf_header_len-1] == 1) 
-	   && (this->asf_header[this->asf_header_len-2]==1)) {
+      if ( (this->asf_header[this->asf_header_len - 1] == 1) 
+	   && (this->asf_header[this->asf_header_len - 2] == 1)) {
 
 	printf ("libmms: get header packet finished\n");
 
@@ -440,30 +452,30 @@ static void interp_header (mms_t *this) {
    */
 
   i = 30;
-  while (i<this->asf_header_len) {
+  while (i < this->asf_header_len) {
     
     uint64_t  guid_1, guid_2, length;
 
-    guid_2 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1]<<8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3]<<24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5]<<40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7]<<56);
+    guid_2 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
+      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
+      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
+      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
     i += 8;
 
-    guid_1 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1]<<8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3]<<24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5]<<40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7]<<56);
+    guid_1 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
+      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
+      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
+      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
     i += 8;
     
 #ifdef LOG    
     printf ("guid found: %016llx%016llx\n", guid_1, guid_2);
 #endif
 
-    length = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1]<<8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3]<<24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5]<<40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7]<<56);
+    length = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
+      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
+      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
+      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
 
     i += 8;
 
@@ -473,17 +485,17 @@ static void interp_header (mms_t *this) {
       printf ("data object\n");
     } else if ((guid_1 == 0x6553200cc000e48e) && (guid_2 == 0x11cfa9478cabdca1)) {
 
-      this->packet_length = get_32(this->asf_header, i+92-24);
-      this->file_length   = get_32(this->asf_header, i+40-24);
+      this->packet_length = get_32(this->asf_header, i + 92 - 24);
+      this->file_length   = get_32(this->asf_header, i + 40 - 24);
 #ifdef LOG    
       printf ("file object, packet length = %d (%d)\n",
-	      this->packet_length, get_32(this->asf_header, i+96-24));
+	      this->packet_length, get_32(this->asf_header, i + 96 - 24));
 #endif
 
 
     } else if ((guid_1 == 0x6553200cc000e68e) && (guid_2 == 0x11cfa9b7b7dc0791)) {
 
-      int stream_id = this->asf_header[i+48] | this->asf_header[i+49] << 8;
+      int stream_id = this->asf_header[i + 48] | this->asf_header[i + 49] << 8;
 
 #ifdef LOG    
       printf ("stream object, stream id: %d\n", stream_id);
@@ -505,23 +517,23 @@ static void interp_header (mms_t *this) {
     printf ("length    : %lld\n", length);
 #endif
 
-    i += length-24;
+    i += length - 24;
 
   }
 }
 
-char *mms_url_s[]={"MMS://","MMSU://","MMST://", NULL};
+static char *mms_url_s[] = { "MMS://", "MMSU://", "MMST://", NULL };
 
 static int mms_valid_url (char* url, char** mms_url) {
-  int i=0;
+  int i = 0;
   int len;
     
   if(!url )
     return 0;
 
-  while(mms_url[i]){
+  while(mms_url[i]) {
     len = strlen(mms_url[i]);
-    if(!strncasecmp(url, mms_url[i], len)){
+    if(!strncasecmp(url, mms_url[i], len)) {
       return len;
     }
     i++;
@@ -529,88 +541,96 @@ static int mms_valid_url (char* url, char** mms_url) {
   return 0;
 } 
 
-char* mms_connect_common(int *s, int port, char *url, char **host, char** hostend,
-			 char  **path, char **file) {
- 
-  int    hostlen;
-  int    proto_len;
+char* mms_connect_common(int *s, int *port, char *url, char **host, char **path, char **file) {
+  int     proto_len;
+  char   *hostend;
   char   *forport;
+  char   *_url;
+  char   *_host;
     
-  if (!(proto_len=mms_valid_url(url,mms_url_s))){
-
-    printf ("libmms: invalid url >%s< (should be mms:// - style)\n", url);
+  if ((proto_len = mms_valid_url(url, mms_url_s)) <= 0) {
+    /* 
+     * DCB: Why warning if it isn't a mms*:// mrl like ?
+     */
+    /*  printf ("libmms: invalid url >%s< (should be mms:// - style)\n", url); */
     return NULL;
-  
   }
-
-  /* extract hostname */
   
+  /* Create a local copy (alloca()'ed), avoid to corrupt the original URL */
+  xine_strdupa(_url, &url[proto_len]);
+  
+  _host = _url;
+  
+  /* extract hostname */
+#ifdef LOG
   printf ("libmms: extracting host name \n");
-  *hostend = strchr(&url[proto_len],'/');
-  if (!(*hostend)) {
+#endif
+  hostend = strchr(_host, '/');
+  if ((!hostend) || (strlen(hostend) <= 1)) {
     printf ("libmms: invalid url >%s<, failed to find hostend\n", url);
     return NULL;
   }
-  forport=strchr(&url[proto_len],':'); /* May be they put a port here ?*/
-  if( forport && forport < *hostend ){
-    /*if(sscanf(forport,"%d",&port)!=1)
-      port=MMS_PORT;
-    */
-    hostlen = forport - url - proto_len;
+  
+  *hostend++ = '\0';
+
+  /* Is port specified ? */
+  forport = strchr(_host, ':');
+  if(forport) {
+    *forport++ = '\0';
+    *port = atoi(forport);
   }
-  else
-    hostlen = *hostend - url - proto_len;
-
   
-  *host = malloc (hostlen+1);
-  strncpy (*host, &url[proto_len], hostlen);
-  (*host)[hostlen]=0;
+  *host = strdup(_host);
   
-  printf (" libmms: host =%s len =%d  proto_len =%d\n",*host,hostlen,proto_len);
-  hostlen = *hostend - url - proto_len;
-  
-  /* extract path and file */
-
   if(path)
-    *path = url+hostlen+proto_len+1;
+    *path = &url[proto_len] + (hostend - _url);
+  
   if(file)
     *file = strrchr (url, '/');
-
+  
   /* 
    * try to connect 
    */
-
-  printf("libmms: try to connect to %s on port %d \n", *host, port);
-  *s = host_connect (*host, port);
+#ifdef LOG
+  printf("libmms: try to connect to %s on port %d \n", *host, *port);
+#endif
+  *s = host_connect (*host, *port);
+  
   if (*s == -1) {
-    printf ("libmms: failed to connect\n");
+    printf ("libmms: failed to connect '%s'\n", *host);
     free (*host);
     return NULL;
   }
+
+#ifdef LOG
   printf ("libmms: connected\n");
-  
+#endif
+
   return url;
 }
 
 mms_t *mms_connect (char *url_) {
-
   mms_t *this;
-  int len,i;
-  char  *url;
-  char  *url1;
-  char  *path;
-  char  *file;
-  char  *host=NULL, *hostend;
-  int s;
+  char  *url     = NULL;
+  char  *url1    = NULL;
+  char  *path    = NULL;
+  char  *file    = NULL;
+  char  *host    = NULL;
+  int    port;
+  int    len, i, s;
  
+  if(!url_)
+    return NULL;
+
   url = strdup (url_);
-  url1 = mms_connect_common(&s,MMS_PORT,url,&host,&hostend,&path,&file);
+  port = MMS_PORT;
+  url1 = mms_connect_common(&s, &port, url, &host, &path, &file);
+
   if(!url1){
     free(url);
     return NULL;
   }
- 
-
+  
   this = (mms_t*) malloc (sizeof (mms_t));
 
   this->url             = url;
@@ -637,25 +657,22 @@ mms_t *mms_connect (char *url_) {
   
   sprintf (this->str, "\034\003NSPlayer/7.0.0.1956; {33715801-BAB3-9D85-24E9-03B90328270A}; Host: %s",
 	   this->host);
-  string_utf16 (this->scmd_body, this->str, strlen(this->str)+2);
+  string_utf16 (this->scmd_body, this->str, strlen(this->str) + 2);
 
-  send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2+8);
+  send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8);
 
   printf("libmms: before read \n");
   len = read (this->s, this->buf, BUF_SIZE) ;
-  if (len>0)
+  if (len > 0)
     print_answer (this->buf, len);
-  else {
+  else
     printf ("libmms: read failed: %s\n", strerror(errno));
-
-  }
 
   /* cmd2 */
 
-  string_utf16 (&this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 
-		28);
+  string_utf16 (&this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
   memset (this->scmd_body, 0, 8);
-  send_command (this, 2, 0, 0, 28*2+8);
+  send_command (this, 2, 0, 0, 28 * 2 + 8);
 
   len = read (this->s, this->buf, BUF_SIZE) ;
   if (len)
@@ -665,7 +682,7 @@ mms_t *mms_connect (char *url_) {
 
   string_utf16 (&this->scmd_body[8], path, strlen(path));
   memset (this->scmd_body, 0, 8);
-  send_command (this, 5, 0, 0, strlen(path)*2+12);
+  send_command (this, 5, 0, 0, strlen(path) * 2 + 12);
 
   get_answer (this);
 
@@ -687,11 +704,11 @@ mms_t *mms_connect (char *url_) {
 
   memset (this->scmd_body, 0, 40);
 
-  for (i=1; i<this->num_stream_ids; i++) {
-    this->scmd_body [ (i-1) * 6 + 2 ] = 0xFF;
-    this->scmd_body [ (i-1) * 6 + 3 ] = 0xFF;
-    this->scmd_body [ (i-1) * 6 + 4 ] = this->stream_ids[i];
-    this->scmd_body [ (i-1) * 6 + 5 ] = 0x00;
+  for (i = 1; i < this->num_stream_ids; i++) {
+    this->scmd_body [ (i - 1) * 6 + 2 ] = 0xFF;
+    this->scmd_body [ (i - 1) * 6 + 3 ] = 0xFF;
+    this->scmd_body [ (i - 1) * 6 + 4 ] = this->stream_ids[i];
+    this->scmd_body [ (i - 1) * 6 + 5 ] = 0x00;
   }
 
   send_command (this, 0x33, this->num_stream_ids, 
@@ -705,7 +722,7 @@ mms_t *mms_connect (char *url_) {
   
   memset (this->scmd_body, 0, 40);
 
-  for (i=8; i<16; i++)
+  for (i = 8; i < 16; i++)
     this->scmd_body[i] = 0xFF;
 
   this->scmd_body[20] = 0x04;
@@ -719,7 +736,6 @@ mms_t *mms_connect (char *url_) {
 
 
 static int get_media_packet (mms_t *this) {
-
   unsigned char  pre_header[8];
 
   if (!receive (this->s, pre_header, 8)) {
@@ -728,7 +744,7 @@ static int get_media_packet (mms_t *this) {
   }
 
 #ifdef LOG
-  for (i=0; i<8; i++)
+  for (i = 0; i < 8; i++)
     printf ("pre_header[%d] = %02x (%d)\n",
 	    i, pre_header[i], pre_header[i]);
 #endif
@@ -814,7 +830,6 @@ int mms_peek_header (mms_t *this, char *data) {
 }
 
 int mms_read (mms_t *this, char *data, int len) {
-
   int total;
 
   total = 0;
@@ -826,12 +841,11 @@ int mms_read (mms_t *this, char *data, int len) {
 #endif
 
     if (this->asf_header_read < this->asf_header_len) {
-
       int n, bytes_left ;
 
       bytes_left = this->asf_header_len - this->asf_header_read ;
 
-      if (len<bytes_left)
+      if (len < bytes_left)
 	n = len;
       else
 	n = bytes_left;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.11 2002/04/28 15:33:06 guenter Exp $
+ * $Id: input_mms.c,v 1.12 2002/05/06 21:40:02 f1rmb Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -72,7 +72,6 @@ typedef struct {
 
 
 static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
-
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
   printf ("input_mms: trying to open '%s'\n", mrl);
@@ -81,6 +80,9 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   if (!this->mms)
     return 0;
+  
+  if (this->mrl)
+    free (this->mrl);
   
   this->mrl    = strdup(mrl); /* FIXME: small memory leak */
   this->curpos = 0;
@@ -110,7 +112,7 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t todo) {
   /*mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; */
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
-  int total_bytes;
+  int                   total_bytes;
 
 #ifdef LOG
   printf ("mms_plugin_read_block: %lld bytes...\n",
@@ -133,10 +135,8 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
 }
 
 static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
-
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
-
-  off_t dest = this->curpos;
+  off_t                 dest = this->curpos;
 
 #ifdef LOG
   printf ("mms_plugin_seek: %lld offset, %d origin...\n",
@@ -164,7 +164,6 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   }
 
   while (this->curpos<dest) {
-
     int n, diff;
 
     diff = dest - this->curpos;
@@ -174,18 +173,18 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
     n = mms_read (this->mms, this->scratch, diff);
     this->curpos += n;
-    if (n<diff)
+
+    if (n < diff)
       return this->curpos;
+
   }
 
   return this->curpos;
 }
 
 static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
-
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
-
-  off_t length;
+  off_t                 length;
 
   if (!this->mms)
     return 0;
@@ -201,14 +200,11 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t mms_plugin_get_capabilities (input_plugin_t *this_gen) {
-
   return INPUT_CAP_NOCAP;
 }
 
 static uint32_t mms_plugin_get_blocksize (input_plugin_t *this_gen) {
-
   return 0;
-;
 }
 
 static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
@@ -241,7 +237,6 @@ static void mms_plugin_close (input_plugin_t *this_gen) {
 }
 
 static void mms_plugin_stop (input_plugin_t *this_gen) {
-
   mms_plugin_close(this_gen);
 }
 
@@ -261,24 +256,31 @@ static char* mms_plugin_get_mrl (input_plugin_t *this_gen) {
 
 static int mms_plugin_get_optional_data (input_plugin_t *this_gen, 
 					 void *data, int data_type) {
-
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
   switch (data_type) {
+
   case INPUT_OPTIONAL_DATA_PREVIEW:
-
     return mms_peek_header (this->mms, data);
-
     break;
+    
+  default:
+    return INPUT_OPTIONAL_UNSUPPORTED;
+    break;
+
   }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
 static void mms_plugin_dispose (input_plugin_t *this_gen ) {
-  free (this_gen);
+  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
+  
+  if(this->mrl)
+    free(this->mrl);
+  
+  free (this);
 }
-
 
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
