@@ -17,6 +17,8 @@ xine-lib (1.0)
   * fixed problem with first subtitle not showing when using separate subtitle files
   * fixed crash related to relative HTTP redirect URLs (implemented canonicalisation)
   * linking libXv dynamically, fixes breakage of Xv plugin
+  * renamed input.http_no_proxy to media.network.http_no_proxy
+  * tightened no-proxy domain matching & added exact host match ('=' prefix)
 
 xine-lib (1-rc8)
   * Multiple security vulnerabilities fixed on PNM and Real RTSP clients
