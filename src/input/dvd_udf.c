@@ -496,16 +496,10 @@ off_t UDFFindFile (int fd, char *filename, off_t *size)
     goto error_0;
   }
 
-  tokenbuf = (char*)malloc(MAX_FILE_LEN);
-  if ( !tokenbuf ) {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
-    goto error_1;
-  }
-
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   if ( !LogBlock ) {
     fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
-    goto error_2;
+    goto error_1;
   }
 
   memset(tokenline, 0, MAX_FILE_LEN);
@@ -551,15 +545,12 @@ off_t UDFFindFile (int fd, char *filename, off_t *size)
 
   lb_number = partition.Start+File.Location ;
 
-  printf ("lb_number : %ld\n", (long int)lb_number);
+  printf ("lb_number : %Ld\n", lb_number);
 
   retval = lb_number;
 
 bail:
   free(LogBlock);
-
-error_2:
-  free(tokenbuf);
 
 error_1:
   free(tokenline);
@@ -602,18 +593,11 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
     goto error_1;
   }
 
-  tokenbuf = (char*)malloc(MAX_FILE_LEN);
-  if ( !tokenbuf )
-  {
-    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
-    goto error_2;
-  }
-
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
   if ( !LogBlock )
   {
     fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN*30);
-    goto error_3;
+    goto error_2;
   }
  
   *nFiles = 0;
@@ -711,9 +695,6 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
 
 bail:
   free(LogBlock);
-
-error_3:
-  free(tokenbuf);
 
 error_2:
   free(tokenline);
