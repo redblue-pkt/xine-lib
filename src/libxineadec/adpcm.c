@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.10 2002/08/05 00:20:35 tmmm Exp $
+ * $Id: adpcm.c,v 1.11 2002/09/02 17:25:45 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -123,10 +123,30 @@ typedef struct adpcm_decoder_s {
 
 } adpcm_decoder_t;
 
+/*
+ * decode_ima_nibbles
+ *
+ * So many different audio encoding formats leverage off of the IMA
+ * ADPCM algorithm that it makes sense to create a function that takes
+ * care of handling the common decoding portion.
+ *
+ * This function takes a buffer of ADPCM nibbles that are stored in an
+ * array of signed 16-bit numbers. The function then decodes the nibbles
+ * in place so that the buffer contains the decoded audio when the function
+ * is finished. 
+ *
+ * The addresses of the initial predictor and index values are passed,
+ * rather than their values, so that the function can return the final
+ * predictor and index values after decoding. This is done in case the 
+ * calling function cares (in the case of IMA ADPCM from Westwood Studios' 
+ * VQA files, the values are initialized to 0 at the beginning of the file
+ * and maintained throughout all of the IMA blocks).
+ */
 static void decode_ima_nibbles(unsigned short *output,
   int output_size, int channels,
-  int predictor_l, int index_l,
-  int predictor_r, int index_r) {
+  int *predictor_l, int *index_l,
+  int *predictor_r, int *index_r) {
+
   int step[2];
   int predictor[2];
   int index[2];
@@ -136,12 +156,12 @@ static void decode_ima_nibbles(unsigned short *output,
   int delta;
   int channel_number = 0;
 
-  step[0] = ima_adpcm_step[index_l];
-  step[1] = ima_adpcm_step[index_r];
-  predictor[0] = predictor_l;
-  predictor[1] = predictor_r;
-  index[0] = index_l;
-  index[1] = index_r;
+  step[0] = ima_adpcm_step[*index_l];
+  step[1] = ima_adpcm_step[*index_r];
+  predictor[0] = *predictor_l;
+  predictor[1] = *predictor_r;
+  index[0] = *index_l;
+  index[1] = *index_r;
 
   for (i = 0; i < output_size; i++) {
     delta = output[i];
@@ -169,6 +189,12 @@ static void decode_ima_nibbles(unsigned short *output,
     /* toggle channel */
     channel_number ^= channels - 1;
   }
+
+  /* save the index and predictor values in case the calling function cares */
+  *predictor_l = predictor[0];
+  *predictor_r = predictor[1];
+  *index_l = index[0];
+  *index_r = index[1];
 }
 
 #define DK3_GET_NEXT_NIBBLE() \
@@ -389,8 +415,8 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     decode_ima_nibbles(&this->decode_buffer[this->channels],
       out_ptr - this->channels,
       this->channels,
-      predictor_l, index_l,
-      predictor_r, index_r);
+      &predictor_l, &index_l,
+      &predictor_r, &index_r);
 
     /* dispatch the decoded audio */
     j = 0;
@@ -499,8 +525,8 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
     decode_ima_nibbles(this->decode_buffer,
       this->out_block_size,
       this->channels,
-      predictor_l, index_l,
-      predictor_r, index_r);
+      &predictor_l, &index_l,
+      &predictor_r, &index_r);
 
     /* dispatch the decoded audio */
     j = 0;
@@ -626,8 +652,8 @@ static void qt_ima_adpcm_decode_block(adpcm_decoder_t *this,
     decode_ima_nibbles(&output[out_ptr],
       QT_IMA_ADPCM_SAMPLES_PER_BLOCK * this->channels, 
       this->channels,
-      initial_predictor_l, initial_index_l,
-      initial_predictor_r, initial_index_r);
+      &initial_predictor_l, &initial_index_l,
+      &initial_predictor_r, &initial_index_r);
 
     out_ptr += QT_IMA_ADPCM_SAMPLES_PER_BLOCK * this->channels;
   }
@@ -821,8 +847,81 @@ static void smjpeg_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf)
   decode_ima_nibbles(this->decode_buffer,
     out_ptr,
     1,
-    predictor, index,
+    &predictor, &index,
     0, 0);
+
+  /* dispatch the decoded audio */
+  i = 0;
+  while (i < out_ptr) {
+    audio_buffer = this->audio_out->get_buffer (this->audio_out);
+    if (audio_buffer->mem_size == 0) {
+      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+      return;
+    }
+
+    /* out_ptr and i are sample counts, mem_size is a byte count */
+    if (((out_ptr - i) * 2) > audio_buffer->mem_size)
+      bytes_to_send = audio_buffer->mem_size;
+    else
+      bytes_to_send = (out_ptr - i) * 2;
+
+    xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[i],
+      bytes_to_send);
+    /* byte count / 2 (bytes / sample) / channels */
+    audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
+
+    audio_buffer->vpts = buf->pts;
+    buf->pts = 0;  /* only first buffer gets the real pts */
+    this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+    i += bytes_to_send / 2;  /* 2 bytes per sample */
+  }
+
+  /* reset buffer */
+  this->size = 0;
+}
+
+static void vqa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  /* VQA IMA blocks do not have a preamble with an initial index and
+   * predictor; there is one master index and predictor pair per channel that
+   * is initialized to 0 and maintained throughout all of the VQA IMA
+   * blocks. (That is why the following variables are static.) */
+  static int index_l = 0;
+  static int index_r = 0;
+  static int predictor_l = 0;
+  static int predictor_r = 0;
+
+  int out_ptr = 0;
+  int i;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  /* break apart the ADPCM nibbles */
+  for (i = 0; i < this->size; i++) {
+    if (this->channels == 1) {
+      this->decode_buffer[out_ptr++] = this->buf[i] & 0x0F;
+      this->decode_buffer[out_ptr++] = (this->buf[i] >> 4) & 0x0F;
+    } else {
+      if ((i & 0x1) == 0) {
+        /* left channel */
+        this->decode_buffer[out_ptr + 0] = this->buf[i] & 0x0F;
+        this->decode_buffer[out_ptr + 2] = (this->buf[i] >> 4) & 0x0F;
+      } else {
+        /* right channel */
+        this->decode_buffer[out_ptr + 1] = this->buf[i] & 0x0F;
+        this->decode_buffer[out_ptr + 3] = (this->buf[i] >> 4) & 0x0F;
+        out_ptr += 4;
+      }
+    }
+  }
+
+  /* process the nibbles */
+  decode_ima_nibbles(this->decode_buffer,
+    out_ptr,
+    this->channels,
+    &predictor_l, &index_l,
+    &predictor_r, &index_r);
 
   /* dispatch the decoded audio */
   i = 0;
@@ -863,7 +962,8 @@ static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
            buf_type == BUF_AUDIO_QTIMAADPCM ||
            buf_type == BUF_AUDIO_DK3ADPCM ||
            buf_type == BUF_AUDIO_DK4ADPCM ||
-           buf_type == BUF_AUDIO_SMJPEG_IMA );
+           buf_type == BUF_AUDIO_SMJPEG_IMA ||
+           buf_type == BUF_AUDIO_VQA_IMA );
 }
 
 static void adpcm_reset (audio_decoder_t *this_gen) {
@@ -948,6 +1048,14 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->decode_buffer = NULL;
     }
 
+    /* make this decode buffer large enough to hold a second of decoded
+     * audio */
+    if (buf->type == BUF_AUDIO_VQA_IMA) {
+      this->out_block_size = this->rate * this->channels;
+      /* allocate 2 bytes per sample */
+      this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
+    }
+
     return;
   }
 
@@ -1000,6 +1108,10 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       case BUF_AUDIO_SMJPEG_IMA:
         smjpeg_adpcm_decode_block(this, buf);
+        break;
+
+      case BUF_AUDIO_VQA_IMA:
+        vqa_adpcm_decode_block(this, buf);
         break;
     }
   }
