@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.43 2002/12/03 21:59:46 mroi Exp $
+ * $Id: xine.h.in,v 1.44 2002/12/06 18:30:46 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -551,6 +551,7 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_STREAM_INFO_IGNORE_VIDEO      20
 #define XINE_STREAM_INFO_IGNORE_AUDIO      21
 #define XINE_STREAM_INFO_IGNORE_SPU        22
+#define XINE_STREAM_INFO_VIDEO_HAS_STILL   23
 
 /* xine_get_meta_info */
 
