@@ -3244,8 +3244,8 @@ static void set_gr_key( void )
 	besr.graphics_key_msk=(1<<dbpp)-1;
 	besr.ckey_cntl = VIDEO_KEY_FN_TRUE|GRAPHIC_KEY_FN_NE|CMP_MIX_AND;
 #else
-	besr.graphics_key_msk=besr.graphics_key_clr;
-	besr.ckey_cntl = VIDEO_KEY_FN_TRUE|CMP_MIX_AND|GRAPHIC_KEY_FN_EQ;
+	besr.graphics_key_msk=(0xFF<<24)|besr.graphics_key_clr;
+	besr.ckey_cntl = VIDEO_KEY_FN_FALSE|GRAPHIC_KEY_FN_EQ|CMP_MIX_OR;
 #endif
     }
     else
