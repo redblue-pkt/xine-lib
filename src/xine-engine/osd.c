@@ -33,7 +33,10 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
+
+#ifndef _MSC_VER 
 #include <iconv.h>
+#endif /* _MSC_VER */
 
 #ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
@@ -728,11 +731,14 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   osd_font_t *font;
   int i, y;
   uint8_t *dst, *src;
-  iconv_t cd;
   char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
   int def_charset_flag = 0;
+
+#ifndef _MSC_VER
+  iconv_t cd;
+#endif /* _MSC_VER */
 
 #ifdef LOG_DEBUG  
   printf("osd_render_text %p (%d,%d) \"%s\"\n", osd, x1, y1, text);
@@ -780,6 +786,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 #endif
   }
 
+#ifndef _MSC_VER
   /* prepare conversion to UCS-2 */
   if ((cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
     printf(_("osd: unsupported conversion %s -> UCS-2\n"), encoding);
@@ -792,12 +799,14 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
     }
   }
+#endif /* _MSC_VER */
   
   while( inbytesleft ) {
     char *outbuf = (char*)&unicode;
     size_t outbytesleft = 2;
     size_t count;
    
+#ifndef _MSC_VER
     /* get unicode value */
     count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
     if (count == (size_t)-1 && errno != E2BIG) {
@@ -809,6 +818,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       inbuf++;
       unicode = ALIAS_CHARACTER;
     }
+#endif /* _MSC_VER */
 
 #ifdef HAVE_FT2
     if (osd->ft2 && osd->ft2->useme) {
@@ -907,8 +917,11 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 #endif
 
   }
+
+#ifndef _MSC_VER
   iconv_close(cd);
-  
+#endif /* _MSC_VER */
+
   pthread_mutex_unlock (&this->osd_mutex);
 
   return 1;

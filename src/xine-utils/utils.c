@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.12 2003/03/03 17:29:07 mroi Exp $
+ * $Id: utils.c,v 1.13 2003/04/20 21:13:28 guenter Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -77,6 +77,11 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
 #endif
 
 const char *xine_get_homedir(void) {
+
+#ifdef WIN32
+	return XINE_HOMEDIR;
+#else
+
   struct passwd pwd, *pw = NULL;
   static char homedir[BUFSIZ] = {0,};
 
@@ -104,6 +109,7 @@ const char *xine_get_homedir(void) {
   }
 
   return homedir;
+#endif /* _MSC_VER */
 }
 
 char *xine_chomp(char *str) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.44 2003/03/27 18:57:08 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.45 2003/04/20 21:13:23 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -38,6 +38,9 @@
  *  - corrections to the frame rate may be needed to cope with bad
  *    encoded streams.
  *
+ */
+/* For the _MSC_VER (Win32) port the "this" variable
+ * was removed from all prototypes.and changed to "met"
  */
 
 #ifndef HAVE_METRONOM_H
@@ -79,7 +82,7 @@ struct metronom_s {
    *
    * parameter pts_per_smpls : 1/90000 sec per 65536 samples
    */
-  void (*set_audio_rate) (metronom_t *this, int64_t pts_per_smpls);
+  void (*set_audio_rate) (metronom_t *, int64_t pts_per_smpls);
 
   /*
    * called by video output driver for *every* frame
@@ -93,7 +96,7 @@ struct metronom_s {
    * 
    */
   
-  void (*got_video_frame) (metronom_t *this, vo_frame_t *frame);
+  void (*got_video_frame) (metronom_t *, vo_frame_t *frame);
 
   /*
    * called by audio output driver whenever audio samples are delivered to it
@@ -108,7 +111,7 @@ struct metronom_s {
    *
    */
 
-  int64_t (*got_audio_samples) (metronom_t *this, int64_t pts, 
+  int64_t (*got_audio_samples) (metronom_t *, int64_t pts, 
 				int nsamples); 
 
   /*
@@ -121,7 +124,7 @@ struct metronom_s {
    * due to the lack of regularity on spu packets)
    */
 
-  int64_t (*got_spu_packet) (metronom_t *this, int64_t pts);
+  int64_t (*got_spu_packet) (metronom_t *, int64_t pts);
 
   /*
    * tell metronom about discontinuities.
@@ -151,16 +154,16 @@ struct metronom_s {
    * just switch to the new disc_offset and resume synced operation.
    *                    
    */
-  void (*handle_audio_discontinuity) (metronom_t *this, int type, int64_t disc_off);
-  void (*handle_video_discontinuity) (metronom_t *this, int type, int64_t disc_off);
+  void (*handle_audio_discontinuity) (metronom_t *, int type, int64_t disc_off);
+  void (*handle_video_discontinuity) (metronom_t *, int type, int64_t disc_off);
 
   /*
    * set/get options for metronom, constants see below
    */
-  void (*set_option) (metronom_t *this, int option, int64_t value);
-  int64_t (*get_option) (metronom_t *this, int option);
+  void (*set_option) (metronom_t *, int option, int64_t value);
+  int64_t (*get_option) (metronom_t *, int option);
   
-  void (*exit) (metronom_t *this);
+  void (*exit) (metronom_t *);
 
   /*
    * pointer to current xine stream object. 
@@ -225,8 +228,8 @@ struct metronom_clock_s {
   /*
    * set/get options for clock, constants see below
    */
-  void (*set_option) (metronom_clock_t *this, int option, int64_t value);
-  int64_t (*get_option) (metronom_clock_t *this, int option);
+  void (*set_option) (metronom_clock_t *, int option, int64_t value);
+  int64_t (*get_option) (metronom_clock_t *, int option);
 
   /*
    * system clock reference (SCR) functions
@@ -236,31 +239,31 @@ struct metronom_clock_s {
    * start clock (no clock reset)
    * at given pts
    */
-  void (*start_clock) (metronom_clock_t *this, int64_t pts);
+  void (*start_clock) (metronom_clock_t *, int64_t pts);
 
 
   /*
    * stop metronom clock
    */
-  void (*stop_clock) (metronom_clock_t *this);
+  void (*stop_clock) (metronom_clock_t *);
 
 
   /*
    * resume clock from where it was stopped
    */
-  void (*resume_clock) (metronom_clock_t *this);
+  void (*resume_clock) (metronom_clock_t *);
 
 
   /*
    * get current clock value in vpts
    */
-  int64_t (*get_current_time) (metronom_clock_t *this);
+  int64_t (*get_current_time) (metronom_clock_t *);
 
 
   /*
    * adjust master clock to external timer (e.g. audio hardware)
    */
-  void (*adjust_clock) (metronom_clock_t *this, int64_t desired_pts);
+  void (*adjust_clock) (metronom_clock_t *, int64_t desired_pts);
 
 
   /*
@@ -268,15 +271,15 @@ struct metronom_clock_s {
    * for constants see xine_internal.h
    */
 
-  int (*set_speed) (metronom_clock_t *this, int speed);
+  int (*set_speed) (metronom_clock_t *, int speed);
 
   /*
    * (un)register a System Clock Reference provider at the metronom
    */
-  int    (*register_scr) (metronom_clock_t *this, scr_plugin_t *scr);
-  void (*unregister_scr) (metronom_clock_t *this, scr_plugin_t *scr);
+  int    (*register_scr) (metronom_clock_t *, scr_plugin_t *scr);
+  void (*unregister_scr) (metronom_clock_t *, scr_plugin_t *scr);
 
-  void (*exit) (metronom_clock_t *this);
+  void (*exit) (metronom_clock_t *);
   
   scr_plugin_t*   scr_master;
   scr_plugin_t**  scr_list;
@@ -307,7 +310,7 @@ struct scr_plugin_s
 {
   int interface_version;
 
-  int (*get_priority) (scr_plugin_t *this);
+  int (*get_priority) (scr_plugin_t *);
 
   /* 
    * set/get clock speed 
@@ -316,15 +319,15 @@ struct scr_plugin_s
    * returns actual speed
    */
 
-  int (*set_speed) (scr_plugin_t *this, int speed);
+  int (*set_speed) (scr_plugin_t *, int speed);
 
-  void (*adjust) (scr_plugin_t *this, int64_t vpts);
+  void (*adjust) (scr_plugin_t *, int64_t vpts);
 
-  void (*start) (scr_plugin_t *this, int64_t start_vpts);
+  void (*start) (scr_plugin_t *, int64_t start_vpts);
 
-  int64_t (*get_current) (scr_plugin_t *this);
+  int64_t (*get_current) (scr_plugin_t *);
 
-  void (*exit) (scr_plugin_t *this);
+  void (*exit) (scr_plugin_t *);
 
   metronom_clock_t *clock;
 };

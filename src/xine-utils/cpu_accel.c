@@ -36,6 +36,8 @@
 #ifdef ARCH_X86
 static uint32_t arch_accel (void)
 {
+#ifndef _MSC_VER
+
   uint32_t eax, ebx, ecx, edx;
   int AMD;
   uint32_t caps;
@@ -111,6 +113,9 @@ static uint32_t arch_accel (void)
     caps |= MM_ACCEL_X86_MMXEXT;
 
   return caps;
+#else /* _MSC_VER */
+  return 0;
+#endif
 }
 
 static jmp_buf sigill_return;
@@ -165,6 +170,8 @@ uint32_t xine_mm_accel (void)
     accel = arch_accel ();
 
 #ifdef ARCH_X86
+#ifndef _MSC_VER
+
     /* test OS support for SSE */
     if( accel & MM_ACCEL_X86_SSE ) {
       void (*old_sigill_handler)(int);
@@ -182,6 +189,7 @@ uint32_t xine_mm_accel (void)
 
       signal (SIGILL, old_sigill_handler);
     }
+#endif /* _MSC_VER */
 #endif /* ARCH_X86 */
     
     initialized++;

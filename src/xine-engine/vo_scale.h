@@ -17,11 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.5 2002/11/22 18:06:14 mroi Exp $
+ * $Id: vo_scale.h,v 1.6 2003/04/20 21:13:26 guenter Exp $
  * 
  * vo_scale.h
  *
  * keeps video scaling information
+ */
+/* For the _MSC_VER (Win32) port the "this" variable
+ * was removed from all prototypes.and changed to "met"
  */
 
 #ifndef HAVE_VO_SCALE_H
@@ -34,6 +37,9 @@ extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+/* Added during _MSC_VER port */
+#include <configfile.h>
 
 typedef struct {
   int x, y;
@@ -147,27 +153,27 @@ typedef struct vo_scale_s vo_scale_t;
  * taking into account aspect ratio and zoom factor
  */
 
-void vo_scale_compute_ideal_size (vo_scale_t *this);
+void vo_scale_compute_ideal_size (vo_scale_t *);
 
 
 /*
  * make ideal width/height "fit" into the gui
  */
 
-void vo_scale_compute_output_size (vo_scale_t *this);
+void vo_scale_compute_output_size (vo_scale_t *);
 
 /*
  * return true if a redraw is needed due resizing, zooming,
  * aspect ratio changing, etc.
  */
 
-int vo_scale_redraw_needed (vo_scale_t *this);
+int vo_scale_redraw_needed (vo_scale_t *);
 
 /*
  *
  */
  
-void vo_scale_translate_gui2video(vo_scale_t *this,
+void vo_scale_translate_gui2video(vo_scale_t *,
 				 int x, int y,
 				 int *vid_x, int *vid_y);
 
@@ -181,7 +187,7 @@ char *vo_scale_aspect_ratio_name(int a);
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled, config_values_t *config );
+void vo_scale_init(vo_scale_t *, int support_zoom, int scaling_disabled, config_values_t *config );
 
 #ifdef __cplusplus
 }

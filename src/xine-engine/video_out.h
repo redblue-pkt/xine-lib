@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.83 2003/02/07 17:28:12 mroi Exp $
+ * $Id: video_out.h,v 1.84 2003/04/20 21:13:25 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -30,6 +30,9 @@
  * vo_port     : generic frame_handling code, uses
  *               a vo_driver for output
  *
+ */
+/* For the _MSC_VER (Win32) port the "this" variable
+ * was removed from all prototypes.and changed to "met"
  */
 
 #ifndef HAVE_VIDEO_OUT_H
@@ -148,10 +151,10 @@ struct vo_frame_s {
  */
 struct xine_video_port_s {
 
-  uint32_t (*get_capabilities) (xine_video_port_t *this); /* for constants see below */
+  uint32_t (*get_capabilities) (xine_video_port_t *); /* for constants see below */
 
   /* open display driver for video output */
-  void (*open) (xine_video_port_t *this, xine_stream_t *stream);
+  void (*open) (xine_video_port_t *, xine_stream_t *stream);
 
   /* 
    * get_frame - allocate an image buffer from display driver 
@@ -162,36 +165,36 @@ struct xine_video_port_s {
    *          format     == FOURCC descriptor of image format
    *          flags      == field/prediction flags
    */
-  vo_frame_t* (*get_frame) (xine_video_port_t *this, uint32_t width, 
+  vo_frame_t* (*get_frame) (xine_video_port_t *, uint32_t width, 
 			    uint32_t height, int ratio_code, 
 			    int format, int flags);
 
-  vo_frame_t* (*get_last_frame) (xine_video_port_t *this);
+  vo_frame_t* (*get_last_frame) (xine_video_port_t *);
   
   /* overlay stuff */
-  void (*enable_ovl) (xine_video_port_t *this, int ovl_enable);
+  void (*enable_ovl) (xine_video_port_t *, int ovl_enable);
   
   /* video driver is no longer used by decoder => close */
-  void (*close) (xine_video_port_t *this, xine_stream_t *stream);
+  void (*close) (xine_video_port_t *, xine_stream_t *stream);
 
   /* called on xine exit */
-  void (*exit) (xine_video_port_t *this);
+  void (*exit) (xine_video_port_t *);
 
   /* get overlay instance (overlay source) */
-  video_overlay_instance_t* (*get_overlay_instance) (xine_video_port_t *this);
+  video_overlay_instance_t* (*get_overlay_instance) (xine_video_port_t *);
 
   /* flush video_out fifo */
-  void (*flush) (xine_video_port_t *this);
+  void (*flush) (xine_video_port_t *);
 
   /*   * Get/Set video property
    *
    * See VO_PROP_* bellow
    */
-  int (*get_property) (xine_video_port_t *this, int property);
-  int (*set_property) (xine_video_port_t *this, int property, int value);
+  int (*get_property) (xine_video_port_t *, int property);
+  int (*set_property) (xine_video_port_t *, int property, int value);
   
   /* return true if port is opened for this stream */
-  int (*status) (xine_video_port_t *this, xine_stream_t *stream, 
+  int (*status) (xine_video_port_t *, xine_stream_t *stream, 
                  int *width, int *height, int64_t *img_duration);
   
   /* the driver in use */
@@ -279,25 +282,25 @@ struct xine_video_port_s {
 
 struct vo_driver_s {
 
-  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
+  uint32_t (*get_capabilities) (vo_driver_t *); /* for constants see above */
 
   /*
    * allocate an vo_frame_t struct,
    * the driver must supply the copy, field and dispose functions
    */
-  vo_frame_t* (*alloc_frame) (vo_driver_t *this);
+  vo_frame_t* (*alloc_frame) (vo_driver_t *);
 
 
   /* 
    * check if the given image fullfills the format specified
    * (re-)allocate memory if necessary
    */
-  void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
+  void (*update_frame_format) (vo_driver_t *, vo_frame_t *img,
 			       uint32_t width, uint32_t height,
 			       int ratio_code, int format, int flags);
 
   /* display a given frame */
-  void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+  void (*display_frame) (vo_driver_t *, vo_frame_t *vo_img);
 
   /* overlay_begin and overlay_end are used by drivers suporting
    * persistent overlays. they can be optimized to update only when
@@ -311,18 +314,18 @@ struct vo_driver_s {
    *
    * any function pointer from this group may be set to NULL.
    */
-  void (*overlay_begin) (vo_driver_t *this, vo_frame_t *vo_img, int changed);
-  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
-  void (*overlay_end)   (vo_driver_t *this, vo_frame_t *vo_img);
+  void (*overlay_begin) (vo_driver_t *, vo_frame_t *vo_img, int changed);
+  void (*overlay_blend) (vo_driver_t *, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_end)   (vo_driver_t *, vo_frame_t *vo_img);
 
   /*
    * these can be used by the gui directly:
    */
 
-  int (*get_property) (vo_driver_t *this, int property);
-  int (*set_property) (vo_driver_t *this, 
+  int (*get_property) (vo_driver_t *, int property);
+  int (*set_property) (vo_driver_t *, 
 		       int property, int value);
-  void (*get_property_min_max) (vo_driver_t *this,
+  void (*get_property_min_max) (vo_driver_t *,
 				int property, int *min, int *max);
 
   /*
@@ -332,20 +335,20 @@ struct vo_driver_s {
    * etc. to the driver
    */
 
-  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
+  int (*gui_data_exchange) (vo_driver_t *, int data_type,
 			    void *data);
 
   /* check if a redraw is needed (due to resize)
    * this is only used for still frames, normal video playback 
    * must call that inside display_frame() function.
    */
-  int (*redraw_needed) (vo_driver_t *this);
+  int (*redraw_needed) (vo_driver_t *);
 
   /*
    * free all resources, close driver
    */
 
-  void (*dispose) (vo_driver_t *this);
+  void (*dispose) (vo_driver_t *);
   
   void *node; /* needed by plugin_loader */
 };
@@ -357,24 +360,24 @@ struct video_driver_class_s {
   /*
    * open a new instance of this plugin class
    */
-  vo_driver_t* (*open_plugin) (video_driver_class_t *this, const void *visual);
+  vo_driver_t* (*open_plugin) (video_driver_class_t *, const void *visual);
   
   /*
    * return short, human readable identifier for this plugin class
    */
-  char* (*get_identifier) (video_driver_class_t *this);
+  char* (*get_identifier) (video_driver_class_t *);
 
   /*
    * return human readable (verbose = 1 line) description for 
    * this plugin class
    */
-  char* (*get_description) (video_driver_class_t *this);
+  char* (*get_description) (video_driver_class_t *);
 
   /*
    * free all class-related resources
    */
 
-  void (*dispose) (video_driver_class_t *this);
+  void (*dispose) (video_driver_class_t *);
 };
 
 

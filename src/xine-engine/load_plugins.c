@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.147 2003/04/17 19:01:23 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.148 2003/04/20 21:13:22 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -513,8 +513,14 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
   while (node) {
 
     fprintf(fp, "[%s]\n", node->filename );
+
+#ifndef _MSC_VER
     fprintf(fp, "size=%llu\n", (unsigned long long) node->filesize );
     fprintf(fp, "mtime=%llu\n", (unsigned long long) node->filemtime );
+#else
+    fprintf(fp, "size=%llu\n", (uint64_t) node->filesize );
+    fprintf(fp, "mtime=%llu\n", (uint64_t) node->filemtime );
+#endif /* _MSC_VER  */
     
     fprintf(fp, "type=%d\n", node->info->type );
     fprintf(fp, "api=%d\n", node->info->API );
@@ -568,7 +574,13 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   ao_info_t *ao_info = NULL;
   post_info_t *post_info = NULL;
   int i;
+
+#ifndef _MSC_VER
   unsigned long long llu;
+#else
+  uint64_t llu;
+#endif /* _MSC_VER */
+
   unsigned long lu;
   char line[1024];
   char *value;
@@ -929,18 +941,26 @@ void scan_plugins (xine_t *this) {
 #ifdef LOG
   printf("load_plugins: scan_plugins()\n");
 #endif
+
+/* TODO - This needs to be fixed for WIN32 */
+#ifndef WIN32
   if (this == NULL || this->config == NULL) {
     fprintf(stderr, "%s(%s@%d): parameter should be non null, exiting\n",
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
     abort();
   }
+#endif
 
   homedir = xine_get_homedir();
   this->plugin_catalog = _new_catalog();
   load_cached_catalog (this);
 
   if ( !(pluginpath = getenv("XINE_PLUGIN_PATH")) ){
+#ifndef _MSC_VER
     pluginpath = "~/.xine/plugins:" XINE_PLUGINDIR;
+#else
+	pluginpath = XINE_PLUGINDIR;
+#endif
   }
   plugindir = xine_xmalloc(strlen(pluginpath)+strlen(homedir)+2);
   j=0;

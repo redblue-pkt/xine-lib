@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.47 2003/03/25 21:26:01 heikos Exp $
+ * $Id: xineutils.h,v 1.48 2003/04/20 21:13:28 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -101,8 +101,13 @@ uint32_t xine_mm_accel (void);
 #ifdef ARCH_X86
 
 typedef	union {
+#ifdef _MSC_VER
+	int64_t		q;	/* Quadword (64-bit) value */
+	uint64_t	uq;	/* Unsigned Quadword */
+#else
 	long long		q;	/* Quadword (64-bit) value */
 	unsigned long long	uq;	/* Unsigned Quadword */
+#endif
 	int			d[2];	/* 2 Doubleword (32-bit) values */
 	unsigned int		ud[2];	/* 2 Unsigned Doubleword */
 	short			w[4];	/* 4 Word (16-bit) values */
@@ -569,7 +574,18 @@ typedef	union {
 
 		     /* Optimized/fast memcpy */
 
+/*
+   TODO : fix dll linkage problem for xine_fast_memcpy on win32
+
+   xine_fast_memcpy dll linkage is screwy here.
+   declairing as dllinport seems to fix the problem
+   but causes compiler warning with libxineutils
+*/
+#ifdef _MSC_VER
+void __declspec( dllimport ) *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
+#else
 extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
+#endif
 
 #ifdef HAVE_XINE_INTERNAL_H
 /* Benchmark available memcpy methods */
@@ -820,6 +836,25 @@ void xine_print_trace(void);
     }                                                               \
   } while(0)
 #else /* not GNU C, assume we have a C99 compiler */
+
+#ifdef _MSC_VER
+/*
+  #define XINE_ASSERT(exp, desc)	((void)((exp) || \
+            (printf desc, _assert(#exp, __FILE__, __LINE__), 0)))
+
+*/
+#  define XINE_ASSERT(exp, desc)                           \
+  do {                                                              \
+    if (!(exp)) {                                                   \
+      printf("%s:%s:%d: assertion `%s' failed. ",                   \
+             __FILE__, __XINE_FUNCTION__, __LINE__, #exp);          \
+      printf(desc);                                                 \
+      printf("\n\n");                                               \
+      xine_print_trace();                                           \
+      XINE_ABORT();                                                 \
+    }                                                               \
+  } while(0)
+#else
 # define XINE_ASSERT(exp, ...)                                      \
   do {                                                              \
     if (!(exp)) {                                                   \
@@ -831,6 +866,8 @@ void xine_print_trace(void);
       XINE_ABORT();                                                 \
     }                                                               \
   } while(0)
+#endif /* _MSC_VER */
+
 #endif
 
 

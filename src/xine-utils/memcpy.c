@@ -36,7 +36,10 @@
 #ifdef ARCH_PPC
 #include "ppcasm_string.h"
 #endif
+
+#ifndef _MSC_VER
 #include <sys/times.h>
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -111,6 +114,7 @@ quote of the day:
 
 #ifdef ARCH_X86
 
+#ifndef _MSC_VER
 /* for small memory blocks (<256 bytes) this version is faster */
 #define small_memcpy(to,from,n)\
 {\
@@ -371,19 +375,25 @@ void * mmx2_memcpy(void * to, const void * from, size_t len)
 static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
   return __memcpy(to,from,len);
 }
-
+#endif /* _MSC_VER */
 #endif /* ARCH_X86 */
 
 static struct {
   char *name;
   void *(* function)(void *to, const void *from, size_t len);
+
+#ifdef _MSC_VER
+  uint64_t time; /* This type could be used for non-MSC build too! */
+#else
   unsigned long long time;
+#endif /* _MSC_VER */
+
   uint32_t cpu_require;
 } memcpy_method[] =
 {
   { NULL, NULL, 0, 0 },
   { "glibc memcpy()", memcpy, 0, 0 },
-#ifdef ARCH_X86
+#if defined(ARCH_X86) && !defined(_MSC_VER)
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
   { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX },
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
@@ -396,7 +406,7 @@ static struct {
   { NULL, NULL, 0, 0 }
 };
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) && !defined(_MSC_VER)
 static unsigned long long int rdtsc(int config_flags)
 {
   unsigned long long int x;
@@ -410,11 +420,16 @@ static unsigned long long int rdtsc(int config_flags)
   }
 }
 #else
-static unsigned long long int rdtsc(int config_flags)
+
+static uint64_t rdtsc(int config_flags)
 {
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
+#ifndef _MSC_VER
   return times(NULL);
+#else
+	return ((uint64_t)0);
+#endif /* _MSC_VER */
 }
 #endif
 
@@ -443,13 +458,18 @@ static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
 #define BUFSIZE 1024*1024
 void xine_probe_fast_memcpy(config_values_t *config)
 {
+#ifdef _MSC_VER
+  uint64_t t;
+#else
   unsigned long long t;
+#endif /* _MSC_VER */
+
   char *buf1, *buf2;
   int i, j, best;
   int config_flags = -1;
   static char *memcpy_methods[] = {
     "probe", "glibc",
-#ifdef ARCH_X86
+#if defined(ARCH_X86) && !defined(_MSC_VER)
     "kernel", "mmx", "mmxext", "sse",
 #endif
 #ifdef ARCH_PPC
