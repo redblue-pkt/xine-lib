@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.77 2002/09/18 15:39:51 mroi Exp $
+ * $Id: xine_decoder.c,v 1.78 2002/10/14 14:00:19 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -260,6 +260,8 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
           overlay_event->vpts);
 #endif
         ovl_instance->add_event (ovl_instance, (void *)overlay_event);
+        free(overlay_event);
+        free(overlay);
       } else {
         free(overlay_event);
         free(overlay);
