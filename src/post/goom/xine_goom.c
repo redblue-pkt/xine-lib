@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.13 2002/12/30 14:26:50 mroi Exp $
+ * $Id: xine_goom.c,v 1.14 2003/01/03 02:38:09 tmmm Exp $
  *
  * GOOM post plugin.
  *
@@ -57,7 +57,8 @@ struct post_plugin_goom_s {
   int sample_rate;
   int sample_counter;
   int samples_per_frame;
-  
+
+  yuv_planes_t yuv;  
 };
 
 typedef struct post_goom_out_s post_goom_out_t;
@@ -141,7 +142,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->sample_counter = 0;
   this->stream  = NULL;
   this->vo_port = video_target[0];
-  
+
   port = post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = goom_port_open;
   port->port.close = goom_port_close;
@@ -284,6 +285,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->samples_per_frame = rate / FPS;
   this->sample_rate = rate; 
   this->stream = stream;
+  init_yuv_planes(&this->yuv, GOOM_WIDTH, GOOM_HEIGHT);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
@@ -292,6 +294,8 @@ static void goom_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream )
 
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
+
+  free_yuv_planes(&this->yuv);
 
   this->stream = NULL;
  
@@ -340,63 +344,63 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
     frame->pts = buf->vpts;
     frame->duration = 90000 * this->sample_counter / this->sample_rate;
   
-#if 0
-    /* FIXME: use accelerated color conversion */
-    for (i=0, j=0; i<GOOM_WIDTH * GOOM_HEIGHT; i+=2, j+=4) {
-      double r1 = (goom_frame[i]   & 0xFF0000) >> 16;
-      double g1 = (goom_frame[i]   &   0xFF00) >>  8;
-      double b1 = (goom_frame[i]   &     0xFF);
-      double r2 = (goom_frame[i+1] & 0xFF0000) >> 16;
-      double g2 = (goom_frame[i+1] &   0xFF00) >>  8;
-      double b2 = (goom_frame[i+1] &     0xFF);
-      uint8_t y1 = (0.257 * r1) + (0.504 * g1) + (0.098 * b1) + 16;
-      uint8_t y2 = (0.257 * r2) + (0.504 * g2) + (0.098 * b2) + 16;
-      uint8_t u  = -(0.074 * (r1 + r2)) - (0.1455 * (g1 + g2)) + (0.2195 * (b1 + b2)) + 128;
-      uint8_t v  =  (0.2195 * (r1 + r2)) - (0.184 * (g1 + g2)) - (0.0355 * (b1 + b2)) + 128;
-  
-      frame -> base[0][j]   = y1;
-      frame -> base[0][j+1] = u;
-      frame -> base[0][j+2] = y2;
-      frame -> base[0][j+3] = v;
-    
-    }
-#endif
-
-#if 1
-
     /* Try to be fast */
     dest_ptr = frame -> base[0];
     goom_frame_end = goom_frame + 4 * (GOOM_WIDTH * GOOM_HEIGHT);
-    while (goom_frame < goom_frame_end) {
-      uint8_t r1, g1, b1, r2, g2, b2;
+
+    if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
+      int plane_ptr = 0;
+
+      while (goom_frame < goom_frame_end) {
+        uint8_t r, g, b;
+      
+        /* don't take endianness into account since MMX is only available
+         * on Intel processors */
+        b = *goom_frame; goom_frame++;
+        g = *goom_frame; goom_frame++;
+        r = *goom_frame; goom_frame += 2;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+
+
+      yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
+
+    } else {
+
+      while (goom_frame < goom_frame_end) {
+        uint8_t r1, g1, b1, r2, g2, b2;
       
 #ifdef __BIG_ENDIAN__
-      goom_frame ++;
-      r1 = *goom_frame; goom_frame++;
-      g1 = *goom_frame; goom_frame++;
-      b1 = *goom_frame; goom_frame += 2;
-      r2 = *goom_frame; goom_frame++;
-      g2 = *goom_frame; goom_frame++;
-      b2 = *goom_frame; goom_frame++;
+        goom_frame ++;
+        r1 = *goom_frame; goom_frame++;
+        g1 = *goom_frame; goom_frame++;
+        b1 = *goom_frame; goom_frame += 2;
+        r2 = *goom_frame; goom_frame++;
+        g2 = *goom_frame; goom_frame++;
+        b2 = *goom_frame; goom_frame++;
 #else
-      b1 = *goom_frame; goom_frame++;
-      g1 = *goom_frame; goom_frame++;
-      r1 = *goom_frame; goom_frame += 2;
-      b2 = *goom_frame; goom_frame++;
-      g2 = *goom_frame; goom_frame++;
-      r2 = *goom_frame; goom_frame += 2;
+        b1 = *goom_frame; goom_frame++;
+        g1 = *goom_frame; goom_frame++;
+        r1 = *goom_frame; goom_frame += 2;
+        b2 = *goom_frame; goom_frame++;
+        g2 = *goom_frame; goom_frame++;
+        r2 = *goom_frame; goom_frame += 2;
 #endif
       
-      *dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
-      dest_ptr++;
-      *dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
-      dest_ptr++;
-      *dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
-      dest_ptr++;
-      *dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
-      dest_ptr++;
+        *dest_ptr = COMPUTE_Y(r1, g1, b1);
+        dest_ptr++;
+        *dest_ptr = COMPUTE_U(r1, g1, b1);
+        dest_ptr++;
+        *dest_ptr = COMPUTE_Y(r2, g2, b2);
+        dest_ptr++;
+        *dest_ptr = COMPUTE_V(r2, g2, b2);
+        dest_ptr++;
+      }
     }
-#endif
 
     frame->draw(frame, stream);
     frame->free(frame);
