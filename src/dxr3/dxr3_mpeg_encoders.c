@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.19 2004/04/11 15:27:20 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.20 2004/07/20 16:37:44 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -46,10 +46,12 @@
 #include <errno.h>
 #include <math.h>
 
+#define LOG_MODULE "dxr3_mpeg_encoder"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xineutils.h"
 #include "video_out_dxr3.h"
-
-#define LOG_ENC 1
 
 /* buffer size for encoded mpeg1 stream; will hold one intra frame 
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
@@ -147,9 +149,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   double fps;
 
   if (this->context) { /* already running */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: closing current encoding context.\n");
-#endif
+    lprintf("closing current encoding context.\n");
     rte_stop(this->context);
     rte_context_destroy(this->context);
     this->context = 0;
@@ -357,15 +357,11 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     memset(this->out[0], 16, image_size);
     memset(this->out[1], 128, image_size/4);
     memset(this->out[2], 128, image_size/4);
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: Using YUY2->YV12 conversion\n");  
-#endif
+    lprintf("Using YUY2->YV12 conversion\n");  
   }
 
   if (this->context) {
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: closing current encoding context.\n");
-#endif
+    lprintf("closing current encoding context.\n");
     fame_close(this->context);
     this->context = 0;
   }
@@ -392,13 +388,11 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     _("The encoding quality of the libfame mpeg encoder library. "
       "Lower is faster but gives noticeable artifacts. Higher is better but slower."),
     10, NULL,NULL);
-#if LOG_ENC
   /* the really interesting bit is the quantizer scale. The formula
    * below is copied from libfame's sources (could be changed in the
    * future) */
-  printf("dxr3_mpeg_encoder: quality %d -> quant scale = %d\n", this->fp.quality,
+  lprintf("quality %d -> quant scale = %d\n", this->fp.quality,
     1 + (30 * (100 - this->fp.quality) + 50) / 100);
-#endif
   this->fp.width   = frame->vo_frame.width;
   this->fp.height  = frame->oheight;
   this->fp.profile = "mpeg1";
@@ -412,27 +406,19 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* start guessing the framerate */
   fps = 90000.0 / frame->vo_frame.duration;
   if (fps < 23.988) { /* NTSC-FILM */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC-FILM (23.976 Hz)\n");
-#endif
+    lprintf("setting mpeg output framerate to NTSC-FILM (23.976 Hz)\n");
     this->fp.frame_rate_num = 24000;
     this->fp.frame_rate_den = 1001; 
   } else if (fps < 24.5) { /* FILM */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to FILM (24 Hz)\n");
-#endif
+    lprintf("setting mpeg output framerate to FILM (24 Hz)\n");
     this->fp.frame_rate_num = 24;
     this->fp.frame_rate_den = 1; 
   } else if (fps < 27.485) { /* PAL */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to PAL (25 Hz)\n");
-#endif
+    lprintf("setting mpeg output framerate to PAL (25 Hz)\n");
     this->fp.frame_rate_num = 25;
     this->fp.frame_rate_den = 1; 
   } else { /* NTSC */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-#endif
+    lprintf("setting mpeg output framerate to NTSC (29.97 Hz)\n");
     this->fp.frame_rate_num = 30000;
     this->fp.frame_rate_den = 1001;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.7 2004/03/04 14:40:04 mroi Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.8 2004/07/20 16:37:44 mroi Exp $
  */
 
 #include <stdio.h>
@@ -25,10 +25,8 @@
 #include <float.h>
 
 #define LOG_MODULE "dxr3_spu_encoder"
-/*
-#define LOG_VERBOSE
-#define LOG
-*/
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "video_out_dxr3.h"
 

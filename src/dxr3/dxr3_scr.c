@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.15 2004/07/11 11:47:10 hadess Exp $
+ * $Id: dxr3_scr.c,v 1.16 2004/07/20 16:37:44 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -34,10 +34,12 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define LOG_MODULE "dxr3_scr"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "dxr3.h"
 #include "dxr3_scr.h"
-
-#define LOG_SCR 0
 
 
 /* functions required by xine api */
@@ -51,6 +53,7 @@ static void    dxr3_scr_exit(scr_plugin_t *scr);
 /* config callback */
 static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 
+/* inline helper implementations */
 static inline int dxr3_mvcommand(int fd_control, int command)
 {
   em8300_register_t reg;
@@ -61,6 +64,7 @@ static inline int dxr3_mvcommand(int fd_control, int command)
   
   return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
 }
+
 
 dxr3_scr_t *dxr3_scr_init(xine_t *xine)
 {
@@ -103,9 +107,7 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   
   pthread_mutex_init(&this->mutex, NULL);
   
-#if LOG_SCR
-  printf("dxr3_scr: init complete\n");
-#endif
+  lprintf("init complete\n");
   return this;
 }
 
@@ -126,9 +128,7 @@ static void dxr3_scr_start(scr_plugin_t *scr, int64_t vpts)
   this->offset = vpts - ((int64_t)vpts32 << 1);
   if (ioctl(this->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: start failed (%s)\n", strerror(errno));
-#if LOG_SCR
-  printf("dxr3_scr: started with vpts %lld\n", vpts);
-#endif
+  lprintf("started with vpts %lld\n", vpts);
   /* mis-use vpts32 to set the clock speed to 0x900, which is normal speed */
   vpts32 = 0x900;
   ioctl(this->fd_control, EM8300_IOCTL_SCR_SETSPEED, &vpts32);
@@ -178,9 +178,7 @@ static void dxr3_scr_adjust(scr_plugin_t *scr, int64_t vpts)
     this->last_pts = vpts32;
     this->offset = vpts - ((int64_t)vpts32 << 1);
   }
-#if LOG_SCR
-  printf("dxr3_scr: adjusted to vpts %lld\n", vpts);
-#endif
+  lprintf("adjusted to vpts %lld\n", vpts);
   pthread_mutex_unlock(&this->mutex);
 }
 
@@ -237,9 +235,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   
   pthread_mutex_unlock(&this->mutex);
   
-#if LOG_SCR
-  printf("dxr3_scr: speed set to mode %d\n", speed);
-#endif
+  lprintf("speed set to mode %d\n", speed);
   return speed;
 }
 

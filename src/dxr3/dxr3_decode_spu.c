@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.48 2004/07/11 11:47:10 hadess Exp $
+ * $Id: dxr3_decode_spu.c,v 1.49 2004/07/20 16:37:44 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -37,10 +37,8 @@
 #include <errno.h>
 
 #define LOG_MODULE "dxr3_decode_spu"
-#define LOG_VERBOSE
-/*
-#define LOG
-*/
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #define LOG_PTS 0
 #define LOG_SPU 0
@@ -101,7 +99,7 @@ typedef struct dxr3_spu_stream_state_s {
   int                      spu_length;
   int                      spu_ctrl;
   int                      spu_end;
-  int                      end_found;
+  int                      parse;
   int                      bytes_passed; /* used to parse the spu */
 } dxr3_spu_stream_state_t;
 
@@ -140,12 +138,15 @@ typedef struct dxr3_spudec_s {
 } dxr3_spudec_t;
 
 /* helper functions */
+static inline int  dxr3_present(xine_stream_t *stream);
 /* the NAV functions must be called with the pci_lock held */
 static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this);
 static inline void dxr3_spudec_update_nav(dxr3_spudec_t *this);
 static void        dxr3_spudec_process_nav(dxr3_spudec_t *this);
 static int         dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn);
+static inline void dxr3_swab_clut(int* clut);
 
+/* inline helper implementations */
 static inline int dxr3_present(xine_stream_t *stream)
 {
   plugin_node_t *node;
@@ -162,27 +163,6 @@ static inline int dxr3_present(xine_stream_t *stream)
   }
   llprintf(LOG_SPU, "dxr3 %s\n", present ? "present" : "not present");
   return present;
-}
-
-static inline void dxr3_spudec_handle_event(dxr3_spudec_t *this)
-{
-  xine_event_t *event;
-  
-  while ((event = xine_event_get(this->event_queue))) {
-    llprintf(LOG_SPU, "event caught: SPU_FD = %i\n",this->fd_spu);
-  
-    switch (event->type) {
-    case XINE_EVENT_FRAME_FORMAT_CHANGE:
-      /* we are in anamorphic mode, if the frame is 16:9, but not pan&scan'ed */
-      this->anamorphic =
-	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
-	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
-      llprintf(LOG_BTN, "anamorphic mode %s\n", this->anamorphic ? "on" : "off");
-      break;
-    }
-  
-    xine_event_free(event);
-  }
 }
 
 static inline void dxr3_spudec_clear_nav_list(dxr3_spudec_t *this)
@@ -215,6 +195,7 @@ static inline void dxr3_swab_clut(int *clut)
     clut[i] = bswap_32(clut[i]);
 }
 
+
 static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
 {
   dxr3_spudec_class_t *this;
@@ -238,7 +219,6 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   dxr3_spudec_t *this;
   dxr3_spudec_class_t *class = (dxr3_spudec_class_t *)class_gen;
   char tmpstr[128];
-  int i;
   
   if (class->instance) return NULL;
   if (!dxr3_present(stream)) return NULL;
@@ -282,9 +262,6 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   }
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
   
-  for (i = 0; i < MAX_SPU_STREAMS; i++)
-    this->spu_stream_state[i].spu_length = 0;
-  
   this->menu                          = 0;
   this->button_filter                 = 1;
   this->pci_cur.pci.hli.hl_gi.hli_ss  = 0;
@@ -323,8 +300,24 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   uint32_t stream_id = buf->type & 0x1f;
   dxr3_spu_stream_state_t *state = &this->spu_stream_state[stream_id];
   uint32_t spu_channel = this->stream->spu_channel;
+  xine_event_t *event;
   
-  dxr3_spudec_handle_event(this);
+  /* handle queued events */
+  while ((event = xine_event_get(this->event_queue))) {
+    llprintf(LOG_SPU, "event caught: SPU_FD = %i\n",this->fd_spu);
+  
+    switch (event->type) {
+    case XINE_EVENT_FRAME_FORMAT_CHANGE:
+      /* we are in anamorphic mode, if the frame is 16:9, but not pan&scan'ed */
+      this->anamorphic =
+	(((xine_format_change_data_t *)event->data)->aspect == 3) &&
+	(((xine_format_change_data_t *)event->data)->pan_scan == 0);
+      llprintf(LOG_BTN, "anamorphic mode %s\n", this->anamorphic ? "on" : "off");
+      break;
+    }
+  
+    xine_event_free(event);
+  }
   
   if ( (buf->type & 0xffff0000) != BUF_SPU_DVD ||
        !(buf->decoder_flags & BUF_FLAG_SPECIAL) || 
@@ -419,44 +412,87 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   dxr3_spudec_update_nav(this);
   pthread_mutex_unlock(&this->pci_lock);
   
-  /* Look for the display duration entry in the spu packets.
-   * If the spu is a menu button highlight pane, this entry must not exist,
-   * because the spu is hidden, when the menu is left, not by timeout.
-   * Some broken dvds do not respect this and therefore confuse the spu
-   * decoding pipeline of the card. We fix this here.
+  /* We parse the SPUs command and end sequence here for two reasons:
+   * 1. Look for the display duration entry in the spu packets.
+   *    If the spu is a menu button highlight pane, this entry must not exist,
+   *    because the spu is hidden, when the menu is left, not by timeout.
+   *    Some broken dvds do not respect this and therefore confuse the spu
+   *    decoding pipeline of the card. We fix this here.
+   * 2. We need to handle SPU forcing here. When we only display forced
+   *    SPUs, we have to prevent normal unforced SPUs from being displayed.
+   *    But since that decision is only possible after parts of the SPU
+   *    have already been written to the card, we have to manipulate the
+   *    SPU's command sequence to prevent it from being displayed.
    */
   if (!state->spu_length) {
-    state->spu_length = buf->content[0] << 8 | buf->content[1];
-    state->spu_ctrl = (buf->content[2] << 8 | buf->content[3]) + 2;
-    state->spu_end = 0;
-    state->end_found = 0;
+    state->spu_length   =  buf->content[0] << 8 | buf->content[1];
+    state->spu_ctrl     = (buf->content[2] << 8 | buf->content[3]) + 2;
+    state->spu_end      = 0;
+    state->parse        = 0;
     state->bytes_passed = 0;
   }
-  if (!state->end_found) {
-    int offset_in_buffer = state->spu_ctrl - state->bytes_passed;
-    if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
-      state->spu_end = buf->content[offset_in_buffer] << 8;
-    offset_in_buffer++;
-    if (offset_in_buffer >= 0 && offset_in_buffer < buf->size) {
-      state->spu_end |= buf->content[offset_in_buffer];
-      state->end_found = 1;
+  if (state->spu_length) {
+    if (!state->parse) {
+      int offset_in_buffer = state->spu_ctrl - state->bytes_passed;
+      if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
+	state->spu_end = buf->content[offset_in_buffer] << 8;
+      offset_in_buffer++;
+      if (offset_in_buffer >= 0 && offset_in_buffer < buf->size) {
+	state->spu_end |= buf->content[offset_in_buffer];
+	state->parse = 2;
+      }
     }
+#if 0  /* TODO: this needs testing */
+    if (state->parse > 1) {
+      int offset_in_buffer;
+      do {
+	offset_in_buffer = state->spu_ctrl + state->parse - state->bytes_passed;
+	if (offset_in_buffer >= 0 && offset_in_buffer < buf->size) {
+	  switch (buf->content[offset_in_buffer]) {
+	  case 0x00:  /* force display */
+	    state->parse++;
+	    break;
+	  case 0x01:  /* show */
+	  case 0x02:  /* hide */
+	    /* when only forced SPUs are allowed, change show to hide */
+	    if (spu_channel & 0x80) buf->content[offset_in_buffer] = 0x02;
+	    state->parse++;
+	    break;
+	  case 0x03:  /* colour lookup table */
+	  case 0x04:  /* transparency palette */
+	    state->parse += 3;
+	    break;
+	  case 0x05:  /* position and size */
+	    state->parse += 7;
+	    break;
+	  case 0x06:  /* field offsets */
+	    state->parse += 5;
+	    break;
+	  case 0x07:  /* wipe */
+	  case 0xff:  /* end */
+	  default:
+	    state->parse = 1;  /* bail out */
+	  }
+	}
+      } while (offset_in_buffer < buf->size && state->parse > 1);
+    }
+#endif
+    if (state->parse && this->menu) {
+      int offset_in_buffer = state->spu_end - state->bytes_passed;
+      if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
+	buf->content[offset_in_buffer] = 0x00;
+      offset_in_buffer++;
+      if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
+	buf->content[offset_in_buffer] = 0x00;
+      offset_in_buffer += 3;
+      if (offset_in_buffer >= 0 && offset_in_buffer < buf->size &&
+	  buf->content[offset_in_buffer] == 0x02)
+	buf->content[offset_in_buffer] = 0x00;
+    }
+    state->spu_length -= buf->size;
+    if (state->spu_length < 0) state->spu_length = 0;
+    state->bytes_passed += buf->size;
   }
-  if (state->end_found && this->menu) {
-    int offset_in_buffer = state->spu_end - state->bytes_passed;
-    if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
-      buf->content[offset_in_buffer] = 0x00;
-    offset_in_buffer++;
-    if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
-      buf->content[offset_in_buffer] = 0x00;
-    offset_in_buffer += 3;
-    if (offset_in_buffer >= 0 && offset_in_buffer < buf->size &&
-        buf->content[offset_in_buffer] == 0x02)
-      buf->content[offset_in_buffer] = 0x00;
-  }
-  state->spu_length -= buf->size;
-  if (state->spu_length < 0) state->spu_length = 0;
-  state->bytes_passed += buf->size;
   
   /* filter unwanted streams */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
@@ -472,10 +508,16 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     llprintf(LOG_SPU, "Dropping SPU channel %d. Not selected stream_id\n", stream_id);
     return;
   }
+#if 0
+  /* We used to filter for SPU forcing here as well, but this does not work
+   * this way with the DXR3, because we have to evaluate the SPU command sequence
+   * to detect, if a particular SPU is forced or not. See the parsing code above. */
+#else
   if ((this->menu == 0) && (spu_channel & 0x80)) {
     llprintf(LOG_SPU, "Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
     return;
   }
+#endif
   
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   

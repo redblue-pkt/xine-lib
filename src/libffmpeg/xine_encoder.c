@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.15 2004/04/26 19:33:47 mroi Exp $
+ * $Id: xine_encoder.c,v 1.16 2004/07/20 16:37:45 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -29,10 +29,12 @@
 #include <errno.h>
 #include <math.h>
 
+#define LOG_MODULE "dxr3_mpeg_encoder"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "video_out_dxr3.h"
 #include "libavcodec/avcodec.h"
-
-#define LOG_ENC 0
 
 /* buffer size for encoded mpeg1 stream; will hold one intra frame 
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
@@ -65,9 +67,7 @@ int dxr3_encoder_init(dxr3_driver_t *drv)
   avcodec_init();
 
   register_avcodec(&mpeg1video_encoder);  
-#if LOG_ENC
-  printf("dxr3_mpeg_encoder: lavc init , version %x\n", avcodec_version());
-#endif
+  lprintf("lavc init , version %x\n", avcodec_version());
   this = xine_xmalloc(sizeof(lavc_data_t));
   if (!this) return 0;
 
@@ -113,38 +113,38 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     memset(this->out[0], 16, image_size);
     memset(this->out[1], 128, image_size/4);
     memset(this->out[2], 128, image_size/4);
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: Using YUY2->YV12 conversion\n");  
-#endif
+    lprintf("Using YUY2->YV12 conversion\n");  
   }
   
   /* resolution must be a multiple of two */
   if ((frame->vo_frame.pitches[0] % 2 != 0) || (frame->oheight % 2 != 0)) {
-    printf("dxr3_mpeg_encoder: lavc only handles video dimensions which are multiples of 2\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, 
+      "dxr3_mpeg_encoder: lavc only handles video dimensions which are multiples of 2\n");
     return 0;
   }
 
   /* get mpeg codec handle */
   codec = avcodec_find_encoder(CODEC_ID_MPEG1VIDEO);
   if (!codec) {
-    printf("dxr3_mpeg_encoder: lavc MPEG1 codec not found\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+      "dxr3_mpeg_encoder: lavc MPEG1 codec not found\n");
     return 0;
   }
-#if LOG_ENC
-  printf("dxr3_mpeg_encoder: lavc MPEG1 encoder found.\n");
-#endif
+  lprintf("lavc MPEG1 encoder found.\n");
 
   this->width  = frame->vo_frame.pitches[0];
   this->height = frame->oheight;
 
   this->context = avcodec_alloc_context();
   if (!this->context) {
-    printf("dxr3_mpeg_encoder: Couldn't start the ffmpeg library\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+      "dxr3_mpeg_encoder: Couldn't start the ffmpeg library\n");
     return 0;
   } 
   this->picture = avcodec_alloc_frame();
   if (!this->picture) {
-    printf("dxr3_mpeg_encoder: Couldn't allocate ffmpeg frame\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+      "dxr3_mpeg_encoder: Couldn't allocate ffmpeg frame\n");
     return 0;
   }
   
@@ -178,9 +178,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     10, NULL, NULL);  
   }
 
-#if LOG_ENC
-  printf("dxr3_mpeg_encoder: lavc -> bitrate %d  \n", this->context->bit_rate);
-#endif
+  lprintf("lavc -> bitrate %d  \n", this->context->bit_rate);
 
   this->context->width  = frame->vo_frame.pitches[0];
   this->context->height = frame->oheight;
@@ -201,17 +199,16 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   /* open avcodec */
   if (avcodec_open(this->context, codec) < 0) {
-    printf("dxr3_mpeg_encoder: could not open codec\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, "dxr3_mpeg_encoder: could not open codec\n");
     return 0;
   }
-#if LOG_ENC
-  printf("dxr3_mpeg_encoder: lavc MPEG1 codec opened.\n");
-#endif
+  lprintf("dxr3_mpeg_encoder: lavc MPEG1 codec opened.\n");
   
   if (!this->ffmpeg_buffer)
     this->ffmpeg_buffer = (unsigned char *)malloc(DEFAULT_BUFFER_SIZE); /* why allocate more than needed ?! */
   if (!this->ffmpeg_buffer) {
-    printf("dxr3_mpeg_encoder: Couldn't allocate temp buffer for mpeg data\n");
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+      "dxr3_mpeg_encoder: Couldn't allocate temp buffer for mpeg data\n");
     return 0;
   }
 
@@ -228,7 +225,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
     /* ignore old frames */
   if ((frame->vo_frame.pitches[0] != this->context->width) || (frame->oheight != this->context->height)) {
 	frame->vo_frame.free(&frame->vo_frame);
-    printf("LAVC ignoring frame !!!\n");
+    lprintf("LAVC ignoring frame !!!\n");
     return 1;
   }
 
@@ -242,22 +239,20 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   written = write(drv->fd_video, this->ffmpeg_buffer, size);
   if (written < 0) {
-      printf("dxr3_mpeg_encoder: video device write failed (%s)\n",
-           strerror(errno));
+      xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+        "dxr3_mpeg_encoder: video device write failed (%s)\n", strerror(errno));
       return 0;
     }
   if (written != size)
-      printf("dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n",
-           written, size);
+      xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+        "dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n", written, size);
   return 1;
 }
 
 static int lavc_on_unneeded(dxr3_driver_t *drv)
 {
   lavc_data_t *this = (lavc_data_t *)drv->enc;
-#if LOG_ENC
-  printf("dxr3_mpeg_encoder: flushing buffers\n");
-#endif
+  lprintf("flushing buffers\n");
   if (this->context) {
     avcodec_close(this->context);
     free(this->context);
@@ -278,7 +273,7 @@ static int lavc_prepare_frame(lavc_data_t *this, dxr3_driver_t *drv, dxr3_frame_
   if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
     /* need YUY2->YV12 conversion */
     if (!(this->out[0] && this->out[1] && this->out[2]) ) {
-      printf("dxr3_mpeg_encoder: Internal YV12 buffer not created.\n");
+      lprintf("Internal YV12 buffer not created.\n");
       return 0;
     }
     this->picture->data[0] = this->out[0] +  frame->vo_frame.pitches[0]      *  drv->top_bar;		/* y */

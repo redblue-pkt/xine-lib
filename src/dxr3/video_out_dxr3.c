@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.102 2004/06/13 16:00:17 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.103 2004/07/20 16:37:44 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -55,15 +55,19 @@
 #  include <X11/extensions/Xinerama.h>
 #endif
 
+#define LOG_MODULE "video_out_dxr3"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
+#define LOG_VID 0
+#define LOG_OVR 0
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "video_out.h"
 #include "alphablend.h"
 #include "dxr3.h"
 #include "video_out_dxr3.h"
-
-#define LOG_VID 0
-#define LOG_OVR 0
 
 /* the amount of extra time we give the card for decoding */
 #define DECODE_PIPE_PREBUFFER 10000
@@ -268,9 +272,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
     20, dxr3_update_enhanced_mode, this);
   
   snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300-%d", class->devnum);
-#if LOG_VID
-  printf("video_out_dxr3: Entering video init, devname = %s.\n", tmpstr);
-#endif
+  llprintf(LOG_VID, "Entering video init, devname = %s.\n", tmpstr);
   if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
 
     xprintf(this->class->xine, XINE_VERBOSITY_LOG,
@@ -401,9 +403,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   if (!(class->visual_type == XINE_VISUAL_TYPE_X11) && confnum > 1)
     /* no overlay modes when not using X11 -> switch to letterboxed tv */
     confnum = 0;
-#if LOG_VID
-  printf("video_out_dxr3: videomode = %s\n", videoout_modes[confnum]);
-#endif
+  llprintf(LOG_VID, "videomode = %s\n", videoout_modes[confnum]);
   switch (confnum) {
   case 0: /* letterboxed tv mode */
     this->overlay_enabled = 0;
@@ -418,9 +418,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #ifdef HAVE_X11
   case 2: /* letterboxed overlay mode */
   case 3: /* widescreen overlay mode */
-#if LOG_VID
-    printf("video_out_dxr3: setting up overlay mode\n");
-#endif
+    llprintf(LOG_VID, "setting up overlay mode\n");
     gather_screen_vars(this, visual_gen);
     this->overlay.xine = this->class->xine;
     if (dxr3_overlay_read_state(&this->overlay) == 0) {
@@ -460,21 +458,15 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   switch (confnum) {
   case 0: /* ntsc */
     this->tv_mode = EM8300_VIDEOMODE_NTSC;
-#if LOG_VID
-    printf("video_out_dxr3: setting tv_mode to NTSC\n");
-#endif
+    llprintf(LOG_VID, "setting tv_mode to NTSC\n");
     break;
   case 1: /* pal */
     this->tv_mode = EM8300_VIDEOMODE_PAL;
-#if LOG_VID
-    printf("video_out_dxr3: setting tv_mode to PAL 50Hz\n");
-#endif
+    llprintf(LOG_VID, "setting tv_mode to PAL 50Hz\n");
     break;
   case 2: /* pal60 */
     this->tv_mode = EM8300_VIDEOMODE_PAL60;
-#if LOG_VID
-    printf("video_out_dxr3: setting tv_mode to PAL 60Hz\n");
-#endif
+    llprintf(LOG_VID, "setting tv_mode to PAL 60Hz\n");
     break;
   default:
     this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
@@ -1087,17 +1079,13 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     switch(value) {
     case XINE_VO_ASPECT_SQUARE:
     case XINE_VO_ASPECT_4_3:
-#if LOG_VID
-      printf("video_out_dxr3: setting aspect ratio to full\n");
-#endif
+      llprintf(LOG_VID, "setting aspect ratio to full\n");
       val = EM8300_ASPECTRATIO_4_3;
       value = XINE_VO_ASPECT_4_3;
       break;
     case XINE_VO_ASPECT_ANAMORPHIC:
     case XINE_VO_ASPECT_DVB:
-#if LOG_VID
-      printf("video_out_dxr3: setting aspect ratio to anamorphic\n");
-#endif
+      llprintf(LOG_VID, "setting aspect ratio to anamorphic\n");
       val = EM8300_ASPECTRATIO_16_9;
       value = XINE_VO_ASPECT_ANAMORPHIC;
     }
@@ -1115,9 +1103,7 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     break;
   case VO_PROP_ZOOM_X:
     if (value == 1) {
-#if LOG_VID
-      printf("video_out_dxr3: enabling 16:9 zoom\n");
-#endif
+      llprintf(LOG_VID, "enabling 16:9 zoom\n");
       if (!this->widescreen_enabled) {
 	dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
 	if (!this->overlay_enabled) dxr3_zoomTV(this);
@@ -1126,20 +1112,25 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
 	 * can switch to 16:9 mode. But the dxr3 cannot do this. */
       }
     } else if (value == -1) {
-#if LOG_VID
-      printf("video_out_dxr3: disabling 16:9 zoom\n");
-#endif
+      llprintf(LOG_VID, "disabling 16:9 zoom\n");
       dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
     }
     break;
   case VO_PROP_TVMODE:
     if (++this->tv_mode > EM8300_VIDEOMODE_LAST) this->tv_mode = EM8300_VIDEOMODE_PAL;
-#if LOG_VID
-    printf("video_out_dxr3: Changing TVMode to ");
+#ifdef LOG
+    switch (this->tv_mode) {
+    case EM8300_VIDEOMODE_PAL:
+      llprintf(LOG_VID, "Changing TVMode to PAL\n");
+      break;
+    case EM8300_VIDEOMODE_PAL60:
+      llprintf(LOG_VID, "Changing TVMode to PAL60\n");
+      break;
+    case EM8300_VIDEOMODE_NTSC:
+      llprintf(LOG_VID, "Changing TVMode to NTSC\n");
+      break;
+    }
 #endif
-    if (this->tv_mode == EM8300_VIDEOMODE_PAL)   xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "PAL\n");
-    if (this->tv_mode == EM8300_VIDEOMODE_PAL60) xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "PAL60\n");
-    if (this->tv_mode == EM8300_VIDEOMODE_NTSC)  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "NTSC\n");
     if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 	      "video_out_dxr3: setting video mode failed (%s)\n", strerror(errno));
@@ -1209,15 +1200,11 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
       int window_showing = (int)data;
       int val;
       if (!window_showing) {
-#if LOG_VID
-        printf("video_out_dxr3: Hiding video window and diverting video to TV\n");
-#endif
+        llprintf(LOG_VID, "Hiding video window and diverting video to TV\n");
         val = EM8300_OVERLAY_MODE_OFF;
         this->overlay_enabled = 0;
       } else {
-#if LOG_VID
-        printf("video_out_dxr3: Using video window for overlaying video\n");
-#endif
+        llprintf(LOG_VID, "Using video window for overlaying video\n");
         val = EM8300_OVERLAY_MODE_OVERLAY;
         this->overlay_enabled = 1;
         this->scale.force_redraw = 1;
@@ -1239,9 +1226,7 @@ static void dxr3_dispose(vo_driver_t *this_gen)
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   int val = EM8300_OVERLAY_MODE_OFF;
 
-#if LOG_VID
-  printf("video_out_dxr3: vo exit called\n");
-#endif
+  llprintf(LOG_VID, "vo exit called\n");
   if (this->enc && this->enc->on_close)
     this->enc->on_close(this);
   if(this->overlay_enabled)
@@ -1299,10 +1284,8 @@ static void gather_screen_vars(dxr3_driver_t *this, const x11_visual_t *vis)
   this->overlay.screen_depth  = DisplayPlanes(this->display, scrn);
   this->scale.frame_output_cb = (void *)vis->frame_output_cb;
   
-#if LOG_OVR
-  printf("video_out_dxr3: xres: %d, yres: %d, depth: %d\n",
+  llprintf(LOG_OVR, "xres: %d, yres: %d, depth: %d\n",
     this->overlay.screen_xres, this->overlay.screen_yres, this->overlay.screen_depth);
-#endif
 }
 
 /* dxr3_overlay_read_state helper structure */
@@ -1327,14 +1310,10 @@ static int lookup_parameter(struct lut_entry *lut, char *name,
     if (strcmp(name, lut[i].name) == 0) {
       *ptr  = lut[i].ptr;
       *type = lut[i].type;
-#if LOG_OVR
-      printf("video_out_dxr3: found parameter \"%s\"\n", name);
-#endif
+      llprintf(LOG_OVR, "found parameter \"%s\"\n", name);
       return 1;
     }
-#if LOG_OVR
-  printf("video_out_dxr3: WARNING: unknown parameter \"%s\"\n", name);
-#endif
+  llprintf(LOG_OVR, "WARNING: unknown parameter \"%s\"\n", name);
   return 0;
 }
 
@@ -1372,9 +1351,7 @@ static int dxr3_overlay_read_state(dxr3_overlay_t *this)
   fname[sizeof(fname) - strlen(tmp) - sizeof("/.overlay")] = '\0';
   strcat(fname, "/.overlay");
   strcat(fname, tmp);
-#if LOG_OVR
-  printf("video_out_dxr3: attempting to open %s\n", fname);
-#endif
+  llprintf(LOG_OVR, "attempting to open %s\n", fname);
   if (!(fp = fopen(fname, "r"))) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, 
 	    _("video_out_dxr3: ERROR Reading overlay init file. Run autocal!\n"));
@@ -1390,33 +1367,23 @@ static int dxr3_overlay_read_state(dxr3_overlay_t *this)
       switch(type) {
       case TYPE_INT:
         sscanf(tok, "%d", (int *)ptr);
-#if LOG_OVR
-        printf("video_out_dxr3: value \"%s\" = %d\n", tok, *(int *)ptr);
-#endif
+        llprintf(LOG_OVR, "value \"%s\" = %d\n", tok, *(int *)ptr);
         break;
       case TYPE_XINT:
         sscanf(tok, "%x", (int *)ptr);
-#if LOG_OVR
-        printf("video_out_dxr3: value \"%s\" = %d\n", tok, *(int *)ptr);
-#endif
+        llprintf(LOG_OVR, "value \"%s\" = %d\n", tok, *(int *)ptr);
         break;
       case TYPE_FLOAT:
         sscanf(tok, "%f", (float *)ptr);
-#if LOG_OVR
-        printf("video_out_dxr3: value \"%s\" = %f\n", tok, *(float *)ptr);
-#endif
+        llprintf(LOG_OVR, "value \"%s\" = %f\n", tok, *(float *)ptr);
         break;
       case TYPE_COEFF:
         for(j = 0; j < 3; j++) {
           sscanf(tok, "%f", &((struct coeff *)ptr)[j].k);
-#if LOG_OVR
-          printf("video_out_dxr3: value (%d,k) \"%s\" = %f\n", j, tok, ((struct coeff *)ptr)[j].k);
-#endif
+          llprintf(LOG_OVR, "value (%d,k) \"%s\" = %f\n", j, tok, ((struct coeff *)ptr)[j].k);
           tok = strtok(NULL, " \n");
           sscanf(tok, "%f", &((struct coeff *)ptr)[j].m);
-#if LOG_OVR
-          printf("video_out_dxr3: value (%d,m) \"%s\" = %f\n", j, tok, ((struct coeff *)ptr)[j].m);
-#endif
+          llprintf(LOG_OVR, "value (%d,m) \"%s\" = %f\n", j, tok, ((struct coeff *)ptr)[j].m);
           tok = strtok(NULL, " \n");
         }
         break;
@@ -1451,18 +1418,14 @@ static int dxr3_overlay_set_keycolor(dxr3_overlay_t *this)
   int32_t overlay_limit;
   int ret;
 
-#if LOG_OVR
-  printf("video_out_dxr3: set_keycolor: r = %f, g = %f, b = %f, interval = %f\n",
+  llprintf(LOG_OVR, "set_keycolor: r = %f, g = %f, b = %f, interval = %f\n",
     r, g, b, interval);
-#endif
 
   overlay_limit =  /* lower limit */
     col_interp(r - interval, this->colcal_lower[0]) << 16 |
     col_interp(g - interval, this->colcal_lower[1]) <<  8 |
     col_interp(b - interval, this->colcal_lower[2]);
-#if LOG_OVR
-  printf("video_out_dxr3: lower overlay_limit = %d\n", overlay_limit);
-#endif
+  llprintf(LOG_OVR, "lower overlay_limit = %d\n", overlay_limit);
   attr.attribute = EM9010_ATTRIBUTE_KEYCOLOR_LOWER;
   attr.value     = overlay_limit;
   if ((ret = ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SET_ATTRIBUTE, &attr)) < 0) {
@@ -1475,9 +1438,7 @@ static int dxr3_overlay_set_keycolor(dxr3_overlay_t *this)
     col_interp(r + interval, this->colcal_upper[0]) << 16 |
     col_interp(g + interval, this->colcal_upper[1]) <<  8 |
     col_interp(b + interval, this->colcal_upper[2]);
-#if LOG_OVR
-  printf("video_out_dxr3: upper overlay_limit = %d\n", overlay_limit);
-#endif
+  llprintf(LOG_OVR, "upper overlay_limit = %d\n", overlay_limit);
   attr.attribute = EM9010_ATTRIBUTE_KEYCOLOR_UPPER;
   attr.value     = overlay_limit;
   if ((ret = ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SET_ATTRIBUTE, &attr)) < 0)
