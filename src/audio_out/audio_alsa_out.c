@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.21 2001/08/26 13:10:07 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.22 2001/08/26 15:24:24 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -460,12 +460,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
   snd_pcm_hw_params_alloca(&params);
  
-  pcm_device = config->lookup_str(config,"alsa_pcm_device", "hw:0,0");
+  pcm_device = config->lookup_str(config,"alsa_pcm_device", "default");
   ac3_device = config->lookup_str(config,"alsa_ac3_device", "hw:0,2");
 
  
   strcpy(this->audio_dev,pcm_device);
-  
+  printf("audio_alsa_out: devicename=%s\n",pcm_device);  
   /*
    * find best device driver/channel
    */
@@ -499,12 +499,15 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     this->capabilities |= AO_CAP_MODE_MONO;
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) 
     this->capabilities |= AO_CAP_MODE_STEREO;
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4))) 
-    this->capabilities |= AO_CAP_MODE_4CHANNEL;
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5))) 
-    this->capabilities |= AO_CAP_MODE_5CHANNEL;
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6))) 
-    this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
+    config->lookup_int (config, "four_channel", 0) ) 
+      this->capabilities |= AO_CAP_MODE_4CHANNEL;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5)) && 
+    config->lookup_int (config, "five_channel", 0) ) 
+      this->capabilities |= AO_CAP_MODE_5CHANNEL;
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
+    config->lookup_int (config, "five_lfe_channel", 0) ) 
+      this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
  
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
@@ -514,7 +517,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     strcpy(this->audio_dev,ac3_device);
     printf("AC3 pass through activated\n");
   }
-  printf("Audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
+  printf("audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
  
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
   this->ao_driver.get_property        = ao_alsa_get_property;
