@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.121 2002/10/18 12:28:10 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.122 2002/10/22 04:23:19 storri Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1118,8 +1118,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->stream = stream;
   this->input  = input;
-//  this->config = xine->config;
-//  this->xine   = xine;
+/*  
+  this->config = xine->config;
+  this->xine   = xine;
+*/  
   this->demux_plugin.send_headers      = demux_mpeg_block_send_headers;
   this->demux_plugin.start             = demux_mpeg_block_start;
   this->demux_plugin.seek              = demux_mpeg_block_seek;
@@ -1129,7 +1131,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
-//  this->demux_plugin.open              = demux_mpeg_block_open; /*????*/
+/*  this->demux_plugin.open              = demux_mpeg_block_open; ????*/
 
 #if 0
   /* Calling register_string() configure valid mrls in configfile */
@@ -1223,7 +1225,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     free (this);
     return NULL;
   }
-//  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+/*  strncpy (this->last_mrl, input->get_mrl (input), 1024); */
   return &this->demux_plugin;
 }
 

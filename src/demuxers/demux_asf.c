@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.67 2002/10/21 20:27:53 tmattern Exp $
+ * $Id: demux_asf.c,v 1.68 2002/10/22 04:23:19 storri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -512,7 +512,7 @@ static int asf_read_header (demux_asf_t *this) {
           this->streams[this->num_streams].defrag = 1;
         } else
           this->streams[this->num_streams].defrag = 0;
-        //
+        
 #ifdef LOG
         printf ("demux_asf: found a_stream id=%d \n", stream_id);
 #endif
