@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.127 2003/02/13 16:24:27 mroi Exp $
+ * $Id: input_dvd.c,v 1.128 2003/02/14 18:00:38 heikos Exp $
  *
  */
 
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <dirent.h>
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -132,6 +133,11 @@
 /* Array to hold MRLs returned by get_autoplay_list */
 #define MAX_DIR_ENTRIES 1250
 #define MAX_STR_LEN     255  
+
+#if defined (__FreeBSD__)
+# define off64_t off_t
+# define lseek64 lseek
+#endif
 
 typedef struct {
   input_plugin_t    input_plugin; /* Parent input plugin type        */
@@ -1652,6 +1658,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.128  2003/02/14 18:00:38  heikos
+ * FreeBSD compile fixes
+ *
  * Revision 1.127  2003/02/13 16:24:27  mroi
  * use the requested channel number when querying for the language
  * (the _cool_ menu in xine-ui displays the correct languages now)
