@@ -1,5 +1,6 @@
 xine (0.9.10) unstable; urgency=low
 
+  * fix VCD playback
   * libmad updated to 0.14.2b and optimized for speed 
   * cinepak video decoder (native)
   * libwin32 compilation fixes
