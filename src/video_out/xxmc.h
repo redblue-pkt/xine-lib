@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.2 2004/10/03 12:36:15 totte67 Exp $
+ * $Id: xxmc.h,v 1.3 2004/10/12 07:40:23 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -136,6 +136,7 @@ typedef struct {
   
   XvMCSurface       *xvmc_surf;
   xine_xxmc_t        xxmc_data;
+  int                last_sw_format;
 } xxmc_frame_t;
 
 typedef struct{
@@ -208,8 +209,6 @@ struct xxmc_driver_s {
 
   /* all scaling information goes here */
   vo_scale_t         sc;
-  xxmc_frame_t       deinterlace_frame;
-  int                deinterlace_method;
   int                deinterlace_enabled;
   int                use_colorkey;
   uint32_t           colorkey;
@@ -244,6 +243,8 @@ struct xxmc_driver_s {
   xvmc_surface_handler_t xvmc_surf_handler;
   unsigned           xvmc_mpeg;
   unsigned           xvmc_accel;
+  unsigned           last_accel_request;
+  unsigned           fallback_used;
   unsigned           xvmc_width;
   unsigned           xvmc_height;
   int                have_xvmc_autopaint;

@@ -25,6 +25,7 @@
     menu and feature with the Escape key [bug #1025469]
   * video image scaling can now be disabled for more video output plugins
     than XShm [feature requests #987635, #856408]
+  * Updated the xxmc driver with a better software fallback mechanism
     
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.

@@ -48,8 +48,12 @@ static uint8_t alternate_scan [64] ATTR_ALIGN(16) =
 
 
 
-void mpeg2_xxmc_choose_coding(int decoder_format, picture_t *picture) 
+void mpeg2_xxmc_choose_coding(mpeg2dec_t *mpeg2dec, picture_t *picture,
+			      double aspect_ratio, int flags) 
 {
+  int
+    decoder_format = mpeg2dec->frame_format; 
+
   if (picture->current_frame) {
     if (XINE_IMGFMT_XXMC == decoder_format) {
       xine_xxmc_t *xxmc = (xine_xxmc_t *) 
@@ -60,11 +64,27 @@ void mpeg2_xxmc_choose_coding(int decoder_format, picture_t *picture)
        * the output plugin.
        */
       
-      xxmc->format = XINE_IMGFMT_XXMC;
+      xxmc->fallback_format = XINE_IMGFMT_YV12;
       xxmc->acceleration = XINE_XVMC_ACCEL_VLD| XINE_XVMC_ACCEL_IDCT
 	| XINE_XVMC_ACCEL_MOCOMP ;
+
+      /*
+       * Standard MOCOMP / IDCT XvMC implementation for interlaced streams 
+       * is buggy. The bug is inherited from the old XvMC driver. Don't use it until
+       * it has been fixed. (A volunteer ?)
+       */
+
+      if ( picture->picture_structure != 3 ) {
+	xxmc->acceleration &= ~( XINE_XVMC_ACCEL_IDCT | XINE_XVMC_ACCEL_MOCOMP );
+      } 
+
       xxmc->mpeg = (picture->mpeg1) ? XINE_XVMC_MPEG_1:XINE_XVMC_MPEG_2;
-      xxmc->proc_xxmc_frame(picture->current_frame);
+      xxmc->proc_xxmc_update_frame (picture->current_frame->driver, 
+				    picture->current_frame,
+				    picture->coded_picture_width,
+				    picture->coded_picture_height,
+				    aspect_ratio,
+				    XINE_IMGFMT_XXMC,flags);
     }
   }
 }

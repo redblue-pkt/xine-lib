@@ -285,7 +285,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
       if (mpeg2dec->frame_format == XINE_IMGFMT_XXMC) {
 	xine_xxmc_t *xxmc = (xine_xxmc_t *) 
 	  picture->current_frame->accel_data;
-	switch(xxmc->format) {
+	switch(picture->current_frame->format) {
 	case XINE_IMGFMT_XXMC:
 	  switch(xxmc->acceleration) {
 	  case XINE_XVMC_ACCEL_VLD:
@@ -533,7 +533,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		     * Move to libmpeg2_accel.c
 		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
 		     */
-		    mpeg2_xxmc_choose_coding(mpeg2dec->frame_format, picture);
+		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, get_aspect_ratio(mpeg2dec),
+					     flags);
 		    /*
 		     * End of new frame accel code.
 		     */
@@ -549,7 +550,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		     * Move to libmpeg2_accel.c
 		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
 		     */
-		    mpeg2_xxmc_choose_coding(mpeg2dec->frame_format, picture);
+		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, 
+					     get_aspect_ratio(mpeg2dec), flags);
 		    /*
 		     * End of new frame accel code.
 		     */
@@ -632,7 +634,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    {
 	      xine_xxmc_t *xxmc = (xine_xxmc_t *) 
 		picture->current_frame->accel_data;
-	      switch(xxmc->format) {
+	      switch(picture->current_frame->format) {
 	      case XINE_IMGFMT_XXMC:
 		switch(xxmc->acceleration) {
 		case XINE_XVMC_ACCEL_VLD:

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.3 2004/10/04 08:57:55 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.4 2004/10/12 07:40:23 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -31,11 +31,9 @@
  *
  * overlay support by James Courtier-Dutton <James@superbug.demon.co.uk> - July 2001
  * X11 unscaled overlay support by Miguel Freitas - Nov 2003
- * XvMC VLD implementation by Thomas Hellström - August-Sep 2004
+ * XvMC VLD implementation by Thomas Hellström - August-Oct 2004
  * XvMC merge by Thomas Hellström - Sep 2004
  *
- * Test IDCT
- * Test VLD
  */
 
 
@@ -43,7 +41,7 @@
 #include "xxmc.h"
 
 static int gX11Fail;
-static int xxmc_xvmc_update_context(xxmc_driver_t *driver,xxmc_frame_t *frame);
+static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame);
 static void dispose_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 			    XvImage *myimage);
 
@@ -382,6 +380,7 @@ static void xvmc_flush(vo_frame_t *this_gen)
 
 /*
  * Callback function for the VO-loop to duplicate frame data.
+ * YV12 and YUY2 formats are taken care of in the xine-engine.
  */
 
 
@@ -396,79 +395,51 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
   XvMCSubpicture *tmp;
   int need_dummy;
 
-  if (original->format == XINE_IMGFMT_XXMC) {
-    xxmc = &orig->xxmc_data;
-    switch(xxmc->format) {
-    case XINE_IMGFMT_YV12:
-      yv12_to_yv12( original->base[0], original->pitches[0],
-		    this_gen->base[0], this_gen->pitches[0],
-		    original->base[1], original->pitches[1],
-		    this_gen->base[1], this_gen->pitches[1],
-		    original->base[2], original->pitches[2],
-		    this_gen->base[2], this_gen->pitches[2],
-		    this_gen->width, this_gen->height);
-      xprintf(xine, XINE_VERBOSITY_DEBUG, "Duplicate Frame YV12.\n");
-      break;
-    case XINE_IMGFMT_XXMC: 
-      xvmc_context_writer_lock( &driver->xvmc_lock);
-      if (!xxmc_xvmc_surface_valid(driver,orig->xvmc_surf)) {
-	xvmc_context_writer_unlock( &driver->xvmc_lock );
-	return;
-      }		
-      this->xxmc_data = *xxmc;
-      this->width = original->width;
-      this->height = original->height;
-      if (! xxmc_xvmc_update_context(driver,this) ) {
-	xvmc_context_writer_unlock( &driver->xvmc_lock );
-	return;
-      }	
-      xvmc_context_writer_unlock( &driver->xvmc_lock );
-      xvmc_context_reader_lock( &driver->xvmc_lock );
-      if (!xxmc_xvmc_surface_valid(driver,orig->xvmc_surf) || 
-	  !xxmc_xvmc_surface_valid(driver,this->xvmc_surf)) {
-	xvmc_context_reader_unlock( &driver->xvmc_lock );
-	return;
-      }
+  xxmc = &orig->xxmc_data;
+  xvmc_context_writer_lock( &driver->xvmc_lock);
+  if (!xxmc_xvmc_surface_valid(driver,orig->xvmc_surf)) {
+    xvmc_context_reader_unlock( &driver->xvmc_lock );
+    return;
+  }		
+  this->xxmc_data = *xxmc;
+  this->width = original->width;
+  this->height = original->height;
+  this->format = original->format;
+  
+  xxmc_frame_updates(driver,this); 
 
-      /*
-       * Allocate a dummy subpicture and copy using 
-       * XvMCBlendsubpicture2. VLD implementations can do blending with a 
-       * NULL subpicture. Use that if possible.
-       */
-      
-      need_dummy = (xxmc->acceleration != XINE_XVMC_ACCEL_VLD);
-      tmp = NULL;
-      if (need_dummy) {
-	tmp = xxmc_xvmc_alloc_subpicture( driver, &driver->context, 
-					  this->width, this->height,
-					  driver->xvmc_cap
-					  [driver->xvmc_cur_cap].subPicType.id);
-      }
-      if (tmp || !need_dummy) {
-	XVMCLOCKDISPLAY( driver->display );
-	if (tmp) XvMCClearSubpicture(driver->display, tmp , 0,0, this->width,
-				     this->height, 0);
-	if (Success == XvMCBlendSubpicture2( driver->display, orig->xvmc_surf, 
-					     this->xvmc_surf, tmp,
-					     0,0,this->width, this->height, 
-					     0,0,this->width, this->height)) {
-	  this->xxmc_data.decoded = 1;
-	}
-	XVMCUNLOCKDISPLAY( driver->display );
-	if (tmp) xxmc_xvmc_free_subpicture( driver, tmp);
-      }
-      
-      xvmc_context_reader_unlock( &driver->xvmc_lock );
-      xprintf(xine, XINE_VERBOSITY_DEBUG, "Duplicated XvMC frame %d %d.\n",
-	      this->width,this->height);
-      break;
-    default:
-      break;
-    }   
+  /*
+   * Allocate a dummy subpicture and copy using 
+   * XvMCBlendsubpicture2. VLD implementations can do blending with a 
+   * NULL subpicture. Use that if possible.
+   */
+
+  need_dummy = (xxmc->acceleration != XINE_XVMC_ACCEL_VLD);
+  tmp = NULL;
+  if (need_dummy) {
+    tmp = xxmc_xvmc_alloc_subpicture( driver, &driver->context, 
+				      this->width, this->height,
+				      driver->xvmc_cap
+				      [driver->xvmc_cur_cap].subPicType.id);
   }
-}
-
-
+  if (tmp || !need_dummy) {
+    XVMCLOCKDISPLAY( driver->display );
+    if (tmp) XvMCClearSubpicture(driver->display, tmp , 0,0, this->width,
+				 this->height, 0);
+    if (Success == XvMCBlendSubpicture2( driver->display, orig->xvmc_surf, 
+					 this->xvmc_surf, tmp,
+					 0,0,this->width, this->height, 
+					 0,0,this->width, this->height)) {
+      this->xxmc_data.decoded = 1;
+    }
+    XVMCUNLOCKDISPLAY( driver->display );
+    if (tmp) xxmc_xvmc_free_subpicture( driver, tmp);
+  }
+  
+  xvmc_context_reader_unlock( &driver->xvmc_lock );
+  xprintf(xine, XINE_VERBOSITY_DEBUG, "Duplicated XvMC frame %d %d.\n",
+	  this->width,this->height);
+}   
 
 static uint32_t xxmc_get_capabilities (vo_driver_t *this_gen) {
   xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
@@ -550,6 +521,9 @@ static vo_frame_t *xxmc_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.field      = xxmc_frame_field;
   frame->vo_frame.dispose    = xxmc_frame_dispose;
   frame->vo_frame.driver     = this_gen;
+  frame->last_sw_format      = 0;
+  frame->vo_frame.accel_data = &frame->xxmc_data;
+  frame->image               = NULL;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "Allocating frame\n");
 
@@ -591,7 +565,6 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 
   switch (format) {
   case XINE_IMGFMT_YV12: 
-  case XINE_IMGFMT_XXMC:
     xv_format = this->xv_format_yv12;
     break;
   case XINE_IMGFMT_YUY2:
@@ -702,7 +675,6 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 
     switch (format) {
     case XINE_IMGFMT_YV12:
-    case XINE_IMGFMT_XXMC:
       data = malloc (width * height * 3/2);
       break;
     case XINE_IMGFMT_YUY2:
@@ -758,6 +730,7 @@ static void xxmc_dispose_context(xxmc_driver_t *driver)
     XVMCUNLOCKDISPLAY( driver->display );
     driver->contextActive = 0;
     driver->hwSubpictures = 0; 
+    driver->xvmc_accel = 0;
   }
 }
 
@@ -938,8 +911,8 @@ static void xvmc_check_colorkey_properties(xxmc_driver_t *driver)
     XVMCUNLOCKDISPLAY( driver->display );
    
     /*
-     * If we have a shape overlay, switch to colorkey since we have a
-     * colorkey overlay.
+     * If we have a shape X11OSD, switch to colorkey X11OSD since we have a
+     * colorkey XvMC surface.
      */
 
     if ( driver->xoverlay ) {
@@ -958,7 +931,7 @@ static void xvmc_check_colorkey_properties(xxmc_driver_t *driver)
   } else {
 
     /*
-     * Not a colorkey overlay. Swith to shape.
+     * Not a colorkey XvMC surface. Switch to shape X11OSD
      */
 
     if ( driver->xoverlay ) {
@@ -975,7 +948,8 @@ static void xvmc_check_colorkey_properties(xxmc_driver_t *driver)
 }
 
 
-static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame) 
+static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame,
+				    uint32_t width, uint32_t height) 
 {
   xine_xxmc_t *xxmc = &frame->xxmc_data;
 
@@ -983,50 +957,52 @@ static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame)
    * Are we at all capable of doing XvMC ?
    */ 
 
-  if (driver->xvmc_cap == 0 || frame->format != XINE_IMGFMT_XXMC) 
+  
+  if (driver->xvmc_cap == 0) 
     return 0;
 
-  /*
-   * Determine if we have to change context.
-   */
-
-  if (((frame->width != driver->xvmc_width)  ||
-       (frame->height != driver->xvmc_height) ||
-       (xxmc->mpeg != driver->xvmc_mpeg))) {
-
-
-    xprintf(driver->xine, XINE_VERBOSITY_LOG,
-	    "video_out_xxmc: New format. Need to change XvMC Context.\n"
-	    "width: %d height: %d mpeg: %d acceleration: %d\n", frame->width, frame->height,
+  xprintf(driver->xine, XINE_VERBOSITY_LOG,
+	  "video_out_xxmc: New format. Need to change XvMC Context.\n"
+	  "width: %d height: %d mpeg: %d acceleration: %d\n", width, height,
 	    xxmc->mpeg, xxmc->acceleration);
+  
+  if (frame->xvmc_surf)
+    xxmc_xvmc_free_surface( driver , frame->xvmc_surf);
+  frame->xvmc_surf = NULL;
 
-    if (frame->xvmc_surf)
-      xxmc_xvmc_free_surface( driver , frame->xvmc_surf);
-    frame->xvmc_surf = NULL;
-
-
-    xxmc_dispose_context( driver );
-
-    if (xxmc_find_context( driver, xxmc, frame->width, frame->height )) {
-      xxmc_create_context( driver, frame->width, frame->height);
-      xvmc_check_colorkey_properties( driver );
-      xxmc_setup_subpictures(driver, frame->width, frame->height);
-      if ((driver->xvmc_accel & (XINE_XVMC_ACCEL_MOCOMP | XINE_XVMC_ACCEL_IDCT))) {
-	if (!xxmc_mocomp_create_macroblocks(driver, frame, 1)) {
-	  lprintf("video_out_xxmc: ERROR: Macroblock allocation failed\n");
-	  xxmc_dispose_context( driver );
-	}
+  xxmc_dispose_context( driver );
+  
+  if (xxmc_find_context( driver, xxmc, width, height )) {
+    xxmc_create_context( driver, width, height);
+    xvmc_check_colorkey_properties( driver );
+    xxmc_setup_subpictures(driver, width, height);
+    if ((driver->xvmc_accel & 
+	 (XINE_XVMC_ACCEL_MOCOMP | XINE_XVMC_ACCEL_IDCT))) {
+      if (!xxmc_mocomp_create_macroblocks(driver, frame, 1)) {
+	lprintf("video_out_xxmc: ERROR: Macroblock allocation failed\n");
+	xxmc_dispose_context( driver );
       }
     }
+  }
 
-    if (!driver->contextActive) {
-      printf("video_out_xxmc: Using software decoding for this stream.\n");
-      driver->xvmc_accel = 0;
-    } else {
-      printf("video_out_xxmc: Using hardware decoding for this stream.\n");
-    }
-  } 
+  if (!driver->contextActive) {
+    printf("video_out_xxmc: Using software decoding for this stream.\n");
+    driver->xvmc_accel = 0;
+  } else {
+    printf("video_out_xxmc: Using hardware decoding for this stream.\n");
+  }
     
+  driver->xvmc_mpeg = xxmc->mpeg;
+  driver->xvmc_width = width;
+  driver->xvmc_height = height;
+  return driver->contextActive;
+}
+
+static void xxmc_frame_updates(xxmc_driver_t *driver, 
+			       xxmc_frame_t *frame)
+{
+  xine_xxmc_t *xxmc = &frame->xxmc_data;
+
   /*
    * If we have changed context since the surface was updated, xvmc_surf
    * is either NULL or invalid. If it is invalid. Set it to NULL.
@@ -1042,92 +1018,54 @@ static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame)
   }
 
   /*
-   * If it is NULL, check that we have a valid XvMC context, and in that case,
-   * create a new surface.
+   * If it is NULL create a new surface.
    */ 
 
-  if ((frame->xvmc_surf == NULL) && (driver->contextActive) ) {
+  if (frame->xvmc_surf == NULL) {
     if (NULL == (frame->xvmc_surf = 
 		 xxmc_xvmc_alloc_surface( driver, &driver->context))) {
       printf("video_out_xxmc: ERROR: Accelerated surface allocation failed.\n"
 	     "video_out_xxmc: You are probably out of framebuffer memory.\n"
 	     "video_out_xxmc: Falling back to software decoding.\n");
-      
       driver->xvmc_accel = 0;
       xxmc_dispose_context( driver );
+      return;
     }        
   }
-  
 
-  driver->xvmc_mpeg = xxmc->mpeg;
-  driver->xvmc_width = frame->width;
-  driver->xvmc_height = frame->height;
-  return driver->contextActive;
+  xxmc->acceleration = driver->xvmc_accel;
+  xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
+  xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ? 
+    0 : XINE_VO_SIGNED_INTRA;
+  switch(driver->xvmc_accel) {
+  case XINE_XVMC_ACCEL_IDCT:
+    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
+    break;
+  case XINE_XVMC_ACCEL_MOCOMP:
+    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL; 
+    break;
+  default:
+    xxmc->xvmc.macroblocks->xvmc_accel = 0;
+  }
+  driver->macroblocks.num_blocks = 0;
+  driver->macroblocks.macroblockptr = driver->macroblocks.macroblockbaseptr;
+  driver->macroblocks.xine_mc.blockptr = 
+    driver->macroblocks.xine_mc.blockbaseptr;
+
+  /*
+   * Accelerated callbacks.
+   */
+
+  xxmc->proc_xxmc_flush = xvmc_flush;
+  xxmc->xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
+  frame->vo_frame.proc_duplicate_frame_data = xxmc_duplicate_frame_data;
+#ifdef HAVE_VLDXVMC
+  xxmc->proc_xxmc_begin = xvmc_vld_frame;
+  xxmc->proc_xxmc_slice = xvmc_vld_slice;
+#endif
+
 }
 
-
-/*
- * This one is called by the decoder to tell us what type of
- * XxMC image format it really want to use. It could be either an
- * XvMC format or an Xv format. This allows us to handle different
- * stream format accelerations such as mpeg2, mpeg4, mpeg1 etc. at
- * the same time as we can handle IDCT, MOCOMP, VLD. etc. For un-
- * supported XvMC formats, we just fall back to YV12.
- */
-
-static void xxmc_update_xxmc(vo_frame_t *vo_img) {
-
-  xxmc_frame_t *frame = (xxmc_frame_t *) vo_img;
-  xxmc_driver_t *driver = (xxmc_driver_t *) frame->vo_frame.driver;
-  xine_xxmc_t *xxmc = &frame->xxmc_data;
-
-  xvmc_context_writer_lock( &driver->xvmc_lock);
-  if (xxmc->format == XINE_IMGFMT_XXMC) {
-
-    /*
-     * Check if we can find a suitable context for what the
-     * decoder plugin wants! Otherwise, fall back to YV12.
-     */
-    
-    if (! xxmc_xvmc_update_context(driver, frame)) { 
-
-      /*
-       * Either no suitable context was found or an XvMC error occured.
-       */
-
-      xxmc->format = XINE_IMGFMT_YV12;
-      xxmc->acceleration = 0;
-      xxmc->xvmc.macroblocks = 0;
-    } else {
-      
-      /*
-       * We're running accelerated.
-       */
-
-      xxmc->format = XINE_IMGFMT_XXMC;
-      xxmc->acceleration = driver->xvmc_accel;
-      xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
-      xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ? 
-	0 : XINE_VO_SIGNED_INTRA;
-      switch(driver->xvmc_accel) {
-      case XINE_XVMC_ACCEL_IDCT:
-	xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
-	break;
-      case XINE_XVMC_ACCEL_MOCOMP:
-	xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL; 
-	break;
-      default:
-	xxmc->xvmc.macroblocks->xvmc_accel = 0;
-      }
-    }
-    driver->macroblocks.num_blocks = 0;
-    driver->macroblocks.macroblockptr = driver->macroblocks.macroblockbaseptr;
-    driver->macroblocks.xine_mc.blockptr = driver->macroblocks.xine_mc.blockbaseptr;
-
-    xxmc->decoded = 0;
-  } 
-  xvmc_context_writer_unlock( &driver->xvmc_lock);
-}
 
 /* called xlocked */
 static void dispose_ximage (xxmc_driver_t *this,
@@ -1152,54 +1090,69 @@ static void dispose_ximage (xxmc_driver_t *this,
 
 }
 
-/*
- * Just fills in functions. Surface and context updates are not done here.
- */
 
-
-static void xxmc_update_frame_format (vo_driver_t *this_gen,
-				      vo_frame_t *frame_gen,
-				      uint32_t width, uint32_t height,
-				      double ratio, int format, int flags) {
+static void xxmc_do_update_frame(vo_driver_t *this_gen,
+				 vo_frame_t *frame_gen,
+				 uint32_t width, uint32_t height,
+				 double ratio, int format, int flags) {
 
   xxmc_driver_t  *this  = (xxmc_driver_t *) this_gen;
   xxmc_frame_t   *frame = (xxmc_frame_t *) frame_gen;
 
-  frame->vo_frame.accel_data = &frame->xxmc_data;
   if ( XINE_IMGFMT_XXMC == format ) {
-    frame->xxmc_data.proc_xxmc_frame = xxmc_update_xxmc;
-    frame->xxmc_data.proc_xxmc_flush = xvmc_flush;
-#ifdef HAVE_VLDXVMC
-    frame->xxmc_data.proc_xxmc_begin = xvmc_vld_frame;
-    frame->xxmc_data.proc_xxmc_slice = xvmc_vld_slice;
-#endif
-    frame->xxmc_data.xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
-    frame->vo_frame.proc_duplicate_frame_data = xxmc_duplicate_frame_data;
+    xine_xxmc_t *xxmc = &frame->xxmc_data;
+
+    xvmc_context_writer_lock( &this->xvmc_lock);
+    if ((this->last_accel_request != xxmc->acceleration) ||
+	(this->xvmc_mpeg != xxmc->mpeg) ||
+	(this->xvmc_width != width) ||
+	(this->xvmc_height != height)) {
+      this->last_accel_request = xxmc->acceleration;
+      xxmc_xvmc_update_context(this, frame, width, height);
+      this->fallback_used = 0;
+    } 
+
+    if (this->contextActive) 
+      xxmc_frame_updates(this, frame);
+
+    format = xxmc->fallback_format;
+
+    if (!this->contextActive) {
+      this->fallback_used = 1;
+      xxmc->acceleration = 0;
+      xxmc->xvmc.macroblocks = 0;
+      frame->vo_frame.proc_duplicate_frame_data = NULL;
+    }
+    xvmc_context_writer_unlock( &this->xvmc_lock);
+
   } else {
-    frame->xxmc_data.format = format;
+    frame->vo_frame.proc_duplicate_frame_data = NULL;
+    if (!this->fallback_used) this->last_accel_request = 0;
+    xxmc_dispose_context( this );
   }
 
   if (this->use_pitch_alignment) {
     width = (width + 7) & ~0x7;
   }
-
+  
   if ((frame->width != width)
       || (frame->height != height)
-      || (frame->format != format)) {
-
+      || (frame->last_sw_format != format)) {
+    
+    frame->last_sw_format = format;
     XLockDisplay (this->display);
-
+    
     /*
      * (re-) allocate xvimage
      */
-
+    
     if (frame->image) {
       dispose_ximage (this, &frame->shminfo, frame->image);
       frame->image = NULL;
     }
-
+    
     frame->image = create_ximage (this, &frame->shminfo, width, height, format);
-
+    
     if(format == XINE_IMGFMT_YUY2) {
       frame->vo_frame.pitches[0] = frame->image->pitches[0];
       frame->vo_frame.base[0] = frame->image->data + frame->image->offsets[0];
@@ -1212,134 +1165,44 @@ static void xxmc_update_frame_format (vo_driver_t *this_gen,
       frame->vo_frame.base[1] = frame->image->data + frame->image->offsets[2];
       frame->vo_frame.base[2] = frame->image->data + frame->image->offsets[1];
     }
-
-    frame->width  = width;
-    frame->height = height;
-    frame->format = format;
     
     XUnlockDisplay (this->display);
   }
   frame->ratio = ratio;
+  frame->width  = width;
+  frame->height = height;
+  frame->format = (this->contextActive) ? XINE_IMGFMT_XXMC : format;   
+  frame->vo_frame.format = frame->format;
+}
+
+static void xxmc_update_frame_format(vo_driver_t *this_gen,
+				     vo_frame_t *frame_gen,
+				     uint32_t width, uint32_t height,
+				     double ratio, int format, int flags) 
+{
+
+  if (format != XINE_IMGFMT_XXMC) {
+    xxmc_do_update_frame(this_gen, frame_gen, width, height,
+			 ratio, format, flags);
+  } else {
+
+    /*
+     * More parameters are needed to xxmc_do_update_frame().
+     * Register the function as a callback and return.
+     * The decoder needs to call the callback with more parameters
+     * in the xine_xxmc_t structure.
+     */
+
+    xine_xxmc_t *xxmc = (xine_xxmc_t *)frame_gen->accel_data;
+    xxmc->decoded = 0;
+    xxmc->proc_xxmc_update_frame = xxmc_do_update_frame;
+    frame_gen->proc_duplicate_frame_data = xxmc_duplicate_frame_data; 
+  }
 }
 
 /*
  * From Xv.
  */
-
-
-#define DEINTERLACE_CROMA
-static void xxmc_deinterlace_frame (xxmc_driver_t *this) {
-  uint8_t    *recent_bitmaps[VO_NUM_RECENT_FRAMES];
-  xxmc_frame_t *frame = this->recent_frames[0];
-  int         i;
-  int         xvscaling;
-
-  xvscaling = (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) ? 2 : 1;
-
-  if (!this->deinterlace_frame.image
-      || (frame->width != this->deinterlace_frame.width)
-      || (frame->height != this->deinterlace_frame.height )
-      || (frame->format != this->deinterlace_frame.format)
-      || (frame->ratio != this->deinterlace_frame.ratio)) {
-    XLockDisplay (this->display);
-
-    if(this->deinterlace_frame.image)
-      dispose_ximage (this, &this->deinterlace_frame.shminfo,
-                      this->deinterlace_frame.image);
-    
-    this->deinterlace_frame.image = create_ximage (this, &this->deinterlace_frame.shminfo,
-						   frame->width,frame->height / xvscaling,
-						   frame->format);
-    this->deinterlace_frame.width  = frame->width;
-    this->deinterlace_frame.height = frame->height;
-    this->deinterlace_frame.format = frame->format;
-    this->deinterlace_frame.ratio  = frame->ratio;
-
-    XUnlockDisplay (this->display);
-  }
-
-
-  if ( this->deinterlace_method != DEINTERLACE_ONEFIELDXV ) {
-#ifdef DEINTERLACE_CROMA
-
-    /* I don't think this is the right way to do it (deinterlacing croma by croma info).
-       DScaler deinterlaces croma together with luma, but it's easier for them because
-       they have that components 1:1 at the same table.
-    */
-    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
-          this->recent_frames[i]->height == frame->height )
-        recent_bitmaps[i] = this->recent_frames[i]->image->data + frame->width*frame->height;
-      else
-        recent_bitmaps[i] = NULL;
-
-    deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
-		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
-    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
-          this->recent_frames[i]->height == frame->height )
-        recent_bitmaps[i] = this->recent_frames[i]->image->data + frame->width*frame->height*5/4;
-      else
-        recent_bitmaps[i] = NULL;
-
-    deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
-		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
-
-#else
-
-    /* know bug: we are not deinterlacing Cb and Cr */
-    xine_fast_memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
-		     frame->image->data + frame->width*frame->height,
-		     frame->width*frame->height*1/2);
-
-#endif
-
-    for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
-      if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
-          this->recent_frames[i]->height == frame->height )
-        recent_bitmaps[i] = this->recent_frames[i]->image->data;
-      else
-        recent_bitmaps[i] = NULL;
-
-    deinterlace_yuv( this->deinterlace_frame.image->data, recent_bitmaps,
-                     frame->width, frame->height, this->deinterlace_method );
-  }
-  else {
-    /*
-      dirty and cheap deinterlace method: we give half of the lines to xv
-      driver and let it scale for us.
-      note that memcpy's below don't seem to impact much on performance,
-      specially when fast memcpys are available.
-    */
-    uint8_t *dst, *src;
-
-    dst = this->deinterlace_frame.image->data;
-    src = this->recent_frames[0]->image->data;
-    for( i = 0; i < frame->height; i+=2 ) {
-      xine_fast_memcpy(dst,src,frame->width);
-      dst += frame->width;
-      src += 2 * frame->width;
-    }
-
-    dst = this->deinterlace_frame.image->data + frame->width * frame->height / 2;
-    src = this->recent_frames[0]->image->data + frame->width * frame->height;
-    for( i = 0; i < frame->height; i+=4 ) {
-      xine_fast_memcpy(dst,src,frame->width / 2);
-      dst += frame->width / 2;
-      src += frame->width;
-    }
-
-    dst = this->deinterlace_frame.image->data + frame->width * frame->height * 5 / 8;
-    src = this->recent_frames[0]->image->data + frame->width * frame->height * 5 / 4;
-    for( i = 0; i < frame->height; i+=4 ) {
-      xine_fast_memcpy(dst,src,frame->width / 2);
-      dst += frame->width / 2;
-      src += frame->width;
-    }
-  }
-
-  this->cur_frame = &this->deinterlace_frame;
-}
 
 static void xxmc_clean_output_area (xxmc_driver_t *this) {
   int i, autopainting;
@@ -1358,9 +1221,9 @@ static void xxmc_clean_output_area (xxmc_driver_t *this) {
   
   /*
    * XvMC does not support autopainting regardless of whether there's an
-   * Xv attribute for this. If there is an XvMC attribute for autopainting,
-   * we ca assume it is supported. This is checked whenever a context is 
-   * changed.
+   * Xv attribute for it. However, if there is an XvMC attribute for 
+   * autopainting, we should be able to assume it is supported. 
+   * That support is checked whenever a context is changed.
    */
 
   autopainting = (this->props[VO_PROP_AUTOPAINT_COLORKEY].value == 1); 
@@ -1401,14 +1264,6 @@ static void xxmc_compute_output_size (xxmc_driver_t *this) {
 
   _x_vo_scale_compute_output_size( &this->sc );
 
-  /* onefield_xv divide by 2 the number of lines */
-  if (this->deinterlace_enabled
-      && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
-      && ((this->cur_frame->format == XINE_IMGFMT_YV12) 
-	  || this->cur_frame->format == XINE_IMGFMT_XXMC)) {
-    this->sc.displayed_height  = this->sc.displayed_height / 2 - 1;
-    this->sc.displayed_yoffset = this->sc.displayed_yoffset / 2;
-  }
 }
 
 static void xxmc_overlay_begin (vo_driver_t *this_gen, 
@@ -1536,8 +1391,7 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
         }
       }
     } else {      
-      if ((frame->format == XINE_IMGFMT_YV12) || 
-	  (frame->format == XINE_IMGFMT_XXMC)) {
+      if (frame->format == XINE_IMGFMT_YV12) {
         blend_yuv(frame->vo_frame.base, overlay, 
 		  frame->width, frame->height, frame->vo_frame.pitches);
       } else {
@@ -1622,29 +1476,13 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->sc.force_redraw = 1;    /* trigger re-calc of output size */
   }
 
-
-  /*
-   * deinterlace frame if necessary
-   * (currently only working for YUV images)
-   */
-
-  if (this->deinterlace_enabled && this->deinterlace_method
-      && ((frame->format == XINE_IMGFMT_YV12) ||
-	  (frame->format == XINE_IMGFMT_XXMC))
-      && deinterlace_yuv_supported( this->deinterlace_method ) == 1) {
-    if (frame->format != XINE_IMGFMT_XXMC)
-      xxmc_deinterlace_frame (this);
-    else if (xxmc->format != XINE_IMGFMT_XXMC)
-      xxmc_deinterlace_frame (this);
-  }
-
   /*
    * tell gui that we are about to display a frame,
    * ask for offset and output size
    */
 
   xxmc_redraw_needed (this_gen);
-  if (frame->xvmc_surf && (xxmc->format == XINE_IMGFMT_XXMC)) {
+  if (frame->format == XINE_IMGFMT_XXMC) {
     if (xxmc->decoded && xxmc_xvmc_surface_valid(this, frame->xvmc_surf)) {
       XVMCLOCKDISPLAY( this->display );
       XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
@@ -1760,12 +1598,8 @@ static int xxmc_set_property (vo_driver_t *this_gen,
       xprintf(this->xine, XINE_VERBOSITY_LOG,
 	      "video_out_xxmc: VO_PROP_INTERLACED(%d)\n", this->props[property].value);
       this->deinterlace_enabled = value;
-      if (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) {
-	xxmc_compute_ideal_size (this);
-	xxmc_compute_output_size (this);
-      }
       break;
-  
+
     case VO_PROP_ASPECT_RATIO:
       if (value>=XINE_VO_ASPECT_NUM_RATIOS)
 	value = XINE_VO_ASPECT_AUTO;
@@ -1847,7 +1681,7 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
       xxmc_clean_output_area (this);
       xvmc_context_reader_lock( &this->xvmc_lock );
 
-      if (frame->xvmc_surf && (xxmc->format == XINE_IMGFMT_XXMC)) {
+      if (frame->format == XINE_IMGFMT_XXMC) {
 	if (xxmc->decoded && xxmc_xvmc_surface_valid(this, frame->xvmc_surf)) {
 	  XVMCLOCKDISPLAY( this->display );
 	  XvMCPutSurface( this->display, frame->xvmc_surf, this->drawable,
@@ -1912,15 +1746,6 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
       rect->w = x2-x1;
       rect->h = y2-y1;
 
-      /* onefield_xv divide by 2 the number of lines */
-      if (this->deinterlace_enabled
-          && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
-          && ((this->cur_frame->format == XINE_IMGFMT_YV12) ||
-	      (this->cur_frame->format == XINE_IMGFMT_XXMC))) {
-        rect->y = rect->y * 2;
-        rect->h = rect->h * 2;
-      }
-
     }
     break;
 
@@ -1950,14 +1775,6 @@ static void xxmc_dispose (vo_driver_t *this_gen) {
     xvmc_context_writer_unlock( &this->xvmc_lock );
   }
 
-
-  if (this->deinterlace_frame.image) {
-    XLockDisplay (this->display);
-    dispose_ximage (this, &this->deinterlace_frame.shminfo,
-		    this->deinterlace_frame.image);
-    XUnlockDisplay (this->display);
-    this->deinterlace_frame.image = NULL;
-  }
 
   XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
@@ -2122,12 +1939,6 @@ static void xxmc_update_nvidia_fix(void *this_gen, xine_cfg_entry_t *entry) {
   this->reverse_nvidia_palette = entry->num_value;
 }
 
-static void xxmc_update_deinterlace(void *this_gen, xine_cfg_entry_t *entry) {
-  xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
-
-  this->deinterlace_method = entry->num_value;
-}
-
 
 static void checkXvMCCap( xxmc_driver_t *this, XvPortID xv_port) 
 {
@@ -2183,11 +1994,11 @@ static void checkXvMCCap( xxmc_driver_t *this, XvPortID xv_port)
     curCap->mpeg_flags = 0;
     curCap->accel_flags = 0;
     if (curInfo->chroma_format == XVMC_CHROMA_FORMAT_420) {
-      curCap->mpeg_flags |= ((curInfo->mc_type & XINE_XVMC_MPEG_1) ? 
+      curCap->mpeg_flags |= ((curInfo->mc_type & XVMC_MPEG_1) ? 
 			     XINE_XVMC_MPEG_1 : 0); 
-      curCap->mpeg_flags |= ((curInfo->mc_type & XINE_XVMC_MPEG_2) ? 
+      curCap->mpeg_flags |= ((curInfo->mc_type & XVMC_MPEG_2) ? 
 			     XINE_XVMC_MPEG_2 : 0);
-      curCap->mpeg_flags |= ((curInfo->mc_type & XINE_XVMC_MPEG_4) ? 
+      curCap->mpeg_flags |= ((curInfo->mc_type & XVMC_MPEG_4) ? 
 			     XINE_XVMC_MPEG_4 : 0);
       curCap->accel_flags |= ((curInfo->mc_type & XVMC_VLD) ? 
 			      XINE_XVMC_ACCEL_VLD : 0);
@@ -2270,6 +2081,8 @@ static void checkXvMCCap( xxmc_driver_t *this, XvPortID xv_port)
   this->capabilities |= VO_CAP_XXMC;
   XVMCUNLOCKDISPLAY( this->display );
   init_xx44_palette( &this->palette , 0);
+  this->last_accel_request = 0xFFFFFFFF;
+  this->fallback_used = 0;
   xvmc_context_writer_unlock( &this->xvmc_lock );
   return;
 
@@ -2377,8 +2190,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XUnlockDisplay (this->display);
   this->capabilities            = VO_CAP_CROP;
   this->use_shm                 = 1;
-  this->deinterlace_method      = 0;
-  this->deinterlace_frame.image = NULL;
   this->use_colorkey            = 0;
   this->colorkey                = 0;
   this->xoverlay                = NULL;
@@ -2583,13 +2394,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			     "Only for Linux kernel 2.6 series or 2.4 with multimedia patch.\n"
 			     "Experimental.\n"),
 			   10, xxmc_update_cpu_save, this);
-  this->deinterlace_method =     
-    config->register_enum (config, "video.deinterlace_method", 0,
-			   deinterlace_methods,
-			   _("deinterlace_methods"),
-			   _("This config setting is deprecated. You should use the new "
-			     "deinterlacing post processing settings instead.\n"),
-			   10, xxmc_update_deinterlace, this);
   this->reverse_nvidia_palette =
     config->register_bool (config, "video.xvmc_nvidia_color_fix", 0,
 			   _("Fix buggy NVIDIA XvMC subpicture colors"),

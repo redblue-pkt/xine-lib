@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: accel_xvmc.h,v 1.1 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: accel_xvmc.h,v 1.2 2004/10/12 07:40:23 totte67 Exp $
  *
  *
  * Common acceleration definitions for XvMC. 
@@ -83,10 +83,10 @@ typedef struct xine_xxmc_s {
    */
 
   xine_xvmc_t xvmc;
-
-  unsigned format;
+  
   unsigned mpeg;
   unsigned acceleration;
+  int fallback_format;
   xine_vld_frame_t vld_frame;
   uint8_t *slice_data;
   unsigned slice_data_size;
@@ -94,7 +94,9 @@ typedef struct xine_xxmc_s {
   int result;
   int decoded;
   float sleep;
-  void (*proc_xxmc_frame) (vo_frame_t *vo_img);
+  void (*proc_xxmc_update_frame) (vo_driver_t *this_gen, vo_frame_t *frame_gen,
+				  uint32_t width, uint32_t height, double ratio,
+				  int format, int flags);
   void (*proc_xxmc_begin) (vo_frame_t *vo_img);
   void (*proc_xxmc_slice) (vo_frame_t *vo_img);
   void (*proc_xxmc_flush) (vo_frame_t *vo_img);
