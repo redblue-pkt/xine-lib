@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.20 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.21 2001/05/25 10:30:56 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -652,9 +652,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 			       adaptor_info[i].base_id, "XV_COLORKEY");
 	  printf("XV_COLORKEY ");
 	}
-	printf("\n");
       }
     }
+    printf("\n");
     XFree(attr);
   } else {
     printf("video_out_xv: no port attributes defined.\n");
