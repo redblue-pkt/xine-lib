@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.51 2003/08/21 00:37:29 miguelfreitas Exp $
+ * $Id: input_plugin.h,v 1.52 2003/10/13 14:52:53 valtri Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -226,6 +226,16 @@ struct input_plugin_s {
  */
 
 #define INPUT_CAP_BLOCK                0x00000002
+
+/*
+ * INPUT_CAP_SLOW_SEEK:
+ *   it's set when seeking to end is impossible or problematic 
+ *   because of low bandwidth,
+ *   used for non-seekable streams with seeking emulated 
+ *   by the RIP input plugin
+ */
+
+#define INPUT_CAP_SLOW_SEEK             0x00000004
 
 /*
  * INPUT_CAP_AUDIOLANG:
