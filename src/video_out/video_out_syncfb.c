@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.59 2002/04/01 13:25:53 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.60 2002/04/02 11:53:54 jkeil Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -45,6 +45,7 @@
 #include <math.h>
 #include <fcntl.h>
 
+#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 #include "video_out_syncfb.h"
