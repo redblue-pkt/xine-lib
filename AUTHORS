@@ -400,4 +400,7 @@ Dirk Meyer <dmeyer@tzi.de
 Darren Vincent Hart <dvhart@byu.edu>
   libstk video out plugin
 
+Philip Jägenstedt <philipj@telia.com>
+  rework of aspect ratio to support float values
+
 (let us know if we've forgotten anyone)
