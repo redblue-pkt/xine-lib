@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.94 2002/02/24 00:43:03 guenter Exp $
+ * $Id: video_out_xv.c,v 1.95 2002/02/25 01:23:41 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -37,18 +37,21 @@
 
 #ifdef HAVE_XV
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/time.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "video_out.h"
 #include "video_out_x11.h"
@@ -105,6 +108,10 @@ struct xv_driver_s {
   XColor             black;
   int                expecting_event; /* completion event handling */
   int                use_shm;
+  /* display anatomy */
+  double             display_ratio;        /* given by visual parameter
+					      from init function              */
+
 
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
@@ -114,30 +121,53 @@ struct xv_driver_s {
   vo_overlay_t      *overlay;
 
   /* size / aspect ratio calculations */
-  /* delivered images */
-  int                delivered_width;      /* everything is set up for
-					      these frame dimensions          */
-  int                delivered_height;     /* the dimension as they come
-					      from the decoder                */
+
+  /* 
+   * "delivered" size:
+   * frame dimension / aspect as delivered by the decoder
+   * used (among other things) to detect frame size changes
+   */
+  int                delivered_width;   
+  int                delivered_height;     
   int                delivered_ratio_code;
+
+  /* 
+   * displayed part of delivered images,
+   * taking zoom into account
+   */
+
+  int                displayed_xoffset;
+  int                displayed_yoffset;
+  int                displayed_width;
+  int                displayed_height;
+
+  /* 
+   * "ideal" size :
+   * displayed width/height corrected by aspect ratio
+   */
+
+  int                ideal_width, ideal_height;
   double             ratio_factor;         /* output frame must fullfill:
 					      height = width * ratio_factor   */
 
-  /* displayed part of delivered images */
-  int                displayed_width;
-  int                displayed_height;
-  int                displayed_xoffset;
-  int                displayed_yoffset;
+  /*
+   * "gui" size / offset:
+   * what gui told us about where to display the video
+   */
+  
+  int                gui_x, gui_y;
+  int                gui_width, gui_height;
+
+  /*
+   * "output" size:
+   *
+   * this is finally the ideal size "fitted" into the
+   * gui size while maintaining the aspect ratio
+   * 
+   */
 
   /* Window */
-  int                window_width;
-  int                window_height;
-  int                window_xoffset;
-  int                window_yoffset;
-
-  /* output screen area */
-  int                output_width;         /* frames will appear in this
-					      size (pixels) on screen         */
+  int                output_width;
   int                output_height;
   int                output_xoffset;
   int                output_yoffset;
@@ -146,18 +176,14 @@ struct xv_driver_s {
   int                deinterlace_method;
   int                deinterlace_enabled;
 
-  /* display anatomy */
-  double             display_ratio;        /* given by visual parameter
-					      from init function              */
-
   void              *user_data;
 
   /* gui callback */
 
-  void             (*request_dest_size) (void *user_data,
-					 int video_width, int video_height,
-					 int *dest_x, int *dest_y,
-					 int *dest_height, int *dest_width);
+  void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   int *dest_x, int *dest_y, 
+			   int *dest_height, int *dest_width);
 
   char               scratch[256];
 
@@ -250,7 +276,7 @@ static void x11_DeInstallXErrorHandler (xv_driver_t *this)
 }
 
 static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
-			      int width, int height, int format) {
+			       int width, int height, int format) {
 
   unsigned int  xv_format;
   XvImage      *image=NULL;
@@ -287,8 +313,8 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     }
 
     shminfo->shmid=shmget(IPC_PRIVATE,
-			 image->data_size,
-			 IPC_CREAT | 0777);
+			  image->data_size,
+			  IPC_CREAT | 0777);
 
     if (image->data_size==0) {
       printf("video_out_xv: XvShmCreateImage returned a zero size\n");
@@ -441,9 +467,9 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   xvscaling = (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) ? 2 : 1;
   
   if ( !this->deinterlace_frame.image
-      || (frame->width != this->deinterlace_frame.width)
-      || (frame->height / xvscaling != this->deinterlace_frame.height )
-      || (frame->format != this->deinterlace_frame.format)) {
+       || (frame->width != this->deinterlace_frame.width)
+       || (frame->height / xvscaling != this->deinterlace_frame.height )
+       || (frame->format != this->deinterlace_frame.format)) {
     XLockDisplay (this->display);
 
     if( this->deinterlace_frame.image )
@@ -451,8 +477,8 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
                       this->deinterlace_frame.image);
 
     this->deinterlace_frame.image = create_ximage (this, &this->deinterlace_frame.shminfo,
-                                             frame->width,frame->height / xvscaling,
-                                             frame->format);
+						   frame->width,frame->height / xvscaling,
+						   frame->format);
     this->deinterlace_frame.width  = frame->width;
     this->deinterlace_frame.height = frame->height / xvscaling;
     this->deinterlace_frame.format = frame->format;
@@ -470,37 +496,37 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     */
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
       recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-      + frame->width*frame->height : NULL;
+	+ frame->width*frame->height : NULL;
     deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height,
-      recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
       recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data
-      + frame->width*frame->height*5/4 : NULL;
+	+ frame->width*frame->height*5/4 : NULL;
     deinterlace_yuv( this->deinterlace_frame.image->data+frame->width*frame->height*5/4,
-      recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
+		     recent_bitmaps, frame->width/2, frame->height/2, this->deinterlace_method );
 
 #else
 
     /* know bug: we are not deinterlacing Cb and Cr */
     xine_fast_memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
-           frame->image->data + frame->width*frame->height,
-           frame->width*frame->height*1/2);
+		     frame->image->data + frame->width*frame->height,
+		     frame->width*frame->height*1/2);
 
 #endif
 
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
       recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
-                          NULL;
+      NULL;
 
     deinterlace_yuv( this->deinterlace_frame.image->data, recent_bitmaps,
                      frame->width, frame->height, this->deinterlace_method );
   }
   else {
     /*
-       dirty and cheap deinterlace method: we give half of the lines to xv
-                                           driver and let it scale for us.
-       note that memcpy's below don't seem to impact much on performance,
-       specially when fast memcpys are available.
+      dirty and cheap deinterlace method: we give half of the lines to xv
+      driver and let it scale for us.
+      note that memcpy's below don't seem to impact much on performance,
+      specially when fast memcpys are available.
     */
     uint8_t *dst, *src;
     
@@ -532,200 +558,72 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   this->cur_frame = &this->deinterlace_frame;
 }
 
-static void xv_clear_unused_output_area (xv_driver_t *this,
-					 int dest_x, int dest_y,
-					 int dest_width, int dest_height) {
+static void xv_clean_output_area (xv_driver_t *this) {
 
   XLockDisplay (this->display);
+
+  XSetForeground (this->display, this->gc, this->black.pixel);
+
+  XFillRectangle(this->display, this->drawable, this->gc,
+		 this->gui_x, this->gui_y, this->gui_width, this->gui_height);
 
   if (this->use_colorkey) {
     XSetForeground (this->display, this->gc, this->colorkey);
     XFillRectangle (this->display, this->drawable, this->gc,
-		    dest_x, dest_y, dest_width, dest_height);
+		    this->output_xoffset, this->output_yoffset, 
+		    this->output_width, this->output_height);
   }
   
-  XSetForeground (this->display, this->gc, this->black.pixel);
-  
-
-  /* top black band */
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
-
-  /* left black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
-
-  /* bottom black band */
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 dest_x, this->output_yoffset+this->output_height,
-		 dest_width,
-		 dest_height - this->output_yoffset - this->output_height);
-
-  /* right black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 this->output_xoffset+this->output_width, dest_y, 
-		 dest_width - this->output_xoffset - this->output_width,
-		 dest_height);
-
-  
-
   XUnlockDisplay (this->display);
 }
 
-static void xv_adapt_to_zoom_x(xv_driver_t *this, int normal_xoffset, int normal_width)
-{
-  int ideal_width;
-  double zoom_factor_x;
+/*
+ * convert delivered height/width to ideal width/height
+ * taking into account aspect ratio and zoom factor
+ */
 
-  zoom_factor_x = ((double)this->props[VO_PROP_ZOOM_X].value + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;
-  ideal_width  = (double)normal_width * zoom_factor_x;
-  if (ideal_width > this->window_width)
-  {
-    /* cut left and right borders */
-    this->output_width = this->window_width;
-    this->output_xoffset = this->window_xoffset;
-    this->displayed_width = (double)this->delivered_width * ((double)this->window_width / (double)ideal_width);
-    this->displayed_xoffset = (this->delivered_width - this->displayed_width) / 2;
+static void xv_compute_ideal_size (xv_driver_t *this) {
 
-  } else {
-    this->output_width = ideal_width;
-    this->output_xoffset = this->window_xoffset + (this->window_width - ideal_width) / 2;
-    this->displayed_xoffset = 0;
-    this->displayed_width = this->delivered_width;
-  }    
-}
-
-static void xv_adapt_to_zoom_y(xv_driver_t *this, int normal_yoffset, int normal_height)
-{
-  int ideal_height;
-  double zoom_factor_y;
-  int xvscaling;
-
-  xvscaling = (this->deinterlace_enabled &&
-               this->deinterlace_method == DEINTERLACE_ONEFIELDXV) ? 2 : 1;
-
-  zoom_factor_y = ((double)this->props[VO_PROP_ZOOM_Y].value + (double)VO_ZOOM_STEP) / (double)VO_ZOOM_STEP;
-  ideal_height  = (double)normal_height * zoom_factor_y;
-  if (ideal_height > this->window_height)
-  {
-    /* cut */
-    this->output_height = this->window_height;
-    this->output_yoffset = this->window_yoffset;
-    this->displayed_height = (double)(this->delivered_height / xvscaling) *
-                             ((double)this->window_height / (double)ideal_height);
-    this->displayed_yoffset = ((this->delivered_height / xvscaling) - this->displayed_height) / 2;
-  } else {
-    this->output_height = ideal_height;
-    this->output_yoffset = this->window_yoffset + (this->window_height - ideal_height) / 2;
-    this->displayed_yoffset = 0;
-    this->displayed_height = this->delivered_height / xvscaling;
-  }
-}
-
-static void xv_adapt_to_offset (xv_driver_t *this, int xoffset, int yoffset)
-{
-  int ideal_x, ideal_y;
-
-  /* try move displayed area */
-  ideal_x = this->displayed_xoffset + xoffset;
-  ideal_y = this->displayed_yoffset + yoffset;
+  double zoom_factor;
+  double image_ratio, desired_ratio, corr_factor;
   
-  if (ideal_x < 0)
-    ideal_x = 0;
-  if ((ideal_x + this->displayed_width) > this->delivered_width)
-    ideal_x = this->delivered_width - this->displayed_width;
-  if (ideal_y < 0)
-    ideal_y = 0;
-  if ((ideal_y + this->displayed_height) > this->delivered_height)
-    ideal_y = this->delivered_height - this->displayed_height;
-
-  this->displayed_xoffset = ideal_x;
-  this->displayed_yoffset = ideal_y;
-}
-
-static void xv_adapt_to_output_area (xv_driver_t *this,
-				     int dest_x, int dest_y,
-				     int dest_width, int dest_height) {
-  int normal_width, normal_height, normal_xoffset, normal_yoffset;
-
-  this->window_xoffset  = dest_x;
-  this->window_yoffset  = dest_y;
-  this->window_width    = dest_width;
-  this->window_height   = dest_height;
-
   /*
-   * make the frames fit into the given destination area
-   */
-  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
-
-    normal_width   = dest_width ;
-    normal_height  = (double) dest_width / this->ratio_factor ;
-    normal_xoffset = dest_x;
-    normal_yoffset = dest_y + (dest_height - this->output_height) / 2;
-
-  } else {
-
-    normal_width    = (double) dest_height * this->ratio_factor ;
-    normal_height   = dest_height;
-    normal_xoffset  = dest_x + (dest_width - this->output_width) / 2;
-    normal_yoffset  = dest_y;
-  }
-
-  /* Calc output area size, and displayed area size */
-  xv_adapt_to_zoom_x(this, normal_xoffset, normal_width);
-  xv_adapt_to_zoom_y(this, normal_yoffset, normal_height);
-
-  xv_adapt_to_offset(this, this->props[VO_PROP_OFFSET_X].value, this->props[VO_PROP_OFFSET_Y].value);
-  xv_clear_unused_output_area (this, dest_x, dest_y, dest_width, dest_height);
-}
-
-static void xv_calc_format (xv_driver_t *this,
-			    int width, int height, int ratio_code) {
-
-  double image_ratio, desired_ratio;
-  double corr_factor;
-  int ideal_width, ideal_height;
-  int dest_x, dest_y, dest_width, dest_height;
-
-  this->delivered_width      = width;
-  this->delivered_height     = height;
-  this->delivered_ratio_code = ratio_code;
-
-  if ( (!width) || (!height) )
-    return;
-
-  /*
-   * aspect ratio calculation
+   * zoom
    */
 
-  image_ratio =
-    (double) this->delivered_width / (double) this->delivered_height;
+  zoom_factor = (double)this->props[VO_PROP_ZOOM_FACTOR].value / (double)VO_ZOOM_STEP;
+   
+  this->displayed_width   = this->delivered_width  / zoom_factor;
+  this->displayed_height  = this->delivered_height / zoom_factor;
+  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
+  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
 
-#ifdef LOG
-  printf ("video_out_xv: display_ratio : %f\n", this->display_ratio);
-  printf ("video_out_xv: stream aspect ratio : %f , code : %d\n",
-	  image_ratio, ratio_code);
-#endif
 
+  /* 
+   * aspect ratio
+   */
+
+  image_ratio = (double) this->displayed_width / (double) this->displayed_height;
+  
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO:
-    switch (ratio_code) {
+    switch (this->delivered_ratio_code) {
     case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
       desired_ratio = 16.0 /9.0;
       break;
-    case XINE_ASPECT_RATIO_211_1:        /* 2.11:1 */
+    case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
       desired_ratio = 2.11/1.0;
       break;
-    case XINE_ASPECT_RATIO_SQUARE:       /* "square" source pels */
-    case XINE_ASPECT_RATIO_DONT_TOUCH:   /* probably non-mpeg stream => don't touch aspect ratio */
+    case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
+    case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
       desired_ratio = image_ratio;
       break;
-    case 0:                              /* forbidden       */
-      fprintf (stderr, "invalid ratio, using 4:3\n");
+    case 0:                             /* forbidden -> 4:3 */
+      printf ("video_out_xshm: invalid ratio, using 4:3\n");
     default:
-      printf ("video_out_xv: unknown aspect ratio (%d) in stream => using 4:3\n",
-	      ratio_code);
-    case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
+      printf ("video_out_xshm: unknown aspect ratio (%d) in stream => using 4:3\n",
+	      this->delivered_ratio_code);
+    case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
     }
@@ -744,50 +642,58 @@ static void xv_calc_format (xv_driver_t *this,
     desired_ratio = 4.0 / 3.0;
   }
 
-  /* this->ratio_factor = display_ratio * desired_ratio / image_ratio ;  */
   this->ratio_factor = this->display_ratio * desired_ratio;
-
-  /*
-   * calc ideal output frame size
-   */
 
   corr_factor = this->ratio_factor / image_ratio ;
 
-  if (corr_factor >= 1.0) {
-    ideal_width  = this->delivered_width * corr_factor;
-    ideal_height = this->delivered_height ;
+  if (fabs(corr_factor - 1.0) < 0.005) {
+    this->ideal_width  = this->displayed_width;
+    this->ideal_height = this->displayed_height;
+
+  } else {
+
+    if (corr_factor >= 1.0) {
+      this->ideal_width  = this->displayed_width * corr_factor + 0.5;
+      this->ideal_height = this->displayed_height;
+    } else {
+      this->ideal_width  = this->displayed_width;
+      this->ideal_height = this->displayed_height / corr_factor + 0.5;
+    }
+
   }
-  else {
-    ideal_width  = this->delivered_width;
-    ideal_height = this->delivered_height / corr_factor;
-  }
-
-  /* little hack to zoom mpeg1 / other small streams  by default*/
-  if ( this->use_shm && (ideal_width<400)) {
-    ideal_width  *=2;
-    ideal_height *=2;
-  }
-
-  /*
-   * ask gui to adapt to this size
-   */
-
-  this->request_dest_size (this->user_data,
-			   ideal_width, ideal_height,
-			   &dest_x, &dest_y, &dest_width, &dest_height);
-
-  /*
-   * Reset zoom values to 100%
-   */
-  this->props[VO_PROP_ZOOM_X].value = 0;
-  this->props[VO_PROP_ZOOM_Y].value = 0;
-
-  xv_adapt_to_output_area (this, dest_x, dest_y, dest_width, dest_height);
 }
 
+
 /*
- *
+ * make ideal width/height "fit" into the gui
  */
+
+static void xv_compute_output_size (xv_driver_t *this) {
+  
+  double x_factor, y_factor;
+
+  x_factor = (double) this->gui_width  / (double) this->ideal_width;
+  y_factor = (double) this->gui_height / (double) this->ideal_height;
+  
+  if ( x_factor < y_factor ) {
+    this->output_width   = (double) this->ideal_width  * x_factor ;
+    this->output_height  = (double) this->ideal_height * x_factor ;
+  } else {
+    this->output_width   = (double) this->ideal_width  * y_factor ;
+    this->output_height  = (double) this->ideal_height * y_factor ;
+  }
+
+  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
+  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
+
+#ifdef LOG
+  printf ("video_out_xv: frame source %d x %d => screen output %d x %d\n",
+	  this->delivered_width, this->delivered_height,
+	  this->output_width, this->output_height);
+#endif
+
+}
+
 static void xv_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
@@ -850,33 +756,78 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
 
   } else {
-    xv_add_recent_frame (this, frame);
+
+    int gui_x, gui_y, gui_width, gui_height;
+
+    /* 
+     * queue frames (deinterlacing)
+     * free old frames
+     */
+
+    xv_add_recent_frame (this, frame); /* deinterlacing */
+
     this->cur_frame = frame;
 
+    /* 
+     * deinterlace frame if necessary
+     * (currently only working for YUV images)
+     */
+
+    if (this->deinterlace_enabled && this->deinterlace_method 
+	&& frame->format == IMGFMT_YV12)
+      xv_deinterlace_frame (this);
+
+    /*
+     * let's see if this frame is different in size / aspect
+     * ratio from the previous one
+     */
 
     if ( (frame->width != this->delivered_width)
 	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
-	 printf("video_out_xv: change frame format\n");
-      xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
+#ifdef LOG
+      printf("video_out_xv: frame format changed\n");
+#endif
+
+      this->delivered_width      = frame->width;
+      this->delivered_height     = frame->height;
+      this->delivered_ratio_code = frame->ratio_code;
+
+      xv_compute_ideal_size (this);
+      
+      this->gui_width = 0; /* trigger re-calc of output size */
     }
 
-    /* currently only working for YUV images */
-    if (this->deinterlace_enabled && this->deinterlace_method && 
-        frame->format == IMGFMT_YV12 )
-      xv_deinterlace_frame (this);
-    /*
-    printf ("video_out_xv: xv_display_frame... lock display...\n");
-    */
+    /* 
+     * tell gui that we are about to display a frame,
+     * ask for offset and output size
+     */
+
+    this->frame_output_cb (this->user_data,
+			   this->ideal_width, this->ideal_height, 
+			   &gui_x, &gui_y, &gui_width, &gui_height);
+
+    if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
+	 || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
+
+      this->gui_x      = gui_x;
+      this->gui_y      = gui_y;
+      this->gui_width  = gui_width;
+      this->gui_height = gui_height;
+
+      xv_compute_output_size (this);
+
+      xv_clean_output_area (this);
+    }
+
+
     XLockDisplay (this->display);
-    /*
-    printf ("video_out_xv: xv_display_frame... lock display...locked\n");
-    */
+
     if (this->use_shm) {
       XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
 		    this->displayed_xoffset, this->displayed_yoffset,
-		    this->displayed_width, this->displayed_height - 5,
+		    this->displayed_width, this->displayed_height,
 		    this->output_xoffset, this->output_yoffset,
 		    this->output_width, this->output_height, True);
 
@@ -885,7 +836,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       XvPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
 		    this->displayed_xoffset, this->displayed_yoffset,
-		    this->displayed_width, this->displayed_height - 5,
+		    this->displayed_width, this->displayed_height,
 		    this->output_xoffset, this->output_yoffset,
 		    this->output_width, this->output_height);
     }
@@ -935,12 +886,12 @@ static int xv_set_property (vo_driver_t *this_gen,
   } else {
     switch (property) {
     case VO_PROP_INTERLACED:
+
       this->props[property].value = value;
       printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
       this->deinterlace_enabled = value;
-      xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-                               this->window_width, this->window_height);
+
       break;
     case VO_PROP_ASPECT_RATIO:
 
@@ -951,48 +902,24 @@ static int xv_set_property (vo_driver_t *this_gen,
       printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n",
 	     this->props[property].value);
 
-      xv_calc_format (this, this->delivered_width, this->delivered_height,
-		      this->delivered_ratio_code) ;
+      xv_compute_ideal_size (this);
+
       break;
-    case VO_PROP_ZOOM_X:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX))
-      {
+    case VO_PROP_ZOOM_FACTOR:
+
+      printf ("video_out_xv: VO_PROP_ZOOM %d <=? %d <=? %d\n",
+	      VO_ZOOM_MIN, value, VO_ZOOM_MAX);
+
+      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf("video_out_xv: VO_PROP_ZOOM_X(%d) \n",
-	           this->props[property].value);
+        printf ("video_out_xv: VO_PROP_ZOOM = %d\n",
+		this->props[property].value);
 	           
-        xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-				 this->window_width, this->window_height);
+	xv_compute_ideal_size (this);
+
       }
       break;
-    case VO_PROP_ZOOM_Y:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX))
-      {
-        this->props[property].value = value;
-        printf("video_out_xv: VO_PROP_ZOOM_Y(%d) \n",
-	           this->props[property].value);
-	           
-        xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-				 this->window_width, this->window_height);
-      }
-      break;
-    case VO_PROP_OFFSET_X:
-      this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_OFFSET_X(%d) \n",
-          this->props[property].value);
-	           
-      xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-			       this->window_width, this->window_height);
-      break;
-    case VO_PROP_OFFSET_Y:
-      this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_OFFSET_Y(%d) \n",
-	     this->props[property].value);
-	           
-      xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-			       this->window_width, this->window_height);
-      break;
-    }
+    } 
   }
 
   return value;
@@ -1009,8 +936,8 @@ static void xv_get_property_min_max (vo_driver_t *this_gen,
 
 static void xv_translate_gui2video(xv_driver_t *this,
 				   int x, int y,
-				   int *vid_x, int *vid_y)
-{
+				   int *vid_x, int *vid_y) {
+
   if (this->output_width > 0 && this->output_height > 0) {
     /*
      * 1.
@@ -1039,15 +966,8 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   xv_driver_t     *this = (xv_driver_t *) this_gen;
-  x11_rectangle_t *area;
   
   switch (data_type) {
-  case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
-
-    area = (x11_rectangle_t *) data;
-    xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
-    break;
-
   case GUI_DATA_EX_COMPLETION_EVENT: {
    
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
@@ -1091,7 +1011,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
       }
     }
   }
-    break;
+  break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
     this->drawable = (Drawable) data;
@@ -1125,16 +1045,15 @@ static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
-  if( this->deinterlace_frame.image )
-  {
-     dispose_ximage (this, &this->deinterlace_frame.shminfo,
-                      this->deinterlace_frame.image);
-     this->deinterlace_frame.image = NULL;
+  if (this->deinterlace_frame.image) {
+    dispose_ximage (this, &this->deinterlace_frame.shminfo,
+		    this->deinterlace_frame.image);
+    this->deinterlace_frame.image = NULL;
   }
 
   XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
-    fprintf(stderr, "xv_exit: XvUngrabPort() failed.\n");
+    printf ("video_out_xv: xv_exit: XvUngrabPort() failed.\n");
   }
   XUnlockDisplay (this->display);
 }
@@ -1288,10 +1207,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
       for (j = 0; j < adaptor_info[adaptor_num].num_ports && !xv_port; j++)
         if (( !(xv_check_yv12 (display,
-                   adaptor_info[adaptor_num].base_id + j)))
+			       adaptor_info[adaptor_num].base_id + j)))
             && (XvGrabPort (display,
-                adaptor_info[adaptor_num].base_id + j,
-                0) == Success)) {
+			    adaptor_info[adaptor_num].base_id + j,
+			    0) == Success)) {
           xv_port = adaptor_info[adaptor_num].base_id + j;
         }
 
@@ -1330,7 +1249,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->overlay           = NULL;
   this->screen            = visual->screen;
   this->display_ratio     = visual->display_ratio;
-  this->request_dest_size = visual->request_dest_size;
+  this->frame_output_cb   = visual->frame_output_cb;
   this->user_data         = visual->user_data;
   this->output_xoffset    = 0;
   this->output_yoffset    = 0;
@@ -1340,10 +1259,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->displayed_yoffset = 0;
   this->displayed_width   = 0;
   this->displayed_height  = 0;
-  this->window_xoffset    = 0;
-  this->window_yoffset    = 0;
-  this->window_width      = 0;
-  this->window_height     = 0;
+  this->gui_x             = 0;
+  this->gui_y             = 0;
+  this->gui_width         = 0;
+  this->gui_height        = 0;
   this->drawable          = visual->d;
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->xv_port           = xv_port;
@@ -1386,6 +1305,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->props[VO_PROP_INTERLACED].value     = 0;
   this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+  this->props[VO_PROP_ZOOM_FACTOR].value    = 100;
 
   /*
    * check this adaptor's capabilities
@@ -1431,15 +1351,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
 	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
-					    attr[k].min_value, attr[k].max_value,
-					    "bilinear scaling mode (permedia 2/3)",
-					    NULL, xv_update_XV_FILTER, this);
+					      attr[k].min_value, attr[k].max_value,
+					      "bilinear scaling mode (permedia 2/3)",
+					      NULL, xv_update_XV_FILTER, this);
 	  config->update_num(config,"video.XV_FILTER",xv_filter);
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xv_double_buffer;
 	  xv_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
-					    "double buffer to sync video to the retrace",
-					    NULL, xv_update_XV_DOUBLE_BUFFER, this);
+						    "double buffer to sync video to the retrace",
+						    NULL, xv_update_XV_DOUBLE_BUFFER, this);
 	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
 	}
       }

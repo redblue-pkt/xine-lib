@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.44 2002/02/18 17:30:40 guenter Exp $
+ * $Id: video_out.h,v 1.45 2002/02/25 01:23:41 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -87,6 +87,10 @@ struct vo_frame_s {
   /* info that can be used for interlaced output (e.g. tv-out)      */
   int                        top_field_first;
   int                        repeat_first_field;
+
+  /* pan/scan offset */
+  int                        pan_scan_x;
+  int                        pan_scan_y;
 
   /* additional information to be able to duplicate frames:         */
   int                        width, height;
@@ -182,18 +186,16 @@ struct vo_instance_s {
 #define VO_PROP_BRIGHTNESS            5
 #define VO_PROP_COLORKEY              6
 #define VO_PROP_AUTOPAINT_COLORKEY    7
-#define VO_PROP_ZOOM_X                8 
-#define VO_PROP_ZOOM_Y                9 
-#define VO_PROP_OFFSET_X              10 
-#define VO_PROP_OFFSET_Y              11
-#define VO_PROP_TVMODE		      12 
-#define VO_PROP_MAX_NUM_FRAMES        13 
-#define VO_NUM_PROPERTIES             14
+#define VO_PROP_ZOOM_FACTOR           8 
+#define VO_PROP_PAN_SCAN              9 
+#define VO_PROP_TVMODE		      10 
+#define VO_PROP_MAX_NUM_FRAMES        11 
+#define VO_NUM_PROPERTIES             12
 
 /* zoom specific constants FIXME: generate this from xine.tmpl.in */
 #define VO_ZOOM_STEP        100
 #define VO_ZOOM_MAX         400
-#define VO_ZOOM_MIN         -85
+#define VO_ZOOM_MIN         100
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into

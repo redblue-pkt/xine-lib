@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.63 2002/02/24 15:14:39 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.64 2002/02/25 01:23:41 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -92,7 +92,7 @@ typedef struct xshm_frame_s {
   int                gui_width, gui_height;
 
   /*
-   * "rgb" size of this frame:
+   * "output" size of this frame:
    * this is finally the ideal size "fitted" into the
    * gui size while maintaining the aspect ratio
    */
