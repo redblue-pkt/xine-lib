@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2004/01/26 20:13:58 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.30 2004/01/26 22:33:08 jstembridge Exp $
  *
  */
 
@@ -278,6 +278,8 @@ this->num_channels = 2;
 
     /* open audio device as needed */
     if (!this->output_open) {
+      this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
+    
       switch( this->num_channels ) {
         case 1:
           this->ao_cap_mode=AO_CAP_MODE_MONO; 
@@ -303,8 +305,6 @@ this->num_channels = 2;
                                                  this->bits_per_sample,
                                                  this->rate,
                                                  this->ao_cap_mode) ;
-
-      this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
     }
 
     faad_decode_audio(this, buf->decoder_flags & BUF_FLAG_FRAME_END );
