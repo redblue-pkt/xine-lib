@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.66 2003/05/31 02:18:01 tmmm Exp $
+ * $Id: buffer_types.c,v 1.67 2003/08/31 17:27:28 jstembridge Exp $
  *
  *
  * contents:
@@ -352,6 +352,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_VP31,
   "On2 VP3.1 Codec"
+},
+{
+  {
+    meFOURCC('V','P','4','0'),
+    0,
+  },
+  BUF_VIDEO_VP4,
+  "On2 VP4"
 },
 {
   {

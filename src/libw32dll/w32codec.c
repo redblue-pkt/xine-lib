@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.125 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.126 2003/08/31 17:27:28 jstembridge Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -440,9 +440,16 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->ex_functions=1;
     this->flipped=1;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-      = strdup ("VP 31 (win32)");
+      = strdup ("On2 VP3.1 (win32)");
     return "vp31vfw.dll";    
 
+  case BUF_VIDEO_VP4:
+    this->yuv_supported=1;
+    this->ex_functions=1;
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+      = strdup ("On2 VP4 (win32)");
+    return "vp4vfw.dll";
+  
   case BUF_VIDEO_MSS1:
     this->driver_type = DRIVER_DS;
     this->guid=&mss1_clsid;
@@ -1602,6 +1609,7 @@ static uint32_t video_types[] = {
   BUF_VIDEO_ATIVCR2, BUF_VIDEO_I263, BUF_VIDEO_MSVC,
   BUF_VIDEO_DV, BUF_VIDEO_WMV7, BUF_VIDEO_WMV8, BUF_VIDEO_WMV9, 
   BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_TSCC, BUF_VIDEO_UCOD,
+  BUF_VIDEO_VP4,
   0
  };
 
