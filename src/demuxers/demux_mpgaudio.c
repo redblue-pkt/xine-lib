@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.139 2004/12/16 13:59:11 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.140 2005/02/07 18:47:12 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -603,6 +603,8 @@ static int demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
   int       bs = 0;
   int       i, optional;
 
+  memset(buf, 0, 4);
+
   if(!input)
     return 0;
 
@@ -615,7 +617,8 @@ static int demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
     if(!bs)
       bs = MAX_PREVIEW_SIZE;
 
-    input->read(input, buf, bs);
+    if (input->read(input, buf, bs) < 4)
+      return 0;
 
     lprintf("stream is seekable\n");
 
