@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.48 2001/12/16 17:01:12 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.49 2001/12/29 15:43:02 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -1248,7 +1248,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->frame_height          = 0;
   this->frame_width           = 0;
   this->gc                    = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->logo_visibility       = 1;
+  this->logo_visibility       = 0;
   this->output_height         = 0;
   this->output_width          = 0;
   this->output_xoffset        = 0;
