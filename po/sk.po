@@ -1,28 +1,29 @@
-# Portuguese (Brazilian) xine-lib.po file.
+# Slovak xine-lib.po file.
 # Copyright (C) 2002 Free Software Foundation, Inc.
-# Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>, 2002
+# Tomá¹ Kovár <tomask@mac.com>, 2002.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
 "POT-Creation-Date: 2002-02-18 17:11+0100\n"
-"PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
-"Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"
-"Language-Team: Portuguese (Brazilian) <pt_BR@li.org>\n"
+"PO-Revision-Date: 2002-02-15 15:08+0200\n"
+"Last-Translator: Tomá¹ Kovár <tomask@mac.com>\n"
+"Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 0.9.5\n"
 
 #: src/demuxers/demux_ts.c:288
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
-msgstr "demux_ts: FIXME: (nÃ£o suportado)PAT spans multiple TS packets\n"
+msgstr ""
+"demux_ts: OPRAVMA: (nepodporované) PAT presahuje do viacerých paketov TS\n"
 
 #: src/demuxers/demux_ts.c:294
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
-"demux_ts: FIXME: (nÃ£o suportado) PAT consiste de multiplas (%d) seÃ§Ãµes\n"
+"demux_ts: OPRAVMA: (nepodporované) PAT pozostáva z viacerých (%d) sekcií\n"
 
 #: src/demuxers/demux_ts.c:304
 #, c-format
@@ -30,70 +31,72 @@ msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 msgstr ""
-"demux_ts: erro no demux! PAT com CRC32 invÃ¡lido: packet_crc32: %.8x "
+"demux_ts: chyba pri demultiplexácií! PAT s neplatným CRC32: packat_crc: %.8x "
 "calc_crc32: %.8x\n"
 
 #: src/demuxers/demux_ts.c:368
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
-msgstr "demux_ts: erro %02x %02x %02x (deveria ser 0x000001)\n"
+msgstr "demux_ts: chyba %02x %02x %02x (malo by by» 0x000001)\n"
 
 #: src/demuxers/demux_ts.c:505
 #, c-format
 msgid "fifo unavailable (%d)\n"
-msgstr "fifo nÃ£o disponÃ­vel (%d)\n"
+msgstr "nedostupné fifo (%d)\n"
 
 #: src/demuxers/demux_ts.c:517
 #, c-format
 msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
-msgstr "demux_ts: descartou pacote de entrada cc: %d esperado: %d\n"
+msgstr "demux_ts: zahodený vstupný paket cc: %d oèakávaný: %d\n"
 
 #: src/demuxers/demux_ts.c:531
 msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-msgstr "demux_ts: PUSI setado mas nÃ£o tem cabeÃ§alho PES (stream corrompida?)\n"
+msgstr ""
+"demux_ts: príznak PUSI je nastavený ale nie je prítomná hlavièka\n"
+"PES (po¹kodený prúd)?\n"
 
 #: src/demuxers/demux_ts.c:539
 msgid "demux_ts: broken pes encountered\n"
-msgstr "demux_ts: encontrado pes quebrado\n"
+msgstr "demux_ts: nájdený po¹kodený pes\n"
 
 #: src/demuxers/demux_ts.c:640
 msgid "demux error! PMT with invalid pointer\n"
-msgstr "erro no demux! PMT com ponteiro invÃ¡lido\n"
+msgstr "chyba pri demultiplexácií! PMT s neplatným smerníkom\n"
 
 #: src/demuxers/demux_ts.c:745
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
-"demux_ts: erro no demux! PMT com CRC32 invÃ¡lido: packet_crc32: %#.8x "
-"calc_crc32: %#.8x\n"
+"demux_ts: chyba pri demultiplexácií! PMT s neplatným CRC32: packet_crc32: %"
+"#.8x calc_crc32: %#.8x\n"
 
 #: src/demuxers/demux_ts.c:760
 msgid "demux error! PMT with inconsistent progInfo length\n"
-msgstr "erro no demux! PMT com comprimento de progInfo inconsistente\n"
+msgstr "chyba pri demultiplexácií! PMT s nekonzistentnou då¾kou progInfo\n"
 
 #: src/demuxers/demux_ts.c:777
 msgid "demux error! PMT with inconsistent streamInfo length\n"
-msgstr "erro no demux! PMT com comprimento de streamInfo inconsistente\n"
+msgstr "chyba pri demultiplexácií! PMT s nekonzistentnou då¾kou streamInfo\n"
 
 #: src/demuxers/demux_ts.c:896
 msgid "RE-Sync failed\n"
-msgstr "RE-Sync falhou\n"
+msgstr "resynchronizácia zlyhala\n"
 
 #: src/demuxers/demux_ts.c:1044
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
-msgstr "erro no demux! ts sync byte invÃ¡lido %.2x\n"
+msgstr "chyba pri demultiplexácií! Neplatný synchronizaèný bajt ts %.2x\n"
 
 #: src/demuxers/demux_ts.c:1049
 msgid "demux error! transport error\n"
-msgstr "erro no demux! erro de transporte\n"
+msgstr "chyba pri demultiplexácií! Chyba transportu\n"
 
 #: src/demuxers/demux_ts.c:1074
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
-msgstr "demux_ts: erro no demux! tamanho de payload invÃ¡lido %d\n"
+msgstr "demux_ts: chyba pri demultiplexácií! Neplatná veµkos» dát %d\n"
 
 #: src/demuxers/demux_ts.c:1226
 #, c-format
@@ -103,7 +106,7 @@ msgstr "demux %u ts_open!\n"
 #: src/demuxers/demux_ts.c:1317
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
-msgstr "demux_ts: nÃ£o consigo criar novo thread (%s)\n"
+msgstr "demux_ts: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #: src/demuxers/demux_ts.c:1328
 msgid "demux_ts: stop...\n"
@@ -117,55 +120,54 @@ msgid ""
 "this           demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ts: plugin nÃ£o suporta versÃ£o de plugin API %d.\n"
-"          isto significa que existe um descasamento de versÃ£o entre o xine e "
-"este           plugin de demuxer.\n"
-"Instalar os demux plugins atuais deve ajudar.\n"
+"demux_ts: modul nepodporuje API modulov vo verzii %d.\n"
+"          To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"          In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #: src/demuxers/demux_avi.c:350
 msgid "demux_avi: avi index is broken\n"
-msgstr "demux_avi: o Ã­ndice do avi estÃ¡ quebrado\n"
+msgstr "demux_avi: index avi súboru je po¹kodený\n"
 
 #: src/demuxers/demux_avi.c:515
 msgid "demux_avi: reconstructing index"
-msgstr "demux_avi: reconstruindo o index"
+msgstr "demux_avi: rekon¹trukcia indexu"
 
 #: src/demuxers/demux_avi.c:546
 msgid "done\n"
-msgstr "feito\n"
+msgstr "hotovo\n"
 
 #: src/demuxers/demux_avi.c:924
 #, c-format
 msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
-msgstr "demux_avi: formato de video = %s, formato de audio = 0x%lx\n"
+msgstr "demux_avi: formát videa = %s, formát zvuku = 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:926
 #, fuzzy, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
-msgstr "demux_avi: %ld frames\n"
+msgstr "demux_avi: veµkos» rámca videa %d x %d\n"
 
 #: src/demuxers/demux_avi.c:933
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
-msgstr "demux_avi: tipo de audio desconhecido 0x%lx\n"
+msgstr "demux_avi: neznámy typ zvuku 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:938
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
-msgstr "demux_avi: tipo de audio %s (wFormatTag 0x%x)\n"
+msgstr "demux_avi: typ zvuku je %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_avi.c:956 src/demuxers/demux_avi.c:973
 msgid "demux_avi: video seek to start failed\n"
-msgstr "demux_avi: ir para o inÃ­cio do vÃ­deo falhou\n"
+msgstr "demux_avi: zlyhalo preskoèenie videa na zaèiatok\n"
 
 #: src/demuxers/demux_avi.c:990
 msgid "demux_avi: audio seek to start failed\n"
-msgstr "demux_avi: ir para o inÃ­cio do audio falhou\n"
+msgstr "demux_avi: zlyhalo preskoèenie zvuku na zaèiatok\n"
 
 #: src/demuxers/demux_avi.c:1021
 #, c-format
 msgid "demux_avi: unknown avi format %.4s\n"
-msgstr "demux_avi: formato avi desconhecido %.4s\n"
+msgstr "demux_avi: neznámy formát avi %.4s\n"
 
 #: src/demuxers/demux_avi.c:1028
 #, c-format
@@ -174,12 +176,12 @@ msgstr "demux_avi: video codec >%s<\n"
 
 #: src/demuxers/demux_avi.c:1065
 msgid "demux_avi: text subtitle file available\n"
-msgstr "demux_avi: arquivo texto de subtÃ­tulos disponÃ­vel\n"
+msgstr "demux_avi: dostupný súbor s textom titulkov\n"
 
 #: src/demuxers/demux_avi.c:1071
 #, c-format
 msgid "demux_avi: can't create new thread (%s)\n"
-msgstr "demux_avi: nÃ£o consigo criar um novo thread (%s)\n"
+msgstr "demux_avi: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #: src/demuxers/demux_avi.c:1191
 #, c-format
@@ -189,23 +191,22 @@ msgid ""
 "demux_avi: demuxer plugin.\n"
 "Installing current demuxer plugins should help.\n"
 msgstr ""
-"demux_avi: este plugin nÃ£o suporta a versÃ£o %d da API de plugin.\n"
-"demux_avi: isto significa que existe um descasamento de versÃ£o entre o xine "
-"e este demux_avi: plugin de demuxer.\n"
-"Instalar os plugind de demuxer atuais deve ajudar.\n"
+"demux_avi: modul nepodporuje API modulov vo verzii %d.\n"
+"           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #: src/demuxers/demux_mpeg.c:852
 #, fuzzy
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr "Voce deve especificar mpeg(mpeg1/mpeg2) como tipo de stream.\n"
+msgstr "Mali by ste urèit typ prúdu mpeg (mpeg1 alebo mpeg2).\n"
 
 #: src/demuxers/demux_mpeg_block.c:253
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
-"demux_mpeg_block: excesso de erros, parando o playback. Talvez este stream "
-"esteja embaralhado?\n"
+"demux_mpeg_block: príli¹ mnoho chýb, prehrávanie sa zastavuje. Mô¾e by» "
+"tento prúd skramblovaný?\n"
 
 #: src/demuxers/demux_mpeg_block.c:360
 #, c-format
@@ -213,8 +214,8 @@ msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_block: aviso: o cabeÃ§alho de pes inidca que este stream pode "
-"estar encriptado (encryption mode %d)\n"
+"demux_mpeg_block: varovanie: hlavièka pes indikuje, ¾e tento prúd mô¾e by» "
+"za¹ifrovaný (re¾im ¹ifrovania %d)\n"
 
 #: src/demuxers/demux_mpgaudio.c:157
 #, c-format
@@ -224,22 +225,23 @@ msgstr "mpgaudio: bitrate = %.2fkbps\n"
 #: src/demuxers/demux_qt.c:4177
 #, fuzzy, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
-msgstr "demux_qt: video codec desconhecido >%s<\n"
+msgstr "demux_qt: neznámy video kodek >%s<\n"
 
 #: src/demuxers/demux_qt.c:4237
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
+msgstr ""
+"demux_qt: video kodek %s (%f fps), zvukový kodek %s (ld Hz, %d bitov)\n"
 
 #: src/demuxers/demux_ogg.c:140
 #, fuzzy
 msgid "ogg: vorbis audio stream detected\n"
-msgstr "metronom: audio stream end\n"
+msgstr "èasovaè: koniec zvukového prúdu\n"
 
 #: src/demuxers/demux_ogg.c:147
 #, fuzzy, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
-msgstr "demux_ogg: tipo de stream desconhecido, assinatura: >%.8s<\n"
+msgstr "demux_ogg: neznámy typ prúdu, signatúra: >%.8s<\n"
 
 #: src/demuxers/demux_ogg.c:422
 #, c-format
@@ -249,45 +251,45 @@ msgid ""
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ogg: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"            isto significa que existe um descasamento de versÃµes entre o "
-"xine e este             plugin de demuxer.\n"
-"Instalar os plugins de demuxer atuais deve ajudar.\n"
+"demux_ogg: modul nepodporuje API modulov vo verzii %d.\n"
+"           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #: src/demuxers/demux_asf.c:324
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
-msgstr "demux_asf: formato de audio: %s (wFormatTag 0x%x)\n"
+msgstr "demux_asf: audio formát: %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_asf.c:388
 #, c-format
 msgid "demux_asf: video format : %s\n"
-msgstr "demux_asf: formato de video: %s\n"
+msgstr "demux_asf: video formát: %s\n"
 
 #: src/demuxers/demux_asf.c:447
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
-msgstr "demux_asf: o comprimento do stream Ã© %d sec, a taxa Ã© %d bytes/sec\n"
+msgstr ""
+"demux_asf. då¾ka prúdu je %d sekúnd, rýchlos» je %d bajtov za sekundu\n"
 
 #: src/demuxers/demux_asf.c:1131
 #, c-format
 msgid "demux_asf: title        : %s\n"
-msgstr "demux_asf: tÃ­tulo       : %s\n"
+msgstr "demux_asf: titul         : %s\n"
 
 #: src/demuxers/demux_asf.c:1133
 #, c-format
 msgid "demux_asf: author       : %s\n"
-msgstr "demux_asf: autor        : %s\n"
+msgstr "demux_asf: autor         : %s\n"
 
 #: src/demuxers/demux_asf.c:1135
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
-msgstr "demux_asf: copyright    : %s\n"
+msgstr "demux_asf: autorské práva: %s\n"
 
 #: src/demuxers/demux_asf.c:1137
 #, c-format
 msgid "demux_asf: comment      : %s\n"
-msgstr "demux_asf: comentario   : %s\n"
+msgstr "demux_asf: komentár      : %s\n"
 
 #: src/input/input_net.c:105
 #, c-format
@@ -302,16 +304,16 @@ msgstr "input_net: connect(): %s\n"
 #: src/input/input_net.c:129
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
-msgstr "input_net: incapaz de resolver '%s'.\n"
+msgstr "input_net: nemo¾no zisti» adresu '%s'.\n"
 
 #: src/input/input_net.c:141
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
-msgstr "input_net: incapaz de conectar em '%s'.\n"
+msgstr "input_net: nemo¾no sa pripoji» k '%s'.\n"
 
 #: src/input/input_net.c:339
 msgid "net input plugin as shipped with xine"
-msgstr "net input plugin tal como enviado com xine"
+msgstr "modul vstupu zo siete dodávaný so xine"
 
 #: src/input/input_net.c:377
 #, c-format
@@ -321,11 +323,10 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada net nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"Modul vstupu zo siete nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_rtp.c:157
 #, c-format
@@ -338,42 +339,44 @@ msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
 #: src/input/input_rtp.c:185
-#, c-format
+#, fuzzy, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
-msgstr "setsockopt(IP_ADD_MEMBERSHIP) falhou (multicast kernel?): %s.\n"
+msgstr ""
+"zlyhala funkcia setsockopt(IP_ADD_MEMBERSHIG) (kernel s podporou "
+"multicastingu?): %s.\n"
 
 #: src/input/input_rtp.c:205
 #, c-format
 msgid "unable to resolve '%s'.\n"
-msgstr "incapaz de resolver '%s'.\n"
+msgstr "nemo¾no zisti» adresu '%s'.\n"
 
 #: src/input/input_rtp.c:218
 #, c-format
 msgid "unable to connect to '%s'.\n"
-msgstr "incapaz de conectar com '%s'.\n"
+msgstr "nemo¾no sa pripoji» k '%s'.\n"
 
 #: src/input/input_rtp.c:241
 msgid "OUCH - ran out of buffers\n"
-msgstr "Ai! fiquei sem buffers\n"
+msgstr "AU - v¹etky buffery sú plné\n"
 
 #: src/input/input_rtp.c:271
 #, c-format
 msgid "OUCH - dropped input packet %d %d\n"
-msgstr "Ai, descartei o pacote de entrada %d %d\n"
+msgstr "AU - zahodený vstupný paket %d %d\n"
 
 #: src/input/input_rtp.c:311
 #, c-format
 msgid "Opening >%s<\n"
-msgstr "Abrindo >%s<\n"
+msgstr "Otvára sa >%s<\n"
 
 #: src/input/input_rtp.c:339
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
-msgstr "input_rtp: nÃ£o consigo criar um novo thread (%s)\n"
+msgstr "input_rtp: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #: src/input/input_rtp.c:450
 msgid "rtp input plugin as shipped with xine"
-msgstr "plugin de entrada rtp como mandado com o xine"
+msgstr "modul vstupu z rtp dodávaný so xine"
 
 #: src/input/input_rtp.c:490
 #, c-format
@@ -383,19 +386,18 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada rtp nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"Modul vstupu rpt nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_rtp.c:506 src/input/input_rtp.c:511
 msgid "unable to allocate input buffer.\n"
-msgstr "incapaz de alocar buffer de entrada.\n"
+msgstr "nemo¾no alokova» vstupný buffer.\n"
 
 #: src/input/input_stdin_fifo.c:252
 msgid "stdin/fifo input plugin as shipped with xine"
-msgstr "plugin de entrada stdin/fifo como enviado com o xine"
+msgstr "modul vstupu zo ¹tandardného vstupu/fifo dodávaný so xine"
 
 #: src/input/input_stdin_fifo.c:281
 #, c-format
@@ -405,17 +407,17 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada stdin/fifo nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"Modul vstupu zo ¹tandardného vstupu alebo fifo nepodporuje API modulov vo "
+"verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_dvd.c:145 src/input/input_dvd.c:692
 #: src/input/input_dvd.c:752
 #, c-format
 msgid "input_dvd: unable to open dvd drive (%s): %s\n"
-msgstr "input_dvd: incapaz de abrir o acionador de dvd (%s): %s\n"
+msgstr "input_dvd: nemo¾no otvori» dvd mechaniku (%s): %s\n"
 
 #: src/input/input_dvd.c:242
 #, c-format
@@ -424,24 +426,24 @@ msgstr "USCSICMD dvd_read_copyright: %s"
 
 #: src/input/input_dvd.c:246
 msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-msgstr "bad status: READ DVD STRUCTURE (copyright)\n"
+msgstr "neplatný stav: Èitanie DVD ¹truktúry (autorské práva)\n"
 
 #: src/input/input_dvd.c:300
 #, c-format
 msgid "input_dvd: cannot open dvd drive >%s<\n"
-msgstr "input_dvd: nÃ£o consigo abrir o acionador de dvd >%s<\n"
+msgstr "input_dvd: nemo¾no otvori» dvd mechaniku >%s<\n"
 
 #: src/input/input_dvd.c:311 src/input/input_dvd.c:324
 msgid "input_dvd: Could not read Copyright Structure\n"
-msgstr "input_dvd: NÃ£o conseguÃ­ ler a Copyright Structure\n"
+msgstr "input_dvd: Nemo¾no preèíta» ¹truktúru o autorských právach\n"
 
 #: src/input/input_dvd.c:337
 msgid ""
 "input_dvd: Could not read Copyright Structure.\n"
 "           Assuming disk is not encrypted.\n"
 msgstr ""
-"input_dvd: NÃ£o conseguÃ­ ler a Copyright Structure.\n"
-"           Assumindo que o disco Ã© nÃ£o encriptado.\n"
+"input_dvd: Nemo¾no preèíta» ¹truktúru o autorských právach.\n"
+"           Predpokladá sa, ¾e disk nie je za¹ifrovaný.\n"
 
 #: src/input/input_dvd.c:346
 msgid ""
@@ -451,64 +453,64 @@ msgid ""
 "\n"
 msgstr ""
 "\n"
-"input_dvd: Desculpe, xine nÃ£o toca DVDs encriptados. O estado legal de "
-"desencriptaÃ§Ã£o CSS\n"
-"           nÃ£o Ã© claro e nÃ³s nÃ£o vamos prover tal cÃ³digo.\n"
+"input_dvd: Prepáè, xine nemô¾e prehráva» za¹ifrované disky DVD. Právny stav\n"
+"           de¹ifrovania CSS je nejasný a my takýto kód nemô¾eme poskytnú».\n"
 "\n"
 
 #: src/input/input_dvd.c:354
 #, c-format
 msgid "input_dvd: cannot open file >%s<\n"
-msgstr "input_dvd: nÃ£o consigo abrir o arquivo >%s<\n"
+msgstr "input_dvd: nemo¾no otvori» súbor >%s<\n"
 
 #: src/input/input_dvd.c:399
 #, c-format
 msgid "input_dvd: Unable to find >%s< on dvd.\n"
-msgstr "input_dvd: Incapaz de achar >%s< no dvd.\n"
+msgstr "input_dvd: Nemo¾no nájs» >%s< na dvd.\n"
 
 #: src/input/input_dvd.c:434
 #, c-format
 msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
-msgstr "input_dvd: error read: %Ld bytes nÃ£o Ã© um setor!\n"
+msgstr "input_dvd: chyba pri èítaní: %Ld bajtov nie je sektor!\n"
 
 #: src/input/input_dvd.c:451
 #, c-format
 msgid "input_dvd: read error in input_dvd plugin (%s)\n"
-msgstr "input_dvd: read erro no input_dvd plugin (%s)\n"
+msgstr "input_dvd: chyba pri èítaní v module input_dvd (%s)\n"
 
 #: src/input/input_dvd.c:455
 #, c-format
 msgid "input_dvd: short read in input_dvd (%d != %d)\n"
-msgstr "input_dvd: short read in input_dvd (%d != %d)\n"
+msgstr "input_dvd: krátke èítanie v module input_dvd (%d != %d)\n"
 
 #: src/input/input_dvd.c:474
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr "input_dvd: erro no input_dvd plugin read: %Ld bytes nÃ£o Ã© um setor!\n"
+msgstr ""
+"input_dvd: chyba pri èítaní v module input_dvd: %d bajtov nie je sektor!\n"
 
 #: src/input/input_dvd.c:486
 msgid "input_dvd: read error in input_dvd plugin\n"
-msgstr "input_dvd: erro de leitura no input_dvd plugin\n"
+msgstr "input_dvd: chyba pri èítaní v module input_dvd\n"
 
 #: src/input/input_dvd.c:519
 #, c-format
 msgid "input_dvd: seek: %d is an unknown origin\n"
-msgstr "input_dvd: seek: %d Ã© uma origem desconhecida\n"
+msgstr "input_dvd: preskoèenie: %d je neznámenho pôvodu\n"
 
 #: src/input/input_dvd.c:560
 #, c-format
 msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
-msgstr "input_dvd: CDROMCLOSETRAY falhou: %s\n"
+msgstr "input_dvd: zlyhalo ioctl CDROMCLOSETRAY: %s\n"
 
 #: src/input/input_dvd.c:566 src/input/input_dvd.c:583
 #, c-format
 msgid "input_dvd: CDROMEJECT failed: %s\n"
-msgstr "input_dvd: CDROMEJECT falhou: %s\n"
+msgstr "input_dvd: zlyhalo ioctl CDROMEJECT: %s\n"
 
 #: src/input/input_dvd.c:572
 #, c-format
 msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr "input_dvd: CDROM_DRIVE_STATUS falhou: %s\n"
+msgstr "input_dvd: zlyhalo ioctl CDROM_DRIVE_STATUS: %s\n"
 
 #: src/input/input_dvd.c:588
 #, c-format
@@ -522,7 +524,7 @@ msgstr "ioctl(cdromeject): %s"
 
 #: src/input/input_dvd.c:618
 msgid "dvd device input plugin as shipped with xine"
-msgstr "dvd device input plugin as shipped with xine"
+msgstr "modul vstupu z dvd dodávaný so xine"
 
 #: src/input/input_dvd.c:798
 #, c-format
@@ -532,41 +534,40 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada dvd nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"Modul vstupu z dvd nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_file.c:209
 #, c-format
 msgid "lstat failed for %s{%s}\n"
-msgstr "lstat failed for %s{%s}\n"
+msgstr "zlyhala funkcia lstat pre %s{%s}\n"
 
 #: src/input/input_file.c:292
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
-msgstr "input_file: tentando abrir o arquivo de subtÃ­tulos '%s'\n"
+msgstr "input_file: pokus o otvorenie súboru s titulkami '%s'\n"
 
 #: src/input/input_file.c:350
 #, c-format
 msgid "input_file: read error (%s)\n"
-msgstr "input_file: erro de leitura (%s)\n"
+msgstr "input_file: chyba pri èítaní (%s)\n"
 
 #: src/input/input_file.c:518 src/input/input_file.c:557
 #: src/input/input_file.c:593
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
-msgstr "%s(%d): readlink() falhou: %s\n"
+msgstr "%s(%d): zlyhala funkcia readlink(): %s\n"
 
 #: src/input/input_file.c:781
 msgid "plain file input plugin as shipped with xine"
-msgstr "plain file input plugin as shipped with xine"
+msgstr "modul vstupu zo súboru dodánaný so xine"
 
 #: src/input/input_file.c:799
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
-msgstr "input_file: get optional data, type %08x, sub %p\n"
+msgstr "input_file: voliteµné dáta, typ %08x, podtyp %p\n"
 
 #: src/input/input_file.c:829
 #, c-format
@@ -576,107 +577,107 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada file nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"Modul vstupu zo súboru nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
-msgstr "input_vcd : error in ioctl CDROMREADTOCHDR\n"
+msgstr "input_vcd: chyba pri ioctl CDROMREADTOCHDR\n"
 
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
+msgstr "input_vcd: chyba pri ioctl CDROMREADTOCENTRY pre stopu %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
-msgstr "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
+msgstr "input_vcd: chyba pri ioctl CDROMREADTOCENTRY pre lead-out\n"
 
 #: src/input/input_vcd.c:209
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
-msgstr "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
+msgstr "input_vcd: chyba pri ioctl CDROMREADTOCENTRY\n"
 
 #: src/input/input_vcd.c:327
 #, c-format
 msgid "scsi command failed with status %d\n"
-msgstr "scsi command failed with status %d\n"
+msgstr "zlyhal príkaz scsi so stavom %d\n"
 
 #: src/input/input_vcd.c:368
 msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-msgstr "input_vcd: MRL mal formada. Use vcd://<track #>\n"
+msgstr "input_vcd: neplatné MRL. Pou¾ite vcd://<èíslo stopy>\n"
 
 #: src/input/input_vcd.c:375
 #, c-format
 msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
-msgstr "input_vcd: trilha invalida %d (faixa valida: 0 .. %d)\n"
+msgstr "input_vcd: neplatná stopa %d (platný rozsah: 0..%d)\n"
 
 #: src/input/input_vcd.c:390
 #, c-format
 msgid "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"
-msgstr "input_vcd: erro em CDRIOCSETBLOCKSIZE %d\n"
+msgstr "input_vcd: chyba pri volaní CDRIOCSETBLOCKSIZE %d\n"
 
 #: src/input/input_vcd.c:440 src/input/input_vcd.c:577
 msgid "input_vcd: error in CDROMREADRAW\n"
-msgstr "input_vcd: erro em CDROMREADRAW\n"
+msgstr "input_vcd: chyba pri volaní CDROMREADRAW\n"
 
 #: src/input/input_vcd.c:475 src/input/input_vcd.c:617
 #, c-format
 msgid "input_vcd: seek error %d\n"
-msgstr "input_vcd: erro de posicionamento %d\n"
+msgstr "input_vcd: chyba pri preskakovaní %d\n"
 
 #: src/input/input_vcd.c:479 src/input/input_vcd.c:621
 #, c-format
 msgid "input_vcd: read error %d\n"
-msgstr "input_vcd: erro de leitura %d\n"
+msgstr "input_vcd: chyba pri èítaní %d\n"
 
 #: src/input/input_vcd.c:516 src/input/input_vcd.c:663
 msgid "input_vcd: read data failed\n"
-msgstr "input_vcd: read data failed\n"
+msgstr "input_vcd: zlyhalo èítanie dát\n"
 
 #: src/input/input_vcd.c:734 src/input/input_vcd.c:785
 msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
-msgstr "input_vcd: SEEK_CUR not implemented for offset != 0\n"
+msgstr ""
+"input_vcd: funkcia SEEK_CUR nie je implementovaná pre offset rozdielny od 0\n"
 
 #: src/input/input_vcd.c:752 src/input/input_vcd.c:793
 #, c-format
 msgid "input_vcd: error seek to origin %d not implemented!\n"
-msgstr "input_vcd: error seek to origin %d not implemented!\n"
+msgstr "input_vcd: chyba - skok na cieµ %d nie je implementovaný\n"
 
 #: src/input/input_vcd.c:886
 #, c-format
 msgid "input_vcd: CDROMCLOSETRAY failed: %s\n"
-msgstr "input_vcd: CDROMCLOSETRAY failed: %s\n"
+msgstr "input_vcd: zlyhala funkcia CDROMCLOSETRAY: %s\n"
 
 #: src/input/input_vcd.c:891 src/input/input_vcd.c:933
 #, c-format
 msgid "input_vcd: CDROMEJECT failed: %s\n"
-msgstr "input_vcd: CDROMEJECT failed: %s\n"
+msgstr "input_vcd: zlyhala funkcia CDROMEJECT: %s\n"
 
 #: src/input/input_vcd.c:897
 #, c-format
 msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
+msgstr "input_vcd: zlyhala funkcia CDROM_DRIVE_STATUS: %s\n"
 
 #: src/input/input_vcd.c:963
 msgid "vcd device input plugin as shipped with xine"
-msgstr "vcd device input plugin as shipped with xine"
+msgstr "modul vstupu zo zariadenia vcd dodávaný so xine"
 
 #: src/input/input_vcd.c:991
 #, c-format
 msgid "unable to open %s: %s.\n"
-msgstr "incapaz de abrir %s: %s.\n"
+msgstr "nemo¾no otvori» %s: %s.\n"
 
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
-msgstr "vcd_read_toc falhou\n"
+msgstr "zlyhala funkcia vcd_read_toc\n"
 
 #: src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s."
-msgstr "incapaz de abrir %s: %s."
+msgstr "nemo¾no otvori» %s: %s."
 
 #: src/input/input_vcd.c:1135
 #, c-format
@@ -686,88 +687,87 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada vcd nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"vstupný modul vcd nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_http.c:109
 msgid "input_http: failed to open socket\n"
-msgstr "input_http: failed to open socket\n"
+msgstr "input_http: nemo¾no otvori» soket\n"
 
 #: src/input/input_http.c:118
 msgid "input_http: cannot connect to host\n"
-msgstr "input_http: cannot connect to host\n"
+msgstr "input_http: nemo¾no sa pripoji» k serveru\n"
 
 #: src/input/input_http.c:133
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
-msgstr "input_http: unable to resolve >%s<\n"
+msgstr "input_http: nemo¾no zisti» adresu >%s<\n"
 
 #: src/input/input_http.c:145
 #, c-format
 msgid "http: unable to connect to >%s<\n"
-msgstr "http: unable to connect to >%s<\n"
+msgstr "http: nemo¾no sa pripoji» k >%s<\n"
 
 #: src/input/input_http.c:342
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
-msgstr "input_http: opening >/%s< on host >%s<"
+msgstr "input_http: otváram >/%s< na serveri >%s<"
 
 #: src/input/input_http.c:345
 #, c-format
 msgid "%s via proxy >%s<"
-msgstr "%s via proxy >%s<"
+msgstr "%s cez proxy >%s<"
 
 #: src/input/input_http.c:417 src/input/input_http.c:506
 msgid "input_http: EAGAIN\n"
-msgstr "input_http: EAGAIN\n"
+msgstr "input_http: EGAIN (skús znovu)\n"
 
 #: src/input/input_http.c:420 src/input/input_http.c:509
 msgid "input_http: read error\n"
-msgstr "input_http: read error\n"
+msgstr "input_http: chyba pri èítaní\n"
 
 #: src/input/input_http.c:437
 #, c-format
 msgid "input_http: answer: >%s<\n"
-msgstr "input_http: answer: >%s<\n"
+msgstr "input_http: odpoveï: >%s<\n"
 
 #: src/input/input_http.c:447
 msgid "input_http: invalid http answer\n"
-msgstr "input_http: invalid http answer\n"
+msgstr "input_http: neplatná odpoveï http\n"
 
 #: src/input/input_http.c:452
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
-msgstr "input_http: 3xx redirection not implemented: >%d %s<\n"
+msgstr "input_http: presmerovanie 3xx nie je implementované: >%d %s<\n"
 
 #: src/input/input_http.c:457
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
-msgstr "input_http: http status not 2xx: >%d %s<\n"
+msgstr "input_http: stav http nie je 2xx: >%d %s<\n"
 
 #: src/input/input_http.c:466
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
-msgstr "input_http: content length = %Ld bytes\n"
+msgstr "input_http: då¾ka obsahu = %Ld bajtov\n"
 
 #: src/input/input_http.c:473
 msgid "input_http: Location redirection not implemented\n"
-msgstr "input_http: Location redirection not implemented\n"
+msgstr "input_http: Presmerovanie umiestnenia nie je implementované\n"
 
 #: src/input/input_http.c:486
 msgid "input_http: end of headers\n"
-msgstr "input_http: end of headers\n"
+msgstr "input_http: koniec hlavièiek\n"
 
 #: src/input/input_http.c:547
 #, c-format
 msgid "input_http: read error (%s)\n"
-msgstr "input_http: read error (%s)\n"
+msgstr "input_http: chyba pri èítaní (%s)\n"
 
 #: src/input/input_http.c:604
 msgid "http network stream input plugin"
-msgstr "http network stream input plugin"
+msgstr "modul vstupu zo siete protokolom http"
 
 #: src/input/input_http.c:630
 #, c-format
@@ -777,125 +777,124 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada http nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"vstupný modul http nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/input/input_cda.c:467 src/input/input_cda.c:525
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
-msgstr "input_cda: fopen(%s) failed: %s\n"
+msgstr "input_cda: zlyhala funkcia fopen(%s): %s.\n"
 
 #: src/input/input_cda.c:615
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
-msgstr "input_cda: server '%s:%d' successfuly connected.\n"
+msgstr "input_cda: úspe¹ne pripojenie na server '%s:%d'.\n"
 
 #: src/input/input_cda.c:620
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
-msgstr "input_cda: opening server '%s:%d' failed: %s\n"
+msgstr "input_cda: zlyhalo otvorenie servera '%s:%d': %s.\n"
 
 #: src/input/input_cda.c:789
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROM_MEDIA_CHANGED): %s.\n"
 
 #: src/input/input_cda.c:856
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMSUBCHNL): %s.\n"
 
 #: src/input/input_cda.c:991
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDIOSTART): %s.\n"
 
 #: src/input/input_cda.c:997
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMSTART) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMSTART): %s.\n"
 
 #: src/input/input_cda.c:1003
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDIOCPLAYMSF): %s.\n"
 
 #: src/input/input_cda.c:1009
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMPLAYMSF): %s.\n"
 
 #: src/input/input_cda.c:1030
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
-msgstr "input_cda: No rights to open %s.\n"
+msgstr "input_cda: ®iadne práva na otvorenie %s.\n"
 
 #: src/input/input_cda.c:1033
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
-msgstr "input_cda: open(%s) failed: %s.\n"
+msgstr "input_cda: zlyhalo otvorenie %s: %s\n"
 
 #: src/input/input_cda.c:1127
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMCLOSETRAY): %s\n"
 
 #: src/input/input_cda.c:1132 src/input/input_cda.c:1148
 #: src/input/input_cda.c:1153
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMEJECT) failed: %s\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMEJECT): %s\n"
 
 #: src/input/input_cda.c:1138
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
-msgstr "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
+msgstr "input_cda: zlyhalo ioctl(CDROM_DRIVE_STATUS): %s\n"
 
 #: src/input/input_cda.c:1144
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMALLOW) failed: %s\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMALLOW): %s\n"
 
 #: src/input/input_cda.c:1184
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDIOREADTOCHEADER): %s.\n"
 
 #: src/input/input_cda.c:1192
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMREADTOCHDR): %s.\n"
 
 #: src/input/input_cda.c:1229
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDIOREADTOCENTRYS): %s.\n"
 
 #: src/input/input_cda.c:1252
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
+msgstr "input_cda: zlyhalo ioctl(CDROMREADTOCENTRY): %s.\n"
 
 #: src/input/input_cda.c:1435
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
-msgstr "input_cda: MRL mal formada. Use cda://<track #>\n"
+msgstr "input_cda: neplatné MRL. Pou¾ite cda://<èíslo stopy>\n"
 
 #: src/input/input_cda.c:1441
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-msgstr "input_cda: trilha invalida %d (faixa valida: 1 .. %d)\n"
+msgstr "input_cda: neplatná stopa %d (platný rozsah: 1 .. %d)\n"
 
 #: src/input/input_cda.c:1524
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
-msgstr "input_cda: error seek to origin %d not implemented!\n"
+msgstr "input_cda: chyba - skok na cieµ %d nie je implementovaný\n"
 
 #: src/input/input_cda.c:1640
 msgid "cd audio plugin as shipped with xine"
-msgstr "cd audio plugin as shipped with xine"
+msgstr "modul vstupu z cd dodávaný so xine"
 
 #: src/input/input_cda.c:1815
 #, c-format
@@ -905,16 +904,15 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"plugin de entrada cda nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-"PLUGIN DESABILITADO.\n"
-"Isto significa que existe um descasamento de versÃµes entre o xine e este "
-"plugin de entrada.\n"
-"Instalar os plugins de entrada atuais deve ajudar.\n"
+"vstupný modul cda nepodporuje API modulov vo verzii %d.\n"
+"MODUL JE VYPNUTÝ.\n"
+"To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
+"In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
 #: src/xine-engine/video_out.c:346
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr "%d quadros enviados, %d quadros pulados, %d quadros descartados\n"
+msgstr "doruèených %d rámcov, preskoèených %d rámcov, zahodených %d rámcov\n"
 
 #: src/xine-engine/video_out.c:399
 #, fuzzy, c-format
@@ -922,31 +920,28 @@ msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
-"video_out : descartando imagem com pts %d porque Ã© muito velha (diff : %d > %"
-"d).\n"
+"video_out: zahadzuje sa obraz s PTS %d, preto¾e u¾ je príli¹ starý (rozdiel: "
+"%d > %d).\n"
 
 #: src/xine-engine/video_out.c:1010
-#, fuzzy, c-format
+#, c-format
 msgid "video_out: can't create thread (%s)\n"
-msgstr "video_out : nÃ£o consigo criar thread (%s)\n"
+msgstr "video_out: nemo¾no vytvori» vlákno (%s)\n"
 
 #. FIXME: how does this happen ?
 #: src/xine-engine/video_out.c:1013
-#, fuzzy
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
-msgstr ""
-"video_out : desculpe, isto nÃ£o deveria acontecer, reinicie o xine por "
-"favor.\n"
+msgstr "video_out: prepáè, toto sa nemalo sta», re¹tartuj xine.\n"
 
 #: src/xine-engine/video_out.c:1016
 #, fuzzy
 msgid "video_out: thread created\n"
-msgstr "video_out : thread criad\n"
+msgstr "video_out: vytvorené vlákno\n"
 
 #: src/xine-engine/xine.c:107
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-msgstr "xine_notify_stream_finished: nÃ£o consigo criar um novo thread (%s)\n"
+msgstr "xine_notify_stream_finished: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #: src/xine-engine/xine.c:149
 msgid "xine_stop\n"
@@ -954,34 +949,34 @@ msgstr "xine_stop\n"
 
 #: src/xine-engine/xine.c:154
 msgid "xine_stop ignored\n"
-msgstr "xine_stop ignorado\n"
+msgstr "xine_stop bolo ignorované\n"
 
 #: src/xine-engine/xine.c:167
 msgid "xine_stop: stopping demuxer\n"
-msgstr "xine_stop: parando o demuxer\n"
+msgstr "xine_stop: zastavuje sa demultiplexer\n"
 
 #: src/xine-engine/xine.c:184
 msgid "xine_stop: done\n"
-msgstr "xine_stop: feito\n"
+msgstr "xine_stop: hotovo\n"
 
 #: src/xine-engine/xine.c:215
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
-msgstr "%s(%d) wrong first stage = %d !!\n"
+msgstr "%s(%d) nesprávny prvý prechod = %d!!\n"
 
 #: src/xine-engine/xine.c:318
 msgid "xine: cannot find input plugin for this MRL\n"
-msgstr "xine: nÃ£o consigo achar um plugin para este MRL\n"
+msgstr "xine: nemo¾no nájs» modul vstupu pre toto MRL\n"
 
 #: src/xine-engine/xine.c:330
 #, fuzzy, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
-msgstr "xine: usando plugin de entrada >%s< para este MRL (%s).\n"
+msgstr "xine: pou¾ije modul vstupu >%s< pre MRL (%s).\n"
 
 #: src/xine-engine/xine.c:339
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
-msgstr "xine: nÃ£o conseguÃ­ achar o demuxer para >%s<\n"
+msgstr "xine: nemo¾no nájs» demultiplexer pre >%s<\n"
 
 #: src/xine-engine/xine.c:349
 #, c-format
@@ -990,23 +985,23 @@ msgstr ""
 
 #: src/xine-engine/xine.c:369
 msgid "xine_play: demuxer failed to start\n"
-msgstr "xine_play: demuxer falhou em comeÃ§ar\n"
+msgstr "xine_play: demultiplexer nena¹tartoval\n"
 
 #: src/xine-engine/xine.c:418
 msgid "xine_exit: shutdown audio\n"
-msgstr "xine_exit: desligando o audio\n"
+msgstr "xine_exit: ukonèenie zvuku\n"
 
 #: src/xine-engine/xine.c:422
 msgid "xine_exit: shutdown video\n"
-msgstr "xine_exit: desligando o video\n"
+msgstr "xine_exit: ukonèenie videa\n"
 
 #: src/xine-engine/xine.c:428
 msgid "xine_exit: bye!\n"
-msgstr "xine_exit: tchau!\n"
+msgstr "xine_exit: ahoj!\n"
 
 #: src/xine-engine/xine.c:586
 msgid "xine: xine_get_current_position: no input source\n"
-msgstr "xine: xine_get_current_position: sem fonte de entrada\n"
+msgstr "xine: xine_get_current_position: nezadaný vstupný zdroj\n"
 
 #: src/xine-engine/xine.c:707
 #, c-format
@@ -1015,7 +1010,7 @@ msgstr "xine: set_speed %d\n"
 
 #: src/xine-engine/xine.c:866
 msgid "messages"
-msgstr "menssagens"
+msgstr "správy"
 
 #: src/xine-engine/xine.c:867
 msgid "stream format"
@@ -1023,12 +1018,12 @@ msgstr ""
 
 #: src/xine-engine/xine.c:868
 msgid "plugin"
-msgstr "plugin"
+msgstr "modul"
 
 #: src/xine-engine/load_plugins.c:119 src/xine-engine/load_plugins.c:471
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
-msgstr "%s(%s@%d): parametro deve ser nÃ£o nulo, saindo\n"
+msgstr "%s(%s@%d): parameter by nemal by» null, konèím\n"
 
 #: src/xine-engine/load_plugins.c:156
 #, c-format
@@ -1036,17 +1031,19 @@ msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nÃ£o consigo abrir o plugin de demux %s:\n"
+"load_plugins: nemo¾no otvori» demultiplexný modul %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:170
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
-msgstr "load_plugins: achado o plugin de demux: %s\n"
+msgstr "load_plugins: nájdený demultiplexný modul: %s\n"
 
 #: src/xine-engine/load_plugins.c:178
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr "load_plugins: excesso de plugins de demux instalados, saindo.\n"
+msgstr ""
+"load_plugins: je nain¹talovaných príli¹ mnoho demultiplexných modulov, xine "
+"sa ukonèí.\n"
 
 #: src/xine-engine/load_plugins.c:316
 #, c-format
@@ -1054,13 +1051,13 @@ msgid ""
 "load_plugins: cannot open input plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nÃ£o consigo abrir o plugin de entrada %s:\n"
+"load_plugins: nemo¾no otvori» vstupný %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:328
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
-msgstr "load_plugins: achado o plugin de entrada: %s\n"
+msgstr "load_plugins: nájdený vstupný modul: %s\n"
 
 #: src/xine-engine/load_plugins.c:335
 #, c-format
@@ -1068,13 +1065,14 @@ msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 "function)\n"
 msgstr ""
-"load_plugins: %s nÃ£o Ã© um plugin de entrada vÃ¡lido (nÃ£o possui a funÃ§Ã£o "
+"load_plugins: %s nie je platný vstupný modul (neobsahuje funkciu "
 "init_input_plugin())\n"
 
 #: src/xine-engine/load_plugins.c:339
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
-msgstr "%s(%d): excesso de plugins de entrada instalados, saindo.\n"
+msgstr ""
+"%s(%d): je nain¹talovaných príli¹ mnoho vstupných modulov, xine sa ukonèí.\n"
 
 #: src/xine-engine/load_plugins.c:352
 #, c-format
@@ -1082,8 +1080,8 @@ msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
 "correctly??\n"
 msgstr ""
-"load_plugins: nenhum plugin de entrada encontrado em %s! - VocÃª instalou o "
-"xine corretamente?\n"
+"load_plugins: v adresári %s sa nenachádzajú ¾iadne moduly vstupu! - Je "
+"program xine korektne nain¹talovaný??\n"
 
 #: src/xine-engine/load_plugins.c:532
 #, c-format
@@ -1091,46 +1089,45 @@ msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: carga do plugin %s falhou:\n"
+"load_plugins: nemo¾no naèíta» modul %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:560
 #, c-format
 msgid "spu decoder plugin found : %s\n"
-msgstr "spu decoder plugin achado: %s\n"
+msgstr "nájdený modul dekodéra titulkov: %s\n"
 
 #: src/xine-engine/load_plugins.c:588
 #, c-format
 msgid "video decoder plugin found : %s\n"
-msgstr "video decoder plugin achado : %s\n"
+msgstr "nájdený modul video dekodéra: %s\n"
 
 #: src/xine-engine/load_plugins.c:612
 #, c-format
 msgid "audio decoder plugin found : %s\n"
-msgstr "audio decoder plugin achado : %s\n"
+msgstr "nájdený modul audio dekodéra: %s\n"
 
 #~ msgid "demux_ts: demux error! PAT without payload unit start indicator\n"
 #~ msgstr ""
-#~ "demux_ts: erro no demux! PAT sem indicador de comeÃ§o de unidade \"payload"
-#~ "\"\n"
+#~ "demux_ts: chyba pri demultiplexácií: PAT bez indikátora zaèiatku dát\n"
 
 #~ msgid "demux_ts: demux error! PAT with invalid pointer\n"
-#~ msgstr "demux_ts: erro no demux! PAT com ponteiro invalido\n"
+#~ msgstr "demux_ts: chyba pri demultiplexácií: PAT s neplatným smerníkom\n"
 
 #~ msgid "demux_avi: demux loop finished.\n"
-#~ msgstr "demux_avi: loop de demux terminado.\n"
+#~ msgstr "demux_avi: sluèka demultiplexera dokonèená.\n"
 
 #~ msgid "demux_avi: stop...ignored\n"
-#~ msgstr "demux_avi: stop...ignorado\n"
+#~ msgstr "demux_avi: stop...ignorované\n"
 
 #~ msgid "demux_avi: %ld frames\n"
-#~ msgstr "demux_avi: %ld frames\n"
+#~ msgstr "demux_avi: %ld rámcov\n"
 
 #~ msgid "demux_avi: AVI_init failed (AVI_errno: %d)\n"
-#~ msgstr "demux_avi: AVI_init falhou (AVI_errno: %d)\n"
+#~ msgstr "demux_avi: zlyhala funkcia AVI_init (AVI_errno: %d)\n"
 
 #~ msgid "demux_elem: can't create new thread (%s)\n"
-#~ msgstr "demux_elem: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_elem: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_elem: plugin doesn't support plugin API version %d.\n"
@@ -1138,23 +1135,22 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this             demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_elem: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_elem: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "            To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "            In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid "How how - something wrong in wonderland demux:read_bytes (%d)\n"
-#~ msgstr ""
-#~ "Ha Ha - alguma coisa errada no paÃ­s das maravilhas demux:read_bytes (%d)\n"
+#~ msgstr "Ako ako - nieèo je zlé v zázraènej krajine demux:read_bytes (%d)\n"
 
 #~ msgid "demux loop finished (status: %d, buf:%x)\n"
-#~ msgstr "demux loop terminado (status: %d, buf:%x)\n"
+#~ msgstr "sluèka demultiplexera je ukonèená (stav: %d, buf: %x)\n"
 
 #~ msgid "demux_mpeg: stop...\n"
 #~ msgstr "demux_mpeg: stop...\n"
 
 #~ msgid "demux_mpeg: can't create new thread (%s)\n"
-#~ msgstr "demux_mpeg: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_mpeg: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_mpeg: plugin doesn't support plugin API version %d.\n"
@@ -1162,41 +1158,41 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this             demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_mpeg: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_mpeg: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "            To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "            In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid "demux_mpeg_block: read_block failed\n"
-#~ msgstr "demux_mpeg_block: read_block falhou\n"
+#~ msgstr "demux_mpeg_block: zlyhala funkcia read_block\n"
 
 #~ msgid "demux_mpeg_block: checking if we can branch to %s\n"
-#~ msgstr "demux_mpeg_block: checando se podemos ramificar para %s\n"
+#~ msgstr "demux_mpeg_block: kontrola èi je mo¾né vetvi» na %s\n"
 
 #~ msgid "demux_mpeg_block: branching\n"
-#~ msgstr "demux_mpeg_block: ramificando\n"
+#~ msgstr "demux_mpleg_block: vetvenie\n"
 
 #~ msgid "demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n"
-#~ msgstr "demux_mpeg_block: erro! %02x %02x %02x (deveria ser 0x000001) \n"
+#~ msgstr "demux_mpeg_block: chyba! %02x %02x %02x (malo by by» 0x000001) \n"
 
 #~ msgid "illegal lpcm sample format (%d), assume 16-bit samples\n"
 #~ msgstr ""
-#~ "formato de amostras lpcm ilegal (%d), assumindo amostras de 16-bits\n"
+#~ "neplatný formát lpcm vzoriek (%d), predpokladajú sa 16-bitové vzorky\n"
 
 #~ msgid "demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n"
-#~ msgstr "demux_mpeg_block: erro %02x %02x %02x (deveria ser 0x000001) \n"
+#~ msgstr "demux_mpeg_block: chyba %02x %02x %02x (malo by by» 0x000001) \n"
 
 #~ msgid "demux_mpeg_block: stop...ignored\n"
-#~ msgstr "demux_mpeg_block: stop...ignorado\n"
+#~ msgstr "demux_mpeg_block: stop...ignorované\n"
 
 #~ msgid "demux_mpeg_block: can't create new thread (%s)\n"
-#~ msgstr "demux_mpeg_block: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_mpeg_block: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid "demux_mpeg_block: mrl %s is new, will estimated bitrate\n"
-#~ msgstr "demux_mpeg_block: mrl %s Ã© nova, vou estimar a taxa de bits\n"
+#~ msgstr "demux_mpeg_block: mrl %s je nové, predpokladá sa bitrate\n"
 
 #~ msgid "demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n"
-#~ msgstr "demux_mpeg_block: mrl %s Ã© conhecida, taxa de bits estimada: %d\n"
+#~ msgstr "demux_mpeg_block: mrl %s je známe, predpokladaný bitrate: %d\n"
 
 #~ msgid ""
 #~ "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -1204,22 +1200,23 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this                   demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_mpeg_block: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_mpeg_block: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "                  To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "                  In¹talácia aktuálneho demultiplexného modulu by mala "
+#~ "pomôc».\n"
 
 #~ msgid "demux_mpgaudio_block: stop...ignored\n"
-#~ msgstr "demux_mpgaudio_block: stop...ignorado\n"
+#~ msgstr "demux_mpgaudio_block: stop...ignorované\n"
 
 #~ msgid "demux_mpgaudio: can't create new thread (%s)\n"
-#~ msgstr "demux_mpgaudio: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_mpgaudio: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid "demux_pes: stop...\n"
 #~ msgstr "demux_pes: stop...\n"
 
 #~ msgid "demux_pes: can't create new thread (%s)\n"
-#~ msgstr "demux_pes: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_pes: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_pes: plugin doesn't support plugin API version %d.\n"
@@ -1227,43 +1224,43 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_pes: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_pes: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "           To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid "Header not compressed with zlib\n"
-#~ msgstr "CabeÃ§alho nÃ£o comprimido com zlib\n"
+#~ msgstr "Hlavièka nie je komprimovaná pomocou zlib\n"
 
 #~ msgid "QT cmov: malloc err 0"
-#~ msgstr "QT cmov: malloc err 0"
+#~ msgstr "QT cmov: malloc chyba 0"
 
 #~ msgid "QT cmov: read err tlen %llu\n"
-#~ msgstr "QT cmov: read err tlen %llu\n"
+#~ msgstr "QT cmov: read chyba tlen %llu\n"
 
 #~ msgid "QT cmov: malloc err moov_sz %u\n"
-#~ msgstr "QT cmov: malloc err moov_sz %u\n"
+#~ msgstr "QT cmov: malloc chyba moov_sz %u\n"
 
 #~ msgid "QT cmov: inflateInit err %d\n"
-#~ msgstr "QT cmov: inflateInit err %d\n"
+#~ msgstr "QT cmov: inflateInit chyba %d\n"
 
 #~ msgid "QT cmov inflate: ERR %d\n"
-#~ msgstr "QT cmov inflate: ERR %d\n"
+#~ msgstr "QT cmov inflate: CHYBA %d\n"
 
 #~ msgid "demux_qt: quicktime_open: error in header\n"
-#~ msgstr "demux_qt: quicktime_open: erro no cabeÃ§alho\n"
+#~ msgstr "demux_qt: quicktime_open: chyba v hlavièke\n"
 
 #~ msgid "demux_qt: stop...ignored\n"
-#~ msgstr "demux_qt: stop...ignorado\n"
+#~ msgstr "demux_qt: stop...ignorované\n"
 
 #~ msgid "demux_qt: video codec >%s<\n"
-#~ msgstr "demux_qt: video codec >%s<\n"
+#~ msgstr "demux_qt: video kodek >%s<\n"
 
 #~ msgid "demux_qt: unknown audio codec >%s<\n"
-#~ msgstr "demux_qt: audio codec desconhecido >%s<\n"
+#~ msgstr "demux_qt: neznámy zvukový kodek >%s<\n"
 
 #~ msgid "demux_qt: can't create new thread (%s)\n"
-#~ msgstr "demux_qt: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_qt: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -1271,62 +1268,62 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this           demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_qt: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_qt: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "          To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "          In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid ""
 #~ "demux_ogg: beginning of stream\n"
 #~ "demux_ogg: serial number %d\n"
 #~ msgstr ""
-#~ "demux_ogg: inÃ­cio de stream\n"
-#~ "demux_ogg: nÃºmero de sÃ©rie %d\n"
+#~ "demux_ogg: zaèiatok prúdu\n"
+#~ "demug_ogg: sériové èíslo %d\n"
 
 #~ msgid "demux_ogg: found a new stream, serialnumber %d\n"
-#~ msgstr "demux_ogg: achei um novo stream, nÃºmero de sÃ©rie %d\n"
+#~ msgstr "demux_ogg: nájdený nový prúd, sériové èíslo %d\n"
 
 #~ msgid "demux_ogg: stop...ignored\n"
-#~ msgstr "demux_ogg: stop...ignorado\n"
+#~ msgstr "demux_ogg: stop...ignorované\n"
 
 #~ msgid "demux_ogg: can't create new thread (%s)\n"
-#~ msgstr "demux_ogg: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_ogg: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid "demux_asf: end of data\n"
-#~ msgstr "demux_asf: final dos dados\n"
+#~ msgstr "demux_asf: koniec dát\n"
 
 #~ msgid "demux_asf: unknown audio type 0x%x\n"
-#~ msgstr "demux_asf: tipo de audio desconhecido 0x%x\n"
+#~ msgstr "demux_asf: neznámy typ zvuku 0x%x\n"
 
 #~ msgid "demux_asf: wavex header is %d bytes long\n"
-#~ msgstr "demux_asf: cabeÃ§alho wavex tem %d bytes\n"
+#~ msgstr "demux_asf: hlavièka wavex je dlhá %d bajtov\n"
 
 #~ msgid "demux_asf: unknown video format %.4s\n"
-#~ msgstr "demux_asf: formato de vÃ­deo desconhecido %.4s\n"
+#~ msgstr "demux_asf: neznámy video formát %.4s\n"
 
 #~ msgid "demux_asf: file doesn't start with an asf header\n"
-#~ msgstr "demux_asf: o arquivo nÃ£o comeÃ§a com um cabeÃ§alho asf\n"
+#~ msgstr "demux_asf: súbor nezaèína s asf hlavièkou\n"
 
 #~ msgid "demux_asf: audio conceal interleave detected (%d x %d x %d)\n"
-#~ msgstr "demux_asf: detectado um audio conceal interleave (%d x %d x %d)\n"
+#~ msgstr "demux_asf: detekované skrytie prekladania zvuku (%d x %d x %d)\n"
 
 #~ msgid "demux_asf: absolute size ignored\n"
-#~ msgstr "demux_asf: tamanho absoluto ignorado\n"
+#~ msgstr "demux_asf: ignorovaná absolútna veµkos»\n"
 
 #~ msgid "demux_asf: buffer overflow on defrag!\n"
-#~ msgstr "demux_asf: buffer overflow on defrag!\n"
+#~ msgstr "demux_asf: preteèenie buffera pri defragmentácií!\n"
 
 #~ msgid "demux_asf: get_packet failed\n"
-#~ msgstr "demux_asf: get_packet falhou\n"
+#~ msgstr "demux_asf: zlyhala funkcia get_packet\n"
 
 #~ msgid "demux_asf: unknow segtype %x\n"
-#~ msgstr "demux_asf: segtype desconhecido%x\n"
+#~ msgstr "demux_asf: neznámy typ segmentu %x\n"
 
 #~ msgid "demux_asf: stop...ignored\n"
-#~ msgstr "demux_asf: stop...ignorado\n"
+#~ msgstr "demux_asf: stop...ignorované\n"
 
 #~ msgid "demux_asf: can't create new thread (%s)\n"
-#~ msgstr "demux_asf: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_asf: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1334,16 +1331,16 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_asf: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_asf: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "           To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid "demux_cda: stop...ignored\n"
-#~ msgstr "demux_cda: stop...ignorado\n"
+#~ msgstr "demux_cda: stop...ignorované\n"
 
 #~ msgid "demux_cda: can't create new thread (%s)\n"
-#~ msgstr "demux_cda: nÃ£o consigo criar um novo thread (%s)\n"
+#~ msgstr "demux_cda: nemo¾no vytvori» nové vlákno (%s)\n"
 
 #~ msgid ""
 #~ "demux_cda: plugin doesn't support plugin API version %d.\n"
@@ -1351,138 +1348,131 @@ msgstr "audio decoder plugin achado : %s\n"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_cda: plugin nÃ£o suporta a versÃ£o %d da API de plugins.\n"
-#~ "            isto significa que existe um descasamento de versÃµes entre o "
-#~ "xine e este             plugin de demuxer.\n"
-#~ "Instalar os plugins de demuxer atuais deve ajudar.\n"
+#~ "demux_cda: modul nepodporuje API modulov vo verzii %d.\n"
+#~ "           To znamená, ¾e xine a tento vstupný modul majú rozlièné "
+#~ "verzie.\n"
+#~ "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
 #~ msgid "metronom: video stream start...\n"
-#~ msgstr "metronom: video stream start...\n"
+#~ msgstr "èasovaè: ¹tart video prúdu...\n"
 
 #~ msgid "metronom: video stream start ignored\n"
-#~ msgstr "metronom: video stream start ignorado\n"
+#~ msgstr "èasovaè: ignorovaný ¹tart video prúdu\n"
 
 #~ msgid "metronom: waiting for audio to start...\n"
-#~ msgstr "metronom: esperando o audio comeÃ§ar...\n"
+#~ msgstr "èasovaè: èaká sa na ¹tart zvuku...\n"
 
 #~ msgid "metronom: video stream end\n"
-#~ msgstr "metronom: video stream end\n"
+#~ msgstr "èasovaè: koniec video prúdu\n"
 
 #~ msgid "metronom: video stream end ignored\n"
-#~ msgstr "metronom: video stream end ignorado\n"
+#~ msgstr "èasovaè: ignorovaný koniec video prúdu\n"
 
 #~ msgid "metronom: waiting for audio to end...\n"
-#~ msgstr "metronom: esperando o audio terminar...\n"
+#~ msgstr "èasovaè: èaká sa na ukonèenie zvuku...\n"
 
 #~ msgid "metronom: audio stream start...\n"
-#~ msgstr "metronom: audio stream start...\n"
+#~ msgstr "èasovaè: ¹tart zvukového prúdu...\n"
 
 #~ msgid "metronom: audio stream start ignored\n"
-#~ msgstr "metronom: audio stream start ignorado\n"
+#~ msgstr "èasovaè: ignorovaný ¹tart zvukového prúdu\n"
 
 #~ msgid "metronom: waiting for video to start...\n"
-#~ msgstr "metronom: esperando o video comeÃ§ar...\n"
+#~ msgstr "èasovaè: èaká sa na ¹tart videa...\n"
 
 #~ msgid "metronom: audio stream start...done\n"
-#~ msgstr "metronom: audio stream start...feito\n"
+#~ msgstr "èasovaè: ¹tart zvukového prúdu...hotovo\n"
 
 #~ msgid "metronom: audio stream end ignored\n"
-#~ msgstr "metronom: audio stream end ignorado\n"
+#~ msgstr "èasovaè: ignorovaný koniec zvukového prúdu\n"
 
 #~ msgid "metronom: waiting for video to end...\n"
-#~ msgstr "metronom: esperando o video terminar...\n"
+#~ msgstr "èasovaè: èaká sa na ukonèenie videa...\n"
 
 #~ msgid "metronom: video discontinuity #%d\n"
-#~ msgstr "metronom: descontinuidade de video #%d\n"
+#~ msgstr "èasovaè: diskontinuita videa #%d\n"
 
 #~ msgid "metronom: waiting for audio discontinuity #%d\n"
-#~ msgstr "metronom: esperando a descontinuidade de audio #%d\n"
+#~ msgstr "èasovaè: èaká sa na diskuntinuitu zvuku #%d\n"
 
 #~ msgid "metronom: video vpts adjusted to %d\n"
-#~ msgstr "metronom: video vpts adjustado para %d\n"
+#~ msgstr "èasovaè: vpts videa prispôsobený na %d\n"
 
 #~ msgid "metronom: audio/video vpts too old, adjusted to %d\n"
-#~ msgstr "metronom: audio/video vpts velho demais, adjustado para %d\n"
+#~ msgstr "èasovaè: vpts zvuku a videa je príli¹ starý, prispôsobený na %d\n"
 
 #~ msgid ""
 #~ "metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, "
 #~ "vpts is %d\n"
 #~ msgstr ""
-#~ "metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, "
-#~ "vpts is %d\n"
+#~ "èasovaè: diskontinuita pts videa/zaèiatoèné pts je %d, wrap_offset je %d, "
+#~ "vpts je %d\n"
 
 #~ msgid "metronom: forcing video_wrap (%d) and audio wrap (%d)"
-#~ msgstr "metronom: forcing video_wrap (%d) and audio wrap (%d)"
+#~ msgstr "èasovaè: nastavuje sa video_wrap (%d) a audio wrap (%d)"
 
 #~ msgid " to %d\n"
-#~ msgstr " to %d\n"
+#~ msgstr " na %d\n"
 
 #~ msgid "metronom: delta too big, setting vpts to %d\n"
-#~ msgstr "metronom: delta too big, setting vpts to %d\n"
+#~ msgstr "èasovaè: delta je prili¹ veµká, nastavuje sa vpts na %d\n"
 
 #~ msgid "metronom: audio discontinuity #%d\n"
-#~ msgstr "metronom: discontinuidade de audio #%d\n"
+#~ msgstr "èasovaè: diskontinuita zvuku #%d\n"
 
 #~ msgid "metronom: waiting for video_discontinuity #%d\n"
-#~ msgstr "metronom: esperando por discontinuidade de vÃ­deo #%d\n"
+#~ msgstr "èasovaè: èaká sa na discontinuitu videa #%d\n"
 
 #~ msgid "metronom: audio vpts adjusted to %d\n"
-#~ msgstr "metronom: audio vpts adjustado para %d\n"
+#~ msgstr "èasovaè: vpts zvuku sa prispôsobilo na %d\n"
 
 #~ msgid ""
 #~ "metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, "
 #~ "vpts is %d\n"
 #~ msgstr ""
-#~ "metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, "
-#~ "vpts is %d\n"
+#~ "èasovaè: diskontinuita pts zvuku/zaèiatoèný pts je %d, wrap_offset je %d, "
+#~ "vpts je %d\n"
 
 #~ msgid "to %d\n"
-#~ msgstr "to %d\n"
+#~ msgstr "je %d\n"
 
 #~ msgid "metronom: av_offset=%d pts\n"
-#~ msgstr "metronom: av_offset=%d pts\n"
+#~ msgstr "èasovaè: av_offset=%d pts\n"
 
 #~ msgid "metronom: panic - no scr provider found!\n"
-#~ msgstr "metronom: panic - no scr provider found!\n"
+#~ msgstr "èasovaè: panika - nebol nájdený ¾iadny zdroj èasu!\n"
 
 #~ msgid "metronom: cannot create sync thread (%s)\n"
-#~ msgstr "metronom: nÃ£o consigo criar um sync thread (%s)\n"
+#~ msgstr "èasovaè: nemo¾no vytvori» sychronizované vlákno (%s)\n"
 
 #~ msgid "video_out: sigprocmask failed.\n"
-#~ msgstr "video_out: sigprocmask failed.\n"
+#~ msgstr "video_out: funkcia sigprocmask zlyhala.\n"
 
 #~ msgid "video_out : ALERT! frame is already locked for displaying\n"
-#~ msgstr "video_out : ALERTA! frame jÃ¡ estÃ¡ trancado para mostar\n"
+#~ msgstr "video_out: POPLACH! rámec je u¾ zamknutý pre zobrazenie\n"
 
 #~ msgid "video_out: rejected, %d frames to skip\n"
-#~ msgstr "video_out: rejeitado, %d frames para pular\n"
+#~ msgstr "video_out: zamietnuté, preskakuje sa %d rámcov\n"
 
 #~ msgid "xine_play: xine open %s, start pos = %d, start time = %d (sec)\n"
-#~ msgstr "xine_play: xine open %s, start pos = %d, start time = %d (sec)\n"
+#~ msgstr ""
+#~ "xine_play: xine otvára %s, zaèiatoèná pozícia = %d, zaèiatoèný èas = %d "
+#~ "(sekúnd)\n"
 
 #~ msgid "xine: using demuxer plugin >%s< for this MRL.\n"
-#~ msgstr "xine: usando o plugin de demuxer >%s< para este MRL.\n"
+#~ msgstr "xine: pou¾ije sa modul demultiplexera >%s< pre toto MRL.\n"
 
 #~ msgid "inputs"
-#~ msgstr "entradas"
+#~ msgstr "vstupy"
 
 #~ msgid "demuxers"
-#~ msgstr "demuxers"
+#~ msgstr "demultiplexery"
 
 #~ msgid "codecs"
-#~ msgstr "codecs"
+#~ msgstr "kodeky"
 
 #~ msgid "video"
 #~ msgstr "video"
 
 #~ msgid "metronom"
-#~ msgstr "metronom"
-
-#~ msgid "video_out : vo_open : warning! video thread already running\n"
-#~ msgstr "video_out : vo_open : aviso! video thread jÃ¡ estÃ¡ rodando\n"
-
-#~ msgid "xine_init entered\n"
-#~ msgstr "xine_init entrou\n"
-
-#~ msgid "xine_init returning\n"
-#~ msgstr "xine_init retornou\n"
+#~ msgstr "èasovaè"
