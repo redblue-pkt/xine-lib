@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.63 2003/03/06 16:49:30 guenter Exp $
+ * $Id: xine.h.in,v 1.64 2003/03/07 01:13:03 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -279,6 +279,9 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 #define XINE_PARAM_VERBOSITY              11 /* control console output      */
 #define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
+#define XINE_PARAM_IGNORE_VIDEO           13
+#define XINE_PARAM_IGNORE_AUDIO           14
+#define XINE_PARAM_IGNORE_SPU             15
 
 /* speed values */
 #define XINE_SPEED_PAUSE                   0
@@ -736,6 +739,7 @@ const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 #define XINE_STREAM_INFO_VIDEO_HAS_STILL   23
 #define XINE_STREAM_INFO_MAX_AUDIO_CHANNEL 24
 #define XINE_STREAM_INFO_MAX_SPU_CHANNEL   25
+#define XINE_STREAM_INFO_AUDIO_MODE        26
 
 /* xine_get_meta_info */
 #define XINE_META_INFO_TITLE               0
@@ -1191,6 +1195,10 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_INPUT_NUMBER_9       129
 #define XINE_EVENT_INPUT_NUMBER_10_ADD  130
 
+/* specific event types */
+#define XINE_EVENT_SET_V4L2             200
+#define XINE_EVENT_PVR_SAVE             201
+
 /*
  * xine event struct
  */
@@ -1267,6 +1275,48 @@ typedef struct {
   char                mrl[1]; /* might (will) be longer */
 } xine_mrl_reference_data_t;
 
+
+#ifdef XINE_ENABLE_EXPERIMENTAL_FEATURES
+
+/* 
+ * configuration options for video4linux-like input plugins
+ */
+typedef struct {
+  /* input selection */
+  int input;                    /* select active input from card */ 
+  int channel;                  /* channel number */
+  int radio;                    /* ask for a radio channel */
+  uint32_t frequency;           /* frequency divided by 62.5KHz or 62.5 Hz */
+  uint32_t transmission;        /* The transmission standard. */
+
+  /* video parameters */
+  uint32_t framerate_numerator; /* framerate as numerator/denominator */
+  uint32_t framerate_denominator;
+  uint32_t framelines;          /* Total lines per frame including blanking */
+  uint32_t colorstandard;       /* One of the V4L2_COLOR_STD_* values */
+  uint32_t colorsubcarrier;     /* The color subcarrier frequency */
+  int frame_width;              /* scaled frame width */
+  int frame_height;             /* scaled frame height */
+
+  /* used by pvr plugin */
+  int32_t session_id;           /* -1 stops pvr recording */
+} xine_set_v4l2_data_t;
+
+/* 
+ * ask pvr to save (ie. do not discard) the current session
+ */
+typedef struct {
+  /* mode values:
+   * -1 = do nothing, just set the name
+   * 0 = truncate current session and save from now on
+   * 1 = save from last sync point
+   * 2 = save everything on current session
+   */
+  int mode; 
+  char name[256]; /* name for saving, might be longer */
+} xine_pvr_save_data_t;
+
+#endif
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
