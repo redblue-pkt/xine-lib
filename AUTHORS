@@ -404,4 +404,7 @@ Darren Vincent Hart <dvhart@byu.edu>
 Philip Jägenstedt <philipj@telia.com>
   rework of aspect ratio to support float values
 
+Laurent Aimar <fenrir@videolan.org>
+  MPEG demuxer fixes
+
 (let us know if we've forgotten anyone)
