@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.30 2002/05/16 21:45:10 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.31 2002/05/20 16:58:02 miguelfreitas Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -3790,8 +3790,10 @@ static void *demux_qt_loop (void *this_gen) {
     /* main demuxer loop */
     while(this->status == DEMUX_OK) {
 
-    if (idx >= this->num_index_entries)
+    if (idx >= this->num_index_entries) {
+      this->status = DEMUX_FINISHED;
       break;
+    }
 
     is_audio = (this->index[idx].type & BUF_MAJOR_MASK) == BUF_AUDIO_BASE;
 

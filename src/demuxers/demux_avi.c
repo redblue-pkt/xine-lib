@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.86 2002/05/20 03:15:45 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.87 2002/05/20 16:58:02 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -351,14 +351,12 @@ static long audio_pos_stopper(demux_avi_t *this, void *data)
 static long start_pos_stopper(demux_avi_t *this, void *data)
 {
   off_t start_pos = *(off_t *)data;
+  long maxframe = this->avi->video_idx.video_frames - 1;
 
-  if (this->avi->video_idx.video_frames > 0) {
-    long maxframe = this->avi->video_idx.video_frames - 1;
-    video_index_entry_t *vie =
-      &(this->avi->video_idx.vindex[maxframe]);
-    if ( vie->pos >= start_pos ) {
+  while( maxframe >= 0 && this->avi->video_idx.vindex[maxframe].pos >= start_pos ) {
+    if ( this->avi->video_idx.vindex[maxframe].flags & AVIIF_KEYFRAME )
       return 1;
-    }
+    maxframe--;
   }
   return -1;
 }
