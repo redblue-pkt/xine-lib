@@ -1,3 +1,10 @@
+xine-lib (0.9.6-1) unstable; urgency=high
+
+  * new upsream release, fixes some nasty bugs
+    (the 0.9.5 package was never uploaded, sorry...)
+
+ -- Siggi Langauf <siggi@debian.org>  Sat,  1 Dec 2001 09:39:48 +0100
+
 xine-lib (0.9.5-1) unstable; urgency=high
 
   * new upstream release
