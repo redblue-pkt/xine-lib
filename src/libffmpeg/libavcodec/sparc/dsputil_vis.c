@@ -26,7 +26,7 @@
 
 #include "config.h"
 
-#ifdef ARCH_SPARC
+#if defined(ARCH_SPARC) && defined(ENABLE_VIS)
 
 #include <inttypes.h>
 #include <signal.h>
@@ -4104,4 +4104,4 @@ void dsputil_init_vis(DSPContext* c, AVCodecContext *avctx)
   }
 }
 
-#endif  /* !(ARCH_SPARC) */
+#endif  /* defined(ARCH_SPARC) && defined(ENABLE_VIS) */
