@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.13 2001/04/27 23:51:52 guenter Exp $
+ * $Id: xine_internal.h,v 1.14 2001/04/29 01:09:23 guenter Exp $
  *
  */
 
@@ -33,14 +33,10 @@
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
-#define DECODER_PLUGIN_MAX     50
-#define CODEC_PLUGIN_IFACE_VERSION      1
-#define CODEC_PLUGIN_MAX       50
+#define DECODER_PLUGIN_MAX 50
+#define DECODER_PLUGIN_IFACE_VERSION      1
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
-#define VIDEO_DECODER_PLUGIN_MAX 50
-#define AUDIO_DECODER_PLUGIN_MAX 50
-
 
 /*
  * generic xine video decoder plugin interface

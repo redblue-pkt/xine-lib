@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.15 2001/04/28 22:29:36 guenter Exp $
+ * $Id: load_plugins.c,v 1.16 2001/04/29 01:09:23 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -281,7 +281,7 @@ void load_decoder_plugins (xine_t *this,
 	    this->num_video_decoder_plugins++;
 	  }
 	  
-	  if(this->num_video_decoder_plugins > VIDEO_DECODER_PLUGIN_MAX) {
+	  if(this->num_video_decoder_plugins > DECODER_PLUGIN_MAX) {
 	    fprintf(stderr, "%s(%d): too many video decoder plugins installed,"
 		    " exiting.\n", __FILE__, __LINE__);
 	    exit(1);
@@ -305,7 +305,7 @@ void load_decoder_plugins (xine_t *this,
 	    this->num_audio_decoder_plugins++;
 	  }
 	  
-	  if(this->num_audio_decoder_plugins > AUDIO_DECODER_PLUGIN_MAX) {
+	  if(this->num_audio_decoder_plugins > DECODER_PLUGIN_MAX) {
 	    fprintf(stderr, "%s(%d): too many audio decoder plugins installed,"
 		    " exiting.\n", __FILE__, __LINE__);
 	    exit(1);

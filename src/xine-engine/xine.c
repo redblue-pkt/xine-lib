@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.9 2001/04/28 21:23:04 guenter Exp $
+ * $Id: xine.c,v 1.10 2001/04/29 01:09:23 guenter Exp $
  *
  * top-level xine functions
  *
@@ -418,6 +418,8 @@ xine_t *xine_init (vo_driver_t *vo,
   /*
    * init and start decoder threads
    */
+
+  load_decoder_plugins (this, config, DECODER_PLUGIN_IFACE_VERSION);
 
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
