@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.111 2002/10/31 16:58:25 mroi Exp $
+ * $Id: xine_internal.h,v 1.112 2002/11/17 17:41:45 mroi Exp $
  *
  */
 
@@ -135,7 +135,7 @@ struct xine_stream_s {
   int                        status;
 
   input_plugin_t            *input_plugin;
-  input_class_t             *input_class; /* eject */
+  input_class_t             *eject_class;
   int                        content_detection_method;
   demux_plugin_t            *demux_plugin;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.192 2002/11/14 19:45:01 esnel Exp $
+ * $Id: xine.c,v 1.193 2002/11/17 17:41:45 mroi Exp $
  *
  * top-level xine functions
  *
@@ -317,7 +317,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
 
-
   /*
    * event queues
    */
@@ -406,9 +405,10 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       free(input_source);
       return 0;
     }
-    stream->input_class = stream->input_plugin->input_class;
+    if (stream->input_plugin->input_class->eject_media)
+      stream->eject_class = stream->input_plugin->input_class;
     stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
-      = strdup (stream->input_class->get_identifier (stream->input_class));
+      = strdup (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class));
     free(input_source);
 
 #ifdef LOG
@@ -572,9 +572,10 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
       return 0;
     }
-    stream->input_class = stream->input_plugin->input_class;
+    if (stream->input_plugin->input_class->eject_media)
+      stream->eject_class = stream->input_plugin->input_class;
     stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
-      = strdup (stream->input_class->get_identifier (stream->input_class));
+      = strdup (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class));
 
 #ifdef LOG
     printf ("xine: input plugin %s found\n", 
@@ -763,16 +764,16 @@ int xine_eject (xine_stream_t *stream) {
   
   int status;
 
-  if (!stream->input_class) 
+  if (!stream->eject_class) 
     return 0;
   
   pthread_mutex_lock (&stream->frontend_lock);
 
   status = 0;
   if ((stream->status == XINE_STATUS_STOP)
-      && stream->input_class && stream->input_class->eject_media) {
+      && stream->eject_class && stream->eject_class->eject_media) {
 
-    status = stream->input_class->eject_media (stream->input_class);
+    status = stream->eject_class->eject_media (stream->eject_class);
   }
 
   pthread_mutex_unlock (&stream->frontend_lock);
