@@ -3,27 +3,22 @@ dnl Check for divx4.
 dnl AC_CHECK_DIVX4([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]])
 AC_DEFUN([AC_CHECK_DIVX4],
   [
-    ac_save_LIBS="$LIBS"
-
-    DIVX4_LIBS="$DIVX4_LIBS -lstdc++"
-    LIBS="$DIVX4_LIBS"
 
     AC_CHECK_HEADER(decore.h,
                     [ no_divx4=no;
-	              AC_CHECK_LIB(divxdecore, decore, no_divx4=no, no_divx4=yes) ]
-	            , no_divx4=yes)
+	              AC_CHECK_LIB(divxdecore, decore, 
+				   [ no_divx4=no; DIVX4_LIBS="$DIVX4_LIBS -ldivxdecore" ], 
+			           no_divx4=yes)
+                    ], no_divx4=yes)
 
-    LIBS="$ac_save_LIBS"
+    AC_SUBST(DIVX4_LIBS)
 
     if test x"$no_divx4" = "xno" ; then
-       DIVX4_LIBS="$DIVX4_LIBS -ldivxdecore"
-       AC_SUBST(DIVX4_LIBS)
        ifelse([$1], , :, [$1])
     else
-       DIVX4_LIBS=""
-       AC_SUBST(DIVX4_LIBS)
        ifelse([$2], , :, [$2])
     fi
+
 ])
 
 dnl

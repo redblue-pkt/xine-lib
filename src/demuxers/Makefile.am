@@ -1,4 +1,4 @@
-CFLAGS = @GLOBAL_CFLAGS@
+CFLAGS = @GLOBAL_CFLAGS@ @OGG_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -21,7 +21,7 @@ lib_LTLIBRARIES = $(ogg_module) xineplug_dmx_avi.la \
 	xineplug_dmx_qt.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
-xineplug_dmx_ogg_la_LIBADD = -logg
+xineplug_dmx_ogg_la_LIBADD = @OGG_LIBS@
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
