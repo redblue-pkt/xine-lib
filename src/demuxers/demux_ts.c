@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.84 2003/06/26 21:18:46 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.85 2003/06/26 21:57:46 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1568,7 +1568,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 			   data_len);
       return;
     }
-  if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) {
+    else {
       program_count = 0;
       while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
 	if (pid == this->pmt_pid[program_count]) {
