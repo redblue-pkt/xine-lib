@@ -3,6 +3,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * Wing Commander III MVE movie file demuxer
   * Creative Voice (VOC) file demuxer
   * Westwood Studios VQA file demuxer
+  * AIFF file demuxer
   * Id CIN video decoder
 
 xine-lib (0.9.13) unstable; urgency=low
