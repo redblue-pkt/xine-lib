@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.18 2003/08/05 15:07:42 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.19 2003/09/11 10:01:04 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,11 +30,8 @@
 
 #include "xine_internal.h"
 #include "vo_scale.h"
+#include "dxr3_scr.h"
 #include "dxr3.h"
-
-/* values for fd_video indicating why it is closed */
-#define CLOSED_FOR_DECODER -1
-#define CLOSED_FOR_ENCODER -2
 
 /* the number of supported encoders */
 #define SUPPORTED_ENCODER_COUNT 3
@@ -79,6 +76,8 @@ typedef struct dxr3_driver_class_s {
   
   char                  devname[128];
   char                  devnum[3];
+  
+  dxr3_scr_t           *scr;                /* to provide dxr3 clocking */
 } dxr3_driver_class_t;
 
 typedef struct dxr3_driver_s {
@@ -86,6 +85,7 @@ typedef struct dxr3_driver_s {
   dxr3_driver_class_t *class;
 
   int                  fd_control;
+  pthread_mutex_t      video_device_lock;
   int                  fd_video;
   pthread_mutex_t      spu_device_lock;
   int                  fd_spu;              /* to access the relevant dxr3 devices */
@@ -111,6 +111,7 @@ typedef struct dxr3_driver_s {
   uint32_t             video_oheight;       /* output height (after adding black bars) */
   uint32_t             video_width;
   double               video_ratio;
+  int                  video_aspect;
   int                  top_bar;             /* the height of the upper black bar */
   
   vo_scale_t           scale;

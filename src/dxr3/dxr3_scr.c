@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.9 2003/02/26 20:35:32 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.10 2003/09/11 10:01:03 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -55,14 +55,14 @@ static int     dxr3_mvcommand(int fd_control, int command);
 static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 
 
-dxr3_scr_t *dxr3_scr_init(xine_stream_t *stream)
+dxr3_scr_t *dxr3_scr_init(xine_t *xine)
 {
   dxr3_scr_t *this;
   const char *confstr;
   
   this = (dxr3_scr_t *)malloc(sizeof(dxr3_scr_t));
   
-  confstr = stream->xine->config->register_string(stream->xine->config,
+  confstr = xine->config->register_string(xine->config,
     CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   if ((this->fd_control = open(confstr, O_WRONLY)) < 0) {
     printf("dxr3_scr: Failed to open control device %s (%s)\n",
@@ -79,8 +79,8 @@ dxr3_scr_t *dxr3_scr_init(xine_stream_t *stream)
   this->scr_plugin.set_speed         = dxr3_scr_set_speed;
   this->scr_plugin.exit              = dxr3_scr_exit;
   
-  this->priority                     = stream->xine->config->register_num(
-    stream->xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
+  this->priority                     = xine->config->register_num(
+    xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
     _("Scr priorities greater 5 make the dxr3 xine's master clock."), 20,
     dxr3_scr_update_priority, this);
   this->offset                       = 0;

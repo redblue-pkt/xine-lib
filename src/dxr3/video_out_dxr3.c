@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.85 2003/08/12 13:54:21 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.86 2003/09/11 10:01:03 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -64,6 +64,9 @@
 
 #define LOG_VID 0
 #define LOG_OVR 0
+
+/* the amount of extra time we give the card for decoding */
+#define DECODE_PIPE_PREBUFFER 10000
 
 
 /* plugin class initialization functions */
@@ -193,6 +196,8 @@ static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
   
   this->instance                           = 0;
   
+  this->scr                                = dxr3_scr_init(xine);
+  
   return this;
 }
 
@@ -208,6 +213,9 @@ static char *dxr3_vo_get_description(video_driver_class_t *class_gen)
 
 static void dxr3_vo_class_dispose(video_driver_class_t *class_gen)
 {
+  dxr3_driver_class_t *class = (dxr3_driver_class_t *)class_gen;
+  
+  class->scr->scr_plugin.exit(&class->scr->scr_plugin);
   free(class_gen);
 }
 
@@ -250,6 +258,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
   this->vo_driver.dispose              = dxr3_dispose;
   
+  pthread_mutex_init(&this->video_device_lock, NULL);
   pthread_mutex_init(&this->spu_device_lock, NULL);
   
   vo_scale_init(&this->scale, 0, 0, config);
@@ -288,7 +297,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   }
   /* close now and and let the decoder/encoder reopen if they want */
   close(this->fd_video);
-  this->fd_video = CLOSED_FOR_DECODER;
+  this->fd_video = -1;
 
   /* which encoder to use? Whadda we got? */
   encoder = 0;
@@ -492,17 +501,24 @@ static uint32_t dxr3_get_capabilities(vo_driver_t *this_gen)
 static vo_frame_t *dxr3_alloc_frame(vo_driver_t *this_gen)
 {
   dxr3_frame_t *frame;
+#if 0
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+#endif
   
   frame = (dxr3_frame_t *)malloc(sizeof(dxr3_frame_t));
   memset(frame, 0, sizeof(dxr3_frame_t));
   
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
+#if 1
+  /* always call frame_copy since we do some little vpts tweaking there */
+  frame->vo_frame.copy    = dxr3_frame_copy;
+#else
   if (this->enc && this->enc->on_frame_copy)
     frame->vo_frame.copy = dxr3_frame_copy;
   else
-    frame->vo_frame.copy = 0;
+    frame->vo_frame.copy = NULL;
+#endif
   frame->vo_frame.field   = dxr3_frame_field; 
   frame->vo_frame.dispose = dxr3_frame_dispose;
   frame->vo_frame.driver  = this_gen;
@@ -514,6 +530,10 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
   dxr3_driver_t *this = (dxr3_driver_t *)frame_gen->driver;
+  
+  /* vpts hack: we reduce the vpts to give the card some extra decoding time */
+  if (frame_gen->format != XINE_IMGFMT_DXR3 && !frame_gen->copy_called)
+    frame_gen->vpts -= DECODE_PIPE_PREBUFFER;
   
   frame_gen->copy_called = 1;
 
@@ -545,19 +565,20 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   if (format == XINE_IMGFMT_DXR3) { /* talking to dxr3 decoder */
     /* a bit of a hack. we must release the em8300_mv fd for
      * the dxr3 decoder plugin */
+    pthread_mutex_lock(&this->video_device_lock);
     if (this->fd_video >= 0) {
+      metronom_clock_t *clock = this->class->xine->clock;
+      
+      clock->unregister_scr(clock, &this->class->scr->scr_plugin);
       close(this->fd_video);
-      this->fd_video = CLOSED_FOR_DECODER;
+      this->fd_video = -1;
       /* inform the encoder on next frame's arrival */
       this->need_update = 1;
     }
+    pthread_mutex_unlock(&this->video_device_lock);
     
     /* for mpeg source, we don't have to do much. */
-    this->video_width   = width;
-    this->video_iheight = height;
-    this->video_oheight = height;
-    this->top_bar       = 0;
-    this->video_ratio   = ratio;
+    this->video_width   = 0;
     
     frame->vo_frame.width   = width;
     frame->vo_frame.height  = height;
@@ -587,13 +608,29 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   
   frame->vo_frame.ratio = ratio;
   frame->pan_scan       = 0;
-  frame->aspect         = this->aspect;
+  frame->aspect         = this->video_aspect;
   oheight               = this->video_oheight;
 
-  if (this->fd_video == CLOSED_FOR_DECODER) { /* decoder should have released it */
-    this->fd_video = CLOSED_FOR_ENCODER; /* allow encoder to reopen it */
+  pthread_mutex_lock(&this->video_device_lock);
+  if (this->fd_video < 0) { /* decoder should have released it */
+    metronom_clock_t *clock = this->class->xine->clock;
+    char tmpstr[128];
+    int64_t time;
+    
+    /* open the device for the encoder */
+    snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", this->class->devname, this->class->devnum);
+    if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0)
+      printf("video_out_dxr3: Failed to open video device %s (%s)\n",
+	tmpstr, strerror(errno));
+    
+    /* start the scr plugin */
+    time = clock->get_current_time(clock);
+    this->class->scr->scr_plugin.start(&this->class->scr->scr_plugin, time);
+    clock->register_scr(clock, &this->class->scr->scr_plugin);
+    
     this->scale.force_redraw = 1;
   }
+  pthread_mutex_unlock(&this->video_device_lock);
 
   if ((this->video_width != width) || (this->video_iheight != height) ||
       (fabs(this->video_ratio - ratio) > 0.01)) {
@@ -619,10 +656,15 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       printf("video_out_dxr3: adding %d black lines to get %s aspect ratio.\n",
         oheight - height, frame->aspect == XINE_VO_ASPECT_4_3 ? "4:3" : "16:9");
 
+    /* make top black bar multiple of 16, 
+     * so old and new macroblocks overlap */ 
+    this->top_bar            = ((oheight - height) / 32) * 16;
+    
     this->video_width        = width;
     this->video_iheight      = height;
     this->video_oheight      = oheight;
     this->video_ratio        = ratio;
+    this->video_aspect       = frame->aspect;
     this->scale.force_redraw = 1;
     this->need_update        = 1;
 
@@ -641,9 +683,6 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       frame->mem = NULL;
     }
     
-    /* make top black bar multiple of 16, 
-     * so old and new macroblocks overlap */ 
-    this->top_bar = ((oheight - height) / 32) * 16;
     if (format == XINE_IMGFMT_YUY2) {
       int i, image_size;
       
@@ -870,20 +909,29 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   
   if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_display_frame) {
     
-    if (this->fd_video == CLOSED_FOR_DECODER) {
+    pthread_mutex_lock(&this->video_device_lock);
+    if (this->fd_video < 0) {
       /* no need to encode, when the device is already reserved for the decoder */
       frame_gen->free(frame_gen);
     } else {
+      uint32_t vpts32 = (uint32_t)(frame_gen->vpts + DECODE_PIPE_PREBUFFER);
+      
       if (this->need_update) {
 	/* we cannot do this earlier, because vo_frame.duration is only valid here */
 	if (this->enc && this->enc->on_update_format)
 	  this->enc->on_update_format(this, frame);
 	this->need_update = 0;
       }
+      
+      /* inform the card on the timing */
+      if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts32))
+	printf("video_out_dxr3: set video pts failed (%s)\n",
+	  strerror(errno));
       /* for non-mpeg, the encoder plugin is responsible for calling 
        * frame_gen->free(frame_gen) ! */
       this->enc->on_display_frame(this, frame);
     }
+    pthread_mutex_unlock(&this->video_device_lock);
   
   } else {
     
@@ -1133,6 +1181,7 @@ static void dxr3_dispose(vo_driver_t *this_gen)
     close(this->fd_spu);
   }
   pthread_mutex_unlock(&this->spu_device_lock);
+  pthread_mutex_destroy(&this->video_device_lock);
   pthread_mutex_destroy(&this->spu_device_lock);
   free(this);
 }

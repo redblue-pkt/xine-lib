@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.12 2003/05/31 18:33:28 miguelfreitas Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.13 2003/09/11 10:01:03 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -301,11 +301,6 @@ static void mp1e_callback(rte_context *context, void *data, ssize_t size, void *
   char tmpstr[128];
   ssize_t written;
   
-  if (drv->fd_video == CLOSED_FOR_ENCODER) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
-    drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
-  }
-  if (drv->fd_video < 0) return;
   written = write(drv->fd_video, data, size);
   if (written < 0) {
     printf("dxr3_mpeg_encoder: video device write failed (%s)\n",
@@ -490,11 +485,6 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   frame->vo_frame.free(&frame->vo_frame); 
   
-  if (drv->fd_video == CLOSED_FOR_ENCODER) {
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
-    drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
-  }
-  if (drv->fd_video < 0) return 0;
   written = write(drv->fd_video, this->buffer, size);
   if (written < 0) {
     printf("dxr3_mpeg_encoder: video device write failed (%s)\n",

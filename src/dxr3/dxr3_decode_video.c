@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.40 2003/08/12 13:57:18 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.41 2003/09/11 10:01:03 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -37,7 +37,6 @@
 
 #include "xine_internal.h"
 #include "buffer.h"
-#include "dxr3_scr.h"
 #include "video_out_dxr3.h"
 #include "dxr3.h"
 
@@ -100,8 +99,7 @@ typedef struct dxr3_decoder_s {
   video_decoder_t        video_decoder;
   dxr3_decoder_class_t  *class;
   xine_stream_t         *stream;
-  dxr3_scr_t            *scr;
-  dxr3_driver_t         *dxr3_vo;              /* we need to talk to the dxr3 video out */
+  dxr3_scr_t            *scr;                  /* shortcut to the scr plugin in the dxr3 video out */
   
   char                   devname[128];
   char                   devnum[3];
@@ -195,7 +193,6 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->class                       = class;
   this->stream                      = stream;
   this->scr                         = NULL;
-  this->dxr3_vo                     = (dxr3_driver_t *)stream->video_driver;
   
   confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   strncpy(this->devname, confstr, 128);
@@ -424,7 +421,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       if (this->skip_count) this->skip_count--;
       
       if (this->resync_window == 0 && this->scr && this->enhanced_mode &&
-        !this->scr->scanning) {
+	  !this->scr->scanning) {
         /* we are in sync, so we can lock the stream now */
 #if LOG_VID
         printf("dxr3_decode_video: in sync, stream locked\n");
@@ -455,7 +452,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       
       if (this->scr && this->scr->scanning) this->resync_window = 0;
       if (this->resync_window == 0 && this->scr && this->enhanced_mode &&
-        !this->scr->scanning) {
+	  !this->scr->scanning) {
         /* switch off sync mode in the card to allow resyncing */
 #if LOG_VID
         printf("dxr3_decode_video: out of sync, allowing stream resync\n");
@@ -485,36 +482,35 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   }
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) return;
   
-  /* ensure video device is open 
+  /* ensure video device is open
    * (we open it late because on occasion the dxr3 video out driver
    * wants to open it)
+   * also ensure the scr is running
    */
   if (this->fd_video < 0) {
+    metronom_clock_t *clock = this->class->clock;
     char tmpstr[128];
+    int64_t time;
+    
+    /* open the device for the decoder */
     snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
       printf("dxr3_decode_video: Failed to open video device %s (%s)\n",
         tmpstr, strerror(errno)); 
       return;
     }
-  }
-  
-  /* We may want to issue a SETPTS, so make sure the scr plugin
-   * is running and registered. Unfortuantely wa cannot do this
-   * earlier, because the dxr3's internal scr gets confused
-   * when started with a closed video device. Maybe this is a
-   * driver bug and gets fixed somewhen. FIXME: We might then
-   * want to move this code to dxr3_init.
-   */
-  if (!this->scr) {
-    int64_t time;
     
-    time = this->class->clock->get_current_time(this->class->clock);
-    
-    this->scr = dxr3_scr_init(this->stream);
+    /* We may want to issue a SETPTS, so make sure the scr plugin
+     * is running and registered. Unfortuantely wa cannot do this
+     * earlier, because the dxr3's internal scr gets confused
+     * when started with a closed video device. Maybe this is a
+     * driver bug and gets fixed somewhen. FIXME: We might then
+     * want to do this entirely in the video out.
+     */
+    this->scr = ((dxr3_driver_t *)this->stream->video_driver)->class->scr;
+    time = clock->get_current_time(clock);
     this->scr->scr_plugin.start(&this->scr->scr_plugin, time);
-    this->class->clock->register_scr(
-      this->class->clock, &this->scr->scr_plugin);
+    clock->register_scr(clock, &this->scr->scr_plugin);
 #if LOG_VID
     if (this->class->clock->scr_master == &this->scr->scr_plugin)
       printf("dxr3_decode_video: dxr3_scr plugin is master\n");
@@ -626,10 +622,8 @@ static void dxr3_dispose(video_decoder_t *this_gen)
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   metronom_clock_t *clock = this->class->clock;
   
-  if (this->scr) {
+  if (this->scr)
     clock->unregister_scr(clock, &this->scr->scr_plugin);
-    this->scr->scr_plugin.exit(&this->scr->scr_plugin);
-  }
   
   dxr3_mvcommand(this->fd_control, MVCOMMAND_FLUSHBUF);
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.5 2003/07/09 18:25:45 mroi Exp $
+ * $Id: xine_encoder.c,v 1.6 2003/09/11 10:01:02 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -274,13 +274,8 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   size = avcodec_encode_video(this->context, this->ffmpeg_buffer, DEFAULT_BUFFER_SIZE, this->picture);
 
   frame->vo_frame.free(&frame->vo_frame);
-	
-  if (drv->fd_video == CLOSED_FOR_ENCODER) {
-      snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
-      drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
-    }
-  if (drv->fd_video < 0) return 0;
-      written = write(drv->fd_video, this->ffmpeg_buffer, size);
+
+  written = write(drv->fd_video, this->ffmpeg_buffer, size);
   if (written < 0) {
       printf("dxr3_mpeg_encoder: video device write failed (%s)\n",
            strerror(errno));
