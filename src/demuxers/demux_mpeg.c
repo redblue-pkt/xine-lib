@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.109 2003/04/23 00:38:48 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.110 2003/04/25 14:13:43 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
  *
- * currently only used for mpeg-1-files
  *
  */
 
@@ -308,6 +307,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	  buf->decoder_flags = BUF_FLAG_PREVIEW;
 
 	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+	if (this->rate)
+	  buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+					* 1000 / (this->rate * 50));
 
 	this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -361,6 +363,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	  buf->decoder_flags = BUF_FLAG_PREVIEW;
 
 	buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+	if (this->rate)
+	  buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+					* 1000 / (this->rate * 50));
 
 	this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -414,6 +419,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	buf->decoder_flags = BUF_FLAG_PREVIEW;
 
       buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+      if (this->rate)
+	buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+					* 1000 / (this->rate * 50));
 
       this->video_fifo->put (this->video_fifo, buf);
     }
@@ -622,9 +630,15 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
     /* mux_rate */
 
-    buf = read_bytes(this,3);
     if (!this->rate) {
-      this->rate = (buf & 0xFFFFFC) >> 2;
+      buf  = read_bytes (this, 1);
+      this->rate = (buf << 14);
+      buf  = read_bytes (this, 1);
+      this->rate |= (buf << 6);
+      this->rate |= (buf >> 2);
+      read_bytes (this, 1);
+    } else {
+      read_bytes(this,3);
     }
 
     /* stuffing bytes */
@@ -655,7 +669,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
        buf = read_bytes (this,1);
        this->rate |= (buf >> 1);
 
-       /* printf ("demux_mpeg: mux_rate = %d\n",this->rate);  */
+       /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
 
      } else
        buf = read_bytes (this, 3) ;
@@ -705,7 +719,7 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
   buf = read_bytes (this, 1);
 
   if ((buf>>4) == 4) {
-     buf = read_bytes(this, 2);
+     buf = read_bytes(this, 1);
      mpeg_version = 2;
   } else {
      mpeg_version = 1;
@@ -716,13 +730,21 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
   /* mux_rate */
 
   if (!this->rate) {
-    buf = read_bytes (this,1);
-    this->rate = (buf & 0x7F) << 15;
-    buf = read_bytes (this,1);
-    this->rate |= (buf << 7);
-    buf = read_bytes (this,1);
-    this->rate |= (buf >> 1);
-
+    if (mpeg_version == 2) {
+      buf  = read_bytes (this, 1);
+      this->rate = (buf << 14);
+      buf  = read_bytes (this, 1);
+      this->rate |= (buf << 6);
+      this->rate |= (buf >> 2);
+      read_bytes (this, 1);
+    } else {
+      buf = read_bytes (this,1);
+      this->rate = (buf & 0x7F) << 15;
+      buf = read_bytes (this,1);
+      this->rate |= (buf << 7);
+      buf = read_bytes (this,1);
+      this->rate |= (buf >> 1);
+    }
     /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
 
   } else
@@ -924,6 +946,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     int i, j;
     int ok = 0;
 
+    /* use demux_mpeg_block for block devices */
     if (input->get_capabilities(input) & INPUT_CAP_BLOCK ) {
       free (this);
       return NULL;
@@ -960,38 +983,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     input->seek(input, 0, SEEK_SET);
     if (input->read(input, buf, 16) == 16) {
 
-      if(!buf[0] && !buf[1] && (buf[2] == 0x01))
+      /*
+       * look for mpeg header
+       */
+      
+      if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
+	  && (buf[3] == 0xba)) /* if so, take it */
+	break;
 
-	switch(buf[3]) {
-	case 0xba:
-          if((buf[4] & 0xf0) == 0x20) {
-            uint32_t pckbuf ;
-
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      ok = 1;
-	      break;
-	    }
-	  }
-	  break;
-#if 0
-	case 0xe0:
-	  if((buf[6] & 0xc0) != 0x80) {
-	    uint32_t pckbuf ;
-
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      ok = 1;
-	      break;
-	    }
-	  }
-	  break;
-#endif
-        }
+      free (this);
+      return NULL;
     }
-
-    if (ok)
-      break;
 
     /* special case for MPEG streams hidden inside QT files; check
      * is there is an mdat atom  */
@@ -1006,23 +1008,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       /* go through the same MPEG detection song and dance */
       if (input->read(input, buf, 6)) {
-	if (!buf[0] && !buf[1] && buf[2] == 0x01) {
-	  switch (buf[3]) {
-	  case 0xba:
-	    if ((buf[4] & 0xf0) == 0x20) {
-	      uint32_t pckbuf ;
 
-	      pckbuf = read_bytes (this, 1);
-	      if ((pckbuf>>4) != 4) {
-		ok = 1;
-	      }
-	    }
-	    break;
-	  }
-	}
-      }
-      if (ok)
+        if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
+	    && (buf[3] == 0xba)) /* if so, take it */
 	  break;
+      }
 
       free (this);
       return NULL;
@@ -1037,7 +1027,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if ((fourcc_tag == WAVE_TAG) ||
 	  (fourcc_tag == AVI_TAG)) {
 	free (this);
-	return DEMUX_CANNOT_HANDLE;
+	return NULL;
       }
 
       /* Iterate through first n kilobytes of RIFF file searching for

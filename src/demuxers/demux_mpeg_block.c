@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.170 2003/04/23 02:28:01 tmmm Exp $
+ * $Id: demux_mpeg_block.c,v 1.171 2003/04/25 14:13:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1116,6 +1116,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
     
   case METHOD_BY_CONTENT: {
+
+    /* use demux_mpeg for non-block devices */
+    if (!(input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
+      free (this->scratch_base);
+      free (this);
+      return NULL;
+    }
 
     if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
