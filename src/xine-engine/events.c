@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.22 2003/12/09 00:02:36 f1rmb Exp $
+ * $Id: events.c,v 1.23 2004/03/03 20:09:16 mroi Exp $
  *
  * Event handling functions
  *
@@ -220,6 +220,6 @@ void xine_event_create_listener_thread (xine_event_queue_t *queue,
 			     NULL, listener_loop, queue)) != 0) {
     xprintf (queue->stream->xine, XINE_VERBOSITY_DEBUG,
 	     "events: can't create new thread (%s)\n", strerror(err));
-    abort();
+    _x_abort();
   }
 }

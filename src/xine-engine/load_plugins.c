@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.172 2004/02/12 18:23:35 mroi Exp $
+ * $Id: load_plugins.c,v 1.173 2004/03/03 20:09:17 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -76,7 +76,7 @@ static void segv_handler (int hubba) {
   printf ("\nload_plugins: Initialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
   printf ("load_plugins: You probably need to remove the offending file.\n");
   printf ("load_plugins: (This error is usually due an incorrect plugin version)\n");
-  abort();
+  _x_abort();
 }
 
 static void install_segv_handler(void){
@@ -348,7 +348,7 @@ static void _insert_plugin (xine_t *this,
     if (decoder_old == NULL) {
       xprintf (this, XINE_VERBOSITY_DEBUG,
 	       "load_plugins: plugin %s from %s is broken: special_info = NULL\n", info->id, entry->filename);
-      abort();
+      _x_abort();
     }
     for (i=0; decoder_old->supported_types[i] != 0; ++i);
     types = xine_xmalloc((i+1)*sizeof(uint32_t));
@@ -932,7 +932,7 @@ void _x_scan_plugins (xine_t *this) {
   if (this == NULL || this->config == NULL) {
     fprintf(stderr, "%s(%s@%d): parameter should be non null, exiting\n",
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
-    abort();
+    _x_abort();
   }
 #endif
 
@@ -1019,7 +1019,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 
   if (methods[0] == -1) {
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "load_plugins: probe_demux method1 = %d is not allowed \n", method1);
-    abort();
+    _x_abort();
   }
 
   i = 0;
@@ -1073,7 +1073,7 @@ demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *inp
   default:
     xprintf (stream->xine, XINE_VERBOSITY_LOG,
 	     _("load_plugins: unknown content detection strategy %d\n"), stream->xine->demux_strategy);
-    abort();
+    _x_abort();
   }
 
   return NULL;

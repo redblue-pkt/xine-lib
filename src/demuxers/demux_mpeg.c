@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.134 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.135 2004/03/03 20:09:11 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -206,7 +206,7 @@ static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
     break;
   default:
     lprintf ("how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
-    abort();
+    _x_abort();
   }
 
   return res;

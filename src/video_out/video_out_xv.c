@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.190 2004/02/28 15:09:01 tmattern Exp $
+ * $Id: video_out_xv.c,v 1.191 2004/03/03 20:09:15 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -261,7 +261,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     break;
   default:
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-    abort();
+    _x_abort();
   }
 
   if (this->use_shm) {
@@ -367,7 +367,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
       break;
     default:
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-      abort();
+      _x_abort();
     }
 
     image = XvCreateImage (this->display, this->xv_port,

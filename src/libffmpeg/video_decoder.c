@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.8 2004/02/14 20:32:12 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.9 2004/03/03 20:09:13 mroi Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -459,7 +459,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
       if (!this->codec) {
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
                  _("avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n"));
-        abort();
+        _x_abort();
       }
 
       this->is_continous = 1;

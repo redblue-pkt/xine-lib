@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.143 2004/02/12 18:19:12 mroi Exp $
+ * $Id: video_decoder.c,v 1.144 2004/03/03 20:09:17 mroi Exp $
  *
  */
 
@@ -419,7 +419,7 @@ void _x_video_decoder_init (xine_stream_t *stream) {
                                &pth_attrs, video_decoder_loop, stream)) != 0) {
       fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
                strerror(err));
-      abort();
+      _x_abort();
     }
     
     pthread_attr_destroy(&pth_attrs);

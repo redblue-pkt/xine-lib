@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.66 2004/02/12 23:33:42 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.67 2004/03/03 20:09:14 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -170,7 +170,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	     "libreal: error, i don't handle buf type 0x%08x\n", buf->type);
-    abort();
+    _x_abort();
   }
 
   init_data.w = BE_16(&buf->content[12]);

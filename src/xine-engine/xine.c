@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.283 2004/02/16 20:19:10 uid86226 Exp $
+ * $Id: xine.c,v 1.284 2004/03/03 20:09:18 mroi Exp $
  */
 
 /*
@@ -1270,7 +1270,7 @@ xine_t *xine_new (void) {
 
   this = xine_xmalloc (sizeof (xine_t));
   if (!this)
-    abort();
+    _x_abort();
 
 #ifdef ENABLE_NLS
   /*
@@ -1644,7 +1644,7 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
     default:
       xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
 	       "xine: error, snapshot function not implemented for format 0x%x\n", frame->format);
-      abort ();
+      _x_abort ();
     }
   }
   return 1;
@@ -1658,7 +1658,7 @@ int xine_get_video_frame (xine_stream_t *stream,
 			  int *format,
 			  uint8_t *img) {
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine: xine_get_video_frame not implemented yet.\n");
-  abort ();
+  _x_abort ();
   return 0;
 }
 
@@ -1767,7 +1767,7 @@ const char *const *xine_get_log (xine_t *this, int buf) {
 void xine_register_log_cb (xine_t *this, xine_log_cb_t cb, void *user_data) {
 
   printf ("xine: xine_register_log_cb: not implemented yet.\n");
-  abort();
+  _x_abort();
 }
 
 
@@ -1777,7 +1777,7 @@ int xine_get_error (xine_stream_t *stream) {
 
 int xine_trick_mode (xine_stream_t *stream, int mode, int value) {
   printf ("xine: xine_trick_mode not implemented yet.\n");
-  abort ();
+  _x_abort ();
 }
 
 int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.104 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.105 2004/03/03 20:09:14 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -274,7 +274,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	    "libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
     printf("We dropped out here for some reason");
-    abort();
+    _x_abort();
     overlay_event->object.handle = this->menu_handle;
     overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * March 2003 - Miguel Freitas
  * This plugin was sponsored by 1Control
  *
@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.42 2004/02/16 20:19:09 uid86226 Exp $
+ * $Id: input_pvr.c,v 1.43 2004/03/03 20:09:12 mroi Exp $
  */
 
 /**************************************************************************
@@ -1425,7 +1425,7 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
 			     NULL, pvr_loop, this)) != 0) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
 	     "input_pvr: can't create new thread (%s)\n", strerror(err));
-    abort();
+    _x_abort();
   }
   
   return 1;

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2000-2003 the xine project
+* Copyright (C) 2000-2004 the xine project
 *
 * This file is part of xine, a free video player.
 *
@@ -79,18 +79,18 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
 
   if (!hc) {
     printf ("xine_check: GASP, hc is NULL\n");
-    abort();
+    _x_abort();
   }
 
   if (!format) {
     printf ("xine_check: GASP, format is NULL\n");
-    abort();
+    _x_abort();
   }
 
   size = strlen(format) + 1;
 
   if (!(buf = xine_xmalloc(size)))
-    abort();
+    _x_abort();
 
   while(1) {
     va_start(args, format);
@@ -110,7 +110,7 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
 
     if((buf = realloc(buf, size)) == NULL) {
       printf("%s() GASP, realloc() failed\n", __XINE_FUNCTION__);
-      abort();
+      _x_abort();
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2003 the xine project
+ * Copyright (C) 2002-2004 the xine project
  *
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.6 2003/12/09 00:02:30 f1rmb Exp $
+ * $Id: asmrp.c,v 1.7 2004/03/03 20:09:13 mroi Exp $
  *
  * a parser for real's asm rules
  *
@@ -412,7 +412,7 @@ static int asmrp_operand (asmrp_t *p) {
     
     if (p->sym != ASMRP_SYM_ID) {
       printf ("error: identifier expected.\n");
-      abort();
+      _x_abort();
     }
 
     i = asmrp_find_id (p, p->str);
@@ -437,7 +437,7 @@ static int asmrp_operand (asmrp_t *p) {
 
     if (p->sym != ASMRP_SYM_RPAREN) {
       printf ("error: ) expected.\n");
-      abort();
+      _x_abort();
     }
 
     asmrp_get_sym (p);
@@ -445,7 +445,7 @@ static int asmrp_operand (asmrp_t *p) {
 
   default:
     lprintf ("syntax error, $ number or ( expected\n");
-    abort();
+    _x_abort();
   }
 
   lprintf ("operand done, =%d\n", ret);
@@ -536,20 +536,20 @@ static void asmrp_assignment (asmrp_t *p) {
 
   if (p->sym != ASMRP_SYM_ID) {
     printf ("error: identifier expected\n");
-    abort ();
+    _x_abort ();
   }
   asmrp_get_sym (p);
 
   if (p->sym != ASMRP_SYM_EQUALS) {
     printf ("error: = expected\n");
-    abort ();
+    _x_abort ();
   }
   asmrp_get_sym (p);
 
   if ( (p->sym != ASMRP_SYM_NUM) && (p->sym != ASMRP_SYM_STRING) 
        && (p->sym != ASMRP_SYM_ID)) {
     printf ("error: number or string expected\n");
-    abort ();
+    _x_abort ();
   }
   asmrp_get_sym (p);
 
@@ -591,7 +591,7 @@ static int asmrp_rule (asmrp_t *p) {
 
   if (p->sym != ASMRP_SYM_SEMICOLON) {
     printf ("semicolon expected.\n");
-    abort ();
+    _x_abort ();
   }
 
   asmrp_get_sym (p);

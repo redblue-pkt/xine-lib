@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.35 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_opengl.c,v 1.36 2004/03/03 20:09:15 mroi Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -591,7 +591,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
 		     "video_out_opengl: no OpenGL support available (glXMakeCurrent)\n"
 		     "    The drawable does not seem to be updated correctly.\n");
-	    abort();
+	    _x_abort();
 	}
 	DEBUGF ((stderr, "set context done\n"));
 	if (ctx == this->context)

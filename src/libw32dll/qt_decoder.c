@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.32 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.33 2004/03/03 20:09:14 mroi Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -338,7 +338,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
     break;
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "qt_audio: fourcc for buftype %08x ?\n", buf->type);
-    abort ();
+    _x_abort ();
   }
 
   this->OutputFormatInfo.format = FOUR_CHAR_CODE('N','O','N','E');
@@ -418,7 +418,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	     "qt_audio: help, %d channels ?!\n", this->wave.nChannels);
-    abort ();
+    _x_abort ();
   }
 
   this->frame_size = this->wave.nChannels * this->wave.wBitsPerSample / 8;

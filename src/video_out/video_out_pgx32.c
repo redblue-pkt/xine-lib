@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.1 2004/02/17 19:44:02 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.2 2004/03/03 20:09:15 mroi Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -389,7 +389,7 @@ static void pgx32_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
     frame->packedlen = frame->pitch * 2 * height;
     if (!(frame->packedbuf = memalign(8, frame->packedlen))) {
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: frame packed buffer malloc failed\n");
-      abort();
+      _x_abort();
     }
 
     planes = 0;
@@ -415,7 +415,7 @@ static void pgx32_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
     for (i=0;i<planes;i++) {
       if (!frame->vo_frame.base[i]) {
         xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: frame plane malloc failed\n");
-        abort();
+        _x_abort();
       }
     }
   }

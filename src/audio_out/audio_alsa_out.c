@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.125 2004/03/02 23:51:39 hadess Exp $
+ * $Id: audio_alsa_out.c,v 1.126 2004/03/03 20:09:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -723,7 +723,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
       return 0;
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
 	      "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-      abort();
+      _x_abort();
     }
     state = snd_pcm_state(this->audio_fd);
 #ifdef LOG_DEBUG
@@ -767,7 +767,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
           xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
 		  "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-	  abort();
+	  _x_abort();
         }
       }
     }

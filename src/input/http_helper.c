@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.1 2003/11/26 08:09:58 tmattern Exp $ 
+ * $Id: http_helper.c,v 1.2 2004/03/03 20:09:12 mroi Exp $ 
  */
 #include "xine_internal.h"
 #include "http_helper.h"
@@ -43,13 +43,13 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
   char   *end        = NULL;
   char   *strtol_err = NULL;
 
-  if (!url)      abort();
-  if (!proto)    abort();
-  if (!user)     abort();
-  if (!password) abort();
-  if (!host)     abort();
-  if (!port)     abort();
-  if (!uri)      abort();
+  if (!url)      _x_abort();
+  if (!proto)    _x_abort();
+  if (!user)     _x_abort();
+  if (!password) _x_abort();
+  if (!host)     _x_abort();
+  if (!port)     _x_abort();
+  if (!uri)      _x_abort();
 
   *proto    = NULL;
   *port     = 0;

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.5 2003/12/09 00:02:29 f1rmb Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.6 2004/03/03 20:09:12 mroi Exp $
  */
 
 #include <stdio.h>
@@ -467,7 +467,7 @@ static void write_rle(spu_encoder_t *this, int *offset, int *higher_nibble, int 
     write_nibble(this, offset, higher_nibble, (length & 0xc) | color);
     return;
   }
-  abort();
+  _x_abort();
 }
 
 static void write_byte(spu_encoder_t *this, int *offset, uint8_t byte)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.61 2004/01/16 23:03:38 f1rmb Exp $
+ * $Id: configfile.c,v 1.62 2004/03/03 20:09:16 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -709,7 +709,7 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	    break;
           default:
             printf ("xine_interface: error, unknown config entry type %d\n", entry->type);
-            abort();
+            _x_abort();
           }
 	}
       }
@@ -940,7 +940,7 @@ config_values_t *_x_config_init (void) {
   if (!(this = xine_xmalloc(sizeof(config_values_t)))) {
 
     printf ("configfile: could not allocate config object\n");
-    abort();
+    _x_abort();
   }
 
   this->first = NULL;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.186 2004/02/19 02:50:26 rockyb Exp $
+ * $Id: video_out.c,v 1.187 2004/03/03 20:09:17 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1538,7 +1538,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver,
       /* FIXME: how does this happen ? */
       xprintf (this->xine, XINE_VERBOSITY_LOG,
 	       _("video_out: sorry, this should not happen. please restart xine.\n"));
-      abort();
+      _x_abort();
     }
     else
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out: thread created\n");

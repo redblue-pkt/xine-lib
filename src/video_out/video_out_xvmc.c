@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.13 2003/12/14 22:13:26 siggi Exp $
+ * $Id: video_out_xvmc.c,v 1.14 2004/03/03 20:09:15 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -661,7 +661,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     if(result != Success) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: couldn't create XvMCContext\n");
       macroblocks->xine_mc.xvmc_accel = 0;
-      abort();
+      _x_abort();
     }
 
     this->context_id.xid = (void *)this->context.context_id;
@@ -674,7 +674,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
 	xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: couldn't create XvMCSurfaces\n");
 	this->context_id.xid            = NULL;
 	macroblocks->xine_mc.xvmc_accel = 0;
-	abort();
+	_x_abort();
       }
 
       lprintf ("  CreatedSurface %d 0x%lx\n",i,(long)&this->frames[i]->surface);
@@ -689,14 +689,14 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     if(result != Success) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateBlocks failed\n");
       macroblocks->xine_mc.xvmc_accel = 0;
-      abort();
+      _x_abort();
     }
     result =XvMCCreateMacroBlocks(this->display, &this->context, slices,
 				  macroblocks->macro_blocks);
     if(result != Success) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateMacroBlocks failed\n");
       macroblocks->xine_mc.xvmc_accel = 0;
-      abort();
+      _x_abort();
     }
 
     lprintf ("  Created bock and macro block arrays\n");
@@ -732,7 +732,7 @@ static XvImage *create_ximage (xvmc_driver_t *this, XShmSegmentInfo *shminfo,
     break;
   default:
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-    abort();
+    _x_abort();
   }
 
   /*
@@ -752,7 +752,7 @@ static XvImage *create_ximage (xvmc_driver_t *this, XShmSegmentInfo *shminfo,
       break;
     default:
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-      abort();
+      _x_abort();
     }
 
     image = XvCreateImage (this->display, this->xv_port,

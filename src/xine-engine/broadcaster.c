@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * May 2003 - Miguel Freitas
  * This feature was sponsored by 1Control
  *
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.5 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: broadcaster.c,v 1.6 2004/03/03 20:09:16 mroi Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -335,7 +335,7 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
                              NULL, manager_loop, (void *)this)) != 0) {
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
 	     "broadcaster: can't create new thread (%s)\n", strerror(err));
-    abort();
+    _x_abort();
   }
   
   return this;  

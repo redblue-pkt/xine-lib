@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.79 2004/02/16 20:19:10 uid86226 Exp $
+ * $Id: xine_interface.c,v 1.80 2004/03/03 20:09:18 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -283,7 +283,7 @@ void xine_config_update_entry (xine_t *this, const xine_cfg_entry_t *entry) {
   default:
     xprintf (this, XINE_VERBOSITY_DEBUG, 
 	     "xine_interface: error, unknown config entry type %d\n", entry->type);
-    abort();
+    _x_abort();
   }
 }
   

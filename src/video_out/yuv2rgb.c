@@ -1,7 +1,7 @@
 /*
  * yuv2rgb.c
  *
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2004 the xine project
  * This file is part of xine, a free video player.
  *
  * based on work from mpeg2dec:
@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.49 2004/02/19 02:50:26 rockyb Exp $
+ * $Id: yuv2rgb.c,v 1.50 2004/03/03 20:09:15 mroi Exp $
  */
 
 #include "config.h"
@@ -2398,7 +2398,7 @@ static void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
 
   default:
     lprintf ("mode %d not supported by yuv2rgb\n", mode);
-    abort();
+    _x_abort();
   }
   
   for (i = 0; i < 256; i++) {
@@ -2530,7 +2530,7 @@ static void yuv2rgb_c_init (yuv2rgb_factory_t *this)
 
   default:
     lprintf ("mode %d not supported by yuv2rgb\n", this->mode);
-    abort();
+    _x_abort();
   }
 
 }
@@ -2573,7 +2573,7 @@ static void yuv2rgb_single_pixel_init (yuv2rgb_factory_t *this) {
 
   default:
     lprintf ("mode %d not supported by yuv2rgb\n", this->mode);
-    abort();
+    _x_abort();
   }
 }
 

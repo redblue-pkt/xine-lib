@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.46 2004/02/12 18:19:44 mroi Exp $ 
+ * $Id: demux.c,v 1.47 2004/03/03 20:09:16 mroi Exp $ 
  */
 
 
@@ -299,7 +299,7 @@ int _x_demux_start_thread (xine_stream_t *stream) {
     if ((err = pthread_create (&stream->demux_thread,
 			       NULL, demux_loop, (void *)stream)) != 0) {
       printf ("demux: can't create new thread (%s)\n", strerror(err));
-      abort();
+      _x_abort();
     }
   }
   

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -601,7 +601,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen ) {
   if ((err = pthread_create(&this->reader_thread, NULL, 
 		            input_plugin_read_loop, (void *)this)) != 0) {
     LOG_MSG(this->stream->xine, _("input_rtp: can't create new thread (%s)\n"), strerror(err));
-    abort();
+    _x_abort();
   }
   
   return 1;

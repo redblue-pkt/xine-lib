@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_caca.c,v 1.1 2004/02/28 19:56:42 valtri Exp $
+ * $Id: video_out_caca.c,v 1.2 2004/03/03 20:09:15 mroi Exp $
  *
  * video_out_caca.c, Color AsCii Art output plugin for xine
  *
@@ -198,7 +198,7 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
         width, height, width * 4);
     } else {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "alert! unsupported image format %04x\n", format);
-      abort();
+      _x_abort();
     }
   }
 }

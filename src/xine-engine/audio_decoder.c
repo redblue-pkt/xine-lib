@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.120 2004/02/12 18:19:12 mroi Exp $
+ * $Id: audio_decoder.c,v 1.121 2004/03/03 20:09:18 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -438,7 +438,7 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
                                &pth_attrs, audio_decoder_loop, stream)) != 0) {
       xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
 	       "audio_decoder: can't create new thread (%s)\n", strerror(err));
-      abort();
+      _x_abort();
     }
   
     pthread_attr_destroy(&pth_attrs);

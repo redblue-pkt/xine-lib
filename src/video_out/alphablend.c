@@ -3,6 +3,7 @@
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  * 
  * Copyright (C) 2000  Thomas Mirlacher
+ *               2002-2004 the xine project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -462,7 +463,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       }
       break;
     case 6:  /* Finished */
-      abort();
+      _x_abort();
 
     case 7:  /* No button */
       clut = (clut_t*) img_overl->color;

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2003 the xine project
+ * Copyright (C) 2001-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2004/02/09 22:13:54 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.51 2004/03/03 20:09:13 mroi Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -77,7 +77,7 @@ void catch_sigsegv(int sig)
          "divx4: divx4_forceversion:1\n"
          "divx4: see xine-ui/doc/README.divx4 for details.\n"
          "divx4: fatal error; exiting.\n");
-  abort();
+  _x_abort();
 }
 #endif
 
