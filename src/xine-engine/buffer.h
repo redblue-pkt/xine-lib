@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.52 2002/06/25 03:37:52 tmmm Exp $
+ * $Id: buffer.h,v 1.53 2002/06/26 15:55:49 jkeil Exp $
  *
  *
  * contents:
@@ -36,6 +36,10 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
 
 #include <stdio.h>
