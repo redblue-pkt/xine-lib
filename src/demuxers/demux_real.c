@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.93 2004/02/08 18:39:50 jstembridge Exp $
+ * $Id: demux_real.c,v 1.94 2004/03/01 22:33:52 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -423,7 +423,7 @@ static void real_parse_headers (demux_real_t *this) {
         lprintf ("parsing type specific data...\n");
 
         if(BE_32(mdpr->type_specific_data) == RA_TAG) {
-          int version;
+          int version, len;
 
           if(this->num_audio_streams == MAX_AUDIO_STREAMS) {
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -435,17 +435,22 @@ static void real_parse_headers (demux_real_t *this) {
 
           lprintf("audio version %d detected\n", version);
 
-          if(version == 4) {
-            int str_len;
-
-            str_len = *(mdpr->type_specific_data + 56);
-            fourcc = ME_32(mdpr->type_specific_data + 58 + str_len);
-          } else if(version == 5) {
-            fourcc = ME_32(mdpr->type_specific_data + 66);
-          } else {
-            lprintf("unsupported audio header version %d\n", version);
-
-            goto unknown;
+          switch(version) {
+            case 3:
+              /* Version 3 header stores fourcc after meta info - cheat by reading backwards from the 
+               * end of the header instead of having to parse it all */
+              fourcc = ME_32(mdpr->type_specific_data + mdpr->type_specific_len - 5);
+              break;
+            case 4:
+              len = *(mdpr->type_specific_data + 56);
+              fourcc = ME_32(mdpr->type_specific_data + 58 + len);
+              break;
+            case 5:
+              fourcc = ME_32(mdpr->type_specific_data + 66);
+              break;
+            default:
+              lprintf("unsupported audio header version %d\n", version);
+              goto unknown;
           }
 
           lprintf("fourcc = %.4s\n", (char *) &fourcc);
@@ -698,7 +703,7 @@ unknown:
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
       buf->type           = this->audio_stream->buf_type;
-      buf->decoder_flags  = BUF_FLAG_FRAME_END;
+      buf->decoder_flags  = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
       
       /* For AAC we send two header buffers, the first is a standard audio
        * header giving bits per sample, sample rate and number of channels.
@@ -727,7 +732,7 @@ unknown:
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         
         buf->type                = this->audio_stream->buf_type;
-        buf->decoder_flags       = BUF_FLAG_FRAME_END | BUF_FLAG_SPECIAL;
+        buf->decoder_flags       = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END|BUF_FLAG_SPECIAL;
         buf->decoder_info[1]     = BUF_SPECIAL_DECODER_CONFIG;
         buf->decoder_info[2]     = BE_32(mdpr->type_specific_data + 74) - 1;
         buf->decoder_info_ptr[2] = buf->content;
@@ -736,11 +741,23 @@ unknown:
         memcpy(buf->content, mdpr->type_specific_data + 79,
                buf->decoder_info[2]);
 
+      } else if(buf->type == BUF_AUDIO_14_4) {
+        xine_waveformatex wave;
+        
+        wave.nSamplesPerSec = buf->decoder_info[1] = 8000;
+        wave.wBitsPerSample = buf->decoder_info[2] = 16;
+        wave.nChannels      = buf->decoder_info[3] = 1;
+        wave.nBlockAlign    = 240;
+ 
+        buf->decoder_flags |= BUF_FLAG_STDHEADER;
+        buf->size           = sizeof(xine_waveformatex);
+        
+        memcpy(buf->content, &wave, sizeof(xine_waveformatex));
+      
       } else {
         memcpy(buf->content, mdpr->type_specific_data,
                mdpr->type_specific_len);
 
-        buf->decoder_flags |= BUF_FLAG_HEADER;
         buf->size           = mdpr->type_specific_len;
       }
 
