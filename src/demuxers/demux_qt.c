@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.18 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_qt.c,v 1.19 2002/01/15 21:10:31 miguelfreitas Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -4175,9 +4175,9 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   this->bih.biWidth = quicktime_video_width (this->qt, 0);
   this->bih.biHeight= quicktime_video_height (this->qt, 0);
   this->bih.biPlanes= 0;
-  this->bih.biCompression=0; /* FIXME */
-  this->bih.biBitCount=0;
-  this->bih.biSizeImage=0;
+  memcpy( &this->bih.biCompression, video, 4);
+  this->bih.biBitCount= quicktime_video_depth(this->qt, 0);
+  this->bih.biSizeImage=this->bih.biWidth*this->bih.biHeight;
   this->bih.biXPelsPerMeter=1;
   this->bih.biYPelsPerMeter=1;
   this->bih.biClrUsed=0;
@@ -4187,6 +4187,7 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
 
   this->video_type = fourcc_to_buf_video( video );
   
+  /* FIXME: do we really need to set biCompression again here? */
   if (this->video_type == BUF_VIDEO_CINEPAK) {
     this->bih.biCompression=mmioFOURCC('c', 'v', 'i', 'd');
   }
