@@ -857,7 +857,7 @@ int32_t DVDFileSeek( dvd_file_t *dvd_file, int32_t offset )
 
 ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
 {
-    unsigned char *secbuf;
+    unsigned char *secbuf_base, *secbuf;
     unsigned int numsec, seek_sector, seek_byte;
     int ret;
     
@@ -865,7 +865,8 @@ ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
     seek_byte   = dvd_file->seek_pos % DVD_VIDEO_LB_LEN;
 
     numsec = ( ( seek_byte + byte_size ) / DVD_VIDEO_LB_LEN ) + 1;
-    secbuf = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN );
+    secbuf_base = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN + 2048 );
+    secbuf = (unsigned char *)(((int)secbuf_base & ~2047) + 2048);
     if( !secbuf ) {
 	fprintf( stderr, "libdvdread: Can't allocate memory " 
 		 "for file read!\n" );
@@ -881,12 +882,12 @@ ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
     }
 
     if( ret != (int) numsec ) {
-        free( secbuf );
+        free( secbuf_base );
         return ret < 0 ? ret : 0;
     }
 
     memcpy( data, &(secbuf[ seek_byte ]), byte_size );
-    free( secbuf );
+    free( secbuf_base );
 
     dvd_file->seek_pos += byte_size;
     return byte_size;

@@ -120,3 +120,83 @@
  
  
  #undef ATTRIBUTE_PACKED
+--- src/input/libdvdread/dvd_reader.c	Sun May 19 17:48:41 2002
++++ src/input/libdvdread/dvd_reader.c	Mon Aug 19 18:09:46 2002
+@@ -857,7 +857,7 @@
+ 
+ ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
+ {
+-    unsigned char *secbuf;
++    unsigned char *secbuf_base, *secbuf;
+     unsigned int numsec, seek_sector, seek_byte;
+     int ret;
+     
+@@ -865,7 +865,8 @@
+     seek_byte   = dvd_file->seek_pos % DVD_VIDEO_LB_LEN;
+ 
+     numsec = ( ( seek_byte + byte_size ) / DVD_VIDEO_LB_LEN ) + 1;
+-    secbuf = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN );
++    secbuf_base = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN + 2048 );
++    secbuf = (unsigned char *)(((int)secbuf_base & ~2047) + 2048);
+     if( !secbuf ) {
+ 	fprintf( stderr, "libdvdread: Can't allocate memory " 
+ 		 "for file read!\n" );
+@@ -881,12 +882,12 @@
+     }
+ 
+     if( ret != (int) numsec ) {
+-        free( secbuf );
++        free( secbuf_base );
+         return ret < 0 ? ret : 0;
+     }
+ 
+     memcpy( data, &(secbuf[ seek_byte ]), byte_size );
+-    free( secbuf );
++    free( secbuf_base );
+ 
+     dvd_file->seek_pos += byte_size;
+     return byte_size;
+--- src/input/libdvdread/dvd_udf.c	Mon May  6 22:16:31 2002
++++ src/input/libdvdread/dvd_udf.c	Mon Aug 19 18:11:32 2002
+@@ -264,7 +264,8 @@
+ static int UDFMapICB( dvd_reader_t *device, struct AD ICB, uint8_t *FileType,
+ 		      struct Partition *partition, struct AD *File ) 
+ {
+-    uint8_t LogBlock[DVD_VIDEO_LB_LEN];
++    uint8_t LogBlock_base[DVD_VIDEO_LB_LEN + 2048];
++    uint8_t *LogBlock = (uint8_t *)(((int)LogBlock_base & ~2047) + 2048);
+     uint32_t lbnum;
+     uint16_t TagID;
+ 
+@@ -296,7 +297,8 @@
+                        struct Partition *partition, struct AD *FileICB ) 
+ {
+     char filename[ MAX_UDF_FILE_NAME_LEN ];
+-    uint8_t directory[ 2 * DVD_VIDEO_LB_LEN ];
++    uint8_t directory_base[ 2 * DVD_VIDEO_LB_LEN + 2048];
++    uint8_t *directory = (uint8_t *)(((int)directory_base & ~2047) + 2048);
+     uint32_t lbnum;
+     uint16_t TagID;
+     uint8_t filechar;
+@@ -342,7 +344,10 @@
+ static int UDFFindPartition( dvd_reader_t *device, int partnum,
+ 			     struct Partition *part ) 
+ {
+-    uint8_t LogBlock[ DVD_VIDEO_LB_LEN ], Anchor[ DVD_VIDEO_LB_LEN ];
++    uint8_t LogBlock_base[ DVD_VIDEO_LB_LEN + 2048 ];
++    uint8_t *LogBlock = (uint8_t *)(((int)LogBlock_base & ~2047) + 2048);
++    uint8_t Anchor_base[ DVD_VIDEO_LB_LEN + 2048 ];
++    uint8_t *Anchor = (uint8_t *)(((int)Anchor_base & ~2047) + 2048);
+     uint32_t lbnum, MVDS_location, MVDS_length;
+     uint16_t TagID;
+     uint32_t lastsector;
+@@ -434,7 +439,8 @@
+ uint32_t UDFFindFile( dvd_reader_t *device, char *filename,
+ 		      uint32_t *filesize )
+ {
+-    uint8_t LogBlock[ DVD_VIDEO_LB_LEN ];
++    uint8_t LogBlock_base[ DVD_VIDEO_LB_LEN + 2048 ];
++    uint8_t *LogBlock = (uint8_t *)(((int)LogBlock_base & ~2047) + 2048);
+     uint32_t lbnum;
+     uint16_t TagID;
+     struct Partition partition;
