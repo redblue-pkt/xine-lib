@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.15 2001/08/12 15:12:54 guenter Exp $
+ * $Id: demux_elem.c,v 1.16 2001/08/25 08:40:08 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -38,7 +38,7 @@
 #include "monitor.h"
 #include "demux.h"
 
-#define NUM_PREVIEW_BUFFERS 400
+#define NUM_PREVIEW_BUFFERS 50
 
 #define DEMUX_MPEG_ELEM_IFACE_VERSION 1
 
@@ -58,6 +58,7 @@ typedef struct {
   
   int              send_end_buffers;
 
+  uint8_t          scratch[4096];
 } demux_mpeg_elem_t ;
 
 static uint32_t xine_debug;
@@ -198,7 +199,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type    = BUF_CONTROL_START;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
@@ -236,8 +237,7 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
   switch(stage) {
     
   case STAGE_BY_CONTENT: {
-    uint8_t buf[4096];
-    int bs = 0;
+    int bs = 4;
     
     if(!input)
       return DEMUX_CANNOT_HANDLE;
@@ -247,20 +247,22 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
 
       if(input->get_blocksize)
 	bs = input->get_blocksize(input);
-      
-      bs = (bs > 4) ? bs : 4;
 
-      if(input->read(input, buf, bs)) {
+      if (bs<4)
+	bs = 4;
+
+      if (input->read(input, this->scratch, bs) == bs) {
+
+	printf ("demux_elem: %02x %02x %02x %02x (bs=%d)\n",
+		this->scratch[0], this->scratch[1], 
+		this->scratch[2], this->scratch[3], bs);
 	
-	if(buf[0] || buf[1] || (buf[2] != 0x01))
+	if (this->scratch[0] || this->scratch[1] 
+	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3))
 	  return DEMUX_CANNOT_HANDLE;
 	
-	switch(buf[3]) {
-	case 0xb3:
-	  this->input = input;
-	  return DEMUX_CAN_HANDLE;
-	  break;
-	}
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
       }
     }
     return DEMUX_CANNOT_HANDLE;
