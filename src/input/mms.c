@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.41 2004/02/29 17:26:49 valtri Exp $
+ * $Id: mms.c,v 1.42 2004/04/03 18:34:53 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -884,8 +884,16 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
 
   switch (res = get_answer (this)) {
     case 0x06:
-      /* no authentication required */
-      this->live_flag = ((this->buf[62] == 0) && (this->buf[63] == 2));
+      {
+        int xx, yy;
+        /* no authentication required */
+      
+        /* Warning: sdp is not right here */
+        xx = this->buf[62];
+        yy = this->buf[63];
+        this->live_flag = ((xx == 0) && ((yy & 0xf) == 2));
+        lprintf("live: live_flag=%d, xx=%d, yy=%d\n", this->live_flag, xx, yy);
+      }
       break;
     case 0x1A:
       /* authentication request, not yet supported */
@@ -1068,8 +1076,12 @@ static int get_media_packet (mms_t *this) {
       lprintf ("end of the current stream.\n");
 
       /* might be followed by a new stream cmd 0x20 */
-      if (!this->live_flag)
+      if (!this->live_flag) {
+        lprintf ("not a live stream, .\n");
         return 0;
+      } else {
+        lprintf ("live stream, continue.\n");
+      }
 
     } else if (command == 0x20) {
 
