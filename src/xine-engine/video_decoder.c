@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.147 2004/04/08 11:10:10 valtri Exp $
+ * $Id: video_decoder.c,v 1.148 2004/04/08 13:37:54 mroi Exp $
  *
  */
 
@@ -40,6 +40,9 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include <sched.h>
+
+#define SPU_SLEEP_INTERVAL (90000/2)
+
 
 static void update_spu_decoder (xine_stream_t *stream, int type) {
 
@@ -73,10 +76,10 @@ int _x_spu_decoder_sleep(xine_stream_t *stream, int64_t next_spu_vpts)
       time = 0;
     
     /* wait in pieces of one half second */
-    if (next_spu_vpts - time < 90000/2)
+    if (next_spu_vpts - time < SPU_SLEEP_INTERVAL)
       wait = next_spu_vpts - time;
     else
-      wait = 90000/2;
+      wait = SPU_SLEEP_INTERVAL;
     
     if (wait > 0) xine_usec_sleep(wait * 11);
     
@@ -92,7 +95,7 @@ int _x_spu_decoder_sleep(xine_stream_t *stream, int64_t next_spu_vpts)
     if (thread_vacant)
       thread_vacant = !stream->demux_action_pending;
     
-  } while (wait == 90000/2 && thread_vacant);
+  } while (wait == SPU_SLEEP_INTERVAL && thread_vacant);
   
   return thread_vacant;
 }
