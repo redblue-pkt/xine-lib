@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.3 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.4 2002/12/28 09:50:49 esnel Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -339,10 +339,10 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
     return;
   }
 
-  if (buf->size > 0x48) {
+  if (buf->decoder_info[2] > 0x48) {
     error = this->SoundConverterSetInfo (this->myConverter,
 					 siDecompressionParams,
-					 buf->content + 0x48);
+					 ((unsigned char *)buf->decoder_info_ptr[2]) + 0x48);
 #ifdef LOG
     printf ("qt_audio: SoundConverterSetInfo:%i\n",error);
 #endif
@@ -871,8 +871,8 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
 #endif
 
   {
-    uint8_t *stdata = buf->content + 20;
-    int      stdata_len = buf->size - 24;
+    uint8_t *stdata = ((unsigned char *)buf->decoder_info_ptr[2]) + 20;
+    int      stdata_len = buf->decoder_info[2] - 24;
 
     id=malloc (8+stdata_len) ; /* trak->stdata_len); */
     id->idSize          = 8+stdata_len;
