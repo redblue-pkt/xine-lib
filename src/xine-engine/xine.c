@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.115 2002/04/09 04:35:17 miguelfreitas Exp $
+ * $Id: xine.c,v 1.116 2002/04/13 13:34:27 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -192,12 +192,22 @@ void xine_stop_internal (xine_t *this) {
   xine_set_speed_internal(this, SPEED_NORMAL);
 
   this->status = XINE_STOP;
-  printf ("xine_stop: stopping demuxer\n");
+  if(this->cur_input_plugin) {
+    /* This forces the input plugin to return from any sleeps it might
+     * be doing for still menus etc.
+     * Otherwise, if the input plugin was sleeping when STOP or EXIT
+     * was pressed, xine would hang and need kill -9 to exit it.
+     */
 
+    this->cur_input_plugin->stop(this->cur_input_plugin);
+  }
+    
+  printf ("xine_stop: stopping demuxer\n");
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
+  printf ("xine_stop: stopped demuxer\n");
 
   if(this->cur_input_plugin) {
     this->cur_input_plugin->close(this->cur_input_plugin);
