@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.64 2003/05/25 13:39:14 guenter Exp $
+ * $Id: buffer_types.c,v 1.65 2003/05/28 13:11:53 jstembridge Exp $
  *
  *
  * contents:
@@ -478,6 +478,15 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_YV12,
   "Raw Planar YV12"
+},
+{
+  {
+    meFOURCC('I', '4', '2', '0'),
+    meFOURCC('I', 'Y', 'U', 'V'),
+    0
+  },
+  BUF_VIDEO_I420,
+  "Raw Planar I420"
 },
 {
   {
