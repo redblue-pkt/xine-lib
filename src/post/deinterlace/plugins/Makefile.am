@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CPPFLAGS = -I../
+AM_CPPFLAGS = -I$(top_srcdir)/src/post/deinterlace
 
 EXTRA_DIST = 
 
