@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.71 2002/10/26 22:00:53 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.72 2002/10/27 00:27:26 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -448,6 +448,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   this->stream_length = 0;
   this->bitrate       = 0;
   this->last_pts      = 0;
+  this->status        = DEMUX_OK;
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;

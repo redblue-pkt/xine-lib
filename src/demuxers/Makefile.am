@@ -6,9 +6,9 @@ libdir = $(XINE_PLUGINDIR)
 
 # Sensing of OGG/VORBIS, ZLIB and ASF is broken in cvscompile.sh.
 
-#if HAVE_VORBIS
-#ogg_module = xineplug_dmx_ogg.la
-#endif
+if HAVE_VORBIS
+ogg_module = xineplug_dmx_ogg.la
+endif
 
 #if HAVE_ZLIB
 #qt_modules = xineplug_dmx_qt.la
@@ -35,7 +35,7 @@ endif
 #	xineplug_dmx_yuv4mpeg2.la xineplug_dmx_real.la
 #	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la
 
-lib_LTLIBRARIES = $(asf_module) xineplug_dmx_avi.la\
+lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la \
 	xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_audio.la \
