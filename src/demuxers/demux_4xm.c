@@ -21,7 +21,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.1 2003/05/26 21:06:01 tmmm Exp $
+ * $Id: demux_4xm.c,v 1.2 2003/06/21 22:33:49 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -213,9 +213,9 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
     }
   }
 
+  fourxm->filesize = fourxm->input->get_length(fourxm->input);
+
   free(header);
-
-
 
   return 1;
 }
@@ -244,6 +244,7 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
   case ifrm_TAG:
   case pfrm_TAG:
   case cfrm_TAG:
+    /* bump the pts if this last data sent out was audio */
     if (this->last_chunk_was_audio) {
       this->last_chunk_was_audio = 0;
       pts_inc = this->last_audio_frame_count;
@@ -388,7 +389,7 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = 3000;  /* initial video_step */
+  buf->decoder_info[1] = 6000;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_4XM;
@@ -560,4 +561,3 @@ void *demux_fourxm_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
