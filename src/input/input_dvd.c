@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.135 2003/03/25 13:20:31 mroi Exp $
+ * $Id: input_dvd.c,v 1.136 2003/03/27 13:48:03 mroi Exp $
  *
  */
 
@@ -109,7 +109,11 @@
 #endif 
 
 /* Some misc. defines */
-#define DVD_BLOCK_SIZE 2048
+#ifdef DVD_VIDEO_LB_LEN
+#  define DVD_BLOCK_SIZE DVD_VIDEO_LB_LEN
+#else
+#  define DVD_BLOCK_SIZE 2048
+#endif
 
 /* Debugging macros */
 #ifdef __GNUC__
@@ -140,9 +144,12 @@ typedef struct {
 
   xine_stream_t    *stream;
   xine_event_queue_t *event_queue;
+  
   int               pause_timer;  /* Cell still-time timer            */
   int               pause_counter;
   time_t	    pause_end_time;
+  int64_t           pg_length;
+  int64_t           pgc_length;
   int32_t           buttonN;
   int               typed_buttonN;/* for XINE_EVENT_INPUT_NUMBER_* */
 
@@ -150,7 +157,7 @@ typedef struct {
   int               opened;       /* 1 if the DVD device is already open */
   int               seekable;     /* are we seekable? */
   
-  /* Xine specific variables */
+  /* xine specific variables */
   char             *current_dvd_device; /* DVD device currently open */
   char             *mrl;          /* Current MRL                     */
   int               mode;
@@ -243,7 +250,7 @@ void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
   if(class->ip) {
     dvd_input_plugin_t *this = class->ip;
 
-    dvdnav_set_PGC_positioning_flag(this->dvdnav, ~entry->num_value);
+    dvdnav_set_PGC_positioning_flag(this->dvdnav, !entry->num_value);
   }
 }
  
@@ -603,9 +610,11 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       break;
     case DVDNAV_CELL_CHANGE:
       {
+	dvdnav_cell_change_event_t *cell_event = 
+	 (dvdnav_cell_change_event_t*) (block);
         xine_event_t event;
 
-	/* Tell Xine to update the UI */
+	/* Tell xine to update the UI */
 	event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
 	event.stream = this->stream;
 	event.data = NULL;
@@ -613,6 +622,9 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	xine_event_send(this->stream, &event);
 	
 	update_title_display(this);
+	
+	this->pg_length  = cell_event->pg_length;
+	this->pgc_length = cell_event->pgc_length;
       }
       break;
     case DVDNAV_HOP_CHANNEL:
@@ -678,12 +690,26 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
        * modify the buffer, because we would not be able to reconstruct it.
        * Therefore we copy the data and give the buffer back. */
       printf("input_dvd: too many buffers issued, memory stack exceeded\n");
-      memcpy(buf->mem, block, 2048);
+      memcpy(buf->mem, block, DVD_BLOCK_SIZE);
       dvdnav_free_cache_block(this->dvdnav, block);
       buf->content = buf->mem;
     }
     pthread_mutex_unlock(&this->buf_mutex);
   }
+  
+  if (this->pg_length && this->pgc_length) {
+    int pos, length;
+    dvdnav_get_position(this->dvdnav, &pos, &length);
+    switch (((dvd_input_class_t *)this->input_plugin.input_class)->seek_mode) {
+    case 0: /* PGC based seeking */
+      buf->extra_info->input_time = this->pgc_length * pos / (length * 90);
+      break;
+    case 1: /* PG based seeking */
+      buf->extra_info->input_time = this->pg_length  * pos / (length * 90);
+      break;
+    }
+  }
+  
   return buf;
 }
 
@@ -737,7 +763,7 @@ static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
     return 0;
   }
   result = dvdnav_get_position(this->dvdnav, &pos, &length);
-  return (off_t)length * (off_t)2048;
+  return (off_t)length * (off_t)DVD_BLOCK_SIZE;
 }
 
 static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -1213,8 +1239,11 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->seekable               = 0;
   this->buttonN                = 0;
   this->typed_buttonN          = 0;
+  this->pause_timer            = 0;
+  this->pg_length              = 0;
+  this->pgc_length             = 0;
   this->dvd_name               = NULL;
-  this->mrl                    = NULL;
+  this->mrl                    = strdup(data);
 /*
   this->mrls                   = NULL;
   this->num_mrls               = 0;
@@ -1225,12 +1254,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->freeing                = 0;
   
   this->event_queue = xine_event_new_queue (this->stream);
-  /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
-  /* printf("data=%p\n",data);
-  if (data) printf("data=%s\n",data); */
-  this->mrl                    = strdup(data);
-  this->pause_timer            = 0;
-
+  
   /* we already checked the "dvd:/" MRL above */
   locator = &this->mrl[strlen(handled_mrl)];
   while (*locator == '/') locator++;
@@ -1579,7 +1603,7 @@ static void *init_class (xine_t *xine, void *data) {
   config->register_enum(config, "input.dvd_seek_behaviour", 0,
 			seek_modes,
 			"Seeking will work on this basis.",
-			NULL, 10, seek_mode_cb, NULL);
+			NULL, 10, seek_mode_cb, this);
 
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1593,6 +1617,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.136  2003/03/27 13:48:03  mroi
+ * use timing information provided by libdvdnav to get more accurate position
+ *
  * Revision 1.135  2003/03/25 13:20:31  mroi
  * new config option to switch between PG ("per chapter") and PGC ("per movie")
  * based seeking,

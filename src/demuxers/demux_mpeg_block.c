@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.161 2003/03/07 22:19:20 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.162 2003/03/27 13:48:04 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -207,7 +207,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf->extra_info->input_pos = this->input->get_current_pos (this->input);
   buf->extra_info->input_length = this->input->get_length (this->input);
 
-  if (this->rate)
+  /* some input plugins like DVD can have better timing information and have
+   * already set the input_time, so we can derive our datarate from this */
+  if (buf->extra_info->input_time)
+    this->rate = (int)((int64_t)buf->extra_info->input_pos * 1000 /
+                       (buf->extra_info->input_time * 50));
+
+  if (this->rate && !buf->extra_info->input_time)
     buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
                                         * 1000 / (this->rate * 50));
 
@@ -235,9 +241,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	this->rate |= (p[10] << 7);
 	this->rate |= (p[11] >> 1);
       }
-
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                          * 1000 / (this->rate * 50));
 
       p   += 12;
 
