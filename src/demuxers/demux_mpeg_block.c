@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.104 2002/06/12 12:22:33 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.105 2002/06/29 19:23:56 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -89,7 +89,7 @@ typedef struct demux_mpeg_block_s {
   int64_t               nav_last_start_pts;
   int64_t               last_pts[2];
   int                   send_newpts;
-
+  int                   buf_flag_seek;
 } demux_mpeg_block_t ;
 
 
@@ -124,12 +124,22 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
     /* check if pts is outside nav pts range. any stream without nav must enter here. */
     if( pts > this->nav_last_end_pts || pts < this->nav_last_start_pts )
     {
-      printf("demux_mpeg_block: pts wrap detected\n" );
-  
-      xine_demux_control_newpts(this->xine, pts, 0);
+#ifdef LOG
+      printf("demux_mpeg_block: discontinuity detected by pts wrap\n");
+#endif
+      if (this->buf_flag_seek) {
+        xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+        this->buf_flag_seek = 0;
+      } else {
+        xine_demux_control_newpts(this->xine, pts, 0);
+      }
+      this->send_newpts = 0;
+    } else {
+#ifdef LOG
+      printf("demux_mpeg_block: no wrap detected\n" );
+#endif
     }
     
-    this->send_newpts = 0;
     this->last_pts[1-video] = 0;
   }
   
@@ -372,12 +382,15 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if (this->nav_last_end_pts != start_pts && !preview_mode) {
 
 #ifdef LOG
-      printf ("demux_mpeg_block: informing metronom about new start pts\n");
+      printf("demux_mpeg_block: discontinuity detected by nav packet\n" );
 #endif
-
-      xine_demux_control_newpts(this->xine, start_pts, 0);
+      if (this->buf_flag_seek) {
+        xine_demux_control_newpts(this->xine, start_pts, BUF_FLAG_SEEK);
+        this->buf_flag_seek = 0;
+      } else {
+        xine_demux_control_newpts(this->xine, start_pts, 0);
+      }
     }
-    
     this->nav_last_end_pts = end_pts;
     this->nav_last_start_pts = start_pts;
     this->send_newpts = 0;
@@ -972,13 +985,13 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
      * now start demuxing
      */
     this->send_newpts = 1;
-    
     if( !this->thread_running ) {
     
+      this->buf_flag_seek = 0;
+      this->nav_last_end_pts = this->nav_last_start_pts = 0;
       this->status   = DEMUX_OK ;
       this->last_pts[0]   = 0;
       this->last_pts[1]   = 0;
-      this->nav_last_end_pts = this->nav_last_start_pts = 0;
 
       this->send_end_buffers = 1;
       this->thread_running = 1;
@@ -988,8 +1001,9 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
 	      strerror(err));
         abort();
       }
-    }
-    else {
+    } else {
+      this->buf_flag_seek = 1;
+      this->nav_last_end_pts = this->nav_last_start_pts = 0;
       xine_demux_flush_engine(this->xine);
     }
   }
