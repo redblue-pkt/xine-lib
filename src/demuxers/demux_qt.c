@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.55 2002/06/19 16:33:00 esnel Exp $
+ * $Id: demux_qt.c,v 1.56 2002/06/20 03:51:49 tmmm Exp $
  *
  */
 
@@ -1181,6 +1181,10 @@ static void *demux_qt_loop (void *this_gen) {
 
           if (!remaining_sample_bytes)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+          buf->decoder_info[1] = this->qt->audio_sample_rate;
+          buf->decoder_info[2] = this->qt->audio_bits;
+          buf->decoder_info[3] = this->qt->audio_channels;
           this->audio_fifo->put(this->audio_fifo, buf);
         }
       }
