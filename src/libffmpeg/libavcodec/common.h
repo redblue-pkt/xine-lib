@@ -350,14 +350,23 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
 
+    assert(bit_left >= 0 && bit_left <= 32);
+
     //    printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
     /* XXX: optimize */
     if (n < bit_left) {
-        bit_buf = (bit_buf<<n) | value;
+        if (n == 32)
+	    bit_buf = value;
+	else
+	    bit_buf = (bit_buf<<n) | value;
         bit_left-=n;
     } else {
-	bit_buf<<=bit_left;
-        bit_buf |= value >> (n - bit_left);
+	if (bit_left == 32)
+	    bit_buf=0;
+	else
+	    bit_buf<<=bit_left;
+        if (n - bit_left < 32)
+	    bit_buf |= value >> (n - bit_left);
 #ifdef UNALIGNED_STORES_ARE_BAD
         if (3 & (int) s->buf_ptr) {
             s->buf_ptr[0] = bit_buf >> 24;
