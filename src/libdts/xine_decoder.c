@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2003/05/23 21:52:00 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.39 2003/05/23 22:14:29 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -42,13 +42,13 @@
 #include "audio_out.h"
 #include "buffer.h"
 
-
+/*
 #define LOG_DEBUG
+*/
 
-
-
+/*
 #define ENABLE_DTS_PARSE
-
+*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
