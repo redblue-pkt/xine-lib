@@ -159,4 +159,7 @@ Contributions
   Matthias Dahl <matthew2k@web.de>
     rpm .spec file maintainer, syncfb and other patches
 
+  Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
+    w32dll audio bugfixes
+      
   (let us know if we've forgotten anyone)
