@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.90 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.91 2002/12/21 16:12:25 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -91,7 +91,7 @@
  *
  * Unfortunately audio fifo adds a large delay to our closed loop.
  *
- * These are designed to avoid updating the metronom too fast.
+ * The defines below are designed to avoid updating the metronom too fast.
  * - it will only be updated 1 time per second (so it has a chance of
  *   distributing the error for several frames).
  * - it will only be updated 2 times for the whole audio fifo size
