@@ -1,3 +1,17 @@
+xine-lib (0.9.9-1) unstable; urgency=low
+
+  * new upstream release
+  * downgraded ogg/vorbis dependancies to recommendations (closes: #130492)
+  * made resetting volume an option, disabled by default (closes: #127485)
+
+ -- Siggi Langauf <siggi@debian.org>  Mon, 28 Jan 2002 10:54:14 +0100
+
+xine-lib (0.9.8-2) unstable; urgency=high
+
+  * including version in shlibs file, so shlibdeps will work
+
+ -- Siggi Langauf <siggi@debian.org>  Sat, 19 Jan 2002 16:20:32 +0100
+
 xine-lib (0.9.8-1) unstable; urgency=high
 
   * new upstream release
