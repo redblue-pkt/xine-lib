@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.60 2002/09/05 22:19:04 mroi Exp $
+ * $Id: video_out.h,v 1.61 2002/09/09 03:06:14 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -138,13 +138,6 @@ struct vo_instance_s {
 
   vo_frame_t* (*get_last_frame) (vo_instance_t *this);
   
-  /* 
-   * duplicate_frame is deprecated and should be removed 
-   * on the next api change.
-   * (will remain as an internal function only)
-   */
-  vo_frame_t* (*duplicate_frame) (vo_instance_t *this, vo_frame_t *img );
-    
   /* overlay stuff */
   void (*enable_ovl) (vo_instance_t *this, int ovl_enable);
   

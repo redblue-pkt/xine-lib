@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.103 2002/09/04 23:31:13 guenter Exp $
+ * $Id: video_out.c,v 1.104 2002/09/09 03:06:14 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -798,70 +798,6 @@ static uint32_t vo_get_capabilities (vo_instance_t *this_gen) {
   return this->driver->get_capabilities (this->driver);
 }
 
-static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img ) {
-
-  vo_frame_t *dupl;
-  /* vos_t      *this = (vos_t *) this_gen; */
-  int         image_size;
-    
-  dupl = vo_get_frame (this_gen, img->width, img->height, img->ratio,
-		       img->format, VO_BOTH_FIELDS );
-  
-  image_size = img->pitches[0] * img->height;
-
-  if (img->format == XINE_IMGFMT_YV12) {
-    /* The dxr3 video out plugin does not allocate memory for the dxr3
-     * decoder, so we must check for NULL */
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-    if (img->base[1])
-      xine_fast_memcpy(dupl->base[1], img->base[1], img->pitches[1] * ((img->height+1)/2));
-    if (img->base[2])
-      xine_fast_memcpy(dupl->base[2], img->base[2], img->pitches[2] * ((img->height+1)/2));
-  } else {
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-  }  
-  
-  dupl->bad_frame = 0;
-  dupl->pts       = 0;
-  dupl->vpts      = 0;
-  dupl->duration  = img->duration;
-
-  /* Support copy; Dangerous, since some decoders may use a source that's
-   * not dupl->base. It's up to the copy implementation to check for NULL */ 
-  if (img->format == XINE_IMGFMT_YV12) {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-  
-      src[0] = dupl->base[0];
-      src[1] = dupl->base[1];
-      src[2] = dupl->base[2];
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-        src[1] +=  8 * img->pitches[1];
-        src[2] +=  8 * img->pitches[2];
-      }
-    }
-  } else {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-      
-      src[0] = dupl->base[0];
-      
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-      }
-    }
-  }
-  
-  return dupl;
-}
-
 static void vo_open (vo_instance_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
@@ -967,7 +903,6 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, xine_t *xine) {
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
-  this->vo.duplicate_frame       = NULL; /* deprecated */
   this->vo.get_last_frame        = vo_get_last_frame;
   this->vo.close                 = vo_close;
   this->vo.exit                  = vo_exit;
