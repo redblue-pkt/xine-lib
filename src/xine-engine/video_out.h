@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: video_out.h,v 1.2 2001/04/26 11:31:36 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
@@ -216,6 +216,11 @@ struct vo_instance_s {
 
 struct vo_driver_s {
 
+  /*
+   * plugin interface version, lower versions _may_ be supported
+   */
+  int interface_version;
+
   uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see below */
 
   /* 
@@ -249,6 +254,11 @@ struct vo_driver_s {
   void (*set_logo_mode) (vo_driver_t *this, int show_logo);
 
   void (*exit) (vo_driver_t *this);
+
+  /*
+   * return human readable identifier for this plugin
+   */
+  char* (*get_identifier) (void);
 };
 
 

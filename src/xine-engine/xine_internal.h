@@ -1,4 +1,4 @@
-/* 
+ /* 
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.10 2001/04/24 21:10:42 guenter Exp $
+ * $Id: xine_internal.h,v 1.11 2001/04/26 11:31:36 f1rmb Exp $
  *
  */
 
@@ -341,5 +341,17 @@ void load_audio_out_plugins (xine_t *this,
 			     config_values_t *config, int iface_version);
 void load_decoder_plugins (xine_t *this, 
 			   config_values_t *config, int iface_version);
-
+/* visual_type (see bellow) */
+#define VIDEO_OUTPUT_TYPE_GETID 0
+#define VIDEO_OUTPUT_TYPE_PROBE 1
+#define VIDEO_OUTPUT_TYPE_X11   2
+#define VIDEO_OUTPUT_TYPE_FB    3
+vo_driver_t *load_video_output_plugin(config_values_t *config,
+				      char *filename, char *id, 
+				      int visual_type, void *visual);
+#define AUDIO_OUTPUT_TYPE_GETID    0
+#define AUDIO_OUTPUT_TYPE_PROBE    1
+#define AUDIO_OUTPUT_TYPE_OSS      2
+#define AUDIO_OUTPUT_TYPE_ALSA     3
+#define AUDIO_OUTPUT_TYPE_ESD      4
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.2 2001/04/26 11:31:35 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -52,6 +52,9 @@
 #include <stdlib.h>
 
 #include "video_out.h"
+#include "xine_internal.h"
+
+#define VO_OUT_XV_IFACE_VERSION 1
 
 /* override xprintf definition */
 #define xprintf(LVL, FMT, ARGS...) { printf(FMT, ##ARGS); }
@@ -660,9 +663,15 @@ static void xv_check_capability (xv_driver_t *this, uint32_t capability, int pro
   xv_set_property (&this->vo_driver, property, this->config->lookup_int (this->config, str_prop, nDefault) );
 }
 
-vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
+static char *xv_get_identifier(void) {
+  return "X11_XV";
+}
+
+vo_driver_t *init_video_out_xv (int iface, config_values_t *config, 
+				void *visual, int visual_type) {
 
   xv_driver_t          *this;
+  Display              *display = NULL;
   unsigned int          adaptor_num, adaptors, i, j, formats;
   unsigned int          ver,rel,req,ev,err;
   unsigned int          xv_port;
@@ -678,6 +687,33 @@ vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
   int                   screens;
   XineramaScreenInfo   *screeninfo = NULL;
 #endif
+
+  if(iface > VO_OUT_XV_IFACE_VERSION || iface <= 0) {
+    printf("%s: wrong interface version, current = %d, wanted = %d\n",
+	   __FILE__, VIDEO_OUT_PLUGIN_IFACE_VERSION, iface);
+    return NULL;
+  }
+
+  switch(visual_type) {
+
+  case VIDEO_OUTPUT_TYPE_GETID:
+    this = malloc (sizeof (xv_driver_t));
+    memset (this, 0, sizeof(xv_driver_t)); 
+    this->vo_driver.interface_version    = VO_OUT_XV_IFACE_VERSION;
+    this->vo_driver.get_identifier       = xv_get_identifier;
+
+    return &this->vo_driver;
+    break;
+    
+  case VIDEO_OUTPUT_TYPE_X11:
+    display = (Display *) visual;
+    break;
+
+  defaut:
+    printf("%s: Wrong output type (%d)\n", __FILE__, visual_type);
+    return NULL;
+  break;
+  }
 
   /*
    * check for Xvideo support 
@@ -713,6 +749,7 @@ vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
     adaptor_num++;
   }
 
+
   if (!xv_port) {
     printf ("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n");
     printf ("              Looks like your graphics hardware driver doesn't support Xv?!\n");
@@ -735,6 +772,7 @@ vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
   this->capabilities = 0;
   this->config       = config;
 
+  this->vo_driver.interface_version    = VO_OUT_XV_IFACE_VERSION;
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
   this->vo_driver.update_frame_format  = xv_update_frame_format;
@@ -746,6 +784,7 @@ vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
   this->vo_driver.get_window           = xv_get_window;
   this->vo_driver.set_logo_mode        = xv_set_logo_mode;
   this->vo_driver.exit                 = xv_exit;
+  this->vo_driver.get_identifier       = xv_get_identifier;
 
   if (XAllocNamedColor (display, DefaultColormap (display, this->screen), 
 			"black", &this->black, &ignored) == 0) {
@@ -901,3 +940,4 @@ vo_driver_t *init_video_out_xv (Display *display, config_values_t *config) {
 }
 
 #endif
+
