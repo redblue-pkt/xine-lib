@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.141 2003/04/04 19:20:48 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.142 2003/04/05 12:28:16 miguelfreitas Exp $
  *
  */
 
@@ -150,6 +150,7 @@ typedef struct {
   time_t	    pause_end_time;
   int64_t           pg_length;
   int64_t           pgc_length;
+  int64_t           cell_start;
   int32_t           buttonN;
   int               typed_buttonN;/* for XINE_EVENT_INPUT_NUMBER_* */
 
@@ -627,6 +628,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	
 	this->pg_length  = cell_event->pg_length;
 	this->pgc_length = cell_event->pgc_length;
+	this->cell_start = cell_event->cell_start;
       }
       break;
     case DVDNAV_HOP_CHANNEL:
@@ -702,12 +704,16 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   if (this->pg_length && this->pgc_length) {
     int pos, length;
     dvdnav_get_position(this->dvdnav, &pos, &length);
+    buf->extra_info->input_pos = pos * (off_t)DVD_BLOCK_SIZE;
+    buf->extra_info->input_length = length * (off_t)DVD_BLOCK_SIZE;
     switch (((dvd_input_class_t *)this->input_plugin.input_class)->seek_mode) {
     case 0: /* PGC based seeking */
-      buf->extra_info->input_time = this->pgc_length * pos / (length * 90);
+      buf->extra_info->total_time = this->pgc_length / 90;
+      buf->extra_info->input_time = this->cell_start / 90;
       break;
     case 1: /* PG based seeking */
-      buf->extra_info->input_time = this->pg_length  * pos / (length * 90);
+      buf->extra_info->total_time = this->pg_length  / 90;
+      buf->extra_info->input_time = 0;
       break;
     }
   }
@@ -1627,6 +1633,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.142  2003/04/05 12:28:16  miguelfreitas
+ * "perfect" time display for dvds
+ * (see thread on xine-devel for details)
+ *
  * Revision 1.141  2003/04/04 19:20:48  miguelfreitas
  * add initial async error/general message reporting to frontend
  * obs: more messages should be added

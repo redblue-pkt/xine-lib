@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.132 2003/04/04 19:20:54 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.133 2003/04/05 12:28:16 miguelfreitas Exp $
  *
  */
 
@@ -129,6 +129,7 @@ struct extra_info_s {
   int64_t               vpts;       /* set on output layers only */ 
   
   int                   invalid;    /* do not use this extra info to update anything */
+  int                   total_time; /* duration in miliseconds of the stream */
 };
 
 /*

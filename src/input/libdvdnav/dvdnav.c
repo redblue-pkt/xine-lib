@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.21 2003/04/01 09:02:43 jcdutton Exp $
+ * $Id: dvdnav.c,v 1.22 2003/04/05 12:28:16 miguelfreitas Exp $
  *
  */
 
@@ -602,6 +602,11 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
       cell_event->pg_length +=
         dvdnav_convert_time(&state->pgc->cell_playback[i - 1].playback_time);
     cell_event->pgc_length = dvdnav_convert_time(&state->pgc->playback_time);
+
+    cell_event->cell_start = 0;
+    for (i = 1; i < state->cellN; i++)
+      cell_event->cell_start +=
+        dvdnav_convert_time(&state->pgc->cell_playback[i - 1].playback_time);
     
     this->position_current.cell         = this->position_next.cell;
     this->position_current.cell_restart = this->position_next.cell_restart;
@@ -1018,6 +1023,10 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.22  2003/04/05 12:28:16  miguelfreitas
+ * "perfect" time display for dvds
+ * (see thread on xine-devel for details)
+ *
  * Revision 1.21  2003/04/01 09:02:43  jcdutton
  * Get libdvdnav to build in DEBUG and TRACE mode.
  *
