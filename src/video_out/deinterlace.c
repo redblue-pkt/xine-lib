@@ -361,8 +361,9 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // again
   emms();
 
-  return 1;
 #endif
+
+  return 1;
 }
 
 
@@ -531,7 +532,86 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // clear out the MMX registers ready for doing floating point again
   emms();
 
+#endif
+
   return 1;
+}
+
+/* Use one field to interpolate the other (low cpu utilization)
+   Will lose resolution but does not produce weaving effect
+   (good for fast moving scenes)
+*/
+static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
+    int width, int height )
+{
+#ifdef ARCH_X86
+  int Line;
+  uint64_t *YVal1;
+  uint64_t *YVal3;
+  uint64_t *Dest;
+  uint8_t* pEvenLines = psrc[0];
+  uint8_t* pOddLines = psrc[0]+width;
+  int LineLength = width;
+  int SourcePitch = width * 2;
+  int IsOdd = 1;
+
+  int n;
+
+  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+
+  // copy first even line no matter what, and the first odd line if we're
+  // processing an odd field.
+  memcpy(pdst, pEvenLines, LineLength);
+  if (IsOdd)
+    memcpy(pdst + LineLength, pOddLines, LineLength);
+
+  height = height / 2;
+  for (Line = 0; Line < height - 1; ++Line)
+  {
+    if (IsOdd)
+    {
+      YVal1 = (uint64_t *)(pOddLines + Line * SourcePitch);
+      YVal3 = (uint64_t *)(pOddLines + (Line + 1) * SourcePitch);
+      Dest = (uint64_t *)(pdst + (Line * 2 + 2) * LineLength);
+    }
+    else
+    {
+      YVal1 = (uint64_t *)(pEvenLines + Line * SourcePitch);
+      YVal3 = (uint64_t *)(pEvenLines + (Line + 1) * SourcePitch);
+      Dest = (uint64_t *)(pdst + (Line * 2 + 1) * LineLength);
+    }
+
+    // Copy the odd line to the overlay verbatim.
+    memcpy((char *)Dest + LineLength, YVal3, LineLength);
+
+    n = LineLength >> 3;
+    while( n-- )
+    {
+      movq_m2r (*YVal1++, mm0);
+      movq_m2r (*YVal3++, mm2);
+
+      // get average in mm0
+      pand_m2r ( *Mask, mm0 );
+      pand_m2r ( *Mask, mm2 );
+      psrlw_i2r ( 01, mm0 );
+      psrlw_i2r ( 01, mm2 );
+      paddw_r2r ( mm2, mm0 );
+
+      movq_r2m ( mm0, *Dest++ );
+    }
+  }
+
+  // Copy last odd line if we're processing an even field.
+  if (! IsOdd)
+  {
+    memcpy(pdst + (height * 2 - 1) * LineLength,
+                      pOddLines + (height - 1) * SourcePitch,
+                      LineLength);
+  }
+
+  // clear out the MMX registers ready for doing floating point
+  // again
+  emms();
 #endif
 }
 
@@ -593,6 +673,12 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
         if( !deinterlace_greedy_yuv_mmx(pdst,psrc,width,height) )
           memcpy(pdst,psrc[0],width*height);
       }
+      else /* FIXME: provide an alternative? */
+        abort_mmx_missing();
+      break;
+    case DEINTERLACE_ONEFIELD:
+      if( check_for_mmx() )
+        deinterlace_onefield_yuv_mmx(pdst,psrc,width,height);
       else /* FIXME: provide an alternative? */
         abort_mmx_missing();
       break;
