@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.110 2003/04/16 21:02:22 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.111 2003/04/16 21:46:42 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -49,7 +49,7 @@
 #define LOG
 */
 
-/* #define ENABLE_DIRECT_RENDERING */
+#define ENABLE_DIRECT_RENDERING
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
 #define abs_float(x) ( ((x)<0) ? -(x) : (x) )
@@ -144,18 +144,26 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
+  int align, width, height;
   int disable = 0;
+        
+  align=15;
+    
+  width  = (context->width +align)&~align;
+  height = (context->height+align)&~align;
 
   if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
     printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
     disable = 1;
   }
-  
+
+/*  
   if( this->bih.biWidth != context->width || 
       this->bih.biHeight != context->height ) {
     printf("ffmpeg: decoded and output frame size are not equal, DR1 disabled.\n");
     disable = 1;
   }
+*/
 
   if (disable) {
     this->context->get_buffer = avcodec_default_get_buffer;
@@ -164,8 +172,8 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   }
 
   img = this->stream->video_out->get_frame (this->stream->video_out,
-					    this->bih.biWidth,
-					    this->bih.biHeight,
+					    width,
+					    height,
 					    this->xine_aspect_ratio, 
 					    this->output_format,
 					    VO_BOTH_FIELDS);
@@ -245,6 +253,11 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   }
 
   this->decoder_ok = 1;
+
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->context->width;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->context->height;
+  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+
   this->stream->video_out->open (this->stream->video_out, this->stream);
 
   if (this->buf)
@@ -257,7 +270,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   if(this->context->pix_fmt == PIX_FMT_RGBA32) {
     this->output_format = XINE_IMGFMT_YUY2;
-    init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
+    init_yuv_planes(&this->yuv, this->context->width, this->context->height);
   } else {
     this->output_format = XINE_IMGFMT_YV12;
 #ifdef ENABLE_DIRECT_RENDERING
@@ -284,8 +297,8 @@ static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
         if(this->pp_quality)
           pp_free_mode(this->pp_mode);
         else
-          this->pp_context = pp_get_context(this->bih.biWidth, 
-                                            this->bih.biHeight,
+          this->pp_context = pp_get_context(this->context->width, 
+                                            this->context->height,
                                             this->pp_flags);
           
         this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
@@ -453,10 +466,6 @@ static void find_sequence_header (ff_video_decoder_t *this,
 	this->video_step      = 0;
       }
 
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = width;
-      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = height;
-      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
-
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mpeg-1 (ffmpeg)");
 
@@ -506,8 +515,8 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->base[2],
       img->pitches[2],
      /* width x height */
-      this->bih.biWidth,
-      this->bih.biHeight);
+      this->context->width,
+      this->context->height);
 
   } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
 
@@ -528,17 +537,17 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->base[2],
       img->pitches[2],
      /* width x height */
-      this->bih.biWidth,
-      this->bih.biHeight);
+      this->context->width,
+      this->context->height);
 
   } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
           
     int x, plane_ptr = 0;
     uint8_t *src;
             
-    for(y = 0; y < this->bih.biHeight; y++) {
+    for(y = 0; y < this->context->height; y++) {
       src = sy;
-      for(x = 0; x < this->bih.biWidth; x++) {
+      for(x = 0; x < this->context->width; x++) {
         uint8_t r, g, b;
               
         /* These probably need to be switched for big endian */
@@ -558,20 +567,20 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
           
   } else {
           
-    for (y=0; y<this->bih.biHeight; y++) {
-      xine_fast_memcpy (dy, sy, this->bih.biWidth);
+    for (y=0; y<this->context->height; y++) {
+      xine_fast_memcpy (dy, sy, this->context->width);
   
       dy += img->pitches[0];
   
       sy += this->av_frame->linesize[0];
     }
 
-    for (y=0; y<(this->bih.biHeight/2); y++) {
+    for (y=0; y<(this->context->height/2); y++) {
       
       if (this->context->pix_fmt != PIX_FMT_YUV444P) {
         
-        xine_fast_memcpy (du, su, this->bih.biWidth/2);
-        xine_fast_memcpy (dv, sv, this->bih.biWidth/2);
+        xine_fast_memcpy (du, su, this->context->width/2);
+        xine_fast_memcpy (dv, sv, this->context->width/2);
         
       } else {
         
@@ -582,13 +591,13 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
         /* subsample */
         
         src = su; dst = du;
-        for (x=0; x<(this->bih.biWidth/2); x++) {
+        for (x=0; x<(this->context->width/2); x++) {
           *dst = *src;
           dst++;
           src += 2;
         }
         src = sv; dst = dv;
-        for (x=0; x<(this->bih.biWidth/2); x++) {
+        for (x=0; x<(this->context->width/2); x++) {
           *dst = *src;
           dst++;
           src += 2;
@@ -642,10 +651,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->video_step = buf->decoder_info[1];
-
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih.biWidth;
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->bih.biHeight;
-    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
 
     /* init codec */
 
@@ -806,7 +811,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
 
 	  diff = abs_float( this->context->aspect_ratio - 
-			    (float)this->bih.biWidth/(float)this->bih.biHeight);
+			    (float)this->context->width/(float)this->context->height);
 	  if ( abs_float (this->context->aspect_ratio) < 0.1 )
 	    diff = 0.0;
 
@@ -841,8 +846,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  free_img = 0;
 	} else {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
-						    this->bih.biWidth,
-						    this->bih.biHeight,
+						    this->context->width,
+						    this->context->height,
 						    this->xine_aspect_ratio, 
 						    this->output_format,
 						    VO_BOTH_FIELDS);
@@ -861,8 +866,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
-						        this->bih.biWidth,
-						        this->bih.biHeight,
+						        this->context->width,
+						        this->context->height,
 						        this->xine_aspect_ratio, 
 						        this->output_format,
 						        VO_BOTH_FIELDS);
@@ -872,7 +877,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
 			   img->base, img->pitches, 
-			   this->bih.biWidth, this->bih.biHeight,
+			   this->context->width, this->context->height,
 			   this->av_frame->qscale_table, this->av_frame->qstride,
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
