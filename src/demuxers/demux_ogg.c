@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.129 2003/12/26 16:13:21 mroi Exp $
+ * $Id: demux_ogg.c,v 1.130 2003/12/30 17:21:02 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -72,7 +72,7 @@
 #define PACKET_LEN_BITS2         0x02
 #define PACKET_IS_SYNCPOINT      0x08
 
-#define MAX_STREAMS              16
+#define MAX_STREAMS              32
 
 #define PTS_AUDIO                0
 #define PTS_VIDEO                1
@@ -692,15 +692,22 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
       lprintf ("beginning of stream\n");
       lprintf ("serial number %d\n", cur_serno);
 
+      if( this->num_streams == MAX_STREAMS ) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "demux_ogg: MAX_STREAMS exceeded, aborting.\n");
+        this->status = DEMUX_FINISHED;
+        return;
+      }
+      
       ogg_stream_init(&this->oss[this->num_streams], cur_serno);
       stream_num = this->num_streams;
       this->buf_types[stream_num] = 0;
       this->header_granulepos[stream_num] = -1;
       this->num_streams++;
+
     } else {
       stream_num = get_stream(this, cur_serno);
       if (stream_num == -1) {
-	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "help, stream with no beginning!\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "demux_ogg: stream with no beginning!\n");
         this->status = DEMUX_FINISHED;
         return;
       }
@@ -1223,11 +1230,18 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     lprintf ("adding late stream with serial number %d (all content will be discarded)\n",
 	    cur_serno);
 
+    if( this->num_streams == MAX_STREAMS ) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "demux_ogg: MAX_STREAMS exceeded, aborting.\n");
+      this->status = DEMUX_FINISHED;
+      return;
+    }
+    
     ogg_stream_init(&this->oss[this->num_streams], cur_serno);
     stream_num = this->num_streams;
     this->buf_types[stream_num] = 0;
     this->header_granulepos[stream_num]=-1;
     this->num_streams++;
+  
   }
 
   ogg_stream_pagein(&this->oss[stream_num], &this->og);
