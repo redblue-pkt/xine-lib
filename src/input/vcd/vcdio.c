@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: vcdio.c,v 1.2 2003/11/06 03:28:18 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -114,8 +114,17 @@ vcdio_open(vcdplayer_input_t *this, char *intended_vcd_device)
 
     vcdinfo_visit_lot (obj, false);
 
+#if FIXED
+    /* 
+       We need to change libvcdinfo to be more robust when there are 
+       problems reading the extended PSD. Given that area-highlighting and 
+       selection features in the extended PSD haven't been implemented,
+       it's best then to not try to read this at all.
+     */
     if (vcdinfo_get_psd_x_size(obj))
       vcdinfo_visit_lot (obj, true);
+#endif 
+
   }
 
   /* 
