@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.14 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_sun_out.c,v 1.15 2001/11/20 17:32:22 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -121,17 +121,17 @@ static int realtime_samplecounter_available(char *dev)
   info.play.encoding = AUDIO_ENCODING_LINEAR;
   info.play.samples = 0;
   if (ioctl(fd, AUDIO_SETINFO, &info)) {
-    xprintf(VERBOSE|AUDIO, "rtsc: SETINFO failed\n");
+    fprintf(stderr, "rtsc: SETINFO failed\n");
     goto error;
   }
     
   if (write(fd, silence, len) != len) {
-    xprintf(VERBOSE|AUDIO, "rtsc: write failed\n");
+    fprintf(stderr, "rtsc: write failed\n");
     goto error;
   }
 
   if (ioctl(fd, AUDIO_GETINFO, &info)) {
-    xprintf(VERBOSE|AUDIO, "rtsc: GETINFO1, %s\n", strerror(errno));
+    fprintf(stderr, "rtsc: GETINFO1, %s\n", strerror(errno));
     goto error;
   }
 
@@ -153,16 +153,16 @@ static int realtime_samplecounter_available(char *dev)
       break;
 
     if (ioctl(fd, AUDIO_GETINFO, &info)) {
-	xprintf(VERBOSE|AUDIO, "rtsc: GETINFO2 failed, %s\n", strerror(errno));
+	fprintf(stderr, "rtsc: GETINFO2 failed, %s\n", strerror(errno));
 	goto error;
     }
     if (info.play.samples < last_samplecnt) {
-	xprintf(VERBOSE|AUDIO, "rtsc: %d > %d?\n", last_samplecnt, info.play.samples);
+	fprintf(stderr, "rtsc: %d > %d?\n", last_samplecnt, info.play.samples);
 	goto error;
     }
 
     if ((increment = info.play.samples - last_samplecnt) > 0) {
-	xprintf(VERBOSE|AUDIO, "audio_sun_out: sample counter increment: %d\n", increment);
+	/* printf("audio_sun_out: sample counter increment: %d\n", increment); */
 	if (increment < min_increment) {
 	  min_increment = increment;
 	  if (min_increment < 2000)
@@ -184,10 +184,11 @@ static int realtime_samplecounter_available(char *dev)
   if (min_increment < 2000)
     rtsc_ok = RTSC_ENABLED;
 
-  xprintf(VERBOSE|AUDIO,
-	  "audio_sun_out: minimum sample counter increment per 10msec interval: %d\n"
-	  "\t%susing sample counter based timing code\n",
-	  min_increment, rtsc_ok == RTSC_ENABLED ? "" : "not ");
+  /*
+  printf("audio_sun_out: minimum sample counter increment per 10msec interval: %d\n"
+  	 "\t%susing sample counter based timing code\n",
+	 min_increment, rtsc_ok == RTSC_ENABLED ? "" : "not ");
+  */
     
 
 error:
@@ -306,8 +307,10 @@ static int ao_sun_open(ao_driver_t *this_gen,
   if (info.play.precision == 16)
     this->bytes_per_frame *= 2;
 
-  xprintf (VERBOSE|AUDIO, "audio_sun_out: audio rate : %d requested, %d provided by device/sec\n",
+  /*
+  printf ("audio_sun_out: audio rate : %d requested, %d provided by device/sec\n",
 	   this->input_sample_rate, this->output_sample_rate);
+  */
 
   printf ("audio_sun_out: %d channels output\n",this->num_channels);
 
@@ -475,8 +478,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * find best device driver/channel
    */
 
-  printf ("audio_sun_out: Opening audio device...\n");
-  xprintf (VERBOSE|AUDIO, "audio_sun_out: Opening audio device...");
+  printf ("audio_sun_out: Opening audio device %s...\n", devname);
 
   /*
    * open the device
@@ -486,14 +488,13 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   if(audio_fd < 0) 
   {
-    printf("audio_sun_out: opening audio device %s failed:\n%s\n",
+    fprintf(stderr, "audio_sun_out: opening audio device %s failed:\n%s\n",
 	   devname, strerror(errno));
 
     free (this);
     return NULL;
 
-  } else
-    xprintf (VERBOSE|AUDIO, " %s\n", devname);
+  }
 
   /*
    * set up driver to reasonable values for capabilities tests
