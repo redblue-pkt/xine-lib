@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.5 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.6 2003/01/10 22:23:54 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -47,7 +47,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "../demuxers/demux.h"
-#include "osd.h"
 
 /*
 #define LOG 1
@@ -68,8 +67,8 @@ typedef struct {
 
   int lines;
 
-  unsigned long start;
-  unsigned long end;
+  unsigned long start; /* hsecs */
+  unsigned long end;   /* hsecs */
     
   char *text[SUB_MAX_TEXT];
 
@@ -803,34 +802,30 @@ static void update_osd_dst_encoding(void *this_gen, xine_cfg_entry_t *entry)
 static int demux_sputext_next (demux_sputext_t *this_gen) {
   demux_sputext_t *this = (demux_sputext_t *) this_gen;
   buf_element_t *buf;
-  subtitle_t *sub = &this->subtitles[this->cur];
+  uint32_t *val;
+  char *str;
+  subtitle_t *sub;
   int line;
   
   if (this->cur >= this->num)
     return 0;
+
+  sub = &this->subtitles[this->cur];
   
   buf = this->stream->video_fifo->buffer_pool_alloc(this->stream->video_fifo);
   buf->type = BUF_SPU_TEXT;
-  buf->decoder_info[1] = sub->lines;
-  for (line = 0; line < sub->lines; line++)
-    strncpy(buf->content + line * SUB_BUFSIZE, sub->text[line], SUB_BUFSIZE);
-  
-  /* calculate PTS */
-  if (!this->uses_time) {
-    /* FIXME: framerate hardcoded - get from master stream instead */
-    int64_t frame_pts = 3600;
+  buf->pts = 0;
 
-    buf->pts = sub->start * frame_pts;
-    
-    /* duration */
-    buf->decoder_info[0] = (sub->end - sub->start) * frame_pts;
-  
-  } else {
-    
-    buf->pts = sub->start * 900;
-    
-    /* duration */
-    buf->decoder_info[0] = (sub->end - sub->start) * 900;
+  val = (uint32_t * )buf->content;
+  *val++ = sub->lines;
+  *val++ = this->uses_time;
+  *val++ = sub->start * 10;
+  *val++ = sub->end * 10;
+  str = (char *)val;
+  for (line = 0; line < sub->lines; line++, str+=strlen(str)+1) {
+    if( strlen(sub->text[line]) > SUB_BUFSIZE )
+      sub->text[line][SUB_BUFSIZE] = '\0';
+    strcpy(str, sub->text[line]);
   }
   
   this->stream->video_fifo->put(this->stream->video_fifo, buf);
@@ -857,18 +852,19 @@ static int demux_sputext_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_sputext_get_stream_length (demux_plugin_t *this_gen) {
-  /* FIXME: what to return? Get length from master stream perhaps? */
-  return 0;
+  demux_sputext_t   *this = (demux_sputext_t *) this_gen;
+
+  if( this->uses_time && this->num ) {
+    return this->subtitles[this->num-1].end * 10;
+  } else {
+    return 0;
+  }
 }
 
 static int demux_sputext_send_chunk (demux_plugin_t *this_gen) {
   demux_sputext_t   *this = (demux_sputext_t *) this_gen;
   
-  /* send at most 10 buffers to fifo in advance */
-  if (this->stream->video_fifo->size(this->stream->video_fifo) >= 10)
-    xine_usec_sleep(200000);
-  if (this->stream->video_fifo->size(this->stream->video_fifo) < 10 &&
-      !demux_sputext_next (this)) {
+  if (!demux_sputext_next (this)) {
     this->status = DEMUX_FINISHED;
   }
 
@@ -879,6 +875,10 @@ static int demux_sputext_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
   /* FIXME: change this->cur according to seek target and set a discontinuity */
+
+  if( this->uses_time && start_time ) {
+  }
+
   return this->status;
 }
 
