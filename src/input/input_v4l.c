@@ -1026,7 +1026,7 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
   if (this->audio_capture &&
       (snd_pcm_hw_params_any(this->pcm_handle, this->pcm_hwparams) < 0)) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-            "input_v4l: Can not configure PCM device\n");
+            "input_v4l: Broken configuration for PCM device: No configurations available\n");
     this->audio_capture = 0;
   }
   
@@ -1039,26 +1039,6 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
     this->audio_capture = 0;
   }
   
-  if (this->audio_capture) {
-    if (snd_pcm_hw_params_any(this->pcm_handle, this->pcm_hwparams) < 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Broken configuration for PCM device: No config avail\n");        
-      this->audio_capture = 0;
-    }
-  }
-  
-  if (this->audio_capture) {
-    snd_pcm_access_mask_t *mask = alloca(snd_pcm_access_mask_sizeof());
-    
-    snd_pcm_access_mask_none(mask);
-    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-    if (snd_pcm_hw_params_set_access_mask(this->pcm_handle, this->pcm_hwparams, mask) < 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Error setting SND_PCM_ACCESS_MMAP_INTERLEAVED\n");
-      this->audio_capture = 0;
-    }
-  }
-  
   /* Set sample format */
   if (this->audio_capture &&
       (snd_pcm_hw_params_set_format(this->pcm_handle, 
@@ -1069,15 +1049,19 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
   }
   
   /* Set sample rate */
-  if (this->audio_capture) {
-    this->exact_rate = snd_pcm_hw_params_set_rate_near(this->pcm_handle,
-						       this->pcm_hwparams, &this->rate, &this->dir);
-    if (this->dir != 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Samplerate %d Hz is not supported by your hardware\n", this->rate);
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              "input_v4l: Using %d instead\n", this->exact_rate);
-    }
+  this->exact_rate = this->rate;
+  if (this->audio_capture &&
+      (snd_pcm_hw_params_set_rate_near(this->pcm_handle, this->pcm_hwparams, 
+                                       &this->exact_rate, &this->dir) < 0)) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "input_v4l: Error setting samplerate\n");
+    this->audio_capture = 0;
+  }
+  if (this->audio_capture && this->dir != 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Samplerate %d Hz is not supported by your hardware\n", this->rate);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Using %d instead\n", this->exact_rate);
   }
   
   /* Set number of channels */
@@ -1306,7 +1290,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     /* Record audio */
     int pcmreturn;
     
-    if ((pcmreturn = snd_pcm_mmap_readi(this->pcm_handle, this->pcm_data, (this->periodsize)>> 2)) < 0) { 
+    if ((pcmreturn = snd_pcm_readi(this->pcm_handle, this->pcm_data, (this->periodsize)>> 2)) < 0) { 
       switch (pcmreturn) {
       case -EAGAIN:
 	/* No data available at the moment */
@@ -1563,7 +1547,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
     buf_element_t *next_frame = NULL;
     
     while ((next_frame = cur_frame->next) != NULL) {
-      lprintf(".");
+#ifdef LOG
+      printf(".");
+#endif
 
       if (cur_frame->content)
 	free(cur_frame->content);
@@ -1575,8 +1561,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
       cur_frame = next_frame;
     }
   }
-
-  lprintf("\n");
+#ifdef LOG
+  printf("\n");
+#endif
 
   
   lprintf("Freeing allocated video frames");
@@ -1585,7 +1572,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
     buf_element_t *next_frame = NULL;
     
     while ((next_frame = cur_frame->next) != NULL) {
-      lprintf(".");
+#ifdef LOG
+      printf(".");
+#endif
 
       if (cur_frame->content)
 	free(cur_frame->content);
@@ -1597,9 +1586,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
       cur_frame = next_frame;
     }
   }
-
-  lprintf("\n");
-
+#ifdef LOG
+  printf("\n");
+#endif
   
   free (this);
   
