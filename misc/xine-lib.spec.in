@@ -104,8 +104,10 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
 %{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
 # audio driver plugins
-%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
+@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
+@HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
+@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
+@HAVE_ALSA09_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
 %{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
 %{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
 %{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la

@@ -17,10 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.6 2001/06/23 19:45:47 guenter Exp $
+ * $Id: audio_out.h,v 1.7 2001/07/18 21:38:17 f1rmb Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 
@@ -152,5 +156,9 @@ typedef struct ao_info_s {
   char   *description;
   int     priority;
 } ao_info_t ;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

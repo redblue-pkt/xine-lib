@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.12 2001/07/10 19:33:05 guenter Exp $
+ * $Id: video_out.h,v 1.13 2001/07/18 21:38:17 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
@@ -26,6 +26,10 @@
 
 #ifndef HAVE_VIDEO_OUT_H
 #define HAVE_VIDEO_OUT_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -315,6 +319,10 @@ typedef struct vo_info_s {
   int    priority;          /* priority of this plugin for auto-probing  */
 
 } vo_info_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

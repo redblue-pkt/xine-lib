@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.7 2001/07/08 18:15:54 guenter Exp $
+ * $Id: metronom.h,v 1.8 2001/07/18 21:38:17 f1rmb Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -28,9 +28,12 @@
  *
  */
 
-
 #ifndef HAVE_METRONOM_H
 #define HAVE_METRONOM_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 #include <sys/time.h>
@@ -196,5 +199,9 @@ struct metronom_s {
 };
 
 metronom_t *metronom_init (int have_audio);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

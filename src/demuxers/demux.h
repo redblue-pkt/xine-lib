@@ -17,11 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.7 2001/07/14 13:28:31 guenter Exp $
+ * $Id: demux.h,v 1.8 2001/07/18 21:38:16 f1rmb Exp $
  */
 
 #ifndef HAVE_DEMUX_H
 #define HAVE_DEMUX_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "buffer.h"
 #include "xine_internal.h"
@@ -123,5 +127,9 @@ struct demux_plugin_s
  * demux_plugin_t *init_demux_plugin (int iface_version, config_values_t *cfg);
  *
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

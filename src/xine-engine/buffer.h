@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.4 2001/07/13 23:43:13 jcdutton Exp $
+ * $Id: buffer.h,v 1.5 2001/07/18 21:38:17 f1rmb Exp $
  *
  *
  * contents:
@@ -33,6 +33,10 @@
 
 #ifndef HAVE_BUFFER_H
 #define HAVE_BUFFER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdio.h>
 #include <pthread.h>
@@ -149,5 +153,9 @@ struct fifo_buffer_s
  */
 
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -17,11 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.h,v 1.1 2001/04/18 22:36:09 f1rmb Exp $
+ * $Id: utils.h,v 1.2 2001/07/18 21:38:17 f1rmb Exp $
  *
  */
 #ifndef HAVE_UTILS_H
 #define HAVE_UTILS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void *xmalloc(size_t size);
 
@@ -35,5 +39,9 @@ const char *get_homedir(void);
  */
 
 char *chomp (char *str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -17,15 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.1 2001/04/18 22:36:05 f1rmb Exp $
+ * $Id: configfile.h,v 1.2 2001/07/18 21:38:17 f1rmb Exp $
  *
  * config file management
  *
  */
 
-
 #ifndef HAVE_CONFIGFILE_H
 #define HAVE_CONFIGFILE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 
@@ -76,13 +79,19 @@ struct config_values_s {
  */
 config_values_t *config_file_init (char *filename);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
 /*
  * $Log: configfile.h,v $
- * Revision 1.1  2001/04/18 22:36:05  f1rmb
- * Initial revision
+ * Revision 1.2  2001/07/18 21:38:17  f1rmb
+ * Split alsa drivers, more checks about versions. Made xine lib c++ compliant.
+ *
+ * Revision 1.1.1.1  2001/04/18 22:36:05  f1rmb
+ * Initial import into CVS
  *
  * Revision 1.6  2001/03/31 03:42:25  guenter
  * more cleanups, started xv driver

@@ -31,6 +31,10 @@
 #ifndef _CPU_ACCEL_H
 #define _CPU_ACCEL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "attributes.h"
 
 /* generic accelerations */
@@ -509,6 +513,10 @@ typedef	union {
 			      : /* nothing */ \
 			      : "X" (mem))
 #endif /*ARCH_X86 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif 
 

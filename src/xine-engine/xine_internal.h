@@ -17,14 +17,19 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.31 2001/07/15 10:43:35 guenter Exp $
+ * $Id: xine_internal.h,v 1.32 2001/07/18 21:38:17 f1rmb Exp $
  *
  */
 
 #ifndef HAVE_XINE_INTERNAL_H
 #define HAVE_XINE_INTERNAL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
+
 #include "input/input_plugin.h"
 #include "demuxers/demux.h"
 #include "video_out.h"
@@ -458,5 +463,9 @@ int xine_remove_event_listener(xine_t *this, event_listener_t *listener);
 void xine_send_event(xine_t *this, event_t *event, void *data);
 
 /** @} end of eventgroup */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

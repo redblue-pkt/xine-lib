@@ -28,6 +28,8 @@ dnl Test for ALSA, then
 dnl  AC_SUBST() for ALSA_CFLAGS, ALSA_LIBS and ALSA_STATIC_LIB,
 dnl  AC_DEFINE() HAVE_GL,
 dnl  $no_alsa is set to "yes" if alsa isn't found.
+dnl  $have_alsa05 is set to "yes" if installed alsa version is <= 0.5
+dnl  $have_alsa09 is set to "yes" if installed alsa version is >= 0.9
 dnl
 AC_DEFUN(AM_PATH_ALSA,
  [  
@@ -39,6 +41,8 @@ AC_DEFUN(AM_PATH_ALSA,
   AC_ARG_ENABLE(alsatest, [  --disable-alsatest      Do not try to compile and run a test alsa program],, enable_alsatest=yes)
 
   no_alsa="yes"
+  have_alsa05="no"
+  have_alsa09="no"
 
 if test x"$enable_alsa" != "xno"; then
 
@@ -128,6 +132,71 @@ int main() {
 
   if test "x$no_alsa" = x ; then
     AC_MSG_RESULT(yes)
+
+dnl
+dnl now check for installed version.
+dnl
+
+dnl
+dnl Check for alsa 0.5.x series
+dnl
+    AC_MSG_CHECKING(for ALSA <= 0.5 series)
+    AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/asoundlib.h>
+
+int main() {
+
+  #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
+  #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
+  #endif
+  #if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
+  #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
+  #endif
+
+  if((SND_LIB_MAJOR == 0) && (SND_LIB_MINOR <= 5))
+    return 0;
+
+  return 1;
+}
+], [ AC_MSG_RESULT(yes)
+     have_alsa05=yes ],
+     AC_MSG_RESULT(no),[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+
+dnl
+dnl Check for alsa >= 0.9.x
+dnl
+    AC_MSG_CHECKING(for ALSA >= 0.9 series)
+    AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/asoundlib.h>
+
+int main() {
+
+  #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
+  #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
+  #endif
+  #if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
+  #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
+  #endif
+
+  if((SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9))
+    return 0;
+
+  return 1;
+}
+], [ AC_MSG_RESULT(yes)
+     have_alsa09=yes ],
+     AC_MSG_RESULT(no),[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+dnl
+dnl Version checking done.
+dnl
     ifelse([$2], , :, [$2])
   else
     AC_MSG_RESULT(no)

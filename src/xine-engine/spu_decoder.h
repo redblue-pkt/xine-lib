@@ -19,10 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.h,v 1.3 2001/07/14 12:50:34 guenter Exp $
+ * $Id: spu_decoder.h,v 1.4 2001/07/18 21:38:17 f1rmb Exp $
  */
 #ifndef HAVE_SPU_OUT_H
 #define HAVE_SPU_OUT_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 
@@ -132,5 +136,9 @@ typedef struct spu_info_s {
   char   *description;
   int     priority;
 } spu_info_t ;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

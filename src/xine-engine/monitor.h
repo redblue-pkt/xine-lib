@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.2 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: monitor.h,v 1.3 2001/07/18 21:38:17 f1rmb Exp $
  *
  * debug print and profiling functions
  *
@@ -25,6 +25,10 @@
  
 #ifndef HAVE_MONITOR_H
 #define HAVE_MONITOR_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 
@@ -85,5 +89,9 @@ void profiler_print_results ();
 #define profiler_print_results()
 
 #endif /* DEBUG*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HAVE_MONITOR_H */

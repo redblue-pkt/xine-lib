@@ -24,7 +24,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.11 2001/06/30 23:09:25 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.12 2001/07/18 21:38:16 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,6 @@
 #include <sys/asoundlib.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
-
-#if (SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9)
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define error(...) do {\
@@ -723,5 +721,3 @@ static ao_info_t ao_info_alsa = {
 ao_info_t *get_audio_out_plugin_info() {
   return &ao_info_alsa;
 }
-
-#endif /*(SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9) */

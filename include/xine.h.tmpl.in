@@ -29,12 +29,16 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.29 2001/07/14 23:17:37 richwareham Exp $
+ * $Id: xine.h.tmpl.in,v 1.30 2001/07/18 21:38:16 f1rmb Exp $
  *
  */
 
 #ifndef HAVE_XINE_H
 #define HAVE_XINE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 #include <unistd.h>
@@ -691,5 +695,9 @@ int xine_remove_event_listener(xine_t *this, event_listener_t *listener);
 void xine_send_event(xine_t *this, event_t *event, void *data);
 
 /** @} end of eventgroup */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

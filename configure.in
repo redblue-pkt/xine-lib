@@ -228,9 +228,18 @@ dnl
 dnl Alsa support
 dnl
 AM_PATH_ALSA(0.5.5, 
-        AC_DEFINE(HAVE_ALSA),
+        [ AC_DEFINE(HAVE_ALSA)
+          if test x"$have_alsa05" == "xyes"; then
+            AC_DEFINE(HAVE_ALSA05)
+          fi
+          if test x"$have_alsa09" == "xyes"; then
+            AC_DEFINE(HAVE_ALSA09)
+          fi
+        ],
 	AC_MSG_RESULT(*** All of ALSA dependent parts will be disabled ***))
 AM_CONDITIONAL(HAVE_ALSA, test x"$no_alsa" != "xyes")
+AM_CONDITIONAL(HAVE_ALSA05, test x"$have_alsa05" == "xyes")
+AM_CONDITIONAL(HAVE_ALSA09, test x"$have_alsa09" == "xyes")
 
 
 dnl

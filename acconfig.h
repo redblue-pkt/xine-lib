@@ -52,6 +52,10 @@
 
 /* Define this if you have Alsa (libasound) installed */
 #undef HAVE_ALSA
+/* Define this if you have alsa 0.5.x installed */
+#undef HAVE_ALSA05
+/* Define this if you have alsa 0.9.x and more installed */
+#undef HAVE_ALSA09
 
 /* Define this if you have ESD (libesd) installed */
 #undef HAVE_ESD

@@ -17,11 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.9 2001/07/10 21:07:55 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.10 2001/07/18 21:38:16 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
 #define HAVE_INPUT_PLUGIN_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <inttypes.h>
 #include <sys/types.h>
@@ -309,5 +313,8 @@ struct input_plugin_s
 #define INPUT_EVENT_KEYPRESS    2
 #define INPUT_EVENT_MOUSEMOVE   3
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

@@ -24,6 +24,10 @@
 #ifndef HAVE_EVENTS_H
 #define HAVE_EVENTS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 
 /**
@@ -48,5 +52,9 @@ typedef struct mouse_event_s {
   uint8_t button; /* Generally 1 = left, 2 = mid, 3 = right */
   uint16_t x,y;   /* In Image space */
 } mouse_event_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HAVE_EVENTS_H */ 
