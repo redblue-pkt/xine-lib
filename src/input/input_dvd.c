@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.69 2002/09/02 12:25:49 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.70 2002/09/03 07:51:34 jcdutton Exp $
  *
  */
 
@@ -1073,10 +1073,24 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
     dvdnav_menu_call(this->dvdnav, DVD_MENU_Part);
     break;
    case XINE_EVENT_INPUT_NEXT:
-    dvdnav_next_part_search(this->dvdnav);
+    {
+      int title=0;
+      int part=0;
+      if (dvdnav_current_title_info(this->dvdnav, &title, &part)) {
+        part++;
+        dvdnav_part_play(this->dvdnav, title, part);
+      }
+    }
     break;
    case XINE_EVENT_INPUT_PREVIOUS:
-    dvdnav_prev_part_search(this->dvdnav);
+    {
+      int title=0;
+      int part=0;
+      if (dvdnav_current_title_info(this->dvdnav, &title, &part)) {
+        part--;
+        dvdnav_part_play(this->dvdnav, title, part);
+      }
+    }
     break;
   case XINE_EVENT_INPUT_ANGLE_NEXT: 
     {
@@ -1463,6 +1477,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.70  2002/09/03 07:51:34  jcdutton
+ * Improve chapter selection functions.
+ *
  * Revision 1.69  2002/09/02 12:25:49  jcdutton
  * This might slow things down a bit, but I need to do it to test a problem with DVD menus
  * not appearing.
