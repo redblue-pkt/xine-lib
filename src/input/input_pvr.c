@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.13 2003/03/21 21:54:18 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.14 2003/03/31 15:34:16 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -508,6 +508,23 @@ static char *make_save_name(pvr_input_plugin_t *this, char *base, int page) {
 }
 
 /*
+ * send event to frontend about realtime status
+ */
+static void pvr_report_realtime (pvr_input_plugin_t *this, int mode) {
+
+  xine_event_t         event;
+  xine_pvr_realtime_t  data;
+
+  event.type        = XINE_EVENT_PVR_REALTIME;
+  event.stream      = this->stream;
+  event.data        = &data;
+  event.data_length = sizeof(data);
+  gettimeofday(&event.tv, NULL);
+  data.mode = mode;
+  xine_event_send(this->stream, &event);
+}
+
+/*
  * close current recording page and open a new one
  */
 static int pvr_break_rec_page (pvr_input_plugin_t *this) {
@@ -604,8 +621,6 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
 static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t *buffer, int speed) {
   
   off_t pos;
-  xine_event_t         event;
-  xine_pvr_realtime_t  data;
       
   /* check for realtime. don't switch back unless enough buffers are
    * free to not block the pvr thread */
@@ -626,13 +641,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 #ifdef LOG
       printf("input_pvr: switching back to realtime\n");
 #endif
-      event.type        = XINE_EVENT_PVR_REALTIME;
-      event.stream      = this->stream;
-      event.data        = &data;
-      event.data_length = sizeof(data);
-      gettimeofday(&event.tv, NULL);
-      data.mode = 1;
-      xine_event_send(this->stream, &event);
+      pvr_report_realtime(this,1);
     }
     this->want_data = 1;
   
@@ -647,13 +656,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 #ifdef LOG
          printf("input_pvr: switching to non-realtime\n");
 #endif
-         event.type        = XINE_EVENT_PVR_REALTIME;
-         event.stream      = this->stream;
-         event.data        = &data;
-         event.data_length = sizeof(data);
-         gettimeofday(&event.tv, NULL);
-         data.mode = 0;
-         xine_event_send(this->stream, &event);
+         pvr_report_realtime(this,0);
        }
               
        if( this->play_fd != -1 && this->play_fd != this->rec_fd ) {
@@ -1145,6 +1148,9 @@ static off_t pvr_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
     if( this->play_fd != this->rec_fd )
       close(this->play_fd);  
     this->play_fd = -1;
+
+    if( this->play_blk >= this->rec_blk )
+      pvr_report_realtime(this,1);
   }
   pthread_mutex_unlock(&this->lock);
   
