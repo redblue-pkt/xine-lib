@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.21 2002/12/10 19:47:30 guenter Exp $
+ * $Id: demux_real.c,v 1.22 2002/12/12 17:51:03 holstsn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -257,7 +257,9 @@ static void real_parse_headers (demux_real_t *this) {
   this->data_start = 0;
   this->data_size = 0;
 
-  this->input->seek (this->input, 0, SEEK_SET);
+  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0) 
+    this->input->seek (this->input, 0, SEEK_SET);
+
   if (this->input->read(this->input, signature, REAL_SIGNATURE_SIZE) !=
       REAL_SIGNATURE_SIZE) {
 
@@ -276,7 +278,7 @@ static void real_parse_headers (demux_real_t *this) {
 
   /* skip to the start of the first chunk (the first chunk is 0x12 bytes
    * long) and start traversing */
-  this->input->seek(this->input, 0x12, SEEK_SET);
+  this->input->seek(this->input, 14, SEEK_CUR);
 
   /* iterate through chunks and gather information until the first DATA
    * chunk is located */
