@@ -428,7 +428,7 @@ Njål T. Borch <Njaal.Borch@njaal.net>
   Ipv6 patch
 
 Ramon van der Aar <rvda@itsec-ps.nl>
-  Network Buffer Controler patch
+  Network Buffer Controler patch, RTP/UDP plugin improvements
 
 Jack Steven Kelliher <kelliher@xmission.com>
   XvMC support
