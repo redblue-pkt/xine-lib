@@ -11,7 +11,8 @@ xine-lib (1-beta11)
   * faster seeking
   * simple 10-band equalizer
   * fix scaling of video with a pixel aspect ratio not equal to one
-	
+  * mms protocols (mmst + mmsh ) bugfixes
+
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)
   * capability of on-the-fly stream rewiring
