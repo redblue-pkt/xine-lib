@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.17 2002/11/20 11:57:44 mroi Exp $
+ * $Id: spu.h,v 1.18 2002/11/26 16:05:00 mroi Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -63,6 +63,7 @@ typedef struct {
   int64_t    pts;        /* Base PTS of this sequence */
   int32_t    finished;   /* Has this control sequence been finished? */
   uint32_t   complete;   /* Has this reassembly been finished? */
+  uint32_t   broken;     /* this SPU is broken and should be dropped */
 } spudec_seq_t;
 
 typedef struct {

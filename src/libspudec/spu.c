@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.56 2002/11/20 14:00:34 mroi Exp $
+ * $Id: spu.c,v 1.57 2002/11/26 16:05:00 mroi Exp $
  *
  */
 
@@ -223,7 +223,7 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
     seq->cmd_offs = (((uint32_t)pkt_data[2])<<8) | pkt_data[3];
     if (seq->cmd_offs >= seq->seq_len) { 
       printf("libspudec:faulty stream\n");
-      abort();
+      seq->broken = 1;
     }
     if (seq->buf_len < seq->seq_len) {
       seq->buf_len = seq->seq_len;
@@ -262,7 +262,7 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
     seq->ra_offs += pkt_len;
   } else {
     printf("libspudec:faulty stream\n");
-    abort();
+    seq->broken = 1;
   } 
 
   if (seq->ra_offs == seq->seq_len) {
@@ -303,12 +303,18 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
         return;
       }
-      /* Get do commands to build the event. */
+      /* parse SPU command sequence, this will update forced_display, so it must come
+       * before the check for it */
       spudec_do_commands(&this->state, cur_seq, &this->overlay);
       /* FIXME: Check for Forced-display or subtitle stream
        *        For subtitles, open event.
        *        For menus, store it for later.
        */
+      if (cur_seq->broken) {
+        printf("libspudec: dropping broken SPU\n");
+	cur_seq->broken = 0;
+	return;
+      }
       if ( (this->state.forced_display == 0) && (this->stream->spu_channel & 0x80) ) { 
 #ifdef LOG_DEBUG
         printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
@@ -486,12 +492,6 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
       ovl->color[0] = state->clut[clut->entry3];
-      if ( (clut->entry0 | clut->entry1 | clut->entry2 | clut->entry3) == 0) {
-        ovl->color[3] = 0x108080; 
-        ovl->color[2] = 0x808080;
-        ovl->color[1] = 0xb08080;
-        ovl->color[0] = 0x108080;
-      }
 
 #ifdef LOG_DEBUG
       printf ("spu: \tclut [%x %x %x %x]\n",
@@ -511,16 +511,6 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
-
-/* FIXME: Force invisible SPUs to be visible. */
-/*
-      if ( (trans->entry0 | trans->entry1 | trans->entry2 | trans->entry3) == 0) {
-        ovl->trans[3] = 15;
-        ovl->trans[2] = 15;
-        ovl->trans[1] = 15;
-        ovl->trans[0] = 8;
-      }
-*/
 
 #ifdef LOG_DEBUG
       printf ("spu: \ttrans [%d %d %d %d]\n",
@@ -567,7 +557,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       if ((state->field_offs[0] >= seq->seq_len) ||
           (state->field_offs[1] >= seq->seq_len)) {
         printf("libspudec:faulty stream\n");
-        abort();
+        seq->broken = 1;
       }
       state->modified = 1;
       buf += 5;
@@ -593,6 +583,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       printf("libspudec: unknown seqence command (%02x)\n", buf[0]);
       /* FIXME: SPU should be dropped, and buffers resynced */
       buf = next_seq;
+      seq->broken = 1;
       break;
     }
   }

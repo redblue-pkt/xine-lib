@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.88 2002/11/20 11:57:45 mroi Exp $
+ * $Id: xine_decoder.c,v 1.89 2002/11/26 16:05:00 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -136,11 +136,32 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
                      buf->content,
                      buf->size);
   if(this->spudec_stream_state[stream_id].ra_seq.complete == 1) { 
-    spudec_process(this,stream_id);
+    if(this->spudec_stream_state[stream_id].ra_seq.broken) {
+      printf("libspudec: dropping broken SPU\n");
+      this->spudec_stream_state[stream_id].ra_seq.broken = 0;
+    } else
+      spudec_process(this,stream_id);
   }
 }
 
 static void spudec_reset (spu_decoder_t *this_gen) {
+  spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  int i;
+  
+  if( this->menu_handle >= 0 )
+    ovl_instance->free_handle(ovl_instance,
+			      this->menu_handle);
+  this->menu_handle = -1;
+  
+  for (i=0; i < MAX_STREAMS; i++) {
+    if( this->spudec_stream_state[i].overlay_handle >= 0 )
+      ovl_instance->free_handle(ovl_instance,
+				this->spudec_stream_state[i].overlay_handle);
+    this->spudec_stream_state[i].overlay_handle = -1;
+    this->spudec_stream_state[i].ra_seq.complete = 1;
+    this->spudec_stream_state[i].ra_seq.broken = 0;
+  }
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
