@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.3 2001/05/05 23:44:33 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.4 2001/05/06 02:37:59 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -541,7 +541,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     break;
   default:
     fprintf(stderr,
-	    "File input plugin doesn't support plugin API version %d.\n"
+	    "Dvd input plugin doesn't support plugin API version %d.\n"
 	    "PLUGIN DISABLED.\n"
 	    "This means there's a version mismatch between xine and this input"
 	    "plugin.\nInstalling current input plugins should help.\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.1 2001/04/18 22:34:05 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.2 2001/05/06 02:37:59 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,27 +31,31 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include "xine_internal.h"
+#include "monitor.h"
 #include "input_plugin.h"
 
 static uint32_t xine_debug;
 
-static int input_file_handle;
+typedef struct {
+  input_plugin_t   input_plugin;
+  
+  int              fh;
+  char            *mrl;
+  config_values_t *config;
+  off_t            curpos;
 
-/* ------------------------------------------------------------------------- */
+} stdin_input_plugin_t;
+
 /*
  *
  */
-static void input_plugin_init(void) {
-
-  input_file_handle = -1;
-}
-/* ------------------------------------------------------------------------- */
-/*
- *
- */
-static int input_plugin_open(const char *mrl) {
+static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
   char *filename;
   char *pfn;
+
+  this->mrl = mrl;
 
   if(!strncasecmp(mrl, "stdin:", 6) 
       || !strncmp(mrl, "-", 1)) {
@@ -71,149 +75,165 @@ static int input_plugin_open(const char *mrl) {
     filename = (char *) mrl;
   }
   
-#ifdef DEBUG
-  fprintf(stderr, "%s(%d): opening >%s< file\n", 
-	  __FILE__, __LINE__, filename);
-#endif
+  xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
 
-  input_file_handle = open(filename, O_RDONLY);
-
-  if(input_file_handle == -1) {
+  this->fh = open (filename, O_RDONLY);
+  this->curpos = 0;
+  
+  if(this->fh == -1) {
     return 0;
   }
 
   return 1;
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static uint32_t input_plugin_read(char *buf, uint32_t nlen) {
+static off_t stdin_plugin_read (input_plugin_t *this_gen, 
+				      char *buf, off_t nlen) {
 
-  int n, nBytesRead;
-
-  nBytesRead = 0;
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
+  off_t n, nBytesRead = 0;
 
   while (nBytesRead < nlen) {
-    n = read(input_file_handle, &buf[nBytesRead], nlen-nBytesRead);
+    n = read(this->fh, &buf[nBytesRead], nlen-nBytesRead);
 
-    if (n<0)
+    if (n < 0) {
+      this->curpos += n;
       return n;
-    else if (!n)
+    }
+    else if (!n) {
+      this->curpos += nBytesRead;
       return nBytesRead;
+    }
 
     nBytesRead += n;
   }
+
+  this->curpos += nBytesRead;
   return nBytesRead;
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static off_t input_plugin_seek(off_t offset, int origin) {
-
-  return lseek(input_file_handle, offset, origin);
-}
-/* ------------------------------------------------------------------------- */
-/*
- *
- */
-static off_t input_plugin_get_length(void) {
-  struct stat buf ;
-
-  if(fstat(input_file_handle, &buf) == 0) {
-    return buf.st_size;
-  } 
-  else { 
-    fprintf(stderr, "%s(%d): fstat() failed: %s\n",
-	    __FILE__, __LINE__, strerror(errno));
-  }
+static off_t stdin_plugin_get_length(input_plugin_t *this_gen) {
 
   return 0;
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static uint32_t input_plugin_get_capabilities(void) {
+static uint32_t stdin_plugin_get_capabilities(input_plugin_t *this_gen) {
+  
+  return INPUT_CAP_NOCAP;
+}
+
+/*
+ *
+ */
+static uint32_t stdin_plugin_get_blocksize(input_plugin_t *this_gen) {
 
   return 0;
 }
-/* ------------------------------------------------------------------------- */
-/*
- *
- */
-static uint32_t input_plugin_get_blocksize(void) {
 
-  return 0;
-}
-/* ------------------------------------------------------------------------- */
 /*
  *
  */
-static int input_plugin_eject (void) {
+static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen){
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
+
+  return this->curpos;
+}
+
+/*
+ *
+ */
+static int stdin_plugin_eject_media(input_plugin_t *this_gen) {
   return 1;
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static void input_plugin_close(void) {
+static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-#ifdef DEBUG
-  fprintf(stderr, "%s(%d): closing input\n",
-	 __FILE__, __LINE__);
-#endif
-
-  close(input_file_handle);
-  input_file_handle = -1;
+  return this->mrl;
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static char *input_plugin_get_identifier(void) {
+static void stdin_plugin_close(input_plugin_t *this_gen) {
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
+  close(this->fh);
+  this->fh = -1;
+}
+
+/*
+ *
+ */
+static char *stdin_plugin_get_description (input_plugin_t *this_gen) {
+  return "stdin/fifo input plugin as shipped with xine";
+}
+
+/*
+ *
+ */
+static char *stdin_plugin_get_identifier(input_plugin_t *this_gen) {
   return "stdin_fifo";
 }
-/* ------------------------------------------------------------------------- */
+
 /*
  *
  */
-static int input_plugin_is_branch_possible (const char *next_mrl) {
+input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
-  return 0;
-}
-/* ------------------------------------------------------------------------- */
-/*
- *
- */
-static input_plugin_t plugin_op = {
-  NULL,
-  NULL,
-  input_plugin_init,
-  input_plugin_open,
-  input_plugin_read,
-  input_plugin_seek,
-  input_plugin_get_length,
-  input_plugin_get_capabilities,
-  NULL,
-  input_plugin_get_blocksize,
-  input_plugin_eject,
-  input_plugin_close,
-  input_plugin_get_identifier,
-  NULL,
-  input_plugin_is_branch_possible,
-  NULL
-};
-/* ------------------------------------------------------------------------- */
-/*
- *
- */
-input_plugin_t *input_plugin_getinfo(uint32_t dbglvl) {
+  stdin_input_plugin_t *this;
 
-  xine_debug = dbglvl;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
-  return &plugin_op;
+  switch (iface) {
+  case 1:
+    this = (stdin_input_plugin_t *) malloc (sizeof (stdin_input_plugin_t));
+
+    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+    this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
+    this->input_plugin.open              = stdin_plugin_open;
+    this->input_plugin.read              = stdin_plugin_read;
+    this->input_plugin.read_block        = NULL;
+    this->input_plugin.seek              = NULL;
+    this->input_plugin.get_current_pos   = stdin_plugin_get_current_pos;
+    this->input_plugin.get_length        = stdin_plugin_get_length;
+    this->input_plugin.get_blocksize     = stdin_plugin_get_blocksize;
+    this->input_plugin.get_dir           = NULL;
+    this->input_plugin.eject_media       = stdin_plugin_eject_media;
+    this->input_plugin.get_mrl           = stdin_plugin_get_mrl;
+    this->input_plugin.close             = stdin_plugin_close;
+    this->input_plugin.get_description   = stdin_plugin_get_description;
+    this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
+    this->input_plugin.get_autoplay_list = NULL;
+    this->input_plugin.get_clut          = NULL;
+
+    this->fh      = -1;
+    this->mrl     = NULL;
+    this->config  = config;
+    this->curpos  = 0;
+
+    return (input_plugin_t *) this;
+    break;
+  default:
+    fprintf(stderr,
+	    "Stdin input plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this input"
+	    "plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
 }
 /* ------------------------------------------------------------------------- */

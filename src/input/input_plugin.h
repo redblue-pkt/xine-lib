@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.4 2001/05/03 00:02:42 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.5 2001/05/06 02:37:59 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -162,6 +162,7 @@ struct input_plugin_s
  * possible capabilites an input plugin can have:
  */
 
+#define INPUT_CAP_NOCAP       0x00000000
 #define INPUT_CAP_SEEKABLE    0x00000001
 #define INPUT_CAP_BLOCK       0x00000002
 #define INPUT_CAP_AUTOPLAY    0x00000004

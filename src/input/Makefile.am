@@ -14,11 +14,9 @@ libdir = $(XINE_PLUGINDIR)
 # ---------
 # All of xine input plugins should be named like the scheme "xineplug_inp_"
 #
-
-#lib_LTLIBRARIES = xineplug_inp_net.la xineplug_inp_dvd.la \
-#	xineplug_inp_vcd.la xineplug_inp_stdin_fifo.la \
-#	xineplug_inp_rtp.la
-lib_LTLIBRARIES = xineplug_inp_file.la xineplug_inp_dvd.la
+lib_LTLIBRARIES = xineplug_inp_file.la xineplug_inp_dvd.la \
+	xineplug_inp_stdin_fifo.la xineplug_inp_net.la \
+	xineplug_inp_vcd.la xineplug_inp_rtp.la
 
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
@@ -26,17 +24,17 @@ xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_net_la_SOURCES = input_net.c
-#xineplug_inp_net_la_LDFLAGS = -avoid-version -module
+xineplug_inp_net_la_SOURCES = input_net.c
+xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_vcd_la_SOURCES = input_vcd.c
-#xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
+xineplug_inp_vcd_la_SOURCES = input_vcd.c
+xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c
-#xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
+xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c
+xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_rtp_la_SOURCES = input_rtp.c
-#xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
+xineplug_inp_rtp_la_SOURCES = input_rtp.c
+xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = dvd_udf.h

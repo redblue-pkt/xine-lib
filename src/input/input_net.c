@@ -42,7 +42,23 @@
 
 static uint32_t xine_debug;
 
-static int input_file_handle;
+#define NET_BS_LEN 2324
+
+typedef struct {
+  input_plugin_t   input_plugin;
+  
+  int              fh;
+  char            *mrl;
+  config_values_t *config;
+
+  off_t            curpos;
+
+} net_input_plugin_t;
+
+/* **************************************************************** */
+/*                       Private functions                          */
+/* **************************************************************** */
+
 
 static int host_connect_attempt(struct in_addr ia, int port) {
 	int s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -122,16 +138,20 @@ static int host_connect(const char *host, int port) {
 	fprintf(stderr, "unable to connect to '%s'.\n", host);
 	return -1;
 }
+/* **************************************************************** */
+/*                          END OF PRIVATES                         */
+/* **************************************************************** */
 
-static void input_plugin_init (void) {
-  input_file_handle = -1;
-}
-
-static int input_plugin_open (const char *mrl) {
-
+/*
+ *
+ */
+static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   char *filename;
   char *pptr;
   int port = 7658;
+
+  this->mrl = mrl;
 
   if (!strncasecmp (mrl, "tcp:",4))
     filename = (char *) &mrl[4];
@@ -150,75 +170,150 @@ static int input_plugin_open (const char *mrl) {
   	sscanf(pptr,"%d", &port);
   }
 
-  input_file_handle = host_connect(filename, port);
+  this->fh = host_connect(filename, port);
+  this->curpos = 0;
 
-  if (input_file_handle == -1) {
+  if (this->fh == -1) {
     return 0;
   }
 
   return 1;
 }
 
-static uint32_t input_plugin_read (char *buf, uint32_t nlen) {
-  return read (input_file_handle, buf, nlen);
+/*
+ *
+ */
+static off_t net_plugin_read (input_plugin_t *this_gen, 
+				      char *buf, off_t nlen) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+  off_t n;
+
+  n = read (this->fh, buf, nlen);
+
+  this->curpos += n;
+
+  return n;
 }
 
-static off_t input_plugin_seek (off_t offset, int origin) {
+/*
+ *
+ */
+static off_t net_plugin_get_length (input_plugin_t *this_gen) {
 
-  return -1;
-}
-
-static off_t input_plugin_get_length (void) {
   return 0;
 }
 
-static uint32_t input_plugin_get_capabilities (void) {
-  return 0;
+/*
+ *
+ */
+static uint32_t net_plugin_get_capabilities (input_plugin_t *this_gen) {
+
+  return INPUT_CAP_NOCAP;
 }
 
-static uint32_t input_plugin_get_blocksize (void) {
-  return 2324;
+/*
+ *
+ */
+static uint32_t net_plugin_get_blocksize (input_plugin_t *this_gen) {
+
+  return NET_BS_LEN;
+;
 }
 
-static int input_plugin_eject (void) {
+/*
+ *
+ */
+static off_t net_plugin_get_current_pos (input_plugin_t *this_gen){
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+
+  return this->curpos;
+}
+
+/*
+ *
+ */
+static int net_plugin_eject_media (input_plugin_t *this_gen) {
   return 1;
 }
 
-static void input_plugin_close (void) {
-  close(input_file_handle);
-  input_file_handle = -1;
+/*
+ *
+ */
+static void net_plugin_close (input_plugin_t *this_gen) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+
+  close(this->fh);
+  this->fh = -1;
 }
 
-static char *input_plugin_get_identifier (void) {
+/*
+ *
+ */
+static char *net_plugin_get_description (input_plugin_t *this_gen) {
+  return "net input plugin as shipped with xine";
+}
+
+/*
+ *
+ */
+static char *net_plugin_get_identifier (input_plugin_t *this_gen) {
   return "TCP";
 }
 
-static int input_plugin_is_branch_possible (const char *next_mrl) {
-  return 0;
+/*
+ *
+ */
+static char* net_plugin_get_mrl (input_plugin_t *this_gen) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+
+  return this->mrl;
 }
 
-static input_plugin_t plugin_op = {
-  NULL,
-  NULL,
-  input_plugin_init,
-  input_plugin_open,
-  input_plugin_read,
-  input_plugin_seek,
-  input_plugin_get_length,
-  input_plugin_get_capabilities,
-  NULL,
-  input_plugin_get_blocksize,
-  input_plugin_eject,
-  input_plugin_close,
-  input_plugin_get_identifier,
-  NULL,
-  input_plugin_is_branch_possible,
-  NULL
-};
+/*
+ *
+ */
+input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 
-input_plugin_t *input_plugin_getinfo(uint32_t dbglvl) {
+  net_input_plugin_t *this;
 
-  xine_debug = dbglvl;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
-  return &plugin_op;
+  switch (iface) {
+  case 1:
+    this = (net_input_plugin_t *) malloc (sizeof (net_input_plugin_t));
+
+    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+    this->input_plugin.get_capabilities  = net_plugin_get_capabilities;
+    this->input_plugin.open              = net_plugin_open;
+    this->input_plugin.read              = net_plugin_read;
+    this->input_plugin.read_block        = NULL;
+    this->input_plugin.seek              = NULL;
+    this->input_plugin.get_current_pos   = net_plugin_get_current_pos;
+    this->input_plugin.get_length        = net_plugin_get_length;
+    this->input_plugin.get_blocksize     = net_plugin_get_blocksize;
+    this->input_plugin.get_dir           = NULL;
+    this->input_plugin.eject_media       = net_plugin_eject_media;
+    this->input_plugin.get_mrl           = net_plugin_get_mrl;
+    this->input_plugin.close             = net_plugin_close;
+    this->input_plugin.get_description   = net_plugin_get_description;
+    this->input_plugin.get_identifier    = net_plugin_get_identifier;
+    this->input_plugin.get_autoplay_list = NULL;
+    this->input_plugin.get_clut          = NULL;
+
+    this->fh      = -1;
+    this->mrl     = NULL;
+    this->config  = config;
+    this->curpos  = 0;
+
+    return (input_plugin_t *) this;
+    break;
+  default:
+    fprintf(stderr,
+	    "Net input plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this input"
+	    "plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
 }
