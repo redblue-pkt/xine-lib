@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.8 2001/10/10 10:54:48 jkeil Exp $
+ * $Id: buffer.c,v 1.9 2001/10/14 17:37:59 guenter Exp $
  *
  *
  * contents:
@@ -247,7 +247,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
    */
 
 
-  buf_size += buf_size % alignment;
+  buf_size += alignment - (buf_size % alignment);
 
   /*
   printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
