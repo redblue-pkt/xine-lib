@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.200 2004/06/26 13:52:20 mroi Exp $
+ * $Id: video_out_xv.c,v 1.201 2004/06/26 14:47:34 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -152,12 +152,7 @@ struct xv_driver_s {
 typedef struct {
   video_driver_class_t driver_class;
 
-  Display             *display;
   config_values_t     *config;
-  XvPortID             xv_port;
-  XvAdaptorInfo       *adaptor_info;
-  unsigned int         adaptor_num;
-  char                *adaptor_name;
   xine_t              *xine;
 } xv_class_t;
 
@@ -1186,8 +1181,12 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XColor                dummy;
   XvImage              *myimage;
+  unsigned int          adaptors, j;
+  unsigned int          ver,rel,req,ev,err;
   XShmSegmentInfo       myshminfo;
-  XvPortID              xv_port = class->xv_port;
+  XvPortID              xv_port;
+  XvAdaptorInfo        *adaptor_info;
+  unsigned int          adaptor_num;
 
   this = (xv_driver_t *) xine_xmalloc (sizeof (xv_driver_t));
   if (!this)
@@ -1195,8 +1194,67 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
   this->display           = visual->display;
   this->screen            = visual->screen;
-  this->xv_port           = class->xv_port;
   this->config            = config;
+
+  /*
+   * check for Xvideo support
+   */
+
+  XLockDisplay(this->display);
+  if (Success != XvQueryExtension(this->display, &ver,&rel, &req, &ev,&err)) {
+    xprintf (class->xine, XINE_VERBOSITY_LOG, _("video_out_xv: Xv extension not present.\n"));
+    XUnlockDisplay(this->display);
+    return NULL;
+  }
+
+  /*
+   * check adaptors, search for one that supports (at least) yuv12
+   */
+
+  if (Success != XvQueryAdaptors(this->display,DefaultRootWindow(this->display), &adaptors, &adaptor_info))  {
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_xv: XvQueryAdaptors failed.\n");
+    XUnlockDisplay(this->display);
+    return NULL;
+  }
+
+  xv_port = 0;
+
+  for ( adaptor_num = 0; (adaptor_num < adaptors) && !xv_port; adaptor_num++ ) {
+
+    if (adaptor_info[adaptor_num].type & XvImageMask) {
+
+      for (j = 0; j < adaptor_info[adaptor_num].num_ports && !xv_port; j++)
+        if (( !(xv_check_yv12 (this->display,
+			       adaptor_info[adaptor_num].base_id + j)))
+            && (XvGrabPort (this->display,
+			    adaptor_info[adaptor_num].base_id + j,
+			    0) == Success)) {
+          xv_port = adaptor_info[adaptor_num].base_id + j;
+        }
+      
+      if( xv_port )
+        break;
+    }
+  }
+
+  if (!xv_port) {
+    xprintf(class->xine, XINE_VERBOSITY_LOG,
+	    _("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n"
+	      "              Looks like your graphics hardware driver doesn't support Xv?!\n"));
+    
+    /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
+    XUnlockDisplay(this->display);
+    return NULL;
+  } 
+  else
+    xprintf(class->xine, XINE_VERBOSITY_LOG,
+	    _("video_out_xv: using Xv port %ld from adaptor %s for hardware "
+	      "colorspace conversion and scaling.\n"), xv_port,
+            adaptor_info[adaptor_num].name);
+  
+  XUnlockDisplay(this->display);
+  
+  this->xv_port           = xv_port;
 
   _x_vo_scale_init (&this->sc, 1, 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
@@ -1268,31 +1326,31 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     for(k = 0; k < nattr; k++) {
       if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
-	  if (!strncmp(class->adaptor_name, "NV", 2)) {
+	  if (!strncmp(adaptor_info[adaptor_num].name, "NV", 2)) {
             xprintf (this->xine, XINE_VERBOSITY_NONE, "video_out_xv: ignoring broken XV_HUE settings on NVidia cards");
 	  } else {
 	    xv_check_capability (this, VO_PROP_HUE, attr[k],
-			         class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
+			         adaptor_info[adaptor_num].base_id, "XV_HUE",
 			         NULL, NULL, NULL);
 	  }
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_PROP_SATURATION, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
+			       adaptor_info[adaptor_num].base_id, "XV_SATURATION",
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xv_check_capability (this, VO_PROP_BRIGHTNESS, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_BRIGHTNESS",
+			       adaptor_info[adaptor_num].base_id, "XV_BRIGHTNESS",
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xv_check_capability (this, VO_PROP_CONTRAST, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_CONTRAST",
+			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST",
 			       NULL, NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_COLORKEY, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
+			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY",
 			       "video.xv_colorkey",
 			       _("video overlay colour key"),
 			       _("The colour key is used to tell the graphics card where to "
@@ -1301,7 +1359,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xv_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
+			       adaptor_info[adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
 			       "video.xv_autopaint_colorkey",
 			       _("autopaint colour key"),
 			       _("Make Xv autopaint its colorkey."));
@@ -1340,6 +1398,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   }
   else
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_xv: no port attributes defined.\n");
+  XvFreeAdaptorInfo(adaptor_info);
 
   /*
    * check supported image formats
@@ -1457,105 +1516,23 @@ static char* get_description (video_driver_class_t *this_gen) {
 static void dispose_class (video_driver_class_t *this_gen) {
   xv_class_t        *this = (xv_class_t *) this_gen;
   
-  XLockDisplay(this->display);
-  XvFreeAdaptorInfo (this->adaptor_info);
-  XUnlockDisplay(this->display);
-  free (this->adaptor_name);
-
   free (this);
 }
 
 static void *init_class (xine_t *xine, void *visual_gen) {
-  x11_visual_t      *visual = (x11_visual_t *) visual_gen;
-  xv_class_t        *this;
-  Display           *display = NULL;
-  unsigned int       adaptors, j;
-  unsigned int       ver,rel,req,ev,err;
-  XvPortID           xv_port;
-  XvAdaptorInfo     *adaptor_info;
-  unsigned int       adaptor_num;
-
-  display = visual->display;
-
-  /*
-   * check for Xvideo support
-   */
+  xv_class_t        *this = (xv_class_t *) xine_xmalloc (sizeof (xv_class_t));
 
   if (!XInitThreads()) {
     xprintf (xine, XINE_VERBOSITY_LOG, _("video_out_xv: No thread-safe X libraries available.\n"));
     return NULL;
   }
 
-  XLockDisplay(display);
-  if (Success != XvQueryExtension(display, &ver,&rel, &req, &ev,&err)) {
-    xprintf (xine, XINE_VERBOSITY_LOG, _("video_out_xv: Xv extension not present.\n"));
-    XUnlockDisplay(display);
-    return NULL;
-  }
-
-  /*
-   * check adaptors, search for one that supports (at least) yuv12
-   */
-
-  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), &adaptors, &adaptor_info))  {
-    xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out_xv: XvQueryAdaptors failed.\n");
-    XUnlockDisplay(display);
-    return NULL;
-  }
-
-  xv_port = 0;
-
-  for ( adaptor_num = 0; (adaptor_num < adaptors) && !xv_port; adaptor_num++ ) {
-
-    if (adaptor_info[adaptor_num].type & XvImageMask) {
-
-      for (j = 0; j < adaptor_info[adaptor_num].num_ports && !xv_port; j++)
-        if (( !(xv_check_yv12 (display,
-			       adaptor_info[adaptor_num].base_id + j)))
-            && (XvGrabPort (display,
-			    adaptor_info[adaptor_num].base_id + j,
-			    0) == Success)) {
-          xv_port = adaptor_info[adaptor_num].base_id + j;
-        }
-      
-      if( xv_port )
-        break;
-    }
-  }
-
-  if (!xv_port) {
-    xprintf(xine, XINE_VERBOSITY_LOG,
-	    _("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n"
-	      "              Looks like your graphics hardware driver doesn't support Xv?!\n"));
-    
-    /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
-    XUnlockDisplay(display);
-    return NULL;
-  } 
-  else
-    xprintf(xine, XINE_VERBOSITY_LOG,
-	    _("video_out_xv: using Xv port %ld from adaptor %s for hardware "
-	      "colorspace conversion and scaling.\n"), xv_port,
-            adaptor_info[adaptor_num].name);
-  
-  XUnlockDisplay(display);
-
-  /*
-   * from this point on, nothing should go wrong anymore
-   */
-  this = (xv_class_t *) xine_xmalloc (sizeof (xv_class_t));
-
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
 
-  this->display                      = display;
   this->config                       = xine->config;
-  this->xv_port                      = xv_port;
-  this->adaptor_info                 = adaptor_info;
-  this->adaptor_num                  = adaptor_num;
-  this->adaptor_name                 = strdup (adaptor_info[adaptor_num].name);
   this->xine                         = xine;
 
   return this;
