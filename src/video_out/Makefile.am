@@ -17,7 +17,7 @@ libdir = $(XINE_PLUGINDIR)
 
 if HAVE_X11
 xshm_module = xineplug_vo_out_xshm.la
-#syncfb_module = xineplug_vo_out_syncfb.la
+syncfb_module = xineplug_vo_out_syncfb.la
 if HAVE_VIDIX
 vidix_module = xineplug_vo_out_vidix.la
 endif
@@ -59,7 +59,7 @@ endif
 #lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module)  \
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) \
-	$(vidix_module) $(fb_module) $(sdl_module) \
+	$(vidix_module) $(fb_module) $(sdl_module) $(syncfb_module) \
 	xineplug_vo_out_none.la
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
@@ -84,9 +84,9 @@ xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 #	$(XINE_LIB)
 #xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
-#xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(XINE_LIB)
-#xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
+xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(XINE_LIB)
+xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
 xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)

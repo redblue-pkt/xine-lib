@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.81 2002/12/07 23:00:08 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.82 2002/12/13 01:03:56 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -118,6 +118,14 @@ struct syncfb_driver_s {
   int                video_win_visibility;
 
 };
+
+typedef struct {
+  video_driver_class_t driver_class;
+
+  config_values_t     *config;
+
+  char *device_name;
+} syncfb_class_t;
 
 /*
  * internal video_out_syncfb functions
@@ -547,15 +555,15 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
 
 static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
 {
-   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+  syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
    
-   /* alpha blend here */
-   if(overlay->rle) {
-     if(frame->format == XINE_IMGFMT_YV12)
-	blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
-      else
-	blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
-   }
+  /* alpha blend here */
+  if (overlay->rle) {
+    if (frame->format == XINE_IMGFMT_YV12)
+      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+    else
+      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+  }
 }
 
 static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
@@ -768,7 +776,7 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
      this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
      XUnlockDisplay (this->display);
      break;
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+  case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
     {
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
@@ -783,10 +791,13 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
       rect->h = y2-y1;
     }
     break;
-   case GUI_DATA_EX_VIDEOWIN_VISIBLE:
+   /*
+   case XINE_GUI_DATA_EX_VIDEOWIN_VISIBLE:
      this->video_win_visibility = (int)(int *)data;
      syncfb_compute_output_size(this);
      break;
+   */  
+  
    default:
      return -1;
   }
@@ -794,7 +805,7 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
   return 0;
 }
 
-static void syncfb_exit(vo_driver_t *this_gen)
+static void syncfb_dispose(vo_driver_t *this_gen)
 {
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
@@ -805,22 +816,22 @@ static void syncfb_exit(vo_driver_t *this_gen)
   munmap(0, this->capabilities.memory_size);   
   
   close(this->fd);
+  
+  free(this);
 }
 
-static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
-{
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+   
+   syncfb_class_t   *class = (syncfb_class_t *) class_gen;
+   config_values_t  *config = class->config;
    syncfb_driver_t*  this;
    Display*          display = NULL; 
    unsigned int      i;
    x11_visual_t*     visual = (x11_visual_t *) visual_gen;
    XColor            dummy;
-   char*             device_name;
    XWindowAttributes attr;
 
    display     = visual->display;
-   device_name = config->register_string(config, "video.syncfb_device", "/dev/syncfb",
-					 _("syncfb (teletux) device node"), 
-					 NULL, 10, NULL, NULL);
    
    if(!(this = xine_xmalloc(sizeof (syncfb_driver_t)))) {
       printf("video_out_syncfb: aborting. (allocation of syncfb_driver_t failed: out of memory)\n");
@@ -828,8 +839,8 @@ static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
    }
  
    /* check for syncfb device */
-   if((this->fd = open(device_name, O_RDWR)) < 0) {
-      printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", device_name);
+   if((this->fd = open(class->device_name, O_RDWR)) < 0) {
+      printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", class->device_name);
       free(this);
       return NULL;
    }
@@ -953,7 +964,7 @@ static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->drawable             = visual->d;
   this->gc                   = XCreateGC (this->display, this->drawable, 0, NULL);
 
-  vo_scale_init( &this->sc, visual->display_ratio, 1, 0, config );
+  vo_scale_init (&this->sc, 1, 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 
@@ -976,23 +987,77 @@ static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.set_property         = syncfb_set_property;
   this->vo_driver.get_property_min_max = syncfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = syncfb_gui_data_exchange;
-  this->vo_driver.exit                 = syncfb_exit;
+  this->vo_driver.dispose              = syncfb_dispose;
   this->vo_driver.redraw_needed        = syncfb_redraw_needed;
 
   return &this->vo_driver;
 }
 
-static vo_info_t vo_info_syncfb = {
-  6,
-  "SyncFB",
-  NULL,
-  XINE_VISUAL_TYPE_X11,
-  10
-};
+/*
+ * class functions
+ */
 
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_syncfb.description = _("xine video output plugin using the SyncFB module for Matrox G200/G400 cards");
-  return &vo_info_syncfb;
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "SyncFB";
 }
 
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the SyncFB module for Matrox G200/G400 cards");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+
+  syncfb_class_t        *this = (syncfb_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *visual_gen) {
+
+  syncfb_class_t    *this;
+  char*             device_name;
+  int               fd;
+
+  device_name = xine->config->register_string(xine->config,
+					"video.syncfb_device", "/dev/syncfb",
+					_("syncfb (teletux) device node"), 
+					NULL, 10, NULL, NULL);
+   
+  /* check for syncfb device */
+  if((fd = open(device_name, O_RDWR)) < 0) {
+     printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", device_name);
+     return NULL;
+  }
+  close(fd);
+    
+  /*
+   * from this point on, nothing should go wrong anymore
+   */
+  this = (syncfb_class_t *) malloc (sizeof (syncfb_class_t));
+
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  this->config            = xine->config;
+  this->device_name       = device_name;
+  
+  return this;
+}
+
+static vo_info_t vo_info_syncfb = {
+  6,                    /* priority    */
+  XINE_VISUAL_TYPE_X11  /* visual type */
+};
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_VIDEO_OUT, 13, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
 

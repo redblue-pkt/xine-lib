@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.18 2002/12/13 00:20:11 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.19 2002/12/13 01:03:56 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -554,8 +554,17 @@ static void dispose_class (video_driver_class_t *this_gen) {
 
 static void *init_class (xine_t *xine, void *visual_gen) {
   /* x11_visual_t     *visual = (x11_visual_t *) visual_gen; */
-  sdl_class_t      *this = (sdl_class_t*) malloc (sizeof (sdl_class_t));
+  sdl_class_t      *this;
+  
+  /* check if we have SDL */
+  if ((SDL_Init (SDL_INIT_VIDEO)) < 0) {
+    printf ("video_out_sdl: open_plugin - sdl video initialization failed.\n");
+    return NULL;
+  }
+  SDL_QuitSubSystem (SDL_INIT_VIDEO);
 
+  this = (sdl_class_t*) malloc (sizeof (sdl_class_t));
+   
   this->driver_class.open_plugin      = open_plugin;
   this->driver_class.get_identifier   = get_identifier;
   this->driver_class.get_description  = get_description;
