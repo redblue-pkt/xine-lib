@@ -14,7 +14,8 @@ xine-lib (next version) [someone fill in stability and urgency]
   * spu encoding for full overlay support with dxr3
   * icecast/shoutcast support
   * dvd raw device support
-
+  * decode id3v1 tags in mp3 files 
+	
 xine-lib (0.9.13) unstable; urgency=low
 
   * improved audio resampling for cards limited to 16 bits, stereo or mono

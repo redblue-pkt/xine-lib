@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.55 2002/08/24 19:10:34 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.56 2002/08/24 21:28:01 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -120,6 +120,77 @@ static int mpg123_head_check(unsigned long head) {
     return 0;
   
   return 1;
+}
+
+struct id3v1_tag_s {
+  char tag[3];
+  char title[30];
+  char artist[30];
+  char album[30];
+  char year[4];
+  char comment[30];
+  char genre;
+};
+
+static void chomp (char *str) {
+
+  int i,len;
+
+  len = strlen(str);
+  i = len-1;
+  
+  while (str[i]<=32) {
+    str[i] = 0;
+    i--;
+  }
+}
+
+static void read_id3_tags (demux_mpgaudio_t *this) {
+
+  off_t pos, len;
+  struct id3v1_tag_s tag;
+
+  /* id3v1 */
+
+  pos = this->input->get_length(this->input) - 128;
+  this->input->seek (this->input, pos, SEEK_SET);
+
+  len = this->input->read (this->input, &tag, 128);
+
+  if (len>0) {
+
+    if ( (tag.tag[0]=='T') && (tag.tag[1]=='A') && (tag.tag[2]=='G') ) {
+
+      xine_ui_event_t uevent;
+      char temp_str[100];
+
+#ifdef LOG
+      printf ("demux_mpgaudio: id3 tag found\n");
+#endif
+
+      tag.title[29] =0;
+      tag.artist[29]=0;
+      tag.album[29] =0;
+
+      chomp (tag.title);
+      chomp (tag.artist);
+      chomp (tag.album);
+
+      xine_log (this->xine, XINE_LOG_FORMAT, 
+		_("mp3: song title '%s'\n"), tag.title);
+      xine_log (this->xine, XINE_LOG_FORMAT, 
+		_("mp3: artist     '%s'\n"), tag.artist);
+      xine_log (this->xine, XINE_LOG_FORMAT, 
+		_("mp3: album      '%s'\n"), tag.album);
+
+      sprintf (temp_str, "%s: %s", tag.artist, tag.title);
+
+      uevent.event.type = XINE_EVENT_UI_SET_TITLE;
+      uevent.data = temp_str;
+
+      xine_send_event(this->xine, &uevent.event);
+    }
+  }
 }
 
 static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead) {
@@ -381,6 +452,8 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
 
       if (mpg123_head_check(head))
          mpg123_decode_header(this,head);
+
+      read_id3_tags (this);
     }
     
     if (!start_pos && start_time && this->stream_length > 0)
