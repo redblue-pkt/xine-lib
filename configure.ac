@@ -627,7 +627,7 @@ AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
 dnl ---------------------------------------------
 dnl check for a usable version of libdvdnav
 dnl ---------------------------------------------
-AM_PATH_DVDNAV(0.1.3,
+AM_PATH_DVDNAV(0.1.4,
 	AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
 	[AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
