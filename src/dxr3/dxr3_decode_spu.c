@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.50 2004/08/19 10:35:32 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.51 2004/10/08 20:39:51 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -442,7 +442,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	state->parse = 2;
       }
     }
-#if 0  /* TODO: this needs testing */
     if (state->parse > 1) {
       int offset_in_buffer;
       do {
@@ -477,7 +476,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	}
       } while (offset_in_buffer < buf->size && state->parse > 1);
     }
-#endif
     if (state->parse && this->menu) {
       int offset_in_buffer = state->spu_end - state->bytes_passed;
       if (offset_in_buffer >= 0 && offset_in_buffer < buf->size)
@@ -509,16 +507,9 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     llprintf(LOG_SPU, "Dropping SPU channel %d. Not selected stream_id\n", stream_id);
     return;
   }
-#if 0
   /* We used to filter for SPU forcing here as well, but this does not work
    * this way with the DXR3, because we have to evaluate the SPU command sequence
    * to detect, if a particular SPU is forced or not. See the parsing code above. */
-#else
-  if ((this->menu == 0) && (spu_channel & 0x80)) {
-    llprintf(LOG_SPU, "Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
-    return;
-  }
-#endif
   
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   
