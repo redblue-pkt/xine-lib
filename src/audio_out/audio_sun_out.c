@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.4 2001/06/26 18:47:13 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.5 2001/08/14 01:38:17 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -497,7 +497,7 @@ static ao_info_t ao_info_sun = {
   AUDIO_OUT_IFACE_VERSION,
   "sun",
   "xine audio output plugin using sun-compliant audio devices/drivers",
-  5
+  10
 };
 
 ao_info_t *get_audio_out_plugin_info() {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.27 2001/08/12 01:03:55 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.28 2001/08/14 01:38:17 guenter Exp $
  */
 
 /* required for swab() */
@@ -721,7 +721,7 @@ static ao_info_t ao_info_oss = {
   AUDIO_OUT_IFACE_VERSION,
   "oss",
   "xine audio output plugin using oss-compliant audio devices/drivers",
-  5
+  10
 };
 
 ao_info_t *get_audio_out_plugin_info() {

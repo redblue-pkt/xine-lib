@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.5 2001/06/25 08:46:55 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.6 2001/08/14 01:38:17 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -364,7 +364,7 @@ static ao_info_t ao_info_esd = {
   AUDIO_OUT_IFACE_VERSION,
   "esd",
   "xine audio output plugin using esd",
-  1
+  5
 };
 
 ao_info_t *get_audio_out_plugin_info() {

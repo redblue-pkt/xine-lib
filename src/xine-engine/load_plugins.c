@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.36 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: load_plugins.c,v 1.37 2001/08/14 01:38:17 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -624,6 +624,8 @@ char **xine_list_audio_output_plugins(void) {
   char **plugin_ids;
   int    num_plugins = 0;
   DIR   *dir;
+  int    i,j;
+  int    plugin_prios[50];
 
   plugin_ids = (char **) xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
@@ -664,17 +666,32 @@ char **xine_list_audio_output_plugins(void) {
 	  ao_info_t* (*getinfo) ();
 	  ao_info_t   *ao_info;
 
-	  /* printf ("load_plugins: plugin %s successfully loaded.\n", str); */
+	  /* printf ("load_plugins: plugin %s successfully loaded.\n", str);  */
 
 	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
 	    ao_info = getinfo();
+	    /* printf("load_plugins: id=%s, priority=%d\n", ao_info->id, ao_info->priority);  */
 
 	    if ( ao_info->interface_version == AUDIO_OUT_IFACE_VERSION) {
 
-	      /* FIXME: sort the list by ao_info->priority */
+	      /* sort the list by ao_info->priority */
 
-	      plugin_ids[num_plugins] = (char *) malloc (strlen(ao_info->id)+1);
-	      strcpy (plugin_ids[num_plugins], ao_info->id);
+	      i = 0;
+	      while ( (i<num_plugins) && (ao_info->priority<plugin_prios[i]) )
+		i++;
+	      
+	      j = num_plugins;
+	      while (j>i) {
+		plugin_ids[j]   = plugin_ids[j-1];
+		plugin_prios[j] = plugin_prios[j-1];
+		j--;
+	      }
+
+	      /*printf("i = %d, id=%s, priority=%d\n", i, ao_info->id, ao_info->priority); */
+	      plugin_ids[i] = (char *) malloc (strlen(ao_info->id)+1);
+	      strcpy (plugin_ids[i], ao_info->id);
+	      plugin_prios[i] = ao_info->priority;
+
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    }
