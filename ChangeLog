@@ -1,4 +1,4 @@
-xine-lib (1.0.0-beta0)
+xine-lib (1-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading
   * metronom's improvements for streams with slightly wrong sample rates
@@ -11,7 +11,7 @@ xine-lib (1.0.0-beta0)
   * MPEG-4 file (*.mp4) support
   * closed caption support ported to new architecture
   
-xine-lib (1.0.0-alpha2)
+xine-lib (1-alpha2)
   * configurable image position
   * DVD menu button highlight position fixes
   * internal engine changes to allow a new layer of post effect plugins
@@ -23,7 +23,7 @@ xine-lib (1.0.0-alpha2)
   * arts audio output plugin ported to new architecture
   * esound audio output plugin ported to new architecture
 	
-xine-lib (1.0.0-alpha1) 
+xine-lib (1-alpha1) 
   * transport stream demuxer fixes
   * DVD playback should be working again (please report DVDs that don't play!)
   * stdin_fifo input plugin
@@ -32,7 +32,7 @@ xine-lib (1.0.0-alpha1)
   * XviD decoder is working again
   * DV decoder (ffmpeg)
 
-xine-lib (1.0.0-alpha0) 
+xine-lib (1-alpha0) 
 
   * dvd plugin replaced by dvdnav with full menu support
   * fix segfault on exit for w32codecs

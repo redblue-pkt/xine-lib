@@ -1,16 +1,23 @@
+xine-lib (1-beta0-1) unstable; urgency=low
+
+  * new upstream release (now labelled beta)
+    This one fixes the packaging issues, so it's a candidate for unstable.
+
+ -- Siggi Langauf <siggi@debian.org>  Wed, 11 Dec 2002 13:48:35 +0100
+
 xine-lib (1-alpha2-0) experimental; urgency=low
 
   * yet another upstream alpha. This one is becoming usable, but has some
     packaging issues which prevent a parallel installation of libxine0.
 
- -- Siggi Langauf <siggi@flake.langauf.de>  Tue, 26 Nov 2002 00:34:35 +0100
+ -- Siggi Langauf <siggi@debian.org>  Tue, 26 Nov 2002 00:34:35 +0100
 
 xine-lib (1-alpha1-0) experimental; urgency=low
 
   * another upstream alpha. This is still not ready for prime time, but it will
     build from source if you really want to give it a try...
 
- -- Siggi Langauf <siggi@flake.langauf.de>  Sat,  9 Nov 2002 23:39:01 +0100
+ -- Siggi Langauf <siggi@debian.org>  Sat,  9 Nov 2002 23:39:01 +0100
 
 xine-lib (1-alpha0-0) unstable; urgency=low
 

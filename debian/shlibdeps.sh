@@ -8,7 +8,7 @@
 
 installdir=debian/$1
 
-ver=`cd $installdir/usr/lib/xine/plugins; ls [0-9]*`
+ver=`(cd $installdir/usr/lib/xine/plugins; ls [0-9]*)`
 OPTIONAL="$installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_alsa.so
 	  $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_arts.so
 	  $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_esd.so
