@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.96 2002/10/29 16:02:48 mroi Exp $
+ * $Id: metronom.c,v 1.97 2002/11/08 07:53:52 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -290,10 +290,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 
   pthread_mutex_lock (&this->lock);
 
-#ifdef LOG
-  printf ("metronom: av_diff=%lld\n", this->video_vpts - this->audio_vpts);
-#endif
-
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
@@ -309,17 +305,27 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
     }
+
+    if (this->video_vpts < this->audio_vpts) {
+      this->video_vpts = this->audio_vpts;
+      printf ("metronom: video vpts adjusted to %lld\n", this->video_vpts);
+    } else {
+      this->audio_vpts = this->video_vpts;
+      printf ("metronom: audio vpts adjusted to %lld\n", this->audio_vpts);
+    }
   }
   
-  if ( this->audio_vpts < metronom_get_current_time(this) ) {
-    this->audio_vpts = PREBUFFER_PTS_OFFSET + metronom_get_current_time(this);
-    printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", this->audio_vpts);
-  }
   if ( this->video_vpts < metronom_get_current_time(this) ) {
     this->video_vpts = PREBUFFER_PTS_OFFSET + metronom_get_current_time(this);
-    printf ("metronom: video vpts adjusted with prebuffer to %lld\n", this->video_vpts);
+    this->audio_vpts = this->video_vpts;
+    printf ("metronom: vpts adjusted with prebuffer to %lld\n", this->video_vpts);
   }
   
+#ifdef LOG
+  printf ("metronom: video_vpts: %lld, audio_vpts: %lld\n", this->video_vpts, this->audio_vpts);
+#endif
+
+/* What does this stuff ?
   diff = this->video_vpts - this->audio_vpts;
   if (abs(diff) > AV_DIFF_TOLERANCE) {
     if (this->video_vpts > this->audio_vpts)
@@ -330,7 +336,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     this->video_drift      = diff;
     this->video_drift_step = diff / 30;
   }
-
+*/
   this->old_vpts_offset = this->vpts_offset;
    
   switch (type) {
@@ -342,6 +348,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
       this->vpts_offset = this->audio_vpts = this->video_vpts;
     else
       this->vpts_offset = this->video_vpts = this->audio_vpts;
+    
     this->video_discontinuity_pts = disc_off;
     this->audio_discontinuity_pts = disc_off;
     this->in_video_discontinuity  = 0;
@@ -422,7 +429,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   }
   
   this->img_cpt++;
-  
+
   if (pts) {
 
     /*
@@ -514,15 +521,6 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   printf ("metronom: audio discontinuity #%d, type is %d, disc_off %lld\n",
 	  this->audio_discontinuity_count, type, disc_off);
   
-  while ( this->audio_discontinuity_count >
-	  this->video_discontinuity_count ) {
-
-    printf ("metronom: waiting for video_discontinuity #%d\n", 
-	    this->audio_discontinuity_count);
-
-    pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
-  }
-  
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
   while ( this->audio_discontinuity_count >
 	  this->discontinuity_handled_count ) {
@@ -573,7 +571,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
       this->force_audio_jump = 0;
       this->audio_vpts       = vpts;
       this->audio_drift_step = 0;
-      printf("metronom: audio jump\n");
+      printf("metronom: audio jump, diff=%lld\n", diff);
     }
     else {
       if( this->audio_samples ) {
