@@ -18,6 +18,10 @@ xine-lib (1-rc2)
   * clugged security hole in RIP input plugin - all saved data are 
     stored into one dir now, default save directory is empty what means 
     disable saving (problem reported by Michiel Toneman, many thanks)
+  * the former VCDX plugin is now the default VCD plugin which opens up
+    a world of new features for VCD users (the old plugin is still
+    available as VCDO)
+    
 
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
