@@ -199,11 +199,6 @@ case "$host" in
 
     ;;
 
-  *darwin*)
-    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
-
-    ;;
-
   *)
     AC_CHECK_LIB(pthread, pthread_create,
   	     [THREAD_LIBS="-lpthread"],
@@ -1639,6 +1634,13 @@ case "$host_or_hostalias" in
         CFLAGS="-Wa,-m7400 $CFLAGS"
 	DEBUG_CFLAGS="-Wa,-m7400 $DEBUG_CFLAGS"
     fi
+
+    dnl enable darwin (Mac OS X) specific build
+    case "$host_or_hostalias" in
+      *-darwin*)
+        AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
+      ;;
+    esac
     ;;
 
   sparc*-*-linux*)
