@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.25 2001/09/28 09:18:52 jkeil Exp $
+ * $Id: input_dvd.c,v 1.26 2001/10/05 11:31:39 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -136,15 +136,49 @@ static void closeDrive (dvd_input_plugin_t *this) {
  *
  * returns lbnum on success, 0 otherwise
  */
-static int openDVDFile (dvd_input_plugin_t *this, 
+static int openDVDFile (dvd_input_plugin_t *this,
 			char *filename, off_t *size) {
   char  str[256];
   int   lbnum;
+  int   encrypted=0;
+#if defined HAVE_LINUX_CDROM_H
+  dvd_struct         dvd;
+#elif defined __FreeBSD__
+   struct dvd_struct         dvd;
+#endif
 
   xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n", filename);
 
   if (openDrive(this) < 0) {
     printf ("input_dvd: cannot open dvd drive >%s<\n", this->device);
+    return 0;
+  }
+
+#if defined HAVE_LINUX_CDROM_H
+  dvd.copyright.type = DVD_STRUCT_COPYRIGHT;
+  dvd.copyright.layer_num=0;
+  if (ioctl (this->dvd_fd, DVD_READ_STRUCT, &dvd) < 0) {
+    printf ("input_dvd: Could not read Copyright Structure\n");
+    return 0;
+  }
+  encrypted = (dvd.copyright.cpst != 0) ;
+
+#elif defined __FreeBSD__
+
+  dvd.format    = DVD_STRUCT_COPYRIGHT;
+  dvd.layer_num = 0;
+
+  if (ioctl(this->dvd_fd, DVDIOCREADSTRUCTURE, &dvd) < 0) {
+    printf ("input_dvd: Could not read Copyright Structure\n");
+    return 0;
+  }
+
+  encrypted = (dvd.cpst != 0);
+#endif
+
+  if( encrypted ) {
+    printf("\ninput_dvd: Sorry, Xine doesn't play encrypted DVDs. The legal status of CSS\n"
+           "           decryption is unclear and we will not provide such code.\n\n");
     return 0;
   }
 
@@ -361,7 +395,7 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
 # if defined (__sun)
     status = 0;
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));
     }
 
 # else
@@ -517,7 +551,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
 
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 
-	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]); 
+	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]);
 
 	nFiles2++;
       }
