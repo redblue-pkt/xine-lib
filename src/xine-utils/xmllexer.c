@@ -17,13 +17,9 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.2 2003/07/19 00:22:43 tmattern Exp $
+ *  $Id: xmllexer.c,v 1.3 2003/09/16 02:12:54 storri Exp $
  *
  */
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include "xmllexer.h"
 #include <stdio.h>

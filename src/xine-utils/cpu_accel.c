@@ -27,7 +27,6 @@
 #include <signal.h>
 #include <setjmp.h>
 
-#include "attributes.h"
 #include "xineutils.h"
 
 /*

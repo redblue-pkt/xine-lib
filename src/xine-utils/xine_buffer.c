@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.3 2002/12/24 00:59:36 holstsn Exp $
+ * $Id: xine_buffer.c,v 1.4 2003/09/16 02:12:54 storri Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -54,7 +54,6 @@
 #include <string.h>
 #include <inttypes.h>
 #include "xineutils.h"
-#include "xine_buffer.h"
 
 #define LOG
 

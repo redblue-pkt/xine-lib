@@ -18,13 +18,9 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.8 2003/09/13 14:30:29 tmattern Exp $
+ *  $Id: xmlparser.c,v 1.9 2003/09/16 02:12:54 storri Exp $
  *
  */
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +54,7 @@ static char * strtoupper(char * str) {
   return str;
 }
 
-static xml_node_t * new_xml_node() {
+static xml_node_t * new_xml_node(void) {
   xml_node_t * new_node;
 
   new_node = (xml_node_t*) malloc(sizeof(xml_node_t));
@@ -78,7 +74,7 @@ static void free_xml_node(xml_node_t * node) {
   free(node);
 }
 
-static xml_property_t * new_xml_property() {
+static xml_property_t * new_xml_property(void) {
   xml_property_t * new_property;
 
   new_property = (xml_property_t*) malloc(sizeof(xml_property_t));
