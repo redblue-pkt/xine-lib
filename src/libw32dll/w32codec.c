@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.18 2001/08/30 17:14:23 jkeil Exp $
+ * $Id: w32codec.c,v 1.19 2001/09/06 13:36:18 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -63,7 +63,8 @@ typedef struct w32v_decoder_s {
 typedef struct w32a_decoder_s {
   audio_decoder_t   audio_decoder;
 
-  ao_instance_t   *audio_out;
+  ao_instance_t    *audio_out;
+    int		    output_open;
   int               decoder_ok;
 
   unsigned char     buf[16384];
@@ -417,6 +418,7 @@ static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
   this->audio_out  = audio_out;
+  this->output_open = 0;
   this->decoder_ok = 0;
 }
 
@@ -440,9 +442,16 @@ static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
   this->srcstream = 0;
   this->num_channels  = in_fmt->nChannels;
   
-  this->audio_out->open( this->audio_out, 
-			 16, in_fmt->nSamplesPerSec, 
-			 (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO); 
+  if (this->output_open)
+    this->audio_out->close (this->audio_out);
+
+  this->output_open = (this->audio_out->open( this->audio_out, 
+					      16, in_fmt->nSamplesPerSec, 
+					      (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO) == 1);
+  if (!this->output_open) {
+    printf("ACM_Decoder: Cannot open audio output device\n");
+    return 0;
+  }
 
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
@@ -584,6 +593,12 @@ static void w32a_close (audio_decoder_t *this_gen) {
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
   acmStreamClose(this->srcstream, 0);
+
+  if (!this->output_open) {
+    this->audio_out->close (this->audio_out);
+    this->output_open = 0;
+  }
+
 }
 
 static char *w32a_get_id(void) {

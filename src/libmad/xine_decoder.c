@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/09/01 21:56:38 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/09/06 13:36:18 jkeil Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -172,11 +172,10 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  if (this->output_open) 
 	    this->audio_out->close (this->audio_out);
 
-	  this->audio_out->open(this->audio_out,
-				16, this->frame.header.samplerate, 
-				mode);
+	  this->output_open = (this->audio_out->open(this->audio_out, 16,
+						     this->frame.header.samplerate, 
+						     mode) == 1);
 
-	  this->output_open = 1;
 	  this->output_sampling_rate = this->frame.header.samplerate;
 	  this->output_mode = mode;
 	}

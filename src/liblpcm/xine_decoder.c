@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/09/01 01:51:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.7 2001/09/06 13:36:18 jkeil Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -91,8 +91,8 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
   if (!this->output_open) {      
     this->output_open = (this->audio_out->open (this->audio_out, this->bits_per_sample, 
-                                                this->rate,
-                                                this->ao_cap_mode));
+						this->rate,
+						this->ao_cap_mode) == 1);
   }
   if (!this->output_open) 
     return;
