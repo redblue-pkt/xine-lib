@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.8 2003/02/20 16:02:00 mroi Exp $
+ * $Id: searching.c,v 1.9 2003/03/06 23:18:43 mroi Exp $
  *
  */
 
@@ -30,7 +30,7 @@
 #include "dvdnav_internal.h"
 
 #include "vm.h"
-#include "nav_types.h"
+#include "../../libspudec/nav_types.h"
 
 /*
 #define LOG_DEBUG

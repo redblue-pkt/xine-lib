@@ -63,7 +63,7 @@
 -#include <dvdread/nav_types.h>
 -#include <dvdread/dvd_reader.h>
 +#include "ifo_types.h"
-+#include "nav_types.h"
++#include "../../libspudec/nav_types.h"
 +#include "dvd_reader.h"
  
  /**
@@ -95,7 +95,7 @@
  
  #include "vm.h"
 -#include <dvdread/nav_types.h>
-+#include "nav_types.h"
++#include "../../libspudec/nav_types.h"
  
  /*
  #define BUTTON_TESTING
@@ -115,7 +115,7 @@
  
  #include "vm.h"
 -#include <dvdread/nav_types.h>
-+#include "nav_types.h"
++#include "../../libspudec/nav_types.h"
  
  /*
  #define LOG_DEBUG
