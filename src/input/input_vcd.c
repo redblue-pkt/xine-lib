@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.43 2002/06/12 12:22:34 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.44 2002/06/17 21:17:32 f1rmb Exp $
  *
  */
 
@@ -145,7 +145,7 @@ typedef struct {
 static void device_change_cb(void *data, cfg_entry_t *cfg) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) data;
   
-  this->device = strdup(cfg->str_value);
+  this->device = cfg->str_value;
 }
 
 #if defined (__linux__) || defined(__sun)

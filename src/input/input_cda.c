@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.25 2002/06/12 12:22:34 f1rmb Exp $
+ * $Id: input_cda.c,v 1.26 2002/06/17 21:17:32 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -199,10 +199,7 @@ static void _cda_stop_cd(cdainfo_t *);
 static void device_change_cb(void *data, cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
   
-  if(this->cda->device_name)
-    free(this->cda->device_name);
-
-  this->cda->device_name = strdup(cfg->str_value);
+  this->cda->device_name = cfg->str_value;
 }
 static void server_change_cb(void *data, cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
@@ -990,6 +987,7 @@ static int _cda_open_cd(cdainfo_t *cda) {
 
   if(cda == NULL)
     return 0;
+
 #ifdef NON_BLOCKING
   if((cda->fd = open(cda->device_name, O_RDONLY | O_NONBLOCK)) < 0) {
 #else
@@ -1339,11 +1337,10 @@ static void _cda_free_cda(cdainfo_t *cda) {
 
   _cda_close_cd(cda);
 
-  if(cda->device_name)
-    free(cda->device_name);
-  if(cda->track)
+  if(cda->track) {
     free(cda->track);
-  free(cda);
+    cda->track = NULL;
+  }
 }
 
 /*
@@ -1776,7 +1773,7 @@ static void cda_plugin_dispose (input_plugin_t *this_gen ) {
   for (i = 0; i < 100; i++)
     free (this->filelist[i]);
 
-  free (this->cda->device_name);
+  _cda_free_cda(this->cda);
   free (this->cda);
   free (this->mrls);
   free (this);
@@ -1840,10 +1837,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->cda->cur_track = -1;
   this->cda->cur_pos   = -1;
   
-  this->cda->device_name = strdup(config->register_string(config, "input.cda_device", CDROM,
-							  _("path to your local cd audio device file"),
-							  NULL, 
-							  device_change_cb, (void *) this));
+  this->cda->device_name = config->register_string(config, "input.cda_device", CDROM,
+						   _("path to your local cd audio device file"),
+						   NULL, 
+						   device_change_cb, (void *) this);
   
   this->cddb.server = config->register_string(config, "input.cda_cddb_server", CDDB_SERVER,
 					      _("cddbp server name"), NULL,
