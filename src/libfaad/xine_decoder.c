@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2002/07/15 02:15:38 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.3 2002/07/15 18:49:53 miguelfreitas Exp $
  *
  */
 
@@ -167,7 +167,6 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if( !this->faac_dec && (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       buf->decoder_info[1] == BUF_SPECIAL_DECODER_CONFIG ) {
     
-    this->faac_dec = faacDecOpen();
     if( !this->faac_dec ) {
       if( faad_open_dec(this) )
         return;
@@ -192,44 +191,49 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     
-    if (this->output_open)
-        this->audio_out->close (this->audio_out);
-
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 
-    switch( this->num_channels ) {
-      case 1:
-        this->ao_cap_mode=AO_CAP_MODE_MONO; 
-        break;
-      case 2:
-        this->ao_cap_mode=AO_CAP_MODE_STEREO;
-        break; 
-    }
-    this->output_open = this->audio_out->open (this->audio_out,
-                                               this->bits_per_sample,
-                                               this->rate,
-                                               this->ao_cap_mode) ;
-                                                               
-    this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
-    this->max_audio_src_size = 4 * this->rec_audio_src_size;
-    
-    if( this->buf )
-      free(this->buf);
-    this->buf = malloc( this->max_audio_src_size );
-    this->size = 0;
   
+    if (this->output_open) {
+        this->audio_out->close (this->audio_out);
+        this->output_open = 0;
+    }
+
     if( this->faac_dec )
       faacDecClose(this->faac_dec);
     this->faac_dec = NULL;
     this->faac_failed = 0;
                                                
-  } else if (this->output_open) {
+  } else {
+
+    if (!this->output_open) {
+      switch( this->num_channels ) {
+        case 1:
+          this->ao_cap_mode=AO_CAP_MODE_MONO; 
+          break;
+        case 2:
+          this->ao_cap_mode=AO_CAP_MODE_STEREO;
+          break; 
+      }
+      this->output_open = this->audio_out->open (this->audio_out,
+                                                 this->bits_per_sample,
+                                                 this->rate,
+                                                 this->ao_cap_mode) ;
+                                                               
+      this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
+      this->max_audio_src_size = 4 * this->rec_audio_src_size;
+    
+      if( this->buf )
+        free(this->buf);
+      this->buf = malloc( this->max_audio_src_size );
+      this->size = 0;
+    }
 #ifdef LOG
 //    printf ("faad: decoding %d data bytes...\n", buf->size);
 #endif
 
-    if( (int)buf->size <= 0 || this->faac_failed )
+    if( (int)buf->size <= 0 || this->faac_failed || !this->output_open )
       return;
   
     if( !this->size )
@@ -247,11 +251,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     
     if( !this->faac_dec ) {
 
-      this->faac_dec = faacDecOpen();
-      if( !this->faac_dec ) {
-        if( faad_open_dec(this) )
-          return;
-      }
+      if( faad_open_dec(this) )
+        return;
       
       used = faacDecInit(this->faac_dec, this->buf,
                          &this->rate, &this->num_channels);
@@ -271,8 +272,11 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                     
       this->size -= used;
       memmove(this->buf, &this->buf[used], this->size);
+
+    } else {
+
+      faad_decode_audio(this);
     }
-    faad_decode_audio(this);
   }
 }
 
