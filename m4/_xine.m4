@@ -371,3 +371,38 @@ _ACEOF
     fi ;;
   esac
 ])# AC_PROG_LIBTOOL_SANITYCHECK
+
+dnl Check for the type of the third argument of getsockname
+AC_DEFUN([AC_CHECK_SOCKLEN_T], [
+  AC_MSG_CHECKING(for socklen_t)
+  AC_CACHE_VAL(ac_cv_socklen_t, [
+    AC_LANG_SAVE
+    AC_LANG_CPLUSPLUS
+    AC_TRY_COMPILE([
+#include <sys/types.h>
+#include <sys/socket.h>
+      ],[
+socklen_t a=0;
+getsockname(0,(struct sockaddr*)0, &a);
+      ],
+      ac_cv_socklen_t=socklen_t,
+      AC_TRY_COMPILE([
+#include <sys/types.h>
+#include <sys/socket.h>
+        ],[
+int a=0;
+getsockname(0,(struct sockaddr*)0, &a);
+        ],
+        ac_cv_socklen_t=int,
+        ac_cv_socklen_t=size_t
+      )
+    )
+    AC_LANG_RESTORE
+  ])
+
+  AC_MSG_RESULT($ac_cv_socklen_t)
+  if test "$ac_cv_socklen_t" != "socklen_t"; then
+    AC_DEFINE_UNQUOTED(socklen_t, $ac_cv_socklen_t,
+        [Define the real type of socklen_t])
+  fi
+])
