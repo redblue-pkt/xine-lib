@@ -7,7 +7,8 @@
   * real media rtsp protocol streaming support
   * mms input plugin cleanup/bugfixes/improvements
   * syncfb and sdl vo plugins ported
-
+  * quicktime binary-only codec support (highly experimental)
+	
 xine-lib (1-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading

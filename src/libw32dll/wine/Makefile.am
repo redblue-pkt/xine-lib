@@ -1,4 +1,4 @@
-EXTRA_DIST = stubs.s
+EXTRA_DIST = stubs.s wrapper.S
 
 noinst_LTLIBRARIES = $(wine_lib)
 
@@ -33,7 +33,7 @@ libwine_la_SOURCES = \
 	vfl.c \
 	win32.c 
 
-libwine_la_LIBADD = stubs.lo
+libwine_la_LIBADD = stubs.lo wrapper.lo
 
 noinst_HEADERS = \
 	avifmt.h \
@@ -70,10 +70,14 @@ noinst_HEADERS = \
 	winestring.h \
 	winnt.h \
 	winreg.h \
-	winuser.h
+	winuser.h \
+	wrapper.h
 
 stubs.lo: stubs.s
 	$(CC) -c $(srcdir)/stubs.s -o stubs.lo
+
+wrapper.lo: wrapper.S
+	$(CC) -c $(srcdir)/wrapper.S -o wrapper.lo
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

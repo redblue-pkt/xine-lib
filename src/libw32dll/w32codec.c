@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.108 2002/12/12 01:52:21 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.109 2002/12/18 04:00:49 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -47,9 +47,9 @@
 #include "buffer.h"
 #include "xineutils.h"
 
-/*
+
 #define LOG
-*/
+
 
 static GUID CLSID_Voxware =
 {
@@ -99,7 +99,7 @@ static GUID mss1_clsid =
  */
 static pthread_mutex_t win32_codec_mutex;
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
-extern char*   win32_codec_name; 
+static char*   win32_codec_name; 
 extern char*   win32_def_path;
 
 #define VIDEOBUFSIZE 128*1024

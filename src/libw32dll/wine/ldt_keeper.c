@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.4 2002/06/21 01:44:17 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.5 2002/12/18 04:00:53 guenter Exp $
  *
  *
  * contents:
@@ -202,6 +202,8 @@ static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt
 }
 #endif
 
+void* fs_seg=0;
+
 ldt_fs_t* Setup_LDT_Keeper(void)
 {
     struct modify_ldt_ldt_s array;
@@ -216,6 +218,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
         perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: ");
 	return NULL;
     }
+    fs_seg=
     ldt_fs->fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
 			  ldt_fs->fd, 0);
     if (ldt_fs->fs_seg == (void*)-1)

@@ -1180,6 +1180,8 @@ src/libvorbis/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
 src/libw32dll/DirectShow/Makefile
+src/libw32dll/qtx/Makefile
+src/libw32dll/qtx/qtxsdk/Makefile
 src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/libxineadec/gsm610/Makefile
