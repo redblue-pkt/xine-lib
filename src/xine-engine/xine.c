@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.281 2004/02/12 18:19:00 mroi Exp $
+ * $Id: xine.c,v 1.282 2004/02/15 20:31:23 mroi Exp $
  */
 
 /*
@@ -1365,8 +1365,10 @@ static void __config_demux_strategy_cb (void *this_gen, xine_cfg_entry_t *entry)
 
 static void __config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
   xine_t *this = (xine_t *)this_gen;
-  char *homedir_trail_slash = strcat(strdup(xine_get_homedir()), "/");
+  char *homedir_trail_slash;
 
+  homedir_trail_slash = (char *)malloc(strlen(xine_get_homedir()) + 2);
+  sprintf(homedir_trail_slash, "%s/", xine_get_homedir());
   if (entry->str_value[0] &&
       (entry->str_value[0] != '/' || strstr(entry->str_value, "/.") ||
        strcmp(entry->str_value, xine_get_homedir()) == 0 ||
