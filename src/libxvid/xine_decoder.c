@@ -251,7 +251,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     this->video_decoder.close		  = xvid_close_plugin;
     this->video_decoder.get_identifier	  = xvid_get_id;
     this->video_decoder.dispose		  = xvid_dispose;
-    this->video_decoder.priority	  = 6;
+    this->video_decoder.priority          = xine->config->register_num (xine->config, "codec.xvid_priority", 3,
+                                                         _("priority of the xvid plugin (>5 => enable)"),
+                                                          NULL, NULL, NULL); 
     this->frame_size			  = 0;
     
     return (video_decoder_t *) this;
