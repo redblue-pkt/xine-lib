@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.53 2004/03/03 20:09:15 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.54 2004/03/16 00:32:22 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -247,7 +247,7 @@ static void repaint_output_area(pgx64_driver_t *this)
  * Reset video memory allocator and release detained frames
  */
 
-static void vbase_reset(pgx64_driver_t * this)
+static void vram_reset(pgx64_driver_t * this)
 {
   int i;
 
@@ -263,7 +263,7 @@ static void vbase_reset(pgx64_driver_t * this)
  * Allocate a portion of video memory
  */
 
-static int vbase_alloc(pgx64_driver_t * this, int size)
+static int vram_alloc(pgx64_driver_t * this, int size)
 {
   if (this->free_mark - size < this->free_bottom) {
     return -1;
@@ -426,7 +426,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->vo_scale.force_redraw = 1;
     _x_vo_scale_compute_ideal_size(&this->vo_scale);
 
-    vbase_reset(this);
+    vram_reset(this);
     if (this->multibuf_en) {
       this->buf_mode = BUF_MODE_MULTI;
     }
@@ -480,14 +480,14 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
     if (frame->vo_frame.proc_slice != pgx64_frame_proc_slice) {
       for (i=0;i<frame->planes;i++) {
-        if ((frame->buffers[i] = vbase_alloc(this, frame->lengths[i])) < 0) {
+        if ((frame->buffers[i] = vram_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
             this->detained[this->detained_frames++] = frame;
             return;
           }
           else {
             xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, multi-buffering disabled\n"));
-            vbase_reset(this);
+            vram_reset(this);
             this->buf_mode = BUF_MODE_NOT_MULTI;
             break;
           }
@@ -512,7 +512,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
     if (this->buf_mode == BUF_MODE_NOT_MULTI) {
       for (i=0;i<frame->planes;i++) {
-        if ((this->buffers[0][i] = vbase_alloc(this, frame->lengths[i])) < 0) {
+        if ((this->buffers[0][i] = vram_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: insuffucient video memory\n"));
           return;
         }
@@ -523,7 +523,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
       this->buf_mode = BUF_MODE_DOUBLE;
       for (i=0;i<frame->planes;i++) {
-        if ((this->buffers[1][i] = vbase_alloc(this, frame->lengths[i])) < 0) {
+        if ((this->buffers[1][i] = vram_alloc(this, frame->lengths[i])) < 0) {
            this->buf_mode = BUF_MODE_SINGLE;
         }
         else {
@@ -625,10 +625,10 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
 
   XLockDisplay(this->display);
   ovl->p = XCreatePixmap(this->display, this->drawable, ovl->width, ovl->height, this->depth);
-  for (i=0, x=0, y=0;i<overlay->num_rle;i++) {
+  for (i=0, x=0, y=0; i<overlay->num_rle; i++) {
     len = overlay->rle[i].len;
 
-     while (len > 0) {
+    while (len > 0) {
       use_clip_palette = 0;
       if (len > overlay->width) {
         width = overlay->width;

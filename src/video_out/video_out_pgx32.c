@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.2 2004/03/03 20:09:15 mroi Exp $
+ * $Id: video_out_pgx32.c,v 1.3 2004/03/16 00:32:22 komadori Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -246,7 +246,7 @@ static void pgx32_frame_proc_frame(vo_frame_t *frame_gen)
           y = *(yptr++);
           u = *(uptr++);
           v = *(vptr++);
-          *(dst++) = u | (y & 0xff00) | (v << 16) | ((y & 0x00ff) << 24);
+          *(dst++) = ((y & 0x00ff) << 24) | (v << 16) | (y & 0xff00) | u;
         }
         dst += (frame->pitch-frame->width)/2;
       }
@@ -308,7 +308,7 @@ static void pgx32_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
           y = *(yptr++);
           u = *(uptr++);
           v = *(vptr++);
-          *(dst++) = u | (y & 0xff00) | (v << 16) | ((y & 0x00ff) << 24);
+          *(dst++) = ((y & 0x00ff) << 24) | (v << 16) | (y & 0xff00) | u;
         }
         dst += (frame->pitch-frame->width)/2;
       }
@@ -519,22 +519,76 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   this->current = frame;
 }
 
+#define blend(a, b, trans) (((a)*(trans) + (b)*(15-(trans))) / 15)
+
 static void pgx32_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay)
 {
   /*pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;*/
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
 
   if (overlay->rle) {
-    switch (frame->format) {
-      case XINE_IMGFMT_YV12: {
-        blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
-      }
-      break;
+    int i, j, x, y, len, width;
+    int use_clip_palette;
+    uint16_t *dst;
+    clut_t clut;
+    uint8_t trans;
 
-      case XINE_IMGFMT_YUY2: {
-        blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+    dst = (uint16_t *)frame->packedbuf + (overlay->y * frame->pitch) + overlay->x;
+
+    for (i=0, x=0, y=0; i<overlay->num_rle; i++) {
+      len = overlay->rle[i].len;
+
+      while (len > 0) {
+        use_clip_palette = 0;
+        if (len > overlay->width) {
+          width = overlay->width;
+          len -= overlay->width;
+        }
+        else {
+          width = len;
+          len = 0;
+        }
+
+        if ((y >= overlay->clip_top) && (y <= overlay->clip_bottom) && (x <= overlay->clip_right)) {
+          if ((x < overlay->clip_left) && (x + width - 1 >= overlay->clip_left)) {
+            width -= overlay->clip_left - x;
+            len += overlay->clip_left - x;
+          }
+          else if (x > overlay->clip_left)  {
+            use_clip_palette = 1;
+            if (x + width - 1 > overlay->clip_right) {
+              width -= overlay->clip_right - x;
+              len += overlay->clip_right - x;
+            }
+          }
+        }
+
+        if (use_clip_palette) {
+          clut = *(clut_t *)&overlay->clip_color[overlay->rle[i].color];
+          trans = overlay->clip_trans[overlay->rle[i].color];
+        }
+        else {
+          clut = *(clut_t *)&overlay->color[overlay->rle[i].color];
+          trans = overlay->trans[overlay->rle[i].color];
+        }
+
+        for (j=0; j<width; j++) {
+          if ((overlay->x + x + j) & 1) {
+            *(dst-1) = (blend(clut.y, (*(dst-1) >> 8), trans) << 8) | blend(clut.cr, (*(dst-1) & 0xff), trans);
+          }
+          else {
+            *(dst+1) = (blend(clut.y, (*(dst+1) >> 8), trans) << 8) | blend(clut.cb, (*(dst+1) & 0xff), trans);
+          }
+          dst++;
+        }
+
+        x += width;
+        if (x == overlay->width) {
+          x = 0;
+          y++;
+          dst += frame->pitch - overlay->width;
+        }
       }
-      break;
     }
   }
 }
