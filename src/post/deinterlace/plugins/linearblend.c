@@ -183,6 +183,10 @@ static void deinterlace_scanline_linear_blend_mmxext( uint8_t *output,
     int i;
     static mmx_t high_mask = {ub:{0xff,0xff,0xff,0xff,0,0,0,0}};
 
+    READ_PREFETCH_2048( t0 );
+    READ_PREFETCH_2048( b0 );
+    READ_PREFETCH_2048( m1 );
+
     // Get width in bytes.
     width *= 2;
     i = width / 8;
@@ -244,6 +248,10 @@ static void deinterlace_scanline_linear_blend2_mmxext( uint8_t *output,
     uint8_t *b1 = data->b1;
 
     int i;
+ 
+    READ_PREFETCH_2048( t1 );
+    READ_PREFETCH_2048( b1 );
+    READ_PREFETCH_2048( m0 );
 
     // Get width in bytes.
     width *= 2;
