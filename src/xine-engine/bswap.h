@@ -54,9 +54,9 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 #else
 
 #define bswap_16(x) (((x) & 0x00ff) << 8 | ((x) & 0xff00) >> 8)
-			
 
-// code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc.
+
+/* code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc. */
 #define bswap_32(x) \
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
@@ -73,8 +73,8 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 
 #endif	/* !HAVE_BYTESWAP_H */
 
-// be2me ... BigEndian to MachineEndian
-// le2me ... LittleEndian to MachineEndian
+/* be2me ... BigEndian to MachineEndian */
+/* le2me ... LittleEndian to MachineEndian */
 
 #ifdef WORDS_BIGENDIAN
 #define be2me_16(x) (x)
