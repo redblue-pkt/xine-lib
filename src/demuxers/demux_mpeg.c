@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.115 2003/04/27 11:56:13 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.116 2003/04/29 18:43:18 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -282,7 +282,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
 
     i = this->input->read (this->input, this->dummy_space, 1);
+    track = this->dummy_space[0] & 0x0F ;
 
+    /* DVD spu/subtitles */
     if((this->dummy_space[0] & 0xE0) == 0x20) {
 
       buf = this->input->read_block (this->input, this->video_fifo, header_len+len-1);
@@ -300,12 +302,32 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       return;
     }
 
-    /* read rest of header */
+    /* LPCM audio */
+    if((this->dummy_space[0] & 0xf0) == 0xa0) {
+      i = this->input->read (this->input, this->dummy_space+1, 6);
+
+      buf = this->input->read_block (this->input, this->video_fifo, header_len+len-7);
+
+      buf->type      = BUF_AUDIO_LPCM_BE + track;
+      buf->decoder_flags |= BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_LPCM_CONFIG;
+      buf->decoder_info[2] = this->dummy_space[5];
+      buf->pts       = pts;
+
+      check_newpts( this, pts, PTS_AUDIO );
+
+      if(this->audio_fifo)
+        this->audio_fifo->put (this->audio_fifo, buf);
+      else
+        buf->free_buffer(buf);
+
+      return;
+    }
+    
+    /* read rest of header - assume AC3 */
     i = this->input->read (this->input, this->dummy_space+1, header_len+3);
-    track = this->dummy_space[0] & 0x0F ;
 
     /* contents */
-
     for (i = len - 4; i > 0; i -= (this->audio_fifo) 
 	   ? this->audio_fifo->buffer_pool_buf_size : this->video_fifo->buffer_pool_buf_size) {
       if(this->audio_fifo) {

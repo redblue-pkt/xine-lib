@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.173 2003/04/26 20:16:13 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.174 2003/04/29 18:43:20 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -527,9 +527,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_SVCD + spu_id;
       buf->pts       = pts;
+      /* this is probably wrong:
       if( !preview_mode )
         check_newpts( this, pts, PTS_VIDEO );
-      
+      */
       this->video_fifo->put (this->video_fifo, buf);    
 #ifdef LOG
       printf ("demux_mpeg_block: SPU SVCD PACK (%lld, %d) put on fifo\n", pts, spu_id);
@@ -546,9 +547,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_CVD + spu_id;
       buf->pts       = pts;
+      /* this is probably wrong:
       if( !preview_mode )
         check_newpts( this, pts, PTS_VIDEO );
-      
+      */      
       this->video_fifo->put (this->video_fifo, buf);    
 #ifdef LOG
       printf ("demux_mpeg_block: SPU CVD PACK (%lld, %d) put on fifo\n", pts, spu_id);
