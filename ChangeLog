@@ -11,6 +11,9 @@ xine-lib (1-rc1)
   * ripping feature - save streams to local files. (RIP = RIP Input Plugin)
     example: xine stream_mrl#rip:file.raw
   * MPEG demuxer fixes (support VLC streams)
+  * simple VCR functionality added to DVB input plugin
+    just press MENU2 (that is for example F2 in gxine) to start/stop recording
+  * display channel number and name in DVB mode
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
