@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.8 2002/06/03 13:55:46 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.9 2002/06/03 18:13:33 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -273,13 +273,13 @@ printf ("************ sending new pts\n");
         xine_flush_engine(this->xine);
 
         /* send new pts */
-        if (this->video_fifo && this->video_type) {
+        if (this->video_fifo) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_CONTROL_NEWPTS;
           buf->disc_off = this->sample_table[i].pts;
           this->video_fifo->put (this->video_fifo, buf);
         }
-        if (this->audio_fifo && this->audio_type) {
+        if (this->audio_fifo) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->type = BUF_CONTROL_NEWPTS;
           buf->disc_off = this->sample_table[i].pts;
@@ -402,7 +402,7 @@ printf ("************ sending new pts\n");
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
           this->video_fifo->put(this->video_fifo, buf);
         }
-      } else {
+      } else if( this->audio_fifo ) {
         /* load an audio sample and packetize it */
         remaining_sample_bytes = this->sample_table[i].sample_size;
         this->input->seek(this->input, this->sample_table[i].sample_offset,
@@ -586,6 +586,16 @@ static int demux_film_start (demux_plugin_t *this_gen,
         this->bih.biWidth,
         this->bih.biHeight,
         this->frequency);
+    else {
+      xine_log (this->xine, XINE_LOG_FORMAT,
+        _("demux_film: unknown video codec %c%c%c%c\n"),
+        (this->video_codec >> 24) & 0xFF,
+        (this->video_codec >> 16) & 0xFF,
+        (this->video_codec >>  8) & 0xFF,
+        (this->video_codec >>  0) & 0xFF );
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_FINISHED;
+    }
     if (this->audio_type)
       xine_log (this->xine, XINE_LOG_FORMAT,
         _("demux_film: %d Hz, %d-bit %s%s PCM audio\n"),
@@ -595,12 +605,12 @@ static int demux_film_start (demux_plugin_t *this_gen,
         (this->audio_channels == 1) ? "monaural" : "stereo");
 
     /* send start buffers */
-    if (this->video_fifo && this->video_type) {
+    if (this->video_fifo) {
       buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
       buf->type = BUF_CONTROL_START;
       this->video_fifo->put(this->video_fifo, buf);
     }
-    if (this->audio_fifo && this->audio_type) {
+    if (this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
       buf->type = BUF_CONTROL_START;
       this->audio_fifo->put(this->audio_fifo, buf);
