@@ -1581,9 +1581,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   lprintf("Freeing allocated audio frames");
   if (this->aud_frames) {
     buf_element_t *cur_frame  = this->aud_frames;
-    buf_element_t *next_frame = NULL;
     
-    while ((next_frame = cur_frame->next) != NULL) {
+    while (cur_frame != NULL) {
+      buf_element_t *next_frame = cur_frame->next;
 #ifdef LOG
       printf(".");
 #endif
@@ -1606,9 +1606,9 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   lprintf("Freeing allocated video frames");
   if (this->vid_frames) {
     buf_element_t *cur_frame  = this->vid_frames;
-    buf_element_t *next_frame = NULL;
     
-    while ((next_frame = cur_frame->next) != NULL) {
+    while (cur_frame != NULL) {
+      buf_element_t *next_frame = cur_frame->next;
 #ifdef LOG
       printf(".");
 #endif
