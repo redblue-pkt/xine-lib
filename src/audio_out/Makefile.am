@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
+AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS) \
+	$(POLYPAUDIO_CFLAGS)
 
 EXTRA_DIST = audio_irixal_out.c
 
@@ -40,6 +41,10 @@ if HAVE_COREAUDIO
 coreaudio_module = xineplug_ao_out_coreaudio.la
 endif
 
+if HAVE_POLYPAUDIO
+polypaudio_module = xineplug_ao_out_polypaudio.la
+endif
+
 ##
 # IMPORTANT:
 # ---------
@@ -53,7 +58,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(arts_module) \
 	$(esd_module) \
 	$(directx_module) \
-	$(coreaudio_module)
+	$(coreaudio_module) \
+	$(polypaudio_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -109,3 +115,6 @@ xineplug_ao_out_coreaudio_la_LDFLAGS = \
 	-avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_ao_out_coreaudio_la_CFLAGS = -framework CoreAudio -framework AudioUnit
 
+xineplug_ao_out_polypaudio_la_SOURCES = audio_polyp_out.c
+xineplug_ao_out_polypaudio_la_LIBADD = $(POLYPAUDIO_LIBS) $(XINE_LIB)
+xineplug_ao_out_polypaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

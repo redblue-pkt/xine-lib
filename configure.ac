@@ -871,6 +871,31 @@ AC_SUBST(LIBSTK_CFLAGS)
 AC_SUBST(LIBSTK_LIBS)
 AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
 
+dnl ---------------------------------------------
+dnl check for polypaudio
+dnl ---------------------------------------------
+
+AC_MSG_CHECKING(for polypaudio)
+dnl do some actual testing here
+if test x$PKG_CONFIG = xno ; then
+  AC_MSG_RESULT(no)
+  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
+  echo "*** All of polypaudio dependent parts will be disabled"
+else
+    POLYPAUDIO_REQUIRED_VERSION=0.6
+    if $PKG_CONFIG --atleast-version $POLYPAUDIO_REQUIRED_VERSION polyplib ; then
+        POLYPAUDIO_CFLAGS=`$PKG_CONFIG --cflags polyplib`
+        POLYPAUDIO_LIBS=`$PKG_CONFIG --libs polyplib`
+        have_polypaudio="yes"
+        AC_MSG_RESULT(yes)
+    else
+        AC_MSG_RESULT(no)
+        AC_MSG_RESULT([*** All of polypaudio dependent parts will be disabled ***])
+    fi
+fi
+AC_SUBST(POLYPAUDIO_CFLAGS)
+AC_SUBST(POLYPAUDIO_LIBS)
+AM_CONDITIONAL(HAVE_POLYPAUDIO, [test x"$have_polypaudio" = x"yes"])
 
 dnl ---------------------------------------------
 dnl check for DirectX
@@ -2557,6 +2582,9 @@ fi
 if test x"$have_coreaudio" = "xyes"; then
   echo "   - CoreAudio (Mac OS X audio driver)"
 fi  
+if test x"$have_polypaudio" = "xyes"; then
+  echo "   - polypaudio sound server"
+fi
 echo "---"
 
 
