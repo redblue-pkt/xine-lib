@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.19 2003/12/09 00:02:30 f1rmb Exp $
+ * $Id: pnm.c,v 1.20 2003/12/12 22:53:15 jstembridge Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -45,6 +45,7 @@
 #include "pnm.h"
 #include "libreal/rmff.h"
 #include "bswap.h"
+#include "io_helper.h"
 #include "xineutils.h"
 #include "xine_internal.h"
 
@@ -183,168 +184,6 @@ unsigned char after_chunks[]={
 
 
 
-#ifdef LOG
-static void hexdump (char *buf, int length);
-#endif
-
-/*
- * network utilities
- * nothing really sophisticated here, only tools
- * to connect to a host, send and receive data over this connection
- */
- 
-static int host_connect_attempt(xine_t *xine, struct in_addr ia, int port) {
-
-  int                s;
-  struct sockaddr_in sin;
-
-  s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
-  if (s == -1) {
-    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_pnm: socket(): %s\n", strerror(errno));
-    return -1;
-  }
-
-  sin.sin_family = AF_INET;
-  sin.sin_addr   = ia;
-  sin.sin_port   = htons(port);
-  
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 
-      && errno != EINPROGRESS) {
-    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_pnm: connect(): %s\n", strerror(errno));
-    close(s);
-    return -1;
-  }
-
-  return s;
-}
-
-static int host_connect(xine_t *xine, const char *host, int port) {
-
-  struct hostent *h;
-  int             i, s;
-  
-  h = gethostbyname(host);
-  if (h == NULL) {
-    xprintf (xine, XINE_VERBOSITY_LOG, _("input_pnm: unable to resolve '%s'.\n"), host);
-    return -1;
-  }
-
-  for (i = 0; h->h_addr_list[i]; i++) {
-    struct in_addr ia;
-
-    memcpy (&ia, h->h_addr_list[i], 4);
-    s = host_connect_attempt(xine, ia, port);
-    if(s != -1)
-      return s;
-  }
-  xprintf (xine, XINE_VERBOSITY_LOG, _("input_pnm: unable to connect to '%s'.\n"), host);
-
-  return -1;
-}
-
-static int rm_write(int s, const char *buf, int len) {
-  int total, timeout;
-
-  total = 0; timeout = 30;
-  while (total < len){ 
-    int n;
-
-    n = write (s, &buf[total], len - total);
-
-    if (n > 0)
-      total += n;
-    else if (n < 0) {
-      if ((timeout>0) && ((errno == EAGAIN) || (errno == EINPROGRESS))) {
-        sleep (1); timeout--;
-      } else
-        return -1;
-    }
-  }
-
-  return total;
-}
-
-static ssize_t rm_read(pnm_t *p, void *buf, size_t count) {
-  
-#if 0
-  ssize_t ret, total;
-
-  total = 0;
-
-  while (total < count) {
-  
-    ret=read (p->s, ((uint8_t*)buf)+total, count-total);
-
-    if (ret<0) {
-      if(errno == EAGAIN) {
-        fd_set rset;
-        struct timeval timeout;
-    
-        FD_ZERO (&rset);
-        FD_SET  (p->s, &rset);
-        
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-        
-        if (select (p->s+1, &rset, NULL, NULL, &timeout) <= 0) {
-          return -1;
-        }
-        continue;
-      }
-      
-      printf ("input_pnm: read error.\n");
-      return ret;
-    } else
-      total += ret;
-  
-    /* end of stream */
-    if (!ret) break;
-  }
-
-  return total;
-#else
-
-  return _x_read_abort(p->stream, p->s, buf, count );
-
-#endif
-}
-
-/*
- * a simple hexdump tool for debugging purposes
- */
-#ifdef LOG
-static void hexdump (char *buf, int length) {
-
-  int i;
-
-  printf ("input_pnm: ascii>");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    if ((c >= 32) && (c <= 128))
-      printf ("%c", c);
-    else
-      printf (".");
-  }
-  printf ("\n");
-
-  printf ("input_pnm: hexdump> ");
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15)
-      printf ("\npnm:         ");
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
-#endif
-
 /*
  * pnm_get_chunk gets a chunk from stream
  * and returns number of bytes read, chunk_type, data and
@@ -370,11 +209,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
   char *ptr;
  
   /* get first PREAMBLE_SIZE bytes and ignore checksum */
-  rm_read (p, data, CHECKSUM_SIZE);
+  _x_io_tcp_read (p->stream, p->s, data, CHECKSUM_SIZE);
   if (data[0] == 0x72)
-    rm_read (p, data, PREAMBLE_SIZE);
+    _x_io_tcp_read (p->stream, p->s, data, PREAMBLE_SIZE);
   else
-    rm_read (p, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
+    _x_io_tcp_read (p->stream, p->s, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
   
   *chunk_type = be2me_32(*((uint32_t *)data));
   chunk_size = be2me_32(*((uint32_t *)(data+4)));
@@ -383,7 +222,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case PNA_TAG:
       *need_response=0;
       ptr=data+PREAMBLE_SIZE;
-      rm_read (p, ptr++, 1);
+      _x_io_tcp_read (p->stream, p->s, ptr++, 1);
 
       while(1) {
 	/* The pna chunk is devided into subchunks.
@@ -396,17 +235,17 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	 * if first byte is 'F', we got an error
 	 */
 
-        rm_read (p, ptr, 2);
+        _x_io_tcp_read (p->stream, p->s, ptr, 2);
 	if (*ptr == 'X') /* checking for server message */
 	{
 	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: got a message from server:\n");
-	  rm_read (p, ptr+2, 1);
+	  _x_io_tcp_read (p->stream, p->s, ptr+2, 1);
 
 	  /* two bytes of message length*/
 	  n=be2me_16(*(uint16_t*)(ptr+1));
 
 	  /* message itself */
-	  rm_read (p, ptr+3, n);
+	  _x_io_tcp_read (p->stream, p->s, ptr+3, n);
 	  ptr[3+n]=0;
 	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "%s\n", ptr+3);
 	  return -1;
@@ -426,11 +265,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	}
 	if (*ptr != 0x4f) break;
 	n=ptr[1];
-	rm_read (p, ptr+2, n);
+	_x_io_tcp_read (p->stream, p->s, ptr+2, n);
 	ptr+=(n+2);
       }
       /* the checksum of the next chunk is ignored here */
-      rm_read (p, ptr+2, 1);
+      _x_io_tcp_read (p->stream, p->s, ptr+2, 1);
       ptr+=3;
       chunk_size=ptr-data;
       break;
@@ -442,13 +281,13 @@ static unsigned int pnm_get_chunk(pnm_t *p,
       if (chunk_size > max) {
         xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "error: max chunk size exeeded (max was 0x%04x)\n", max);
 	/* reading some bytes for debugging */
-        n=rm_read (p, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
+        n=_x_io_tcp_read (p->stream, p->s, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
 #ifdef LOG
-        hexdump(data,n+PREAMBLE_SIZE);
+        xine_hexdump(data,n+PREAMBLE_SIZE);
 #endif
         return -1;
       }
-      rm_read (p, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
+      _x_io_tcp_read (p->stream, p->s, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
       break;
     default:
       *chunk_type = 0;
@@ -540,7 +379,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
   p->buffer[c]='y';
   p->buffer[c+1]='B';
   
-  rm_write(p->s,p->buffer,c+2);
+  _x_io_tcp_write(p->stream,p->s,p->buffer,c+2);
 }
 
 /*
@@ -557,7 +396,7 @@ static void pnm_send_response(pnm_t *p, const char *response) {
 
   memcpy(&p->buffer[3], response, size);
 
-  rm_write (p->s, p->buffer, size+3);
+  _x_io_tcp_write(p->stream, p->s, p->buffer, size+3);
 
 }
 
@@ -620,7 +459,7 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
   
   /* read challenge */
   memcpy (p->buffer, ptr, PREAMBLE_SIZE);
-  rm_read (p, &p->buffer[PREAMBLE_SIZE], 64);
+  _x_io_tcp_read (p->stream, p->s, &p->buffer[PREAMBLE_SIZE], 64);
 
   /* now write a data header */
   memcpy(ptr, pnm_data_header, PNM_DATA_HEADER_SIZE);
@@ -721,7 +560,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   /* realplayer seems to do that every 43th package */
   if ((p->packet%43) == 42)  
   {
-    rm_write(p->s,&keepalive,1);
+    _x_io_tcp_write(p->stream,p->s,&keepalive,1);
   }
 
   /* data chunks begin with: 'Z' <o> <o> <i1> 'Z' <i2>
@@ -730,13 +569,13 @@ static int pnm_get_stream_chunk(pnm_t *p) {
    * <i2> is a 8 bit index which counts from 0x10 to somewhere
    */
   
-  n = rm_read (p, p->buffer, 8);
+  n = _x_io_tcp_read (p->stream, p->s, p->buffer, 8);
   if (n<8) return 0;
   
   /* skip 8 bytes if 0x62 is read */
   if (p->buffer[0] == 0x62)
   {
-    n = rm_read (p, p->buffer, 8);
+    n = _x_io_tcp_read (p->stream, p->s, p->buffer, 8);
     if (n<8) return 0;
     lprintf("had to seek 8 bytes on 0x62\n");
   }
@@ -746,7 +585,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   {
     int size=be2me_16(*(uint16_t*)(&p->buffer[1]));
 
-    rm_read (p, &p->buffer[8], size-5);
+    _x_io_tcp_read (p->stream, p->s, &p->buffer[8], size-5);
     p->buffer[size+3]=0;
     xprintf(p->stream->xine, XINE_VERBOSITY_LOG, 
 	    _("input_pnm: got message from server while reading stream:\n%s\n"), &p->buffer[3]);
@@ -768,7 +607,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
     for (i=1; i<8; i++) {
       p->buffer[i-1]=p->buffer[i];
     }
-    rm_read (p, &p->buffer[7], 1);
+    _x_io_tcp_read (p->stream, p->s, &p->buffer[7], 1);
     n++;
   }
 
@@ -781,7 +620,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   {
     xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: bad boundaries\n");
 #ifdef LOG
-    hexdump(p->buffer, 8);
+    xine_hexdump(p->buffer, 8);
 #endif
     return 0;
   }
@@ -800,7 +639,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   p->seq_current[0]=be2me_16(*(uint16_t*)(&p->buffer[5]));
   
   /* now read the rest of stream chunk */
-  n = rm_read (p, &p->recv[5], fof1-5);
+  n = _x_io_tcp_read (p->stream, p->s, &p->recv[5], fof1-5);
   if (n<(fof1-5)) return 0;
 
   /* get second index */
@@ -884,7 +723,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
 
   lprintf("got mrl: %s %i %s\n",p->host,p->port,p->path);
   
-  fd = host_connect (stream->xine, p->host, p->port);
+  fd = _x_io_tcp_connect (stream, p->host, p->port);
 
   if (fd == -1) {
     xprintf (p->stream->xine, XINE_VERBOSITY_LOG, _("input_pnm: failed to connect '%s'\n"), p->host);
