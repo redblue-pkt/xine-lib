@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.2 2004/12/29 09:23:56 rockyb Exp $
+  $Id: vcdplayer.h,v 1.3 2004/12/29 16:09:50 jcdutton Exp $
 
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -149,7 +149,7 @@ typedef struct vcdplayer_input_s {
   int                 i_lid;      /* LID that play item is in. Implies PBC is.
                                      on. VCDPLAYER_BAD_ENTRY if not none or 
                                      not in PBC */
-  PsdListDescriptor_t pxd;        /* If PBC is on, the relevant PSD/PLD */
+  PsdListDescriptor   pxd;        /* If PBC is on, the relevant PSD/PLD */
   int                 pdi;        /* current pld index of pxd. -1 if 
                                      no index*/
 
