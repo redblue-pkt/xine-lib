@@ -745,7 +745,7 @@ dnl dxr3 / hollywood plus card
 dnl ---------------------------------------------
 
 case "$host_or_hostalias" in
-  i?86-*-linux* | k?-*-linux* | athlon*-*-linux* | pentium*-*-linux* )
+  *-linux*)
     AC_CHECK_DXR3()
     if test x"$have_libfame" = "xyes" ; then
       AC_DEFINE_UNQUOTED(HAVE_LIBFAME,1,[Define this if you have libfame mpeg encoder installed (fame.sf.net)])
