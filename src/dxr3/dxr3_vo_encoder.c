@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.5 2001/11/19 15:06:12 mlampard Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.6 2001/11/19 17:07:15 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -302,7 +302,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       puts ("Couldn't start the FAME library");
    
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-    fp.quality=this->config->register_range(this->config,"video.dxr3enc_quality",90, 10,100, "Dxr3enc: mpeg encoding quality",NULL,NULL,NULL);
+    fp.quality=this->config->register_range(this->config,"dxr3enc.quality",90, 10,100, "Dxr3enc: mpeg encoding quality",NULL,NULL,NULL);
 
     fp.width = width;
     fp.height = oheight;
@@ -555,7 +555,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		return 0;
 	}
         /* output mpeg to file instead of dxr3? */
-        file_out = config->register_string(config, "video.dxr3enc_file", "<none>", "Dxr3enc: output file for debugging",NULL,NULL,NULL);
+        file_out = config->register_string(config, "dxr3enc.outputfile", "<none>", "Dxr3enc: output file for debugging",NULL,NULL,NULL);
 
         if (file_out && strcmp(file_out, "<none>")) {
 		this->fd_video = open(file_out, O_WRONLY | O_CREAT);

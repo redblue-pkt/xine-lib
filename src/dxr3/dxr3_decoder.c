@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.35 2001/11/19 15:06:12 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.36 2001/11/19 17:07:15 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -43,7 +43,7 @@
 #include "buffer.h"
 #include "xine-engine/bswap.h"
 
-#define LOOKUP_DEV "codec.dxr3_devname"
+#define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
@@ -433,9 +433,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.priority            = 10;
 
-	this->scr_prio = cfg->register_num(cfg, "misc.dxr3_scr_prio", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
+	this->scr_prio = cfg->register_num(cfg, "dxr3.scr_priority", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
         
-	this->enhanced_mode = cfg->register_bool(cfg,"misc.dxr3_buffer_mode", 0, "Dxr3: use alternate Play mode","Enabling this option will utilise a slightly different play mode",NULL,NULL);
+	this->enhanced_mode = cfg->register_bool(cfg,"dxr3.alt_play_mode", 0, "Dxr3: use alternate Play mode","Enabling this option will utilise a slightly different play mode",NULL,NULL);
 
 	if(this->enhanced_mode)
 	  printf("Dxr3: Using Mode 6 for playback\n");

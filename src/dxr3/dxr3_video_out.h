@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.5 2001/11/19 15:06:12 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.6 2001/11/19 17:07:15 mlampard Exp $
  *
  */
 
@@ -51,7 +51,7 @@
 #endif
 #include "../video_out/video_out_x11.h"
 
-#define LOOKUP_DEV "codec.dxr3_devname"
+#define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
 
 struct coeff {
