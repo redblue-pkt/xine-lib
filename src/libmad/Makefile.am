@@ -21,6 +21,7 @@ xineplug_decode_mad_la_SOURCES = \
 	version.c \
 	xine_decoder.c
 
+xineplug_decode_mad_la_LIBADD = $(XINE_LIB)
 xineplug_decode_mad_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = \

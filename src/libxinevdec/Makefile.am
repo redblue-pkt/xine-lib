@@ -33,6 +33,7 @@ xineplug_decode_msvc_la_LIBADD = $(XINE_LIB)
 xineplug_decode_msvc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_roqvideo_la_SOURCES = roqvideo.c
+xineplug_decode_roqvideo_la_LIBADD = $(XINE_LIB)
 xineplug_decode_roqvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_svq1_la_SOURCES = svq1.c svq1_codebooks.h
@@ -44,12 +45,15 @@ xineplug_decode_fli_la_LIBADD = $(XINE_LIB)
 xineplug_decode_fli_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_rgb_la_SOURCES = rgb.c
+xineplug_decode_rgb_la_LIBADD = $(XINE_LIB)
 xineplug_decode_rgb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_yuv_la_SOURCES = yuv.c
+xineplug_decode_yuv_la_LIBADD = $(XINE_LIB)
 xineplug_decode_yuv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_msrle_la_SOURCES = msrle.c
+xineplug_decode_msrle_la_LIBADD = $(XINE_LIB)
 xineplug_decode_msrle_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_idcinvideo_la_SOURCES = idcinvideo.c
@@ -57,15 +61,19 @@ xineplug_decode_idcinvideo_la_LIBADD = $(XINE_LIB)
 xineplug_decode_idcinvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_qtsmc_la_SOURCES = qtsmc.c
+xineplug_decode_qtsmc_la_LIBADD = $(XINE_LIB)
 xineplug_decode_qtsmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_qtrpza_la_SOURCES = qtrpza.c
+xineplug_decode_qtrpza_la_LIBADD = $(XINE_LIB)
 xineplug_decode_qtrpza_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_wc3video_la_SOURCES = wc3video.c
+xineplug_decode_wc3video_la_LIBADD = $(XINE_LIB)
 xineplug_decode_wc3video_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_qtrle_la_SOURCES = qtrle.c
+xineplug_decode_qtrle_la_LIBADD = $(XINE_LIB)
 xineplug_decode_qtrle_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = svq1_codebooks.h
