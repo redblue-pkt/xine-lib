@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.4 2003/03/06 23:56:47 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.5 2003/03/07 00:44:53 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -173,7 +173,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     this->input->seek(this->input, 0, SEEK_SET);
   }
   else {
-    if( this->input->read (this->input, scratch, NTSC_FRAME_SIZE) != sizeof(NTSC_FRAME_SIZE) )
+    if( this->input->read (this->input, scratch, NTSC_FRAME_SIZE) != NTSC_FRAME_SIZE )
       return;
     if( !(scratch[3] & 0x80) )
       i = NTSC_FRAME_SIZE;
