@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.53 2003/10/26 11:38:50 mroi Exp $
+ * $Id: configfile.c,v 1.54 2003/11/02 16:59:18 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -806,6 +806,8 @@ void xine_config_save (xine_t *xine, const char *filename) {
 
     fprintf (f_config, "#\n# xine config file\n#\n");
     fprintf (f_config, ".version:%d\n\n", CONFIG_FILE_VERSION);
+    fprintf (f_config, "# Entries which are still set to their default values are commented out.\n");
+    fprintf (f_config, "# Remove the \'#\' at the beginning of the line, if you want to change them.\n\n");
 
     pthread_mutex_lock(&this->config_lock);
     entry = this->first;
@@ -826,18 +828,21 @@ void xine_config_save (xine_t *xine, const char *filename) {
 	/* discard unclaimed values */
 	fprintf (f_config, "%s:%s\n",
 		 entry->key, entry->unknown_value);
+	fprintf (f_config, "\n");
 /*#endif*/
 
 	break;
       case CONFIG_TYPE_RANGE:
 	fprintf (f_config, "# [%d..%d], default: %d\n",
 		 entry->range_min, entry->range_max, entry->num_default);
+	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
 	fprintf (f_config, "\n");
 	break;
       case CONFIG_TYPE_STRING:
 	fprintf (f_config, "# string, default: %s\n",
 		 entry->str_default);
+	if (strcmp(entry->str_value, entry->str_default) == 0) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%s\n", entry->key, entry->str_value);
 	fprintf (f_config, "\n");
 	break;
@@ -855,6 +860,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
 		 entry->num_default);
 
 	if (entry->enum_values[entry->num_value] != NULL) {
+	  if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	  fprintf (f_config, "%s:", entry->key);
 	  fprintf (f_config, "%s\n", entry->enum_values[entry->num_value]);
 	}
@@ -865,12 +871,14 @@ void xine_config_save (xine_t *xine, const char *filename) {
       case CONFIG_TYPE_NUM:
 	fprintf (f_config, "# numeric, default: %d\n",
 		 entry->num_default);
+	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
 	fprintf (f_config, "\n");
 	break;
       case CONFIG_TYPE_BOOL:
 	fprintf (f_config, "# bool, default: %d\n",
 		 entry->num_default);
+	if (entry->num_value == entry->num_default) fprintf (f_config, "#");
 	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
 	fprintf (f_config, "\n");
 	break;
