@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.70 2002/01/14 00:34:22 guenter Exp $
+ * $Id: video_decoder.c,v 1.71 2002/01/25 00:35:46 f1rmb Exp $
  *
  */
 
@@ -127,9 +127,19 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_SPU_CHANNEL:
-      this->spu_channel_auto = buf->decoder_info[0];
-      if (this->spu_channel_user == -1)
-	this->spu_channel = this->spu_channel_auto;
+      {
+	xine_ui_event_t  ui_event;
+	
+	this->spu_channel_auto = buf->decoder_info[0];
+	if (this->spu_channel_user == -1)
+	  this->spu_channel = this->spu_channel_auto;
+	
+	/* Inform UI of SPU channel changes */
+	ui_event.event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+	ui_event.data       = NULL;
+	xine_send_event(this, &ui_event.event);
+	
+      }
       break;
 
     case BUF_CONTROL_END:
@@ -199,6 +209,15 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
+      {
+	xine_ui_event_t  ui_event;
+	/* Inform UI of AUDIO channel changes */
+	ui_event.event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+	ui_event.data       = NULL;
+	xine_send_event(this, &ui_event.event);
+      }
+      break;
+
     case BUF_CONTROL_NOP:
       break;
 

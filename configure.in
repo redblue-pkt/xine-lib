@@ -886,7 +886,6 @@ doc/xine-lib-API/html/Makefile
 misc/xine-lib.spec
 misc/guenter.spec
 misc/SlackBuild
-misc/guenter_rpms.sh
 misc/build_rpms.sh
 misc/fonts/Makefile
 intl/Makefile
