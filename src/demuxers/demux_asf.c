@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.108 2003/02/22 02:28:12 hadess Exp $
+ * $Id: demux_asf.c,v 1.109 2003/02/23 09:06:54 esnel Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1308,6 +1308,9 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
     data->alternative = 0;
     xine_event_send(this->stream, &uevent);
   }
+
+  free (buf);
+
   this->status = DEMUX_FINISHED;
   return this->status;
 }
