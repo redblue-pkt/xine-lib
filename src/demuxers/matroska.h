@@ -17,11 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.3 2004/01/12 22:42:54 jstembridge Exp $
+ * $Id: matroska.h,v 1.4 2004/01/17 01:50:43 tmattern Exp $
  *
  */
 #ifndef MATROSKA_H
 #define MATROSKA_H
+
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "demux.h"
 
 #include "ebml.h"
 
@@ -195,7 +199,8 @@ typedef struct {
   int                      bits_per_sample;
 } matroska_audio_track_t;
 
-typedef struct {
+typedef struct matroska_track_s matroska_track_t;
+struct matroska_track_s {
   int                      track_num;
   
   uint32_t                 track_type;
@@ -212,8 +217,15 @@ typedef struct {
   matroska_video_track_t  *video_track;
   matroska_audio_track_t  *audio_track;
 
-  int64_t                  last_pts;  
-} matroska_track_t;
+  int64_t                  last_pts;
+
+  void                   (*handle_content) (demux_plugin_t *this_gen,
+                                            matroska_track_t *track,
+                                            uint8_t *data, int data_len,
+                                            int64_t data_pts, int data_duration,
+                                            off_t input_pos, off_t input_length,
+                                            int input_time);
+};
 
 /* IDs in the tags master */
 
@@ -253,6 +265,14 @@ typedef struct {
 #define MATROSKA_CODEC_ID_A_REAL_SIPR    "A_REAL/SIPR"
 #define MATROSKA_CODEC_ID_A_REAL_RALF    "A_REAL/RALF"
 #define MATROSKA_CODEC_ID_A_REAL_ATRC    "A_REAL/ATRC"
+
+#define MATROSKA_CODEC_ID_S_TEXT_UTF8    "S_TEXT/UTF8"
+#define MATROSKA_CODEC_ID_S_TEXT_SSA     "S_TEXT/SSA"
+#define MATROSKA_CODEC_ID_S_TEXT_ASS     "S_TEXT/ASS"
+#define MATROSKA_CODEC_ID_S_TEXT_USF     "S_TEXT/USF"
+#define MATROSKA_CODEC_ID_S_UTF8         "S_UTF8"        /* deprecated */
+#define MATROSKA_CODEC_ID_S_SSA          "S_SSA"         /* deprecated */
+#define MATROSKA_CODEC_ID_S_ASS          "S_ASS"         /* deprecated */
 
 /* block lacing */
 #define MATROSKA_NO_LACING               0x0

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.13 2004/01/13 20:44:22 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.14 2004/01/17 01:50:43 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -42,11 +42,9 @@
 
 #define LOG_MODULE "demux_matroska"
 #define LOG_VERBOSE
-
 /*
 #define LOG
 */
-
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
@@ -299,26 +297,10 @@ static int parse_audio_track (demux_matroska_t *this, matroska_audio_track_t *at
 
 
 static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
-  buf_element_t *buf;
 
-  buf = track->fifo->buffer_pool_alloc (track->fifo);
-  buf->type = track->buf_type;
-
-  if (track->codec_private_len > buf->max_size) {
-    buf->size = buf->max_size;
-  } else {
-    buf->size = track->codec_private_len;
-  }
-
-  if (buf->size)
-    xine_fast_memcpy (buf->content, track->codec_private, buf->size);
-  else
-    buf->content = NULL;
-
-  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER;
-  buf->type          = track->buf_type;
-  buf->pts           = 0;
-  track->fifo->put (track->fifo, buf);
+  _x_demux_send_data(track->fifo, track->codec_private, track->codec_private_len,
+                        0, track->buf_type, BUF_FLAG_HEADER | BUF_FLAG_STDHEADER,
+                        0, 0, 0, 0, 0);
 }
 
 
@@ -355,7 +337,7 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
   else
     buf->content = NULL;
 
-  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER;
+  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER | BUF_FLAG_FRAME_END;
   buf->type          = track->buf_type;
   buf->pts           = 0;
   track->fifo->put (track->fifo, buf);
@@ -381,6 +363,8 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
   for (i = 0; i < 3; i++) {
     buf = track->fifo->buffer_pool_alloc (track->fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
+    if (i == 2)
+      buf->decoder_flags |= BUF_FLAG_FRAME_END;
     buf->type          = track->buf_type;
     buf->pts           = 0;
     buf->size          = frame[i];
@@ -389,6 +373,136 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
     data += buf->size;
 
     track->fifo->put (track->fifo, buf);
+  }
+}
+
+static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
+                              uint8_t *data, int data_len,
+                              int64_t data_pts, int data_duration,
+                              off_t input_pos, off_t input_length,
+                              int input_time) {
+  demux_matroska_t *this = (demux_matroska_t *) this_gen;
+  int chunks;
+  int chunk_tab_size;
+
+  chunks = data[0];
+  chunk_tab_size = (chunks + 1) * 8;
+
+  lprintf("chunks: %d, chunk_tab_size: %d\n", chunks, chunk_tab_size);
+
+  _x_demux_send_data(track->fifo,
+                     data + chunk_tab_size + 1,
+                     data_len - chunk_tab_size - 1,
+                     data_pts, track->buf_type, 0,
+                     input_pos, input_length, input_time,
+                     this->duration, 0);
+
+  /* sends the fragment table */
+  {
+    buf_element_t *buf;
+
+    buf = track->fifo->buffer_pool_alloc(track->fifo);
+
+    buf->decoder_flags = BUF_FLAG_SPECIAL | BUF_FLAG_FRAMERATE;
+    buf->decoder_info[0] = data_duration;
+    buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
+    buf->decoder_info[2] = chunks;
+    buf->decoder_info_ptr[2] = buf->content;
+    
+    buf->size = chunk_tab_size;
+    buf->type = track->buf_type;
+
+    xine_fast_memcpy(buf->decoder_info_ptr[2], data + 1, chunk_tab_size);
+
+    track->fifo->put(track->fifo, buf);
+  }
+}
+
+static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
+                            uint8_t *data, int data_len,
+                            int64_t data_pts, int data_duration,
+                            off_t input_pos, off_t input_length,
+                            int input_time) {
+  buf_element_t *buf;
+  uint32_t *val;
+  int commas = 0;
+  int lines = 1;
+  char last_char = 0;
+  char *dest;
+  int dest_len;
+
+  lprintf ("pts: %lld, duration: %d\n", data_pts, data_duration);
+  /* skip ',' */
+  while (data_len && (commas < 8)) {
+    if (*data == ',') commas++;
+    data++; data_len--;
+  }
+
+  buf = track->fifo->buffer_pool_alloc(track->fifo);
+  buf->type = track->buf_type;
+
+  val = (uint32_t *)buf->content;
+  *val++ = 1;                                /* number of lines */
+  *val++ = 1;                                /* use time */
+  *val++ = data_pts / 90;                    /* start time */
+  *val++ = (data_pts + data_duration) / 90;  /* end time   */
+
+  dest = (char *)buf->content + 16;
+  dest_len = buf->max_size;
+  while (data_len && dest_len) {
+    if ((last_char == '\\') && ((*data == 'n') || (*data == 'N'))) {
+      lines++;
+      *dest = '\0';
+    } else {
+      if (*data != '\\') {
+        *dest = *data;
+        dest++; dest_len--;
+      }
+    }
+    
+    last_char = *data;
+    data++; data_len--;
+  }
+
+  if (dest_len) {
+
+    *dest = '\0'; dest++; dest_len--;
+    buf->size = dest - (char *)buf->content;
+  
+    val = (uint32_t *)buf->content;
+    *val = lines;
+
+    track->fifo->put(track->fifo, buf);
+  } else {
+    buf->free_buffer(buf);
+  }                            
+}
+
+static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
+                             uint8_t *data, int data_len,
+                             int64_t data_pts, int data_duration,
+                             off_t input_pos, off_t input_length,
+                             int input_time) {
+  buf_element_t *buf;
+  uint32_t *val;
+
+  buf = track->fifo->buffer_pool_alloc(track->fifo);
+
+  buf->size = data_len + 9;  /* 2 uint32_t + '\0' */
+  if (buf->max_size >= buf->size) {
+
+    buf->type = track->buf_type;
+    val = (uint32_t *)buf->content;
+    *val++ = data_pts / 90;                    /* start time */
+    *val++ = (data_pts + data_duration) / 90;  /* end time   */
+
+    xine_fast_memcpy(buf->content + 8, data, data_len);
+    buf->content[8 + data_len] = '\0';
+
+    lprintf("sub: %s\n", buf->content + 8);
+    track->fifo->put(track->fifo, buf);
+  } else {
+    buf->free_buffer(buf);
   }
 }
 
@@ -516,7 +630,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     next_level = ebml_get_next_level(ebml, &elem);
   }
   
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+  xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
           "demux_matroska: Track %d, %s %s\n",
           track->track_num,
           (track->codec_id ? track->codec_id : ""),
@@ -549,6 +663,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     
       lprintf("MATROSKA_CODEC_ID_V_REAL_RV40\n");
       track->buf_type = BUF_VIDEO_RV40;
+      track->handle_content = handle_realvideo;
       init_mode = INIT_STD_VIDEO;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MJPEG)) {
@@ -583,6 +698,26 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_SIPR)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_RALF)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_ATRC)) {
+
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_UTF8) ||
+               !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_UTF8)) {
+      lprintf("MATROSKA_CODEC_ID_S_TEXT_UTF8\n");
+      track->buf_type = BUF_SPU_OGM;
+      track->handle_content = handle_sub_utf8;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_SSA) ||
+               !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_SSA)) {
+      lprintf("MATROSKA_CODEC_ID_S_TEXT_SSA\n");
+      track->buf_type = BUF_SPU_TEXT;
+      track->handle_content = handle_sub_ssa;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_ASS) ||
+               !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_ASS)) {
+      lprintf("MATROSKA_CODEC_ID_S_TEXT_ASS\n");
+      track->buf_type = BUF_SPU_TEXT;
+      track->handle_content = handle_sub_ssa;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_USF)) {
+      lprintf("MATROSKA_CODEC_ID_S_TEXT_USF\n");
+      track->buf_type = BUF_SPU_OGM;
+      track->handle_content = handle_sub_utf8;
     } else {
       lprintf("unknown codec\n");
     }
@@ -643,6 +778,7 @@ static int parse_tracks(demux_matroska_t *this) {
 
     switch (elem.id) {
       case MATROSKA_ID_TR_ENTRY: {
+        /* alloc and initialize a track with 0 */
         this->tracks[this->num_tracks] = xine_xmalloc(sizeof(matroska_track_t));
         lprintf("TrackEntry\n");
         if (!ebml_read_master (ebml, &elem))
@@ -762,51 +898,6 @@ static void alloc_block_data (demux_matroska_t *this, int len) {
   }
 }
 
-static void handle_realvideo (demux_matroska_t *this, matroska_track_t *track,
-                              uint8_t *data, int len, int64_t pts,
-                              off_t input_pos, off_t input_length,
-                              int input_time, int duration) {
-  int chunks;
-  int chunk_tab_size;
-
-  chunks = data[0];
-  chunk_tab_size = (chunks + 1) * 8;
-
-  lprintf("chunks: %d, chunk_tab_size: %d\n", chunks, chunk_tab_size);
-
-  _x_demux_send_data(track->fifo,
-                     data + chunk_tab_size + 1,
-                     len - chunk_tab_size - 1,
-                     pts, track->buf_type, 0,
-                     0, 0, 0,
-                     this->duration, 0);
-
-  /* sends the fragment table */
-  {
-    buf_element_t *buf;
-    int64_t frame_duration;
-    
-    frame_duration = (int64_t)track->default_duration *
-                     (int64_t)90 / (int64_t)1000000;
-
-    buf = track->fifo->buffer_pool_alloc(track->fifo);
-
-    buf->decoder_flags = BUF_FLAG_SPECIAL | BUF_FLAG_FRAMERATE;
-    buf->decoder_info[0] = frame_duration;    
-    buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
-    buf->decoder_info[2] = chunks;
-    buf->decoder_info_ptr[2] = buf->content;
-    buf->size = chunk_tab_size;
-    buf->type = track->buf_type;
-
-    xine_fast_memcpy(buf->decoder_info_ptr[2], data + 1, chunk_tab_size);
-
-    track->fifo->put(track->fifo, buf);
-  }
-
-
-}
-
 
 static int parse_ebml_uint(demux_matroska_t *this, uint8_t *data, uint64_t *num) {
   uint8_t mask = 0x80;
@@ -881,18 +972,16 @@ static int read_block_data (demux_matroska_t *this, int len) {
 }
 
 static int parse_block (demux_matroska_t *this, uint64_t block_size,
-                        uint64_t timecode, uint64_t duration) {
+                        uint64_t cluster_timecode, uint64_t block_duration,
+                        off_t block_pos, off_t file_len) {
   matroska_track_t *track;
   int64_t           track_num;
-  int               timecode_diff;
   uint8_t          *data;
   uint8_t           flags;
-  int               gap;
-  int               lacing;
-  int               num_len;
-  
-  if (!read_block_data(this, block_size))
-    return 0;
+  int               gap, lacing, num_len;
+  int               timecode_diff;
+  int64_t           pts, xduration;
+  int               decoder_flags = 0;
 
   data = this->block_data;
   if (!(num_len = parse_ebml_uint(this, data, &track_num)))
@@ -916,140 +1005,155 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
      return 0;
   }
 
-  {
-    int64_t pts;
-    int decoder_flags = 0;
-    off_t input_pos, input_len;
+  pts = ((int64_t)cluster_timecode + timecode_diff) *
+        (int64_t)this->timecode_scale * (int64_t)90 /
+        (int64_t)1000000;
+        
+  if (block_duration) {
+    xduration = (int64_t)block_duration *
+                (int64_t)this->timecode_scale * (int64_t)90 /
+                (int64_t)1000000;
+  } else {
+    block_duration = track->default_duration;
+    xduration = (int64_t)block_duration * (int64_t)90 / (int64_t)1000000;
+  }
+  lprintf("pts: %lld, duration: %lld\n", pts, xduration);
 
-    pts = ((int64_t)timecode + timecode_diff) *
-          (int64_t)this->timecode_scale * (int64_t)90 /
-          (int64_t)1000000;
-    lprintf("pts: %lld\n", pts);
+  check_newpts(this, pts, track);
 
-    check_newpts(this, pts, track);
+  if (this->preview_mode) {
+    this->preview_sent++;
+    decoder_flags |= BUF_FLAG_PREVIEW;
+  }
 
-    if (this->preview_mode) {
-      this->preview_sent++;
-      decoder_flags |= BUF_FLAG_PREVIEW;
-    }
-    
-    input_pos = this->input->get_current_pos(this->input);
-    input_len = this->input->get_length(this->input);
-    
-    if (lacing == MATROSKA_NO_LACING) {
-      int block_size_left;
-      lprintf("no lacing\n");
+  if (lacing == MATROSKA_NO_LACING) {
+    int block_size_left;
+    lprintf("no lacing\n");
 
-      block_size_left = (this->block_data + block_size) - data;
-      lprintf("size: %d, block_size: %lld\n", block_size_left, block_size);
-      if (track->buf_type == BUF_VIDEO_RV40) {
-        handle_realvideo(this, track, data, block_size_left, pts,
-                         input_pos, input_len, pts / 90, this->duration);
-      } else {
-        _x_demux_send_data(track->fifo, data, block_size_left,
-                           pts, track->buf_type, decoder_flags,
-                           input_pos, input_len, pts / 90,
-                           this->duration, 0);
-      }
+    block_size_left = (this->block_data + block_size) - data;
+    lprintf("size: %d, block_size: %lld\n", block_size_left, block_size);
+
+    if (track->handle_content != NULL) {
+      track->handle_content((demux_plugin_t *)this, track,
+                            data, block_size_left,
+                            pts, xduration,
+                            block_pos, file_len, pts / 90);
     } else {
-    
-      int block_size_left;
-      uint8_t lace_num;
-      int frame[MAX_FRAMES];
-      int i;
+      _x_demux_send_data(track->fifo, data, block_size_left,
+                         pts, track->buf_type, decoder_flags,
+                         block_pos, file_len, pts / 90,
+                         this->duration, 0);
+    }
+  } else {
 
-      /* number of laced frames */
-      lace_num = *data;
-      data++;
-      lprintf("lace_num: %d\n", lace_num);
-      if ((lace_num + 1) > MAX_FRAMES) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-                "demux_matroska: too many frames: %d\n", lace_num);
-        return 0;
-      }
-      block_size_left = this->block_data + block_size - data;
+    int block_size_left;
+    uint8_t lace_num;
+    int frame[MAX_FRAMES];
+    int i;
 
-      switch (lacing) {
-        case MATROSKA_XIPH_LACING: {
+    /* number of laced frames */
+    lace_num = *data;
+    data++;
+    lprintf("lace_num: %d\n", lace_num);
+    if ((lace_num + 1) > MAX_FRAMES) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+              "demux_matroska: too many frames: %d\n", lace_num);
+      return 0;
+    }
+    block_size_left = this->block_data + block_size - data;
 
-          lprintf("xiph lacing\n");
+    switch (lacing) {
+      case MATROSKA_XIPH_LACING: {
 
-          /* size of each frame */
-          for (i = 0; i < lace_num; i++) {
-            int size = 0;
-            while (*data == 255) {
-              size += *data;
-              data++; block_size_left--;
-            }
+        lprintf("xiph lacing\n");
+
+        /* size of each frame */
+        for (i = 0; i < lace_num; i++) {
+          int size = 0;
+          while (*data == 255) {
             size += *data;
             data++; block_size_left--;
-            frame[i] = size;
-            block_size_left -= size;
           }
-
-          /* last frame */
-          frame[lace_num] = block_size_left;
+          size += *data;
+          data++; block_size_left--;
+          frame[i] = size;
+          block_size_left -= size;
         }
+
+        /* last frame */
+        frame[lace_num] = block_size_left;
+      }
+      break;
+
+      case MATROSKA_FIXED_SIZE_LACING:
+        lprintf("fixed size lacing\n");
+        for (i = 0; i < lace_num; i++) {
+          frame[i] = block_size / (lace_num + 1);
+          block_size_left -= frame[i];
+        }
+        frame[lace_num] = block_size_left;
         break;
 
-        case MATROSKA_FIXED_SIZE_LACING:
-          lprintf("fixed size lacing\n");
-          for (i = 0; i < lace_num; i++) {
-            frame[i] = block_size / (lace_num + 1);
-            block_size_left -= frame[i];
-          }
-          frame[lace_num] = block_size_left;
-          break;
+      case MATROSKA_EBML_LACING: {
+        int64_t tmp;
 
-        case MATROSKA_EBML_LACING: {
-          int64_t tmp;
+        lprintf("ebml lacing\n");
 
-          lprintf("ebml lacing\n");
-
-          /* size of each frame */
-          if (!(num_len = parse_ebml_uint(this, data, &tmp)))
-            return 0;
-          data += num_len; block_size_left -= num_len;
-          frame[0] = (int) tmp;
-          lprintf("first frame len: %d\n", frame[0]);
-          block_size_left -= frame[0];
-
-          for (i = 1; i < lace_num; i++) {
-            if (!(num_len = parse_ebml_sint(this, data, &tmp)))
-              return 0;
-
-            data += num_len; block_size_left -= num_len;
-            frame[i] = frame[i-1] + tmp;
-            block_size_left -= frame[i];
-          }
-
-          /* last frame */
-          frame[lace_num] = block_size_left;
-        }
-        break;
-        default:
-          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-                  "demux_matroska: invalid lacing: %d\n", lacing);
+        /* size of each frame */
+        if (!(num_len = parse_ebml_uint(this, data, &tmp)))
           return 0;
+        data += num_len; block_size_left -= num_len;
+        frame[0] = (int) tmp;
+        lprintf("first frame len: %d\n", frame[0]);
+        block_size_left -= frame[0];
+
+        for (i = 1; i < lace_num; i++) {
+          if (!(num_len = parse_ebml_sint(this, data, &tmp)))
+            return 0;
+
+          data += num_len; block_size_left -= num_len;
+          frame[i] = frame[i-1] + tmp;
+          block_size_left -= frame[i];
+        }
+
+        /* last frame */
+        frame[lace_num] = block_size_left;
       }
-      /* send each frame to the decoder */
-      for (i = 0; i <= lace_num; i++) {
-        _x_demux_send_data(track->fifo, data, frame[i],
-                           pts, track->buf_type, decoder_flags,
-                           input_pos, input_len, pts / 90,
-                           0, 0);
-        data += frame[i];
-        pts = 0;
-      }
+      break;
+      default:
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                "demux_matroska: invalid lacing: %d\n", lacing);
+        return 0;
+    }
+    /* send each frame to the decoder */
+    for (i = 0; i <= lace_num; i++) {
+    if (track->handle_content != NULL) {
+      track->handle_content((demux_plugin_t *)this, track,
+                            data, frame[i], pts,
+                            block_pos, file_len, pts / 90, this->duration);
+    } else {
+      _x_demux_send_data(track->fifo, data, frame[i],
+                         pts, track->buf_type, decoder_flags,
+                         block_pos, file_len, pts / 90,
+                         0, 0);
+    }
+      data += frame[i];
+      pts = 0;
     }
   }
   return 1;
 }
 
 static int parse_block_group(demux_matroska_t *this,
-                             uint64_t timecode, uint64_t duration) {
-  ebml_parser_t *ebml = this->ebml;
-  int next_level = 3;
+                             uint64_t cluster_timecode,
+                             uint64_t cluster_duration) {
+  ebml_parser_t *ebml     = this->ebml;
+  int next_level          = 3;
+  int has_block           = 0;
+  uint64_t block_duration = 0;
+  off_t block_pos         = 0;
+  off_t file_len          = 0;
+  int block_len           = 0;
 
   while (next_level == 3) {
     ebml_elem_t elem;
@@ -1060,8 +1164,20 @@ static int parse_block_group(demux_matroska_t *this,
     switch (elem.id) {
       case MATROSKA_ID_CL_BLOCK:
         lprintf("block\n");
-        if (!parse_block(this, elem.len, timecode, duration))
+        block_pos = this->input->get_current_pos(this->input);
+        block_len = elem.len;
+        file_len = this->input->get_length(this->input);
+
+        if (!read_block_data(this, elem.len))
           return 0;
+
+          has_block = 1;
+        break;
+      case MATROSKA_ID_CL_BLOCKDURATION:
+        /* should override track duration */
+        if (!ebml_read_uint(ebml, &elem, &block_duration))
+          return 0;
+        lprintf("duration: %lld\n", block_duration);
         break;
       default:
         lprintf("Unhandled ID: 0x%x\n", elem.id);
@@ -1070,6 +1186,14 @@ static int parse_block_group(demux_matroska_t *this,
     }
     next_level = ebml_get_next_level(ebml, &elem);
   }
+
+  if (!has_block)
+    return 0;
+
+  /* we have the duration, we can parse the block now */
+  if (!parse_block(this, block_len, cluster_timecode, block_duration,
+                   block_pos, file_len))
+    return 0;
   return 1;
 }
 
@@ -1533,14 +1657,66 @@ static int demux_matroska_get_stream_length (demux_plugin_t *this_gen) {
 
 
 static uint32_t demux_matroska_get_capabilities (demux_plugin_t *this_gen) {
-  return DEMUX_CAP_NOCAP;
+  return DEMUX_CAP_SPULANG | DEMUX_CAP_AUDIOLANG;
 }
 
 
 static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
                                              void *data, int data_type) {
-  return DEMUX_OPTIONAL_UNSUPPORTED;
-} 
+  demux_matroska_t *this = (demux_matroska_t *) this_gen;
+  char *str = (char *) data;
+  int channel = *((int *)data);
+  int track_num;
+
+  switch (data_type) {
+    case DEMUX_OPTIONAL_DATA_SPULANG:
+      lprintf ("DEMUX_OPTIONAL_DATA_SPULANG channel = %d\n",channel);
+      if ((channel >= 0) && (channel < this->num_tracks)) {
+        for (track_num = 0; track_num < this->num_tracks; track_num++) {
+          matroska_track_t *track = this->tracks[track_num];
+          
+          if ((track->buf_type & 0xFF00001F) == BUF_SPU_BASE + channel) {
+            if (track->language) {
+              strncpy (str, track->language, XINE_LANG_MAX);
+              str[XINE_LANG_MAX - 1] = '\0';
+              if (strlen(track->language) >= XINE_LANG_MAX)
+                /* the string got truncated */
+                str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
+            } else {
+              snprintf(str, XINE_LANG_MAX, "channel %d",channel);
+            }
+            return DEMUX_OPTIONAL_SUCCESS;
+          }
+        }
+      }
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+      
+    case DEMUX_OPTIONAL_DATA_AUDIOLANG:
+      lprintf ("DEMUX_OPTIONAL_DATA_AUDIOLANG channel = %d\n",channel);
+      if ((channel >= 0) && (channel < this->num_audio_tracks)) {
+        for (track_num = 0; track_num < this->num_tracks; track_num++) {
+          matroska_track_t *track = this->tracks[track_num];
+          
+          if ((track->buf_type & 0xFF00001F) == BUF_AUDIO_BASE + channel) {
+            if (track->language) {
+              strncpy (str, track->language, XINE_LANG_MAX);
+              str[XINE_LANG_MAX - 1] = '\0';
+              if (strlen(track->language) >= XINE_LANG_MAX)
+                /* the string got truncated */
+                str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
+            } else {
+              snprintf(str, XINE_LANG_MAX, "channel %d", channel);
+            }
+            return DEMUX_OPTIONAL_SUCCESS;
+          }
+        }
+      }
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+
+    default:
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+  }
+}
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input) {
