@@ -808,6 +808,16 @@ fi
 
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 
+dnl --------------------------------------------------------------
+dnl define or not WORDS_BIGENDIAN in dvdnav_internal.h
+dnl --------------------------------------------------------------
+if test x$ac_cv_c_bigendian = "xyes"; then
+  BIGENDIAN="#define WORDS_BIGENDIAN 1"
+else
+  BIGENDIAN="#undef WORDS_BIGENDIAN"
+fi
+AC_SUBST(BIGENDIAN)
+
 dnl ---------------------------------------------
 dnl ASF build can be optional
 dnl ---------------------------------------------
@@ -1328,6 +1338,7 @@ src/demuxers/Makefile
 src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
+src/input/libdvdnav/dvdnav_internal.h
 src/input/dvb/Makefile
 src/input/librtsp/Makefile
 src/input/libreal/Makefile
