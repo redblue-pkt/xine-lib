@@ -715,6 +715,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input_plugin.get_length        = http_plugin_get_length;
   this->input_plugin.get_blocksize     = http_plugin_get_blocksize;
   this->input_plugin.get_mrl           = http_plugin_get_mrl;
+  this->input_plugin.get_optional_data = http_plugin_get_optional_data;
   this->input_plugin.dispose           = http_plugin_dispose;
   this->input_plugin.input_class       = cls_gen;
 
