@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.11 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_matroska.c,v 1.12 2004/01/12 22:42:54 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -231,7 +231,7 @@ static int parse_video_track (demux_matroska_t *this, matroska_video_track_t *vt
         lprintf("MATROSKA_ID_TV_PIXELWIDTH\n");
         if (!ebml_read_uint(ebml, &elem, &val))
           return 0;
-        vt->pixel_witdh = val;
+        vt->pixel_width = val;
         break;
       case MATROSKA_ID_TV_PIXELHEIGHT:
         lprintf("MATROSKA_ID_TV_PIXELHEIGHT\n");
