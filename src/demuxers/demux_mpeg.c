@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.131 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.132 2003/12/06 12:03:44 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -287,6 +287,32 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       buf->decoder_flags |= BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
       buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
+      buf->pts       = pts;
+
+      this->video_fifo->put (this->video_fifo, buf);
+
+      return;
+    }
+
+    /* SVCD OGT subtitles are in stream 0x70 */
+    if((this->dummy_space[0] & 0xFF) == 0x70) {
+
+      buf = this->input->read_block (this->input, this->video_fifo, len-1);
+
+      buf->type      = BUF_SPU_SVCD + (this->dummy_space[0] & 0x03);
+      buf->pts       = pts;
+
+      this->video_fifo->put (this->video_fifo, buf);
+
+      return;
+    }
+
+    /* CVD subtitles are in stream 0x00-0x03 */
+    if((this->dummy_space[0] & 0xfc) == 0x00) {
+
+      buf = this->input->read_block (this->input, this->video_fifo, len-1);
+
+      buf->type      = BUF_SPU_CVD + (this->dummy_space[0] & 0x03);
       buf->pts       = pts;
 
       this->video_fifo->put (this->video_fifo, buf);
