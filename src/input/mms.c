@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.7 2002/05/06 21:40:02 f1rmb Exp $
+ * $Id: mms.c,v 1.8 2002/05/06 21:49:28 f1rmb Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -92,13 +92,6 @@ struct mms_s {
 };
 
 /* network/socket utility functions */
-/*
- * Small sighandler ;-)
- */
-static void die(int signal) {
-  printf("Signal %d\n", signal);
-  abort();
-}
 
 static int host_connect_attempt(struct in_addr ia, int port) {
 
