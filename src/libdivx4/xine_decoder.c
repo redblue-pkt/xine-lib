@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2002/03/19 16:17:08 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.22 2002/03/22 17:38:21 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -121,6 +121,7 @@ typedef struct divx4_decoder_s {
      OpenDivx cannot, so the user can set it in .xinerc. If 0, can_handle
      only returns MPEG4, yielding 311 to ffmpeg */
   int		    can_handle_311;
+  int               skipframes;
 } divx4_decoder_t;
 
 #define VIDEOBUFSIZE 128*1024
@@ -380,6 +381,8 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
       this->buf = malloc( VIDEOBUFSIZE );
       this->bufsize = VIDEOBUFSIZE;
+    
+      this->skipframes = 0;
     }
     return;
   }
@@ -401,6 +404,9 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
   this->size += buf->size;
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+    this->video_step = buf->decoder_info[0];
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
@@ -409,6 +415,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 				      IMGFMT_YV12, 
 				      VO_BOTH_FIELDS);
 
+    img->pts = buf->pts;
     img->duration = this->video_step;
     /* setup the decode frame parameters, as demonstrated by avifile.
        Old versions used DEC_YV12, but that was basically wrong and just
@@ -425,18 +432,20 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     else
       ret = this->decore((unsigned long)this, DEC_OPT_FRAME, &frame, 0);
       
-    if (ret != DEC_OK) {
-      printf("divx4: decore DEC_OPT_FRAME command returned %s.\n", 
-        decore_retval(ret));
+    if (ret != DEC_OK || this->skipframes) {
+      if( !this->skipframes )
+        printf("divx4: decore DEC_OPT_FRAME command returned %s.\n", 
+          decore_retval(ret));
       img->bad_frame = 1; /* better skip this one */
     }
     else {
       divx4_copy_frame(this, img, pict);
+      img->bad_frame = 0;
     }
 
-    /* this again from ffmpeg plugin */
-    img->pts = buf->pts;
-    img->draw(img);
+    this->skipframes = img->draw(img);
+    if( this->skipframes < 0 )
+      this->skipframes = 0;
     img->free(img);
       
     this->size = 0;

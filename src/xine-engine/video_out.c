@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.85 2002/03/22 13:33:22 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.86 2002/03/22 17:38:21 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -397,7 +397,10 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 	   without it decoder may try to free our backup.  */
 	this->img_backup = img;
 	this->backup_is_logo = 0;
-	this->redraw_needed = 1;
+	
+	/* wait 4 frames before drawing this one. 
+	   this allow slower systems to recover. */
+	this->redraw_needed = 4; 
       } else {
 	pthread_mutex_lock (&img->mutex);
 	  
@@ -467,7 +470,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       this->redraw_needed = 1;
     }
 
-    if (this->img_backup && this->redraw_needed) {
+    if (this->img_backup && (this->redraw_needed==1)) {
 
 #ifdef LOG
       printf("video_out: generating still frame (cur_vpts = %lld) \n",
@@ -487,7 +490,9 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       return img;
 
     } else {
-
+    
+      if( this->redraw_needed )
+        this->redraw_needed--;
 #ifdef LOG
       printf ("video_out: no frame, but no backup frame\n");
 #endif
