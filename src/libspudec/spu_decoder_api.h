@@ -25,9 +25,6 @@
 #define HAVE_SPU_API_H
 
 #define SPU_DECODER_IFACE_VERSION 9
-/* FIXME: Needed for spu_button_t */
-/* But will not be on all users's systems. (From the libspudec directory or libdvdread). */
-//#include "nav_types.h"
 
 /*
  * generic xine spu decoder plugin interface
@@ -53,7 +50,7 @@ struct spu_decoder_s {
 
   void (*dispose) (spu_decoder_t *this);
 
-  int (*get_nav_pci) (spu_decoder_t *this, void *nav_pci);
+  int (*get_nav_pci) (spu_decoder_t *this, pci_t *nav_pci);
 
 };
 
