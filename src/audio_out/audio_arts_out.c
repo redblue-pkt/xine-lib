@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.10 2002/04/06 14:19:12 miguelfreitas Exp $
+ * $Id: audio_arts_out.c,v 1.11 2002/05/23 22:50:52 miguelfreitas Exp $
  */
 
 /* required for swab() */
@@ -72,7 +72,6 @@ static int ao_arts_open(ao_driver_t *this_gen,
 		   uint32_t bits, uint32_t rate, int mode)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
-  int rc;
 
   printf ("audio_arts_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
 
@@ -105,12 +104,6 @@ static int ao_arts_open(ao_driver_t *this_gen,
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
 
   printf ("audio_arts_out: %d channels output\n",this->num_channels);
-
-  if( (rc=arts_init()) != 0 )
-  {
-    printf("arts_init error: %s\n",arts_error_text(rc));
-    return 0;
-  }
 
   this->audio_stream=arts_play_stream(this->sample_rate, bits, this->num_channels, "xine");
 
@@ -181,7 +174,6 @@ static void ao_arts_close(ao_driver_t *this_gen)
 
   if (this->audio_stream) {
   arts_close_stream(this->audio_stream);
-  arts_free();
   this->audio_stream = NULL;
   }
 }
@@ -196,6 +188,7 @@ static void ao_arts_exit(ao_driver_t *this_gen)
   arts_driver_t *this = (arts_driver_t *) this_gen;
   
   ao_arts_close(this_gen);
+  arts_free();
 
   free (this);
 }
@@ -241,7 +234,7 @@ static int ao_arts_set_property (ao_driver_t *this, int property, int value) {
  *
  */
 static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
-  arts_driver_t *this = (arts_driver_t *) this_gen;
+  /*arts_driver_t *this = (arts_driver_t *) this_gen;*/
 
   switch (cmd) {
 
@@ -271,8 +264,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 	  fprintf(stderr,"audio_arts_out: arts_init failed: %s\n",arts_error_text(rc));
 	  return NULL;
   }
-  arts_free();
-  
+
   /*
    * set capabilities
    */
