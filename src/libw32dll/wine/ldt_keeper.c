@@ -92,9 +92,11 @@ extern "C"
 #endif
 void Setup_FS_Segment(void)
 {
+/*
     __asm__ __volatile__(
 	"movl %0,%%eax; movw %%ax, %%fs" : : "i" (TEB_SEL)
     );
+*/
 }
 
 #ifdef __linux__
