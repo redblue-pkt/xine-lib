@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.15 2004/07/11 21:38:05 mroi Exp $
+ * $Id: image.c,v 1.16 2004/12/03 15:46:42 mroi Exp $
  *
  * a image video decoder
  */
@@ -263,7 +263,10 @@ static void end_callback(png_structp png_ptr, png_infop info) {
 
 	*out = le2me_16(*out);
       }
+      
+      free(this->rows[row]);
     }
+    free(this->rows);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
     img->draw(img, this->stream);
     img->free(img);
