@@ -1,4 +1,4 @@
-xine (0.9.next) unstable; urgency=low
+xine (0.9.6) unstable; urgency=low
 
   * demux_asf big fragments handling
   * working setup dialog (experimental)
@@ -6,7 +6,10 @@ xine (0.9.next) unstable; urgency=low
   * sun audio interface version fixed
   * fix segfault with -A null
   * add support for quicktime streams without audio
+  * audio plugin interface fix
 
+ -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov 27 01:20:06 CET 2001
+	
 xine (0.9.5) unstable; urgency=low
 
   * improved responsiveness (pause, stop, resume, seek)
