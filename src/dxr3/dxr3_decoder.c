@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.44 2001/12/16 19:05:44 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.45 2001/12/17 16:20:42 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -523,6 +523,17 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		vpts = this->video_decoder.metronom->got_video_frame(
 		 this->video_decoder.metronom, buf->PTS, buf->SCR );
 	}
+	/* ensure video device is open */
+	if (this->fd_video < 0) {	
+		char tmpstr[128];
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+		if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
+			printf("dxr3: Failed to open video device %s (%s)\n",
+				tmpstr, strerror(errno)); 
+			return;
+		}
+	}
+
 	/* Now that we have a PTS value from the stream, not a metronom
 	   interpolated one, it's a good time to make sure the dxr3 pts
            is in sync. Checking every 0.5 seconds should be enough... */
@@ -547,16 +558,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
 
-	/* ensure video device is open */
-	if (this->fd_video < 0) {	
-		char tmpstr[128];
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
-		if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
-			printf("dxr3: Failed to open video device %s (%s)\n",
-				tmpstr, strerror(errno)); 
-			return;
-		}
-	}
 	/* now write the content to the dxr3 mpeg device and, in a dramatic
 	   break with open source tradition, check the return value */
 	written = write(this->fd_video, buf->content, buf->size);

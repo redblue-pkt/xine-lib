@@ -1,7 +1,7 @@
   * better looking OSD fonts
   * fix audio pause on discontinuities
-  * cleanup of dxr3enc driver. Now official support for librte-0.4 besides
-    the traditional libfame, via .xine/config file.
+  * merged dxr3 and dxr3enc drivers into single dxr3 driver. See README.dxr3 
+  * dxr3 encoding support for librte-0.4 besides the traditional libfame.
  
 xine (0.9.7) unstable; urgency=low
 
