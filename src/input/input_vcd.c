@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.44 2002/06/17 21:17:32 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.45 2002/06/23 15:59:22 dennisbj Exp $
  *
  */
 
@@ -1068,7 +1068,7 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   this->fd = open (this->device, O_RDONLY);
 
   if (this->fd == -1) {
-    LOG_MSG_STDERR(this->xine, _("unable to open %s: %s."), this->device, strerror(errno));
+    LOG_MSG_STDERR(this->xine, _("unable to open %s: %s.\n"), this->device, strerror(errno));
     return NULL;
   }
 
