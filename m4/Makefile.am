@@ -1,6 +1,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 ##
+
 if INSTALL_M4
 m4datadir = @ACLOCAL_DIR@
 else

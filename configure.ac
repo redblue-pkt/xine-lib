@@ -1174,24 +1174,24 @@ AC_SUBST(INCLUDES)
 dnl ---------------------------------------------
 dnl Get where .m4 should be installed.
 dnl ---------------------------------------------
-if test x"${ACLOCAL_DIR+set}" != xset; then
-  case "`id`" in
-    uid=0\(* )
-      AC_MSG_CHECKING(for aclocal directory)
-      if (aclocal --version) < /dev/null > /dev/null 2>&1; then
-        ACLOCAL_DIR="`eval $ACLOCAL --print-ac-dir`"
-        AC_MSG_RESULT($ACLOCAL_DIR)
-      else
-        ACLOCAL_DIR="${prefix}/share/aclocal"
-        AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
-      fi
-      escapedprefix="`echo $prefix | sed -e 's/\\//\\\\\//g'`"
-      ACLOCAL_DIR="`echo $ACLOCAL_DIR|sed -e 's/^'$escapedprefix/'\${prefix}'/`"
-      ;;
-  esac
-fi
+dnl if test x"${ACLOCAL_DIR+set}" != xset; then
+dnl   case "`id`" in
+dnl     uid=0\(* )
+dnl       AC_MSG_CHECKING(for aclocal directory)
+dnl       if (aclocal --version) < /dev/null > /dev/null 2>&1; then
+dnl         ACLOCAL_DIR="`eval $ACLOCAL --print-ac-dir`"
+dnl         AC_MSG_RESULT($ACLOCAL_DIR)
+dnl       else
+dnl         ACLOCAL_DIR="${prefix}/share/aclocal"
+dnl         AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
+dnl       fi
+dnl       escapedprefix="`echo $prefix | sed -e 's/\\//\\\\\//g'`"
+dnl       ACLOCAL_DIR="`echo $ACLOCAL_DIR|sed -e 's/^'$escapedprefix/'\${prefix}'/`"
+dnl       ;;
+dnl   esac
+dnl fi
 AC_SUBST(ACLOCAL_DIR)
-AM_CONDITIONAL(INSTALL_M4, test x"$ACLOCAL_DIR" != "x")
+AM_CONDITIONAL([INSTALL_M4],[test x"$ACLOCAL_DIR" != "x"])
 
 
 dnl ---------------------------------------------
