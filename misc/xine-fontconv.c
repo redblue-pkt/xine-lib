@@ -24,7 +24,7 @@
  * converts ttf fonts to xine osd fonts
  *
  * compile:
- *   gcc -o xine-fontconv xine-fontconv.c `freetype-config --cflags` -lz `freetype-config --libs`
+ *   gcc -o xine-fontconv xine-fontconv.c `freetype-config --cflags --libs` -lz
  *
  * usage:
  *   xine-fontconv font.ttf fontname [encoding1 [encoding2 [...]]]
@@ -454,8 +454,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness,
           origin.x = thickness + border_pos[i][0]*thickness;
           origin.y = thickness + border_pos[i][1]*thickness;
 
-          error = FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, &origin, 1);  
-
+          error = FT_Glyph_Transform(glyph, NULL, &origin) ||
+                  FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, NULL, 1);  
 
           if (error) {
             printf("error generating bitmap [U+%04X]\n", item->code);
@@ -523,7 +523,9 @@ int main(int argc, char *argv[]) {
   int          thickness = 0;
   char        *encoding = "iso-8859-1";
   item_t      *unicodes = NULL;  /* unicode list */
+#ifdef LOG
   item_t      *item;
+#endif
   uint16_t     count;
 
   /*
@@ -567,9 +569,13 @@ int main(int argc, char *argv[]) {
   } else {
     count = generate_unicodes_list(&unicodes, argv + 3, argc - 3);
   }
+#ifdef LOG
   printf("Prepared %d unicode values: ", count);
   for (item = unicodes; item; item = item->next) printf("U+%04X ", item->code);
   printf("\n");
+#else
+  printf("Prepared %d unicode values.\n", count);
+#endif
 
   render_font (face, argv[2], 16, thickness, unicodes);
   render_font (face, argv[2], 20, thickness, unicodes);
