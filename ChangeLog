@@ -15,6 +15,16 @@ xine-lib (1-rc1)
     just press MENU2 (that is for example F2 in gxine) to start/stop recording
   * display channel number and name in DVB mode
   * first steps towards AMD64 support (thanks to Adrian Schroeter of SuSE)
+  * Add support for 4.1 and 5 channel speaker setups.
+  * Allow a52 passthru to be switchied on and off without having to exit xine.
+    One has to stop playing, and then restart playing for it to activate.
+  * Fix .mp3 content detection for .mp3 files with a header or ID3.
+  * Make sure mpeg_demux_pes waits for a "program_stream_pack_header"
+    before demuxing anything else. Otherwise detection of mpeg1/mpeg2 fails.
+  * Fix long standing problem with alsa not working on some audio cards
+    when using 6 analogue channels for output.
+  * Fix bug in playing A52 .wav files via SPDIF passthrough.
+  * Improve demux of transport streams with PMT stream IDs > 0x80.
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
