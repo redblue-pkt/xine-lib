@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.15\n"
-"POT-Creation-Date: 2003-03-07 23:47+0100\n"
+"POT-Creation-Date: 2003-03-22 19:54+0100\n"
 "PO-Revision-Date: 2002-11-25 10:28+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -15,38 +15,38 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
 "10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 
-#: src/audio_out/audio_alsa_out.c:193 src/audio_out/audio_alsa_out.c:825
-#: src/audio_out/audio_alsa_out.c:1011 src/audio_out/audio_alsa_out.c:1055
+#: src/audio_out/audio_alsa_out.c:194 src/audio_out/audio_alsa_out.c:830
+#: src/audio_out/audio_alsa_out.c:1016 src/audio_out/audio_alsa_out.c:1060
 msgid "device used for mono output"
 msgstr "zaøízení pou¾ité pro mono výstup"
 
-#: src/audio_out/audio_alsa_out.c:203 src/audio_out/audio_alsa_out.c:1018
+#: src/audio_out/audio_alsa_out.c:204 src/audio_out/audio_alsa_out.c:1023
 msgid "device used for stereo output"
 msgstr "zaøízení pou¾ité pro stereo výstup"
 
-#: src/audio_out/audio_alsa_out.c:213 src/audio_out/audio_alsa_out.c:1025
+#: src/audio_out/audio_alsa_out.c:214 src/audio_out/audio_alsa_out.c:1030
 msgid "device used for 4-channel output"
 msgstr "zaøízení pou¾ité pro ètyøkanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:223 src/audio_out/audio_alsa_out.c:1032
+#: src/audio_out/audio_alsa_out.c:224 src/audio_out/audio_alsa_out.c:1037
 msgid "device used for 5-channel output"
 msgstr "zaøízení pou¾ité pro pìtikanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:233 src/audio_out/audio_alsa_out.c:244
-#: src/audio_out/audio_alsa_out.c:1039 src/audio_out/audio_alsa_out.c:1046
+#: src/audio_out/audio_alsa_out.c:234 src/audio_out/audio_alsa_out.c:245
+#: src/audio_out/audio_alsa_out.c:1044 src/audio_out/audio_alsa_out.c:1051
 msgid "device used for 5.1-channel output"
 msgstr "zaøízení pou¾ité pro 5.1-kanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:957 src/audio_out/audio_alsa_out.c:1170
+#: src/audio_out/audio_alsa_out.c:962 src/audio_out/audio_alsa_out.c:1184
 msgid "alsa mixer device"
 msgstr "mixovací zaøízení alsa"
 
-#: src/audio_out/audio_alsa_out.c:1109 src/audio_out/audio_alsa_out.c:1122
-#: src/audio_out/audio_alsa_out.c:1135 src/audio_out/audio_alsa_out.c:1153
+#: src/audio_out/audio_alsa_out.c:1118 src/audio_out/audio_alsa_out.c:1132
+#: src/audio_out/audio_alsa_out.c:1146 src/audio_out/audio_alsa_out.c:1165
 msgid "used to inform xine about what the sound card can do"
 msgstr "pou¾ito k informování xine o tom, co umí zvuková karta"
 
-#: src/audio_out/audio_alsa_out.c:1203
+#: src/audio_out/audio_alsa_out.c:1217
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul xine pou¾ije zvuková zaøízení/ovladaèe alsa"
 
@@ -338,7 +338,7 @@ msgstr "input_rtp: nelze vytvoøit nové vlákno (%s)\n"
 msgid "RTP and UDP input plugin as shipped with xine"
 msgstr "modul pro sí»ový vstup dodávaný se xine"
 
-#: src/input/input_stdin_fifo.c:384
+#: src/input/input_stdin_fifo.c:387
 msgid "stdin streaming input plugin"
 msgstr "modul pro data ze standardního vstupu"
 
@@ -418,25 +418,21 @@ msgid "input_http: invalid http answer\n"
 msgstr "input_http: neplatná odpovìï http\n"
 
 #: src/input/input_http.c:844
-#, c-format
-msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
+#, fuzzy, c-format
+msgid "input_http: 3xx redirection: >%d %s<\n"
 msgstr "input_http: pøesmìrování 3xx není implementováno: >%d %s<\n"
 
-#: src/input/input_http.c:851
+#: src/input/input_http.c:848
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr "input_http: stav http není 2xx: >%d %s<\n"
 
-#: src/input/input_http.c:862
+#: src/input/input_http.c:859
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr "input_http: délka obsahu = %Ld bytù\n"
 
-#: src/input/input_http.c:868
-msgid "input_http: Location redirection not implemented\n"
-msgstr "input_http: Pøesmìrování umístìní není implementováno\n"
-
-#: src/input/input_http.c:940
+#: src/input/input_http.c:943
 msgid "http input plugin"
 msgstr "vstupní modul http"
 
@@ -445,7 +441,7 @@ msgstr "vstupní modul http"
 msgid "Buffering..."
 msgstr "Nahrává se..."
 
-#: src/libw32dll/w32codec.c:1488 src/libw32dll/w32codec.c:1560
+#: src/libw32dll/w32codec.c:1500 src/libw32dll/w32codec.c:1572
 msgid "path to win32 codec dlls"
 msgstr "cesta ke kodekùm win32"
 
@@ -463,7 +459,7 @@ msgstr ""
 msgid "syncfb (teletux) device node"
 msgstr "uzel zaøízení syncfb (teletux)"
 
-#: src/video_out/video_out_xshm.c:1132 src/video_out/video_out_fb.c:965
+#: src/video_out/video_out_xshm.c:1132 src/video_out/video_out_fb.c:980
 msgid "disable all video scaling (faster!)"
 msgstr "zakázat ve¹keré zmìny mìøítka (rychlej¹í!)"
 
@@ -475,40 +471,40 @@ msgstr "gama korekce pro ovladaè XShm"
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr "výstupní modul videa xine pou¾ije roz¹íøení MIT X shared memory"
 
-#: src/video_out/video_out_xv.c:1284
+#: src/video_out/video_out_xv.c:1291
 msgid "Colorkey used for Xv video overlay"
 msgstr "Klíèová barva pou¾itá pro pøekrývání videa u Xv"
 
-#: src/video_out/video_out_xv.c:1291
+#: src/video_out/video_out_xv.c:1298
 msgid "Make Xv autopaint its colorkey"
 msgstr "Pøimìt Xv automaticky kreslit klíèovou barvu"
 
-#: src/video_out/video_out_xv.c:1298
+#: src/video_out/video_out_xv.c:1305
 msgid "bilinear scaling mode (permedia 2/3)"
 msgstr "bilineární re¾im ¹kálování (permedia 2/3)"
 
-#: src/video_out/video_out_xv.c:1304
+#: src/video_out/video_out_xv.c:1311
 msgid "double buffer to sync video to the retrace"
 msgstr "dvojitý buffer k synchronizaci videa se zpìtným bìhem paprsku"
 
-#: src/video_out/video_out_xv.c:1357
+#: src/video_out/video_out_xv.c:1368
 msgid "workaround for some (buggy) XVideo drivers"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1362
+#: src/video_out/video_out_xv.c:1373
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
 "softwarová metoda korekce prokládání (klávesa I zapíná a vypíná deinterlacer)"
 
-#: src/video_out/video_out_xv.c:1378
+#: src/video_out/video_out_xv.c:1389
 msgid "xine video output plugin using the MIT X video extension"
 msgstr "výstupní modul videa xine pou¾ije roz¹íøení MIT X video"
 
-#: src/video_out/video_out_fb.c:767
+#: src/video_out/video_out_fb.c:772
 msgid "framebuffer device"
 msgstr "zaøízení framebuffer"
 
-#: src/video_out/video_out_fb.c:1002
+#: src/video_out/video_out_fb.c:1017
 #, fuzzy
 msgid "Xine video output plugin using the Linux frame buffer device"
 msgstr "výstupní modul videa xine pou¾ije zaøízení framebuffer"
@@ -530,12 +526,12 @@ msgstr "výstupní modul videa xine pou¾ije OpenGL"
 msgid "xine video output plugin using the DirectFB library."
 msgstr "výstupní modul videa xine pou¾ije knihovnu DirectFB"
 
-#: src/video_out/video_out_vidix.c:1081
+#: src/video_out/video_out_vidix.c:1099
 #, fuzzy
 msgid "xine video output plugin using libvidix for x11"
 msgstr "výstupní modul videa xine pou¾ije libvidix"
 
-#: src/video_out/video_out_vidix.c:1154
+#: src/video_out/video_out_vidix.c:1174
 #, fuzzy
 msgid "xine video output plugin using libvidix for linux frame buffer"
 msgstr "výstupní modul videa xine pou¾ije zaøízení framebuffer"
@@ -571,82 +567,82 @@ msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out: Lituji, toto by se nemìlo pøihodit. Prosím restartujte xine.\n"
 
-#: src/xine-engine/xine.c:516 src/xine-engine/xine.c:767
+#: src/xine-engine/xine.c:530
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nelze nalézt vstupní modul pro toto MRL\n"
 
-#: src/xine-engine/xine.c:547
+#: src/xine-engine/xine.c:564
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: selhalo spu¹tìní demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:583
+#: src/xine-engine/xine.c:600
 #, fuzzy, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr "xine: selhalo spu¹tìní demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:794
+#: src/xine-engine/xine.c:783
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
 
-#: src/xine-engine/xine.c:831
+#: src/xine-engine/xine.c:820
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: selhalo spu¹tìní demultiplexoru\n"
 
-#: src/xine-engine/xine.c:927
+#: src/xine-engine/xine.c:917
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: ¾ádný dostupný demultiplexor\n"
 
-#: src/xine-engine/xine.c:942
+#: src/xine-engine/xine.c:932
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
 
-#: src/xine-engine/xine.c:1464
+#: src/xine-engine/xine.c:1463
 msgid "messages"
 msgstr "zprávy"
 
-#: src/xine-engine/xine.c:1465
+#: src/xine-engine/xine.c:1464
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/audio_out.c:1525
+#: src/xine-engine/audio_out.c:1581
 msgid "choose method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1526
+#: src/xine-engine/audio_out.c:1582
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1532
+#: src/xine-engine/audio_out.c:1590
 msgid "adjust whether resampling is done or not"
 msgstr "nastavit, jestli se má pøevzorkovávat nebo ne"
 
-#: src/xine-engine/audio_out.c:1535
+#: src/xine-engine/audio_out.c:1593
 msgid "if !=0 always resample to given rate"
 msgstr "pøi !=0 v¾dy pøevzorkovat na danou frekvenci"
 
-#: src/xine-engine/audio_out.c:1541
+#: src/xine-engine/audio_out.c:1599
 msgid "adjust if audio is offsync"
 msgstr "upravte, jestli¾e bude zvuk nesynchronizovaný (A52 nebo AC5)"
 
-#: src/xine-engine/audio_out.c:1587
+#: src/xine-engine/audio_out.c:1646
 msgid "Audio volume"
 msgstr "hlasitost zvuku"
 
-#: src/xine-engine/audio_out.c:1591
+#: src/xine-engine/audio_out.c:1650
 msgid "restore volume level at startup"
 msgstr "obnovit úroveò hlasitosti pøi startu"
 
-#: src/xine-engine/audio_out.c:1592
+#: src/xine-engine/audio_out.c:1651
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "jestli¾e toto není nastaveno, xine nebude pøi spu¹tìní mìnit ¾ádná nastavení "
 "mixeru"
 
-#: src/xine-engine/osd.c:883
+#: src/xine-engine/osd.c:927
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Paleta (popøedí-okraj-pozadí) pou¾itá na titulky"
 
@@ -674,12 +670,12 @@ msgstr ""
 "load_plugins: nelze získat informace o modulu z %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:396
+#: src/xine-engine/load_plugins.c:397
 #, fuzzy, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "load_plugins: neznámý typ modulu %d v %s\n"
 
-#: src/xine-engine/load_plugins.c:414
+#: src/xine-engine/load_plugins.c:415
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -687,6 +683,10 @@ msgid ""
 msgstr ""
 "load_plugins: nelze (fáze 2) otevøít knihovnu modulu %s:\n"
 "%s\n"
+
+#: src/libffmpeg/xine_decoder.c:989
+msgid "ffmpeg mpeg-4 postprocessing quality"
+msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:258
 msgid "swap odd and even lines"
@@ -846,12 +846,17 @@ msgstr "nejmen¹í dovolená verze Divx (jestli nevíte, nastavte 0 (pøedvolené))"
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 
-#: src/libsputext/xine_decoder.c:400
+#: src/libsputext/xine_decoder.c:412
 msgid "font for avi subtitles"
 msgstr "font titulkù pro AVI"
 
-#: src/libsputext/xine_decoder.c:406
+#: src/libsputext/xine_decoder.c:418
 msgid "subtitle size (relative window size)"
+msgstr "velikost titulkù (vzhledem k velikosti okna)"
+
+#: src/libsputext/xine_decoder.c:424
+#, fuzzy
+msgid "subtitle vertical offset (relative window size)"
 msgstr "velikost titulkù (vzhledem k velikosti okna)"
 
 #: src/libspucc/xine_decoder.c:223
@@ -937,6 +942,9 @@ msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (2)\n"
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
+
+#~ msgid "input_http: Location redirection not implemented\n"
+#~ msgstr "input_http: Pøesmìrování umístìní není implementováno\n"
 
 #~ msgid "OUCH - ran out of buffers\n"
 #~ msgstr "JEJDA - buffery vyèerpány\n"
