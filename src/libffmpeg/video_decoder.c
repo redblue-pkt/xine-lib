@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.9 2004/03/03 20:09:13 mroi Exp $
+ * $Id: video_decoder.c,v 1.10 2004/03/09 04:09:41 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -790,7 +790,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_MSZH,        CODEC_ID_MSZH,       "MSZH Video (ffmpeg)"},
   {BUF_VIDEO_ASV1,        CODEC_ID_ASV1,       "ASV v1 Video (ffmpeg)"},
   {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
-  {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"} };
+  {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
+  {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"} };
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
@@ -1268,6 +1269,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_ASV1,
   BUF_VIDEO_ASV2,
   BUF_VIDEO_ATIVCR1,
+  BUF_VIDEO_FLV1,
   0 
 };
 
