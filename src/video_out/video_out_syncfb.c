@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.24 2001/11/03 22:39:07 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.25 2001/11/04 10:53:05 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -174,6 +174,7 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uin
    }
 }
 
+// FIXME: function changed, needs testing!
 static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
 {
    uint_8* dest;
@@ -194,11 +195,11 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, u
    dest = this->video_mem + this->bufinfo.offset_p2;
    for(h=0; h < src_height/2; h++) {
       tmp32 = (uint_32 *)dest;
-      w = src_width/8;
+      w = (src_width/8) * 2;
       
       while (w--) {
-	 *tmp32++ = (*rcr++) | (*rcb++)<<8 | (*rcr++)<<16 | (*rcb++)<<24;
-	 *tmp32++ = (*rcr++) | (*rcb++)<<8 | (*rcr++)<<16 | (*rcb++)<<24;
+	 *tmp32 = *rcr | (*rcb << 8) | (*rcr << 16) | (*rcb << 24);
+	 tmp32++; rcr++; rcb++;
       }
       
       dest += bespitch;
