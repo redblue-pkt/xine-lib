@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.24 2002/10/07 14:14:30 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.25 2002/10/22 16:46:25 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,11 +59,18 @@
 #define	AUDIO_PRECISION_16	16
 #endif
 
-#define AO_SUN_IFACE_VERSION 4
+#define AO_SUN_IFACE_VERSION 5
 
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE   AO_MAX_GAP
 #define	NOT_REAL_TIME		-1
+
+
+typedef struct {
+  audio_driver_class_t driver_class;
+
+  config_values_t *config;
+} sun_class_t;
 
 
 typedef struct sun_driver_s {
@@ -701,8 +708,27 @@ static int ao_sun_write(xine_ao_driver_t *this_gen,
 	  *p ^= 0x80;
   }
   num_written = sun_audio_write(this, frame_buffer, num_frames * this->bytes_per_frame);
-  if (num_written > 0)
+  if (num_written > 0) {
+    int buffered_samples;
+
     this->frames_in_buffer += num_written / this->bytes_per_frame;
+
+    /* 
+     * Avoid storing too much data in the sound driver's buffers.
+     *
+     * When we find more than 3 seconds of buffered audio data in the
+     * driver's buffer, deliberately block sending of more data, until
+     * there is less then 2 seconds of buffered samples.
+     *
+     * During an active audio playback, this helps when either the
+     * xine engine is stopped or a seek operation is performed. In
+     * both cases the buffered audio samples need to be flushed from
+     * the xine engine and the audio driver anyway.
+     */
+    if ((buffered_samples = ao_sun_delay(this_gen)) >= 3*this->output_sample_rate) {
+      sleep(buffered_samples/this->output_sample_rate - 2);
+    }
+  }
 
   return num_written;
 }
@@ -835,14 +861,15 @@ static int ao_sun_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static void *init_audio_out_plugin (xine_t *xine, void *data) {
+static xine_ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
-  config_values_t *config = xine->config;
-  sun_driver_t	  *this;
-  char            *devname;
-  int              audio_fd;
-  int              status;
-  audio_info_t	   info;
+  sun_class_t         *class = (sun_class_t *) class_gen;
+  config_values_t     *config = class->config;
+  sun_driver_t	      *this;
+  char                *devname;
+  int                  audio_fd;
+  int                  status;
+  audio_info_t	       info;
 
   this = (sun_driver_t *) malloc (sizeof (sun_driver_t));
 
@@ -929,15 +956,44 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+/*
+ * class functions
+ */
+
+static char* ao_sun_get_identifier (audio_driver_class_t *this_gen) {
+  return "sun";
+}
+
+static char* ao_sun_get_description (audio_driver_class_t *this_gen) {
+  return _("xine audio output plugin using sun-compliant audio devices/drivers");
+}
+
+static void ao_sun_dispose_class (audio_driver_class_t *this_gen) {
+
+  sun_class_t *this = (sun_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *ao_sun_init_class (xine_t *xine, void *data) {
+  sun_class_t         *this;
+
+  this = (sun_class_t *) malloc (sizeof (sun_class_t));
+
+  this->driver_class.open_plugin     = ao_sun_open_plugin;
+  this->driver_class.get_identifier  = ao_sun_get_identifier;
+  this->driver_class.get_description = ao_sun_get_description;
+  this->driver_class.dispose         = ao_sun_dispose_class;
+
+  this->config = xine->config;
+
+  return this;
+}
+
+
 static ao_info_t ao_info_sun = {
-  "xine audio output plugin using sun-compliant audio devices/drivers",
   10
 };
-
-ao_info_t *get_audio_out_plugin_info() {
-  ao_info_sun.description = _("xine audio output plugin using sun-compliant audio devices/drivers"); 
-  return &ao_info_sun;
-}
 
 /*
  * exported plugin catalog entry
@@ -945,6 +1001,6 @@ ao_info_t *get_audio_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_SUN_IFACE_VERSION, "sun", XINE_VERSION_CODE, &ao_info_sun, init_audio_out_plugin },
+  { PLUGIN_AUDIO_OUT, AO_SUN_IFACE_VERSION, "sun", XINE_VERSION_CODE, &ao_info_sun, ao_sun_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
