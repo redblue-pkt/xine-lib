@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.33 2001/09/10 13:36:56 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.34 2001/09/10 15:42:39 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -585,8 +585,6 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     int image_size;
 
-    this->stripe_height = 16 * this->output_height / this->delivered_height;
-
     /*
     printf ("video_out_xshm: updating frame to %d x %d\n",
 	    this->output_width,this->output_height);
@@ -642,6 +640,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   }
 
   if (frame->image) {
+    this->stripe_height = 16 * this->output_height / this->delivered_height;
+
     frame->rgb_dst    = frame->image->data;
     switch (flags) {
     case VO_TOP_FIELD:
@@ -658,11 +658,12 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       break;
     }
 
-    if ( (flags == VO_BOTH_FIELDS) 
-	 && (this->yuv_stride != frame->image->bytes_per_line) ) {
-      setup_yuv = 1;
-    } else if (this->yuv_stride != (frame->image->bytes_per_line*2)) {
-      setup_yuv = 1;
+    if (flags == VO_BOTH_FIELDS) {
+      if (this->yuv_stride != frame->image->bytes_per_line)
+	setup_yuv = 1;
+    } else {	/* VO_TOP_FIELD, VO_BOTTOM_FIELD */
+      if (this->yuv_stride != (frame->image->bytes_per_line*2))
+	setup_yuv = 1;
     }
 
     if (setup_yuv 
