@@ -19,8 +19,7 @@ libdir = $(XINE_PLUGINDIR)
 #
 
 if HAVE_CDROM_IOCTLS
-#in_dvd = xineplug_inp_dvd.la
-in_dvd = 
+in_dvd = xineplug_inp_dvd.la
 in_vcd = xineplug_inp_vcd.la
 in_cda = xineplug_inp_cda.la
 endif
@@ -57,9 +56,9 @@ xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_dvd_la_SOURCES = input_dvd.c 
-#xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la $(link_dvdnav)
-#xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+xineplug_inp_dvd_la_SOURCES = input_dvd.c 
+xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la $(link_dvdnav)
+xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 xineplug_inp_net_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
