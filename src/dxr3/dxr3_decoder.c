@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.33 2001/11/14 17:37:02 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.34 2001/11/18 08:25:46 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -417,7 +417,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 		return NULL;
 	}
 
-	devname = cfg->lookup_str (cfg, LOOKUP_DEV, DEFAULT_DEV);
+	devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Name of the dxr3 device",NULL,NULL,NULL);
+
 	dxr3_presence_test ();
 	if (!dxr3_ok) return NULL;
 
@@ -432,9 +433,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.priority            = 10;
 
-	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10); 
+	this->scr_prio = cfg->register_num(cfg, "dxr3_scr_prio", 10, "Priority of the Dxr3 SCR plugin",NULL,NULL,NULL); 
         
-	this->enhanced_mode = cfg->lookup_int(cfg,"dxr3_buffer_mode", 0);
+	this->enhanced_mode = cfg->register_bool(cfg,"dxr3_buffer_mode", 0, "Use alternate Play mode",NULL,NULL,NULL);
+
 	if(this->enhanced_mode)
 	  printf("Dxr3: Using Mode 6 for playback\n");
 	return (video_decoder_t *) this;
@@ -635,7 +637,8 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   }
 
   cfg = xine->config;
-  devname = cfg->lookup_str (cfg, LOOKUP_DEV, DEFAULT_DEV);
+  devname = cfg->register_string (cfg, LOOKUP_DEV, DEFAULT_DEV, "Name of the dxr3 device",NULL,NULL,NULL);
+
   dxr3_presence_test ();
   if (!dxr3_ok) return NULL;
 

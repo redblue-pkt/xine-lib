@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.7 2001/11/10 06:20:39 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.8 2001/11/18 08:25:46 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -103,14 +103,15 @@ void dxr3_read_config(dxr3_driver_t *this)
 		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
 		 strerror(errno));
 
-	this->bcs.contrast = config->lookup_int(config, "dxr3_contrast", this->bcs.contrast);
-	this->bcs.saturation = config->lookup_int(config, "dxr3_saturation", this->bcs.saturation);
-	this->bcs.brightness = config->lookup_int(config, "dxr3_brightness", this->bcs.brightness);
+	this->bcs.contrast = config->register_range(config, "dxr3_contrast", this->bcs.contrast,100,900,"Dxr3 contrast control",NULL,NULL,NULL);
+	this->bcs.saturation = config->register_range(config, "dxr3_saturation", this->bcs.saturation,100,900,"Dxr3 saturation control",NULL,NULL,NULL);
+	this->bcs.brightness = config->register_range(config, "dxr3_brightness", this->bcs.brightness,100,900,"Dxr3 brightness control",NULL,NULL,NULL);
 
 	this->vo_driver.set_property(&this->vo_driver,
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
 
-	str = config->lookup_str(config, "dxr3_vomode", "tv");
+	str = config->register_string(config, "dxr3_vomode", "tv", "Dxr3 videoout mode", NULL,NULL,NULL);
+
 	if (!strcasecmp(str, "tv")) {
 		this->overlay_enabled=0;
 		this->tv_switchable=0;  /* don't allow on-the-fly switching */		
@@ -120,10 +121,12 @@ void dxr3_read_config(dxr3_driver_t *this)
 		if (dxr3_overlay_read_state(&this->overlay) == 0) {
 			this->overlay_enabled = 1;
 			this->tv_switchable=1;	
-			str = config->lookup_str(config, "dxr3_keycolor", "0x80a040");
+			str = config->register_string(config, "dxr3_keycolor", "0x80a040", "Dxr3 overlay colourkey value",NULL,NULL,NULL);
+
 			sscanf(str, "%x", &this->overlay.colorkey);
 
-			str = config->lookup_str(config, "dxr3_color_interval", "50.0");
+			str = config->register_string(config, "dxr3_color_interval", "50.0", "Dxr3 overlay colourkey range",NULL,NULL,NULL);
+
 			sscanf(str, "%f", &this->overlay.color_interval);
 		} else {
 			fprintf(stderr, "dxr3_vo: please run autocal, overlay disabled\n");
@@ -131,7 +134,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 			this->tv_switchable=0;
 		}
 	}	
-	str = config->lookup_str(config, "dxr3_preferred_tvmode", "default");
+	str = config->register_string(config, "dxr3_preferred_tvmode", "default", "Dxr3 preferred tv mode",NULL,NULL,NULL);
 
 	if (!strcasecmp(str, "ntsc")) {
 		this->tv_mode = EM8300_VIDEOMODE_NTSC;
@@ -347,9 +350,9 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
 			fprintf(stderr, "dxr3_vo: bcs set failed (%s)\n",
 			 strerror(errno));
-		this->config->set_int(this->config, "dxr3_contrast", this->bcs.contrast);
-		this->config->set_int(this->config, "dxr3_saturation", this->bcs.saturation);
-		this->config->set_int(this->config, "dxr3_brightness", this->bcs.brightness);
+		this->config->update_num(this->config, "dxr3_contrast", this->bcs.contrast);
+		this->config->update_num(this->config, "dxr3_saturation", this->bcs.saturation);
+		this->config->update_num(this->config, "dxr3_brightness", this->bcs.brightness);
 	}			 
 			 
 	return value;

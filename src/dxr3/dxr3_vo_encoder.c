@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.3 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.4 2001/11/18 08:25:46 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -302,7 +302,8 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       puts ("Couldn't start the FAME library");
    
     buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-    fp.quality=this->config->lookup_int(this->config,"dxr3enc_quality",90);
+    fp.quality=this->config->register_range(this->config,"dxr3enc_quality",90, 10,100, "Dxr3enc mpeg encoding quality",NULL,NULL,NULL);
+
     fp.width = width;
     fp.height = oheight;
     fp.profile = "mpeg1";
@@ -545,7 +546,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->config=config;
 	
 	/* open control device */
-	devname = config->lookup_str (config, LOOKUP_DEV, DEFAULT_DEV);
+	devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,"Dxr3 device name",NULL,NULL,NULL);
+
 	printf("dxr3enc: Entering video init, devname=%s.\n",devname);
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
 		printf("dxr3enc: Failed to open control device %s (%s)\n",
@@ -553,7 +555,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		return 0;
 	}
         /* output mpeg to file instead of dxr3? */
-        file_out = config->lookup_str(config, "dxr3enc_file", "<none>");
+        file_out = config->register_string(config, "dxr3enc_file", "<none>", "Dxr3enc output file for debugging",NULL,NULL,NULL);
+
         if (file_out && strcmp(file_out, "<none>")) {
 		this->fd_video = open(file_out, O_WRONLY | O_CREAT);
 		if (this->fd_video < 0) {
