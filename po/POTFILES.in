@@ -20,6 +20,10 @@ src/demuxers/demux_cda.c
 src/demuxers/demux_film.c
 src/demuxers/demux_mpeg_block.c
 src/demuxers/demux_roq.c
+src/demuxers/demux_fli.c
+src/demuxers/demux_idcin.c
+src/demuxers/demux_smjpeg.c
+src/demuxers/demux_wav.c
 src/input/input_net.c
 src/input/input_rtp.c
 src/input/input_stdin_fifo.c
@@ -41,6 +45,7 @@ src/video_out/video_out_sdl.c
 src/video_out/video_out_opengl.c
 src/video_out/video_out_directfb.c
 src/video_out/video_out_vidix.c
+src/xine-engine/tvmode.c
 src/xine-engine/video_out.c
 src/xine-engine/xine.c
 src/xine-engine/audio_out.c
@@ -48,12 +53,12 @@ src/xine-engine/osd.c
 src/xine-engine/load_plugins.c
 src/liblpcm/xine_decoder.c
 src/libffmpeg/xine_decoder.c
+src/dxr3/video_out_dxr3.c
 src/dxr3/dxr3.h
 src/dxr3/dxr3_decode_spu.c
 src/dxr3/dxr3_decode_video.c
-src/dxr3/dxr3_mpeg_encoders.c
 src/dxr3/dxr3_scr.c
-src/dxr3/video_out_dxr3.c
+src/dxr3/dxr3_mpeg_encoders.c
 src/libmad/xine_decoder.c
 src/liba52/xine_decoder.c
 src/libdts/xine_decoder.c

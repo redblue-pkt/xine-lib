@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.101 2002/06/23 19:34:36 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.102 2002/07/09 12:45:17 f1rmb Exp $
  *
  */
 
@@ -1999,22 +1999,23 @@ char *xine_set_locale(void);
 	   * @{
 	   */
 /**
- * \fn void xine_tvmode_init ();
+ * \fn void xine_tvmode_init (xine_t *self);
  * \brief connect to nvtvd server and save current TV and X settings
- * \param none
+ * \param self xine object.
  */
-void xine_tvmode_init (void);
+void xine_tvmode_init (xine_t *self);
 
 /**
- * \fn void xine_tvmode_exit ();
+ * \fn void xine_tvmode_exit (xine_t *self);
  * \brief restore old TV and X settings and close nvtvd connection
- * \param none
+ * \param self xine object.
  */
-void xine_tvmode_exit (void);
+void xine_tvmode_exit (xine_t *self);
 
 /**
- * \fn int xine_tvmode_switch (int type, int width, int height, double fps);
+ * \fn int xine_tvmode_switch (xine_t *self, int type, int width, int height, double fps);
  * \brief try to change TV state if enabled
+ * \param self xine object.
  * \param type select 'regular' (0) or 'TV' (1) state
  * \param width frame width the mode should match best or 0 if unknown
  * \param height frame height the mode should match best or 0 if unknown
@@ -2022,17 +2023,18 @@ void xine_tvmode_exit (void);
  * \return finally selected state
  * \sa xine_tvmode_init(), xine_tvmode_exit(), xine_tvmode_size()
  */
-int xine_tvmode_switch (int type, int width, int height, double fps);
+int xine_tvmode_switch (xine_t *self, int type, int width, int height, double fps);
 
 /**
- * \fn void xine_tvmode_size (int *width, int *height, double *pixelaspect, double *fps);
+ * \fn void xine_tvmode_size (xine_t *self, int *width, int *height, double *pixelaspect, double *fps);
  * \brief addapt (maximum) output size to visible area if necessary and return pixel aspect and real  frame rate if available
+ * \param self xine object.
  * \param width output width to be adapted or NULL
  * \param height output height to be adapted or NULL
  * \param pixelaspect pixel aspect to be adapted or NULL
  * \param frame rate of current TV mode to be adapted or NULL
  */
-void xine_tvmode_size (int *width, int *height, double *pixelaspect, double *fps);
+void xine_tvmode_size (xine_t *self, int *width, int *height, double *pixelaspect, double *fps);
 
           /** @} end of xine_tvmode */
 
