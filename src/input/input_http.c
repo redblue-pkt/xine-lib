@@ -880,6 +880,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   this->nbc    = nbc_init (this->stream);
 
+  nbc_set_high_water_mark(this->nbc, 30);
+
   /*
    * fill preview buffer
    */

@@ -155,7 +155,7 @@ static off_t rtsp_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t rtsp_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return INPUT_CAP_NOCAP;
+  return INPUT_CAP_PREVIEW;
 }
 
 static uint32_t rtsp_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -202,7 +202,15 @@ static char* rtsp_plugin_get_mrl (input_plugin_t *this_gen) {
 
 static int rtsp_plugin_get_optional_data (input_plugin_t *this_gen, 
                                          void *data, int data_type) {
-  /* rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen; */
+  rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+  case INPUT_OPTIONAL_DATA_PREVIEW:
+
+    return rtsp_session_peek_header(this->rtsp, data);
+
+    break;
+  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
@@ -242,6 +250,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   sprintf(this->public_mrl, "%s.rm", this->mrl);
   
   this->nbc    = nbc_init (stream);
+  nbc_set_high_water_mark(this->nbc, 50);
 
   this->input_plugin.get_capabilities  = rtsp_plugin_get_capabilities;
   this->input_plugin.read              = rtsp_plugin_read;
