@@ -226,29 +226,31 @@ dnl mpeg2lib stuff
 dnl ---------------------------------------------
 
 AC_SUBST(LIBMPEG2_CFLAGS)
-AC_SUBST(LIBA52_CFLAGS)
 AC_SUBST(LIBFFMPEG_CFLAGS)
 
 LIBMPEG2_CFLAGS=""
-LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_ENCODERS"
 
 AC_ARG_ENABLE(altivec,
-	[  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
+	[  --disable-altivec       Use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis, 
-	[  --disable-vis           use assembly codes for Sun UltraSPARC cpus],
+	[  --disable-vis           Use assembly codes for Sun UltraSPARC CPUs],
          	enable_vis=no,
 		enable_vis=yes)
 
-if test x$enable_mlib = x; then
 AC_ARG_ENABLE(mlib,
-	[  --disable-mlib          make a version not using mediaLib],
+	[  --disable-mlib          Do not build Sun mediaLib support],
 		enable_mlib=no,
 		enable_mlib=yes)
-fi
+
+AC_ARG_ENABLE(mlib-lazyload,
+	[  --enable-mlib-lazyload  Check for Sun mediaLib at runtime],
+		enable_mlib_lazyload=yes,
+		enable_mlib_lazyload=no)
+
 if test x$enable_mlib = xyes; then
     if test x"$MLIBHOME" = x; then
 	mlibhome=/opt/SUNWmlib
@@ -260,20 +262,28 @@ if test x$enable_mlib = xyes; then
 	[ saved_CPPFLAGS="$CPPFLAGS"
 	  CPPFLAGS="$CPPFLAGS -I$mlibhome/include"
 	  AC_CHECK_HEADER(mlib_video.h,
-	       [ LIBS="$LIBS -L$mlibhome/lib -lmlib" 
-                 LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I$mlibhome/include" 
-                 LIBA52_CFLAGS="$LIBA52_CFLAGS -I$mlibhome/include" 
-                 LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -I$mlibhome/include"
-                 MLIB_CFLAGS="-I$mlibhome/include"
+	       [ if test x$enable_mlib_lazyload = xyes; then
+		     if test "$GCC" = yes; then
+			 MLIB_LIBS="-L$mlibhome/lib -Wl,-z,lazyload,-lmlib,-z,nolazyload"
+		     else
+			 MLIB_LIBS="-L$mlibhome/lib -z lazyload -lmlib -z nolazyload"
+		     fi
+		     AC_DEFINE(MLIB_LAZYLOAD,1,[Define this if you want to load mlib lazily])
+		 else
+		     MLIB_LIBS="-L$mlibhome/lib -lmlib"
+		 fi
+		 MLIB_CFLAGS="-I$mlibhome/include"
+		 LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS $MLIB_CFLAGS" 
+		 LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS $MLIB_CFLAGS"
 		 AC_DEFINE(HAVE_MLIB,1,[Define this if you have mlib installed])
-                 AC_DEFINE(LIBMPEG2_MLIB,1,[Define this if you have mlib installed])
-		 AC_DEFINE(LIBA52_MLIB,1,[Define this if you have mlib installed])
+		 AC_DEFINE(LIBMPEG2_MLIB,1,[Define this if you have mlib installed])
 		 ac_have_mlib=yes
 	       ],)
 	  CPPFLAGS="$saved_CPPFLAGS"
 	], , -L$mlibhome/lib)
 fi
 AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
+AC_SUBST(MLIB_LIBS)
 AC_SUBST(MLIB_CFLAGS)
 
 
@@ -304,7 +314,7 @@ dnl IPv6
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE(ipv6,
-	[  --enable-ipv6           enable use of IPv6],
+	[  --enable-ipv6           Enable use of IPv6],
 		enable_ipv6=yes,
 		enable_ipv6=no)
 
@@ -980,7 +990,7 @@ dnl ---------------------------------------------
 dnl VCDx
 dnl ---------------------------------------------
 dnl
-dnl AC_ARG_ENABLE(vcdx,[  --disable-vcdx       Do not compile VCDX plugin. Compile old VCD instead], enable_vcdx=no, enable_vcdx=yes)
+dnl AC_ARG_ENABLE(vcdx,[  --disable-vcdx          Do not compile VCDX plugin. Compile old VCD instead], enable_vcdx=no, enable_vcdx=yes)
 dnl
 dnl Force build of both vcd plugins, for now.
 enable_vcdx="yes"

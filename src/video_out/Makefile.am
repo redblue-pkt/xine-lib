@@ -85,14 +85,13 @@ xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_xshm.c
-xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext \
-	$(XINE_LIB)
+xineplug_vo_out_xshm_la_LIBADD = $(MLIB_LIBS) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_opengl.c
-#xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS) \
-#	$(XINE_LIB)
+#xineplug_vo_out_opengl_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
+#	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB)
 #xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
@@ -105,7 +104,7 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_fb.c
-xineplug_vo_out_fb_la_LIBADD = $(XINE_LIB)
+xineplug_vo_out_fb_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c

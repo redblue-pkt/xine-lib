@@ -13,7 +13,9 @@ xine-lib (1-rc2)
   * concatenated asf streams support
   * fix performance issue with wav demuxer and compressed data
   * fix mpeg 2 audio frame parsing (mpeg_audio demuxer)
-           
+  * fix segmentation fault in mms when iconv_open fails
+  * allow lazy loading of Sun mediaLib (configure --enable-mlib-lazyload)
+
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
   * add support for chroma keyed overlay graphics to video_out_pgx64

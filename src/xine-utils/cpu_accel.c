@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include <setjmp.h>
+#include <dlfcn.h>
 
 #include "xineutils.h"
 
@@ -174,16 +175,32 @@ static uint32_t arch_accel (void)
 
 uint32_t xine_mm_accel (void)
 {
-#if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
+  static int initialized = 0;
   static uint32_t accel;
-  static int initialized;
 
   if (!initialized) {
+#if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
     accel = arch_accel ();
+#elif defined (HAVE_MLIB)
+#ifdef MLIB_LAZYLOAD
+    void *hndl;
+
+    if ((hndl = dlopen("libmlib.so.2", RTLD_LAZY | RTLD_GLOBAL | RTLD_NODELETE)) == NULL) {
+      accel = 0;
+    }
+    else {
+      dlclose(hndl);
+      accel = MM_ACCEL_MLIB;
+    }
+#else
+    accel = MM_ACCEL_MLIB;
+#endif
+#else
+    accel = 0;
+#endif
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 #ifndef _MSC_VER
-
     /* test OS support for SSE */
     if( accel & MM_ACCEL_X86_SSE ) {
       void (*old_sigill_handler)(int);
@@ -202,22 +219,14 @@ uint32_t xine_mm_accel (void)
       signal (SIGILL, old_sigill_handler);
     }
 #endif /* _MSC_VER */
-#endif /* ARCH_X86 */
+#endif /* ARCH_X86 || ARCH_X86_64 */
     
-    if( getenv("XINE_NO_ACCEL") )
+    if(getenv("XINE_NO_ACCEL")) {
       accel = 0;
+    }
 
-    initialized++;
+    initialized = 1;
   }
 
   return accel;
-
-#else /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
-#ifdef HAVE_MLIB
-  return MM_ACCEL_MLIB;
-#else
-  return 0;
-#endif
-#endif /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
 }
-

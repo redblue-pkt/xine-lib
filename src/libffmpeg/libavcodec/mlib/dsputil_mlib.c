@@ -414,6 +414,7 @@ static void ff_fdct_mlib(DCTELEM *data)
 
 void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
 {
+  if (xine_mm_accel() & MM_ACCEL_MLIB) {
     c->get_pixels  = get_pixels_mlib;
     c->diff_pixels = diff_pixels_mlib;
     c->add_pixels_clamped = add_pixels_clamped_mlib;
@@ -440,10 +441,12 @@ void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
     c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
 
     c->bswap_buf = bswap_buf_mlib;
+  }
 }
 
 void MPV_common_init_mlib(MpegEncContext *s)
 {
+  if (xine_mm_accel() & MM_ACCEL_MLIB) {
     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
 	s->dsp.fdct = ff_fdct_mlib;
     }
@@ -453,4 +456,5 @@ void MPV_common_init_mlib(MpegEncContext *s)
         s->dsp.idct_add = ff_idct_add_mlib;
         s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
     }
+  }
 }

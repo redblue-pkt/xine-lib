@@ -692,3 +692,35 @@ diff -u -r1.8 motion_est_mmx.c
  
  static inline void sad8_mmx(uint8_t *blk1, uint8_t *blk2, int stride, int h)
  {
+Index: libavcodec/mlib/dsputil_mlib.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavcodec/mlib/dsputil_mlib.c,v
+--- dsputil_mlib,c	2003-10-19 13:06:27.560738000 +0100
++++ dsputil_mlib.c	2003-10-19 13:01:50.427851000 +0100
+@@ -414,6 +414,7 @@
+ 
+ void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
+ {
++  if (xine_mm_accel() & MM_ACCEL_MLIB) {
+     c->get_pixels  = get_pixels_mlib;
+     c->diff_pixels = diff_pixels_mlib;
+     c->add_pixels_clamped = add_pixels_clamped_mlib;
+@@ -440,10 +441,12 @@
+     c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
+ 
+     c->bswap_buf = bswap_buf_mlib;
++  }
+ }
+ 
+ void MPV_common_init_mlib(MpegEncContext *s)
+ {
++  if (xine_mm_accel() & MM_ACCEL_MLIB) {
+     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
+ 	s->dsp.fdct = ff_fdct_mlib;
+     }
+@@ -453,4 +456,5 @@
+         s->dsp.idct_add = ff_idct_add_mlib;
+         s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
+     }
++  }
+ }

@@ -1,7 +1,5 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(LIBA52_CFLAGS)
-
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_a52.la

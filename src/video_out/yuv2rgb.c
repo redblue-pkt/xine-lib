@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.44 2003/08/25 21:51:50 f1rmb Exp $
+ * $Id: yuv2rgb.c,v 1.45 2003/10/20 00:33:29 komadori Exp $
  */
 
 #include "config.h"
@@ -3156,10 +3156,7 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
 					 uint8_t *cmap) {
 
   yuv2rgb_factory_t *this;
-
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
   uint32_t mm = xine_mm_accel();
-#endif
 
   this = malloc (sizeof (yuv2rgb_factory_t));
 
@@ -3204,7 +3201,7 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
   }
 #endif
 #if HAVE_MLIB
-  if (this->yuv2rgb_fun == NULL) {
+  if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_MLIB)) {
 
     yuv2rgb_init_mlib (this);
 

@@ -25,7 +25,7 @@ xineplug_decode_mpeg2_la_SOURCES = \
 	stats.c \
 	xine_decoder.c
 
-xineplug_decode_mpeg2_la_LIBADD = $(XINE_LIB)
+xineplug_decode_mpeg2_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h
