@@ -30,16 +30,19 @@
  *
  * requires:
  *   - audio.av_sync_method=resample
- *   - ivtv driver must be set to send dvd-like mpeg2 stream.
- *
+ *   - ivtv driver must be set to send dvd-like mpeg2 stream:
+ *     ivtv-api.c:
+ *      data[0] = 10;
+ *      x = ivtv_api(itv->enc_mbox, &itv->enc_sem_w, IVTV_API_ASSIGN_STREAM_TYPE,
+ *                   &result,1, &data[0]);
  *
  * MRL: 
- *   pvr:<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
+ *   pvr:/<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
  *
  * usage: 
- *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
+ *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.19 2003/05/05 16:22:09 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.20 2003/05/08 21:13:56 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -85,6 +88,8 @@
       the files again.
 
 ***************************************************************************/ 
+
+#define USE_V4L2
  
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -102,7 +107,11 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/ioctl.h>
-#include <linux/videodev.h>
+#ifdef USE_V4L2
+  #include "videodev2.h"
+#else
+  #include <linux/videodev.h>
+#endif
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
@@ -111,7 +120,12 @@
 #include "compat.h"
 #include "input_plugin.h"
 
+#ifdef USE_V4L2
+#define PVR_DEVICE        "/dev/video0"
+#else
 #define PVR_DEVICE        "/dev/ivtv0"
+#endif
+
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
 #define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
 #define MAX_PAGES         10000			/* maximum number of pages to keep track */
@@ -953,7 +967,11 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       if( v4l2_data->input != this->input ||
           v4l2_data->channel != this->channel || 
           v4l2_data->frequency != this->frequency ) {
+#ifdef USE_V4L2
+        struct v4l2_frequency vf;
+#else
         struct video_channel v;
+#endif
 
         this->input = v4l2_data->input;
         this->channel = v4l2_data->channel;
@@ -966,12 +984,22 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
 #endif
   
         pthread_mutex_lock(&this->dev_lock);
+#ifdef USE_V4L2
+        if( ioctl(this->dev_fd, VIDIOC_S_INPUT, &this->input) )
+          printf("input_pvr: error setting v4l2 input\n");
+          
+        vf.frequency = this->frequency;
+        vf.tuner = 0;
+        if( ioctl(this->dev_fd, VIDIOC_S_FREQUENCY, &vf) )
+          printf("input_pvr: error setting v4l2 frequency\n");
+#else
         v.norm = VIDEO_MODE_NTSC;
         v.channel = this->input;
         if( ioctl(this->dev_fd, VIDIOCSCHAN, &v) )
           printf("input_pvr: error setting v4l input\n");
         if( ioctl(this->dev_fd, VIDIOCSFREQ, &this->frequency) )
           printf("input_pvr: error setting v4l frequency\n");
+#endif
         pthread_mutex_unlock(&this->dev_lock);
         
         /* FIXME: also flush the device */

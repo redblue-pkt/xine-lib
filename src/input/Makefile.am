@@ -140,7 +140,7 @@ xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h
+noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h videodev2.h
 
 $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)
