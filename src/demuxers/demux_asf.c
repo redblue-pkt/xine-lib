@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.20 2002/01/14 00:34:22 guenter Exp $
+ * $Id: demux_asf.c,v 1.21 2002/02/03 23:26:08 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -520,7 +520,8 @@ static int asf_read_header (demux_asf_t *this) {
         }
 
 	this->wavex_size = total_size; /* 18 + this->wavex[8]; */
-
+     
+     if(!this->num_audio_streams)
 	asf_send_audio_header (this, stream_id);
 
       } else {
@@ -532,6 +533,7 @@ static int asf_read_header (demux_asf_t *this) {
 
 	this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
 
+     if(!this->num_video_streams)
 	asf_send_video_header (this, stream_id);
       }
       pos2 = this->input->get_current_pos (this->input);
