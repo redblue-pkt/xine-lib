@@ -31,6 +31,12 @@
  * should be 4 extra bytes for v1 data and 6 extra bytes for v2 data.
  */
 
+/* xine: some glibc versions require _ISOC9X_SOURCE for
+ * prototyping lrintf(). failure to declare it will result
+ * in static noise being produced by wmadec.c.
+ */
+#define _ISOC9X_SOURCE 1
+ 
 #include "avcodec.h"
 #include "dsputil.h"
 

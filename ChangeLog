@@ -11,7 +11,8 @@ xine-lib (1-rc4a)
     circunstances, parts of the images were not shown.
   * enable colorkey overlays for more cards using XVideo and vidix drivers.
   * make it possible for the CDDA plugin to give away Musicbrainz CD Index ID
-  * several DVB improvements. add dvbs://, dvbc:// and dvbt:// mrls 
+  * several DVB improvements. add dvbs://, dvbc:// and dvbt:// mrls
+  * fix static noise produced by WMA streams in some systems
 
 xine-lib (1-rc4)
   * experimental DTS software decoder using libdts
