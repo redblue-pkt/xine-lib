@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.17 2002/11/25 22:02:12 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.18 2002/12/06 01:00:16 miguelfreitas Exp $
  */
 
 /* required for swab() */
@@ -82,16 +82,12 @@ typedef struct {
  * Software stereo volume control.....
  * Igor Mokrushin <igor@avtomir.ru>
  */
-static void ao_arts_volume(void *buffer, int length, int left, int right) {
-  int i,v;
+static void ao_arts_volume(void *buffer, int length, int volume) {
+  int v;
   short *data = (short *)buffer;
   
-  if (right == -1) right = left;
-  
-  for (i=0; i < length << 1; i+=2) {
-    v=(int) ((*(data) * left) / 100);
-    *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
-    v=(int) ((*(data) * right) / 100);
+  while (length--) {
+    v=(int) ((*(data) * volume) / 100);
     *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
   }
 }
@@ -117,6 +113,7 @@ static int ao_arts_open(ao_driver_t *this_gen,
     if ( (mode == this->mode) && (rate == this->sample_rate) )
       return this->sample_rate;
 
+    sleep(2); /* arts might segfault if we are still playing */
     arts_close_stream(this->audio_stream);
   }
   
@@ -182,8 +179,7 @@ static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
   arts_driver_t *this = (arts_driver_t *) this_gen;
   int size = num_frames * this->bytes_per_frame;
 
-  ao_arts_volume(data, size / sizeof(short), this->mixer.vol_scale, 
-		 this->mixer.vol_scale); 
+  ao_arts_volume(data, num_frames * this->num_channels, this->mixer.vol_scale ); 
   arts_write(this->audio_stream, data, size );
 
   return 1;
@@ -208,8 +204,9 @@ static void ao_arts_close(ao_driver_t *this_gen)
   arts_driver_t *this = (arts_driver_t *) this_gen;
 
   if (this->audio_stream) {
-  arts_close_stream(this->audio_stream);
-  this->audio_stream = NULL;
+    sleep(2); /* arts might segfault if we are still playing */
+    arts_close_stream(this->audio_stream);
+    this->audio_stream = NULL;
   }
 }
 
