@@ -13,7 +13,7 @@ project				version			mediator
 -----------------------------------------------------------------------
 
 ffmpeg				build 4715		Mike Melanson
-goom				2k4-dev15
+goom				2k4-dev18
 gsm610				1.0.10			Mike Melanson
 liba52				0.7.4
 libcdio				0.68

@@ -27,6 +27,8 @@
 #ifndef _MMX_H
 #define _MMX_H
 
+#include "goom_graphic.h"
+
 /*	Warning:  at this writing, the version of GAS packaged
 	with most Linux distributions does not handle the
 	parallel AND operation mnemonic correctly.  If the
@@ -58,7 +60,7 @@ typedef	union {
 
 /*	Function to test if multimedia instructions are supported...
 */
-inline extern int
+static int
 mm_support(void)
 {
 	/* Returns 1 if MMX instructions are supported,
@@ -223,12 +225,24 @@ mm_support(void)
 
 /*	Function to test if mmx instructions are supported...
 */
-inline extern int
+static inline int
 mmx_ok(void)
 {
 	/* Returns 1 if MMX instructions are supported, 0 otherwise */
 	return ( mm_support() & 0x1 );
 }
+
+int mmx_supported (void);
+int xmmx_supported (void);
+
+
+/* MMX optimized implementations */
+void draw_line_mmx (Pixel *data, int x1, int y1, int x2, int y2, int col, int screenx, int screeny);
+void draw_line_xmmx (Pixel *data, int x1, int y1, int x2, int y2, int col, int screenx, int screeny);
+void zoom_filter_mmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
+		      int *brutS, int *brutD, int buffratio, int precalCoef[16][16]);
+void zoom_filter_xmmx (int prevX, int prevY, Pixel *expix1, Pixel *expix2,
+                       int *lbruS, int *lbruD, int buffratio, int precalCoef[16][16]);
 
 
 /*	Helper functions for the instruction macros that follow...

@@ -1,5 +1,5 @@
-#ifndef _GOOM_TOOLS_H
-#define _GOOM_TOOLS_H
+#ifndef _GOOMTOOLS_H
+#define _GOOMTOOLS_H
 
 /**
  * Random number generator wrapper for faster random number.

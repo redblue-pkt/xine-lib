@@ -201,7 +201,7 @@ free_ifs (FRACTAL * Fractal)
 
 /***************************************************************/
 
-void
+static void
 init_ifs (PluginInfo *goomInfo, IfsData *data)
 {
 	int     i;
@@ -376,7 +376,7 @@ Draw_Fractal (IfsData *data)
 }
 
 
-IFSPoint *
+static IFSPoint *
 draw_ifs (PluginInfo *goomInfo, int *nbpt, IfsData *data)
 {
 	int     i;
@@ -724,7 +724,7 @@ static void ifs_update (PluginInfo *goomInfo, Pixel * data, Pixel * back, int in
 
 /** VISUAL_FX WRAPPER FOR IFS */
 
-void ifs_vfx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
+static void ifs_vfx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
 
 	IfsData *data = (IfsData*)_this->fx_data;
 	if (!data->initalized) {
@@ -735,7 +735,7 @@ void ifs_vfx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInf
 	/*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
 
-void ifs_vfx_init(VisualFX *_this) {
+static void ifs_vfx_init(VisualFX *_this) {
 
 	IfsData *data = (IfsData*)malloc(sizeof(IfsData));
 	data->Root = (FRACTAL*)NULL;
@@ -743,13 +743,13 @@ void ifs_vfx_init(VisualFX *_this) {
 	_this->fx_data = data;
 }
 
-void ifs_vfx_free(VisualFX *_this) {
+static void ifs_vfx_free(VisualFX *_this) {
 	IfsData *data = (IfsData*)_this->fx_data;
 	release_ifs(data);
 	free(data);
 }
 
-VisualFX ifs_visualfx_create() {
+VisualFX ifs_visualfx_create(void) {
 	VisualFX vfx;
 	vfx.init = ifs_vfx_init;
 	vfx.free = ifs_vfx_free;

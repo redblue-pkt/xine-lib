@@ -38,16 +38,16 @@ typedef struct _TENTACLE_FX_DATA {
 	int lock;
 } TentacleFXData;
 
-void tentacle_new (TentacleFXData *data);
-void tentacle_update(PluginInfo *goomInfo, Pixel *buf, Pixel *back, int W, int H,
+static void tentacle_new (TentacleFXData *data);
+static void tentacle_update(PluginInfo *goomInfo, Pixel *buf, Pixel *back, int W, int H,
                      short[2][512], float, int drawit, TentacleFXData *data);
-void tentacle_free (TentacleFXData *data);
+static void tentacle_free (TentacleFXData *data);
 
 /* 
  * VisualFX wrapper for the tentacles
  */
 
-void tentacle_fx_init(VisualFX *_this) {
+static void tentacle_fx_init(VisualFX *_this) {
 	
 	TentacleFXData *data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 	
@@ -77,18 +77,18 @@ void tentacle_fx_init(VisualFX *_this) {
 	_this->fx_data = (void*)data;
 }
 
-void tentacle_fx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
+static void tentacle_fx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
 	
 	tentacle_update(goomInfo, dest, src, goomInfo->screen.width, goomInfo->screen.height, goomInfo->sound.samples,
 	                (float)goomInfo->sound.accelvar, goomInfo->curGState->drawTentacle, (TentacleFXData*)_this->fx_data);
 }
 
-void tentacle_fx_free(VisualFX *_this) {
+static void tentacle_fx_free(VisualFX *_this) {
 	tentacle_free((TentacleFXData*)_this->fx_data);
 	free(_this->fx_data);
 }
 
-VisualFX tentacle_fx_create() {
+VisualFX tentacle_fx_create(void) {
 	VisualFX fx;
 	fx.init = tentacle_fx_init;
 	fx.apply = tentacle_fx_apply;
@@ -98,12 +98,12 @@ VisualFX tentacle_fx_create() {
 
 /* ----- */
 
-void tentacle_free (TentacleFXData *data) {
+static void tentacle_free (TentacleFXData *data) {
 	/* TODO : un vrai FREE GRID!! */
 	free (data->vals);
 }
 
-void tentacle_new (TentacleFXData *data) {
+static void tentacle_new (TentacleFXData *data) {
 	int tmp;
 
 	v3d center = {0,-17.0,0};
@@ -221,7 +221,7 @@ static void pretty_move (PluginInfo *goomInfo, float cycle, float *dist, float *
 		*rotangle = fx_data->rot = (tmp + 15.0f*fx_data->rot) / 16.0f;
 }
 
-void tentacle_update(PluginInfo *goomInfo, Pixel *buf, Pixel *back, int W, int H,
+static void tentacle_update(PluginInfo *goomInfo, Pixel *buf, Pixel *back, int W, int H,
                      short data[2][512], float rapport, int drawit, TentacleFXData *fx_data) {
 	
 	int tmp;

@@ -57,7 +57,7 @@ static HashValue *entry_get(GoomHashEntry *entry, const char *key) {
 		return &(entry->value);
 }
 
-GoomHash *goom_hash_new() {
+GoomHash *goom_hash_new(void) {
 	GoomHash *_this = (GoomHash*)malloc(sizeof(GoomHash));
 	_this->root = NULL;
 	return _this;

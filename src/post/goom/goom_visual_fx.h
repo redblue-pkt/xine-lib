@@ -1,5 +1,5 @@
-#ifndef _GOOM_VISUAL_FX_H
-#define _GOOM_VISUAL_FX_H
+#ifndef _VISUAL_FX_H
+#define _VISUAL_FX_H
 
 /**
  * File created on 2003-05-21 by Jeko.

@@ -8,6 +8,7 @@
  */
 
 #include "cpu_info.h"
+#include "mmx.h"
 
 
 static unsigned int CPU_FLAVOUR = 0;

@@ -1,6 +1,9 @@
 /* a definir pour avoir exactement le meme resultat que la fonction C
  * (un chouillat plus lent)
  */
+
+#ifdef HAVE_MMX
+
 #define STRICT_COMPAT
 
 //#define HAVE_ATHLON
@@ -21,12 +24,12 @@
 /*#include "xmmx.h"*/
 #include "goom_graphic.h"
 
-int xmmx_supported () {
+int xmmx_supported (void) {
 	return (mm_support()&0x8)>>3;
 }
 
 void zoom_filter_xmmx (int prevX, int prevY,
-                       unsigned int *expix1, unsigned int *expix2,
+                       Pixel *expix1, Pixel *expix2,
                        int *lbruS, int *lbruD, int buffratio,
                        int precalCoef[16][16])
 {
@@ -40,7 +43,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
 	volatile mmx_t ratiox;
 	/*	volatile mmx_t interpix; */
 
-	expix1[0]=expix1[prevX-1]=expix1[prevX*prevY-1]=expix1[prevX*prevY-prevX]=0;
+	expix1[0].val=expix1[prevX-1].val=expix1[prevX*prevY-1].val=expix1[prevX*prevY-prevX].val=0;
 
 	prevXY.ud[0] = (prevX-1)<<PERTEDEC;
 	prevXY.ud[1] = (prevY-1)<<PERTEDEC;
@@ -393,3 +396,4 @@ end_of_line:
 	__asm__ __volatile__ ("femms\n"); 
 }
 
+#endif

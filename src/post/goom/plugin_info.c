@@ -1,4 +1,5 @@
 #include "goom_plugin_info.h"
+#include "goom_fx.h"
 #include "cpu_info.h"
 #include "default_scripts.h"
 #include "drawmethods.h"
@@ -15,22 +16,9 @@
 
 
 #ifdef CPU_X86
-/* TODO: PUT THIS IN SEPARATE HEADERS */
-extern int xmmx_supported ();
-extern int mmx_supported ();
-extern void draw_line_mmx (Pixel *data, int x1, int y1, int x2, int y2, int col, int screenx, int screeny);
-extern void zoom_filter_mmx (int sizeX, int sizeY, Pixel *src, Pixel *dest, int *brutS, int *brutD, int buffratio, int precalCoef[16][16]);
-extern void zoom_filter_xmmx (int sizeX, int sizeY, Pixel *src, Pixel *dest, int *brutS, int *brutD, int buffratio, int precalCoef[16][16]);
-/* END TODO */
+#include "mmx.h"
 #endif /* CPU_X86 */
 
-
-
-
-/* prototypes of methods */
-
-void zoom_filter_c (int sizeX, int sizeY, Pixel *src, Pixel *dest, int *brutS, int *brutD, int buffratio, int precalCoef[16][16]);
-void create_output_with_brightness(Pixel *src, Pixel *output_buffer, int screensize, int iff);
 
 
 static void setOptimizedMethods(PluginInfo *p) {

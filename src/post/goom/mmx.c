@@ -1,3 +1,5 @@
+#ifdef HAVE_MMX
+
 #define BUFFPOINTNB 16
 #define BUFFPOINTMASK 0xffff
 #define BUFFINCR 0xff
@@ -11,12 +13,12 @@
 // faire : a / sqrtperte <=> a >> PERTEDEC
 #define PERTEDEC 4
 
-int mmx_supported () {
+int mmx_supported (void) {
 	return (mm_support()&0x1);
 }
 
 void zoom_filter_mmx (int prevX, int prevY,
-		      unsigned int *expix1, unsigned int *expix2,
+		      Pixel *expix1, Pixel *expix2,
 		      int *brutS, int *brutD, int buffratio,
 		      int precalCoef[16][16])
 {
@@ -270,3 +272,4 @@ end_of_line:
 	/* __asm__ __volatile__ ("emms"); */
 }
 
+#endif

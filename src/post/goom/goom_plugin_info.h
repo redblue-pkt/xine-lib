@@ -1,5 +1,5 @@
-#ifndef _GOOM_PLUGIN_INFO_H
-#define _GOOM_PLUGIN_INFO_H
+#ifndef _PLUGIN_INFO_H
+#define _PLUGIN_INFO_H
 
 #include "goom_typedefs.h"
 

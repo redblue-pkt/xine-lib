@@ -7,7 +7,7 @@ void goom_script_scanner_compile(GoomScriptScanner *scanner, PluginInfo *pluginI
 void goom_script_scanner_execute(GoomScriptScanner *scanner);
 int goom_script_scanner_is_compiled(GoomScriptScanner *gss);
 
-GoomScriptScanner *goom_script_scanner_new();
+GoomScriptScanner *goom_script_scanner_new(void);
 void goom_script_scanner_free(GoomScriptScanner *gss);
 
 
@@ -20,7 +20,8 @@ void goom_script_scanner_free(GoomScriptScanner *gss);
 #define CONST_FLOAT_NODE 2
 #define VAR_NODE 3
 #define PARAM_NODE 4
-#define OPR_NODE 5
+#define READ_PARAM_NODE 5
+#define OPR_NODE 6
 
 #define OPR_SET 1
 #define OPR_DECLARE_INT 2
@@ -31,6 +32,11 @@ void goom_script_scanner_free(GoomScriptScanner *gss);
 #define OPR_MUL 7
 #define OPR_EQU 8
 #define OPR_LOW 9
+#define OPR_DIV 10
+#define OPR_SUB 11
+#define OPR_FUNC_INTRO 12
+#define OPR_FUNC_OUTRO 13
+#define OPR_CALL 14
 
 typedef struct {
 /*    char *name;*/
@@ -64,10 +70,10 @@ typedef struct _NODE_TYPE{
         ConstIntNodeType constInt;
         ConstFloatNodeType constFloat;
         OprNodeType opr;
-    } val;
+    } unode;
 } NodeType;
 
-void gsl_commit_compilation();
+void gsl_commit_compilation(void);
 
 /* ------------- SCRIPT_EXEC_ENV ------------ */
 
@@ -190,8 +196,12 @@ struct _GoomScriptScanner {
 #define INSTR_ADDF    10008
 #define INSTR_MULI    10009
 #define INSTR_MULF    10010
-#define INSTR_ISEQUALI  10011
-#define INSTR_ISEQUALF  10012
+#define INSTR_DIVF    10011
+#define INSTR_SUBF    10012
+#define INSTR_ISEQUALI  10013
+#define INSTR_ISEQUALF  10014
 #define INSTR_JZERO   29
+#define INSTR_CALL    34 
+#define INSTR_RET     35
 
 #endif

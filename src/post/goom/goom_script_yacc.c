@@ -58,7 +58,8 @@
      TYPE_VAR = 260,
      TYPE_PARAM = 261,
      INT_TK = 262,
-     FLOAT_TK = 263
+     FLOAT_TK = 263,
+     ARROW_TK = 264
    };
 #endif
 #define TYPE_INTEGER 258
@@ -67,12 +68,13 @@
 #define TYPE_PARAM 261
 #define INT_TK 262
 #define FLOAT_TK 263
+#define ARROW_TK 264
 
 
 
 
 /* Copy the first part of user declarations.  */
-#line 6 "goom_script_scanner.y"
+#line 6 "goom_script_yacc.y"
 
     #include <stdio.h>
     #include <string.h>
@@ -93,55 +95,76 @@
     static NodeType *new_constFloat(const char *str);
     static NodeType *new_var(const char *str);
     static NodeType *new_param(const char *str);
+    static NodeType *new_read_param(const char *str);
     static NodeType *new_nop(const char *str);
     static NodeType *new_op(const char *str, int type, int nbOp);
 
-    static int allocateLabel();
+    static int allocateLabel(void);
     #define allocateTemp allocateLabel
 
     /* SETTER */
     static NodeType *new_set(NodeType *lvalue, NodeType *expression) {
         NodeType *set = new_op("set", OPR_SET, 2);
-        set->val.opr.op[0] = lvalue;
-        set->val.opr.op[1] = expression;
+        set->unode.opr.op[0] = lvalue;
+        set->unode.opr.op[1] = expression;
         return set;
     }
     static void commit_set(NodeType *set) {
-        precommit_node(set->val.opr.op[1]);
+        precommit_node(set->unode.opr.op[1]);
 #ifdef VERBOSE
-        printf("set.f %s %s\n", set->val.opr.op[0]->str, set->val.opr.op[1]->str);
+        printf("set.f %s %s\n", set->unode.opr.op[0]->str, set->unode.opr.op[1]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "set.f", INSTR_SETF, 2);
-        commit_node(set->val.opr.op[0]);
-        commit_node(set->val.opr.op[1]);
+        commit_node(set->unode.opr.op[0]);
+        commit_node(set->unode.opr.op[1]);
     }
 
     /* FLOAT */
     static NodeType *new_float_decl(NodeType *name) {
         NodeType *fld = new_op("float", OPR_DECLARE_FLOAT, 1);
-        fld->val.opr.op[0] = name;
+        fld->unode.opr.op[0] = name;
         return fld;
     }
     static void commit_float(NodeType *var) {
 #ifdef VERBOSE
-        printf("float %s\n", var->val.opr.op[0]->str);
+        printf("float %s\n", var->unode.opr.op[0]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "float", INSTR_INT, 1);
-        commit_node(var->val.opr.op[0]);
+        commit_node(var->unode.opr.op[0]);
     }
     
     /* INT */
     static NodeType *new_int_decl(NodeType *name) {
         NodeType *intd = new_op("int", OPR_DECLARE_INT, 1);
-        intd->val.opr.op[0] = name;
+        intd->unode.opr.op[0] = name;
         return intd;
     }
     static void commit_int(NodeType *var) {
 #ifdef VERBOSE
-        printf("int %s\n", var->val.opr.op[0]->str);
+        printf("int %s\n", var->unode.opr.op[0]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "int", INSTR_INT, 1);
-        commit_node(var->val.opr.op[0]);
+        commit_node(var->unode.opr.op[0]);
+    }
+
+    /* precommit read_param: a read param is a param for reading.
+     *  precommit copy it to a temporary variable.
+     */
+    static void precommit_read_param(NodeType *rparam) {
+        char stmp[256];
+        NodeType *tmp;
+        
+        /* declare a float to store the result */
+        sprintf(stmp,"__tmp%i",allocateTemp());
+        commit_node(new_float_decl(new_var(stmp)));
+        /* set the float to the value of "op1" */
+        commit_node(new_set(new_var(stmp),new_param(rparam->str)));
+
+        /* redefine the ADD node now as the computed variable */
+        nodeFreeInternals(rparam);
+        tmp = new_var(stmp);
+        *rparam = *tmp;
+        free(tmp);
     }
 
     /* commodity method for add, mult, ... */
@@ -157,15 +180,15 @@
         int toAdd;
 
         /* compute "left" and "right" */
-        precommit_node(expr->val.opr.op[0]);
-        precommit_node(expr->val.opr.op[1]);
+        precommit_node(expr->unode.opr.op[0]);
+        precommit_node(expr->unode.opr.op[1]);
 
-        if (is_tmp_expr(expr->val.opr.op[0])) {
-            strcpy(stmp, expr->val.opr.op[0]->str);
+        if (is_tmp_expr(expr->unode.opr.op[0])) {
+            strcpy(stmp, expr->unode.opr.op[0]->str);
             toAdd = 1;
         }
-        else if (is_tmp_expr(expr->val.opr.op[1])) {
-            strcpy(stmp,expr->val.opr.op[1]->str);
+        else if (is_tmp_expr(expr->unode.opr.op[1])) {
+            strcpy(stmp,expr->unode.opr.op[1]->str);
             toAdd = 0;
         }
         else {
@@ -173,17 +196,17 @@
             sprintf(stmp,"__tmp%i",allocateTemp());
             commit_node(new_float_decl(new_var(stmp)));
             /* set the float to the value of "op1" */
-            commit_node(new_set(new_var(stmp),expr->val.opr.op[0]));
+            commit_node(new_set(new_var(stmp),expr->unode.opr.op[0]));
             toAdd = 1;
         }
 
         /* add op2 to tmp */
 #ifdef VERBOSE
-        printf("%s %s %s\n", type, stmp, expr->val.opr.op[toAdd]->str);
+        printf("%s %s %s\n", type, stmp, expr->unode.opr.op[toAdd]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, type, instr_id, 2);
         commit_node(new_var(stmp));
-        commit_node(expr->val.opr.op[toAdd]);
+        commit_node(expr->unode.opr.op[toAdd]);
     
         /* redefine the ADD node now as the computed variable */
         nodeFreeInternals(expr);
@@ -194,8 +217,8 @@
 
     static NodeType *new_expr2(const char *name, int id, NodeType *expr1, NodeType *expr2) {
         NodeType *add = new_op(name, id, 2);
-        add->val.opr.op[0] = expr1;
-        add->val.opr.op[1] = expr2;
+        add->unode.opr.op[0] = expr1;
+        add->unode.opr.op[1] = expr2;
         return add;
     }
 
@@ -207,12 +230,28 @@
         precommit_expr(add,"add.f",INSTR_ADDF);
     }
 
+    /* SUB */
+    static NodeType *new_sub(NodeType *expr1, NodeType *expr2) {
+        return new_expr2("sub.f", OPR_SUB, expr1, expr2);
+    }
+    static void precommit_sub(NodeType *sub) {
+        precommit_expr(sub,"sub.f",INSTR_SUBF);
+    }
+
     /* MUL */
     static NodeType *new_mul(NodeType *expr1, NodeType *expr2) {
         return new_expr2("mul.f", OPR_MUL, expr1, expr2);
     }
     static void precommit_mul(NodeType *mul) {
         precommit_expr(mul,"mul.f",INSTR_MULF);
+    }
+    
+    /* DIV */
+    static NodeType *new_div(NodeType *expr1, NodeType *expr2) {
+        return new_expr2("div.f", OPR_DIV, expr1, expr2);
+    }
+    static void precommit_div(NodeType *mul) {
+        precommit_expr(mul,"div.f",INSTR_DIVF);
     }
     
     /* EQU */
@@ -230,30 +269,30 @@
     static void precommit_low(NodeType *mul) {
         precommit_expr(mul,"islower.f",INSTR_ISLOWERF);
     }
-    
+
     /* IF */
     static NodeType *new_if(NodeType *expression, NodeType *instr) {
         NodeType *node = new_op("if", OPR_IF, 2);
-        node->val.opr.op[0] = expression;
-        node->val.opr.op[1] = instr;
+        node->unode.opr.op[0] = expression;
+        node->unode.opr.op[1] = instr;
         return node;
     }
     static void commit_if(NodeType *node) {
 
         char slab[1024];
-        precommit_node(node->val.opr.op[0]);
+        precommit_node(node->unode.opr.op[0]);
 
         /* jzero.i <expression> <endif> */
         sprintf(slab, "|eif%d|", allocateLabel());
 #ifdef VERBOSE
-        printf("jzero.i %s %s\n", node->val.opr.op[0]->str, slab);
+        printf("jzero.i %s %s\n", node->unode.opr.op[0]->str, slab);
 #endif
         currentScanner->instr = instr_init(currentScanner, "jzero.i", INSTR_JZERO, 2);
-        commit_node(node->val.opr.op[0]);
+        commit_node(node->unode.opr.op[0]);
         instr_add_param(currentScanner->instr, slab, TYPE_LABEL);
 
         /* [... instrs of the if ...] */
-        commit_node(node->val.opr.op[1]);
+        commit_node(node->unode.opr.op[1]);
         /* label <endif> */
 #ifdef VERBOSE
         printf("label %s\n", slab);
@@ -265,13 +304,58 @@
     /* BLOCK */
     static NodeType *new_block(NodeType *lastNode) {
         NodeType *blk = new_op("block", OPR_BLOCK, 2);
-        blk->val.opr.op[0] = new_nop("start_of_block");
-        blk->val.opr.op[1] = lastNode;        
+        blk->unode.opr.op[0] = new_nop("start_of_block");
+        blk->unode.opr.op[1] = lastNode;        
         return blk;
     }
     static void commit_block(NodeType *node) {
-        commit_node(node->val.opr.op[0]->val.opr.next);
+        commit_node(node->unode.opr.op[0]->unode.opr.next);
     }
+
+    /* FUNCTION INTRO */
+    static NodeType *new_function_intro(const char *name) {
+        char stmp[256];
+        if (strlen(name) < 200) {
+           sprintf(stmp, "|__func_%s|", name);
+        }
+        return new_op(stmp, OPR_FUNC_INTRO, 0);
+    }
+    static void commit_function_intro(NodeType *node) {
+        currentScanner->instr = instr_init(currentScanner, "label", INSTR_LABEL, 1);
+        instr_add_param(currentScanner->instr, node->str, TYPE_LABEL);
+#ifdef VERBOSE
+        printf("label %s\n", node->str);
+#endif
+    }
+
+    /* FUNCTION OUTRO */
+    static NodeType *new_function_outro(void) {
+        return new_op("ret", OPR_FUNC_OUTRO, 0);
+    }
+    static void commit_function_outro(NodeType *node) {
+        currentScanner->instr = instr_init(currentScanner, "ret", INSTR_RET, 1);
+        instr_add_param(currentScanner->instr, "|dummy|", TYPE_LABEL);
+#ifdef VERBOSE
+        printf("ret\n");
+#endif
+    }
+    
+    /* FUNCTION CALL */
+    static NodeType *new_call(const char *name) {
+        char stmp[256];
+        if (strlen(name) < 200) {
+           sprintf(stmp, "|__func_%s|", name);
+        }
+        return new_op(stmp, OPR_CALL, 0);
+    }
+    static void commit_call(NodeType *node) {
+        currentScanner->instr = instr_init(currentScanner, "call", INSTR_CALL, 1);
+        instr_add_param(currentScanner->instr, node->str, TYPE_LABEL);
+#ifdef VERBOSE
+        printf("call %s\n", node->str);
+#endif
+    }
+    
 
     /** **/
 
@@ -279,24 +363,20 @@
     static NodeType *lastNode = 0;
     static NodeType *gsl_append(NodeType *curNode) {
         if (lastNode)
-            lastNode->val.opr.next = curNode;
+            lastNode->unode.opr.next = curNode;
         lastNode = curNode;
-        while(lastNode->val.opr.next) lastNode = lastNode->val.opr.next;
+        while(lastNode->unode.opr.next) lastNode = lastNode->unode.opr.next;
         if (rootNode == 0)
             rootNode = curNode;
         return curNode;
     }
 
     static int lastLabel = 0;
-    int allocateLabel() {
+    int allocateLabel(void) {
         return ++lastLabel;
     }
-    void releaseLabel(int n) {
-        if (n == lastLabel)
-            lastLabel--;
-    }
 
-    void gsl_commit_compilation() {
+    void gsl_commit_compilation(void) {
         commit_node(rootNode);
         rootNode = 0;
         lastNode = 0;
@@ -306,12 +386,17 @@
         /* do here stuff for expression.. for exemple */
         switch(node->type) {
             case OPR_NODE:
-                switch(node->val.opr.type) {
+                switch(node->unode.opr.type) {
                     case OPR_ADD: precommit_add(node); break;
+                    case OPR_SUB: precommit_sub(node); break;
                     case OPR_MUL: precommit_mul(node); break;
+                    case OPR_DIV: precommit_div(node); break;
                     case OPR_EQU: precommit_equ(node); break;
                     case OPR_LOW: precommit_low(node); break;
                 }
+                break;
+            case READ_PARAM_NODE:
+                precommit_read_param(node); break;
         }
     }
     
@@ -321,18 +406,21 @@
         
         switch(node->type) {
             case OPR_NODE:
-                switch(node->val.opr.type) {
+                switch(node->unode.opr.type) {
                     case OPR_DECLARE_FLOAT: commit_float(node); break;
                     case OPR_DECLARE_INT:   commit_int(node);   break;
                     case OPR_SET:           commit_set(node); break;
                     case OPR_IF:            commit_if(node); break;
                     case OPR_BLOCK:         commit_block(node); break;
+                    case OPR_FUNC_INTRO:    commit_function_intro(node); break;
+                    case OPR_FUNC_OUTRO:    commit_function_outro(node); break;
+                    case OPR_CALL:          commit_call(node); break;
 #ifdef VERBOSE
                     case EMPTY_NODE:        printf("NOP\n"); break;
 #endif
                 }
 
-                commit_node(node->val.opr.next); /* recursive for the moment, maybe better to do something iterative? */
+                commit_node(node->unode.opr.next); /* recursive for the moment, maybe better to do something iterative? */
                 break;
 
             case PARAM_NODE:       instr_add_param(currentScanner->instr, node->str, TYPE_PARAM); break;
@@ -358,7 +446,7 @@
 #endif
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 263 "goom_script_scanner.y"
+#line 361 "goom_script_yacc.y"
 typedef union YYSTYPE {
     int intValue;
     float floatValue;
@@ -367,7 +455,7 @@ typedef union YYSTYPE {
     NodeType *nPtr;
   } YYSTYPE;
 /* Line 191 of yacc.c.  */
-#line 357 "goom_script_scanner.tab.c"
+#line 457 "y.tab.c"
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
@@ -379,7 +467,7 @@ typedef union YYSTYPE {
 
 
 /* Line 214 of yacc.c.  */
-#line 369 "goom_script_scanner.tab.c"
+#line 469 "y.tab.c"
 
 #if ! defined (yyoverflow) || YYERROR_VERBOSE
 
@@ -476,22 +564,22 @@ union yyalloc
 #endif
 
 /* YYFINAL -- State number of the termination state. */
-#define YYFINAL  2
+#define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   79
+#define YYLAST   80
 
 /* YYNTOKENS -- Number of terminals. */
-#define YYNTOKENS  19
+#define YYNTOKENS  23
 /* YYNNTS -- Number of nonterminals. */
-#define YYNNTS  7
+#define YYNNTS  13
 /* YYNRULES -- Number of rules. */
-#define YYNRULES  22
+#define YYNRULES  34
 /* YYNRULES -- Number of states. */
-#define YYNSTATES  44
+#define YYNSTATES  65
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   263
+#define YYMAXUTOK   264
 
 #define YYTRANSLATE(YYX) 						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -503,15 +591,15 @@ static const unsigned char yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      14,    15,    10,     9,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,    13,
-       8,     7,     2,    16,     2,     2,     2,     2,     2,     2,
+      18,    19,    15,    13,     2,    14,     2,    16,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,    17,
+      11,    10,    12,    20,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,    17,     2,    18,     2,     2,     2,     2,
+       2,     2,     2,    21,     2,    22,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -525,7 +613,7 @@ static const unsigned char yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,    11,    12
+       5,     6,     7,     8,     9
 };
 
 #if YYDEBUG
@@ -533,30 +621,35 @@ static const unsigned char yytranslate[] =
    YYRHS.  */
 static const unsigned char yyprhs[] =
 {
-       0,     0,     3,     6,     7,    12,    18,    22,    26,    32,
-      37,    39,    40,    42,    44,    48,    52,    56,    60,    64,
-      66,    68,    70
+       0,     0,     3,     7,    10,    11,    14,    15,    19,    23,
+      24,    29,    35,    39,    43,    49,    54,    58,    60,    61,
+      63,    65,    69,    73,    77,    81,    85,    89,    93,    97,
+      99,   101,   103,   105,   107
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS. */
 static const yysigned_char yyrhs[] =
 {
-      20,     0,    -1,    20,    21,    -1,    -1,    24,     7,    23,
-      13,    -1,    12,     5,     7,    23,    13,    -1,    12,     5,
-      13,    -1,    11,     5,    13,    -1,    14,    23,    15,    16,
-      21,    -1,    17,    22,    20,    18,    -1,    13,    -1,    -1,
-      24,    -1,    25,    -1,    23,    10,    23,    -1,    23,     9,
-      23,    -1,    23,     7,    23,    -1,    23,     8,    23,    -1,
-      14,    23,    15,    -1,     5,    -1,     6,    -1,     4,    -1,
-       3,    -1
+      24,     0,    -1,    25,    29,    26,    -1,    25,    30,    -1,
+      -1,    26,    27,    -1,    -1,    28,    25,    29,    -1,    11,
+       5,    12,    -1,    -1,    34,    10,    32,    17,    -1,     8,
+       5,    10,    32,    17,    -1,     8,     5,    17,    -1,     7,
+       5,    17,    -1,    18,    32,    19,    20,    30,    -1,    21,
+      31,    24,    22,    -1,     9,     5,    17,    -1,    17,    -1,
+      -1,    33,    -1,    35,    -1,    32,    15,    32,    -1,    32,
+      16,    32,    -1,    32,    13,    32,    -1,    32,    14,    32,
+      -1,    32,    10,    32,    -1,    32,    11,    32,    -1,    32,
+      12,    32,    -1,    18,    32,    19,    -1,     5,    -1,     6,
+      -1,     5,    -1,     6,    -1,     4,    -1,     3,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const unsigned short yyrline[] =
 {
-       0,   284,   284,   285,   288,   289,   291,   292,   293,   294,
-     295,   298,   301,   302,   303,   304,   305,   306,   307,   310,
-     311,   314,   315
+       0,   384,   384,   386,   387,   390,   391,   394,   396,   397,
+     399,   400,   402,   403,   404,   405,   406,   407,   410,   413,
+     414,   415,   416,   417,   418,   419,   420,   421,   422,   425,
+     426,   429,   430,   433,   434
 };
 #endif
 
@@ -566,9 +659,11 @@ static const unsigned short yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "TYPE_INTEGER", "TYPE_FLOAT", "TYPE_VAR", 
-  "TYPE_PARAM", "'='", "'<'", "'+'", "'*'", "INT_TK", "FLOAT_TK", "';'", 
-  "'('", "')'", "'?'", "'{'", "'}'", "$accept", "gsl", "instruction", 
-  "start_block", "expression", "variable", "constValue", 0
+  "TYPE_PARAM", "INT_TK", "FLOAT_TK", "ARROW_TK", "'='", "'<'", "'>'", 
+  "'+'", "'-'", "'*'", "'/'", "';'", "'('", "')'", "'?'", "'{'", "'}'", 
+  "$accept", "gsl", "gsl_code", "gsl_def_functions", "function", 
+  "function_intro", "function_outro", "instruction", "start_block", 
+  "expression", "read_variable", "write_variable", "constValue", 0
 };
 #endif
 
@@ -577,25 +672,28 @@ static const char *const yytname[] =
    token YYLEX-NUM.  */
 static const unsigned short yytoknum[] =
 {
-       0,   256,   257,   258,   259,   260,   261,    61,    60,    43,
-      42,   262,   263,    59,    40,    41,    63,   123,   125
+       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+      61,    60,    62,    43,    45,    42,    47,    59,    40,    41,
+      63,   123,   125
 };
 # endif
 
 /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const unsigned char yyr1[] =
 {
-       0,    19,    20,    20,    21,    21,    21,    21,    21,    21,
-      21,    22,    23,    23,    23,    23,    23,    23,    23,    24,
-      24,    25,    25
+       0,    23,    24,    25,    25,    26,    26,    27,    28,    29,
+      30,    30,    30,    30,    30,    30,    30,    30,    31,    32,
+      32,    32,    32,    32,    32,    32,    32,    32,    32,    33,
+      33,    34,    34,    35,    35
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
 static const unsigned char yyr2[] =
 {
-       0,     2,     2,     0,     4,     5,     3,     3,     5,     4,
-       1,     0,     1,     1,     3,     3,     3,     3,     3,     1,
-       1,     1,     1
+       0,     2,     3,     2,     0,     2,     0,     3,     3,     0,
+       4,     5,     3,     3,     5,     4,     3,     1,     0,     1,
+       1,     3,     3,     3,     3,     3,     3,     3,     3,     1,
+       1,     1,     1,     1,     1
 };
 
 /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
@@ -603,35 +701,41 @@ static const unsigned char yyr2[] =
    means the default is an error.  */
 static const unsigned char yydefact[] =
 {
-       3,     0,     1,    19,    20,     0,     0,    10,     0,    11,
-       2,     0,     0,     0,    22,    21,     0,     0,    12,    13,
-       3,     0,     7,     0,     6,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    18,    16,    17,    15,    14,     0,
-       9,     4,     5,     8
+       4,     0,     9,     1,    31,    32,     0,     0,     0,    17,
+       0,    18,     6,     3,     0,     0,     0,     0,    34,    33,
+      29,    30,     0,     0,    19,    20,     4,     2,     0,    13,
+       0,    12,    16,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     5,     4,     0,     0,    28,    25,
+      26,    27,    23,    24,    21,    22,     0,    15,     0,     9,
+      10,    11,    14,     8,     7
 };
 
 /* YYDEFGOTO[NTERM-NUM]. */
 static const yysigned_char yydefgoto[] =
 {
-      -1,     1,    10,    20,    17,    18,    19
+      -1,     1,     2,    27,    44,    45,    12,    13,    26,    23,
+      24,    14,    25
 };
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
-#define YYPACT_NINF -8
+#define YYPACT_NINF -23
 static const yysigned_char yypact[] =
 {
-      -8,     1,    -8,    -8,    -8,     0,    22,    -8,     5,    -8,
-      -8,    -3,     8,    13,    -8,    -8,     5,    46,    -8,    -8,
-      -8,     5,    -8,     5,    -8,    50,     5,     5,     5,     5,
-      15,    11,    59,    66,    -8,    -7,    -7,    23,    -8,    35,
-      -8,    -8,    -8,    -8
+     -23,     1,    14,   -23,   -23,   -23,     0,     2,     5,   -23,
+      21,   -23,   -23,   -23,    18,    -6,    -8,    12,   -23,   -23,
+     -23,   -23,    21,    30,   -23,   -23,   -23,    19,    21,   -23,
+      21,   -23,   -23,    40,    21,    21,    21,    21,    21,    21,
+      21,    13,    15,    29,   -23,   -23,    50,    58,   -23,    63,
+      63,    63,   -12,   -12,    20,   -23,    14,   -23,    26,    14,
+     -23,   -23,   -23,   -23,   -23
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yysigned_char yypgoto[] =
 {
-      -8,    14,    -4,    -8,    16,    -1,    -8
+     -23,    22,    35,   -23,   -23,   -23,    -2,    -9,   -23,   -22,
+     -23,   -23,   -23
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
@@ -641,37 +745,41 @@ static const yysigned_char yypgoto[] =
 #define YYTABLE_NINF -1
 static const unsigned char yytable[] =
 {
-      11,     2,    28,    29,    21,    12,     3,     4,    14,    15,
-       3,     4,     5,     6,     7,     8,     3,     4,     9,    16,
-      23,    22,     5,     6,     7,     8,    24,    13,     9,    40,
-      11,    39,    25,    29,    31,    43,     0,    32,    11,    33,
-       3,     4,    35,    36,    37,    38,     5,     6,     7,     8,
-       0,     0,     9,    26,    27,    28,    29,    26,    27,    28,
-      29,    30,     0,     0,     0,    34,    26,    27,    28,    29,
-       0,     0,    41,    26,    27,    28,    29,     0,     0,    42
+      33,     3,    30,    39,    40,    15,    46,    16,    47,    31,
+      17,    29,    49,    50,    51,    52,    53,    54,    55,     4,
+       5,     6,     7,     8,    18,    19,    20,    21,    28,    32,
+      43,     9,    10,    56,    58,    11,    40,    57,    63,    22,
+      34,    35,    36,    37,    38,    39,    40,    62,    42,    41,
+      34,    35,    36,    37,    38,    39,    40,    64,     0,    48,
+      34,    35,    36,    37,    38,    39,    40,    60,    34,    35,
+      36,    37,    38,    39,    40,    61,    37,    38,    39,    40,
+      59
 };
 
 static const yysigned_char yycheck[] =
 {
-       1,     0,     9,    10,     7,     5,     5,     6,     3,     4,
-       5,     6,    11,    12,    13,    14,     5,     6,    17,    14,
-       7,    13,    11,    12,    13,    14,    13,     5,    17,    18,
-      31,    16,    16,    10,    20,    39,    -1,    21,    39,    23,
-       5,     6,    26,    27,    28,    29,    11,    12,    13,    14,
-      -1,    -1,    17,     7,     8,     9,    10,     7,     8,     9,
-      10,    15,    -1,    -1,    -1,    15,     7,     8,     9,    10,
-      -1,    -1,    13,     7,     8,     9,    10,    -1,    -1,    13
+      22,     0,    10,    15,    16,     5,    28,     5,    30,    17,
+       5,    17,    34,    35,    36,    37,    38,    39,    40,     5,
+       6,     7,     8,     9,     3,     4,     5,     6,    10,    17,
+      11,    17,    18,    20,     5,    21,    16,    22,    12,    18,
+      10,    11,    12,    13,    14,    15,    16,    56,    26,    19,
+      10,    11,    12,    13,    14,    15,    16,    59,    -1,    19,
+      10,    11,    12,    13,    14,    15,    16,    17,    10,    11,
+      12,    13,    14,    15,    16,    17,    13,    14,    15,    16,
+      45
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
    symbol of state STATE-NUM.  */
 static const unsigned char yystos[] =
 {
-       0,    20,     0,     5,     6,    11,    12,    13,    14,    17,
-      21,    24,     5,     5,     3,     4,    14,    23,    24,    25,
-      22,     7,    13,     7,    13,    23,     7,     8,     9,    10,
-      15,    20,    23,    23,    15,    23,    23,    23,    23,    16,
-      18,    13,    13,    21
+       0,    24,    25,     0,     5,     6,     7,     8,     9,    17,
+      18,    21,    29,    30,    34,     5,     5,     5,     3,     4,
+       5,     6,    18,    32,    33,    35,    31,    26,    10,    17,
+      10,    17,    17,    32,    10,    11,    12,    13,    14,    15,
+      16,    19,    24,    11,    27,    28,    32,    32,    19,    32,
+      32,    32,    32,    32,    32,    32,    20,    22,     5,    25,
+      17,    17,    30,    12,    29
 };
 
 #if ! defined (YYSIZE_T) && defined (__SIZE_TYPE__)
@@ -1281,104 +1389,144 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 2:
-#line 284 "goom_script_scanner.y"
+        case 3:
+#line 386 "goom_script_yacc.y"
     { gsl_append(yyvsp[0].nPtr); }
     break;
 
-  case 4:
-#line 288 "goom_script_scanner.y"
-    { yyval.nPtr = new_set(yyvsp[-3].nPtr,yyvsp[-1].nPtr); }
-    break;
-
-  case 5:
-#line 289 "goom_script_scanner.y"
-    { yyval.nPtr = new_float_decl(new_var(yyvsp[-3].strValue));
-                                                      yyval.nPtr->val.opr.next = new_set(new_var(yyvsp[-3].strValue), yyvsp[-1].nPtr); }
-    break;
-
-  case 6:
-#line 291 "goom_script_scanner.y"
-    { yyval.nPtr = new_float_decl(new_var(yyvsp[-1].strValue)); }
-    break;
-
-  case 7:
-#line 292 "goom_script_scanner.y"
-    { yyval.nPtr = new_int_decl(new_var(yyvsp[-1].strValue)); }
-    break;
-
   case 8:
-#line 293 "goom_script_scanner.y"
-    { yyval.nPtr = new_if(yyvsp[-3].nPtr,yyvsp[0].nPtr); }
+#line 396 "goom_script_yacc.y"
+    { gsl_append(new_function_intro(yyvsp[-1].strValue)); }
     break;
 
   case 9:
-#line 294 "goom_script_scanner.y"
-    { lastNode = yyvsp[-2].nPtr->val.opr.op[1]; yyval.nPtr=yyvsp[-2].nPtr; }
+#line 397 "goom_script_yacc.y"
+    { gsl_append(new_function_outro()); }
     break;
 
   case 10:
-#line 295 "goom_script_scanner.y"
-    { yyval.nPtr = new_nop("nop"); }
+#line 399 "goom_script_yacc.y"
+    { yyval.nPtr = new_set(yyvsp[-3].nPtr,yyvsp[-1].nPtr); }
     break;
 
   case 11:
-#line 298 "goom_script_scanner.y"
-    { yyval.nPtr = new_block(lastNode); lastNode = yyval.nPtr->val.opr.op[0]; }
+#line 400 "goom_script_yacc.y"
+    { yyval.nPtr = new_float_decl(new_var(yyvsp[-3].strValue));
+                                                      yyval.nPtr->unode.opr.next = new_set(new_var(yyvsp[-3].strValue), yyvsp[-1].nPtr); }
     break;
 
   case 12:
-#line 301 "goom_script_scanner.y"
-    { yyval.nPtr = yyvsp[0].nPtr; }
+#line 402 "goom_script_yacc.y"
+    { yyval.nPtr = new_float_decl(new_var(yyvsp[-1].strValue)); }
     break;
 
   case 13:
-#line 302 "goom_script_scanner.y"
-    { yyval.nPtr = yyvsp[0].nPtr; }
+#line 403 "goom_script_yacc.y"
+    { yyval.nPtr = new_int_decl(new_var(yyvsp[-1].strValue)); }
     break;
 
   case 14:
-#line 303 "goom_script_scanner.y"
-    { yyval.nPtr = new_mul(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+#line 404 "goom_script_yacc.y"
+    { yyval.nPtr = new_if(yyvsp[-3].nPtr,yyvsp[0].nPtr); }
     break;
 
   case 15:
-#line 304 "goom_script_scanner.y"
-    { yyval.nPtr = new_add(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+#line 405 "goom_script_yacc.y"
+    { lastNode = yyvsp[-2].nPtr->unode.opr.op[1]; yyval.nPtr=yyvsp[-2].nPtr; }
     break;
 
   case 16:
-#line 305 "goom_script_scanner.y"
-    { yyval.nPtr = new_equ(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+#line 406 "goom_script_yacc.y"
+    { yyval.nPtr = new_call(yyvsp[-1].strValue); }
     break;
 
   case 17:
-#line 306 "goom_script_scanner.y"
-    { yyval.nPtr = new_low(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+#line 407 "goom_script_yacc.y"
+    { yyval.nPtr = new_nop("nop"); }
     break;
 
   case 18:
-#line 307 "goom_script_scanner.y"
-    { yyval.nPtr = yyvsp[-1].nPtr; }
+#line 410 "goom_script_yacc.y"
+    { yyval.nPtr = new_block(lastNode); lastNode = yyval.nPtr->unode.opr.op[0]; }
     break;
 
   case 19:
-#line 310 "goom_script_scanner.y"
-    { yyval.nPtr = new_var(yyvsp[0].strValue);   }
+#line 413 "goom_script_yacc.y"
+    { yyval.nPtr = yyvsp[0].nPtr; }
     break;
 
   case 20:
-#line 311 "goom_script_scanner.y"
-    { yyval.nPtr = new_param(yyvsp[0].strValue); }
+#line 414 "goom_script_yacc.y"
+    { yyval.nPtr = yyvsp[0].nPtr; }
     break;
 
   case 21:
-#line 314 "goom_script_scanner.y"
-    { yyval.nPtr = new_constFloat(yyvsp[0].strValue); }
+#line 415 "goom_script_yacc.y"
+    { yyval.nPtr = new_mul(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
     break;
 
   case 22:
-#line 315 "goom_script_scanner.y"
+#line 416 "goom_script_yacc.y"
+    { yyval.nPtr = new_div(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+    break;
+
+  case 23:
+#line 417 "goom_script_yacc.y"
+    { yyval.nPtr = new_add(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+    break;
+
+  case 24:
+#line 418 "goom_script_yacc.y"
+    { yyval.nPtr = new_sub(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+    break;
+
+  case 25:
+#line 419 "goom_script_yacc.y"
+    { yyval.nPtr = new_equ(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+    break;
+
+  case 26:
+#line 420 "goom_script_yacc.y"
+    { yyval.nPtr = new_low(yyvsp[-2].nPtr,yyvsp[0].nPtr); }
+    break;
+
+  case 27:
+#line 421 "goom_script_yacc.y"
+    { yyval.nPtr = new_low(yyvsp[0].nPtr,yyvsp[-2].nPtr); }
+    break;
+
+  case 28:
+#line 422 "goom_script_yacc.y"
+    { yyval.nPtr = yyvsp[-1].nPtr; }
+    break;
+
+  case 29:
+#line 425 "goom_script_yacc.y"
+    { yyval.nPtr = new_var(yyvsp[0].strValue);   }
+    break;
+
+  case 30:
+#line 426 "goom_script_yacc.y"
+    { yyval.nPtr = new_read_param(yyvsp[0].strValue); }
+    break;
+
+  case 31:
+#line 429 "goom_script_yacc.y"
+    { yyval.nPtr = new_var(yyvsp[0].strValue);   }
+    break;
+
+  case 32:
+#line 430 "goom_script_yacc.y"
+    { yyval.nPtr = new_param(yyvsp[0].strValue); }
+    break;
+
+  case 33:
+#line 433 "goom_script_yacc.y"
+    { yyval.nPtr = new_constFloat(yyvsp[0].strValue); }
+    break;
+
+  case 34:
+#line 434 "goom_script_yacc.y"
     { yyval.nPtr = new_constInt(yyvsp[0].strValue); }
     break;
 
@@ -1386,7 +1534,7 @@ yyreduce:
     }
 
 /* Line 999 of yacc.c.  */
-#line 1376 "goom_script_scanner.tab.c"
+#line 1536 "y.tab.c"
 
   yyvsp -= yylen;
   yyssp -= yylen;
@@ -1580,7 +1728,7 @@ yyreturn:
 }
 
 
-#line 318 "goom_script_scanner.y"
+#line 437 "goom_script_yacc.y"
 
 
     NodeType *nodeNew(const char *str, int type) {
@@ -1602,18 +1750,23 @@ yyreturn:
 
     NodeType *new_constInt(const char *str) {
         NodeType *node = nodeNew(str, CONST_INT_NODE);
-        node->val.constInt.val = atoi(str);
+        node->unode.constInt.val = atoi(str);
         return node;
     }
 
     NodeType *new_constFloat(const char *str) {
         NodeType *node = nodeNew(str, CONST_FLOAT_NODE);
-        node->val.constFloat.val = atof(str);
+        node->unode.constFloat.val = atof(str);
         return node;
     }
 
     NodeType *new_var(const char *str) {
         NodeType *node = nodeNew(str, VAR_NODE);
+        return node;
+    }
+    
+    NodeType *new_read_param(const char *str) {
+        NodeType *node = nodeNew(str, READ_PARAM_NODE);
         return node;
     }
     
@@ -1630,13 +1783,15 @@ yyreturn:
     NodeType *new_op(const char *str, int type, int nbOp) {
         int i;
         NodeType *node = nodeNew(str, OPR_NODE);
-        node->val.opr.next = 0;
-        node->val.opr.type = type;
-        node->val.opr.nbOp = nbOp;
-        for (i=0;i<nbOp;++i) node->val.opr.op[i] = 0;
+        node->unode.opr.next = 0;
+        node->unode.opr.type = type;
+        node->unode.opr.nbOp = nbOp;
+        for (i=0;i<nbOp;++i) node->unode.opr.op[i] = 0;
         return node;
     }
 
 void yyerror(char *str) {
     fprintf(stderr, "GSL ERROR: %s\n", str);
 }
+
+

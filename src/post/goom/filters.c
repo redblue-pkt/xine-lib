@@ -24,11 +24,12 @@
 #include "goom_graphic.h"
 #include "goom_tools.h"
 #include "goom_plugin_info.h"
+#include "goom_fx.h"
 #include "v3d.h"
 
 /* TODO : MOVE THIS AWAY !!! */
 /* jeko: j'ai essayer de le virer, mais si on veut les laisser inline c'est un peu lourdo... */
-inline void setPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Color c)
+static inline void setPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Color c)
 {
     Pixel i;
     
@@ -38,14 +39,14 @@ inline void setPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Co
     *(buffer + (x + y * goomInfo->screen.width)) = i;
 }
 
-inline void setPixelRGB_ (Pixel *buffer, Uint x, Color c)
+static inline void setPixelRGB_ (Pixel *buffer, Uint x, Color c)
 {
     buffer[x].channels.r = c.r;
     buffer[x].channels.g = c.v;
     buffer[x].channels.b = c.b;
 }
 
-inline void getPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Color * c)
+static inline void getPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Color * c)
 {
     Pixel i = *(buffer + (x + y * goomInfo->screen.width));
     c->b = i.channels.b;
@@ -53,7 +54,7 @@ inline void getPixelRGB (PluginInfo *goomInfo, Pixel *buffer, Uint x, Uint y, Co
     c->r = i.channels.r;
 }
 
-inline void getPixelRGB_ (Pixel *buffer, Uint x, Color * c)
+static inline void getPixelRGB_ (Pixel *buffer, Uint x, Color * c)
 {
     Pixel i = *(buffer + x);
     c->b = i.channels.b;
@@ -137,7 +138,7 @@ typedef struct _ZOOM_FILTER_FX_WRAPPER_DATA {
 
 
 
-inline v2g zoomVector(ZoomFilterFXWrapperData *data, float X, float Y)
+static inline v2g zoomVector(ZoomFilterFXWrapperData *data, float X, float Y)
 {
     v2g vecteur;
     float vx, vy;
@@ -234,7 +235,7 @@ inline v2g zoomVector(ZoomFilterFXWrapperData *data, float X, float Y)
  * Translation (-data->middleX, -data->middleY)
  * Homothetie (Center : 0,0   Coeff : 2/data->prevX)
  */
-void makeZoomBufferStripe(ZoomFilterFXWrapperData * data, int INTERLACE_INCR)
+static void makeZoomBufferStripe(ZoomFilterFXWrapperData * data, int INTERLACE_INCR)
 {
     // Position of the pixel to compute in pixmap coordinates
     Uint x, y;
@@ -684,7 +685,7 @@ static void generatePrecalCoef (int precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
-void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this)
+static void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this)
 {
     ZoomFilterFXWrapperData *data = (ZoomFilterFXWrapperData*)malloc(sizeof(ZoomFilterFXWrapperData));
     
@@ -729,16 +730,16 @@ void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this)
     generatePrecalCoef(data->precalCoef);
 }
 
-void zoomFilterVisualFXWrapper_free (struct _VISUAL_FX *_this)
+static void zoomFilterVisualFXWrapper_free (struct _VISUAL_FX *_this)
 {
     free(_this->fx_data);
 }
 
-void zoomFilterVisualFXWrapper_apply (struct _VISUAL_FX *_this, Pixel *src, Pixel *dest, PluginInfo *info)
+static void zoomFilterVisualFXWrapper_apply (struct _VISUAL_FX *_this, Pixel *src, Pixel *dest, PluginInfo *info)
 {
 }
 
-VisualFX zoomFilterVisualFXWrapper_create()
+VisualFX zoomFilterVisualFXWrapper_create(void)
 {
     VisualFX fx;
     fx.init = zoomFilterVisualFXWrapper_init;

@@ -3,6 +3,6 @@
 
 #include "goom_visual_fx.h"
 
-VisualFX tentacle_fx_create();
+VisualFX tentacle_fx_create(void);
 
 #endif

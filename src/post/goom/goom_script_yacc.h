@@ -34,7 +34,8 @@
      TYPE_VAR = 260,
      TYPE_PARAM = 261,
      INT_TK = 262,
-     FLOAT_TK = 263
+     FLOAT_TK = 263,
+     ARROW_TK = 264
    };
 #endif
 #define TYPE_INTEGER 258
@@ -43,12 +44,13 @@
 #define TYPE_PARAM 261
 #define INT_TK 262
 #define FLOAT_TK 263
+#define ARROW_TK 264
 
 
 
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 263 "goom_script_scanner.y"
+#line 361 "goom_script_yacc.y"
 typedef union YYSTYPE {
     int intValue;
     float floatValue;
@@ -57,7 +59,7 @@ typedef union YYSTYPE {
     NodeType *nPtr;
   } YYSTYPE;
 /* Line 1240 of yacc.c.  */
-#line 61 "goom_script_scanner.tab.h"
+#line 63 "y.tab.h"
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

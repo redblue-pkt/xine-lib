@@ -1,12 +1,12 @@
-#ifndef _GOOM_FILTERS_H
-#define _GOOM_FILTERS_H
+#ifndef FILTERS_H
+#define FILTERS_H
 
 #include "goom_config.h"
 #include "goom_typedefs.h"
 #include "goom_visual_fx.h"
 #include "goom_graphic.h"
 
-VisualFX zoomFilterVisualFXWrapper_create();
+VisualFX zoomFilterVisualFXWrapper_create(void);
 
 struct _ZOOM_FILTER_DATA
 {

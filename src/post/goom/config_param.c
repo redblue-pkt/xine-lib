@@ -11,7 +11,7 @@
 #include "goom_config_param.h"
 #include <string.h>
 
-void empty_fct() {
+static void empty_fct(PluginParam *dummy) {
 }
 
 PluginParam secure_param() {

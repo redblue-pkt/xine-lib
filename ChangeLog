@@ -4,7 +4,7 @@ xine-lib (1-rc6)
   * remove XInitThreads() call from some video out plugins, because it
     might lead to undefined behaviour; calling XInitThreads() is entirely
     the frontend's job
-  * include goom2k4-dev15
+  * include goom2k4-dev18
   * make sure the streams are played till their very end
   * support for Annodex files
   * VobSub-in-Matroska support

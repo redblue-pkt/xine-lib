@@ -1,5 +1,5 @@
-#ifndef _GOOM_CONFIG_PARAM_H
-#define _GOOM_CONFIG_PARAM_H
+#ifndef _CONFIG_PARAM_H
+#define _CONFIG_PARAM_H
 
 #include <stdlib.h>
 
@@ -79,9 +79,7 @@ typedef struct _PARAM {
 #define IMAX(p) ((p).param.ival.max)
 #define ISTEP(p) ((p).param.ival.step)
 
-void empty_fct();
-
-PluginParam secure_param();
+PluginParam secure_param(void);
 
 PluginParam secure_f_param(char *name);
 PluginParam secure_i_param(char *name);

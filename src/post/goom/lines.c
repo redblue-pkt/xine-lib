@@ -44,7 +44,7 @@ static void lightencolor (guint32 *col, float power)
 
 
 
-void
+static void
 genline (int id, float param, GMUnitPointer * l, int rx, int ry)
 {
 	int     i;
@@ -78,7 +78,7 @@ genline (int id, float param, GMUnitPointer * l, int rx, int ry)
 	}
 }
 
-guint32 getcouleur (int mode)
+static guint32 getcouleur (int mode)
 {
 	switch (mode) {
 	case GML_RED:
@@ -111,7 +111,7 @@ goom_lines_set_res (GMLine * gml, int rx, int ry)
 }
 
 
-void
+static void
 goom_lines_move (GMLine * l)
 {
 	int     i;

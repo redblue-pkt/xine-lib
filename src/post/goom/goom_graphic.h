@@ -1,5 +1,5 @@
-#ifndef _GOOM_GRAPHIC_H
-#define _GOOM_GRAPHIC_H
+#ifndef GRAPHIC_H
+#define GRAPHIC_H
 
 typedef unsigned int Uint;
 
@@ -63,4 +63,4 @@ inline void getPixelRGB (Pixel * buffer, Uint x, Uint y, Color * c);
 */
 
 
-#endif /* _GOOM_GRAPHIC_H */
+#endif /* GRAPHIC_H */

@@ -8,10 +8,19 @@
 #include <string.h>
 
 static const char DEF_SCRIPT[] =
-"float goom = Sound.Goom_Detection;\n"
-"float factor = Bright_Flash.Factor;\n"
-"(0.8 < goom)? factor = factor + Sound.Goom_Power * 1.5;\n"
-"Bright_Flash.Factor = factor * 0.96;\n";
+"-> config;\n"
+"-> main;\n"
+"\n"
+"<config>\n"
+"  float INCREASE_RATE = 150%;\n"
+"  float DECAY_RATE = 96%;\n"
+"\n"
+"<main>\n"
+"  (Sound.Goom_Detection > 0.8) ?\n"
+"      Bright_Flash.Factor = Bright_Flash.Factor + Sound.Goom_Power * INCREASE_RATE;\n"
+"\n"
+"  Bright_Flash.Factor = Bright_Flash.Factor * DECAY_RATE;\n"
+"\n";
 
 #define MAX 2.0f
 
@@ -123,7 +132,7 @@ static void convolve_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo 
 	info->methods.create_output_with_brightness(src,dest,info->screen.size,iff);
 }
 
-VisualFX convolve_create() {
+VisualFX convolve_create(void) {
 	VisualFX vfx = {
 		init: convolve_init,
 		free: convolve_free,

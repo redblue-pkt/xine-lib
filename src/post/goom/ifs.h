@@ -10,7 +10,7 @@
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 
-VisualFX ifs_visualfx_create();
+VisualFX ifs_visualfx_create(void);
 
 /* init ifs for a (width)x(height) output. * /
 void init_ifs (PluginInfo *goomInfo, int width, int height);
@@ -20,7 +20,7 @@ void init_ifs (PluginInfo *goomInfo, int width, int height);
 void ifs_update (PluginInfo *goomInfo, Pixel * buffer, Pixel * back, int width, int height, int increment);
 
 / * free all ifs's data. * /
-void release_ifs ();
+void release_ifs (void);
 */
 
 

@@ -1,6 +1,5 @@
-#line 2 "goom_script_scanner.c"
 
-#line 4 "goom_script_scanner.c"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -352,8 +351,8 @@ static void yy_fatal_error (yyconst char msg[]  );
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
 
-#define YY_NUM_RULES 14
-#define YY_END_OF_BUFFER 15
+#define YY_NUM_RULES 15
+#define YY_END_OF_BUFFER 16
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -361,12 +360,12 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-static yyconst flex_int16_t yy_accept[35] =
+static yyconst flex_int16_t yy_accept[36] =
     {   0,
-        0,    0,    0,    0,   15,   13,   12,    1,   13,   13,
-        9,    8,    8,    8,    3,    3,   12,    9,    4,   11,
-       10,    0,    8,    8,    8,    2,   10,    7,    8,    6,
-        7,    8,    5,    0
+        0,    0,    0,    0,   16,   14,   13,    1,   14,   14,
+       10,    9,    9,    9,    3,    3,   13,   10,    7,    4,
+       12,   11,    0,    9,    9,    9,    2,   11,    8,    9,
+        6,    8,    9,    5,    0
     } ;
 
 static yyconst flex_int32_t yy_ec[256] =
@@ -377,14 +376,14 @@ static yyconst flex_int32_t yy_ec[256] =
         1,    2,    1,    1,    1,    1,    4,    1,    1,    1,
         1,    5,    1,    1,    6,    7,    8,    9,    9,    9,
         9,    9,    9,    9,    9,    9,    9,    1,    1,    1,
-        1,    1,    1,    1,   10,   10,   10,   10,   10,   10,
-       10,   10,   10,   10,   10,   10,   10,   10,   10,   10,
-       10,   10,   10,   10,   10,   10,   10,   10,   10,   10,
-        1,    1,    1,    1,   10,    1,   11,   10,   10,   10,
+        1,   10,    1,    1,   11,   11,   11,   11,   11,   11,
+       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
+       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
+        1,    1,    1,    1,   11,    1,   12,   11,   11,   11,
 
-       10,   12,   10,   10,   13,   10,   10,   14,   10,   15,
-       16,   10,   10,   10,   10,   17,   10,   10,   10,   10,
-       10,   10,    1,    1,    1,    1,    1,    1,    1,    1,
+       11,   13,   11,   11,   14,   11,   11,   15,   11,   16,
+       17,   11,   11,   11,   11,   18,   11,   11,   11,   11,
+       11,   11,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
@@ -401,50 +400,50 @@ static yyconst flex_int32_t yy_ec[256] =
         1,    1,    1,    1,    1
     } ;
 
-static yyconst flex_int32_t yy_meta[18] =
+static yyconst flex_int32_t yy_meta[19] =
     {   0,
-        1,    1,    1,    1,    1,    1,    2,    1,    3,    4,
-        4,    4,    4,    4,    4,    4,    4
+        1,    1,    1,    1,    1,    1,    2,    1,    3,    1,
+        4,    4,    4,    4,    4,    4,    4,    4
     } ;
 
-static yyconst flex_int16_t yy_base[39] =
+static yyconst flex_int16_t yy_base[40] =
     {   0,
-        0,    0,   15,   16,   57,   58,   54,   58,   46,   49,
-       18,   46,   16,   17,   58,   44,   49,    0,   58,   58,
-       41,    0,   42,   19,   21,   58,   39,    0,   22,   30,
-        0,   19,   17,   58,   38,   41,   27,   43
+        0,    0,   16,   17,   59,   60,   56,   60,   14,   52,
+       21,   49,   19,   20,   60,   47,   52,    0,   60,   60,
+       60,   44,    0,   45,   22,   24,   60,   32,    0,   25,
+       33,    0,   20,   17,   60,   42,   45,   29,   47
     } ;
 
-static yyconst flex_int16_t yy_def[39] =
+static yyconst flex_int16_t yy_def[40] =
     {   0,
-       34,    1,   35,   35,   34,   34,   34,   34,   34,   34,
-       34,   36,   36,   36,   34,   34,   34,   11,   34,   34,
-       34,   37,   36,   36,   36,   34,   34,   38,   36,   36,
-       38,   25,   25,    0,   34,   34,   34,   34
+       35,    1,   36,   36,   35,   35,   35,   35,   35,   35,
+       35,   37,   37,   37,   35,   35,   35,   11,   35,   35,
+       35,   35,   38,   37,   37,   37,   35,   35,   39,   37,
+       37,   39,   26,   26,    0,   35,   35,   35,   35
     } ;
 
-static yyconst flex_int16_t yy_nxt[76] =
+static yyconst flex_int16_t yy_nxt[79] =
     {   0,
-        6,    7,    8,    6,    6,    9,    6,   10,   11,   12,
-       12,   13,   14,   12,   12,   12,   12,    8,    8,   16,
-       16,   20,   22,   22,   21,   22,   18,   22,   22,   24,
-       28,   25,   32,   23,   29,   33,   22,   30,   15,   15,
-       15,   15,   23,   23,   23,   31,   31,   27,   22,   27,
-       17,   26,   22,   19,   18,   17,   34,    5,   34,   34,
-       34,   34,   34,   34,   34,   34,   34,   34,   34,   34,
-       34,   34,   34,   34,   34
+        6,    7,    8,    6,    6,    9,    6,   10,   11,    6,
+       12,   12,   13,   14,   12,   12,   12,   12,    8,    8,
+       16,   16,   18,   19,   21,   23,   23,   22,   23,   18,
+       23,   23,   29,   25,   24,   26,   33,   34,   30,   23,
+       28,   31,   15,   15,   15,   15,   24,   24,   24,   32,
+       32,   23,   28,   17,   27,   23,   20,   17,   35,    5,
+       35,   35,   35,   35,   35,   35,   35,   35,   35,   35,
+       35,   35,   35,   35,   35,   35,   35,   35
     } ;
 
-static yyconst flex_int16_t yy_chk[76] =
+static yyconst flex_int16_t yy_chk[79] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    3,    4,    3,
-        4,   11,   13,   14,   11,   24,   11,   25,   29,   13,
-       37,   14,   29,   33,   24,   32,   30,   25,   35,   35,
-       35,   35,   36,   36,   36,   38,   38,   27,   23,   21,
-       17,   16,   12,   10,    9,    7,    5,   34,   34,   34,
-       34,   34,   34,   34,   34,   34,   34,   34,   34,   34,
-       34,   34,   34,   34,   34
+        1,    1,    1,    1,    1,    1,    1,    1,    3,    4,
+        3,    4,    9,    9,   11,   13,   14,   11,   25,   11,
+       26,   30,   38,   13,   34,   14,   30,   33,   25,   31,
+       28,   26,   36,   36,   36,   36,   37,   37,   37,   39,
+       39,   24,   22,   17,   16,   12,   10,    7,    5,   35,
+       35,   35,   35,   35,   35,   35,   35,   35,   35,   35,
+       35,   35,   35,   35,   35,   35,   35,   35
     } ;
 
 static yy_state_type yy_last_accepting_state;
@@ -461,14 +460,14 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "goom_script_scanner.lex"
-#line 2 "goom_script_scanner.lex"
+#line 1 "goom_script_lex.l"
+#line 2 "goom_script_lex.l"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include "goom_script_scanner.h"
-#include "goom_script_scanner.tab.h"
+#include "goom_script_yacc.h"
 void yyerror(char *);
 void yyparse();
 
@@ -503,6 +502,12 @@ void yyparse();
 #define INSTR_ISEQUALI_VAR_VAR     27
 #define INSTR_ISEQUALI_VAR_INTEGER 28
 /* #define INSTR_JZERO             29 */
+#define INSTR_DIVF_VAR_FLOAT       30
+#define INSTR_DIVF_VAR_VAR         31
+#define INSTR_SUBF_VAR_FLOAT       32
+#define INSTR_SUBF_VAR_VAR         33
+/* #define INSTR_CALL              34 */
+/* #define INSTR_RET               35 */
 
 #define VALIDATE_OK "ok"
 #define VALIDATE_ERROR "error while validating"
@@ -514,7 +519,7 @@ void yyparse();
 #define VALIDATE_NO_SUCH_DEST_VAR "no such destination variable"
 #define VALIDATE_NO_SUCH_SRC_VAR "no such src variable"
 
-    PluginParam *goom_script_get_param(PluginInfo *pluginInfo, const char *name);
+#include "goom_script.h"
 
     /* ------------- SCRIPT_EXEC_ENV ------------ */
     
@@ -526,7 +531,7 @@ void yyparse();
 
     /* ----------- INSTRUCTION_FLOW ------------- */
 
-    static InstructionFlow *iflow_new();
+    static InstructionFlow *iflow_new(void);
     static void iflow_add_instr(InstructionFlow *_this, Instruction *instr);
     static void iflow_clean(InstructionFlow *_this);
     static void iflow_execute(InstructionFlow *_this, ScriptExecEnv *exec_env);
@@ -540,7 +545,7 @@ void yyparse();
         _this->labels = goom_hash_new();
     }
     
-    InstructionFlow *iflow_new() {
+    InstructionFlow *iflow_new(void) {
         
         InstructionFlow *_this = (InstructionFlow*)malloc(sizeof(InstructionFlow));
         _this->number = 0;
@@ -842,6 +847,18 @@ void yyparse();
                 }
                 return VALIDATE_SYNTHAX_ERROR;
 
+            /* call */
+            case INSTR_CALL:
+                if (_this->types[0] == TYPE_LABEL) {
+                    _this->jump_label = _this->params[0];
+                    return VALIDATE_OK;
+                }
+                return VALIDATE_ERROR;
+                
+            /* ret */
+            case INSTR_RET:
+                return VALIDATE_OK;
+
             /* jump */
             case INSTR_JUMP:
 
@@ -904,6 +921,14 @@ void yyparse();
             case INSTR_MULF:
                 return validate_f(_this, INSTR_MULF_VAR_FLOAT, INSTR_MULF_VAR_VAR);
 
+            /* sub.f */
+            case INSTR_SUBF:
+                return validate_f(_this, INSTR_SUBF_VAR_FLOAT, INSTR_SUBF_VAR_VAR);
+                
+            /* div.f */
+            case INSTR_DIVF:
+                return validate_f(_this, INSTR_DIVF_VAR_FLOAT, INSTR_DIVF_VAR_VAR);
+
             default:
                 return VALIDATE_TODO;
         }
@@ -913,7 +938,13 @@ void yyparse();
     /** EXECUTE **/
     
     void iflow_execute(InstructionFlow *_this, ScriptExecEnv *exec_env) {
+    
         int ip = 0;
+        int stack[512];
+        int stack_pointer = 0;
+
+        stack[stack_pointer++] = _this->number + 1;
+        
         while (ip < _this->number) {
             Instruction *instr = _this->instr[ip];
 #ifdef TRACE_SCRIPT 
@@ -1043,39 +1074,40 @@ void yyparse();
                     ++ip; break;
 
                     /* MUL.F */
-                case INSTR_MULF_VAR_VAR:
-                    instr->data.v_v.var_dest->f *= instr->data.v_v.var_src->f;
-                    ++ip; break;
-
                 case INSTR_MULF_VAR_FLOAT:
                     instr->data.v_f.var->f *= instr->data.v_f.value;
                     ++ip; break;
 
-                    /* EQUALS.I * /
-                case INSTR_EQUALSI_VAR_VAR:
-                    return (instr->data.v_v.var_src->i == instr->data.v_v.var_dest->i)?1:2;
+                case INSTR_MULF_VAR_VAR:
+                    instr->data.v_v.var_dest->f *= instr->data.v_v.var_src->f;
+                    ++ip; break;
 
-                case INSTR_EQUALSI_VAR_INTEGER:
-                    return (instr->data.v_i.var->i == instr->data.v_i.value)?1:2;
+                    /* DIV.F */
+                case INSTR_DIVF_VAR_FLOAT:
+                    instr->data.v_f.var->f /= instr->data.v_f.value;
+                    ++ip; break;
+                    
+                case INSTR_DIVF_VAR_VAR:
+                    instr->data.v_v.var_dest->f /= instr->data.v_v.var_src->f;
+                    ++ip; break;
 
-                    / * EQUALS.F * /
-                case INSTR_EQUALSF_VAR_VAR:
-                    return (instr->data.v_v.var_src->f == instr->data.v_v.var_dest->f)?1:2;
-                case INSTR_EQUALSF_VAR_FLOAT:
-                    return (instr->data.v_f.var->f == instr->data.v_f.value)?1:2;
+                    /* SUB.F */
+                case INSTR_SUBF_VAR_FLOAT:
+                    instr->data.v_f.var->f -= instr->data.v_f.value;
+                    ++ip; break;
 
-                    / * LOWER.I * /
-                case INSTR_LOWERI_VAR_VAR:
-                    return (instr->data.v_v.var_src->i > instr->data.v_v.var_dest->i)?1:2;
-                case INSTR_LOWERI_VAR_INTEGER:
-                    return (instr->data.v_i.var->i < instr->data.v_i.value)?1:2;
+                case INSTR_SUBF_VAR_VAR:
+                    instr->data.v_v.var_dest->f -= instr->data.v_v.var_src->f;
+                    ++ip; break;
 
-                    / * LOWER.F * /
-                case INSTR_LOWERF_VAR_VAR:
-                    return (instr->data.v_v.var_src->f > instr->data.v_v.var_dest->f)?1:2;
-                case INSTR_LOWERF_VAR_FLOAT:
-                    return (instr->data.v_f.var->f < instr->data.v_f.value)?1:2;
-                    */
+                    /* CALL */
+                case INSTR_CALL:
+                    stack[stack_pointer++] = ip + 1;
+                    ip += instr->data.jump_offset; break;
+
+                    /* RET */
+                case INSTR_RET:
+                    ip = stack[--stack_pointer]; break;
 
                 default:
                     printf("NOT IMPLEMENTED : %d\n", instr->id);
@@ -1086,7 +1118,7 @@ void yyparse();
 
     GoomScriptScanner *currentScanner;
 
-#line 1090 "goom_script_scanner.c"
+#line 1122 "lex.yy.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -1238,10 +1270,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 631 "goom_script_scanner.lex"
+#line 664 "goom_script_lex.l"
 
 
-#line 1245 "goom_script_scanner.c"
+#line 1277 "lex.yy.c"
 
 	if ( (yy_init) )
 		{
@@ -1294,13 +1326,13 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 35 )
+				if ( yy_current_state >= 36 )
 					yy_c = yy_meta[(unsigned int) yy_c];
 				}
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 			++yy_cp;
 			}
-		while ( yy_base[yy_current_state] != 58 );
+		while ( yy_base[yy_current_state] != 60 );
 
 yy_find_action:
 		yy_act = yy_accept[yy_current_state];
@@ -1327,92 +1359,80 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 633 "goom_script_scanner.lex"
+#line 666 "goom_script_lex.l"
 { ++currentScanner->num_lines; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 635 "goom_script_scanner.lex"
+#line 668 "goom_script_lex.l"
 { BEGIN INITIAL; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 636 "goom_script_scanner.lex"
+#line 669 "goom_script_lex.l"
 { /* eat up comment */ }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 638 "goom_script_scanner.lex"
+#line 671 "goom_script_lex.l"
 { BEGIN COMMENT; }
 	YY_BREAK
-/*
- <INITIAL>set"."i             { currentScanner->instr = instr_init(currentScanner, "set.i", INSTR_SETI, 2); }
- <INITIAL>set"."f             { currentScanner->instr = instr_init(currentScanner, "set.f", INSTR_SETF, 2); }
- <INITIAL>add"."i             { currentScanner->instr = instr_init(currentScanner, "add.i", INSTR_ADDI, 2); }
- <INITIAL>add"."f             { currentScanner->instr = instr_init(currentScanner, "add.f", INSTR_ADDF, 2); }
- <INITIAL>mul"."i             { currentScanner->instr = instr_init(currentScanner, "mul.i", INSTR_MULI, 2); }
- <INITIAL>mul"."f             { currentScanner->instr = instr_init(currentScanner, "mul.f", INSTR_MULF, 2); }
- <INITIAL>bool                { currentScanner->instr = instr_init(currentScanner, "bool", INSTR_INT, 1); }
- <INITIAL>jump                { currentScanner->instr = instr_init(currentScanner, "jump", INSTR_JUMP, 1); }
- <INITIAL>label               { currentScanner->instr = instr_init(currentScanner, "label", INSTR_LABEL, 1); }
- <INITIAL>equals"."i          { currentScanner->instr = instr_init(currentScanner, "equals.i", INSTR_EQUALSI, 2); }
- <INITIAL>equals"."f          { currentScanner->instr = instr_init(currentScanner, "equals.f", INSTR_EQUALSF, 2); }
- <INITIAL>lower"."i           { currentScanner->instr = instr_init(currentScanner, "lower.i", INSTR_LOWERI, 2); }
- <INITIAL>lower"."f           { currentScanner->instr = instr_init(currentScanner, "lower.f", INSTR_LOWERF, 2); }
- <INITIAL>":"{ID}":"          { instr_add_param(currentScanner->instr, yytext, TYPE_LABEL); }
- <INITIAL>{ID}"."{ID}         { instr_add_param(currentScanner->instr, yytext, TYPE_PARAM); }
- */
 case 5:
 YY_RULE_SETUP
-#line 657 "goom_script_scanner.lex"
+#line 673 "goom_script_lex.l"
 { return FLOAT_TK; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 658 "goom_script_scanner.lex"
+#line 674 "goom_script_lex.l"
 { return INT_TK;   }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 659 "goom_script_scanner.lex"
-{ strncpy(yylval.strValue, yytext, 2047); return TYPE_PARAM;   }
+#line 675 "goom_script_lex.l"
+{ return ARROW_TK; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 660 "goom_script_scanner.lex"
-{ strncpy(yylval.strValue, yytext, 2047); return TYPE_VAR;     }
+#line 676 "goom_script_lex.l"
+{ strncpy(yylval.strValue, yytext, 2047); return TYPE_PARAM;   }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 661 "goom_script_scanner.lex"
-{ strncpy(yylval.strValue, yytext, 2047); return TYPE_INTEGER; }
+#line 677 "goom_script_lex.l"
+{ strncpy(yylval.strValue, yytext, 2047); return TYPE_VAR;     }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 662 "goom_script_scanner.lex"
-{ strncpy(yylval.strValue, yytext, 2047); return TYPE_FLOAT;   }
+#line 678 "goom_script_lex.l"
+{ strncpy(yylval.strValue, yytext, 2047); return TYPE_INTEGER; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 663 "goom_script_scanner.lex"
-{ sprintf(yylval.strValue, "%3.2f", atof(yytext)/100.0f); return TYPE_FLOAT; }
+#line 679 "goom_script_lex.l"
+{ strncpy(yylval.strValue, yytext, 2047); return TYPE_FLOAT;   }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 664 "goom_script_scanner.lex"
-/* eat up whitespace */
+#line 680 "goom_script_lex.l"
+{ sprintf(yylval.strValue, "%3.2f", atof(yytext)/100.0f); return TYPE_FLOAT; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 665 "goom_script_scanner.lex"
-{ yylval.charValue = *yytext; return *yytext;    }
+#line 681 "goom_script_lex.l"
+/* eat up whitespace */
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 667 "goom_script_scanner.lex"
+#line 682 "goom_script_lex.l"
+{ yylval.charValue = *yytext; return *yytext;    }
+	YY_BREAK
+case 15:
+YY_RULE_SETUP
+#line 684 "goom_script_lex.l"
 ECHO;
 	YY_BREAK
-#line 1416 "goom_script_scanner.c"
+#line 1436 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 	yyterminate();
@@ -1697,7 +1717,7 @@ static int yy_get_next_buffer (void)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 35 )
+			if ( yy_current_state >= 36 )
 				yy_c = yy_meta[(unsigned int) yy_c];
 			}
 		yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
@@ -1725,11 +1745,11 @@ static int yy_get_next_buffer (void)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 35 )
+		if ( yy_current_state >= 36 )
 			yy_c = yy_meta[(unsigned int) yy_c];
 		}
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-	yy_is_jam = (yy_current_state == 34);
+	yy_is_jam = (yy_current_state == 35);
 
 	return yy_is_jam ? 0 : yy_current_state;
 }
@@ -2379,7 +2399,7 @@ void yyfree (void * ptr )
 #undef YY_DECL_IS_OURS
 #undef YY_DECL
 #endif
-#line 667 "goom_script_scanner.lex"
+#line 684 "goom_script_lex.l"
 
 
 
@@ -2389,6 +2409,11 @@ static void reset_scanner(GoomScriptScanner *gss) {
     gss->instr = NULL;
     iflow_clean(gss->iflow);
     gss->current_flow = gss->iflow;
+
+    /* reset variables */
+    goom_hash_free(gss->vars);
+    gss->vars = goom_hash_new();
+    
     gss->compilationOK = 1;
 }
 
@@ -2415,14 +2440,20 @@ void goom_script_scanner_compile(GoomScriptScanner *_currentScanner, PluginInfo 
 #ifdef VERBOSE
     printf("\n=== Starting Compilation ===\n");
 #endif
+
+    /* 0- reset */
     currentScanner = _currentScanner;
     reset_scanner(currentScanner);
     currentScanner->pluginInfo = pluginInfo;
     
+    /* 1- create the syntaxic tree */
     yy_scan_string(script);
     yyparse();
+    
+    /* 2- generate code */
     gsl_commit_compilation();
 
+    /* 3- resolve symbols */
     calculate_labels(currentScanner->iflow);
     
 #ifdef VERBOSE

@@ -12,5 +12,6 @@ void goom_execute_main_script(PluginInfo *pluginInfo);
     /* return a script containing the current goom state */
 char *goom_create_state_script(PluginInfo *pluginInfo);
 
+PluginParam *goom_script_get_param(PluginInfo *pluginInfo, const char *name);
 
 #endif /* _GOOM_SCRIPT_H */
