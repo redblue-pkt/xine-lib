@@ -319,7 +319,8 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     uint8_t code;
 
     ret = 0;
-    mpeg2dec->pts = pts;
+    if (pts)
+      mpeg2dec->pts = pts;
 
     if (mpeg2dec->seek_mode) {
       mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
