@@ -110,7 +110,7 @@ xineplug_dmx_pva_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_games_la_SOURCES = group_games.c demux_eawve.c \
 				demux_idcin.c demux_ipmovie.c demux_roq.c \
 				demux_vqa.c demux_wc3movie.c demux_str.c \
-				demux_film.c demux_smjpeg.c
+				demux_film.c demux_smjpeg.c demux_4xm.c
 xineplug_dmx_games_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_games_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
