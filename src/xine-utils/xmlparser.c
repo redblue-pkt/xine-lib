@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.2 2002/09/06 18:13:12 mroi Exp $
+ *  $Id: xmlparser.c,v 1.3 2002/12/02 22:37:08 f1rmb Exp $
  *
  */
 
@@ -37,7 +37,7 @@
 #define DATA_SIZE   4 * 1024
 #define MAX_RECURSION 10
 
-#define LOG
+/* #define LOG */
 
 /* private global variables */
 int xml_parser_mode;
