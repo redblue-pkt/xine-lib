@@ -151,7 +151,7 @@ dnl ---------------------------------------------
 dnl debug cflags
 dnl ---------------------------------------------
 AC_SUBST(DEBUG_CFLAGS)
-DEBUG_CFLAGS="$CFLAGS -g -O -DDEBUG"
+DEBUG_CFLAGS="$CFLAGS -g -DDEBUG"
 
 dnl ---------------------------------------------
 dnl threads

@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_DATADIR@/xine_logo.mpv\"
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
 
 lib_LTLIBRARIES = libxine.la
 
@@ -32,7 +32,7 @@ noinst_HEADERS = bswap.h nvtvd.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_DATADIR@/xine_logo.mpv\\\""
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS) 
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

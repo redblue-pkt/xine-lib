@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.21 2002/10/19 21:23:52 guenter Exp $
+ * $Id: xine.h.in,v 1.22 2002/10/20 02:17:36 storri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -611,6 +611,8 @@ typedef struct {
 /*
  * xine-config stuff
  */
+
+int xine_health_check(void);
 
 /*
  * config entry data types

@@ -19,9 +19,10 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	memcpy.c \
 	monitor.c \
 	utils.c \
+	xine_check.c \
 	xine_mutex.c \
 	xmllexer.c \
-	xmlparser.c
+	xmlparser.c 
 
 libxineutils_la_LIBADD = $(THREAD_LIBS)
 
@@ -30,6 +31,7 @@ include_HEADERS = attributes.h \
 	compat.h \
 	ppcasm_string.h \
 	xineutils.h \
+	xine_check.h \
 	xmllexer.h \
 	xmlparser.h
 

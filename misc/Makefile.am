@@ -7,11 +7,7 @@ EXTRA_DIST = autogen.sh \
 	vga.xinefont.gz \
 	xine-fontconv.c \
 	xine-lib.spec.in \
-	xine-lib.spec \
-	xine_logo.mpv
-
-datadir = $(XINE_DATADIR)
-data_DATA = xine_logo.mpv
+	xine-lib.spec 
 
 bin_SCRIPTS = xine-config
 

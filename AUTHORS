@@ -71,6 +71,10 @@ Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, EA ADPCM decoder, various
 bugfixes
 
+Automake, autoconf, libtool development, and build fixes.
+
+  Stephen Torri <storri@users.sourceforge.net>
+
 xine is using
   mpeg2dec - a free MPEG-2 video stream decoder
   liba52   - a free A/52 audio stream decoder
