@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.150 2004/07/10 14:08:49 athp Exp $
+ * $Id: demux_ogg.c,v 1.151 2004/07/25 17:08:07 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1158,7 +1158,7 @@ static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_
       granule_rate_n, granule_rate_d, secondary_headers);
 
   /* read "Content-Tyoe" MIME header */
-  sscanf(&op->packet[28], "Content-Type: %1024s\r\n", content_type);
+  sscanf(&op->packet[28], "Content-Type: %1023s\r\n", content_type);
   content_type_length = strlen(content_type);
 
   lprintf("Content-Type: %s (length:%d)\n", content_type, content_type_length);
