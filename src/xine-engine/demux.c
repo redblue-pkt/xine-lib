@@ -31,9 +31,7 @@
 #include "demuxers/demux.h"
 #include "buffer.h"
 
-/*
 #define LOG
-*/
 
 /* internal use only - called from demuxers on seek/stop
  * warning: after clearing decoders fifos an absolute discontinuity
@@ -202,11 +200,16 @@ static void *demux_loop (void *stream_gen) {
 #ifdef LOG
     printf ("demux: main demuxer loop finished (status: %d)\n", status);
 #endif
-    
+    /* Avoid deadlock with net_buf_ctrl */
+    stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
+    stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+    if (stream->audio_out)
+      stream->audio_out->set_property(stream->audio_out,AO_PROP_PAUSED,0);
+
     /* wait before sending end buffers: user might want to do a new seek */
-    while(stream->demux_thread_running && 
+    while(stream->demux_thread_running &&
           ((!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) ||
-           (stream->audio_out 
+           (stream->audio_out
 	    && (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo)))) &&
           status == DEMUX_FINISHED ){
       pthread_mutex_unlock( &stream->demux_lock );
@@ -220,8 +223,8 @@ static void *demux_loop (void *stream_gen) {
 #ifdef LOG
   printf ("demux: loop finished (status: %d)\n", status);
 #endif
-  
-  /* demux_thread_running is zero is demux loop has being stopped by user */
+
+  /* demux_thread_running is zero if demux loop has being stopped by user */
   if (stream->demux_thread_running) {
     xine_demux_control_end(stream, BUF_FLAG_END_STREAM);
   } else {
