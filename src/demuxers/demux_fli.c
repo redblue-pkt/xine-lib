@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.50 2004/01/12 17:35:14 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.51 2004/02/01 06:04:48 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,8 +62,7 @@ typedef struct {
   int                  status;
 
   /* video information */
-  unsigned int         width;
-  unsigned int         height;
+  xine_bmiheader       bih;
   unsigned char        fli_header[FLI_HEADER_SIZE];
 
   /* playback info */
@@ -107,12 +106,12 @@ static int open_fli_file(demux_fli_t *this) {
 
     /* use a contrived internal FLI type, 0xAF13 */
     this->magic_number = FLI_FILE_MAGIC_3;
-    this->fli_header[4] = 0x13;  /* make sure to communicate this to decoder */
+//    this->fli_header[4] = 0x13;  /* make sure to communicate this to decoder */
   }
 
   this->frame_count = LE_16(&this->fli_header[6]);
-  this->width = LE_16(&this->fli_header[8]);
-  this->height = LE_16(&this->fli_header[10]);
+  this->bih.biWidth = LE_16(&this->fli_header[8]);
+  this->bih.biHeight = LE_16(&this->fli_header[10]);
 
   this->speed = LE_32(&this->fli_header[16]);
   if (this->magic_number == FLI_FILE_MAGIC_1) {
@@ -144,8 +143,13 @@ static int open_fli_file(demux_fli_t *this) {
 
   /* sanity check: the FLI file must have non-zero values for width, height,
    * and frame count */
-  if ((!this->width) || (!this->height) || (!this->frame_count))
+  if ((!this->bih.biWidth) || (!this->bih.biHeight) || (!this->frame_count))
     return 0;
+
+  if (this->magic_number == FLI_FILE_MAGIC_3)
+      this->bih.biSize = sizeof(xine_bmiheader) + FLI_HEADER_SIZE_MC;
+  else
+      this->bih.biSize = sizeof(xine_bmiheader) + FLI_HEADER_SIZE;
 
   return 1;
 }
@@ -229,8 +233,8 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   /* load stream information */
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
     this->frame_pts_inc);
 
@@ -239,12 +243,13 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to FLI decoder */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END|BUF_FLAG_STDHEADER;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
-  /* be a rebel and send the FLI header instead of the bih */
-  memcpy(buf->content, this->fli_header, FLI_HEADER_SIZE);
-  buf->size = FLI_HEADER_SIZE;
+  buf->size = this->bih.biSize;
+  memcpy(buf->content, &this->bih, sizeof(xine_bmiheader) + FLI_HEADER_SIZE);
+  memcpy(buf->content + sizeof(xine_bmiheader), this->fli_header,
+    this->bih.biSize - FLI_HEADER_SIZE);
   buf->type = BUF_VIDEO_FLI;
   this->video_fifo->put (this->video_fifo, buf);
 }
