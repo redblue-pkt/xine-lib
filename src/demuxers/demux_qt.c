@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.114 2002/11/18 19:29:46 tmmm Exp $
+ * $Id: demux_qt.c,v 1.115 2002/11/18 23:08:31 tmmm Exp $
  *
  */
 
@@ -616,6 +616,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   sample_table->sample_to_chunk_table = NULL;
   sample_table->time_to_sample_count = 0;
   sample_table->time_to_sample_table = NULL;
+  sample_table->frames = NULL;
   sample_table->decoder_config = NULL;
   sample_table->decoder_config_len = 0;
 
@@ -1595,8 +1596,10 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
     free(sample_tables[i].time_to_sample_table);
     free(sample_tables[i].sample_to_chunk_table);
     free(sample_tables[i].sync_sample_table);
+    free(sample_tables[i].frames);
   }
   free(sample_tables);
+  free(sample_table_indices);
 }
 
 static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
@@ -1626,6 +1629,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   /* seek to the start of moov atom */
   if (input->seek(input, info->moov_first_offset, SEEK_SET) !=
     info->moov_first_offset) {
+    free(moov_atom);
     info->last_error = QT_FILE_READ_ERROR;
     return info->last_error;
   }
@@ -1646,6 +1650,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     z_state.avail_out = BE_32(&moov_atom[0x24]);
     unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
     if (!unzip_buffer) {
+      free(moov_atom);
       info->last_error = QT_NO_MEMORY;
       return info->last_error;
     }
@@ -1657,18 +1662,24 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
     z_ret_code = inflateInit (&z_state);
     if (Z_OK != z_ret_code) {
+      free(unzip_buffer);
+      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
 
     z_ret_code = inflate(&z_state, Z_NO_FLUSH);
     if ((z_ret_code != Z_OK) && (z_ret_code != Z_STREAM_END)) {
+      free(unzip_buffer);
+      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
 
     z_ret_code = inflateEnd(&z_state);
     if (Z_OK != z_ret_code) {
+      free(unzip_buffer);
+      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
@@ -1689,6 +1700,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
   /* take apart the moov atom */
   parse_moov_atom(info, moov_atom);
+
+  free(moov_atom);
 
   return QT_OK;
 }
