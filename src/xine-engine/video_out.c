@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.69 2002/02/02 13:26:34 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.70 2002/02/02 13:39:30 miguelfreitas Exp $
  *
  */
 
@@ -402,7 +402,7 @@ static void *video_out_loop (void *this_gen) {
 	if (img_backup) {
 	  pthread_mutex_lock (&img_backup->mutex);
 #ifdef VIDEO_OUT_LOG
-	  prcvs -z3 -d:ext:miguelfreitas@cvs.xine.sourceforge.net:/cvsroot/xine commitintf("video_out : overwriting frame backup\n");
+	  printf("video_out : overwriting frame backup\n");
 #endif
 	  img_backup->display_locked = 0;
 	  if (!img_backup->decoder_locked) 
