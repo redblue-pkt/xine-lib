@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.60 2003/10/30 06:04:31 tmmm Exp $
+ * $Id: xineutils.h,v 1.61 2003/11/01 01:25:44 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -785,7 +785,7 @@ extern void (*yuy2_to_yv12)
 
 #define COMPUTE_Y(r, g, b) \
   (unsigned char) \
-  (((y_r_table[r] + y_g_table[g] + y_b_table[b]) / SCALEFACTOR) + 16)
+  ((y_r_table[r] + y_g_table[g] + y_b_table[b]) / SCALEFACTOR)
 #define COMPUTE_U(r, g, b) \
   (unsigned char) \
   ((u_r_table[r] + u_g_table[g] + u_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
