@@ -230,10 +230,12 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	mpeg2dec->pts = 0;
 	return 0;
       }
-    } else if (mpeg2dec->is_frame_needed && (code != 0x00)) {
+    }
+    if (mpeg2dec->is_frame_needed) {
       /* printf ("libmpeg2: waiting for frame start\n");  */
       mpeg2dec->pts = 0;
-      return 0;
+      if (mpeg2dec->picture->current_frame)
+        mpeg2dec->picture->current_frame->bad_frame = 1;
     }
 
     mpeg2_stats (code, buffer);
