@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.19 2003/08/09 22:41:19 hadess Exp $
+ * $Id: video_out_directfb.c,v 1.20 2003/08/09 22:44:09 hadess Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -496,7 +496,7 @@ fprintf (stderr, "done gui_data_exchange\n");
 }
 
 static int directfb_redraw_needed (vo_driver_t *this_gen) {
-//    directfb_driver_t  *this = (directfb_driver_t *) this_gen;
+/*     directfb_driver_t  *this = (directfb_driver_t *) this_gen; */
 
     return 0;
 }
