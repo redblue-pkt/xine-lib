@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.27 2002/09/21 18:48:25 tmmm Exp $
+ * $Id: demux_film.c,v 1.28 2002/10/01 04:33:35 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -82,7 +82,7 @@ typedef struct {
   int                  send_end_buffers;
 
   off_t                data_start;
-  off_t                data_end;
+  off_t                data_size;
   int                  status;
 
   /* when this flag is set, demuxer only dispatches audio samples until it
@@ -134,9 +134,6 @@ static int open_film_file(demux_film_t *film) {
   film->audio_channels = 0;
   film->waiting_for_keyframe = 0;
 
-  /* get the ending offset */
-  film->data_end = film->input->get_length(film->input);
-
   /* reset the file */
   film->input->seek(film->input, 0, SEEK_SET);
 
@@ -160,6 +157,7 @@ static int open_film_file(demux_film_t *film) {
 
   /* get the starting offset */
   film->data_start = film->input->get_current_pos(film->input);
+  film->data_size = film->input->get_length(film->input) - film->data_start;
 
   /* traverse the FILM header */
   i = 0;
@@ -180,10 +178,7 @@ static int open_film_file(demux_film_t *film) {
       film->bih.biWidth = BE_32(&film_header[i + 16]);
       film->bih.biHeight = BE_32(&film_header[i + 12]);
       film->video_codec = BE_32(&film_header[i + 8]);
-      if (film->video_codec == CVID_TAG)
-        film->video_type = BUF_VIDEO_CINEPAK;
-      else
-        film->video_type = 0;
+      film->video_type = fourcc_to_buf_video(*(uint32_t *)&film_header[i + 8]);
 
       /* fetch the audio information if the chunk size checks out */
       if (chunk_size == 32) {
@@ -268,7 +263,7 @@ static void *demux_film_loop (void *this_gen) {
   unsigned int i, j;
   int fixed_cvid_header;
   unsigned int remaining_sample_bytes;
-  int64_t last_frame_pts = 0;
+  int64_t frame_duration;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -286,13 +281,8 @@ static void *demux_film_loop (void *this_gen) {
       /* if there is an incongruency between last and current sample, it
        * must be time to send a new pts */
       if (this->last_sample + 1 != this->current_sample) {
-        xine_demux_flush_engine(this->xine);
-
         /* send new pts */
         xine_demux_control_newpts(this->xine, this->sample_table[i].pts, 0);
-        
-        /* reset last_frame_pts on seek */
-        last_frame_pts = 0;
       }
 
       this->last_sample = this->current_sample;
@@ -330,18 +320,30 @@ static void *demux_film_loop (void *this_gen) {
         this->input->seek(this->input, this->sample_table[i].sample_offset,
           SEEK_SET);
 
+        /* frame duration is the pts diff between this video frame and
+         * the next video frame (so search for the next video frame) */
+        frame_duration = 0;
+        j = i;
+        while (++j < this->sample_count) {
+          if (this->sample_table[j].syncinfo1 != 0xFFFFFFFF) {
+            frame_duration =
+              this->sample_table[j].pts - this->sample_table[i].pts;
+            break;
+          }
+        }
+
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = this->video_type;
-          buf->input_pos = this->sample_table[i].sample_offset;
-          buf->input_length = this->data_end;
+          buf->input_pos = 
+            this->sample_table[i].sample_offset - this->data_start;
+          buf->input_length = this->data_size;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
 
-          if (last_frame_pts) {
-            buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-            buf->decoder_info[0] = buf->pts - last_frame_pts;
-          }
+          /* set the frame duration */
+          buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+          buf->decoder_info[0] = frame_duration;
             
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -386,23 +388,39 @@ static void *demux_film_loop (void *this_gen) {
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
           this->video_fifo->put(this->video_fifo, buf);
         }
-        last_frame_pts = buf->pts;
+
       } else if (this->sample_table[i].syncinfo1 != 0xFFFFFFFF) {
-        /* FILM files always appear to use Cinepak video, but pretend that
-           sometimes they don't and add a provision to load another kind of
-           video chunk */
+
+        /* load a non-cvid video chunk */
         remaining_sample_bytes = this->sample_table[i].sample_size;
         this->input->seek(this->input, this->sample_table[i].sample_offset,
           SEEK_SET);
 
+        /* frame duration is the pts diff between this video frame and
+         * the next video frame (so search for the next video frame) */
+        frame_duration = 0;
+        j = i;
+        while (++j < this->sample_count) {
+          if (this->sample_table[j].syncinfo1 != 0xFFFFFFFF) {
+            frame_duration =
+              this->sample_table[j].pts - this->sample_table[i].pts;
+            break;
+          }
+        }
+
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = this->video_type;
-          buf->input_pos = this->sample_table[i].sample_offset;
-          buf->input_length = this->data_end;
+          buf->input_pos = 
+            this->sample_table[i].sample_offset - this->data_start;
+          buf->input_length = this->data_size;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
 
+          /* set the frame duration */
+          buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+          buf->decoder_info[0] = frame_duration;
+            
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
           else
@@ -430,8 +448,9 @@ static void *demux_film_loop (void *this_gen) {
         while (remaining_sample_bytes) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->type = this->audio_type;
-          buf->input_pos = this->sample_table[i].sample_offset;
-          buf->input_length = this->data_end;
+          buf->input_pos = 
+            this->sample_table[i].sample_offset - this->data_start;
+          buf->input_length = this->data_size;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
 
@@ -472,6 +491,8 @@ static void *demux_film_loop (void *this_gen) {
 
   printf ("demux_film: demux loop finished (status: %d)\n",
           this->status);
+
+  this->current_sample = this->last_sample = 0;
 
   this->status = DEMUX_FINISHED;
 
@@ -573,12 +594,17 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_film_seek (demux_plugin_t *this_gen,
+                            off_t start_pos, int start_time);
+
 static int demux_film_start (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
 
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  demux_film_seek(this_gen, start_pos, start_time);
 
   pthread_mutex_lock(&this->mutex);
 
@@ -594,26 +620,15 @@ static int demux_film_start (demux_plugin_t *this_gen,
       this->version[3],
       this->total_time / 60,
       this->total_time % 60);
-    if (this->video_type)
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"),
-        (this->video_codec >> 24) & 0xFF,
-        (this->video_codec >> 16) & 0xFF,
-        (this->video_codec >>  8) & 0xFF,
-        (this->video_codec >>  0) & 0xFF,
-        this->bih.biWidth,
-        this->bih.biHeight,
-        this->frequency);
-    else {
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_film: unknown video codec %c%c%c%c\n"),
-        (this->video_codec >> 24) & 0xFF,
-        (this->video_codec >> 16) & 0xFF,
-        (this->video_codec >>  8) & 0xFF,
-        (this->video_codec >>  0) & 0xFF );
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
+    xine_log (this->xine, XINE_LOG_MSG,
+      _("demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"),
+      (this->video_codec >> 24) & 0xFF,
+      (this->video_codec >> 16) & 0xFF,
+      (this->video_codec >>  8) & 0xFF,
+      (this->video_codec >>  0) & 0xFF,
+      this->bih.biWidth,
+      this->bih.biHeight,
+      this->frequency);
     if (this->audio_type)
       xine_log (this->xine, XINE_LOG_MSG,
         _("demux_film: %d Hz, %d-bit %s%s PCM audio\n"),
@@ -626,17 +641,14 @@ static int demux_film_start (demux_plugin_t *this_gen,
     xine_demux_control_start(this->xine);
 
     /* send init info to decoders */
-    if (this->video_fifo && this->video_type) {
+    if (this->video_type) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
       buf->decoder_info[1] = 3000;  /* initial video_step */
       memcpy(buf->content, &this->bih, sizeof(this->bih));
       buf->size = sizeof(this->bih);
-      if (this->video_codec == CVID_TAG)
-        buf->type = BUF_VIDEO_CINEPAK;
-      else
-        buf->type = 0;
+      buf->type = this->video_type;
       this->video_fifo->put (this->video_fifo, buf);
     }
 
@@ -655,8 +667,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
     this->send_end_buffers = 1;
     this->thread_running = 1;
 
-    this->current_sample = 0;
-    this->last_sample = 0xFFFFFFFE;
+    this->last_sample = 0;
 
     if ((err = pthread_create (&this->thread, NULL, demux_film_loop, this)) != 0) {
       printf ("demux_film: can't create new thread (%s)\n", strerror(err));
@@ -680,21 +691,18 @@ static int demux_film_seek (demux_plugin_t *this_gen,
 
   pthread_mutex_lock( &this->mutex );
 
-  if (!this->thread_running) {
-    status = this->status;
-    pthread_mutex_unlock( &this->mutex );
-    return status;
-  }
+  this->waiting_for_keyframe = 0;
 
   /* perform a binary search on the sample table, testing the offset 
    * boundaries first */
-  if (start_pos <= this->data_start)
+  if (start_pos <= 0)
     best_index = 0;
-  else if (start_pos >= this->data_end) {
+  else if (start_pos >= this->data_size) {
     status = this->status = DEMUX_FINISHED;
     pthread_mutex_unlock( &this->mutex );
     return status;
   } else {
+    start_pos += this->data_start;
     left = 0;
     right = this->sample_count - 1;
     found = 0;
@@ -716,10 +724,11 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   }
 
   /* search back in the table for the nearest keyframe */
-  while (best_index--) {
+  while (best_index) {
     if ((this->sample_table[best_index].syncinfo1 & 0x80000000) == 0) {
       break;
     }
+    best_index--;
   }
 
   /* not done yet; now that the nearest keyframe has been found, seek
@@ -727,16 +736,19 @@ static int demux_film_seek (demux_plugin_t *this_gen,
    * that of the keyframe */
   this->waiting_for_keyframe = 1;
   keyframe_pts = this->sample_table[best_index].pts;
-  while (best_index--) {
+  while (best_index) {
     if ((this->sample_table[best_index].syncinfo1 == 0xFFFFFFFF) &&
         (this->sample_table[best_index].pts < keyframe_pts)) {
       break;
     }
+    best_index--;
   }
 
   this->current_sample = best_index;
   status = this->status = DEMUX_OK;
   pthread_mutex_unlock( &this->mutex );
+
+  xine_demux_flush_engine(this->xine);
 
   return status;
 }
