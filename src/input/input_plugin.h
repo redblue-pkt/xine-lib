@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.34 2002/10/20 22:35:33 guenter Exp $
+ * $Id: input_plugin.h,v 1.35 2002/10/21 12:57:51 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -218,7 +218,11 @@ struct input_plugin_s {
 
 /*
  * INPUT_CAP_CHAPTERS:
- *   FIXME: ???
+ *   The media streams provided by this plugin have an internal
+ *   structure dividing it into segments usable for navigation.
+ *   For those plugins, the behaviour of the skip button in UIs
+ *   should be changed from "next MRL" to "next chapter" by
+ *   sending XINE_EVENT_INPUT_NEXT.
  */
 
 #define INPUT_CAP_CHAPTERS             0x00000080
