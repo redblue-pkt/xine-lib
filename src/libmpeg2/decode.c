@@ -362,15 +362,20 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     }
     */
 
-    /*
+    /* 
+      dont remove any picture->*->free() below. doing so will cause buffer 
+      leak, and we only have about 15 of them.
+    */ 
     if (picture->forward_reference_frame) {
+      /*
       printf ("libmpeg2: blasting out forward reference frame on close\n");
       picture->forward_reference_frame->PTS = 0;
       picture->forward_reference_frame->bad_frame = 0;
       picture->forward_reference_frame->draw (picture->forward_reference_frame); 
+      */
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     }
-    */
+    
     if (picture->throwaway_frame) {
       printf ("libmpeg2: blasting out throwaway frame on close\n");
       picture->throwaway_frame->PTS = 0;
