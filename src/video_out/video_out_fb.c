@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.14 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.15 2002/08/23 00:24:30 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -65,34 +65,17 @@
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
+#include "vo_scale.h"
 
 #define LOG
 
 typedef struct fb_frame_s {
   vo_frame_t         vo_frame;
 
-  int                width, height;
-  int                ratio_code;
   int                format;
   int                flags;
-
-  int                user_ratio;
   
-  /* 
-   * "ideal" size of this frame :
-   * width/height corrected by aspect ratio
-   */
-
-  int                ideal_width, ideal_height;
-  
-  /*
-   * "output" size of this frame:
-   * this is finally the ideal size "fitted" into the
-   * gui size while maintaining the aspect ratio
-   */
-  int                output_width, output_height;
-  
-  double             ratio_factor;/* ideal/rgb size must fulfill: height = width * ratio_factor  */
+  vo_scale_t         sc;
 
   uint8_t           *chunk[3]; /* mem alloc by xmalloc_aligned           */
 
@@ -107,17 +90,15 @@ typedef struct fb_frame_s {
 
 typedef struct fb_driver_s {
 
-  vo_driver_t      vo_driver;
+  vo_driver_t        vo_driver;
 
-  config_values_t *config;
+  config_values_t   *config;
 
-  int		   fd;
-  int              mem_size;
-  uint8_t*         video_mem;       /* mmapped video memory */
+  int                fd;
+  int                mem_size;
+  uint8_t*           video_mem;       /* mmapped video memory */
   
-  int		   scaling_disabled;
-  int              depth, bpp, bytes_per_pixel;
-  int              expecting_event;
+  int                depth, bpp, bytes_per_pixel;
   
   int                yuv2rgb_mode;
   int                yuv2rgb_swap;
@@ -125,28 +106,14 @@ typedef struct fb_driver_s {
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
 
-  vo_overlay_t    *overlay;
+  vo_overlay_t      *overlay;
 
   /* size / aspect ratio calculations */
-  int              user_ratio;
-  double	   output_scale_factor;	 /* additional scale factor for the output frame */
-
-  int		   last_frame_output_width; /* size of scaled rgb output img gui */
-  int		   last_frame_output_height; /* has most recently adopted to */
-
-  int              gui_width;		 /* size of gui window */
-  int              gui_height;
-  int              gui_changed;
-  int              gui_linelength;
-
-  /* display anatomy */
-  double           display_ratio;        /* given by visual parameter from init function */
+  vo_scale_t         sc;
+  
+  int                fb_linelength;
 
 } fb_driver_t;
-
-/* possible values for fb_driver_t, field gui_changed */
-#define	GUI_SIZE_CHANGED	1
-#define	GUI_ASPECT_CHANGED	2
 
 
 /*
@@ -215,6 +182,7 @@ static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
   }
 
   memset (frame, 0, sizeof(fb_frame_t));
+  memcpy (&frame->sc, &this->sc, sizeof(vo_scale_t));
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
@@ -239,103 +207,19 @@ static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
 
 static void fb_compute_ideal_size (fb_driver_t *this, fb_frame_t *frame) {
 
-  if (this->scaling_disabled) {
-
-    frame->ideal_width   = frame->width;
-    frame->ideal_height  = frame->height;
-    frame->ratio_factor  = 1.0;
-
-  } else {
-    
-    double image_ratio, desired_ratio, corr_factor;
-
-    image_ratio = (double) frame->width / (double) frame->height;
-
-    switch (frame->user_ratio) {
-    case ASPECT_AUTO:
-      switch (frame->ratio_code) {
-      case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-      case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
-	desired_ratio = 16.0 /9.0;
-	break;
-      case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
-	desired_ratio = 2.11/1.0;
-	break;
-      case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-      case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-	desired_ratio = image_ratio;
-	break;
-      case 0:                             /* forbidden -> 4:3 */
-	printf ("video_out_fb: invalid ratio, using 4:3\n");
-      default:
-	printf ("video_out_fb: unknown aspect ratio (%d) in stream => using 4:3\n",
-		frame->ratio_code);
-      case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
-	desired_ratio = 4.0 / 3.0;
-	break;
-      }
-      break;
-    case ASPECT_ANAMORPHIC:
-      desired_ratio = 16.0 / 9.0;
-      break;
-    case ASPECT_DVB:
-      desired_ratio = 2.0 / 1.0;
-      break;
-    case ASPECT_SQUARE:
-      desired_ratio = image_ratio;
-      break;
-    case ASPECT_FULL:
-    default:
-      desired_ratio = 4.0 / 3.0;
-    }
-
-    frame->ratio_factor = this->display_ratio * desired_ratio;
-
-    corr_factor = frame->ratio_factor / image_ratio ;
-
-    if (fabs(corr_factor - 1.0) < 0.005) {
-      frame->ideal_width  = frame->width;
-      frame->ideal_height = frame->height;
-
-    } else {
-
-      if (corr_factor >= 1.0) {
-	frame->ideal_width  = frame->width * corr_factor + 0.5;
-	frame->ideal_height = frame->height;
-      } else {
-	frame->ideal_width  = frame->width;
-	frame->ideal_height = frame->height / corr_factor + 0.5;
-      }
-
-    }
-  }
+  vo_scale_compute_ideal_size( &frame->sc );
 }
 
 static void fb_compute_rgb_size (fb_driver_t *this, fb_frame_t *frame) {
 
-  double x_factor, y_factor;
-
-  /*
-   * make the frame fit into the given destination area
-   */
+  vo_scale_compute_output_size( &frame->sc );
   
-  x_factor = (double) this->gui_width  / (double) frame->ideal_width;
-  y_factor = (double) this->gui_height / (double) frame->ideal_height;
-  
-  if ( x_factor < y_factor ) {
-    frame->output_width   = (double) frame->ideal_width  * x_factor ;
-    frame->output_height  = (double) frame->ideal_height * x_factor ;
-  } else {
-    frame->output_width   = (double) frame->ideal_width  * y_factor ;
-    frame->output_height  = (double) frame->ideal_height * y_factor ;
-  }
-
 #ifdef LOG
   printf("video_out_fb: frame source %d x %d => screen output %d x %d%s\n",
-	 frame->width, frame->height,
-	 frame->output_width, frame->output_height,
-	 ( frame->width != frame->output_width
-	   || frame->height != frame->output_height
+	 frame->sc.delivered_width, frame->sc.delivered_height,
+	 frame->sc.output_width, frame->sc.output_height,
+	 ( frame->sc.delivered_width != frame->sc.output_width
+	   || frame->sc.delivered_height != frame->sc.output_height
 	   ? ", software scaling"
 	   : "" )
 	 );
@@ -354,26 +238,24 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
 
   /* find out if we need to adapt this frame */
 
-  if ((width != frame->width)
-      || (height != frame->height)
-      || (ratio_code != frame->ratio_code)
+  if ((width != frame->sc.delivered_width)
+      || (height != frame->sc.delivered_height)
+      || (ratio_code != frame->sc.delivered_ratio_code)
       || (flags != frame->flags)
       || (format != frame->format)
-      || (this->user_ratio != frame->user_ratio)
-      || this->gui_changed ) {
-
+      || (this->sc.user_ratio != frame->sc.user_ratio)) {
+  
 #ifdef LOG
     printf ("video_out_fb: frame format (from decoder) has changed => adapt\n");
 #endif
 
-    frame->width      = width;
-    frame->height     = height;
-    frame->ratio_code = ratio_code;
-    frame->flags      = flags;
-    frame->format     = format;
-    frame->user_ratio = this->user_ratio;
-    this->gui_changed = 0;
-
+    frame->sc.delivered_width      = width;
+    frame->sc.delivered_height     = height;
+    frame->sc.delivered_ratio_code = ratio_code;
+    frame->flags                   = flags;
+    frame->format                  = format;
+    frame->sc.user_ratio           = this->sc.user_ratio;
+    
     fb_compute_ideal_size (this, frame);
     fb_compute_rgb_size (this, frame);
 
@@ -405,7 +287,7 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
     }
 
 
-    frame->data = xine_xmalloc (frame->output_width * frame->output_height *
+    frame->data = xine_xmalloc (frame->sc.output_width * frame->sc.output_height *
                                 this->bytes_per_pixel );
     
     if (format == IMGFMT_YV12) {
@@ -426,12 +308,8 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
       frame->chunk[2] = NULL;
     }
     
-    frame->format = format;
-    frame->width  = width;
-    frame->height = height;
-
-    frame->stripe_height = 16 * frame->output_height / frame->height;
-    frame->bytes_per_line = frame->output_width * this->bytes_per_pixel;
+    frame->stripe_height = 16 * frame->sc.output_height / frame->sc.delivered_height;
+    frame->bytes_per_line = frame->sc.output_width * this->bytes_per_pixel;
   
     /* 
      * set up colorspace converter
@@ -441,22 +319,22 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
     case VO_TOP_FIELD:
     case VO_BOTTOM_FIELD:
       frame->yuv2rgb->configure (frame->yuv2rgb,
-				 frame->width,
+				 frame->sc.delivered_width,
 				 16,
 				 2*frame->vo_frame.pitches[0],
 				 2*frame->vo_frame.pitches[1],
-				 frame->output_width,
+				 frame->sc.output_width,
 				 frame->stripe_height,
 				 frame->bytes_per_line*2);
       frame->yuv_stride = frame->bytes_per_line*2;
       break;
     case VO_BOTH_FIELDS:
       frame->yuv2rgb->configure (frame->yuv2rgb,
-				 frame->width,
+				 frame->sc.delivered_width,
 				 16,
 				 frame->vo_frame.pitches[0],
 				 frame->vo_frame.pitches[1],
-				 frame->output_width,
+				 frame->sc.output_width,
 				 frame->stripe_height,
 				 frame->bytes_per_line);
       frame->yuv_stride = frame->bytes_per_line;
@@ -521,18 +399,18 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_o
      switch(this->bpp) {
        case 16:
         blend_rgb16( (uint8_t *)frame->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        case 24:
         blend_rgb24( (uint8_t *)frame->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        case 32:
         blend_rgb32( (uint8_t *)frame->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        default:
 	/* It should never get here */
@@ -549,36 +427,31 @@ static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
-  int		  xoffset;
-  int		  yoffset;
   int             y;
   uint8_t	*dst, *src;
 
-  if ( (frame->output_width != this->last_frame_output_width)
-       || (frame->output_height != this->last_frame_output_height) ) {
+  if ( (frame->sc.output_width != this->sc.output_width)
+       || (frame->sc.output_height != this->sc.output_height) ) {
 
-    this->last_frame_output_width    = frame->output_width;
-    this->last_frame_output_height   = frame->output_height;
+    this->sc.output_width    = frame->sc.output_width;
+    this->sc.output_height   = frame->sc.output_height;
 
     printf ("video_out_fb: gui size %d x %d, frame size %d x %d\n",
-            this->gui_width, this->gui_height,
-            frame->output_width, frame->output_height);
+            this->sc.gui_width, this->sc.gui_height,
+            frame->sc.output_width, frame->sc.output_height);
     
-    memset(this->video_mem, 0, this->gui_linelength * this->gui_height );
+    memset(this->video_mem, 0, this->fb_linelength * this->sc.gui_height );
 
   }
     
-  xoffset  = (this->gui_width - frame->output_width) / 2;
-  yoffset  = (this->gui_height - frame->output_height) / 2;
-
-  dst = this->video_mem + yoffset * this->gui_linelength +
-        xoffset * this->bytes_per_pixel;
+  dst = this->video_mem + frame->sc.output_yoffset * this->fb_linelength +
+        frame->sc.output_xoffset * this->bytes_per_pixel;
   src = frame->data;
    
-  for( y = 0; y < frame->output_height; y++ ) {
+  for( y = 0; y < frame->sc.output_height; y++ ) {
     xine_fast_memcpy( dst, src, frame->bytes_per_line );
     src += frame->bytes_per_line;
-    dst += this->gui_linelength;
+    dst += this->fb_linelength;
   } 
   
   frame->vo_frame.displayed (&frame->vo_frame);
@@ -589,7 +462,7 @@ static int fb_get_property (vo_driver_t *this_gen, int property) {
   fb_driver_t *this = (fb_driver_t *) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
-    return this->user_ratio ;
+    return this->sc.user_ratio ;
   } else if ( property == VO_PROP_BRIGHTNESS) {
     return this->yuv2rgb_gamma;
   } else {
@@ -597,24 +470,6 @@ static int fb_get_property (vo_driver_t *this_gen, int property) {
   }
 
   return 0;
-}
-
-static char *aspect_ratio_name(int a)
-{
-  switch (a) {
-  case ASPECT_AUTO:
-    return "auto";
-  case ASPECT_SQUARE:
-    return "square";
-  case ASPECT_FULL:
-    return "4:3";
-  case ASPECT_ANAMORPHIC:
-    return "16:9";
-  case ASPECT_DVB:
-    return "2:1";
-  default:
-    return "unknown";
-  }
 }
 
 static int fb_set_property (vo_driver_t *this_gen, 
@@ -625,10 +480,9 @@ static int fb_set_property (vo_driver_t *this_gen,
   if ( property == VO_PROP_ASPECT_RATIO) {
     if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
-    this->user_ratio = value;
-    this->gui_changed |= GUI_ASPECT_CHANGED;
+    this->sc.user_ratio = value;
     printf("video_out_fb: aspect ratio changed to %s\n",
-	   aspect_ratio_name(value));
+           vo_scale_aspect_ratio_name(value));
   } else if ( property == VO_PROP_BRIGHTNESS) {
 
     this->yuv2rgb_gamma = value;
@@ -684,7 +538,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   fb_driver_t        *this;
   int                mode;
   char               *device_name;
-  
+  static char        devkey[] = "video.fb_device";
+    
   struct fb_fix_screeninfo fix;
   struct fb_var_screeninfo var;
 
@@ -702,11 +557,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   memset (this, 0, sizeof(fb_driver_t));
 
   this->config		    = config;
-  this->output_scale_factor = 1.0;
-  
-  this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
-						     _("disable all video scaling (faster!)"),
-						     NULL, NULL, NULL);
   
   this->vo_driver.get_capabilities     = fb_get_capabilities;
   this->vo_driver.alloc_frame          = fb_alloc_frame;
@@ -722,15 +572,28 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.exit                 = fb_exit;
   this->vo_driver.redraw_needed        = fb_redraw_needed;
 
-  device_name = config->register_string (config, "video.fb_device", "/dev/fb0",
+  device_name = config->register_string (config, devkey, "",
 					 _("framebuffer device"), NULL, NULL, NULL);
+
+  if( strlen(device_name) > 3 ) {
+    this->fd = open(device_name, O_RDWR);
+  } else {
+    device_name = "/dev/fb1";
+    this->fd = open(device_name, O_RDWR);
+    
+    if( this->fd < 0 ) {  
+      device_name = "/dev/fb0";
+      this->fd = open(device_name, O_RDWR);
+    }
+  }
   
-  if( (this->fd = open(device_name, O_RDWR) ) < 0) {
+  if( this->fd < 0) {
     printf("video_out_fb: aborting. (unable to open device \"%s\")\n", device_name);
     free(this);
     return NULL;
   }
-
+  
+  config->update_string (config, devkey, device_name);
 
   if (ioctl(this->fd, FBIOGET_VSCREENINFO, &var)) {
     printf("video_out_fb: ioctl FBIOGET_VSCREENINFO: %s\n", 
@@ -768,14 +631,18 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
   
   if (fix.line_length)
-    this->gui_linelength = fix.line_length;
+    this->fb_linelength = fix.line_length;
   else
-    this->gui_linelength = (var.xres_virtual * var.bits_per_pixel) / 8; 
+    this->fb_linelength = (var.xres_virtual * var.bits_per_pixel) / 8; 
     
-  this->gui_width   = var.xres;
-  this->gui_height  = var.yres;
-  this->display_ratio = 1.0;
-  this->user_ratio          = ASPECT_AUTO;
+  vo_scale_init( &this->sc, 1.0, 0, 0 );
+  this->sc.gui_width   = var.xres;
+  this->sc.gui_height  = var.yres;
+  this->sc.user_ratio  = ASPECT_AUTO;
+
+  this->sc.scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
+						     _("disable all video scaling (faster!)"),
+						     NULL, NULL, NULL);
   
 
   /*
