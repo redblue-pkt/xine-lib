@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.106 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.107 2003/08/28 16:10:16 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -338,7 +338,37 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
   }
 }
 
-/* 
+/*
+ * utility function to read a LANGUAGE= line from the user_comments,
+ * to label audio and spu streams
+ */
+static void read_language_comment (demux_ogg_t * this, ogg_packet *op, int stream_num) {
+  char           **ptr;
+  char           *comment;
+  vorbis_comment vc;
+  vorbis_info    vi;
+
+  vorbis_comment_init(&vc);
+  vorbis_info_init(&vi);
+
+  /* this is necessary to make libvorbis accept this vorbis_info*/
+  vi.rate=1;
+
+  if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
+    ptr=vc.user_comments;
+    while(*ptr) {
+      comment=*ptr;
+      if ( !strncasecmp ("LANGUAGE=", comment, 9) ) {
+        this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
+      }
+      ++ptr;
+    }
+  }
+  vorbis_comment_clear(&vc);
+  vorbis_info_clear(&vi);
+}
+
+/*
  * utility function to pack one ogg_packet into a xine
  * buffer, fill out all needed fields
  * and send it to the right fifo
@@ -354,36 +384,14 @@ static void send_ogg_buf (demux_ogg_t *this,
   hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
   hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
 
-  if ( this->audio_fifo 
+  if ( this->audio_fifo
        && (this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
     buf_element_t *buf;
-       
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	
+
     if (op->packet[0] == PACKET_TYPE_COMMENT ) {
-      char           **ptr;
-      char           *comment;
-      vorbis_comment vc;
-      vorbis_info    vi;
-
-      vorbis_comment_init(&vc);
-      vorbis_info_init(&vi);
-
-      /* this is necessary to make libvorbis accept this vorbis_info*/
-      vi.rate=1;
-
-      if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
-	ptr=vc.user_comments;
-	while(*ptr) {
-	  comment=*ptr;
-	  if ( !strncasecmp ("LANGUAGE=", comment,8) ) {
-	    this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
-	  }
-	  ++ptr;
-	}
-      }
-      vorbis_comment_clear(&vc);
-      vorbis_info_clear(&vi);
+      read_language_comment(this, op, stream_num);
     }
 
     if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
@@ -525,27 +533,8 @@ static void send_ogg_buf (demux_ogg_t *this,
     if (op->packet[0] == PACKET_TYPE_HEADER ) {
       lprintf ("Textstream-header-packet\n");
     } else if (op->packet[0] == PACKET_TYPE_COMMENT ) {
-
-      char           *comment;
-      vorbis_comment vc;
-      vorbis_info    vi;
-
       lprintf ("Textstream-comment-packet\n");
-      vorbis_comment_init(&vc);
-      vorbis_info_init(&vi);
-
-      /*make libvorbis think, this vi is initialized*/
-      vi.rate=1;
-
-      if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
-	comment=*vc.user_comments;
-	if ( !strncasecmp ("LANGUAGE=", comment,8) ) {
-	  this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
-	}
-      }
-      vorbis_comment_clear(&vc);
-      vorbis_info_clear(&vi);
-
+      read_language_comment(this, op, stream_num);
     } else {
       subtitle = (char *)&op->packet[hdrlen + 1];
 
