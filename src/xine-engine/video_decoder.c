@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.98 2002/09/18 04:20:09 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.99 2002/09/18 15:37:43 mroi Exp $
  *
  */
 
@@ -154,8 +154,7 @@ void *video_decoder_loop (void *this_gen) {
 	/* Inform UI of SPU channel changes */
 	ui_event.event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
 	ui_event.data       = NULL;
-	/* FIXME: This event sometimes causes a segfault in the xine-ui gui */
-        /* xine_send_event(this, &ui_event.event); */
+        xine_send_event(this, &ui_event.event);
 	
       }
       break;
