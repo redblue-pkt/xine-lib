@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.173 2003/11/03 00:50:43 tmattern Exp $
+ * $Id: demux_avi.c,v 1.174 2003/11/11 18:10:42 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -201,6 +201,11 @@ typedef struct demux_avi_s {
   off_t                seek_start_pos;
   int                  seek_start_time;
 
+  /* discontinuity detection */
+  int64_t              last_pts[2];
+  int                  send_newpts;
+  int                  buf_flag_seek;
+  
 } demux_avi_t ;
 
 typedef struct {
@@ -253,6 +258,35 @@ typedef struct {
 #define AVI_HEADER_VIDEO     1
 #define AVI_HEADER_SIZE      8
 
+#define WRAP_THRESHOLD   90000
+#define PTS_AUDIO 0
+#define PTS_VIDEO 1
+
+
+static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
+  int64_t diff;
+
+  diff = pts - this->last_pts[video];
+
+  if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD)) ) {
+
+    lprintf ("sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
+
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->stream, pts, 0);
+    }
+
+    this->send_newpts = 0;
+    this->last_pts[1-video] = 0;
+  }
+
+  if (pts)
+    this->last_pts[video] = pts;
+
+}
 
 /* Append an index entry for a newly-found video frame */
 static int video_index_append(avi_t *AVI, off_t pos, uint32_t len, uint32_t flags) {
@@ -1170,6 +1204,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
       buf->type = audio->audio_type | i;
 
+      check_newpts (this, buf->pts, PTS_AUDIO);
       this->audio_fifo->put (this->audio_fifo, buf);
     } else
       do_read_video = 1;
@@ -1208,7 +1243,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       buf, buf->decoder_info[0]);
     */
 
-    this->video_fifo->put (this->video_fifo, buf);
+     check_newpts (this, buf->pts, PTS_VIDEO);
+     this->video_fifo->put (this->video_fifo, buf);
   }
 
   return 1;
@@ -1566,10 +1602,14 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 static int demux_avi_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
-  this->seek_request    = 1;
-  this->seek_start_pos  = start_pos;
-  this->seek_start_time = start_time;
-  this->status = DEMUX_OK;
+                             
+  if (!this->streaming) {
+    xine_demux_flush_engine (this->stream);
+    this->seek_request    = 1;
+    this->seek_start_pos  = start_pos;
+    this->seek_start_time = start_time;
+    this->status = DEMUX_OK;
+  }
   return this->status;
 }
 
@@ -1586,7 +1626,6 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
   if (this->streaming)
     return this->status;
 
-  xine_demux_flush_engine (this->stream);
   AVI_seek_start (this->avi);
 
   /*
@@ -1716,6 +1755,8 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
   }
   lprintf ("video posc: %d, audio posc: %lld\n", this->avi->video_posf, audio_pts);
 
+  this->send_newpts = 1;
+  this->buf_flag_seek = 1;
   xine_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
 
   return this->status;
