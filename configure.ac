@@ -2004,6 +2004,7 @@ echo "   - ws aud        - pva"
 echo "   - vox           - nsf"
 echo "   - nsv           - 4xm"
 echo "   - ac3           - aac"
+echo "   - iff"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
