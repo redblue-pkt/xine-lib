@@ -91,6 +91,7 @@ int xine_remove_event_listener(xine_p this_ro,
       pthread_cond_wait(&this->event_handled, &this->event_lock);
   } while (pending);
   
+  i = 0;
   /* Attempt to find the listener */
   while((found == 1) && (i < this->num_event_listeners)) {
     if(this->event_listeners[i] == listener) {
