@@ -29,7 +29,7 @@
 
 #import "video_window.h"
 
-static NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
+NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 #define DEFAULT_VIDEO_WINDOW_SIZE (NSMakeSize(320, 200))
 
