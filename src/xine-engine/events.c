@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.23 2004/03/03 20:09:16 mroi Exp $
+ * $Id: events.c,v 1.24 2004/04/13 07:59:22 f1rmb Exp $
  *
  * Event handling functions
  *
@@ -156,6 +156,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   qevent->stream      = stream;
   qevent->data        = NULL;
   qevent->data_length = 0;
+  gettimeofday (&qevent->tv, NULL);
   
   pthread_mutex_lock (&queue->lock);
   xine_list_append_content (queue->events, qevent);
