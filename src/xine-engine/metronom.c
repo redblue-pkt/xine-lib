@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.106 2002/12/13 16:47:41 mroi Exp $
+ * $Id: metronom.c,v 1.107 2002/12/23 00:51:31 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -302,11 +302,13 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     }
   }
   
-  if ( this->video_vpts < this->clock->get_current_time(this->clock) ) {
+  if ( this->video_vpts < this->clock->get_current_time(this->clock) ||
+       type == DISC_STREAMSTART ) {
     this->video_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
     printf ("metronom: video vpts adjusted with prebuffer to %lld\n", this->video_vpts);
   }
-  if ( this->audio_vpts < this->clock->get_current_time(this->clock) ) {
+  if ( this->audio_vpts < this->clock->get_current_time(this->clock) ||
+       type == DISC_STREAMSTART ) {
     this->audio_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
     printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", this->audio_vpts);
   }
