@@ -63,7 +63,7 @@ int main ()
        LIBS="$LIBS $SPEEX_LIBS $OGG_LIBS"
        AC_TRY_LINK([
 #include <stdio.h>
-#include <speex/codec.h>
+#include <speex.h>
 ],     [ return 0; ],
        [ echo "*** The test program compiled, but did not run. This usually means"
        echo "*** that the run-time linker is not finding Speex or finding the wrong"
