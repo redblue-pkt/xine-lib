@@ -323,12 +323,14 @@ static void ao_coreaudio_close(ao_driver_t *this_gen)
   }
   
   if (this->au_component) {
-      CloseAComponent (this->au_component);
+      /* contrary to some of Apple's documentation, the function to close a
+       * component is called CloseComponent, not CloseAComponent */
+      CloseComponent (this->au_component);
       this->au_component = NULL;
   }
 
   if (this->converter_component) {
-      CloseAComponent (this->converter_component);
+      CloseComponent (this->converter_component);
       this->converter_component = NULL;
   }
 }
