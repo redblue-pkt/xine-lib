@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.2 2003/03/26 23:45:58 holstsn Exp $
+ * $Id: image.c,v 1.3 2003/04/21 13:26:29 hadess Exp $
  *
  * a image video decoder
  */
@@ -33,6 +33,7 @@
 #include <png.h>
 
 #include "xine_internal.h"
+#include "bswap.h"
 #include "video_out.h"
 #include "buffer.h"
 
@@ -232,7 +233,7 @@ void end_callback(png_structp png_ptr, png_infop info) {
       
 	uint8_t   r,g,b;
 	uint8_t   y,u,v;
-      
+
 	r = *(this->rows[row]+col*3);
 	g = *(this->rows[row]+col*3+1);
 	b = *(this->rows[row]+col*3+2);
@@ -249,6 +250,8 @@ void end_callback(png_structp png_ptr, png_infop info) {
 	      + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
 	  *out = ( (uint16_t) v << 8) | (uint16_t) y;
 	}
+
+	*out = le2me_16(*out);
       }
     }
     this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = img->duration;
