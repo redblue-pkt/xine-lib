@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.42 2001/12/11 15:30:05 miguelfreitas Exp $
+ * $Id: dxr3_decoder.c,v 1.43 2001/12/15 20:56:21 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -78,9 +78,11 @@ static char *devname;
  #define MVCOMMAND_SCAN 4
 #endif
 
+
 typedef struct dxr3_decoder_s {
 	video_decoder_t video_decoder;
 	vo_instance_t *video_out;
+	config_values_t *config;
 	
 	int fd_control;
 	int fd_video;
@@ -94,6 +96,17 @@ typedef struct dxr3_decoder_s {
 	int duration;
 	int enhanced_mode;
 } dxr3_decoder_t;
+
+/* Function to check whether the dxr3 video out plugin is active.
+ * Without it, we can't work and must give it to libmpeg2.
+ * We (ab)use a config value for this (set by dxr3 video out init/exit)
+ */
+static int dxr3_check_vo(config_values_t* cfg) 
+{
+	cfg_entry_t* entry;
+	entry = cfg->lookup_entry(cfg, "dxr3.active");
+	return (entry && entry->num_value);
+}
 
 static int dxr3_tested = 0;
 static int dxr3_ok;
@@ -287,6 +300,10 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 
 static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 {
+	if (! dxr3_check_vo(((dxr3_decoder_t*)this_gen)->config)) {
+		/* dxr3 video out is not active. Play dead. */
+		return 0;
+	}
 	buf_type &= 0xFFFF0000;
 	return (buf_type == BUF_VIDEO_MPEG) || (buf_type == BUF_VIDEO_FILL);
 }
@@ -587,6 +604,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.priority            = 10;
+	this->config			        = cfg;
 
 	this->scr_prio = cfg->register_num(cfg, "dxr3.scr_priority", 10, "Dxr3: SCR plugin priority",NULL,NULL,NULL); 
         
@@ -619,6 +637,10 @@ typedef struct spudec_decoder_s {
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 {
 	int type = buf_type & 0xFFFF0000;
+	if (! dxr3_check_vo(((spudec_decoder_t*)this_gen)->xine->config) ) {
+		/* dxr3 video out is not active. Play dead. */
+		return 0;
+	}
 	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT ||
 		type == BUF_SPU_SUBP_CONTROL);
 }
@@ -650,7 +672,7 @@ static void swab_clut(int* clut)
 		clut[i] = bswap_32(clut[i]);
 }
 
-static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf, uint32_t scr)
+static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 	ssize_t written;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.9 2001/12/11 02:26:59 hrm Exp $
+ * $Id: dxr3_video_out.h,v 1.10 2001/12/15 20:56:21 hrm Exp $
  *
  */
 
@@ -172,5 +172,4 @@ int dxr3_get_property (vo_driver_t *this_gen, int property);
 int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
 void dxr3_get_property_min_max (vo_driver_t *this_gen, int property, int *min, int *max);
 int dxr3_gui_data_exchange (vo_driver_t *this_gen,  int data_type, void *data);
-
 

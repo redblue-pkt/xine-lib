@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_standard.c,v 1.8 2001/12/11 02:26:59 hrm Exp $
+ * $Id: dxr3_vo_standard.c,v 1.9 2001/12/15 20:56:21 hrm Exp $
  *
  *******************************************************************
  * Dummy video out plugin for the dxr3. Is responsible for setting *
@@ -42,6 +42,28 @@
 
 /* Dxr3 videoout globals */
 #include "dxr3_video_out.h"
+
+/* some helper stuff so that the decoder plugin can test for the
+ * presence of the dxr3 vo driver */
+/* to be called by dxr3 video out init and exit handlers */
+static void dxr3_set_vo(dxr3_driver_t* this, int active)
+{
+	cfg_entry_t *entry;
+	config_values_t *config = this->config;
+
+	entry = config->lookup_entry(config, "dxr3.active");
+	if (! entry) {
+		/* register first */
+		config->register_num(config, "dxr3.active", active, 
+			"state of dxr3 video out", 
+			"(internal variable; do not edit)",
+			NULL, NULL);
+	}
+	else {
+		entry->num_value = active;
+	}
+	printf("dxr3: %s dxr3 video out", (active ? "enabled" : "disabled"));
+}
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -155,6 +177,9 @@ void dxr3_exit (vo_driver_t *this_gen)
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
+
+	dxr3_set_vo(this, 0);
+	free(this);
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
@@ -207,7 +232,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		dxr3_get_keycolor(this);
 		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}
-
+	
+	dxr3_set_vo(this, 1);
 	return &this->vo_driver;
 }
 
