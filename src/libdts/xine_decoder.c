@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2001/12/16 17:45:37 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.12 2002/01/03 22:53:27 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -92,7 +92,7 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  ac5_pcm_length;
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
-  int i,n;
+  int n;
 
   if ((this->audio_caps & AO_CAP_MODE_AC5) == 0) {
     return;
@@ -104,10 +104,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
   if (!this->output_open) 
     return;
-  number_of_frames=buf->decoder_info[1]; /* Number of frames */
+  number_of_frames = buf->decoder_info[1];  /* Number of frames  */
   first_access_unit = buf->decoder_info[2]; /* First access unit */
-  /*   audio_buffer->frame_header_count = buf->decoder_info[1]; */ /* Number of frames */
-  /*   audio_buffer->first_access_unit = buf->decoder_info[2]; */ /* First access unit */
 
   if (number_of_frames > 2) {
     return;
@@ -120,11 +118,10 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
       
     audio_buffer = this->audio_out->get_buffer (this->audio_out);
-
     audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
     audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
 
-    printf("DTS first access unit=%u\n",audio_buffer->first_access_unit);
+    /* printf("DTS first access unit=%u\n",audio_buffer->first_access_unit); */
     if (n == first_access_unit) {
       audio_buffer->vpts       = buf->PTS;
       audio_buffer->scr        = buf->SCR;
@@ -190,7 +187,7 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if (ac5_pcm_length < (512 )) {
        ac5_pcm_length = 512 ;
     }
-    printf("DTS length=%d loop=%d pts=%u\n",ac5_pcm_length,n,audio_buffer->vpts);
+    /* printf("DTS length=%d loop=%d pts=%u\n",ac5_pcm_length,n,audio_buffer->vpts); */
     audio_buffer->num_frames = ac5_pcm_length;
 
     data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
@@ -208,7 +205,6 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 void dts_close (audio_decoder_t *this_gen) {
 
   dts_decoder_t *this = (dts_decoder_t *) this_gen; 
-printf("libdts: close \n");
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
   this->output_open = 0;
