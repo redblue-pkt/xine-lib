@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.95 2002/10/22 17:16:57 jkeil Exp $
+ * $Id: input_dvd.c,v 1.96 2002/10/23 10:14:08 jkeil Exp $
  *
  */
 
@@ -1133,7 +1133,7 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
  * vold/rmmount control.
  */
 static void
-check_solaris_vold_device(dvd_input_plugin_t *this)
+check_solaris_vold_device(dvd_input_class_t *this)
 {
   char *volume_device;
   char *volume_name;
@@ -1154,7 +1154,7 @@ check_solaris_vold_device(dvd_input_plugin_t *this)
       free(device);
       return;
     }
-/*    this->dvd_device = device; */
+    this->dvd_device = device;
   }
 }
 #endif
@@ -1568,13 +1568,15 @@ static void *init_plugin (xine_t *xine, void *data) {
 /* FIXME */
 /*  xine_register_event_listener(this->stream, dvd_event_listener, this);*/
 this->dvd_device = "/dev/dvd";
-#if 0
+/*
   this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
 					     "device used for dvd drive",
 					     NULL,
 					     0, device_change_cb, (void *)this);
+*/
+#if 0
 /*  this->current_dvd_device = this->dvd_device; */
   
   if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
@@ -1634,9 +1636,9 @@ this->dvd_device = "/dev/dvd";
 			"Skipping will work on this basis.",
 			NULL, 10, NULL, NULL);
   
+#endif
 #ifdef __sun
   check_solaris_vold_device(this);
-#endif
 #endif
   printf("input_dvd.c: init_plugin finished.\n");
   return this;
@@ -1645,6 +1647,10 @@ this->dvd_device = "/dev/dvd";
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.96  2002/10/23 10:14:08  jkeil
+ * "dvd_device" device name moved from dvd_input_plugin_t -> dvd_input_class_t,
+ * adapt the check_solaris_vold_device() function.
+ *
  * Revision 1.95  2002/10/22 17:16:57  jkeil
  * Fix bad comment, and disable some piece of code to enable compilation on solaris
  *
