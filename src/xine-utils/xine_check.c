@@ -33,25 +33,27 @@
 *
 * Author: Stephen Torri <storri@users.sourceforge.net>
 */
-#include "xine_check.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#if defined(__linux__)
-#include <linux/major.h>
-#include <linux/hdreg.h>
-
-#include "xineutils.h"
-
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <fcntl.h>
+
+#include "xine_check.h"
+#include "xineutils.h"
+
+#if defined(__linux__)
+
+#include <dlfcn.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/utsname.h>
+#include <linux/major.h>
+#include <linux/hdreg.h>
 
 #ifdef HAVE_X11
 #include <X11/Xlib.h>
@@ -61,38 +63,7 @@
 #include <X11/extensions/Xvlib.h>
 #endif
 
-#include <dlfcn.h>
-
-xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
-
-  switch(check_num) {
-    case CHECK_KERNEL:
-      hc = xine_health_check_kernel (hc);
-      break;
-    case CHECK_MTRR:
-      hc = xine_health_check_mtrr (hc);
-      break;
-    case CHECK_CDROM:
-      hc = xine_health_check_cdrom (hc);
-      break;
-    case CHECK_DVDROM:
-      hc = xine_health_check_dvdrom (hc);
-      break;
-    case CHECK_DMA:
-      hc = xine_health_check_dma (hc);
-      break;
-    case CHECK_X:
-      hc = xine_health_check_x (hc);
-      break;
-    case CHECK_XV:
-      hc = xine_health_check_xv (hc);
-      break;
-    default:
-      hc->status = XINE_HEALTH_CHECK_NO_SUCH_CHECK;
-  }
-
-  return hc;
-}
+#endif  /* !__linux__ */
 
 static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
 
@@ -143,6 +114,38 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
   hc->status = state;
 }
 
+#if defined(__linux__)
+
+xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
+
+  switch(check_num) {
+    case CHECK_KERNEL:
+      hc = xine_health_check_kernel (hc);
+      break;
+    case CHECK_MTRR:
+      hc = xine_health_check_mtrr (hc);
+      break;
+    case CHECK_CDROM:
+      hc = xine_health_check_cdrom (hc);
+      break;
+    case CHECK_DVDROM:
+      hc = xine_health_check_dvdrom (hc);
+      break;
+    case CHECK_DMA:
+      hc = xine_health_check_dma (hc);
+      break;
+    case CHECK_X:
+      hc = xine_health_check_x (hc);
+      break;
+    case CHECK_XV:
+      hc = xine_health_check_xv (hc);
+      break;
+    default:
+      hc->status = XINE_HEALTH_CHECK_NO_SUCH_CHECK;
+  }
+
+  return hc;
+}
 
 xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
   struct utsname kernel;
@@ -410,5 +413,3 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
   return hc;
 }
 #endif	/* !__linux__ */
-
-
