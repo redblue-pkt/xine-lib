@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.33 2003/01/10 21:11:08 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.34 2003/01/11 00:00:54 holstsn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -468,7 +468,14 @@ static void real_parse_headers (demux_real_t *this) {
 #endif
 		this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = mdpr->avg_bit_rate;
 
-                if ( strncmp(video_fmt, "RV20", 4) == 0 ) {
+                /* if ( strncmp(video_fmt, "RV10", 4) == 0 ) {
+                  this->video_stream_num = mdpr->stream_number;
+                  this->video_buf_type   = BUF_VIDEO_RV10;
+                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+#ifdef LOG
+                  printf("demux_real: RV10 video detected\n");
+#endif
+                } else */ if ( strncmp(video_fmt, "RV20", 4) == 0 ) {
                   this->video_stream_num = mdpr->stream_number;
                   this->video_buf_type   = BUF_VIDEO_RV20;
                   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
@@ -501,10 +508,26 @@ static void real_parse_headers (demux_real_t *this) {
 
                   buf->content = buf->mem;
 
-                  memcpy(buf->content, mdpr->type_specific_data,
-                         mdpr->type_specific_len);
+		  if (this->video_buf_type == BUF_VIDEO_RV10) {
+		    xine_bmiheader bih;
 
-                  buf->size = mdpr->type_specific_len;
+		    memcpy(&bih.biWidth, mdpr->type_specific_data+off+8, 2);
+		    memcpy(&bih.biHeight, mdpr->type_specific_data+off+10, 2);
+		    bih.biWidth=bswap_16(bih.biWidth);
+		    bih.biHeight=bswap_16(bih.biHeight);
+		    bih.biSize=sizeof(bih);
+#ifdef LOG
+		    printf("demux_real: setting size to w:%u h:%u for RV10\n", bih.biWidth, bih.biHeight);
+#endif
+		    memcpy(buf->content, &bih, bih.biSize);
+
+		    
+		  } else {
+		    memcpy(buf->content, mdpr->type_specific_data,
+			   mdpr->type_specific_len);
+
+		    buf->size = mdpr->type_specific_len;
+		  }
 
                   buf->type = this->video_buf_type;
                   buf->decoder_flags = BUF_FLAG_HEADER;
