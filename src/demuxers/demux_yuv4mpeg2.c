@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.27 2003/08/12 19:44:35 jstembridge Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.28 2003/08/12 20:00:34 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -267,6 +267,7 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
     buf->type = BUF_VIDEO_I420;
     buf->extra_info->input_pos = current_file_pos;
     buf->extra_info->input_length = this->data_size;
+    buf->extra_info->input_time = pts / 90;
     buf->pts = pts;
 
     if (bytes_remaining > buf->max_size)
