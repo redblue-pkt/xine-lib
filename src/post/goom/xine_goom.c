@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.8 2002/12/29 17:53:09 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.9 2002/12/29 18:02:29 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -368,29 +368,33 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
     
 #ifdef __BIG_ENDIAN__
       goom_frame ++;
-      uint8_t r1 = *goom_frame++;
-      uint8_t g1 = *goom_frame++;
-      uint8_t b1 = (*goom_frame += 2);
-      uint8_t r2 = *goom_frame++;
-      uint8_t g2 = *goom_frame++;
-      uint8_t b2 = *goom_frame++;
+      
+      {
+	uint8_t r1 = *goom_frame++;
+	uint8_t g1 = *goom_frame++;
+	uint8_t b1 = (*goom_frame += 2);
+	uint8_t r2 = *goom_frame++;
+	uint8_t g2 = *goom_frame++;
+	uint8_t b2 = *goom_frame++;
 #else
-      uint8_t b1 = *goom_frame++;
-      uint8_t g1 = *goom_frame++;
-      uint8_t r1 = (*goom_frame += 2);
-      uint8_t b2 = *goom_frame++;
-      uint8_t g2 = *goom_frame++;
-      uint8_t r2 = (*goom_frame += 2);
+      {
+	uint8_t b1 = *goom_frame++;
+	uint8_t g1 = *goom_frame++;
+	uint8_t r1 = (*goom_frame += 2);
+	uint8_t b2 = *goom_frame++;
+	uint8_t g2 = *goom_frame++;
+	uint8_t r2 = (*goom_frame += 2);
 #endif
-  
-      *dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
-      dest_ptr++;
-      *dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
-      dest_ptr++;
-      *dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
-      dest_ptr++;
-      *dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
-      dest_ptr++;
+	
+	*dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
+	dest_ptr++;
+	*dest_ptr = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) >> 16) + 128;
+	dest_ptr++;
+	*dest_ptr = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) >> 16;
+	dest_ptr++;
+	*dest_ptr = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) >> 16) + 128;
+	dest_ptr++;
+      }
     }
 #endif
 
