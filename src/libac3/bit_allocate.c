@@ -170,7 +170,8 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    psd = 128 * exp[i];
 	    mask = psd + fgain + lowcomp;
 	    COMPUTE_MASK ();
-	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
+	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
+	    i++;
 	} while ((i < 3) || ((i < 7) && (exp[i] > exp[i-1])));
 	fastleak = psd + fgain;
 	slowleak = psd + sgain;
@@ -187,7 +188,8 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
+	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
+	    i++;
 	}
 
 	if (end == 7)	// lfe channel
@@ -203,7 +205,8 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
+	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
+	    i++;
 	} while (i < 20);
 
 	while (lowcomp > 128) {		// two iterations maximum
@@ -213,7 +216,8 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	    mask = ((fastleak + lowcomp < slowleak) ?
 		    fastleak + lowcomp : slowleak);
 	    COMPUTE_MASK ();
-	    bap[i++] = (baptab+156)[mask + 4 * exp[i]];
+	    bap[i] = (baptab+156)[mask + 4 * exp[i]];
+	    i++;
 	}
 	j = i;
     }
@@ -250,7 +254,8 @@ void bit_allocate (ac3_state_t * state, ac3_ba_t * ba, int bndstart,
 	do {
 	    // max(mask+4*exp)=147=-(minpsd+fgain-deltba-snroffset)>>5+4*exp
 	    // min(mask+4*exp)=-156=-(sgain-deltba-snroffset)>>5
-	    bap[j++] = (baptab+156)[mask + 4 * exp[j]];
+	    bap[j] = (baptab+156)[mask + 4 * exp[j]];
+	    j++;
 	} while (j < endband);
     } while (j < end);
 }

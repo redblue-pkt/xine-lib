@@ -310,15 +310,18 @@ static int q_4_pointer;
     }
 
 #define CHANNEL_COEFF(val)			\
-    coeff[i++] = val;				\
+    coeff[i] = val;				\
+    i++;					\
     continue;
 
 #define CHANNEL_DITHER(val)			\
     if (dither) {				\
-	coeff[i++] = dither_gen () * val;	\
+	coeff[i] = dither_gen () * val;		\
+	i++;					\
 	continue;				\
     } else {					\
-	coeff[i++] = 0;				\
+	coeff[i] = 0;				\
+	i++;					\
 	continue;				\
     }
 
