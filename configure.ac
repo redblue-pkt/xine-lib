@@ -789,7 +789,7 @@ case "$host_or_hostalias" in
 		enable_ffmmx="yes"
 		if test x"$check_athlon" = "xyes"; then
 		    if test -f /proc/cpuinfo; then
-			modelname=`cat /proc/cpuinfo | grep "model name" -m 1 | sed -e 's/ //g' | cut -d':' -f2`
+			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
 			case "$modelname" in
 			*Athlon* | *Duron* | *K7*)
 			    archopt_val="$k7cpu"
