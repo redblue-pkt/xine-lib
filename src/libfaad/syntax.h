@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: syntax.h,v 1.5 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: syntax.h,v 1.6 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #ifndef __SYNTAX_H__
@@ -30,14 +36,33 @@ extern "C" {
 #include "drc.h"
 #include "bits.h"
 
-#define MAIN       0
-#define LC         1
-#define SSR        2
-#define LTP        3
+#define MAIN       1
+#define LC         2
+#define SSR        3
+#define LTP        4
+#define HE_AAC     5
 #define LD        23
 #define ER_LC     17
 #define ER_LTP    19
 #define DRM_ER_LC 27 /* special object type for DRM */
+
+/* header types */
+#define RAW        0
+#define ADIF       1
+#define ADTS       2
+
+/* SBR signalling */
+#define NO_SBR           0
+#define SBR_UPSAMPLED    1
+#define SBR_DOWNSAMPLED  2
+#define NO_SBR_UPSAMPLED 3
+
+/* DRM channel definitions */
+#define DRMCH_MONO          1
+#define DRMCH_STEREO        2
+#define DRMCH_SBR_MONO      3
+#define DRMCH_SBR_LC_STEREO 4
+#define DRMCH_SBR_STEREO    5
 
 
 /* First object type that has ER */
@@ -75,25 +100,65 @@ extern "C" {
 #define ESC_HCB        11
 #define QUAD_LEN       4
 #define PAIR_LEN       2
-#define BOOKSCL        12
 #define NOISE_HCB      13
 #define INTENSITY_HCB2 14
 #define INTENSITY_HCB  15
 
-
-int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC);
+int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC,
+                        program_config *pce);
 
 uint8_t adts_frame(adts_header *adts, bitfile *ld);
 void get_adif_header(adif_header *adif, bitfile *ld);
+void decode_sce_lfe(faacDecHandle hDecoder, faacDecFrameInfo *hInfo, bitfile *ld,
+                    uint8_t id_syn_ele);
+void decode_cpe(faacDecHandle hDecoder, faacDecFrameInfo *hInfo, bitfile *ld,
+                uint8_t id_syn_ele);
+void raw_data_block(faacDecHandle hDecoder, faacDecFrameInfo *hInfo,
+                    bitfile *ld, program_config *pce, drc_info *drc);
 
 
-/* static declarations moved to avoid compiler warnings [MF] */
-
+/* static functions */
+static uint8_t single_lfe_channel_element(faacDecHandle hDecoder, bitfile *ld,
+                                          uint8_t channel, uint8_t *tag);
+static uint8_t channel_pair_element(faacDecHandle hDecoder, bitfile *ld,
+                                    uint8_t channel, uint8_t *tag);
+#ifdef COUPLING_DEC
+static uint8_t coupling_channel_element(faacDecHandle hDecoder, bitfile *ld);
+#endif
+static uint16_t data_stream_element(faacDecHandle hDecoder, bitfile *ld);
+static uint8_t program_config_element(program_config *pce, bitfile *ld);
+static uint8_t fill_element(faacDecHandle hDecoder, bitfile *ld, drc_info *drc
+#ifdef SBR_DEC
+                            ,uint8_t sbr_ele
+#endif
+                            );
+static uint8_t individual_channel_stream(faacDecHandle hDecoder, element *ele,
+                                         bitfile *ld, ic_stream *ics, uint8_t scal_flag,
+                                         int16_t *spec_data);
+static uint8_t ics_info(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld,
+                        uint8_t common_window);
+static uint8_t section_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld);
+static uint8_t scale_factor_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld);
+static void gain_control_data(bitfile *ld, ic_stream *ics);
+static uint8_t spectral_data(faacDecHandle hDecoder, ic_stream *ics, bitfile *ld,
+                             int16_t *spectral_data);
+static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count);
 #ifdef ERROR_RESILIENCE
 uint8_t reordered_spectral_data(faacDecHandle hDecoder, ic_stream *ics,
                                 bitfile *ld, int16_t *spectral_data);
 #endif
-
+static uint8_t pulse_data(ic_stream *ics, pulse_info *pul, bitfile *ld);
+static void tns_data(ic_stream *ics, tns_info *tns, bitfile *ld);
+static uint8_t ltp_data(faacDecHandle hDecoder, ic_stream *ics, ltp_info *ltp, bitfile *ld);
+static uint8_t adts_fixed_header(adts_header *adts, bitfile *ld);
+static void adts_variable_header(adts_header *adts, bitfile *ld);
+static void adts_error_check(adts_header *adts, bitfile *ld);
+static uint8_t dynamic_range_info(bitfile *ld, drc_info *drc);
+static uint8_t excluded_channels(bitfile *ld, drc_info *drc);
+#ifdef SCALABLE_DEC
+static int8_t aac_scalable_main_header(faacDecHandle hDecoder, ic_stream *ics1, ic_stream *ics2,
+                                       bitfile *ld, uint8_t this_layer_stereo);
+#endif
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: ssr_fb.h,v 1.1 2002/12/16 19:01:38 miguelfreitas Exp $
+** $Id: ssr_fb.h,v 1.2 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #ifndef __SSR_FB_H__

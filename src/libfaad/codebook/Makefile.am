@@ -1,15 +1,15 @@
 include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = hcb.h \
-	hcb_1.c \
-	hcb_2.c \
-	hcb_3.c \
-	hcb_4.c \
-	hcb_5.c \
-	hcb_6.c \
-	hcb_7.c \
-	hcb_8.c \
-	hcb_9.c \
-	hcb_10.c \
-	hcb_11.c \
-	hcb_sf.c 
+	hcb_1.h \
+	hcb_2.h \
+	hcb_3.h \
+	hcb_4.h \
+	hcb_5.h \
+	hcb_6.h \
+	hcb_7.h \
+	hcb_8.h \
+	hcb_9.h \
+	hcb_10.h \
+	hcb_11.h \
+	hcb_sf.h 

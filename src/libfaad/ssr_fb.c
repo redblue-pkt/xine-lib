@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: ssr_fb.c,v 1.1 2002/12/16 19:01:32 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: ssr_fb.c,v 1.2 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -36,7 +42,7 @@ fb_info *ssr_filter_bank_init(uint16_t frame_len)
 {
     uint16_t nshort = frame_len/8;
 
-    fb_info *fb = (fb_info*)malloc(sizeof(fb_info));
+    fb_info *fb = (fb_info*)faad_malloc(sizeof(fb_info));
     memset(fb, 0, sizeof(fb_info));
 
     /* normal */
@@ -56,7 +62,7 @@ void ssr_filter_bank_end(fb_info *fb)
     faad_mdct_end(fb->mdct256);
     faad_mdct_end(fb->mdct2048);
 
-    if (fb) free(fb);
+    if (fb) faad_free(fb);
 }
 
 static INLINE void imdct_ssr(fb_info *fb, real_t *in_data,
@@ -96,7 +102,7 @@ void ssr_ifilter_bank(fb_info *fb, uint8_t window_sequence, uint8_t window_shape
 
     uint16_t nflat_ls = (nlong-nshort)/2;
 
-    transf_buf = (real_t*)malloc(2*nlong*sizeof(real_t));
+    transf_buf = (real_t*)faad_malloc(2*nlong*sizeof(real_t));
 
     window_long       = fb->long_window[window_shape];
     window_long_prev  = fb->long_window[window_shape_prev];
@@ -169,7 +175,7 @@ void ssr_ifilter_bank(fb_info *fb, uint8_t window_sequence, uint8_t window_shape
 		break;
     }
 
-    free(transf_buf);
+    faad_free(transf_buf);
 }
 
 

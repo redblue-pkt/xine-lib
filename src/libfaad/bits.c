@@ -1,22 +1,28 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
-**
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+**  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation; either version 2 of the License, or
 ** (at your option) any later version.
-**
+** 
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
-**
+** 
 ** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
+** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: bits.c,v 1.4 2003/04/12 14:58:46 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: bits.c,v 1.5 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -27,26 +33,32 @@
 #include "bits.h"
 
 /* initialize buffer, call once before first getbits or showbits */
-void faad_initbits(bitfile *ld, void *_buffer, uint32_t buffer_size)
+void faad_initbits(bitfile *ld, const void *_buffer, const uint32_t buffer_size)
 {
     uint32_t tmp;
 
-    ld->buffer = malloc((buffer_size+12)*sizeof(uint8_t));
+    if (ld == NULL)
+        return;
+
+    memset(ld, 0, sizeof(bitfile));
+
+    if (buffer_size == 0 || _buffer == NULL)
+    {
+        ld->error = 1;
+        ld->no_more_reading = 1;
+        return;
+    }
+
+    ld->buffer = faad_malloc((buffer_size+12)*sizeof(uint8_t));
     memset(ld->buffer, 0, (buffer_size+12)*sizeof(uint8_t));
     memcpy(ld->buffer, _buffer, buffer_size*sizeof(uint8_t));
 
     ld->buffer_size = buffer_size;
 
     tmp = getdword((uint32_t*)ld->buffer);
-#ifndef ARCH_IS_BIG_ENDIAN
-    BSWAP(tmp);
-#endif
     ld->bufa = tmp;
 
     tmp = getdword((uint32_t*)ld->buffer + 1);
-#ifndef ARCH_IS_BIG_ENDIAN
-    BSWAP(tmp);
-#endif
     ld->bufb = tmp;
 
     ld->start = (uint32_t*)ld->buffer;
@@ -62,13 +74,12 @@ void faad_initbits(bitfile *ld, void *_buffer, uint32_t buffer_size)
 void faad_endbits(bitfile *ld)
 {
     if (ld)
-        if (ld->buffer) free(ld->buffer);
+        if (ld->buffer) faad_free(ld->buffer);
 }
-
 
 uint32_t faad_get_processed_bits(bitfile *ld)
 {
-    return 8 * (4*(ld->tail - ld->start) - 4) - (ld->bits_left);
+    return (uint32_t)(8 * (4*(ld->tail - ld->start) - 4) - (ld->bits_left));
 }
 
 uint8_t faad_byte_align(bitfile *ld)
@@ -81,6 +92,22 @@ uint8_t faad_byte_align(bitfile *ld)
         return (8 - remainder);
     }
     return 0;
+}
+
+void faad_flushbits_ex(bitfile *ld, uint32_t bits)
+{
+    uint32_t tmp;
+
+    ld->bufa = ld->bufb;
+    tmp = getdword(ld->tail);
+    ld->tail++;
+    ld->bufb = tmp;
+    ld->bits_left += (32 - bits);
+    ld->bytes_used += 4;
+    if (ld->bytes_used == ld->buffer_size)
+        ld->no_more_reading = 1;
+    if (ld->bytes_used > ld->buffer_size)
+        ld->error = 1;
 }
 
 /* rewind to beginning */
@@ -113,7 +140,7 @@ uint8_t *faad_getbitbuffer(bitfile *ld, uint32_t bits
     uint16_t bytes = (uint16_t)bits / 8;
     uint8_t remainder = (uint8_t)bits % 8;
 
-    uint8_t *buffer = (uint8_t*)malloc((bytes+1)*sizeof(uint8_t));
+    uint8_t *buffer = (uint8_t*)faad_malloc((bytes+1)*sizeof(uint8_t));
 
     for (i = 0; i < bytes; i++)
     {
@@ -144,15 +171,9 @@ void faad_initbits_rev(bitfile *ld, void *buffer,
     ld->start = (uint32_t*)buffer + index - 2;
 
     tmp = getdword((uint32_t*)buffer + index);
-#ifndef ARCH_IS_BIG_ENDIAN
-    BSWAP(tmp);
-#endif
     ld->bufa = tmp;
 
     tmp = getdword((uint32_t*)buffer + index - 1);
-#ifndef ARCH_IS_BIG_ENDIAN
-    BSWAP(tmp);
-#endif
     ld->bufb = tmp;
 
     ld->tail = (uint32_t*)buffer + index;

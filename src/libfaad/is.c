@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: is.c,v 1.2 2002/12/16 19:00:26 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: is.c,v 1.3 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -70,8 +76,8 @@ void is_decode(ic_stream *ics, ic_stream *icsr, real_t *l_spec, real_t *r_spec,
 #ifndef FIXED_POINT
                     scale = (real_t)pow(0.5, (0.25*icsr->scale_factors[g][sfb]));
 #else
-                    exp = icsr->scale_factors[g][sfb] / 4;
-                    frac = icsr->scale_factors[g][sfb] % 4;
+                    exp = icsr->scale_factors[g][sfb] >> 2;
+                    frac = icsr->scale_factors[g][sfb] & 3;
 #endif
 
                     /* Scale from left to right channel,
@@ -80,13 +86,13 @@ void is_decode(ic_stream *ics, ic_stream *icsr, real_t *l_spec, real_t *r_spec,
                     {
                         k = (group*nshort)+i;
 #ifndef FIXED_POINT
-                        r_spec[k] = MUL(l_spec[k], scale);
+                        r_spec[k] = MUL_R(l_spec[k], scale);
 #else
                         if (exp < 0)
                             r_spec[k] = l_spec[k] << -exp;
                         else
                             r_spec[k] = l_spec[k] >> exp;
-                        r_spec[k] = MUL_R_C(r_spec[k], pow05_table[frac + 3]);
+                        r_spec[k] = MUL_C(r_spec[k], pow05_table[frac + 3]);
 #endif
                         if (is_intensity(icsr, g, sfb) != invert_intensity(ics, g, sfb))
                             r_spec[k] = -r_spec[k];

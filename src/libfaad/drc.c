@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: drc.c,v 1.2 2002/12/16 19:00:00 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: drc.c,v 1.3 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -29,7 +35,7 @@
 
 drc_info *drc_init(real_t cut, real_t boost)
 {
-    drc_info *drc = (drc_info*)malloc(sizeof(drc_info));
+    drc_info *drc = (drc_info*)faad_malloc(sizeof(drc_info));
     memset(drc, 0, sizeof(drc_info));
 
     drc->ctrl1 = cut;
@@ -45,7 +51,7 @@ drc_info *drc_init(real_t cut, real_t boost)
 
 void drc_end(drc_info *drc)
 {
-    if (drc) free(drc);
+    if (drc) faad_free(drc);
 }
 
 #ifdef FIXED_POINT
@@ -121,9 +127,9 @@ void drc_decode(drc_info *drc, real_t *spec)
 #ifndef FIXED_POINT
         /* Decode DRC gain factor */
         if (drc->dyn_rng_sgn[bd])  /* compress */
-            exp = -drc->ctrl1 * (drc->dyn_rng_ctl[bd] - (DRC_REF_LEVEL - drc->prog_ref_level))/24.0;
+            exp = -drc->ctrl1 * (drc->dyn_rng_ctl[bd] - (DRC_REF_LEVEL - drc->prog_ref_level))/REAL_CONST(24.0);
         else /* boost */
-            exp = drc->ctrl2 * (drc->dyn_rng_ctl[bd] - (DRC_REF_LEVEL - drc->prog_ref_level))/24.0;
+            exp = drc->ctrl2 * (drc->dyn_rng_ctl[bd] - (DRC_REF_LEVEL - drc->prog_ref_level))/REAL_CONST(24.0);
         factor = (real_t)pow(2.0, exp);
 
         /* Apply gain factor */
@@ -147,14 +153,14 @@ void drc_decode(drc_info *drc, real_t *spec)
             {
                 spec[i] >>= -exp;
                 if (frac)
-                    spec[i] = MUL(spec[i],drc_pow2_table[frac+23]);
+                    spec[i] = MUL_R(spec[i],drc_pow2_table[frac+23]);
             }
         } else {
             for (i = bottom; i < top; i++)
             {
                 spec[i] <<= exp;
                 if (frac)
-                    spec[i] = MUL(spec[i],drc_pow2_table[frac+23]);
+                    spec[i] = MUL_R(spec[i],drc_pow2_table[frac+23]);
             }
         }
 #endif

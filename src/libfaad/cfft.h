@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: cfft.h,v 1.4 2003/04/12 14:58:46 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: cfft.h,v 1.5 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #ifndef __CFFT_H__
@@ -26,6 +32,14 @@
 extern "C" {
 #endif
 
+typedef struct
+{
+    uint16_t n;
+    uint16_t ifac[15];
+    complex_t *work;
+    complex_t *tab;
+} cfft_info;
+
 
 void cfftf(cfft_info *cfft, complex_t *c);
 void cfftb(cfft_info *cfft, complex_t *c);
@@ -33,7 +47,29 @@ cfft_info *cffti(uint16_t n);
 void cfftu(cfft_info *cfft);
 
 
-/* static declarations moved to avoid compiler warnings [MF] */
+#ifdef USE_SSE
+void cfftb_sse(cfft_info *cfft, complex_t *c);
+static void passf2pos_sse(const uint16_t ido, const uint16_t l1, const complex_t *cc,
+                          complex_t *ch, const complex_t *wa);
+static void passf4pos_sse(const uint16_t ido, const uint16_t l1, const complex_t *cc, complex_t *ch,
+                          const complex_t *wa1, const complex_t *wa2, const complex_t *wa3);
+#endif
+static void passf2pos(const uint16_t ido, const uint16_t l1, const complex_t *cc,
+                      complex_t *ch, const complex_t *wa);
+static void passf2neg(const uint16_t ido, const uint16_t l1, const complex_t *cc,
+                      complex_t *ch, const complex_t *wa);
+static void passf3(const uint16_t ido, const uint16_t l1, const complex_t *cc,
+                   complex_t *ch, const complex_t *wa1, const complex_t *wa2, const int8_t isign);
+static void passf4pos(const uint16_t ido, const uint16_t l1, const complex_t *cc, complex_t *ch,
+                      const complex_t *wa1, const complex_t *wa2, const complex_t *wa3);
+static void passf4neg(const uint16_t ido, const uint16_t l1, const complex_t *cc, complex_t *ch,
+                      const complex_t *wa1, const complex_t *wa2, const complex_t *wa3);
+static void passf5(const uint16_t ido, const uint16_t l1, const complex_t *cc, complex_t *ch,
+                   const complex_t *wa1, const complex_t *wa2, const complex_t *wa3,
+                   const complex_t *wa4, const int8_t isign);
+INLINE void cfftf1(uint16_t n, complex_t *c, complex_t *ch,
+                   const uint16_t *ifac, const complex_t *wa, const int8_t isign);
+static void cffti1(uint16_t n, complex_t *wa, uint16_t *ifac);
 
 
 #ifdef __cplusplus

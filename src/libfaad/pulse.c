@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: pulse.c,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: pulse.c,v 1.4 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -25,7 +31,7 @@
 #include "syntax.h"
 #include "pulse.h"
 
-void pulse_decode(ic_stream *ics, int16_t *spec_data, uint16_t framelen)
+uint8_t pulse_decode(ic_stream *ics, int16_t *spec_data, uint16_t framelen)
 {
     uint8_t i;
     uint16_t k;
@@ -37,11 +43,13 @@ void pulse_decode(ic_stream *ics, int16_t *spec_data, uint16_t framelen)
         k += pul->pulse_offset[i];
 
         if (k >= framelen)
-            return; /* should not be possible */
+            return 15; /* should not be possible */
 
         if (spec_data[k] > 0)
             spec_data[k] += pul->pulse_amp[i];
         else
             spec_data[k] -= pul->pulse_amp[i];
     }
+
+    return 0;
 }

@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: pns.h,v 1.2 2002/12/16 19:00:57 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: pns.h,v 1.3 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #ifndef __PNS_H__
@@ -31,20 +37,14 @@ extern "C" {
 #include "syntax.h"
 
 #define NOISE_OFFSET 90
-/* #define MEAN_NRG 1.537228e+18 */ /* (2^31)^2 / 3 */
-#ifdef FIXED_POINT
-#define ISQRT_MEAN_NRG 0x1DC7 /* sqrt(1/sqrt(MEAN_NRG)) */
-#else
-#define ISQRT_MEAN_NRG 8.0655e-10 /* 1/sqrt(MEAN_NRG) */
-#endif
-
 
 void pns_decode(ic_stream *ics_left, ic_stream *ics_right,
                 real_t *spec_left, real_t *spec_right, uint16_t frame_len,
-                uint8_t channel_pair);
+                uint8_t channel_pair, uint8_t object_type);
 
 static INLINE int32_t random2();
-static void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t size);
+static void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t size,
+                            uint8_t sub);
 
 static INLINE uint8_t is_noise(ic_stream *ics, uint8_t group, uint8_t sfb)
 {

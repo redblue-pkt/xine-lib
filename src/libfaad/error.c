@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: error.c,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: error.c,v 1.4 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -37,5 +43,9 @@ extern int8_t *err_msg[] = {
     "Non existent huffman codebook number found",
     "Maximum number of channels exceeded",
     "Maximum number of bitstream elements exceeded",
-    "Input data buffer too small"
+    "Input data buffer too small",
+    "Array index out of range",
+    "Maximum number of scalefactor bands exceeded",
+    "Quantised value out of range",
+    "LTP lag out of range"
 };

@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: ssr.c,v 1.1 2002/12/16 19:01:17 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: ssr.c,v 1.2 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -37,11 +43,8 @@ void ssr_decode(ssr_info *ssr, fb_info *fb, uint8_t window_sequence,
 {
     uint8_t band;
     uint16_t ssr_frame_len = frame_len/SSR_BANDS;
-    real_t time_tmp[2048];
-    real_t output[1024];
-
-    memset(output, 0, 1024*sizeof(real_t));
-    memset(time_tmp, 0, 2048*sizeof(real_t));
+    real_t time_tmp[2048] = {0};
+    real_t output[1024] = {0};
 
     for (band = 0; band < SSR_BANDS; band++)
     {
@@ -84,7 +87,7 @@ static void ssr_gain_control(ssr_info *ssr, real_t *data, real_t *output,
     if (window_sequence != EIGHT_SHORT_SEQUENCE)
     {
         ssr_gc_function(ssr, &prev_fmd[band * frame_len*2],
-            gc_function, window_sequence, frame_len);
+            gc_function, window_sequence, band, frame_len);
 
         for (i = 0; i < frame_len*2; i++)
             data[band * frame_len*2 + i] *= gc_function[i];
@@ -130,7 +133,7 @@ static void ssr_gain_control(ssr_info *ssr, real_t *data, real_t *output,
 
 static void ssr_gc_function(ssr_info *ssr, real_t *prev_fmd,
                             real_t *gc_function, uint8_t window_sequence,
-                            uint16_t frame_len)
+                            uint8_t band, uint16_t frame_len)
 {
     uint16_t i;
     uint16_t len_area1, len_area2;

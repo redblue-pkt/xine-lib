@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mp4.c,v 1.4 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: mp4.c,v 1.5 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -26,7 +32,6 @@
 
 #include "bits.h"
 #include "mp4.h"
-#include "data.h"
 #include "syntax.h"
 
 /* defines if an object type can be decoded by this library or not */
@@ -48,8 +53,16 @@ static uint8_t ObjectTypesTable[32] = {
 #else
     0, /*  4 AAC LTP */
 #endif
-    0, /*  5 Reserved */
+#ifdef SBR_DEC
+    1, /*  5 SBR */
+#else
+    0, /*  5 SBR */
+#endif
+#ifdef SCALABLE_DEC
+    1, /*  6 AAC Scalable */
+#else
     0, /*  6 AAC Scalable */
+#endif
     0, /*  7 TwinVQ */
     0, /*  8 CELP */
     0, /*  9 HVXC */
@@ -70,7 +83,11 @@ static uint8_t ObjectTypesTable[32] = {
 #else
     0, /* 19 ER AAC LTP */
 #endif
+#ifdef SCALABLE_DEC
+    1, /* 20 ER AAC scalable */
+#else
     0, /* 20 ER AAC scalable */
+#endif
     0, /* 21 ER TwinVQ */
     0, /* 22 ER BSAC */
 #ifdef LD_DEC
@@ -106,8 +123,19 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
                                    uint32_t buffer_size,
                                    mp4AudioSpecificConfig *mp4ASC)
 {
+    return AudioSpecificConfig2(pBuffer, buffer_size, mp4ASC, NULL);
+}
+
+int8_t FAADAPI AudioSpecificConfig2(uint8_t *pBuffer,
+                                    uint32_t buffer_size,
+                                    mp4AudioSpecificConfig *mp4ASC,
+                                    program_config *pce)
+{
     bitfile ld;
     int8_t result = 0;
+#ifdef SBR_DEC
+    int8_t bits_to_decode = 0;
+#endif
 
     if (pBuffer == NULL)
         return -7;
@@ -128,7 +156,7 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
     mp4ASC->channelsConfiguration = (uint8_t)faad_getbits(&ld, 4
         DEBUGVAR(1,3,"parse_audio_decoder_specific_info(): ChannelsConfiguration"));
 
-    mp4ASC->samplingFrequency = sample_rates[mp4ASC->samplingFrequencyIndex];
+    mp4ASC->samplingFrequency = get_sample_rate(mp4ASC->samplingFrequencyIndex);
 
     if (ObjectTypesTable[mp4ASC->objectTypeIndex] != 1)
     {
@@ -148,16 +176,35 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
         return -3;
     }
 
+#ifdef SBR_DEC
+    mp4ASC->sbr_present_flag = -1;
+    if (mp4ASC->objectTypeIndex == 5)
+    {
+        mp4ASC->sbr_present_flag = 1;
+        mp4ASC->samplingFrequencyIndex = (uint8_t)faad_getbits(&ld, 4
+            DEBUGVAR(1,5,"parse_audio_decoder_specific_info(): extensionSamplingFrequencyIndex"));
+        if (mp4ASC->samplingFrequencyIndex == 15)
+        {
+            mp4ASC->samplingFrequency = (uint32_t)faad_getbits(&ld, 24
+                DEBUGVAR(1,6,"parse_audio_decoder_specific_info(): extensionSamplingFrequencyIndex"));
+        } else {
+            mp4ASC->samplingFrequency = get_sample_rate(mp4ASC->samplingFrequencyIndex);
+        }
+        mp4ASC->objectTypeIndex = (uint8_t)faad_getbits(&ld, 5
+            DEBUGVAR(1,7,"parse_audio_decoder_specific_info(): ObjectTypeIndex"));
+    }
+#endif
+
     /* get GASpecificConfig */
     if (mp4ASC->objectTypeIndex == 1 || mp4ASC->objectTypeIndex == 2 ||
         mp4ASC->objectTypeIndex == 3 || mp4ASC->objectTypeIndex == 4 ||
         mp4ASC->objectTypeIndex == 6 || mp4ASC->objectTypeIndex == 7)
     {
-        result = GASpecificConfig(&ld, mp4ASC);
+        result = GASpecificConfig(&ld, mp4ASC, pce);
 
 #ifdef ERROR_RESILIENCE
     } else if (mp4ASC->objectTypeIndex >= ER_OBJECT_START) { /* ER */
-        result = GASpecificConfig(&ld, mp4ASC);
+        result = GASpecificConfig(&ld, mp4ASC, pce);
         mp4ASC->epConfig = (uint8_t)faad_getbits(&ld, 2
             DEBUGVAR(1,143,"parse_audio_decoder_specific_info(): epConfig"));
 
@@ -173,6 +220,53 @@ int8_t FAADAPI AudioSpecificConfig(uint8_t *pBuffer,
     /* shorter frames not allowed for SSR */
     if ((mp4ASC->objectTypeIndex == 4) && mp4ASC->frameLengthFlag)
         return -6;
+#endif
+
+
+#ifdef SBR_DEC
+    bits_to_decode = (int8_t)(buffer_size*8 - faad_get_processed_bits(&ld));
+
+    if ((mp4ASC->objectTypeIndex != 5) && (bits_to_decode >= 16))
+    {
+        int16_t syncExtensionType = (int16_t)faad_getbits(&ld, 11
+            DEBUGVAR(1,9,"parse_audio_decoder_specific_info(): syncExtensionType"));
+
+        if (syncExtensionType == 0x2b7)
+        {
+            mp4ASC->objectTypeIndex = (uint8_t)faad_getbits(&ld, 5
+                DEBUGVAR(1,10,"parse_audio_decoder_specific_info(): extensionAudioObjectType"));
+
+            if (mp4ASC->objectTypeIndex == 5)
+            {
+                mp4ASC->sbr_present_flag = (uint8_t)faad_get1bit(&ld
+                    DEBUGVAR(1,11,"parse_audio_decoder_specific_info(): sbr_present_flag"));
+
+                if (mp4ASC->sbr_present_flag)
+                {
+                    mp4ASC->samplingFrequencyIndex = (uint8_t)faad_getbits(&ld, 4
+                        DEBUGVAR(1,12,"parse_audio_decoder_specific_info(): extensionSamplingFrequencyIndex"));
+                    if (mp4ASC->samplingFrequencyIndex == 15)
+                    {
+                        mp4ASC->samplingFrequency = (uint32_t)faad_getbits(&ld, 24
+                            DEBUGVAR(1,13,"parse_audio_decoder_specific_info(): extensionSamplingFrequencyIndex"));
+                    } else {
+                        mp4ASC->samplingFrequency = get_sample_rate(mp4ASC->samplingFrequencyIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    /* no SBR signalled, this could mean either implicit signalling or no SBR in this file */
+    /* MPEG specification states: assume SBR on files with samplerate <= 24000 Hz */
+    if (mp4ASC->sbr_present_flag == -1)
+    {
+        if (mp4ASC->samplingFrequency <= 24000)
+        {
+            mp4ASC->samplingFrequency *= 2;
+            mp4ASC->forceUpSampling = 1;
+        }
+    }
 #endif
 
     faad_endbits(&ld);

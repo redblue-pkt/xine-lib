@@ -1,26 +1,29 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
-**
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+**  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation; either version 2 of the License, or
 ** (at your option) any later version.
-**
+** 
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
-**
+** 
 ** You should have received a copy of the GNU General Public License
-** along with this program; if not, write to the Free Software
+** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: hcb_10.c,v 1.2 2002/12/16 18:58:55 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: hcb_10.h,v 1.1 2003/12/30 02:00:12 miguelfreitas Exp $
 **/
-
-#include "../common.h"
-#include "hcb.h"
 
 /* 2-step huffman table HCB_10 */
 
@@ -30,7 +33,7 @@
  *
  * Used to find offset into 2nd step table and number of extra bits to get
  */
-extern hcb hcb10_1[] = {
+static hcb hcb10_1[] = {
     /* 4 bit codewords */
     { /* 000000 */ 0, 0 },
     { /*        */ 0, 0 },
@@ -112,7 +115,7 @@ extern hcb hcb10_1[] = {
  *
  * Gives size of codeword and actual data (x,y,v,w)
  */
-extern hcb_2_pair hcb10_2[] = {
+static hcb_2_pair hcb10_2[] = {
     /* 4 bit codewords */
     { 4,  1,  1 },
     { 4,  1,  2 },

@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: lt_predict.h,v 1.2 2002/12/16 19:00:37 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: lt_predict.h,v 1.3 2003/12/30 02:00:10 miguelfreitas Exp $
 **/
 
 #ifdef LTP_DEC
@@ -30,10 +36,12 @@ extern "C" {
 
 #include "filtbank.h"
 
+uint8_t is_ltp_ot(uint8_t object_type);
+
 void lt_prediction(ic_stream *ics,
                    ltp_info *ltp,
                    real_t *spec,
-                   real_t *lt_pred_stat,
+                   int16_t *lt_pred_stat,
                    fb_info *fb,
                    uint8_t win_shape,
                    uint8_t win_shape_prev,
@@ -41,11 +49,14 @@ void lt_prediction(ic_stream *ics,
                    uint8_t object_type,
                    uint16_t frame_len);
 
-void lt_update_state(real_t *lt_pred_stat,
+void lt_update_state(int16_t *lt_pred_stat,
                      real_t *time,
                      real_t *overlap,
                      uint16_t frame_len,
                      uint8_t object_type);
+
+
+static int16_t real_to_int16(real_t sig_in);
 
 #ifdef __cplusplus
 }

@@ -16,25 +16,12 @@ xineplug_decode_faad_la_SOURCES = \
 	bits.c \
 	cfft.c \
 	common.c \
-	data.c \
 	decoder.c \
-	dither.c \
 	drc.c \
 	error.c \
 	filtbank.c \
-	codebook/hcb_1.c \
-	codebook/hcb_2.c \
-	codebook/hcb_3.c \
-	codebook/hcb_4.c \
-	codebook/hcb_5.c \
-	codebook/hcb_6.c \
-	codebook/hcb_7.c \
-	codebook/hcb_8.c \
-	codebook/hcb_9.c \
-	codebook/hcb_10.c \
-	codebook/hcb_11.c \
-	codebook/hcb_sf.c \
 	hcr.c \
+	huffman.c \
 	ic_predict.c \
 	is.c \
 	lt_predict.c \
@@ -45,6 +32,16 @@ xineplug_decode_faad_la_SOURCES = \
 	pns.c \
 	pulse.c \
 	rvlc.c \
+	sbr_dct.c \
+	sbr_dec.c \
+	sbr_e_nf.c \
+	sbr_fbt.c \
+	sbr_hfadj.c \
+	sbr_hfgen.c \
+	sbr_huff.c \
+	sbr_qmf.c \
+	sbr_syntax.c \
+	sbr_tf_grid.c \
 	specrec.c \
 	ssr.c \
 	ssr_fb.c \
@@ -62,9 +59,7 @@ noinst_HEADERS = \
 	cfft.h \
 	cfft_tab.h \
 	common.h \
-	data.h \
 	decoder.h \
-	dither.h \
 	drc.h \
 	error.h \
 	faad.h  \
@@ -83,6 +78,18 @@ noinst_HEADERS = \
 	pns.h \
 	pulse.h \
 	rvlc.h \
+	sbr_dct.h \
+	sbr_dec.h \
+	sbr_e_nf.h \
+	sbr_fbt.h \
+	sbr_hfadj.h \
+	sbr_hfgen.h \
+	sbr_huff.h \
+	sbr_noise.h \
+	sbr_qmf.h \
+	sbr_qmf_c.h \
+	sbr_syntax.h \
+	sbr_tf_grid.h \
 	sine_win.h \
 	specrec.h \
 	ssr.h \

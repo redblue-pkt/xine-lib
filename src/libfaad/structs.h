@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: structs.h,v 1.2 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: structs.h,v 1.3 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #ifndef __STRUCTS_H__
@@ -24,6 +30,11 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#include "cfft.h"
+#ifdef SBR_DEC
+#include "sbr_dec.h"
 #endif
 
 #define MAX_CHANNELS        64
@@ -35,32 +46,27 @@ extern "C" {
 
 /* used to save the prediction state */
 typedef struct {
-    real_t r[2];
-    real_t KOR[2];
-    real_t VAR[2];
+    int16_t r[2];
+    int16_t COR[2];
+    int16_t VAR[2];
 } pred_state;
-
-typedef struct
-{
-    uint16_t n;
-    uint16_t ifac[15];
-    complex_t *work;
-    complex_t *tab;
-} cfft_info;
 
 typedef struct {
     uint16_t N;
     cfft_info *cfft;
     complex_t *sincos;
-    complex_t *Z1;
+#ifdef PROFILE
+    int64_t cycles;
+    int64_t fft_cycles;
+#endif
 } mdct_info;
 
 typedef struct
 {
-    real_t *long_window[2];
-    real_t *short_window[2];
+    const real_t *long_window[2];
+    const real_t *short_window[2];
 #ifdef LD_DEC
-    real_t *ld_window[2];
+    const real_t *ld_window[2];
 #endif
 
     mdct_info *mdct256;
@@ -68,6 +74,12 @@ typedef struct
     mdct_info *mdct1024;
 #endif
     mdct_info *mdct2048;
+#ifdef PROFILE
+    int64_t cycles;
+#endif
+#ifdef USE_SSE
+    void (*if_func)(void *a, uint8_t b, uint8_t c, uint8_t d, real_t *e, real_t *f, uint8_t g, uint16_t h);
+#endif
 } fb_info;
 
 typedef struct
@@ -121,6 +133,14 @@ typedef struct
 
     uint8_t comment_field_bytes;
     uint8_t comment_field_data[257];
+
+    /* extra added values */
+    uint8_t num_front_channels;
+    uint8_t num_side_channels;
+    uint8_t num_back_channels;
+    uint8_t num_lfe_channels;
+    uint8_t sce_channel[16];
+    uint8_t cpe_channel[16];
 } program_config;
 
 typedef struct
@@ -142,6 +162,9 @@ typedef struct
     uint16_t adts_buffer_fullness;
     uint8_t no_raw_data_blocks_in_frame;
     uint16_t crc_check;
+
+    /* control param */
+    uint8_t old_format;
 } adts_header;
 
 typedef struct
@@ -155,7 +178,8 @@ typedef struct
     uint8_t num_program_config_elements;
     uint32_t adif_buffer_fullness;
 
-    program_config pce;
+    /* maximum of 16 PCEs */
+    program_config pce[16];
 } adif_header;
 
 typedef struct
@@ -230,7 +254,7 @@ typedef struct
     uint8_t num_sec[8]; /* number of sections in a group */
 
     uint8_t global_gain;
-    int16_t scale_factors[8][51];
+    int16_t scale_factors[8][51]; /* [0..255] */
 
     uint8_t ms_mask_present;
     uint8_t ms_used[MAX_WINDOW_GROUPS][MAX_SFB];
@@ -298,6 +322,8 @@ typedef struct mp4AudioSpecificConfig
     uint8_t aacSpectralDataResilienceFlag;
     uint8_t epConfig;
 
+    int8_t sbr_present_flag;
+    int8_t forceUpSampling;
 } mp4AudioSpecificConfig;
 
 typedef struct faacDecConfiguration
@@ -305,6 +331,8 @@ typedef struct faacDecConfiguration
     uint8_t defObjectType;
     uint32_t defSampleRate;
     uint8_t outputFormat;
+    uint8_t downMatrix;
+    uint8_t useOldADTSFormat;
 } faacDecConfiguration, *faacDecConfigurationPtr;
 
 typedef struct faacDecFrameInfo
@@ -314,6 +342,22 @@ typedef struct faacDecFrameInfo
     uint8_t channels;
     uint8_t error;
     uint32_t samplerate;
+
+    /* SBR: 0: off, 1: on; normal, 2: on; downsampled */
+    uint8_t sbr;
+
+    /* MPEG-4 ObjectType */
+    uint8_t object_type;
+
+    /* AAC header type; MP4 will be signalled as RAW also */
+    uint8_t header_type;
+
+    /* multichannel configuration */
+    uint8_t num_front_channels;
+    uint8_t num_side_channels;
+    uint8_t num_back_channels;
+    uint8_t num_lfe_channels;
+    uint8_t channel_position[MAX_CHANNELS];
 } faacDecFrameInfo;
 
 typedef struct
@@ -329,9 +373,13 @@ typedef struct
     uint8_t aacSpectralDataResilienceFlag;
 #endif
     uint16_t frameLength;
+    uint8_t postSeekResetFlag;
 
     uint32_t frame;
 
+    uint8_t downMatrix;
+    uint8_t first_syn_ele;
+    uint8_t has_lfe;
     uint8_t fr_channels;
     uint8_t fr_ch_ele;
 
@@ -346,6 +394,20 @@ typedef struct
 
     real_t *time_out[MAX_CHANNELS];
 
+#ifdef SBR_DEC
+    int8_t sbr_present_flag;
+    int8_t forceUpSampling;
+
+    real_t *time_out2[MAX_CHANNELS];
+
+    uint8_t sbr_used[32];
+
+    sbr_info *sbr[32];
+#ifdef DRM
+    int8_t lcstereo_flag;
+#endif
+#endif
+
 #ifdef SSR_DEC
     real_t *ssr_overlap[MAX_CHANNELS];
     real_t *prev_fmd[MAX_CHANNELS];
@@ -356,17 +418,30 @@ typedef struct
     pred_state *pred_stat[MAX_CHANNELS];
 #endif
 #ifdef LTP_DEC
-    real_t *lt_pred_stat[MAX_CHANNELS];
+    int16_t *lt_pred_stat[MAX_CHANNELS];
 #endif
 
-#ifndef FIXED_POINT
-#if POW_TABLE_SIZE
-    real_t *pow2_table;
-#endif
-#endif
+    /* Program Config Element */
+    uint8_t pce_set;
+    program_config pce;
+    uint8_t element_id[MAX_CHANNELS];
+    uint8_t channel_element[MAX_CHANNELS];
+    uint8_t internal_channel[MAX_CHANNELS];
 
     /* Configuration data */
     faacDecConfiguration config;
+
+#ifdef USE_SSE
+    void (*apply_sf_func)(void *a, void *b, void *c, uint16_t d);
+#endif
+
+#ifdef PROFILE
+    int64_t cycles;
+    int64_t spectral_cycles;
+    int64_t output_cycles;
+    int64_t scalefac_cycles;
+    int64_t requant_cycles;
+#endif
 } faacDecStruct, *faacDecHandle;
 
 

@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,33 +16,28 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: data.h,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: sbr_huff.h,v 1.3 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
-#ifndef __DATA_H__
-#define __DATA_H__
+#ifndef __SBR_HUFF_H__
+#define __SBR_HUFF_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern uint8_t num_swb_1024_window[];
-extern uint8_t num_swb_960_window[];
-#ifdef LD_DEC
-extern uint8_t num_swb_512_window[];
-extern uint8_t num_swb_480_window[];
-#endif
-extern uint8_t num_swb_128_window[];
-extern uint16_t *swb_offset_1024_window[];
-#ifdef LD_DEC
-extern uint16_t *swb_offset_512_window[];
-extern uint16_t *swb_offset_480_window[];
-#endif
-extern uint16_t *swb_offset_128_window[];
-extern uint8_t pred_sfb_max[];
-extern uint32_t sample_rates[];
+
+void sbr_envelope(bitfile *ld, sbr_info *sbr, uint8_t ch);
+void sbr_noise(bitfile *ld, sbr_info *sbr, uint8_t ch);
 
 #ifdef __cplusplus
 }
 #endif
 #endif
+

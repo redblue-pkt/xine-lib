@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2003/12/20 14:21:50 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.25 2003/12/30 02:00:11 miguelfreitas Exp $
  *
  */
 
@@ -30,6 +30,7 @@
 
 #define LOG_MODULE "faad_decoder"
 #define LOG_VERBOSE
+
 /*
 #define LOG
 */
@@ -95,7 +96,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
     if( this->faac_cfg ) {
       this->faac_cfg->defSampleRate = 44100;
       this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
-      this->faac_cfg->defObjectType = LC;
+      this->faac_cfg->useOldADTSFormat = 0;
       faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
     }
   }
@@ -160,12 +161,14 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
       this->size -= used;
       inbuf += used;
     }
+
+    if( this->mp4_mode )
+      this->size = 0;   
   }
 
-  if( this->mp4_mode )
-    this->size = 0;   
-  else if( this->size )
+  if( this->size )
     memmove( this->buf, inbuf, this->size);
+
 }
 
 static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -272,30 +275,29 @@ this->num_channels = 2;
       this->size -= used;
       memmove(this->buf, &this->buf[used], this->size);
 
-    } else {
+    }
 
-      /* open audio device as needed */
-      if (!this->output_open) {
-        switch( this->num_channels ) {
-          case 1:
-            this->ao_cap_mode=AO_CAP_MODE_MONO; 
-            break;
-          case 2:
-            this->ao_cap_mode=AO_CAP_MODE_STEREO;
-            break; 
-        }
-
-        this->output_open = this->stream->audio_out->open (this->stream->audio_out,
-                                                   this->stream,
-                                                   this->bits_per_sample,
-                                                   this->rate,
-                                                   this->ao_cap_mode) ;
-
-        this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
+    /* open audio device as needed */
+    if (!this->output_open) {
+      switch( this->num_channels ) {
+        case 1:
+          this->ao_cap_mode=AO_CAP_MODE_MONO; 
+          break;
+        case 2:
+          this->ao_cap_mode=AO_CAP_MODE_STEREO;
+          break; 
       }
 
-      faad_decode_audio(this, buf->decoder_flags & BUF_FLAG_FRAME_END );
+      this->output_open = this->stream->audio_out->open (this->stream->audio_out,
+                                                 this->stream,
+                                                 this->bits_per_sample,
+                                                 this->rate,
+                                                 this->ao_cap_mode) ;
+
+      this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
     }
+
+    faad_decode_audio(this, buf->decoder_flags & BUF_FLAG_FRAME_END );
   }
 }
 

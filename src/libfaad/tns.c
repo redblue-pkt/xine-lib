@@ -1,6 +1,6 @@
 /*
-** FAAD - Freeware Advanced Audio Decoder
-** Copyright (C) 2002 M. Bakker
+** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
+** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: tns.c,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
+** Any non-GPL usage of this software or parts of this software is strictly
+** forbidden.
+**
+** Commercial non-GPL licensing of this software is possible.
+** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
+**
+** $Id: tns.c,v 1.4 2003/12/30 02:00:11 miguelfreitas Exp $
 **/
 
 #include "common.h"
@@ -25,69 +31,38 @@
 #include "syntax.h"
 #include "tns.h"
 
-#ifdef FIXED_POINT
-static real_t tns_coef_0_3[] =
-{
-    0x0, 0x6F13013, 0xC8261BA, 0xF994E02,
-    0xF03E3A3A, 0xF224C28C, 0xF5B72457, 0xFA8715E3,
-    0xF90ECFED, 0xF37D9E46, 0xF066B1FE, 0xF066B1FE,
-    0xF03E3A3A, 0xF224C28C, 0xF5B72457, 0xFA8715E3
-};
-static real_t tns_coef_0_4[] =
-{
-    0x0, 0x3539B35, 0x681FE48, 0x9679182,
-    0xBE3EBD4, 0xDDB3D74, 0xF378709, 0xFE98FCA,
-    0xF011790B, 0xF09C5CB7, 0xF1AD6942, 0xF33B524A,
-    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB
-};
-static real_t tns_coef_1_3[] =
-{
-    0x0, 0x6F13013, 0xF5B72457, 0xFA8715E3,
-    0xF994E02, 0xC8261BA, 0xF5B72457, 0xFA8715E3,
-    0xF90ECFED, 0xF37D9E46, 0xF5B72457, 0xFA8715E3,
-    0xF37D9E46, 0xF90ECFED, 0xF5B72457, 0xFA8715E3
-};
-static real_t tns_coef_1_4[] =
-{
-    0x0, 0x3539B35, 0x681FE48, 0x9679182,
-    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB,
-    0xFE98FCA, 0xF378709, 0xDDB3D74, 0xBE3EBD4,
-    0xF5388AEB, 0xF793BBDF, 0xFA385AA9, 0xFD0F5CAB
-};
-#else
 #ifdef _MSC_VER
 #pragma warning(disable:4305)
 #pragma warning(disable:4244)
 #endif
 static real_t tns_coef_0_3[] =
 {
-    0.0, 0.4338837391, 0.7818314825, 0.9749279122,
-    -0.9848077530, -0.8660254038, -0.6427876097, -0.3420201433,
-    -0.4338837391, -0.7818314825, -0.9749279122, -0.9749279122,
-    -0.9848077530, -0.8660254038, -0.6427876097, -0.3420201433
+    COEF_CONST(0.0), COEF_CONST(0.4338837391), COEF_CONST(0.7818314825), COEF_CONST(0.9749279122),
+    COEF_CONST(-0.9848077530), COEF_CONST(-0.8660254038), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433),
+    COEF_CONST(-0.4338837391), COEF_CONST(-0.7818314825), COEF_CONST(-0.9749279122), COEF_CONST(-0.9749279122),
+    COEF_CONST(-0.9848077530), COEF_CONST(-0.8660254038), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433)
 };
 static real_t tns_coef_0_4[] =
 {
-    0.0, 0.2079116908, 0.4067366431, 0.5877852523,
-    0.7431448255, 0.8660254038, 0.9510565163, 0.9945218954,
-    -0.9957341763, -0.9618256432, -0.8951632914, -0.7980172273,
-    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178
+    COEF_CONST(0.0), COEF_CONST(0.2079116908), COEF_CONST(0.4067366431), COEF_CONST(0.5877852523),
+    COEF_CONST(0.7431448255), COEF_CONST(0.8660254038), COEF_CONST(0.9510565163), COEF_CONST(0.9945218954),
+    COEF_CONST(-0.9957341763), COEF_CONST(-0.9618256432), COEF_CONST(-0.8951632914), COEF_CONST(-0.7980172273),
+    COEF_CONST(-0.6736956436), COEF_CONST(-0.5264321629), COEF_CONST(-0.3612416662), COEF_CONST(-0.1837495178)
 };
 static real_t tns_coef_1_3[] =
 {
-    0.0, 0.4338837391, -0.6427876097, -0.3420201433,
-    0.9749279122, 0.7818314825, -0.6427876097, -0.3420201433,
-    -0.4338837391, -0.7818314825, -0.6427876097, -0.3420201433,
-    -0.7818314825, -0.4338837391, -0.6427876097, -0.3420201433
+    COEF_CONST(0.0), COEF_CONST(0.4338837391), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433),
+    COEF_CONST(0.9749279122), COEF_CONST(0.7818314825), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433),
+    COEF_CONST(-0.4338837391), COEF_CONST(-0.7818314825), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433),
+    COEF_CONST(-0.7818314825), COEF_CONST(-0.4338837391), COEF_CONST(-0.6427876097), COEF_CONST(-0.3420201433)
 };
 static real_t tns_coef_1_4[] =
 {
-    0.0, 0.2079116908, 0.4067366431, 0.5877852523,
-    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178,
-    0.9945218954, 0.9510565163, 0.8660254038, 0.7431448255,
-    -0.6736956436, -0.5264321629, -0.3612416662, -0.1837495178
+    COEF_CONST(0.0), COEF_CONST(0.2079116908), COEF_CONST(0.4067366431), COEF_CONST(0.5877852523),
+    COEF_CONST(-0.6736956436), COEF_CONST(-0.5264321629), COEF_CONST(-0.3612416662), COEF_CONST(-0.1837495178),
+    COEF_CONST(0.9945218954), COEF_CONST(0.9510565163), COEF_CONST(0.8660254038), COEF_CONST(0.7431448255),
+    COEF_CONST(-0.6736956436), COEF_CONST(-0.5264321629), COEF_CONST(-0.3612416662), COEF_CONST(-0.1837495178)
 };
-#endif
 
 
 /* TNS decoding for one channel and frame */
@@ -96,7 +71,8 @@ void tns_decode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
 {
     uint8_t w, f, tns_order;
     int8_t inc;
-    uint16_t bottom, top, start, end, size;
+    int16_t size;
+    uint16_t bottom, top, start, end;
     uint16_t nshort = frame_len/8;
     real_t lpc[TNS_MAX_ORDER+1];
 
@@ -118,10 +94,16 @@ void tns_decode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
             tns_decode_coef(tns_order, tns->coef_res[w]+3,
                 tns->coef_compress[w][f], tns->coef[w][f], lpc);
 
-            start = ics->swb_offset[min(bottom, ics->max_sfb)];
-            end = ics->swb_offset[min(top, ics->max_sfb)];
+            start = min(bottom, max_tns_sfb(sr_index, object_type, (ics->window_sequence == EIGHT_SHORT_SEQUENCE)));
+            start = min(start, ics->max_sfb);
+            start = ics->swb_offset[start];
 
-            if ((size = end - start) <= 0)
+            end = min(top, max_tns_sfb(sr_index, object_type, (ics->window_sequence == EIGHT_SHORT_SEQUENCE)));
+            end = min(end, ics->max_sfb);
+            end = ics->swb_offset[end];
+
+            size = end - start;
+            if (size <= 0)
                 continue;
 
             if (tns->direction[w][f])
@@ -143,7 +125,8 @@ void tns_encode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
 {
     uint8_t w, f, tns_order;
     int8_t inc;
-    uint16_t bottom, top, start, end, size;
+    int16_t size;
+    uint16_t bottom, top, start, end;
     uint16_t nshort = frame_len/8;
     real_t lpc[TNS_MAX_ORDER+1];
 
@@ -165,10 +148,16 @@ void tns_encode_frame(ic_stream *ics, tns_info *tns, uint8_t sr_index,
             tns_decode_coef(tns_order, tns->coef_res[w]+3,
                 tns->coef_compress[w][f], tns->coef[w][f], lpc);
 
-            start = ics->swb_offset[min(bottom, ics->max_sfb)];
-            end = ics->swb_offset[min(top, ics->max_sfb)];
+            start = min(bottom, max_tns_sfb(sr_index, object_type, (ics->window_sequence == EIGHT_SHORT_SEQUENCE)));
+            start = min(start, ics->max_sfb);
+            start = ics->swb_offset[start];
 
-            if ((size = end - start) <= 0)
+            end = min(top, max_tns_sfb(sr_index, object_type, (ics->window_sequence == EIGHT_SHORT_SEQUENCE)));
+            end = min(end, ics->max_sfb);
+            end = ics->swb_offset[end];
+
+            size = end - start;
+            if (size <= 0)
                 continue;
 
             if (tns->direction[w][f])
@@ -217,7 +206,7 @@ static void tns_decode_coef(uint8_t order, uint8_t coef_res_bits, uint8_t coef_c
     for (m = 1; m <= order; m++)
     {
         for (i = 1; i < m; i++) /* loop only while i<m */
-            b[i] = a[i] + MUL_C_C(tmp2[m-1], a[m-i]);
+            b[i] = a[i] + MUL_C(tmp2[m-1], a[m-i]);
 
         for (i = 1; i < m; i++) /* loop only while i<m */
             a[i] = b[i];
@@ -250,7 +239,7 @@ static void tns_ar_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
         y = *spectrum;
 
         for (j = 0; j < order; j++)
-            y -= MUL_R_C(state[j], lpc[j+1]);
+            y -= MUL_C(state[j], lpc[j+1]);
 
         for (j = order-1; j > 0; j--)
             state[j] = state[j-1];
@@ -285,7 +274,7 @@ static void tns_ma_filter(real_t *spectrum, uint16_t size, int8_t inc, real_t *l
         y = *spectrum;
 
         for (j = 0; j < order; j++)
-            y += MUL_R_C(state[j], lpc[j+1]);
+            y += MUL_C(state[j], lpc[j+1]);
 
         for (j = order-1; j > 0; j--)
             state[j] = state[j-1];
