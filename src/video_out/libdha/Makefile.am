@@ -22,13 +22,17 @@ noinst_HEADERS = AsmMacros.h libdha.h
 ## for OpenBSD LIBS += -li386
 
 ## We have to create some files, on the fly, this is why this rule is needed.
-pci_names.lo:
+awk-depends:
 	$(AWK) -f $(top_srcdir)/src/video_out/libdha/pci_db2c.awk \
 	  $(top_srcdir)/src/video_out/libdha/oth/pci.db
+
+pci_names.lo: awk-depends
 	source='$*.c' object='$@' libtool=yes \
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
 	$(LTCOMPILE) -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
+
+pci_names.c: awk-depends
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @STATIC@ -DXINE_COMPILE"
