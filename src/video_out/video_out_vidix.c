@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.42 2003/05/02 01:07:15 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.43 2003/05/02 01:10:10 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -1183,6 +1183,10 @@ static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const 
   
   this->sc.frame_output_cb   = vidixfb_frame_output_cb;
   this->sc.user_data         = this;
+  
+  /* Make sure colour keying is turned off */
+  this->vidix_grkey.ckey.op = CKEY_FALSE;
+  vdlSetGrKeys(this->vidix_handler, &this->vidix_grkey);
     
   query_fourccs(this);
   
