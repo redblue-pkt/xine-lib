@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.16 2001/10/20 17:51:58 jcdutton Exp $
+ * $Id: spu.c,v 1.17 2001/10/21 15:04:13 jcdutton Exp $
  *
  */
 
@@ -297,7 +297,7 @@ static int spu_next_line (vo_overlay_t *spu)
   field ^= 1; // Toggle fields
 	
   if (put_y >= spu->height) {
-    LOG (LOG_DEBUG, ".");
+    LOG (LOG_DEBUG, "put_y >= spu->height\n");
     return -1;
   }
   return 0;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2001/10/21 12:09:06 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.20 2001/10/21 15:04:13 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -308,8 +308,8 @@ int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
   this->spu_events[new_event].event->object.overlay = malloc (sizeof(vo_overlay_t));
   memcpy(this->spu_events[new_event].event->object.overlay, 
     event->object.overlay, sizeof(vo_overlay_t));
-  print_overlay( event->object.overlay );
-  print_overlay( this->spu_events[new_event].event->object.overlay );  
+//  print_overlay( event->object.overlay );
+//  print_overlay( this->spu_events[new_event].event->object.overlay );  
   pthread_mutex_unlock (&this->spu_events_mutex);
    
   return new_event;
@@ -546,6 +546,11 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
+        LOG (LOG_DEBUG, "event_overlay\n");
+        print_overlay(event_overlay);
+        LOG (LOG_DEBUG, "overlay\n");
+        print_overlay(overlay);
+
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         overlay->rle = event_overlay->rle;
         overlay->data_size = event_overlay->data_size;
@@ -555,9 +560,9 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         overlay->width = event_overlay->width;
         overlay->height = event_overlay->height;
         overlay->rgb_clut = event_overlay->rgb_clut;
-        if((event_overlay->color[0] |
-            event_overlay->color[1] |
-            event_overlay->color[2] |
+        if((event_overlay->color[0] +
+            event_overlay->color[1] +
+            event_overlay->color[2] +
             event_overlay->color[3]) > 0 ) {
           LOG (LOG_DEBUG, "mixing clut\n");
           overlay->color[0] = event_overlay->color[0];
@@ -565,9 +570,9 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
           overlay->color[2] = event_overlay->color[2];
           overlay->color[3] = event_overlay->color[3];
         }
-        if((event_overlay->trans[0] |
-            event_overlay->trans[1] |
-            event_overlay->trans[2] |
+        if((event_overlay->trans[0] +
+            event_overlay->trans[1] +
+            event_overlay->trans[2] +
             event_overlay->trans[3]) > 0 ) {
           LOG (LOG_DEBUG, "mixing trans\n");
           overlay->trans[0] = event_overlay->trans[0];
@@ -576,6 +581,7 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+        LOG (LOG_DEBUG, "overlay after\n");
         print_overlay(overlay);
       }
       break;
@@ -585,6 +591,10 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
+        LOG (LOG_DEBUG, "event_overlay\n");
+        print_overlay(event_overlay);
+        LOG (LOG_DEBUG, "overlay\n");
+        print_overlay(overlay);
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         overlay->clip_top = event_overlay->clip_top;
         overlay->clip_bottom = event_overlay->clip_bottom;
@@ -612,6 +622,7 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+        LOG (LOG_DEBUG, "overlay after\n");
         print_overlay(overlay);
       }
       break;
