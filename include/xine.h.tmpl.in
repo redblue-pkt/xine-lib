@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.31 2001/07/22 17:50:37 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.32 2001/07/24 21:42:05 guenter Exp $
  *
  */
 
@@ -581,7 +581,7 @@ typedef struct {
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
 
-mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl);
+mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl, int *num_mrls);
 
 /** @} end of browsegroup*/
 
@@ -609,7 +609,7 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *self) ;
  *
  * Get autoplay MRL list for input plugin named <plugin_id>.
  */
-char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id);
+char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
 
 /** @} end of autoplaygroup */
 
