@@ -54,26 +54,6 @@
 #endif
 #define MIN(a,b) ( (a) < (b) ) ? (a) : (b)
 
-struct osd_object_s {
-  osd_object_t *next;
-  osd_renderer_t *renderer;
-
-  int width, height;    /* work area dimentions */
-  uint8_t *area;        /* work area */
-  int display_x,display_y;  /* where to display it in screen */
-  
-  /* clipping box inside work area */
-  int x1, y1;
-  int x2, y2;
-  
-  uint32_t color[OVL_PALETTE_SIZE];	/* color lookup table  */
-  uint8_t trans[OVL_PALETTE_SIZE];	/* mixer key table */
-
-  int32_t handle;
-  
-  osd_font_t *font;
-};
-
 typedef struct osd_fontchar_s {
   uint16_t code;
   uint16_t width;
@@ -393,7 +373,7 @@ static void osd_filled_rect (osd_object_t *osd,
  * set palette (color and transparency)
  */
 
-static void osd_set_palette(osd_object_t *osd, uint32_t *color, uint8_t *trans ) {
+static void osd_set_palette(osd_object_t *osd, const uint32_t *color, const uint8_t *trans ) {
 
   memcpy(osd->color, color, sizeof(osd->color));
   memcpy(osd->trans, trans, sizeof(osd->trans));
@@ -573,7 +553,7 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
   set the font of osd object
 */
 
-static int osd_set_font( osd_object_t *osd, char *fontname, int size) { 
+static int osd_set_font( osd_object_t *osd, const char *fontname, int size) { 
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
@@ -614,7 +594,7 @@ static int osd_set_font( osd_object_t *osd, char *fontname, int size) {
  *  no \n yet
  */
 static int osd_render_text (osd_object_t *osd, int x1, int y1,
-	                    char *text, int color_base) {
+	                    const char *text, int color_base) {
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
@@ -682,7 +662,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 /*
   get width and height of how text will be renderized
 */
-static int osd_get_text_size(osd_object_t *osd, char *text, int *width, int *height) {
+static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, int *height) {
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;

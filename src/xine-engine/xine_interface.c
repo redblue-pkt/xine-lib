@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.30 2002/11/20 11:57:50 mroi Exp $
+ * $Id: xine_interface.c,v 1.31 2002/11/20 18:41:14 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -519,3 +519,71 @@ const char *xine_get_meta_info (xine_stream_t *stream, int info) {
   return stream->meta_info[info];
 }
 
+xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int height) {
+  xine_osd_t *this = (xine_osd_t *)stream->osd_renderer->new_object(stream->osd_renderer, width, height);
+  this->osd.renderer->set_position(&this->osd, x, y);
+  return this;
+}
+  
+void xine_osd_draw_point(xine_osd_t *this, int x, int y, int color) {
+  this->osd.area[x + y * this->osd.width] = color;
+} 
+
+void xine_osd_draw_line(xine_osd_t *this, int x1, int y1, int x2, int y2, int color) {
+  this->osd.renderer->line(&this->osd, x1, y1, x2, y2, color);
+}
+
+void xine_osd_draw_rect(xine_osd_t *this, int x1, int y1, int x2, int y2, int color, int filled) {
+  if (filled) {
+    this->osd.renderer->filled_rect(&this->osd, x1, y1, x2, y2, color);
+  } else {
+    this->osd.renderer->line(&this->osd, x1, y1, x2, y1, color);
+    this->osd.renderer->line(&this->osd, x2, y1, x2, y2, color);
+    this->osd.renderer->line(&this->osd, x2, y2, x1, y2, color);
+    this->osd.renderer->line(&this->osd, x1, y2, x1, y1, color);
+  }
+}
+
+void xine_osd_draw_text(xine_osd_t *this, int x1, int y1, const char *text, int color_base) {
+  this->osd.renderer->render_text(&this->osd, x1, y1, text, color_base);
+}
+
+void xine_osd_get_text_size(xine_osd_t *this, const char *text, int *width, int *height) {
+  this->osd.renderer->get_text_size(&this->osd, text, width, height);
+}
+
+void xine_osd_set_font(xine_osd_t *this, const char *fontname, int size) {
+  this->osd.renderer->set_font(&this->osd, fontname, size);
+}
+
+void xine_osd_set_position(xine_osd_t *this, int x, int y) {
+  this->osd.renderer->set_position(&this->osd, x, y);
+}
+
+void xine_osd_show(xine_osd_t *this, int64_t vpts) {
+  this->osd.renderer->show(&this->osd, vpts);
+}
+
+void xine_osd_hide(xine_osd_t *this, int64_t vpts) {
+  this->osd.renderer->hide(&this->osd, vpts);
+}
+
+void xine_osd_clear(xine_osd_t *this) {
+  this->osd.renderer->clear(&this->osd);
+}
+
+void xine_osd_free(xine_osd_t *this) {
+  this->osd.renderer->free_object(&this->osd);
+}
+
+void xine_osd_set_palette(xine_osd_t *this, const uint32_t *const color, const uint8_t *const trans) {
+  this->osd.renderer->set_palette(&this->osd, color, trans);
+}
+
+void xine_osd_set_text_palette(xine_osd_t *this, int palette_number, int color_base) {
+  this->osd.renderer->set_text_palette(&this->osd, palette_number, color_base);
+}
+
+void xine_osd_get_palette(xine_osd_t *this, uint32_t *color, uint8_t *trans) {
+  this->osd.renderer->get_palette(&this->osd, color, trans);
+}

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.10 2002/10/23 17:12:33 guenter Exp $
+ * $Id: osd.h,v 1.11 2002/11/20 18:41:14 mroi Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -28,12 +28,37 @@
 #ifdef __OSD_C__
 #include "video_out/alphablend.h"
 #endif
-typedef struct osd_object_s osd_object_t;
 
+typedef struct osd_object_s osd_object_t;
 typedef struct osd_renderer_s osd_renderer_t;
 typedef struct osd_font_s osd_font_t;
 
-/* WARNING: this should be kept in sync with include/xine.h.tmpl.in */
+struct osd_object_s {
+  osd_object_t *next;
+  osd_renderer_t *renderer;
+
+  int width, height;    /* work area dimentions */
+  uint8_t *area;        /* work area */
+  int display_x,display_y;  /* where to display it in screen */
+  
+  /* clipping box inside work area */
+  int x1, y1;
+  int x2, y2;
+  
+  uint32_t color[OVL_PALETTE_SIZE];	/* color lookup table  */
+  uint8_t trans[OVL_PALETTE_SIZE];	/* mixer key table */
+
+  int32_t handle;
+  
+  osd_font_t *font;
+};
+
+/* this one is public */
+struct xine_osd_s {
+  osd_object_t osd;
+};
+
+/* WARNING: this should be kept in sync with include/xine.h.in */
 struct osd_renderer_s {
 
   /*
@@ -79,7 +104,7 @@ struct osd_renderer_s {
   /*
    * set palette (color and transparency)
    */
-  void (*set_palette) (osd_object_t *osd, uint32_t *color, uint8_t *trans );
+  void (*set_palette) (osd_object_t *osd, const uint32_t *color, const uint8_t *trans );
 
   /*
    * set on existing text palette 
@@ -109,7 +134,7 @@ struct osd_renderer_s {
    * set the font of osd object
    */
 
-  int (*set_font) (osd_object_t *osd, char *fontname, int size);
+  int (*set_font) (osd_object_t *osd, const char *fontname, int size);
 
 
   /*
@@ -122,12 +147,12 @@ struct osd_renderer_s {
    * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
    */
   int (*render_text) (osd_object_t *osd, int x1, int y1, 
-		      char *text, int color_base);
+		      const char *text, int color_base);
 
   /*
    * get width and height of how text will be renderized
    */
-  int (*get_text_size) (osd_object_t *osd, char *text, 
+  int (*get_text_size) (osd_object_t *osd, const char *text, 
 			int *width, int *height);
 
   /* 
