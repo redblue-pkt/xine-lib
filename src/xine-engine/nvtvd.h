@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * nvtvd - Routines for communication with nvtvd.
  *
@@ -230,8 +230,13 @@ typedef union _DevUnion {
 
 #include <X11/Xmd.h>
 
+#ifdef __GNUC__
 #define DEBUG(x) /*x*/
 #define ErrorF(x...) fprintf(stderr,x)
+#else
+#define DEBUG(x) /*x*/
+#define ErrorF(...) fprintf(stderr, __VA_ARGS__)
+#endif
 
 #define __inline__ inline
 
@@ -444,8 +449,13 @@ typedef struct _ScrnInfoRec *ScrnInfoPtr;
 
 extern ScrnInfoPtr *xf86Screens;	/* List of pointers to ScrnInfoRecs */
 
+#ifdef __GNUC__
 #define xf86Msg(type,format,args...) /* fprintf(stderr,format,args) */
 #define xf86DrvMsg(scrnIndex,type,format, args...) /* fprintf(stderr,format,args) */
+#else
+#define xf86Msg(type,format,...) /* fprintf(stderr,format,__VA_ARGS__) */
+#define xf86DrvMsg(scrnIndex,type,format, ...) /* fprintf(stderr,format,__VA_ARGS_) */
+#endif
 
 /* ---------------- nv driver files ---------------- */
 
@@ -568,7 +578,7 @@ typedef struct _riva_hw_inst
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *
@@ -1085,7 +1095,7 @@ typedef struct {
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *
@@ -1201,7 +1211,7 @@ extern BackCardPtr back_card;
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *

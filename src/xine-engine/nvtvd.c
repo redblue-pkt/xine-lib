@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * nvtvd - Routines for communication with nvtvd.
  *
@@ -52,7 +52,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *
@@ -110,6 +110,7 @@ void  pipeWriteList (FILE *pipe, int size, void *list);
 
 #endif /* _PIPE_H */
 
+#if	__GNUC__
 /* excerpt from debug.h */
 #define ERROR(X...) fprintf(stderr, X)
 
@@ -121,6 +122,22 @@ void  pipeWriteList (FILE *pipe, int size, void *list);
 #define NO_TIMEOUT
 #else
 #define DPRINTF(X...) /* */
+#endif
+
+#else	/* !__GNUC__ */
+
+/* excerpt from debug.h */
+#define ERROR(...) fprintf(stderr, __VA_ARGS__)
+
+/* Fake output */
+#define FPRINTF(...) fprintf(stderr, __VA_ARGS__)
+
+#ifdef NVTV_DEBUG
+#define DPRINTF(...) fprintf(stderr, __VA_ARGS__)
+#define NO_TIMEOUT
+#else
+#define DPRINTF(...) /* */
+#endif
 #endif
 
 /* NVTV client backend -- Dirk Thierbach <dthierbach@gmx.de>
@@ -141,7 +158,7 @@ void  pipeWriteList (FILE *pipe, int size, void *list);
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *
@@ -425,6 +442,7 @@ Bool bcl_serviceViewportCursor (int flags, int cursor_x, int cursor_y,
   return result;
 }
 
+#if	__GNUC__
 BackAccessRec bcl_access_func = {
   openCard:                   bcl_openCard,
   closeCard:                  bcl_closeCard,
@@ -459,6 +477,42 @@ BackCardRec bcl_card_func = {
   adjustViewport:        bcl_adjustViewport,
   serviceViewportCursor: bcl_serviceViewportCursor,
 };
+#else
+BackAccessRec bcl_access_func = {
+  bcl_openCard,
+  bcl_closeCard,
+#ifdef DEBUG_PROBE
+  bnull_probeSystem,
+#endif
+};
+
+BackCardRec bcl_card_func = {
+  bcl_openCard,
+  bcl_closeCard,
+  bcl_probeChips,
+#ifdef DEBUG_PROBE
+  bnull_probeCard,
+  bnull_probeBus,
+#endif
+  bcl_setHeads,
+  bcl_getHeads,
+  bcl_setChip,
+  bcl_setSettings,
+  bcl_getSettings,
+  bcl_setMode,
+  bcl_getMode,
+  bcl_setModeSettings,
+  bcl_setTestImage, 
+  bcl_getStatus,    
+  bcl_getConnection,
+  bcl_findBySize, 
+  bcl_findByOverscan,
+  bcl_initSharedView,
+  bcl_getTwinView,
+  bcl_adjustViewport,
+  bcl_serviceViewportCursor,
+};
+#endif
 
 /* -------- Init -------- */
 
@@ -529,7 +583,7 @@ CardPtr back_client_init (void)
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.c,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: nvtvd.c,v 1.2 2002/06/26 15:57:47 jkeil Exp $
  *
  * Contents:
  *
