@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.62 2002/07/01 11:33:18 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.63 2002/07/01 11:35:46 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -270,27 +270,32 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: access type not available\n");
     goto __close;
   }
+  /* set the sample format ([SU]{8,16{LE,BE}})*/
   err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ? SND_PCM_FORMAT_S16_LE : SND_PCM_FORMAT_U8);
   if (err < 0) {
     printf ("audio_alsa_out: sample format non available\n");
     goto __close;
   }
+  /* set the count of channels */
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
   if (err < 0) {
     printf ("audio_alsa_out: channels count non available\n");
     goto __close;
   }
+  /* set the stream rate [Hz] */
   err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, 0);
     if (err < 0) {
       printf ("audio_alsa_out: rate not available\n");
       goto __close;
     }
+  /* ERROR: Set buffer size [samples] */
   buffer_size = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params,
                                                        500000);
   if (buffer_size < 0) {
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
+  /* ERROR: Set period size [samples] */
   period_size = 128;
   do {
     period_size *= 2;
@@ -307,8 +312,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: buffer time and period time match, could not use\n");
     goto __close;
   }
+  /* Check for pause/resume support */
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
 			    && snd_pcm_hw_params_can_resume (params) );
+  /* write the parameters to device */
   err = snd_pcm_hw_params(this->audio_fd, params);
   if (err < 0) {
     printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
@@ -319,27 +326,32 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /*
    * audio buffer size handling
    */
+  /* Copy current parameters into swparams */
   err = snd_pcm_sw_params_current(this->audio_fd, swparams);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
     goto __close;
   }
+  /* align all transfers to 1 sample */
   err = snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 1);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
     goto __close;
   }
+  /* allow the transfer when at least period_size samples can be processed */
   err = snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, period_size);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
     goto __close;
   }
+  /* start the transfer when the buffer contains at least period_size samples */
   err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
     goto __close;
   }
 
+  /* Install swparams into current parameters */
   err = snd_pcm_sw_params(this->audio_fd, swparams);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
