@@ -182,10 +182,15 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
 
 
   while (ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf) < 0) {
+#ifdef LOG
     printf("input_v4l: upper while loop\n");
-    if (errno == EAGAIN)
+#endif
+    if (errno == EAGAIN) {
+#ifdef LOG
       printf ("input_v4l: cannot sync\n");
-    else {
+#endif
+      continue;
+    } else {
       perror("VIDIOCMCAPTURE");
       return NULL;
     }
@@ -196,7 +201,9 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
   while (ioctl(this->video_fd, VIDIOCSYNC, &this->gb_frame) < 0 &&
 	 (errno == EAGAIN || errno == EINTR))
   {
+#ifdef LOG
     printf("input_v4l: waiting for videosync\n");
+#endif
   }
 
   if (this->start_time == 0) 
@@ -280,8 +287,8 @@ static int v4l_plugin_get_optional_data (input_plugin_t *this_gen,
 }
 
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
-				    const char *data) {
+static input_plugin_t *open_plugin (input_class_t *cls_gen,
+		xine_stream_t *stream, const char *data) {
 
   /* v4l_input_class_t  *cls = (v4l_input_class_t *) cls_gen; */
   v4l_input_plugin_t *this;
@@ -311,19 +318,25 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   
   this->video_fd = open("/dev/video0", O_RDWR);
   if (this->video_fd < 0) {
+#ifdef LOG
     printf ("input_v4l: cannot open v4l device\n");
+#endif
     free(this);
     return NULL;
   }
    
   if (ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
+#ifdef LOG
     printf ("input_v4l: VIDIOCGCAP ioctl went wrong\n");
+#endif
     free(this);
     return NULL;
   }
 
   if (!(this->video_cap.type & VID_TYPE_CAPTURE)) {
+#ifdef LOG
     printf ("input_v4l: grab device does not handle capture\n");
+#endif
     free(this);
     return NULL;
   }
@@ -342,7 +355,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   if (found == 0 || resolutions[j].width < this->video_cap.minwidth
     || resolutions[j].height < this->video_cap.minheight)
   {
+#ifdef LOG
     printf ("input_v4l: grab device does not support any preset resolutions");
+#endif
     free(this);
     return NULL;
   }
@@ -395,13 +410,20 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       if (ret < 0) {
 	close (this->video_fd);
 	this->video_fd = -1;
+#ifdef LOG
 	printf ("input_v4l: grab: no colorspace format found\n");
+#endif
 	return 0;
-      } else
+      }
+#ifdef LOG
+      else
 	printf ("input_v4l: grab: format YUV 4:2:2\n");
-    } else
+#endif
+    }
+#ifdef LOG
+    else
       printf ("input_v4l: grab: format YUV 4:2:0\n");
-
+#endif
     this->frame_format = pict.palette;
 
     val = 1;
@@ -410,9 +432,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     this->use_mmap = 0;
 
   } else {
-
+#ifdef LOG
     printf ("input_v4l: using mmap, size %d\n", this->gb_buffers.size);
-
+#endif
     this->video_buf = mmap(0, this->gb_buffers.size,
 			   PROT_READ|PROT_WRITE, MAP_SHARED,
 			   this->video_fd,0);
@@ -436,15 +458,19 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       this->gb_buf.format = VIDEO_PALETTE_YUV422;
 
       ret = ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf);
-    } else
+    }
+#ifdef LOG
+    else
       printf ("input_v4l: YUV420 should work\n");
-
+#endif
     if (ret < 0) {
+#ifdef LOG
       if (errno != EAGAIN) {
 	printf("input_v4l: grab device does not support suitable format\n");
       } else {
 	printf("input_v4l: grab device does not receive any video signal\n");
       }
+#endif
       close (this->video_fd);
       free (this);
       return NULL;
@@ -461,6 +487,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     this->frame_size =  resolutions[j].width *  resolutions[j].height * 2;
     break;
   }
+
+  stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = resolutions[j].width;
+  stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = resolutions[j].height;
 
   this->start_time=0;
   

@@ -1,5 +1,5 @@
 xine-lib (1-beta6)
-
+  * inform the width and height for the v4l input plugin
 
 xine-lib (1-beta5)
   * new AV sync strategy (audio resample) for DXR3 users

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_yuv_frames.c,v 1.3 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_yuv_frames.c,v 1.4 2003/02/21 19:13:17 hadess Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  *
@@ -88,9 +88,10 @@ static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen) {
       this->video_fifo->put (this->video_fifo, buf);
       break;
     default:
+#ifdef LOG
       printf ("demux_yuv_frames: help, unknown buffer type %08x\n",
 	      buf->type);
-
+#endif
       buf->free_buffer (buf);
     }
   }
@@ -172,9 +173,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   default:
     return NULL;
   }
-
+#ifdef LOG
   printf ("demux_yuv_frames: input accepted.\n");
-
+#endif
   /*
    * if we reach this point, the input has been accepted.
    */
@@ -253,6 +254,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 20, "yuv_frames", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
