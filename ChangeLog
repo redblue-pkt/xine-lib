@@ -11,6 +11,7 @@ xine (0.9.8) unstable; urgency=low
   * merged dxr3 and dxr3enc drivers into single dxr3 driver. See README.dxr3 
   * dxr3 encoding support for librte-0.4 besides the traditional libfame.
   * support for (live) mpg streams via tcp
+  * two new skins
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> Sun Jan 13 16:15:07 CET 2002
 	
