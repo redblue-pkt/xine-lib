@@ -34,7 +34,9 @@
 #endif
 
 #ifdef ARCH_PPC
+/*
 #define POWERPC
+*/
 #endif
 
 /* #define VERBOSE */

@@ -8,7 +8,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 # FIXME
 # -fomit-frame-pointer segfaults here
-CFLAGS = -DHAVE_CONFIG_H -I. -I. -I../../.. -I../../.. -I../../../include -I../../../include -I../../../src -I../../../src/xine-engine -I../../../src/xine-engine -I../../../src/xine-utils -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE -O3 -pipe -falign-functions=4 -falign-loops=4 -falign-jumps=4 -mpreferred-stack-boundary=2 -fexpensive-optimizations -fschedule-insns2 -fno-strict-aliasing -ffast-math -funroll-loops -finline-functions -mcpu=pentiumpro
+#CFLAGS = -DHAVE_CONFIG_H -I. -I. -I../../.. -I../../.. -I../../../include -I../../../include -I../../../src -I../../../src/xine-engine -I../../../src/xine-engine -I../../../src/xine-utils -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE -O3 -pipe -falign-functions=4 -falign-loops=4 -falign-jumps=4 -mpreferred-stack-boundary=2 -fexpensive-optimizations -fschedule-insns2 -fno-strict-aliasing -ffast-math -funroll-loops -finline-functions -mcpu=pentiumpro
 
 libdir = $(XINE_PLUGINDIR)/post
 
@@ -36,7 +36,7 @@ else
         ifs_display.c ifs.c ifs.h \
         graphic.c graphic.h \
         drawmethods.h \
-        ppc_zoom_ultimate.s
+#        ppc_zoom_ultimate.s
 endif
 
 xineplug_post_goom_la_LIBADD = $(XINE_LIB)
