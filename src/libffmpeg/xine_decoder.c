@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.135 2003/11/15 14:54:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.136 2003/11/16 14:32:11 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -869,7 +869,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     case BUF_VIDEO_4XM:
       this->codec = avcodec_find_decoder (CODEC_ID_4XM);
       xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC,
-	"4XM (ffmpeg)");
+	"4X Video (ffmpeg)");
       break;
     case BUF_VIDEO_CINEPAK:
       this->codec = avcodec_find_decoder (CODEC_ID_CINEPAK);
@@ -1218,6 +1218,7 @@ void avcodec_register_all(void)
     register_avcodec(&adpcm_ima_dk4_decoder);
     register_avcodec(&adpcm_ima_ws_decoder);
     register_avcodec(&adpcm_xa_decoder);
+    register_avcodec(&adpcm_4xm_decoder);
     register_avcodec(&pcm_alaw_decoder);
     register_avcodec(&pcm_mulaw_decoder);
     register_avcodec(&roq_dpcm_decoder);
@@ -1450,6 +1451,11 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_XA);
       xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,  
 	"CD-ROM/XA ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_4X_ADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_4XM);
+      xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,  
+	"4X ADPCM (ffmpeg)");
       break;
     case BUF_AUDIO_MULAW:
       this->codec = avcodec_find_decoder (CODEC_ID_PCM_MULAW);
@@ -1756,6 +1762,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_ROQ,
   BUF_AUDIO_INTERPLAY,
   BUF_AUDIO_VQA_IMA,
+  BUF_AUDIO_4X_ADPCM,
   /* BUF_AUDIO_MPEG, */
   0
 };
