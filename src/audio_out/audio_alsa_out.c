@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.52 2002/04/27 22:11:12 matt2000 Exp $
+ * $Id: audio_alsa_out.c,v 1.53 2002/06/03 07:53:11 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -105,8 +105,8 @@ typedef struct alsa_driver_s {
     long               left_vol;
     long               right_vol;
     int                mute;
+    int                remember_volume;
   } mixer;
-
 } alsa_driver_t;
 
 static snd_output_t *jcd_out;
@@ -507,11 +507,14 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
 
   config_values_t *config = this->config;
 
-  config->update_num (config, "audio.alsa_mixer_volume", 
-		   (((ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
-						      this->mixer.min, this->mixer.max)) + 
-		     (ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
-						      this->mixer.min, this->mixer.max))) /2));
+  if(this->mixer.remember_volume) {
+    config->update_num (config, "audio.alsa_mixer_volume", 
+			(((ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
+							   this->mixer.min, this->mixer.max)) + 
+			  (ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
+							   this->mixer.min, this->mixer.max))) /2));
+  }
+
   config->save(config);
 
   pthread_mutex_destroy(&this->mixer.mutex);
@@ -1046,7 +1049,28 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   pthread_mutex_init(&this->mixer.mutex, NULL);
   ao_alsa_mixer_init(&this->ao_driver);
-   
+
+  /* Restore volume from last used level */
+  if((this->mixer.remember_volume = 
+      config->register_bool (config, "audio.remember_volume", 0,
+			     "restore volume level at startup", 
+			     "if this not set, xine will not touch any mixer settings at startup",
+			     NULL, NULL)) == 1) {
+    int vol;
+    int prop;
+    
+    vol = config->register_range (config, "audio.alsa_mixer_volume", 
+				  50, 0, 100, "Audio volume", 
+				  NULL, NULL, NULL);
+    
+    if(this->capabilities |= AO_CAP_MIXER_VOL)
+      prop = AO_PROP_MIXER_VOL;
+    else if(this->capabilities |= AO_CAP_PCM_VOL)
+      prop = AO_PROP_PCM_VOL;
+    
+    (void) ao_alsa_set_property(&this->ao_driver, prop, vol);
+  }
+  
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
   this->ao_driver.get_property        = ao_alsa_get_property;
   this->ao_driver.set_property        = ao_alsa_set_property;
