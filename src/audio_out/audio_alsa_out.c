@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.126 2004/03/03 20:09:11 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.127 2004/03/05 23:01:26 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -137,7 +137,6 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
 /*
  * Wait (blocking) till a mixer event happen
  */
-/*
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
@@ -145,77 +144,79 @@ static void *ao_alsa_handle_event_thread(void *data) {
     int err, mute, sw, sw2;
     long right_vol, left_vol;
     
-    snd_mixer_wait(this->mixer.handle, -1);
-    pthread_mutex_lock(&this->mixer.mutex);
-    snd_mixer_handle_events(this->mixer.handle);
-
-    if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
-						  &left_vol)) < 0) {
-      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-	      "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-      continue;
-    }
-    
-    if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
-						  &right_vol)) < 0) {
-      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-	      "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-      continue;
-    }
-
-    if(snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
-
-      if(snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
-	snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	mute = (sw) ? 0 : 1;
+    if(snd_mixer_wait(this->mixer.handle, 333) == 0) {
+      pthread_mutex_lock(&this->mixer.mutex);
+      snd_mixer_handle_events(this->mixer.handle);
+      
+      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
+						    &left_vol)) < 0) {
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	continue;
       }
-      else {
-	if (this->mixer.mute & MIXER_MASK_LEFT)
+      
+      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
+						    &right_vol)) < 0) {
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	continue;
+      }
+      
+      if(snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
+	
+	if(snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
 	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
-	    (this->mixer.mute & MIXER_MASK_RIGHT))
-	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw2);
-
-	mute = (sw || sw2) ? 0 : 1;
+	  mute = (sw) ? 0 : 1;
+	}
+	else {
+	  if (this->mixer.mute & MIXER_MASK_LEFT)
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
+	  if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
+	      (this->mixer.mute & MIXER_MASK_RIGHT))
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw2);
+	  
+	  mute = (sw || sw2) ? 0 : 1;
+	}
       }
+      else
+	mute = (this->mixer.mute) ? 1 : 0;
+      
+      if((this->mixer.right_vol != right_vol) || (this->mixer.left_vol != left_vol) ||
+	 (this->mixer.mute != mute)) {
+	xine_event_t              event;
+	xine_audio_level_data_t   data;
+	xine_stream_t            *stream;
+	
+	this->mixer.right_vol = right_vol;
+	this->mixer.left_vol  = left_vol;
+	this->mixer.mute      = (mute) ? MIXER_MASK_STEREO : 0;
+	
+	data.right = ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
+						     this->mixer.min, this->mixer.max);
+	data.left  = ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
+						     this->mixer.min, this->mixer.max);
+	data.mute  = (this->mixer.mute == MIXER_MASK_STEREO) ? 1 : 0;
+	
+	event.type        = XINE_EVENT_AUDIO_LEVEL;
+	event.data        = &data;
+	event.data_length = sizeof(data);
+	
+	pthread_mutex_lock(&this->class->xine->streams_lock);
+	for(stream = xine_list_first_content(this->class->xine->streams); 
+	    stream; stream = xine_list_next_content(this->class->xine->streams)) {
+	  event.stream = stream;
+	  xine_event_send(stream, &event);
+	}
+	pthread_mutex_unlock(&this->class->xine->streams_lock);
+      }
+      pthread_mutex_unlock(&this->mixer.mutex);
     }
-    else
-      mute = (this->mixer.mute) ? 1 : 0;
     
-    if((this->mixer.right_vol != right_vol) || (this->mixer.left_vol != left_vol) ||
-       (this->mixer.mute != mute)) {
-      xine_event_t              event;
-      xine_audio_level_data_t   data;
-      xine_stream_t            *stream;
-      
-      this->mixer.right_vol = right_vol;
-      this->mixer.left_vol  = left_vol;
-      this->mixer.mute      = (mute) ? MIXER_MASK_STEREO : 0;
-      
-      data.right = ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
-						   this->mixer.min, this->mixer.max);
-      data.left  = ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
-						   this->mixer.min, this->mixer.max);
-      data.mute  = (this->mixer.mute == MIXER_MASK_STEREO) ? 1 : 0;
-      
-      event.type        = XINE_EVENT_AUDIO_LEVEL;
-      event.data        = &data;
-      event.data_length = sizeof(data);
-      
-      pthread_mutex_lock(&this->class->xine->streams_lock);
-      for(stream = xine_list_first_content(this->class->xine->streams); 
-	  stream; stream = xine_list_next_content(this->class->xine->streams)) {
-	event.stream = stream;
-	xine_event_send(stream, &event);
-      }
-      pthread_mutex_unlock(&this->class->xine->streams_lock);
-    }
-    pthread_mutex_unlock(&this->mixer.mutex);
   } while(1);
   
   pthread_exit(NULL);
 }
-*/
+
 /*
  * Convert percent value to volume and set
  */
@@ -1236,10 +1237,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     pthread_attr_getschedparam(&pth_attrs, &pth_params);
     pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
-/* FIXME pthread_cancel blows chunks, until this is fixed,
- * we can't use the volume event thread
     pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
-*/
     pthread_attr_destroy(&pth_attrs);
   }
 
