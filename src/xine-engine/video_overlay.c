@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.29 2003/04/01 11:45:33 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.30 2003/08/15 14:35:09 mroi Exp $
  *
  */
 
@@ -50,7 +50,7 @@ typedef struct video_overlay_showing_s {
 
 
 typedef struct video_overlay_s {
-  video_overlay_instance_t  video_overlay;
+  video_overlay_manager_t   video_overlay;
   
   pthread_mutex_t           events_mutex;  
   video_overlay_events_t    events[MAX_EVENTS];
@@ -144,7 +144,7 @@ static void remove_events_handle( video_overlay_t *this, int32_t handle, int loc
 /*
   allocate a handle from the object pool (exported function)
  */
-static int32_t video_overlay_get_handle(video_overlay_instance_t *this_gen, int object_type ) {
+static int32_t video_overlay_get_handle(video_overlay_manager_t *this_gen, int object_type ) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int n;
   
@@ -186,7 +186,7 @@ static void internal_video_overlay_free_handle(video_overlay_t *this, int32_t ha
    exported free handle function. must take care of removing the object
    from showing and events lists.
 */
-static void video_overlay_free_handle(video_overlay_instance_t *this_gen, int32_t handle) {
+static void video_overlay_free_handle(video_overlay_manager_t *this_gen, int32_t handle) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
 
   remove_showing_handle(this,handle);
@@ -225,7 +225,7 @@ static void video_overlay_reset (video_overlay_t *this) {
 }
 
 
-static void video_overlay_init (video_overlay_instance_t *this_gen) {
+static void video_overlay_init (video_overlay_manager_t *this_gen) {
 
   video_overlay_t *this = (video_overlay_t *) this_gen;
 
@@ -248,7 +248,7 @@ static void video_overlay_init (video_overlay_instance_t *this_gen) {
  * note2: handle will not be freed on HIDE events
  *        the handle is removed from the currently showing list.
  */
-static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void *event_gen ) {
+static int32_t video_overlay_add_event(video_overlay_manager_t *this_gen,  void *event_gen ) {
   video_overlay_event_t *event = (video_overlay_event_t *) event_gen;
   video_overlay_t *this = (video_overlay_t *) this_gen;
   uint32_t   last_event,this_event,new_event;
@@ -491,7 +491,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 /* This is called from video_out.c 
  * must call output->overlay_blend for each active overlay.
  */
-static void video_overlay_multiple_overlay_blend (video_overlay_instance_t *this_gen, int64_t vpts, 
+static void video_overlay_multiple_overlay_blend (video_overlay_manager_t *this_gen, int64_t vpts, 
 						  vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int i;
@@ -528,7 +528,7 @@ static void video_overlay_multiple_overlay_blend (video_overlay_instance_t *this
 /* this should be called on stream end or stop to make sure every 
    hide event is processed.
 */
-static void video_overlay_flush_events(video_overlay_instance_t *this_gen )
+static void video_overlay_flush_events(video_overlay_manager_t *this_gen )
 {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   
@@ -538,7 +538,7 @@ static void video_overlay_flush_events(video_overlay_instance_t *this_gen )
 /* this is called from video_out.c on still frames to check 
    if a redraw is needed.
 */
-static int video_overlay_redraw_needed(video_overlay_instance_t *this_gen, int64_t vpts )
+static int video_overlay_redraw_needed(video_overlay_manager_t *this_gen, int64_t vpts )
 {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   
@@ -547,7 +547,7 @@ static int video_overlay_redraw_needed(video_overlay_instance_t *this_gen, int64
 }
 
 
-static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
+static void video_overlay_dispose(video_overlay_manager_t *this_gen) {
 
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int i;
@@ -575,7 +575,7 @@ static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
 }
 
 
-video_overlay_instance_t *video_overlay_new_instance () {
+video_overlay_manager_t *video_overlay_new_manager () {
 
   video_overlay_t *this;
 
@@ -590,5 +590,5 @@ video_overlay_instance_t *video_overlay_new_instance () {
   this->video_overlay.redraw_needed       = video_overlay_redraw_needed;
   this->video_overlay.multiple_overlay_blend = video_overlay_multiple_overlay_blend;
 
-  return (video_overlay_instance_t *) &this->video_overlay;
+  return (video_overlay_manager_t *) &this->video_overlay;
 }

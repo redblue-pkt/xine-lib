@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.95 2003/08/12 13:53:30 mroi Exp $
+ * $Id: video_out.h,v 1.96 2003/08/15 14:35:09 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -55,7 +55,7 @@ extern "C" {
 typedef struct vo_frame_s vo_frame_t; 
 typedef struct img_buf_fifo_s img_buf_fifo_t;
 typedef struct vo_overlay_s vo_overlay_t;
-typedef struct video_overlay_instance_s video_overlay_instance_t;
+typedef struct video_overlay_manager_s video_overlay_manager_t;
 typedef struct vo_driver_s vo_driver_t;
 
 /* to access extra_info_t contents one have to include xine_internal.h */
@@ -191,7 +191,7 @@ struct xine_video_port_s {
   void (*exit) (xine_video_port_t *self);
 
   /* get overlay instance (overlay source) */
-  video_overlay_instance_t* (*get_overlay_instance) (xine_video_port_t *self);
+  video_overlay_manager_t* (*get_overlay_manager) (xine_video_port_t *self);
 
   /* flush video_out fifo */
   void (*flush) (xine_video_port_t *self);
@@ -412,27 +412,32 @@ struct vo_overlay_s {
 };
 
 
-/* API to video_overlay */
-struct video_overlay_instance_s {
-  void (*init) (video_overlay_instance_t *this_gen);
+/* API to video_overlay manager
+ *
+ * Remember that adding new functions to this structure requires
+ * adaption of the post plugin decoration layer. Be sure to look into
+ * src/xine-engine/post.[ch].
+ */
+struct video_overlay_manager_s {
+  void (*init) (video_overlay_manager_t *this_gen);
   
-  void (*dispose) (video_overlay_instance_t *this_gen);
+  void (*dispose) (video_overlay_manager_t *this_gen);
   
-  int32_t (*get_handle) (video_overlay_instance_t *this_gen, int object_type );
+  int32_t (*get_handle) (video_overlay_manager_t *this_gen, int object_type );
   
-  void (*free_handle) (video_overlay_instance_t *this_gen, int32_t handle);
+  void (*free_handle) (video_overlay_manager_t *this_gen, int32_t handle);
   
-  int32_t (*add_event) (video_overlay_instance_t *this_gen, void *event);
+  int32_t (*add_event) (video_overlay_manager_t *this_gen, void *event);
   
-  void (*flush_events) (video_overlay_instance_t *this_gen );
+  void (*flush_events) (video_overlay_manager_t *this_gen );
   
-  int (*redraw_needed) (video_overlay_instance_t *this_gen, int64_t vpts );
+  int (*redraw_needed) (video_overlay_manager_t *this_gen, int64_t vpts );
   
-  void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int64_t vpts, 
+  void (*multiple_overlay_blend) (video_overlay_manager_t *this_gen, int64_t vpts, 
                                   vo_driver_t *output, vo_frame_t *vo_img, int enabled);
 };
 
-video_overlay_instance_t *video_overlay_new_instance (void);
+video_overlay_manager_t *video_overlay_new_instance (void);
 
 
 /*

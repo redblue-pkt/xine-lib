@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.168 2003/08/12 13:53:30 mroi Exp $
+ * $Id: video_out.c,v 1.169 2003/08/15 14:35:09 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -86,7 +86,7 @@ typedef struct {
   int64_t                   last_delivery_pts; 
 
 
-  video_overlay_instance_t *overlay_source;
+  video_overlay_manager_t  *overlay_source;
   int                       overlay_enabled;
 
   /* do we true real-time output or is this a grab only instance ? */
@@ -1398,7 +1398,7 @@ static vo_frame_t *vo_get_last_frame (xine_video_port_t *this_gen) {
  * overlay stuff 
  */
 
-static video_overlay_instance_t *vo_get_overlay_instance (xine_video_port_t *this_gen) {
+static video_overlay_manager_t *vo_get_overlay_manager (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->overlay_source;
 }
@@ -1480,7 +1480,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->vo.exit                  = vo_exit;
   this->vo.get_capabilities      = vo_get_capabilities;
   this->vo.enable_ovl            = vo_enable_overlay;
-  this->vo.get_overlay_instance  = vo_get_overlay_instance;
+  this->vo.get_overlay_manager   = vo_get_overlay_manager;
   this->vo.flush                 = vo_flush;
   this->vo.get_property          = vo_get_property;
   this->vo.set_property          = vo_set_property;
@@ -1497,7 +1497,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->last_frame            = NULL;
   this->img_backup            = NULL;
   
-  this->overlay_source        = video_overlay_new_instance();
+  this->overlay_source        = video_overlay_new_manager();
   this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.252 2003/07/27 12:25:04 hadess Exp $
+ * $Id: xine.c,v 1.253 2003/08/15 14:35:09 mroi Exp $
  */
 
 /*
@@ -431,7 +431,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * osd
    */
 
-  stream->osd_renderer = osd_renderer_init (stream->video_out->get_overlay_instance (stream->video_out), stream->xine->config );
+  stream->osd_renderer = osd_renderer_init (stream->video_out->get_overlay_manager (stream->video_out), stream->xine->config );
   
   /*
    * register stream

@@ -1166,7 +1166,7 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
  * initialize the osd rendering engine
  */
 
-osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, config_values_t *config ) {
+osd_renderer_t *osd_renderer_init( video_overlay_manager_t *video_overlay, config_values_t *config ) {
 
   osd_renderer_t *this;
   char str[1024];
