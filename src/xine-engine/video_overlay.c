@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.27 2002/11/20 11:57:49 mroi Exp $
+ * $Id: video_overlay.c,v 1.28 2003/03/23 15:01:45 mroi Exp $
  *
  */
 
@@ -413,10 +413,20 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 #ifdef LOG_DEBUG
         printf ("video_overlay:MENU BUTTON NOW\n");
 #endif
-        if ( (this->events[this_event].event->object.overlay != NULL) &&
-             (this->objects[handle].overlay) &&
-             (this->events[this_event].event->object.pts == 
+#if 0
+        /* This code drops buttons, where the button PTS derived from the NAV
+	 * packet on DVDs does not match the SPU PTS. Practical experience shows,
+	 * that this is not necessary and causes problems with some DVDs */
+        if ( (this->events[this_event].event->object.pts != 
                 this->objects[handle].pts) ) {
+          printf ("video_overlay:MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
+            this->events[this_event].event->object.pts,
+            this->objects[handle].pts);
+          break;
+        }
+#endif
+        if ( (this->events[this_event].event->object.overlay != NULL) &&
+             (this->objects[handle].overlay) ) {
           vo_overlay_t *overlay = this->objects[handle].overlay;
           vo_overlay_t *event_overlay = this->events[this_event].event->object.overlay;
           
@@ -443,12 +453,6 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           add_showing_handle( this, handle );
         } else {
           printf ("video_overlay:overlay not present\n");
-        }
-        if ( (this->events[this_event].event->object.pts != 
-                this->objects[handle].pts) ) {
-          printf ("video_overlay:MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
-            this->events[this_event].event->object.pts,
-            this->objects[handle].pts);
         }
 
         if( this->events[this_event].event->object.overlay->rle ) {
