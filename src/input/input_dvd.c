@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.77 2002/09/06 18:13:10 mroi Exp $
+ * $Id: input_dvd.c,v 1.78 2002/09/13 17:18:42 mroi Exp $
  *
  */
 
@@ -308,9 +308,12 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   }
 
   if (dvdnav_open(&(this->dvdnav), 
-		  this->current_dvd_device) == DVDNAV_STATUS_ERR) {
+		  this->dvd_device) == DVDNAV_STATUS_ERR) {
     return;
-  } 
+  }
+  
+  this->current_dvd_device = this->dvd_device;
+  this->opened = 1;
 
   dvdnav_get_number_of_titles(this->dvdnav, &num_titles);
   if ((num_parts = (int *) calloc(num_titles, sizeof(int)))) {
@@ -362,10 +365,7 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   }
 
   /* Reset the VM so that we don't break anything */
-  /* dvdnav_reset(this->dvdnav); */
-
-  dvdnav_close(this->dvdnav);
-  this->dvdnav = NULL;
+  dvdnav_reset(this->dvdnav);
 }
 
 /*
@@ -1308,7 +1308,6 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
 							   int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
-  dvdnav_status_t res;
   int titles, i;
   trace_print("get_autoplay_list entered\n"); 
   /* Close the plugin is opened */
@@ -1321,14 +1320,6 @@ static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_
   /* rebuild thie MRL browser list */
   dvdnav_build_mrl_list(this);
 
-  /* Use default path */
-  res = dvdnav_open(&(this->dvdnav), this->current_dvd_device);
-  if(res == DVDNAV_STATUS_ERR) {
-    return NULL;
-  }
-
-  this->opened = 1;
-   
   /* Return a list of all titles */
   snprintf (&(filelist[0][0]), MAX_STR_LEN, "dvd://");
   filelist2[0] = &(filelist[0][0]);
@@ -1499,6 +1490,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.78  2002/09/13 17:18:42  mroi
+ * dvd playback should work again
+ *
  * Revision 1.77  2002/09/06 18:13:10  mroi
  * introduce "const"
  * fix some input plugins that would not copy the mrl on open
