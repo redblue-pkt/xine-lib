@@ -32,6 +32,7 @@ src/input/input_file.c
 src/input/input_vcd.c
 src/input/input_http.c
 src/input/input_cda.c
+src/input/net_buf_ctrl.c
 src/libmpeg2/xine_decoder.c
 src/libmpg123/xine_decoder.c
 src/libspudec/xine_decoder.c

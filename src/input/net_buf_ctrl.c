@@ -64,7 +64,7 @@ void nbc_check_buffers (nbc_t *this) {
     if (!this->buffering) {
 
       this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
-      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "buffering...", OSD_TEXT1);
+      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, _("buffering..."), OSD_TEXT1);
       this->xine->osd_renderer->show (this->xine->osd, 0);
 
       /* give video_out time to display osd before pause */
