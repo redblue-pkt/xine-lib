@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.26 2002/06/14 13:34:43 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.27 2002/06/15 10:42:21 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1114,6 +1114,16 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
       
       /* fill video window with keycolor */
       XLockDisplay(this->display);
+      /* FIXME: This coordinate translation works around what appears
+       * to be a bug in xine-ui. We can safely remove it, when this
+       * gets fixed. */
+      {
+        XWindowAttributes attr;
+        Window dummy;
+        XGetWindowAttributes(this->display, this->win, &attr);
+        XTranslateCoordinates(this->display, this->win, attr.root,
+          win_off_x, win_off_y, &win.xpos, &win.ypos, &dummy);
+      }
       XSetForeground(this->display, this->gc, this->color.pixel);
       XFillRectangle(this->display, this->win, this->gc,
         win_off_x, win_off_y, this->width, this->height);
@@ -1126,11 +1136,14 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
       if (this->xpos > this->overlay.screen_xres) return;
       if (this->ypos > this->overlay.screen_yres) return;
   
-      win.xpos   = this->xpos;
-      win.ypos   = this->ypos;
+      /* FIXME: This will be needed again, when above workaround
+       * becomes obsolete.
+       * win.xpos   = this->xpos;
+       * win.ypos   = this->ypos;
+       */
       win.width  = this->width;
       win.height = this->height;
-  
+      
       ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETWINDOW, &win);
     }
   }
