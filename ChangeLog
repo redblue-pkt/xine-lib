@@ -1,3 +1,6 @@
+xine-lib (1-rc4)
+  * fix SDL plugin that was broken in rc3
+
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
   * auto hiding of the subtitles
