@@ -97,7 +97,7 @@ AC_SUBST(GLOBAL_CFLAGS)
 dnl
 dnl threads
 dnl
-case $host in
+case "$host" in
   *-*-freebsd*)
     THREAD_LIBS="-pthread"
     CFLAGS="$CFLAGS -I/usr/local/include -L/usr/local/lib -D_THREAD_SAFE"
@@ -363,8 +363,8 @@ COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 enable_w32dll="no"
 enable_ffmmx="no"
 
-case $host in
-  i386-*-freebsd*)
+case "$host" in
+i386-*-freebsd*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
@@ -375,151 +375,157 @@ case $host in
     enable_w32dll="yes"
     enable_ffmmx="yes"
     ;;
-  i?86*-*-linux* | i386-*-solaris*)
-    dnl Set the appropriate architecture define
-    case "$host_alias" in
-    i?86-* | k?-* | athlon-*) dnl catch i386,i486,i586,i686,k6,k7
 
-        if test "$GCC" = yes; then
-	    dnl Check for gcc cpu optimization support
-	    AC_TRY_CFLAGS("-mcpu=i386", 
-	       sarchopt="-mcpu",
-	       AC_TRY_CFLAGS("-march=i386", 
-		  sarchopt="-march",
-		  [ AC_MSG_RESULT(** no cpu optimization supports **)
-		    sarchopt=no ]))
+i?86*-*-linux* | i386-*-solaris*)
 
-	    dnl special check for k7 cpu CC support
-            AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
+    if test "$GCC" = yes; then
+	dnl Check for gcc cpu optimization support
+	AC_TRY_CFLAGS("-mcpu=i386", 
+		sarchopt="-mcpu",
+		AC_TRY_CFLAGS("-march=i386", 
+			sarchopt="-march",
+			[ AC_MSG_RESULT(** no cpu optimization supports **)
+			  sarchopt=no ]))
 
-	    dnl add x86 specific gcc CFLAGS
-	    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
-	    DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	dnl special check for k7 cpu CC support
+        AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
-	    if test x"$sarchopt" != "xno"; then
-		[case "$host_alias" in
-			i386-*) # *BSD return this even on a P III #-))
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i386"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i386"
-			  ;;
-			i486-*) # oh dear!
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i486"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i486"
-			  ;;
-			i586-*)
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentium"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentium"
-			  ;;
-			i686-*)
-			  if test x"$check_athlon" = "xyes"; then
-			    if test -f /proc/cpuinfo; then
-			      modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
-			      case $modelname in
-				*Athlon* | *Duron* | *K7*)
-				  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$k7cpu"
-				  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$k7cpu"
-				;;
-				*)
-				 GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
-				 DEBUG_CFLAGS="$DEBUG_CFLAGS $X_CFLAGS $sarchopt=pentiumpro"
-				;;
-			      esac
-			    fi 
-			  else
+	dnl add x86 specific gcc CFLAGS
+	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+
+	if test x"$sarchopt" != "xno"; then
+	    [
+	    case "$host_alias" in
+	    i386-*) # *BSD return this even on a P III #-))
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i386"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i386"
+		;;
+	    i486-*) # oh dear!
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i486"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i486"
+		;;
+	    i586-*)
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentium"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentium"
+		;;
+	    i686-*)
+		if test x"$check_athlon" = "xyes"; then
+		    if test -f /proc/cpuinfo; then
+			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
+			case "$modelname" in
+			*Athlon* | *Duron* | *K7*)
+			    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$k7cpu"
+			    DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$k7cpu"
+			    ;;
+			*)
 			    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
-			    DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentiumpro"
-			  fi
-			  ;;
-			k6-*)
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k6"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k6"		
-			  ;;
-			k7-*)
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k7"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k7"
-			  ;;
-			athlon-*)
-			  GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=athlon"
-			  DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=athlon"
-		esac]
-	    fi
-
-	else
-	    dnl add x86 specific cc CFLAGS
-	    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O"
-	    DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+			    DEBUG_CFLAGS="$DEBUG_CFLAGS $X_CFLAGS $sarchopt=pentiumpro"
+			    ;;
+			esac
+		    fi 
+		else
+		    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
+		    DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentiumpro"
+		fi
+		;;
+	    k6-*)
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k6"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k6"		
+		;;
+	    k7-*)
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k7"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k7"
+		;;
+	    athlon-*)
+		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=athlon"
+		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=athlon"
+		;;
+	    esac]
 	fi
 
-	dnl enable x86 specific parts of the code
-	enable_w32dll="yes"
-	enable_ffmmx="yes"
-
-	AC_DEFINE([ARCH_X86],,[x86 architecture])
-	AC_DEFINE(__i386__)
-	AC_DEFINE(FPM_INTEL)
-        ;;
-
-    alphaev56-*)
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
-	AC_DEFINE(FPM_64BIT)
-        ;;
-    alpha*)
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
-	AC_DEFINE(FPM_64BIT)
-        ;;
-    ppc-*-linux* | powerpc-*) 
-	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
-       	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
-	FORCE_44K_MAX=yes
-	AC_DEFINE(FPM_PPC)
-        ;;
-
-    sparc*-*-linux*)
-        case $host_alias in
-        sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
-        sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
-	esac
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-
-	AC_DEFINE(FPM_SPARC)
-        ;;
-
-    sparc-*-solaris*)
-	if test "$GCC" = yes; then
-	    case `uname -m` in
-	    sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
-	    sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
-	    sun4u) cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
-	    *)     cpu_cflags= ;;
-	    esac
-	    cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-	    cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-	else
-	    cc_optimize_cflags="-O"
-	    cc_debug_cflags="-O"
-	fi
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS $cc_optimize_cflags"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS $cc_debug_cflags"
-	AC_DEFINE(FPM_SPARC)
-	;;
-
-    mips-*)
-	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    else
+	dnl add x86 specific cc CFLAGS
+	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-	AC_DEFINE(FPM_MIPS)
-	;;
-    m68k-*)
-	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O2"
-	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-	AC_DEFINE(FPM_M68K)
-	;;
-    *) echo "$host is not currently supported by xine"; exit 1;;
+    fi
+
+    dnl enable x86 specific parts of the code
+    enable_w32dll="yes"
+    enable_ffmmx="yes"
+
+    AC_DEFINE([ARCH_X86],,[x86 architecture])
+    AC_DEFINE(__i386__)
+    AC_DEFINE(FPM_INTEL)
+    ;;
+
+alphaev56-*)
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
+    AC_DEFINE(FPM_64BIT)
+    ;;
+
+alpha*)
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
+    AC_DEFINE(FPM_64BIT)
+    ;;
+
+ppc-*-linux* | powerpc-*) 
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+    FORCE_44K_MAX=yes
+    AC_DEFINE(FPM_PPC)
+    ;;
+
+sparc*-*-linux*)
+    case $host_alias in
+    sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
+    sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
     esac
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+
+    AC_DEFINE(FPM_SPARC)
+    ;;
+
+sparc-*-solaris*)
+    if test "$GCC" = yes; then
+	case `uname -m` in
+	sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
+	sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
+	sun4u) cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
+	*)     cpu_cflags= ;;
+	esac
+	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+    else
+	cc_optimize_cflags="-O"
+	cc_debug_cflags="-O"
+    fi
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $cc_optimize_cflags"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS $cc_debug_cflags"
+    AC_DEFINE(FPM_SPARC)
+    ;;
+
+mips-*)
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+    AC_DEFINE(FPM_MIPS)
+    ;;
+
+m68k-*)
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O2"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+    AC_DEFINE(FPM_M68K)
+    ;;
+
+*)
+    echo "$host is not currently supported by xine"
+    exit 1
     ;;
 esac
+
 
 GLOBAL_CFLAGS="$GLOBAL_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
 DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS -g -DDEBUG"
