@@ -111,7 +111,6 @@ typedef struct bes_registers_s
   int brightness;
   int saturation;
   
-  int ckey_on;
   uint32_t graphics_key_clr;
   uint32_t graphics_key_msk;
   uint32_t ckey_cntl;
@@ -811,7 +810,6 @@ static void radeon_vid_make_default(void)
   OUTREG(OV0_DEINTERLACE_PATTERN,besr.deinterlace_pattern);
   besr.deinterlace_on=1;
   besr.double_buff=1;
-  besr.ckey_on=0;
   besr.graphics_key_msk=0;
   besr.graphics_key_clr=0;
   besr.ckey_cntl = VIDEO_KEY_FN_TRUE|GRAPHIC_KEY_FN_TRUE|CMP_MIX_AND;
@@ -3202,7 +3200,6 @@ static void set_gr_key( void )
     if(radeon_grkey.ckey.op == CKEY_TRUE)
     {
 	int dbpp=radeon_vid_get_dbpp();
-	besr.ckey_on=1;
 
 	switch(dbpp)
 	{
@@ -3240,7 +3237,6 @@ static void set_gr_key( void )
 			| ((radeon_grkey.ckey.red  &0xFF)<<16);
 		break;
 	default:
-		besr.ckey_on=0;
 		besr.graphics_key_msk=0;
 		besr.graphics_key_clr=0;
 	}
@@ -3254,7 +3250,6 @@ static void set_gr_key( void )
     }
     else
     {
-	besr.ckey_on=0;
 	besr.graphics_key_msk=0;
 	besr.graphics_key_clr=0;
 	besr.ckey_cntl = VIDEO_KEY_FN_TRUE|GRAPHIC_KEY_FN_TRUE|CMP_MIX_AND;
