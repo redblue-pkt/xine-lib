@@ -41,6 +41,9 @@
 /* Define this if you have libXinerama installed */
 #undef HAVE_XINERAMA
 
+/* Define this if you have libaa installed */
+#undef HAVE_AA
+
 /* Define this if you have Alsa (libasound) installed */
 #undef HAVE_ALSA
 

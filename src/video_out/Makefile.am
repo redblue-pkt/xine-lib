@@ -12,13 +12,17 @@ xv_module = xineplug_vo_out_xv.la
 endif
 endif
 
+if HAVE_AA
+aa_module = xineplug_vo_out_aa.la
+endif
+
 ##
 # IMPORTANT:
 # ---------
 # All of xine video out plugins should be named like the 
 # scheme "xineplug_vo_out_"
 #
-lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) 
+lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module)
 
 xineplug_vo_out_xv_la_SOURCES = video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = $(X_LIBS)
@@ -29,6 +33,9 @@ xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_syncfb_la_SOURCES =  video_out_syncfb.c
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
+
+xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
+xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = yuv2rgb.h video_out_syncfb.h
 
