@@ -1975,6 +1975,10 @@ fi
 AC_SUBST(MKINSTALLDIRS)
 
 
+dnl Make Objective-C work with automake 1.7.x
+AM_CONDITIONAL([am__fastdepOBJC], false)
+
+
 dnl ---------------------------------------------
 dnl Output configuration files
 dnl ---------------------------------------------
