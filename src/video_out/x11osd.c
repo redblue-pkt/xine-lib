@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.6 2004/01/29 01:22:49 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.7 2004/03/23 09:29:25 esnel Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -136,6 +136,9 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XFreeColormap (osd->display, osd->cmap);
   XDestroyWindow (osd->display, osd->window);
 
+  /* we need to call XSync(), because otherwise, calling XDestroyWindow()
+     on the parent window could destroy our OSD window twice !! */
+  XSync (osd->display, False);
 
   osd->parent_window = window;
   osd->window = XCreateSimpleWindow (osd->display, 
