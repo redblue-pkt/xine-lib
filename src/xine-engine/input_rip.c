@@ -29,12 +29,11 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.14 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: input_rip.c,v 1.15 2003/11/23 23:20:58 valtri Exp $
  */
 
 /* TODO:
  *   - resume feature (via #append)
- *   - SEEK_SLOW replace by timeout
  *   - gui activation (after restarting playback)
  *   - long files support
  */
@@ -61,6 +60,7 @@
 
 #define SCRATCH_SIZE 1024
 #define MAX_TARGET_LEN 256
+#define SEEK_TIMEOUT 2.5
 
 typedef struct {
   input_plugin_t    input_plugin;      /* inherited structure */
@@ -326,6 +326,8 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   uint32_t blocksize;
   off_t newpos, toread, reqpos, pos;
+  struct timeval time1, time2;
+  double interval = 0;
 
   lprintf("seek, offset %lld, origin %d (curpos %lld, savepos %lld)\n", offset, origin, this->curpos, this->savepos);
   
@@ -390,7 +392,8 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   }
 
   /* read and catch remaining data after this->savepos */
-  while (this->curpos < newpos) {
+  gettimeofday(&time1, NULL);
+  while (this->curpos < newpos && interval < SEEK_TIMEOUT) {
     if( blocksize ) {
       buf_element_t *buf;
 
@@ -410,6 +413,9 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
         break;
       }
     }
+    gettimeofday(&time2, NULL);
+    interval = (double)(time2.tv_sec - time1.tv_sec)
+               + (double)(time2.tv_usec - time1.tv_usec) / 1000000;
   }
 
   lprintf(" => new position %lld\n", this->curpos);

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.180 2003/11/23 00:57:06 tmattern Exp $
+ * $Id: demux_avi.c,v 1.181 2003/11/23 23:20:57 valtri Exp $
  *
  * demultiplexer for avi streams
  *
@@ -753,6 +753,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
                 _("demux_avi: failed to seek to the next chunk (pos %lld)\n"),
                 next_chunk);
+      break;  /* probably slow seek */
     }
   }
 
