@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.89 2003/03/15 14:32:18 jstembridge Exp $
+ * $Id: audio_alsa_out.c,v 1.90 2003/03/17 15:17:08 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1094,20 +1094,22 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   this->capabilities = 0;
 
-  if(class->xine->verbosity >= XINE_VERBOSITY_LOG) {
-  printf ("audio_alsa_out : supported modes are ");
+  if(class->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_alsa_out : supported modes are ");
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
     this->capabilities |= AO_CAP_8BITS;
-    printf ("8bit ");
+    if(class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("8bit ");
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
-    printf ("mono ");
+    if(class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("mono ");
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) {
     this->capabilities |= AO_CAP_MODE_STEREO;
-    printf ("stereo ");
-  }
+    if(class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("stereo ");
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
         config->register_bool (config,
