@@ -937,6 +937,11 @@ if test "$GCC" = yes; then
     AC_TRY_CFLAGS("-fbranch-probabilities", PASS2_CFLAGS="$PASS2_CFLAGS -fbranch-probabilities",)
     AC_SUBST(PASS1_CFLAGS)
     AC_SUBST(PASS2_CFLAGS)
+    dnl
+    dnl Warnings
+    dnl
+    CFLAGS="$CFLAGS -Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes"
+    CFLAGS="$CFLAGS -Wnested-externs -Wpointer-arith -Wcast-align"
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -1231,31 +1236,6 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 esac
-
-if test "$GCC" = "yes" ; then
-        AC_MSG_RESULT(yes)
-        CFLAGS="\
-	-Wall \
-	-Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes \
-	-Wnested-externs -Wpointer-arith \
-	-Wcast-align \
-	$CFLAGS"
-
-	for option in -Wno-strict-aliasing -Wno-sign-compare; do
-		SAVE_CFLAGS="$CFLAGS"
-		CFLAGS="$CFLAGS $option"
-		AC_TRY_COMPILE([], [],
-			has_option=yes,
-			has_option=no,)
-		if test $has_option = no; then
-			CFLAGS="$SAVE_CFLAGS"
-		fi
-		unset has_option
-		unset SAVE_CFLAGS
-	done
-	unset option
-fi
-
 
 
 CFLAGS="$CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
