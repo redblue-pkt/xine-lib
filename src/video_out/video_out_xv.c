@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.78 2001/11/20 17:22:14 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.79 2001/11/20 18:35:11 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1168,6 +1168,20 @@ static void xv_update_deinterlace(void *this_gen, cfg_entry_t *entry)
   this->deinterlace_method = entry->num_value;
 }
 
+static void xv_update_XV_FILTER(void *this_gen, cfg_entry_t *entry)
+{
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+  Atom atom;
+  int xv_filter;
+  
+  xv_filter = entry->num_value;
+  
+  atom = XInternAtom (this->display, "XV_FILTER", False);
+
+  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
+  printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
+}
+
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
@@ -1347,16 +1361,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
 
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
-	  Atom atom;
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
-	  atom = XInternAtom (this->display, attr[k].name, False);
-	  xv_filter = config->register_num (config, "video.XV_FILTER", 0,
+	  printf("XV_FILTER (%d->%d)/n",attr[k].min_value, attr[k].max_value); 
+	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
+					    attr[k].min_value, attr[k].max_value,
 					    "bilinear scaling mode (permedia 2/3)",
-					    NULL, NULL, NULL);
-	  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
-	  printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",
-		 xv_filter);
+					    NULL, xv_update_XV_FILTER, this);
+	  config->update_num(config,"video.XV_FILTER",xv_filter);
 	}
       }
     }
