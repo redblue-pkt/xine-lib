@@ -1,3 +1,15 @@
+xine (0.5.2) unstable; urgency=low
+
+  * many bugfixes
+  * ffmpeg (mpeg4, opendivx ...) works on bigendian machines now
+  * time-based seeking (try the cursor keys)
+  * stream bitrate/length estimation (not implemented in all demuxers yet)
+  * transport stream support should work now 
+  * trick-plays (fast forward, slow motion, true pause function)
+  * audio output architecture change
+		
+ -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun Sep  2 23:47:00 CEST 2001
+
 xine (0.5.1) unstable; urgency=low
 
   * ffmpeg plugin (OpenDivX, MS mpeg 4, motion-jpeg support)
