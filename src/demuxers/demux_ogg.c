@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.90 2003/05/03 21:53:21 hadess Exp $
+ * $Id: demux_ogg.c,v 1.91 2003/05/04 12:39:55 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1124,7 +1124,8 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	if(op.granulepos>=0){
 	  iframe=op.granulepos>>keyframe_granule_shift;
 	  pframe=op.granulepos-(iframe<<keyframe_granule_shift);
-	  printf ("seeking keyframe i %lld p %lld\n",iframe,pframe);
+	  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+	    printf ("seeking keyframe i %lld p %lld\n",iframe,pframe);
 	  if (pframe!=0)
 	    continue;
 	} else
