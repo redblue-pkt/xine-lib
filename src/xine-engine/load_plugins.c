@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.201 2005/03/06 13:03:33 jstembridge Exp $
+ * $Id: load_plugins.c,v 1.202 2005/03/09 22:24:20 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -839,7 +839,7 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
 
       } else
 	node = xine_list_next_content (list);
-    } else
+  } else
       node = xine_list_next_content (list);
   }
 }
@@ -866,6 +866,8 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
   plugin_node_t *node;
   plugin_file_t *file;
   decoder_info_t *decoder_info;
+  demuxer_info_t *demuxer_info;
+  input_info_t *input_info;
   vo_info_t *vo_info;
   ao_info_t *ao_info;
   post_info_t *post_info;
@@ -908,7 +910,17 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
         fprintf(fp, "\n");
         fprintf(fp, "decoder_priority=%d\n", decoder_info->priority );
         break;
+
+      case PLUGIN_DEMUX:
+        demuxer_info = node->info->special_info;
+        fprintf(fp, "demuxer_priority=%d\n", demuxer_info->priority);
+        break;
       
+      case PLUGIN_INPUT:
+        input_info = node->info->special_info;
+        fprintf(fp, "input_priority=%d\n", input_info->priority);
+        break;
+
       case PLUGIN_POST:
         post_info = node->info->special_info;
 	fprintf(fp, "post_type=%lu\n", (unsigned long)post_info->type);
@@ -930,6 +942,8 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   decoder_info_t *decoder_info = NULL;
   vo_info_t *vo_info = NULL;
   ao_info_t *ao_info = NULL;
+  demuxer_info_t *demuxer_info = NULL;
+  input_info_t *input_info = NULL;
   post_info_t *post_info = NULL;
   int i;
   uint64_t llu;
@@ -1005,6 +1019,16 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
                         xine_xmalloc(sizeof(ao_info_t));
               break;
           
+            case PLUGIN_DEMUX:
+              demuxer_info = node->info->special_info = 
+		             xine_xmalloc(sizeof(demuxer_info_t));
+              break;
+
+            case PLUGIN_INPUT:
+              input_info = node->info->special_info =
+		           xine_xmalloc(sizeof(input_info_t));
+              break;
+
             case PLUGIN_AUDIO_DECODER:
             case PLUGIN_VIDEO_DECODER:
             case PLUGIN_SPU_DECODER:
@@ -1049,6 +1073,12 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
         } else if( !strcmp("decoder_priority",line) && decoder_info ) {
           sscanf(value," %d",&i);
           decoder_info->priority = i;
+        } else if( !strcmp("demuxer_priority",line) && demuxer_info ) {
+          sscanf(value," %d",&i);
+          demuxer_info->priority = i;
+        } else if( !strcmp("input_priority",line) && input_info ) {
+          sscanf(value," %d",&i);
+          input_info->priority = i;
         } else if( !strcmp("post_type",line) && post_info ) {
 	  sscanf(value," %lu",&lu);
 	  post_info->type = lu;
