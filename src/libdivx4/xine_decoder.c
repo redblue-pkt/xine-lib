@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/10/15 16:13:23 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/10/17 21:29:21 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -378,7 +378,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.decode_data         = divx4_decode_data;
   this->video_decoder.close               = divx4_close;
   this->video_decoder.get_identifier      = divx4_get_id;
-  this->video_decoder.priority            = cfg->lookup_int(cfg, "divx4_priority", 6); 
+  this->video_decoder.priority            = cfg->lookup_int(cfg, "divx4_priority", 4); 
   this->decore = libdecore_func;
   this->postproc 			  = cfg->lookup_int(cfg, "divx4_postproc", 3);
   this->decore_format			  = cfg->lookup_int(cfg, "divx4_decoreformat", 1);
