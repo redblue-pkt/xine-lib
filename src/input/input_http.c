@@ -83,7 +83,6 @@ typedef struct {
 
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
-  off_t            preview_pos;
   
   /* ShoutCast */
   int              shoutcast_mode;
@@ -395,9 +394,9 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     http_plugin_read_metainf(this_gen);
   }
 
-  if (this->preview_pos < this->preview_size) {
+  if (this->curpos < this->preview_size) {
 
-    n = this->preview_size - this->preview_pos;
+    n = this->preview_size - this->curpos;
     if (n > (nlen - num_bytes))
       n = nlen - num_bytes;
 
@@ -409,9 +408,8 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     if (this->shoutcast_mode) {
       if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
         int i = this->shoutcast_metaint - this->shoutcast_pos;
-        memcpy (&buf[num_bytes], &this->preview[this->preview_pos], i);
+        memcpy (&buf[num_bytes], &this->preview[this->curpos], i);
         this->shoutcast_pos += i;
-        this->preview_pos += i;
         num_bytes += i;
         this->curpos += i;
         n -= i;
@@ -421,9 +419,8 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
       this->shoutcast_pos += n;
     }
 
-    memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+    memcpy (&buf[num_bytes], &this->preview[this->curpos], n);
 
-    this->preview_pos += n;
     num_bytes += n;
     this->curpos += n;
   } 
@@ -593,9 +590,14 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
 
   if (origin == SEEK_SET) {
 
-    if (offset < this->curpos)
-      printf ("http: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
-    else {
+    if (offset < this->curpos) {
+
+      if( this->curpos <= this->preview_size )
+        this->curpos = offset;
+      else
+        printf ("http: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+
+    } else {
       offset -= this->curpos;
 
       for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
@@ -878,7 +880,6 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
 					 MAX_PREVIEW_SIZE);
 
-  this->preview_pos  = 0;
   this->curpos  = 0;
   
   /* Trivial shoutcast detection */

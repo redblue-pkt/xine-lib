@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.47 2003/04/13 16:02:54 tmattern Exp $
+ * $Id: input_stdin_fifo.c,v 1.48 2003/04/13 17:31:40 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,6 +41,8 @@
 #define LOG
 */
 
+#define BUFSIZE                 1024
+
 typedef struct {
   input_plugin_t   input_plugin;
 
@@ -52,11 +54,10 @@ typedef struct {
 
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
-  off_t            preview_pos;
 
   nbc_t           *nbc;
 
-  char             scratch[1025];
+  char             seek_buf[BUFSIZE];
 
 } stdin_input_plugin_t;
 
@@ -70,88 +71,47 @@ typedef struct {
 
 
 static off_t stdin_plugin_read (input_plugin_t *this_gen, 
-				char *buf, off_t todo) {
+				char *buf, off_t len) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
-  off_t                  num_bytes, total_bytes, preview_bytes_sent = 0;
-
-  nbc_check_buffers (this->nbc);
-
-  total_bytes = 0;
+  off_t n, total;
 
 #ifdef LOG
-  printf ("stdin: read %lld bytes...\n", todo);
+  printf ("stdin: reading %lld bytes...\n", len);
 #endif
 
-  while (total_bytes < todo) {
-
-    if (this->preview_pos < this->preview_size) {
-
-      num_bytes = this->preview_size - this->preview_pos;
-      if (num_bytes > (todo - total_bytes)) 
-        num_bytes = todo - total_bytes;
-      preview_bytes_sent = num_bytes;
-
+  total=0;
+  if (this->curpos < this->preview_size) {
+    n = this->preview_size - this->curpos;
+    if (n > (len - total))
+      n = len - total;
 #ifdef LOG
-      printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
-        num_bytes, this->preview_size);
+    printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
+            n, this->preview_size);
 #endif
 
-      memcpy (&buf[total_bytes], &this->preview[this->preview_pos], num_bytes);
-
-      this->preview_pos += num_bytes;
-
-    } else {
-      fd_set rset;
-      struct timeval timeout;
-
-      while (1) {
-        FD_ZERO (&rset);
-        FD_SET  (this->fh, &rset);
-
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-      
-        if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
-          nbc_check_buffers (this->nbc);
-#ifdef LOG
-          printf ("stdin: timeout\n");
-#endif
-          /* aborts current read if action pending. otherwise xine
-           * cannot be stopped when no more data is available.
-           */
-          if( this->stream->demux_action_pending )
-            return 0;
-            
-        } else {
-          break;
-        }
-      } 
-      num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
-#ifdef LOG
-      printf ("stdin: %lld bytes from file\n", num_bytes);
-#endif
-      if (num_bytes == 0)
-        return 0;
-    }
-
-
-    if(num_bytes < 0) {
-
-      this->curpos += total_bytes - preview_bytes_sent;
-      return num_bytes;
-
-    } else if (!num_bytes) {
-
-      this->curpos += total_bytes - preview_bytes_sent;
-      return total_bytes;
-    }
-    total_bytes += num_bytes;
+    memcpy (&buf[total], &this->preview[this->curpos], n);
+    this->curpos += n;
+    total += n;
   }
 
-  this->curpos += total_bytes - preview_bytes_sent;
+  if( (len-total) > 0 ) {
+    n = xine_read_abort (this->stream, this->fh, &buf[total], len-total);
 
-  return total_bytes;
+#ifdef LOG
+    printf ("stdin: got %lld bytes (%lld/%lld bytes read)\n",
+	    n,total,len);
+#endif
+  
+    if (n < 0) {
+      xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+      return 0;
+    }
+
+    this->curpos += n;
+    total += n;
+  }
+  return total;
 }
 
 static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
@@ -182,58 +142,44 @@ static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen);
 static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
-  off_t dest;
-  off_t actual_curpos = stdin_plugin_get_current_pos(this_gen);
 
 #ifdef LOG
   printf ("stdin: seek %lld offset, %d origin...\n",
 	  offset, origin);
 #endif
 
-  switch (origin) {
-  case SEEK_SET:
-    dest = offset;
-    break;
-  case SEEK_CUR:
-    dest = actual_curpos + offset;
-    break;
-  case SEEK_END:
-    printf ("stdin: SEEK_END not implemented!\n");
-    return this->curpos;
-  default:
-    printf ("stdin: unknown origin in seek!\n");
-    return actual_curpos;
+  if ((origin == SEEK_CUR) && (offset >= 0)) {
+
+    for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+      if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+        return this->curpos;
+    }
+
+    this_gen->read (this_gen, this->seek_buf, offset);
   }
 
-  if (actual_curpos > dest) {
-    printf ("stdin: cannot seek back! (%lld > %lld)\n", actual_curpos, dest);
-    return actual_curpos;
+  if (origin == SEEK_SET) {
+
+    if (offset < this->curpos) {
+
+      if( this->curpos <= this->preview_size ) 
+        this->curpos = offset;
+      else
+        printf ("stdin: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+
+    } else {
+      offset -= this->curpos;
+
+      for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+        if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+          return this->curpos;
+      }
+
+      this_gen->read (this_gen, this->seek_buf, offset);
+    }
   }
 
-  while (actual_curpos < dest) {
-
-    off_t n, diff;
-
-    diff = dest - actual_curpos;
-
-    if (diff>1024)
-      diff = 1024;
-
-    n = stdin_plugin_read (this_gen, this->scratch, diff);
-
-    actual_curpos += n;
-    if (n<diff)
-      break;
-  }
-
-  if (actual_curpos < this->preview_size)
-    this->preview_pos = actual_curpos;
-  else {
-    this->preview_pos = this->preview_size;
-    this->curpos = actual_curpos;
-  }
-
-  return actual_curpos;
+  return this->curpos;
 }
 
 static off_t stdin_plugin_get_length(input_plugin_t *this_gen) {
@@ -254,10 +200,7 @@ static uint32_t stdin_plugin_get_blocksize(input_plugin_t *this_gen) {
 static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen){
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-  if (this->preview_pos < this->preview_size)
-    return this->preview_pos;
-  else
-    return this->curpos;
+  return this->curpos;
 }
 
 static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
@@ -300,7 +243,7 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
 
 #ifdef LOG
   printf ("input_stdin_fifo: trying to open '%s'...\n",
-	  mrl);
+	  this->mrl);
 #endif
 
   if (this->fh == -1) {
@@ -327,15 +270,13 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
    * => create plugin instance
    */
 
-  this->curpos          = 0;
-
   /*
    * fill preview buffer
    */
 
   this->preview_size = stdin_plugin_read (&this->input_plugin, this->preview,
 					  MAX_PREVIEW_SIZE);
-  this->preview_pos  = 0;
+  this->curpos          = 0;
 
   return 1;
 }

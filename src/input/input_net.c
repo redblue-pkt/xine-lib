@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.44 2003/04/13 16:34:51 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.45 2003/04/13 17:31:40 miguelfreitas Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -87,7 +87,6 @@ typedef struct {
 
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
-  off_t            preview_pos;
 
   off_t            curpos;
 
@@ -172,8 +171,8 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 #endif
 
   total=0;
-  if (this->preview_pos < this->preview_size) {
-    n = this->preview_size - this->preview_pos;
+  if (this->curpos < this->preview_size) {
+    n = this->preview_size - this->curpos;
     if (n > (len - total))
       n = len - total;
 #ifdef LOG
@@ -181,8 +180,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
             n, this->preview_size);
 #endif
 
-    memcpy (&buf[total], &this->preview[this->preview_pos], n);
-    this->preview_pos += n;
+    memcpy (&buf[total], &this->preview[this->curpos], n);
     this->curpos += n;
     total += n;
   }
@@ -266,9 +264,14 @@ static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
   if (origin == SEEK_SET) {
 
-    if (offset < this->curpos)
-      printf ("input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
-    else {
+    if (offset < this->curpos) {
+
+      if( this->curpos <= this->preview_size )
+        this->curpos = offset;
+      else
+        printf ("input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+
+    } else {
       offset -= this->curpos;
 
       for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
@@ -348,7 +351,6 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
    * fill preview buffer
    */
   this->preview_size = read (this->fh, this->preview, MAX_PREVIEW_SIZE);
-  this->preview_pos  = 0;
   this->curpos       = 0;
 
   return 1;
@@ -375,7 +377,6 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
   this->fh            = -1;
   this->curpos        = 0;
   this->nbc           = nbc_init (this->stream);
-  this->preview_pos   = 0;
   this->preview_size  = 0;
 
   this->input_plugin.open              = net_plugin_open;
