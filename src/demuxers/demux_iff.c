@@ -34,9 +34,9 @@
  * * ILBM (Bitmap Picturs)
  *   - simple pictures work, nothing more (most work is done in bitmap-decoder)
  * * ANIM (Animations)
- *   - Animation can displayed, but has to be improved
+ *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.8 2004/02/25 18:57:35 manfredtremmel Exp $
+ * $Id: demux_iff.c,v 1.9 2004/03/13 11:02:09 manfredtremmel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -992,7 +992,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
     this->status                        = DEMUX_OK;
   else
     this->status                        = DEMUX_FINISHED;
-  
+
   return this->status;
 }
 
@@ -1097,6 +1097,11 @@ static int demux_iff_seek (demux_plugin_t *this_gen,
                                            this->data_size : start_pos);
     case IFF_ILBM_CHUNK:
     case IFF_ANIM_CHUNK:
+      /* disable seeking for ILBM and ANIM */
+      this->seek_flag                   = 0;
+      if( !playing ) {
+        this->status = DEMUX_OK;
+      }
       break;
     default:
       break;
@@ -1149,17 +1154,17 @@ static void demux_iff_dispose (demux_plugin_t *this_gen) {
     free( this->rlse );
     this->rlse                          = NULL;
   }
-  
+
   if( this->anhd ) {
     free( this->anhd );
     this->anhd                          = NULL;
   }
-  
+
   if( this->dpan ) {
     free( this->dpan );
     this->dpan                          = NULL;
   }
-  
+
   if( this->title ) {
     free (this->title);
     this->title                         = NULL;
