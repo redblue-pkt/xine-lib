@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.61 2001/12/19 22:49:45 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.62 2001/12/21 23:34:07 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -161,6 +161,7 @@ void load_demux_plugins (xine_t *this,
 	}
       }
     }
+    closedir(dir);
   }
   
   remove_segv_handler();
@@ -246,6 +247,7 @@ void xine_list_demux_plugins (config_values_t *config,
 	}
       }
     }
+    closedir(dir);
   }
   remove_segv_handler();
   
@@ -306,6 +308,7 @@ void load_input_plugins (xine_t *this,
 
 	      this->num_input_plugins++;
 	    }
+
 	  } else {
 	    printf ("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n", str);
 	  }
@@ -318,6 +321,7 @@ void load_input_plugins (xine_t *this,
 	}
       }
     }
+    closedir(dir);
   }
   
   remove_segv_handler();
@@ -591,6 +595,7 @@ void load_decoder_plugins (xine_t *this,
 	}
       }
     }
+    closedir(dir);
   }
   remove_segv_handler();
 
@@ -702,6 +707,7 @@ char **xine_list_video_output_plugins (int visual_type) {
 	}
       }
     }
+    closedir(dir);
   } else {
     fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
 	    __XINE_FUNCTION__, strerror(errno));
@@ -727,15 +733,17 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 #if IGNORE_DXR3ENC
   if (! strcasecmp(id, "dxr3enc")) {
     printf( /* big poo poo */
-"load_plugins: *************************************************************\n"
-"load_plugins: WARNING: video out driver \"dxr3enc\" no longer exists.\n"
-"load_plugins: the mpeg encoding output is now integrated in the \"dxr3\"\n"
-"load_plugins: driver.\n"
-"load_plugins: *************************************************************\n"
-	);
+	   "load_plugins: *************************************************************\n"
+	   "load_plugins: WARNING: video out driver \"dxr3enc\" no longer exists.\n"
+	   "load_plugins: the mpeg encoding output is now integrated in the \"dxr3\"\n"
+	   "load_plugins: driver.\n"
+	   "load_plugins: *************************************************************\n"
+	   );
     return 0; 
   }
 #endif 
+
+  install_segv_handler();
 
   dir = opendir (XINE_PLUGINDIR);
   
@@ -793,6 +801,9 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 		  else
 		    printf("load_plugins: video output plugin %s: "
 			   "init_video_out_plugin failed.\n", str);
+
+		  closedir(dir);
+		  remove_segv_handler();
 		  
 		  return vod;
 		}
@@ -806,7 +817,10 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	}
       }
     }
+    closedir(dir);
   }
+
+  remove_segv_handler();
 
   printf ("load_plugins: failed to find video output plugin <%s>\n", id);
   return NULL;
@@ -914,6 +928,7 @@ char **xine_list_audio_output_plugins(void) {
 	}
       }
     }
+    closedir(dir);
   } else {
     fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
 	     __XINE_FUNCTION__, strerror(errno));
@@ -929,6 +944,8 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 
   DIR *dir;
   ao_driver_t *aod = NULL;
+
+  install_segv_handler();
   
   dir = opendir (XINE_PLUGINDIR);
   
@@ -976,7 +993,9 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 		else
 		  printf("load_plugins: audio output plugin %s: "
 			 "init_audio_out_plugin failed.\n", str);
-		
+
+		closedir(dir);
+		remove_segv_handler();
 		return aod;
 	      }
 	    }
@@ -984,7 +1003,10 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 	}
       }
     }
+    closedir(dir);
   }
+
+  remove_segv_handler();
   return NULL;
 }
 
