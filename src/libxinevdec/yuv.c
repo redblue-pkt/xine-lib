@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.9 2002/10/20 17:54:54 tmmm Exp $
+ * $Id: yuv.c,v 1.10 2002/11/11 05:55:52 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -107,6 +107,24 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
     this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
+
+    /* load the stream/meta info */
+    switch (buf->type) {
+
+      case BUF_VIDEO_YV12:
+        this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Raw YV12");
+        break;
+
+      case BUF_VIDEO_YVU9:
+        this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Raw YVU9");
+        break;
+
+      case BUF_VIDEO_GREY:
+        this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Greyscale YUV");
+        break;
+
+    }
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

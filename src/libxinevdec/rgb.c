@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.9 2002/10/20 17:47:00 tmmm Exp $
+ * $Id: rgb.c,v 1.10 2002/11/11 05:55:52 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -117,10 +117,14 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     this->buf = xine_xmalloc(this->bufsize);
     this->size = 0;
 
+    init_yuv_planes(&this->yuv_planes, this->width, this->height);
+
     this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
-    init_yuv_planes(&this->yuv_planes, this->width, this->height);
+    /* load the stream/meta info */
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Raw RGB");
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

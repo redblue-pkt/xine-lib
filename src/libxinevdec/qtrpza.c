@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.6 2002/10/22 05:33:52 tmmm Exp $
+ * $Id: qtrpza.c,v 1.7 2002/11/11 05:55:51 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -313,10 +313,14 @@ static void qtrpza_decode_data (video_decoder_t *this_gen,
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
+    init_yuv_planes(&this->yuv_planes, this->width, this->height);
+
     this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
-    init_yuv_planes(&this->yuv_planes, this->width, this->height);
+    /* load the stream/meta info */
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Quicktime Video (RPZA)");
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {
