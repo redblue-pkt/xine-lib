@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.189 2004/11/17 11:39:24 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.190 2004/12/01 06:03:46 athp Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -493,9 +493,9 @@ static void collect_plugins(xine_t *this, char *path){
            * b) also cache negative hits, ie. files that failed to dlopen()
 	   */
 #if defined(__hpux)
-	  if(!strstr(str, ".sl"))
+	  if(!strstr(str, ".sl")
 #elif defined(__CYGWIN__) || defined(WIN32)
-	  if(!strstr(str, ".dll"))
+	  if(!strstr(str, ".dll")
 #else
 	  if(!strstr(str, ".so")
 #endif
