@@ -736,7 +736,9 @@ case "$host_or_hostalias" in
     ;;
 
   m68k-*)
-    CFLAGS="$CFLAGS -O2"
+    # used to be -O2, but that makes gcc 2.95.2 segfault
+    # see http://bugs.debian.org/146006 for more info
+    CFLAGS="$CFLAGS -O"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_DEFAULT)
     ;;
