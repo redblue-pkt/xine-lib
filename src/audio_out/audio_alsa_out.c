@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.100 2003/07/20 12:29:18 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.101 2003/08/09 23:11:42 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -426,10 +426,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: sample format non available\n");
     goto __close;
   }
-  /* set the count of channels */
+  /* set the number of channels */
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
   if (err < 0) {
-    printf ("audio_alsa_out: channels count non available\n");
+    printf ("audio_alsa_out: Cannot set number of channels to %d (err=%d)\n", this->num_channels, err);
     goto __close;
   }
   /* set the stream rate [Hz] */
