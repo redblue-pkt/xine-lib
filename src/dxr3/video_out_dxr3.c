@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.47 2002/08/11 13:22:55 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.48 2002/08/13 15:44:02 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -113,7 +113,7 @@ static void        dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
 vo_info_t *get_video_out_plugin_info()
 {
   static vo_info_t vo_info_dxr3 = {
-    5, /* api version */
+    6, /* api version */
     "dxr3",
     NULL,
     VISUAL_TYPE_X11,
