@@ -32,7 +32,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.5 2003/12/08 23:20:16 tmattern Exp $
+ * $Id: id3.c,v 1.6 2003/12/09 00:55:10 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -108,7 +108,113 @@ int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) {
   }
 }
 
-
+/* id3v2 "genre" parsing code. what a ugly format ! */
+static int id3v2_parse_genre(char* dest, char *src, int len) {
+  int state = 0;
+  char *buf = dest;
+  unsigned int index = 0;
+  
+  while (*src) {
+    lprintf("state=%d\n", state);
+    if ((buf - dest) >= len)
+      return 0;
+      
+    switch (state) {
+      case 0:
+        /* initial state */
+        if (*src == '(') {
+          state = 1;
+          index = 0;
+          src++;
+        } else {
+          *buf = *src;
+          buf++; src++;
+        }
+        break;
+      case 1:
+        /* ( */
+        if (*src == '(') {
+          *buf = *src;
+          buf++; src++;
+          state = 0;
+        } else if (*src == 'R') {
+          src++;
+          state = 2;
+        } else if (*src == 'C') {
+          src++;
+          state = 3;
+        } else if ((*src >= '0') && (*src <= '9')) {
+          index = 10 * index + (*src - '0');
+          src++;
+        } else if (*src == ')') {
+          if (index < ID3_GENRE_COUNT) {
+            strncpy(buf, id3_genre[index], len - (buf - dest));
+            buf += strlen(id3_genre[index]);
+          } else {
+            lprintf("invalid index: %d\n", index);
+          }
+          src++;
+          state = 0;
+        } else {
+          lprintf("parsing error\n");
+          return 0;
+        }
+        break;
+      case 2:
+        /* (R */
+        if (*src == 'X') {
+          src++;
+          state = 4;
+        } else {
+          lprintf("parsing error\n");
+          return 0;
+        }
+        break;
+      case 3:
+        /* (C */
+        if (*src == 'R') {
+          strncpy(dest, id3_genre[index], len - (buf - dest));
+          buf += strlen(id3_genre[index]);
+          src++;
+          state = 5;
+        } else {
+          lprintf("parsing error\n");
+          return 0;
+        }
+        break;
+      case 4:
+        /* (RX */
+        if (*src == ')') {
+          strncpy(dest, "Remix", len - (buf - dest));
+          buf += strlen("Remix");
+          src++;
+          state = 0;
+        } else {
+          lprintf("parsing error\n");
+          return 0;
+        }
+        break;
+      case 5:
+        /* (CR */
+        if (*src == ')') {
+          strncpy(dest, "Cover", len - (buf - dest));
+          buf += strlen("Cover");
+          src++;
+          state = 0;
+        } else {
+          lprintf("parsing error\n");
+          return 0;
+        }
+        break;
+    }
+  }
+  if ((buf - dest) >= len) {
+    return 0;
+  } else {
+    *buf = '\0';
+  }
+  return 1;
+}
 
 static int id3v2_parse_header(input_plugin_t *input, uint8_t *mp3_frame_header,
                               id3v2_header_t *tag_header) {
@@ -170,8 +276,14 @@ static int id3v22_interp_frame(input_plugin_t *input,
     buf[frame_header->size] = 0;
 
     switch (frame_header->id) {
-      case ( FOURCC_TAG(0, 'T', 'T', '1') ):
-        _x_meta_info_set(stream, XINE_META_INFO_GENRE, buf + 1);
+      case ( FOURCC_TAG(0, 'T', 'C', 'O') ):
+        {
+          char tmp[1024];
+          
+          if (id3v2_parse_genre(tmp, buf + 1, 1024)) {
+            _x_meta_info_set(stream, XINE_META_INFO_GENRE, tmp);
+          }
+        }
         break;
 
       case ( FOURCC_TAG(0, 'T', 'T', '2') ):
@@ -354,7 +466,13 @@ static int id3v23_interp_frame(input_plugin_t *input,
 
     switch (frame_header->id) {
       case ( FOURCC_TAG('T', 'C', 'O', 'N') ):
-        _x_meta_info_set(stream, XINE_META_INFO_GENRE, buf + 1);
+        {
+          char tmp[1024];
+          
+          if (id3v2_parse_genre(tmp, buf + 1, 1024)) {
+            _x_meta_info_set(stream, XINE_META_INFO_GENRE, tmp);
+          }
+        }
         break;
 
       case ( FOURCC_TAG('T', 'I', 'T', '2') ):
