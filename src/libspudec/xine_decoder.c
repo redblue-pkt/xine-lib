@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.38 2001/11/30 15:39:55 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -39,9 +39,7 @@
 #include "xineutils.h"
 #include "spu.h"
 
-/*
 #define LOG_DEBUG 1
-*/
 
 static clut_t __default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
@@ -355,13 +353,13 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 #ifdef LOG_DEBUG
       printf ("MALLOC1: overlay_event %p, len=%d\n",
 	      overlay_event,
-	      sizeof(spu_overlay_event_t));
+	      sizeof(video_overlay_event_t));
 #endif
       overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
 #ifdef LOG_DEBUG
       printf("MALLOC2: overlay_event %p, len=%d\n",
 	     overlay_event,
-	     sizeof(spu_overlay_event_t));
+	     sizeof(video_overlay_event_t));
       printf ("MALLOC1: overlay %p, len=%d\n",
 	      overlay,
 	      sizeof(vo_overlay_t));
@@ -381,7 +379,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	   but->color[0], but->color[1], but->color[2], but->color[3]);
       printf ("\ttrans [%d %d %d %d]\n",
 	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
-      printf ("\tleft = %d right = %d top = %d bottom = %d\n",
+      printf ("\tleft = %u right = %u top = %u bottom = %u\n",
 	   but->left, but->right, but->top, but->bottom );
 #endif
       if (!this->state.menu) return;
