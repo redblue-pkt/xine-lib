@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.18 2002/07/17 18:36:44 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.19 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  *
  * contents:
@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include "buffer.h"
 #include "xineutils.h"
+#include "xine_internal.h"
 
 /*
  * put a previously allocated buffer element back into the buffer pool
@@ -108,8 +109,8 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   buf->content = buf->mem; /* 99% of demuxers will want this */
   buf->pts = 0;
   buf->size = 0;
-  buf->input_pos = buf->input_length = buf->input_time = 0;
   buf->decoder_flags = 0;
+  extra_info_reset( buf->extra_info );
 
   return buf;
 }
@@ -196,18 +197,6 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
     
     buf = next;
   }
-  /*
-  while (fifo->first != NULL) {
-
-    buf = fifo->first;
-
-    fifo->first = fifo->first->next;
-    if (fifo->first==NULL)
-      fifo->last = NULL;
-
-    buf->free_buffer(buf);
-  }
-  */
 
   /*printf("Free buffers after clear: %d\n", fifo->buffer_pool_num_free);*/
   pthread_mutex_unlock (&fifo->mutex);
@@ -241,6 +230,7 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
 
     next = buf->next;
 
+    free (buf->extra_info);
     free (buf);
     received++;
 
@@ -251,6 +241,7 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
   
     buf = this->get(this);
     
+    free(buf->extra_info);
     free(buf);
     received++;
   }
@@ -311,13 +302,14 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buf_element_t *buf;
 
     buf = xine_xmalloc (sizeof (buf_element_t));
-
+    
     buf->mem = multi_buffer;
     multi_buffer += buf_size;
 
     buf->max_size    = buf_size;
     buf->free_buffer = buffer_pool_free;
     buf->source      = this;
+    buf->extra_info  = malloc(sizeof(extra_info_t));
     
     buffer_pool_free (buf);
   }

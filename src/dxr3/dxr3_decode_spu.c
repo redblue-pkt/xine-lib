@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.27 2002/11/21 21:39:43 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.28 2002/12/21 12:56:46 miguelfreitas Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -66,7 +66,7 @@ static decoder_info_t dxr3_spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 12, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_SPU_DECODER, 13, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

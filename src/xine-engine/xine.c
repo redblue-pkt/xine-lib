@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.199 2002/12/08 21:43:52 miguelfreitas Exp $
+ * $Id: xine.c,v 1.200 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -98,6 +98,24 @@ void xine_report_codec (xine_stream_t *stream, int codec_type,
   }
 }
 
+void extra_info_reset( extra_info_t *extra_info ) {
+  memset( extra_info, 0, sizeof(extra_info_t) );  
+}
+
+void extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
+  
+  if( src->input_pos )
+    dst->input_pos = src->input_pos;
+  
+  if( src->input_length )
+    dst->input_length = src->input_length;
+    
+  if( src->input_time )
+    dst->input_time = src->input_time;
+    
+  if( src->frame_number )
+    dst->frame_number = src->frame_number;
+}
 
 static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
 
@@ -268,8 +286,11 @@ xine_stream_t *xine_stream_new (xine_t *this,
    */
 
   pthread_mutex_lock (&this->streams_lock);
-
+  
   stream = (xine_stream_t *) xine_xmalloc (sizeof (xine_stream_t)) ;
+  stream->current_extra_info       = xine_xmalloc( sizeof( extra_info_t ) );
+  stream->audio_decoder_extra_info = xine_xmalloc( sizeof( extra_info_t ) );
+  stream->video_decoder_extra_info = xine_xmalloc( sizeof( extra_info_t ) );
 
   stream->xine                   = this;
   stream->status                 = XINE_STATUS_STOP;
@@ -277,9 +298,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
     stream->stream_info[i]       = 0;
     stream->meta_info[i]         = NULL;
   }
-  stream->input_pos              = 0;
-  stream->input_length           = 0;
-  stream->input_time             = 0;
   stream->spu_out                = NULL;
   stream->spu_decoder_plugin     = NULL;
   stream->spu_decoder_streamtype = -1;
@@ -369,7 +387,6 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    */
 
   xine_close_internal (stream);
-  stream->input_length = 0;
 
 #ifdef LOG
   printf ("xine: engine should be stopped now\n");
@@ -597,6 +614,10 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
   }
 
+  extra_info_reset( stream->current_extra_info );
+  extra_info_reset( stream->video_decoder_extra_info );
+  extra_info_reset( stream->audio_decoder_extra_info );
+
   /*
    * send and decode headers
    */
@@ -729,7 +750,7 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     xine_demux_start_thread( stream );
     stream->status = XINE_STATUS_PLAY;
   }
-
+  
   pthread_mutex_lock (&stream->first_frame_lock);
   stream->first_frame_flag = 1;
   pthread_mutex_unlock (&stream->first_frame_lock);
@@ -800,6 +821,9 @@ void xine_dispose (xine_stream_t *stream) {
 
   stream->metronom->exit (stream->metronom);
 
+  free (stream->current_extra_info);
+  free (stream->video_decoder_extra_info);
+  free (stream->audio_decoder_extra_info);
   free (stream);
 }
 
@@ -935,7 +959,7 @@ static int xine_get_current_position (xine_stream_t *stream) {
 
   off_t len;
   double share;
-  
+    
   pthread_mutex_lock (&stream->frontend_lock);
 
   if (!stream->input_plugin) {
@@ -943,11 +967,18 @@ static int xine_get_current_position (xine_stream_t *stream) {
     pthread_mutex_unlock (&stream->frontend_lock);
     return 0;
   }
+      
+  if ( (!stream->video_decoder_plugin && !stream->audio_decoder_plugin) ||
+        !stream->first_frame_flag ) {
+    if( stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] )
+      extra_info_merge( stream->current_extra_info, stream->video_decoder_extra_info );
+    else    
+      extra_info_merge( stream->current_extra_info, stream->audio_decoder_extra_info );
+  }
   
-  /* pos = stream->mCurInput->seek (0, SEEK_CUR); */
-  len = stream->input_length;
+  len = stream->current_extra_info->input_length;
   if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
-  share = (double) stream->input_pos / (double) len * 65535;
+  share = (double) stream->current_extra_info->input_pos / (double) len * 65535;
 
   pthread_mutex_unlock (&stream->frontend_lock);
 
@@ -1005,10 +1036,12 @@ static int xine_get_stream_length (xine_stream_t *stream) {
 int xine_get_pos_length (xine_stream_t *stream, int *pos_stream, 
 			 int *pos_time, int *length_time) {
   
+  xine_get_current_position (stream); /* force updating extra_info */
+  
   if (pos_stream)
     *pos_stream  = xine_get_current_position (stream); 
   if (pos_time)
-    *pos_time    = stream->input_time * 1000;
+    *pos_time    = stream->current_extra_info->input_time * 1000;
   if (length_time)
     *length_time = xine_get_stream_length (stream) * 1000;
 

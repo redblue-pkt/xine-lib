@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.23 2002/11/26 02:37:35 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.24 2002/12/21 12:56:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #include "audio_out.h"
 #include "metronom.h"
 
-#define AO_OUT_ESD_IFACE_VERSION 6
+#define AO_OUT_ESD_IFACE_VERSION 7
 
 #define GAP_TOLERANCE         5000
 

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.131 2002/12/21 10:21:29 esnel Exp $
+ * $Id: demux_qt.c,v 1.132 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  */
 
@@ -1877,9 +1877,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->qt->video_type;
-      buf->input_pos = this->qt->frames[i].offset - this->data_start;
-      buf->input_length = this->data_size;
-      buf->input_time = this->qt->frames[i].pts / 90000;
+      buf->extra_info->input_pos = this->qt->frames[i].offset - this->data_start;
+      buf->extra_info->input_length = this->data_size;
+      buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
       buf->pts = this->qt->frames[i].pts;
 
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
@@ -1922,8 +1922,8 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->qt->audio_type;
-      buf->input_pos = this->qt->frames[i].offset - this->data_start;
-      buf->input_length = this->data_size;
+      buf->extra_info->input_pos = this->qt->frames[i].offset - this->data_start;
+      buf->extra_info->input_length = this->data_size;
       /* The audio chunk is often broken up into multiple 8K buffers when
        * it is sent to the audio decoder. Only attach the proper timestamp
        * to the first buffer. This is for the linear PCM decoder which
@@ -1933,15 +1933,15 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       if ((buf->type == BUF_AUDIO_LPCM_BE) || 
           (buf->type == BUF_AUDIO_LPCM_LE)) { 
         if (first_buf) {
-          buf->input_time = this->qt->frames[i].pts / 90000;
+          buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
           first_buf = 0;
         } else {
-          buf->input_time = 0;
+          buf->extra_info->input_time = 0;
           buf->pts = 0;
         }
       } else {
-        buf->input_time = this->qt->frames[i].pts / 90000;
+        buf->extra_info->input_time = this->qt->frames[i].pts / 90000;
         buf->pts = this->qt->frames[i].pts;
       }
 
@@ -2075,7 +2075,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_flags = BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
     buf->decoder_info[2] = this->qt->palette_count;
-    buf->decoder_info[3] = (unsigned int)&this->qt->palette;
+    buf->decoder_info_ptr[2] = &this->qt->palette;
     buf->size = 0;
     buf->type = this->qt->video_type;
     this->video_fifo->put (this->video_fifo, buf);
@@ -2086,7 +2086,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_SPECIAL;
   buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
   buf->decoder_info[2] = this->qt->video_stsd_size;
-  buf->decoder_info[3] = (unsigned int)this->qt->video_stsd;
+  buf->decoder_info_ptr[2] = this->qt->video_stsd;
   buf->size = 0;
   buf->type = this->qt->video_type;
   this->video_fifo->put (this->video_fifo, buf);
@@ -2111,7 +2111,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
       buf->decoder_flags = BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
       buf->decoder_info[2] = this->qt->audio_decoder_config_len;
-      buf->decoder_info[3] = (uint32_t)this->qt->audio_decoder_config;
+      buf->decoder_info_ptr[2] = this->qt->audio_decoder_config;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
@@ -2120,7 +2120,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_flags = BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
     buf->decoder_info[2] = this->qt->audio_stsd_size;
-    buf->decoder_info[3] = (unsigned int)this->qt->audio_stsd;
+    buf->decoder_info_ptr[2] = this->qt->audio_stsd;
     buf->size = 0;
     buf->type = this->qt->audio_type;
     this->audio_fifo->put (this->audio_fifo, buf);
@@ -2429,6 +2429,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

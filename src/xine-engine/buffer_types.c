@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.48 2002/12/01 17:04:30 tmmm Exp $
+ * $Id: buffer_types.c,v 1.49 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  *
  * contents:
@@ -317,6 +317,14 @@ static video_db_t video_db[] = {
 },
 {
   {
+    meFOURCC('W','M','V','3'),
+    0
+  },
+  BUF_VIDEO_WMV9,
+  "Windows Media Video 9"
+},
+{
+  {
     meFOURCC('c','r','a','m'),
     meFOURCC('C','R','A','M'),
     meFOURCC('M','S','V','C'),
@@ -546,6 +554,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_WMAV2,
   "Windows Media Audio v2"
+},
+{
+  {
+    0x162, 0
+  },
+  BUF_AUDIO_WMAV3,
+  "Windows Media Audio v3"
 },
 {
   {

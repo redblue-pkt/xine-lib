@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.70 2002/12/17 16:42:29 jkeil Exp $
+ * $Id: demux_ts.c,v 1.71 2002/12/21 12:56:46 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -111,7 +111,7 @@
  * used to pass control information to the decoder.
  *
  * If decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR then
- * decoder_info[2] either points to a spu_dvb_descriptor_t or is 0.
+ * decoder_info_ptr[2] either points to a spu_dvb_descriptor_t or is NULL.
  *
  * If it is 0, the user has disabled the subtitling, or has selected a
  * channel that is not present in the stream.  The decoder should
@@ -367,7 +367,8 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
     {
       demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
 
-      buf->decoder_info[2] = (uint32_t) &(lang->desc);
+      buf->decoder_info[2] = sizeof(lang->desc);
+      buf->decoder_info_ptr[2] = &(lang->desc);
 
       this->spu_pid = lang->pid;
       this->spu_media = lang->media_index;
@@ -379,7 +380,7 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
     }
   else
     {
-      buf->decoder_info[2] = 0;
+      buf->decoder_info_ptr[2] = NULL;
 
       this->spu_pid = INVALID_PID;
 
@@ -748,7 +749,7 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       }
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
-      m->buf->input_pos = this->input->get_current_pos(this->input);
+      m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = NULL; /* forget about buf -- not our responsibility anymore */
@@ -778,7 +779,7 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->type = m->type;
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
-      m->buf->input_pos = this->input->get_current_pos(this->input);
+      m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
@@ -2008,6 +2009,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

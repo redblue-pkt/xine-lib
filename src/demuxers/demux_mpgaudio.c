@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.85 2002/12/12 12:00:23 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.86 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -294,13 +294,13 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
   }
 
   buf->pts             = 0;
-  buf->input_pos       = this->input->get_current_pos(this->input);
+  buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
   {
     int len = this->input->get_length(this->input);
     if (len>0)
-      buf->input_time = buf->input_pos * this->stream_length / len;
+      buf->extra_info->input_time = buf->extra_info->input_pos * this->stream_length / len;
     else 
-      buf->input_time = pts / 90000;
+      buf->extra_info->input_time = pts / 90000;
   }
 #if 0
   buf->pts             = pts;
@@ -670,6 +670,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "mp3", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "mp3", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

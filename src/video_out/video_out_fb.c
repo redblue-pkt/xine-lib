@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.20 2002/12/08 23:35:46 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.21 2002/12/21 12:56:49 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -802,7 +802,7 @@ static vo_info_t vo_info_fb = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 13, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
+  { PLUGIN_VIDEO_OUT, 14, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.1 2002/12/20 01:47:01 komadori Exp $
+ * $Id: demux_mng.c,v 1.2 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -174,8 +174,8 @@ static int demux_mng_send_chunk(demux_mng_t *this)
     buf->type = BUF_VIDEO_RGB;
     buf->decoder_flags = BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = 90 * this->timer_count;
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_time = this->tick_count / 1000;
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_time = this->tick_count / 1000;
     buf->pts = 90 * this->tick_count;
 
     if (size > buf->max_size) {
@@ -398,6 +398,6 @@ static void *init_plugin(xine_t *xine, void *data)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 18, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 19, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

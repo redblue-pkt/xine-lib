@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.113 2002/12/12 22:54:57 guenter Exp $
+ * $Id: video_decoder.c,v 1.114 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  */
 
@@ -76,16 +76,7 @@ void *video_decoder_loop (void *stream_gen) {
 #endif
 
     buf = stream->video_fifo->get (stream->video_fifo);
-
-    if (buf->input_length)
-      stream->input_length = buf->input_length;
-
-    if (!stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO]) {
-      if (buf->input_pos)
-	stream->input_pos = buf->input_pos;
-      if (buf->input_time) 
-	stream->input_time = buf->input_time;
-    }
+    extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
     
 #ifdef LOG
     printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
@@ -191,6 +182,7 @@ void *video_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_RESET_DECODER:
+      extra_info_reset( stream->video_decoder_extra_info );
       if (stream->video_decoder_plugin) {
         stream->video_decoder_plugin->reset (stream->video_decoder_plugin);
       }

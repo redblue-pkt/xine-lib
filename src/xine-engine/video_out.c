@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.119 2002/12/20 18:14:34 jkeil Exp $
+ * $Id: video_out.c,v 1.120 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -269,6 +269,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->ratio          = ratio;
   img->format         = format;
   img->copy_called    = 0;
+  extra_info_reset ( img->extra_info );
   
   /* let driver ensure this image has the right format */
 
@@ -292,6 +293,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   int64_t        pic_vpts ;
   int            frames_to_skip;
 
+  img->stream = stream;
+  extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+  
   stream->metronom->got_video_frame (stream->metronom, img);
 
   pic_vpts = img->vpts;
@@ -365,7 +369,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
    */
 
   if ((this->num_frames_delivered % 200) == 0
-  	 && (this->num_frames_skipped || this->num_frames_discarded)) {
+  	&& (this->num_frames_skipped || this->num_frames_discarded)) {
     xine_log(this->xine, XINE_LOG_MSG,
 	     _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
 	     this->num_frames_delivered, 
@@ -445,6 +449,9 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->vpts      = 0;
   dupl->duration  = img->duration;
 
+  dupl->stream    = img->stream;
+  memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
+  
   /* delay frame copying for now, we might not even need it (eg. frame will be discarded) */
   /* vo_frame_driver_copy(dupl); */
   
@@ -473,7 +480,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
     diff = cur_vpts - pts;
       
     if (diff > img->duration) {
-
+  
       /* do not print this message in stop/exit (scr is adjusted to force
        * discarding audio and video frames)
        */
@@ -485,6 +492,8 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       this->num_frames_discarded++;
 
       img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+  
+      extra_info_merge( img->stream->current_extra_info, img->extra_info );
 
       /*
        * last frame? back it up for 
@@ -598,19 +607,10 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      */
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
     if (img && !img->next) {
-      xine_stream_t *stream;
-      int backup_needed = 0;
 
-      pthread_mutex_lock(&this->streams_lock);
-      for (stream = xine_list_first_content(this->streams); stream;
-           stream = xine_list_next_content(this->streams)) {
-        if (stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
-            stream->video_fifo->size(stream->video_fifo) < 10)
-        backup_needed = 1;
-      }
-      pthread_mutex_unlock(&this->streams_lock);
+      if (img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
+          img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
-      if( backup_needed ) {
 /*#ifdef LOG*/
         printf ("video_out: possible still frame\n");
 /*#endif*/
@@ -643,6 +643,8 @@ static void overlay_and_display_frame (vos_t *this,
    */
   if( img->copy && !img->copy_called )
     vo_frame_driver_copy(img);
+  
+  extra_info_merge( img->stream->current_extra_info, img->extra_info );
 
   if (this->overlay_source) {
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 
@@ -733,7 +735,7 @@ static void *video_out_loop (void *this_gen) {
   vos_t             *this = (vos_t *) this_gen;
   int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
-
+  
   /*
    * here it is - the heart of xine (or rather: one of the hearts
    * of xine) : the video output loop
@@ -961,11 +963,13 @@ static void vo_free_img_buffers (xine_video_port_t *this_gen) {
 
   while (this->free_img_buf_queue->first) {
     img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
+    free(img->extra_info);
     img->dispose (img);
   }
 
   while (this->display_img_buf_queue->first) {
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue) ;
+    free(img->extra_info);
     img->dispose (img);
   }
 }
@@ -1135,6 +1139,8 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
     img->displayed = vo_frame_dec_lock;
     img->draw      = vo_frame_draw;
 
+    img->extra_info = malloc(sizeof(extra_info_t));
+    
     vo_append_to_img_buf_queue (this->free_img_buf_queue,
 				img);
   }

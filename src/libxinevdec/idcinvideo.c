@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.10 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: idcinvideo.c,v 1.11 2002/12/21 12:56:48 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -222,7 +222,7 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
   /* load the palette */
   if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
-    palette = (palette_entry_t *)buf->decoder_info[3];
+    palette = (palette_entry_t *)buf->decoder_info_ptr[2];
     for (i = 0; i < buf->decoder_info[2]; i++) {
       this->yuv_palette[i * 4 + 0] =
         COMPUTE_Y(palette[i].r, palette[i].g, palette[i].b);
@@ -236,7 +236,7 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
   /* initialize the Huffman tables */
   if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       (buf->decoder_info[1] == BUF_SPECIAL_IDCIN_HUFFMAN_TABLE)) {
-    histograms = (unsigned char *)buf->decoder_info[2];
+    histograms = (unsigned char *)buf->decoder_info_ptr[2];
     for (i = 0; i < 256; i++) {
       for(j = 0; j < HUF_TOKENS; j++)
         huff_nodes[i][j].count = histograms[histogram_index++];
@@ -403,6 +403,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 13, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "idcinvideo", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

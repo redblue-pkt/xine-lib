@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.11 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: wc3video.c,v 1.12 2002/12/21 12:56:49 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -353,7 +353,7 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
   /* convert the RGB palette to a YUV palette */
   if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
-    palette = (palette_entry_t *)buf->decoder_info[3];
+    palette = (palette_entry_t *)buf->decoder_info_ptr[2];
     for (i = 0; i < buf->decoder_info[2]; i++) {
       this->yuv_palette[i * 4 + 0] =
         COMPUTE_Y(palette[i].r, palette[i].g, palette[i].b);
@@ -531,6 +531,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 13, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

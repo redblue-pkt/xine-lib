@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.149 2002/12/15 04:58:07 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.150 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -186,10 +186,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
       cbuf->type = buf->type;
       cbuf->decoder_flags = buf->decoder_flags;
-      cbuf->decoder_info[0] = buf->decoder_info[0];
-      cbuf->decoder_info[1] = buf->decoder_info[1];
-      cbuf->decoder_info[2] = buf->decoder_info[2];
-      cbuf->decoder_info[3] = buf->decoder_info[3];
+      memcpy( cbuf->decoder_info, buf->decoder_info, sizeof(cbuf->decoder_info) );
+      memcpy( cbuf->decoder_info_ptr, buf->decoder_info_ptr, sizeof(cbuf->decoder_info_ptr) );
 
       this->audio_fifo->put (this->audio_fifo, cbuf);
     }
@@ -207,11 +205,11 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   else
     buf->decoder_flags = 0;
     
-  buf->input_pos = this->input->get_current_pos (this->input);
-  buf->input_length = this->input->get_length (this->input);
+  buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+  buf->extra_info->input_length = this->input->get_length (this->input);
 
   if (this->rate)
-    buf->input_time = buf->input_pos / (this->rate * 50);
+    buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
 
   if (p[3] == 0xBA) { /* program stream pack header */
 
@@ -238,7 +236,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	this->rate |= (p[11] >> 1);
       }
 
-      buf->input_time = buf->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
 
       p   += 12;
 
@@ -350,8 +348,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
     buf->decoder_info[2] = SPU_DVD_SUBTYPE_NAV;
     buf->pts       = 0;   /* NAV packets do not have PES values */
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_length = this->input->get_length (this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_length = this->input->get_length (this->input);
     this->video_fifo->put (this->video_fifo, buf);
 
     return ;
@@ -471,8 +469,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       if( !preview_mode )
         check_newpts( this, pts, PTS_VIDEO );
       
-      buf->input_pos = this->input->get_current_pos(this->input);
-      buf->input_length = this->input->get_length (this->input);
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->input->get_length (this->input);
       
       this->video_fifo->put (this->video_fifo, buf);    
 #ifdef LOG
@@ -499,8 +497,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       if( !preview_mode )
         check_newpts( this, pts, PTS_AUDIO );
 
-      buf->input_pos = this->input->get_current_pos(this->input);
-      buf->input_length = this->input->get_length (this->input);
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->input->get_length (this->input);
 
       if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -566,8 +564,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       if( !preview_mode )
         check_newpts( this, pts, PTS_AUDIO );
 
-      buf->input_pos = this->input->get_current_pos(this->input);
-      buf->input_length = this->input->get_length (this->input);
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->input->get_length (this->input);
 
       if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -589,8 +587,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if( !preview_mode )
       check_newpts( this, pts, PTS_VIDEO );
 
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_length = this->input->get_length (this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_length = this->input->get_length (this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
 #ifdef LOG
@@ -611,8 +609,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if( !preview_mode )
         check_newpts( this, pts, PTS_AUDIO );
 
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_length = this->input->get_length (this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_length = this->input->get_length (this->input);
 
     if(this->audio_fifo) {
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -1204,6 +1202,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

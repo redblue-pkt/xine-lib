@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.21 2002/12/06 01:33:01 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.22 2002/12/21 12:56:49 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -995,7 +995,7 @@ static vo_info_t vo_info_opengl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 13, "opengl", XINE_VERSION_CODE,
+  { PLUGIN_VIDEO_OUT, 14, "opengl", XINE_VERSION_CODE,
     &vo_info_opengl, opengl_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

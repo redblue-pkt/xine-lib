@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.13 2002/12/08 21:43:52 miguelfreitas Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.14 2002/12/21 12:56:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -206,8 +206,8 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
   while(bytes_remaining) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_YV12;
-    buf->input_pos = current_file_pos;
-    buf->input_length = this->data_size;
+    buf->extra_info->input_pos = current_file_pos;
+    buf->extra_info->input_length = this->data_size;
     buf->pts = pts;
 
     if (bytes_remaining > buf->max_size)
@@ -453,6 +453,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 18, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.73 2002/12/06 01:30:49 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.74 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -54,6 +54,10 @@ typedef struct vo_overlay_s vo_overlay_t;
 typedef struct video_overlay_instance_s video_overlay_instance_t;
 typedef struct vo_driver_s vo_driver_t;
 
+/* to access extra_info_t contents one have to include xine_internal.h */
+#ifndef extra_info_t
+#define extra_info_t void
+#endif
 
 /* public part, video drivers may add private fields */
 struct vo_frame_s {
@@ -102,7 +106,10 @@ struct vo_frame_s {
   /* pan/scan offset */
   int                        pan_scan_x;
   int                        pan_scan_y;
-
+  
+  /* extra info coming from input or demuxers */
+  extra_info_t              *extra_info;    
+ 
   /* additional information to be able to duplicate frames:         */
   int                        width, height;
   int                        ratio;         /* aspect ratio, codes see below                 */
@@ -114,7 +121,7 @@ struct vo_frame_s {
   /* "backward" references to where this frame originates from */
   xine_video_port_t         *port;
   vo_driver_t               *driver;
-
+  xine_stream_t             *stream;
   
   /* 
    * that part is used only by video_out.c for frame management
@@ -247,7 +254,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  13
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  14
 
 struct vo_driver_s {
 

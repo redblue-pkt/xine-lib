@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.99 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.100 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -307,7 +307,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
 
-    buf->input_pos = this->input->get_current_pos (this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos (this->input);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -357,7 +357,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -402,7 +402,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -527,9 +527,9 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->input_time = buf->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -550,9 +550,9 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->input_time = buf->input_pos / (this->rate * 50);
+      buf->extra_info->input_time = buf->extra_info->input_pos / (this->rate * 50);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -1139,6 +1139,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "mpeg", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "mpeg", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

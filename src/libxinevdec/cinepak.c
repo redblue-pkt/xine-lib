@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.27 2002/12/21 03:08:34 tmmm Exp $
+ * $Id: cinepak.c,v 1.28 2002/12/21 12:56:48 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -376,7 +376,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   /* convert the RGB palette to a YUV palette */
   if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
-    palette = (palette_entry_t *)buf->decoder_info[3];
+    palette = (palette_entry_t *)buf->decoder_info_ptr[2];
     for (i = 0; i < buf->decoder_info[2]; i++) {
       yuv_palette[i * 4 + 0] =
         COMPUTE_Y(palette[i].r, palette[i].g, palette[i].b);
@@ -559,6 +559,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 13, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "cinepak", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

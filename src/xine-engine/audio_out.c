@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.89 2002/12/14 16:33:59 jkeil Exp $
+ * $Id: audio_out.c,v 1.90 2002/12/21 12:56:51 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -573,6 +573,11 @@ static void *ao_loop (void *this_gen) {
     }
     pthread_mutex_unlock( &this->driver_lock ); 
 
+    
+    if( in_buf && in_buf->stream && !in_buf->stream->video_decoder_plugin ) {
+      extra_info_merge( in_buf->stream->current_extra_info, in_buf->extra_info );
+    }
+    
     /*
      * where, in the timeline is the "end" of the 
      * hardware audio buffer at the moment?
@@ -827,7 +832,12 @@ static int ao_open(xine_audio_port_t *this, xine_stream_t *stream,
 }
 
 static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this) {
-  return fifo_remove (this->free_fifo);
+  audio_buffer_t *buf;
+   
+  buf = fifo_remove (this->free_fifo);
+  extra_info_reset( buf->extra_info );
+  
+  return buf;
 }
 
 static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_stream_t *stream) {
@@ -839,6 +849,9 @@ static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_st
     return;
   }
 
+  buf->stream = stream;
+  extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
+  
   pts = buf->vpts;
 
   buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, 
@@ -926,8 +939,10 @@ static void ao_exit(xine_audio_port_t *this) {
   xine_list_free(this->streams);
 
   free (this->frame_buf[0]->mem);
+  free (this->frame_buf[0]->extra_info);
   free (this->frame_buf[0]);
   free (this->frame_buf[1]->mem);
+  free (this->frame_buf[1]->extra_info);
   free (this->frame_buf[1]);
   free (this->zero_space);
 
@@ -938,6 +953,7 @@ static void ao_exit(xine_audio_port_t *this) {
     next = buf->next;
 
     free (buf->mem);
+    free (buf->extra_info);
     free (buf);
 
     buf = next;
@@ -950,6 +966,7 @@ static void ao_exit(xine_audio_port_t *this) {
     next = buf->next;
 
     free (buf->mem);
+    free (buf->extra_info);
     free (buf);
 
     buf = next;
@@ -1117,7 +1134,8 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
     buf = (audio_buffer_t *) xine_xmalloc (sizeof (audio_buffer_t));
     buf->mem = xine_xmalloc (AUDIO_BUF_SIZE);
     buf->mem_size = AUDIO_BUF_SIZE;
-
+    buf->extra_info = malloc(sizeof(extra_info_t));
+    
     fifo_append (this->free_fifo, buf);
   }
   
@@ -1129,6 +1147,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
     buf = (audio_buffer_t *) xine_xmalloc (sizeof (audio_buffer_t));
     buf->mem = xine_xmalloc (4*AUDIO_BUF_SIZE);
     buf->mem_size = 4*AUDIO_BUF_SIZE;
+    buf->extra_info = malloc(sizeof(extra_info_t));
 
     this->frame_buf[i] = buf;
   }

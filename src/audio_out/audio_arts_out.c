@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.19 2002/12/15 16:38:04 jkeil Exp $
+ * $Id: audio_arts_out.c,v 1.20 2002/12/21 12:56:46 miguelfreitas Exp $
  */
 
 #ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
@@ -43,7 +43,7 @@
 #include "xineutils.h"
 #include "audio_out.h"
 
-#define AO_OUT_ARTS_IFACE_VERSION 6
+#define AO_OUT_ARTS_IFACE_VERSION 7
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192

@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.29 2002/12/08 21:43:50 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.30 2002/12/21 12:56:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -169,9 +169,9 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLI;
-      buf->input_pos = current_file_pos;
-      buf->input_time = pts_counter / 90000;
-      buf->input_length = this->stream_len;
+      buf->extra_info->input_pos = current_file_pos;
+      buf->extra_info->input_time = pts_counter / 90000;
+      buf->extra_info->input_length = this->stream_len;
       buf->pts = pts_counter;
   
       if (chunk_size > buf->max_size)
@@ -414,6 +414,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "fli", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "fli", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

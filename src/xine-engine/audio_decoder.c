@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.92 2002/12/18 03:59:10 guenter Exp $
+ * $Id: audio_decoder.c,v 1.93 2002/12/21 12:56:51 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -65,13 +65,7 @@ void *audio_decoder_loop (void *stream_gen) {
 	    buf->pts, buf->type); 
 #endif    
 
-    if (buf->input_pos)
-      stream->input_pos = buf->input_pos;
-    if (buf->input_length)
-      stream->input_length = buf->input_length;
-    if (buf->input_time) {
-      stream->input_time = buf->input_time;
-    }
+    extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
       
     switch (buf->type) {
       
@@ -155,6 +149,7 @@ void *audio_decoder_loop (void *stream_gen) {
 #ifdef LOG
       printf ("audio_decoder: reset\n");
 #endif
+      extra_info_reset( stream->audio_decoder_extra_info );
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
       break;

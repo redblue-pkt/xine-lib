@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.122 2002/12/06 18:44:40 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.123 2002/12/21 12:56:47 miguelfreitas Exp $
  *
  */
 
@@ -1678,6 +1678,17 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.123  2002/12/21 12:56:47  miguelfreitas
+ * - add buf->decoder_info_ptr: portability for systems where pointer has
+ *   different sizeof than integer.
+ * - add extra_info structure to pass informations from input/demuxers down
+ *   to the output frame. this can be used, for example, to pass the frame
+ *   number of a frame (when known by decoder). also, immediate benefict is
+ *   that we now have a slider which really shows the current position of
+ *   the playing stream. new fields can be added to extra_info keeping
+ *   binary compatibility
+ * - bumpy everybody's api versions
+ *
  * Revision 1.122  2002/12/06 18:44:40  miguelfreitas
  * - add still frame hint (untested - i don't have dvd here)
  * - check mrl before allocating plugin context, so it doesn't get initialized for
@@ -1940,6 +1951,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 10, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 11, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

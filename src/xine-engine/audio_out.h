@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.43 2002/11/30 22:09:42 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.44 2002/12/21 12:56:52 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 
-#define AUDIO_OUT_IFACE_VERSION  6
+#define AUDIO_OUT_IFACE_VERSION  7
 
 /*
  * ao_driver_s contains the driver every audio output
@@ -132,9 +132,11 @@ struct ao_driver_s {
   void *node;
 };
 
-/*
- * ao_port_s contains the port every audio decoder talks to
- */
+/* to access extra_info_t contents one have to include xine_internal.h */
+#ifndef extra_info_t
+#define extra_info_t void
+#endif
+
 typedef struct audio_fifo_s audio_fifo_t;
 
 typedef struct audio_buffer_s audio_buffer_t;
@@ -150,6 +152,12 @@ struct audio_buffer_s {
   int64_t            vpts;
   uint32_t           frame_header_count;
   uint32_t           first_access_unit;
+  
+  /* extra info coming from input or demuxers */
+  extra_info_t      *extra_info; 
+
+  xine_stream_t     *stream; /* stream that send that buffer */
+
 };
 
 typedef struct ao_format_s ao_format_t;
@@ -159,6 +167,10 @@ struct ao_format_s {
   uint32_t rate;
   int mode;
 };
+
+/*
+ * xine_audio_port_s contains the port every audio decoder talks to
+ */
 
 struct xine_audio_port_s {
   uint32_t (*get_capabilities) (xine_audio_port_t *this); /* for constants see below */

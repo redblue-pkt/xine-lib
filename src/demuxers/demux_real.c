@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.26 2002/12/15 21:23:39 guenter Exp $
+ * $Id: demux_real.c,v 1.27 2002/12/21 12:56:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -434,8 +434,8 @@ static void real_parse_headers (demux_real_t *this) {
 		  
 		  buf->size = mdpr->type_specific_len-off;
 		  
-		  buf->input_pos     = 0 ; 
-		  buf->input_time    = 0 ; 
+		  buf->extra_info->input_pos     = 0 ; 
+		  buf->extra_info->input_time    = 0 ; 
 		  buf->type          = this->audio_buf_type;
 		  buf->decoder_flags = BUF_FLAG_HEADER;
 		  
@@ -486,8 +486,8 @@ static void real_parse_headers (demux_real_t *this) {
 
 	    buf->size = mdpr->type_specific_len;
 
-	    buf->input_pos     = 0 ; 
-	    buf->input_time    = 0 ; 
+	    buf->extra_info->input_pos     = 0 ; 
+	    buf->extra_info->input_time    = 0 ; 
 	    buf->type          = BUF_VIDEO_RV20;
 	    buf->decoder_flags = BUF_FLAG_HEADER;
     
@@ -517,8 +517,8 @@ static void real_parse_headers (demux_real_t *this) {
 
 	    buf->size = mdpr->type_specific_len;
 
-	    buf->input_pos     = 0 ; 
-	    buf->input_time    = 0 ; 
+	    buf->extra_info->input_pos     = 0 ; 
+	    buf->extra_info->input_time    = 0 ; 
 	    buf->type          = BUF_VIDEO_RV30;
 	    buf->decoder_flags = BUF_FLAG_HEADER;
     
@@ -791,9 +791,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
       buf->content       = buf->mem;
       buf->pts           = pts;
-      buf->input_pos     = this->input->get_current_pos (this->input);
+      buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
 
-      buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
+      buf->extra_info->input_time    = buf->extra_info->input_pos * 8 / this->avg_bitrate ; 
       buf->type          = this->video_buf_type;
       
       check_newpts (this, pts, PTS_VIDEO, 0);
@@ -872,8 +872,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
     buf->content       = buf->mem;
     buf->pts           = pts;
-    buf->input_pos     = this->input->get_current_pos (this->input);
-    buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
+    buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
+    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 / this->avg_bitrate ; 
     buf->type          = this->audio_buf_type;
     buf->decoder_flags = 0;
     buf->size          = size;
@@ -1194,6 +1194,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 18, "real", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "real", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

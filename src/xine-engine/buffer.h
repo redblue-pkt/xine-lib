@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.85 2002/12/21 03:03:15 tmmm Exp $
+ * $Id: buffer.h,v 1.86 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  *
  * contents:
@@ -135,6 +135,8 @@ extern "C" {
 #define BUF_VIDEO_RV30		0x02340000
 #define BUF_VIDEO_MVI2		0x02350000
 #define BUF_VIDEO_UCOD		0x02360000
+#define BUF_VIDEO_WMV9		0x02370000
+
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -177,6 +179,7 @@ extern "C" {
 #define BUF_AUDIO_14_4 		0x03230000
 #define BUF_AUDIO_28_8 		0x03240000
 #define BUF_AUDIO_SIPRO		0x03250000
+#define BUF_AUDIO_WMAV3		0x03260000
 
 /* spu buffer types:    */
  
@@ -190,6 +193,11 @@ extern "C" {
 
 #define BUF_DEMUX_BLOCK		0x05000000
 
+/* to access extra_info_t contents one have to include xine_internal.h */
+#ifndef extra_info_t
+#define extra_info_t void
+#endif
+
 typedef struct buf_element_s buf_element_t;
 struct buf_element_s {
   buf_element_t        *next;
@@ -202,13 +210,13 @@ struct buf_element_s {
   uint32_t              type;
   int64_t               pts;       /* presentation time stamp, used for a/v sync            */
   int64_t               disc_off;  /* discontinuity offset                                  */
-  off_t                 input_pos; /* remember where this buf came from in the input source */
-  off_t                 input_length; /* remember the length of the input source */
-  int                   input_time;/* time offset in seconds from beginning of stream       */
 
+  extra_info_t         *extra_info; /* extra info will be passed to frames */
+  
   uint32_t              decoder_flags; /* stuff like keyframe, is_header ... see below      */
 
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
+  void                 *decoder_info_ptr[4]; /* pointers to dec-spec. stuff */
 
   void (*free_buffer) (buf_element_t *buf);
 
@@ -257,7 +265,7 @@ struct buf_element_s {
  * In a BUF_SPECIAL_PALETTE buffer:
  * decoder_info[1] = BUF_SPECIAL_PALETTE
  * decoder_info[2] = number of entries in palette table
- * decoder_info[3] = pointer to palette table
+ * decoder_info_ptr[2] = pointer to palette table
  * This buffer type is used to provide a file- and decoder-independent
  * facility to transport RGB color palettes from demuxers to decoders.
  * A palette table is an array of palette_entry_t structures. A decoder
@@ -270,7 +278,8 @@ struct buf_element_s {
 /*
  * In a BUF_SPECIAL_IDCIN_HUFFMAN_TABLE buffer:
  * decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE
- * decoder_info[2] = pointer to a 65536-element byte array containing the
+ * decoder_info[2] = 65536 (size of data)
+ * decoder_info_ptr[2] = pointer to a 65536-element byte array containing the
  *  Huffman tables from an Id CIN file
  * This buffer is used to transport the Huffman tables from an Id CIN
  * file to the Id CIN decoder. A decoder should not count on the byte array
@@ -296,7 +305,7 @@ struct buf_element_s {
  * In a BUF_SPECIAL_DECODER_CONFIG buffer:
  * decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG
  * decoder_info[2] = data size
- * decoder_info[3] = pointer to data
+ * decoder_info_ptr[2] = pointer to data
  * This buffer is used to pass config information from  .mp4 files 
  * (atom esds) to decoders. both mpeg4 and aac streams use that.
  */
@@ -306,7 +315,7 @@ struct buf_element_s {
  * In a BUF_SPECIAL_STSD_ATOM buffer:
  * decoder_info[1] = BUF_SPECIAL_STSD_ATOM
  * decoder_info[2] = size of the stsd atom
- * decoder_info[3] = pointer to stsd atom
+ * decoder_info_ptr[2] = pointer to stsd atom
  * binary-only quicktime decoders need this, sent by qt demuxer
  */
 #define BUF_SPECIAL_STSD_ATOM  5
@@ -341,7 +350,8 @@ struct buf_element_s {
 
 /* In a BUF_SPECIAL_SPU_DVB_DESCRIPTOR
  * decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR
- * decoder_info[2] = pointer to spu_dvb_descriptor_t, or NULL
+ * decoder_info[2] = size of spu_dvb_descriptor_t
+ * decoder_info_ptr[2] = pointer to spu_dvb_descriptor_t, or NULL
  * decoder_info[3] = 
  *
  * This buffer is used to tell a DVBSUB decoder when the stream

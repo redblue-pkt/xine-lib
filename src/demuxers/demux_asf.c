@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.90 2002/12/18 03:41:59 guenter Exp $
+ * $Id: demux_asf.c,v 1.91 2002/12/21 12:56:44 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -760,16 +760,16 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     buf = stream->fifo->buffer_pool_alloc (stream->fifo);
     this->input->read (this->input, buf->content, bufsize);
 
-    buf->input_pos  = this->input->get_current_pos (this->input);
+    buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
     if (this->rate)
-      buf->input_time = buf->input_pos / this->rate;
+      buf->extra_info->input_time = buf->extra_info->input_pos / this->rate;
     else
-      buf->input_time = 0;
+      buf->extra_info->input_time = 0;
 
 #ifdef LOG
     printf ("demux_asf: input pos is %lld, input time is %d\n",
-	    buf->input_pos,
-	    buf->input_time);
+	    buf->extra_info->input_pos,
+	    buf->extra_info->input_time);
 #endif
 
     buf->pts        = timestamp * 90;
@@ -859,11 +859,11 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	    buf = stream->fifo->buffer_pool_alloc (stream->fifo);
 	    xine_fast_memcpy (buf->content, p, bufsize);
 
-	    buf->input_pos  = this->input->get_current_pos (this->input);
+	    buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
 	    if (this->rate)
-	      buf->input_time = buf->input_pos / this->rate;
+	      buf->extra_info->input_time = buf->extra_info->input_pos / this->rate;
 	    else
-	      buf->input_time = 0;
+	      buf->extra_info->input_time = 0;
           
 	    buf->pts = stream->timestamp * 90 + stream->ts_per_kbyte * 
 	      (p-stream->buffer) / 1024; 
@@ -1548,6 +1548,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "asf", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "asf", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

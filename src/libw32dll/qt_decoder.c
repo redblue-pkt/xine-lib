@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.2 2002/12/21 03:03:16 tmmm Exp $
+ * $Id: qt_decoder.c,v 1.3 2002/12/21 12:56:46 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -325,7 +325,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   printf ("qt_audio: output format:\n");
   qta_hexdump (&this->OutputFormatInfo, sizeof (SoundComponentData));
   printf ("qt_audio: stsd atom: \n");
-  qta_hexdump ((unsigned char *)buf->decoder_info[3], buf->decoder_info[2]);
+  qta_hexdump ((unsigned char *)buf->decoder_info_ptr[2], buf->decoder_info[2]);
 #endif
 
   error = this->SoundConverterOpen (&this->InputFormatInfo, 
@@ -867,7 +867,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
 
   printf ("qt_video: stsd (%d bytes):\n", buf->decoder_info[2]) ;
 
-  qtv_hexdump ((unsigned char *)buf->decoder_info[3], buf->decoder_info[2]);
+  qtv_hexdump ((unsigned char *)buf->decoder_info_ptr[2], buf->decoder_info[2]);
 #endif
 
   {
@@ -1176,8 +1176,8 @@ static decoder_info_t qtv_dec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 13, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
-  { PLUGIN_AUDIO_DECODER, 12, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
+  { PLUGIN_VIDEO_DECODER, 14, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
+  { PLUGIN_AUDIO_DECODER, 13, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

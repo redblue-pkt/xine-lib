@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.46 2002/12/08 21:43:50 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.47 2002/12/21 12:56:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -338,10 +338,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->video_type;
-      buf->input_pos = 
+      buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
-      buf->input_length = this->data_size;
-      buf->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_length = this->data_size;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
       buf->pts = this->sample_table[i].pts;
 
       /* set the frame duration */
@@ -414,10 +414,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->video_type;
-      buf->input_pos = 
+      buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
-      buf->input_length = this->data_size;
-      buf->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_length = this->data_size;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
       buf->pts = this->sample_table[i].pts;
 
       /* set the frame duration */
@@ -451,10 +451,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->audio_type;
-      buf->input_pos = 
+      buf->extra_info->input_pos = 
         this->sample_table[i].sample_offset - this->data_start;
-      buf->input_length = this->data_size;
-      buf->input_time = this->sample_table[i].pts / 90000;
+      buf->extra_info->input_length = this->data_size;
+      buf->extra_info->input_time = this->sample_table[i].pts / 90000;
       buf->pts = this->sample_table[i].pts;
 
       if (remaining_sample_bytes > buf->max_size)
@@ -799,6 +799,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "film", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "film", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

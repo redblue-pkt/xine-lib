@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.55 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.56 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -250,8 +250,8 @@ static void send_ogg_buf (demux_ogg_t *this,
 	    op->granulepos, buf->pts);
 #endif
 
-    buf->input_pos     = this->input->get_current_pos (this->input);
-    buf->input_time    = buf->input_pos * 8 / this->avg_bitrate;
+    buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
+    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 / this->avg_bitrate;
     buf->type          = this->buf_types[stream_num] ;
     buf->decoder_flags = decoder_flags;
     
@@ -299,8 +299,8 @@ static void send_ogg_buf (demux_ogg_t *this,
       printf ("demux_ogg: video granulepos %lld, pts %lld\n", op->granulepos, buf->pts);
 #endif
       
-      buf->input_pos  = this->input->get_current_pos (this->input);
-      buf->input_time = 0;
+      buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
+      buf->extra_info->input_time = 0;
       buf->type       = this->buf_types[stream_num] ;
 	
       done += buf->size;
@@ -1071,6 +1071,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

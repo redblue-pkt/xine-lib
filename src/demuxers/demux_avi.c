@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.139 2002/12/13 21:13:18 guenter Exp $
+ * $Id: demux_avi.c,v 1.140 2002/12/21 12:56:44 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1089,8 +1089,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
         return 0;
       }
 
-      buf->input_time = audio_pts / 90000;
-      buf->input_pos  = this->input->get_current_pos(this->input);
+      buf->extra_info->input_time = audio_pts / 90000;
+      buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
 
       buf->type = audio->audio_type | i;
 
@@ -1113,8 +1113,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_flags);
     buf->type       = this->avi->video_type;
 
-    buf->input_time = video_pts / 90000;
-    buf->input_pos  = this->input->get_current_pos(this->input);
+    buf->extra_info->input_time = video_pts / 90000;
+    buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
     buf->decoder_flags |= decoder_flags;
 
     if (buf->size<0) {
@@ -1262,7 +1262,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
         buf->decoder_flags = BUF_FLAG_SPECIAL;
         buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
         buf->decoder_info[2] = this->avi->palette_count;
-        buf->decoder_info[3] = (unsigned int)&this->avi->palette;
+        buf->decoder_info_ptr[2] = &this->avi->palette;
         buf->size = 0;
         buf->type = this->avi->video_type;
         this->video_fifo->put (this->video_fifo, buf);
@@ -1639,6 +1639,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "avi", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 19, "avi", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

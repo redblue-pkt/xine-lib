@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.114 2002/12/06 18:38:49 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.115 2002/12/21 12:56:52 miguelfreitas Exp $
  *
  */
 
@@ -29,6 +29,12 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
+
+
+#ifdef extra_info_t
+#undef extra_info_t
+#endif
+#define extra_info_t struct extra_info_s
 
 /*
  * include public part of xine header
@@ -113,6 +119,20 @@ struct xine_s {
 };
 
 /*
+ * extra_info_t is used to pass information from input or demuxer plugins
+ * to output frames (past decoder). new data must be added after the existing
+ * fields for backward compatibility.
+ */
+  
+struct extra_info_s {
+
+  off_t                 input_pos; /* remember where this buf came from in the input source */
+  off_t                 input_length; /* remember the length of the input source */
+  int                   input_time;/* time offset in seconds from beginning of stream       */
+  uint32_t              frame_number; /* number of current frame if known */
+};
+
+/*
  * xine event queue
  */
 
@@ -142,9 +162,6 @@ struct xine_stream_s {
   demux_plugin_t            *demux_plugin;
 
   metronom_t                *metronom;
-  off_t                      input_pos;
-  off_t                      input_length;
-  int                        input_time;
 
   xine_video_port_t         *video_out;
   vo_driver_t               *video_driver;
@@ -152,6 +169,7 @@ struct xine_stream_s {
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugin;
   int                        video_decoder_streamtype;
+  extra_info_t              *video_decoder_extra_info;
   int                        video_channel;
   
   xine_audio_port_t         *audio_out;
@@ -160,6 +178,7 @@ struct xine_stream_s {
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugin;
   int                        audio_decoder_streamtype;
+  extra_info_t              *audio_decoder_extra_info;
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   uint32_t                   audio_type;
@@ -213,6 +232,8 @@ struct xine_stream_s {
   pthread_mutex_t            demux_lock;
   int                        demux_action_pending;
 
+  extra_info_t              *current_extra_info;
+
   int                        err;
 };
 
@@ -243,6 +264,12 @@ void audio_decoder_shutdown      (xine_stream_t *stream);
 void xine_report_codec (xine_stream_t *stream, int codec_type, 
                         uint32_t fourcc, uint32_t buf_type, int handled) ;
 
+/* extra_info operations */
+void extra_info_reset( extra_info_t *extra_info );
+
+void extra_info_merge( extra_info_t *dst, extra_info_t *src );
+                        
+                        
 /* demuxer helper functions from demux.c */
 
 void xine_demux_flush_engine         (xine_stream_t *stream);

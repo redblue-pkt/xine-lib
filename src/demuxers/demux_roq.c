@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.32 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.33 2002/12/21 12:56:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -218,7 +218,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
       while (chunk_size) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_ROQ;
-        buf->input_pos = current_file_pos;
+        buf->extra_info->input_pos = current_file_pos;
         buf->pts = audio_pts;
 
         if (chunk_size > buf->max_size)
@@ -271,7 +271,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_ROQ;
-      buf->input_pos = current_file_pos;
+      buf->extra_info->input_pos = current_file_pos;
       buf->pts = video_pts_counter;
 
       if (chunk_size > buf->max_size)
@@ -530,6 +530,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "roq", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "roq", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

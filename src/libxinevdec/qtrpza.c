@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.12 2002/12/21 03:08:34 tmmm Exp $
+ * $Id: qtrpza.c,v 1.13 2002/12/21 12:56:49 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -455,6 +455,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 13, "rpza", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "rpza", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

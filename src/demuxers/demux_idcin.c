@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.30 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.31 2002/12/21 12:56:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -183,7 +183,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       buf->decoder_flags = BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
       buf->decoder_info[2] = PALETTE_SIZE;
-      buf->decoder_info[3] = (unsigned int)&palette;
+      buf->decoder_info_ptr[2] = &palette;
       buf->size = 0;
       buf->type = BUF_VIDEO_IDCIN;
       this->video_fifo->put (this->video_fifo, buf);
@@ -200,9 +200,9 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_IDCIN;
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_length = this->filesize;
-    buf->input_time = pts_counter / 90000;
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_length = this->filesize;
+    buf->extra_info->input_time = pts_counter / 90000;
     buf->pts = pts_counter;
 
     if (remaining_sample_bytes > buf->max_size)
@@ -240,9 +240,9 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_LPCM_LE;
-      buf->input_pos = this->input->get_current_pos(this->input);
-      buf->input_length = this->filesize;
-      buf->input_time = pts_counter / 90000;
+      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      buf->extra_info->input_length = this->filesize;
+      buf->extra_info->input_time = pts_counter / 90000;
       buf->pts = pts_counter;
 
       if (remaining_sample_bytes > buf->max_size)
@@ -375,7 +375,8 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_SPECIAL;
   buf->decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE;
-  buf->decoder_info[2] = (unsigned int)&this->huffman_table;
+  buf->decoder_info[2] = sizeof(this->huffman_table);
+  buf->decoder_info_ptr[2] = &this->huffman_table;
   buf->size = 0;
   buf->type = BUF_VIDEO_IDCIN;
   this->video_fifo->put (this->video_fifo, buf);
@@ -588,6 +589,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "idcin", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "idcin", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

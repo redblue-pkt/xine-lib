@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.36 2002/12/08 21:43:50 miguelfreitas Exp $
+ * $Id: demux_cda.c,v 1.37 2002/12/21 12:56:44 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -79,8 +79,8 @@ static int demux_cda_next (demux_cda_t *this) {
   len = this->input->get_length(this->input);
   
   buf->pts             = 0;
-  buf->input_pos       = pos;
-  buf->input_time      = buf->input_pos / this->blocksize;
+  buf->extra_info->input_pos       = pos;
+  buf->extra_info->input_time      = buf->extra_info->input_pos / this->blocksize;
   buf->type            = BUF_CONTROL_NOP; /* Fake */
   
   this->video_fifo->put(this->video_fifo, buf);
@@ -292,6 +292,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "cda", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "cda", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

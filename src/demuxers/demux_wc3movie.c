@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.28 2002/12/08 21:43:52 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.29 2002/12/21 12:56:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -217,8 +217,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       buf->decoder_flags = BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
       buf->decoder_info[2] = PALETTE_SIZE;
-      buf->decoder_info[3] = 
-        (unsigned int)&this->palettes[PALETTE_SIZE * palette_number];
+      buf->decoder_info_ptr[2] = &this->palettes[PALETTE_SIZE * palette_number];
       buf->size = 0;
       buf->type = BUF_VIDEO_WC3;
       this->video_fifo->put (this->video_fifo, buf);
@@ -230,9 +229,9 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       while (chunk_size) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_LPCM_LE;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->data_size;
-        buf->input_time = audio_pts / 90000;
+        buf->extra_info->input_pos = current_file_pos;
+        buf->extra_info->input_length = this->data_size;
+        buf->extra_info->input_time = audio_pts / 90000;
         buf->pts = audio_pts;
 
         if (chunk_size > buf->max_size)
@@ -259,9 +258,9 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       while (chunk_size) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
         buf->type = BUF_VIDEO_WC3;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->data_size;
-        buf->input_time = this->video_pts / 90000;
+        buf->extra_info->input_pos = current_file_pos;
+        buf->extra_info->input_length = this->data_size;
+        buf->extra_info->input_time = this->video_pts / 90000;
         buf->pts = this->video_pts;
 
         if (chunk_size > buf->max_size)
@@ -787,6 +786,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "wc3movie", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "wc3movie", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

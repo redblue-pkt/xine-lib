@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.42 2002/11/09 23:22:32 guenter Exp $
+ * $Id: demux_pes.c,v 1.43 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -183,7 +183,7 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
 
-    buf->input_pos = this->input->get_current_pos (this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos (this->input);
     
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -228,7 +228,7 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -274,7 +274,7 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
     
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
 

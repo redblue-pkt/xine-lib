@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.65 2002/12/20 22:57:48 guenter Exp $
+ * $Id: demux_elem.c,v 1.66 2002/12/21 12:56:45 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -98,7 +98,7 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf->size = n;
 
   buf->pts             = 0;
-  buf->input_pos       = this->input->get_current_pos(this->input);
+  buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
   buf->type            = BUF_VIDEO_MPEG;
 
   if (preview_mode)
@@ -360,6 +360,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 18, "elem", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 19, "elem", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

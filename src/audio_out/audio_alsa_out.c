@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.84 2002/11/20 11:57:38 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.85 2002/12/21 12:56:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,7 +65,7 @@
 #define LOG_DEBUG
 */
 
-#define AO_OUT_ALSA_IFACE_VERSION 6
+#define AO_OUT_ALSA_IFACE_VERSION 7
 
 #define BUFFER_TIME               1000*1000
 #define PERIOD_TIME               100*1000

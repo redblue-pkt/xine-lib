@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2002/12/16 19:02:14 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.15 2002/12/21 12:56:47 miguelfreitas Exp $
  *
  */
 
@@ -188,7 +188,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         return;
     }
 
-    used = faacDecInit2(this->faac_dec, (void *)buf->decoder_info[3],
+    used = faacDecInit2(this->faac_dec, buf->decoder_info_ptr[2],
                         buf->decoder_info[2], &this->rate, &this->num_channels);
     
     if( used < 0 ) {
@@ -387,6 +387,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_AUDIO_DECODER, 12, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 13, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
