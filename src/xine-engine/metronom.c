@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.123 2003/10/15 21:57:02 tmattern Exp $
+ * $Id: metronom.c,v 1.124 2003/10/31 17:41:07 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -285,6 +285,8 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 
 static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
+  int64_t cur_time;
+
   pthread_mutex_lock (&this->lock);
 
   this->video_discontinuity_count++;
@@ -305,65 +307,92 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
     }
   }
-  
-  if ( this->video_vpts < this->clock->get_current_time(this->clock) ||
-       type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
-    this->video_vpts = this->stream->metronom_prebuffer + 
-                       this->clock->get_current_time(this->clock);
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
-	      this->video_vpts);
-  }
-  if ( this->audio_vpts < this->clock->get_current_time(this->clock) ||
-       type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
-    this->audio_vpts = this->stream->metronom_prebuffer +
-                       this->clock->get_current_time(this->clock);
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
-	      this->audio_vpts);
+
+  /* video_vpts and audio_vpts adjustements */
+  cur_time = this->clock->get_current_time(this->clock);
+
+  switch (type) {
+    case DISC_STREAMSTART:
+    case DISC_STREAMSEEK:
+      this->video_vpts = this->stream->metronom_prebuffer + cur_time;
+      this->audio_vpts = this->video_vpts;
+      this->force_audio_jump = 1;
+      this->force_video_jump = 1;
+      this->video_drift = 0;
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+        printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
+                this->video_vpts);
+        printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
+                this->audio_vpts);
+      }
+      break;
+
+    case DISC_ABSOLUTE:
+    case DISC_RELATIVE:
+      if (this->video_vpts < cur_time) {
+        /* still frame */
+        if (this->audio_vpts > cur_time) {
+          /* still frame with audio */
+          this->video_vpts = this->audio_vpts;
+          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+            printf ("metronom: video vpts adjusted to audio vpts\n");
+        } else {
+          /* still frame, no audio */
+          this->video_vpts = this->stream->metronom_prebuffer + cur_time;
+          this->audio_vpts = this->video_vpts;
+          this->force_video_jump = 1;
+          this->force_audio_jump = 1;
+          this->video_drift = 0;
+          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+            printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
+                    this->video_vpts);
+            printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
+                    this->audio_vpts);
+          }
+        }
+      } else {
+        /* video */
+        if (this->audio_vpts < cur_time) {
+          /* video, no sound */
+          this->audio_vpts = this->video_vpts;
+          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+            printf ("metronom: audio vpts adjusted to audio vpts\n");
+        } else {
+          /* video + audio */
+        }
+      }
+      break;
   }
 
 #ifdef LOG
   printf ("metronom: video_vpts: %lld, audio_vpts: %lld\n", this->video_vpts, this->audio_vpts);
 #endif
 
+  /* vpts_offset adjustements */
   switch (type) {
   case DISC_STREAMSTART:
 #ifdef LOG
     printf ("metronom: DISC_STREAMSTART\n");
 #endif
-    if (this->video_vpts > this->audio_vpts)
-      this->vpts_offset = this->audio_vpts = this->video_vpts;
-    else
-      this->vpts_offset = this->video_vpts = this->audio_vpts;
-    this->force_audio_jump        = 1;
-    this->force_video_jump        = 1;
-    this->video_drift             = 0;
+    this->vpts_offset = this->video_vpts;
     break;
   case DISC_ABSOLUTE:
 #ifdef LOG
     printf ("metronom: DISC_ABSOLUTE\n");
 #endif
-    this->vpts_offset             = this->video_vpts - disc_off;
-    this->force_audio_jump        = 0;
-    this->force_video_jump        = 0;
+    this->vpts_offset = this->video_vpts - disc_off;
     break;
   case DISC_RELATIVE:
 #ifdef LOG
     printf ("metronom: DISC_RELATIVE\n");
 #endif
-    this->vpts_offset             = this->vpts_offset - disc_off;
-    this->force_audio_jump        = 0;
-    this->force_video_jump        = 0;
+    this->vpts_offset = this->vpts_offset - disc_off;
     break;
   case DISC_STREAMSEEK:
 #ifdef LOG
     printf ("metronom: DISC_STREAMSEEK\n");
 #endif
-    this->vpts_offset             = this->video_vpts - disc_off;
-    this->force_audio_jump        = 1;
-    this->force_video_jump        = 1;
-    this->video_drift             = 0;
+    this->vpts_offset = this->video_vpts - disc_off;
     break;
   }
   
@@ -384,7 +413,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   pthread_mutex_lock (&this->lock);
 
 #ifdef LOG
-  printf("metronom: got_video_frame pts = %lld\n", pts );
+  printf("metronom: got_video_frame pts = %lld, duration = %d\n",
+         pts, img->duration);
 #endif
 
   this->img_cpt++;
@@ -527,9 +557,8 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
       this->audio_vpts       = vpts;
       this->audio_drift_step = 0;
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-	printf("metronom: audio jump, diff=%lld\n", diff);
-    }
-    else {
+        printf("metronom: audio jump, diff=%lld\n", diff);
+    } else {
       if( this->audio_samples ) {
         /* calculate drift_step to recover vpts errors */
 #ifdef LOG_AUDIO  
