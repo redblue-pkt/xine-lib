@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.82 2002/12/21 14:57:36 esnel Exp $
+ * $Id: xine_decoder.c,v 1.83 2002/12/23 21:26:12 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -292,11 +292,13 @@ static void find_sequence_header (ff_video_decoder_t *this,
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int ratio;
+  int codec_type;
   
 #ifdef LOG
   printf ("ffmpeg: processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
 	  buf->type, buf, buf->decoder_flags);
 #endif
+  codec_type = buf->type & 0xFFFF0000;
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
 
@@ -311,8 +313,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-
-    int codec_type;
 
 #ifdef LOG
     printf ("ffmpeg: header\n");
@@ -329,7 +329,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     /* init codec */
 
-    codec_type = buf->type & 0xFFFF0000;
     this->codec = NULL;
 
     switch (codec_type) {
@@ -440,9 +439,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       offset = 0;
       while (this->size>0) {
-	len = avcodec_decode_video (this->context, this->av_picture,
-				    &got_picture, &this->buf[offset],
-				    this->size);
+        
+        /* DV frames can be completely skipped */
+        if( codec_type == BUF_VIDEO_DV && this->skipframes )
+          len = this->size;
+        else
+	  len = avcodec_decode_video (this->context, this->av_picture,
+				      &got_picture, &this->buf[offset],
+				      this->size);
 	if (len<0) {
 	  printf ("ffmpeg: error decompressing frame\n");
 	  this->size=0;
