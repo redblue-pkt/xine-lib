@@ -17,10 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
+ * Credits go 
  * for the SPDIF AC3 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
+ * for initial ALSA 0.9.x support.
+ * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
+ *
  * 
- * $Id: audio_alsa_out.c,v 1.7 2001/06/05 16:58:47 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.8 2001/06/05 19:50:56 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
