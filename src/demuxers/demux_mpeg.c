@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.51 2002/03/11 12:31:24 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.52 2002/03/12 03:03:18 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -485,9 +485,10 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
   }
 
   /* discontinuity ? */
+  if( scr )
   {  
     int64_t scr_diff = scr - this->last_scr;
-    if (abs(scr_diff) > 60000) {
+    if (abs(scr_diff) > 60000 && !this->preview_mode) {
       
       buf_element_t *buf;
 
