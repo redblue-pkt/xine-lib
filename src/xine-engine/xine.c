@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.43 2001/08/17 16:15:37 f1rmb Exp $
+ * $Id: xine.c,v 1.44 2001/08/20 20:49:51 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -81,28 +81,46 @@ void xine_stop (xine_t *this) {
     pthread_mutex_unlock (&this->xine_lock);
     return;
   }
-
-  printf ("xine_stop: stopping demuxer\n");
+  
+  if(this->status == XINE_PAUSE) {
     
-  if(this->cur_demuxer_plugin) {
-    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
-    this->cur_demuxer_plugin = NULL;
+    printf ("xine_stop: stopping demuxer\n");
+    
+    if(this->cur_demuxer_plugin) {
+      this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    }
+    
+    if(this->cur_input_plugin) {
+      this->cur_input_plugin->stop(this->cur_input_plugin);
+    }
+
+    goto pause_done;
   }
-  
-  printf ("xine_stop: closing input\n");
-  
-  if(this->cur_input_plugin) {
-    this->cur_input_plugin->close(this->cur_input_plugin);
-    /*
-     * If we set it to NULL, xine_eject() will not work after
-     * a xine_stop() call.
-     * 
-     * this->cur_input_plugin = NULL;
-     */
+  else {
+    
+    printf ("xine_stop: closing demuxer\n");
+    
+    if(this->cur_demuxer_plugin) {
+      this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
+      this->cur_demuxer_plugin = NULL;
+    }
+    
+    printf ("xine_stop: closing input\n");
+    
+    if(this->cur_input_plugin) {
+      this->cur_input_plugin->close(this->cur_input_plugin);
+      /*
+       * If we set it to NULL, xine_eject() will not work after
+       * a xine_stop() call.
+       * 
+       * this->cur_input_plugin = NULL;
+       */
+    }
   }
-  
+ 
   this->status = XINE_STOP;
-  
+
+ pause_done:
   printf ("xine_stop: done\n");
   
   pthread_mutex_unlock (&this->xine_lock);
@@ -389,12 +407,15 @@ void xine_pause (xine_t *this) {
 
     printf ("pausing at %Ld\n", this->cur_input_pos);
 
+    /*
+     * xine_stop() will not change the status is
+     * previous status is XINE_PAUSE.
+     */
+    this->status = XINE_PAUSE;
+
     xine_stop (this);
 
     pthread_mutex_lock (&this->xine_lock);
-
-    this->status = XINE_PAUSE;
-
   }
 
   pthread_mutex_unlock (&this->xine_lock);
