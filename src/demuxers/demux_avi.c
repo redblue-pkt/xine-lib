@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.156 2003/05/29 16:22:09 jstembridge Exp $
+ * $Id: demux_avi.c,v 1.157 2003/05/29 16:51:30 jstembridge Exp $
  *
  * demultiplexer for avi streams
  *
@@ -144,7 +144,7 @@ typedef struct
   long   dwScale, dwRate;
   double fps;               /* Frames per second */
 
-  char   compressor[8];     /* Type of compressor, 4 bytes + padding for 0 byte */
+  uint32_t compressor;      /* Type of compressor */
   long   video_strn;        /* Video stream number */
   char   video_tag[4];      /* Tag of video data */
   long   video_posf;        /* Number of next frame to be read
@@ -701,8 +701,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       i += 8;
       if(strncasecmp(hdrl_data+i,"vids",4) == 0 && !vids_strh_seen) {
 
-        memcpy(AVI->compressor,hdrl_data+i+4,4);
-        AVI->compressor[4] = 0;
+        AVI->compressor = *(uint32_t *) hdrl_data+i+4;
         AVI->dwScale = str2ulong(hdrl_data+i+20);
         AVI->dwRate  = str2ulong(hdrl_data+i+24);
 
@@ -1426,12 +1425,11 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     this->avi->video_type = fourcc_to_buf_video(this->avi->bih->biCompression);
     
     if (this->avi->video_type) {
-      memcpy(this->avi->compressor, &this->avi->bih->biCompression, 4);
-      this->avi->compressor[4] = 0;
+      this->avi->compressor = this->avi->bih->biCompression;
     } else
-      this->avi->video_type = fourcc_to_buf_video(*(uint32_t *)this->avi->compressor);
+      this->avi->video_type = fourcc_to_buf_video(this->avi->compressor);
 
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = *(uint32_t *) this->avi->compressor;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = this->avi->compressor;
 
     if (!this->avi->video_type) {
 
