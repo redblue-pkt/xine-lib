@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.4 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_snd.c,v 1.5 2002/09/05 22:18:53 mroi Exp $
  *
  */
 
@@ -481,7 +481,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                         _("valid mrls ending for snd demuxer"),
                                         NULL, 10, NULL, NULL);
   
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_snd_open;
   this->demux_plugin.start             = demux_snd_start;
   this->demux_plugin.seek              = demux_snd_seek;

@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.10 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_wav.c,v 1.11 2002/09/05 22:18:53 mroi Exp $
  *
  */
 
@@ -482,7 +482,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                         _("valid mrls ending for wav demuxer"),
                                         NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_wav_open;
   this->demux_plugin.start             = demux_wav_start;
   this->demux_plugin.seek              = demux_wav_seek;

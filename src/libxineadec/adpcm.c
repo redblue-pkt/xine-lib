@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.14 2002/09/05 20:44:41 mroi Exp $
+ * $Id: adpcm.c,v 1.15 2002/09/05 22:19:01 mroi Exp $
  */
 
 #include <stdio.h>
@@ -1146,7 +1146,6 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
   this->audio_decoder.close               = adpcm_close;
   this->audio_decoder.get_identifier      = adpcm_get_id;
   this->audio_decoder.dispose             = adpcm_dispose;
-  this->audio_decoder.priority            = 9;
 
   return this;
 }
@@ -1159,7 +1158,7 @@ static uint32_t audio_types[] = {
 
 static decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
-  1                    /* priority        */
+  9                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {

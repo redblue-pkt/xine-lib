@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.5 2002/09/05 20:44:42 mroi Exp $
+ * $Id: yuv.c,v 1.6 2002/09/05 22:19:03 mroi Exp $
  */
 
 #include <stdio.h>
@@ -278,10 +278,7 @@ static void yuv_dispose (video_decoder_t *this_gen) {
 /*
  * This function should be the plugin's only advertised function to the
  * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object. The video
- * decoder object also has a priority field which allows different decoder
- * plugins for the same buffer types to coexist peacefully. The higher the
- * priority number, the more precedence a decoder has. E.g., 9 beats 1.
+ * to the necessary functions in the video decoder object.
  */
 static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
@@ -297,7 +294,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.close               = yuv_close;
   this->video_decoder.get_identifier      = yuv_get_id;
   this->video_decoder.dispose             = yuv_dispose;
-  this->video_decoder.priority            = 1;
 
   return this;
 }

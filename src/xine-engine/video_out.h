@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.59 2002/09/04 23:31:13 guenter Exp $
+ * $Id: video_out.h,v 1.60 2002/09/05 22:19:04 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -371,26 +371,6 @@ video_overlay_instance_t *video_overlay_new_instance ();
  */
 
 vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, xine_t *xine) ;
-
-/*
- * to build a dynamic video output plugin
- * you have to implement these functions:
- *
- *
- * xine_vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual);
- *
- * init and set up driver so it is fully operational
- * 
- * parameters: config      - config object pointer
- *             visual      - driver specific info (e.g. Display*)
- *
- * return value: video_driver_t* in case of success,
- *               NULL            on failure (e.g. wrong interface version,
- *                               wrong visual type...)
- *
- *
- *
- */
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.5 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_wc3movie.c,v 1.6 2002/09/05 22:18:53 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -611,7 +611,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                          _("valid mrls ending for mve demuxer"),
                                          NULL, 10, NULL, NULL);
   
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_mve_open;
   this->demux_plugin.start             = demux_mve_start;
   this->demux_plugin.seek              = demux_mve_seek;

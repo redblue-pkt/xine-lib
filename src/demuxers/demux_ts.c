@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.54 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_ts.c,v 1.55 2002/09/05 22:18:53 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1683,7 +1683,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                         _("valid mrls ending for ts demuxer"),
                                         NULL, 20, NULL, NULL);
 
-  this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->plugin.open              = demux_ts_open;
   this->plugin.start             = demux_ts_start;
   this->plugin.seek              = demux_ts_seek;

@@ -526,7 +526,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
     this->free_buffers = buf;
   }
   
-  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = rtp_plugin_get_capabilities;
   this->input_plugin.open              = rtp_plugin_open;
   this->input_plugin.read              = rtp_plugin_read;

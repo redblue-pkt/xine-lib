@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.12 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_roq.c,v 1.13 2002/09/05 22:18:52 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -544,7 +544,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
 					 _("valid mrls ending for roq demuxer"),
 					 NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_roq_open;
   this->demux_plugin.start             = demux_roq_start;
   this->demux_plugin.seek              = demux_roq_seek;

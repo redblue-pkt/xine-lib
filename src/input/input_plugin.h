@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.28 2002/09/05 20:19:49 guenter Exp $
+ * $Id: input_plugin.h,v 1.29 2002/09/05 22:18:55 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -140,11 +140,6 @@ typedef struct input_plugin_s input_plugin_t;
 
 struct input_plugin_s
 {
-
-  /*
-   * plugin interface version, lower versions _may_ be supported
-   */
-  int interface_version;
 
   /*
    * return capabilities of input source

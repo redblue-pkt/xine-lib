@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.59 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.60 2002/09/05 22:18:52 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -666,7 +666,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 					_("valid mrls ending for mpeg audio demuxer"),
 					NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUX_MPGAUDIO_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpgaudio_open;
   this->demux_plugin.start             = demux_mpgaudio_start;
   this->demux_plugin.seek              = demux_mpgaudio_seek;

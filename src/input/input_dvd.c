@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.75 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_dvd.c,v 1.76 2002/09/05 22:18:54 mroi Exp $
  *
  */
 
@@ -1393,7 +1393,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
   this = (dvdnav_input_plugin_t *) malloc (sizeof (dvdnav_input_plugin_t));
   
-  this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities   = dvdnav_plugin_get_capabilities;
   this->input_plugin.open               = dvdnav_plugin_open;
   this->input_plugin.read               = dvdnav_plugin_read;
@@ -1497,6 +1496,10 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.76  2002/09/05 22:18:54  mroi
+ * remove plugin's private priority and interface members
+ * adapt some more decoders
+ *
  * Revision 1.75  2002/09/05 20:44:39  mroi
  * make all the plugin init functions static
  * (geez this was a job)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.31 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_cda.c,v 1.32 2002/09/05 22:18:54 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1796,7 +1796,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
     this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
   }
   
-  this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities   = cda_plugin_get_capabilities;
   this->input_plugin.open               = cda_plugin_open;
   this->input_plugin.read               = cda_plugin_read;

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.8 2002/09/05 20:44:42 mroi Exp $
+ * $Id: roqvideo.c,v 1.9 2002/09/05 22:19:03 mroi Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -367,10 +367,6 @@ static void roq_decode_frame(roq_decoder_t *ri, vo_frame_t *img) {
   memcpy(img->base[2], ri->v[0], (ri->width * ri->height)/4);
 }
 
-static int roq_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return (buf_type == BUF_VIDEO_ROQ);
-}
-
 static void roq_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   roq_decoder_t *this = (roq_decoder_t *) this_gen;
 
@@ -502,7 +498,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.close               = roq_close;
   this->video_decoder.get_identifier      = roq_get_id;
   this->video_decoder.dispose             = roq_dispose;
-  this->video_decoder.priority            = 1;
 
   return this;
 }

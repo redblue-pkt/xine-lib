@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.17 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_mms.c,v 1.18 2002/09/05 22:18:55 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -293,7 +293,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   config     = xine->config;
   this->xine = xine;
 
-  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = mms_plugin_get_capabilities;
   this->input_plugin.open              = mms_plugin_open;
   this->input_plugin.read              = mms_plugin_read;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.92 2002/09/05 20:44:41 mroi Exp $
+ * $Id: w32codec.c,v 1.93 2002/09/05 22:19:00 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1322,7 +1322,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.close               = w32v_close;
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.dispose             = w32v_dispose;
-  this->video_decoder.priority            = 1;
 
   pthread_once (&once_control, init_routine);
   
@@ -1359,7 +1358,6 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
   this->audio_decoder.close               = w32a_close;
   this->audio_decoder.get_identifier      = w32a_get_id;
   this->audio_decoder.dispose             = w32a_dispose;
-  this->audio_decoder.priority            = 1;
   
   pthread_once (&once_control, init_routine);
 

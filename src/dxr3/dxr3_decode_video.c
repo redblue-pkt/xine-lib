@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.14 2002/09/05 20:44:39 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.15 2002/09/05 22:18:54 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -130,7 +130,6 @@ static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
 static int       get_duration(dxr3_decoder_t *this);
 
 /* config callbacks */
-static void      dxr3_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry);
@@ -171,11 +170,7 @@ static void *dxr3_init_plugin(xine_t *xine, void *data)
   this->video_decoder.reset             = dxr3_reset;
   this->video_decoder.close             = dxr3_close;
   this->video_decoder.dispose           = dxr3_dispose;
-  this->video_decoder.priority          = cfg->register_num(cfg,
-    "dxr3.decoder_priority", 10, _("Dxr3: video decoder priority"),
-    _("Decoder priorities greater 5 enable hardware decoding, 0 disables it."), 20,
-    dxr3_update_priority, this);
-
+  
   this->scr                             = NULL;
   this->xine                            = xine;
   
@@ -670,13 +665,6 @@ static int get_duration(dxr3_decoder_t *this)
   }
   
   return duration;
-}
-
-static void dxr3_update_priority(void *this_gen, xine_cfg_entry_t *entry)
-{
-  ((dxr3_decoder_t *)this_gen)->video_decoder.priority = entry->num_value;
-  printf("dxr3_decode_video: setting decoder priority to %d\n", 
-    entry->num_value);
 }
 
 static void dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry)

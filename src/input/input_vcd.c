@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.49 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_vcd.c,v 1.50 2002/09/05 22:18:55 mroi Exp $
  *
  */
 
@@ -1149,7 +1149,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
     this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
   }
   
-  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
   this->input_plugin.open              = vcd_plugin_open;
   this->input_plugin.read              = vcd_plugin_read;

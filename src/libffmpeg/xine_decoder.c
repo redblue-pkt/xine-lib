@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2002/09/05 20:44:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.54 2002/09/05 22:18:56 mroi Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -621,7 +621,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.reset               = ff_reset;
   this->video_decoder.close               = ff_close;
   this->video_decoder.get_identifier      = ff_get_id;
-  this->video_decoder.priority            = 5;
   this->video_decoder.dispose             = ff_dispose;
   this->size				  = 0;
 

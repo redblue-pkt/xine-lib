@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.36 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_pes.c,v 1.37 2002/09/05 22:18:52 mroi Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -618,7 +618,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
 					_("valid mrls ending for pes demuxer"),
 					NULL, 20, NULL, NULL);    
   
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_pes_open;
   this->demux_plugin.start             = demux_pes_start;
   this->demux_plugin.seek              = demux_pes_seek;

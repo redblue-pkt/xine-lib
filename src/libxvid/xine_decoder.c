@@ -241,13 +241,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
     return (video_decoder_t *) this;
 }
 
-static int xvid_can_handle (video_decoder_t *this_gen, int buf_type) {
-    buf_type &= (BUF_MAJOR_MASK|BUF_DECODER_MASK);
-
-    /* FIXME: what is it exactly that xvid can handle? :> */
-    return 0;
-}
-
 /*
  * exported plugin catalog entry
  */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.30 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.31 2002/09/05 22:18:55 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -356,7 +356,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   config     = xine->config;
   this->xine = xine;
 
-  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
   this->input_plugin.open              = stdin_plugin_open;
   this->input_plugin.read              = stdin_plugin_read;

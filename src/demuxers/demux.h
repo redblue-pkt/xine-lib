@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.17 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux.h,v 1.18 2002/09/05 22:18:50 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -59,11 +59,6 @@ typedef struct demux_plugin_s demux_plugin_t;
 
 struct demux_plugin_s
 {
-  /*
-   * plugin interface version, lower versions _may_ be supported
-   */
-  int interface_version;
-
   /*
    * ask demuxer to open the given stream (input-plugin) 
    * using the content-detection method specified in <stage>

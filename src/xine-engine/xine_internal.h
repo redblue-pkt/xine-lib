@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.94 2002/09/05 16:50:56 guenter Exp $
+ * $Id: xine_internal.h,v 1.95 2002/09/05 22:19:04 mroi Exp $
  *
  */
 
@@ -99,8 +99,6 @@ struct video_decoder_s {
 
   void (*dispose) (video_decoder_t *this);
 
-  int priority;
-
 };
 
 /*
@@ -126,8 +124,6 @@ struct audio_decoder_s {
   char* (*get_identifier) (void);
 
   void (*dispose) (audio_decoder_t *this);
-
-  int priority;
 
 };
 

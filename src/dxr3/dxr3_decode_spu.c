@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.17 2002/09/05 12:52:24 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.18 2002/09/05 22:18:54 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -66,14 +66,13 @@ static decoder_info_t dxr3_spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 10, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_SPU_DECODER, 9, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
 
 /* functions required by xine api */
 static char   *dxr3_spudec_get_id(void);
-static int     dxr3_spudec_can_handle(spu_decoder_t *this_gen, int buf_type);
 static void    dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out);
 static void    dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf);
 static void    dxr3_spudec_reset(spu_decoder_t *this_gen);
@@ -145,13 +144,11 @@ static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
   }
   
   this->spu_decoder.get_identifier    = dxr3_spudec_get_id;
-  this->spu_decoder.can_handle        = dxr3_spudec_can_handle;
   this->spu_decoder.init              = dxr3_spudec_init;
   this->spu_decoder.decode_data       = dxr3_spudec_decode_data;
   this->spu_decoder.reset             = dxr3_spudec_reset;
   this->spu_decoder.close             = dxr3_spudec_close;
   this->spu_decoder.dispose           = dxr3_spudec_dispose;
-  this->spu_decoder.priority          = 10;
   
   this->xine                          = xine;
   /* We need to talk to dxr3 video out to coordinate spus and overlays */
@@ -173,13 +170,6 @@ static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
 static char *dxr3_spudec_get_id(void)
 {
   return "dxr3-spudec";
-}
-
-static int dxr3_spudec_can_handle(spu_decoder_t *this_gen, int buf_type)
-{
-  int type = buf_type & 0xFFFF0000;
-  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || 
-    type == BUF_SPU_NAV || type == BUF_SPU_SUBP_CONTROL);
 }
 
 static void dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out)

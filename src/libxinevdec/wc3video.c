@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.3 2002/09/05 20:44:42 mroi Exp $
+ * $Id: wc3video.c,v 1.4 2002/09/05 22:19:03 mroi Exp $
  */
 
 #include <stdio.h>
@@ -331,22 +331,6 @@ static void wc3_decode_frame (wc3video_decoder_t *this) {
  *************************************************************************/
 
 /*
- * This function is called by xine to determine which buffer types this
- * decoder knows how to handle. 
- * Parameters:
- *  this_gen: A video decoder object
- *  buf_type: The number of the buffer type that xine is querying for;
- *    these buffer constants are defined in src/xine-engine/buffer.h.
- * Return:
- *  1 if the decoder is capable of handling buf_type
- *  0 if the decoder is not capable of handling buf_type
- */
-static int wc3video_can_handle (video_decoder_t *this_gen, int buf_type) {
-
-  return (buf_type == BUF_VIDEO_WC3);
-}
-
-/*
  * This function is called to initialize the video decoder for use. 
  * Initialization usually involves setting up the fields in your
  * private video decoder object.
@@ -525,22 +509,11 @@ static void wc3video_dispose (video_decoder_t *this_gen) {
 /*
  * This function should be the plugin's only advertised function to the
  * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object. The video
- * decoder object also has a priority field which allows different decoder
- * plugins for the same buffer types to coexist peacefully. The higher the
- * priority number, the more precedence a decoder has. E.g., 9 beats 1.
+ * to the necessary functions in the video decoder object.
  */
-static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   wc3video_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "wc3video: plugin doesn't support plugin API version %d.\n"
-            "wc3video: this means there's a version mismatch between xine and this "
-            "wc3video: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
 
   this = (wc3video_decoder_t *) malloc (sizeof (wc3video_decoder_t));
   memset(this, 0, sizeof (wc3video_decoder_t));
@@ -552,8 +525,20 @@ static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = wc3video_close;
   this->video_decoder.get_identifier      = wc3video_get_id;
   this->video_decoder.dispose             = wc3video_dispose;
-  this->video_decoder.priority            = 9;
 
   return (video_decoder_t *) this;
 }
 
+/* plugin catalog information */
+static uint32_t supported_types[] = { BUF_VIDEO_WC3, 0 };
+
+static decoder_info_t video_decoder_info = {
+  supported_types,     /* supported types */
+  9                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "WC3 Video", XINE_VERSION_CODE, &video_decoder_info, &init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

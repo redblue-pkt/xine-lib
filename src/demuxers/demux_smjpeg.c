@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.12 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_smjpeg.c,v 1.13 2002/09/05 22:18:53 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -573,7 +573,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                          _("valid mrls ending for smjpeg demuxer"),
                                          NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_smjpeg_open;
   this->demux_plugin.start             = demux_smjpeg_start;
   this->demux_plugin.seek              = demux_smjpeg_seek;

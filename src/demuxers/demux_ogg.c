@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.40 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_ogg.c,v 1.41 2002/09/05 22:18:52 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1086,7 +1086,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 					_("valid mrls ending for ogg demuxer"),
 					NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_ogg_open;
   this->demux_plugin.start             = demux_ogg_start;
   this->demux_plugin.seek              = demux_ogg_seek;

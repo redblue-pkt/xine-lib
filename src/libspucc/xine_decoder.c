@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2002/09/05 20:44:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.18 2002/09/05 22:18:57 mroi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -279,12 +279,6 @@ void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
 
 /*------------------- implementation of spudec interface -------------------*/
 
-static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
-  int type = buf_type & 0xFFFF0000;
-  return (type == BUF_SPU_CC);
-}
-
-
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
@@ -380,28 +374,18 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 }
 
 
-static void *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   spucc_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf(_("libspucc: doesn't support plugin api version %d.\n"
-	     "libspucc: This means there is a version mismatch between xine and\n"
-	     "libspucc: this plugin.\n"), iface_version);
-    return NULL;
-  }
-
   this = (spucc_decoder_t *) xine_xmalloc (sizeof (spucc_decoder_t));
 
-  this->spu_decoder.interface_version   = iface_version;
-  this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.dispose             = spudec_dispose;
-  this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;
   this->cc_open = 0;
@@ -415,3 +399,16 @@ static void *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   return (spu_decoder_t *) this;
 }
 
+/* plugin catalog information */
+static uint32_t supported_types[] = { BUF_SPU_CC, 0 };
+
+static decoder_info_t spudec_info = {
+  supported_types,     /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_SPU_DECODER, 9, "spucc", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

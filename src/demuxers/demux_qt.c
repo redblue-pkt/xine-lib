@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.81 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_qt.c,v 1.82 2002/09/05 22:18:52 mroi Exp $
  *
  */
 
@@ -1763,7 +1763,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
                                         _("valid mrls ending for qt demuxer"),
                                         NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_qt_open;
   this->demux_plugin.start             = demux_qt_start;
   this->demux_plugin.seek              = demux_qt_seek;

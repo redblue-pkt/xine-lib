@@ -21,7 +21,7 @@
  * For more information regarding the VQA file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_vqa.c,v 1.4 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_vqa.c,v 1.5 2002/09/05 22:18:53 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -570,7 +570,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                          _("valid mrls ending for vqa demuxer"),
 					 NULL, 10, NULL, NULL);
   
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_vqa_open;
   this->demux_plugin.start             = demux_vqa_start;
   this->demux_plugin.seek              = demux_vqa_seek;

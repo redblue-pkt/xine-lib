@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2002/09/05 20:44:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.10 2002/09/05 22:18:57 mroi Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -49,10 +49,6 @@ typedef struct mpgdec_decoder_s {
   int              output_open;
 
 } mpgdec_decoder_t;
-
-int mpgdec_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_MPEG) ;
-}
 
 void mpgdec_reset (audio_decoder_t *this_gen) {
 
@@ -101,30 +97,30 @@ static char *mpgdec_get_id(void) {
   return "mpgdec";
 }
 
-static void *init_audio_decoder_plugin (int iface_version, config_values_t *cfg) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   mpgdec_decoder_t *this ;
 
-  if (iface_version != 2) {
-    printf(_("libmpg123: plugin doesn't support plugin API version %d.\n"
-	     "libmpg123: this means there's a version mismatch between xine and this "
-	     "libmpg123: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-
-    return NULL;
-  }
-
   this = (mpgdec_decoder_t *) malloc (sizeof (mpgdec_decoder_t));
 
-  this->audio_decoder.interface_version   = 2;
-  this->audio_decoder.can_handle          = mpgdec_can_handle;
   this->audio_decoder.init                = mpgdec_init;
   this->audio_decoder.reset               = mpgdec_reset;
   this->audio_decoder.decode_data         = mpgdec_decode_data;
   this->audio_decoder.close               = mpgdec_close;
   this->audio_decoder.get_identifier      = mpgdec_get_id;
-  this->audio_decoder.priority            = 1;
   
   return (audio_decoder_t *) this;
 }
 
+static uint32_t audio_types[] = { BUF_AUDIO_MPEG, 0 };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "mpgdec", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

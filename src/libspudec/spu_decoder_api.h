@@ -38,10 +38,6 @@ typedef struct spu_decoder_s spu_decoder_t;
 
 struct spu_decoder_s {
 
-  int interface_version;
-
-  int (*can_handle) (spu_decoder_t *this, int buf_type);
-
   void (*init) (spu_decoder_t *this, vo_instance_t *video_out);
 
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
@@ -53,8 +49,6 @@ struct spu_decoder_s {
   char* (*get_identifier) (void);
 
   void (*dispose) (spu_decoder_t *this);
-
-  int priority;
 
 };
 

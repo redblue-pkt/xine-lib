@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.91 2002/09/04 23:31:13 guenter Exp $
+ * $Id: metronom.c,v 1.92 2002/09/05 22:19:04 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -329,7 +329,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 #endif
     this->vpts_offset      = this->video_vpts;
     this->in_discontinuity = 0;
-    this->force_audio_jump = 0;
     break;
   case DISC_ABSOLUTE:
 #ifdef LOG
@@ -337,7 +336,6 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 #endif
     this->next_vpts_offset = this->video_vpts - disc_off;
     this->in_discontinuity = 30;
-    this->force_audio_jump = 0;
     break;
   case DISC_RELATIVE:
 #ifdef LOG
@@ -345,16 +343,13 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 #endif
     this->next_vpts_offset = this->vpts_offset - disc_off;
     this->in_discontinuity = 30;
-    this->force_audio_jump = 0;
     break;
   case DISC_STREAMSEEK:
 #ifdef LOG
     printf ("metronom: DISC_STREAMSEEK\n");
 #endif
     this->vpts_offset      = this->video_vpts - disc_off;
-    this->next_vpts_offset = this->video_vpts - disc_off;
-    this->in_discontinuity = 30;
-    this->force_audio_jump = 1;
+    this->in_discontinuity = 0;
     this->allow_full_ao_fill_gap = 1;
     break;
   }
@@ -502,17 +497,16 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 
   pthread_mutex_lock (&this->lock);
 
-  if (this->in_discontinuity && !this->force_audio_jump) 
+  if (this->in_discontinuity) 
     pts = 0; /* ignore pts during discontinuities */
   if (pts) {
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
     
     /* compare predicted and given vpts */
-    if( (abs(diff) > AUDIO_DRIFT_TOLERANCE) || this->force_audio_jump ) {
+    if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || this->allow_full_ao_fill_gap) {
       this->audio_vpts = vpts;
       this->audio_drift_step = 0;
-      this->force_audio_jump = 0;
       printf("metronom: audio jump\n");
     }
     else {

@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.8 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_idcin.c,v 1.9 2002/09/05 22:18:51 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -607,7 +607,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                          _("valid mrls ending for idcin demuxer"),
                                          NULL, 20, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_idcin_open;
   this->demux_plugin.start             = demux_idcin_start;
   this->demux_plugin.seek              = demux_idcin_seek;

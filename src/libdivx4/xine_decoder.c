@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2002/09/05 20:44:39 mroi Exp $
+ * $Id: xine_decoder.c,v 1.43 2002/09/05 22:18:56 mroi Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -582,9 +582,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.flush               = divx4_flush;
   this->video_decoder.reset               = divx4_reset;
   this->video_decoder.dispose             = divx4_dispose;
-  this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
-							       _("priority of the divx4 plugin (>5 => enable)"),
-							       NULL, 0, NULL, NULL); 
   this->decore = libdecore_func;
   this->postproc 			  = cfg->register_range (cfg, "codec.divx4_postproc", 3,
 								 0, 6,

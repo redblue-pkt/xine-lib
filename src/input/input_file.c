@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.55 2002/09/05 20:44:39 mroi Exp $
+ * $Id: input_file.c,v 1.56 2002/09/05 22:18:54 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -856,7 +856,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   config     = xine->config;
   this->xine = xine;
 
-  this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
   this->input_plugin.open               = file_plugin_open;
   this->input_plugin.read               = file_plugin_read;

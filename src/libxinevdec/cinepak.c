@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.13 2002/09/05 20:44:41 mroi Exp $
+ * $Id: cinepak.c,v 1.14 2002/09/05 22:19:02 mroi Exp $
  */
 
 #include <stdlib.h>
@@ -454,7 +454,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.close               = cvid_close;
   this->video_decoder.get_identifier      = cvid_get_id;
   this->video_decoder.dispose             = cvid_dispose;
-  this->video_decoder.priority            = 5;
 
   return (video_decoder_t *) this;
 }

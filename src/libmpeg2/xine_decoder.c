@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2002/09/05 20:44:40 mroi Exp $
+ * $Id: xine_decoder.c,v 1.40 2002/09/05 22:18:57 mroi Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -171,7 +171,6 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   this->video_decoder.close               = mpeg2dec_close;
   this->video_decoder.get_identifier      = mpeg2dec_get_id;
   this->video_decoder.dispose             = mpeg2dec_dispose;
-  this->video_decoder.priority            = 6; /* higher than ffmpeg */
 
   this->mpeg2.xine = xine;
   pthread_mutex_init (&this->lock, NULL);
@@ -187,7 +186,7 @@ static uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
 
 static decoder_info_t dec_info_mpeg2 = {
   supported_types,     /* supported types */
-  5                    /* priority        */
+  6                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {

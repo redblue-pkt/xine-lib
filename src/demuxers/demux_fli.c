@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.8 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_fli.c,v 1.9 2002/09/05 22:18:51 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -421,7 +421,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                          "valid mrls ending for fli demuxer",
                                          NULL, 10, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_fli_open;
   this->demux_plugin.start             = demux_fli_start;
   this->demux_plugin.seek              = demux_fli_seek;

@@ -694,7 +694,6 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   config     = xine->config;
   this->xine = xine;
 
-  this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
   this->input_plugin.open              = http_plugin_open;
   this->input_plugin.read              = http_plugin_read;

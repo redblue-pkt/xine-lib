@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.22 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_cda.c,v 1.23 2002/09/05 22:18:51 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -305,7 +305,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
   this->config = xine->config;
   this->xine   = xine;
 
-  this->demux_plugin.interface_version = DEMUX_CDA_IFACE_VERSION;
   this->demux_plugin.open              = demux_cda_open;
   this->demux_plugin.start             = demux_cda_start;
   this->demux_plugin.seek              = demux_cda_seek;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.55 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_asf.c,v 1.56 2002/09/05 22:18:51 mroi Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1452,7 +1452,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 					_("valid mrls ending for asf demuxer"),
 					NULL, 20, NULL, NULL);
   
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_asf_open;
   this->demux_plugin.start             = demux_asf_start;
   this->demux_plugin.seek              = demux_asf_seek;

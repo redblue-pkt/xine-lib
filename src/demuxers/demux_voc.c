@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.4 2002/09/05 20:44:39 mroi Exp $
+ * $Id: demux_voc.c,v 1.5 2002/09/05 22:18:53 mroi Exp $
  *
  */
 
@@ -473,7 +473,6 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
                                         _("valid mrls ending for voc demuxer"),
                                         NULL, 10, NULL, NULL);
 
-  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_voc_open;
   this->demux_plugin.start             = demux_voc_start;
   this->demux_plugin.seek              = demux_voc_seek;

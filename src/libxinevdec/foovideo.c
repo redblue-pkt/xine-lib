@@ -20,7 +20,7 @@
  * General description and author credits go here...
  * 
  * Leave the following line intact for when the decoder is committed to CVS:
- * $Id: foovideo.c,v 1.5 2002/09/05 20:44:41 mroi Exp $
+ * $Id: foovideo.c,v 1.6 2002/09/05 22:19:02 mroi Exp $
  */
 
 #include <stdio.h>
@@ -67,6 +67,7 @@ typedef struct foovideo_decoder_s {
  *************************************************************************/
 
 /*
+ * FIXME: revise documentation, reflect api changes
  * This function is called by xine to determine which buffer types this
  * decoder knows how to handle. 
  * Parameters:
@@ -251,28 +252,15 @@ static void foovideo_dispose (video_decoder_t *this_gen) {
 /*
  * This function should be the plugin's only advertised function to the
  * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object. The video
- * decoder object also has a priority field which allows different decoder
- * plugins for the same buffer types to coexist peacefully. The higher the
- * priority number, the more precedence a decoder has. E.g., 9 beats 1.
+ * to the necessary functions in the video decoder object.
  */
-static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   foovideo_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "foovideo: plugin doesn't support plugin API version %d.\n"
-            "foovideo: this means there's a version mismatch between xine and this "
-            "foovideo: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
 
   this = (foovideo_decoder_t *) malloc (sizeof (foovideo_decoder_t));
   memset(this, 0, sizeof (foovideo_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = foovideo_can_handle;
   this->video_decoder.init                = foovideo_init;
   this->video_decoder.decode_data         = foovideo_decode_data;
   this->video_decoder.flush               = foovideo_flush;
@@ -280,8 +268,25 @@ static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = foovideo_close;
   this->video_decoder.get_identifier      = foovideo_get_id;
   this->video_decoder.dispose             = foovideo_dispose;
-  this->video_decoder.priority            = 1;
 
   return (video_decoder_t *) this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+static uint32_t video_types[] = { 
+  /* BUF_VIDEO_FOOVIDEO, */
+  0
+};
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

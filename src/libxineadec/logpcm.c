@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.4 2002/09/05 20:44:41 mroi Exp $
+ * $Id: logpcm.c,v 1.5 2002/09/05 22:19:01 mroi Exp $
  *
  */
 
@@ -136,13 +136,6 @@ static int alaw2linear(unsigned char a_val) {
   return ((a_val & SIGN_BIT) ? t : -t);
 }
 
-
-static int logpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
-
-  return (buf_type == BUF_AUDIO_MULAW ||
-          buf_type == BUF_AUDIO_ALAW);
-
-}
 
 static void logpcm_reset (audio_decoder_t *this_gen) {
 }
@@ -250,17 +243,9 @@ static void logpcm_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   logpcm_decoder_t *this;
-  if (iface_version != 9) {
-    printf(_("logpcm: plugin doesn't support plugin API version %d.\n"
-             "logpcm: this means there's a version mismatch between xine and this\n"
-             "logpcm: decoder plugin.\nInstalling current plugins should help.\n"),
-           iface_version);
-
-    return NULL;
-  }
 
   this = (logpcm_decoder_t *) malloc (sizeof (logpcm_decoder_t));
 
@@ -270,8 +255,19 @@ static void *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.close               = logpcm_close;
   this->audio_decoder.get_identifier      = logpcm_get_id;
   this->audio_decoder.dispose             = logpcm_dispose;
-  this->audio_decoder.priority            = 5;
 
   return (audio_decoder_t *) this;
 }
 
+static uint32_t audio_types[] = { BUF_AUDIO_MULAW, BUF_AUDIO_ALAW, 0 };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "Logarithmic PCM", XINE_VERSION_CODE, &dec_info_audio, &init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
