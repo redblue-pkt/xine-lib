@@ -15,6 +15,7 @@ xine-lib (1.0.0-alpha2/beta0)
   * arts audio output plugin ported to new architecture
   * esound audio output plugin ported to new architecture
   * fb video output plugin ported to new architecture
+  * MPEG-4 file (*.mp4) support
 	
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes
