@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.127 2003/06/19 00:47:19 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.128 2003/06/21 22:32:08 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -277,7 +277,9 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   this->skipframes = 0;
   
-  if(this->context->pix_fmt == PIX_FMT_RGBA32) {
+  if((this->context->pix_fmt == PIX_FMT_RGBA32) ||
+     (this->context->pix_fmt == PIX_FMT_RGB565) ||
+     (this->context->pix_fmt == PIX_FMT_RGB555)) {
     this->output_format = XINE_IMGFMT_YUY2;
     init_yuv_planes(&this->yuv, this->context->width, this->context->height);
   } else {
@@ -573,6 +575,64 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
         b = *src; src++;
         g = *src; src++;
         r = *src; src += 2;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
+  } else if (this->context->pix_fmt == PIX_FMT_RGB565) {
+
+    int x, plane_ptr = 0;
+    uint8_t *src;
+    uint16_t pixel16;
+
+    for(y = 0; y < this->context->height; y++) {
+      src = sy;
+      for(x = 0; x < this->context->width; x++) {
+        uint8_t r, g, b;
+              
+        /* a 16-bit RGB565 pixel is supposed to be stored in native-endian
+         * byte order; the following should be endian-safe */
+        pixel16 = *((uint16_t *)src);
+        src += 2;
+        b = (pixel16 << 3) & 0xFF;
+        g = (pixel16 >> 3) & 0xFF;
+        r = (pixel16 >> 8) & 0xFF;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
+  } else if (this->context->pix_fmt == PIX_FMT_RGB555) {
+          
+    int x, plane_ptr = 0;
+    uint8_t *src;
+    uint16_t pixel16;
+            
+    for(y = 0; y < this->context->height; y++) {
+      src = sy;
+      for(x = 0; x < this->context->width; x++) {
+        uint8_t r, g, b;
+              
+        /* a 16-bit RGB555 pixel is supposed to be stored in native-endian
+         * byte order; the following should be endian-safe */
+        pixel16 = *((uint16_t *)src);
+        src += 2;
+        b = (pixel16 << 3) & 0xFF;
+        g = (pixel16 >> 2) & 0xFF;
+        r = (pixel16 >> 7) & 0xFF;
 
         this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
         this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
@@ -1093,7 +1153,10 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if(this->context && this->context->extradata)
     free(this->context->extradata);
 
-  if(this->context && this->context->pix_fmt == PIX_FMT_RGBA32)
+  if((this->context) && 
+   ((this->context->pix_fmt == PIX_FMT_RGBA32) ||
+    (this->context->pix_fmt == PIX_FMT_RGB565) ||
+    (this->context->pix_fmt == PIX_FMT_RGB555)))
     free_yuv_planes(&this->yuv);
   
   if( this->context )
