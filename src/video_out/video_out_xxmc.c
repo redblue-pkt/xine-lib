@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.4 2004/10/12 07:40:23 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.5 2004/10/12 19:43:20 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -405,6 +405,7 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
   this->width = original->width;
   this->height = original->height;
   this->format = original->format;
+  this->ratio = original->ratio;
   
   xxmc_frame_updates(driver,this); 
 
@@ -1460,7 +1461,14 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
    */
 
   xvmc_context_reader_lock( &this->xvmc_lock );
+
   xxmc_add_recent_frame (this, frame); /* deinterlacing */
+
+  if ((frame->format == XINE_IMGFMT_XXMC) &&
+      (!xxmc->decoded || !xxmc_xvmc_surface_valid(this, frame->xvmc_surf))) {
+    xvmc_context_reader_unlock( &this->xvmc_lock );
+    return;
+  }
 
   this->cur_frame = frame;
 
@@ -1483,7 +1491,6 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
   xxmc_redraw_needed (this_gen);
   if (frame->format == XINE_IMGFMT_XXMC) {
-    if (xxmc->decoded && xxmc_xvmc_surface_valid(this, frame->xvmc_surf)) {
       XVMCLOCKDISPLAY( this->display );
       XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
 		      this->sc.displayed_xoffset, this->sc.displayed_yoffset,
@@ -1493,7 +1500,6 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 		      ((this->deinterlace_enabled) ? 
 		       XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
       XVMCUNLOCKDISPLAY( this->display );
-    }
   } else {
     XLockDisplay (this->display);
     if (this->use_shm) {
@@ -1516,7 +1522,6 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
     XUnlockDisplay (this->display);
   }
 
-  this->cur_frame = frame;
   xvmc_context_reader_unlock( &this->xvmc_lock );
 
 }
@@ -1673,16 +1678,16 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
       xine_xxmc_t *xxmc = &frame->xxmc_data;
 
       xxmc_redraw_needed (this_gen);
-
-      /*
-       * Paint colorkey if needed.
-       */
-      
       xxmc_clean_output_area (this);
+
       xvmc_context_reader_lock( &this->xvmc_lock );
+      if ((frame->format == XINE_IMGFMT_XXMC) &&
+	  (!xxmc->decoded || !xxmc_xvmc_surface_valid(this, frame->xvmc_surf))) {
+	xvmc_context_reader_unlock( &this->xvmc_lock );
+	break;
+      }
 
       if (frame->format == XINE_IMGFMT_XXMC) {
-	if (xxmc->decoded && xxmc_xvmc_surface_valid(this, frame->xvmc_surf)) {
 	  XVMCLOCKDISPLAY( this->display );
 	  XvMCPutSurface( this->display, frame->xvmc_surf, this->drawable,
 			  this->sc.displayed_xoffset, this->sc.displayed_yoffset,
@@ -1691,7 +1696,6 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
 			  this->sc.output_width, this->sc.output_height, 
 			  ((this->deinterlace_enabled) ? XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
 	  XVMCUNLOCKDISPLAY( this->display );
-	}
       } else {
 	XLockDisplay (this->display);
 	if (this->use_shm) {
