@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.32 2001/10/08 18:06:34 jkeil Exp $
+ * $Id: input_dvd.c,v 1.33 2001/10/17 20:33:09 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -732,14 +732,13 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 }
 
 
-input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   dvd_input_plugin_t *this;
+  config_values_t    *config;
   int i;
 
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
-  
-  if (iface != 3) {
+  if (iface != 4) {
     printf("dvd input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -747,9 +746,10 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 	   iface);
     return NULL;
   }
-
   
-  this = (dvd_input_plugin_t *) xmalloc (sizeof (dvd_input_plugin_t));
+  this       = (dvd_input_plugin_t *) xmalloc (sizeof (dvd_input_plugin_t));
+  config     = xine->config;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (i = 0; i < MAX_DIR_ENTRIES; i++) {
     this->filelist[i]       = (char *) xmalloc (256);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.9 2001/09/01 14:32:59 guenter Exp $
+ * $Id: demux.h,v 1.10 2001/10/17 20:33:09 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    3
+#define DEMUXER_PLUGIN_IFACE_VERSION    4
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -135,7 +135,7 @@ struct demux_plugin_s
 /*
  * demuxer plugins should provide this (and only this!) function call:
  *
- * demux_plugin_t *init_demux_plugin (int iface_version, config_values_t *cfg);
+ * demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
  */
 
 #ifdef __cplusplus

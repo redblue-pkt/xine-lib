@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.27 2001/10/08 18:06:34 jkeil Exp $
+ * $Id: input_vcd.c,v 1.28 2001/10/17 20:33:09 guenter Exp $
  *
  */
 
@@ -1093,14 +1093,13 @@ static int vcd_plugin_get_optional_data (input_plugin_t *this_gen,
 /*
  *
  */
-input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   vcd_input_plugin_t *this;
-  int i;
+  config_values_t    *config;
+  int                 i;
 
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
-  
-  if (iface != 3) {
+  if (iface != 4) {
     printf("vcd input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -1109,7 +1108,9 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
     
-  this = (vcd_input_plugin_t *) xmalloc(sizeof(vcd_input_plugin_t));
+  this       = (vcd_input_plugin_t *) xmalloc(sizeof(vcd_input_plugin_t));
+  config     = xine->config;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (i = 0; i < 100; i++) {
     this->filelist[i]       = (char *) xmalloc (256);

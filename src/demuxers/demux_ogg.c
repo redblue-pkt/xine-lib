@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.3 2001/10/15 00:49:09 guenter Exp $
+ * $Id: demux_ogg.c,v 1.4 2001/10/17 20:33:09 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -391,11 +391,12 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
   return 0;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
+demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
-  demux_ogg_t *this;
+  demux_ogg_t     *this;
+  config_values_t *config;
 
-  if (iface != 3) {
+  if (iface != 4) {
     printf( "demux_ogg: plugin doesn't support plugin API version %d.\n"
 	    "demux_ogg: this means there's a version mismatch between xine and this "
 	    "demux_ogg: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -403,7 +404,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     return NULL;
   }
 
-  this = xmalloc (sizeof (demux_ogg_t));
+  this        = xmalloc (sizeof (demux_ogg_t));
+  config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.43 2001/10/06 17:40:38 heikos Exp $
+ * $Id: load_plugins.c,v 1.44 2001/10/17 20:33:09 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -96,12 +96,12 @@ void load_demux_plugins (xine_t *this,
 		  str, dlerror());
 	}
 	else {
-	  void *(*initplug) (int, config_values_t *);
+	  void *(*initplug) (int, xine_t *);
 	  
 	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
 	    demux_plugin_t *dxp;
 	      
-	    dxp = (demux_plugin_t *) initplug(iface_version, config);
+	    dxp = (demux_plugin_t *) initplug(iface_version, this);
 	    if (dxp) {
 	      this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
 	    
@@ -172,12 +172,12 @@ void load_input_plugins (xine_t *this,
 	  printf("load_plugins: cannot open input plugin %s:\n%s\n", 
 		 str, dlerror());
 	} else {
-	  void *(*initplug) (int, config_values_t *);
+	  void *(*initplug) (int, xine_t *);
 	  
 	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
 	    input_plugin_t *ip;
 	      
-	    ip = (input_plugin_t *) initplug(iface_version, config);
+	    ip = (input_plugin_t *) initplug(iface_version, this);
 	    if (ip) {
 	      this->input_plugins[this->num_input_plugins] = ip; 
 	    

@@ -455,14 +455,13 @@ static int rtp_plugin_get_optional_data (input_plugin_t *this_gen,
 /*
  *
  */
-input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   rtp_input_plugin_t *this;
-  int bufn;
+  config_values_t    *config;
+  int                 bufn;
 
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
-  
-  if (iface != 3) {
+  if (iface != 4) {
     printf("rtp input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -472,7 +471,9 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   }
 
     
-  this = (rtp_input_plugin_t *) xmalloc(sizeof(rtp_input_plugin_t));
+  this       = (rtp_input_plugin_t *) xmalloc(sizeof(rtp_input_plugin_t));
+  config     = xine->config;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (bufn = 0; bufn < N_BUFFERS; bufn++) {
     input_buffer_t *buf = xmalloc(sizeof(input_buffer_t));

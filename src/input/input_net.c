@@ -296,13 +296,12 @@ static int net_plugin_get_optional_data (input_plugin_t *this_gen,
 /*
  *
  */
-input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
+input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   net_input_plugin_t *this;
+  config_values_t    *config;
 
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
-
-  if (iface != 3) {
+  if (iface != 4) {
     printf("net input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -311,8 +310,10 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 
-  this = (net_input_plugin_t *) xmalloc(sizeof(net_input_plugin_t));
-  
+  this       = (net_input_plugin_t *) xmalloc(sizeof(net_input_plugin_t));
+  config     = xine->config;
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
+
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;
   this->input_plugin.open              = net_plugin_open;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.12 2001/08/17 16:15:36 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.13 2001/10/17 20:33:09 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -33,7 +33,7 @@ extern "C" {
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   3
+#define INPUT_PLUGIN_IFACE_VERSION   4
  
 /*
  * Return pointer of allocate/cleaned memory size *size*.
@@ -308,6 +308,13 @@ struct input_plugin_s
 #define INPUT_EVENT_MOUSEBUTTON 1
 #define INPUT_EVENT_KEYPRESS    2
 #define INPUT_EVENT_MOUSEMOVE   3
+
+/*
+ * each input plugin _must_ implement this function:
+ *
+ * input_plugin_t *init_input_plugin (int iface, xine_t *xine) ;
+ *
+ */
 
 #ifdef __cplusplus
 }
