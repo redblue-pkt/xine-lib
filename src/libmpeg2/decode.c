@@ -111,7 +111,21 @@ static void decode_reorder_frames (mpeg2dec_t * mpeg2dec)
 									 IMGFMT_YV12, 
 									 picture->frame_duration);;
         picture->backward_reference_frame->PTS       = 0;
-        picture->backward_reference_frame->bFrameBad = 1;
+        /*picture->backward_reference_frame->bFrameBad = 1; */
+
+	
+	if (!picture->forward_reference_frame) {
+
+	  picture->forward_reference_frame = mpeg2dec->output->get_frame (mpeg2dec->output,
+									  picture->coded_picture_width,
+									  picture->coded_picture_height, 
+									  picture->aspect_ratio_information,
+									  IMGFMT_YV12, 
+									  picture->frame_duration);;
+	  picture->forward_reference_frame->PTS       = 0;
+	  /*picture->forward_reference_frame->bFrameBad = 1; */
+	}
+	
 
         /*
          * make it the current frame
@@ -126,13 +140,13 @@ static void decode_reorder_frames (mpeg2dec_t * mpeg2dec)
          */
 
         picture->throwaway_frame = mpeg2dec->output->get_frame (mpeg2dec->output,
-									 picture->coded_picture_width,
-									 picture->coded_picture_height, 
-									 picture->aspect_ratio_information,
-									 IMGFMT_YV12, 
-									 picture->frame_duration);;
+								picture->coded_picture_width,
+								picture->coded_picture_height, 
+								picture->aspect_ratio_information,
+								IMGFMT_YV12, 
+								picture->frame_duration);;
         picture->throwaway_frame->PTS       = 0;
-        picture->throwaway_frame->bFrameBad = 1;
+        /*picture->throwaway_frame->bFrameBad = 1; */
 
         /*
          * make it the current frame
@@ -160,14 +174,17 @@ static int parse_chunk (mpeg2dec_t * mpeg2dec, int code, uint8_t * buffer, uint3
     is_frame_done = mpeg2dec->in_slice && ((!code) || (code >= 0xb0));
 
     if (is_frame_done) {
+
 	mpeg2dec->in_slice = 0;
 
 	if ((picture->picture_structure == FRAME_PICTURE) ||
 	    (picture->second_field)) {
 	  if (picture->picture_coding_type == B_TYPE) {
+	    picture->throwaway_frame->bFrameBad = !mpeg2dec->drop_frame;
 	    picture->throwaway_frame->draw (picture->throwaway_frame);
             picture->throwaway_frame->free (picture->throwaway_frame);
  	  } else {
+	    picture->forward_reference_frame->bFrameBad = !mpeg2dec->drop_frame;
 	    picture->forward_reference_frame->draw (picture->forward_reference_frame);
 	  }
 	  bFlipPage = 1;
@@ -199,14 +216,13 @@ static int parse_chunk (mpeg2dec_t * mpeg2dec, int code, uint8_t * buffer, uint3
         switch (picture->picture_coding_type) {
         case B_TYPE:
 	  
-          if (mpeg2dec->frames_to_drop) {
+          if (mpeg2dec->frames_to_drop>0) {
             mpeg2dec->drop_frame = 1;
 	    mpeg2dec->frames_to_drop--;
-          }
-          if (!picture->forward_reference_frame
-              || !picture->backward_reference_frame
-              || picture->forward_reference_frame->bFrameBad 
-              || picture->backward_reference_frame->bFrameBad) {
+          } else if (!picture->forward_reference_frame
+		     || !picture->backward_reference_frame
+		     || picture->forward_reference_frame->bFrameBad 
+		     || picture->backward_reference_frame->bFrameBad) {
             mpeg2dec->drop_frame = 1;
 	    mpeg2dec->frames_to_drop--;
           }
@@ -217,10 +233,8 @@ static int parse_chunk (mpeg2dec_t * mpeg2dec, int code, uint8_t * buffer, uint3
           if (mpeg2dec->frames_to_drop>2) {
             mpeg2dec->drop_frame = 1;
 	    mpeg2dec->frames_to_drop--;
-          }
-	  
-          if (!picture->forward_reference_frame
-              || picture->forward_reference_frame->bFrameBad) {
+          } else if (!picture->forward_reference_frame
+		     || picture->forward_reference_frame->bFrameBad) {
             mpeg2dec->drop_frame = 1;
 	    mpeg2dec->frames_to_drop--;
           }
@@ -268,26 +282,9 @@ static int parse_chunk (mpeg2dec_t * mpeg2dec, int code, uint8_t * buffer, uint3
 	    if (picture->second_field)
 		picture->current_frame->field (picture->current_frame, 
 					       picture->picture_structure);
-	    /*
-	    else {
-		if (picture->picture_coding_type == B_TYPE)
-		    picture->current_frame =
-			vo_get_frame (mpeg2dec->output,
-				      picture->picture_structure);
-		else {
-		    picture->current_frame =
-			vo_get_frame (mpeg2dec->output,
-				      (VO_PREDICTION_FLAG |
-				       picture->picture_structure));
-		    picture->forward_reference_frame =
-			picture->backward_reference_frame;
-		    picture->backward_reference_frame = picture->current_frame;
-		}
-	    }
-	    */
 	}
 
-	if (!(mpeg2dec->drop_frame)) {
+	if (!mpeg2dec->drop_frame) {
 	    slice_process (picture, code, buffer);
 	}
     }
@@ -306,8 +303,6 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     shift = mpeg2dec->shift;
     chunk_ptr = mpeg2dec->chunk_ptr;
     mpeg2dec->pts = pts;
-
-    printf ("mpeg2_decode_data\n");
 
     while (current != end) {
 	while (1) {
@@ -331,7 +326,6 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 
 	/* found start_code following chunk */
 
-	printf ("mpeg2: parse_chunk\n");
 	ret += parse_chunk (mpeg2dec, mpeg2dec->code, mpeg2dec->chunk_buffer, pts);
 
 	/* done with header or slice, prepare for next one */
