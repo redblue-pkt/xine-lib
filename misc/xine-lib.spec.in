@@ -300,8 +300,6 @@ rm -rf $RPM_BUILD_ROOT
 %files docs
 %defattr(-,root,root)
 %{prefix}/share/doc/xine/xine-lib-API/*
-%{prefix}/share/doc/xine/README.xinerc
-%{prefix}/share/doc/xine/README.dxr3
 
 %changelog
 * Thu Sep 27 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
