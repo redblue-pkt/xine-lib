@@ -26,7 +26,7 @@
 
 #include "dvd_reader.h"
 
-#include "config.h" // Needed for WORDS_BIGENDIAN
+#include "config.h" /* Needed for WORDS_BIGENDIAN */
 #include "bswap.h"
 #include "ifo_types.h"
 #include "ifo_read.h"
@@ -636,7 +636,7 @@ static int ifoRead_PGC(ifo_handle_t *ifofile, pgc_t *pgc, unsigned int offset) {
   /* Check that time is 0:0:0:0 also if nr_of_programs == 0 */
   if(pgc->nr_of_programs == 0) {
     CHECK_ZERO(pgc->still_time);
-    CHECK_ZERO(pgc->pg_playback_mode); // ??
+    CHECK_ZERO(pgc->pg_playback_mode); /* ?? */
     assert(pgc->program_map_offset == 0);
     assert(pgc->cell_playback_offset == 0);
     assert(pgc->cell_position_offset == 0);
@@ -822,24 +822,24 @@ int ifoRead_TT_SRPT(ifo_handle_t *ifofile) {
 
   CHECK_ZERO(tt_srpt->zero_1);
   assert(tt_srpt->nr_of_srpts != 0);
-  assert(tt_srpt->nr_of_srpts < 100); // ??
+  assert(tt_srpt->nr_of_srpts < 100); /* ?? */
   assert((int)tt_srpt->nr_of_srpts * sizeof(title_info_t) <= info_length);
   
   for(i = 0; i < tt_srpt->nr_of_srpts; i++) {
     assert(tt_srpt->title[i].pb_ty.zero_1 == 0);
     assert(tt_srpt->title[i].nr_of_angles != 0);
     assert(tt_srpt->title[i].nr_of_angles < 10);
-    //assert(tt_srpt->title[i].nr_of_ptts != 0);
-    // XXX: this assertion breaks Ghostbusters:
-    assert(tt_srpt->title[i].nr_of_ptts < 1000); // ??
+    /* assert(tt_srpt->title[i].nr_of_ptts != 0); */
+    /* XXX: this assertion breaks Ghostbusters: */
+    assert(tt_srpt->title[i].nr_of_ptts < 1000); /* ?? */
     assert(tt_srpt->title[i].title_set_nr != 0);
-    assert(tt_srpt->title[i].title_set_nr < 100); // ??
+    assert(tt_srpt->title[i].title_set_nr < 100); /* ?? */
     assert(tt_srpt->title[i].vts_ttn != 0);
-    assert(tt_srpt->title[i].vts_ttn < 100); // ??
-    //assert(tt_srpt->title[i].title_set_sector != 0);
+    assert(tt_srpt->title[i].vts_ttn < 100); /* ?? */
+    /* assert(tt_srpt->title[i].title_set_sector != 0); */
   }
   
-  // Make this a function
+  /* Make this a function */
 #if 0
   if(memcmp((uint8_t *)tt_srpt->title + 
             tt_srpt->nr_of_srpts * sizeof(title_info_t), 
@@ -903,7 +903,7 @@ int ifoRead_VTS_PTT_SRPT(ifo_handle_t *ifofile) {
 
   CHECK_ZERO(vts_ptt_srpt->zero_1);
   assert(vts_ptt_srpt->nr_of_srpts != 0);
-  assert(vts_ptt_srpt->nr_of_srpts < 100); // ??
+  assert(vts_ptt_srpt->nr_of_srpts < 100); /* ?? */
   
   info_length = vts_ptt_srpt->last_byte + 1 - VTS_PTT_SRPT_SIZE;
   
@@ -978,12 +978,12 @@ int ifoRead_VTS_PTT_SRPT(ifo_handle_t *ifofile) {
   }
   
   for(i = 0; i < vts_ptt_srpt->nr_of_srpts; i++) {
-    assert(vts_ptt_srpt->title[i].nr_of_ptts < 1000); // ??
+    assert(vts_ptt_srpt->title[i].nr_of_ptts < 1000); /* ?? */
     for(j = 0; j < vts_ptt_srpt->title[i].nr_of_ptts; j++) {
       assert(vts_ptt_srpt->title[i].ptt[j].pgcn != 0 );
-      assert(vts_ptt_srpt->title[i].ptt[j].pgcn < 1000); // ??
+      assert(vts_ptt_srpt->title[i].ptt[j].pgcn < 1000); /* ?? */
       assert(vts_ptt_srpt->title[i].ptt[j].pgn != 0);
-      assert(vts_ptt_srpt->title[i].ptt[j].pgn < 100); // ??
+      assert(vts_ptt_srpt->title[i].ptt[j].pgn < 100); /* ?? */
     }
   }
 
@@ -1043,9 +1043,9 @@ int ifoRead_PTL_MAIT(ifo_handle_t *ifofile) {
   info_length = ptl_mait->last_byte + 1 - PTL_MAIT_SIZE;
   
   assert(ptl_mait->nr_of_countries != 0);
-  assert(ptl_mait->nr_of_countries < 100); // ??
+  assert(ptl_mait->nr_of_countries < 100); /* ?? */
   assert(ptl_mait->nr_of_vtss != 0);
-  assert(ptl_mait->nr_of_vtss < 100); // ??  
+  assert(ptl_mait->nr_of_vtss < 100); /* ?? */
   assert(ptl_mait->nr_of_countries * PTL_MAIT_COUNTRY_SIZE <= info_length);
   
   /* Change this to read and 'translate' the tables too. 
@@ -1383,7 +1383,7 @@ static int ifoRead_PGCIT_internal(ifo_handle_t *ifofile, pgcit_t *pgcit,
   /* assert(pgcit->nr_of_pgci_srp != 0);
      Magic Knight Rayearth Daybreak is mastered very strange and has 
      Titles with 0 PTTs. */
-  assert(pgcit->nr_of_pgci_srp < 10000); // ?? seen max of 1338
+  assert(pgcit->nr_of_pgci_srp < 10000); /* ?? seen max of 1338 */
   
   info_length = pgcit->nr_of_pgci_srp * PGCI_SRP_SIZE;
   data = malloc(info_length);
@@ -1504,7 +1504,7 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
   
   CHECK_ZERO(pgci_ut->zero_1);
   assert(pgci_ut->nr_of_lus != 0);
-  assert(pgci_ut->nr_of_lus < 100); // ?? 3-4 ?
+  assert(pgci_ut->nr_of_lus < 100); /* ?? 3-4 ? */
   assert((uint32_t)pgci_ut->nr_of_lus * PGCI_LU_SIZE < pgci_ut->last_byte);
 
   info_length = pgci_ut->nr_of_lus * PGCI_LU_SIZE;
@@ -1539,8 +1539,9 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
   
   for(i = 0; i < pgci_ut->nr_of_lus; i++) {
     CHECK_ZERO(pgci_ut->lu[i].zero_1);
-    // Maybe this is only defined for v1.1 and later titles?
-    /* If the bits in 'lu[i].exists' are enumerated abcd efgh then:
+    /*
+		   Maybe this is only defined for v1.1 and later titles? 
+       If the bits in 'lu[i].exists' are enumerated abcd efgh then:
             VTS_x_yy.IFO        VIDEO_TS.IFO
        a == 0x83 "Root"         0x82 "Title"
        b == 0x84 "Subpicture"
@@ -1578,8 +1579,10 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
       ifofile->pgci_ut = 0;
       return 0;
     }
-    // FIXME: Iterate and verify that all menus that should exists accordingly
-    //        to pgci_ut->lu[i].exists really do?
+    /*
+		 * FIXME: Iterate and verify that all menus that should exists accordingly
+		 * to pgci_ut->lu[i].exists really do?
+		 */
   }
 
   return 1;
@@ -1640,8 +1643,8 @@ static int ifoRead_VTS_ATTRIBUTES(ifo_handle_t *ifofile,
     unsigned int nr_coded;
     assert(vts_attributes->last_byte + 1 >= VTS_ATTRIBUTES_MIN_SIZE);  
     nr_coded = (vts_attributes->last_byte + 1 - VTS_ATTRIBUTES_MIN_SIZE)/6;
-    // This is often nr_coded = 70, how do you know how many there really are?
-    if(nr_coded > 32) { // We haven't read more from disk/file anyway
+    /* This is often nr_coded = 70, how do you know how many there really are? */
+    if(nr_coded > 32) { /* We haven't read more from disk/file anyway */
       nr_coded = 32;
     }
     assert(vts_attributes->nr_of_vtstt_subp_streams <= nr_coded);
@@ -1689,7 +1692,7 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
 
   CHECK_ZERO(vts_atrt->zero_1);
   assert(vts_atrt->nr_of_vtss != 0);
-  assert(vts_atrt->nr_of_vtss < 100); //??
+  assert(vts_atrt->nr_of_vtss < 100); /* ?? */
   assert((uint32_t)vts_atrt->nr_of_vtss * (4 + VTS_ATTRIBUTES_MIN_SIZE) + 
          VTS_ATRT_SIZE < vts_atrt->last_byte + 1);
 
@@ -1730,9 +1733,9 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
       return 0;
     }
 
-    // This assert cant be in ifoRead_VTS_ATTRIBUTES
+    /* This assert cant be in ifoRead_VTS_ATTRIBUTES */
     assert(offset + vts_atrt->vts[i].last_byte <= vts_atrt->last_byte + 1);
-    // Is this check correct?
+    /* Is this check correct? */
   }
   free(data);
 
@@ -1782,7 +1785,7 @@ int ifoRead_TXTDT_MGI(ifo_handle_t *ifofile) {
     return 0;
   }
 
-  // fprintf(stderr, "-- Not done yet --\n");
+  /* fprintf(stderr, "-- Not done yet --\n"); */
   return 1;
 }
 
