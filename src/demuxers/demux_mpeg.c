@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.123 2003/08/19 12:43:46 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.124 2003/10/07 14:58:59 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -74,7 +74,6 @@ typedef struct {
   demux_class_t     demux_class;
 } demux_mpeg_class_t;
 
-#if 0
     /* code never reached, is it still usefull ?? */
 /*
  * borrow a little knowledge from the Quicktime demuxer
@@ -178,7 +177,6 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
     input->seek(input, atom_size, SEEK_CUR);
   }
 }
-#endif
 
 static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
 
@@ -1008,14 +1006,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-#if 0
-    uint8_t buf[MAX_PREVIEW_SIZE];
     off_t mdat_atom_offset = -1;
     int64_t mdat_atom_size = -1;
     unsigned int fourcc_tag;
     int i, j;
     int ok = 0;
-#endif
     uint8_t buf[4];
 
     /* use demux_mpeg_block for block devices */
@@ -1030,13 +1025,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (!buf[0] && !buf[1] && (buf[2] == 0x01)
           && (buf[3] == 0xba)) /* if so, take it */
         break;
-     }
-    free (this);
-    return NULL;
+    } else {
+      free (this);
+      return NULL;
+    }
 
-
-#if 0
-    /* code never reached, is it still usefull ?? */
+    /* the special cases need seeking */
+    if (!INPUT_IS_SEEKABLE(input)) {
+      free (this);
+      return NULL;
+    }
 
     /* special case for MPEG streams hidden inside QT files; check
      * is there is an mdat atom  */
@@ -1050,7 +1048,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 	input->seek(input, mdat_atom_offset + 8, SEEK_SET);
 
       /* go through the same MPEG detection song and dance */
-      if (input->read(input, buf, 6)) {
+      if (input->read(input, buf, 4) == 4) {
 
         if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
 	    && (buf[3] == 0xba)) /* if so, take it */
@@ -1060,11 +1058,23 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
+    
+    /* reset position for next check */
+    if (input->seek(input, 0, SEEK_SET) != 0) {
+      free (this);
+      return NULL;
+    }
 
     /* special case for MPEG streams with a RIFF header */
     fourcc_tag = BE_32(&buf[0]);
     if (fourcc_tag == RIFF_TAG) {
-      fourcc_tag = BE_32(&buf[8]);
+      uint8_t large_buf[1024];
+      
+      if (input->read(input, large_buf, 12) != 12) {
+        free(this);
+        return NULL;
+      }
+      fourcc_tag = BE_32(&large_buf[8]);
       /* disregard the RIFF file if it is certainly a better known
        * format like AVI or WAVE */
       if ((fourcc_tag == WAVE_TAG) ||
@@ -1080,10 +1090,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
        * be extra lazy and do not bother skipping over the data 
        * header. */
       for (i = 0; i < RIFF_CHECK_KILOBYTES && !ok; i++) {
-	if (input->read(input, buf, 1024) != 1024)
+	if (input->read(input, large_buf, 1024) != 1024)
 	  break;
 	for (j = 0; j < 1024 - 4; j++) {
-	  if (BE_32(&buf[j]) == MPEG_MARKER) {
+	  if (BE_32(&large_buf[j]) == MPEG_MARKER) {
 	    ok = 1;
 	    break;
 	  }
@@ -1094,7 +1104,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
     free (this);
     return NULL;
-#endif
   }
 
   case METHOD_BY_EXTENSION: {
