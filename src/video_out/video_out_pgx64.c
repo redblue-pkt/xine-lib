@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.67 2004/06/18 23:52:15 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.68 2004/06/19 14:51:31 komadori Exp $
  *
  * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
@@ -187,7 +187,7 @@ typedef enum {
 
 typedef enum {
   BUF_MODE_MULTI,
-  BUF_MODE_NOT_MULTI,
+  BUF_MODE_MULTI_FAILED,
   BUF_MODE_SINGLE,
   BUF_MODE_DOUBLE
 } buf_mode_t;
@@ -654,7 +654,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->buf_mode = BUF_MODE_MULTI;
     }
     else {
-      this->buf_mode = BUF_MODE_NOT_MULTI;
+      this->buf_mode = BUF_MODE_MULTI_FAILED;
     }
   }
 
@@ -790,7 +790,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (this->buf_mode == BUF_MODE_MULTI) {
     int i;
 
-    if (frame->vo_frame.proc_slice != pgx64_frame_proc_slice) {
+    if (frame->vo_frame.proc_frame != pgx64_frame_proc_frame) {
       for (i=0; i<frame->planes; i++) {
         if ((frame->buffers[i] = vram_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
@@ -800,7 +800,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
           else {
             xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, multi-buffering disabled\n"));
             vram_reset(this);
-            this->buf_mode = BUF_MODE_NOT_MULTI;
+            this->buf_mode = BUF_MODE_MULTI_FAILED;
             break;
           }
         }
@@ -810,10 +810,12 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
         }
       }
 
-      frame->vo_frame.proc_frame = pgx64_frame_proc_frame;
-      frame->vo_frame.proc_slice = pgx64_frame_proc_slice;
-      _x_assert(this->multibuf_frames < MAX_MULTIBUF_FRAMES);
-      this->multibuf[this->multibuf_frames++] = frame;
+      if (this->buf_mode == BUF_MODE_MULTI) {
+        frame->vo_frame.proc_frame = pgx64_frame_proc_frame;
+        frame->vo_frame.proc_slice = pgx64_frame_proc_slice;
+        _x_assert(this->multibuf_frames < MAX_MULTIBUF_FRAMES);
+        this->multibuf[this->multibuf_frames++] = frame;
+      }
     }
 
     for (i=0; i<frame->planes; i++) {
@@ -824,7 +826,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (this->buf_mode != BUF_MODE_MULTI) {
     int i;
 
-    if (this->buf_mode == BUF_MODE_NOT_MULTI) {
+    if (this->buf_mode == BUF_MODE_MULTI_FAILED) {
       for (i=0; i<frame->planes; i++) {
         if ((this->buffers[0][i] = vram_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: insuffucient video memory\n"));

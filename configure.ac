@@ -2303,7 +2303,7 @@ if test x"$no_x" != "xyes"; then
   fi
   if test x$ac_have_sunfb = "xyes"; then
     if test x$ac_have_sundga = "xyes"; then
-      echo "   - PGX64 (for Sun PGX64/PGX24 cards)"
+      echo "   - PGX64 (for Sun XVR100/PGX64/PGX24 cards)"
       echo "   - PGX32 (for Sun PGX32 cards)"
     fi
   fi

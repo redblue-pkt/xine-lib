@@ -85,7 +85,8 @@ Known Problems
 
       feature.shm = 0
 
-  - configure and build xine-ui with option "--disable-shm"
+  - configure and build xine-ui with option "--disable-shm" or
+    "--disable-shm-default"
 
   - increase shmsys:shminfo_shmseg to at least 768
 
@@ -132,4 +133,4 @@ Known Problems
 
 --- 
 version of this file:
- $Id: README.solaris,v 1.13 2003/01/05 13:11:53 guenter Exp $
+ $Id: README.solaris,v 1.14 2004/06/19 14:51:31 komadori Exp $
