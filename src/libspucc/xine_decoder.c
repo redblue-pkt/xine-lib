@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/12/06 17:24:20 mroi Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/12/08 15:50:35 mroi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -292,7 +292,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     case XINE_EVENT_FRAME_FORMAT_CHANGE:
       {
         xine_format_change_data_t *frame_change = 
-          (xine_format_change_data_t *)event;
+          (xine_format_change_data_t *)event->data;
         
         spucc_notify_frame_change(this, frame_change->width,
 				  frame_change->height);
