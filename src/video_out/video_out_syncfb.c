@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.65 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: video_out_syncfb.c,v 1.66 2002/05/02 00:07:46 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -42,7 +42,6 @@
 
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/shm.h>
 #include <math.h>
 #include <fcntl.h>
 
@@ -57,9 +56,7 @@
 #include "alphablend.h"
 #include "xineutils.h"
 
-/*
-#define LOG
-*/
+/*#define DEBUG_OUTPUT*/
 
 typedef struct syncfb_driver_s syncfb_driver_t;
 
@@ -71,8 +68,8 @@ typedef struct {
 
 typedef struct {
   vo_frame_t         vo_frame;
-
-  int                width, height, ratio_code, format, id;
+/*  uint8_t*           data_mem[3];*/
+  int                width, height, ratio_code, format;
 } syncfb_frame_t;
 
 struct syncfb_driver_s {
@@ -91,7 +88,7 @@ struct syncfb_driver_s {
 
   /* display anatomy */
   double             display_ratio;        /* given by visual parameter
-					      from init function              */
+					      from init function */
  
   int                virtual_screen_width;
   int                virtual_screen_height;
@@ -143,7 +140,7 @@ struct syncfb_driver_s {
 
   int                ideal_width, ideal_height;
   double             ratio_factor;         /* output frame must fullfill:
-					      height = width * ratio_factor   */
+					      height = width * ratio_factor */
 
   /*
    * "gui" size / offset:
@@ -211,12 +208,12 @@ int syncfb_overlay_off(syncfb_driver_t* this)
 
 static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
-   uint_8*  y  = (uint_8 *)frame->vo_frame.base[0];
-   uint_8*  cb = (uint_8 *)frame->vo_frame.base[1];
-   uint_8*  cr = (uint_8 *)frame->vo_frame.base[2];
-   uint_8*  crp;
-   uint_8*  cbp;
-   uint_32* dst32 = (uint_32 *)(this->video_mem + this->bufinfo.offset);
+   uint8_t*  y  = (uint_8 *)frame->vo_frame.base[0];
+   uint8_t*  cb = (uint_8 *)frame->vo_frame.base[1];
+   uint8_t*  cr = (uint_8 *)frame->vo_frame.base[2];
+   uint8_t*  crp;
+   uint8_t*  cbp;
+   uint32_t* dst32 = (uint32_t *)(this->video_mem + this->bufinfo.offset);
    int h,w;
    int bespitch = (frame->width + 31) & ~31; 
 
@@ -242,26 +239,26 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
 
 static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
 {   
-   uint_8*  y    = (uint_8 *)frame->vo_frame.base[0];
-   uint_8*  cb   = (uint_8 *)frame->vo_frame.base[1];
-   uint_8*  cr   = (uint_8 *)frame->vo_frame.base[2];
-   uint_8*  dst8 = this->video_mem + this->bufinfo.offset_p2;
+   uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
+   uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
+   uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
+   uint8_t* dst8 = this->video_mem + this->bufinfo.offset_p2;
    int h, w;
    int bespitch = (frame->width + 31) & ~31; 
    
-   register uint_32 *tmp32;
-   register uint_8  *rcr;
-   register uint_8  *rcb;
+   register uint32_t* tmp32;
+   register uint8_t*  rcr;
+   register uint8_t*  rcb;
 
    rcr = cr;
    rcb = cb;
 	
    for(h = 0; h < (frame->height / 2); h++) {
-      tmp32 = (uint_32 *)dst8;
+      tmp32 = (uint32_t *)dst8;
       w = (frame->width / 8) * 2;
       
       while(w--) {
-	 register uint_32 temp;
+	 register uint32_t temp;
 	 
 	 temp = (*rcb) | (*rcr << 8);
 	 rcr++;
@@ -286,10 +283,10 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
 
 static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
 {   
-   uint_8*  y    = (uint_8 *)frame->vo_frame.base[0];
-   uint_8*  cb   = (uint_8 *)frame->vo_frame.base[1];
-   uint_8*  cr   = (uint_8 *)frame->vo_frame.base[2];
-   uint_8*  dst8 = this->video_mem + this->bufinfo.offset;
+   uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
+   uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
+   uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
+   uint8_t* dst8 = this->video_mem + this->bufinfo.offset;
    int h;
    int bespitch = (frame->width + 31) & ~31; 
 
@@ -308,13 +305,13 @@ static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
       cr   += (frame->width / 2);
       
       dst8 += (bespitch / 2);
-   }
+   }   
 }
 
 static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
 {   
-   uint_8* src8 = (uint_8 *)frame->vo_frame.base[0];
-   uint_8* dst8 = (uint_8 *)(this->video_mem + this->bufinfo.offset);
+   uint8_t* src8 = (uint8_t *)frame->vo_frame.base[0];
+   uint8_t* dst8 = (uint8_t *)(this->video_mem + this->bufinfo.offset);
    int h;
    int bespitch = (frame->width + 31) & ~31; 
 
@@ -358,110 +355,40 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
    }
 }
 
-static uint32_t syncfb_get_capabilities (vo_driver_t *this_gen)
+void free_framedata(syncfb_frame_t* frame)
 {
-  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
-
-  return this->supported_capabilities;
-}
-
-static void syncfb_frame_field (vo_frame_t *vo_img, int which_field)
-{
-  /* not needed for SyncFB */
-}
-
-static void syncfb_frame_dispose (vo_frame_t *vo_img)
-{
-  syncfb_frame_t  *frame = (syncfb_frame_t *) vo_img;
-   
-  if(frame->vo_frame.base[0]) {
-    shmdt(frame->vo_frame.base[0]);
-    shmctl(frame->id,IPC_RMID,NULL);
-    frame->vo_frame.base[0] = NULL;
-  }
-
-  free (frame);
-}
-
-static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
-{
-  syncfb_frame_t* frame;
-  
-  frame = (syncfb_frame_t *) malloc(sizeof(syncfb_frame_t));
-
-  if(frame == NULL) {
-    printf("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
-  } else {
-    memset(frame, 0, sizeof(syncfb_frame_t));
-    pthread_mutex_init(&frame->vo_frame.mutex, NULL);
-
-    /*
-     * supply required functions
-     */
-    frame->vo_frame.copy    = NULL;
-    frame->vo_frame.field   = syncfb_frame_field;
-    frame->vo_frame.dispose = syncfb_frame_dispose;
-
-    frame->vo_frame.driver  = this_gen;
-  }
-
-  return (vo_frame_t *) frame;
-}
-
-static void syncfb_update_frame_format (vo_driver_t *this_gen,
-				    vo_frame_t *frame_gen,
-				    uint32_t width, uint32_t height,
-				    int ratio_code, int format, int flags)
-{
-  syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
-
-   if((frame->width != width)
-      || (frame->height != height)
-      || (frame->format != format)) {
-
-      if(frame->vo_frame.base[0]) {
-	 shmdt(frame->vo_frame.base[0]);
-	 shmctl(frame->id,IPC_RMID,NULL);
-	 frame->vo_frame.base[0] = NULL;
-      }
-      
-      frame->width  = width;
-      frame->height = height;
-      frame->format = format;
-      
-      /*
-       * we only know how to do 4:2:0 planar yuv right now.
-       * we prepare for YUY2 sizes
-       */
-      frame->id = shmget(IPC_PRIVATE, frame->width * frame->height * 2, IPC_CREAT | 0777);
-      
-      if(frame->id < 0 ) {
-	 printf("video_out_syncfb: aborted. (shared memory error in shmget)\n");
-	 abort();
-      }
-      
-      frame->vo_frame.base[0] = shmat(frame->id, 0, 0);   
-      
-      if(frame->vo_frame.base[0] == NULL) {
-	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
-	 abort();
-      }
-  
-      if(frame->vo_frame.base[0] == (void *) -1) {
-	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
-	 abort();
-      }
-      
-      shmctl(frame->id, IPC_RMID, 0);
-      
-      frame->vo_frame.base[1] = frame->vo_frame.base[0] + width * height * 5 / 4;
-      frame->vo_frame.base[2] = frame->vo_frame.base[0] + width * height;
+/*   if(frame->data_mem[0]) {
+      free(frame->data_mem[0]);
+      frame->data_mem[0] = NULL;
    }
 
-  frame->ratio_code = ratio_code;
+   if(frame->data_mem[1]) {
+      free(frame->data_mem[1]);
+      frame->data_mem[1] = NULL;
+   }
+
+   if(frame->data_mem[2]) {
+      free(frame->data_mem[2]);
+      frame->data_mem[2] = NULL;
+   }*/
+   
+   if(frame->vo_frame.base[0]) {
+      free(frame->vo_frame.base[0]);
+      frame->vo_frame.base[0] = NULL;
+   }
+
+   if(frame->vo_frame.base[1]) {
+      free(frame->vo_frame.base[1]);
+      frame->vo_frame.base[1] = NULL;
+   }
+
+   if(frame->vo_frame.base[2]) {
+      free(frame->vo_frame.base[2]);
+      frame->vo_frame.base[2] = NULL;
+   }
 }
 
-static void syncfb_clean_output_area (syncfb_driver_t *this)
+static void syncfb_clean_output_area(syncfb_driver_t* this)
 {
   XLockDisplay (this->display);
 
@@ -512,9 +439,9 @@ static void syncfb_compute_ideal_size (syncfb_driver_t *this)
       desired_ratio = image_ratio;
       break;
     case 0:                             /* forbidden -> 4:3 */
-      printf ("video_out_syncfb: invalid ratio, using 4:3\n");
+      printf("video_out_syncfb: error. (invalid ratio, using 4:3)\n");
     default:
-      printf ("video_out_syncfb: unknown aspect ratio (%d) in stream => using 4:3\n",
+      printf("video_out_syncfb: error. (unknown aspect ratio (%d) in stream: using 4:3)\n",
 	      this->delivered_ratio_code);
     case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
       desired_ratio = 4.0 / 3.0;
@@ -555,10 +482,7 @@ static void syncfb_compute_ideal_size (syncfb_driver_t *this)
   }
 }
 
-
-/*
- * make ideal width/height "fit" into the gui
- */
+/* make ideal width/height "fit" into the gui */
 static void syncfb_compute_output_size(syncfb_driver_t *this)
 {
   double x_factor, y_factor;
@@ -577,10 +501,10 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
   this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
   this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
 
-#ifdef LOG
-  printf ("video_out_syncfb: frame source %d x %d => screen output %d x %d\n",
-	  this->delivered_width, this->delivered_height,
-	  this->output_width, this->output_height);
+#ifdef DEBUG_OUTPUT
+  printf("video_out_syncfb: debug. (frame source %d x %d, screen output %d x %d)\n",
+	 this->delivered_width, this->delivered_height,
+	 this->output_width, this->output_height);
 #endif
 
    /*
@@ -594,7 +518,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
    if(this->output_xoffset >= 0 && this->output_yoffset >= 0 && 
       this->cur_frame->width > 0 && this->cur_frame->height > 0 && 
       this->output_width > 0 && this->output_height > 0 && 
-      this->cur_frame->format > 0 && this->video_win_visibility) {      
+      this->cur_frame->format > 0 && this->video_win_visibility) {
 	
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
@@ -608,12 +532,11 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
        case IMGFMT_YV12:
 	 this->syncfb_config.src_palette = this->yuv_format;
 	 break;
-	  
        case IMGFMT_YUY2:
 	 this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
 	 break;
-       
        default:
+	 printf("video_out_syncfb: error. (unknown frame format)\n");
 	 this->syncfb_config.src_palette = 0;
 	 break;
       }
@@ -644,23 +567,14 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
    }
 }
 
-static void syncfb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay)
-{
-   syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
-   
-   /* alpha blend here */
-   if(overlay->rle) {
-      if(frame->format == IMGFMT_YV12)
-	blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
-      else
-	blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
-   }
-}
+/*
+ * public functions defined and used by the xine interface
+ */
 
 static int syncfb_redraw_needed(vo_driver_t* this_gen)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
-   
+
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
   
@@ -672,7 +586,7 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
   if((gui_x != this->gui_x) || (gui_y != this->gui_y)
      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y)) {
-
+     
     this->gui_x      = gui_x;
     this->gui_y      = gui_y;
     this->gui_width  = gui_width;
@@ -690,10 +604,122 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
   return ret;
 }
 
-static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
+static uint32_t syncfb_get_capabilities (vo_driver_t *this_gen)
 {
-  syncfb_driver_t  *this  = (syncfb_driver_t *) this_gen;
-  syncfb_frame_t   *frame = (syncfb_frame_t *) frame_gen;
+  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+
+  return this->supported_capabilities;
+}
+
+static void syncfb_frame_field (vo_frame_t *vo_img, int which_field)
+{
+  /* not needed for SyncFB */
+}
+
+static void syncfb_frame_dispose(vo_frame_t* vo_img)
+{
+  syncfb_frame_t* frame = (syncfb_frame_t *) vo_img;
+  
+  if(frame) {
+    free_framedata(frame);
+    free(frame);
+  }
+}
+
+static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
+{
+  syncfb_frame_t* frame;
+  
+  frame = (syncfb_frame_t *) xine_xmalloc(sizeof(syncfb_frame_t));
+   
+  if(frame == NULL)
+    printf("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
+  else {
+    pthread_mutex_init(&frame->vo_frame.mutex, NULL);
+
+    /*
+     * supply required functions
+     */
+    frame->vo_frame.copy    = NULL;
+    frame->vo_frame.field   = syncfb_frame_field;
+    frame->vo_frame.dispose = syncfb_frame_dispose;
+
+    frame->vo_frame.driver  = this_gen;
+  }
+
+  return (vo_frame_t *) frame;
+}
+
+static void syncfb_update_frame_format(vo_driver_t* this_gen,
+				       vo_frame_t* frame_gen,
+				       uint32_t width, uint32_t height,
+				       int ratio_code, int format, int flags)
+{
+   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+   uint32_t frame_size   = width*height;
+   
+   if((frame->width != width)
+      || (frame->height != height)
+      || (frame->format != format)) {
+
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (update frame format: old values [width=%d, height=%d, format=%04x], new values [width=%d, height=%d, format=%04x])\n", frame->width, frame->height, frame->format, width, height, format);
+#endif
+      free_framedata(frame);
+      
+      frame->width  = width;
+      frame->height = height;
+      frame->format = format;
+
+      switch(format) {
+       case IMGFMT_YV12:
+/*	 frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame_size, (void **)&frame->data_mem[0]);
+         frame->vo_frame.base[1] = xine_xmalloc_aligned(16, frame_size/4, (void **)&frame->data_mem[1]);
+	 frame->vo_frame.base[2] = xine_xmalloc_aligned(16, frame_size/4, (void **)&frame->data_mem[2]);*/
+	 frame->vo_frame.base[0] = malloc(frame_size);
+         frame->vo_frame.base[1] = malloc(frame_size/4);
+	 frame->vo_frame.base[2] = malloc(frame_size/4);
+	 break;
+       case IMGFMT_YUY2:
+/*	 frame->vo_frame.base[0] = xine_xmalloc_aligned(16, (frame_size*2), (void **)&frame->data_mem[0]);*/
+	 frame->vo_frame.base[0] = malloc(frame_size*2);
+	 frame->vo_frame.base[1] = NULL;
+	 frame->vo_frame.base[2] = NULL;
+	 break;
+       default:
+	 printf("video_out_syncfb: error. (unable to allocate framedata because of unknown frame format: %04x)\n", format);
+      }
+      
+/*      if((format == IMGFMT_YV12 && (frame->data_mem[0] == NULL || frame->data_mem[1] == NULL || frame->data_mem[2] == NULL))
+	 || (format == IMGFMT_YUY2 && frame->data_mem[0] == NULL)) {*/
+      if((format == IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
+	 || (format == IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
+	 printf("video_out_syncfb: error. (framedata allocation failed: out of memory)\n");
+	 
+	 free_framedata(frame);
+      }
+   }
+
+  frame->ratio_code = ratio_code;
+}
+
+static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
+{
+   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+   
+   /* alpha blend here */
+   if(overlay->rle) {
+      if(frame->format == IMGFMT_YV12)
+	blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
+      else
+	blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
+   }
+}
+
+static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
+{
+  syncfb_driver_t* this  = (syncfb_driver_t *) this_gen;
+  syncfb_frame_t*  frame = (syncfb_frame_t *) frame_gen;
 
   this->cur_frame = frame;
 
@@ -704,8 +730,8 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
    if((frame->width != this->delivered_width)
       || (frame->height != this->delivered_height)
       || (frame->ratio_code != this->delivered_ratio_code)) {
-#ifdef LOG
-      printf("video_out_syncfb: frame format changed\n");
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (frame format changed)\n");
 #endif
 
       this->delivered_width      = frame->width;
@@ -727,6 +753,8 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
    if(this->overlay_state) {
       if(this->bufinfo.id != -1) {
 	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
+	 frame->vo_frame.displayed(&frame->vo_frame);
+
 	 return;
       }
       
@@ -750,69 +778,71 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
    this->bufinfo.id = -1;   
 }
 
-static int syncfb_get_property (vo_driver_t *this_gen, int property)
+static int syncfb_get_property(vo_driver_t* this_gen, int property)
 {
-  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   return this->props[property].value;
 }
 
-static void syncfb_property_callback (void *property_gen, cfg_entry_t *entry)
+static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
 {
-  /* syncfb_property_t *property = (syncfb_property_t *) property_gen; */
-}
-
-static int syncfb_set_property (vo_driver_t *this_gen,
-			    int property, int value)
-{
-  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   switch (property) {
     case VO_PROP_INTERLACED:
       this->props[property].value = value;
-     
-      printf("video_out_syncfb: VO_PROP_INTERLACED(%d)\n", 
+
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (VO_PROP_INTERLACED(%d))\n", 
 	     this->props[property].value);
+#endif
      
-      syncfb_compute_ideal_size (this);
-      syncfb_compute_output_size (this);
-      syncfb_clean_output_area (this);     
+      syncfb_compute_ideal_size(this);
+      syncfb_compute_output_size(this);
+      syncfb_clean_output_area(this);     
       break;
      
     case VO_PROP_ASPECT_RATIO:
-      if(value>=NUM_ASPECT_RATIOS)
+      if(value >= NUM_ASPECT_RATIOS)
 	value = ASPECT_AUTO;
 
       this->props[property].value = value;
-     
-      printf("video_out_syncfb: VO_PROP_ASPECT_RATIO(%d)\n",
+
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (VO_PROP_ASPECT_RATIO(%d))\n",
 	     this->props[property].value);
+#endif
 
-      syncfb_compute_ideal_size (this);
-      syncfb_compute_output_size (this);
-      syncfb_clean_output_area (this);
-
+      syncfb_compute_ideal_size(this);
+      syncfb_compute_output_size(this);
+      syncfb_clean_output_area(this);
       break;
      
     case VO_PROP_ZOOM_FACTOR:
-
-      printf ("video_out_syncfb: VO_PROP_ZOOM %d <=? %d <=? %d\n",
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (VO_PROP_ZOOM %d <=? %d <=? %d)\n",
 	      VO_ZOOM_MIN, value, VO_ZOOM_MAX);
+#endif
 
+/*
       if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
         this->props[property].value = value;
         printf ("video_out_syncfb: VO_PROP_ZOOM = %d\n",
 		this->props[property].value);
 	           
 	syncfb_compute_ideal_size (this);
-      }
-      break;
+*/
+     printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)");
+     break;
      
     case VO_PROP_CONTRAST:
       this->props[property].value = value;
 
-      printf("video_out_syncfb: VO_PROP_CONTRAST(%d) \n",
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (VO_PROP_CONTRAST(%d))\n",
              this->props[property].value);
+#endif
 
       this->params.contrast     = value;
       this->params.brightness   = this->props[VO_PROP_BRIGHTNESS].value;
@@ -821,17 +851,19 @@ static int syncfb_set_property (vo_driver_t *this_gen,
       this->params.image_xorg   = this->syncfb_config.image_xorg;
       this->params.image_yorg   = this->syncfb_config.image_yorg;
       
-      if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params)) {
+      if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params))
 	 printf("video_out_syncfb: error. (setting of contrast value failed)\n");
-      }
+
       break;
 
     case VO_PROP_BRIGHTNESS:
       this->props[property].value = value;
 
-      printf("video_out_syncfb: VO_PROP_BRIGHTNESS(%d) \n",
+#ifdef DEBUG_OUTPUT
+      printf("video_out_syncfb: debug. (VO_PROP_BRIGHTNESS(%d))\n",
              this->props[property].value);
-
+#endif
+     
       this->params.brightness   = value;
       this->params.contrast     = this->props[VO_PROP_CONTRAST].value;
       this->params.image_width  = this->syncfb_config.image_width;       /* FIXME */
@@ -839,28 +871,27 @@ static int syncfb_set_property (vo_driver_t *this_gen,
       this->params.image_xorg   = this->syncfb_config.image_xorg;
       this->params.image_yorg   = this->syncfb_config.image_yorg;
     
-      if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params)) {
+      if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params))
 	 printf("video_out_syncfb: error. (setting of brightness value failed)\n");
-      }
-
+     
       break;
   } 
 
   return value;
 }
 
-static void syncfb_get_property_min_max (vo_driver_t *this_gen,
-				     int property, int *min, int *max)
+static void syncfb_get_property_min_max(vo_driver_t *this_gen, 
+					int property, int *min, int *max)
 {
-  syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
 
   *min = this->props[property].min;
   *max = this->props[property].max;
 }
 
-static void syncfb_translate_gui2video(syncfb_driver_t *this,
-				   int x, int y,
-				   int *vid_x, int *vid_y)
+/* taken from the Xv video-out plugin */
+static void syncfb_translate_gui2video(syncfb_driver_t *this, int x, int y,
+				       int *vid_x, int *vid_y)
 {
   if (this->output_width > 0 && this->output_height > 0) {
     /*
@@ -886,43 +917,35 @@ static void syncfb_translate_gui2video(syncfb_driver_t *this,
   *vid_y = y;
 }
 
-static int syncfb_gui_data_exchange (vo_driver_t *this_gen,
-				 int data_type, void *data)
+static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
+				    void *data)
 {
-  syncfb_driver_t     *this = (syncfb_driver_t *) this_gen;
-  
+  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
+   
   switch (data_type) {
+   case GUI_DATA_EX_DRAWABLE_CHANGED:
+     this->drawable = (Drawable) data;
+     this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
+     break;
+   case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO: {
+     int x1, y1, x2, y2;
+     x11_rectangle_t *rect = data;
 
-  case GUI_DATA_EX_DRAWABLE_CHANGED:
-    this->drawable = (Drawable) data;
-    this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
-    break;
-
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
-    {
-      int x1, y1, x2, y2;
-      x11_rectangle_t *rect = data;
-
-      syncfb_translate_gui2video(this, rect->x, rect->y,
-			     &x1, &y1);
-      syncfb_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h,
-			     &x2, &y2);
-      rect->x = x1;
-      rect->y = y1;
-      rect->w = x2-x1;
-      rect->h = y2-y1;
-    }
-    break;
-     
-  case GUI_DATA_EX_VIDEOWIN_VISIBLE:
-    {
-      this->video_win_visibility = (int)(int *)data;
-      syncfb_compute_output_size(this);
-    }   
-    break;
-     
-  default:
-    return -1;
+     syncfb_translate_gui2video(this, rect->x, rect->y, &x1, &y1);
+     syncfb_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h, 
+				&x2, &y2);
+     rect->x = x1;
+     rect->y = y1;
+     rect->w = x2-x1;
+     rect->h = y2-y1;
+   }
+     break;
+   case GUI_DATA_EX_VIDEOWIN_VISIBLE:
+     this->video_win_visibility = (int)(int *)data;
+     syncfb_compute_output_size(this);
+     break;
+   default:
+     return -1;
   }
 
   return 0;
@@ -955,15 +978,14 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
    device_name = config->register_string(config, "video.syncfb_device", "/dev/syncfb",
 					 "syncfb (teletux) device node", NULL, NULL, NULL);
    
-   if(!(this = malloc (sizeof (syncfb_driver_t)))) {
-      printf("video_out_syncfb: aborting. (malloc failed)\n");
+   if(!(this = xine_xmalloc(sizeof (syncfb_driver_t)))) {
+      printf("video_out_syncfb: aborting. (allocation of syncfb_driver_t failed: out of memory)\n");
       return NULL;
    }
-   memset(this, 0, sizeof(syncfb_driver_t));
  
    /* check for syncfb device */
    if((this->fd = open(device_name, O_RDWR)) < 0) {
-      printf("video_out_syncfb: aborting. (unable to open device \"%s\")\n", device_name);
+      printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", device_name);
       free(this);
       return NULL;
    }
@@ -981,6 +1003,15 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
    /* mmap whole video memory */
    this->video_mem = (uint8_t *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
 
+   if(this->video_mem == MAP_FAILED) {
+      printf("video_out_syncfb: aborting. (mmap of video memory failed)\n");
+      
+      close(this->fd);
+      free(this);
+      
+      return NULL;
+   }
+	
    /*
     * init properties and capabilities
     */   
@@ -1005,31 +1036,32 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV420P3;
-      printf("video_out_syncfb: SyncFB module supports YUV 4:2:0 (3 plane).\n");
+      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (3 plane))\n");
    } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV420P2;
-      printf("video_out_syncfb: SyncFB module supports YUV 4:2:0 (2 plane)\n");
+      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (2 plane))\n");
    } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {	   
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV422;
-      printf("video_out_syncfb: SyncFB module supports YUV 4:2:2.\n");   
+      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:2)\n");   
    }
    
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {
       this->supported_capabilities |= VO_CAP_YUY2;
-      printf("video_out_syncfb: SyncFB module supports YUY2.\n");
+      printf("video_out_syncfb: info. (SyncFB module supports YUY2)\n");
    }
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_RGB565)) {
      /* FIXME: no RGB support yet
       *      this->supported_capabilities |= VO_CAP_RGB;
       */
-      printf("video_out_syncfb: SyncFB module supports RGB565.\n");
+      printf("video_out_syncfb: info. (SyncFB module supports RGB565)\n");
    }
 
    if(!this->supported_capabilities) {
       printf("video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor RGB565)\n");
       
+      munmap(0, this->capabilities.memory_size);   
       close(this->fd);
       free(this);
       
@@ -1050,18 +1082,25 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       printf("video_out_syncfb: info. (brightness/contrast control won\'t be available because your SyncFB kernel module seems to be outdated. Please refer to README.syncfb for informations on how to update it.)\n");
    }
 
-  // check for virtual screen size and screen depth - this is rather important
-  // because that data is later used for free memory calculation
+  /* check for virtual screen size and screen depth - this is rather important
+     because that data is later used for free memory calculation */
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);
    
   this->virtual_screen_height = attr.height;
   this->virtual_screen_width  = attr.width;
   this->screen_depth          = attr.depth;
   
-  // initialize the rest of the variables now with default values
+  /* initialize the rest of the variables now with default values */
   this->bufinfo.id           = -1;
   this->config               = config;
+  this->cur_frame            = NULL;
+   
+  /* FIXME: setting the default_repeat to anything higher than 1 will result
+            in a distorted video, so for now, set this manually to 1 until
+            the kernel driver is fixed... */
   this->default_repeat       = config->register_range(config, "video.syncfb_default_repeat", 3, 1, 4, "default frame repeat for SyncFB", NULL, NULL, NULL);
+  this->default_repeat       = 0;
+   
   this->display              = visual->display;
   this->display_ratio        = visual->display_ratio;
   this->displayed_height     = 0;
