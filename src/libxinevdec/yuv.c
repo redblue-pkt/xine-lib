@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.18 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.19 2003/05/28 13:16:43 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -115,6 +115,10 @@ static void yuv_decode_data (video_decoder_t *this_gen,
       case BUF_VIDEO_GREY:
         this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Greyscale YUV");
         break;
+        
+      case BUF_VIDEO_I420:
+        this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Raw I420");
+        break;
 
     }
     return;
@@ -136,6 +140,20 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
       if (buf->type == BUF_VIDEO_YV12) {
 
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                          this->width, this->height,
+                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+
+        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
+        xine_fast_memcpy(img->base[1], 
+          this->buf + (this->width * this->height) +
+          ((this->width * this->height) / 4),
+          (this->width * this->height) / 4);
+        xine_fast_memcpy(img->base[2], this->buf + this->width * this->height,
+          (this->width * this->height) / 4);
+ 
+      } else if (buf->type == BUF_VIDEO_I420) {
+      
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
@@ -301,6 +319,7 @@ static uint32_t video_types[] = {
   BUF_VIDEO_YV12,
   BUF_VIDEO_YVU9,
   BUF_VIDEO_GREY,
+  BUF_VIDEO_I420,
   0
  };
 
