@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.2 2002/12/17 16:49:48 jkeil Exp $
+ * $Id: asmrp.c,v 1.3 2003/10/12 18:52:55 mroi Exp $
  *
  * a parser for real's asm rules
  *
@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "asmrp.h"
 
 /*
 #define LOG
