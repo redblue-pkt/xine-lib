@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.35 2001/09/01 14:33:00 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.36 2001/09/01 21:46:20 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -62,6 +62,8 @@ typedef struct demux_mpeg_block_s {
 
   gui_get_next_mrl_cb_t next_mrl_cb;
   gui_branched_cb_t     branched_cb;
+
+  char                  cur_mrl[256];
 
   uint8_t              *scratch;
 
@@ -643,7 +645,9 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 
-  this->rate = demux_mpeg_block_estimate_rate (this);
+  if (!this->rate)
+    this->rate = demux_mpeg_block_estimate_rate (this);
+
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
@@ -697,6 +701,23 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   pthread_create (&this->thread, NULL, demux_mpeg_block_loop, this) ;
 }
 
+static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
+					   input_plugin_t *input) {
+
+  this->input = input;
+
+  if (strcmp (this->cur_mrl, input->get_mrl(input))) {
+
+    this->rate = 0;
+
+    printf ("demux_mpeg_block: mrl %s is new, will estimated bitrate\n");
+
+    strncpy (this->cur_mrl, input->get_mrl(input), 256);
+  } else 
+    printf ("demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n",
+	    this->cur_mrl, this->rate * 50 * 8);
+}
+
 static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 				 input_plugin_t *input, int stage) {
 
@@ -743,8 +764,8 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	if ( !input->get_blocksize(input) 
 	     && ((this->scratch[4]>>4) != 4) )
 	  return DEMUX_CANNOT_HANDLE;
-	  
-	this->input = input;
+
+	demux_mpeg_block_accept_input (this, input);	  
 	return DEMUX_CAN_HANDLE;
       }	
     }
@@ -766,12 +787,12 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	      && (!strncmp((media+3), "mpeg2", 5) ))) 
 	 ) {
 	this->blocksize = 2048;
-	this->input = input;
+	demux_mpeg_block_accept_input (this, input);	  
 	return DEMUX_CAN_HANDLE;
       }
       if(!strncmp(MRL, "vcd", 3)) {
 	this->blocksize = 2324;
-	this->input = input;
+	demux_mpeg_block_accept_input (this, input);	  
 	return DEMUX_CAN_HANDLE;
       }
     } 
@@ -790,7 +811,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     
     if(!strcasecmp(ending, ".vob")) {
       this->blocksize = 2048;
-      this->input = input;
+      demux_mpeg_block_accept_input (this, input);	  
       return DEMUX_CAN_HANDLE;
     }
   }
