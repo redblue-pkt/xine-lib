@@ -1,5 +1,19 @@
+  
+  * several memory leak fixes
+  * sound card clock drift correction
+  * reworked video driver api
+  * new deinterlace method (linear blend)
+  * win32 dll stability fixes
+  * updated ffmpeg (with divx5 support)
+  * updated mpeg2dec (0.2.1)
+  * new metronom code
+  * logo moved to xine-lib
+  * improved still frame detection and video_out code 
+  * several dxr3 fixes
+  * avi multiple audio stream support
+  * font encoding support for avi subtitles
+  * mms streaming plugin
   * better playing support for ffmpeg/win32 codecs on slow machines
-  * SDL video out driver (experimental)
  
 xine (0.9.8) unstable; urgency=low
 
