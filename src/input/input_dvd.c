@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.190 2004/09/01 16:17:39 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.191 2004/09/16 13:10:09 mroi Exp $
  *
  */
 
@@ -108,8 +108,9 @@
 /* #define LOG_DVD_EJECT */
 
 /* Current play mode (title only or menus?) */
-#define MODE_NAVIGATE 0
-#define MODE_TITLE 1
+#define MODE_FAIL	0
+#define MODE_NAVIGATE	1
+#define MODE_TITLE	2
 
 /* Is seeking enabled? 1 - Yes, 0 - No */
 #define CAN_SEEK 1
@@ -197,7 +198,7 @@ typedef struct {
   int               seekable;     /* are we seekable? */
   
   /* xine specific variables */
-  char             *current_dvd_device; /* DVD device currently open */
+  const char       *current_dvd_device; /* DVD device currently open */
   char             *mrl;          /* Current MRL                     */
   dvdnav_t         *dvdnav;       /* Handle for libdvdnav            */
   const char       *dvd_name;
@@ -1319,66 +1320,36 @@ check_solaris_vold_device(dvd_input_class_t *this)
 }
 #endif
 
-static int dvd_plugin_open (input_plugin_t *this_gen) {
-  dvd_input_plugin_t    *this = (dvd_input_plugin_t*)this_gen;
-  dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
+
+static int dvd_parse_try_open(dvd_input_plugin_t *this, const char *locator)
+{
+  const char *intended_dvd_device;
   
-  char                  *locator;
-  int                    last_colon = 0, mode;
-  int                    locator_len;
-  dvdnav_status_t        ret;
-  char                  *intended_dvd_device;
-  xine_event_t           event;
-  xine_cfg_entry_t       region_entry, lang_entry, cache_entry;
-  
-  trace_print("Called\n");
-
-  mode = MODE_NAVIGATE;
-  /* we already checked the "dvd:/" MRL before */
-  locator = &this->mrl[strlen("dvd:/")];
-
-  /* Attempt to parse MRL */
-  /* FIXME: strlen is dangerous, we should use a bounded max len version of strlen. */
-  last_colon = locator_len = strlen(locator);
-  /* Special case if mrl is dvd:/  just play DVD from DVD drive.
-   * If is it not the special case, we want to backstep over the "/"
-   */
-  if (locator_len > 0) {
-    locator--;
-    locator_len++;
-    last_colon++;
-  }
- 
-  while (last_colon && locator[last_colon] != ':' )
-    last_colon--;
-
-  if((last_colon == 0) && (locator_len > 0)) {
-    last_colon = locator_len;
-  }
-  if(last_colon) {
+  /* FIXME: we temporarily special-case "dvd:/" for compatibility;
+   * actually "dvd:/" should play a DVD image stored in /, but for
+   * now we have it use the default device */
+#if 0
+  if (strlen(locator)) {
+#else
+  if (strlen(locator) && !(locator[0] == '/' && locator[1] == '\0')) {
+#endif
     /* we have an alternative dvd_path */
     intended_dvd_device = locator;
-    intended_dvd_device[last_colon] = '\0';
-    locator += last_colon; /* Set locator to null string */
-    if ( (last_colon + 1) < locator_len ) {
-      locator++; /* Only if there are more characters after the colon, use them for Title mode */
-      mode = MODE_TITLE;
-    }
-
     /* do not use the raw device for the alternative */
     xine_setenv("DVDCSS_RAW_DEVICE", "", 1);
-
-  }else{
+  } else {
+    /* use default DVD device */
+    dvd_input_class_t *class = (dvd_input_class_t*)this->input_plugin.input_class;
     xine_cfg_entry_t raw_device;
-    
     if (xine_config_lookup_entry(this->stream->xine,
-        "input.dvd_raw_device", &raw_device))
+	"input.dvd_raw_device", &raw_device))
       xine_setenv("DVDCSS_RAW_DEVICE", raw_device.str_value, 1);
-    intended_dvd_device=class->dvd_device;
+    intended_dvd_device = class->dvd_device;
   }
-
-  if(this->opened) {
-    if ( intended_dvd_device==this->current_dvd_device ) {
+  
+  /* attempt to open DVD */
+  if (this->opened) {
+    if (intended_dvd_device == this->current_dvd_device) {
       /* Already open, so skip opening */
       dvdnav_reset(this->dvdnav);
     } else {
@@ -1386,26 +1357,85 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
       dvdnav_close(this->dvdnav);
       this->dvdnav = NULL;
       this->opened = 0; 
-      ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
-      if(ret == DVDNAV_STATUS_ERR) {
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
-	_x_message (this->stream, XINE_MSG_READ_ERROR,
-		      intended_dvd_device, NULL);
-        return 0;
-      }
-      this->opened=1;
-      this->current_dvd_device=intended_dvd_device;
     }
+  }
+  if (!this->opened) {
+    if (dvdnav_open(&this->dvdnav, intended_dvd_device) == DVDNAV_STATUS_OK) {
+      this->opened = 1;
+      this->current_dvd_device = intended_dvd_device;
+    }
+  }
+  
+  return this->opened;
+}
+
+static int dvd_parse_mrl(dvd_input_plugin_t *this, char **locator, char **title_part)
+{
+  *title_part      = NULL;
+  
+  if (dvd_parse_try_open(this, *locator)) {
+    return MODE_NAVIGATE;
   } else {
-    ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
-    if(ret == DVDNAV_STATUS_ERR) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
-      _x_message (this->stream, XINE_MSG_READ_ERROR,
-		    intended_dvd_device, NULL);
-      return 0;
+    /* opening failed, but we can still try cutting off <title>.<part> */
+    char *last_slash;
+    for (last_slash = *locator + strlen(*locator) - 1; last_slash >= *locator; last_slash--) {
+      if (*last_slash == '.') continue;
+      if (*last_slash >= '0' && *last_slash <= '9') continue;
+      break;
     }
-    this->opened=1;
-    this->current_dvd_device=intended_dvd_device;
+    if (last_slash > *locator && *last_slash == '/') {
+      *title_part = last_slash + 1;
+      *last_slash = '\0';
+    } else if (last_slash == *locator && *last_slash == '/') {
+      /* we must never delete the very first slash, since this will turn an
+       * absolute into a relative URL and overthrow further opening */
+      *title_part = last_slash + 1;
+      *locator = "/";
+    } else if (last_slash < *locator) {
+      /* there could be a dvd:<title>.<part> MRL without any path */
+      *title_part = *locator;
+      *locator = "";
+    } else
+      return MODE_FAIL;
+    
+    if (dvd_parse_try_open(this, *locator))
+      if (strlen(*title_part))
+	return MODE_TITLE;
+      else
+	return MODE_NAVIGATE;
+    else
+      return MODE_FAIL;
+  }
+}
+
+static int dvd_plugin_open (input_plugin_t *this_gen) {
+  dvd_input_plugin_t    *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
+  
+  char                  *locator;
+  char                  *title_part;
+  int                    mode;
+  xine_event_t           event;
+  xine_cfg_entry_t       region_entry, lang_entry, cache_entry;
+  
+  trace_print("Called\n");
+
+  /* we already checked the "dvd:/" MRL before */
+  locator = this->mrl + (sizeof("dvd:") - 1);
+
+  /* FIXME: call a generic xine-lib MRL parser here to pre-parse
+   * the MRL for ?title=<title>&part=<part> stuff and to expand 
+   * escaped characters properly */
+  
+  mode = dvd_parse_mrl(this, &locator, &title_part);
+  
+  if (mode == MODE_FAIL) {
+    /* opening failed and we have nothing left to try */
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
+    _x_message(this->stream, XINE_MSG_READ_ERROR,
+      /* FIXME: see FIXME in dvd_parse_try_open() */
+      (strlen(locator) && !(locator[0] == '/' && locator[1] == '\0')) ? locator : class->dvd_device, NULL);
+    return 0;
   }
   
   dvdnav_get_title_string(this->dvdnav, &this->dvd_name);
@@ -1430,18 +1460,18 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 			       &cache_entry))
     seek_mode_cb(class, &cache_entry);  
 
-  if(mode == MODE_TITLE) {
+  if (mode == MODE_TITLE) {
     char *delimiter;
     int tt, pr;
     int titles, parts;
     
-    /* A program and/or VTS was specified */
+    /* a <title>.<part> was specified -> resume parsing */
 
     /* See if there is a period. */
-    delimiter = strchr(locator, '.');
+    delimiter = strchr(title_part, '.');
     if (delimiter) *delimiter = '\0';
 
-    tt = strtol(locator, NULL, 10);
+    tt = strtol(title_part, NULL, 10);
     dvdnav_get_number_of_titles(this->dvdnav, &titles);
     if((tt <= 0) || (tt > titles)) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
