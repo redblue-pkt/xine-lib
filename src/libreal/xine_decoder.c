@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2003/07/16 20:28:03 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.43 2003/07/16 21:57:42 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -37,6 +37,7 @@
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
+#include "xineutils.h"
 
 /*
 #define LOG
@@ -105,42 +106,6 @@ typedef struct {
         int format;
 } rv_init_t;
 
-#ifdef LOG
-static void hexdump (char *buf, int length) {
-
-  int i;
-
-  printf ("hex 0x0000:  ");
-
-  for (i = 0; i < length; i++) {
-    unsigned char c = buf[i];
-
-    printf ("%02x", c);
-
-    if ((i % 16) == 15) {
-      int j;
-
-      printf ("  ");
-
-      for (j=0; j<16; j++) {
-	unsigned char c = buf[i-16+j];
-
-	if ((c >= 32) && (c <= 126))
-	  printf ("%c", c);
-	else
-	  printf (".");
-      }
-
-      printf ("\nhex 0x%04x: ", i+1);
-    }
-
-    if ((i % 2) == 1)
-      printf (" ");
-
-  }
-  printf ("\n");
-}
-#endif
 
 /*
  * real codec loader
@@ -238,10 +203,10 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
 #ifdef LOG
   printf ("libreal: init_data for rvyuv_init:\n");
-  hexdump (&init_data, sizeof (init_data));
+  xine_hexdump ((char *) &init_data, sizeof (init_data));
   
   printf ("libreal: buf->content\n");
-  hexdump (buf->content, buf->size);
+  xine_hexdump (buf->content, buf->size);
 
   printf ("libreal: init codec %dx%d... %x %x\n", 
 	  init_data.w, init_data.h,
@@ -277,9 +242,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
 #ifdef LOG
     printf ("libreal: CustomMessage cmsg_data:\n");
-    hexdump (cmsg_data, sizeof (cmsg_data));
+    xine_hexdump ((char *) cmsg_data, sizeof (cmsg_data));
     printf ("libreal: cmsg24:\n");
-    hexdump (cmsg24, sizeof (cmsg24));
+    xine_hexdump ((char *) cmsg24, sizeof (cmsg24));
 #endif
     
     this->rvyuv_custom_message (cmsg_data, this->context);
@@ -373,13 +338,13 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 		this->num_chunks);
 
 	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
-	hexdump (this->chunk_buffer, this->chunk_buffer_size);
+	xine_hexdump (this->chunk_buffer, this->chunk_buffer_size);
 
 	printf ("libreal: transform_in:\n");
-	hexdump (transform_in, 6*4);
+	xine_hexdump ((char *) transform_in, 6*4);
 	
 	printf ("libreal: chunk_table:\n");
-	hexdump (this->chunk_tab, this->num_chunks*8+8);
+	xine_hexdump ((char *) this->chunk_tab, this->num_chunks*8+8);
 #endif
 	
 	result = this->rvyuv_transform (this->chunk_buffer, 
@@ -392,7 +357,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	printf ("libreal: transform result: %08x\n", result);
         
 	printf ("libreal: transform_out:\n");
-	hexdump (transform_out, 5*4);
+	xine_hexdump ((char *) transform_out, 5*4);
 #endif
 
 	/* Sometimes the stream contains video of a different size
