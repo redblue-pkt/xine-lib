@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.6 2001/05/07 02:25:00 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.7 2001/05/30 02:09:24 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -248,21 +248,25 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
      */
     fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
       	     "is not a sector!\n", nlen);
-    return NULL;
+    goto read_block_failure;
   }
 
   if (this->file_size_left < nlen)
-    return NULL;
+    goto read_block_failure;
 
-  if (read (this->raw_fd, buf, DVD_VIDEO_LB_LEN)) {
+  buf->content = buf->mem;
 
+  if ((buf->size = read (this->raw_fd, buf->mem, DVD_VIDEO_LB_LEN)) > 0) {
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
-
     return buf;
   } else
     fprintf (stderr, "read error in input_dvd plugin\n");
 
+ read_block_failure:
+
+  buf->free_buffer (buf);
+  
   return NULL;
 }
 
@@ -309,7 +313,7 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
-  return (this->file_lbcur * DVD_VIDEO_LB_LEN);
+  return ((this->file_lbcur - this->file_lbstart) * DVD_VIDEO_LB_LEN);
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.10 2001/05/28 12:08:20 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.11 2001/05/30 02:09:24 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -43,7 +43,7 @@ void *audio_decoder_loop (void *this_gen) {
 
     if (this->audio_out) {
 
-      /* FIXME gAD.mnCurPos = pBuf->nInputPos; */
+      this->cur_input_pos = buf->input_pos;
 
       switch (buf->type) {
 

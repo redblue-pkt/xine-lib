@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.14 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.15 2001/05/30 02:09:24 f1rmb Exp $
  *
  */
 
@@ -38,9 +38,11 @@ void *video_decoder_loop (void *this_gen) {
   while (running) {
 
     buf = this->video_fifo->get (this->video_fifo);
+    this->cur_input_pos = buf->input_pos;
 
-    /* gVD.mnCurInputPos = pBuf->nInputPos; */
-
+    if(this->status == XINE_PLAY)
+      this->status_callback (this->status);
+    
     switch (buf->type) {
     case BUF_CONTROL_START:
 

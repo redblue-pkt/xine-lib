@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.9 2001/05/07 01:31:44 f1rmb Exp $
+ * $Id: input_file.c,v 1.10 2001/05/30 02:09:24 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -114,6 +114,7 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
  */
 static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
   return read (this->fh, buf, len);
 }
 

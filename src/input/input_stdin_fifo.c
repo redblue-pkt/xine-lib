@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.5 2001/05/07 02:25:00 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.6 2001/05/30 02:09:24 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,14 +71,18 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 #endif
   } 
   else if(!strncasecmp(mrl, "fifo:", 5)) {
-
     if((pfn = strrchr((mrl+5), ':')) != NULL) {
       filename = ++pfn;
     }
     else {
-      filename = (char *) &mrl[5];
+      if(!(strncasecmp(mrl+5, "//mpeg1", 7))
+	 || (!(strncasecmp(mrl+5, "//mpeg2", 7)))) {
+	filename = (char *) &mrl[12];
+      }
+      else {
+	filename = (char *) &mrl[5];
+      }
     }
-
   } 
   else {
     /* filename = (char *) mrl; */
@@ -101,28 +105,57 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
  *
  */
 static off_t stdin_plugin_read (input_plugin_t *this_gen, 
-				      char *buf, off_t nlen) {
+				char *buf, off_t todo) {
 
-  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
-  off_t n, nBytesRead = 0;
+  stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
+  off_t                  num_bytes, total_bytes;
 
-  while (nBytesRead < nlen) {
-    n = read(this->fh, &buf[nBytesRead], nlen-nBytesRead);
+  total_bytes = 0;
 
-    if (n < 0) {
-      this->curpos += n;
-      return n;
+  while (total_bytes < todo) {
+    num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
+
+    if(num_bytes < 0) {
+      this->curpos += num_bytes;
+      return num_bytes;
     }
-    else if (!n) {
-      this->curpos += nBytesRead;
-      return nBytesRead;
+    else if (!num_bytes) {
+      this->curpos += total_bytes;
+      return total_bytes;
     }
-
-    nBytesRead += n;
+    total_bytes += num_bytes;
   }
 
-  this->curpos += nBytesRead;
-  return nBytesRead;
+  this->curpos += total_bytes;
+
+  return total_bytes;
+}
+
+/*
+ *
+ */
+static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
+
+  off_t                 num_bytes, total_bytes;
+  stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
+  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
+
+  buf->content = buf->mem;
+  total_bytes = 0;
+
+  while (total_bytes < todo) {
+    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
+    total_bytes += num_bytes;
+    this->curpos += num_bytes;
+    if (!num_bytes) {
+      buf->free_buffer (buf);
+      return NULL;
+    }
+  }
+
+  buf->size = total_bytes;
+
+  return buf;
 }
 
 /*
@@ -224,7 +257,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
     this->input_plugin.open              = stdin_plugin_open;
     this->input_plugin.read              = stdin_plugin_read;
-    this->input_plugin.read_block        = NULL;
+    this->input_plugin.read_block        = stdin_plugin_read_block;
     this->input_plugin.seek              = NULL;
     this->input_plugin.get_current_pos   = stdin_plugin_get_current_pos;
     this->input_plugin.get_length        = stdin_plugin_get_length;

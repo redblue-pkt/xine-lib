@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.8 2001/05/28 12:08:20 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.9 2001/05/30 02:09:24 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -223,7 +223,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_SPU_PACKAGE + nSPUID;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
+      buf->input_pos = this->input->get_current_pos(this->input);
       
       this->spu_fifo->put (this->spu_fifo, buf);    
       
@@ -240,7 +240,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_AUDIO_AC3 + nTrack;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
+      buf->input_pos = this->input->get_current_pos(this->input);
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -264,7 +264,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_AUDIO_LPCM + nTrack;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
+      buf->input_pos = this->input->get_current_pos(this->input);
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -281,7 +281,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
     buf->type      = BUF_VIDEO_MPEG;
     buf->PTS       = nPTS;
     buf->DTS       = nDTS;
-    buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
+    buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -299,7 +299,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
     buf->type      = BUF_AUDIO_MPEG + nTrack;
     buf->PTS       = nPTS;
     buf->DTS       = nDTS;
-    buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
+    buf->input_pos = this->input->get_current_pos(this->input);
       
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -461,7 +461,6 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     media = strstr(MRL, "://");
     if(media) {
       if(!strncmp(MRL, "dvd", 3)
-	 || !strncmp(MRL, "fifo", 4)
 	 || (((!strncmp(MRL, "stdin", 5) || !strncmp(MRL, "fifo", 4))
 	      && (!strncmp((media+3), "mpeg2", 5) ))) 
 	 ) {
