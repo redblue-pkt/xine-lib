@@ -206,6 +206,10 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
     osd->y1 = osd->height;
   if(osd->y2 > osd->height)
     osd->y2 = osd->height;
+  if(osd->x1 < 0) osd->x1 = 0;
+  if(osd->x2 < 0) osd->x2 = 0;
+  if(osd->y1 < 0) osd->y1 = 0;
+  if(osd->y2 < 0) osd->y2 = 0;
 
 #ifdef DEBUG_RLE  
   lprintf("osd_show %p rle starts\n", osd);
@@ -1043,7 +1047,6 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
 #ifdef HAVE_FT2
     if (osd->ft2 && osd->ft2->useme) {
-      int gheight, gwidth;
 
       FT_GlyphSlot slot = osd->ft2->face->glyph;
 
@@ -1067,37 +1070,43 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering glyph\n"));
       }
 
-      /* we shift the whole glyph down by it's ascender so that the specified coordinate
-       * is the top left corner which is much more practical than the baseline as the user
-       * normally has no idea where the baseline is
+      /* if the first letter has a bearing not on the basepoint shift, the
+       * whole output to be sure that we are inside the bounding box
        */
-      dst = osd->area + (y1+(osd->ft2->face->ascender/64)-slot->bitmap_top) * osd->width;
-      src = (uint8_t*) slot->bitmap.buffer;
-      gheight = slot->bitmap.rows;
-      gwidth  = slot->bitmap.width;
-
       if (first) x1 -= slot->bitmap_left;
       first = 0;
 
-      for( y = 0; y < gheight; y++ ) {
+      /* we shift the whole glyph down by it's ascender so that the specified
+       * coordinate is the top left corner which is much more practical than
+       * the baseline as the user normally has no idea where the baseline is
+       */
+      dst = osd->area + (y1 + osd->ft2->face->size->metrics.ascender/64 - slot->bitmap_top) * osd->width;
+      src = (uint8_t*) slot->bitmap.buffer;
+
+      for (y = 0; y < slot->bitmap.rows; y++) {
         uint8_t *s = src;
         uint8_t *d = dst + x1 + slot->bitmap_left;
 
-        while (s < src + gwidth) {
-          if ((d > osd->area) && (d < osd->area + osd->width * osd->height) &&
-              (d < dst + osd->width) && (*s > 0))
-            *d = (uint8_t)(*s/25) + (uint8_t) color_base;
-          
-          d++;
-          s++;
-        }
+        if (d >= osd->area + osd->width*osd->height)
+          break;
+
+        if (dst > osd->area)
+          while (s < src + slot->bitmap.width) {
+            if ((d >= dst) && (d < dst + osd->width) && *s)
+              *d = (uint8_t)(*s/25) + (uint8_t) color_base;
+            
+            d++;
+            s++;
+          }
+
         src += slot->bitmap.pitch;
         dst += osd->width;
+
       }
 
-      x1 += slot->advance.x >> 6;
+      x1 += slot->advance.x / 64;
       if( x1 > osd->x2 ) osd->x2 = x1;
-      if( y1 > osd->y2 ) osd->y2 = y1;
+      if( y1 + osd->ft2->face->size->metrics.height/64 > osd->y2 ) osd->y2 = y1 + osd->ft2->face->size->metrics.height/64;
 
     } else {
 
@@ -1110,21 +1119,24 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
              font->fontchar[i].height, x1, y1);
   
       if ( i != font->num_fontchars ) {
-        dst = osd->area + y1 * osd->width + x1;
+        dst = osd->area + y1 * osd->width;
         src = font->fontchar[i].bmp;
         
         for( y = 0; y < font->fontchar[i].height; y++ ) {
-          int width = font->fontchar[i].width;
-          uint8_t *s = src, *d = dst;
-  
-          while (s < src + width) {
-            if(d <= (osd->area + (osd->width * osd->height)) 
-               && *s > 1) /* skip drawing transparency */
-              *d = *s + (uint8_t) color_base;
-            
-            d++;
-            s++;
-          }
+          uint8_t *s = src;
+          uint8_t *d = dst + x1;
+
+          if (d >= osd->area + osd->width*osd->height)
+            break;
+
+          if (dst >= osd->area)
+            while (s < src + font->fontchar[i].width) {
+              if((d >= dst) && (d < dst + osd->width) && (*s > 1)) /* skip drawing transparency */
+                *d = *s + (uint8_t) color_base;
+              
+              d++;
+              s++;
+            }
           src += font->fontchar[i].width;
           dst += osd->width;
         }
@@ -1229,10 +1241,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
        */
       if (first_glyph) *width -= slot->bitmap_left;
       first_glyph = 0;
-      *width += slot->advance.x >> 6;
-      /* we return the height of the font for the height, so we are on the save side
-       */
-      *height = osd->ft2->face->height >> 6;
+      *width += slot->advance.x / 64;
       text++;
     } else {
 #endif
@@ -1258,9 +1267,10 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
      * to also add the left bearing because the letter might be shifted left or
      * right and then the right edge is also shifted
      */
-    *width -= osd->ft2->face->glyph->advance.x >> 6;
+    *width -= osd->ft2->face->glyph->advance.x / 64;
     *width += osd->ft2->face->glyph->bitmap.width;
     *width += osd->ft2->face->glyph->bitmap_left;
+    *height = osd->ft2->face->size->metrics.height / 64;
   }
 #endif
 
