@@ -21,8 +21,11 @@
 /* Define this if you're running PowerPC architecture */
 #undef ARCH_PPC
 
-/* Define this if you have the Motorola 74xx CPU */
+/* Define this if you have a Motorola 74xx CPU */
 #undef ENABLE_ALTIVEC
+
+/* Define this if you have Sun UltraSPARC CPU */
+#undef ENABLE_VIS
 
 /* Define this if you're running Sparc architecture */
 #undef __sparc__ 
