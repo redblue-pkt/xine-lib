@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.69 2003/01/18 17:25:40 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.70 2003/01/25 12:07:34 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -73,10 +73,12 @@ static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen);
 
 
 /* plugin catalog information */
+#ifdef HAVE_X11
 static vo_info_t   vo_info_dxr3_x11 = {
   10,                  /* priority        */
   XINE_VISUAL_TYPE_X11 /* visual type     */
 };
+#endif
 
 static vo_info_t   vo_info_dxr3_aa = {
   10,                  /* priority        */
@@ -85,7 +87,9 @@ static vo_info_t   vo_info_dxr3_aa = {
 
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
+#ifdef HAVE_X11
   { PLUGIN_VIDEO_OUT, 14, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+#endif
   { PLUGIN_VIDEO_OUT, 14, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
@@ -136,6 +140,7 @@ static void        dxr3_update_swap_fields(void *data, xine_cfg_entry_t *entry);
 static void        dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
 
 
+#ifdef HAVE_X11
 static void *dxr3_x11_init_plugin(xine_t *xine, void *visual_gen)
 {
   dxr3_driver_class_t *this = dxr3_vo_init_plugin(xine, visual_gen);
@@ -144,6 +149,7 @@ static void *dxr3_x11_init_plugin(xine_t *xine, void *visual_gen)
   this->visual_type = XINE_VISUAL_TYPE_X11;
   return &this->video_driver_class;
 }
+#endif
 
 static void *dxr3_aa_init_plugin(xine_t *xine, void *visual_gen)
 {
