@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.6 2003/01/10 21:11:05 miguelfreitas Exp $
+ * $Id: demux_nsf.c,v 1.7 2003/01/17 02:53:51 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -269,7 +269,7 @@ static int demux_nsf_seek (demux_plugin_t *this_gen,
     this->current_pts = 0;
     this->new_song = 1;
   } else {
-    this->current_song = start_pos * this->total_songs / this->filesize + 1;
+    this->current_song = start_pos + 1;
     this->new_song = 1;
     this->current_pts = 0;
     xine_demux_flush_engine(this->stream);
