@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.40 2003/11/11 18:44:58 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.41 2003/11/16 12:18:59 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -47,9 +47,6 @@
 #define GOOM_WIDTH  320
 #define GOOM_HEIGHT 240
 
-/* skip frames if there is less than LOW_MARK pts in the audio_out fifo */
-#define LOW_MARK    90000 / 5
-
 /* colorspace conversion methods */
 const char * goom_csc_methods[]={
   "Fast but not photorealistic",
@@ -75,7 +72,10 @@ struct post_plugin_goom_s {
   xine_video_port_t *vo_port;
   xine_stream_t     *stream;
   
-  post_class_goom_t *class;  
+  post_class_goom_t *class;
+  
+  /* private metronom for syncing the video */
+  metronom_t        *metronom;
   
   int data_idx;
   gint16 data [2][512];
@@ -258,6 +258,8 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
    */
   this->class = class;
   class->ip   = this;
+  
+  this->metronom = _x_metronom_init(0, class->xine);
 
   lprintf("goom: goom_open_plugin\n");
 
@@ -359,6 +361,8 @@ static void goom_dispose(post_plugin_t *this_gen)
   this->class->ip = NULL;
 
   goom_close();
+  
+  this->metronom->exit(this->metronom);
 
   if (this->stream)
     port->close(port, this->stream);
@@ -444,6 +448,8 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->data_idx = 0;
   init_yuv_planes(&this->yuv, this->width, this->height);
   this->skip_frame = 0;
+  
+  this->metronom->set_master(this->metronom, stream->metronom);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
@@ -456,6 +462,8 @@ static void goom_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream )
   free_yuv_planes(&this->yuv);
 
   this->stream = NULL;
+  
+  this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
 }
@@ -472,7 +480,6 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   int8_t *data8;
   int samples_used = 0;
   int64_t pts = buf->vpts;
-  int64_t vpts = 0;
   int i, j;
   uint8_t *dest_ptr;
   int width, height;
@@ -533,36 +540,11 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
-      if (!vpts) {
-        vpts = this->stream->metronom->audio_vpts;
-        frame->pts = pts;
-        frame->vpts = vpts;
-        pts = 0;
-        vpts += frame->duration;
-      } else {
-        frame->pts = 0;
-        frame->vpts = vpts;
-        vpts += frame->duration;
-      }
+      frame->pts = pts;
+      this->metronom->got_video_frame(this->metronom, frame);
+      
       this->sample_counter -= this->samples_per_frame;
 
-      /* skip frames if there is less than LOW_MARK in audio output fifo */
-      {
-        metronom_t *metronom = this->stream->metronom;
-        int64_t cur_vpts, diff;
-        cur_vpts = metronom->clock->get_current_time(metronom->clock);
-        pthread_mutex_lock(&metronom->lock);
-        diff = metronom->audio_vpts - cur_vpts;
-        pthread_mutex_unlock(&metronom->lock);
-        if (diff < LOW_MARK) {
-          lprintf("skip frame: diff = %lld, spf=%d, nf=%d, sr=%d\n",
-                 diff, this->samples_per_frame, buf->num_frames, this->sample_rate);
-          this->skip_frame = 1;
-        } else {
-          this->skip_frame = 0;
-        }
-      }
-      
       if (!this->skip_frame) {
         /* Try to be fast */
         goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
@@ -624,10 +606,11 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
           }
         }
 
-        frame->draw(frame, NULL);
+        this->skip_frame = frame->draw(frame, NULL);
       } else {
         frame->bad_frame = 1;
         frame->draw(frame, NULL);
+	this->skip_frame--;
       }
       frame->free(frame);
       
