@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.75 2002/04/23 15:45:25 esnel Exp $
+ * $Id: w32codec.c,v 1.76 2002/04/28 15:32:41 esnel Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -85,7 +85,8 @@ static GUID dvsd_clsid =
 /* some data is shared inside wine loader.
  * this mutex seems to avoid some segfaults
  */
-pthread_mutex_t win32_codec_mutex;
+static pthread_mutex_t win32_codec_mutex;
+static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 extern char*   win32_codec_name; 
 extern char*   win32_def_path;
 
@@ -417,8 +418,6 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   uint32_t vo_cap;
   int outfmt;
 
-  w32v_init_rgb_ycc();
-
 #ifdef LOG
   printf ("w32codec: init codec...\n");
 #endif
@@ -521,8 +520,6 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   uint32_t vo_cap;
   int outfmt;
   
-  w32v_init_rgb_ycc();
-
   printf ("w32codec: init Direct Show video codec...\n");
   
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
@@ -1319,6 +1316,11 @@ static char *w32a_get_id(void) {
   return "vfw (win32) audio decoder";
 }
 
+static void init_routine(void) {
+  pthread_mutex_init (&win32_codec_mutex, NULL);
+  w32v_init_rgb_ycc();
+}
+
 video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   w32v_decoder_t *this ;
@@ -1350,7 +1352,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = w32v_dispose;
   this->video_decoder.priority            = 1;
 
-  pthread_mutex_init (&win32_codec_mutex, NULL);
+  pthread_once (&once_control, init_routine);
   
   this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
 
@@ -1396,7 +1398,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.dispose             = w32a_dispose;
   this->audio_decoder.priority            = 1;
   
-  pthread_mutex_init (&win32_codec_mutex, NULL);
+  pthread_once (&once_control, init_routine);
 
 #ifdef SYNC_SHUTDOWN
   w32a_instance = NULL;
