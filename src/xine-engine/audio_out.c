@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.68 2002/10/12 10:36:52 jcdutton Exp $
+ * $Id: audio_out.c,v 1.69 2002/10/12 19:20:02 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -573,6 +573,7 @@ static int ao_open(ao_instance_t *this,
 		   uint32_t bits, uint32_t rate, int mode) {
  
   int output_sample_rate, err;
+  pthread_attr_t pth_attrs;
 
   /* 
    * set metainfo
@@ -676,8 +677,12 @@ static int ao_open(ao_instance_t *this,
   }
   
   this->audio_loop_running = 1;  
+
+  pthread_attr_init(&pth_attrs);
+  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+
   if ((err = pthread_create (&this->audio_thread,
-			     NULL, ao_loop, this)) != 0) {
+			     &pth_attrs, ao_loop, this)) != 0) {
 
     /* FIXME: how does this happen ? */
 
