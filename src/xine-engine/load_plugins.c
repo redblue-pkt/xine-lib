@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.99 2002/10/14 15:47:37 guenter Exp $
+ * $Id: load_plugins.c,v 1.100 2002/10/16 21:10:56 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -355,7 +355,8 @@ static void *_load_plugin_class(xine_t *this,
 	    && info->API == target->API
 	    && !strcasecmp(info->id, target->id)
 	    && info->version == target->version){
-	  
+
+	  target->open = info->open;
 	  return info->init(this, data);
 	}
 	info++;
