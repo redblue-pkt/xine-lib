@@ -3,6 +3,7 @@
   * fix end of stream handling in the http plugin
   * add support for 24bit and 32bit Float for audio.
   * add support for upmixing. Currently only stereo -> Surround 5.1
+  * Software decode for DTS audio updated for Surround 5.1 output.
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
