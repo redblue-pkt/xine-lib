@@ -1457,6 +1457,32 @@
      question.
     </para>
    </sect2>
+   
+   <sect2 id="buggyxv">
+    <title>The image looks strange, it is shifted, cropped or shows weird lines!</title>
+    <para>
+     This points to a problem with the Xv extension, which is used by xine
+     to display the video image. To verify this, try running xine with the XShm
+     video output plugin:
+     <screen>&nbsp;&nbsp;&nbsp;<command>xine -V XShm</command></screen>
+    </para>
+    <para>
+     If that works fine, you just proved, that the Xv extension is buggy. xine will
+     remember the last used video output plugin, so the setting will stay at XShm.
+     You could simply continue using this, but XShm is a lot slower than Xv, so
+     read on and see if you can get it working. Usually you should look for
+     updated versions of the XFree driver module that belongs to your graphics card.
+    </para>
+    <para>
+     Other possibilites are limitations in either your XFree driver module or your
+     graphics hardware. If your card could somehow be running out of ressources (graphics
+     RAM perhaps) and displays an incorrect Xv overlay because of that, try reducing
+     the display resolution and/or colour depth.
+    </para>
+    <para>
+     Consult the next question for more details on Xv.
+    </para>
+   </sect2>
 
    <sect2 id="xvextension">
     <title>How can I make xine use the Xv extension and what drivers do I need?</title>
