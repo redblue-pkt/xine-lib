@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2003/07/18 23:37:38 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.45 2003/07/19 00:08:58 komadori Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -272,7 +272,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 }
 
 static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int pitches[3]) {
-  uint_fast32_t i, j;
+  uint_t i, j;
   uint8_t *src, *dst;
 
   src = this->frame_buffer;

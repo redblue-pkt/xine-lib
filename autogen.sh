@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
-# $Id: autogen.sh,v 1.9 2003/02/28 21:13:24 jkeil Exp $
+# $Id: autogen.sh,v 1.10 2003/07/19 00:08:58 komadori Exp $
 #
 # Maintained by Stephen Torri <storri@users.sourceforge.net>
 #
@@ -112,7 +112,7 @@ detect_libtool() {
   NUM_RESULT=$#
   RESULT_FILE=$3
   if [ $RETVAL -eq 0 -a $NUM_RESULT -eq 3 -a -f "$RESULT_FILE" ]; then
-    LT="`libtool --version | awk '{ print $4 }' | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
+    LT="`libtool --version | awk '{ print $4 }' | sed -e 's/[a-zA-Z\ \.\(\)\-;]//g'`"
     LIBTOOL_MIN="`echo $LIBTOOL_MIN | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
     if test $LT -lt 100 ; then
       LT=`expr $LT \* 10`
