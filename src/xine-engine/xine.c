@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.51 2001/08/28 22:52:57 f1rmb Exp $
+ * $Id: xine.c,v 1.52 2001/08/29 11:14:12 guenter Exp $
  *
  * top-level xine functions
  *
@@ -86,7 +86,6 @@ void xine_stop (xine_t *this) {
   
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
@@ -126,6 +125,7 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 
   while(stages[s] != -1) {
     for(i = 0; i < this->num_demuxer_plugins; i++) {
+      printf ("trying demuxer %s\n", this->demuxer_plugins[i]->get_identifier());
       if(this->demuxer_plugins[i]->open(this->demuxer_plugins[i], 
 					this->cur_input_plugin, 
 					stages[s]) == DEMUX_CAN_HANDLE) {
@@ -266,7 +266,6 @@ void xine_play (xine_t *this, char *MRL, int spos) {
     
     if(this->cur_demuxer_plugin) {
       this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-      this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
       this->cur_demuxer_plugin = NULL;
     }
     
@@ -362,7 +361,6 @@ void xine_exit (xine_t *this) {
     printf ("xine_exit: closing demuxer\n");
 
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 

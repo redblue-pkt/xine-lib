@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.32 2001/08/28 19:16:19 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.33 2001/08/29 11:14:12 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "xine_internal.h"
 #include "monitor.h"
@@ -413,7 +414,14 @@ static void *demux_mpeg_block_loop (void *this_gen) {
 }
 
 static void demux_mpeg_block_close (demux_plugin_t *this_gen) {
+
+  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+  free (this);
   
+}
+
+static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
+
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;
 
@@ -443,12 +451,6 @@ static void demux_mpeg_block_close (demux_plugin_t *this_gen) {
     buf->decoder_info[0] = 1; /* forced */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-  
-}
-
-static void demux_mpeg_block_stop (demux_plugin_t *this) {
-
-  demux_mpeg_block_close(this);
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
