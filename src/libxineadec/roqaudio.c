@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.1 2002/05/28 00:16:23 tmmm Exp $
+ * $Id: roqaudio.c,v 1.2 2002/06/03 00:57:34 tmmm Exp $
  *
  */
 
@@ -171,6 +171,11 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 }
 
 static void roqaudio_close (audio_decoder_t *this_gen) {
+  roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
+
+  if (this->output_open)
+    this->audio_out->close (this->audio_out);
+  this->output_open = 0;
 }
 
 static char *roqaudio_get_id(void) {
