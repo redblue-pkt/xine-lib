@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.75 2004/01/22 00:36:50 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.76 2004/02/03 11:12:18 tmattern Exp $
  *
  */
 
@@ -106,13 +106,14 @@ typedef struct sputext_decoder_s {
 } sputext_decoder_t;
 
 
-static void update_font_size (sputext_decoder_t *this) {
+static void update_font_size (sputext_decoder_t *this, int force_update) {
   static int sizes[SUBTITLE_SIZE_NUM] = { 16, 20, 24, 32, 48, 64 };
 
   int  y;
 
   if ((this->subtitle_size != this->class->subtitle_size) ||
-      (this->vertical_offset != this->class->vertical_offset)) {
+      (this->vertical_offset != this->class->vertical_offset) ||
+      force_update) {
   
     this->subtitle_size = this->class->subtitle_size;
     this->vertical_offset = this->class->vertical_offset;
@@ -173,7 +174,7 @@ static void update_output_size (sputext_decoder_t *this) {
         if( this->width && this->height && this->img_duration ) {
           this->renderer = this->stream->osd_renderer;
           
-          update_font_size (this);
+          update_font_size (this, 1);
         }
       }
     }
@@ -186,7 +187,7 @@ static void update_output_size (sputext_decoder_t *this) {
         if( this->width && this->height && this->img_duration ) {
           this->renderer = this->stream->osd_renderer;
           
-          update_font_size (this);
+          update_font_size (this, 1);
         }
       }
     }
@@ -287,7 +288,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   int line, y;
   int font_size;
 
-  update_font_size(this);
+  update_font_size(this, 0);
   
   if( strcmp(this->font, this->class->font) ) {
     strcpy(this->font, this->class->font);
