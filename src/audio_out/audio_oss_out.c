@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.54 2002/01/14 00:34:22 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.55 2002/01/15 12:23:05 siggi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -238,10 +238,6 @@ static int ao_oss_open(ao_driver_t *this_gen,
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
     tmp = AFMT_AC3;
-    if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
-        printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
-	return 0;
-    }
     this->num_channels = 2; /* FIXME: is this correct ? */
     this->output_sample_rate = this->input_sample_rate;
     this->output_sample_k_rate = this->output_sample_rate / 1000;
@@ -252,6 +248,39 @@ static int ao_oss_open(ao_driver_t *this_gen,
   printf ("audio_oss_out : %d channels output\n",this->num_channels);
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   
+ /*
+  * set format
+  */
+
+  switch (mode) {
+  case AO_CAP_MODE_MONO:
+  case AO_CAP_MODE_STEREO:
+  case AO_CAP_MODE_4CHANNEL:
+  case AO_CAP_MODE_5CHANNEL:
+  case AO_CAP_MODE_5_1CHANNEL:
+    tmp = AFMT_S16_NE;
+    if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0
+	|| tmp != AFMT_S16_NE) {
+        printf("audio_oss_out: SNDCTL_DSP_SETFMT failed for AFMT_S16_NE.\n");
+       if (tmp != AFMT_S16_NE)
+         printf("audio_oss_out: ioctl succeeded but set format to %x.\n", tmp);
+       else
+         printf("audio_oss_out: The AFMT_S16_NE ioctl failed.\n");
+       return 0;
+    }
+    break;
+  case AO_CAP_MODE_A52:
+  case AO_CAP_MODE_AC5:
+    tmp = AFMT_AC3;
+    if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
+        printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
+       return 0;
+    }
+    break;
+  }
+
+
+
   /*
    * audio buffer size handling
    */
