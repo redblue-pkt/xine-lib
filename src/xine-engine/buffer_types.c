@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.28 2002/07/01 18:42:36 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.29 2002/07/04 19:36:55 miguelfreitas Exp $
  *
  *
  * contents:
@@ -424,14 +424,6 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0
-  },
-  BUF_AUDIO_LPCM_BE,
-  "Uncompressed PCM big endian"
-},
-{
-  {
-    0x01,
     meFOURCC('t','w','o','s'),
     0
   },
