@@ -197,12 +197,8 @@ AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 dnl
 dnl Checks for Ascii-Art library
 dnl
-
-AC_CHECK_LIB(aa, main, 
-	     AC_DEFINE(HAVE_AA)
-	     ac_have_aa="yes",,)
-AM_CONDITIONAL(HAVE_AA, test x$ac_have_aa = "xyes")
-
+AM_PATH_AALIB(1.2,,)
+AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 dnl
 dnl Alsa support

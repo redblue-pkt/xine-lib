@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.17 2001/06/17 00:23:34 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.18 2001/06/17 21:50:51 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -510,6 +510,15 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
       input->seek(input, 0, SEEK_SET);
       if (input->read(input, buf, this->blocksize)) {
+
+	{
+	  int i=0,j=0;
+
+	  while(i<this->blocksize) {
+	    if(buf[i] && !j) {printf("***%d\n", i); j++;}
+	    i++;
+	  }
+	}
 	
 	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba))
 	  return DEMUX_CANNOT_HANDLE;
