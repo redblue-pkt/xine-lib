@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.206 2004/11/24 16:11:08 mroi Exp $
+ * $Id: video_out_xv.c,v 1.207 2004/12/08 22:40:32 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1048,6 +1048,10 @@ static void xv_restore_port_attributes(xv_driver_t *this) {
     free( attr->name );
     free( attr );
   }
+  
+  XLockDisplay(this->display);
+  XSync(this->display, False);
+  XUnlockDisplay(this->display);
  
   xine_list_free( this->port_attributes );
 }
