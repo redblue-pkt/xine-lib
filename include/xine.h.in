@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.5 2002/09/05 23:20:20 guenter Exp $
+ * $Id: xine.h.in,v 1.6 2002/09/06 14:36:54 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -277,6 +277,7 @@ int xine_register_report_codec_cb(xine_t *self,
 #define XINE_PARAM_SPU_CHANNEL             4  
 #define XINE_PARAM_VIDEO_CHANNEL           5  
 #define XINE_PARAM_AUDIO_VOLUME            6
+#define XINE_PARAM_AUDIO_MUTE              7
 
 /* stream format detection strategies */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.4 2002/09/05 23:20:21 guenter Exp $
+ * $Id: xine_interface.c,v 1.5 2002/09/06 14:36:54 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -318,6 +318,9 @@ void xine_set_param (xine_t *this, int param, int value) {
   case XINE_PARAM_AUDIO_VOLUME:
     break; /* FIXME: implement */
 
+  case XINE_PARAM_AUDIO_MUTE:
+    break; /* FIXME: implement */
+
   }
 }
 
@@ -340,6 +343,9 @@ int  xine_get_param (xine_t *this, int param) {
     return this->video_channel;
 
   case XINE_PARAM_AUDIO_VOLUME:
+    return -1; /* FIXME: implement */
+
+  case XINE_PARAM_AUDIO_MUTE:
     return -1; /* FIXME: implement */
 
   default:
