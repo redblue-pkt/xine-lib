@@ -5,6 +5,9 @@ xine-lib (1-xxx)
   * fix playback of MMS streams with the new input cache layer [bug #1066926]
   * fixed builds without X11 [bug #1067705]
   * added support for 24-bit LPCM from DVDs
+  * Fixed segfault in xxmc plugin when switch from software decoding to 
+    accelerated decoding occured while software surfaces still needed to be 
+    duplicated.
         
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.4 2004/10/30 15:12:49 totte67 Exp $
+ * $Id: xxmc.h,v 1.5 2004/11/19 08:56:30 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -205,6 +205,8 @@ struct xxmc_driver_s {
   xxmc_frame_t       *recent_frames[VO_NUM_RECENT_FRAMES];
   xxmc_frame_t       *cur_frame;
   x11osd             *xoverlay;
+  int                xv_xoverlay_type;
+  int                xoverlay_type;
   int                ovl_changed;
 
   /* all scaling information goes here */
@@ -244,11 +246,10 @@ struct xxmc_driver_s {
   unsigned           xvmc_mpeg;
   unsigned           xvmc_accel;
   unsigned           last_accel_request;
-  unsigned           fallback_used;
   unsigned           xvmc_width;
   unsigned           xvmc_height;
   int                have_xvmc_autopaint;
-  int                xoverlay_ck;
+  int                xvmc_xoverlay_type;
   int                unsigned_intra;
 
   /*

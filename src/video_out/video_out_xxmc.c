@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.8 2004/11/14 20:38:28 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.9 2004/11/19 08:56:30 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -914,41 +914,9 @@ static void xvmc_check_colorkey_properties(xxmc_driver_t *driver)
     }
     XFree(xvmc_attributes);
     XVMCUNLOCKDISPLAY( driver->display );
-   
-    /*
-     * If we have a shape X11OSD, switch to colorkey X11OSD since we have a
-     * colorkey XvMC surface.
-     */
-
-    if ( driver->xoverlay ) {
-      if ( !driver->xoverlay_ck) {
-	XLockDisplay( driver->display );
-	x11osd_destroy( driver->xoverlay );
-	driver->xoverlay = x11osd_create( driver->xine, driver->display,
-					  driver->screen, driver->drawable,
-					  X11OSD_COLORKEY);
-	if ( driver->xoverlay ) {
-	  x11osd_colorkey( driver->xoverlay, driver->colorkey, &driver->sc);
-	  driver->xoverlay_ck = 1;
-	}
-      }
-    }
+    driver->xvmc_xoverlay_type = X11OSD_COLORKEY;
   } else {
-
-    /*
-     * Not a colorkey XvMC surface. Switch to shape X11OSD
-     */
-
-    if ( driver->xoverlay ) {
-      if ( driver->xoverlay_ck ) {
-	XLockDisplay( driver->display );
-	x11osd_destroy( driver->xoverlay );
-	driver->xoverlay = x11osd_create( driver->xine, driver->display,
-					  driver->screen, driver->drawable,
-					  X11OSD_SHAPED);
-	driver->xoverlay_ck = 0;
-      }
-    }
+    driver->xvmc_xoverlay_type = X11OSD_SHAPED;
   }
 }
 
@@ -1096,45 +1064,13 @@ static void dispose_ximage (xxmc_driver_t *this,
 }
 
 
-static void xxmc_do_update_frame(vo_driver_t *this_gen,
-				 vo_frame_t *frame_gen,
-				 uint32_t width, uint32_t height,
-				 double ratio, int format, int flags) {
-
+static void xxmc_do_update_frame_xv(vo_driver_t *this_gen,
+				    vo_frame_t *frame_gen,
+				    uint32_t width, uint32_t height,
+				    double ratio, int format, int flags)
+{
   xxmc_driver_t  *this  = (xxmc_driver_t *) this_gen;
   xxmc_frame_t   *frame = (xxmc_frame_t *) frame_gen;
-
-  if ( XINE_IMGFMT_XXMC == format ) {
-    xine_xxmc_t *xxmc = &frame->xxmc_data;
-
-    xvmc_context_writer_lock( &this->xvmc_lock);
-    if ((this->last_accel_request != xxmc->acceleration) ||
-	(this->xvmc_mpeg != xxmc->mpeg) ||
-	(this->xvmc_width != width) ||
-	(this->xvmc_height != height)) {
-      this->last_accel_request = xxmc->acceleration;
-      xxmc_xvmc_update_context(this, frame, width, height);
-      this->fallback_used = 0;
-    } 
-
-    if (this->contextActive) 
-      xxmc_frame_updates(this, frame);
-
-    format = xxmc->fallback_format;
-
-    if (!this->contextActive) {
-      this->fallback_used = 1;
-      xxmc->acceleration = 0;
-      xxmc->xvmc.macroblocks = 0;
-      frame->vo_frame.proc_duplicate_frame_data = NULL;
-    }
-    xvmc_context_writer_unlock( &this->xvmc_lock);
-
-  } else {
-    frame->vo_frame.proc_duplicate_frame_data = NULL;
-    if (!this->fallback_used) this->last_accel_request = 0;
-    xxmc_dispose_context( this );
-  }
 
   if (this->use_pitch_alignment) {
     width = (width + 7) & ~0x7;
@@ -1173,11 +1109,57 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
     
     XUnlockDisplay (this->display);
   }
+
   frame->ratio = ratio;
   frame->width  = width;
   frame->height = height;
-  frame->format = (this->contextActive) ? XINE_IMGFMT_XXMC : format;   
+  frame->format = format;   
   frame->vo_frame.format = frame->format;
+}
+
+
+static void xxmc_do_update_frame(vo_driver_t *this_gen,
+				 vo_frame_t *frame_gen,
+				 uint32_t width, uint32_t height,
+				 double ratio, int format, int flags) {
+
+  xxmc_driver_t  *this  = (xxmc_driver_t *) this_gen;
+  xxmc_frame_t   *frame = (xxmc_frame_t *) frame_gen;
+
+  if ( XINE_IMGFMT_XXMC == format ) {
+    xine_xxmc_t *xxmc = &frame->xxmc_data;
+
+    xvmc_context_writer_lock( &this->xvmc_lock);
+    if ((this->last_accel_request != xxmc->acceleration) ||
+	(this->xvmc_mpeg != xxmc->mpeg) ||
+	(this->xvmc_width != width) ||
+	(this->xvmc_height != height)) {
+      this->last_accel_request = xxmc->acceleration;
+      xxmc_xvmc_update_context(this, frame, width, height);
+    } 
+
+    if (this->contextActive) 
+      xxmc_frame_updates(this, frame);
+
+    xxmc_do_update_frame_xv(this_gen, frame_gen, width, height, ratio, 
+			    xxmc->fallback_format, flags);
+
+    if (!this->contextActive) {
+      xxmc->acceleration = 0;
+      xxmc->xvmc.macroblocks = 0;
+      frame->vo_frame.proc_duplicate_frame_data = NULL;
+    } else {
+      frame->format = format;
+      frame->vo_frame.format = format;
+    }
+
+    xvmc_context_writer_unlock( &this->xvmc_lock);
+    
+  } else {
+    frame->vo_frame.proc_duplicate_frame_data = NULL;
+    xxmc_do_update_frame_xv(this_gen, frame_gen, width, height, ratio, 
+			    format, flags);
+  }
 }
 
 static void xxmc_update_frame_format(vo_driver_t *this_gen,
@@ -1209,8 +1191,8 @@ static void xxmc_update_frame_format(vo_driver_t *this_gen,
  * From Xv.
  */
 
-static void xxmc_clean_output_area (xxmc_driver_t *this) {
-  int i, autopainting;
+static int xxmc_clean_output_area (xxmc_driver_t *this, int xvmc_active) {
+  int i, autopainting, ret;
 
   XLockDisplay (this->display);
 
@@ -1232,15 +1214,18 @@ static void xxmc_clean_output_area (xxmc_driver_t *this) {
    */
 
   autopainting = (this->props[VO_PROP_AUTOPAINT_COLORKEY].value == 1); 
-  if ((this->contextActive && 
+  if ((xvmc_active && 
        (this->context_flags & XVMC_OVERLAID_SURFACE) &&
        (! this->have_xvmc_autopaint ||
 	! autopainting)) ||
-      (! this->contextActive && !autopainting)) {
+      (! xvmc_active && !autopainting)) {
     XSetForeground (this->display, this->gc, this->colorkey);
     XFillRectangle (this->display, this->drawable, this->gc,
 		    this->sc.output_xoffset, this->sc.output_yoffset,
 		    this->sc.output_width, this->sc.output_height);
+    ret = 1;
+  } else {
+    ret = 0;
   }
   
   if (this->xoverlay) {
@@ -1249,6 +1234,7 @@ static void xxmc_clean_output_area (xxmc_driver_t *this) {
   }
   
   XUnlockDisplay (this->display);
+  return ret;
 }
 
 /*
@@ -1271,21 +1257,49 @@ static void xxmc_compute_output_size (xxmc_driver_t *this) {
 
 }
 
+
+static void xxmc_check_xoverlay_type(xxmc_driver_t *driver, xxmc_frame_t *frame) 
+
+{
+  int
+    new_overlay_type = (frame->format == XINE_IMGFMT_XXMC) ? 
+    driver->xvmc_xoverlay_type : driver->xv_xoverlay_type;
+  if (driver->xoverlay_type != new_overlay_type) {
+    printf("Warning! Changing xoverlay\n");
+    x11osd_destroy( driver->xoverlay );
+    driver->xoverlay = x11osd_create( driver->xine, driver->display,
+				      driver->screen, driver->drawable,
+				      new_overlay_type);
+    driver->xoverlay_type = new_overlay_type;
+  }
+}
+
+
 static void xxmc_overlay_begin (vo_driver_t *this_gen, 
 				vo_frame_t *frame_gen, int changed) {
   xxmc_driver_t  *this = (xxmc_driver_t *) this_gen;
+  xxmc_frame_t *frame = (xxmc_frame_t *) frame_gen;
+
 
   this->ovl_changed += changed;
   
+  xvmc_context_reader_lock( &this->xvmc_lock );
+  if ((frame->format == XINE_IMGFMT_XXMC) && 
+      !xxmc_xvmc_surface_valid(this, frame->xvmc_surf)) {
+    xvmc_context_reader_unlock( &this->xvmc_lock );
+    return;
+  }
+
   if( this->ovl_changed && this->xoverlay ) {
+    
     XLockDisplay (this->display);
+    xxmc_check_xoverlay_type(this, frame);
     x11osd_clear(this->xoverlay); 
     XUnlockDisplay (this->display);
   } 
-  if (this->ovl_changed && this->hwSubpictures ) {
-    xxmc_frame_t *frame = (xxmc_frame_t *) frame_gen;
+  if (this->ovl_changed && (frame->format == XINE_IMGFMT_XXMC) && 
+      this->hwSubpictures ) {
 
-    LOCK_AND_SURFACE_VALID( this, frame->xvmc_surf );
     this->new_subpic = xxmc_xvmc_alloc_subpicture
       ( this, &this->context, this->xvmc_width, 
 	this->xvmc_height, 
@@ -1300,8 +1314,8 @@ static void xxmc_overlay_begin (vo_driver_t *this_gen,
       XVMCUNLOCKDISPLAY( this->display );
       clear_xx44_palette(&this->palette);
     }
-    xvmc_context_reader_unlock( &this->xvmc_lock );  
-  }  
+  }
+  xvmc_context_reader_unlock( &this->xvmc_lock );  
 }
 
 static void xxmc_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) 
@@ -1315,7 +1329,7 @@ static void xxmc_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img)
     x11osd_expose(this->xoverlay);
     XUnlockDisplay (this->display);
   } 
-  if (this->hwSubpictures) {
+  if ((frame->format == XINE_IMGFMT_XXMC) && this->hwSubpictures) {
     LOCK_AND_SURFACE_VALID( this, frame->xvmc_surf );
     if (this->ovl_changed) {
       if (this->old_subpic) {
@@ -1373,8 +1387,8 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
         x11osd_blend(this->xoverlay, overlay); 
         XUnlockDisplay (this->display);
       }
-    } else if (this->hwSubpictures) {
-      if (this->ovl_changed) {
+    } else if (frame->format == XINE_IMGFMT_XXMC) {
+      if (this->ovl_changed && this->hwSubpictures) {
 	if (this->new_subpic) {
 	  LOCK_AND_SURFACE_VALID( this, frame->xvmc_surf );
 	  if (this->first_overlay) {
@@ -1442,7 +1456,9 @@ static int xxmc_redraw_needed (vo_driver_t *this_gen)
     if( _x_vo_scale_redraw_needed( &this->sc ) ) {
 
       xxmc_compute_output_size (this);
-      xxmc_clean_output_area (this);
+      
+      xxmc_clean_output_area 
+	(this, (this->cur_frame->format == XINE_IMGFMT_XXMC));
 
       ret = 1;
     }
@@ -1495,15 +1511,15 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
   xxmc_redraw_needed (this_gen);
   if (frame->format == XINE_IMGFMT_XXMC) {
-      XVMCLOCKDISPLAY( this->display );
-      XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
-		      this->sc.displayed_xoffset, this->sc.displayed_yoffset,
-		      this->sc.displayed_width, this->sc.displayed_height,
-		      this->sc.output_xoffset, this->sc.output_yoffset,
-		      this->sc.output_width, this->sc.output_height, 
-		      ((this->deinterlace_enabled) ? 
-		       XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
-      XVMCUNLOCKDISPLAY( this->display );
+    XVMCLOCKDISPLAY( this->display );
+    XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
+		    this->sc.displayed_xoffset, this->sc.displayed_yoffset,
+		    this->sc.displayed_width, this->sc.displayed_height,
+		    this->sc.output_xoffset, this->sc.output_yoffset,
+		    this->sc.output_width, this->sc.output_height, 
+		    ((this->deinterlace_enabled) ? 
+		     XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
+    XVMCUNLOCKDISPLAY( this->display );
   } else {
     XLockDisplay (this->display);
     if (this->use_shm) {
@@ -1525,9 +1541,7 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
     XSync(this->display, False);
     XUnlockDisplay (this->display);
   }
-
   xvmc_context_reader_unlock( &this->xvmc_lock );
-
 }
 
 static int xxmc_get_property (vo_driver_t *this_gen, int property) {
@@ -1666,7 +1680,7 @@ static void xxmc_get_property_min_max (vo_driver_t *this_gen,
 static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
 				   int data_type, void *data) {
 
-   xxmc_driver_t     *this = (xxmc_driver_t *) this_gen;
+  xxmc_driver_t     *this = (xxmc_driver_t *) this_gen;
 
   switch (data_type) {
 #ifndef XINE_DISABLE_DEPRECATED_FEATURES
@@ -1681,25 +1695,26 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
       xxmc_frame_t *frame = this->cur_frame;
       xine_xxmc_t *xxmc = &frame->xxmc_data;
 
-      xxmc_redraw_needed (this_gen);
-      xxmc_clean_output_area (this);
-
       xvmc_context_reader_lock( &this->xvmc_lock );
       if ((frame->format == XINE_IMGFMT_XXMC) &&
 	  (!xxmc->decoded || !xxmc_xvmc_surface_valid(this, frame->xvmc_surf))) {
 	xvmc_context_reader_unlock( &this->xvmc_lock );
+	if (! xxmc_redraw_needed (this_gen)) 
+	  xxmc_clean_output_area(this, (frame->format == XINE_IMGFMT_XXMC));
 	break;
       }
 
+      if (!xxmc_redraw_needed (this_gen) && !this->xoverlay)
+	xxmc_clean_output_area(this,(frame->format == XINE_IMGFMT_XXMC));
       if (frame->format == XINE_IMGFMT_XXMC) {
-	  XVMCLOCKDISPLAY( this->display );
-	  XvMCPutSurface( this->display, frame->xvmc_surf, this->drawable,
-			  this->sc.displayed_xoffset, this->sc.displayed_yoffset,
-			  this->sc.displayed_width, this->sc.displayed_height,
-			  this->sc.output_xoffset, this->sc.output_yoffset,
-			  this->sc.output_width, this->sc.output_height, 
-			  ((this->deinterlace_enabled) ? XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
-	  XVMCUNLOCKDISPLAY( this->display );
+	XVMCLOCKDISPLAY( this->display );
+	XvMCPutSurface( this->display, frame->xvmc_surf, this->drawable,
+			this->sc.displayed_xoffset, this->sc.displayed_yoffset,
+			this->sc.displayed_width, this->sc.displayed_height,
+			this->sc.output_xoffset, this->sc.output_yoffset,
+			this->sc.output_width, this->sc.output_height, 
+			((this->deinterlace_enabled) ? XVMC_TOP_FIELD : XVMC_FRAME_PICTURE)); 
+	XVMCUNLOCKDISPLAY( this->display );
       } else {
 	XLockDisplay (this->display);
 	if (this->use_shm) {
@@ -1720,12 +1735,13 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
 	XSync(this->display, False);
 	XUnlockDisplay (this->display);
       }
-
-      if(this->xoverlay)
-	x11osd_expose(this->xoverlay);
       xvmc_context_reader_unlock( &this->xvmc_lock );
     }
+    if(this->xoverlay)
+      x11osd_expose(this->xoverlay);	
+      
   }
+  
     break;
 
   case XINE_GUI_SEND_DRAWABLE_CHANGED:
@@ -1777,12 +1793,11 @@ static void xxmc_dispose (vo_driver_t *this_gen) {
       this->old_subpic = NULL;
     }
     if (this->new_subpic) {
-      xxmc_xvmc_free_subpicture(this, this->old_subpic);
+      xxmc_xvmc_free_subpicture(this, this->new_subpic);
       this->new_subpic = NULL;
     }
     xvmc_context_writer_unlock( &this->xvmc_lock );
   }
-
 
   XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
@@ -2090,7 +2105,6 @@ static void checkXvMCCap( xxmc_driver_t *this, XvPortID xv_port)
   XVMCUNLOCKDISPLAY( this->display );
   init_xx44_palette( &this->palette , 0);
   this->last_accel_request = 0xFFFFFFFF;
-  this->fallback_used = 0;
   xvmc_context_writer_unlock( &this->xvmc_lock );
   return;
 
@@ -2429,13 +2443,15 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     if( this->use_colorkey ) {
       this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
 				      this->drawable, X11OSD_COLORKEY);
+      this->xv_xoverlay_type = X11OSD_COLORKEY;
       if(this->xoverlay)
 	x11osd_colorkey(this->xoverlay, this->colorkey, &this->sc);
-      this->xoverlay_ck = 1;
+      this->xoverlay_type = X11OSD_COLORKEY;
     } else {
       this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
 				      this->drawable, X11OSD_SHAPED);
-      this->xoverlay_ck = 0;
+      this->xv_xoverlay_type = X11OSD_SHAPED;
+      this->xoverlay_type = X11OSD_SHAPED;
     }
     XUnlockDisplay (this->display);
   }
