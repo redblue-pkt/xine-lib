@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.51 2002/01/15 16:37:14 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.52 2002/01/28 17:28:39 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -899,7 +899,7 @@ static int metronom_sync_loop (metronom_t *this) {
   scr_plugin_t** scr;
   uint32_t pts;
   
-  while (1) {
+  while (((xine_t*)this->xine)->status != XINE_QUIT) {
     pts = this->scr_master->get_current(this->scr_master);
     
     for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
@@ -907,6 +907,7 @@ static int metronom_sync_loop (metronom_t *this) {
 
     sleep(5); /* synchronise every 5 seconds */
   }
+  return 0;
 }
 
 

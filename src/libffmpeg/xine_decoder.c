@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2002/01/18 01:24:59 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.25 2002/01/28 17:28:39 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "xine_internal.h"
 #include "video_out.h"
@@ -370,9 +371,15 @@ static char *ff_get_id(void) {
 }
 
 
+static void init_routine(void) {
+  avcodec_init();
+  avcodec_register_all();
+}
+
 video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   ff_decoder_t *this ;
+  static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
   if (iface_version != 5) {
     printf( "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -395,8 +402,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.priority            = 5;
   this->size				  = 0;
 
-  avcodec_init();
-  avcodec_register_all();
+  pthread_once( &once_control, init_routine );
 
   return (video_decoder_t *) this;
 }
