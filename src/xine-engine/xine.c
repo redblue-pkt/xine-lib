@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.41 2001/08/14 11:57:40 guenter Exp $
+ * $Id: xine.c,v 1.42 2001/08/16 19:58:37 ehasenle Exp $
  *
  * top-level xine functions
  *
@@ -393,11 +393,6 @@ static void event_handler(xine_t *xine, event_t *event, void *data) {
       }
     }
     break;
-  case XINE_SPU_EVENT:
-    if (xine->cur_spu_decoder_plugin)
-      xine->cur_spu_decoder_plugin->event(xine->cur_spu_decoder_plugin,
-		(spu_event_t*) event);
-    break;
   }
 }
 
@@ -423,6 +418,11 @@ xine_t *xine_init (vo_driver_t *vo,
   profiler_set_label (0, "video decoder         ");
   profiler_set_label (1, "audio decoder/output  ");
   profiler_set_label (2, "video output          ");
+
+  /*
+   * init event listeners
+   */
+  this->num_event_listeners = 0; /* Initially there are none */
 
   /*
    * init lock
@@ -465,11 +465,6 @@ xine_t *xine_init (vo_driver_t *vo,
   }
   audio_decoder_init (this);
   printf("xine_init returning\n");
-
-  /*
-   * init event listeners
-   */
-  this->num_event_listeners = 0; /* Initially there are none */
 
   if((xine_register_event_listener(this, event_handler)) < 1) {
     fprintf(stderr, "xine_register_event_listener() failed.\n");
