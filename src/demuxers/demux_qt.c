@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.73 2002/07/19 14:37:34 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.74 2002/07/31 06:04:53 tmmm Exp $
  *
  */
 
@@ -52,6 +52,8 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+
+#include "qtpalette.h"
 
 typedef unsigned int qt_atom;
 
@@ -98,6 +100,7 @@ typedef unsigned int qt_atom;
 #define _ATOM QT_ATOM('', '', '', '')
 
 #define ATOM_PREAMBLE_SIZE 8
+#define PALETTE_COUNT 256
 
 #define VALID_ENDS   "mov,mp4,qt"
 
@@ -156,6 +159,8 @@ typedef struct {
       unsigned int codec_format;
       unsigned int width;
       unsigned int height;
+      int palette_count;
+      palette_entry_t palette[PALETTE_COUNT];
     } video;
 
     struct {
@@ -239,6 +244,9 @@ typedef struct {
 
   qt_frame *frames;
   unsigned int frame_count;
+
+  int                    palette_count;
+  palette_entry_t        palette[PALETTE_COUNT];
 
   qt_error last_error;
 } qt_info;
@@ -394,6 +402,16 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   qt_atom current_atom;
   qt_error last_error = QT_OK;
 
+  /* for palette traversal */
+  int color_depth;
+  int color_greyscale;
+  int color_flag;
+  int color_start;
+  int color_count;
+  int color_end;
+  int color_index;
+  unsigned char *color_table;
+
   /* initialize sample table structure */
   sample_table->edit_list_table = NULL;
   sample_table->chunk_offset_table = NULL;
@@ -482,6 +500,70 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         }
         sample_table->media_description.video.codec_format =
           *(uint32_t *)&trak_atom[i + 0x10];
+
+        /* figure out the palette situation */
+        color_depth = trak_atom[i + 0x5F];
+        color_greyscale = color_depth & 0x20;
+        color_depth &= 0x1F;
+
+        /* if the depth is 2, 4, or 8 bpp, file is palettized */
+        if ((color_depth == 2) || (color_depth == 4) || (color_depth == 8)) {
+
+          color_flag = BE_16(&trak_atom[i + 0x60]);
+
+          /* if flag bit 3 is set, load the default palette */
+          if (color_flag & 0x08) {
+
+            sample_table->media_description.video.palette_count =
+              1 << color_depth;
+
+            if (color_depth == 2)
+              color_table = qt_default_palette_4;
+            else if (color_depth == 4)
+              color_table = qt_default_palette_16;
+            else
+              color_table = qt_default_palette_256;
+
+            for (j = 0; 
+              j < sample_table->media_description.video.palette_count;
+              j++) {
+
+              sample_table->media_description.video.palette[j].r =
+                color_table[j * 4 + 0];
+              sample_table->media_description.video.palette[j].g =
+                color_table[j * 4 + 1];
+              sample_table->media_description.video.palette[j].b =
+                color_table[j * 4 + 2];
+
+            }
+
+          } else {
+
+            /* load the palette from the file */
+            color_start = BE_32(&trak_atom[i + 0x62]);
+            color_count = BE_16(&trak_atom[i + 0x66]);
+            color_end = BE_16(&trak_atom[i + 0x68]);
+            sample_table->media_description.video.palette_count =
+              color_end + 1;
+
+            for (j = color_start; j <= color_end; j++) {
+
+              color_index = BE_16(&trak_atom[i + 0x6A + j * 8]);
+              if (color_count & 0x8000)
+                color_index = j;
+              if (color_index < 
+                sample_table->media_description.video.palette_count) {
+                sample_table->media_description.video.palette[color_index].r =
+                  trak_atom[i + 0x6A + j * 8 + 2];
+                sample_table->media_description.video.palette[color_index].g =
+                  trak_atom[i + 0x6A + j * 8 + 4];
+                sample_table->media_description.video.palette[color_index].b =
+                  trak_atom[i + 0x6A + j * 8 + 6];
+              }
+            }
+          }
+        } else
+          sample_table->media_description.video.palette_count = 0;
 
       } else if (sample_table->type == MEDIA_AUDIO) {
 
@@ -917,6 +999,15 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       if( sample_tables[i].frame_count > 1 && sample_tables[i].decoder_config ) {
         info->video_decoder_config = sample_tables[i].decoder_config;
         info->video_decoder_config_len = sample_tables[i].decoder_config_len;
+      }
+
+      /* pass the palette info to the master qt_info structure */
+      if (sample_tables[i].media_description.video.palette_count) {
+        info->palette_count =
+          sample_tables[i].media_description.video.palette_count;
+        memcpy(info->palette,
+          sample_tables[i].media_description.video.palette,
+          PALETTE_COUNT * sizeof(palette_entry_t));
       }
 
     } else if (sample_tables[i].type == MEDIA_AUDIO) {
@@ -1473,6 +1564,18 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       buf->type = this->qt->video_type;
       buf->size = this->qt->video_decoder_config_len;
       buf->content = this->qt->video_decoder_config;      
+      this->video_fifo->put (this->video_fifo, buf);
+    }
+
+    /* send off the palette, if there is one */
+    if (this->qt->palette_count) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+      buf->decoder_info[2] = this->qt->palette_count;
+      buf->decoder_info[3] = (unsigned int)&this->qt->palette;
+      buf->size = 0;
+      buf->type = this->qt->video_type;
       this->video_fifo->put (this->video_fifo, buf);
     }
 

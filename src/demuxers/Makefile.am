@@ -29,7 +29,7 @@ lib_LTLIBRARIES = $(ogg_module) $(qt_modules) $(asf_module) xineplug_dmx_avi.la 
 	xineplug_dmx_cda.la xineplug_dmx_film.la \
 	xineplug_dmx_roq.la xineplug_dmx_fli.la \
 	xineplug_dmx_smjpeg.la xineplug_dmx_wav.la \
-	xineplug_dmx_idcin.la
+	xineplug_dmx_idcin.la xineplug_dmx_real.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) \
@@ -64,7 +64,7 @@ xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
 xineplug_dmx_mpeg_ts_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module
 
-xineplug_dmx_qt_la_SOURCES = demux_qt.c
+xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
 xineplug_dmx_qt_la_LIBADD = -lz $(top_builddir)/src/xine-engine/libxine.la
 
@@ -100,7 +100,11 @@ xineplug_dmx_idcin_la_SOURCES = demux_idcin.c
 xineplug_dmx_idcin_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_idcin_la_LDFLAGS = -avoid-version -module
 
-include_HEADERS = demux.h
+xineplug_dmx_real_la_SOURCES = demux_real.c
+xineplug_dmx_real_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_real_la_LDFLAGS = -avoid-version -module
+
+include_HEADERS = demux.h qtpalette.h
 
 ##
 ## Install header files (default=$includedir/xine)
