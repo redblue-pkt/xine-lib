@@ -22,6 +22,7 @@ xine-lib (1-rc6)
   * added api for finer playback speed control (requires frontend support)
   * support QuickTime 6.3 DLLs
   * improved response time on video grabber ports
+  * support mp3 audio in mp4 files
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
