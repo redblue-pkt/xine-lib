@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  *
@@ -20,7 +20,7 @@
  * FftGraph Visualization Post Plugin For xine
  *   by Thibaut Mattern (tmattern@noos.fr)
  *
- * $Id: fftgraph.c,v 1.2 2003/09/14 12:59:27 tmattern Exp $
+ * $Id: fftgraph.c,v 1.3 2003/10/30 22:40:53 mroi Exp $
  *
  */
 
@@ -33,6 +33,7 @@
 #include "xineutils.h"
 #include "post.h"
 #include "bswap.h"
+#include "visualizations.h"
 #include "fft.h"
 
 #define FPS                      20
@@ -334,17 +335,10 @@ static void fftgraph_port_put_buffer (xine_audio_port_t *port_gen,
   int16_t *data;
   int8_t *data8;
   int samples_used = 0;
-  uint64_t vpts = buf->vpts;
+  int64_t pts = buf->vpts;
+  int64_t vpts = 0;
   int i, c;
 
-  /* HACK: compute a pts using metronom internals */
-  if (!vpts) {
-    metronom_t *metronom = this->stream->metronom;
-    pthread_mutex_lock(&metronom->lock);
-    vpts = metronom->audio_vpts - metronom->vpts_offset;
-    pthread_mutex_unlock(&metronom->lock);
-  }
-  
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);
@@ -402,15 +396,23 @@ static void fftgraph_port_put_buffer (xine_audio_port_t *port_gen,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
-      frame->pts = vpts;
-      vpts = 0;
-
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      if (!vpts) {
+        vpts = this->stream->metronom->audio_vpts;
+        frame->pts = pts;
+        frame->vpts = vpts;
+        pts = 0;
+        vpts += frame->duration;
+      } else {
+        frame->pts = 0;
+        frame->vpts = vpts;
+        vpts += frame->duration;
+      }
       this->sample_counter -= this->samples_per_frame;
 
       draw_fftgraph(this, frame);
 
-      frame->draw(frame, stream);
+      frame->draw(frame, NULL);
       frame->free(frame);
     }
   } while( this->sample_counter >= this->samples_per_frame );

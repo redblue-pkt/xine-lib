@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.148 2003/10/06 13:09:52 mroi Exp $
+ * $Id: audio_out.c,v 1.149 2003/10/30 22:40:53 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1328,15 +1328,17 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   }
 
   buf->stream = stream;
-  buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
-  buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
-  buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
-  extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
-
+  
   pts = buf->vpts;
+  
+  if (stream) {
+    buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
+    buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
+    buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
+    extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
+    buf->vpts = stream->metronom->got_audio_samples(stream->metronom, pts, buf->num_frames);
+  }
 
-  buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, 
-						   buf->num_frames);
   buf->extra_info->vpts = buf->vpts;
          
   lprintf ("ao_put_buffer, pts=%" PRId64 ", vpts=%" PRId64 ", flushmode=%d\n",

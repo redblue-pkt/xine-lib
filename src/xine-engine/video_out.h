@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.99 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out.h,v 1.100 2003/10/30 22:40:53 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -114,6 +114,7 @@ struct vo_frame_s {
 
   /* append this frame to the display queue, 
      returns number of frames to skip if decoder is late */
+  /* when the frame does not originate from a stream, it is legal to pass a NULL stream */
   int (*draw) (vo_frame_t *vo_img, xine_stream_t *stream);
 
   /* lock frame as reference, must be paired with free.

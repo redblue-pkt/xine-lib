@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.11 2003/10/23 20:12:35 mroi Exp $
+ * $Id: fooviz.c,v 1.12 2003/10/30 22:40:53 mroi Exp $
  *
  */
 
@@ -172,17 +172,10 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
   int16_t *data;
   int8_t *data8;
   int samples_used = 0;
-  uint64_t vpts = buf->vpts;
+  int64_t pts = buf->vpts;
+  int64_t vpts = 0;
   int i, j;
   
-  /* HACK: compute a pts using metronom internals */
-  if (!vpts) {
-    metronom_t *metronom = this->stream->metronom;
-    pthread_mutex_lock(&metronom->lock);
-    vpts = metronom->audio_vpts - metronom->vpts_offset;
-    pthread_mutex_unlock(&metronom->lock);
-  }
-
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);
@@ -238,15 +231,24 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
-      frame->pts = vpts;
-      vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      if (!vpts) {
+        vpts = this->stream->metronom->audio_vpts;
+        frame->pts = pts;
+        frame->vpts = vpts;
+        pts = 0;
+        vpts += frame->duration;
+      } else {
+        frame->pts = 0;
+        frame->vpts = vpts;
+        vpts += frame->duration;
+      }
       this->sample_counter -= this->samples_per_frame;
 
       memset(frame->base[0], this->current_yuv_byte, FOO_WIDTH * FOO_HEIGHT * 2);
       this->current_yuv_byte += 3;
 
-      frame->draw(frame, stream);
+      frame->draw(frame, NULL);
       frame->free(frame);
     }
   } while( this->sample_counter >= this->samples_per_frame );

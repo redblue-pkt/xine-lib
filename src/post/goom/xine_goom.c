@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.37 2003/10/23 20:12:34 mroi Exp $
+ * $Id: xine_goom.c,v 1.38 2003/10/30 22:40:53 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -237,7 +237,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   post_goom_out_t    *output = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
   post_goom_out_t    *outputv = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
   post_audio_port_t  *port;
-  xine_cfg_entry_t    fps_entry, width_entry, height_entry, use_asm_entry, csc_method_entry;
+  xine_cfg_entry_t    fps_entry, width_entry, height_entry, csc_method_entry;
 
   if (!this || !input || !output || !outputv || !video_target || !video_target[0] ||
       !audio_target || !audio_target[0] ) {
@@ -471,20 +471,12 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   int16_t *data;
   int8_t *data8;
   int samples_used = 0;
-  int64_t vpts = buf->vpts;
+  int64_t pts = buf->vpts;
+  int64_t vpts = 0;
   int i, j;
   uint8_t *dest_ptr;
   int width, height;
-  int64_t cur_vpts, diff;
   
-  /* HACK: compute a pts using metronom internals */
-  if (!vpts) {
-    metronom_t *metronom = this->stream->metronom;
-    pthread_mutex_lock(&metronom->lock);
-    vpts = metronom->audio_vpts - metronom->vpts_offset;
-    pthread_mutex_unlock(&metronom->lock);
-  }
-                               
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);
@@ -540,14 +532,24 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
-      frame->pts = vpts;
-      vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      if (!vpts) {
+        vpts = this->stream->metronom->audio_vpts;
+        frame->pts = pts;
+        frame->vpts = vpts;
+        pts = 0;
+        vpts += frame->duration;
+      } else {
+        frame->pts = 0;
+        frame->vpts = vpts;
+        vpts += frame->duration;
+      }
       this->sample_counter -= this->samples_per_frame;
 
       /* skip frames if there is less than LOW_MARK in audio output fifo */
       {
         metronom_t *metronom = this->stream->metronom;
+        int64_t cur_vpts, diff;
         cur_vpts = metronom->clock->get_current_time(metronom->clock);
         pthread_mutex_lock(&metronom->lock);
         diff = metronom->audio_vpts - cur_vpts;
@@ -622,10 +624,10 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
           }
         }
 
-        frame->draw(frame, stream);
+        frame->draw(frame, NULL);
       } else {
         frame->bad_frame = 1;
-        frame->draw(frame, stream);
+        frame->draw(frame, NULL);
       }
       frame->free(frame);
       

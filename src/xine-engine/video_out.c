@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.175 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out.c,v 1.176 2003/10/30 22:40:53 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -328,11 +328,13 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   int            frames_to_skip;
 
   img->stream = stream;
-  extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
   this->current_width = img->width;
   this->current_height = img->height;
   
-  stream->metronom->got_video_frame (stream->metronom, img);
+  if (stream) {
+    extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+    stream->metronom->got_video_frame (stream->metronom, img);
+  }
   this->current_duration = img->duration;
 
   if (!this->grab_only) {
@@ -364,7 +366,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
      *   smootly before starting to drop frames if the decoder is really too
      *   slow.
      */
-    if (stream->first_frame_flag == 2)
+    if (stream && stream->first_frame_flag == 2)
       this->frame_drop_cpt = 10;
 
     if (this->frame_drop_cpt) {
@@ -432,9 +434,11 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 #ifdef LOG
     printf ("video_out: bad_frame\n");
 #endif
-    pthread_mutex_lock( &stream->current_extra_info_lock );
-    extra_info_merge( stream->current_extra_info, img->extra_info );
-    pthread_mutex_unlock( &stream->current_extra_info_lock );
+    if (stream) {
+      pthread_mutex_lock( &stream->current_extra_info_lock );
+      extra_info_merge( stream->current_extra_info, img->extra_info );
+      pthread_mutex_unlock( &stream->current_extra_info_lock );
+    }
 
     this->num_frames_skipped++;
   }
@@ -631,9 +635,11 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       
       img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
   
-      pthread_mutex_lock( &img->stream->current_extra_info_lock );
-      extra_info_merge( img->stream->current_extra_info, img->extra_info );
-      pthread_mutex_unlock( &img->stream->current_extra_info_lock );
+      if (img->stream) {
+	pthread_mutex_lock( &img->stream->current_extra_info_lock );
+	extra_info_merge( img->stream->current_extra_info, img->extra_info );
+	pthread_mutex_unlock( &img->stream->current_extra_info_lock );
+      }
 
       /* when flushing frames, keep the first one as backup */
       if( this->discard_frames ) {
@@ -761,7 +767,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
     if (img && !img->next) {
       
-      if (img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
+      if (!img->stream ||
+          img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
           img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
 #ifdef LOG
@@ -798,14 +805,14 @@ static void overlay_and_display_frame (vos_t *this,
   if(!img->proc_called )
     vo_frame_driver_proc(img);
   
-  pthread_mutex_lock( &img->stream->current_extra_info_lock );
-  {
+  if (img->stream) {
     int64_t diff;
+    pthread_mutex_lock( &img->stream->current_extra_info_lock );
     diff = img->extra_info->vpts - img->stream->current_extra_info->vpts;
     if ((diff > 3000) || (diff<-300000)) 
       extra_info_merge( img->stream->current_extra_info, img->extra_info );
+    pthread_mutex_unlock( &img->stream->current_extra_info_lock );
   }
-  pthread_mutex_unlock( &img->stream->current_extra_info_lock );
 
   if (this->overlay_source) {
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 

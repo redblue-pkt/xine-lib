@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.58 2003/09/01 04:08:41 jcdutton Exp $
+ * $Id: audio_out.h,v 1.59 2003/10/30 22:40:53 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -197,14 +197,13 @@ struct xine_audio_port_s {
   /*
    * get a piece of memory for audio data 
    */
-
   audio_buffer_t * (*get_buffer) (xine_audio_port_t *);
 
   /*
    * append a buffer filled with audio data to the audio fifo
    * for output
    */
-
+  /* when the frame does not originate from a stream, it is legal to pass a NULL stream */
   void (*put_buffer) (xine_audio_port_t *, audio_buffer_t *buf, xine_stream_t *stream);
 
   /* audio driver is no longer used by decoder => close */
