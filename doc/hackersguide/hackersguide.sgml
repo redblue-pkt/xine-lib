@@ -31,4 +31,83 @@
   &intro;
 </chapter>
 
+<chapter id="overview"><title>Overview</title>
+  <sect1>
+    <title>Modules</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Which module does what</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Information flow</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Library interfaces</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+<chapter id="internals"><title>xine internals</title>
+  <sect1>
+    <title>What is this metronom thingy ?</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>xine engine from inside</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Plugin architecture</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+<chapter id="input"><title>Extending xine's input</title>
+  <sect1>
+    <title>Adding support for a new file format (writing a demuxer)</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Adding support for a new audio/video format
+           (writing a decoder)</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Adding support for a new media type,
+           e.g. disc format, network transport method
+           (writing an input plugin)</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+<chapter id="output"><title>Extending xine's output</title>
+  <sect1>
+    <title>Adding support for a new type of video output
+           (e.g. framebuffer device)</title>
+    <para></para>
+  </sect1>
+  <sect1>
+    <title>Adding support for a new type of audio output</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+<chapter id="xine-library"><title>Using xine as a library</title>
+  <sect1>
+    <title>Writing a new frontend to xine</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+<chapter id="misc"><title>misc</title>
+  <sect1>
+    <title>Coding style</title>
+    <para></para>
+  </sect1>
+</chapter>
+
+
 </book>
