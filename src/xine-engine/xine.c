@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.174 2002/10/23 22:23:46 guenter Exp $
+ * $Id: xine.c,v 1.175 2002/10/26 03:56:32 storri Exp $
  *
  * top-level xine functions
  *
@@ -346,14 +346,14 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    */
 
   if (!(stream->input_plugin = find_input_plugin (stream, mrl))) {
-    xine_log (stream->xine, XINE_LOG_MSG, 
+    xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine: cannot find input plugin for this MRL\n"));
 
     stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
     return 0;
   }
   stream->input_class = stream->input_plugin->input_class;
-  stream->meta_info[XINE_META_INFO_INPUT_PLUGIN] 
+  stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
     = strdup (stream->input_class->get_identifier (stream->input_class));
 
 
@@ -379,7 +379,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   printf ("xine: demux and input plugin found\n");
 #endif
 
-  stream->meta_info[XINE_META_INFO_SYSTEMLAYER] 
+  stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
     = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
 
   /*

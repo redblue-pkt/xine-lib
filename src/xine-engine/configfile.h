@@ -1,23 +1,23 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.18 2002/09/18 14:31:39 mroi Exp $
+ * $Id: configfile.h,v 1.19 2002/10/26 03:56:32 storri Exp $
  *
  * config file management
  *
@@ -33,6 +33,7 @@ extern "C" {
 #include <inttypes.h>
 
 #include "xine.h"
+#include "pthread.h"
 
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;
@@ -99,9 +100,9 @@ struct config_values_s {
    */
 
   char* (*register_string) (config_values_t *this,
-			    const char *key, 
+			    const char *key,
 			    const char *def_value,
-			    const char *description, 
+			    const char *description,
 			    const char *help,
 			    int exp_level,
 			    xine_config_cb_t changed_cb,
@@ -111,7 +112,7 @@ struct config_values_s {
 			 const char *key,
 			 int def_value,
 			 int min, int max,
-			 const char *description, 
+			 const char *description,
 			 const char *help,
 			 int exp_level,
 			 xine_config_cb_t changed_cb,
@@ -121,25 +122,25 @@ struct config_values_s {
 			const char *key,
 			int def_value,
 			char **values,
-			const char *description, 
+			const char *description,
 			const char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
 			void *cb_data);
 
   int (*register_num) (config_values_t *this,
-		       const char *key, 
+		       const char *key,
 		       int def_value,
-		       const char *description, 
+		       const char *description,
 		       const char *help,
 		       int exp_level,
 		       xine_config_cb_t changed_cb,
 		       void *cb_data);
 
   int (*register_bool) (config_values_t *this,
-			const char *key, 
+			const char *key,
 			int def_value,
-			const char *description, 
+			const char *description,
 			const char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
@@ -156,7 +157,7 @@ struct config_values_s {
 
   /*
    * lookup config entries
-   * 
+   *
    * remember to call the changed_cb if it exists
    * and you changed the value of this item
    */
@@ -173,15 +174,15 @@ struct config_values_s {
    */
   void (*dispose) (config_values_t *this);
 
-  /* 
+  /*
    * config values are stored here:
    */
   cfg_entry_t         *first, *last, *cur;
-  
+
   /*
    * mutex for modification to the config
    */
-  pthread_mutex_t      config_lock;
+   pthread_mutex_t      config_lock;
 };
 
 /*
