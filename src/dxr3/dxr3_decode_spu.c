@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.13 2002/07/17 14:59:18 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.14 2002/07/21 10:02:35 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -242,6 +242,16 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
         xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
         this->menu = 1;
 	this->button_filter = 0;
+        if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+          /* a button is forced here, inform nav plugin */
+          spu_button_t spu_button;
+          xine_spu_event_t spu_event;
+          this->buttonN = this->pci.hli.hl_gi.fosl_btnn ;
+          spu_event.event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
+          spu_event.data = &spu_button;
+          spu_button.buttonN  = this->buttonN;
+          xine_send_event(this->xine, &spu_event.event);
+        }
         if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0))
           if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
             printf("dxr3_decode_spu: failed to set spu button (%s)\n",
@@ -471,21 +481,23 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
 
 static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn)
 {
-  int32_t button = this->buttonN;
   btni_t *button_ptr;
   
-  /* if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
-   *   button = this->pci.hli.hl_gi.fosl_btnn ;
-   * }
-   */
-   
-  if ((button <= 0) || (button > this->pci.hli.hl_gi.btn_ns)) {
+  if ((this->buttonN <= 0) || (this->buttonN > this->pci.hli.hl_gi.btn_ns)) {
+    spu_button_t spu_button;
+    xine_spu_event_t spu_event;
+    
     printf("dxr3_decode_spu: Unable to select button number %i as it doesn't exist. Forcing button 1\n",
-      button);
-    button = 1;
+      this->buttonN);
+    this->buttonN = 1;
+    /* inform nav plugin that we have chosen another button */
+    spu_event.event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
+    spu_event.data = &spu_button;
+    spu_button.buttonN  = this->buttonN;
+    xine_send_event(this->xine, &spu_event.event);
   }
   
-  button_ptr = &this->pci.hli.btnit[button-1];
+  button_ptr = &this->pci.hli.btnit[this->buttonN - 1];
   if(button_ptr->btn_coln != 0) {
 #if LOG_BTN
     fprintf(stderr, "dxr3_decode_spu: normal button clut, mode %d\n", mode);
