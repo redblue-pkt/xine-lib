@@ -17,15 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.3 2003/02/27 09:49:14 skaboy Exp $
+ * $Id: mosaico.c,v 1.4 2003/02/27 18:56:44 esnel Exp $
  */
  
 /*
  * simple video mosaico plugin
  */
 
-#include <xine/xine_internal.h>
-#include <xine/post.h>
+#include "xine_internal.h"
+#include "post.h"
 
 #define MOVERSION (5)
 
