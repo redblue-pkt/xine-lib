@@ -983,6 +983,11 @@ case "$host_or_hostalias" in
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
+  ia64-*)
+    CFLAGS="$CFLAGS -O3"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
+  ;;
   hppa-*)
     dnl -O3 seems to trigger gcc internal compiler errors, at least up to gcc 3.2.1
     CFLAGS="$CFLAGS -O"
