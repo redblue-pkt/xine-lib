@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.11 2002/05/23 22:50:52 miguelfreitas Exp $
+ * $Id: audio_arts_out.c,v 1.12 2002/05/27 11:43:22 miguelfreitas Exp $
  */
 
 /* required for swab() */
@@ -63,7 +63,34 @@ typedef struct arts_driver_s {
 
   uint32_t       latency;
 
+  struct {
+	int     volume;
+	int     mute;
+	int     vol_scale;
+	int     v_mixer;
+  } mixer;
+
 } arts_driver_t;
+
+/*
+ * Software stereo volume control.....
+ * Igor Mokrushin <igor@avtomir.ru>
+ */
+static void ao_arts_volume(void *buffer, int length, int left, int right)
+{
+       int i,v;
+       short *data = (short *)buffer;
+
+       if (right == -1) right = left;
+
+       for (i=0; i < length << 1; i+=2) {
+           v=(int) ((*(data) * left) / 100);
+           *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+           v=(int) ((*(data) * right) / 100);
+           *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+       }
+}
+/* End volume control */
 
 /*
  * open the audio device for writing to
@@ -148,8 +175,10 @@ static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
                          uint32_t num_frames)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
+  int size = num_frames * this->bytes_per_frame;
 
-  arts_write(this->audio_stream, data, num_frames * this->bytes_per_frame );
+  ao_arts_volume(data, size / sizeof(short), this->mixer.vol_scale, this->mixer.vol_scale);
+  arts_write(this->audio_stream, data, size );
 
   return 1;
 }
@@ -196,36 +225,53 @@ static void ao_arts_exit(ao_driver_t *this_gen)
 /*
  *
  */
-static int ao_arts_get_property (ao_driver_t *this, int property) {
+static int ao_arts_get_property (ao_driver_t *this_gen, int property) {
 
-  /* FIXME: implement some properties
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+  
   switch(property) {
-  case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
+  case AO_PROP_MIXER_VOL:
+    if(!this->mixer.mute)
+        this->mixer.volume = this->mixer.vol_scale;
+        return this->mixer.volume;
     break;
   case AO_PROP_MUTE_VOL:
+	return this->mixer.mute;
     break;
   }
-  */
   return 0;
 }
 
 /*
  *
  */
-static int ao_arts_set_property (ao_driver_t *this, int property, int value) {
+static int ao_arts_set_property (ao_driver_t *this_gen, int property, int value) {
 
-  /* FIXME: Implement property support.
+  arts_driver_t *this = (arts_driver_t *) this_gen;
+  int mute = (value) ? 1 : 0;
+
   switch(property) {
-  case AO_PROP_MIXER_VOL:
-    break;
   case AO_PROP_PCM_VOL:
+  case AO_PROP_MIXER_VOL:
+    if(!this->mixer.mute)
+	this->mixer.volume = value;
+	this->mixer.vol_scale = this->mixer.volume;
+	return this->mixer.volume;
     break;
   case AO_PROP_MUTE_VOL:
-    break;
+    if(mute) {
+        this->mixer.v_mixer = this->mixer.volume;
+        this->mixer.volume = 0;
+        this->mixer.vol_scale = this->mixer.volume;
+    } else {
+        this->mixer.volume = this->mixer.v_mixer;
+        this->mixer.vol_scale = this->mixer.volume;
+    }   
+	this->mixer.mute = mute;
+	return value;
+	break;
   }
-  */
 
   return ~value;
 }
@@ -264,15 +310,22 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 	  fprintf(stderr,"audio_arts_out: arts_init failed: %s\n",arts_error_text(rc));
 	  return NULL;
   }
-
+  
+  /*
+   * set volume control
+   */
+  this->mixer.mute = 0;
+  this->mixer.vol_scale = 60;
+  this->mixer.v_mixer = 0;
+  
   /*
    * set capabilities
    */
   this->capabilities = 0;
   printf ("audio_arts_out : supported modes are ");
-  this->capabilities |= AO_CAP_MODE_MONO;
+  this->capabilities |= AO_CAP_MODE_MONO | AO_CAP_MIXER_VOL | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
   printf ("mono ");
-  this->capabilities |= AO_CAP_MODE_STEREO;
+  this->capabilities |= AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
   printf ("stereo ");
   printf ("\n");
 
