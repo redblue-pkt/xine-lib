@@ -1256,6 +1256,8 @@ echo " * input plugins:"
 echo "   - file          - net"
 echo "   - stdin_fifo    - rtp"
 echo "   - http          - mms"
+echo "   - pnm           - rtsp"
+echo "   - dvb"
 if test x"$have_cdrom_ioctls" = "xyes"; then
   echo "   - dvd           - vcd"
   echo "   - cda"
