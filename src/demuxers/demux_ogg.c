@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.97 2003/05/05 17:22:40 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.98 2003/05/12 19:19:01 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -330,6 +330,35 @@ static void send_ogg_buf (demux_ogg_t *this,
        
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	
+    if (op->packet[0] == PACKET_TYPE_COMMENT ) {
+      char           **ptr;
+      char           *comment;
+      vorbis_comment vc;
+      vorbis_info    vi;
+
+      vorbis_comment_init(&vc);
+      vorbis_info_init(&vi);
+
+      /* this is necessary to make libvorbis accept this vorbis_info*/
+      vi.rate=1;
+
+      if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
+	ptr=vc.user_comments;
+	while(*ptr) {
+	  comment=*ptr;
+	  if ( !strncasecmp ("LANGUAGE=", comment,8) ) {
+	    this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
+	    
+	    printf ("demux_ogg: audiostream %d is %s\n",stream_num,this->language[stream_num]);
+
+	  }
+	  ++ptr;
+	}
+      }
+      vorbis_comment_clear(&vc);
+      vorbis_info_clear(&vi);
+    }
+
     if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
       int op_size = sizeof(ogg_packet);
       ogg_packet *og_ghost;
@@ -1347,7 +1376,7 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
-  return DEMUX_CAP_SPULANG;
+  return DEMUX_CAP_SPULANG | DEMUX_CAP_AUDIOLANG;
 }
 
 static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
@@ -1365,9 +1394,8 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       strcpy( str, "none");
       return DEMUX_OPTIONAL_SUCCESS;
     } else if ((channel>=0) && (channel<this->num_streams)) {
-      for (stream_num=0; stream_num<this->num_streams; stream_num++) {
+       for (stream_num=0; stream_num<this->num_streams; stream_num++) {
 	if (this->buf_types[stream_num]==BUF_SPU_OGM+channel) {
-
 	  if (this->language[stream_num]) {
 	    sprintf(str, "%s", this->language[stream_num]);
 	    return DEMUX_OPTIONAL_SUCCESS;
@@ -1379,6 +1407,26 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       }
       return DEMUX_OPTIONAL_UNSUPPORTED;
     }
+    return DEMUX_OPTIONAL_UNSUPPORTED;
+  case DEMUX_OPTIONAL_DATA_AUDIOLANG:
+    if (channel==-1) {
+      strcpy( str, "none");
+      return DEMUX_OPTIONAL_SUCCESS;
+    } else if ((channel>=0) && (channel<this->num_streams)) {
+      for (stream_num=0; stream_num<this->num_streams; stream_num++) {
+	if (this->buf_types[stream_num]==BUF_AUDIO_VORBIS+channel) {
+	  if (this->language[stream_num]) {
+	    sprintf(str, "%s", this->language[stream_num]);
+	    return DEMUX_OPTIONAL_SUCCESS;
+	  } else {
+	    sprintf(str, "channel %d",channel);
+	    return DEMUX_OPTIONAL_SUCCESS;
+	  }
+	}
+      }
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+    }
+    return DEMUX_OPTIONAL_UNSUPPORTED;
   default:
     return DEMUX_OPTIONAL_UNSUPPORTED;
   }
