@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.3 2002/12/24 13:36:21 miguelfreitas Exp $
+ * $Id: post.c,v 1.4 2002/12/25 15:03:20 mroi Exp $
  */
  
 /*
@@ -76,7 +76,7 @@ static void post_video_flush(xine_video_port_t *port_gen) {
 }
 
 
-post_video_port_t *post_intercept_video_port(xine_video_port_t *original) {
+post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
   post_video_port_t *post_port = (post_video_port_t *)malloc(sizeof(post_video_port_t));
   
   if (!post_port)
@@ -94,6 +94,7 @@ post_video_port_t *post_intercept_video_port(xine_video_port_t *original) {
   post_port->port.driver                 = original->driver;
   
   post_port->original_port               = original;
+  post_port->post                        = post;
   
   return post_port;
 }
@@ -229,7 +230,7 @@ static void post_audio_flush(xine_audio_port_t *port_gen) {
   return port->original_port->flush(port->original_port);
 }
 
-post_audio_port_t *post_intercept_audio_port(xine_audio_port_t *original) {
+post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *original) {
   post_audio_port_t *post_port = (post_audio_port_t *)malloc(sizeof(post_audio_port_t));
   
   if (!post_port)
@@ -249,6 +250,7 @@ post_audio_port_t *post_intercept_audio_port(xine_audio_port_t *original) {
   
     
   post_port->original_port               = original;
+  post_port->post                        = post;
   
   return post_port;
 }

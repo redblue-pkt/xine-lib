@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.3 2002/12/24 13:36:21 miguelfreitas Exp $
+ * $Id: post.h,v 1.4 2002/12/25 15:03:20 mroi Exp $
  *
  * post plugin definitions
  *
@@ -119,12 +119,12 @@ struct post_video_port_s {
   
   /* backward reference so that you have access to the post plugin
    * when the call only gives you the port */
-  xine_post_t       *post;
+  post_plugin_t     *post;
 };
 
 /* use this to create a new, trivially decorated video port in which
  * port functions can be replaced with own implementations */
-post_video_port_t *post_intercept_video_port(xine_video_port_t *port);
+post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port);
 
 /* use this to decorate and to undecorate a frame so that its functions
  * can be replaced with own implementations */
@@ -143,11 +143,11 @@ struct post_audio_port_s {
   
   /* backward reference so that you have access to the post plugin
    * when the call only gives you the port */
-  xine_post_t       *post;
+  post_plugin_t     *post;
 };
 
 /* use this to create a new, trivially decorated audio port in which
  * port functions can be replaced with own implementations */
-post_audio_port_t *post_intercept_audio_port(xine_audio_port_t *port);
+post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port);
 
 #endif
