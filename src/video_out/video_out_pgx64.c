@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.24 2003/03/06 16:49:31 guenter Exp $
+ * $Id: video_out_pgx64.c,v 1.25 2003/04/03 21:30:25 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -51,7 +51,6 @@
 
 #define BUS_CNTL 0x128
 #define BUS_EXT_REG_EN 0x08000000
-#define FIFO_STAT 0x1C4
 
 #define SCALER_H_COEFF0 0x055
 #define SCALER_H_COEFF0_DEFAULT 0x00002000
@@ -135,7 +134,7 @@ typedef struct {
   volatile uint32_t *fbregs;
   uint32_t top, fb_width, fb_height;
 
-  int colour_key, brightness, saturation;
+  int colour_key, depth_mask, brightness, saturation;
   int deinterlace, deinterlace_method, use_exclusive;
 } pgx64_driver_t;
 
@@ -341,6 +340,19 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     vo_scale_compute_output_size(&this->vo_scale);
     repaint_output_area(this);
 
+    set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
+    write_reg(this, OVERLAY_SCALE_CNTL, 0x04000000);
+    write_reg(this, SCALER_H_COEFF0, SCALER_H_COEFF0_DEFAULT);
+    write_reg(this, SCALER_H_COEFF1, SCALER_H_COEFF1_DEFAULT);
+    write_reg(this, SCALER_H_COEFF2, SCALER_H_COEFF2_DEFAULT);
+    write_reg(this, SCALER_H_COEFF3, SCALER_H_COEFF3_DEFAULT);
+    write_reg(this, SCALER_H_COEFF4, SCALER_H_COEFF4_DEFAULT);
+    write_reg(this, CAPTURE_CONFIG, 0x00000000);
+    write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+    write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
+    write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
+    write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, this->depth_mask);
+
     write_reg(this, VIDEO_FORMAT, (frame->format == XINE_IMGFMT_YUY2) ? VIDEO_FORMAT_YUY2 : VIDEO_FORMAT_YUV12);
     write_reg(this, SCALER_BUF0_OFFSET, frame->buf_y);
     write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
@@ -356,7 +368,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
       write_reg(this, OVERLAY_EXCLUSIVE_VERT, (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
-      write_reg(this, OVERLAY_EXCLUSIVE_HORZ,  horz_start | (horz_end << 8) | (((this->fb_width/8) - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+      write_reg(this, OVERLAY_EXCLUSIVE_HORZ,  horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
     }
     else {
       write_reg(this, OVERLAY_EXCLUSIVE_HORZ, 0);
@@ -529,20 +541,19 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 
     case VO_PROP_SATURATION: {
       this->saturation = value;
-      write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+      this->vo_scale.force_redraw = 1;
     }
     break;
 
     case VO_PROP_BRIGHTNESS: {
       this->brightness = value;
-      write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+      this->vo_scale.force_redraw = 1;
     }
     break;
 
     case VO_PROP_COLORKEY: {
       this->colour_key = value;
-      write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-      repaint_output_area(this);
+      this->vo_scale.force_redraw = 1;
     }
     break;
   }
@@ -736,22 +747,10 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   this->fbregs = baseaddr + REGBASE;
   this->fb_width = attr.fbtype.fb_width;
   this->fb_height = attr.fbtype.fb_height;
+  this->depth_mask = 0xffffffff >> (32 - attr.fbtype.fb_depth);
 
   vo_scale_init(&this->vo_scale, 0, 0, this->class->config);
   this->vo_scale.user_ratio = ASPECT_AUTO;
-
-  set_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
-  write_reg(this, OVERLAY_SCALE_CNTL, 0x04000000);
-  write_reg(this, SCALER_H_COEFF0, SCALER_H_COEFF0_DEFAULT);
-  write_reg(this, SCALER_H_COEFF1, SCALER_H_COEFF1_DEFAULT);
-  write_reg(this, SCALER_H_COEFF2, SCALER_H_COEFF2_DEFAULT);
-  write_reg(this, SCALER_H_COEFF3, SCALER_H_COEFF3_DEFAULT);
-  write_reg(this, SCALER_H_COEFF4, SCALER_H_COEFF4_DEFAULT);
-  write_reg(this, CAPTURE_CONFIG, 0x00000000);
-  write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
-  write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
-  write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-  write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0xffffffff >> (32 - attr.fbtype.fb_depth));
 
   return this;
 }
