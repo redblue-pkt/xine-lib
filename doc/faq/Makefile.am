@@ -8,6 +8,7 @@ docsdir = $(prefix)/share/doc/xine/faq
 docs: $(docs_DATA)
 
 dist-hook:
+	@touch $(EXTRA_DIST)
 	@make fail_if_missing=yes docs
 	cp $(docs_DATA) $(distdir)
 
@@ -17,6 +18,7 @@ faq.html: faq.sgml
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
+	  else touch faq.html; \
 	  fi; \
 	fi
 
@@ -26,5 +28,6 @@ faq.txt: faq.sgml
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
+	  else touch faq.txt; \
 	  fi; \
 	fi

@@ -17,6 +17,7 @@ docsdir = $(prefix)/share/doc/xine/hackersguide
 docs: $(docs_DATA)
 
 dist-hook:
+	@touch $(EXTRA_DIST)
 	@make fail_if_missing=yes docs
 	cp $(docs_DATA) $(distdir)
 
@@ -26,6 +27,7 @@ hackersguide.html: $(hackersguide_sgml)
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
+	  else touch hackersguide.html; \
 	  fi; \
 	fi
 
@@ -35,5 +37,6 @@ hackersguide.html: $(hackersguide_sgml)
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install fig2dev."; \
 	    exit 1; \
+	  else touch $@; \
 	  fi; \
 	fi
