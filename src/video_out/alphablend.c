@@ -414,9 +414,9 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
   uint8_t clr=0;
   
   uint8_t *dst_y = dst_base[0] + dst_width * y_off + x_off;
-  uint8_t *dst_cr = dst_base[1] +
+  uint8_t *dst_cr = dst_base[2] +
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
-  uint8_t *dst_cb = dst_base[2] +
+  uint8_t *dst_cb = dst_base[1] +
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
 #ifdef LOG_BLEND_YUV
   printf("overlay_blend started x=%d, y=%d, w=%d h=%d\n",img_overl->x,img_overl->y,img_overl->width,img_overl->height);
