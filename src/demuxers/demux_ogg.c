@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.140 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_ogg.c,v 1.141 2004/02/15 18:26:51 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1072,7 +1072,7 @@ static void decode_text_header (demux_ogg_t *this, const int stream_num, ogg_pac
   buf_element_t *buf;
 
   lprintf ("textstream detected.\n");
-  this->si[stream_num]->headers = 0;
+  this->si[stream_num]->headers = 2;
   channel = this->num_spu_streams++;
   this->si[stream_num]->buf_types = BUF_SPU_OGM | channel;
 
