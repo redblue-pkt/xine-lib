@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.207 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: xine.c,v 1.208 2003/01/09 13:26:03 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -750,8 +750,9 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
    * start/seek demux
    */
   if (start_pos) {
+    len = stream->current_extra_info->input_length;
     /* FIXME: do we need to protect concurrent access to input plugin here? */
-    len = stream->input_plugin->get_length (stream->input_plugin);
+    if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
     share = (double) start_pos / 65535;
     pos = (off_t) (share * len) ;
   } else
