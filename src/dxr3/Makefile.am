@@ -1,6 +1,6 @@
 CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c alphablend.c nav_types.h nav_read.h
+EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c alphablend.c nav_types.h nav_read.h alphablend.h bswap.h dxr3_video_out.h
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
