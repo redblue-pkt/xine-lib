@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.36 2003/04/12 13:02:30 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.37 2003/04/12 16:43:48 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -100,7 +100,7 @@ struct vidix_driver_s {
   vidix_yuv_t         dstrides;
   int                 vidix_started;
   int                 next_frame;
-  vidix_frame_t      *current;
+  int                 got_frame_data;
 
   int                 use_colourkey;
   uint32_t            colourkey;
@@ -174,7 +174,7 @@ static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
    uint8_t*  crp;
    uint8_t*  cbp;
    uint32_t* dst32 = (uint32_t *)(this->vidix_mem + 
-                     this->vidix_play.offsets[this->next_frame] + 
+                     this->vidix_play.offsets[this->next_frame] +
                      this->vidix_play.offset.y);
    int h,w;
 
@@ -598,6 +598,23 @@ static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, v
 }
 
 
+static int vidix_redraw_needed (vo_driver_t *this_gen) {
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
+  int ret = 0;
+
+  if(vo_scale_redraw_needed(&this->sc)) {
+    if(this->got_frame_data) {
+      vidix_config_playback(this);
+      vidix_clean_output_area(this);
+
+      ret = 1;
+    }
+  }
+
+  return ret;
+}
+
+
 static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
@@ -612,7 +629,7 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 #ifdef LOG
 	 printf("video_out_vidix: change frame format\n");
 #endif
-      
+
       this->sc.delivered_width      = frame->width;
       this->sc.delivered_height     = frame->height;
       this->sc.delivered_ratio_code = frame->ratio_code;
@@ -626,42 +643,19 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
    * check if we have to reconfigure vidix because of
    * format/window position change
    */
-  if(vo_scale_redraw_needed(&this->sc)) {
-    vidix_config_playback(this);
-    vidix_clean_output_area(this);
-  }
-  
+  this->got_frame_data = 1;
+  vidix_redraw_needed(this_gen);
+
   write_frame_sfb(this, frame);
+
   if( this->vidix_play.num_frames > 1 ) {
     vdlPlaybackFrameSelect(this->vidix_handler,this->next_frame);
     this->next_frame=(this->next_frame+1)%this->vidix_play.num_frames;
   }
-  
-  if((this->current != NULL) && (this->current != frame)) {
-    frame->vo_frame.displayed(&this->current->vo_frame);
-  }
-  this->current = frame;  
-  
+
+  frame->vo_frame.displayed(frame_gen);
+
   pthread_mutex_unlock(&this->mutex);
-}
-
-
-static int vidix_redraw_needed (vo_driver_t *this_gen) {
-  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
-  int ret = 0;
-
-
-  if( vo_scale_redraw_needed( &this->sc ) ) {
-
-    if(this->current) {
-      this->sc.force_redraw = 1;
-      vidix_display_frame(this_gen, (vo_frame_t *) this->current);
-    }
-
-    ret = 1;
-  }
-  
-  return ret;
 }
 
 
@@ -684,7 +678,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
   int err;
     
-  if ((value >= this->props[property].min) && 
+  if ((value >= this->props[property].min) &&
       (value <= this->props[property].max))
   {
   this->props[property].value = value;
@@ -892,11 +886,10 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this->xine              = class->xine;
   this->config            = config;
   
-  this->current           = NULL;
-  
+  this->got_frame_data    = 0;
   this->capabilities      = 0;
 
-  /* Find what equalizer flags are supported */  
+  /* Find what equalizer flags are supported */
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
     if((err = vdlPlaybackGetEq(this->vidix_handler, &this->vidix_eq)) != 0) {
       if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
