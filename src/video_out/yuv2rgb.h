@@ -164,6 +164,5 @@ void mmx_yuv2rgb_set_gamma(int gamma);
 void yuv2rgb_init_mmxext (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mmx (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mlib (yuv2rgb_factory_t *this);
-int yuv2rgb_slice (yuv2rgb_t *this, uint8_t **dest);
 
 #endif
