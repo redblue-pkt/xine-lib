@@ -1,0 +1,9 @@
+xine-lib (0.5.0-1) unstable; urgency=low
+
+  * Initial Release of the new xine-lib/xine-ui based xine.
+
+ -- Siggi Langauf <siggi@debian.org>  Sun,  5 Aug 2001 20:26:31 +0200
+
+Local variables:
+mode: debian-changelog
+End:

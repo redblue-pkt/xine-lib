@@ -1,0 +1,58 @@
+xine-lib for Debian
+-------------------
+
+This library is (part of) the official successor of the xine video player.
+Xine used to ship as two binary packages, one main player and an extra DVD
+plugin, so you could replace that with one that supports CSS.
+With this version, a better Plugin architecture is introduced, so you can have
+several DVD plugins in parallel.
+Unfortunately, there is no Debian package for any CSS capable, 0.5 compatible
+plugin yet.
+
+You can build one from source, though.
+Two of the most famous plugins are:
+http://www.geocities.com/captain_css/ (stable, plays most DVDs, simple setup)
+http://dvd.sf.net (tries to support navigation, still fails on many DVDs)
+
+If this all sounds strange to you, or maybe you're looking for Debian packaged
+plugins, just read the DVD story that came with xine:
+
+
+The CSS plugin story...
+=======================
+
+Xine, as supported by upstream supports reading DVDs via an input plugin
+(available as package xine-dvd in Debian). But this plugin is restricted to
+non-encrypted DVDs, ie. a very small fraction of the DVDs currently
+available...
+
+This is due to some legal uncertainties surrounding the CSS ("Content
+Scrambling System") descrambling code: Lots of people think that it's no
+problem (ie. "fair use") to use CSS descrambling software to watch DVDs with
+any player they like, but this has not been proven in court yet...
+
+Currently, there is no "official" css plugin for xine, but unofficial
+ones is available from several sites. One of these packages, the "captain_css"
+plugin, has even been packaged for Debian. it is available in some apt-gettable
+archives, so you can easily install it after adding one (or more) of these
+lines to your /etc/apt/sources.list :
+
+deb http://samfundet.no/debian woody css
+deb ftp://ftp.dodds.net/debian woody css
+
+DISCLAIMER: This is an absolutely incomplete list, provided just for your
+            convenience. Please notify the maintainer of this package
+            at <xine@packages.debian.org> if you know of any other sources!
+
+If you want to get the plugin manually, you can use one of these sites:
+(the disclaimer still applies)
+
+original source:
+http://members.nbci.com/captain_css/
+
+debian packages:
+http://samfundet.no/debian/dists/woody/css/
+ftp://ftp.dodds.net/debian/dists/woody/css/
+
+
+ -- Siggi Langauf <siggi@debian.org>, Sun,  5 Aug 2001 20:26:31 +0200
