@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.128 2004/03/05 23:44:39 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.129 2004/03/12 16:19:29 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,9 +75,11 @@
 #define BUFFER_TIME               1000*1000
 #define GAP_TOLERANCE             5000
 
-#define MIXER_MASK_LEFT           (1 << 0)
-#define MIXER_MASK_RIGHT          (1 << 1)
-#define MIXER_MASK_STEREO         (MIXER_MASK_LEFT|MIXER_MASK_RIGHT)
+#define MIXER_MASK_LEFT           0x0001
+#define MIXER_MASK_RIGHT          0x0002
+#define MIXER_MASK_MUTE           0x0004
+#define MIXER_MASK_STEREO         0x0008
+#define MIXER_HAS_MUTE_SWITCH     0x0010
 
 typedef struct {
   audio_driver_class_t driver_class;
@@ -134,68 +136,108 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
   return tmp;
 }
 
+/* Stolen from alsa-lib */
+static int __snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
+  struct pollfd  spfds[16];
+  struct pollfd *pfds = spfds;
+  int            err, count;
+
+  count = snd_mixer_poll_descriptors(mixer, pfds, sizeof(spfds) / sizeof(spfds[0]));
+
+  if (count < 0)
+    return count;
+  
+  if ((unsigned int) count > sizeof(spfds) / sizeof(spfds[0])) {
+    pfds = malloc(count * sizeof(*pfds));
+    
+    if (!pfds)
+      return -ENOMEM;
+
+    err = snd_mixer_poll_descriptors(mixer, pfds, (unsigned int) count);
+    assert(err == count);
+  }
+
+  err = poll(pfds, (unsigned int) count, timeout);
+
+  if (err < 0)
+    return -errno;
+
+  return err;
+}
+
 /*
- * Wait (blocking) till a mixer event happen
+ * Wait (non blocking) till a mixer event happen
  */
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
   do {
-    int err, mute, sw, sw2;
-    long right_vol, left_vol;
-    
-    if(snd_mixer_wait(this->mixer.handle, 333) == 0) {
+
+    if(__snd_mixer_wait(this->mixer.handle, 333) > 0) {
+      int err, mute = 0, swl = 0, swr = 0;
+      long right_vol, left_vol;
+      int old_mute;
+
       pthread_mutex_lock(&this->mixer.mutex);
-      snd_mixer_handle_events(this->mixer.handle);
       
-      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
-						    &left_vol)) < 0) {
+      old_mute = (this->mixer.mute & MIXER_MASK_MUTE) ? 1 : 0;
+
+      if((err = snd_mixer_handle_events(this->mixer.handle)) < 0) {
 	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+		"audio_alsa_out: snd_mixer_handle_events(): %s\n",  snd_strerror(err));
+	pthread_mutex_unlock(&this->mixer.mutex);
 	continue;
       }
       
-      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
-						    &right_vol)) < 0) {
+      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &left_vol)) < 0) {
 	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	pthread_mutex_unlock(&this->mixer.mutex);
 	continue;
       }
       
-      if(snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
+      if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &right_vol)) < 0) {
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	pthread_mutex_unlock(&this->mixer.mutex);
+	continue;
+      }
+      
+      if(this->mixer.mute & MIXER_HAS_MUTE_SWITCH) {
 	
-	if(snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
-	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	  mute = (sw) ? 0 : 1;
+	if(this->mixer.mute & MIXER_MASK_STEREO) {
+	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
+	  mute = (swl) ? 0 : 1;
 	}
 	else {
-	  if (this->mixer.mute & MIXER_MASK_LEFT)
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	  if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
-	      (this->mixer.mute & MIXER_MASK_RIGHT))
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw2);
 	  
-	  mute = (sw || sw2) ? 0 : 1;
+	  if (this->mixer.mute & MIXER_MASK_LEFT)
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
+	  
+	  if ((SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN) && (this->mixer.mute & MIXER_MASK_RIGHT))
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &swr);
+	  
+	  mute = (swl || swr) ? 0 : 1;
 	}
       }
-      else
-	mute = (this->mixer.mute) ? 1 : 0;
-      
-      if((this->mixer.right_vol != right_vol) || (this->mixer.left_vol != left_vol) ||
-	 (this->mixer.mute != mute)) {
+
+      if((this->mixer.right_vol != right_vol) || (this->mixer.left_vol != left_vol) || (old_mute != mute)) {
 	xine_event_t              event;
 	xine_audio_level_data_t   data;
 	xine_stream_t            *stream;
 	
 	this->mixer.right_vol = right_vol;
 	this->mixer.left_vol  = left_vol;
-	this->mixer.mute      = (mute) ? MIXER_MASK_STEREO : 0;
+	if(mute)
+	  this->mixer.mute |= MIXER_MASK_MUTE;
+	else
+	  this->mixer.mute &= ~MIXER_MASK_MUTE;
 	
 	data.right = ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
 						     this->mixer.min, this->mixer.max);
 	data.left  = ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
 						     this->mixer.min, this->mixer.max);
-	data.mute  = (this->mixer.mute == MIXER_MASK_STEREO) ? 1 : 0;
+	data.mute  = (this->mixer.mute & MIXER_MASK_MUTE) ? 1 : 0;
 	
 	event.type        = XINE_EVENT_AUDIO_LEVEL;
 	event.data        = &data;
@@ -209,9 +251,10 @@ static void *ao_alsa_handle_event_thread(void *data) {
 	}
 	pthread_mutex_unlock(&this->class->xine->streams_lock);
       }
+      
       pthread_mutex_unlock(&this->mixer.mutex);
     }
-    
+
   } while(1);
   
   pthread_exit(NULL);
@@ -853,7 +896,8 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
   case AO_PROP_MIXER_VOL:
   case AO_PROP_PCM_VOL:
     if(this->mixer.elem) {
-
+      int vol;
+      
       pthread_mutex_lock(&this->mixer.mutex);
 
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
@@ -871,17 +915,24 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
       }
       
     __done:
+      vol = (((ao_alsa_get_percent_from_volume(this->mixer.left_vol, this->mixer.min, this->mixer.max)) +
+	      (ao_alsa_get_percent_from_volume(this->mixer.right_vol, this->mixer.min, this->mixer.max))) /2);
       pthread_mutex_unlock(&this->mixer.mutex);
-
-      return (((ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
-						this->mixer.min, this->mixer.max)) +
-	       (ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
-						this->mixer.min, this->mixer.max))) /2);
+      
+      return vol;
     }
     break;
     
   case AO_PROP_MUTE_VOL:
-    return (this->mixer.mute) ? 1 : 0;
+    {
+      int mute;
+      
+      pthread_mutex_lock(&this->mixer.mutex);
+      mute = ((this->mixer.mute & MIXER_HAS_MUTE_SWITCH) && (this->mixer.mute & MIXER_MASK_MUTE)) ? 1 : 0;
+      pthread_mutex_unlock(&this->mixer.mutex);
+      
+      return mute;
+    }
     break;
   }
   
@@ -926,32 +977,38 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 
   case AO_PROP_MUTE_VOL:
     if(this->mixer.elem) {
-      int sw;
-      int old_mute = this->mixer.mute;
-      
-      pthread_mutex_lock(&this->mixer.mutex);
 
-      this->mixer.mute = (value) ? MIXER_MASK_STEREO : 0;
-      
-      if ((this->mixer.mute != old_mute) 
-	  && snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
-	if (snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
-	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	  snd_mixer_selem_set_playback_switch_all(this->mixer.elem, !sw);
-	} else {
-	  if (this->mixer.mute & MIXER_MASK_LEFT) {
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	    snd_mixer_selem_set_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, !sw);
-	  }
-	  if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
-	      (this->mixer.mute & MIXER_MASK_RIGHT)) {
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw);
-	    snd_mixer_selem_set_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, !sw);
+      if(this->mixer.mute & MIXER_HAS_MUTE_SWITCH) {
+	int swl = 0, swr = 0;
+	int old_mute;
+	
+	pthread_mutex_lock(&this->mixer.mutex);
+	
+	old_mute = this->mixer.mute;
+	if(value)
+	  this->mixer.mute |= MIXER_MASK_MUTE;
+	else
+	  this->mixer.mute &= ~MIXER_MASK_MUTE;
+	
+	if ((this->mixer.mute & MIXER_MASK_MUTE) != (old_mute & MIXER_MASK_MUTE)) {
+	  if(this->mixer.mute & MIXER_MASK_STEREO) {
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
+	    snd_mixer_selem_set_playback_switch_all(this->mixer.elem, !swl);
+	  } 
+	  else {
+	    if (this->mixer.mute & MIXER_MASK_LEFT) {
+	      snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
+	      snd_mixer_selem_set_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, !swl);
+	    }
+	    if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && (this->mixer.mute & MIXER_MASK_RIGHT)) {
+	      snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &swr);
+	      snd_mixer_selem_set_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, !swr);
+	    }
 	  }
 	}
+
+	pthread_mutex_unlock(&this->mixer.mutex);
       }
-      
-      pthread_mutex_unlock(&this->mixer.mutex);
       return value;
     }
     return ~value;
@@ -1050,7 +1107,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   snd_mixer_selem_id_t *sid;
   int                   loop = 0;
   int                   found;
-  int                   sw;
+  int                   swl = 0, swr = 0;
 
   this->mixer.elem = 0; 
   snd_ctl_card_info_alloca(&hw_info);
@@ -1159,24 +1216,23 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
       /* Channels mute */
       this->mixer.mute = 0;
       if(snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
-
+	this->mixer.mute |= MIXER_HAS_MUTE_SWITCH;
+	
 	if (snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
-	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	  if(!sw)
-	    this->mixer.mute = MIXER_MASK_STEREO;
+	  this->mixer.mute |= MIXER_MASK_STEREO;
+	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
 	} 
 	else {
-	  if (this->mixer.mute & MIXER_MASK_LEFT) {
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
-	    if(!sw)
-	      this->mixer.mute |= MIXER_MASK_LEFT;
+	  this->mixer.mute |= MIXER_MASK_LEFT;
+	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &swl);
+	  
+	  if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN) {
+	    this->mixer.mute |= MIXER_MASK_RIGHT;
+	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &swr);
 	  }
-	  if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
-	      (this->mixer.mute & MIXER_MASK_RIGHT)) {
-	    snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw);
-	    if(!sw)
-	      this->mixer.mute |= MIXER_MASK_RIGHT;
-	  }
+	  
+	  if(!swl || !swr)
+	    this->mixer.mute |= MIXER_MASK_MUTE;
 	}
 
 	this->capabilities |= AO_CAP_MUTE_VOL;
@@ -1240,7 +1296,6 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
     pthread_attr_destroy(&pth_attrs);
   }
-
 }
 
 static void alsa_passthru_cb (void *user_data,
