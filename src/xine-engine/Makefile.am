@@ -4,16 +4,18 @@
 
 CFLAGS = @GLOBAL_CFLAGS@
 
+EXTRA_DIST = cpu_accel.c
+
 lib_LTLIBRARIES = libxine.la
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
-	utils.c cpu_accel.c load_plugins.c video_decoder.c \
+	utils.c load_plugins.c video_decoder.c \
 	audio_decoder.c video_out.c
-libxine_la_LIBADD = \
+libxine_la_LIBADD = cpu_accel.lo \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
 	$(DYNAMIC_LD_LIBS)
-	-lm
+	-lm 
 libxine_la_LDFLAGS =  -version-info 5:0:5
 
 include_HEADERS  = buffer.h metronom.h configfile.h \
@@ -28,8 +30,9 @@ include_HEADERS  = buffer.h metronom.h configfile.h \
 LIBTOOLNOFPIC = $(SHELL) $(top_builddir)/libtool-nofpic
 LTCOMPILENOFPIC = $(LIBTOOLNOFPIC) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 cpu_accel.lo: cpu_accel.c
-	@echo '$(LTCOMPILENOFPIC) -c $<'; \
-	$(LTCOMPILENOFPIC) -Wp,-MD,.deps/$(*F).pp -c $<
+	@mkdir -p .deps; touch .deps/cpu_accel.pp; \
+	echo '$(LTCOMPILENOFPIC) -c $<'; \
+		$(LTCOMPILENOFPIC) -Wp,-MD,.deps/$(*F).pp -c $<
 	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
 	  < .deps/$(*F).pp > .deps/$(*F).P; \
 	tr ' ' '\012' < .deps/$(*F).pp \
