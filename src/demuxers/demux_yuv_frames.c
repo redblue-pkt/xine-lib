@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.17 2004/06/13 21:28:55 miguelfreitas Exp $
+ * $Id: demux_yuv_frames.c,v 1.18 2004/10/14 23:02:29 miguelfreitas Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -125,6 +125,8 @@ static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen){
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
+ 
+  _x_demux_control_start(this->stream);
 
   if(_x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO)) {
     buf = this->input->read_block(this->input, this->audio_fifo, 0);
