@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.74 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: input_http.c,v 1.75 2003/11/26 08:09:58 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,7 +46,7 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-#include "io_helper.h"
+#include "http_helper.h"
 
 /*
 #define LOG
@@ -70,18 +70,17 @@ typedef struct {
   off_t            contentlength;
     
   char             buf[BUFSIZE];
-  char             mrlbuf[BUFSIZE];
-  char             mrlbuf2[BUFSIZE]; /* icecast */
   char             proxybuf[BUFSIZE];
 
   char             auth[BUFSIZE];
   char             proxyauth[BUFSIZE];
   
+  char            *proto;
   char            *user;
   char            *password;
   char            *host;
   int              port;
-  char            *filename;
+  char            *uri;
   
   char             preview[MAX_PREVIEW_SIZE];
   off_t            preview_size;
@@ -141,122 +140,6 @@ static void proxy_port_change_cb(void *data, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *) data;
   
   this->proxyport = cfg->num_value;
-}
-
-static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
-				  char** host, int *port, char **filename) {
-  char   *start = NULL;
-  char   *authcolon = NULL;
-  char	 *at = NULL;
-  char	 *portcolon = NULL;
-  char   *slash = NULL;
-  
-  if (user != NULL)
-    *user = NULL;
-  
-  if (password != NULL)
-    *password = NULL;
-  
-  if (host != NULL)
-    *host = NULL;
-  
-  if (filename != NULL)
-    *filename = NULL;
-  
-  if (port != NULL)
-    *port = 0;
-  
-  start = strstr(urlbuf, "://");
-  if (start != NULL)
-    start += 3;
-  else
-    start = urlbuf;
-
-  at = strchr(start, '@');
-  slash = strchr(start, '/');
-  
-  if (at != NULL && slash != NULL && at > slash)
-    at = NULL;
-  
-  if (at != NULL)
-  {
-    authcolon = strchr(start, ':');
-    if(authcolon != NULL && authcolon > at)
-      authcolon = NULL;
-    
-    portcolon = strchr(at, ':');
-  } else
-    portcolon = strchr(start, ':');
-  
-  if (portcolon != NULL && slash != NULL && portcolon > slash)
-    portcolon = NULL;
-  
-  if (at != NULL)
-  {
-    *at = '\0';
-    
-    if (user != NULL)
-      *user = start;
-    
-    if (authcolon != NULL)
-    {
-      *authcolon = '\0';
-      
-      if (password != NULL)
-      	*password = authcolon + 1;
-    }
-
-    if (host != NULL)
-      *host = at + 1;
-  } else
-    if (host != NULL)
-      *host = start;
-
-#ifdef ENABLE_IPV6
-  /* Add support for RFC 2732 */
-  {
-      char *hostbracket, *hostendbracket;
-
-      hostbracket = strchr(start, '[');
-      if (hostbracket != NULL) {
-	  
-	  hostendbracket = strchr(hostbracket, ']');
-	  
-	  if (hostendbracket != NULL) {
-	      
-	      *hostendbracket = '\0';
-	      *host = (hostbracket + 1);
-	      
-	      /* Might have a trailing port */
-	      
-	      if (*(hostendbracket+1) == ':') {
-		  portcolon = (hostendbracket + 1);
-	      }
-	  }
-      }
-  }
-#endif
-
-  if (slash != 0)
-  {
-    *slash = '\0';
-    
-    if (filename != NULL)
-      *filename = slash + 1;
-  } else {
-    if (filename != NULL)
-      *filename = urlbuf + strlen(urlbuf);
-  }
-  
-  if (portcolon != NULL)
-  {
-    *portcolon = '\0';
-    
-    if (port != NULL)
-      *port = atoi(portcolon + 1);
-  }
-  
-  return 0;
 }
 
 static int http_plugin_basicauth (const char *user, const char *password, char* dest, int len) {
@@ -563,8 +446,8 @@ static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
   uint32_t caps = INPUT_CAP_PREVIEW;
 
   /* Nullsoft asked to not allow saving streaming nsv files */
-  if (this->filename && 
-      !strncmp(this->filename + strlen(this->filename) - 4, ".nsv", 4))
+  if (this->uri && 
+      !strncmp(this->uri + strlen(this->uri) - 4, ".nsv", 4))
     caps |= INPUT_CAP_RIP_FORBIDDEN;
 
   return caps;
@@ -622,7 +505,7 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
 static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
-  return this->mrlbuf2;
+  return this->mrl;
 }
 
 static int http_plugin_get_optional_data (input_plugin_t *this_gen,
@@ -655,6 +538,12 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->nbc = NULL;
   }
 
+  if (this->mrl) free(this->mrl);
+  if (this->proto) free(this->proto);
+  if (this->host) free(this->host);
+  if (this->user) free(this->user);
+  if (this->password) free(this->password);
+  if (this->uri) free(this->uri);
   free (this);
 }
 
@@ -676,10 +565,10 @@ static void report_progress (xine_stream_t *stream, int p) {
 static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   http_input_class_t  *this_class = (http_input_class_t *) this->input_plugin.input_class;
-  int                  done,len,linenum;
+  int                  done, len, linenum;
   int                  shoutcast = 0, httpcode;
-  int                  length;
   int                  res, progress;
+  int                  buflen;
   
   this->shoutcast_pos = 0;
   
@@ -698,10 +587,11 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   }
   
   
-  if (http_plugin_parse_url (this->mrlbuf, &this->user, &this->password,
-			     &this->host, &this->port, &this->filename))
+  if (!_x_parse_url(this->mrl, &this->proto, &this->host, &this->port,
+                    &this->user, &this->password, &this->uri)) {
+    _x_message(this->stream, XINE_MSG_GENERAL_WARNING, "malformed url", NULL);
     return 0;
-  
+  }
   if (this->port == 0)
     this->port = DEFAULT_HTTP_PORT;
   
@@ -745,40 +635,46 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   
   if (this_class->proxyhost && strlen(this_class->proxyhost)) {
     if (this->port != DEFAULT_HTTP_PORT) {
-      sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
-	       this->host, this->port, this->filename);
+      snprintf (this->buf, BUFSIZE, "GET http://%s:%d%s HTTP/1.0\015\012",
+	       this->host, this->port, this->uri);
     } else {
-      sprintf (this->buf, "GET http://%s/%s HTTP/1.0\015\012",
-	       this->host, this->filename);
+      snprintf (this->buf, BUFSIZE, "GET http://%s%s HTTP/1.0\015\012",
+	       this->host, this->uri);
     }
   } 
   else
-    sprintf (this->buf, "GET /%s HTTP/1.0\015\012", this->filename);
+    snprintf (this->buf, BUFSIZE, "GET %s HTTP/1.0\015\012", this->uri);
   
+  buflen = strlen(this->buf);
   if (this->port != DEFAULT_HTTP_PORT)
-    sprintf (this->buf + strlen(this->buf), "Host: %s:%d\015\012",
+    snprintf (this->buf + buflen, BUFSIZE - buflen, "Host: %s:%d\015\012",
 	     this->host, this->port);
   else
-    sprintf (this->buf + strlen(this->buf), "Host: %s\015\012",
+    snprintf (this->buf + buflen, BUFSIZE - buflen, "Host: %s\015\012",
 	     this->host);
   
-  if (this_class->proxyuser && strlen(this_class->proxyuser))
-    sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
-	     this->proxyauth);
+  buflen = strlen(this->buf);
+  if (this_class->proxyuser && strlen(this_class->proxyuser)) {
+    snprintf (this->buf + buflen, BUFSIZE - buflen,
+              "Proxy-Authorization: Basic %s\015\012", this->proxyauth);
+    buflen = strlen(this->buf);
+  }
+  if (this->user && strlen(this->user)) {
+    snprintf (this->buf + buflen, BUFSIZE - buflen,
+              "Authorization: Basic %s\015\012", this->auth);
+    buflen = strlen(this->buf);
+  }
   
-  if (this->user && strlen(this->user))
-    sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
-	     this->auth);
-  
-  sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
-           VERSION);
-  strcat (this->buf, "Accept: */*\015\012"); /* * */
-  strcat (this->buf, "Icy-MetaData: 1\015\012");
-  
-  strcat (this->buf, "\015\012");
-
-  length = strlen(this->buf);
-  if (_x_io_tcp_write (this->stream, this->fh, this->buf, length) != length) {
+  snprintf (this->buf + buflen, BUFSIZE - buflen,
+           "User-Agent: xine/%s\015\012", VERSION);
+  buflen = strlen(this->buf);
+  strncat (this->buf, "Accept: */*\015\012", BUFSIZE - buflen); /* * */
+  buflen = strlen(this->buf);
+  strncat (this->buf, "Icy-MetaData: 1\015\012", BUFSIZE - buflen);
+  buflen = strlen(this->buf);
+  strncat (this->buf, "\015\012", BUFSIZE - buflen);
+  buflen = strlen(this->buf);
+  if (_x_io_tcp_write (this->stream, this->fh, this->buf, buflen) != buflen) {
     _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     xprintf(this_class->xine, XINE_VERBOSITY_DEBUG, "input_http: couldn't send request\n");
     return 0;
@@ -861,8 +757,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  
 	  lprintf ("input_http: trying to open target of redirection: >%s<\n", href);
 
-          strncpy (this->mrlbuf, href, BUFSIZE);
-          strncpy (this->mrlbuf2, href, BUFSIZE);
+          free(this->mrl);
+          this->mrl = strdup(href);
           return http_plugin_open(this_gen);
         }
       }
@@ -891,10 +787,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->shoutcast_songtitle = NULL;
   if (shoutcast ||
       !strncasecmp(this->preview, "ICY", 3)) {
-    this->mrlbuf2[0] = 'i';
-    this->mrlbuf2[1] = 'c';
-    this->mrlbuf2[2] = 'e';
-    this->mrlbuf2[3] = ' ';
+    this->mrl[0] = 'i';
+    this->mrl[1] = 'c';
+    this->mrl[2] = 'e';
+    this->mrl[3] = ' ';
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
@@ -923,9 +819,7 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   }
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
 
-  strncpy (this->mrlbuf, mrl, BUFSIZE);
-  strncpy (this->mrlbuf2, mrl, BUFSIZE);
-  this->mrl     = this->mrlbuf2;
+  this->mrl     = strdup(mrl);
   this->stream  = stream;
   this->fh      = -1;
   this->nbc     = nbc_init (this->stream);

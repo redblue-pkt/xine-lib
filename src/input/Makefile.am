@@ -92,7 +92,7 @@ xineplug_inp_rtp_la_SOURCES = input_rtp.c
 xineplug_inp_rtp_la_LIBADD = $(XINE_LIB)
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
+xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c http_helper.c
 xineplug_inp_http_la_LIBADD = $(XINE_LIB)
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -125,4 +125,4 @@ xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h videodev2.h
+noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h videodev2.h http_helper.h
