@@ -45,6 +45,9 @@ README.mrl
 README.plugins
   information about plugin concepts in xine for developers
 
+README.network_dvd
+  how to play DVDs / Audio CDs over the network
+  
 man/
   contains some general manpages about xine-lib
 
