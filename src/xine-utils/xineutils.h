@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.88 2004/06/14 16:36:40 mroi Exp $
+ * $Id: xineutils.h,v 1.89 2004/07/14 18:51:29 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1093,6 +1093,11 @@ void xine_list_delete_current (xine_list_t *l);
  * get encoding of current locale
  */
 char *xine_get_system_encoding(void);
+
+/*
+ * guess default encoding for the subtitles
+ */
+const char *xine_guess_spu_encoding(void);
 
 /**
  * get base name

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.83 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.84 2004/07/14 18:51:29 valtri Exp $
  *
  */
 
@@ -849,11 +849,11 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 				10, update_osd_font, this));
   this->src_encoding  = xine->config->register_string(xine->config, 
 				"misc.spu_src_encoding", 
-				"iso-8859-1",
+				xine_guess_spu_encoding(),
 				_("encoding of the subtitles"),
 				_("The encoding of the subtitle text in the stream. This setting "
 				  "is used to render non-ASCII characters correctly. If non-ASCII "
-				  "charachters are not displayed as you expect, ask the "
+				  "characters are not displayed as you expect, ask the "
 				  "creator of the subtitles what encoding was used."),
 				10, update_src_encoding, this);
   this->use_unscaled  = xine->config->register_bool(xine->config,

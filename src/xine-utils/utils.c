@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.27 2004/05/09 17:42:24 valtri Exp $
+ * $Id: utils.c,v 1.28 2004/07/14 18:51:29 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -51,179 +51,183 @@
 
 
 typedef struct {
-  char                    *language;
-  char                    *encoding;
+  char                    *language;     /* name of the locale */
+  char                    *encoding;     /* typical encoding */
+  char                    *spu_encoding; /* default spu encoding */
   char                    *modifier;
 } lang_locale_t;
 
 
+/*
+ * information about locales used in xine
+ */
 static lang_locale_t lang_locales[] = {
-  { "af_ZA",    "iso88591",   NULL       },
-  { "ar_AE",    "iso88596",   NULL       },
-  { "ar_BH",    "iso88596",   NULL       },
-  { "ar_DZ",    "iso88596",   NULL       },
-  { "ar_EG",    "iso88596",   NULL       },
-  { "ar_IN",    "utf8",       NULL       },
-  { "ar_IQ",    "iso88596",   NULL       },
-  { "ar_JO",    "iso88596",   NULL       },
-  { "ar_KW",    "iso88596",   NULL       },
-  { "ar_LB",    "iso88596",   NULL       },
-  { "ar_LY",    "iso88596",   NULL       },
-  { "ar_MA",    "iso88596",   NULL       },
-  { "ar_OM",    "iso88596",   NULL       },
-  { "ar_QA",    "iso88596",   NULL       },
-  { "ar_SA",    "iso88596",   NULL       },
-  { "ar_SD",    "iso88596",   NULL       },
-  { "ar_SY",    "iso88596",   NULL       },
-  { "ar_TN",    "iso88596",   NULL       },
-  { "ar_YE",    "iso88596",   NULL       },
-  { "be_BY",    "cp1251",     NULL       },
-  { "bg_BG",    "cp1251",     NULL       },
-  { "br_FR",    "iso88591",   NULL       },
-  { "bs_BA",    "iso88592",   NULL       },
-  { "ca_ES",    "iso88591",   NULL       },
-  { "ca_ES",    "iso885915",  "euro"     },
-  { "cs_CZ",    "iso88592",   NULL       },
-  { "cy_GB",    "iso885914",  NULL       },
-  { "da_DK",    "iso88591",   NULL       },
-  { "de_AT",    "iso88591",   NULL       },
-  { "de_AT",    "iso885915",  "euro"     },
-  { "de_BE",    "iso88591",   NULL       },
-  { "de_BE",    "iso885915",  "euro"     },
-  { "de_CH",    "iso88591",   NULL       },
-  { "de_DE",    "iso88591",   NULL       },
-  { "de_DE",    "iso885915",  "euro"     },
-  { "de_LU",    "iso88591",   NULL       },
-  { "de_LU",    "iso885915",  "euro"     },
-  { "el_GR",    "iso88597",   NULL       },
-  { "en_AU",    "iso88591",   NULL       },
-  { "en_BW",    "iso88591",   NULL       },
-  { "en_CA",    "iso88591",   NULL       },
-  { "en_DK",    "iso88591",   NULL       },
-  { "en_GB",    "iso88591",   NULL       },
-  { "en_HK",    "iso88591",   NULL       },
-  { "en_IE",    "iso88591",   NULL       },
-  { "en_IE",    "iso885915",  "euro"     },
-  { "en_IN",    "utf8",       NULL       },
-  { "en_NZ",    "iso88591",   NULL       },
-  { "en_PH",    "iso88591",   NULL       },
-  { "en_SG",    "iso88591",   NULL       },
-  { "en_US",    "iso88591",   NULL       },
-  { "en_ZA",    "iso88591",   NULL       },
-  { "en_ZW",    "iso88591",   NULL       },
-  { "es_AR",    "iso88591",   NULL       },
-  { "es_BO",    "iso88591",   NULL       },
-  { "es_CL",    "iso88591",   NULL       },
-  { "es_CO",    "iso88591",   NULL       },
-  { "es_CR",    "iso88591",   NULL       },
-  { "es_DO",    "iso88591",   NULL       },
-  { "es_EC",    "iso88591",   NULL       },
-  { "es_ES",    "iso88591",   NULL       },
-  { "es_ES",    "iso885915",  "euro"     },
-  { "es_GT",    "iso88591",   NULL       },
-  { "es_HN",    "iso88591",   NULL       },
-  { "es_MX",    "iso88591",   NULL       },
-  { "es_NI",    "iso88591",   NULL       },
-  { "es_PA",    "iso88591",   NULL       },
-  { "es_PE",    "iso88591",   NULL       },
-  { "es_PR",    "iso88591",   NULL       },
-  { "es_PY",    "iso88591",   NULL       },
-  { "es_SV",    "iso88591",   NULL       },
-  { "es_US",    "iso88591",   NULL       },
-  { "es_UY",    "iso88591",   NULL       },
-  { "es_VE",    "iso88591",   NULL       },
-  { "et_EE",    "iso88591",   NULL       },
-  { "eu_ES",    "iso88591",   NULL       },
-  { "eu_ES",    "iso885915",  "euro"     },
-  { "fa_IR",    "utf8",       NULL       },
-  { "fi_FI",    "iso88591",   NULL       },
-  { "fi_FI",    "iso885915",  "euro"     },
-  { "fo_FO",    "iso88591",   NULL       },
-  { "fr_BE",    "iso88591",   NULL       },
-  { "fr_BE",    "iso885915",  "euro"     },
-  { "fr_CA",    "iso88591",   NULL       },
-  { "fr_CH",    "iso88591",   NULL       },
-  { "fr_FR",    "iso88591",   NULL       },
-  { "fr_FR",    "iso885915",  "euro"     },
-  { "fr_LU",    "iso88591",   NULL       },
-  { "fr_LU",    "iso885915",  "euro"     },
-  { "ga_IE",    "iso88591",   NULL       },
-  { "ga_IE",    "iso885915",  "euro"     },
-  { "gl_ES",    "iso88591",   NULL       },
-  { "gl_ES",    "iso885915",  "euro"     },
-  { "gv_GB",    "iso88591",   NULL       },
-  { "he_IL",    "iso88598",   NULL       },
-  { "hi_IN",    "utf8",       NULL       },
-  { "hr_HR",    "iso88592",   NULL       },
-  { "hu_HU",    "iso88592",   NULL       },
-  { "id_ID",    "iso88591",   NULL       },
-  { "is_IS",    "iso88591",   NULL       },
-  { "it_CH",    "iso88591",   NULL       },
-  { "it_IT",    "iso88591",   NULL       },
-  { "it_IT",    "iso885915",  "euro"     },
-  { "iw_IL",    "iso88598",   NULL       },
-  { "ja_JP",    "eucjp",      NULL       },
-  { "ja_JP",    "ujis",       NULL       },
-  { "japanese", "euc",        NULL       },
-  { "ka_GE",    "georgianps", NULL       },
-  { "kl_GL",    "iso88591",   NULL       },
-  { "ko_KR",    "euckr",      NULL       },
-  { "ko_KR",    "utf8",       NULL       },
-  { "korean",   "euc",        NULL       },
-  { "kw_GB",    "iso88591",   NULL       },
-  { "lt_LT",    "iso885913",  NULL       },
-  { "lv_LV",    "iso885913",  NULL       },
-  { "mi_NZ",    "iso885913",  NULL       },
-  { "mk_MK",    "iso88595",   NULL       },
-  { "mr_IN",    "utf8",       NULL       },
-  { "ms_MY",    "iso88591",   NULL       },
-  { "mt_MT",    "iso88593",   NULL       },
-  { "nb_NO",    "ISO-8859-1", NULL       },
-  { "nl_BE",    "iso88591",   NULL       },
-  { "nl_BE",    "iso885915",  "euro"     },
-  { "nl_NL",    "iso88591",   NULL       },
-  { "nl_NL",    "iso885915",  "euro"     },
-  { "nn_NO",    "iso88591",   NULL       },
-  { "no_NO",    "iso88591",   NULL       },
-  { "oc_FR",    "iso88591",   NULL       },
-  { "pl_PL",    "iso88592",   NULL       },
-  { "pt_BR",    "iso88591",   NULL       },
-  { "pt_PT",    "iso88591",   NULL       },
-  { "pt_PT",    "iso885915",  "euro"     },
-  { "ro_RO",    "iso88592",   NULL       },
-  { "ru_RU",    "iso88595",   NULL       },
-  { "ru_RU",    "koi8r",      NULL       },
-  { "ru_UA",    "koi8u",      NULL       },
-  { "se_NO",    "utf8",       NULL       },
-  { "sk_SK",    "iso88592",   NULL       },
-  { "sl_SI",    "iso88592",   NULL       },
-  { "sq_AL",    "iso88591",   NULL       },
-  { "sr_YU",    "iso88592",   NULL       },
-  { "sr_YU",    "iso88595",   "cyrillic" },
-  { "sv_FI",    "iso88591",   NULL       },
-  { "sv_FI",    "iso885915",  "euro"     },
-  { "sv_SE",    "iso88591",   NULL       },
-  { "ta_IN",    "utf8",       NULL       },
-  { "te_IN",    "utf8",       NULL       },
-  { "tg_TJ",    "koi8t",      NULL       },
-  { "th_TH",    "tis620",     NULL       },
-  { "tl_PH",    "iso88591",   NULL       },
-  { "tr_TR",    "iso88599",   NULL       },
-  { "uk_UA",    "koi8u",      NULL       },
-  { "ur_PK",    "utf8",       NULL       },
-  { "uz_UZ",    "iso88591",   NULL       },
-  { "vi_VN",    "tcvn",       NULL       },
-  { "vi_VN",    "utf8",       NULL       },
-  { "wa_BE",    "iso88591",   NULL       },
-  { "wa_BE",    "iso885915",  "euro"     },
-  { "yi_US",    "cp1255",     NULL       },
-  { "zh_CN",    "gb18030",    NULL       },
-  { "zh_CN",    "gb2312",     NULL       },
-  { "zh_CN",    "gbk",        NULL       },
-  { "zh_HK",    "big5hkscs",  NULL       },
-  { "zh_TW",    "big5",       NULL       },
-  { "zh_TW",    "euctw",      NULL       },
-  { NULL,       NULL,         NULL       }
+  { "af_ZA",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "ar_AE",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_BH",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_DZ",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_EG",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_IN",    "utf-8",       "utf-8",       NULL       },
+  { "ar_IQ",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_JO",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_KW",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_LB",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_LY",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_MA",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_OM",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_QA",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_SA",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_SD",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_SY",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_TN",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "ar_YE",    "iso-8859-6",  "iso-8859-6",  NULL       },
+  { "be_BY",    "cp1251",      "cp1251",      NULL       },
+  { "bg_BG",    "cp1251",      "cp1251",      NULL       },
+  { "br_FR",    "iso-8859-1",  "iso-88591",   NULL       },
+  { "bs_BA",    "iso-8859-2",  "cp1250",      NULL       },
+  { "ca_ES",    "iso-8859-1",  "iso-88591",   NULL       },
+  { "ca_ES",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "cs_CZ",    "iso-8859-2",  "cp1250",      NULL       },
+  { "cy_GB",    "iso-8859-14", "iso-8859-14", NULL       },
+  { "da_DK",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_AT",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_AT",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "de_BE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_BE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "de_CH",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_DE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_DE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "de_LU",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "de_LU",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "el_GR",    "iso-8859-7",  "iso-8859-7",  NULL       },
+  { "en_AU",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_BW",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_CA",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_DK",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_GB",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_HK",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_IE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_IE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "en_IN",    "utf-8",       "utf-8",       NULL       },
+  { "en_NZ",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_PH",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_SG",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_US",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_ZA",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "en_ZW",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_AR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_BO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_CL",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_CO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_CR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_DO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_EC",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_ES",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_ES",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "es_GT",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_HN",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_MX",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_NI",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_PA",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_PE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_PR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_PY",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_SV",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_US",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_UY",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "es_VE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "et_EE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "eu_ES",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "eu_ES",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "fa_IR",    "utf-8",       "utf-8",       NULL       },
+  { "fi_FI",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fi_FI",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "fo_FO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_BE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_BE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "fr_CA",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_CH",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_FR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_FR",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "fr_LU",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "fr_LU",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "ga_IE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "ga_IE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "gl_ES",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "gl_ES",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "gv_GB",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "he_IL",    "iso-8859-8",  "iso-8859-8",  NULL       },
+  { "hi_IN",    "utf-8",       "utf-8",       NULL       },
+  { "hr_HR",    "iso-8859-2",  "cp1250",      NULL       },
+  { "hu_HU",    "iso-8859-2",  "cp1250",      NULL       },
+  { "id_ID",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "is_IS",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "it_CH",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "it_IT",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "it_IT",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "iw_IL",    "iso-8859-8",  "iso-8859-8",  NULL       },
+  { "ja_JP",    "euc-jp",      "euc-jp",      NULL       },
+  { "ja_JP",    "ujis",        "ujis",        NULL       },
+  { "japanese", "euc",         "euc",         NULL       },
+  { "ka_GE",    "georgian-ps", "georgian-ps", NULL       },
+  { "kl_GL",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "ko_KR",    "euc-kr",      "euc-kr",      NULL       },
+  { "ko_KR",    "utf-8",       "utf-8",       NULL       },
+  { "korean",   "euc",         "euc",         NULL       },
+  { "kw_GB",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "lt_LT",    "iso-8859-13", "iso-8859-13", NULL       },
+  { "lv_LV",    "iso-8859-13", "iso-8859-13", NULL       },
+  { "mi_NZ",    "iso-8859-13", "iso-8859-13", NULL       },
+  { "mk_MK",    "iso-8859-5",  "cp1251",      NULL       },
+  { "mr_IN",    "utf-8",       "utf-8",       NULL       },
+  { "ms_MY",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "mt_MT",    "iso-8859-3",  "iso-8859-3",  NULL       },
+  { "nb_NO",    "ISO-8859-1",  "ISO-8859-1",  NULL       },
+  { "nl_BE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "nl_BE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "nl_NL",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "nl_NL",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "nn_NO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "no_NO",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "oc_FR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "pl_PL",    "iso-8859-2",  "cp1250",      NULL       },
+  { "pt_BR",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "pt_PT",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "pt_PT",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "ro_RO",    "iso-8859-2",  "cp1250",      NULL       },
+  { "ru_RU",    "iso-8859-5",  "cp1251",      NULL       },
+  { "ru_RU",    "koi8-r",      "cp1251",      NULL       },
+  { "ru_UA",    "koi8-u",      "cp1251",      NULL       },
+  { "se_NO",    "utf-8",       "utf-8",       NULL       },
+  { "sk_SK",    "iso-8859-2",  "cp1250",      NULL       },
+  { "sl_SI",    "iso-8859-2",  "cp1250",      NULL       },
+  { "sq_AL",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "sr_YU",    "iso-8859-2",  "cp1250",      NULL       },
+  { "sr_YU",    "iso-8859-5",  "cp1251",      "cyrillic" },
+  { "sv_FI",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "sv_FI",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "sv_SE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "ta_IN",    "utf-8",       "utf-8",       NULL       },
+  { "te_IN",    "utf-8",       "utf-8",       NULL       },
+  { "tg_TJ",    "koi8-t",      "cp1251",      NULL       },
+  { "th_TH",    "tis-620",     "tis-620",     NULL       },
+  { "tl_PH",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "tr_TR",    "iso-8859-9",  "iso-8859-9",  NULL       },
+  { "uk_UA",    "koi8-u",      "cp1251",      NULL       },
+  { "ur_PK",    "utf-8",       "utf-8",       NULL       },
+  { "uz_UZ",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "vi_VN",    "tcvn",        "tcvn",        NULL       },
+  { "vi_VN",    "utf-8",       "utf-8",       NULL       },
+  { "wa_BE",    "iso-8859-1",  "iso-8859-1",  NULL       },
+  { "wa_BE",    "iso-8859-15", "iso-8859-15", "euro"     },
+  { "yi_US",    "cp1255",      "cp1255",      NULL       },
+  { "zh_CN",    "gb18030",     "gb18030",     NULL       },
+  { "zh_CN",    "gb2312",      "gb2312",      NULL       },
+  { "zh_CN",    "gbk",         "gbk",         NULL       },
+  { "zh_HK",    "big5-hkscs",  "big5-hkscs",  NULL       },
+  { "zh_TW",    "big-5",       "big-5",       NULL       },
+  { "zh_TW",    "euc-tw",      "euc-tw",      NULL       },
+  { NULL,       NULL,          NULL,          NULL       }
 };
 
 
@@ -465,6 +469,17 @@ static const lang_locale_t *_get_first_lang_locale(char *lcal) {
 }
 
 
+static char *_get_lang(void) {
+    char *lang;
+    
+    if(!(lang = getenv("LC_ALL")))
+      if(!(lang = getenv("LC_MESSAGES")))
+        lang = getenv("LANG");
+
+  return lang;
+}
+
+
 /*
  * get encoding of current locale
  */
@@ -479,11 +494,7 @@ char *xine_get_system_encoding(void) {
    * when nl_langinfo(CODESET) isn't available or workig
    */
   if (!codeset || strstr(codeset, "ANSI") != 0) {
-    char *lang;
-
-    if(!(lang = getenv("LC_ALL")))
-      if(!(lang = getenv("LC_MESSAGES")))
-        lang = getenv("LANG");
+    char *lang = _get_lang();
 
     codeset = NULL;
 
@@ -513,6 +524,28 @@ char *xine_get_system_encoding(void) {
     codeset = strdup(codeset);
 
   return codeset;
+}
+
+
+/*
+ * guess default encoding of subtitles
+ */
+const char *xine_guess_spu_encoding(void) {
+  char *lang = _get_lang();
+
+  if (lang) {
+    const lang_locale_t *llocale;
+    char *lg, *enc;
+
+    lg = strdup(lang);
+
+    if ((enc = strchr(lg, '.'))) *enc = '\0';
+    llocale = _get_first_lang_locale(lg);
+    free(lg);
+    if (llocale && llocale->spu_encoding) return llocale->spu_encoding;
+  }
+
+  return "iso-8859-1";
 }
 
 

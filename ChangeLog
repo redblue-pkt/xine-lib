@@ -8,6 +8,7 @@ xine-lib (1-rc6)
   * make sure the streams are played till their very end
   * support for Annodex files
   * VobSub-in-Matroska support
+  * guess and use Windows encoding as default for external subtitles
   
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
