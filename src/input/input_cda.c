@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.36 2002/10/31 17:00:44 mroi Exp $
+ * $Id: input_cda.c,v 1.37 2002/11/01 17:51:57 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1397,6 +1397,7 @@ static int cda_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   }
 
   filename = (char *) &this->mrl[5];
+  while (*filename == '/') filename++;
   
   if(sscanf(filename, "%d", &this->cda->cur_track) != 1) {
     LOG_MSG_STDERR(this->xine, _("input_cda: malformed MRL. Use cda:/<track #>\n"));

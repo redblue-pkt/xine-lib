@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.54 2002/10/31 17:00:53 mroi Exp $
+ * $Id: input_vcd.c,v 1.55 2002/11/01 17:51:58 mroi Exp $
  *
  */
 
@@ -364,6 +364,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   }
 
   filename = (char *) &this->mrl[5];
+  while (*filename == '/') filename++;
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
     LOG_MSG_STDERR(this->xine, _("input_vcd: malformed MRL. Use vcd:/<track #>\n"));

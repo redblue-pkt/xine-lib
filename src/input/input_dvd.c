@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.109 2002/11/01 11:48:59 tmattern Exp $
+ * $Id: input_dvd.c,v 1.110 2002/11/01 17:51:57 mroi Exp $
  *
  */
 
@@ -1198,7 +1198,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   dvd_input_plugin_t    *this;
   dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
   char                  *locator;
-  int                    slash_point;
+  int                    dot_point;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
@@ -1252,19 +1252,20 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->dvd_name_length        = 0;
 
   /* Check we can handle this MRL */
-  if (!strncasecmp (this->mrl, "dvd:/",5))
+  if (!strncasecmp (this->mrl, "dvd:/",5)) {
     locator = &this->mrl[5];
-  else {
+    while (*locator == '/') locator++;
+  } else {
     return 0;
   }
 
   /* Attempt to parse MRL */
-  slash_point=0;
-  while((locator[slash_point] != '\0') && (locator[slash_point] != '/')) {
-    slash_point++;
+  dot_point=0;
+  while((locator[dot_point] != '\0') && (locator[dot_point] != '.')) {
+    dot_point++;
   }
 
-  if(locator[slash_point] == '/') {
+  if(locator[dot_point] == '.') {
     this->mode = MODE_TITLE; 
   } else {
     this->mode = MODE_NAVIGATE;
@@ -1378,7 +1379,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     int titles;
     
     /* A program and/or VTS was specified */
-    locator += slash_point + 1;
+    locator += dot_point + 1;
 
     if(locator[0] == '\0') {
       /* Empty specifier */
@@ -1668,6 +1669,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.110  2002/11/01 17:51:57  mroi
+ * be less strict with MRL syntax, people are used to ://
+ *
  * Revision 1.109  2002/11/01 11:48:59  tmattern
  * Time for fast navigation now !
  *
