@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.13 2003/12/04 22:11:25 jstembridge Exp $
+ * $Id: rtsp.c,v 1.14 2003/12/04 22:38:29 jstembridge Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -45,6 +45,7 @@
 */
 
 #include "rtsp.h"
+#include "io_helper.h"
 #include "xineutils.h"
 
 #define BUF_SIZE 4096
@@ -101,125 +102,6 @@ const char rtsp_protocol_version[]="RTSP/1.0";
 #define RTSP_RECORD        0x100
 
 /*
- * network utilities
- */
- 
-static int host_connect_attempt(struct in_addr ia, int port) {
-
-  int                s;
-  struct sockaddr_in sin;
-
-  s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
-  if (s == -1) {
-    printf ("rtsp: socket(): %s\n", strerror(errno));
-    return -1;
-  }
-
-  sin.sin_family = AF_INET;
-  sin.sin_addr   = ia;
-  sin.sin_port   = htons(port);
-  
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 
-      && errno != EINPROGRESS) {
-    printf ("rtsp: connect(): %s\n", strerror(errno));
-    close(s);
-    return -1;
-  }
-
-  return s;
-}
-
-static int host_connect(const char *host, int port) {
-
-  struct hostent *h;
-  int             i, s;
-  
-  h = gethostbyname(host);
-  if (h == NULL) {
-    printf ("rtsp: unable to resolve '%s'.\n", host);
-    return -1;
-  }
-
-  for (i = 0; h->h_addr_list[i]; i++) {
-    struct in_addr ia;
-
-    memcpy (&ia, h->h_addr_list[i], 4);
-    s = host_connect_attempt(ia, port);
-    if(s != -1)
-      return s;
-  }
-  printf ("rtsp: unable to connect to '%s'.\n", host);
-  return -1;
-}
-
-static int write_stream(int s, const char *buf, int len) {
-  int total, timeout;
-
-  total = 0; timeout = 30;
-  while (total < len){ 
-    int n;
-
-    n = write (s, &buf[total], len - total);
-
-    if (n > 0)
-      total += n;
-    else if (n < 0) {
-      if ((timeout>0) && ((errno == EAGAIN) || (errno == EINPROGRESS))) {
-        sleep (1); timeout--;
-      } else
-        return -1;
-    }
-  }
-
-  return total;
-}
-
-static ssize_t read_stream(rtsp_t *s, void *buf, size_t count) {
-
-#if 0  
-  ssize_t ret, total;
-
-  total = 0;
-
-  while (total < count) {
-  
-    ret=read (s->s, ((uint8_t*)buf)+total, count-total);
-
-    if (ret<0) {
-      if(errno == EAGAIN) {
-        fd_set rset;
-        struct timeval timeout;
-    
-        FD_ZERO (&rset);
-        FD_SET  (s->s, &rset);
-        
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-        
-        if (select (s->s+1, &rset, NULL, NULL, &timeout) <= 0) {
-          return -1;
-        }
-        continue;
-      }
-      
-      printf ("rtsp: read error.\n");
-      return ret;
-    } else
-      total += ret;
-    
-    /* end of stream */
-    if (!ret) break;
-  }
-
-  return total;
-#else
-
-  return _x_read_abort(s->stream, s->s, buf, count );
-
-#endif
-}
-
-/*
  * rtsp_get gets a line from stream
  * and returns a null terminated string.
  */
@@ -230,7 +112,7 @@ static char *rtsp_get(rtsp_t *s) {
   char *string;
 
   while (n<BUF_SIZE) {
-    read_stream(s, &s->buffer[n], 1);
+    _x_io_tcp_read(s->stream, s->s, &s->buffer[n], 1);
     if ((s->buffer[n-1]==0x0d)&&(s->buffer[n]==0x0a)) break;
     n++;
   }
@@ -263,7 +145,7 @@ static void rtsp_put(rtsp_t *s, const char *string) {
   buf[len]=0x0d;
   buf[len+1]=0x0a;
 
-  write_stream(s->s, buf, len+2);
+  _x_io_tcp_write(s->stream, s->s, buf, len+2);
   
   lprintf("done.\n");
 
@@ -497,7 +379,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
   int i,seq;
 
   if (size>=4) {
-    i=read_stream(s, buffer, 4);
+    i=_x_io_tcp_read(s->stream, s->s, buffer, 4);
     if (i<4) return i;
     if ((buffer[0]=='S')&&(buffer[1]=='E')&&(buffer[2]=='T')&&(buffer[3]=='_'))
     {
@@ -524,14 +406,14 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       sprintf(rest,"CSeq: %u", seq);
       rtsp_put(s, rest);
       rtsp_put(s, "");
-      i=read_stream(s, buffer, size);
+      i=_x_io_tcp_read(s->stream, s->s, buffer, size);
     } else
     {
-      i=read_stream(s, buffer+4, size-4);
+      i=_x_io_tcp_read(s->stream, s->s, buffer+4, size-4);
       i+=4;
     }
   } else
-    i=read_stream(s, buffer, size);
+    i=_x_io_tcp_read(s->stream, s->s, buffer, size);
 
   lprintf("<< %d of %d bytes\n", i, size);
 
@@ -605,7 +487,7 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
 
   lprintf("got mrl: %s %i %s\n",s->host,s->port,s->path);
 
-  s->s = host_connect (s->host, s->port);
+  s->s = _x_io_tcp_connect (stream, s->host, s->port);
 
   if (s->s < 0) {
     printf ("rtsp: failed to connect to '%s'\n", s->host);
