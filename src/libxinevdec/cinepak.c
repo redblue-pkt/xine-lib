@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.9 2002/07/05 17:32:04 mroi Exp $
+ * $Id: cinepak.c,v 1.10 2002/07/15 21:42:34 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -358,28 +358,27 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img->pts	     = buf->pts;
       img->bad_frame = 0;
 
+      /* FIXME: use img->pitches[3] */
       xine_fast_memcpy (img->base[0], this->img_buffer, n);
       xine_fast_memcpy (img->base[1], this->img_buffer + n, (n >> 2));
       xine_fast_memcpy (img->base[2], this->img_buffer + n + (n >> 2), (n >> 2));
 
       if (img->copy) {
- 
-        int height = abs(this->biHeight);
-        int stride = this->biWidth;
-        uint8_t* src[3];
+	int height = img->height;
+	uint8_t *src[3];
 
-        src[0] = img->base[0];
-        src[1] = img->base[1];
-        src[2] = img->base[2];
-        while ((height -= 16) >= 0) {
-          img->copy(img, src);
-          src[0] += 16 * stride;
-          src[1] +=  4 * stride;
-          src[2] +=  4 * stride;
-        }
-      }
-      
-      
+	src[0] = img->base[0];
+	src[1] = img->base[1];
+	src[2] = img->base[2];
+
+	while ((height -= 16) >= 0) {
+	  img->copy(img, src);
+	  src[0] += 16 * img->pitches[0];
+	  src[1] +=  8 * img->pitches[1];
+	  src[2] +=  8 * img->pitches[2];
+	}
+      }      
+
       img->draw(img);
       img->free(img);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.54 2002/07/08 19:52:01 mroi Exp $
+ * $Id: video_out.h,v 1.55 2002/07/15 21:42:34 esnel Exp $
  *
  *
  * xine version of video_out.h 
@@ -81,6 +81,7 @@ struct vo_frame_s {
   /* yv12 (planar)       base[0]: y,       base[1]: u,  base[2]: v  */
   /* yuy2 (interleaved)  base[0]: yuyv..., base[1]: --, base[2]: -- */
   uint8_t                   *base[3];       
+  int                        pitches[3];
 
   /* info that can be used for interlaced output (e.g. tv-out)      */
   int                        top_field_first;

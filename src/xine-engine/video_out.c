@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.99 2002/05/22 18:55:11 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.100 2002/07/15 21:42:34 esnel Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -662,7 +662,7 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
   dupl = vo_get_frame (this_gen, img->width, img->height, img->ratio,
 		       img->format, VO_BOTH_FIELDS );
   
-  image_size = img->width * img->height;
+  image_size = img->pitches[0] * img->height;
 
   if (img->format == IMGFMT_YV12) {
     /* The dxr3 video out plugin does not allocate memory for the dxr3
@@ -670,12 +670,12 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
     if (img->base[0])
       xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
     if (img->base[1])
-      xine_fast_memcpy(dupl->base[1], img->base[1], image_size >> 2);
+      xine_fast_memcpy(dupl->base[1], img->base[1], img->pitches[1] * ((img->height+1)/2));
     if (img->base[2])
-      xine_fast_memcpy(dupl->base[2], img->base[2], image_size >> 2);
+      xine_fast_memcpy(dupl->base[2], img->base[2], img->pitches[2] * ((img->height+1)/2));
   } else {
     if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size * 2);
+      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
   }  
   
   dupl->bad_frame = 0;
@@ -688,7 +688,6 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
   if (img->format == IMGFMT_YV12) {
     if (img->copy) {
       int height = img->height;
-      int stride = img->width;
       uint8_t* src[3];
   
       src[0] = dupl->base[0];
@@ -696,22 +695,21 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
       src[2] = dupl->base[2];
       while ((height -= 16) >= 0) {
         dupl->copy(dupl, src);
-        src[0] += 16 * stride;
-        src[1] +=  4 * stride;
-        src[2] +=  4 * stride;
+        src[0] += 16 * img->pitches[0];
+        src[1] +=  8 * img->pitches[1];
+        src[2] +=  8 * img->pitches[2];
       }
     }
   } else {
     if (img->copy) {
       int height = img->height;
-      int stride = img->width;
       uint8_t* src[3];
       
       src[0] = dupl->base[0];
       
       while ((height -= 16) >= 0) {
         dupl->copy(dupl, src);
-        src[0] += 32 * stride;
+        src[0] += 16 * img->pitches[0];
       }
     }
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.12 2002/07/10 14:04:41 mroi Exp $
+ * $Id: video_out_fb.c,v 1.13 2002/07/15 21:42:34 esnel Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -409,16 +409,18 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
                                 this->bytes_per_pixel );
     
     if (format == IMGFMT_YV12) {
-      int image_size = frame->width * frame->height;
-      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, image_size,
+      frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
+      frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+      frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height,
                                                       (void **)&frame->chunk[0]);
-      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, image_size/4,
+      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[1] * ((height+1)/2),
                                                       (void **)&frame->chunk[1]);
-      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, image_size/4, 
+      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[2] * ((height+1)/2),
                                                       (void **)&frame->chunk[2]);
     } else {
-      int image_size = frame->width * frame->height;
-      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, image_size*2, 
+      frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height,
                                                       (void **)&frame->chunk[0]);
       frame->chunk[1] = NULL;
       frame->chunk[2] = NULL;
@@ -441,8 +443,8 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
       frame->yuv2rgb->configure (frame->yuv2rgb,
 				 frame->width,
 				 16,
-				 frame->width*2,
-				 frame->width,
+				 2*frame->vo_frame.pitches[0],
+				 2*frame->vo_frame.pitches[1],
 				 frame->output_width,
 				 frame->stripe_height,
 				 frame->bytes_per_line*2);
@@ -452,8 +454,8 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
       frame->yuv2rgb->configure (frame->yuv2rgb,
 				 frame->width,
 				 16,
-				 frame->width,
-				 frame->width/2,
+				 frame->vo_frame.pitches[0],
+				 frame->vo_frame.pitches[1],
 				 frame->output_width,
 				 frame->stripe_height,
 				 frame->bytes_per_line);

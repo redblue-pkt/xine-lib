@@ -70,7 +70,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.3 2002/07/15 00:51:17 tmmm Exp $
+ * $Id: color.c,v 1.4 2002/07/15 21:42:34 esnel Exp $
  */
 
 #include "xine_internal.h"
@@ -140,7 +140,7 @@ int v_r_table[256];
 int v_g_table[256];
 int v_b_table[256];
 
-void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map);
+void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 
 /*
  * init_yuv_planes
@@ -191,7 +191,7 @@ void free_yuv_planes(yuv_planes_t *yuv_planes) {
  *
  *   YUY2 map: Y0 U0 Y1 V1  Y2 U2 Y3 V3
  */
-void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
+void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch) {
 
   int row_ptr, pixel_ptr;
   int yuy2_index;
@@ -203,6 +203,8 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
     for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_width;
       pixel_ptr++, yuy2_index += 2)
       yuy2_map[yuy2_index] = yuv_planes->y[row_ptr + pixel_ptr];
+
+    yuy2_index += (pitch - 2*yuv_planes->row_width);
   }
 
   /* copy the C samples */
@@ -218,6 +220,8 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
       pixel_ptr++;
       yuy2_index += 2;
     }
+
+    yuy2_index += (pitch - 2*yuv_planes->row_width);
   }
 }
 
@@ -296,7 +300,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
  * pad out the line.    
  *
  */
-void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
+void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch) {
 #ifdef ARCH_X86
   int i, j, k;
   unsigned char *source_plane;
@@ -349,6 +353,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
 
     /* account for extra 2 samples */
     source_plane += 2;
+    dest_plane += (pitch - 2*yuv_planes->row_width);
   }
 
   /* figure out the U samples */
@@ -410,6 +415,8 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
       }
     } else
       source_plane += 2;
+
+    dest_plane += (pitch - 2*yuv_planes->row_width);
   }
 
   /* figure out the V samples */
@@ -470,6 +477,8 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
       }
     } else
       source_plane += 2;
+
+    dest_plane += (pitch - 2*yuv_planes->row_width);
   }
 
   /* be a good MMX citizen and empty MMX state */

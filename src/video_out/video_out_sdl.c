@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.9 2002/07/10 14:04:41 mroi Exp $
+ * $Id: video_out_sdl.c,v 1.10 2002/07/15 21:42:34 esnel Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -345,6 +345,9 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     if (frame->overlay == NULL)
       return;
  
+    frame->vo_frame.pitches[0] = frame->overlay->pitches[0];
+    frame->vo_frame.pitches[1] = frame->overlay->pitches[2];
+    frame->vo_frame.pitches[2] = frame->overlay->pitches[1];
     frame->vo_frame.base[0] = frame->overlay->pixels[0];
     frame->vo_frame.base[1] = frame->overlay->pixels[2];
     frame->vo_frame.base[2] = frame->overlay->pixels[1];

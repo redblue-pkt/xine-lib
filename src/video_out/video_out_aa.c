@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.21 2002/07/12 20:19:20 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.22 2002/07/15 21:42:34 esnel Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -128,8 +128,6 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 				    uint32_t width, uint32_t height, 
 				    int ratio_code, int format, int flags) {
 
-  int image_size;
-
   aa_frame_t *frame = (aa_frame_t *) img;
 
   /* printf ("aa_update_format...\n"); */
@@ -157,16 +155,18 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 
 
     if (format == IMGFMT_YV12) {
-      image_size = width * height;
-      frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
-      frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, (void**) &frame->mem[1]);
-      frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, (void**) &frame->mem[2]);
+      frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
+      frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+      frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+      frame->vo_frame.base[0] = malloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
+      frame->vo_frame.base[1] = malloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2), (void**) &frame->mem[1]);
+      frame->vo_frame.base[2] = malloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2), (void**) &frame->mem[2]);
 
       /* printf ("allocated yuv memory for %d x %d image\n", width, height); */
 
     } else if (format == IMGFMT_YUY2) {
-      image_size = width * 2 * height;
-      frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
+      frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
+      frame->vo_frame.base[0] = malloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
     } else {
       printf ("alert! unsupported image format %04x\n", format);
       abort();

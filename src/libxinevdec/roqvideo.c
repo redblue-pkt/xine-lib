@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.5 2002/07/05 17:32:04 mroi Exp $
+ * $Id: roqvideo.c,v 1.6 2002/07/15 21:42:34 esnel Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -361,6 +361,7 @@ static void roq_decode_frame(roq_decoder_t *ri, vo_frame_t *img) {
   memcpy(ri->v[1], ri->v[0], (ri->width * ri->height)/4);
 
   /* copy the planes to the output planes */
+  /* FIXME: use img->pitches[3] */
   memcpy(img->base[0], ri->y[0], ri->width * ri->height);
   memcpy(img->base[1], ri->u[0], (ri->width * ri->height)/4);
   memcpy(img->base[2], ri->v[0], (ri->width * ri->height)/4);
@@ -434,20 +435,20 @@ static void roq_decode_data (video_decoder_t *this_gen,
     img->duration = this->video_step;
 
     roq_decode_frame(this, img);
-      
+
     if (img->copy) {
       int height = img->height;
-      int stride = img->width;
-      uint8_t* src[3];
+      uint8_t *src[3];
 
       src[0] = img->base[0];
       src[1] = img->base[1];
       src[2] = img->base[2];
+
       while ((height -= 16) >= 0) {
-        img->copy(img, src);
-        src[0] += 16 * stride;
-        src[1] +=  4 * stride;
-        src[2] +=  4 * stride;
+	img->copy(img, src);
+	src[0] += 16 * img->pitches[0];
+	src[1] +=  8 * img->pitches[1];
+	src[2] +=  8 * img->pitches[2];
       }
     }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.13 2002/07/10 14:04:41 mroi Exp $
+ * $Id: video_out_opengl.c,v 1.14 2002/07/15 21:42:34 esnel Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -358,15 +358,19 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 
 	switch (format) {
 	case IMGFMT_YV12:
-	    frame->vo_frame.base[0] = my_malloc_aligned(16,image_size,
+	    frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
+	    frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+	    frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+	    frame->vo_frame.base[0] = my_malloc_aligned(16, frame->vo_frame.pitches[0] * height,
 							&frame->chunk[0]);
-	    frame->vo_frame.base[1] = my_malloc_aligned(16,image_size/4,
+	    frame->vo_frame.base[1] = my_malloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2),
 							&frame->chunk[1]);
-	    frame->vo_frame.base[2] = my_malloc_aligned(16,image_size/4,
+	    frame->vo_frame.base[2] = my_malloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2),
 							&frame->chunk[2]);
 	    break;
 	case IMGFMT_YUY2:
-	    frame->vo_frame.base[0] = my_malloc_aligned(16,image_size*2,
+	    frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
+	    frame->vo_frame.base[0] = my_malloc_aligned(16, frame->vo_frame.pitches[0] * height,
 							&frame->chunk[0]);
 	    break;
 	default:

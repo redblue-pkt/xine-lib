@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2002/07/15 19:43:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.49 2002/07/15 21:42:33 esnel Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -275,7 +275,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  
 	  xine_fast_memcpy (dy, sy, this->bih.biWidth);
 	  
-	  dy += this->bih.biWidth;
+	  dy += img->pitches[0];
 	  
 	  sy += this->av_picture.linesize[0];
 	}
@@ -310,8 +310,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  }
 	  
-	  du += this->bih.biWidth/2;
-	  dv += this->bih.biWidth/2;
+	  du += img->pitches[1];
+	  dv += img->pitches[2];
 	  
 	  if (this->context.pix_fmt != PIX_FMT_YUV420P) {
 	    su += 2*this->av_picture.linesize[1];
@@ -323,19 +323,18 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	}
 	
 	if (img->copy) {
-	  
-	  int height = abs(this->bih.biHeight);
-	  int stride = this->bih.biWidth;
-	  uint8_t* src[3];
-	  
+	  int height = img->height;
+	  uint8_t *src[3];
+
 	  src[0] = img->base[0];
 	  src[1] = img->base[1];
 	  src[2] = img->base[2];
+
 	  while ((height -= 16) >= 0) {
 	    img->copy(img, src);
-	    src[0] += 16 * stride;
-	    src[1] +=  4 * stride;
-	    src[2] +=  4 * stride;
+	    src[0] += 16 * img->pitches[0];
+	    src[1] +=  8 * img->pitches[1];
+	    src[2] +=  8 * img->pitches[2];
 	  }
 	}
       }

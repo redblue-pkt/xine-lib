@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.122 2002/07/10 14:04:42 mroi Exp $
+ * $Id: video_out_xv.c,v 1.123 2002/07/15 21:42:34 esnel Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -463,6 +463,9 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
 
     frame->image = create_ximage (this, &frame->shminfo, width, height, format);
 
+    frame->vo_frame.pitches[0] = frame->image->pitches[0];
+    frame->vo_frame.pitches[1] = frame->image->pitches[2];
+    frame->vo_frame.pitches[2] = frame->image->pitches[1];
     frame->vo_frame.base[0] = frame->image->data + frame->image->offsets[0];
     frame->vo_frame.base[1] = frame->image->data + frame->image->offsets[2];
     frame->vo_frame.base[2] = frame->image->data + frame->image->offsets[1];

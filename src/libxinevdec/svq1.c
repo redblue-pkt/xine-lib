@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.3 2002/07/15 19:44:53 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.4 2002/07/15 21:42:34 esnel Exp $
  */
 
 #include <stdio.h>
@@ -1317,7 +1317,7 @@ static void vscale_chroma_line (uint8_t *dst, int pitch, uint8_t *src1, uint8_t 
   }
 }
 
-static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitch) {
+static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitches[3]) {
   uint8_t *src;
   uint8_t *dst;
   uint8_t *cr1, *cr2, *tmp;
@@ -1329,14 +1329,14 @@ static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitch) {
   for (y=0; y < svq1->height; y++) {
     memcpy (dst, src, svq1->width);
     src += svq1->luma_width;
-    dst += pitch;
+    dst += pitches[0];
   }
 
   for (i=1; i < 3; i++) {
     src = svq1->base[i];
     dst = base[i];
-    cr1 = &dst[(pitch / 2) * ((svq1->height / 2) - 1)];
-    cr2 = &dst[(pitch / 2) * ((svq1->height / 2) - 2)];
+    cr1 = &dst[pitches[i] * ((svq1->height / 2) - 1)];
+    cr2 = &dst[pitches[i] * ((svq1->height / 2) - 2)];
 
     /* horizontally upscale first line */
     hscale_chroma_line (cr1, src, (svq1->width / 4));
@@ -1344,15 +1344,15 @@ static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitch) {
 
     /* store first line */
     memcpy (dst, cr1, (svq1->width / 2));
-    dst += (pitch / 2);
+    dst += pitches[i];
 
     for (y=0; y < (svq1->height / 4) - 1; y++) {
       hscale_chroma_line (cr2, src, (svq1->width / 4));
       src += svq1->chroma_width;
 
       /* interpolate and store two lines */
-      vscale_chroma_line (dst, (pitch / 2), cr1, cr2, (svq1->width / 2));
-      dst += pitch;
+      vscale_chroma_line (dst, pitches[i], cr1, cr2, (svq1->width / 2));
+      dst += pitches[i];
 
       /* swap buffers */
       tmp = cr2;
@@ -1429,12 +1429,11 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	img->bad_frame	= (result != 0);
 
 	if (result == 0) {
-	  svq1_copy_frame (this->svq1, img->base, img->width);
+	  svq1_copy_frame (this->svq1, img->base, img->pitches);
 	}
 
 	if (img->copy) {
 	  int height = img->height;
-	  int stride = img->width;
 	  uint8_t *src[3];
 
 	  src[0] = img->base[0];
@@ -1443,9 +1442,9 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	  while ((height -= 16) >= 0) {
 	    img->copy(img, src);
-	    src[0] += 16 * stride;
-	    src[1] +=  4 * stride;
-	    src[2] +=  4 * stride;
+	    src[0] += 16 * img->pitches[0];
+	    src[1] +=  8 * img->pitches[1];
+	    src[2] +=  8 * img->pitches[2];
 	  }
 	}
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2002/07/05 17:32:02 mroi Exp $
+ * $Id: xine_decoder.c,v 1.40 2002/07/15 21:42:33 esnel Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -291,15 +291,15 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
   /* copy y data; use shortcut if stride_y equals width */
   src_offset = 0;
   dst_offset = 0;
-  if (pict.stride_y == img->width) {
-    xine_fast_memcpy(img->base[0]+dst_offset, pict.y, this->bih.biWidth*this->bih.biHeight);
-    dst_offset += this->bih.biWidth * this->bih.biHeight;
+  if (pict.stride_y == img->pitches[0]) {
+    xine_fast_memcpy(img->base[0]+dst_offset, pict.y, img->pitches[0]*this->bih.biHeight);
+    dst_offset += img->pitches[0] * this->bih.biHeight;
   }
   else { /* copy line by line */
     for (i=0; i<this->bih.biHeight; i++) {
       xine_fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->bih.biWidth);
       src_offset += pict.stride_y;
-      dst_offset += this->bih.biWidth;
+      dst_offset += img->pitches[0];
     }
   }
 
@@ -310,17 +310,19 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
  /* copy u and v data */
   src_offset = 0;
   dst_offset = 0;
-  if (pict.stride_uv == img->width>>1) {
-    xine_fast_memcpy(img->base[1]+dst_offset, pict.u, (this->bih.biWidth*this->bih.biHeight)/4);
-    xine_fast_memcpy(img->base[2]+dst_offset, pict.v, (this->bih.biWidth*this->bih.biHeight)/4);
+  if (pict.stride_uv == img->pitches[1] && pict.stride_uv == img->pitches[2]) {
+    xine_fast_memcpy(img->base[1]+dst_offset, pict.u, (img->pitches[1]*this->bih.biHeight)/4);
+    xine_fast_memcpy(img->base[2]+dst_offset, pict.v, (img->pitches[2]*this->bih.biHeight)/4);
     dst_offset += (this->bih.biWidth*this->bih.biHeight)/4;
   }
   else {
+    int dst_offset_v = 0;
     for (i=0; i<this->bih.biHeight>>1; i++) {
       xine_fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->bih.biWidth/2);
-      xine_fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->bih.biWidth/2);
+      xine_fast_memcpy(img->base[2]+dst_offset_v, pict.v+src_offset, this->bih.biWidth/2);
       src_offset += pict.stride_uv;
-      dst_offset += this->bih.biWidth/2;
+      dst_offset += img->pitches[1];
+      dst_offset_v += img->pitches[2];
     }
   } 
      
@@ -328,18 +330,18 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
      with slices of 16 lines. Too bad we can't set the y,u and v
      stride values (because then we wouldn't need the first copy) */
   if (img->copy && img->bad_frame == 0) {
-    int height = this->bih.biHeight;
-    int stride = this->bih.biWidth;
-    uint8_t* src[3];
-	  
+    int height = img->height;
+    uint8_t *src[3];
+
     src[0] = img->base[0];
     src[1] = img->base[1];
     src[2] = img->base[2];
+
     while ((height -= 16) >= 0) {
       img->copy(img, src);
-      src[0] += 16 * stride;
-      src[1] +=  4 * stride;
-      src[2] +=  4 * stride;
+      src[0] += 16 * img->pitches[0];
+      src[1] +=  8 * img->pitches[1];
+      src[2] +=  8 * img->pitches[2];
     }
   }
 }

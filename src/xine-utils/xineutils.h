@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.17 2002/07/15 00:51:17 tmmm Exp $
+ * $Id: xineutils.h,v 1.18 2002/07/15 21:42:34 esnel Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -738,7 +738,7 @@ void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height);
 void free_yuv_planes(yuv_planes_t *yuv_planes);
 
 extern void (*yuv444_to_yuy2)
-  (yuv_planes_t *yuv_planes, unsigned char *yuy2_map);
+  (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 
 #define SCALEFACTOR 65536
 #define CENTERSAMPLE 128

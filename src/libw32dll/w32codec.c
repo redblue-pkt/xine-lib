@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.87 2002/07/10 05:44:09 pmhahn Exp $
+ * $Id: w32codec.c,v 1.88 2002/07/15 21:42:33 esnel Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -779,7 +779,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    uint16_t *pixel, *out;
   
 	    pixel = (uint16_t *) ( (uint8_t *)this->img_buffer + 2 * row * this->o_bih.biWidth );
-	    out = (uint16_t *) (img->base[0] + 2 * row * this->o_bih.biWidth );
+	    out = (uint16_t *) (img->base[0] + row * img->pitches[0] );
   
 	    for (col=0; col<this->o_bih.biWidth; col++, pixel++, out++) {
   	    
@@ -838,14 +838,13 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
       if (img->copy && !this->skipframes) {
 	int height = abs(this->o_bih.biHeight);
-	int stride = this->o_bih.biWidth;
-	uint8_t* src[3];
-	  
+	uint8_t *src[3];
+
 	src[0] = img->base[0];
-	  
+
 	while ((height -= 16) >= 0) {
 	  img->copy(img, src);
-	  src[0] += 32 * stride;
+	  src[0] += 16 * img->pitches[0];
 	}
       }
 

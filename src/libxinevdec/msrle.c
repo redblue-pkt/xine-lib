@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.1 2002/07/15 00:56:12 tmmm Exp $
+ * $Id: msrle.c,v 1.2 2002/07/15 21:42:34 esnel Exp $
  */
 
 #include <stdio.h>
@@ -266,26 +266,19 @@ static void msrle_decode_data (video_decoder_t *this_gen,
       img->bad_frame = 0;
 
       decode_msrle8(this);
-      yuv444_to_yuy2(&this->yuv_planes, img->base[0]);
+      yuv444_to_yuy2(&this->yuv_planes, img->base[0], img->pitches[0]);
 
-/*
       if (img->copy) {
+	int height = img->height;
+	uint8_t *src[3];
 
-        int height = abs(this->biHeight);
-        int stride = this->biWidth;
-        uint8_t* src[3];
+	src[0] = img->base[0];
 
-        src[0] = img->base[0];
-        src[1] = img->base[1];
-        src[2] = img->base[2];
-        while ((height -= 16) >= 0) {
-          img->copy(img, src);
-          src[0] += 16 * stride;
-          src[1] +=  4 * stride;
-          src[2] +=  4 * stride;
-        }
+	while ((height -= 16) >= 0) {
+	  img->copy(img, src);
+	  src[0] += 16 * img->pitches[0];
+	}
       }
-*/
 
       img->draw(img);
       img->free(img);

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.4 2002/07/05 17:32:04 mroi Exp $
+ * $Id: cyuv.c,v 1.5 2002/07/15 21:42:34 esnel Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -193,6 +193,18 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
 
     cyuv_decode(this->buf, this->size, img->base[0],
       this->width, this->height, 0);
+
+    if (img->copy) {
+      int height = img->height;
+      uint8_t *src[3];
+
+      src[0] = img->base[0];
+
+      while ((height -= 16) >= 0) {
+	img->copy(img, src);
+	src[0] += 16 * img->pitches[0];
+      }
+    }
 
     this->skipframes = img->draw(img);
     if( this->skipframes < 0 )

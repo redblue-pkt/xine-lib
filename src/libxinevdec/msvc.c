@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.7 2002/07/05 17:32:04 mroi Exp $
+ * $Id: msvc.c,v 1.8 2002/07/15 21:42:34 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -239,13 +239,6 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       free (this->img_buffer);
     this->img_buffer = malloc((this->biWidth * this->biHeight) << 1);
 
-    /* FIXME: Palette not loaded */
-#if 0
-    for (i=0; i < 256; i++) {
-      rgb_to_yuy2 (32, le2me_32 (rgb[i]), &this->color_table[i]);
-    }
-#endif
-
     if (this->buf)
       free (this->buf);
     this->bufsize = VIDEOBUFSIZE;
@@ -284,18 +277,30 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img->pts	     = buf->pts;
       img->bad_frame = 0;
 
-      xine_fast_memcpy (img->base[0], this->img_buffer, (n << 1));
+      if (2*this->biWidth == img->pitches[0]) {
+	xine_fast_memcpy (img->base[0], this->img_buffer, img->pitches[0]*this->biHeight);
+      } else {
+	uint8_t *src, *dst;
+
+	src = (uint8_t *) this->img_buffer;
+	dst = img->base[0];
+
+	for (i=0; i < this->biHeight; i++) {
+	  xine_fast_memcpy (dst, src, 2*this->biWidth);
+	  src += 2*this->biWidth;
+	  dst += img->pitches[0];
+	}
+      }
 
       if (img->copy) {
-	int height = abs(this->biHeight);
-	int stride = this->biWidth;
-	uint8_t* src[3];
+	int height = img->height;
+	uint8_t *src[3];
 
 	src[0] = img->base[0];
 
 	while ((height -= 16) >= 0) {
 	  img->copy(img, src);
-	  src[0] += 32 * stride;
+	  src[0] += 16 * img->pitches[0];
 	}
       }
 
