@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.8 2002/05/06 21:49:28 f1rmb Exp $
+ * $Id: mms.c,v 1.9 2002/06/07 07:00:59 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "xineutils.h"
 
@@ -89,6 +90,7 @@ struct mms_s {
   int           stream_ids[20];
   int           packet_length;
   uint32_t      file_length;
+  char          guid[37];
 };
 
 /* network/socket utility functions */
@@ -602,6 +604,18 @@ char* mms_connect_common(int *s, int *port, char *url, char **host, char **path,
   return url;
 }
 
+void mms_gen_guid(char guid[]) {
+  static char digit[16] = "0123456789ABCDEF";
+  int i = 0;
+
+  srand(time(NULL));
+  for (i = 0; i < 36; i++) {
+    guid[i] = digit[(int) ((16.0*rand())/(RAND_MAX+1.0))];
+  }
+  guid[8] = '-'; guid[13] = '-'; guid[18] = '-'; guid[23] = '-';
+  guid[36] = '\0';
+}
+
 mms_t *mms_connect (char *url_) {
   mms_t *this;
   char  *url     = NULL;
@@ -648,8 +662,9 @@ mms_t *mms_connect (char *url_) {
 
   /* cmd1 */
   
-  sprintf (this->str, "\034\003NSPlayer/7.0.0.1956; {33715801-BAB3-9D85-24E9-03B90328270A}; Host: %s",
-	   this->host);
+  mms_gen_guid(this->guid);
+  sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
+    this->guid, this->host);
   string_utf16 (this->scmd_body, this->str, strlen(this->str) + 2);
 
   send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8);
