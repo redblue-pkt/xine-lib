@@ -32,6 +32,8 @@
   * Fixed crash when the video_out loop still references a disposed stream
   * Make amp work with 8-bit sounds
   * Simple libsmbclient (samba) input plugin
+  * improved DVB plugin with support for A52, subtitles, teletext and
+    EIT (electronic program guide).
     
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
