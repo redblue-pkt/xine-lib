@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.63 2002/11/10 01:41:17 guenter Exp $
+ * $Id: demux_ts.c,v 1.64 2002/11/14 12:45:33 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1226,7 +1226,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
       this->PCR = demux_ts_adaptation_field_parse (originalPkt+5,
 						   adaptation_field_length);
 
-      if (this->PCR)  {  
+      if (pid == this->pcrPid && this->PCR)  {  
 	int64_t scr_diff = this->PCR - this->last_PCR;
 	
 	/* note: comparing (abs(scr_diff) > 90000) isn't reliable
