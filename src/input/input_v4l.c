@@ -63,6 +63,13 @@
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
+/********** logging **********/
+#define LOG_MODULE "input_v4l"
+#define LOG_VERBOSE
+/*
+#define LOG 
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -86,17 +93,6 @@ static struct {
 #define NUM_RESOLUTIONS  (sizeof(resolutions)/sizeof(resolutions[0]))
 #define RADIO_DEV        "/dev/v4l/radio0"
 #define VIDEO_DEV        "/dev/v4l/video0"
-/*
-#define LOG
-*/
-
-#ifdef LOG
-#define DBGPRINT(args...) do { printf("input_v4l:  " args); fflush(stdout); } while(0)
-#else
-#define DBGPRINT(args...) do {} while(0)
-#endif
-
-#define PRINT(args...) printf("input_v4l:  " args)
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
@@ -404,14 +400,14 @@ inline static buf_element_t *alloc_aud_frame (v4l_input_plugin_t *this)
 {
    buf_element_t *frame;
    
-   DBGPRINT("alloc_aud_frame. trying to get lock...\n");
+   lprintf("alloc_aud_frame. trying to get lock...\n");
 
    pthread_mutex_lock (&this->aud_frames_lock) ;
    
-   DBGPRINT("got the lock\n");
+   lprintf("got the lock\n");
  
    while (!this->aud_frames) {
-      DBGPRINT ("no audio frame available...\n");
+      lprintf("no audio frame available...\n");
       pthread_cond_wait (&this->aud_frame_freed, &this->aud_frames_lock);
    }
    
@@ -420,7 +416,7 @@ inline static buf_element_t *alloc_aud_frame (v4l_input_plugin_t *this)
    
    pthread_mutex_unlock (&this->aud_frames_lock);
    
-   DBGPRINT("alloc_vid_frame done\n");
+   lprintf("alloc_vid_frame done\n");
  
    return frame;
 }
@@ -432,7 +428,7 @@ static void store_aud_frame (buf_element_t *frame)
 {
    v4l_input_plugin_t *this = (v4l_input_plugin_t *) frame->source;
 
-   DBGPRINT("store_aud_frame\n");
+   lprintf("store_aud_frame\n");
 
    pthread_mutex_lock (&this->aud_frames_lock) ;
    
@@ -450,14 +446,14 @@ inline static buf_element_t *alloc_vid_frame (v4l_input_plugin_t *this)
 {
   buf_element_t *frame;
 
-  DBGPRINT("alloc_vid_frame. trying to get lock...\n");
+  lprintf("alloc_vid_frame. trying to get lock...\n");
 
   pthread_mutex_lock (&this->vid_frames_lock) ;
 
-  DBGPRINT("got the lock\n");
+  lprintf("got the lock\n");
 	
   while (!this->vid_frames) {
-    DBGPRINT ("no video frame available...\n");
+    lprintf("no video frame available...\n");
     pthread_cond_wait (&this->vid_frame_freed, &this->vid_frames_lock);
   }
   
@@ -466,7 +462,7 @@ inline static buf_element_t *alloc_vid_frame (v4l_input_plugin_t *this)
   
   pthread_mutex_unlock (&this->vid_frames_lock);
   
-  DBGPRINT("alloc_vid_frame done\n");
+  lprintf("alloc_vid_frame done\n");
 	
   return frame;
 }
@@ -479,7 +475,7 @@ static void store_vid_frame (buf_element_t *frame)
 
   v4l_input_plugin_t *this = (v4l_input_plugin_t *) frame->source;
    
-  DBGPRINT("input_v4l: store_vid_frame\n");
+  lprintf("store_vid_frame\n");
 	
   pthread_mutex_lock (&this->vid_frames_lock) ;
 
@@ -498,7 +494,7 @@ static int extract_mrl(v4l_input_plugin_t *this, char *mrl)
   char   *begin      = NULL;
   
   if (mrl == NULL) {
-    DBGPRINT("Someone passed an empty mrl\n");
+    lprintf("Someone passed an empty mrl\n");
     return 0;
   }
   
@@ -514,10 +510,11 @@ static int extract_mrl(v4l_input_plugin_t *this, char *mrl)
     
     /* Get frequency, if available */  
     sscanf(locator, "/%d", &frequency);
-    DBGPRINT("v4l: Tuner name: '%s' freq: %d\r\n", tuner_name, frequency);
+    lprintf("Tuner name: '%s' freq: %d\n", tuner_name, frequency);
   } else {
-    PRINT("v4l: No tuner name given. Expected syntac: v4l:/tuner/frequency\r\n");
-    PRINT("v4l: Using currently tuned settings\r\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: No tuner name given. Expected syntax: v4l:/tuner/frequency\n" 
+            "input_v4l: Using currently tuned settings\n");
   }
   
   this->frequency  = frequency;
@@ -545,12 +542,12 @@ static int set_frequency(v4l_input_plugin_t *this, unsigned long frequency)
     
     
     ret = ioctl(fd, VIDIOCSFREQ, &this->calc_frequency);
-#ifdef LOG
-    DBGPRINT("IOCTL set frequency (%ld) returned: %d\r\n", frequency, ret);
+
+    lprintf("IOCTL set frequency (%ld) returned: %d\n", frequency, ret);
   } else {
-    DBGPRINT("v4l: No frequency given. Won't be set\r\n");
-    DBGPRINT("v4l: Syntax is: v4l:/tuner_name/frequency\r\n");
-#endif
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: No frequency given. Expected syntax: v4l:/tuner/frequency\n"
+            "input_v4l: Using currently tuned settings\n");
   }
   
   this->frequency = frequency;
@@ -586,7 +583,7 @@ static int search_by_tuner(v4l_input_plugin_t *this, char *input_source)
   this->video_tuner.tuner = cur_tuner;
   ioctl(fd, VIDIOCGCAP, &this->video_cap);
   
-  DBGPRINT("This device has %d channel(s)\r\n", this->video_cap.channels);
+  lprintf("This device has %d channel(s)\n", this->video_cap.channels);
   
   for (ret = ioctl(fd, VIDIOCGTUNER, &this->video_tuner);
        ret == 0 && this->video_cap.channels > cur_tuner && strstr(this->video_tuner.name, input_source) == NULL;
@@ -594,23 +591,23 @@ static int search_by_tuner(v4l_input_plugin_t *this, char *input_source)
     
     this->video_tuner.tuner = cur_tuner;
     
-    DBGPRINT("(%d) V4L device currently set to: \r\n", ret);
-    DBGPRINT("Tuner:  %d\r\n", this->video_tuner.tuner);
-    DBGPRINT("Name:   %s\r\n", this->video_tuner.name);
+    lprintf("(%d) V4L device currently set to: \n", ret);
+    lprintf("Tuner:  %d\n", this->video_tuner.tuner);
+    lprintf("Name:   %s\n", this->video_tuner.name);
     if (this->video_tuner.flags & VIDEO_TUNER_LOW) {
-      DBGPRINT("Range:  %ld - %ld\r\n", this->video_tuner.rangelow / 16,  this->video_tuner.rangehigh * 16);
+      lprintf("Range:  %ld - %ld\n", this->video_tuner.rangelow / 16,  this->video_tuner.rangehigh * 16);
     } else {
-      DBGPRINT("Range:  %ld - %ld\r\n", this->video_tuner.rangelow * 1000 / 16, this->video_tuner.rangehigh * 1000 / 16);
+      lprintf("Range:  %ld - %ld\n", this->video_tuner.rangelow * 1000 / 16, this->video_tuner.rangehigh * 1000 / 16);
     }
   }
   
-  DBGPRINT("(%d) V4L device final: \r\n", ret);
-  DBGPRINT("Tuner:  %d\r\n", this->video_tuner.tuner);
-  DBGPRINT("Name:   %s\r\n", this->video_tuner.name);
+  lprintf("(%d) V4L device final: \n", ret);
+  lprintf("Tuner:  %d\n", this->video_tuner.tuner);
+  lprintf("Name:   %s\n", this->video_tuner.name);
   if (this->video_tuner.flags & VIDEO_TUNER_LOW) {
-    DBGPRINT("Range:  %ld - %ld\r\n", this->video_tuner.rangelow / 16,  this->video_tuner.rangehigh * 16);
+    lprintf("Range:  %ld - %ld\n", this->video_tuner.rangelow / 16,  this->video_tuner.rangehigh * 16);
   } else {
-    DBGPRINT("Range:  %ld - %ld\r\n", this->video_tuner.rangelow * 1000 / 16, this->video_tuner.rangehigh * 1000 / 16);
+    lprintf("Range:  %ld - %ld\n", this->video_tuner.rangelow * 1000 / 16, this->video_tuner.rangehigh * 1000 / 16);
   }
   
   if (strstr(this->video_tuner.name, input_source) == NULL)
@@ -633,25 +630,25 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
   
   /* Tune into channel */
   ret = ioctl(fd, VIDIOCGCHAN, &this->video_channel);
-  DBGPRINT("(%d) V4L device currently set to:\r\n", ret);
-  DBGPRINT("Channel: %d\r\n", this->video_channel.channel);
-  DBGPRINT("Name:    %s\r\n", this->video_channel.name);
-  DBGPRINT("Tuners:  %d\r\n", this->video_channel.tuners);
-  DBGPRINT("Flags:   %d\r\n", this->video_channel.flags);
-  DBGPRINT("Type:    %d\r\n", this->video_channel.type);
-  DBGPRINT("Norm:    %d\r\n", this->video_channel.norm);
+  lprintf("(%d) V4L device currently set to:\n", ret);
+  lprintf("Channel: %d\n", this->video_channel.channel);
+  lprintf("Name:    %s\n", this->video_channel.name);
+  lprintf("Tuners:  %d\n", this->video_channel.tuners);
+  lprintf("Flags:   %d\n", this->video_channel.flags);
+  lprintf("Type:    %d\n", this->video_channel.type);
+  lprintf("Norm:    %d\n", this->video_channel.norm);
   
   if (strlen(input_source) > 0) {
     while (strstr(this->video_channel.name, input_source) == NULL &&
 	   ioctl(fd, VIDIOCGCHAN, &this->video_channel) == 0) {
       
-      DBGPRINT("V4L device currently set to:\r\n");
-      DBGPRINT("Channel: %d\r\n", this->video_channel.channel);
-      DBGPRINT("Name:    %s\r\n", this->video_channel.name);
-      DBGPRINT("Tuners:  %d\r\n", this->video_channel.tuners);
-      DBGPRINT("Flags:   %d\r\n", this->video_channel.flags);
-      DBGPRINT("Type:    %d\r\n", this->video_channel.type);
-      DBGPRINT("Norm:    %d\r\n", this->video_channel.norm);
+      lprintf("V4L device currently set to:\n");
+      lprintf("Channel: %d\n", this->video_channel.channel);
+      lprintf("Name:    %s\n", this->video_channel.name);
+      lprintf("Tuners:  %d\n", this->video_channel.tuners);
+      lprintf("Flags:   %d\n", this->video_channel.flags);
+      lprintf("Type:    %d\n", this->video_channel.type);
+      lprintf("Norm:    %d\n", this->video_channel.norm);
       this->video_channel.channel = ++this->input;
     }
     
@@ -663,7 +660,7 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
     this->tuner_name = input_source;
     ret              = ioctl(fd, VIDIOCSCHAN, &this->input);
     
-    DBGPRINT("(%d) Set channel to %d\r\n", ret, this->input);
+    lprintf("(%d) Set channel to %d\n", ret, this->input);
     
     /* FIXME: Don't assume tuner 0 ? */
     
@@ -671,40 +668,41 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
     
     ret = ioctl(fd, VIDIOCSTUNER, &this->tuner);
     
-    DBGPRINT("(%d) Response on set tuner to %d\r\n", ret, this->tuner);
+    lprintf("(%d) Response on set tuner to %d\n", ret, this->tuner);
     
     this->video_tuner.tuner = this->tuner;
   } else {
-    PRINT("v4l: Not setting video source. No source given\r\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Not setting video source. No source given\n");
   }
   ret = ioctl(fd, VIDIOCGTUNER, &this->video_tuner);
-#ifdef LOG
-  DBGPRINT("(%d) Flags %d\r\n", ret, this->video_tuner.flags);
+
+  lprintf("(%d) Flags %d\n", ret, this->video_tuner.flags);
   
-  DBGPRINT("VIDEO_TUNER_PAL %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_PAL ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_NTSC %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_NTSC ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_SECAM %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_SECAM ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_LOW %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_LOW ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_NORM %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_NORM ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_STEREO_ON %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_STEREO_ON ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_RDS_ON %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_RDS_ON ? "" : "not");
-  DBGPRINT("VIDEO_TUNER_MBS_ON %s set\r\n", this->video_tuner.flags & VIDEO_TUNER_MBS_ON ? "" : "not");
+  lprintf("VIDEO_TUNER_PAL %s set\n", this->video_tuner.flags & VIDEO_TUNER_PAL ? "" : "not");
+  lprintf("VIDEO_TUNER_NTSC %s set\n", this->video_tuner.flags & VIDEO_TUNER_NTSC ? "" : "not");
+  lprintf("VIDEO_TUNER_SECAM %s set\n", this->video_tuner.flags & VIDEO_TUNER_SECAM ? "" : "not");
+  lprintf("VIDEO_TUNER_LOW %s set\n", this->video_tuner.flags & VIDEO_TUNER_LOW ? "" : "not");
+  lprintf("VIDEO_TUNER_NORM %s set\n", this->video_tuner.flags & VIDEO_TUNER_NORM ? "" : "not");
+  lprintf("VIDEO_TUNER_STEREO_ON %s set\n", this->video_tuner.flags & VIDEO_TUNER_STEREO_ON ? "" : "not");
+  lprintf("VIDEO_TUNER_RDS_ON %s set\n", this->video_tuner.flags & VIDEO_TUNER_RDS_ON ? "" : "not");
+  lprintf("VIDEO_TUNER_MBS_ON %s set\n", this->video_tuner.flags & VIDEO_TUNER_MBS_ON ? "" : "not");
   
   switch (this->video_tuner.mode) {
   case VIDEO_MODE_PAL:
-    DBGPRINT("The tuner is in PAL mode\r\n");
+    lprintf("The tuner is in PAL mode\n");
     break;
   case VIDEO_MODE_NTSC:
-    DBGPRINT("The tuner is in NTSC mode\r\n");
+    lprintf("The tuner is in NTSC mode\n");
     break;
   case VIDEO_MODE_SECAM:
-    DBGPRINT("The tuner is in SECAM mode\r\n");
+    lprintf("The tuner is in SECAM mode\n");
     break;
   case VIDEO_MODE_AUTO:
-    DBGPRINT("The tuner is in AUTO mode\r\n");
+    lprintf("The tuner is in AUTO mode\n");
     break;
   }
-#endif
+
   return 1;   
 }
 
@@ -723,17 +721,17 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   pthread_mutex_init (&this->aud_frames_lock, NULL);
   pthread_cond_init  (&this->aud_frame_freed, NULL); 
   
-  DBGPRINT("Opening radio device\n");
+  lprintf("Opening radio device\n");
   
-  entry = this->stream->xine->config->lookup_entry(
-						   this->stream->xine->config, "input.v4l_radio_device_path");
+  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config,
+                                                   "input.v4l_radio_device_path");
   
   this->radio_fd = open(entry->str_value, O_RDWR);
   
   if (this->radio_fd < 0)
     return 0; 
   
-  DBGPRINT("Device opened, radio %d\n", this->radio_fd);
+  lprintf("Device opened, radio %d\n", this->radio_fd);
   
   if (set_input_source(this, this->tuner_name) > 0)
     tuner_found = 1;
@@ -771,7 +769,7 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
   this->audio.flags &= ~VIDEO_AUDIO_MUTE;
   this->audio.volume=0x8000;
-  DBGPRINT("Setting audio volume\r\n");
+  lprintf("Setting audio volume\n");
   ioctl(this->radio_fd, VIDIOCSAUDIO, &this->audio);
   
   set_frequency(this, this->frequency); 
@@ -796,7 +794,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   int          i, j, ret;
   cfg_entry_t *entry;
   
-  DBGPRINT("Trying to open '%s'\n", this->mrl);
+  lprintf("Trying to open '%s'\n", this->mrl);
   
   /*
    * pre-alloc a bunch of frames
@@ -807,28 +805,28 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   pthread_mutex_init (&this->aud_frames_lock, NULL);
   pthread_cond_init  (&this->aud_frame_freed, NULL); 
   
-  entry = this->stream->xine->config->lookup_entry(
-						   this->stream->xine->config, "input.v4l_video_device_path");
+  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
+                                                   "input.v4l_video_device_path");
   
   /* Try to open the video device */
   this->video_fd = open(entry->str_value, O_RDWR);
   
   if (this->video_fd < 0) {
-    DBGPRINT("(%d) Cannot open v4l device (%s): %s\n", this->video_fd,
+    lprintf("(%d) Cannot open v4l device (%s): %s\n", this->video_fd,
 	     entry->str_value, strerror(errno));
     return 0;
   }
-  DBGPRINT("Device opened, tv %d\n", this->video_fd);
+  lprintf("Device opened, tv %d\n", this->video_fd);
   
   /* Get capabilities */
   if (ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
-    DBGPRINT ("VIDIOCGCAP ioctl went wrong\n");
+    lprintf ("VIDIOCGCAP ioctl went wrong\n");
     return 0;
   }
   
   if (!(this->video_cap.type & VID_TYPE_CAPTURE)) {
     /* Capture is not supported by the device. This is a must though! */
-    DBGPRINT("Grab device does not handle capture\n");
+    lprintf("Grab device does not handle capture\n");
     return 0;
   }
   
@@ -848,7 +846,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
       || resolutions[j].height < this->video_cap.minheight)
     {
       /* Looks like the device does not support one of the preset resolutions */
-      DBGPRINT("Grab device does not support any preset resolutions");
+      lprintf("Grab device does not support any preset resolutions");
       return 0;
     }
   
@@ -900,7 +898,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   this->audio.flags  &= ~VIDEO_AUDIO_MUTE;
   this->audio.volume = 0xD000;
   
-  DBGPRINT("Setting audio volume\r\n");
+  lprintf("Setting audio volume\n");
   ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio);
   
   if (strlen(this->tuner_name) > 0) {
@@ -933,14 +931,14 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
       if (ret < 0) {
 	close (this->video_fd);
 	this->video_fd = -1;
-	DBGPRINT("Grab: no colorspace format found\n");
+	lprintf("Grab: no colorspace format found\n");
 	return 0;
       }
       else
-	DBGPRINT("Grab: format YUV 4:2:2\n");
+	lprintf("Grab: format YUV 4:2:2\n");
     }
     else
-      DBGPRINT("input_v4l: grab: format YUV 4:2:0\n");
+      lprintf("Grab: format YUV 4:2:0\n");
     
     this->frame_format = pict.palette;
     val                = 1;
@@ -950,7 +948,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
     
   } else {
     /* Good, device driver support mmap. Mmap the memory */
-    DBGPRINT("input_v4l: using mmap, size %d\n", this->gb_buffers.size);
+    lprintf("using mmap, size %d\n", this->gb_buffers.size);
     this->video_buf = mmap(0, this->gb_buffers.size,
 			   PROT_READ|PROT_WRITE, MAP_SHARED,
 			   this->video_fd,0);
@@ -976,15 +974,13 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
       ret = ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf);
     }
     else
-      DBGPRINT("(%d) input_v4l: YUV420 should work\n", ret);
+      lprintf("(%d) YUV420 should work\n", ret);
     
     if (ret < 0) {
       if (errno != EAGAIN) {
-	DBGPRINT(
-		 "input_v4l: grab device does not support suitable format\n");
+	lprintf("grab device does not support suitable format\n");
       } else {
-	DBGPRINT(
-		 "input_v4l: grab device does not receive any video signal\n");
+	lprintf("grab device does not receive any video signal\n");
       }
       close (this->video_fd);
       return 0;
@@ -1035,7 +1031,8 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
 static int open_audio_capture_device(v4l_input_plugin_t *this)
 {
 #ifdef HAVE_ALSA
-  DBGPRINT("Audio    Opening PCM Device\n");
+  lprintf("audio: Opening PCM Device\n");
+
   /* Allocate the snd_pcm_hw_params_t structure on the stack. */
   snd_pcm_hw_params_alloca(&this->pcm_hwparams);
   
@@ -1046,7 +1043,8 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
      * them correctly
      */
     if (snd_pcm_open(&this->pcm_handle, this->pcm_name, this->pcm_stream, 0) < 0) {
-      PRINT("Audio :( Error opening PCM device %s\n", this->pcm_name);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Error opening PCM device %s\n", this->pcm_name);
       this->audio_capture = 0;
     }
   } else
@@ -1056,14 +1054,16 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
        * too, otherwise we will loose videoframes because we keep on waiting
        * for an audio fragment
        */
-      DBGPRINT("Audio :( Error opening PCM device %s\n", this->pcm_name);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Error opening PCM device %s\n", this->pcm_name);
       this->audio_capture = 0;
     }
   
   /* Get parameters */
   if (this->audio_capture &&
       (snd_pcm_hw_params_any(this->pcm_handle, this->pcm_hwparams) < 0)) {
-    PRINT("Audio :( Can not configure this PCM device.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Can not configure PCM device\n");
     this->audio_capture = 0;
   }
   
@@ -1071,13 +1071,16 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
   if (this->audio_capture &&
       (snd_pcm_hw_params_set_access(this->pcm_handle, this->pcm_hwparams,
 				    SND_PCM_ACCESS_RW_INTERLEAVED) < 0)) {
-    PRINT("Audio :( Error setting acces.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Error setting SND_PCM_ACCESS_RW_INTERLEAVED\n");
     this->audio_capture = 0;
   }
   
   if (this->audio_capture) {
     if (snd_pcm_hw_params_any(this->pcm_handle, this->pcm_hwparams) < 0) {
-      PRINT("Audio :( Broken configuration for this PCM: No config avail\n");         this->audio_capture = 0;
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Broken configuration for PCM device: No config avail\n");        
+      this->audio_capture = 0;
     }
   }
   
@@ -1087,7 +1090,8 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
     snd_pcm_access_mask_none(mask);
     snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
     if (snd_pcm_hw_params_set_access_mask(this->pcm_handle, this->pcm_hwparams, mask) < 0) {
-      PRINT("Audio :( Error setting access mask\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Error setting SND_PCM_ACCESS_MMAP_INTERLEAVED\n");
       this->audio_capture = 0;
     }
   }
@@ -1096,7 +1100,8 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
   if (this->audio_capture &&
       (snd_pcm_hw_params_set_format(this->pcm_handle, 
 				    this->pcm_hwparams, SND_PCM_FORMAT_S16_LE) < 0)) {
-    PRINT("Audio :( Error setting format.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "input_v4l: Error setting SND_PCM_FORMAT_S16_LE\n");
     this->audio_capture = 0;
   }
   
@@ -1105,21 +1110,23 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
     this->exact_rate = snd_pcm_hw_params_set_rate_near(this->pcm_handle,
 						       this->pcm_hwparams, &this->rate, &this->dir);
     if (this->dir != 0) {
-      PRINT("Audio :s The rate %d Hz is not supported by your hardware.\n", this->rate);
-      PRINT("Audio :s ==> Using %d instead.\n", this->exact_rate);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Samplerate %d Hz is not supported by your hardware\n", this->rate);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Using %d instead\n", this->exact_rate);
     }
   }
   
   /* Set number of channels */
   if (this->audio_capture &&
       (snd_pcm_hw_params_set_channels(this->pcm_handle, this->pcm_hwparams, 2) < 0)) {
-    PRINT("Audio :( Error setting channels.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error setting PCM channels\n");
     this->audio_capture = 0;
   }
   
   if (this->audio_capture &&
       (snd_pcm_hw_params_set_periods(this->pcm_handle, this->pcm_hwparams, this->periods, 0) < 0)) {
-    PRINT("Audio :( Error setting periods.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error setting PCM periods\n");
     this->audio_capture = 0;
   }
   
@@ -1128,24 +1135,24 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
       (snd_pcm_hw_params_set_buffer_size(this->pcm_handle, 
 					 this->pcm_hwparams,
 					 (this->periodsize * this->periods) >> 2) < 0)) {
-    PRINT("Audio :( Error setting buffersize.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error setting PCM buffersize\n");
     this->audio_capture = 0;
   }
   
   /* Apply HW parameter settings */
   if (this->audio_capture &&
       (snd_pcm_hw_params(this->pcm_handle, this->pcm_hwparams) < 0)) {
-    PRINT("Audio :( Error Setting HW params.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error Setting PCM HW params\n");
     this->audio_capture = 0;
   }
   
   if (this->audio_capture) {
-    DBGPRINT("Audio    Allocating memory for PCM capture :%d\n", this->periodsize);
+    lprintf("Allocating memory for PCM capture :%d\n", this->periodsize);
     this->pcm_data = (unsigned char*) malloc(this->periodsize);
   } else
     this->pcm_data = NULL;   
   
-  DBGPRINT("Audio  :) Device succesfully configured\r\n");
+  lprintf("Audio device succesfully configured\n");
 #endif
   return 0;
 }
@@ -1172,7 +1179,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     report_progress(this->stream, SCR_PAUSED);
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	    "Buffer is empty, pausing playback (used: %d, num_free: %d)\r\n",
+	    "input_v4l: Buffer empty, pausing playback (used: %d, num_free: %d)\n",
 	    num_used, num_free);
     
     _x_set_speed(this->stream, XINE_SPEED_PAUSE);
@@ -1183,14 +1190,14 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     
   } else if (num_free <= 1 && scr_tunning != SCR_SKIP) {
     this->scr_tunning = SCR_SKIP;
-    PRINT("Buffer full (used: %d, free: %d)\r\n",
-	  num_used, num_free);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+            "input_v4l: Buffer full, skipping (used: %d, free: %d)\n", num_used, num_free);
     return 0;
   } else if (scr_tunning == SCR_PAUSED) {
     if (2 * num_used > num_free) {
       /* Playback was paused, but we have normal buffer usage again */
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	      "Resuming playback (used: %d, free: %d)\r\n", num_used, num_free);
+	      "input_v4l: Resuming from paused (used: %d, free: %d)\n", num_used, num_free);
       
       this->scr_tunning = 0;
       
@@ -1201,8 +1208,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     }
   } else if (scr_tunning == SCR_SKIP) {
     if (num_used < 2 * num_free) {
-      DBGPRINT("Resuming from skipping (used: %d, free %d)\r\n",
-	       num_used, num_free);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "input_v4l: Resuming from skipping (used: %d, free %d)\n", num_used, num_free);
       this->scr_tunning = 0;
     } else {
       return 0;
@@ -1225,7 +1232,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     if (scr_tunning != this->scr_tunning) {
       this->scr_tunning = scr_tunning;
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "scr tunning = %d (used: %d, free: %d)\r\n", scr_tunning, num_used, num_free);
+              "input_v4l: scr tunning = %d (used: %d, free: %d)\n", 
+              scr_tunning, num_used, num_free);
       pvrscr_speed_tunning(this->scr, 1.0 + (0.01 * scr_tunning));
     }
   } else if (this->scr_tunning) {
@@ -1236,7 +1244,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
     this->scr_tunning = 0;
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	    "scr tunning resetting (used: %d, free: %d\r\n", num_used, num_free);
+            "input_v4l: scr tunning resetting (used: %d, free: %d\n", num_used, num_free);
     
     pvrscr_speed_tunning(this->scr, 1.0);
   }
@@ -1249,7 +1257,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
  * This function is not supported by the plugin.
  */
 static off_t v4l_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
-  DBGPRINT("Read not supported\r\n");
+  lprintf("Read not supported\n");
   return 0;
 }
 
@@ -1291,7 +1299,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   else
     video = 0;
   
-  DBGPRINT("%lld bytes...\n", todo);
+  lprintf("%lld bytes...\n", todo);
   
   if (this->start_time == 0) 
     /* Create a start pts value */
@@ -1302,12 +1310,12 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     buf = alloc_vid_frame (this);
     this->gb_buf.frame = this->gb_frame;
     
-    DBGPRINT("input_v4l: VIDIOCMCAPTURE\n");
+    lprintf("VIDIOCMCAPTURE\n");
     
     while (ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf) < 0) {
-      DBGPRINT("Upper while loop\n");
+      lprintf("Upper while loop\n");
       if (errno == EAGAIN) {
-	DBGPRINT("Cannot sync\n");
+	lprintf("Cannot sync\n");
 	continue;
       } else {
 	perror("VIDIOCMCAPTURE");
@@ -1321,7 +1329,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     while (ioctl(this->video_fd, VIDIOCSYNC, &this->gb_frame) < 0 &&
 	   (errno == EAGAIN || errno == EINTR))
       {
-	DBGPRINT("Waiting for videosync\n");
+	lprintf("Waiting for videosync\n");
       }
     
     /* printf ("grabbing frame #%d\n", frame_num); */
@@ -1341,24 +1349,30 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
 	/* No data available at the moment */
 	break;
       case -EBADFD:     /* PCM device in wrong state */
-	PRINT("Audio :( PCM is not in the right state\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                "input_v4l: PCM is not in the right state\n");
 	break;
       case -EPIPE:      /* Buffer overrun */
-	PRINT("Audio :( Buffer Overrun (lost some samples)\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                "input_v4l: PCM buffer Overrun (lost some samples)\n");
 	/* On buffer overrun we need to re prepare the capturing pcm device */
 	snd_pcm_prepare(this->pcm_handle);
 	break;
       case -ESTRPIPE:   /* Suspend event */
-	PRINT("Audio :( Suspend event occured\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                "input_v4l: PCM suspend event occured\n");
 	break;
       default:	      /* Unknown */
-	PRINT("Audio :o Unknown error code: %d\n", pcmreturn);
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                "input_v4l: Unknown PCM error code: %d\n", pcmreturn);
 	snd_pcm_prepare(this->pcm_handle);
       }
     } else {
       /* Succesfully read audio data */
       if (this->rate != this->exact_rate)
-	PRINT("HELP: Should pass sample rate %d instead of %d\r\n", this->exact_rate, this->rate);
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                "input_v4l: HELP: Should pass sample rate %d instead of %d\n", 
+                this->exact_rate, this->rate);
       
       if (this->pts_aud_start)
 	buf = alloc_aud_frame (this);
@@ -1380,7 +1394,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
 	/* Skip first sample as we don't have a good pts for this one */
 	return NULL;
       
-      DBGPRINT("Audio: Data read: %d [%d, %d]. Pos: %d\r\n",
+      lprintf("Audio: Data read: %d [%d, %d]. Pos: %d\n",
 	       pcmreturn, (int) (*this->pcm_data), (int) (*(this->pcm_data + this->periodsize - 3)),
 	       (int) this->curpos);
       
@@ -1396,7 +1410,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   }
 #endif
   
-  DBGPRINT("read block done\n");
+  lprintf("read block done\n");
   
   return buf;
 }
@@ -1408,7 +1422,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
 static off_t v4l_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   v4l_input_plugin_t *this = (v4l_input_plugin_t *) this_gen;
   
-  DBGPRINT("input_v4l: seek %lld bytes, origin %d\n", offset, origin);
+  lprintf("seek %lld bytes, origin %d\n", offset, origin);
   return this->curpos;
 }
 
@@ -1484,7 +1498,7 @@ static void v4l_event_handler (v4l_input_plugin_t *this) {
 	this->channel   = v4l2_data->channel;
 	this->frequency = v4l2_data->frequency;
 	
-	DBGPRINT("Switching to input:%d chan:%d freq:%.2f\n",
+	lprintf("Switching to input:%d chan:%d freq:%.2f\n",
 		 v4l2_data->input,
 		 v4l2_data->channel,
 		 (float)v4l2_data->frequency);
@@ -1495,7 +1509,7 @@ static void v4l_event_handler (v4l_input_plugin_t *this) {
       break;
       /*	 default:
 		 
-      DBGPRINT("Got an event, type 0x%08x\n", event->type);
+      lprintf("Got an event, type 0x%08x\n", event->type);
       */
     }
     
@@ -1528,27 +1542,26 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   if (this->video_fd > 0) {
     
     /* Restore v4l audio volume */
-    DBGPRINT("Video    Restoring audio volume %d\r\n", 
+    lprintf("Restoring v4l audio volume %d\n", 
 	     ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio_saved));
     ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio_saved);
     
     /* Unmap memory */
     if (this->video_buf != NULL && 
 	munmap(this->video_buf, this->gb_buffers.size) != 0) {
-      PRINT("Video :( Could not unmap memory, reason: %s\r\n", 
-	    strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Could not unmap video memory: %s\n", strerror(errno));
     } else
-      DBGPRINT("Video :) Succesfully unmapped memory (size %d)\r\n",
-	       this->gb_buffers.size);
+      lprintf("Succesfully unmapped video memory (size %d)\n", this->gb_buffers.size);
     
-    DBGPRINT("Video    Closing video filehandler %d\r\n", this->video_fd);
+    lprintf("Closing video filehandler %d\n", this->video_fd);
     
     /* Now close the video device */
     if (close(this->video_fd) != 0)
-      PRINT("Video :( Error while closing video file handler, "
-	    "reason: %s\r\n", strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              "input_v4l: Error while closing video file handler: %s\n", strerror(errno));
     else
-      DBGPRINT("Video :) Device succesfully closed\r\n");
+      lprintf("Video device succesfully closed\n");
     
     /* Restore interlace setting */
     xine_set_param(this->stream, XINE_PARAM_VO_DEINTERLACE, this->old_interlace);
@@ -1581,15 +1594,14 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   if (this->event_queue)
     xine_event_dispose_queue (this->event_queue);
   
-  DBGPRINT("Freeing allocated audio frames");
+  lprintf("Freeing allocated audio frames");
   if (this->aud_frames) {
     buf_element_t *cur_frame  = this->aud_frames;
     buf_element_t *next_frame = NULL;
     
     while ((next_frame = cur_frame->next) != NULL) {
-#ifdef LOG
-      printf("."); fflush(stdout);
-#endif
+      lprintf(".");
+
       if (cur_frame->content)
 	free(cur_frame->content);
       
@@ -1600,19 +1612,18 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
       cur_frame = next_frame;
     }
   }
-#ifdef LOG
-  printf("\r\n");
-#endif
+
+  lprintf("\n");
+
   
-  DBGPRINT("Freeing allocated video frames");
+  lprintf("Freeing allocated video frames");
   if (this->vid_frames) {
     buf_element_t *cur_frame  = this->vid_frames;
     buf_element_t *next_frame = NULL;
     
     while ((next_frame = cur_frame->next) != NULL) {
-#ifdef LOG
-      printf("."); fflush(stdout);
-#endif
+      lprintf(".");
+
       if (cur_frame->content)
 	free(cur_frame->content);
       
@@ -1623,13 +1634,13 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
       cur_frame = next_frame;
     }
   }
-#ifdef LOG
-  printf("\r\n");
-#endif
+
+  lprintf("\n");
+
   
   free (this);
   
-  DBGPRINT("plugin     Bye bye! \r\n");
+  lprintf("plugin     Bye bye! \n");
 }
 
 /**
@@ -1721,12 +1732,12 @@ static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
     return NULL;
   }
   
+  this = (v4l_input_plugin_t *) xine_xmalloc (sizeof (v4l_input_plugin_t));
+    
   if (mrl != NULL) {
     for (locator = mrl; *locator != '\0' && *locator !=  '/' ; locator++);
   } else
-    PRINT("EUhmz, mrl was NULL?\r\n");
-  
-  this = (v4l_input_plugin_t *) xine_xmalloc (sizeof (v4l_input_plugin_t));
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: EUhmz, mrl was NULL?\n");
   
   extract_mrl(this, mrl);
   
@@ -1787,7 +1798,8 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
   else
     return NULL;
   
-  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, "input.v4l_video_device_path");
+  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
+                                                   "input.v4l_video_device_path");
   
   /* Try to see if the MRL contains a v4l device we understand */
   if (is_ok)
@@ -1798,19 +1810,19 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
     this->video_fd = open(entry->str_value, O_RDWR);
   
   if (is_ok && this->video_fd < 0) {
-    DBGPRINT("(%d) Cannot open v4l device: %s\n", this->video_fd, 
+    lprintf("(%d) Cannot open v4l device: %s\n", this->video_fd, 
 	     strerror(errno));
     xine_log(this->stream->xine, XINE_LOG_MSG, 
 	     _("input_v4l:  Sorry, could not open %s\n"), entry->str_value);
     is_ok = 0;
   } else
-    DBGPRINT("Device opened, tv %d\n", this->video_fd);
+    lprintf("Device opened, tv %d\n", this->video_fd);
   
   /* Get capabilities */
   if (is_ok && ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
 	     _("input_v4l:  Sorry your v4l card doesn't support some features needed by xine\n"));
-    DBGPRINT ("VIDIOCGCAP ioctl went wrong\n");
+    lprintf ("VIDIOCGCAP ioctl went wrong\n");
     is_ok = 0;;
   }
   
@@ -1820,7 +1832,7 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
 	     _("input_v4l:  Sorry, your v4l card doesn't support frame grabbing."
 	       " This is needed by xine though\n"));
     
-    DBGPRINT("Grab device does not handle capture\n");
+    lprintf("Grab device does not handle capture\n");
     is_ok = 0;
   }
   
@@ -1862,7 +1874,8 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
   else
     return NULL;
   
-  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, "input.v4l_radio_device_path");
+  entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
+                                                   "input.v4l_radio_device_path");
   
   if (is_ok)
     this->radio_fd = open(entry->str_value, O_RDWR);
@@ -1874,7 +1887,7 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
 	     entry->str_value);
     is_ok = 0;
   } else
-    DBGPRINT("Device opened, radio %d\n", this->radio_fd);
+    lprintf("Device opened, radio %d\n", this->radio_fd);
   
   if (is_ok && set_input_source(this, this->tuner_name) <= 0) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
