@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.5 2001/05/07 01:31:44 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.6 2001/05/07 02:25:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,7 @@
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 # include <sys/cdio.h>
 #elif defined(__linux__)
+#include <linux/config.h> /* Check for DEVFS */
 # include <linux/cdrom.h>
 #else
 # error "Need the DVD ioctls"
@@ -48,8 +49,13 @@
 
 static uint32_t xine_debug;
 
+#ifdef CONFIG_DEVFS_FS
+#define DVD     "/dev/cdroms/dvd"
+#define RDVD    "/dev/cdroms/rdvd"
+#else
 #define DVD     "/dev/dvd"
 #define RDVD    "/dev/rdvd"
+#endif
 
 typedef struct {
 

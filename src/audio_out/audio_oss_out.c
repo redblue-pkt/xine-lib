@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.3 2001/04/28 19:47:41 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.4 2001/05/07 02:25:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,6 +36,9 @@
 #elif defined(__FreeBSD__)
 #include <machine/soundcard.h>
 #else
+#if defined(__linux__)
+#include <linux/config.h> /* Check for DEVFS */
+#endif
 #include <sys/soundcard.h>
 #endif
 #include <sys/ioctl.h>
@@ -56,7 +59,11 @@
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
 
+#ifdef CONFIG_DEVFS_FS
+#define DSP_TEMPLATE "/dev/sound/dsp%d"
+#else
 #define DSP_TEMPLATE "/dev/dsp%d"
+#endif
 
 typedef struct oss_functions_s {
 
@@ -395,7 +402,11 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   oss_functions_t *this;
   int              caps;
+#ifdef CONFIG_DEVFS_FS
+  char             devname[] = "/dev/sound/dsp\0\0\0";
+#else
   char             devname[] = "/dev/dsp\0\0\0";
+#endif
   int              best_rate;
   int              rate ;
   int              devnum;

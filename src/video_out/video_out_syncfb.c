@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.2 2001/05/07 02:25:00 f1rmb Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -48,6 +48,10 @@
 #include <sys/time.h>
 
 #include <X11/Xutil.h>
+
+#if defined(__linux__)
+#include <linux/config.h> /* Check for DEVFS */
+#endif
 
 #include "video_out.h"
 #include "video_out_syncfb.h"
@@ -766,7 +770,11 @@ static vo_driver_t vo_mga = {
 
 vo_driver_t *init_video_out_mga () {
 
+#ifdef CONFIG_DEVFS_FS
+  char name[]= "/dev/fb/syncfb";
+#else
   char name[]= "/dev/syncfb";
+#endif
 
   _mga_priv.image_width=720;
   _mga_priv.image_height=576;

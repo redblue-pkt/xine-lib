@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.4 2001/05/07 01:31:44 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.5 2001/05/07 02:25:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #if defined (__linux__)
+#include <linux/config.h> /* Check for DEVFS */
 #include <linux/cdrom.h>
 #elif defined (__FreeBSD__)
 #include <sys/cdio.h>
@@ -48,7 +49,11 @@
 static uint32_t xine_debug;
 
 /* for FreeBSD make a link to the right devnode, like /dev/acd0c */
+#ifdef CONFIG_DEVFS_FS
+#define CDROM          "/dev/cdroms/cdrom"
+#else
 #define CDROM          "/dev/cdrom"
+#endif
 #define VCDSECTORSIZE  2324
 
 typedef struct {
@@ -673,7 +678,11 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   this->fd = open (CDROM, O_RDONLY);
 
   if (this->fd == -1) {
+#ifdef CONFIG_DEVFS_FS
+    perror ("unable to open /dev/cdroms/cdrom");
+#else
     perror ("unable to open /dev/cdrom");
+#endi
     return NULL;
   }
 
@@ -714,7 +723,11 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   this->fd = open (CDROM, O_RDONLY);
 
   if (this->fd == -1) {
+#ifdef CONFIG_DEVFS_FS
+    perror ("unable to open /dev/cdroms/cdrom");
+#else
     perror ("unable to open /dev/cdrom");
+#endif
     return NULL;
   }
 
