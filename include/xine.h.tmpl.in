@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.91 2002/04/09 04:35:17 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.92 2002/04/27 23:00:38 cvogler Exp $
  *
  */
 
@@ -677,6 +677,12 @@ struct config_values_s {
    * free memory resources
    */
   void (*dispose) (config_values_t *self);
+
+  /*
+   * unregister callback function
+   */
+  void (*unregister_callback) (config_values_t *this,
+			       char *key);
 
   /* 
    * config values are stored here:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.9 2002/03/16 13:33:47 esnel Exp $
+ * $Id: configfile.h,v 1.10 2002/04/27 23:00:40 cvogler Exp $
  *
  * config file management
  *
@@ -173,6 +173,12 @@ struct config_values_s {
    */
   void (*dispose) (config_values_t *this);
 
+  /*
+   * unregister callback function
+   */
+  void (*unregister_callback) (config_values_t *this,
+			       char *key);
+
   /* 
    * config values are stored here:
    */
@@ -193,6 +199,11 @@ config_values_t *xine_config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.10  2002/04/27 23:00:40  cvogler
+ * Add function to unregister configfile callback.
+ *
+ * Necessary to prevent segfaults if target of a callback has been disposed.
+ *
  * Revision 1.9  2002/03/16 13:33:47  esnel
  * fix memory leak, add dispose() function to config_values_s
  *

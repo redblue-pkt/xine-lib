@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.20 2002/04/11 07:17:43 esnel Exp $
+ * $Id: configfile.c,v 1.21 2002/04/27 23:00:40 cvogler Exp $
  *
  * config file management - implementation
  *
@@ -611,6 +611,23 @@ static void config_file_dispose (config_values_t *this)
   free (this);
 }
 
+
+static void config_file_unregister_cb (config_values_t *this,
+				       char *key)
+{
+  cfg_entry_t *entry;
+  
+  assert (this);
+  assert (key);
+  
+  entry = config_file_lookup_entry (this, key);
+  if (entry) {
+    entry->callback = NULL;
+    entry->callback_data = NULL;
+  }
+}
+
+
 config_values_t *xine_config_file_init (char *filename) {
 
 #ifdef HAVE_IRIXAL
@@ -642,6 +659,7 @@ config_values_t *xine_config_file_init (char *filename) {
   this->save            = config_file_save;
   this->read            = config_file_read;
   this->dispose         = config_file_dispose;
+  this->unregister_callback = config_file_unregister_cb;
 
   return this;
 }
@@ -649,6 +667,11 @@ config_values_t *xine_config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.21  2002/04/27 23:00:40  cvogler
+ * Add function to unregister configfile callback.
+ *
+ * Necessary to prevent segfaults if target of a callback has been disposed.
+ *
  * Revision 1.20  2002/04/11 07:17:43  esnel
  * Fix configfile corruption reported by Chris Rankin
  *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2002/04/23 15:45:24 esnel Exp $
+ * $Id: xine_decoder.c,v 1.10 2002/04/27 23:00:40 cvogler Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -253,6 +253,16 @@ static void spucc_register_cfg_vars(spucc_decoder_t *this,
 }
 
 
+static void spucc_unregister_cfg_callbacks(config_values_t *xine_cfg) {
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_enabled");
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_scheme");
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_font");
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_italic_font");
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_font_size");
+  xine_cfg->unregister_callback(xine_cfg, "misc.cc_center");
+}
+
+
 /* called when the video frame size changes */
 void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
 {
@@ -366,7 +376,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
 
   xine_remove_event_listener (this->xine, spudec_event_listener);
-
+  spucc_unregister_cfg_callbacks(this->xine->config);
   pthread_mutex_destroy (&this->cc_mutex);
   free (this);
 }
