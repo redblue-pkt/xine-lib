@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-02-21 01:28+0100\n"
+"POT-Creation-Date: 2002-04-06 11:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -90,21 +90,21 @@ msgstr ""
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1226
+#: src/demuxers/demux_ts.c:1235
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1317
+#: src/demuxers/demux_ts.c:1326
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1328
+#: src/demuxers/demux_ts.c:1337
 msgid "demux_ts: stop...\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1375
+#: src/demuxers/demux_ts.c:1384
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -117,62 +117,42 @@ msgstr ""
 msgid "demux_avi: avi index is broken\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:515
-msgid "demux_avi: reconstructing index"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:546
-msgid "done\n"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:924
+#: src/demuxers/demux_avi.c:960
 #, c-format
-msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
+msgid "demux_avi: video format = %s\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:926
+#: src/demuxers/demux_avi.c:962
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:933
+#: src/demuxers/demux_avi.c:965
+#, c-format
+msgid "demux_avi: audio format[%d] = 0x%lx\n"
+msgstr ""
+
+#: src/demuxers/demux_avi.c:973
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:938
+#: src/demuxers/demux_avi.c:979
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:956 src/demuxers/demux_avi.c:973
-msgid "demux_avi: video seek to start failed\n"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:990
-msgid "demux_avi: audio seek to start failed\n"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:1021
+#: src/demuxers/demux_avi.c:1080
 #, c-format
-msgid "demux_avi: unknown avi format %.4s\n"
+msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1028
+#: src/demuxers/demux_avi.c:1087
 #, c-format
-msgid "demux_avi: video codec >%s<\n"
+msgid "demux_avi: video codec is '%s'\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1065
-msgid "demux_avi: text subtitle file available\n"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:1071
-#, c-format
-msgid "demux_avi: can't create new thread (%s)\n"
-msgstr ""
-
-#: src/demuxers/demux_avi.c:1191
+#: src/demuxers/demux_avi.c:1255
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -181,17 +161,17 @@ msgid ""
 "Installing current demuxer plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:852
+#: src/demuxers/demux_mpeg.c:850
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:253
+#: src/demuxers/demux_mpeg_block.c:274
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:360
+#: src/demuxers/demux_mpeg_block.c:430
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -203,26 +183,26 @@ msgstr ""
 msgid "mpgaudio: bitrate = %.2fkbps\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4177
+#: src/demuxers/demux_qt.c:3927
 #, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4237
+#: src/demuxers/demux_qt.c:4167
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:140
+#: src/demuxers/demux_ogg.c:208
 msgid "ogg: vorbis audio stream detected\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:147
+#: src/demuxers/demux_ogg.c:236
 #, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:422
+#: src/demuxers/demux_ogg.c:541
 #, c-format
 msgid ""
 "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -231,66 +211,66 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:324
+#: src/demuxers/demux_asf.c:337
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:388
+#: src/demuxers/demux_asf.c:400
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:447
+#: src/demuxers/demux_asf.c:458
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1131
+#: src/demuxers/demux_asf.c:1269
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1133
+#: src/demuxers/demux_asf.c:1271
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1135
+#: src/demuxers/demux_asf.c:1273
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1137
+#: src/demuxers/demux_asf.c:1275
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr ""
 
-#: src/input/input_net.c:105
+#: src/input/input_net.c:102
 #, c-format
 msgid "input_net: socket(): %s\n"
 msgstr ""
 
-#: src/input/input_net.c:114
+#: src/input/input_net.c:111
 #, c-format
 msgid "input_net: connect(): %s\n"
 msgstr ""
 
-#: src/input/input_net.c:129
+#: src/input/input_net.c:126
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:141
+#: src/input/input_net.c:138
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:339
+#: src/input/input_net.c:300
 msgid "net input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_net.c:377
+#: src/input/input_net.c:338
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -360,11 +340,11 @@ msgstr ""
 msgid "unable to allocate input buffer.\n"
 msgstr ""
 
-#: src/input/input_stdin_fifo.c:252
+#: src/input/input_stdin_fifo.c:321
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_stdin_fifo.c:281
+#: src/input/input_stdin_fifo.c:352
 #, c-format
 msgid ""
 "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -503,22 +483,22 @@ msgstr ""
 msgid "input_file: read error (%s)\n"
 msgstr ""
 
-#: src/input/input_file.c:518 src/input/input_file.c:557
-#: src/input/input_file.c:593
+#: src/input/input_file.c:524 src/input/input_file.c:563
+#: src/input/input_file.c:599
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
 msgstr ""
 
-#: src/input/input_file.c:781
+#: src/input/input_file.c:787
 msgid "plain file input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_file.c:799
+#: src/input/input_file.c:805
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
 msgstr ""
 
-#: src/input/input_file.c:829
+#: src/input/input_file.c:846
 #, c-format
 msgid ""
 "file input plugin doesn't support plugin API version %d.\n"
@@ -632,84 +612,70 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 
-#: src/input/input_http.c:109
+#: src/input/input_http.c:98
 msgid "input_http: failed to open socket\n"
 msgstr ""
 
-#: src/input/input_http.c:118
+#: src/input/input_http.c:107
 msgid "input_http: cannot connect to host\n"
 msgstr ""
 
-#: src/input/input_http.c:133
+#: src/input/input_http.c:122
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
 msgstr ""
 
-#: src/input/input_http.c:145
+#: src/input/input_http.c:134
 #, c-format
 msgid "http: unable to connect to >%s<\n"
 msgstr ""
 
-#: src/input/input_http.c:342
+#: src/input/input_http.c:334
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
 msgstr ""
 
-#: src/input/input_http.c:345
+#: src/input/input_http.c:337
 #, c-format
 msgid "%s via proxy >%s<"
 msgstr ""
 
-#: src/input/input_http.c:417 src/input/input_http.c:506
+#: src/input/input_http.c:413 src/input/input_http.c:534
 msgid "input_http: EAGAIN\n"
 msgstr ""
 
-#: src/input/input_http.c:420 src/input/input_http.c:509
+#: src/input/input_http.c:416 src/input/input_http.c:537
 msgid "input_http: read error\n"
 msgstr ""
 
-#: src/input/input_http.c:437
-#, c-format
-msgid "input_http: answer: >%s<\n"
-msgstr ""
-
-#: src/input/input_http.c:447
+#: src/input/input_http.c:445
 msgid "input_http: invalid http answer\n"
 msgstr ""
 
-#: src/input/input_http.c:452
+#: src/input/input_http.c:450
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
 msgstr ""
 
-#: src/input/input_http.c:457
+#: src/input/input_http.c:455
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr ""
 
-#: src/input/input_http.c:466
+#: src/input/input_http.c:464
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr ""
 
-#: src/input/input_http.c:473
+#: src/input/input_http.c:471
 msgid "input_http: Location redirection not implemented\n"
 msgstr ""
 
-#: src/input/input_http.c:486
-msgid "input_http: end of headers\n"
-msgstr ""
-
-#: src/input/input_http.c:547
-#, c-format
-msgid "input_http: read error (%s)\n"
-msgstr ""
-
-#: src/input/input_http.c:604
+#: src/input/input_http.c:632
 msgid "http network stream input plugin"
 msgstr ""
 
-#: src/input/input_http.c:630
+#: src/input/input_http.c:669
 #, c-format
 msgid ""
 "http input plugin doesn't support plugin API version %d.\n"
@@ -718,121 +684,121 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 
-#: src/input/input_cda.c:467 src/input/input_cda.c:525
+#: src/input/input_cda.c:437 src/input/input_cda.c:495
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:615
+#: src/input/input_cda.c:584
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
 msgstr ""
 
-#: src/input/input_cda.c:620
+#: src/input/input_cda.c:589
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:789
+#: src/input/input_cda.c:757
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:856
+#: src/input/input_cda.c:824
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:991
+#: src/input/input_cda.c:959
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:997
+#: src/input/input_cda.c:965
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1003
+#: src/input/input_cda.c:971
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1009
+#: src/input/input_cda.c:977
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1030
+#: src/input/input_cda.c:998
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1033
+#: src/input/input_cda.c:1001
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1127
+#: src/input/input_cda.c:1095
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1132 src/input/input_cda.c:1148
-#: src/input/input_cda.c:1153
+#: src/input/input_cda.c:1100 src/input/input_cda.c:1116
+#: src/input/input_cda.c:1121
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1138
+#: src/input/input_cda.c:1106
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1144
+#: src/input/input_cda.c:1112
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1184
+#: src/input/input_cda.c:1152
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1192
+#: src/input/input_cda.c:1160
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1229
+#: src/input/input_cda.c:1197
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1252
+#: src/input/input_cda.c:1220
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1435
+#: src/input/input_cda.c:1403
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
 msgstr ""
 
-#: src/input/input_cda.c:1441
+#: src/input/input_cda.c:1409
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr ""
 
-#: src/input/input_cda.c:1524
+#: src/input/input_cda.c:1492
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr ""
 
-#: src/input/input_cda.c:1640
+#: src/input/input_cda.c:1608
 msgid "cd audio plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_cda.c:1815
+#: src/input/input_cda.c:1783
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -841,184 +807,143 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:324
+#: src/xine-engine/video_out.c:375
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:377
+#: src/xine-engine/video_out.c:413
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:996
+#: src/xine-engine/video_out.c:995
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:999
+#: src/xine-engine/video_out.c:998
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1002
-msgid "video_out: thread created\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:107
+#: src/xine-engine/xine.c:89
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:149
-msgid "xine_stop\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:154
-msgid "xine_stop ignored\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:167
-msgid "xine_stop: stopping demuxer\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:184
-msgid "xine_stop: done\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:215
+#: src/xine-engine/xine.c:216
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:318
+#: src/xine-engine/xine.c:323
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:330
+#: src/xine-engine/xine.c:335
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:339
+#: src/xine-engine/xine.c:345
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:349
+#: src/xine-engine/xine.c:352
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:369
+#: src/xine-engine/xine.c:373
 msgid "xine_play: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:418
-msgid "xine_exit: shutdown audio\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:422
-msgid "xine_exit: shutdown video\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:428
-msgid "xine_exit: bye!\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:586
-msgid "xine: xine_get_current_position: no input source\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:707
-#, c-format
-msgid "xine: set_speed %d\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:866
-msgid "messages"
-msgstr ""
-
-#: src/xine-engine/xine.c:867
+#: src/xine-engine/xine.c:861
 msgid "stream format"
 msgstr ""
 
-#: src/xine-engine/xine.c:868
+#: src/xine-engine/xine.c:862
+msgid "messages"
+msgstr ""
+
+#: src/xine-engine/xine.c:863
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:119 src/xine-engine/load_plugins.c:471
+#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:458
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:156
+#: src/xine-engine/load_plugins.c:139
 #, c-format
 msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:170
+#: src/xine-engine/load_plugins.c:154
 #, c-format
 msgid "load_plugins: demux plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:178
+#: src/xine-engine/load_plugins.c:162
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:316
+#: src/xine-engine/load_plugins.c:301
 #, c-format
 msgid ""
 "load_plugins: cannot open input plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:328
+#: src/xine-engine/load_plugins.c:314
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:335
+#: src/xine-engine/load_plugins.c:322
 #, c-format
 msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 "function)\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:339
+#: src/xine-engine/load_plugins.c:326
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:352
+#: src/xine-engine/load_plugins.c:339
 #, c-format
 msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
 "correctly??\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:532
+#: src/xine-engine/load_plugins.c:520
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:560
+#: src/xine-engine/load_plugins.c:549
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:588
+#: src/xine-engine/load_plugins.c:578
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:612
+#: src/xine-engine/load_plugins.c:603
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr ""

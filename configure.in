@@ -132,7 +132,7 @@ dnl
 dnl NLS Support
 dnl
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
-ALL_LINGUAS="fr pt_BR de sk es"
+ALL_LINGUAS="fr pt_BR de sk es pl_PL"
 AM_GNU_GETTEXT(use-libtool)
 AC_LINK_FILES($nls_cv_header_libgt, $nls_cv_header_intl)
 AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
