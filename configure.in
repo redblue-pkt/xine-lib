@@ -313,7 +313,7 @@ AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 dnl
 dnl check for SDL
 dnl
-AM_PATH_SDL(1.2.0, AC_DEFINE(HAVE_SDL),[])
+AM_PATH_SDL(1.1.5, AC_DEFINE(HAVE_SDL),[])
 AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
 dnl
