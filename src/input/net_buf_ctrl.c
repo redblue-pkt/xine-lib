@@ -38,7 +38,6 @@
 
 #include "net_buf_ctrl.h"
 
-#define DEFAULT_LOW_WATER_MARK     1
 #define DEFAULT_HIGH_WATER_MARK 5000 /* in 1/1000 s */
 
 #define FULL_FIFO_MARK             5 /* buffers free */
@@ -65,7 +64,6 @@ struct nbc_s {
   int64_t          video_fifo_length_int; /* in ms */
   int64_t          audio_fifo_length_int; /* in ms */
 
-  int64_t          low_water_mark;
   int64_t          high_water_mark;
   /* bitrate */
   int64_t          video_last_pts;
@@ -497,15 +495,27 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   nbc_t *this = (nbc_t *) xine_xmalloc (sizeof (nbc_t));
   fifo_buffer_t *video_fifo = stream->video_fifo;
   fifo_buffer_t *audio_fifo = stream->audio_fifo;
+  double video_fifo_factor, audio_fifo_factor;
+  cfg_entry_t *entry;
 
   lprintf("nbc_init\n");
   pthread_mutex_init (&this->mutex, NULL);
 
   this->stream              = stream;
-  this->low_water_mark      = DEFAULT_LOW_WATER_MARK;
-  this->high_water_mark     = DEFAULT_HIGH_WATER_MARK;
   this->video_fifo          = video_fifo;
   this->audio_fifo          = audio_fifo;
+  
+  /* when the FIFO sizes are increased compared to the default configuration,
+   * apply a factor to the high water mark */
+  entry = stream->xine->config->lookup_entry(stream->xine->config, "video.num_buffers");
+  video_fifo_factor = (double)video_fifo->buffer_pool_capacity / (double)entry->num_default;
+  entry = stream->xine->config->lookup_entry(stream->xine->config, "audio.num_buffers");
+  audio_fifo_factor = (double)audio_fifo->buffer_pool_capacity / (double)entry->num_default;
+  /* use the smaller factor */
+  if (video_fifo_factor < audio_fifo_factor)
+    this->high_water_mark = (double)DEFAULT_HIGH_WATER_MARK * video_fifo_factor;
+  else
+    this->high_water_mark = (double)DEFAULT_HIGH_WATER_MARK * audio_fifo_factor;
 
   video_fifo->register_alloc_cb(video_fifo, nbc_alloc_cb, this);
   video_fifo->register_put_cb(video_fifo, nbc_put_cb, this);
