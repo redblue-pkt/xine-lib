@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.33 2002/09/30 05:16:45 jcdutton Exp $
+ * $Id: yuv2rgb.c,v 1.34 2002/10/10 14:05:19 jkeil Exp $
  */
 
 #include "config.h"
@@ -35,6 +35,7 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 
+#define	LOG
 
 static int prof_scale_line = -1;
 
@@ -1209,16 +1210,29 @@ static scale_line_func_t find_scale_line_func(int step) {
     {  1,  1, scale_line_1_1,   "non-scaled" },
   };
   int i;
+#ifdef	LOG
+  /* to filter out multiple messages about the scale_line variant we're using */
+  static int reported_for_step;
+#endif
 
   for (i = 0; i < sizeof(scale_line)/sizeof(scale_line[0]); i++) {
     if (step == scale_line[i].src_step*32768/scale_line[i].dest_step) {
-      printf("yuv2rgb: using %s optimized scale_line\n", scale_line[i].desc);
+#ifdef	LOG
+      if (step != reported_for_step)
+	printf("yuv2rgb: using %s optimized scale_line\n", scale_line[i].desc);
+      reported_for_step = step;
+#endif
       return scale_line[i].func;
     }
   }
-  printf("yuv2rgb: using generic scale_line with interpolation\n");
-  return scale_line_gen;
 
+#ifdef	LOG
+  if (step != reported_for_step)
+    printf("yuv2rgb: using generic scale_line with interpolation\n");
+  reported_for_step = step;
+#endif
+
+  return scale_line_gen;
 }
 
 
