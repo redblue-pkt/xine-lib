@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.114 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: video_out_xv.c,v 1.115 2002/05/07 19:20:16 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -216,13 +216,21 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
   xv_driver_t *this = (xv_driver_t *) vo_img->driver;
 
   if (frame->image) {
-    XLockDisplay (this->display);
-    XShmDetach (this->display, &frame->shminfo);
-    XFree (frame->image);
-    XUnlockDisplay (this->display);
+    
+    if (this->use_shm) {
+      XLockDisplay (this->display);
+      XShmDetach (this->display, &frame->shminfo);
+      XFree (frame->image);
+      XUnlockDisplay (this->display);
 
-    shmdt (frame->shminfo.shmaddr);
-    shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
+      shmdt (frame->shminfo.shmaddr);
+      shmctl (frame->shminfo.shmid, IPC_RMID, NULL);
+    }
+    else {
+      XLockDisplay (this->display);
+      XFree (frame->image);
+      XUnlockDisplay (this->display);
+    }
   }
 
   free (frame);
@@ -235,7 +243,7 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   frame = (xv_frame_t *) malloc (sizeof (xv_frame_t));
   memset (frame, 0, sizeof(xv_frame_t));
 
-  if (frame==NULL) {
+  if (frame == NULL) {
     printf ("xv_alloc_frame: out of memory\n");
   }
 
