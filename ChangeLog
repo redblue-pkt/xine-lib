@@ -2,12 +2,13 @@ xine-lib (1-xxx)
   * Fixed segfault when seeking with the "xvmc" and "xxmc" plugins playing 
     files with IDCT / mocomp XvMC acceleration. 
   * polypaudio sound server support
-  * fix playback of MMS streams with the new input cache layer [bug #1066926]
+  * fixed playback of MMS streams with the new input cache layer [bug #1066926]
   * fixed builds without X11 [bug #1067705]
-  * added support for 24-bit LPCM from DVDs
+  * added support for 24-bit LPCM from DVDs [bug #843786]
   * Fixed segfault in xxmc plugin when switch from software decoding to 
     accelerated decoding occured while software surfaces still needed to be 
     duplicated.
+  * fixed plugin catalog cache (faster xine startup)
         
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
