@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.68 2002/07/17 18:17:49 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.69 2002/07/17 18:49:49 miguelfreitas Exp $
  *
  */
 
@@ -1038,7 +1038,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
       }
       top_level_atom_size = BE_32(&atom_preamble[0]);
       top_level_atom_size <<= 32;
-      top_level_atom_size = BE_32(&atom_preamble[4]);
+      top_level_atom_size |= BE_32(&atom_preamble[4]);
 
       /* rewind 8 bytes */
       if (input->seek(input, preseek_pos, SEEK_SET) != preseek_pos) {
