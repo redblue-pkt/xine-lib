@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.137 2004/01/23 09:25:24 andruil Exp $
+ * $Id: demux_ogg.c,v 1.138 2004/01/29 12:59:11 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -654,31 +654,31 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     if (op->packet[0] == PACKET_TYPE_COMMENT ) {
       read_chapter_comment(this, op);
-    }
+    }else{
+      data = op->packet+1+hdrlen;
+      size = op->bytes-1-hdrlen;
 
-    data = op->packet+1+hdrlen;
-    size = op->bytes-1-hdrlen;
+      if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
+        pts = get_pts(this, stream_num, op->granulepos );
+        check_newpts( this, pts, PTS_VIDEO, decoder_flags );
+      } else
+        pts = 0;
+      
+      lprintf ("videostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
+               stream_num,
+               op->granulepos,
+               this->si[stream_num]->header_granulepos,
+               pts);
 
-    if ((op->granulepos != -1) || (this->si[stream_num]->header_granulepos != -1)) {
-      pts = get_pts(this, stream_num, op->granulepos );
-      check_newpts( this, pts, PTS_VIDEO, decoder_flags );
-    } else
-      pts = 0;
+      _x_demux_send_data(this->video_fifo, data, size,
+                         pts, this->si[stream_num]->buf_types, decoder_flags,
+                         this->input->get_current_pos(this->input),
+                         this->input->get_length(this->input),
+                         pts / 90, this->time_length, 0);
 
-    lprintf ("videostream %d op-gpos %lld hdr-gpos %lld pts %lld \n",
-             stream_num,
-             op->granulepos,
-             this->si[stream_num]->header_granulepos,
-             pts);
-
-    _x_demux_send_data(this->video_fifo, data, size,
-                       pts, this->si[stream_num]->buf_types, decoder_flags,
-                       this->input->get_current_pos(this->input),
-                       this->input->get_length(this->input),
-                       pts / 90, this->time_length, 0);
-
-    if (this->chapter_info && op->granulepos != -1) {
-      update_chapter_display(this, stream_num, op);
+      if (this->chapter_info && op->granulepos != -1) {
+        update_chapter_display(this, stream_num, op);
+      }
     }
   } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_SPU_BASE) {
 
