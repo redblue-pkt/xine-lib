@@ -203,6 +203,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_inp_dvd.so
 %{prefix}/lib/xine/plugins/xineplug_inp_file.la
 %{prefix}/lib/xine/plugins/xineplug_inp_file.so
+%{prefix}/lib/xine/plugins/xineplug_inp_http.la
+%{prefix}/lib/xine/plugins/xineplug_inp_http.so
 %{prefix}/lib/xine/plugins/xineplug_inp_net.la
 %{prefix}/lib/xine/plugins/xineplug_inp_net.so
 %{prefix}/lib/xine/plugins/xineplug_inp_rtp.la
@@ -324,6 +326,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Mon Oct 29 2001 Matthias Dahl <matthew2k@web.de>
+- added http input plugin
 * Thu Oct 18 2001 Matthias Dahl <matthew2k@web.de>
 - added asf demuxer plugin
 * Sun Oct 14 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
