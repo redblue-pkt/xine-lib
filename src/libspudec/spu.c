@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.55 2002/11/20 13:49:05 mroi Exp $
+ * $Id: spu.c,v 1.56 2002/11/20 14:00:34 mroi Exp $
  *
  */
 
@@ -303,6 +303,12 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
         return;
       }
+      /* Get do commands to build the event. */
+      spudec_do_commands(&this->state, cur_seq, &this->overlay);
+      /* FIXME: Check for Forced-display or subtitle stream
+       *        For subtitles, open event.
+       *        For menus, store it for later.
+       */
       if ( (this->state.forced_display == 0) && (this->stream->spu_channel & 0x80) ) { 
 #ifdef LOG_DEBUG
         printf ("spu: Dropping SPU channel %d. Only allow forced display SPUs\n", stream_id);
@@ -310,12 +316,6 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
         return;
       }
 
-      /* Get do commands to build the event. */
-      spudec_do_commands(&this->state, cur_seq, &this->overlay);
-      /* FIXME: Check for Forced-display or subtitle stream
-       *        For subtitles, open event.
-       *        For menus, store it for later.
-       */
 #ifdef LOG_DEBUG
       /* spudec_print_overlay( &this->overlay ); */
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
