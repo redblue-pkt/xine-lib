@@ -4,6 +4,7 @@ xine-lib (1-beta3)
   * PVA file demuxer
   * VOX file demuxer
   * NSF file demuxer
+  * raw AC3 file demuxer
   * Goom plugin updated and acceleration added (mmx/ppc)
   * live rawdv playback (from device)
   * plugin loader improvements

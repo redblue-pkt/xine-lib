@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.4 2003/01/08 06:57:54 tmmm Exp $
+ * $Id: group_audio.c,v 1.5 2003/01/22 01:30:07 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,7 @@
 #include "demux.h"
 
 
+void *demux_ac3_init_plugin (xine_t *xine, void *data);
 void *demux_aud_init_plugin (xine_t *xine, void *data);
 void *demux_aiff_init_plugin (xine_t *xine, void *data);
 void *demux_cdda_init_plugin (xine_t *xine, void *data);
@@ -47,6 +48,7 @@ void *demux_wav_init_plugin (xine_t *xine, void *data);
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 20, "ac3", XINE_VERSION_CODE, NULL, demux_ac3_init_plugin },
   { PLUGIN_DEMUX, 20, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
   { PLUGIN_DEMUX, 20, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
   { PLUGIN_DEMUX, 20, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
