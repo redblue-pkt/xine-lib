@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.120 2002/11/23 11:09:29 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.121 2002/11/23 12:41:04 mroi Exp $
  *
  */
 
@@ -804,6 +804,9 @@ static void flush_buffers(dvd_input_plugin_t *this) {
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
   }
+
+ this->stream->xine->clock->adjust_clock(this->stream->xine->clock,
+   this->stream->xine->clock->get_current_time(this->stream->xine->clock) + 30 * 90000 );
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -1205,22 +1208,24 @@ check_solaris_vold_device(dvd_input_class_t *this)
 /*
  * Opens the DVD plugin. The MRL takes the following form:
  *
- * dvd:/[vts[/program]]
+ * dvd:[dvd_path]/[vts[.program]]
  *
  * e.g.
  *   dvd:/                    - Play (navigate)
  *   dvd:/1                   - Play Title 1
  *   dvd:/1.3                 - Play Title 1, program 3
+ *   dvd:/dev/dvd2/           - Play (navigate) from /dev/dvd2
+ *   dvd:/dev/dvd2/1.3        - Play Title 1, program 3 from /dev/dvd2
  */
 static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *stream, const char *data) {
   dvd_input_plugin_t    *this;
   dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
   char                  *locator;
-  int                    dot_point;
+  int                    last_slash = 0;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
-  config_values_t       *config = stream->xine->config;
+  xine_event_t           event;
 
   printf("input_dvd.c: open_plugin called.\n");
 
@@ -1254,7 +1259,6 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 /*
   this->mrls                   = NULL;
   this->num_mrls               = 0;
-    if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
 */
 
   pthread_mutex_init(&this->buf_mutex, NULL);
@@ -1273,24 +1277,33 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   if (!strncasecmp (this->mrl, "dvd:/",5)) {
     locator = &this->mrl[5];
     while (*locator == '/') locator++;
+    /* we skipped at least one slash, get it back */
+    locator--;
   } else {
     return 0;
   }
 
   /* Attempt to parse MRL */
-  dot_point=0;
-  while((locator[dot_point] != '\0') && (locator[dot_point] != '.')) {
-    dot_point++;
-  }
+  last_slash = strlen(locator);
+  while(last_slash && locator[last_slash] != '/') last_slash--;
 
-  if(locator[dot_point] == '.') {
+  if(last_slash) {
+    /* we have an alternative dvd_path */
+    intended_dvd_device = locator;
+    intended_dvd_device[last_slash] = '\0';
+    locator += last_slash;
+  }else{
+    intended_dvd_device=class->dvd_device;
+  }
+  locator++;
+
+  if(locator[0]) {
     this->mode = MODE_TITLE; 
   } else {
     this->mode = MODE_NAVIGATE;
   }
 
   printf("input_dvd.c:open_plugin:dvd_device=%s\n",class->dvd_device); 
-  intended_dvd_device=class->dvd_device;
   
   if(this->opened) {
     if ( intended_dvd_device==this->current_dvd_device ) {
@@ -1396,15 +1409,6 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     int titles;
     
     /* A program and/or VTS was specified */
-    locator += dot_point + 1;
-
-    if(locator[0] == '\0') {
-      /* Empty specifier */
-      printf("input_dvd: Incorrect MRL format.\n");
-      dvdnav_close(this->dvdnav);
-      this->dvdnav = NULL;
-      return 0;
-    }
 
     /* See if there is a period. */
     found = -1;
@@ -1442,6 +1446,16 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 #ifdef INPUT_DEBUG
   printf("input_dvd: DVD device successfully opened.\n");
 #endif
+
+  /* Tell Xine to update the UI */
+  event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+  event.stream = this->stream;
+  event.data = NULL;
+  event.data_length = 0;
+  xine_event_send(this->stream, &event);
+
+  update_title_display(this);
+  
   return &this->input_plugin;
 }
 
@@ -1480,22 +1494,7 @@ static char ** dvd_class_get_autoplay_list (input_class_t *this_gen,
 					    int *num_files) {
 
   dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
-  int i;
   trace_print("get_autoplay_list entered\n"); 
-
-#if 0
-  /* rebuild thie MRL browser list */
-  dvd_build_mrl_list(this);
-  *nFiles = this->num_mrls;
-
-  i = 0;
-  for(i=0;(i<this->num_mrls) && (i<MAX_DIR_ENTRIES);i++) {
-    snprintf (&(this->filelist[i][0]), MAX_STR_LEN, this->mrls[i]->mrl);
-    this->filelist2[i] = &(this->filelist[i][0]);
-  }
-  this->filelist2[*nFiles] = NULL;
-
-#endif
 
   this->filelist2[0] = "dvd:/";
   this->filelist2[1] = NULL;
@@ -1506,10 +1505,7 @@ static char ** dvd_class_get_autoplay_list (input_class_t *this_gen,
 
 void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
-/* FIXME: get mutex working again
-  pthread_mutex_destroy(&this->buf_mutex);
-  free(this->mrl);  this->mrl  = NULL;
-*/
+  
   free(this->mrls); this->mrls = NULL;
   free(this);
 }
@@ -1606,10 +1602,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*  this->num_mrls               = 0; */
   
-/*  pthread_mutex_init(&this->buf_mutex, NULL);
-  this->mem_stack              = 0;
-*/
-  
   this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
@@ -1682,6 +1674,13 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.121  2002/11/23 12:41:04  mroi
+ * DVD input fixes and cleanup:
+ * * revert my removing of the clock adjustment; although this is bad, it seems
+ *   to be the best solution for now (menu transitions have choppy audio without)
+ * * add patch from Marco Zühlke enabling dvd device specification by MRL
+ * * update GUI title and language display once immediately after plugin open
+ *
  * Revision 1.120  2002/11/23 11:09:29  f1rmb
  * registering config entries at init_class time
  *
