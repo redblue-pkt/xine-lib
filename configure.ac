@@ -236,6 +236,8 @@ AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' funct
 #include "math.h"
 ])
 
+AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -DEMULATE_FAST_INT"])
+
 AC_ARG_ENABLE(altivec,
 	[  --disable-altivec       Do not use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
