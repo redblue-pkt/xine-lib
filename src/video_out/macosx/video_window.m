@@ -36,7 +36,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 @implementation XineVideoWindow
 
-
 - (void) setContentSize: (NSSize) size {
     [xineView setViewSizeInMainThread:size];
    
@@ -85,7 +84,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     [self setContentView: xineView];
     [self setTitle: @"xine video output"];
-    keepAspectRatio = NO;
 
     return self;
 }
@@ -134,22 +132,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return standard_frame;
 }
 
-- (void) setKeepsAspectRatio: (BOOL) flag {
-    if (flag) {
-        NSSize size = [self frame].size;
-        [self setAspectRatio:size];
-    }
-    else {
-        [self setResizeIncrements:NSMakeSize(1.0, 1.0)];
-    }
-
-    keepAspectRatio = flag;
-}
-
-- (BOOL) keepsAspectRatio {
-    return keepAspectRatio;
-}
-
 /* Delegate methods */
 
 - (void) xineViewDidResize:(NSNotification *)note {
@@ -159,7 +141,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
   [self setFrame:[self frameRectForContentRect:frame] display:YES];
 }
 
-@end
+@end /* XineVideoWindow */
 
 
 @implementation XineOpenGLView
@@ -235,7 +217,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 {
     [super encodeWithCoder:coder];
 }
-
 
 - (void) dealloc {
     if (texture_buffer)
@@ -317,7 +298,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     [self setViewSizeInMainThread:size];
 }
-
 
 - (void) initTextures {
     [mutex lock];
@@ -644,4 +624,29 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     delegate = aDelegate;
 }
 
-@end
+@end /* XineOpenGLView */
+
+
+@implementation NSWindow (AspectRatioAdditions)
+
+- (void) setKeepsAspectRatio: (BOOL) flag {
+    if (flag) {
+        NSSize size = [self frame].size;
+        [self setAspectRatio:size];
+    }
+    else {
+        [self setResizeIncrements:NSMakeSize(1.0, 1.0)];
+    }
+}
+
+/* XXX: This is 100% untested ... */
+- (BOOL) keepsAspectRatio {
+    NSSize size = [self aspectRatio];
+    if (size.width == 0 && size.height == 0)
+        return false;
+    else
+        return true;
+}
+
+@end /* NSWindow (AspectRatioAdditions) */
+

@@ -68,14 +68,11 @@ typedef enum {
 
 @interface XineVideoWindow : NSWindow {
     int               width, height;
-    BOOL              keepAspectRatio;
     XineOpenGLView *  xineView;
 }
 
 - (id) initWithContentSize:(NSSize)size;
 - (XineOpenGLView *) xineView;
-- (void) setKeepsAspectRatio:(BOOL)flag;
-- (BOOL) keepsAspectRatio;
 @end
 
 
@@ -93,6 +90,17 @@ typedef enum {
 /* XineOpenGLView notifications */
 
 extern NSString *XineViewDidResizeNotification;
+
+
+/* NSWindow aspect ratio convenience methods */
+
+@interface NSWindow (AspectRatioAdditions)
+
+- (void) setKeepsAspectRatio:(BOOL)flag;
+- (BOOL) keepsAspectRatio;
+
+@end
+
 
 #endif /* HAVE_VIDEO_WINDOW_H */
 
