@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.51 2004/02/01 06:04:48 tmmm Exp $
+ * $Id: demux_fli.c,v 1.52 2004/02/02 00:42:49 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,7 +106,6 @@ static int open_fli_file(demux_fli_t *this) {
 
     /* use a contrived internal FLI type, 0xAF13 */
     this->magic_number = FLI_FILE_MAGIC_3;
-//    this->fli_header[4] = 0x13;  /* make sure to communicate this to decoder */
   }
 
   this->frame_count = LE_16(&this->fli_header[6]);
@@ -247,9 +246,7 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
   buf->size = this->bih.biSize;
-  memcpy(buf->content, &this->bih, sizeof(xine_bmiheader) + FLI_HEADER_SIZE);
-  memcpy(buf->content + sizeof(xine_bmiheader), this->fli_header,
-    this->bih.biSize - FLI_HEADER_SIZE);
+  memcpy(buf->content, &this->bih, sizeof(xine_bmiheader) + this->bih.biSize);
   buf->type = BUF_VIDEO_FLI;
   this->video_fifo->put (this->video_fifo, buf);
 }
@@ -283,7 +280,15 @@ static int demux_fli_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_fli_get_stream_length (demux_plugin_t *this_gen) {
-  return 0;
+
+  demux_fli_t *this = (demux_fli_t *) this_gen;
+  int64_t end_pts;
+
+  end_pts = this->frame_count;
+  end_pts *= this->frame_pts_inc;
+  end_pts /= 90;
+
+  return (int)end_pts;
 }
 
 static uint32_t demux_fli_get_capabilities(demux_plugin_t *this_gen) {
