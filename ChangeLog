@@ -1,4 +1,4 @@
-xine-lib (1-xxx)
+xine-lib (1-rc8)
   * Rewrote OpenGL output plugin.
   * Fixed segfault when seeking with the "xvmc" and "xxmc" plugins playing 
     files with IDCT / mocomp XvMC acceleration. 
@@ -28,7 +28,8 @@ xine-lib (1-xxx)
   * fixed mmst and mmsh issues with the cache plugin
   * fixed mmsh "RESET" chunk handling
   * implemented winamp.com "streaming" protocol
-
+  * metainfo (title, artist, etc) returned by the xine-lib is now UTF8
+  
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
