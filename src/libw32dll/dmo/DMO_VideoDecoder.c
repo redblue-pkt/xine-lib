@@ -187,6 +187,9 @@ DMO_VideoDecoder * DMO_VideoDecoder_Open(char* dllname, GUID* guid, BITMAPINFOHE
 	if (!this->m_pDMO_Filter)
 	{
 	    printf("Failed to create DMO filter\n");
+	    free(this->m_sVhdr);
+	    free(this->m_sVhdr2);
+	    free(this);
 	    return 0;
 	}
 

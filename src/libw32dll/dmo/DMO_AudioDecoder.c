@@ -96,6 +96,8 @@ print_wave_header((WAVEFORMATEX *)this->m_sVhdr2);
 
         this->m_pDMO_Filter = DMO_FilterCreate(dllname, guid, &this->m_sOurType, &this->m_sDestType);
 	if( !this->m_pDMO_Filter ) {
+           free(this->m_sVhdr);
+           free(this->m_sVhdr2);
            free(this);
            return NULL;
         }

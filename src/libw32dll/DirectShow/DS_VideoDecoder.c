@@ -175,6 +175,9 @@ DS_VideoDecoder * DS_VideoDecoder_Open(char* dllname, GUID* guid, BITMAPINFOHEAD
 	if (!this->m_pDS_Filter)
 	{
 	    printf("Failed to create DirectShow filter\n");
+	    free(this->m_sVhdr);
+	    free(this->m_sVhdr2);
+	    free(this);
 	    return 0;
 	}
 
