@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.114 2003/03/25 12:48:04 mroi Exp $
+ * $Id: audio_out.c,v 1.115 2003/03/28 13:15:27 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -794,11 +794,13 @@ static void *ao_loop (void *this_gen) {
       delay = 0;
     pthread_mutex_unlock( &this->driver_lock ); 
 
+    cur_time = this->clock->get_current_time (this->clock);  
     
     /* we update current_extra_info if either there is no video stream that could do that
      * or if the current_extra_info is getting too much out of date */
     if( in_buf && in_buf->stream && (!in_buf->stream->video_decoder_plugin ||
-        in_buf->extra_info->vpts - in_buf->stream->current_extra_info->vpts > 30000)) {
+        (cur_time - in_buf->stream->current_extra_info->vpts) > 30000 )) {
+
       pthread_mutex_lock( &in_buf->stream->current_extra_info_lock );
       extra_info_merge( in_buf->stream->current_extra_info, in_buf->extra_info );
       pthread_mutex_unlock( &in_buf->stream->current_extra_info_lock );
@@ -809,7 +811,6 @@ static void *ao_loop (void *this_gen) {
      * hardware audio buffer at the moment?
      */
 
-    cur_time = this->clock->get_current_time (this->clock);  
     hw_vpts = cur_time;
   
 #ifdef LOG
