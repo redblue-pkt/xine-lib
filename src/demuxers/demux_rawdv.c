@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_rawdv.c,v 1.3 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.4 2003/03/06 23:56:47 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  * 
@@ -39,7 +39,9 @@
 #include "demux.h"
 
 #define NTSC_FRAME_SIZE 120000
+#define NTSC_FRAME_RATE 29.97
 #define PAL_FRAME_SIZE  144000
+#define PAL_FRAME_RATE 25
 
 typedef struct {  
 
@@ -77,7 +79,7 @@ typedef struct {
 
 
 static int demux_raw_dv_next (demux_raw_dv_t *this) {
-  buf_element_t *buf;
+  buf_element_t *buf, *abuf;
   int n;
 
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
@@ -110,6 +112,18 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
   
   this->video_fifo->put(this->video_fifo, buf);
   
+  if (this->audio_fifo) {
+    abuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    abuf->content = abuf->mem;
+    memcpy( abuf->content, buf->content, buf->size );
+    abuf->type   = BUF_AUDIO_DV;
+    abuf->pts    = buf->pts;
+    abuf->size   = buf->size;
+    abuf->decoder_flags = buf->decoder_flags;
+    abuf->extra_info->input_time = buf->extra_info->input_time;
+    abuf->extra_info->input_pos = buf->extra_info->input_pos;
+    this->audio_fifo->put (this->audio_fifo, abuf);
+  }		  
   if (!this->bytes_left) {
     this->bytes_left = this->frame_size;
     this->pts += this->duration;
@@ -138,30 +152,35 @@ static int demux_raw_dv_get_status (demux_plugin_t *this_gen) {
 static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
 
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
-  buf_element_t *buf;
+  buf_element_t *buf, *abuf;
   xine_bmiheader *bih;
-  unsigned char scratch[4], scratch2[4];
-  int i;
+  unsigned char *scratch, scratch2[4];
+  int i, j;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
   xine_demux_control_start(this->stream);
+
+  scratch = (unsigned char *) malloc(NTSC_FRAME_SIZE);
+  if (scratch == NULL )
+    return;
   
   if ((this->input->get_capabilities(this->input)) & INPUT_CAP_SEEKABLE) {
     this->input->seek(this->input, 0, SEEK_SET);
-    if( this->input->read (this->input, scratch, 4) != 4 )
+    if( this->input->read (this->input, scratch, NTSC_FRAME_SIZE) != NTSC_FRAME_SIZE )
       return;
     this->input->seek(this->input, 0, SEEK_SET);
   }
   else {
-    if( this->input->read (this->input, scratch, 4) != 4 )
+    if( this->input->read (this->input, scratch, NTSC_FRAME_SIZE) != sizeof(NTSC_FRAME_SIZE) )
       return;
     if( !(scratch[3] & 0x80) )
       i = NTSC_FRAME_SIZE;
     else
       i = PAL_FRAME_SIZE;
-    i -= 4;
+    
+    i -= NTSC_FRAME_SIZE;
     while (i > 0) {
       if( this->input->read (this->input, scratch2, 4) != 4 )
         return;
@@ -182,12 +201,14 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     this->duration = buf->decoder_info[1] = 3003;
     bih->biWidth = 720;
     bih->biHeight = 480;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = NTSC_FRAME_SIZE * NTSC_FRAME_RATE * 8;
   } else {
     /* PAL */
     this->frame_size = PAL_FRAME_SIZE; 
     this->duration = buf->decoder_info[1] = 3600;
     bih->biWidth = 720;
     bih->biHeight = 576;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = PAL_FRAME_SIZE * PAL_FRAME_RATE * 8;
   }
   bih->biSize = sizeof(xine_bmiheader);
   bih->biPlanes = 1;
@@ -204,7 +225,72 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+
+  if (this->audio_fifo) {
+    int done = 0;
+    abuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    abuf->content = abuf->mem;
+
+    /* This code GPL from Arne Schirmacher (dvgrab/Kino) */
+    /* 10 DIF sequences per NTSC frame */
+    for (i = 0; i < 10 && done == 0; ++i) {
+      /* 9 audio DIF blocks per sequence */
+      for (j = 0; j < 9 && done == 0; ++j) {
+        /* calculate address: 150 DIF blocks per sequence, 80 bytes
+        per DIF block, audio blocks start at every 16th beginning
+        with block 6, block has 3 bytes header, followed by one
+        packet. */
+        const unsigned char *s = &scratch[i * 150 * 80 + 6 * 80 + j * 16 * 80 + 3];
+        /* Pack id 0x50 contains audio metadata */
+        if (s[0] == 0x50) { 
+          /* printf("aaux %d: %2.2x %2.2x %2.2x %2.2x %2.2x\n",
+           j, s[0], s[1], s[2], s[3], s[4]);
+          */
+          int smp, flag;
+          
+          done = 1;
+          
+          smp = (s[4] >> 3) & 0x07;
+          flag = s[3] & 0x20;
+          
+          if (flag == 0) {
+            switch (smp) {
+              case 0:
+                abuf->decoder_info[1] = 48000;
+                break;
+              case 1:
+                abuf->decoder_info[1] = 44100;
+                break;
+              case 2:
+                abuf->decoder_info[1] = 32000;
+                break;
+            }
+          } else { 
+            switch (smp) {
+              case 0:
+                abuf->decoder_info[1] = 48000;
+                break;
+              case 1:
+                abuf->decoder_info[1] = 44100;
+                break;
+              case 2:
+                abuf->decoder_info[1] = 32000;
+                break;
+            }
+          }
+        }
+      }
+    }
+    abuf->type   = BUF_AUDIO_DV;
+    abuf->size   = buf->size;
+    abuf->decoder_flags = buf->decoder_flags;
+    abuf->decoder_info[0] = 0; /* first package, containing wavex */
+    abuf->decoder_info[2] = 16; /* Audio bits (ffmpeg upsamples 12 to 16bit) */
+    abuf->decoder_info[3] = 2; /* Audio bits (ffmpeg only supports 2 channels) */
+    this->audio_fifo->put (this->audio_fifo, abuf);
+    this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  }		  
+  
 }
 
 static int demux_raw_dv_seek (demux_plugin_t *this_gen,
@@ -293,7 +379,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
-    if (strncasecmp (ending, ".dv", 3)) {
+    if (strncasecmp (ending, ".dv", 3) && strncasecmp (ending, ".dif", 4)) {
       free (this);
       return NULL;
     }

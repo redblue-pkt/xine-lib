@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.43 2003/02/20 05:28:52 tmmm Exp $
+ * $Id: input_stdin_fifo.c,v 1.44 2003/03/06 23:56:47 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -105,11 +105,31 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
       this->preview_pos += num_bytes;
 
     } else {
+      fd_set rset;
+      struct timeval timeout;
+
+      while (1) {
+        FD_ZERO (&rset);
+        FD_SET  (this->fh, &rset);
+
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = 10000;
+      
+        if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
+          nbc_check_buffers (this->nbc);
+#ifdef LOG
+          printf ("stdin: timeout\n");
+#endif
+        } else {
+          break;
+        }
+      } 
       num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
 #ifdef LOG
-      printf ("stdin: %lld bytes from file\n",
-        num_bytes);
+      printf ("stdin: %lld bytes from file\n", num_bytes);
 #endif
+      if (num_bytes == 0)
+        return 0;
     }
 
 
