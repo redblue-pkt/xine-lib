@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.51 2003/02/06 00:09:20 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.52 2003/02/07 17:28:10 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -171,6 +171,10 @@ struct ao_format_s {
 
 /*
  * xine_audio_port_s contains the port every audio decoder talks to
+ *
+ * Remember that adding new functions to this structure requires
+ * adaption of the post plugin decoration layer. Be sure to look into
+ * src/xine-engine/post.[ch].
  */
 
 struct xine_audio_port_s {

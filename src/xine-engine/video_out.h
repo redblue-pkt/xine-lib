@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.82 2003/02/06 00:09:20 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.83 2003/02/07 17:28:12 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -60,7 +60,12 @@ typedef struct vo_driver_s vo_driver_t;
 typedef struct extra_info_s extra_info_t;
 #endif
 
-/* public part, video drivers may add private fields */
+/* public part, video drivers may add private fields
+ *
+ * Remember that adding new functions to this structure requires
+ * adaption of the post plugin decoration layer. Be sure to look into
+ * src/xine-engine/post.[ch].
+ */
 struct vo_frame_s {
   /*
    * member functions
@@ -136,6 +141,11 @@ struct vo_frame_s {
 
 };
 
+/*
+ * Remember that adding new functions to this structure requires
+ * adaption of the post plugin decoration layer. Be sure to look into
+ * src/xine-engine/post.[ch].
+ */
 struct xine_video_port_s {
 
   uint32_t (*get_capabilities) (xine_video_port_t *this); /* for constants see below */
