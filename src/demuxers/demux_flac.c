@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.6 2004/09/20 19:30:04 valtri Exp $
+ * $Id: demux_flac.c,v 1.7 2004/09/22 20:54:44 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -307,6 +307,12 @@ static int demux_flac_seek (demux_plugin_t *this_gen,
 
     this->status = DEMUX_OK;
   } else {
+
+    if (this->seekpoints == NULL) {
+      /* cannot seek if there is no seekpoints */
+      this->status = DEMUX_OK;
+      return this->status;
+    }
 
     /* do a lazy, linear seek based on the assumption that there are not
      * that many seek points */
