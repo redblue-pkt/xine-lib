@@ -425,7 +425,7 @@ void *demux_flac_init_class (xine_t *xine, void *data);
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "flac", XINE_VERSION_CODE, NULL, demux_flac_init_class },
+  { PLUGIN_DEMUX, 21, "flac", XINE_VERSION_CODE, NULL, demux_flac_init_class },
   { PLUGIN_AUDIO_DECODER, 13, "flacdec", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
