@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.68 2002/01/25 14:56:00 jkeil Exp $
+ * $Id: video_out.c,v 1.69 2002/02/02 13:26:34 miguelfreitas Exp $
  *
  */
 
@@ -402,7 +402,7 @@ static void *video_out_loop (void *this_gen) {
 	if (img_backup) {
 	  pthread_mutex_lock (&img_backup->mutex);
 #ifdef VIDEO_OUT_LOG
-	  printf("video_out : overwriting frame backup\n");
+	  prcvs -z3 -d:ext:miguelfreitas@cvs.xine.sourceforge.net:/cvsroot/xine commitintf("video_out : overwriting frame backup\n");
 #endif
 	  img_backup->display_locked = 0;
 	  if (!img_backup->decoder_locked) 
@@ -411,6 +411,8 @@ static void *video_out_loop (void *this_gen) {
 	  pthread_mutex_unlock (&img_backup->mutex);
 	}
 
+	printf("video_out : copying logo image\n");
+	
 	img_backup = vo_get_frame (this, this->logo_w, this->logo_h,
 				   42, IMGFMT_YUY2, 6000, VO_BOTH_FIELDS);
 
@@ -421,6 +423,8 @@ static void *video_out_loop (void *this_gen) {
 	xine_fast_memcpy(img_backup->base[0], this->logo_yuy2,
 			 this->logo_w*this->logo_h*2);
 
+	/* this shouldn't be needed, duplicate_frame will call 
+	   img->copy for us. [mf]  
 	if (img_backup->copy) {
 	  int height = this->logo_h;
 	  int stride = this->logo_w;
@@ -433,9 +437,9 @@ static void *video_out_loop (void *this_gen) {
 	    src[0] += 32 * stride;
 	  }
 	}
-
+        */
+        
 	backup_is_logo = 1;
-
       }
 
 
@@ -448,7 +452,8 @@ static void *video_out_loop (void *this_gen) {
 	do {
 	  xine_usec_sleep ( 10000 );
 	  cur_pts = this->metronom->get_current_time (this->metronom);
-	  diff = cur_pts - pts;
+	  /* using abs will avoid problems if metronom gets updated */
+	  diff = abs(cur_pts - pts);
 	  
 	} while (diff < 2 * this->pts_per_frame) ;
 
@@ -612,8 +617,6 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
   vo_frame_t *dupl;
   int image_size;
     
-  pthread_mutex_unlock (&img->mutex);
-  
   dupl = vo_get_frame( this, img->width, img->height, img->ratio,
 		       img->format, img->duration, VO_BOTH_FIELDS );
  
@@ -677,15 +680,13 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
   
   pthread_mutex_unlock (&dupl->mutex);
   
-  pthread_mutex_unlock (&img->mutex);
-
   return dupl;
 }
 
 static void vo_open (vo_instance_t *this) {
 
+  this->decoder_started_flag = 0;
   this->video_opened = 1;
-
 }
 
 static void vo_close (vo_instance_t *this) {
