@@ -17,8 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.12 2001/06/14 09:19:44 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.13 2001/06/15 08:58:11 f1rmb Exp $
  */
+
+/* required for swab() */
+#define _XOPEN_SOURCE 500
+/* required for FNDELAY decl */
+#define _BSD_SOURCE 1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -27,10 +32,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <math.h>
+#include <unistd.h>
 #if defined(__OpenBSD__)
 #include <soundcard.h>
 #elif defined(__FreeBSD__)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.5 2001/06/10 00:20:19 guenter Exp $
+ * $Id: w32codec.c,v 1.6 2001/06/15 08:58:12 f1rmb Exp $
  *
  * routines for using w32 codecs
  *
@@ -410,7 +410,8 @@ static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
   printf("Audio buffer min. size: %d\n",srcsize);
   */
 
-  acmStreamSize(this->srcstream, 16384, &this->rec_audio_src_size, ACM_STREAMSIZEF_DESTINATION);
+  acmStreamSize(this->srcstream, 16384, (LPDWORD) &this->rec_audio_src_size, 
+		ACM_STREAMSIZEF_DESTINATION);
   /* printf("recommended source buffer size: %d\n", this->rec_audio_src_size); */
 
   this->size = 0;
