@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.145 2002/10/29 02:57:59 guenter Exp $
+ * $Id: video_out_xv.c,v 1.146 2002/11/04 08:05:12 pmhahn Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1205,7 +1205,7 @@ static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const voi
 			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
 			       "video.xv_autopaint_colorkey",
-			       _("Make Xv autopaint it's colorket"));
+			       _("Make Xv autopaint it's colorkey"));
 
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  int xv_filter;
