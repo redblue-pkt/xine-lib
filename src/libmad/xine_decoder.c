@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/10/17 17:43:43 mroi Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/10/19 18:08:01 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -259,7 +259,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.decode_data         = mad_decode_data;
   this->audio_decoder.reset               = mad_reset;
   this->audio_decoder.dispose             = mad_dispose;
-  
+
+  this->audio_out       = stream->audio_out;
   this->output_open     = 0;
   this->bytes_in_buffer = 0;
 
