@@ -516,5 +516,9 @@ Sylvain Colinet <scolinet@gmail.com>
 
 Barry Scott <barry.scott@onelan.co.uk>
   fix V4l source selection code by MRL
+
+Reinhard Nissl <rnissl@gmx.de>
+  contributions for VDR interoperability, bugfixes,
+  overlay blending quality improvements
       
 (let us know if we've forgotten anyone)

@@ -17,6 +17,7 @@ xine-lib (1-xxx)
     problems for people with sat cards.  
   * DVB: Will now verify that channels.conf file is in correct (?zap) format.
   * fixed OSS mixer disabling itself after first playlist entry
+  * improved overlay blending quality, fixed subtitles with XShm
  
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
