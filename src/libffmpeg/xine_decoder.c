@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.69 2002/11/15 00:20:32 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.70 2002/11/15 18:03:57 esnel Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -658,6 +658,7 @@ static void ff_dispose (video_decoder_t *this_gen) {
     free(this->buf);
   this->buf = NULL;
 
+  free (this->chunk_buffer);
   free (this_gen);
 }
 
