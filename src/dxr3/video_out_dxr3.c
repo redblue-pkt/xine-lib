@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.84 2003/08/05 15:07:42 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.85 2003/08/12 13:54:21 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -584,10 +584,6 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   if (!this->add_bars)
     /* don't add black bars; assume source is in 4:3 */
     ratio = 4.0/3.0;
-  
-  if (ratio <= 0.0)
-    /* correct some crazy aspects */
-    ratio = (double)width / (double)height;
   
   frame->vo_frame.ratio = ratio;
   frame->pan_scan       = 0;
