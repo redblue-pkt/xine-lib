@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_image.c,v 1.1 2003/03/23 17:12:29 holstsn Exp $
+ * $Id: demux_image.c,v 1.2 2003/04/18 14:11:04 hadess Exp $
  *
  * image dummy demultiplexer
  *
@@ -160,17 +160,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   case METHOD_BY_EXTENSION: {
 
-    char *ending, *mrl;
-    
+    char *extensions, *mrl;
+
     mrl = input->get_mrl (input);
 
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".png", 4)) {
+    extensions = class_gen->get_extensions (class_gen);
+    if (!xine_demux_check_extension (mrl, extensions)) {
       return NULL;
     }
   }
