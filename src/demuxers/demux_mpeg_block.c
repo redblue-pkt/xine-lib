@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.139 2002/11/15 17:59:47 esnel Exp $
+ * $Id: demux_mpeg_block.c,v 1.140 2002/11/16 12:22:15 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -321,17 +321,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     end_pts |= (p[7+18] << 8);
     end_pts |= p[7+19];
 
-    buf->content   = p;
-    buf->size      = packet_len;
-    buf->type      = BUF_SPU_DVD;
-    buf->decoder_flags |= BUF_FLAG_SPECIAL;
-    buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
-    buf->decoder_info[2] = SPU_DVD_SUBTYPE_NAV;
-    buf->pts       = 0;   /* NAV packets do not have PES values */
-    buf->input_pos = this->input->get_current_pos(this->input);
-    buf->input_length = this->input->get_length (this->input);
-    this->video_fifo->put (this->video_fifo, buf);
-
 #ifdef LOG
     printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
 	    start_pts, end_pts);
@@ -353,6 +342,17 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     this->nav_last_start_pts = start_pts;
     this->send_newpts = 0;
     this->last_pts[PTS_AUDIO] = this->last_pts[PTS_VIDEO] = 0;
+
+    buf->content   = p;
+    buf->size      = packet_len;
+    buf->type      = BUF_SPU_DVD;
+    buf->decoder_flags |= BUF_FLAG_SPECIAL;
+    buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+    buf->decoder_info[2] = SPU_DVD_SUBTYPE_NAV;
+    buf->pts       = 0;   /* NAV packets do not have PES values */
+    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->input_length = this->input->get_length (this->input);
+    this->video_fifo->put (this->video_fifo, buf);
 
     return ;
   }
