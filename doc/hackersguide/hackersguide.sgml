@@ -1,0 +1,34 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+<!ENTITY intro SYSTEM "intro.sgml">
+]>
+
+<book>
+<bookinfo>
+  <title>The xine hacker's guide</title>
+  <titleabbrev>hackersguide</titleabbrev>
+  <authorgroup>
+    <author><firstname>G&uuml;nter</firstname><surname>Bartsch</surname></author>
+    <author><firstname>Heiko</firstname><surname>Sch&auml;fer</surname></author>
+
+  </authorgroup>
+  <copyright>
+    <year>2001</year>
+    <holder>the xine project team</holder>
+  </copyright>
+  <abstract>
+  <para>
+    This document should help xine hackers to find their way through
+    xine's architecture and source code. It's a pretty free-form document
+    containing a loose collection of articles describing various aspects
+    of xine's internals.
+  </para>
+  </abstract>
+</bookinfo>
+
+
+<chapter id="intro">
+<title>Introduction</title>
+  &intro;
+</chapter>
+
+</book>

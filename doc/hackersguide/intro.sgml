@@ -1,0 +1,48 @@
+<sect1>
+<title>Where am I ?</title>
+<para>
+You are currently looking at a piece of documentation for xine.
+xine is a free video player. It lives on
+<ulink url="http://xine.sf.net">http://xine.sf.net</ulink>.
+</para>
+</sect1>
+
+<sect1>
+<title>What does this text do ?</title>
+<para>
+This document should help xine hackers to find their way through
+xine's architecture and source code. It's a pretty free-form document
+containing a loose collection of articles describing various aspects
+of xine's internals.
+</para>
+
+<para>
+This document has no intention to and therefore will never be complete or
+current in any way.
+</para>
+</sect1>
+
+<sect1>
+<title>New versions of this document</title>
+<para>
+This document is being developed in the xine-lib cvs repository within
+the directory <filename>doc/hackersguide/</filename>. If you are
+unsure what to do with the stuff in that directory, please read the
+<filename>README</filename> file located there.
+</para>
+<para>
+New versions of this document can also be obtained from the xine web
+site on sourceforge:
+
+<ulink url="http://xine.sf.net/">http://xine.sf.net/</ulink>.
+</para>
+</sect1>
+
+<sect1>
+<title>Feedback</title>
+<para>
+All comments, error reports, additional information and criticism of
+all sorts should be directed to the xine developer mailing list
+<email>xine-devel@lists.sourceforge.net</email>.
+</para>
+</sect1>
