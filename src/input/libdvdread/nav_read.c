@@ -26,8 +26,12 @@
 #include "nav_types.h"
 #include "nav_read.h"
 
+/*
+#define STRICT
+*/
+
 void navRead_PCI(pci_t *pci, unsigned char *buffer) {
-  int i, j, k;
+  int i, j;
 
   assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
   
@@ -71,6 +75,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 #endif
 
 
+#ifdef STRICT
   /* Asserts */
 
   /* pci pci gi */ 
@@ -95,6 +100,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   /* pci hli btnit */
   for(i = 0; i < pci->hli.hl_gi.btngr_ns; i++) {
     for(j = 0; j < (36 / pci->hli.hl_gi.btngr_ns); j++) {
+      int k;
       int n = (36 / pci->hli.hl_gi.btngr_ns) * i + j;
       assert(pci->hli.btnit[n].zero1 == 0);
       assert(pci->hli.btnit[n].zero2 == 0);
@@ -127,6 +133,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
       }
     }
   }
+#endif
 }
 
 void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
@@ -178,9 +185,11 @@ void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
     B2N_32(dsi->synci.sp_synca[i]);
 
   
+#ifdef STRICT
   /* Asserts */
 
   /* dsi dsi gi */
   assert(dsi->dsi_gi.zero1 == 0);
+#endif
 }
 
