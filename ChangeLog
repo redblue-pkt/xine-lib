@@ -10,6 +10,7 @@ xine (0.9.11) unstable; urgency=low
   * DXR3 support for libfame 0.8.10 and above
   * fixes for transport streams demuxer
   * VIDIX video out driver (experimental)
+  * TV fullscreen support using nvtvd
 
 xine (0.9.10) unstable; urgency=low
 
