@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.60 2002/02/15 11:46:57 guenter Exp $
+ * $Id: dxr3_decoder.c,v 1.61 2002/03/05 21:54:31 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -139,30 +139,17 @@ static int dxr3_ok;
 
 static void dxr3_presence_test( xine_t* xine)
 {
-	int fd, val;
-        vo_info_t *info;
-
-	if (dxr3_tested)
-		return;
-
+        int info;
+/* FIXME: Get rid of global vars */
 	dxr3_tested = 1;
 	dxr3_ok = 0;
         if (xine && xine->video_driver ) {
-          info = xine->video_driver->get_info();
-          if ((strncmp (info->id, "dxr3", 4)) != 0) {
-              return;
+          info = xine->video_driver->get_property( xine->video_driver, VO_PROP_VO_TYPE);
+          printf("dxr3_presence_test:info=%d\n",info);
+          if (info != VO_TYPE_DXR3) {
+            return;
           }
         }
-	if ((fd = open(devname, O_WRONLY))<0) {
-		printf("dxr3: not detected (%s: %s)\n",
-			devname, strerror(errno));
-		return;
-	}
-	if (ioctl(fd, EM8300_IOCTL_GET_AUDIOMODE, &val)<0) {
-		printf("dxr3: ioctl failed (%s)\n", strerror(errno));
-		return;
-	}
-	close(fd);
 	dxr3_ok = 1;
 }
 

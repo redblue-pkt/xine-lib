@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.6 2002/02/25 23:44:05 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.7 2002/03/05 21:54:31 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -440,11 +440,11 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
-
-  if (this->mpeg_source == 0 && this->enc && this->enc->on_display_frame)
-	this->enc->on_display_frame(this, frame);
-  if (this->mpeg_source)
-	frame_gen->displayed(frame_gen);
+  if (this->mpeg_source == 0 && this->enc && this->enc->on_display_frame) {
+        this->enc->on_display_frame(this, frame);
+  } else {
+        frame_gen->displayed(frame_gen);
+  }
   /* for non-mpeg, the encoder plugin is responsible for calling 
    * frame_gen->displayed(frame_gen) ! */
 }
