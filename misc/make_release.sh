@@ -44,12 +44,12 @@ else
     exit 1
 fi
 
-if [ `basename $topdir` = xine-lib ]; then
-    echo "good, this seems to be a xine-lib CVS checkout."
-else
-    echo "This script is intended to be called from xine-lib CVS trees only."
-    exit 1
-fi
+#if [ `basename $topdir` = xine-lib ]; then
+#    echo "good, this seems to be a xine-lib CVS checkout."
+#else
+#    echo "This script is intended to be called from xine-lib CVS trees only."
+#    exit 1
+#fi
 
 superdir=`dirname "$topdir"`
 if test -d "$superdir/xine_www"; then
