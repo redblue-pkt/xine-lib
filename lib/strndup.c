@@ -1,8 +1,10 @@
 #include "config.h"
 
-#ifndef HOST_OS_DARWIN
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#else
+#endif
+
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
