@@ -60,27 +60,24 @@ void mpc_decoder_init_huffman_sv6(mpc_decoder *d);
 void mpc_decoder_init_huffman_sv7(mpc_decoder *d);
 void mpc_decoder_read_bitstream_sv6(mpc_decoder *d);
 void mpc_decoder_read_bitstream_sv7(mpc_decoder *d);
-mpc_uint32_t random_int(); // in synth_filter.c
 void mpc_decoder_update_buffer(mpc_decoder *d, mpc_uint32_t RING);
 BOOL mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample);
-void mpc_decoder_initialisiere_quantisierungstabellen(mpc_decoder *d, double scale_factor);
 void mpc_decoder_requantisierung(mpc_decoder *d, const mpc_int32_t Last_Band);
-void mpc_decoder_synthese_filter_float(mpc_decoder *d, MPC_SAMPLE_FORMAT* OutData);
 
 //------------------------------------------------------------------------------
 // utility functions
 //------------------------------------------------------------------------------
-mpc_int32_t f_read(mpc_decoder *d, void *ptr, size_t size) 
+static mpc_int32_t f_read(mpc_decoder *d, void *ptr, size_t size) 
 { 
     return d->r->read(d->r->data, ptr, size); 
 };
 
-BOOL f_seek(mpc_decoder *d, mpc_int32_t offset) 
+static BOOL f_seek(mpc_decoder *d, mpc_int32_t offset) 
 { 
     return d->r->seek(d->r->data, offset); 
 };
 
-mpc_int32_t f_read_dword(mpc_decoder *d, mpc_uint32_t * ptr, mpc_uint32_t count) 
+static mpc_int32_t f_read_dword(mpc_decoder *d, mpc_uint32_t * ptr, mpc_uint32_t count) 
 {
     count = f_read(d, ptr, count << 2) >> 2;
 #ifndef MPC_LITTLE_ENDIAN
@@ -110,7 +107,7 @@ static const mpc_uint32_t mask [33] = {
 /* F U N C T I O N S */
 
 // resets bitstream decoding
-void
+static void
 mpc_decoder_reset_bitstream_decode(mpc_decoder *d) 
 {
     d->dword = 0;
@@ -120,14 +117,14 @@ mpc_decoder_reset_bitstream_decode(mpc_decoder *d)
 }
 
 // reports the number of read bits
-mpc_uint32_t
+static mpc_uint32_t
 mpc_decoder_bits_read(mpc_decoder *d) 
 {
     return 32 * d->WordsRead + d->pos;
 }
 
 // read desired number of bits out of the bitstream
-mpc_uint32_t
+static mpc_uint32_t
 mpc_decoder_bitstream_read(mpc_decoder *d, const mpc_uint32_t bits) 
 {
     mpc_uint32_t out = d->dword;
@@ -151,7 +148,7 @@ mpc_decoder_bitstream_read(mpc_decoder *d, const mpc_uint32_t bits)
 }
 
 // decode SCFI-bundle (sv4,5,6)
-void
+static void
 mpc_decoder_scfi_bundle_read(
     mpc_decoder *d,
     HuffmanTyp* Table, mpc_int32_t* SCFI, mpc_int32_t* DSCF) 
@@ -176,7 +173,7 @@ mpc_decoder_scfi_bundle_read(
     *DSCF = Table->Value &  1;
 }
 
-int
+static int
 mpc_decoder_huffman_typ_cmpfn(const void* p1, const void* p2)
 {
     if (((HuffmanTyp*) p1)->Code < ((HuffmanTyp*) p2)->Code ) return +1;
@@ -201,7 +198,7 @@ mpc_decoder_resort_huff_tables(
 
 // basic huffman decoding routine
 // works with maximum lengths up to 14
-mpc_int32_t
+static mpc_int32_t
 mpc_decoder_huffman_decode(mpc_decoder *d, const HuffmanTyp *Table) 
 {
     // load preview and decode
@@ -225,7 +222,7 @@ mpc_decoder_huffman_decode(mpc_decoder *d, const HuffmanTyp *Table)
 
 // faster huffman through previewing less bits
 // works with maximum lengths up to 10
-mpc_int32_t
+static mpc_int32_t
 mpc_decoder_huffman_decode_fast(mpc_decoder *d, const HuffmanTyp* Table)
 {
     // load preview and decode
@@ -249,7 +246,7 @@ mpc_decoder_huffman_decode_fast(mpc_decoder *d, const HuffmanTyp* Table)
 
 // even faster huffman through previewing even less bits
 // works with maximum lengths up to 5
-mpc_int32_t
+static mpc_int32_t
 mpc_decoder_huffman_decode_faster(mpc_decoder *d, const HuffmanTyp* Table)
 {
     // load preview and decode
@@ -271,27 +268,27 @@ mpc_decoder_huffman_decode_faster(mpc_decoder *d, const HuffmanTyp* Table)
     return Table->Value;
 }
 
-void
+static void
 mpc_decoder_reset_v(mpc_decoder *d) 
 {
     memset(d->V_L, 0, sizeof d->V_L);
     memset(d->V_R, 0, sizeof d->V_R);
 }
 
-void
+static void
 mpc_decoder_reset_synthesis(mpc_decoder *d) 
 {
     mpc_decoder_reset_v(d);
 }
 
-void
+static void
 mpc_decoder_reset_y(mpc_decoder *d) 
 {
     memset(d->Y_L, 0, sizeof d->Y_L);
     memset(d->Y_R, 0, sizeof d->Y_R);
 }
 
-void
+static void
 mpc_decoder_reset_globals(mpc_decoder *d) 
 {
     mpc_decoder_reset_bitstream_decode(d);
@@ -316,7 +313,7 @@ mpc_decoder_reset_globals(mpc_decoder *d)
     memset(d->MS_Flag         , 0, sizeof d->MS_Flag          );
 }
 
-mpc_uint32_t
+static mpc_uint32_t
 mpc_decoder_decode_internal(mpc_decoder *d, MPC_SAMPLE_FORMAT *buffer) 
 {
     mpc_uint32_t output_frame_length = MPC_FRAME_LENGTH;
@@ -994,7 +991,7 @@ mpc_decoder_read_bitstream_sv7(mpc_decoder *d)
             break;
         case -1:
             for (k=0; k<36; k++ ) {
-                tmp  = random_int();
+                tmp  = random_int(d);
                 *L++ = ((tmp >> 24) & 0xFF) + ((tmp >> 16) & 0xFF) + ((tmp >>  8) & 0xFF) + ((tmp >>  0) & 0xFF) - 510;
             }
             break;
@@ -1054,7 +1051,7 @@ mpc_decoder_read_bitstream_sv7(mpc_decoder *d)
             break;
         case -1:
                 for (k=0; k<36; k++ ) {
-                    tmp  = random_int();
+                    tmp  = random_int(d);
                     *R++ = ((tmp >> 24) & 0xFF) + ((tmp >> 16) & 0xFF) + ((tmp >>  8) & 0xFF) + ((tmp >>  0) & 0xFF) - 510;
                 }
                 break;
@@ -1177,7 +1174,7 @@ void mpc_decoder_setup(mpc_decoder *d, mpc_reader *r)
   mpc_decoder_init_huffman_sv7(d);
 }
 
-void mpc_decoder_set_streaminfo(mpc_decoder *d, mpc_streaminfo *si)
+static void mpc_decoder_set_streaminfo(mpc_decoder *d, mpc_streaminfo *si)
 {
     mpc_decoder_reset_synthesis(d);
     mpc_decoder_reset_globals(d);
@@ -1219,6 +1216,7 @@ BOOL mpc_decoder_initialize(mpc_decoder *d, mpc_streaminfo *si)
 // will seek from the beginning of the file to the desired
 // position in ms (given by seek_needed)
 //---------------------------------------------------------------
+#if 0
 static void
 helper1(mpc_decoder *d, mpc_uint32_t bitpos) 
 {
@@ -1227,6 +1225,7 @@ helper1(mpc_decoder *d, mpc_uint32_t bitpos)
     d->dword = d->Speicher[d->Zaehler = 0];
     d->pos = bitpos & 31;
 }
+#endif
 
 static void
 helper2(mpc_decoder *d, mpc_uint32_t bitpos) 
@@ -1237,6 +1236,7 @@ helper2(mpc_decoder *d, mpc_uint32_t bitpos)
     d->pos = bitpos & 31;
 }
 
+#if 0
 static void
 helper3(mpc_decoder *d, mpc_uint32_t bitpos, mpc_uint32_t* buffoffs) 
 {
@@ -1249,6 +1249,7 @@ helper3(mpc_decoder *d, mpc_uint32_t bitpos, mpc_uint32_t* buffoffs)
     }
     d->dword = d->Speicher[d->Zaehler = bitpos - *buffoffs ];
 }
+#endif
 
 static mpc_uint32_t get_initial_fpos(mpc_decoder *d, mpc_uint32_t StreamVersion)
 {

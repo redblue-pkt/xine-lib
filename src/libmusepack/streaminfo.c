@@ -60,14 +60,14 @@ mpc_streaminfo_init(mpc_streaminfo * si)
 
 // read information from SV8 header
 // not yet implemented
-mpc_int32_t
+static mpc_int32_t
 streaminfo_read_header_sv8(mpc_streaminfo * si, mpc_reader * fp)
 {
     return 0;
 }
 
 /// Reads streaminfo from SV7 header. 
-mpc_int32_t
+static mpc_int32_t
 streaminfo_read_header_sv7(mpc_streaminfo * si, mpc_uint32_t HeaderData[8])
 {
     const mpc_int32_t samplefreqs[4] = { 44100, 48000, 37800, 32000 };
@@ -140,7 +140,7 @@ streaminfo_read_header_sv7(mpc_streaminfo * si, mpc_uint32_t HeaderData[8])
 }
 
 // read information from SV4-SV6 header
-mpc_int32_t
+static mpc_int32_t
 streaminfo_read_header_sv6(mpc_streaminfo * si, mpc_uint32_t HeaderData[8])
 {
     //mpc_uint32_t    HeaderData [8];

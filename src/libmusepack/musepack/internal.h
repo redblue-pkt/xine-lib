@@ -23,5 +23,10 @@ mpc_uint32_t swap32(mpc_uint32_t val) {
 /// \return -1 on errors of any kind
 mpc_int32_t JumpID3v2(mpc_reader* fp);
 
+/// helper functions used by multiple files
+mpc_uint32_t random_int(mpc_decoder *d); // in synth_filter.c
+void mpc_decoder_initialisiere_quantisierungstabellen(mpc_decoder *d, double scale_factor);
+void mpc_decoder_synthese_filter_float(mpc_decoder *d, MPC_SAMPLE_FORMAT* OutData);
+
 #endif // _musepack_internal_h
 

@@ -37,6 +37,7 @@
 /// \todo document me
 
 #include "musepack/musepack.h"
+#include "musepack/internal.h"
 
 /* C O N S T A N T S */
 // bits per sample for chosen quantizer
@@ -87,14 +88,15 @@ static mpc_uint32_t find_shift(double fval)
 void
 mpc_decoder_scale_output(mpc_decoder *d, double factor) 
 {
+    mpc_int32_t     n;
+    double  f1;
+    double  f2;
 #ifndef MPC_FIXED_POINT
 	factor *= 1.0 / (double)(1<<(MPC_FIXED_POINT_SHIFT-1));
 #else
 	factor *= 1.0 / (double)(1<<(16 - MPC_FIXED_POINT_SHIFT));
 #endif
-    mpc_int32_t     n;
-    double  f1 = factor;
-    double  f2 = factor;
+    f1 = f2 = factor;
 
     // handles +1.58...-98.41 dB, where's scf[n] / scf[n-1] = 1.20050805774840750476
 	
@@ -111,7 +113,7 @@ mpc_decoder_scale_output(mpc_decoder *d, double factor)
     }
 }
 
-void
+static void
 mpc_decoder_quantisierungsmodes(mpc_decoder *d) // conversion: index -> quantizer (bitstream reading)
 {                                               // conversion: quantizer -> index (bitstream writing)
     mpc_int32_t  Band = 0;
