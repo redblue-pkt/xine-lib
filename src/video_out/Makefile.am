@@ -122,7 +122,7 @@ xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
 	$(top_builddir)/src/video_out/libdha/libdha.la
 xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_pgx64_la_SOURCES = alphablend.c yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c video_out_pgx64.c
+xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
 xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
