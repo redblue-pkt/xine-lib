@@ -18,10 +18,11 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.9 2003/09/16 02:12:54 storri Exp $
+ *  $Id: xmlparser.c,v 1.10 2003/10/28 13:48:45 valtri Exp $
  *
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

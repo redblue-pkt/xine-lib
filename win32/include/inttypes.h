@@ -37,8 +37,8 @@
 #define uint32_t		unsigned long
 #define uint64_t		unsigned hyper
 
-#define intptr_t		signed int *
-#define uintptr_t		unsigned int *
+#define intptr_t		signed int
+#define uintptr_t		unsigned int
 
 #define __int8_t        int8_t
 #define __int16_t       int16_t
