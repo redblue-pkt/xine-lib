@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.1 2002/01/17 02:35:20 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.2 2002/01/21 09:54:03 jkeil Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -544,8 +544,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
 
-  setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
-  setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
+  xine_setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
+  xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
   
 #ifdef HAVE_X11
   this->display           = visual->display;
