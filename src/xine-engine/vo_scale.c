@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.20 2003/04/24 00:21:01 jstembridge Exp $
+ * $Id: vo_scale.c,v 1.21 2003/04/24 11:03:50 jstembridge Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -151,7 +151,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
        *   black borders to use.
        * - exceding zoom shall be accounted by reducing displayed image.
        */
-      if ( x_factor <= (y_factor - (this->video_pixel_aspect - 1)) ) {
+      if ( x_factor <= (y_factor - (this->video_pixel_aspect - 1.0)) ) {
         this->output_width = this->gui_width;
         this->displayed_width = (double)this->delivered_width / this->zoom_factor_x + 0.5;
         
@@ -180,7 +180,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
       }
     
     } else {
-      if(x_factor < (y_factor - (this->video_pixel_aspect - 1))) {
+      if(x_factor < (y_factor - (this->video_pixel_aspect - 1.0))) {
         this->output_width   = (double) this->gui_width;
         this->output_height  = (double) this->delivered_height * x_factor + 0.5;
       } else {
