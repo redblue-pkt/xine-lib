@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.48 2003/09/17 23:57:15 tmmm Exp $
+ * $Id: demux_wav.c,v 1.49 2003/10/12 00:06:00 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,6 +47,8 @@
 /* this is the hex value for 'data' */
 #define data_TAG 0x61746164
 #define PCM_BLOCK_ALIGN 1024
+
+#define PREFERED_BLOCK_SIZE 4096
 
 typedef struct {
   demux_plugin_t       demux_plugin;
@@ -179,7 +181,12 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
 
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-  remaining_sample_bytes = this->wave->nBlockAlign;
+  if (this->wave->nBlockAlign < PREFERED_BLOCK_SIZE) {
+    remaining_sample_bytes = PREFERED_BLOCK_SIZE / this->wave->nBlockAlign *
+                             this->wave->nBlockAlign;
+  } else{
+    remaining_sample_bytes = this->wave->nBlockAlign;
+  }
   current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
 
