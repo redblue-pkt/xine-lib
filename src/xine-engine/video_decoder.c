@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.119 2002/12/27 22:54:44 esnel Exp $
+ * $Id: video_decoder.c,v 1.120 2002/12/31 11:35:14 mroi Exp $
  *
  */
 
@@ -281,7 +281,6 @@ void *video_decoder_loop (void *stream_gen) {
 
       } else if ( (buf->type & 0xFF000000) == BUF_SPU_BASE ) {
 
-        uint32_t spu_type = 0;
         int      i,j;
 
         if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
