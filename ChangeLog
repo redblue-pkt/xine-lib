@@ -15,7 +15,9 @@ xine-lib (1-rc6)
   * fix brightness drift problem (loss of color) [bugs #947520, #963587]
   * fix rare heap overflow with some DVD subpictures [bug #923843]
   * fix stack overflows in the VCD plugin
-        
+  * experimental time stretching plugin: play stream faster or 
+    slower than original speed, optionally preserving pitch
+                
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
   * fix stuttering playback of some realmedia streams
