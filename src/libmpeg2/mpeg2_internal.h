@@ -284,8 +284,7 @@ extern mpeg2_mc_t mpeg2_mc_vis;
 /* slice.c */
 void mpeg2_slice (picture_t * picture, int code, uint8_t * buffer);
 
-/* slice_xvmc.c */
-void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer);
-
 /* stats.c */
 void mpeg2_stats (int code, uint8_t * buffer);
+
+

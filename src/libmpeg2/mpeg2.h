@@ -59,7 +59,7 @@ typedef struct mpeg2dec_s {
     
     /* a spu decoder for possible closed captions */
     spu_decoder_t *cc_dec;
-    int xxmc_last_slice_code;
+    int xvmc_last_slice_code;
     unsigned xxmc_mb_pic_height;
 } mpeg2dec_t ;
 

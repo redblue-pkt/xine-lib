@@ -21,7 +21,7 @@
 #include "video_out.h"
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
-#include "xxmc.h"
+#include "xvmc_vld.h"
 
 static uint8_t zig_zag_scan[64] ATTR_ALIGN(16) =
 {
@@ -117,10 +117,10 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
      */
     
     if (picture->second_field) {
-      mpeg2dec->xxmc_last_slice_code = (xxmc->decoded) ? 0 : -1;
+      mpeg2dec->xvmc_last_slice_code = (xxmc->decoded) ? 0 : -1;
       xxmc->decoded = 0;
     } else {
-      mpeg2dec->xxmc_last_slice_code = 0;
+      mpeg2dec->xvmc_last_slice_code = 0;
     }
 
     mb_frame_height =
@@ -188,11 +188,11 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
     xxmc->proc_xxmc_begin( frame ); 
     if (xxmc->result != 0) {
       xxmc->proc_xxmc_flush( frame );
-      mpeg2dec->xxmc_last_slice_code=-1;
+      mpeg2dec->xvmc_last_slice_code=-1;
     }
   }
   
-  if ((code == mpeg2dec->xxmc_last_slice_code + 1) &&
+  if ((code == mpeg2dec->xvmc_last_slice_code + 1) &&
       code <= mpeg2dec->xxmc_mb_pic_height) {
 
     /*
@@ -208,7 +208,7 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
     xxmc->proc_xxmc_slice( frame );       
     if (xxmc->result != 0) {
 	xxmc->proc_xxmc_flush( frame );
-	mpeg2dec->xxmc_last_slice_code=-1;
+	mpeg2dec->xvmc_last_slice_code=-1;
 	return;
     }
     
@@ -228,7 +228,7 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
 	 * Keep track of slices.
 	 */ 
 
-	mpeg2dec->xxmc_last_slice_code++;
+	mpeg2dec->xvmc_last_slice_code++;
       }
 
     } else  {
@@ -238,7 +238,7 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
      */
 
     lprintf("libmpeg2: VLD XvMC: Slice error.\n");
-    mpeg2dec->xxmc_last_slice_code = -1;
+    mpeg2dec->xvmc_last_slice_code = -1;
     xxmc->proc_xxmc_flush( frame );
     return;
   }
@@ -252,14 +252,14 @@ void mpeg2_xxmc_vld_frame_complete(mpeg2dec_t *mpeg2dec, picture_t *picture, int
     *xxmc = (xine_xxmc_t *) frame->accel_data;
   
   if (xxmc->decoded) return;
-  if (mpeg2dec->xxmc_last_slice_code >= 1) {
+  if (mpeg2dec->xvmc_last_slice_code >= 1) {
     xxmc->proc_xxmc_flush( frame );
     if (xxmc->result) {
-      mpeg2dec->xxmc_last_slice_code=-1;
+      mpeg2dec->xvmc_last_slice_code=-1;
       return;
     }
     xxmc->decoded = 1;
-    mpeg2dec->xxmc_last_slice_code++;
+    mpeg2dec->xvmc_last_slice_code++;
     if (picture->picture_structure == 3 || picture->second_field) {
       if (xxmc->result == 0) 
 	frame->bad_frame = 0;

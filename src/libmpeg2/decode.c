@@ -41,7 +41,7 @@
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "xineutils.h"
-#include "xxmc.h"
+#include "xvmc_vld.h"
 
 /*
 #define LOG_PAN_SCAN
@@ -642,7 +642,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		  break;
 		case XINE_XVMC_ACCEL_IDCT:
 		case XINE_XVMC_ACCEL_MOCOMP:
-		  mpeg2_xvmc_slice (picture, code, buffer);
+		  mpeg2_xvmc_slice (mpeg2dec, picture, code, buffer);
 		  break;
 		default:
 		  mpeg2_slice (picture, code, buffer);
@@ -656,7 +656,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      break;
 	    }
 	    case XINE_IMGFMT_XVMC:
-	      mpeg2_xvmc_slice (picture, code, buffer);
+	      mpeg2_xvmc_slice (mpeg2dec, picture, code, buffer);
 	      break;
 	    default:
 	      mpeg2_slice (picture, code, buffer);
@@ -764,7 +764,7 @@ void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec) {
    * Move to libmpeg2_accel.c
    * int libmpeg2_accel_discontinuity(mpeg2dec_t *);
    */
-  mpeg2dec->xxmc_last_slice_code=-1;
+  mpeg2dec->xvmc_last_slice_code=-1;
   /*
    * End of discontinuity accel code.
    */
