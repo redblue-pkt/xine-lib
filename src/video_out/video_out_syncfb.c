@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.80 2002/11/22 18:06:20 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.81 2002/12/07 23:00:08 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -762,7 +762,11 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
   switch (data_type) {
    case XINE_GUI_SEND_DRAWABLE_CHANGED:
      this->drawable = (Drawable) data;
+
+     XLockDisplay (this->display);
+     XFreeGC(this->display, this->gc);
      this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
+     XUnlockDisplay (this->display);
      break;
   case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
     {

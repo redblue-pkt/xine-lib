@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.16 2002/12/07 01:14:52 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.17 2002/12/07 23:00:07 f1rmb Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -538,6 +538,7 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
         this->drawable = (Drawable)data;
 #ifdef HAVE_X11
         XLockDisplay(this->display);
+	XFreeGC(this->display, this->gc);
         this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
         XUnlockDisplay(this->display);
 #endif
