@@ -1395,7 +1395,7 @@ if test x"$have_ossaudio" = "xyes"; then
 fi
 if test x"$no_alsa" != "xyes"; then
   if test x"$have_alsa09" = "xyes"; then
-    echo "   - alsa09 (Alsa 0.9.x)"
+    echo "   - alsa (Alsa 0.9.x)"
   fi
 fi
 if test x"$no_esd" != "xyes"; then
