@@ -1,4 +1,4 @@
-xine-lib (1.0-1) unstable; urgency=low
+xine-lib (1.0-1) unstable; urgency=high
 
   * new upstream release
     * links libXv dynamically (closes: #287186)
@@ -8,13 +8,15 @@ xine-lib (1.0-1) unstable; urgency=low
     * added libsmbclient based SMB input plugin in addition to the gnomevfs one
     * added libmodplug based support for various tracker formats
     * added MNG support via libmng
+  * added vulnerability IDs in 1-rc8-1 changelog
 
- -- Siggi Langauf <siggi@flake.langauf.de>  Sat, 25 Dec 2004 21:44:26 +0100
+ -- Siggi Langauf <siggi@debian.org>  Sun, 26 Dec 2004 12:20:24 +0100
 
 xine-lib (1-rc8-1) unstable; urgency=high
 
   * new upstream release (closes: #286030)
     * fixes PNM and RTSP related security vulnerabilities (closes: #286077)
+      This has been assigned CAN-2004-1188.
     * fixes DVB playback for fullfeatured cards (possibly closes: #281873)
   * added patch to fix aiff vulnerability (CAN-2004-1300, closes: #285899)
 
