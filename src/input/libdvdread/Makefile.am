@@ -21,6 +21,7 @@ noinst_HEADERS = \
 	dvd_udf.h \
 	dvd_input.h \
 	dvd_reader.h \
+	dvdread_internal.h \
 	ifo_types.h \
 	ifo_read.h \
         ifo_print.h \

@@ -34,10 +34,13 @@
  * todo:
  *   - event processing code to switch channels, start and stop recording.
  *
- * usage:
- *   xine pvr:/<path_to_store_files>
+ * MRL: 
+ *   pvr:<prefix_to_tmp_files>!<prefix_to_saved_files>!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.4 2003/03/05 14:00:14 miguelfreitas Exp $
+ * usage: 
+ *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
+ *
+ * $Id: input_pvr.c,v 1.5 2003/03/07 01:20:22 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,7 +56,12 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include <pthread.h>
+#include <sys/ioctl.h>
+#include <linux/videodev.h>
+
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -63,8 +71,11 @@
 #define PVR_DEVICE        "/dev/ivtv0"
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
 #define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
-#define PVR_FILENAME      "%s/%08d-%04d.vob"
-#define PVR_FILENAME_SIZE 1+8+1+4+4+1
+#define MAX_PAGES         10000			/* maximum number of pages to keep track */
+#define PVR_FILENAME      "%s-%08d-%08d.vob"
+#define PVR_FILENAME_SIZE 1+8+1+8+4+1
+#define SAVE_FILENAME     "%sch%03d %02d-%02d-%04d %02d:%02d:%02d_%04d.vob"
+#define SAVE_FILENAME_SIZE 2+3+1+2+1+2+1+4+1+2+1+2+1+2+1+4+4+1
 
 #define LOG 1
 
@@ -81,42 +92,58 @@ typedef struct {
 
 
 typedef struct {
-  input_plugin_t     input_plugin;
+  input_plugin_t      input_plugin;
 
-  pvr_input_class_t *class;
+  pvr_input_class_t  *class;
   
-  xine_stream_t     *stream;
+  xine_stream_t      *stream;
+  
+  xine_event_queue_t *event_queue;
                    
-  pvrscr_t          *scr;
-  int                scr_tunning;
+  pvrscr_t           *scr;
+  int                 scr_tunning;
     
-  uint32_t           session;		/* session number used to identify the pvr file */
+  uint32_t            session;		/* session number used to identify the pvr file */
   
-  int                dev_fd;		/* fd of the mpeg2 encoder device */
-  int                rec_fd;		/* fd of the current recording file (session/page) */
-  int                play_fd;		/* fd of the current playback (-1 when realtime) */
+  int                 dev_fd;		/* fd of the mpeg2 encoder device */
+  int                 rec_fd;		/* fd of the current recording file (session/page) */
+  int                 play_fd;		/* fd of the current playback (-1 when realtime) */
 
-  uint32_t           rec_blk;		/* next block to record */
-  uint32_t           rec_page;		/* page of current rec_fd file */
-  uint32_t           play_blk;		/* next block to play */
-  uint32_t           play_page;		/* page of current play_fd file */
-  uint32_t           first_page;	/* first page available (not erased yet) */
-  uint32_t           max_page_age;	/* max age to retire (erase) pages */
+  uint32_t            rec_blk;		/* next block to record */
+  uint32_t            rec_page;		/* page of current rec_fd file */
+  uint32_t            play_blk;		/* next block to play */
+  uint32_t            play_page;	/* page of current play_fd file */
+  uint32_t            first_page;	/* first page available (not erased yet) */
+  uint32_t            max_page_age;	/* max age to retire (erase) pages */
+  uint32_t            show_page;	/* first page of current show */
+  uint32_t            save_page;	/* first page to save */
+  uint32_t            page_block[MAX_PAGES]; /* first block of each page */
+    
+  char               *mrl;
+  char               *tmp_prefix;
+  char               *save_prefix;
+  char               *save_name;
   
-  char              *mrl;
-  char              *path;
+  time_t              start_time;	/* time when recording started */
+  time_t              show_time;	/* time when current show started */
   
   /* buffer to pass data from pvr thread to xine */
-  uint8_t            data[PVR_BLOCK_SIZE];
-  int                valid_data;
-  int                want_data;
+  uint8_t             data[PVR_BLOCK_SIZE];
+  int                 valid_data;
+  int                 want_data;
   
-  pthread_mutex_t    lock;
-  pthread_cond_t     has_valid_data;
-  pthread_cond_t     wake_pvr;
-  pthread_t          pvr_thread;
-  int                pvr_running;
-  
+  pthread_mutex_t     lock;
+  pthread_mutex_t     dev_lock;
+  pthread_cond_t      has_valid_data;
+  pthread_cond_t      wake_pvr;
+  pthread_t           pvr_thread;
+  int                 pvr_running;
+
+  /* device properties */
+  int                 input;
+  int                 channel;
+  uint32_t            frequency;  
+     
 } pvr_input_plugin_t;
 
 
@@ -283,6 +310,15 @@ static pvrscr_t* pvrscr_init (void) {
 }
 
 
+static uint32_t block_to_page(pvr_input_plugin_t *this, uint32_t block) {
+  uint32_t page;
+  
+  for( page = 0; page < this->rec_page; page++ ) {
+    if( block < this->page_block[page+1] )
+      break;    
+  }
+  return page;
+}
 
 static uint32_t pvr_plugin_get_capabilities (input_plugin_t *this_gen) {
 
@@ -371,6 +407,59 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
   }
 }
 
+
+/*
+ * close current recording page and open a new one
+ */
+static int pvr_break_rec_page (pvr_input_plugin_t *this) {
+  
+  char filename[strlen(this->tmp_prefix) + PVR_FILENAME_SIZE];
+     
+  if( this->rec_fd != -1 && this->rec_fd != this->play_fd ) {
+    close(this->rec_fd);  
+  }
+     
+  if( this->rec_fd == -1 )
+    this->rec_page = 0;
+  else
+    this->rec_page++;
+      
+  this->page_block[this->rec_page] = this->rec_blk;
+    
+  sprintf(filename, PVR_FILENAME, this->tmp_prefix, this->session, this->rec_page);
+     
+#ifdef LOG
+  printf("input_pvr: opening pvr file for writing (%s)\n", filename);
+#endif
+     
+  this->rec_fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666 );
+  if( this->rec_fd == -1 ) {
+    printf("input_pvr: error creating pvr file (%s)\n", filename);
+    return 0;
+  }
+     
+  /* erase first_page if old and not to be saved */
+  if( this->max_page_age != -1 && 
+      this->rec_page - this->max_page_age == this->first_page &&
+      (this->save_page == -1 || this->first_page < this->save_page) ) {
+    sprintf(filename, PVR_FILENAME, this->tmp_prefix, this->session, this->first_page);
+
+#ifdef LOG
+    printf("input_pvr: erasing old pvr file (%s)\n", filename);
+#endif
+       
+    this->first_page++;
+    if(this->play_fd != -1 && this->play_page < this->first_page) {
+      this->play_blk = this->page_block[this->first_page];
+      close(this->play_fd);
+      this->play_fd = -1;
+    }
+       
+    remove(filename);
+  }     
+  return 1;
+}
+
 /*
  * check the status of recording file, open new one as needed and write the current data. 
  */
@@ -378,51 +467,15 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
   
   off_t pos;
 
-  if( this->session == -1 )
+  if( this->session == -1 ) /* not recording */
     return 1;
   
   /* check if it's time to change page/file */
-  if( (this->rec_blk / BLOCKS_PER_PAGE) != this->rec_page || this->rec_fd == -1) {
-    char filename[strlen(this->path) + PVR_FILENAME_SIZE];
-     
-    if( this->rec_fd != -1 && this->rec_fd != this->play_fd ) {
-      close(this->rec_fd);  
-    }
-     
-    this->rec_page = this->rec_blk / BLOCKS_PER_PAGE;
-    sprintf(filename, PVR_FILENAME, this->path, this->session, this->rec_page);
-     
-#ifdef LOG
-    printf("input_pvr: opening pvr file for writing (%s)\n", filename);
-#endif
-     
-    this->rec_fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666 );
-    if( this->rec_fd == -1 ) {
-      printf("input_pvr: error creating pvr file (%s)\n", filename);
+  if( this->rec_fd == -1 || (this->rec_blk - this->page_block[this->rec_page]) >= BLOCKS_PER_PAGE ) {
+    if( !pvr_break_rec_page(this) )
       return 0;
-    }
-     
-    /* erase first page if old */
-    if( this->max_page_age != -1 && 
-        this->rec_page - this->max_page_age == this->first_page ) {
-      sprintf(filename, PVR_FILENAME, this->path, this->session, this->first_page);
-
-#ifdef LOG
-      printf("input_pvr: erasing old pvr file (%s)\n", filename);
-#endif
-       
-      this->first_page++;
-      if(this->play_blk / BLOCKS_PER_PAGE < this->first_page) {
-        this->play_blk = this->first_page * BLOCKS_PER_PAGE;
-        if( this->play_fd != -1 )
-          close(this->play_fd);
-        this->play_fd = -1;
-      }
-       
-      remove(filename);
-    }     
   }
-  pos = (off_t)(this->rec_blk % BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
+  pos = (off_t)(this->rec_blk - this->page_block[this->rec_page]) * PVR_BLOCK_SIZE;
   if( lseek (this->rec_fd, pos, SEEK_SET) != pos ) {
     printf("input_pvr: error setting position for writing %lld\n", pos);
     return 0;
@@ -469,12 +522,12 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     this->want_data = 1;
   
   } else {
-    
+
     if( this->rec_fd == -1 )
       return 1;
 
-    if( (this->play_blk / BLOCKS_PER_PAGE) != this->play_page || this->play_fd == -1 ) {
-       char filename[strlen(this->path) + PVR_FILENAME_SIZE];
+    if( this->play_fd == -1 || (this->play_blk - this->page_block[this->play_page]) >= BLOCKS_PER_PAGE ) {
+       char filename[strlen(this->tmp_prefix) + PVR_FILENAME_SIZE];
        
 #ifdef LOG
        if(this->play_fd == -1)
@@ -485,17 +538,21 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
          close(this->play_fd);  
        }
        
-       this->play_page = this->play_blk / BLOCKS_PER_PAGE;
+       if( this->play_fd == -1 )
+         this->play_page = block_to_page(this, this->play_blk);
+       else
+         this->play_page++;
+       
        if( this->play_page < this->first_page ) {
          this->play_page = this->first_page;
-         this->play_blk = this->play_page * BLOCKS_PER_PAGE;
+         this->play_blk = this->page_block[this->play_page];
        }
        
        /* check if we can reuse the same handle */
        if( this->play_page == this->rec_page ) {
          this->play_fd = this->rec_fd;
        } else {
-         sprintf(filename, PVR_FILENAME, this->path, this->session, this->play_page);
+         sprintf(filename, PVR_FILENAME, this->tmp_prefix, this->session, this->play_page);
 
 #ifdef LOG
          printf("input_pvr: opening pvr file for reading (%s)\n", filename);
@@ -517,7 +574,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
       while( this->play_blk >= this->rec_blk-1 )
         pthread_cond_wait (&this->has_valid_data, &this->lock);
 
-      pos = (off_t)(this->play_blk % BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
+      pos = (off_t)(this->play_blk - this->page_block[this->play_page]) * PVR_BLOCK_SIZE;
       if( lseek (this->play_fd, pos, SEEK_SET) != pos ) {
         printf("input_pvr: error setting position for reading %lld\n", pos);
         return 0;
@@ -566,6 +623,7 @@ static void *pvr_loop (void *this_gen) {
       
       lost_sync = 0;
       
+      pthread_mutex_lock(&this->dev_lock);
       while (total_bytes < PVR_BLOCK_SIZE) {
         num_bytes = read (this->dev_fd, this->data + total_bytes, PVR_BLOCK_SIZE-total_bytes);
         if (num_bytes <= 0) {
@@ -583,19 +641,20 @@ static void *pvr_loop (void *this_gen) {
 #endif
         if( !pvr_mpeg_resync(this->dev_fd) ) {
           this->pvr_running = 0;
-          break;
+        } else {
+          lost_sync = 1;
+          this->data[0] = 0; this->data[1] = 0; this->data[2] = 1; this->data[3] = 0xba;
+          total_bytes = 4;
         }
-        lost_sync = 1;
-        this->data[0] = 0; this->data[1] = 0; this->data[2] = 1; this->data[3] = 0xba;
-        total_bytes = 4;
       }      
+      pthread_mutex_unlock(&this->dev_lock);
+    
     } while( lost_sync );   
     
     pthread_mutex_lock(&this->lock);
     
     if( !pvr_rec_file(this) ) {
       this->pvr_running = 0;  
-      break;
     }
     
     this->valid_data = 1;
@@ -613,6 +672,180 @@ static void *pvr_loop (void *this_gen) {
 }
 
 /*
+ * finishes the current recording.
+ * checks this->save_page if the recording should be saved or removed.
+ * moves files to a permanent diretory (save_path) using a given show
+ * name (save_name) or a default one using channel and time.
+ */
+static void pvr_finish_recording (pvr_input_plugin_t *this) {
+    
+  char src_filename[strlen(this->tmp_prefix) + PVR_FILENAME_SIZE];
+  char dst_filename[strlen(this->save_prefix) + strlen(this->save_name) + SAVE_FILENAME_SIZE];
+  struct tm rec_time;
+  uint32_t i;
+
+#ifdef LOG
+  printf("input_pvr: finish_recording\n");
+#endif
+
+  pthread_mutex_lock(&this->lock);
+  if( this->rec_fd != -1 ) {
+    close(this->rec_fd);  
+    
+    if( this->play_fd != -1 && this->play_fd != this->rec_fd )
+      close(this->play_fd);
+    
+    this->rec_fd = this->play_fd = -1;
+    
+    if( this->save_page == this->show_page )
+      localtime_r(&this->show_time, &rec_time);
+    else
+      localtime_r(&this->start_time, &rec_time);
+    
+    for( i = this->first_page; i <= this->rec_page; i++ ) {
+      
+      sprintf(src_filename, PVR_FILENAME, this->tmp_prefix, this->session, i);
+      if( !strlen(this->save_name) )
+        sprintf(dst_filename, SAVE_FILENAME, this->save_prefix, 
+                this->channel, rec_time.tm_mon, rec_time.tm_mday,
+                rec_time.tm_year, rec_time.tm_hour, rec_time.tm_min,
+                rec_time.tm_sec, i-this->first_page+1);
+      else
+        sprintf(dst_filename, "%s%s-%04d.vob", this->save_prefix, this->save_name,
+                i-this->first_page+1);
+      
+      if( this->save_page == -1 || i < this->save_page ) {
+#ifdef LOG
+        printf("input_pvr: erasing old pvr file (%s)\n", src_filename);
+#endif
+        remove(src_filename);
+      } else {
+#ifdef LOG
+        printf("input_pvr: moving (%s) to (%s)\n", src_filename, dst_filename);
+#endif
+        rename(src_filename,dst_filename);
+      }
+    }    
+  }
+  
+  this->first_page = 0;
+  this->show_page = 0;
+  this->save_page = -1;
+  if( this->save_name )
+    free( this->save_name );
+  this->save_name = strdup("");
+  
+  pthread_mutex_unlock(&this->lock);
+}
+
+/*
+ * event handler: process external pvr commands
+ * may switch channel, inputs, start/stop recording
+ * set flag to save current session permanently
+ */
+static void pvr_event_handler (pvr_input_plugin_t *this) {
+
+  xine_event_t *event;
+
+  while ((event = xine_event_get (this->event_queue))) {
+    xine_set_v4l2_data_t *v4l2_data = event->data;
+    xine_pvr_save_data_t *save_data = event->data;
+
+    switch (event->type) {
+
+    case XINE_EVENT_SET_V4L2:
+      if( v4l2_data->session_id != this->session ) {
+        /* if session changes -> closes the old one */
+        pvr_finish_recording(this);
+        time(&this->start_time);
+        this->show_time = this->start_time;
+      } else {
+        /* no session change, break the page and store a new show_time */
+        pthread_mutex_lock(&this->dev_lock);
+        pvr_break_rec_page(this);
+        this->show_page = this->rec_page;
+        pthread_mutex_unlock(&this->dev_lock);
+        time(&this->show_time);
+      }
+      
+      if( v4l2_data->input != this->input ||
+          v4l2_data->channel != this->channel ) {
+        struct video_channel v;
+
+        this->input = v4l2_data->input;
+        this->channel = v4l2_data->channel;
+#ifdef LOG
+        printf("input_pvr: switching to input:%d chan:%d freq:%.2f\n", 
+               v4l2_data->input, 
+               v4l2_data->channel,
+               (float)v4l2_data->frequency * 62.5);
+#endif
+  
+        pthread_mutex_lock(&this->dev_lock);
+        v.norm = VIDEO_MODE_NTSC;
+        v.channel = this->input;
+        if( ioctl(this->dev_fd, VIDIOCSCHAN, &v) )
+          printf("input_pvr: error setting v4l input\n");
+        if( ioctl(this->dev_fd, VIDIOCSFREQ, &this->frequency) )
+          printf("input_pvr: error setting v4l frequency\n");
+        pthread_mutex_unlock(&this->dev_lock);
+        
+        /* FIXME: also flush the device */
+        xine_demux_flush_engine(this->stream);
+      }
+      break;
+    
+    
+    case XINE_EVENT_PVR_SAVE:
+      if( this->session != -1 ) {
+        switch( save_data->mode ) {
+          case 0:
+#ifdef LOG
+            printf("input_pvr: saving from this point\n");
+#endif
+            pthread_mutex_lock(&this->dev_lock);
+            pvr_break_rec_page(this);
+            this->save_page = this->rec_page;
+            time(&this->start_time);
+            pthread_mutex_unlock(&this->dev_lock);
+            break;
+          case 1:
+#ifdef LOG
+            printf("input_pvr: saving from show start\n");
+#endif
+            pthread_mutex_lock(&this->dev_lock);
+            this->save_page = this->show_page;
+            pthread_mutex_unlock(&this->dev_lock);
+            break;
+          case 2:
+#ifdef LOG
+            printf("input_pvr: saving everything so far\n");
+#endif
+            pthread_mutex_lock(&this->dev_lock);
+            this->save_page = this->first_page;
+            pthread_mutex_unlock(&this->dev_lock);
+            break;
+        }
+        if( strlen(save_data->name) ) {
+          if( this->save_name )
+            free( this->save_name );
+          this->save_name = strdup(save_data->name);
+        }
+      }
+      break;
+
+#if 0
+    default:
+      printf ("input_pvr: got an event, type 0x%08x\n", event->type);
+#endif
+    }
+
+    xine_event_free (event);
+  }
+}
+
+
+/*
  * pvr read_block function.
  * - adjust playing speed to keep buffers half-full
  * - check current playback mode
@@ -626,6 +859,8 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   
   pvr_adjust_realtime_speed(this, fifo, speed);
 
+  pvr_event_handler(this);
+  
   if( !this->pvr_running ) {
     printf("input_pvr: thread died, aborting\n");
     return NULL;  
@@ -674,7 +909,7 @@ static off_t pvr_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   
   switch( origin ) {
     case SEEK_SET:
-      this->play_blk = (offset / PVR_BLOCK_SIZE) + (this->first_page * BLOCKS_PER_PAGE);
+      this->play_blk = (offset / PVR_BLOCK_SIZE) + this->page_block[this->first_page];
       break;
     case SEEK_CUR:
       this->play_blk += offset / PVR_BLOCK_SIZE;
@@ -683,22 +918,29 @@ static off_t pvr_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
       this->play_blk = this->rec_blk + (offset / PVR_BLOCK_SIZE);
       break;
   }
+  
+  /* invalidate the fd if needed */
+  if( this->play_fd != -1 && block_to_page(this,this->play_blk) != this->play_page ) {
+    if( this->play_fd != this->rec_fd )
+      close(this->play_fd);  
+    this->play_fd = -1;
+  }
   pthread_mutex_unlock(&this->lock);
   
-  return (off_t) (this->play_blk - this->first_page * BLOCKS_PER_PAGE)  * PVR_BLOCK_SIZE;
+  return (off_t) (this->play_blk - this->page_block[this->first_page]) * PVR_BLOCK_SIZE;
 }
 
 static off_t pvr_plugin_get_current_pos (input_plugin_t *this_gen){
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
 
-  return (off_t) (this->play_blk - this->first_page * BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
+  return (off_t) (this->play_blk - this->page_block[this->first_page]) * PVR_BLOCK_SIZE;
 }
 
 static off_t pvr_plugin_get_length (input_plugin_t *this_gen) {
 
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
 
-  return (off_t) (this->rec_blk - this->first_page * BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
+  return (off_t) (this->rec_blk - this->page_block[this->first_page]) * PVR_BLOCK_SIZE;
 }
 
 static uint32_t pvr_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -738,17 +980,17 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
     this->stream->xine->clock->unregister_scr(this->stream->xine->clock, &this->scr->scr);
     this->scr->scr.exit(&this->scr->scr);
   }
+  
+  xine_event_dispose_queue (this->event_queue);
 
   close(this->dev_fd);
 
-  if( this->rec_fd != -1 )
-    close(this->rec_fd);  
-  
-  if( this->play_fd != -1 && this->play_fd != this->rec_fd )
-    close(this->play_fd);
+  pvr_finish_recording(this);
   
   free (this->mrl);
-
+  free (this->tmp_prefix);
+  free (this->save_prefix);
+  
   free (this);
 }
 
@@ -758,18 +1000,14 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   pvr_input_class_t  *cls = (pvr_input_class_t *) cls_gen;
   pvr_input_plugin_t *this;
   char                *mrl = strdup(data);
-  char                *path;
+  char                *aux;
   int                  dev_fd;
   int64_t              time;
   int                  err;
   
-  if (!strncasecmp (mrl, "pvr:/", 5)) 
-    path = &mrl[5];
-  else
+  if (strncasecmp (mrl, "pvr:", 4)) 
     return NULL;
-  
-  if(!strlen(path))
-    path = ".";
+  aux = &mrl[4];
 
   dev_fd = open (PVR_DEVICE, O_RDWR);
 
@@ -778,14 +1016,42 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     free (mrl);
     return NULL;
   }
-
+  
   this = (pvr_input_plugin_t *) xine_xmalloc (sizeof (pvr_input_plugin_t));
-  this->class  = cls;
-  this->stream = stream;
-  this->mrl    = mrl;
-  this->path   = path;
-  this->dev_fd = dev_fd;
+  this->class        = cls;
+  this->stream       = stream;
+  this->dev_fd       = dev_fd;
+  this->mrl          = mrl;
+  this->max_page_age = 3;
 
+  /* decode configuration options from mrl */
+  if( strlen(aux) ) {
+    this->tmp_prefix = strdup(aux);
+    
+    aux = strchr(this->tmp_prefix,'!');
+    if( aux ) {
+      aux[0] = '\0';
+      this->save_prefix = strdup(aux+1);
+
+      aux = strchr(this->save_prefix, '!');
+      if( aux ) { 
+        aux[0] = '\0';
+        this->max_page_age = atoi(aux+1);
+      }
+    } else {
+      this->save_prefix=strdup(this->tmp_prefix);
+    }
+  } else {
+    this->tmp_prefix=strdup("./");
+    this->save_prefix=strdup("./");
+  }
+  
+#ifdef LOG  
+  printf("input_pvr: tmp_prefix=%s\n", this->tmp_prefix);
+  printf("input_pvr: save_prefix=%s\n", this->save_prefix);
+  printf("input_pvr: max_page_age=%d\n", this->max_page_age);
+#endif
+  
   this->input_plugin.get_capabilities   = pvr_plugin_get_capabilities;
   this->input_plugin.read               = pvr_plugin_read;
   this->input_plugin.read_block         = pvr_plugin_read_block;
@@ -805,16 +1071,25 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
   this->scr_tunning = 0;
     
+  this->event_queue = xine_event_new_queue (this->stream);
+    
+  /* enable resample method */
+  stream->xine->config->update_num(stream->xine->config,"audio.av_sync_method",1);
+    
   this->session = 0;
   this->rec_fd = -1;
-  this->rec_page = -1;
   this->play_fd = -1;
-  this->play_page = -1;
   this->first_page = 0;
-  this->max_page_age = 3;
+  this->show_page = 0;
+  this->save_page = -1;
+  this->save_name = strdup("");
+  this->input = -1;
+  this->channel = -1;
+  
   
   this->pvr_running = 1;
   pthread_mutex_init (&this->lock, NULL);
+  pthread_mutex_init (&this->dev_lock, NULL);
   pthread_cond_init  (&this->has_valid_data,NULL);
   pthread_cond_init  (&this->wake_pvr,NULL);
   

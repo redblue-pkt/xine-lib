@@ -29,6 +29,7 @@ endif
 
 if HAVE_V4L
 in_v4l = xineplug_inp_v4l.la
+in_pvr = xineplug_inp_pvr.la
 endif
 
 if HAVE_GNOME_VFS
@@ -64,7 +65,7 @@ lib_LTLIBRARIES = \
 	xineplug_inp_rtp.la \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la \
-	xineplug_inp_pvr.la \
+	$(in_pvr) \
 	xineplug_inp_dvb.la \
 	xineplug_inp_cdda.la
 
