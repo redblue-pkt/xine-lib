@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2004/05/09 19:37:10 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.50 2004/05/18 20:38:28 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -69,6 +69,10 @@ typedef struct {
   int              output_open;
   
   int              bypass_mode;
+  int              decoder_flags;
+  int              decoder_sample_rate;
+  int              decoder_bit_rate;
+  
   
 } dts_decoder_t;
 
@@ -114,6 +118,9 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  ac5_pcm_length;
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
+  int       old_decoder_flags;
+  int       old_decoder_sample_rate;
+  int       old_decoder_bit_rate;
   int n;
   
   lprintf("decode_data\n");
@@ -133,19 +140,28 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS length error\n");
       return;
     }
-      
-    {
-      int flags, sample_rate, bit_rate;
-      
-      ac5_length = dts_syncinfo(this->dts_state, data_in, &flags, &sample_rate, 
-                                &bit_rate, &ac5_pcm_length);
-    }
+    old_decoder_flags = this->decoder_flags;
+    old_decoder_sample_rate = this->decoder_sample_rate;
+    old_decoder_bit_rate = this->decoder_bit_rate;
+     
+    ac5_length = dts_syncinfo(this->dts_state, data_in, &this->decoder_flags, &this->decoder_sample_rate, 
+                              &this->decoder_bit_rate, &ac5_pcm_length);
     
     if(!ac5_length) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS Sync bad\n");
       return;
     }
-    
+
+    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
+          old_decoder_flags       != this->decoder_flags ||
+          old_decoder_sample_rate != this->decoder_sample_rate ||
+          old_decoder_bit_rate    != this->decoder_bit_rate) {
+      _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->decoder_bit_rate);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->decoder_sample_rate);
+    }
+
+
     audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
     
     if (n == first_access_unit) {
