@@ -1,10 +1,11 @@
-xine-lib (1-rc1-0) unstable; urgency=high
+xine-lib (1-rc1-1) unstable; urgency=high
 
   * new upstream release
     * doesn't link static libXv any more (closes: #210650)
+    * ALSA driver doesn't block on busy device any more (closes: #211304)
   * suggesting libartsc0 (I have a bad feeling about this, closes: #203961)
-
- -- Siggi Langauf <siggi@debian.org>  Sat,  4 Oct 2003 22:27:48 +0200
+  
+ -- Siggi Langauf <siggi@debian.org>  Sun,  5 Oct 2003 11:28:06 +0200
 
 xine-lib (1-rc0a-1) unstable; urgency=low
 
