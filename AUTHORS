@@ -163,5 +163,8 @@ Contributions
 
   Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
     w32dll audio bugfixes
+
+  George Staikos <staikos@0wned.org>
+    xinerama bugfixes
       
   (let us know if we've forgotten anyone)
