@@ -116,7 +116,8 @@ return (int) gettext ("")]ifelse([$2], need-ngettext, [ + (int) ngettext ("", ""
 
 	     gt_save_LIBS="$LIBS"
 	     LIBS="$LIBS $INTLLIBS"
-	     AC_CHECK_FUNCS(dcgettext)
+	     dnl Xine need ngettext.
+	     AC_CHECK_FUNCS(dcgettext ngettext)
 	     LIBS="$gt_save_LIBS"
 
 	     dnl Search for GNU msgfmt in the PATH.
