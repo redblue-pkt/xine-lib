@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.19 2001/05/27 23:48:12 guenter Exp $
+ * $Id: load_plugins.c,v 1.20 2001/06/07 20:23:54 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -450,9 +450,8 @@ void load_decoder_plugins (xine_t *this,
 		this->audio_decoder_plugins[streamtype] = adp; 
 	    }
 
-	    printf("audio decoder plugin found : %s(ID: %s, iface: %d)\n", 
-		   pEntry->d_name, adp->get_identifier(), 
-		   adp->interface_version);
+	    printf("audio decoder plugin found : %s\n", 
+		   adp->get_identifier());
 
 	  }
 	  

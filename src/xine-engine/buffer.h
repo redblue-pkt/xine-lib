@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.2 2001/04/24 15:47:32 guenter Exp $
+ * $Id: buffer.h,v 1.3 2001/06/07 20:23:54 guenter Exp $
  *
  *
  * contents:
@@ -96,7 +96,7 @@ struct buf_element_s {
   uint32_t              type;
   uint32_t              PTS, DTS;
   off_t                 input_pos; /* remember where this buf came from in the input source */
-  int                   frame_end; /* avi */
+  uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
 
   void (*free_buffer) (buf_element_t *buf);
 

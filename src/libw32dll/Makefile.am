@@ -3,7 +3,7 @@ EXTRA_DIST = stubs.s
 
 # CFLAGS = @BUILD_LIB_STATIC@ -I wine -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer
 # CFLAGS = -I wine -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer @X_CFLAGS@
-CFLAGS = -I wine -fno-omit-frame-pointer \
+CFLAGS = -DXINE_COMPILE -I wine -fno-omit-frame-pointer \
 	-DWIN32_PATH=\"@w32_path@\" -pipe
 
 SUBDIRS = wine
@@ -25,7 +25,7 @@ lib_LTLIBRARIES = $(w32dll_codec)
 
 xineplug_decode_w32dll_la_SOURCES = afl.c elfdll.c module.c \
 	pe_resource.c resource.c win32.c driver.c ext.c \
-	pe_image.c registry.c vfl.c ##FIXME: w32codec.c
+	pe_image.c registry.c vfl.c w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
 xineplug_decode_w32dll_la_LIBADD = stubs.lo
 

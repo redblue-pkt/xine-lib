@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/05/24 21:41:27 guenter Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/06/07 20:23:54 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -38,12 +38,12 @@ typedef struct mpeg2dec_decoder_s {
   vo_instance_t   *video_out;
 } mpeg2dec_decoder_t;
 
-int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
+static int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG) ;
 }
 
 
-void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
+static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
@@ -52,14 +52,14 @@ void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   this->video_out = video_out;
 }
 
-void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
+static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
   mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
 		     buf->PTS);
 }
 
-void mpeg2dec_close (video_decoder_t *this_gen) {
+static void mpeg2dec_close (video_decoder_t *this_gen) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
