@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.18 2004/02/03 21:37:12 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.19 2004/02/04 23:32:19 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -409,7 +409,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->decoder_info[2] = chunks;
     buf->decoder_info_ptr[2] = buf->content;
     
-    buf->size = chunk_tab_size;
+    buf->size = 0;
     buf->type = track->buf_type;
 
     xine_fast_memcpy(buf->decoder_info_ptr[2], data + 1, chunk_tab_size);
