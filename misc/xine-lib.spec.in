@@ -150,6 +150,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{prefix}/bin/xine-config
+%{prefix}/man/man1/xine-config.1*
 %{prefix}/man/man3/xine-lib.3*
 %{prefix}/man/man3/ao_driver_t.3*
 %{prefix}/man/man3/ao_functions_t.3*
@@ -185,6 +186,7 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/man/man3/vo_frame_t.3*
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
+%{prefix}/share/aclocal/xine.m4
 # input plugins
 %{prefix}/lib/xine/plugins/xineplug_inp_dvd.la
 %{prefix}/lib/xine/plugins/xineplug_inp_dvd.so
@@ -302,6 +304,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/README.dxr3
 
 %changelog
+* Fri Sep 21 2001 Matthias Dahl <matthew2k@web.de>
+- added two missing files (xine-config man page and xine.m4)
 * Sun Sep 16 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - Merge patch from José Carlos Monteiro <jcm@netcabo.pt>:
   - Filelist and other minor updates,
