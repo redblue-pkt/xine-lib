@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.39 2001/08/23 13:27:24 jcdutton Exp $
+ * $Id: load_plugins.c,v 1.40 2001/09/06 18:38:12 jkeil Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -45,6 +45,10 @@
 #include "configfile.h"
 #include "utils.h"
 #include "monitor.h"
+
+#ifndef	__GNUC__
+#define	__FUNCTION__	__func__
+#endif
 
 extern int errno;
 

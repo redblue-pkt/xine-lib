@@ -32,6 +32,10 @@
 
 #include "dvd_udf.h"
 
+#ifndef	__GNUC__
+#define	__FUNCTION__	__func__
+#endif
+
 static int _Unicodedecode (uint8_t *data, int len, char *target);
 
 #define MAX_FILE_LEN 2048

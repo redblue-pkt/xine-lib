@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.20 2001/08/28 23:13:08 f1rmb Exp $
+ * $Id: input_file.c,v 1.21 2001/09/06 18:38:12 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,6 +42,10 @@
 extern int errno;
 
 static uint32_t xine_debug;
+
+#ifndef	__GNUC__
+#define	__FUNCTION__	__func__
+#endif
 
 #define MAXFILES      65535
 

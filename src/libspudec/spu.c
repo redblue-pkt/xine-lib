@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.10 2001/08/17 15:54:31 ehasenle Exp $
+* $Id: spu.c,v 1.11 2001/09/06 18:38:12 jkeil Exp $
 *
 *****/
 
@@ -72,10 +72,23 @@
 #define LOG_DEBUG 1
 
 #ifdef DEBUG
-#define LOG(lvl, fmt...)	fprintf (stderr, fmt);
-#else
-#define LOG(lvl, fmt...)
-#endif
+
+# ifdef	__GNUC__
+#  define LOG(lvl, fmt...)	fprintf (stderr, fmt);
+# else
+#  define LOG(lvl, ...)		fprintf (stderr, __VA_ARGS__);
+# endif
+
+#else /* !DEBUG */
+
+# ifdef __GNUC_
+#  define LOG(lvl, fmt...)
+# else
+#  define LOG(lvl, ...)
+# endif
+
+#endif /* !DEBUG */
+
 
 /* Return value: reassembly complete = 1 */
 int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)

@@ -424,9 +424,17 @@ void mjpeg_encode_mb(MpegEncContext *s,
 #ifndef CONFIG_WIN32
 
 #ifdef DEBUG
-#define dprintf(fmt,args...) printf(fmt, ## args)
+# if __GNUC_
+#  define dprintf(fmt,args...) printf(fmt, ## args)
+# else
+#  define dprintf(...)	       printf(__VA_ARGS__)
+# endif
 #else
-#define dprintf(fmt,args...)
+# if __GNUC__
+#  define dprintf(fmt,args...)
+# else
+#  define dprintf(...)
+# endif
 #endif
 
 #else

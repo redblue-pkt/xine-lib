@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.57 2001/09/06 14:09:37 jkeil Exp $
+ * $Id: xine.c,v 1.58 2001/09/06 18:38:12 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -51,6 +51,10 @@
 #include "configfile.h"
 #include "monitor.h"
 #include "utils.h"
+
+#ifndef	__GNUC__
+#define	__FUNCTION__	__func__
+#endif
 
 /* debugging purposes only */
 uint32_t   xine_debug;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.3 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: monitor.h,v 1.4 2001/09/06 18:38:12 jkeil Exp $
  *
  * debug print and profiling functions
  *
@@ -47,7 +47,11 @@ extern uint32_t xine_debug;
 #define LOOP           (xine_debug & 0x8000>>11)  //    16
 #define GUI            (xine_debug & 0x8000>>12)  //     8
 
+#ifdef	__GNUC__
 #define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
+#else	/* C99 version: */
+#define perr(...)	  {fprintf(stderr, __VA_ARGS__);fflush(stderr);}
+#endif
 
 #ifdef DEBUG
 
@@ -57,11 +61,20 @@ extern uint32_t xine_debug;
 
 //#define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
 
+#ifdef	__GNUC__
 #define xprintf(LVL, FMT, ARGS...) {                                          \
                                      if(LVL) {                                \
-                                       printf(FMT, ##ARGS);          \
+                                       printf(FMT, ##ARGS);          	      \
                                      }                                        \
                                    }
+#else	/* C99 version: */
+#define xprintf(LVL, ...) {						      \
+                                     if(LVL) {                                \
+                                       printf(__VA_ARGS__);       	      \
+                                     }                                        \
+                                   }
+#endif
+
 /*
  * profiling
  */
@@ -80,7 +93,11 @@ void profiler_print_results ();
 
 //#define perr(FMT,ARGS...) 
 
+#ifdef	__GNUC__
 #define xprintf(LVL, FMT, ARGS...) 
+#else	/* C99 version: */
+#define xprintf(LVL, ...) 
+#endif
 
 #define profiler_init()
 #define profiler_set_label(id, label)

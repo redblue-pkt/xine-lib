@@ -91,3 +91,9 @@
 #undef FPM_SPARC
 #undef FPM_MIPS
 #undef FPM_M68K
+
+@BOTTOM@
+/* Disable GCC compiler extensions, if gcc is not in use */
+#ifndef	__GNUC__
+#define	__attribute__(x)	/**/
+#endif

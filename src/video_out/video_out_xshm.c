@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.29 2001/09/01 18:11:04 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.30 2001/09/06 18:38:12 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -449,8 +449,6 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   if (this->delivered_width == 0 && this->delivered_height == 0)
     return; /* ConfigureNotify/VisibilityNotify, no decoder output size known */
 
-
-#if	0
   /*
    * quick hack to allow testing of unscaled yuv2rgb conversion routines
    */
@@ -462,8 +460,6 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
       this->ratio_factor   = 1.0;
       return;
   }
-#endif
-
 
   image_ratio = 
     (double) this->delivered_width / (double) this->delivered_height;

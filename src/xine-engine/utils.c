@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.3 2001/09/06 13:29:18 jkeil Exp $
+ * $Id: utils.c,v 1.4 2001/09/06 18:38:12 jkeil Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -35,25 +35,26 @@
 #include <time.h>
 #include <sys/types.h>
 
+#ifndef	__GNUC__
+#define __FUNCTION__	__func__
+#endif
+
+
 /*
  *
  */
 void *xmalloc(size_t size) {
-  void *ptrmalloc, *ptrmemset;
+  void *ptr;
 
-  if((ptrmalloc = malloc(size)) == NULL) {
+  if((ptr = malloc(size)) == NULL) {
     fprintf(stderr, "%s: malloc() failed: %s.\n",
 	    __FUNCTION__, strerror(errno));
     return NULL;
   }
 
-  if((ptrmemset = memset(ptrmalloc, 0, size)) == NULL) {
-    fprintf(stderr, "%s: memset() failed: %s.\n", 
-	    __FUNCTION__, strerror(errno));
-    return NULL;
-  }
+  memset(ptr, 0, size);
 
-  return ptrmemset;
+  return ptr;
 }
 
 /*

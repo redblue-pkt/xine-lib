@@ -2,8 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS += @GLOBAL_CFLAGS@
-CFLAGS = @CFLAGS@ -D_FILE_OFFSET_BITS=64 -Wall -DXINE_COMPILE
+CFLAGS = @GLOBAL_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -71,7 +70,7 @@ uninstall-includeHEADERS:
 
 
 debug:
-	@$(MAKE) CFLAGS="-D_FILE_OFFSET_BITS=64 -Wall -DDEBUG -g -DXINE_COMPILE"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
