@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -18,13 +18,28 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  *
- * input plugin for Digital TV (Digital Video Broadcast - DVB) devices
- * e.g. Hauppauge WinTV Nova supported by DVB drivers from Convergence
+ * Input plugin for Digital TV (Digital Video Broadcast - DVB) devices,
+ * e.g. Hauppauge WinTV Nova supported by DVB drivers from Convergence.
  *
- * DONE: 
- * - Use EIT info for current/next programming OSD
- * - Pause recording
- * - allow user to select card to use, rather than hard-code to adapter0
+ *
+ * MODIFICATION HISTORY
+ *
+ * Date        Author
+ * ----        ------
+ *
+ * 01-Feb-2005 Pekka J‰‰skel‰inen <poj@iki.fi>
+ *
+ *             - This history log started.
+ *             - Disabled the automatic EPG updater thread until EPG demuxer 
+ *               is done (it caused pausing of video stream), now EPG is
+ *               updated only on demand when the EPG OSD is displayed and
+ *               no data is in cache.
+ *             - Tried to stabilize the EPG updater thread.
+ *             - Fixed a tuning problem I had with Linux 2.6.11-rc2.
+ *             - Now tuning to an erroneus channel shouldn't hang but stop
+ *               the playback and output a log describing the error.
+ *             - Style cleanups here and there.
+ *
  *   
  * TODO/Wishlist: (not in any order)
  * - Parse all Administrative PIDs - NIT,SDT,CAT etc
@@ -135,6 +150,12 @@
 #define LEFT_MOUSE_DOES_EPG
 */
 
+/* define to make EPG data updated in background in a separate thread */
+/*#define EPG_UPDATE_IN_BACKGROUND */
+
+/* Delay between EPG data updates in the EPG updater thread in seconds. */
+#define EPG_UPDATE_DELAY 60
+
 /* Width of the EPG OSD area. */
 #define EPG_WIDTH 520
 
@@ -165,9 +186,6 @@
 /* How many pixels the background of the OSD is bigger than the text area? 
    The margin is for each side of the background box. */
 #define EPG_BACKGROUND_MARGIN 5
-
-/* Delay between EPG data updates in the EPG updater thread in seconds. */
-#define EPG_UPDATE_DELAY 20
 
 #define MAX_EPG_PROGRAM_NAME_LENGTH 255
 #define MAX_EPG_PROGRAM_DESCRIPTION_LENGTH 255
@@ -284,6 +302,9 @@ typedef struct {
   tuner_t            *tuner;
   channel_t          *channels;
   int                 fd;
+
+/* Is channel tuned in correctly, i.e., can we read program stream? */
+  int                 tuned_in;
   int                 num_channels;
   int                 channel;
   pthread_mutex_t     channel_change_mutex;
@@ -923,47 +944,65 @@ static int tuner_set_diseqc(tuner_t *this, channel_t *c)
  * if frontend can't lock, retire. */
 static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
 			  *front_param) {
-  fe_status_t status;
-  fe_status_t festatus;
+  fe_status_t status = 0;
+/*  fe_status_t festatus; */
   struct dvb_frontend_event event;
   unsigned int strength;
+  struct pollfd pfd[1];
 
-   /* discard stale events */
-  while (1) {
-    if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) == -1)
-        break;
-  }
+  /* discard stale events */
+  while (ioctl(this->fd_frontend, FE_GET_EVENT, &event) != -1);
 
   if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0) {
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, "setfront front: %s\n", strerror(errno));
+    return 0;
+  }
+
+  pfd[0].fd = this->fd_frontend;
+  pfd[0].events = POLLIN;
+
+  if (poll(pfd,1,3000)){
+      if (pfd[0].revents & POLLIN){
+	  if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) == -EOVERFLOW){
+	      print_error("EOVERFLOW");
+	      return 0;
+	  }
+	  if (event.parameters.frequency <= 0)
+	      return 0;
+      }
   }
   
   do {
+    status = 0;
     if (ioctl(this->fd_frontend, FE_READ_STATUS, &status) < 0) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "fe get event: %s\n", strerror(errno));
       return 0;
     }
 
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_dvb: status: %x\n", status);
-
     if (status & FE_HAS_LOCK) {
-      ioctl(this->fd_frontend, FE_READ_STATUS, &event.status);
       break;
     }
     usleep(500000);
+    print_error("Trying to get lock...");
   } while (!(status & FE_TIMEDOUT));
   
   /* inform the user of frontend status */ 
-  festatus=0;
   xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Tuner status:  ");
-  if(ioctl(this->fd_frontend,FE_READ_STATUS,&festatus) >= 0){
-    if (festatus & FE_HAS_SIGNAL) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SIGNAL");
-    if (festatus & FE_TIMEDOUT) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_TIMEDOUT");
-    if (festatus & FE_HAS_LOCK) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_LOCK");
-    if (festatus & FE_HAS_CARRIER) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_CARRIER");
-    if (festatus & FE_HAS_VITERBI) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_VITERBI");
-    if (festatus & FE_HAS_SYNC) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SYNC");
-  }
+/*  if (ioctl(this->fd_frontend, FE_READ_STATUS, &status) >= 0){ */
+    if (status & FE_HAS_SIGNAL) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SIGNAL");
+    if (status & FE_TIMEDOUT) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_TIMEDOUT");
+    if (status & FE_HAS_LOCK) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_LOCK");
+    if (status & FE_HAS_CARRIER) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_CARRIER");
+    if (status & FE_HAS_VITERBI) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_VITERBI");
+    if (status & FE_HAS_SYNC) 
+	xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SYNC");
+/*  } */
   xprintf(this->xine,XINE_VERBOSITY_LOG,"\n");
   
   strength=0;
@@ -978,7 +1017,7 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   if(ioctl(this->fd_frontend,FE_READ_SNR,&strength) >= 0)
     xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal/Noise Ratio: %i\n",strength);
  
-  if (event.status & FE_HAS_LOCK) {
+  if (status & FE_HAS_LOCK && !(status & FE_TIMEDOUT)) {
     xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Lock achieved at %lu Hz\n",(unsigned long)front_param->frequency);   
     return 1;
   } else {
@@ -1228,6 +1267,7 @@ static int epg_with_starttime(channel_t* channel, time_t starttime) {
     return -1;
 }
 
+#ifdef EPG_UPDATE_IN_BACKGROUND
 /* Sleep routine for pthread (hackish). */
 static void pthread_sleep(int seconds) {
     pthread_mutex_t dummy_mutex;
@@ -1251,20 +1291,14 @@ static void pthread_sleep(int seconds) {
     pthread_mutex_destroy(&dummy_mutex);
 }
 
-/*
-int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
-*/
-
 /* Thread routine that updates the EPG data periodically. */
 static void* epg_data_updater(void *t) {
     dvb_input_plugin_t* this = (dvb_input_plugin_t*)t;
     while (!this->epg_updater_stop) {
-	pthread_mutex_lock(&this->channel_change_mutex);
 #ifdef DEBUG_EPG
 	print_info("EPG  epg_data_updater() updating...");
 #endif
 	load_epg_data(this);
-	pthread_mutex_unlock(&this->channel_change_mutex);
 
 	/* Update the EPG OSD if it's visible. */
 	if (this->epg_displaying) {
@@ -1279,6 +1313,7 @@ static void* epg_data_updater(void *t) {
 #endif
     return NULL;
 }
+#endif
 
 /* This function parses the EIT table and saves the data used in 
    EPG OSD of all channels found in the currently tuned stream. */
@@ -1301,6 +1336,8 @@ static void load_epg_data(dvb_input_plugin_t *this)
   channel_t* current_channel = NULL;
   int i;
 
+  pthread_mutex_lock(&this->channel_change_mutex);
+
   /* seen_channels array is used to store information of channels that were
      already "found" in the stream. This information is used to initialize the 
      channel's EPG structs when the EPG information for the channel is seen in 
@@ -1322,6 +1359,7 @@ static void load_epg_data(dvb_input_plugin_t *this)
 
     if (poll(&fd,1,2000)<1) {
        xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"(Timeout in EPG loop!! Quitting\n");
+       pthread_mutex_unlock(&this->channel_change_mutex);
        return;  
     }
     n = read(this->tuner->fd_pidfilter[EITFILTER], eit, 3);
@@ -1516,6 +1554,7 @@ static void load_epg_data(dvb_input_plugin_t *this)
   }
   free(seen_channels);
   free(foo); 
+  pthread_mutex_unlock(&this->channel_change_mutex);
 }
 
 /* Prints text to an area, tries to cut the lines in between words. */
@@ -1777,6 +1816,13 @@ static void show_eit(dvb_input_plugin_t *this) {
 
   if (!this->epg_displaying) {
 
+#ifndef EPG_UPDATE_IN_BACKGROUND
+    if (current_epg(&this->channels[this->channel]) == NULL || 
+	next_epg(&this->channels[this->channel]) == NULL) {
+	load_epg_data(this);
+    }
+#endif
+
     this->epg_displaying = 1;
     this->stream->osd_renderer->hide(this->proginfo_osd, 0);
     this->stream->osd_renderer->clear(this->proginfo_osd);
@@ -1969,7 +2015,7 @@ static void osd_show_channel (dvb_input_plugin_t *this, int channel) {
   }
 }
 
-static void switch_channel(dvb_input_plugin_t *this, int channel) {
+static int switch_channel(dvb_input_plugin_t *this, int channel) {
   
   int x;
   xine_event_t     event;
@@ -1984,6 +2030,7 @@ static void switch_channel(dvb_input_plugin_t *this, int channel) {
   pthread_mutex_lock (&this->channel_change_mutex);
   
   close (this->fd);
+  this->tuned_in = 0;
 
   for (x = 0; x < MAX_FILTERS; x++) {
     close(this->tuner->fd_pidfilter[x]);
@@ -1994,7 +2041,7 @@ static void switch_channel(dvb_input_plugin_t *this, int channel) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 	     _("input_dvb: tuner_set_channel failed\n"));
     pthread_mutex_unlock (&this->channel_change_mutex);
-    return;
+    return 0;
   }
 
   event.type = XINE_EVENT_PIDS_CHANGE;
@@ -2019,9 +2066,10 @@ static void switch_channel(dvb_input_plugin_t *this, int channel) {
 
   xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"ui title event sent\n");
 
-  this->fd = open (this->tuner->dvr_device, O_RDONLY | O_NONBLOCK);
-
   this->channel = channel;
+
+  this->fd = open (this->tuner->dvr_device, O_RDONLY | O_NONBLOCK);
+  this->tuned_in = 1;
 
   pthread_mutex_unlock (&this->channel_change_mutex);
   
@@ -2039,6 +2087,7 @@ static void switch_channel(dvb_input_plugin_t *this, int channel) {
       this->epg_displaying=0; 
       show_eit(this);
   }
+  return 1;
 }
 
 static void do_record (dvb_input_plugin_t *this) {
@@ -2066,6 +2115,7 @@ static void do_record (dvb_input_plugin_t *this) {
     time(t);
     tma=localtime(t);
     free(t);
+    t = NULL;
     strftime(dates,63,"%Y-%m-%d_%H%M",tma);
     
     if (xine_config_lookup_entry(this->stream->xine, "media.capture.save_dir", &savedir)){
@@ -2346,45 +2396,73 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   off_t n=0, total=0;
   int have_mutex=0;
   struct pollfd pfd;
+
+  if (!this->tuned_in)
+      return 0;
   dvb_event_handler (this);
-  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: reading %lld bytes...\n", len);
+  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,
+	  "input_dvb: reading %lld bytes...\n", len);
 
 #ifndef DVB_NO_BUFFERING
   nbc_check_buffers (this->nbc); 
 #endif
-  /* protect agains channel changes */
+  /* protect against channel changes */
   have_mutex =  pthread_mutex_lock(&this->channel_change_mutex);
   total=0;
   
   while (total<len){ 
-  pfd.fd=this->fd;
-  pfd.events = POLLPRI;
-  pfd.revents=0;
+      pfd.fd = this->fd;
+      pfd.events = POLLPRI | POLLIN | POLLERR;
+      pfd.revents = 0;
+      
+      if (!this->tuned_in) {
+	  pthread_mutex_unlock( &this->channel_change_mutex );
+	  xprintf(this->class->xine, XINE_VERBOSITY_LOG,
+		  "input_dvb: Channel \"%s\" could not be tuned in. "
+		  "Possibly erroneus settings in channels.conf "
+		  "(frequency changed?).\n", 
+		  this->channels[this->channel].name);
+	  return 0;
+      }
   
-    if(poll(&pfd,1,15000)<1){ 
-      xprintf(this->class->xine,XINE_VERBOSITY_LOG,"input_dvb:  No data available.  Signal Lost??  \n");
-      _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
-      this->read_failcount++;
-      break;
-    }
+      if (poll(&pfd, 1, 1500) < 1) { 
+	  xprintf(this->class->xine, XINE_VERBOSITY_LOG,
+		  "input_dvb:  No data available.  Signal Lost??  \n");
+	  _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
+	  this->read_failcount++;
+	  break;
+      }
 
-    if(this->read_failcount){ /* signal/stream regained after loss - kick the net_buf_control layer. */
-      this->read_failcount=0;
-      xprintf(this->class->xine,XINE_VERBOSITY_LOG,"input_dvb: Data resumed...\n");
-      _x_demux_control_start(this->stream);
-    }
+      if (this->read_failcount) { 
+      /* signal/stream regained after loss - 
+	 kick the net_buf_control layer. */
+	  this->read_failcount=0;
+	  xprintf(this->class->xine,XINE_VERBOSITY_LOG,
+		  "input_dvb: Data resumed...\n");
+	  _x_demux_control_start(this->stream);
+      }
 
-    if(pfd.revents & POLLPRI)
-      n = read (this->fd, &buf[total], len-total);
+      if (pfd.revents & POLLPRI || pfd.revents & POLLIN) {
+	  n = read (this->fd, &buf[total], len-total);
+      } else 
+	  if (pfd.revents & POLLERR) {
+	      xprintf(this->class->xine, XINE_VERBOSITY_LOG,
+		      "input_dvb:  No data available.  Signal Lost??  \n");
+	      _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
+	      this->read_failcount++;
+	      break;
+	  } 
 
-    xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
+      xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,
+	      "input_dvb: got %lld bytes (%lld/%lld bytes read)\n", 
+	      n, total,len);
     
-    if (n > 0){  
-      this->curpos += n;
-      total += n;
-    } else if (n < 0 && errno!=EAGAIN) {
-      break;
-    }
+      if (n > 0){  
+	  this->curpos += n;
+	  total += n;
+      } else if (n < 0 && errno!=EAGAIN) {
+	  break;
+      }
   }
 
   ts_rewrite_packets (this, buf,total);
@@ -2768,8 +2846,9 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
              _("input_dvb: cannot open dvr device '%s'\n"), this->tuner->dvr_device);
       return 0;
     }
+    this->tuned_in = 1;
     
-    /* now read the pat,find all accociated PIDs and add them to the stream */
+    /* now read the pat, find all accociated PIDs and add them to the stream */
     dvb_parse_si(this);
 
     this->curpos = 0;
@@ -2779,6 +2858,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 
     this->event_queue = xine_event_new_queue(this->stream);
 
+#ifdef EPG_UPDATE_IN_BACKGROUND
     /* Start the EPG updater thread. */
     this->epg_updater_stop = 0;
     if (pthread_create(&this->epg_updater_thread, NULL, 
@@ -2789,6 +2869,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 	return 0;
 
     } 
+#endif
     /*
      * this osd is used to draw the "recording" sign
      */
@@ -2904,6 +2985,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
   this->tuner        = NULL;
   this->channels     = NULL;
   this->fd           = -1;
+  this->tuned_in     = 0;
 #ifndef DVB_NO_BUFFERING
   this->nbc          = nbc_init (this->stream); 
 #else
