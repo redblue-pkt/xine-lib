@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.83 2002/12/23 21:26:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.84 2003/01/07 16:36:52 hadess Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -143,6 +143,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
     free(this->context);
     return;
   }
+
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
   
   this->decoder_ok = 1;
   this->stream->video_out->open (this->stream->video_out, this->stream);
@@ -830,6 +832,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       printf ("ffmpeg: couldn't open decoder\n");
       return;
     }
+
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     this->decoder_ok = 1;
 
