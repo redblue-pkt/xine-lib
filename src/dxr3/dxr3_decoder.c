@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.30 2001/11/08 08:49:26 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.31 2001/11/10 19:15:50 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -348,12 +348,13 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	if (buf->PTS) {
 		int vpts;
+
 		vpts = this->video_decoder.metronom->got_video_frame(
-		 this->video_decoder.metronom, buf->PTS);
+		 this->video_decoder.metronom, buf->PTS, buf->SCR );
 		if (this->last_pts < vpts)
 		{
 			this->last_pts = vpts;
-
+			
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				fprintf(stderr, "dxr3: set video pts failed (%s)\n",
 				 strerror(errno));
@@ -422,7 +423,11 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.priority            = 10;
 
-	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10);
+/* FIXME:	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10); */
+/* temporarily force the dxr3 to be master - otherwise the plugin locks
+   whenever there is an audio disconuity... still does sometimes :( */
+        this->scr_prio = 20;
+        
 	this->enhanced_mode = cfg->lookup_int(cfg,"dxr3_buffer_mode", 0);
 	if(this->enhanced_mode)
 	  printf("Dxr3: Using Mode 6 for playback\n");
@@ -482,7 +487,7 @@ static void swab_clut(int* clut)
 		clut[i] = bswap_32(clut[i]);
 }
 
-static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
+static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf, uint32_t scr)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 	ssize_t written;
@@ -513,7 +518,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	if (buf->PTS) {
 		int vpts;
 		vpts = this->spu_decoder.metronom->got_spu_packet
-		 (this->spu_decoder.metronom, buf->PTS, 0);
+		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			fprintf(stderr, "dxr3: spu setpts failed (%s)\n", strerror(errno));
