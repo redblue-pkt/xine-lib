@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.15 2001/11/18 15:08:30 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.16 2001/12/18 22:38:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,6 +51,8 @@ typedef struct esd_driver_s {
   int              capabilities;
   int              mode;
 
+  char            *pname; /* Player name id for esd daemon */
+
   int32_t          output_sample_rate, input_sample_rate;
   int32_t          output_sample_k_rate;
   double           sample_rate_factor;
@@ -61,6 +63,14 @@ typedef struct esd_driver_s {
   int              gap_tolerance, latency;
 
   struct timeval   start_time;
+
+  struct {
+    char          *name;
+    int            source_id;
+    int            volume;
+    int            mute;
+  } mixer;
+
 } esd_driver_t;
 
 
@@ -118,7 +128,7 @@ static int ao_esd_open(ao_driver_t *this_gen,
 
   this->output_sample_k_rate   = this->output_sample_rate / 1000;
 
-  this->audio_fd=esd_play_stream(format, this->output_sample_rate, NULL, NULL);
+  this->audio_fd = esd_play_stream(format, this->output_sample_rate, NULL, this->pname);
   if (this->audio_fd < 0) {
     printf("audio_esd_out: connecting to ESD server %s: %s\n",
 	   getenv("ESPEAKER"), strerror(errno));
@@ -218,7 +228,7 @@ static uint32_t ao_esd_get_capabilities (ao_driver_t *this_gen) {
 }
 
 static int ao_esd_get_gap_tolerance (ao_driver_t *this_gen) {
-  esd_driver_t *this = (esd_driver_t *) this_gen;
+  /* esd_driver_t *this = (esd_driver_t *) this_gen; */
   return GAP_TOLERANCE;
 }
 
@@ -229,20 +239,107 @@ static void ao_esd_exit(ao_driver_t *this_gen)
   if (this->audio_fd != -1)
     esd_close(this->audio_fd);
 
+  free(this->pname);
+
   free (this);
 }
 
-static int ao_esd_get_property (ao_driver_t *this, int property) {
+static int ao_esd_get_property (ao_driver_t *this_gen, int property) {
+  esd_driver_t      *this = (esd_driver_t *) this_gen;
+  int                mixer_fd;
+  esd_player_info_t *esd_pi;
+  esd_info_t        *esd_i;
+  
+  switch(property) {
+  case AO_PROP_MIXER_VOL:
+    
+    if((mixer_fd = esd_open_sound(NULL)) >= 0) {
+      if((esd_i = esd_get_all_info(mixer_fd)) != NULL) {
+	for(esd_pi = esd_i->player_list; esd_pi != NULL; esd_pi = esd_pi->next) {
+	  if(!strcmp(this->pname, esd_pi->name)) {
 
-  /* FIXME: implement some properties
-  */
+	    this->mixer.source_id = esd_pi->source_id;
+	    
+	    if(!this->mixer.mute)
+	      this->mixer.volume  = (((esd_pi->left_vol_scale * 100)  / 256) + 
+				     ((esd_pi->right_vol_scale * 100) / 256)) >> 1;
+
+	  }
+	}
+	esd_free_all_info(esd_i);
+      }
+      esd_close(mixer_fd);
+    }
+    
+    return this->mixer.volume;
+    break;
+
+  case AO_PROP_MUTE_VOL:
+    return this->mixer.mute;
+    break;
+  }
+
   return 0;
 }
 
-static int ao_esd_set_property (ao_driver_t *this, int property, int value) {
+static int ao_esd_set_property (ao_driver_t *this_gen, int property, int value) {
+  esd_driver_t *this = (esd_driver_t *) this_gen;
+  int           mixer_fd;
 
-  /* FIXME: Implement property support.
-  */
+  switch(property) {
+  case AO_PROP_MIXER_VOL:
+      
+    if(!this->mixer.mute) {
+      
+      /* need this to get source_id */
+      (void) ao_esd_get_property(&this->ao_driver, AO_PROP_MIXER_VOL);
+
+      if((mixer_fd = esd_open_sound(NULL)) >= 0) {
+	int v = (value * 256) / 100;
+	
+	esd_set_stream_pan(mixer_fd, this->mixer.source_id, v, v);
+	
+	if(!this->mixer.mute)
+	  this->mixer.volume = value;
+	
+	esd_close(mixer_fd);
+      }
+    }
+    else
+      this->mixer.volume = value;
+    
+    return this->mixer.volume;
+    break;
+    
+  case AO_PROP_MUTE_VOL: {
+    int mute = (value) ? 1 : 0;
+    
+    /* need this to get source_id */
+    (void) ao_esd_get_property(&this->ao_driver, AO_PROP_MIXER_VOL);
+    
+    if(mute) {
+      if((mixer_fd = esd_open_sound(NULL)) >= 0) {
+	int v = 0;
+	
+	esd_set_stream_pan(mixer_fd, this->mixer.source_id, v, v);
+	esd_close(mixer_fd);
+      }
+    }
+    else {
+      if((mixer_fd = esd_open_sound(NULL)) >= 0) {
+	int v = (this->mixer.volume * 256) / 100;
+	
+	esd_set_stream_pan(mixer_fd, this->mixer.source_id, v, v);
+	esd_close(mixer_fd);
+      }
+    }
+    
+    this->mixer.mute = mute;
+    
+    return value;
+  }
+  break;
+  }
 
   return ~value;
 }
@@ -272,7 +369,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   printf("audio_esd_out: connecting to esd server...\n");
   audio_fd = esd_open_sound(NULL);
-
+  
   if (sigprocmask(SIG_SETMASK, &vo_mask_orig, NULL))
     printf("audio_esd_out: cannot block SIGALRM: %s\n", strerror(errno));
 
@@ -284,15 +381,16 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 	   server ? server : "local", strerror(errno));
 
     return NULL;
-  } 
+  }
   
   esd_close(audio_fd);
 
 
-  this = (esd_driver_t *) malloc (sizeof (esd_driver_t));
+  this                     = (esd_driver_t *) xine_xmalloc (sizeof (esd_driver_t));
+  this->pname              = strdup("xine esd audio output plugin");
   this->output_sample_rate = 0;
   this->audio_fd           = -1;
-  this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
+  this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_MUTE_VOL;
   this->latency            = config->register_range (config, "audio.esd_latency", 30000,
 						     -30000, 90000,
 						     "esd audio output latency (adjust a/v sync)",
