@@ -34,7 +34,6 @@ xine is using
 
   libmpg123 - a free MPEG audio decoder
     Written by Michael Hipp <http://www.mpg123.de>
-
   FFmpeg - Streaming Multimedia System
     Written by Gerard Lantau <http://ffmpeg.sourceforge.net>
 
@@ -188,4 +187,7 @@ Contributions
   Daniel Erat <dan_erat@pobox.com>
     'cloudy' skin.
   
+  Ewald Snel <ewald@rambo.its.tudelft.nl>
+    metronom sync loop fix, safe ffmpeg multithread init
+
   (let us know if we've forgotten anyone)
