@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.72 2003/12/08 12:36:02 f1rmb Exp $
+ * $Id: xineutils.h,v 1.73 2003/12/08 12:37:25 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -863,7 +863,7 @@ void xine_hexdump (const char *buf, int length);
 #define _x_abort()                                                    \
   do {                                                                \
     fprintf(stderr, "abort: %s:%d: %s: Aborting.\n",                  \
-            __FILE__, __LINE__, __func__);                            \
+            __FILE__, __LINE__, __XINE_FUNCTION__);                   \
     abort();                                                          \
   } while(0)
 
