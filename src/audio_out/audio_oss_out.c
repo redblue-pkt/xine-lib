@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.46 2001/10/14 23:38:30 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.47 2001/10/21 23:14:08 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -313,13 +313,13 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
 
     gettimeofday(&tv, NULL);
 
-    frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+    frames  = (tv.tv_usec - this->start_time.tv_usec)
                   * this->output_sample_k_rate / 1000;
     frames += (tv.tv_sec - this->start_time.tv_sec)
                   * this->output_sample_rate;
-
-    frames -= this->latency;
-
+    
+    frames -= this->latency * this->output_sample_k_rate;
+                  
     /* calc delay */
 
     bytes_left = this->bytes_in_buffer - frames * this->bytes_per_frame;
@@ -360,11 +360,10 @@ static int ao_oss_write(ao_driver_t *this_gen,
 
     gettimeofday(&tv, NULL);
 
-    frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+    frames  = (tv.tv_usec - this->start_time.tv_usec)
                   * this->output_sample_k_rate / 1000;
     frames += (tv.tv_sec - this->start_time.tv_sec)
                   * this->output_sample_rate;
-    frames -= this->output_sample_rate;
 
     /* calc delay */
 
@@ -664,8 +663,15 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     gettimeofday(&this->start_time, NULL);
   }
 
-  this->latency = config->lookup_int (config, "oss_latency", 50000);
-
+  this->latency = config->lookup_int (config, "oss_latency", 0);
+  
+  if( this->latency > 3000 ) {
+    /* this fixes the 0.9.2 default of 50000 */
+    this->latency = 0;
+    config->set_int (config, "oss_latency", 0);
+    printf ("audio_oss_out: oss_latency too high -> setting to zero.\n");
+  }
+  
   this->capabilities = 0;
 
   printf ("audio_oss_out : supported modes are ");
