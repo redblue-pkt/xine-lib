@@ -28,7 +28,7 @@ libavcodec_la_SOURCES = \
 	mem.c \
 	mjpeg.c \
 	motion_est.c \
-	mpeg12.c
+	mpeg12.c \
 	mpegvideo.c \
 	msmpeg4.c \
 	ratecontrol.c \
