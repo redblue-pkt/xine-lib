@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.1 2001/04/18 22:36:04 f1rmb Exp $
+ * $Id: monitor.c,v 1.2 2001/08/14 11:57:40 guenter Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -29,6 +29,10 @@
 
 #include "monitor.h"
 #include <stdio.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
+
 
 #define MAX_ID 5
 
@@ -51,34 +55,32 @@ void profiler_set_label (int id, char *label) {
   profiler_label[id] = label;
 }
 
-#ifdef ARCH_X86
-__inline__ unsigned long long int rdtsc()
-{
-  unsigned long long int x;
-  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));     
-  return x;
-}
-#endif
-
 void profiler_start_count (int id) {
-#ifdef ARCH_X86
-  profiler_start[id] = rdtsc();
-#endif
+
+  struct rusage usage ;
+
+  getrusage (RUSAGE_SELF, &usage);
+
+  profiler_start[id] = (long long int) usage.ru_utime.tv_sec * 1e6 + usage.ru_utime.tv_usec + (long long int) usage.ru_stime.tv_sec * 1e6 + usage.ru_stime.tv_usec;
 }
 
 void profiler_stop_count (int id) {
-#ifdef ARCH_X86
-  profiler_times[id] += rdtsc() - profiler_start[id];
-#endif
+
+  struct rusage usage ;
+
+  getrusage (RUSAGE_SELF, &usage);
+
+  profiler_times[id] +=  (long long int) usage.ru_utime.tv_sec * 1e6 + usage.ru_utime.tv_usec + (long long int) usage.ru_stime.tv_sec * 1e6 + usage.ru_stime.tv_usec - profiler_start[id];
 }
 
 void profiler_print_results () {
   int i;
 
-  printf ("\n\nPerformance analysis (cpu cycles):\n\n");
+  printf ("\n\nPerformance analysis (usec):\n\n");
   for (i=0; i<MAX_ID; i++) {
     printf ("%d:\t%s\t%12lld\n", i, profiler_label[i], profiler_times[i]);
   }
 }
 
 #endif
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.36 2001/08/13 17:52:22 jkeil Exp $
+ * $Id: video_decoder.c,v 1.37 2001/08/14 11:57:40 guenter Exp $
  *
  */
 
@@ -132,9 +132,14 @@ void *video_decoder_loop (void *this_gen) {
 	  this->cur_video_decoder_plugin = decoder;
 	  this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);
 
+	  printf ("video_decoder: using decoder >%s< \n",
+		  decoder->get_identifier());
+
 	}
 	
+	profiler_start_count (0);
 	decoder->decode_data (this->cur_video_decoder_plugin, buf);  
+	profiler_stop_count (0);
       }
       break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.40 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: xine.c,v 1.41 2001/08/14 11:57:40 guenter Exp $
  *
  * top-level xine functions
  *
@@ -328,6 +328,9 @@ void xine_exit (xine_t *this) {
   this->status = XINE_QUIT;
 
   printf ("xine_exit: bye!\n");
+
+  profiler_print_results ();
+
 }
 
 void xine_pause (xine_t *this) {
@@ -413,6 +416,13 @@ xine_t *xine_init (vo_driver_t *vo,
   this->branched_cb     = branched_cb;  
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
+
+  /*
+   * set up profiler
+   */
+  profiler_set_label (0, "video decoder         ");
+  profiler_set_label (1, "audio decoder/output  ");
+  profiler_set_label (2, "video output          ");
 
   /*
    * init lock

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.39 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: video_out.c,v 1.40 2001/08/14 11:57:40 guenter Exp $
  *
  */
 
@@ -180,6 +180,8 @@ static void *video_out_loop (void *this_gen) {
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 
+    profiler_start_count (2);
+
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
@@ -196,6 +198,7 @@ static void *video_out_loop (void *this_gen) {
     img = this->display_img_buf_queue->first;
     
     if (!img) {
+      profiler_stop_count (2);
       continue;
     }
     
@@ -250,6 +253,7 @@ static void *video_out_loop (void *this_gen) {
     */
 
     if (diff<0) {
+      profiler_stop_count (2);
       continue;
     }
 
@@ -262,8 +266,10 @@ static void *video_out_loop (void *this_gen) {
     
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
 
-    if (!img)
+    if (!img) {
+      profiler_stop_count (2);
       continue;
+    }
 
     pthread_mutex_lock (&img->mutex);
     img->bDriverLock = 1;
@@ -285,6 +291,7 @@ static void *video_out_loop (void *this_gen) {
     
     this->driver->display_frame (this->driver, img); 
 
+    profiler_stop_count (2);
   }
 
   /*
