@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.27 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: adpcm.c,v 1.28 2003/02/14 00:55:52 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1247,7 +1247,10 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           this->out_block_size =
             (this->in_block_size - 
             (MS_IMA_ADPCM_PREAMBLE_SIZE * this->channels)) * 2;
-          break;
+          break;    
+      
+        default:
+          this->out_block_size = 0;
       }
 
       /* allocate 2 bytes per sample */
