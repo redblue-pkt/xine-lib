@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2003/01/08 01:02:28 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.49 2003/01/26 18:22:34 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -466,7 +466,9 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 			((this->a52_flags & A52_CHANNEL_MASK) == A52_3F))
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 3.0");
 		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_STEREO)
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0");
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (stereo)");
+		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_DOLBY)
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (dolby)");
 		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_MONO)
 		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 1.0");
 		else
