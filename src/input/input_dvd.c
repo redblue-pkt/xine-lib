@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.192 2004/12/05 22:41:12 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.193 2004/12/08 18:24:21 mroi Exp $
  *
  */
 
@@ -904,7 +904,7 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
   /* Do we want to show or hide the button? */
   /* libspudec will control hiding */
   show = mode + 1; /* mode=0 select, 1 activate. */
-  this->stream->spu_decoder_plugin->set_button (this->stream->spu_decoder_plugin, button, mode + 1);
+  this->stream->spu_decoder_plugin->set_button (this->stream->spu_decoder_plugin, button, show);
 }
 
 static void dvd_handle_events(dvd_input_plugin_t *this) {
