@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.12 2002/09/16 13:17:49 mroi Exp $
+ * $Id: vo_scale.c,v 1.13 2002/09/17 10:32:45 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -99,7 +99,7 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
     
     assert (this->gui_pixel_aspect != 0.0);
     if (fabs (this->video_pixel_aspect / this->gui_pixel_aspect - 1.0)
-	< 0.005) {
+	< 0.01) {
       this->video_pixel_aspect = this->gui_pixel_aspect;
     }
 
