@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.124 2003/04/22 23:30:48 tchamp Exp $
+ * $Id: audio_out.c,v 1.125 2003/05/24 10:35:48 jstembridge Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -264,6 +264,7 @@ struct audio_fifo_s {
 
   pthread_mutex_t    mutex;
   pthread_cond_t     not_empty;
+  pthread_cond_t     empty;
 };
 
 
@@ -283,6 +284,7 @@ static audio_fifo_t *fifo_new (void) {
   fifo->num_buffers = 0;
   pthread_mutex_init (&fifo->mutex, NULL);
   pthread_cond_init  (&fifo->not_empty, NULL);
+  pthread_cond_init  (&fifo->empty, NULL);
 
   return fifo;
 }
@@ -321,6 +323,7 @@ static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo) {
   audio_buffer_t *buf;
 
   while (!fifo->first) {
+    pthread_cond_signal (&fifo->empty);
     pthread_cond_wait (&fifo->not_empty, &fifo->mutex);
   }
 
@@ -364,6 +367,14 @@ static int fifo_num_buffers (audio_fifo_t *fifo) {
   pthread_mutex_unlock (&fifo->mutex);
 
   return ret;
+}
+
+static void fifo_wait_empty (audio_fifo_t *fifo) {
+
+  pthread_mutex_lock (&fifo->mutex);
+  pthread_cond_signal (&fifo->not_empty);
+  pthread_cond_wait (&fifo->empty, &fifo->mutex);
+  pthread_mutex_unlock (&fifo->mutex);
 }
 
 
@@ -1208,8 +1219,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 
   if (this->audio_loop_running) {
     /* make sure there are no more buffers on queue */
-    while(fifo_num_buffers(this->out_fifo))
-      xine_usec_sleep (20000);
+    fifo_wait_empty(this->out_fifo);
   }
   
   pthread_mutex_lock( &this->driver_lock );
@@ -1433,8 +1443,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
     if (this->audio_loop_running) {
       /* make sure there are no more buffers on queue */
-      while(fifo_num_buffers(this->out_fifo))
-        xine_usec_sleep (20000);
+      fifo_wait_empty(this->out_fifo);
     }
 
     pthread_mutex_lock( &this->driver_lock );
