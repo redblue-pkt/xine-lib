@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.8 2003/01/11 10:49:47 f1rmb Exp $
+ * $Id: video_out_none.c,v 1.9 2003/02/05 21:20:10 hadess Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -66,9 +66,15 @@ static void free_framedata(none_frame_t* frame) {
     free(frame->vo_frame.base[0]);
     frame->vo_frame.base[0] = NULL;
   }
-  
-  frame->vo_frame.base[1] = NULL;
-  frame->vo_frame.base[2] = NULL;
+
+  if(frame->vo_frame.base[1]) {
+    free(frame->vo_frame.base[1]);
+    frame->vo_frame.base[1] = NULL;
+  }
+  if(frame->vo_frame.base[2]) {
+    free(frame->vo_frame.base[2]);
+    frame->vo_frame.base[2] = NULL;
+  }
 }
 
 static void none_frame_dispose(vo_frame_t *vo_frame) {
@@ -127,14 +133,14 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = malloc(frame_size * 3/2);
-      frame->vo_frame.base[2] = frame->vo_frame.base[0]+frame_size;
-      frame->vo_frame.base[1] = frame->vo_frame.base[0]+frame_size*5/4;
+      frame->vo_frame.base[0] = malloc(frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[1] = malloc(frame->vo_frame.pitches[1] * ((height+1)/2));
+      frame->vo_frame.base[2] = malloc(frame->vo_frame.pitches[2] * ((height+1)/2));
       break;
 
     case XINE_IMGFMT_YUY2:
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = malloc((frame_size * 2));
+      frame->vo_frame.base[0] = malloc(frame->vo_frame.pitches[0] * height);
       frame->vo_frame.base[1] = NULL;
       frame->vo_frame.base[2] = NULL;
       break;
