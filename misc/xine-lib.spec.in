@@ -2,7 +2,7 @@
 %define version @SPEC_VERSION@
 %define release 1
 
-%define major 	0
+%define major 	1
 %define libname	%{name}%{major}
 
 Name:        %{name}
@@ -200,8 +200,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n %{libname}-devel
 %defattr(-,root,root)
-%doc doc/xine-lib-API/html/*.html doc/xine-lib-API/html/*.css
-%doc doc/xine-lib-API/html/*.gif doc/xine-lib-API/html/*.png
 %doc doc/hackersguide/*.sgml doc/hackersguide/*.fig doc/hackersguide/README
 %{_libdir}/libxine*.so
 %{_libdir}/libxine*.la
@@ -214,12 +212,14 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 %ifos linux freebsd
 %ifarch i386 i486 i586 i686 k6 k7 athlon
-%{_libdir}/xine/plugins/vidix/*_vid.*
+%{_libdir}/xine/plugins/%{version}/vidix/*_vid.*
 %endif
 %endif
 
 
 %changelog
+* Sat Nov 02 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Changes for next xine version
 * Sun Oct 27 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Update of the german descriptions.
 * Thu Jun 06 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
