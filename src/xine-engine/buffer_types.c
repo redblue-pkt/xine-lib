@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.17 2002/05/27 06:10:26 siggi Exp $
+ * $Id: buffer_types.c,v 1.18 2002/06/02 16:32:46 tmmm Exp $
  *
  *
  * contents:
@@ -111,8 +111,17 @@ static video_db_t video_db[] = {
     mmioFOURCC('s', 'v', 'q', 'i'),
     0
   },
-  BUF_VIDEO_SORENSON,
-  "Sorenson"
+  BUF_VIDEO_SORENSON_V1,
+  "Sorenson Video 1"
+},
+{
+  {
+    mmioFOURCC('S', 'V', 'Q', '3'),
+    mmioFOURCC('s', 'v', 'q', '3'),
+    0
+  },
+  BUF_VIDEO_SORENSON_V3,
+  "Sorenson Video 3"
 },
 {
   {
@@ -401,7 +410,9 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0x01, 0
+    0x01,
+    mmioFOURCC('r','a','w',' '),
+    0
   },
   BUF_AUDIO_LPCM_LE,
   "Uncompressed PCM little endian"
@@ -523,6 +534,22 @@ static audio_db_t audio_db[] = {
   BUF_AUDIO_MAC6,
   "Apple MACE 6:1 Audio"
 },
+{
+  {
+    mmioFOURCC('Q', 'D', 'M', 'C'),
+    0
+  },
+  BUF_AUDIO_QDESIGN1,
+  "QDesign Audio v1"
+},
+{
+  {
+    mmioFOURCC('Q', 'D', 'M', '2'),
+    0
+  },
+  BUF_AUDIO_QDESIGN2,
+  "QDesign Audio v2"
+},
 { { 0 }, 0, "last entry" }
 };
 
@@ -566,10 +593,10 @@ int i;
     }
   }
 
-  return "unknow";
+  return "unknown";
 }
 
-uint32_t formattag_to_buf_audio( uint16_t formattag ) {
+uint32_t formattag_to_buf_audio( uint32_t formattag ) {
 int i, j;
 static uint16_t cached_formattag=0;
 static uint32_t cached_buf_type=0;

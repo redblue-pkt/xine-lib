@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.44 2002/05/27 06:10:26 siggi Exp $
+ * $Id: buffer.h,v 1.45 2002/06/02 16:32:46 tmmm Exp $
  *
  *
  * contents:
@@ -78,7 +78,7 @@ extern "C" {
 #define BUF_VIDEO_MPEG		0x02000000
 #define BUF_VIDEO_MPEG4		0x02010000
 #define BUF_VIDEO_CINEPAK	0x02020000
-#define BUF_VIDEO_SORENSON	0x02030000
+#define BUF_VIDEO_SORENSON_V1	0x02030000
 #define BUF_VIDEO_MSMPEG4_V12	0x02040000
 #define BUF_VIDEO_MSMPEG4_V3	0x02050000
 #define BUF_VIDEO_MJPEG		0x02060000
@@ -111,6 +111,7 @@ extern "C" {
 #define BUF_VIDEO_DUCKTM1	0x02220000
 #define BUF_VIDEO_FLI		0x02230000
 #define BUF_VIDEO_ROQ		0x02240000
+#define BUF_VIDEO_SORENSON_V3	0x02250000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -138,6 +139,8 @@ extern "C" {
 #define BUF_AUDIO_QTIMAADPCM	0x03140000
 #define BUF_AUDIO_MAC3		0x03150000
 #define BUF_AUDIO_MAC6		0x03160000
+#define BUF_AUDIO_QDESIGN1	0x03170000
+#define BUF_AUDIO_QDESIGN2	0x03180000
 
 /* spu buffer types:    */
  
@@ -250,7 +253,7 @@ uint32_t fourcc_to_buf_video( void * fourcc );
 char * buf_video_name( uint32_t buf_type );
 
 /* return BUF_VIDEO_xxx given the formattag */
-uint32_t formattag_to_buf_audio( uint16_t formattag );
+uint32_t formattag_to_buf_audio( uint32_t formattag );
 
 /* return codec name given BUF_VIDEO_xxx */
 char * buf_audio_name( uint32_t buf_type );
