@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.1 2001/11/28 22:19:11 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.2 2001/11/29 16:31:47 miguelfreitas Exp $
  *
  */
 
@@ -264,7 +264,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     do {
       last_event=this_event;
       this_event=this->video_overlay_events[last_event].next_event;
-    } while ( this_event && this->video_overlay_events[this_event].event->vpts < event->vpts );
+    } while ( this_event && this->video_overlay_events[this_event].event->vpts <= event->vpts );
 
     this->video_overlay_events[last_event].next_event=new_event;
     this->video_overlay_events[new_event].next_event=this_event;
