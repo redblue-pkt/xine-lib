@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.53 2004/04/10 15:29:57 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.54 2004/04/17 14:18:14 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -43,8 +43,12 @@
 #define LOG_VID 0
 #define LOG_PTS 0
 
+/* once activated, we wait for this amount of missing pan&scan info
+ * before disabling it again */
+#define PAN_SCAN_WINDOW_SIZE 50
+
 /* the number of frames to pass after an out-of-sync situation
-   before locking the stream again */
+ * before locking the stream again */
 #define RESYNC_WINDOW_SIZE 50
 
 /* we adjust vpts_offset in metronom, when skip_count reaches this value */
@@ -117,6 +121,11 @@ typedef struct dxr3_decoder_s {
   int                    force_aspect;         /* when input plugin has better info, we are forced */
   int                    force_pan_scan;       /* to use a certain aspect or to do pan&scan */
   
+  int                    use_panscan;
+  int                    panscan_smart_change;
+  int                    afd_smart_change;
+  int                    afd_code;             /* use pan&scan info if present in stream */
+  
   int                    last_width;
   int                    last_height;
   int                    last_aspect_code;     /* used to detect changes for event sending */
@@ -139,8 +148,10 @@ static inline int  dxr3_present(xine_stream_t *stream);
 static inline int  dxr3_mvcommand(int fd_control, int command);
 static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
 static inline int  get_duration(dxr3_decoder_t *this);
+static        void frame_format_change(dxr3_decoder_t *this);
 
 /* config callbacks */
+static void      dxr3_update_panscan(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
 static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry);
@@ -168,6 +179,7 @@ static void *dxr3_init_plugin(xine_t *xine, void *data)
 
 static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_stream_t *stream)
 {
+  static char *panscan_types[] = { "only when forced", "use MPEG hint", "use DVB hint", NULL };
   dxr3_decoder_t *this;
   dxr3_decoder_class_t *class = (dxr3_decoder_class_t *)class_gen;
   config_values_t *cfg;
@@ -208,27 +220,25 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
     return NULL;
   }
   
-  this->have_header_info      = 0;
-  this->sequence_open         = 0;
-  this->repeat_first_field    = 0;
-  
-  this->force_aspect          = 0;
-  this->force_pan_scan        = 0;
-  
-  this->last_width            = 0;
-  this->last_height           = 0;
-  this->last_aspect_code      = 0;
+  this->use_panscan           = cfg->register_enum(cfg,
+    "dxr3.use_panscan", 0, panscan_types, _("use Pan & Scan info"),
+    _("\"Pan & Scan\" is a special display mode which is sometimes used in MPEG "
+      "encoded material. You can specify here, how to handle such content.\n\n"
+      "only when forced\n"
+      "Use Pan & Scan only, when the content you are playing enforces it.\n\n"
+      "use MPEG hint\n"
+      "Enable Pan & Scan based on information embedded in the MPEG video stream.\n\n"
+      "use DVB hint\n"
+      "Enable Pan & Scan based on information embedded in DVB streams. This makes "
+      "use of the Active Format Descriptor (AFD) used in some European DVB channels."),
+    10, dxr3_update_panscan, this);
   
   this->dts_offset[0]         = 21600;
   this->dts_offset[1]         = 21600;
   this->dts_offset[2]         = 21600;
-  this->sync_retry            = 0;
-  this->resync_window         = 0;
-  this->skip_count            = 0;
   
   this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
   this->last_vpts             = this->class->clock->get_current_time(this->class->clock);
-  this->avg_duration          = 0;
   
   this->sync_every_frame      = cfg->register_bool(cfg,
     "dxr3.sync_every_frame", 0, _("try to sync video every frame"),
@@ -290,9 +300,6 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   /* handle aspect hints from xine-dvdnav */
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
-      xine_event_t event;
-      xine_format_change_data_t data;
-      
       this->aspect_code = this->force_aspect = buf->decoder_info[2];
       if (buf->decoder_info[3] == 0x1 && this->force_aspect == 3)
 	/* letterboxing is denied, we have to do pan&scan */
@@ -300,32 +307,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       else
 	this->force_pan_scan = 0;
 
-      /* send an event for dxr3 spu decoder */
-      event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
-      event.stream      = this->stream;
-      event.data        = &data;
-      event.data_length = sizeof(data);
-      data.width        = this->last_width;
-      data.height       = this->last_height;
-      data.aspect       = this->force_aspect;
-      data.pan_scan     = this->force_pan_scan;
-      xine_event_send(this->stream, &event);
-      
-      /* update ratio */
-      switch (this->aspect_code) {
-      case 2:
-	this->ratio = 4.0 / 3.0;
-	break;
-      case 3:
-	this->ratio = 16.0 / 9.0;
-	break;
-      case 4:
-	this->ratio = 2.11;
-	break;
-      default:
-	if (this->have_header_info)
-	  this->ratio = (double)this->last_width / (double)this->last_height;
-      }
+      frame_format_change(this);
       
       this->last_aspect_code = this->aspect_code;
     }
@@ -345,6 +327,19 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     }
     /* header code of some kind found */
     shift = 0xffffff00;
+    
+    if (byte == 0xb2) {
+      /* check for AFD data */
+      if (buffer + 5 < buf->content + buf->size) {
+	if (buffer[0] == 0x44 && buffer[1] == 0x54 && buffer[2] == 0x47) {
+	  this->afd_code = buffer[5] & 0x0f;
+	  if (this->aspect_code == 3)
+	    /* 4:3 image in 16:9 frame -> zoomit! */
+	    this->afd_smart_change = PAN_SCAN_WINDOW_SIZE;
+	}
+      }
+      continue;
+    }
     if (byte == 0xb3) {
       /* sequence data */
       if (buffer + 3 < buf->content + buf->size)
@@ -354,16 +349,33 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     }
     if (byte == 0xb5) {
       /* extension data */
-      if (buffer + 3 < buf->content + buf->size)
-	if ((buffer[0] & 0xf0) == 0x80)
+      /* parse the extension type and use what is necessary...
+       * types are: sequence(1), sequence_display(2), quant_matrix(3),
+       * copyright(4), picture_display(7), picture_coding(8), ... */
+      if (buffer + 4 < buf->content + buf->size) {
+        switch (buffer[0] >> 4) {
+	case 2:
+	case 7:
+	  /* picture_display and sequence_display are pan&scan info */
+	  if (this->use_panscan) this->panscan_smart_change = PAN_SCAN_WINDOW_SIZE;
+	  break;
+	case 8:
 	  this->repeat_first_field = (buffer[3] >> 1) & 1;
-#if 0
-      /* this disables frame jitter in progressive content, but
-       * unfortunately it makes the card drop one field on stills */
-      if (buffer + 4 < buf->content + buf->size)
-	if ((buffer[0] & 0xf0) == 0x80)
-	  buffer[4] &= ~(1 << 7);
+#if 0  /* TODO: this needs more testing */
+	  /* clearing the progessive flag gets rid of the frame jitter with
+	   * TV-out in the lower third of the image; but we have to set this
+	   * flag, when a still frame is coming along, otherwise the card will
+	   * drop one of the fields; therefore we check for the fifo size */
+	  if (!((dxr3_driver_t *)this->stream->video_driver)->overlay_enabled) {
+	    if (this->stream->video_fifo->fifo_size > this->stream->video_fifo->buffer_pool_capacity / 2)
+	      buffer[4] &= ~(1 << 7);
+	    else
+	      buffer[4] |=  (1 << 7);
+	  }
 #endif
+	  break;
+	}
+      }
       /* check if we can keep syncing */
       if (this->repeat_first_field && this->sync_retry)  /* reset counter */
         this->sync_retry = 500;
@@ -374,6 +386,28 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 #endif
         this->sync_every_frame = 0;
         this->sync_retry = 500; /* see you later */
+      }
+      /* check for pan&scan state */
+      if (this->use_panscan && (this->panscan_smart_change > 0 || this->afd_smart_change > 0)) {
+	this->panscan_smart_change--;
+	this->afd_smart_change--;
+	if (this->panscan_smart_change > 0 || this->afd_smart_change > 0) {
+	  /* only pan&scan if source is anamorphic */
+	  if (this->aspect_code == 3) {
+	    if (this->afd_smart_change && this->use_panscan == 2 && this->afd_code == 9)
+	      this->force_pan_scan = 1; /* panscan info available -> zoom */
+	    else if (this->afd_smart_change && this->use_panscan == 2 && this->afd_code != 9)
+	      this->force_pan_scan = 0; /* force no panscan - image is 16:9 */
+	    else if (this->use_panscan == 1 && this->panscan_smart_change)
+	      this->force_pan_scan = 1; /* panscan info available, ignore AFD mode */
+	    else if (!this->afd_smart_change && this->panscan_smart_change)
+	      this->force_pan_scan = 1;
+	    frame_format_change(this);
+	  }
+	} else {
+	  this->force_pan_scan = 0;
+	  frame_format_change(this);
+	}
       }
       continue;
     }
@@ -680,38 +714,7 @@ static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
       (this->last_width != this->width) ||
       (this->last_height != this->height) ||
       (this->last_aspect_code != this->aspect_code)) {
-    xine_event_t event;
-    xine_format_change_data_t data;
-    event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
-    event.stream      = this->stream;
-    event.data        = &data;
-    event.data_length = sizeof(data);
-    data.width        = this->width;
-    data.height       = this->height;
-    data.aspect       = this->aspect_code;
-    data.pan_scan     = this->force_pan_scan;
-    xine_event_send(this->stream, &event);
-    
-    /* update ratio */
-    switch (this->aspect_code) {
-    case 2:
-      this->ratio = 4.0 / 3.0;
-      break;
-    case 3:
-      this->ratio = 16.0 / 9.0;
-      break;
-    case 4:
-      this->ratio = 2.11;
-      break;
-    default:
-      this->ratio = (double)this->width / (double)this->height;
-    }
-    
-    /* update stream metadata */
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  10000 * this->ratio);
-    
+    frame_format_change(this);
     this->last_width = this->width;
     this->last_height = this->height;
     this->last_aspect_code = this->aspect_code;
@@ -802,29 +805,60 @@ static inline int get_duration(dxr3_decoder_t *this)
   return duration;
 }
 
+static void frame_format_change(dxr3_decoder_t *this)
+{
+  /* inform the dxr3 SPU decoder about the current format,
+   * so that it can choose the correctly matching SPU */
+  xine_event_t event;
+  xine_format_change_data_t data;
+  event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
+  event.stream      = this->stream;
+  event.data        = &data;
+  event.data_length = sizeof(data);
+  data.width        = this->width;
+  data.height       = this->height;
+  data.aspect       = this->aspect_code;
+  data.pan_scan     = this->force_pan_scan;
+  xine_event_send(this->stream, &event);
+  
+  /* update ratio */
+  switch (this->aspect_code) {
+  case 2:
+    this->ratio = 4.0 / 3.0;
+    break;
+  case 3:
+    this->ratio = 16.0 / 9.0;
+    break;
+  case 4:
+    this->ratio = 2.11;
+    break;
+  default:
+    if (this->have_header_info)
+      this->ratio = (double)this->width / (double)this->height;
+  }
+  
+  /* update stream metadata */
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  10000 * this->ratio);
+}
+
+static void dxr3_update_panscan(void *this_gen, xine_cfg_entry_t *entry)
+{
+  ((dxr3_decoder_t *)this_gen)->use_panscan = entry->num_value;
+}
+
 static void dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
-  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-  
-  this->sync_every_frame = entry->num_value;
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	  "dxr3_decode_video: setting sync_every_frame to %s\n", (entry->num_value ? "on" : "off"));
+  ((dxr3_decoder_t *)this_gen)->sync_every_frame = entry->num_value;
 }
 
 static void dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
-  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-
-  this->enhanced_mode = entry->num_value;
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	  "dxr3_decode_video: setting enhanced mode to %s\n", (entry->num_value ? "on" : "off"));
+  ((dxr3_decoder_t *)this_gen)->enhanced_mode = entry->num_value;
 }
 
 static void dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry)
 {
-  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-
-  this->correct_durations = entry->num_value;
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	  "dxr3_decode_video: setting correct_durations mode to %s\n", (entry->num_value ? "on" : "off"));
+  ((dxr3_decoder_t *)this_gen)->correct_durations = entry->num_value;
 }
