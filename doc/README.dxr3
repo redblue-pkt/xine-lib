@@ -30,25 +30,13 @@ consult also the HOWTO:
 	http://dxr3.sourceforge.net/howto.html
 
 The xine dxr3 plugin requires at least the version
+em8300-0.8.1 of the linux drivers.
 
-	em8300-0.8.1 of the linux drivers.
-	
+Additional information on using xine with the dxr3 and on how to
+setup the kernel module along with precompiled RPMs can be found
+here:
+	http://www.amalthea.de/xine/
 
-Compilation
-===========
-
-It is important to compile and install the dxr3/hw+ driver
-*before* compiling xine-lib. No doing so will cause the
-configure script to exclude dxr3 support with a warning.
-
-In order to activate the plugin, em8300.h must be available in 
-/usr/include/linux. If you have non-standard linux
-directory like /usr/src/linux-2.4.5, you can specify the
-location with
-
-./configure --with-linux-path=/usr/src/linux-2.4.5
-
-otherwise a ./configure without parameters will do.
 
 XINE dxr3 plugin
 =================
@@ -85,7 +73,8 @@ Non-mpeg video may be AVI, quicktime, windows media files or whatever
 else xine can decode. 
 
 This option must be compiled in and requires a supported mpeg encoder. 
-At the moment there are two:
+At the moment there are three:
+- libavcodec from xine-lib's ffmpeg plugin (good quality, quite fast)
 - libfame from fame.sourceforge.net (very fast, good quality)
   (currently the 0.9 versions of libfame don't work, use the 0.8 versions)
 - librte (version 0.4) from zapping.sourceforge.net (fast, very good quality)
@@ -246,10 +235,14 @@ dxr3.enc_add_bars:
 dxr3.encoder:
 		Mpeg encoder backend to use.
 		Depending on what's compiled in, can be "fame" or "rte"
-		As a rule of thumb, you should try rte first because
-		it gives the best output quality. If you get much
-		dropped frames, switch to "fame" and find the optimum
-		fame_quality setting (see below) for your system.
+		or "libavcodec". The "libavcodec" encoder makes use
+		of the ffmpeg plugin that already ships with xine-lib,
+		so you do not need to install any additional library
+		for that. Even better is that libdavcodec also provides
+		high quality with low CPU usage. Using "libavcodec" is
+		therefore strongly suggested. "fame" and "rte" are
+		still there, but the code has not been updated, so
+		current versions of both libs might fail to work.
 
 dxr3.fame_quality: (libfame encoder only)
 	0-100	The quality setting of the fame mpeg1 encoding. Lower
@@ -314,4 +307,4 @@ and dxr3.color_interval too.
 
 --- 
 version of this file:
- $Id: README.dxr3,v 1.8 2003/03/15 20:57:53 mroi Exp $
+ $Id: README.dxr3,v 1.9 2003/07/20 11:00:21 mroi Exp $
