@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.6 2002/12/24 01:30:22 holstsn Exp $
+ * $Id: real.c,v 1.7 2003/03/28 22:44:18 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -659,6 +659,11 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   rtsp_schedule_field(rtsp_session, "Accept: application/sdp");
   sprintf(buf, "Bandwidth: %u", bandwidth);
   rtsp_schedule_field(rtsp_session, buf);
+  rtsp_schedule_field(rtsp_session, "GUID: 00000000-0000-0000-0000-000000000000");
+  rtsp_schedule_field(rtsp_session, "RegionData: 0");
+  rtsp_schedule_field(rtsp_session, "ClientID: Linux_2.4_6.0.9.1235_play32_RN01_EN_586");
+  rtsp_schedule_field(rtsp_session, "SupportsMaximumASMBandwidth: 1");
+  rtsp_schedule_field(rtsp_session, "Language: en-US");
   rtsp_schedule_field(rtsp_session, "Require: com.real.retain-entity-for-setup");
   status=rtsp_request_describe(rtsp_session,NULL);
 

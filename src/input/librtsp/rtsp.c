@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.7 2003/02/05 00:08:55 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.8 2003/03/28 22:44:19 holstsn Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -546,7 +546,9 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       } while (strlen(rest)!=0);
       free(rest);
       if (seq<0) {
+#ifdef LOG
         printf("rtsp: warning: cseq not recognized!\n");
+#endif
         seq=1;
       }
       /* lets make the server happy */
@@ -611,7 +613,7 @@ rtsp_t *rtsp_connect(const char *mrl, const char *user_agent) {
   if (user_agent)
     s->user_agent=strdup(user_agent);
   else
-    s->user_agent=strdup("User-Agent: joschkas real tool");
+    s->user_agent=strdup("User-Agent: RealMedia Player Version 6.0.9.1235 (linux-2.0-libc6-i386-gcc2.95)");
 
   slash=strchr(mrl_ptr,'/');
   colon=strchr(mrl_ptr,':');
@@ -647,7 +649,15 @@ rtsp_t *rtsp_connect(const char *mrl, const char *user_agent) {
   s->server_state=RTSP_CONNECTED;
 
   /* now lets send an options request. */
+  rtsp_schedule_field(s, "CSeq: 1");
   rtsp_schedule_field(s, s->user_agent);
+  rtsp_schedule_field(s, "ClientChallenge: 9e26d33f2984236010ef6253fb1887f7");
+  rtsp_schedule_field(s, "PlayerStarttime: [28/03/2003:22:50:23 00:00]");
+  rtsp_schedule_field(s, "CompanyID: KnKV4M4I/B2FjJ1TToLycw==");
+  rtsp_schedule_field(s, "GUID: 00000000-0000-0000-0000-000000000000");
+  rtsp_schedule_field(s, "RegionData: 0");
+  rtsp_schedule_field(s, "ClientID: Linux_2.4_6.0.9.1235_play32_RN01_EN_586");
+  /*rtsp_schedule_field(s, "Pragma: initiate-session");*/
   rtsp_request_options(s, NULL);
 
   return s;
