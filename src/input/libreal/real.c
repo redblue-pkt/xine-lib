@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.10 2003/12/04 22:11:25 jstembridge Exp $
+ * $Id: real.c,v 1.11 2003/12/04 22:14:53 jstembridge Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -29,9 +29,9 @@
 
 #define LOG_MODULE "real"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 
 #include "real.h"
 #include "asmrp.h"
