@@ -133,7 +133,7 @@ dnl NLS Support
 dnl ---------------------------------------------
 
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
-ALL_LINGUAS="fr pt_BR de sk es pl_PL cs"
+ALL_LINGUAS="fr pt_BR de sk es pl_PL cs it"
 AM_GNU_GETTEXT(use-libtool, need-ngettext)
 AC_PROG_GMSGFMT_PLURAL
 AC_CONFIG_LINKS($nls_cv_header_libgt, $nls_cv_header_intl)

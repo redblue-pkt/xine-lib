@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
-"POT-Creation-Date: 2003-03-22 19:54+0100\n"
+"POT-Creation-Date: 2003-04-06 16:13+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -93,11 +93,11 @@ msgstr "Active la sortie surround analogique 5.1 canaux"
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr "Active la sortie audio numérique A52 / AC5 par spdif"
 
-#: src/audio_out/audio_oss_out.c:945
+#: src/audio_out/audio_oss_out.c:947
 msgid "oss mixer device"
 msgstr "périphérique du mixeur oss"
 
-#: src/audio_out/audio_oss_out.c:1020
+#: src/audio_out/audio_oss_out.c:1022
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques oss"
 
@@ -150,7 +150,7 @@ msgstr ""
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:299
+#: src/demuxers/demux_mpeg_block.c:302
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -158,7 +158,7 @@ msgstr ""
 "demux_mpeg_block: trop d'erreurs, arrêt de la lecture. Ce flux est peut être "
 "crypté ?\n"
 
-#: src/demuxers/demux_mpeg_block.c:414
+#: src/demuxers/demux_mpeg_block.c:417
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -179,40 +179,24 @@ msgstr ""
 msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
 msgstr ""
 
-#: src/demuxers/demux_wav.c:323
-msgid "demux_wav.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_aiff.c:353
-msgid "demux_aiff.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_snd.c:121
+#: src/demuxers/demux_snd.c:131
 msgid "demux_snd: bad header parameters\n"
 msgstr ""
 
-#: src/demuxers/demux_snd.c:156
+#: src/demuxers/demux_snd.c:166
 #, fuzzy, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demus_avi: type audio inconnu 0x%lx\n"
 
-#: src/demuxers/demux_snd.c:323
-msgid "demux_snd.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_voc.c:126
+#: src/demuxers/demux_voc.c:135
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
 msgstr ""
 
-#: src/demuxers/demux_voc.c:142
+#: src/demuxers/demux_voc.c:151
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
-msgstr ""
-
-#: src/demuxers/demux_voc.c:322
-msgid "demux_voc.c: input not seekable, can not handle!\n"
 msgstr ""
 
 #: src/demuxers/demux_wc3movie.c:210
@@ -419,7 +403,7 @@ msgstr ""
 msgid "http input plugin"
 msgstr ""
 
-#: src/input/net_buf_ctrl.c:57
+#: src/input/net_buf_ctrl.c:81
 msgid "Buffering..."
 msgstr ""
 
@@ -523,102 +507,127 @@ msgstr ""
 msgid "NVidia TV-Out support."
 msgstr ""
 
-#: src/xine-engine/video_out.c:395
+#: src/xine-engine/video_out.c:416
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:509
+#: src/xine-engine/video_out.c:541
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1445
+#: src/xine-engine/video_out.c:1465
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1448
+#: src/xine-engine/video_out.c:1468
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:530
+#: src/xine-engine/xine.c:542
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:564
+#: src/xine-engine/xine.c:576
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:600
+#: src/xine-engine/xine.c:612
 #, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:783
+#: src/xine-engine/xine.c:795
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:820
+#: src/xine-engine/xine.c:836
 msgid "xine: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:917
+#: src/xine-engine/xine.c:933
 msgid "xine_play: no demux available\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:932
+#: src/xine-engine/xine.c:951
 msgid "xine_play: demux failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1463
+#: src/xine-engine/xine.c:1487
 msgid "messages"
 msgstr "messages"
 
-#: src/xine-engine/xine.c:1464
+#: src/xine-engine/xine.c:1488
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1581
+#: src/xine-engine/audio_out.c:1591
 msgid "choose method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1582
+#: src/xine-engine/audio_out.c:1592
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1590
+#: src/xine-engine/audio_out.c:1600
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1593
+#: src/xine-engine/audio_out.c:1603
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1599
+#: src/xine-engine/audio_out.c:1609
 msgid "adjust if audio is offsync"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1646
+#: src/xine-engine/audio_out.c:1656
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1650
+#: src/xine-engine/audio_out.c:1660
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1651
+#: src/xine-engine/audio_out.c:1661
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
-#: src/xine-engine/osd.c:927
+#: src/xine-engine/osd.c:703
+msgid "osd: font isn't defined\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:717
+msgid "osd: can't find out current locale character set\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:729
+#, c-format
+msgid "osd: unsupported conversion %s -> UCS-2\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:733
+msgid "osd: iconv_open() failed\n"
+msgstr ""
+
+#. unknown character or character wider than 16 bits, try skip one byte
+#: src/xine-engine/osd.c:749
+#, c-format
+msgid ""
+"osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
+"skipping\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:1019
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr ""
 
@@ -690,39 +699,27 @@ msgid ""
 "the dxr3 handles mpeg only."
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:344
-msgid "Dxr3: contrast control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:346
-msgid "Dxr3: saturation control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:348
-msgid "Dxr3: brightness control"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:357
+#: src/dxr3/video_out_dxr3.c:345
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:387
+#: src/dxr3/video_out_dxr3.c:375
 msgid "Dxr3: overlay colorkey value"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:390
+#: src/dxr3/video_out_dxr3.c:378
 msgid "Dxr3: overlay colorkey range"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:391
+#: src/dxr3/video_out_dxr3.c:379
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:394
+#: src/dxr3/video_out_dxr3.c:382
 msgid "Crops the overlay area from top and bottom to avoid green lines"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:407
+#: src/dxr3/video_out_dxr3.c:395
 msgid "dxr3 preferred tv mode"
 msgstr ""
 
@@ -813,16 +810,24 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:412
-msgid "font for avi subtitles"
+#: src/libsputext/xine_decoder.c:500
+msgid "font for external subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:418
+#: src/libsputext/xine_decoder.c:506
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:424
+#: src/libsputext/xine_decoder.c:512
 msgid "subtitle vertical offset (relative window size)"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:523
+msgid "subtitle color"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:574
+msgid "encoding of subtitles"
 msgstr ""
 
 #: src/libspucc/xine_decoder.c:223

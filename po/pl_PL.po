@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
-"POT-Creation-Date: 2003-03-22 19:54+0100\n"
+"POT-Creation-Date: 2003-04-06 16:13+0200\n"
 "PO-Revision-Date: 2003-01-25 11:05+0100\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -116,12 +116,12 @@ msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr "w³±cz cyfrowe wyj¶cie d¼wiêku a52/ac5 przez spdif"
 
 # src/audio_out/audio_oss_out.c:851
-#: src/audio_out/audio_oss_out.c:945
+#: src/audio_out/audio_oss_out.c:947
 msgid "oss mixer device"
 msgstr "urz±dzenie miksera oss"
 
 # src/audio_out/audio_oss_out.c:923
-#: src/audio_out/audio_oss_out.c:1020
+#: src/audio_out/audio_oss_out.c:1022
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr ""
 "wtyczka wyj¶cia d¼wiêku xine, u¿ywaj±ca urz±dzeñ/sterowników kompatybilnych "
@@ -189,7 +189,7 @@ msgid "unrecognized FILM chunk\n"
 msgstr "nie rozpoznany fragment filmu\n"
 
 # src/demuxers/demux_mpeg_block.c:345
-#: src/demuxers/demux_mpeg_block.c:299
+#: src/demuxers/demux_mpeg_block.c:302
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -198,7 +198,7 @@ msgstr ""
 "jest zaszyfrowany?\n"
 
 # src/demuxers/demux_mpeg_block.c:456
-#: src/demuxers/demux_mpeg_block.c:414
+#: src/demuxers/demux_mpeg_block.c:417
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -219,46 +219,30 @@ msgstr "demux_fli.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
 msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
 msgstr "demux_smjpeg.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
 
-#: src/demuxers/demux_wav.c:323
-msgid "demux_wav.c: input not seekable, can not handle!\n"
-msgstr "demux_wav.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#: src/demuxers/demux_aiff.c:353
-msgid "demux_aiff.c: input not seekable, can not handle!\n"
-msgstr "demux_aiff.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#: src/demuxers/demux_snd.c:121
+#: src/demuxers/demux_snd.c:131
 msgid "demux_snd: bad header parameters\n"
 msgstr "demux_snd: b³êdne parametry nag³ówka\n"
 
 # src/demuxers/demux_avi.c:1257
-#: src/demuxers/demux_snd.c:156
+#: src/demuxers/demux_snd.c:166
 #, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demux_snd: niewspierany typ d¼wiêku %d\n"
 
-#: src/demuxers/demux_snd.c:323
-msgid "demux_snd.c: input not seekable, can not handle!\n"
-msgstr "demux_snd.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#: src/demuxers/demux_voc.c:126
+#: src/demuxers/demux_voc.c:135
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
 msgstr ""
 "nieznany typ bloku VOC (0x%02X); proszê skontaktowaæ siê z programistami "
 "xine\n"
 
-#: src/demuxers/demux_voc.c:142
+#: src/demuxers/demux_voc.c:151
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 "nieznany typ kompresji VOC (0x%02X); proszê skontaktowaæ siê z programistami "
 "xine\n"
-
-#: src/demuxers/demux_voc.c:322
-msgid "demux_voc.c: input not seekable, can not handle!\n"
-msgstr "demux_voc.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
 
 #: src/demuxers/demux_wc3movie.c:210
 #, c-format
@@ -500,7 +484,7 @@ msgid "http input plugin"
 msgstr "wtyczka wej¶cia http"
 
 # src/input/net_buf_ctrl.c:67
-#: src/input/net_buf_ctrl.c:57
+#: src/input/net_buf_ctrl.c:81
 msgid "Buffering..."
 msgstr "Buforowanie..."
 
@@ -624,13 +608,13 @@ msgid "NVidia TV-Out support."
 msgstr "Wsparcie dla wyj¶cia TV kart NVidia."
 
 # src/xine-engine/video_out.c:308
-#: src/xine-engine/video_out.c:395
+#: src/xine-engine/video_out.c:416
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d ramek dostarczonych, %d ramek pominiêtych, %d ramek porzuconych\n"
 
 # src/xine-engine/video_out.c:351
-#: src/xine-engine/video_out.c:509
+#: src/xine-engine/video_out.c:541
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -638,110 +622,135 @@ msgid ""
 msgstr "video_out: odrzucam obraz o pts %lld bo jest za stary (diff : %lld).\n"
 
 # src/xine-engine/video_out.c:890
-#: src/xine-engine/video_out.c:1445
+#: src/xine-engine/video_out.c:1465
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: nie mogê utworzyæ w±tku (%s)\n"
 
 # src/xine-engine/video_out.c:893
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1448
+#: src/xine-engine/video_out.c:1468
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out: przykro mi, to nie powinno sie zdarzyæ.\n"
 "Proszê ponownie uruchomiæ xine.\n"
 
 # src/xine-engine/xine.c:415
-#: src/xine-engine/xine.c:530
+#: src/xine-engine/xine.c:542
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nie mogê znale¼æ wtyczki wej¶cia dla tego MRL\n"
 
 # src/xine-engine/xine.c:471
-#: src/xine-engine/xine.c:564
+#: src/xine-engine/xine.c:576
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: zawiód³ start wybranego demultiplexera %s\n"
 
 # src/xine-engine/xine.c:471
-#: src/xine-engine/xine.c:600
+#: src/xine-engine/xine.c:612
 #, fuzzy, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr "xine: zawiód³ start wybranego demultiplexera %s\n"
 
 # src/xine-engine/xine.c:436
-#: src/xine-engine/xine.c:783
+#: src/xine-engine/xine.c:795
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nie mogê znale¼æ demultiplexera dla >%s<\n"
 
 # src/xine-engine/xine.c:471
-#: src/xine-engine/xine.c:820
+#: src/xine-engine/xine.c:836
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: zawiód³ start demultiplexera\n"
 
 # src/xine-engine/xine.c:471
-#: src/xine-engine/xine.c:917
+#: src/xine-engine/xine.c:933
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: brak dostêpnego demultiplexera\n"
 
 # src/xine-engine/xine.c:471
-#: src/xine-engine/xine.c:932
+#: src/xine-engine/xine.c:951
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: zawiód³ start demultiplexera\n"
 
 # src/xine-engine/xine.c:1025
-#: src/xine-engine/xine.c:1463
+#: src/xine-engine/xine.c:1487
 msgid "messages"
 msgstr "wiadomo¶ci"
 
 # src/xine-engine/xine.c:1026
-#: src/xine-engine/xine.c:1464
+#: src/xine-engine/xine.c:1488
 msgid "plugin"
 msgstr "wtyczka"
 
-#: src/xine-engine/audio_out.c:1581
+#: src/xine-engine/audio_out.c:1591
 msgid "choose method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1582
+#: src/xine-engine/audio_out.c:1592
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
 
 # src/xine-engine/audio_out.c:825
-#: src/xine-engine/audio_out.c:1590
+#: src/xine-engine/audio_out.c:1600
 msgid "adjust whether resampling is done or not"
 msgstr "w³±czeni/wy³±czenie ponownego próbkowania"
 
 # src/xine-engine/audio_out.c:828
-#: src/xine-engine/audio_out.c:1593
+#: src/xine-engine/audio_out.c:1603
 msgid "if !=0 always resample to given rate"
 msgstr "je¶li !=0 zawsze ponowne próbkowanie do podanej czêstotliwo¶ci"
 
-#: src/xine-engine/audio_out.c:1599
+#: src/xine-engine/audio_out.c:1609
 msgid "adjust if audio is offsync"
 msgstr "Dopasuj je¶li d¼wiêk nie jest zsynchronizowany"
 
 # src/xine-engine/audio_out.c:868
-#: src/xine-engine/audio_out.c:1646
+#: src/xine-engine/audio_out.c:1656
 msgid "Audio volume"
 msgstr "g³o¶no¶æ d¼wiêku"
 
 # src/xine-engine/audio_out.c:872
-#: src/xine-engine/audio_out.c:1650
+#: src/xine-engine/audio_out.c:1660
 msgid "restore volume level at startup"
 msgstr "przywracanie g³o¶no¶ci przy starcie"
 
 # src/xine-engine/audio_out.c:873
-#: src/xine-engine/audio_out.c:1651
+#: src/xine-engine/audio_out.c:1661
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "je¶li ustawione - xine nie bêdzie zmieniaæ ¿adnych ustawieñ miksera przy "
 "starcie"
 
+#: src/xine-engine/osd.c:703
+msgid "osd: font isn't defined\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:717
+msgid "osd: can't find out current locale character set\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:729
+#, c-format
+msgid "osd: unsupported conversion %s -> UCS-2\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:733
+msgid "osd: iconv_open() failed\n"
+msgstr ""
+
+#. unknown character or character wider than 16 bits, try skip one byte
+#: src/xine-engine/osd.c:749
+#, c-format
+msgid ""
+"osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
+"skipping\n"
+msgstr ""
+
 # src/xine-engine/osd.c:863
-#: src/xine-engine/osd.c:927
+#: src/xine-engine/osd.c:1019
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "paleta u¿yta przy napisach (t³o-napisy-kontur)"
 
@@ -832,47 +841,32 @@ msgstr ""
 "zawarto¶æ inna ni¿ mpeg musi przej¶æ etap ponownego kodowania, poniewa¿ "
 "karty dxr3 wspieraj± tylko format mpeg"
 
-# src/dxr3/video_out_dxr3.c:252
-#: src/dxr3/video_out_dxr3.c:344
-msgid "Dxr3: contrast control"
-msgstr "dxr3: kontrola kontrastu"
-
-# src/dxr3/video_out_dxr3.c:254
-#: src/dxr3/video_out_dxr3.c:346
-msgid "Dxr3: saturation control"
-msgstr "dxr3: kontrola nasycenia"
-
-# src/dxr3/video_out_dxr3.c:256
-#: src/dxr3/video_out_dxr3.c:348
-msgid "Dxr3: brightness control"
-msgstr "dxr3: kontrola jasno¶ci"
-
 # src/dxr3/video_out_dxr3.c:260
-#: src/dxr3/video_out_dxr3.c:357
+#: src/dxr3/video_out_dxr3.c:345
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr "dxr3: tryb wyj¶cia tv (tv lub overlay)"
 
 # src/dxr3/video_out_dxr3.c:287
-#: src/dxr3/video_out_dxr3.c:387
+#: src/dxr3/video_out_dxr3.c:375
 msgid "Dxr3: overlay colorkey value"
 msgstr "dxr3: warto¶æ koloru kluczowego dla overlay"
 
 # src/dxr3/video_out_dxr3.c:290
-#: src/dxr3/video_out_dxr3.c:390
+#: src/dxr3/video_out_dxr3.c:378
 msgid "Dxr3: overlay colorkey range"
 msgstr "dxr3: zakres koloru kluczowego"
 
 # src/dxr3/video_out_dxr3.c:291
-#: src/dxr3/video_out_dxr3.c:391
+#: src/dxr3/video_out_dxr3.c:379
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr "wiêksza warto¶æ zwiêksza tolerancjê dla koloru kluczowego overlay"
 
-#: src/dxr3/video_out_dxr3.c:394
+#: src/dxr3/video_out_dxr3.c:382
 msgid "Crops the overlay area from top and bottom to avoid green lines"
 msgstr ""
 
 # src/dxr3/video_out_dxr3.c:303
-#: src/dxr3/video_out_dxr3.c:407
+#: src/dxr3/video_out_dxr3.c:395
 msgid "dxr3 preferred tv mode"
 msgstr "dxr3: wybór trybu tv"
 
@@ -988,20 +982,31 @@ msgid "Memcopy method to use in xine for large data chunks."
 msgstr "metoda kopiowania pamiêci u¿ywana dla du¿ych porcji danych"
 
 # src/libsputext/xine_decoder.c:1078
-#: src/libsputext/xine_decoder.c:412
-msgid "font for avi subtitles"
+#: src/libsputext/xine_decoder.c:500
+#, fuzzy
+msgid "font for external subtitles"
 msgstr "fonty dla napisów avi"
 
 # src/libsputext/xine_decoder.c:1084
-#: src/libsputext/xine_decoder.c:418
+#: src/libsputext/xine_decoder.c:506
 msgid "subtitle size (relative window size)"
 msgstr "rozmiar napisów (wzglêdny rozmiar okna)"
 
 # src/libsputext/xine_decoder.c:1084
-#: src/libsputext/xine_decoder.c:424
+#: src/libsputext/xine_decoder.c:512
 #, fuzzy
 msgid "subtitle vertical offset (relative window size)"
 msgstr "rozmiar napisów (wzglêdny rozmiar okna)"
+
+#: src/libsputext/xine_decoder.c:523
+msgid "subtitle color"
+msgstr ""
+
+# src/libsputext/xine_decoder.c:1078
+#: src/libsputext/xine_decoder.c:574
+#, fuzzy
+msgid "encoding of subtitles"
+msgstr "fonty dla napisów avi"
 
 # src/libspucc/xine_decoder.c:220
 #: src/libspucc/xine_decoder.c:223
@@ -1092,6 +1097,30 @@ msgstr "MS RLE: ramka ptr w³a¶nie wykroczy³a poza granice (2)\n"
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: zakoñczono dekodowanie ramki z pozosta³ymi bajtami (%d < %d)\n"
+
+#~ msgid "demux_wav.c: input not seekable, can not handle!\n"
+#~ msgstr "demux_wav.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
+
+#~ msgid "demux_aiff.c: input not seekable, can not handle!\n"
+#~ msgstr "demux_aiff.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
+
+#~ msgid "demux_snd.c: input not seekable, can not handle!\n"
+#~ msgstr "demux_snd.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
+
+#~ msgid "demux_voc.c: input not seekable, can not handle!\n"
+#~ msgstr "demux_voc.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
+
+# src/dxr3/video_out_dxr3.c:252
+#~ msgid "Dxr3: contrast control"
+#~ msgstr "dxr3: kontrola kontrastu"
+
+# src/dxr3/video_out_dxr3.c:254
+#~ msgid "Dxr3: saturation control"
+#~ msgstr "dxr3: kontrola nasycenia"
+
+# src/dxr3/video_out_dxr3.c:256
+#~ msgid "Dxr3: brightness control"
+#~ msgstr "dxr3: kontrola jasno¶ci"
 
 # src/input/input_http.c:471
 #~ msgid "input_http: Location redirection not implemented\n"
