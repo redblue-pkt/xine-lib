@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-noinst_HEADERS = dsp.h  filter.h  window.h
+noinst_HEADERS = dsp.h filter.h window.h audio_filters.h
 
 libdir = $(XINE_PLUGINDIR)/post
 

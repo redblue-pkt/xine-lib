@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.15 2004/07/26 22:23:34 miguelfreitas Exp $
+ * $Id: upmix.c,v 1.16 2004/07/27 17:59:58 mroi Exp $
  *
  */
 
@@ -33,6 +33,8 @@
 #include "xineutils.h"
 #include "post.h"
 #include "dsp.h"
+
+#include "audio_filters.h"
 
 
 typedef struct post_plugin_upmix_s post_plugin_upmix_t;

@@ -19,7 +19,7 @@
  *
  * Time stretch by a given factor, optionally preserving pitch
  *
- * $Id: stretch.c,v 1.2 2004/07/26 22:34:00 miguelfreitas Exp $
+ * $Id: stretch.c,v 1.3 2004/07/27 17:59:58 mroi Exp $
  *
  */
 
@@ -31,6 +31,7 @@
 #include "dsp.h"
 #include "resample.h"
 
+#include "audio_filters.h"
 
 #define AUDIO_FRAGMENT  120/1000  /* ms of audio */
 
@@ -218,8 +219,8 @@ struct post_plugin_stretch_s {
   int                  channels;
   int                  bytes_per_frame;
 
-  void                *audiofrag;         /* audio fragment to work on */
-  void                *outfrag;           /* processed audio fragment  */
+  int16_t             *audiofrag;         /* audio fragment to work on */
+  int16_t             *outfrag;           /* processed audio fragment  */
   _ftype_t            *w;
   int                  frames_per_frag;
   int                  frames_per_outfrag;
@@ -345,7 +346,7 @@ static void stretch_process_fragment( post_audio_port_t *port,
   post_plugin_stretch_t *this = (post_plugin_stretch_t *)port->post;
   
   audio_buffer_t  *outbuf;
-  void            *data_out = this->outfrag;
+  int16_t         *data_out = this->outfrag;
   int num_frames_in = this->num_frames;
   int num_frames_out = this->num_frames * this->frames_per_outfrag /
                          this->frames_per_frag;
@@ -356,7 +357,7 @@ static void stretch_process_fragment( post_audio_port_t *port,
                                     this->outfrag, num_frames_out);
      else if( this->channels == 1 )
         _x_audio_out_resample_mono(this->audiofrag, num_frames_in,
-                                    this->outfrag, num_frames_out);
+                                   this->outfrag, num_frames_out);
   } else {
      if( num_frames_in > num_frames_out )
      {
@@ -475,7 +476,7 @@ static void stretch_process_fragment( post_audio_port_t *port,
     memcpy( outbuf->mem, data_out, 
             outbuf->num_frames * this->bytes_per_frame );
     num_frames_out -= outbuf->num_frames;
-    data_out += outbuf->num_frames * this->bytes_per_frame;
+    (uint8_t *)data_out += outbuf->num_frames * this->bytes_per_frame;
                 
     outbuf->vpts        = this->pts;
     this->pts           = 0;
@@ -497,7 +498,7 @@ static void stretch_port_put_buffer (xine_audio_port_t *port_gen,
   
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_stretch_t *this = (post_plugin_stretch_t *)port->post;
-  void                *data_in;
+  int16_t               *data_in;
   
   pthread_mutex_lock (&this->lock);
 
@@ -583,10 +584,10 @@ static void stretch_port_put_buffer (xine_audio_port_t *port_gen,
       frames_to_copy = buf->num_frames;
 
     /* copy up to one fragment from input buf to our buffer */
-    memcpy( this->audiofrag + this->num_frames * this->bytes_per_frame,
+    memcpy( (uint8_t *)this->audiofrag + this->num_frames * this->bytes_per_frame,
             data_in, frames_to_copy * this->bytes_per_frame );
     
-    data_in += frames_to_copy * this->bytes_per_frame;
+    (uint8_t *)data_in += frames_to_copy * this->bytes_per_frame;
     this->num_frames += frames_to_copy;
     buf->num_frames -= frames_to_copy;
 
