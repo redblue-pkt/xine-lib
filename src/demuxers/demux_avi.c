@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.26 2001/08/28 19:16:19 guenter Exp $
+ * $Id: demux_avi.c,v 1.27 2001/08/29 02:23:58 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -118,6 +118,8 @@ typedef struct demux_avi_s {
   pthread_t            thread;
 
   int                  status;
+
+  int                  no_audio;
 
   uint32_t             video_step;
   uint32_t             AVI_errno; 
@@ -697,7 +699,7 @@ static int demux_avi_next (demux_avi_t *this) {
   if (this->avi->video_frames <= this->avi->video_posf)
     return 0;
 
-  if (this->avi->audio_chunks <= this->avi->audio_posc)
+  if (!this->no_audio && (this->avi->audio_chunks <= this->avi->audio_posc))
     return 0;
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -708,7 +710,7 @@ static int demux_avi_next (demux_avi_t *this) {
   audio_pts = get_audio_pts (this, this->avi->audio_posc, this->avi->audio_posb);
   video_pts = get_video_pts (this, this->avi->video_posf);
 
-  if (audio_pts < video_pts) {
+  if (!this->no_audio && (audio_pts < video_pts)) {
 
     /* read audio */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: audio \n");
@@ -766,6 +768,9 @@ static void *demux_avi_loop (void *this_gen) {
   this->send_end_buffers = 1;
 
   do {
+
+    /* printf ("avi loop (status %d)\n", this->status); */
+
     if (!demux_avi_next(this))
       this->status = DEMUX_FINISHED;
 
@@ -856,6 +861,27 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   printf ("demux_avi: video format = %s, audio format = 0x%lx\n",
 	  this->avi->compressor, this->avi->a_fmt);
+  this->no_audio = 0;
+  switch (this->avi->a_fmt) {
+  case 0x01:
+    this->avi->audio_type     = BUF_AUDIO_LPCM;
+    break;
+  case 0x2000:
+    this->avi->audio_type     = BUF_AUDIO_A52;
+    break;
+  case 0x50:
+  case 0x55:
+    this->avi->audio_type     = BUF_AUDIO_MPEG;
+    break;
+  case 0x161:
+    this->avi->audio_type     = BUF_AUDIO_AVI;
+    break;
+  default:
+    printf ("demux_avi: unknown audio type 0x%lx\n", this->avi->a_fmt);
+    this->no_audio  = 1;
+    this->avi->audio_type     = BUF_AUDIO_MPEG;
+    break;
+  }
 
   AVI_seek_start (this->avi);
 
@@ -876,15 +902,16 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   video_pts = get_video_pts (this, this->avi->video_posf); 
 
-  /* seek audio */
-  while (get_audio_pts (this, this->avi->audio_posc, 0) < video_pts) {
-    this->avi->audio_posc++;
-    if (this->avi->audio_posc>this->avi->audio_chunks) {
-      this->status = DEMUX_FINISHED;
-      return;
+  if (!this->no_audio) {
+    /* seek audio */
+    while (get_audio_pts (this, this->avi->audio_posc, 0) < video_pts) {
+      this->avi->audio_posc++;
+      if (this->avi->audio_posc>this->avi->audio_chunks) {
+	this->status = DEMUX_FINISHED;
+	return;
+      }
     }
   }
-
 
   /* 
    * send start buffers
@@ -982,26 +1009,6 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     memcpy (buf->content, &this->avi->wavex, 
 	    sizeof (this->avi->wavex));
     buf->size = sizeof (this->avi->wavex);
-    switch (this->avi->a_fmt) {
-    case 0x01:
-      this->avi->audio_type     = BUF_AUDIO_LPCM;
-      break;
-    case 0x2000:
-      this->avi->audio_type     = BUF_AUDIO_A52;
-      break;
-    case 0x50:
-    case 0x55:
-      this->avi->audio_type     = BUF_AUDIO_MPEG;
-      break;
-    case 0x161:
-      this->avi->audio_type     = BUF_AUDIO_AVI;
-      break;
-    default:
-      printf ("demux_avi: unknown audio type 0x%lx =>exit\n", this->avi->a_fmt);
-      this->status  = DEMUX_FINISHED;
-      this->avi->audio_type     = BUF_AUDIO_MPEG;
-      break;
-    }
     buf->type = this->avi->audio_type;
     buf->decoder_info[0] = 0; /* first package, containing wavex */
     this->audio_fifo->put (this->audio_fifo, buf);
@@ -1015,6 +1022,8 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
+  printf ("avi_open...\n"); fflush (stdout);
+
   switch(stage) {
 
   case STAGE_BY_CONTENT: {
@@ -1027,7 +1036,14 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     input->seek(input, 0, SEEK_SET);
     
     this->input = input;
+
+    printf ("avi_init...\n"); fflush (stdout);
+
     this->avi = AVI_init (this);
+
+    printf ("avi_init...done\n");
+
+
     if (this->avi) {
 
       printf ("demux_avi: %ld frames\n", this->avi->video_frames);
