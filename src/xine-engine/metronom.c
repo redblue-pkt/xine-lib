@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.104 2002/11/27 21:41:11 heikos Exp $
+ * $Id: metronom.c,v 1.105 2002/11/30 22:09:42 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,8 @@
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
 #define AV_DIFF_TOLERANCE     45000
+
+/*#define OLD_DRIFT_CORRECTION  1*/
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
@@ -282,8 +284,6 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 
 static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
-  int64_t diff;
-
   pthread_mutex_lock (&this->lock);
 
   this->video_discontinuity_count++;
@@ -536,10 +536,22 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   }
   vpts = this->audio_vpts;
 
+  /* drift here is caused by streams where nominal sample rate differs from 
+   * the rate of which pts increments. fixing the audio_vpts won't do us any
+   * good because sound card won't play it faster or slower just because
+   * we want. however, adding the error to the vpts_offset will force video
+   * to change it's frame rate to keep in sync with us.
+   */
+#if OLD_DRIFT_CORRECTION
   this->audio_vpts += nsamples * (this->pts_per_smpls-this->audio_drift_step)
                       / AUDIO_SAMPLE_NUM;
   this->audio_samples += nsamples;
-  
+#else
+  this->audio_vpts += nsamples * this->pts_per_smpls / AUDIO_SAMPLE_NUM;
+  this->audio_samples += nsamples;
+  this->vpts_offset += nsamples * this->audio_drift_step / AUDIO_SAMPLE_NUM;
+#endif                 
+                        
 #ifdef LOG
   printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
 #endif
@@ -559,10 +571,20 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     printf ("metronom: av_offset=%lld pts\n", this->av_offset);
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
+#if OLD_DRIFT_CORRECTION
     this->vpts_offset += value;
-#ifdef LOG
-    printf ("metronom: adjusting vpts_offset by %lld\n", value );
+#else
+    this->audio_vpts += value;
 #endif
+
+/*#ifdef LOG*/
+    /* that message should be rare, please report otherwise.
+     * when xine is in some sort of "steady state" hearing it
+     * once in a while means a small sound card drift (or system
+     * clock drift -- who knows?). nothing to worry about.
+     */
+    printf ("metronom: fixing sound card drift by %lld pts\n", value );
+/*#endif*/
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
