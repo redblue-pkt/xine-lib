@@ -122,7 +122,7 @@ xineplug_inp_cdda_la_LIBADD = $(XINE_LIB)
 xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_v4l_la_SOURCES = input_v4l.c
-xineplug_inp_v4l_la_LIBADD = $(XINE_LIB)
+xineplug_inp_v4l_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB)
 xineplug_inp_v4l_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c
@@ -130,7 +130,7 @@ xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)
 xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_pvr_la_SOURCES = input_pvr.c
-xineplug_inp_pvr_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB)
+xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
