@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.62 2002/11/09 23:22:32 guenter Exp $
+ * $Id: demux_ts.c,v 1.63 2002/11/10 01:41:17 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -193,6 +193,7 @@ typedef struct {
   int              send_end_buffers;
   int              ignore_scr_discont;
   int              send_newpts;
+  int              buf_flag_seek;
 
   unsigned int     scrambled_pids[MAX_PIDS];
   unsigned int     scrambled_npids;
@@ -238,9 +239,17 @@ static uint32_t demux_ts_compute_crc32(demux_ts_t*this, uint8_t *data,
 
 static void check_newpts( demux_ts_t*this, int64_t pts ) {
 
-  if( this->send_newpts && pts ) {
+  printf ("demux_ts: check_newpts %lld, send_newpts %d, buf_flag_seek %d\n",
+	  pts, this->send_newpts, this->buf_flag_seek);
 
-    xine_demux_control_newpts (this->stream, pts, 0);
+  if (this->send_newpts && pts) {
+
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->stream, pts, 0);
+    }
     this->send_newpts = 0;
     this->ignore_scr_discont = 1;
   }
@@ -587,6 +596,9 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = NULL; /* forget about buf -- not our responsibility anymore */
+#ifdef TS_LOG
+      printf ("demux_ts: produced buffer, pts=%lld\n", m->pts);
+#endif
     }
 
     if (!demux_ts_parse_pes_header(m, ts, len, this->stream)) {
@@ -614,6 +626,11 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
+
+#ifdef TS_LOG
+      printf ("demux_ts: produced buffer, pts=%lld\n", m->pts);
+#endif
+
     }
     memcpy(m->buf->mem + m->buffered_bytes, ts, len);
     m->buffered_bytes += len;
@@ -1384,6 +1401,7 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 			  off_t start_pos, int start_time) {
 
   demux_ts_t *this = (demux_ts_t *) this_gen;
+  int i;
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
@@ -1397,12 +1415,25 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
   this->send_newpts = 1;
   this->ignore_scr_discont = 0;
   
+  for (i=0; i<MAX_PIDS; i++) {
+    demux_ts_media *m = &this->media[i];
+
+    if (m->buf != NULL) 
+      m->buf->free_buffer(m->buf);
+    m->buf            = NULL;
+    m->counter        = INVALID_CC;
+    m->corrupted_pes  = 1;
+    m->buffered_bytes = 0;
+  }
+
   if( !this->stream->demux_thread_running ) {
     
-    this->status            = DEMUX_OK;
+    this->status        = DEMUX_OK;
+    this->buf_flag_seek = 0;
 
   } else {
 
+    this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
 
   }
