@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.15 2001/07/17 13:28:10 jkeil Exp $
+ * $Id: input_vcd.c,v 1.16 2001/07/25 08:42:05 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1035,16 +1035,16 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   close (this->fd);
   this->fd = -1;
 
-  *nFiles = this->total_tracks;
+  *nFiles = this->total_tracks - 1;
   
   /* printf ("%d tracks\n", this->total_tracks); */
 
-  for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
-    sprintf (this->filelist[i-1], "vcd://%d",i);
+  for (i = 1; i < this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
+    sprintf (this->filelist[i - 1], "vcd://%d",i);
     /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
   }
 
-  this->filelist[i-1] = NULL;
+  this->filelist[i - 1] = NULL;
 
   return this->filelist;
 }
