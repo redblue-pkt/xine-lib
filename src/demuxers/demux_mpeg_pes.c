@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.26 2004/07/19 19:53:41 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.27 2004/07/20 16:21:26 mroi Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -72,8 +72,6 @@ typedef struct demux_mpeg_pes_s {
   int                   status;
   
   int                   rate;
-
-  int                   warned; /* encryption warning */
 
   char                  cur_mrl[256];
 
