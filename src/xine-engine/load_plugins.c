@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.151 2003/05/20 14:50:47 mroi Exp $
+ * $Id: load_plugins.c,v 1.152 2003/05/20 14:55:55 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -105,7 +105,7 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 				     "decoder's priority compared to others",
 				     "The priority provides a ranking in case some media "
 				     "can be handled by more than one decoder.\n"
-				     "A priority of 0 enables the decoders default priority.", 20,
+				     "A priority of 0 enables the decoder's default priority.", 20,
 				     NULL, NULL /*FIXME: implement callback*/);
 
   return result ? result : default_priority;
