@@ -38,7 +38,7 @@ endif
 # all xine audio out plugins should be named like the 
 # scheme "xineplug_ao_out_"
 #
-lib_LTLIBRARIES = $(oss_module) \
+lib_LTLIBRARIES = xineplug_ao_out_none.la $(oss_module) \
 	$(alsa_module) \
 	$(sun_module) \
 	$(arts_module) \
@@ -51,6 +51,9 @@ lib_LTLIBRARIES = $(oss_module) \
 #	$(irixal_module) \
 #	$(oss_module) \
 #	$(sun_module) 
+
+xineplug_ao_out_none_la_SOURCES = audio_none_out.c
+xineplug_ao_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
