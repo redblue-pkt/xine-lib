@@ -74,15 +74,15 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
 			       uint8_t * image, uint8_t * py,
 			       uint8_t * pu, uint8_t * pv)
 {
-  int height;
+  int dst_height;
   int dy;
   mlib_status mlib_stat;
 
   if (this->do_scale) {
     dy = 0;
-    height = this->source_height >> 1;
+    dst_height = this->dest_height;
 
-    while (--height >= 0) {
+    for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
       pu += this->uv_stride;
@@ -109,21 +109,29 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*6);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
 
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*3);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
     }
   } else {
@@ -140,15 +148,15 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
 				uint8_t * image, uint8_t * py,
 				uint8_t * pu, uint8_t * pv)
 {
-  int height;
+  int dst_height;
   int dy;
   mlib_status mlib_stat;
 
   if (this->do_scale) {
     dy = 0;
-    height = this->source_height >> 1;
+    dst_height = this->dest_height;
 
-    while (--height >= 0) {
+    for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
       pu += this->uv_stride;
@@ -175,21 +183,29 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*8);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+      
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
 
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*4);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
     }
   } else {
@@ -206,15 +222,15 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
 				uint8_t * image, uint8_t * py,
 				uint8_t * pu, uint8_t * pv)
 {
-  int height;
+  int dst_height;
   int dy;
   mlib_status mlib_stat;
 
   if (this->do_scale) {
     dy = 0;
-    height = this->source_height >> 1;
+    dst_height = this->dest_height;
 
-    while (--height >= 0) {
+    for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
       pu += this->uv_stride;
@@ -241,21 +257,29 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*8);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
 
       dy += this->step_dy;
       image += this->rgb_stride;
       
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*4);
 	dy += this->step_dy;
 	image += this->rgb_stride;
       }
+
+      if (dst_height <= 0)
+	break;
+
       dy -= 32768;
     }
   } else {
