@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.40 2002/06/03 17:03:25 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.41 2002/06/04 02:51:19 miguelfreitas Exp $
  *
  */
 
@@ -256,6 +256,7 @@ qt_info *create_qt_info(void) {
   if (!info)
     return NULL;
 
+  info->frames = NULL;
   info->qt_file = NULL;
   info->compressed_header = 0;
 
@@ -769,6 +770,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   /* allocate and zero out space for table indices */
   sample_table_indices = (unsigned int *)malloc(
     sample_table_count * sizeof(unsigned int));
+
   if (!sample_table_indices) {
     info->last_error = QT_NO_MEMORY;
     return;
@@ -782,14 +784,15 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
   /* merge the tables, order by frame offset */
   for (i = 0; i < info->frame_count; i++) {
-
+    
     /* get the table number of the smallest frame offset */
-    min_offset_table = 0;
-    min_offset = sample_tables[0].frames[sample_table_indices[0]].offset;
-    for (j = 1; j < sample_table_count; j++) {
-      if ((sample_table_indices[j] != info->frame_count) &&
-        (sample_tables[j].frames[sample_table_indices[j]].offset <
-        min_offset)) {
+    min_offset_table = -1;
+    min_offset = 0; /* value not used (avoid compiler warnings) */
+    for (j = 0; j < sample_table_count; j++) {
+      if ((sample_table_indices[j] < info->frame_count) &&
+          (min_offset_table == -1 ||
+            (sample_tables[j].frames[sample_table_indices[j]].offset <
+             min_offset) ) ) {
         min_offset_table = j;
         min_offset = sample_tables[j].frames[sample_table_indices[j]].offset;
       }
