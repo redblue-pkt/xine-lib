@@ -508,13 +508,17 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   /* when the FIFO sizes are increased compared to the default configuration,
    * apply a factor to the high water mark */
   entry = stream->xine->config->lookup_entry(stream->xine->config, "video.num_buffers");
-  video_fifo_factor = (double)video_fifo->buffer_pool_capacity / (double)entry->num_default;
+  /* No entry when no video output */
+  if (entry)
+    video_fifo_factor = (double)video_fifo->buffer_pool_capacity / (double)entry->num_default;
+  else
+    video_fifo_factor = 1.0;
   entry = stream->xine->config->lookup_entry(stream->xine->config, "audio.num_buffers");
   /* When there's no audio output, there's no entry */
   if (entry)
     audio_fifo_factor = (double)audio_fifo->buffer_pool_capacity / (double)entry->num_default;
   else
-    audio_fifo_factor = 230;
+    audio_fifo_factor = 1.0;
   /* use the smaller factor */
   if (video_fifo_factor < audio_fifo_factor)
     this->high_water_mark = (double)DEFAULT_HIGH_WATER_MARK * video_fifo_factor;
