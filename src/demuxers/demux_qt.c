@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.127 2002/12/16 01:34:08 guenter Exp $
+ * $Id: demux_qt.c,v 1.128 2002/12/18 03:42:31 guenter Exp $
  *
  */
 
@@ -249,16 +249,18 @@ typedef struct {
   int64_t moov_first_offset;
   int64_t moov_last_offset;
 
-  qt_atom audio_codec;
-  unsigned int audio_type;
-  unsigned int audio_sample_rate;
-  unsigned int audio_channels;
-  unsigned int audio_bits;
-  unsigned int audio_vbr;    /* flag to indicate if audio is VBR */
-  void *audio_decoder_config;
-  int audio_decoder_config_len;
-  int wave_present;
+  qt_atom           audio_codec;
+  unsigned int      audio_type;
+  unsigned int      audio_sample_rate;
+  unsigned int      audio_channels;
+  unsigned int      audio_bits;
+  unsigned int      audio_vbr;    /* flag to indicate if audio is VBR */
+  void             *audio_decoder_config;
+  int               audio_decoder_config_len;
+  int               wave_present;
   xine_waveformatex wave;
+  int               audio_stsd_size;
+  void             *audio_stsd;
 
   qt_atom           video_codec;
   unsigned int      video_type;
@@ -385,6 +387,7 @@ static inline void debug_video_demux(const char *format, ...) { }
 static inline void debug_audio_demux(const char *format, ...) { }
 #endif
 
+#ifdef LOG
 static void hexdump (char *buf, int length) {
 
   int i;
@@ -415,6 +418,7 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 }
+#endif
 
 void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
 #if DEBUG_DUMP_MOOV
@@ -752,9 +756,10 @@ static qt_error parse_trak_atom (qt_sample_table *sample_table,
       sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
 
+#ifdef LOG
       printf ("demux_qt: stsd atom\n");
-
       hexdump (&trak_atom[i], current_atom_size);
+#endif
 
       /* copy whole stsd atom so it can later be sent to the decoder */
 
@@ -762,8 +767,6 @@ static qt_error parse_trak_atom (qt_sample_table *sample_table,
       sample_table->stsd = xine_xmalloc (current_atom_size);
       memcpy (sample_table->stsd, &trak_atom[i], current_atom_size);
       
-      printf ("demux_qt: stsd copied\n");
-
       if (sample_table->type == MEDIA_VIDEO) {
 
         /* initialize to sane values */
@@ -1603,6 +1606,10 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
         sample_tables[i].media_description.audio.wave_present;
       memcpy(&info->wave, &sample_tables[i].media_description.audio.wave,
         sizeof(xine_waveformatex));
+
+      /* stsd atom */
+      info->audio_stsd      = sample_tables[i].stsd;
+      info->audio_stsd_size = sample_tables[i].stsd_size;
     }
   }
   debug_frame_table("  qt: finished building frame tables, merging into one...\n");
@@ -2079,7 +2086,6 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_SPECIAL;
   buf->decoder_info[0] = BUF_SPECIAL_STSD_ATOM;
   buf->decoder_info[1] = this->qt->video_stsd_size;
-  buf->decoder_info[3] = this->qt->video_stsd;
   memcpy (buf->content, this->qt->video_stsd, this->qt->video_stsd_size);
   buf->size = this->qt->video_stsd_size;
   buf->type = this->qt->video_type;
@@ -2108,6 +2114,17 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
       buf->decoder_info[3] = (uint32_t)this->qt->audio_decoder_config;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
+
+    /* send stsd to the decoder */
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_info[0] = BUF_SPECIAL_STSD_ATOM;
+    buf->decoder_info[1] = this->qt->audio_stsd_size;
+    memcpy (buf->content, this->qt->audio_stsd, this->qt->audio_stsd_size);
+    buf->size = this->qt->audio_stsd_size;
+    buf->type = this->qt->audio_type;
+    this->audio_fifo->put (this->audio_fifo, buf);
+
   }
 }
 
