@@ -360,6 +360,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_dmx_lpcm"=".\xineplug_dmx_lpcm.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "xineplug_dmx_mpeg"=".\xineplug_dmx_mpeg.dsp" - Package Owner=<4>
 
 Package=<5>
