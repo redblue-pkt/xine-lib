@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.13 2001/06/03 20:16:33 guenter Exp $
+ * $Id: audio_decoder.c,v 1.14 2001/06/04 17:01:47 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -44,6 +44,16 @@ void *audio_decoder_loop (void *this_gen) {
     if (this->audio_out) {
 
       this->cur_input_pos = buf->input_pos;
+
+      /* 
+       * Call update status callback function if
+       * there is no video decoder initialized, like
+       *  in .mp3 playback.
+       */
+      if(this->cur_video_decoder_plugin == NULL) {
+	if(this->status == XINE_PLAY)
+	  this->status_callback (this->status);
+      }
 
       switch (buf->type) {
 
