@@ -158,14 +158,14 @@ static void *demux_loop (void *stream_gen) {
       status = stream->demux_plugin->send_chunk(stream->demux_plugin);
 
       /* someone may want to interrupt us */
-      pthread_mutex_unlock( &stream->demux_lock );
       if( stream->demux_action_pending ) {
+        pthread_mutex_unlock( &stream->demux_lock );
 #ifdef LOG
         printf ("demux: sched_yield\n");
 #endif
         sched_yield();
+        pthread_mutex_lock( &stream->demux_lock );
       }
-      pthread_mutex_lock( &stream->demux_lock );
     }
 
 #ifdef LOG
@@ -211,7 +211,9 @@ int xine_demux_start_thread (xine_stream_t *stream) {
   printf ("demux: start thread called\n");
 #endif
   
+  stream->demux_action_pending = 1;
   pthread_mutex_lock( &stream->demux_lock );
+  stream->demux_action_pending = 0;
   
   if( !stream->demux_thread_running ) {
     
