@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.45 2002/05/21 00:17:57 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.46 2002/05/21 20:34:00 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -401,6 +401,12 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
   
     this->stream_length = 0;
     this->last_pts      = 0;
+
+    if( !audio_fifo ) {
+      xine_log (this->xine, XINE_LOG_FORMAT, _("demux_mpgaudio: no audio driver!\n") );
+      pthread_mutex_unlock( &this->mutex );
+      return DEMUX_FINISHED;
+    }
   }
   
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
