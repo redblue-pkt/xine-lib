@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.204 2004/07/15 21:20:06 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.205 2004/07/19 22:45:48 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1278,10 +1278,10 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
 
     v = this->driver->get_property (this->driver, property & 0xffffff);
 
-    range_v = max_v - min_v;
+    range_v = max_v - min_v + 1;
 
     if (range_v > 0)
-      ret = (v-min_v) * 65535 / range_v;
+      ret = ((v-min_v) * 65536 + 32768) / range_v;
     else 
       ret = 0;
     pthread_mutex_unlock( &this->driver_lock );
@@ -1346,9 +1346,9 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   					property & 0xffffff,
   					&min_v, &max_v);
   
-      range_v = max_v - min_v;
+      range_v = max_v - min_v + 1;
   
-      v = (value * range_v) / 65535 + min_v;
+      v = (value * range_v + (range_v/2)) / 65536 + min_v;
   
       this->driver->set_property(this->driver, property & 0xffffff, v);
       pthread_mutex_unlock( &this->driver_lock );
