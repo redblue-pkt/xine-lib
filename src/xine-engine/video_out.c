@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.71 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_out.c,v 1.72 2002/02/16 23:37:55 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <zlib.h>
+#include <assert.h>
 
 #include "video_out.h"
 #include "metronom.h"
@@ -61,6 +62,7 @@
 
 
 #define VIDEO_OUT_LOG
+
 
 #define NUM_FRAME_BUFFERS     15
 
@@ -130,11 +132,9 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
 
   pthread_mutex_lock (&queue->mutex);
 
-  /* img already enqueue? (serious leak)
-  if( img->next )
-    *(char *)0=0;
-  */
-  
+  /* img already enqueue? (serious leak) */
+  assert (img->next==NULL);
+
   img->next = NULL;
 
   if (!queue->first) {
@@ -270,7 +270,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 
 #ifdef VIDEO_OUT_LOG
   printf ("video_out: got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
-	  cur_vpts, pic_vpts, pic_vpts);
+	  cur_vpts, pic_vpts, img->pts);
 #endif
 
   this->num_frames_delivered++;
@@ -509,7 +509,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
   
       do {
 	this->metronom->got_video_frame(this->metronom, img);
-      } while (img->vpts < cur_vpts);
+      } while (img->vpts < (cur_vpts - img->duration/2) );
 
       return img;
 
@@ -536,7 +536,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 #endif
 
     if (diff < 0) {
-      return 0;
+      return NULL;
     }
 
     if (this->img_backup) {
@@ -617,7 +617,7 @@ static void *video_out_loop (void *this_gen) {
   int64_t            vpts, diff;
   vo_frame_t        *img;
   vos_t             *this = (vos_t *) this_gen;
-  int64_t            frame_duration, next_frame_pts;
+  int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
 
   /*
@@ -626,7 +626,7 @@ static void *video_out_loop (void *this_gen) {
    */
 
   frame_duration = 1500; /* default */
-  next_frame_pts = 0;
+  next_frame_vpts = this->metronom->get_current_time (this->metronom);
 
 #ifdef VIDEO_OUT_LOG
     printf ("video_out: loop starting...\n");
@@ -655,40 +655,54 @@ static void *video_out_loop (void *this_gen) {
     /*
      * if we haven't heared from the decoder for some time
      * flush it
+     * test display fifo empty to protect from deadlocks
      */
 
     diff = vpts - this->last_delivery_pts;
-    if (diff > 30000) {
+    if (diff > 30000 && !this->display_img_buf_queue->first) {
       if (this->xine->cur_video_decoder_plugin) {
 	this->xine->cur_video_decoder_plugin->flush(this->xine->cur_video_decoder_plugin);
 
 #ifdef VIDEO_OUT_LOG
 	printf ("video_out: flushing current video decoder plugin\n");
 #endif
-
       }
+      this->last_delivery_pts = vpts;
     }
 
     /*
      * wait until it's time to display next frame
      */
 
-    if (img)
+    if (img) {
       frame_duration = img->duration;
-
-    next_frame_pts += frame_duration;
-
+      next_frame_vpts = img->vpts + img->duration;
+    } else {
+      next_frame_vpts += frame_duration;
+    }
+    
 #ifdef VIDEO_OUT_LOG
-    printf ("video_out: next_frame_pts is %lld\n", next_frame_pts);
+    printf ("video_out: next_frame_vpts is %lld\n", next_frame_vpts);
 #endif
  
     do {
       vpts = this->metronom->get_current_time (this->metronom);
 
-      usec_to_sleep = (next_frame_pts - vpts) * 100 / 9;
+      usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
 
+#ifdef VIDEO_OUT_LOG
       printf ("video_out: %lld usec to sleep at master vpts %lld\n", 
 	      usec_to_sleep, vpts);
+#endif
+      
+      /*
+      if( usec_to_sleep > 1000000 )
+      {
+        printf ("video_out: master clock changed\n"); 
+        next_frame_vpts = vpts;
+        usec_to_sleep = 0;
+      }
+      */
 
       if (usec_to_sleep>0) 
 	xine_usec_sleep (usec_to_sleep);

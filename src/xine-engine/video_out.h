@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.41 2002/02/16 22:43:24 guenter Exp $
+ * $Id: video_out.h,v 1.42 2002/02/16 23:37:55 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -91,7 +91,7 @@ struct vo_frame_s {
   /* additional information to be able to duplicate frames:         */
   int                        width, height;
   int                        ratio;         /* aspect ratio, codes see below                 */
-  int                        format;        /* IMGFMT_YV12 or IMGFMT_RGB                     */
+  int                        format;        /* IMGFMT_YV12 or IMGFMT_YUY2                     */
 
   int                        drawn;         /* used by decoder, frame has already been drawn */
 

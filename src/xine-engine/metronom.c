@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.53 2002/02/09 07:13:24 guenter Exp $
+ * $Id: metronom.c,v 1.54 2002/02/16 23:37:55 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,7 @@
 #define VIDEO_DRIFT_TOLERANCE 45000
 
 #define METRONOM_REPORT
+
 
 #define METRONOM_LOG
 
@@ -132,6 +133,8 @@ static void unixscr_start (scr_plugin_t *scr, int64_t start_vpts) {
   this->cur_pts = start_vpts;
 
   pthread_mutex_unlock (&this->lock);
+  
+  unixscr_set_speed (&this->scr, SPEED_NORMAL);
 }
 
 static int64_t unixscr_get_current (scr_plugin_t *scr) {
@@ -166,9 +169,10 @@ static scr_plugin_t* unixscr_init () {
   this->scr.adjust            = unixscr_adjust;
   this->scr.start             = unixscr_start;
   this->scr.get_current       = unixscr_get_current;
-  unixscr_set_speed (&this->scr, SPEED_NORMAL);
-
+  
   pthread_mutex_init (&this->lock, NULL);
+  
+  unixscr_set_speed (&this->scr, SPEED_PAUSE);
 
   return &this->scr;
 }
@@ -417,7 +421,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       if (abs (diff) > VIDEO_DRIFT_TOLERANCE) {
 
 	this->video_vpts = vpts;
-	this->video_wrap_offset = vpts - pts;
+	/* following line is useless (wrap_offset=wrap_offset)  */
+	/* this->video_wrap_offset = vpts - pts; */
 
 #ifdef METRONOM_LOG
 	printf ("metronom: video jump, wrap offset is now %lld\n",
@@ -427,7 +432,8 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       } else if (diff) {
 
 	this->video_vpts -= diff / 8; /* FIXME: better heuristics ? */
-	this->video_wrap_offset = vpts - pts;
+	/* make wrap_offset consistent with the drift correction */
+	this->video_wrap_offset = this->video_vpts - pts;
 
 #ifdef METRONOM_LOG
 	printf ("metronom: video drift, wrap offset is now %lld\n",
