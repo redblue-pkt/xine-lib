@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.191 2004/08/18 22:12:31 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.192 2004/09/11 20:01:39 jstembridge Exp $
  *
  */
 
@@ -92,6 +92,7 @@ typedef unsigned int qt_atom;
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
 #define WAVE_ATOM QT_ATOM('w', 'a', 'v', 'e')
 #define FRMA_ATOM QT_ATOM('f', 'r', 'm', 'a')
+#define AVCC_ATOM QT_ATOM('a', 'v', 'c', 'C')
 
 #define IMA4_FOURCC ME_FOURCC('i', 'm', 'a', '4')
 #define MP4A_FOURCC ME_FOURCC('m', 'p', '4', 'a')
@@ -101,6 +102,7 @@ typedef unsigned int qt_atom;
 #define TWOS_FOURCC ME_FOURCC('t', 'w', 'o', 's')
 #define SOWT_FOURCC ME_FOURCC('s', 'o', 'w', 't')
 #define RAW_FOURCC  ME_FOURCC('r', 'a', 'w', ' ')
+#define AVC1_FOURCC ME_FOURCC('a', 'v', 'c', '1')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
 #define META_ATOM QT_ATOM('m', 'e', 't', 'a')
@@ -262,7 +264,7 @@ typedef struct {
   /* formattag-like field that specifies codec in mp4 files */
   unsigned int object_type_id;
   
-  /* decoder data pass information to the AAC decoder */
+  /* decoder data pass information to the decoder */
   void *decoder_config;
   int decoder_config_len;
 
@@ -1229,6 +1231,14 @@ static qt_error parse_trak_atom (qt_trak *trak,
         }
       }
 
+    } else if (current_atom == AVCC_ATOM) {
+    
+      debug_atom_load("    avcC atom\n");
+      
+      trak->decoder_config_len = current_atom_size - 8;
+      trak->decoder_config = realloc(trak->decoder_config, trak->decoder_config_len);
+      memcpy(trak->decoder_config, &trak_atom[i + 4], trak->decoder_config_len);
+    
     } else if (current_atom == STSZ_ATOM) {
 
       /* there should only be one of these atoms */
@@ -2581,8 +2591,18 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     if( video_trak->decoder_config ) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = video_trak->properties->video.codec_buftype;
-      buf->size = video_trak->decoder_config_len;
-      buf->content = video_trak->decoder_config;      
+      
+      if (video_trak->properties->video.codec_fourcc == AVC1_FOURCC) {
+        buf->size = 0;
+        buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
+        buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
+        buf->decoder_info[2] = video_trak->decoder_config_len;
+        buf->decoder_info_ptr[2] = video_trak->decoder_config;
+      } else {
+        buf->size = video_trak->decoder_config_len;
+        buf->content = video_trak->decoder_config;
+      }
+
       this->video_fifo->put (this->video_fifo, buf);
     }
 

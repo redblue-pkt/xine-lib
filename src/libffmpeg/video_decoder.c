@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.26 2004/08/16 15:31:23 mroi Exp $
+ * $Id: video_decoder.c,v 1.27 2004/09/11 20:01:39 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -111,6 +111,12 @@ struct ff_video_decoder_s {
 };
 
 
+static void set_stream_info(ff_video_decoder_t *this) {
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->bih.biWidth);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio*10000);
+}
+
 #ifdef ENABLE_DIRECT_RENDERING
 /* called from ffmpeg to do direct rendering method 1 */
 static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
@@ -119,6 +125,13 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   int width  = context->width;
   int height = context->height;
         
+  if(!this->bih.biWidth || !this->bih.biHeight) {
+    this->bih.biWidth = width;
+    this->bih.biHeight = height;
+    this->aspect_ratio = (double)width / (double)height;
+    set_stream_info(this);
+  }
+  
   avcodec_align_dimensions(context, &width, &height);
 
   if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
@@ -174,7 +187,7 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
 }
 #endif
 
-static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
+static void init_video_codec (ff_video_decoder_t *this) {
 
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv. 
@@ -193,17 +206,6 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 
   this->context->palctrl = &this->palette_control;
 
-  if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
-    this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
-    this->context->extradata = malloc(this->context->extradata_size);
-    memcpy( this->context->extradata, 
-            (uint8_t *)bih + sizeof(xine_bmiheader),
-            this->context->extradata_size ); 
-  }
-
-  if(bih)
-    this->context->bits_per_sample = bih->biBitCount;
-    
   /* Some codecs (eg rv10) copy flags in init so it's necessary to set
    * this flag here in case we are going to use direct rendering */
   if(this->codec->capabilities & CODEC_CAP_DR1) {
@@ -223,18 +225,10 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->bih.biWidth);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio*10000);
+  set_stream_info(this);
 
   this->stream->video_out->open (this->stream->video_out, this->stream);
 
-  if (this->buf)
-    free (this->buf);
-    
-  this->buf = xine_xmalloc (VIDEOBUFSIZE);
-  this->bufsize = VIDEOBUFSIZE;
-  
   this->skipframes = 0;
   
   if((this->context->pix_fmt == PIX_FMT_RGBA32) ||
@@ -340,7 +334,7 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
       _x_abort();
     }
     
-    init_video_codec (this, NULL);
+    init_video_codec (this);
   }
   
   /* frame format change */
@@ -353,9 +347,7 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
     this->bih.biWidth  = parser->width;
     this->bih.biHeight = parser->height;
     this->aspect_ratio   = parser->frame_aspect_ratio;
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->bih.biWidth);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio * 10000);
+    set_stream_info(this);
 
     event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
     event.stream = this->stream;
@@ -699,7 +691,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
   {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
   {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
-  {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"} };
+  {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
+  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg"} };
 
 static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
   if (size > this->bufsize) {
@@ -758,7 +751,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       /* init package containing bih */
       memcpy ( &this->bih, buf->content, sizeof(xine_bmiheader) );
 
-      init_video_codec (this, (xine_bmiheader *) buf->content );
+      if (this->bih.biSize > sizeof(xine_bmiheader)) {
+        this->context->extradata_size = this->bih.biSize - sizeof(xine_bmiheader);
+        this->context->extradata = malloc(this->context->extradata_size);
+        memcpy(this->context->extradata, buf->content + sizeof(xine_bmiheader),
+               this->context->extradata_size);
+      }
+      
+      this->context->bits_per_sample = this->bih.biBitCount;
             
     } else {
     
@@ -778,17 +778,17 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                 "ffmpeg_video_dec: unknown header for buf type 0x%X\n", codec_type);
         return;
       }
-      
-      init_video_codec (this, NULL);
     }
     
     init_postprocess(this);
     
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
 
-    /* take care of all the various types of special buffers */
+    /* take care of all the various types of special buffers 
+     * note that order is important here */
     lprintf("BUF_FLAG_SPECIAL\n");
-    if (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM) {
+    if (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM &&
+        !this->context->extradata_size) {
 
       lprintf("BUF_SPECIAL_STSD_ATOM\n");
       this->context->extradata_size = buf->decoder_info[2];
@@ -796,6 +796,15 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       memcpy(this->context->extradata, buf->decoder_info_ptr[2],
         buf->decoder_info[2]);
 
+    } else if (buf->decoder_info[1] == BUF_SPECIAL_DECODER_CONFIG &&
+               !this->context->extradata_size) {
+      
+      lprintf("BUF_SPECIAL_DECODER_CONFIG\n");
+      this->context->extradata_size = buf->decoder_info[2];
+      this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+      memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+        buf->decoder_info[2]);
+        
     } else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
 
       palette_entry_t *demuxer_palette;
@@ -862,9 +871,15 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->pts)
     this->pts = buf->pts;
 
-  if ((this->decoder_ok && this->size) || this->is_mpeg12) {
+  if (this->size || this->is_mpeg12) {
   
-    if ( (buf->decoder_flags & BUF_FLAG_FRAME_END) || this->is_mpeg12 ) {
+    if (!this->decoder_ok && !this->is_mpeg12 &&
+        (_x_stream_info_get(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED) != 0)) {
+      init_video_codec(this);
+    }
+  
+    if (this->decoder_ok && 
+        ((buf->decoder_flags & BUF_FLAG_FRAME_END) || this->is_mpeg12)) {
 
       vo_frame_t *img;
       int         free_img;
@@ -961,6 +976,13 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         this->size -= len;
         offset += len;
 
+        if(!this->bih.biWidth || !this->bih.biHeight) {
+          this->bih.biWidth = this->context->width;
+          this->bih.biHeight = this->context->height;
+          this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
+          set_stream_info(this);
+        }
+        
         if (!got_picture || !this->av_frame->data[0]) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
                   "ffmpeg_video_dec: didn't get a picture, %d bytes left\n", 
@@ -1079,7 +1101,7 @@ static void ff_reset (video_decoder_t *this_gen) {
 
   this->size = 0;
 
-  if(this->context)
+  if(this->context && this->decoder_ok)
     avcodec_flush_buffers(this->context);
   
   if (this->is_mpeg12)
@@ -1160,7 +1182,8 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->context->opaque = this;
   
   this->decoder_ok    = 0;
-  this->buf           = NULL;
+  this->buf           = xine_xmalloc(VIDEOBUFSIZE);
+  this->bufsize       = VIDEOBUFSIZE;
 
   this->is_mpeg12    = 0;
   this->aspect_ratio = 0;
@@ -1262,6 +1285,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_ATIVCR1,
   BUF_VIDEO_FLV1,
   BUF_VIDEO_QTRLE,
+  BUF_VIDEO_H264,
   0 
 };
 

@@ -82,6 +82,10 @@ typedef struct SPS{
     int crop_bottom;            ///< frame_cropping_rect_bottom_offset
     int vui_parameters_present_flag;
     AVRational sar;
+    int timing_info_present_flag;
+    uint32_t num_units_in_tick;
+    uint32_t time_scale;
+    int fixed_frame_rate_flag;
     short offset_for_ref_frame[256]; //FIXME dyn aloc?
 }SPS;
 
@@ -146,6 +150,11 @@ typedef struct H264Context{
 #define NAL_FILTER_DATA		10
     uint8_t *rbsp_buffer;
     int rbsp_buffer_size;
+
+    // AVC
+    int is_avc; // != 0 if data is avc variant of h264
+    int got_avcC; // flag to parse avcC data only once
+    int nal_length_size; // Number of bytes used for nal length (1, 2 or 4)
 
     int chroma_qp; //QPc
 
@@ -737,6 +746,9 @@ static inline int check_intra_pred_mode(H264Context *h, int mode){
     MpegEncContext * const s = &h->s;
     static const int8_t top [7]= {LEFT_DC_PRED8x8, 1,-1,-1};
     static const int8_t left[7]= { TOP_DC_PRED8x8,-1, 2,-1,DC_128_PRED8x8};
+    
+    if(mode < 0 || mode > 6)
+        return -1;
     
     if(!(h->top_samples_available&0x8000)){
         mode= top[ mode ];
@@ -2257,6 +2269,17 @@ static int decode_init(AVCodecContext *avctx){
 
     decode_init_vlc(h);
     
+    if(avctx->codec_tag != 0x31637661) // avc1
+        h->is_avc = 0;
+    else {
+        if((avctx->extradata_size == 0) || (avctx->extradata == NULL)) {
+            av_log(avctx, AV_LOG_ERROR, "AVC codec requires avcC data\n");
+            return -1;
+        }
+        h->is_avc = 1;
+        h->got_avcC = 0;
+    }
+
     return 0;
 }
 
@@ -2314,6 +2337,8 @@ static inline void xchg_mb_border(H264Context *h, uint8_t *src_y, uint8_t *src_c
     MpegEncContext * const s = &h->s;
     int temp8, i;
     uint64_t temp64;
+    int deblock_left = (s->mb_x > 0);
+    int deblock_top  = (s->mb_y > 0);
 
     src_y  -=   linesize + 1;
     src_cb -= uvlinesize + 1;
@@ -2324,21 +2349,29 @@ t= a;\
 if(xchg)\
     a= b;\
 b= t;
-    
-    for(i=0; i<17; i++){
-        XCHG(h->left_border[i     ], src_y [i*  linesize], temp8, xchg);
+
+    if(deblock_left){
+        for(i = !deblock_top; i<17; i++){
+            XCHG(h->left_border[i     ], src_y [i*  linesize], temp8, xchg);
+        }
     }
-    
-    XCHG(*(uint64_t*)(h->top_border[s->mb_x]+0), *(uint64_t*)(src_y +1), temp64, xchg);
-    XCHG(*(uint64_t*)(h->top_border[s->mb_x]+8), *(uint64_t*)(src_y +9), temp64, 1);
+
+    if(deblock_top){
+        XCHG(*(uint64_t*)(h->top_border[s->mb_x]+0), *(uint64_t*)(src_y +1), temp64, xchg);
+        XCHG(*(uint64_t*)(h->top_border[s->mb_x]+8), *(uint64_t*)(src_y +9), temp64, 1);
+    }
 
     if(!(s->flags&CODEC_FLAG_GRAY)){
-        for(i=0; i<9; i++){
-            XCHG(h->left_border[i+17  ], src_cb[i*uvlinesize], temp8, xchg);
-            XCHG(h->left_border[i+17+9], src_cr[i*uvlinesize], temp8, xchg);
+        if(deblock_left){
+            for(i = !deblock_top; i<9; i++){
+                XCHG(h->left_border[i+17  ], src_cb[i*uvlinesize], temp8, xchg);
+                XCHG(h->left_border[i+17+9], src_cr[i*uvlinesize], temp8, xchg);
+            }
         }
-        XCHG(*(uint64_t*)(h->top_border[s->mb_x]+16), *(uint64_t*)(src_cb+1), temp64, 1);
-        XCHG(*(uint64_t*)(h->top_border[s->mb_x]+24), *(uint64_t*)(src_cr+1), temp64, 1);
+        if(deblock_top){
+            XCHG(*(uint64_t*)(h->top_border[s->mb_x]+16), *(uint64_t*)(src_cb+1), temp64, 1);
+            XCHG(*(uint64_t*)(h->top_border[s->mb_x]+24), *(uint64_t*)(src_cr+1), temp64, 1);
+        }
     }
 }
 
@@ -3039,6 +3072,11 @@ static int decode_slice_header(H264Context *h){
         s->avctx->width = s->width;
         s->avctx->height = s->height;
         s->avctx->sample_aspect_ratio= h->sps.sar;
+
+        if(h->sps.timing_info_present_flag && h->sps.fixed_frame_rate_flag){
+            s->avctx->frame_rate = h->sps.time_scale;
+            s->avctx->frame_rate_base = h->sps.num_units_in_tick;
+        }
     }
 
     if(first_mb_in_slice == 0){
@@ -4479,17 +4517,15 @@ decode_intra_mb:
                     } else {
                         ref[list][i] = -1;
                     }
-                    h->ref_cache[list][ scan8[4*i]   ]=h->ref_cache[list][ scan8[4*i]+1 ]=
+                                                       h->ref_cache[list][ scan8[4*i]+1 ]=
                     h->ref_cache[list][ scan8[4*i]+8 ]=h->ref_cache[list][ scan8[4*i]+9 ]= ref[list][i];
                 }
             }
         }
 
         for(list=0; list<2; list++){
-
             for(i=0; i<4; i++){
-                //h->ref_cache[list][ scan8[4*i]   ]=h->ref_cache[list][ scan8[4*i]+1 ]=
-                //h->ref_cache[list][ scan8[4*i]+8 ]=h->ref_cache[list][ scan8[4*i]+9 ]= ref[list][i];
+                h->ref_cache[list][ scan8[4*i]   ]=h->ref_cache[list][ scan8[4*i]+1 ];
 
                 if(IS_DIR(h->sub_mb_type[i], 0, list) && !IS_DIRECT(h->sub_mb_type[i])){
                     const int sub_mb_type= h->sub_mb_type[i];
@@ -5119,7 +5155,7 @@ static int decode_slice(H264Context *h){
         ff_init_cabac_states( &h->cabac, ff_h264_lps_range, ff_h264_mps_state, ff_h264_lps_state, 64 );
         ff_init_cabac_decoder( &h->cabac,
                                s->gb.buffer + get_bits_count(&s->gb)/8,
-                               ( s->gb.size_in_bits - get_bits_count(&s->gb) ) );
+                               ( s->gb.size_in_bits - get_bits_count(&s->gb) + 7)/8);
         /* calculate pre-state */
         for( i= 0; i < 399; i++ ) {
             int pre;
@@ -5138,20 +5174,20 @@ static int decode_slice(H264Context *h){
             int ret = decode_mb_cabac(h);
             int eos = get_cabac_terminate( &h->cabac ); /* End of Slice flag */
 
-            hl_decode_mb(h);
+            if(ret>=0) hl_decode_mb(h);
 
             /* XXX: useless as decode_mb_cabac it doesn't support that ... */
             if( ret >= 0 && h->sps.mb_aff ) { //FIXME optimal? or let mb_decode decode 16x32 ?
                 s->mb_y++;
 
-                ret = decode_mb_cabac(h);
+                if(ret>=0) ret = decode_mb_cabac(h);
                 eos = get_cabac_terminate( &h->cabac );
 
                 hl_decode_mb(h);
                 s->mb_y--;
             }
 
-            if( ret < 0 ) {
+            if( ret < 0 || h->cabac.bytestream > h->cabac.bytestream_end + 1) {
                 av_log(h->s.avctx, AV_LOG_ERROR, "error while decoding MB %d %d\n", s->mb_x, s->mb_y);
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_ERROR|DC_ERROR|MV_ERROR)&part_mask);
                 return -1;
@@ -5182,13 +5218,13 @@ static int decode_slice(H264Context *h){
         for(;;){
             int ret = decode_mb_cavlc(h);
 
-            hl_decode_mb(h);
+            if(ret>=0) hl_decode_mb(h);
 
             if(ret>=0 && h->sps.mb_aff){ //FIXME optimal? or let mb_decode decode 16x32 ?
                 s->mb_y++;
                 ret = decode_mb_cavlc(h);
 
-                hl_decode_mb(h);
+                if(ret>=0) hl_decode_mb(h);
                 s->mb_y--;
             }
 
@@ -5301,32 +5337,34 @@ static inline int decode_vui_parameters(H264Context *h, SPS *sps){
         sps->sar.den= 0;
     }
 //            s->avctx->aspect_ratio= sar_width*s->width / (float)(s->height*sar_height);
+
+    if(get_bits1(&s->gb)){      /* overscan_info_present_flag */
+        get_bits1(&s->gb);      /* overscan_appropriate_flag */
+    }
+
+    if(get_bits1(&s->gb)){      /* video_signal_type_present_flag */
+        get_bits(&s->gb, 3);    /* video_format */
+        get_bits1(&s->gb);      /* video_full_range_flag */
+        if(get_bits1(&s->gb)){  /* colour_description_present_flag */
+            get_bits(&s->gb, 8); /* colour_primaries */
+            get_bits(&s->gb, 8); /* transfer_characteristics */
+            get_bits(&s->gb, 8); /* matrix_coefficients */
+        }
+    }
+
+    if(get_bits1(&s->gb)){      /* chroma_location_info_present_flag */
+        get_ue_golomb(&s->gb);  /* chroma_sample_location_type_top_field */
+        get_ue_golomb(&s->gb);  /* chroma_sample_location_type_bottom_field */
+    }
+
+    sps->timing_info_present_flag = get_bits1(&s->gb);
+    if(sps->timing_info_present_flag){
+        sps->num_units_in_tick = get_bits_long(&s->gb, 32);
+        sps->time_scale = get_bits_long(&s->gb, 32);
+        sps->fixed_frame_rate_flag = get_bits1(&s->gb);
+    }
+
 #if 0
-| overscan_info_present_flag                        |0  |u(1)    |
-| if( overscan_info_present_flag )                  |   |        |
-|  overscan_appropriate_flag                        |0  |u(1)    |
-| video_signal_type_present_flag                    |0  |u(1)    |
-| if( video_signal_type_present_flag ) {            |   |        |
-|  video_format                                     |0  |u(3)    |
-|  video_full_range_flag                            |0  |u(1)    |
-|  colour_description_present_flag                  |0  |u(1)    |
-|  if( colour_description_present_flag ) {          |   |        |
-|   colour_primaries                                |0  |u(8)    |
-|   transfer_characteristics                        |0  |u(8)    |
-|   matrix_coefficients                             |0  |u(8)    |
-|  }                                                |   |        |
-| }                                                 |   |        |
-| chroma_location_info_present_flag                 |0  |u(1)    |
-| if ( chroma_location_info_present_flag ) {        |   |        |
-|  chroma_sample_location_type_top_field            |0  |ue(v)   |
-|  chroma_sample_location_type_bottom_field         |0  |ue(v)   |
-| }                                                 |   |        |
-| timing_info_present_flag                          |0  |u(1)    |
-| if( timing_info_present_flag ) {                  |   |        |
-|  num_units_in_tick                                |0  |u(32)   |
-|  time_scale                                       |0  |u(32)   |
-|  fixed_frame_rate_flag                            |0  |u(1)    |
-| }                                                 |   |        |
 | nal_hrd_parameters_present_flag                   |0  |u(1)    |
 | if( nal_hrd_parameters_present_flag  = =  1)      |   |        |
 |  hrd_parameters( )                                |   |        |
@@ -5579,7 +5617,15 @@ static int decode_nal_units(H264Context *h, uint8_t *buf, int buf_size){
         int dst_length;
         int bit_length;
         uint8_t *ptr;
+        int i, nalsize = 0;
         
+      if(h->is_avc) {
+        if(buf_index >= buf_size) break;
+        nalsize = 0;
+        for(i = 0; i < h->nal_length_size; i++)
+            nalsize = (nalsize << 8) | buf[buf_index + i];
+        buf_index += h->nal_length_size;
+      } else {
         // start code prefix search
         for(; buf_index + 3 < buf_size; buf_index++){
             // this should allways succeed in the first iteration
@@ -5590,6 +5636,7 @@ static int decode_nal_units(H264Context *h, uint8_t *buf, int buf_size){
         if(buf_index+3 >= buf_size) break;
         
         buf_index+=3;
+      }  
         
         ptr= decode_nal(h, buf + buf_index, &dst_length, &consumed, buf_size - buf_index);
         if(ptr[dst_length - 1] == 0) dst_length--;
@@ -5599,6 +5646,9 @@ static int decode_nal_units(H264Context *h, uint8_t *buf, int buf_size){
             av_log(h->s.avctx, AV_LOG_DEBUG, "NAL %d at %d length %d\n", h->nal_unit_type, buf_index, dst_length);
         }
         
+        if (h->is_avc && (nalsize != consumed))
+            av_log(h->s.avctx, AV_LOG_ERROR, "AVC: Consumed only %d bytes instead of %d\n", consumed, nalsize);
+
         buf_index += consumed;
 
         if( s->hurry_up == 1 && h->nal_ref_idc  == 0 )
@@ -5657,6 +5707,8 @@ static int decode_nal_units(H264Context *h, uint8_t *buf, int buf_size){
             break;
         case NAL_FILTER_DATA:
             break;
+	default:
+	    av_log(avctx, AV_LOG_ERROR, "Unknown NAL code: %d\n", h->nal_unit_type);
         }        
 
         //FIXME move after where irt is set
@@ -5726,7 +5778,46 @@ static int decode_frame(AVCodecContext *avctx,
 //printf("next:%d buf_size:%d last_index:%d\n", next, buf_size, s->parse_context.last_index);
     }
 
-    if(s->avctx->extradata_size && s->picture_number==0){
+    if(h->is_avc && !h->got_avcC) {
+        int i, cnt, poffs;
+        unsigned char *p = avctx->extradata;
+        if(avctx->extradata_size < 7) {
+            av_log(avctx, AV_LOG_ERROR, "avcC too short\n");
+            return -1;
+        }
+        if(*p != 1) {
+            av_log(avctx, AV_LOG_ERROR, "Unknown avcC version %d\n", *p);
+            return -1;
+        }
+        /* sps and pps in the avcC always have length coded with 2 bytes,
+           so put a fake nal_length_size = 2 while parsing them */
+        h->nal_length_size = 2;
+        poffs = 6;
+        // Decode sps from avcC
+        cnt = *(p+5) & 0x1f; // Number of sps
+        for (i = 0; i < cnt; i++) {
+            if(decode_nal_units(h, p + poffs, BE_16(p + poffs) + 2) != BE_16(p + poffs) + 2) {
+                av_log(avctx, AV_LOG_ERROR, "Decoding sps %d from avcC failed\n", i);
+                return -1;
+            }
+            poffs += BE_16(p + poffs) + 2;
+        }        
+        // Decode pps from avcC
+        cnt = *(p + poffs++); // Number of pps
+        for (i = 0; i < cnt; i++) {
+            if(decode_nal_units(h, p + poffs, BE_16(p + poffs) + 2)  != BE_16(p + poffs) + 2) {
+                av_log(avctx, AV_LOG_ERROR, "Decoding pps %d from avcC failed\n", i);
+                return -1;
+            }
+            poffs += BE_16(p + poffs) + 2;
+        }        
+        // Now store right nal length size, that will be use to parse all other nals
+        h->nal_length_size = ((*(p+4))&0x03)+1;
+        // Do not reparse avcC
+        h->got_avcC = 1;
+    }
+
+    if(!h->is_avc && s->avctx->extradata_size && s->picture_number==0){
         if(0 < decode_nal_units(h, s->avctx->extradata, s->avctx->extradata_size) ) 
             return -1;
     }

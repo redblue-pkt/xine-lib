@@ -20,7 +20,7 @@ xine-lib (1-rc6)
   * Added experimental time stretching plugin: play stream faster or 
     slower than original speed, optionally preserving pitch
   * Fixed another win32 dll crash (after playing several files)
-  * Added onfigure option for building xine with external ffmpeg library
+  * Added configure option for building xine with external ffmpeg library
   * Added api for finer playback speed control (requires frontend support)
   * Added support for QuickTime 6.3 DLLs
   * Improved response time on video grabber ports
@@ -32,6 +32,7 @@ xine-lib (1-rc6)
   * Fixed wrong, very bright overlays on some DVDs [bug #1018193]
   * Fixed WIN32 replacement of gettimeofday [bug #995961]
   * Removed unistd.h from public header
+  * Added support for H.264/AVC video
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
