@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.33 2003/09/06 23:10:37 hadess Exp $
+ * $Id: input_cdda.c,v 1.34 2003/09/10 22:54:40 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -707,7 +707,7 @@ static int read_cdrom_toc(cdda_input_plugin_t *this_gen, cdrom_toc *toc) {
 	  {
 #ifdef LOG
         DWORD dw; 
-        printf( "xineplug_inp_cdda : could not read TOCHDR\n" );
+        printf( "input_cdda: could not read TOCHDR\n" );
         dw = GetLastError();
         printf("GetLastError returned %u\n", dw); 
 #endif
@@ -795,7 +795,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 		  {
 #ifdef LOG
               DWORD dw; 
-			  printf( "xineplug_inp_cdda : could not read frame\n" );
+			  printf( "input_cdda: could not read frame\n" );
               dw = GetLastError();
               printf("GetLastError returned %u\n", dw); 
 #endif
@@ -842,7 +842,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
-    printf("input_cdda: failed to open socket\n");
+    printf("input_cdda: failed to open socket.\n");
     return -1;
   }
 
@@ -856,7 +856,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif /* WIN32 */
   {
-    printf("input_cdda: cannot connect to host\n");
+    printf("input_cdda: cannot connect to host.\n");
     close(s);
     return -1;
   }
@@ -872,7 +872,7 @@ static int host_connect (const char *host, int port)
 
   h=gethostbyname(host);
   if (h==NULL) {
-        printf("input_cdda: unable to resolve >%s<\n", host);
+        printf("input_cdda: unable to resolve '%s'.\n", host);
         return -1;
   }
 
@@ -886,7 +886,7 @@ static int host_connect (const char *host, int port)
     }
   }
 
-  printf("input_cdda: unable to connect to >%s<\n", host);
+  printf("input_cdda: unable to connect to '%s'.\n", host);
   return -1;
 }
 
@@ -983,12 +983,12 @@ static int sock_data_read (int socket, char *buf, int nlen) {
         timeout.tv_usec = 0;
 
         if (select (socket+1, &rset, NULL, NULL, &timeout) <= 0) {
-          printf ("input_cdda: timeout on read\n");
+          printf ("input_cdda: timeout on read.\n");
           return 0;
         }
         continue;
       }
-      printf ("input_cdda: read error %d\n", errno);
+      printf ("input_cdda: read error %d.\n", errno);
       return 0;
     }
 
@@ -1086,13 +1086,13 @@ static int network_command( int socket, char *data_buf, char *msg, ...)
 
   if( sock_data_write(socket, buf, strlen(buf)) < (int)strlen(buf) )
   {
-    printf("input_cdda: error writing to socket\n");
+    printf("input_cdda: error writing to socket.\n");
     return -1;
   }
 
   if( sock_string_read(socket, buf, _BUFSIZ) <= 0 )
   {
-    printf("input_cdda: error reading from socket\n");
+    printf("input_cdda: error reading from socket.\n");
     return -1;
   }
 
@@ -1134,7 +1134,7 @@ static int network_connect( char *url )
 
   if( fd != -1 ) {
     if( network_command(fd, NULL, "cdda_open") < 0 ) {
-      printf("input_cdda: error opening remote drive\n");
+      printf("input_cdda: error opening remote drive.\n");
       close(fd);
       return -1;
     }
@@ -1149,7 +1149,7 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   /* fetch the table of contents */
   if( network_command( fd, buf, "cdda_tochdr" ) == -1) {
-    printf("input_cdda: network CDROMREADTOCHDR error\n");
+    printf("input_cdda: network CDROMREADTOCHDR error.\n");
     return -1;
   }
 
@@ -1169,7 +1169,7 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
 
     /* fetch the table of contents */
     if( network_command( fd, buf, "cdda_tocentry %d", i ) == -1) {
-      printf("input_cdda: network CDROMREADTOCENTRY error\n");
+      printf("input_cdda: network CDROMREADTOCENTRY error.\n");
       return -1;
     }
 
@@ -1186,7 +1186,7 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   /* fetch the leadout as well */
   if( network_command( fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
-    printf("input_cdda: network CDROMREADTOCENTRY error\n");
+    printf("input_cdda: network CDROMREADTOCENTRY error.\n");
     return -1;
   }
 
@@ -1307,7 +1307,7 @@ static void _cdda_mkdir_safe(char *path) {
 	  if((lstat(path, &pstat)) < 0) {
 		  /* file or directory no exist, create it */
 		  if(mkdir(path, 0755) < 0) {
-			  fprintf(stderr, "input_cdda: mkdir(%s) failed: %s\n", path, strerror(errno));
+			  fprintf(stderr, "input_cdda: mkdir(%s) failed: %s.\n", path, strerror(errno));
 			  return;
 		  }
 	  }
@@ -1332,7 +1332,7 @@ static void _cdda_mkdir_safe(char *path) {
 	  if (hList == INVALID_HANDLE_VALUE)
 	  {
 		  if(_mkdir(path) != 0) {
-			  fprintf(stderr, "input_cdda: mkdir(%s) failed\n", path);
+			  fprintf(stderr, "input_cdda: mkdir(%s) failed.\n", path);
 			  return;
 		  }		  
 	  }
@@ -1444,10 +1444,11 @@ static int _cdda_cddb_send_command(cdda_input_plugin_t *this, char *cmd) {
  * Handle return code od a command result.
  */
 static int _cdda_cddb_handle_code(char *buf) {
-  int  rcode, fdig, sdig, tdig;
-  int  err = -1;
+  int  rcode, fdig, sdig, tdig, err;
 
-  if(sscanf(buf, "%d", &rcode) == 1) {
+  err = -999;
+
+  if (sscanf(buf, "%d", &rcode) == 1) {
 
     fdig = rcode / 100;
     sdig = (rcode - (fdig * 100)) / 10;
@@ -1458,58 +1459,52 @@ static int _cdda_cddb_handle_code(char *buf) {
     printf(" -%d-\n", sdig);
     printf(" --%d\n", tdig);
     */
-    switch(fdig) {
+
+    err = rcode;
+
+    switch (fdig) {
     case 1:
       /* printf("Informative message\n"); */
-      err = 0;
       break;
     case 2:
       /* printf("Command OK\n"); */
-      err = 0;
       break;
     case 3:
       /* printf("Command OK so far, continue\n"); */
-      err = 0;
       break;
     case 4:
       /* printf("Command OK, but cannot be performed for some specified reasons\n"); */
-      err = -1;
+      err = 0 - rcode;
       break;
     case 5:
       /* printf("Command unimplemented, incorrect, or program error\n"); */
-      err = -1;
+      err = 0 - rcode;
       break;
     default:
       /* printf("Unhandled case %d\n", fdig); */
-      err = -1;
+      err = 0 - rcode;
       break;
     }
 
-    switch(sdig) {
+    switch (sdig) {
     case 0:
       /* printf("Ready for further commands\n"); */
-      err = 0;
       break;
     case 1:
       /* printf("More server-to-client output follows (until terminating marker)\n"); */
-      err = 0;
       break;
     case 2:
       /* printf("More client-to-server input follows (until terminating marker)\n"); */
-      err = 0;
       break;
     case 3:
       /* printf("Connection will close\n"); */
-      err = -1;
+      err = 0 - rcode;
       break;
     default:
       /* printf("Unhandled case %d\n", sdig); */
-      err = -1;
+      err = 0 - rcode;
       break;
     }
-
-    if(err >= 0)
-      err = rcode;
   }
   
   return err;
@@ -1542,7 +1537,7 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
 	
 	sprintf(cdir, "%s/%s", cdir, discid);
 	if((fd = fopen(cdir, "r")) == NULL) {
-	  printf("input_cdda: fopen(%s) failed: %s\n", cdir, strerror(errno));
+	  printf("input_cdda: fopen(%s) failed: %s.\n", cdir, strerror(errno));
 	  closedir(dir);
 	  return 0;
 	}
@@ -1633,7 +1628,7 @@ static void _cdda_save_cached_cddb_infos(cdda_input_plugin_t *this, char *fileco
   sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cddb.disc_id);
   
   if((fd = fopen(cfile, "w")) == NULL) {
-    printf("input_cdda: fopen(%s) failed: %s\n", cfile, strerror(errno));
+    printf("input_cdda: fopen(%s) failed: %s.\n", cfile, strerror(errno));
     return;
   }
   else {
@@ -1700,158 +1695,170 @@ static void _cdda_cddb_socket_close(cdda_input_plugin_t *this) {
  * Try to talk with CDDB server (to retrieve disc/tracks titles).
  */
 static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
-  char  buffer[2048];
-  int   err, i;
+  char buffer[2048], buffercache[32768], *m, *p;
+  int err, i;
 
-  if(this == NULL)
+  if(this == NULL) {
     return;
+  }
   
   if(_cdda_load_cached_cddb_infos(this)) {
     this->cddb.have_cddb_info = 1;
     return;
   }
   else {
-    
     this->cddb.fd = _cdda_cddb_socket_open(this);
     if(this->cddb.fd >= 0) {
-      printf("input_cdda: server '%s:%d' successfuly connected.\n", 
-	     this->cddb.server, this->cddb.port);
-      
+      printf("input_cdda: successfuly connected to cddb server '%s:%d'.\n", this->cddb.server, this->cddb.port);
     }
     else {
-      printf("input_cdda: opening server '%s:%d' failed: %s\n", 
-	     this->cddb.server, this->cddb.port, strerror(errno));
+      printf("input_cdda: failed to connect to cddb server '%s:%d' (%s).\n", this->cddb.server, this->cddb.port, strerror(errno));
       this->cddb.have_cddb_info = 0;
       return;
     }
-    
+
+    /* Read welcome message */
     memset(&buffer, 0, sizeof(buffer));
-    
-    /* Get welcome message */
-    if(_cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-      if((err = _cdda_cddb_handle_code(buffer)) >= 0) {
-	/* send hello */
-	memset(&buffer, 0, sizeof(buffer));
-        /* We don't send current user/host name to prevent spam.
-         * Software that sends this is considered spyware
-         * that most people don't like.
-         */
-	sprintf(buffer, "cddb hello unknown localhost xine %s\n", VERSION);
-	if((err = _cdda_cddb_send_command(this, buffer)) > 0) {
-	  /* Get answer from hello */
-	  memset(&buffer, 0, sizeof(buffer));
-	  if(_cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-	    /* Parse returned code */
-	    if((err = _cdda_cddb_handle_code(buffer)) >= 0) {
-	      /* We are logged, query disc */
-	      memset(&buffer, 0, sizeof(buffer));
-	      sprintf(buffer, "cddb query %08lx %d ", this->cddb.disc_id, this->cddb.num_tracks);
-	      for(i = 0; i < this->cddb.num_tracks; i++) {
-		sprintf(buffer, "%s%d ", buffer, this->cddb.track[i].start);
-	      }
-	      sprintf(buffer, "%s%d\n", buffer, this->cddb.disc_length);
-	      if((err = _cdda_cddb_send_command(this, buffer)) > 0) {
-		memset(&buffer, 0, sizeof(buffer));
-		if(_cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-		  /* Parse returned code */
-		  if((err = _cdda_cddb_handle_code(buffer)) == 200) {
-		    /* Disc entry exist */
-		    char *m = NULL, *p = buffer;
-		    int   f = 0;
-		    
-		    while((f <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
-		      if(f == 1)
-			this->cddb.disc_category = strdup(m);
-		      else if(f == 2)
-			this->cddb.cdiscid = strdup(m);
-		      f++;
-		    }
-		  }
+    _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+    if ((err = _cdda_cddb_handle_code(buffer)) < 0) {
+      printf("input_cdda: error while reading cddb welcome message.\n");
+      _cdda_cddb_socket_close(this);
+      return;
+    }
+
+    /* Send hello command */
+    /* We don't send current user/host name to prevent spam.
+     * Software that sends this is considered spyware
+     * that most people don't like.
+     */
+    memset(&buffer, 0, sizeof(buffer));
+    sprintf(buffer, "cddb hello unknown localhost xine %s\n", VERSION);
+    if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
+      printf("input_cdda: error while sending cddb hello command.\n");
+      _cdda_cddb_socket_close(this);
+      return;
+    }
+
+    memset(&buffer, 0, sizeof(buffer));
+    _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+    if ((err = _cdda_cddb_handle_code(buffer)) < 0) {
+      printf("input_cdda: cddb hello command returned error code '%03d'.\n", err);
+      _cdda_cddb_socket_close(this);
+      return;
+    }
+
+    /* Send query command */
+    memset(&buffer, 0, sizeof(buffer));
+    sprintf(buffer, "cddb query %08lx %d ", this->cddb.disc_id, this->cddb.num_tracks);
+    for (i = 0; i < this->cddb.num_tracks; i++) {
+      sprintf(buffer, "%s%d ", buffer, this->cddb.track[i].start);
+    }
+    sprintf(buffer, "%s%d\n", buffer, this->cddb.disc_length);
+    if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
+      printf("input_cdda: error while sending cddb query command.\n");
+      _cdda_cddb_socket_close(this);
+      return; 
+    }
+
+    memset(&buffer, 0, sizeof(buffer));
+    _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+    if ((err = _cdda_cddb_handle_code(buffer)) != 200) {
+      printf("input_cdda: cddb query command returned error code '%03d'.\n", err);
+      _cdda_cddb_socket_close(this);
+      return;
+    }
+
+    p = buffer;
+    i = 0;
+    while ((i <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
+      if (i == 1) {
+        this->cddb.disc_category = strdup(m);
+      }
+      else if(i == 2) {
+        this->cddb.cdiscid = strdup(m);
+      }
+      i++;
+    }
 		  
-		  /* Now, grab track titles */
-		  memset(&buffer, 0, sizeof(buffer));
-		  sprintf(buffer, "cddb read %s %s\n", 
-			  this->cddb.disc_category, this->cddb.cdiscid);
+    /* Send read command */
+    memset(&buffer, 0, sizeof(buffer));
+    sprintf(buffer, "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
+    if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
+      printf("input_cdda: error while sending cddb read command.\n");
+      _cdda_cddb_socket_close(this);
+      return;
+    }
 
-		  if((err = _cdda_cddb_send_command(this, buffer)) > 0) {
-		    /* Get answer from read */
-		    memset(&buffer, 0, sizeof(buffer));
-		    if(_cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-		      /* Great, now we will have track titles */
-		      if((err = _cdda_cddb_handle_code(buffer)) == 210) {
-			char           buf[2048];
-			unsigned char *pt;
-			int            tnum;
-			char           buffercache[32768];
+    memset(&buffer, 0, sizeof(buffer));
+    _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+    if ((err = _cdda_cddb_handle_code(buffer)) != 210) {
+      printf("input_cdda: cddb read command returned error code '%03d'.\n", err);
+      _cdda_cddb_socket_close(this);
+      return;
+    }
 			
-			this->cddb.have_cddb_info = 1;
-			memset(&buffercache, 0, sizeof(buffercache));
+    this->cddb.have_cddb_info = 1;
+    memset(&buffercache, 0, sizeof(buffercache));
 						
-			while(strcmp(buffer, ".")) {
-			  memset(&buffer, 0, sizeof(buffer));
-			  _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+    while (strcmp(buffer, ".")) {
+      char buf[2048];
+      int tnum;
 
-			  sprintf(buffercache, "%s%s\n", buffercache, buffer);
-			  
-			  if(sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
-			    char *artist, *title;
+      memset(&buffer, 0, sizeof(buffer));
+      _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+      sprintf(buffercache, "%s%s\n", buffercache, buffer);
 
-			    pt = strrchr(buffer, '=');
-			    if(pt)
-			      pt++;
+      if (sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
+        char *pt, *artist, *title;
+
+        pt = strrchr(buffer, '=');
+        if (pt) {
+          artist = pt+1;
+          title = strchr(pt+1, '/');
+          if (title) {
+            *title++ = 0;
+          }
+          else {
+            title = artist;
+            artist = NULL;
+          }
 			    
-			    artist = pt;
-			    title = strchr(pt, '/');
-			    if(title) {
-			      *title++ = 0;
-			    }
-			    else {
-			      title = artist;
-			      artist = NULL;
-			    }
-			    
-			    if(artist)
-			      this->cddb.disc_artist = strdup(artist);
-			    
-			    this->cddb.disc_title = strdup(title);
-			  }
-			  else if(sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
-			    pt = strrchr(buffer, '=');
-			    if(pt) pt++;
-			    this->cddb.track[tnum].title = strdup(pt);
-			  }
-			  else {
-			    if(!strncmp(buffer, "EXTD=", 5)) {
-			      char *y;
-			      int   nyear;
-			      
-			      y = strstr(buffer, "YEAR:");
-			      if(y) {
-				if(sscanf(y+5, "%4d", &nyear) == 1) {
-				  char year[5];
-				  
-				  snprintf(year, 5, "%d", nyear);
-				  this->cddb.disc_year = strdup(year);
-				}
-			      }
-			    }
-			  }
-			}
-			/* Save grabbed info */
-			_cdda_save_cached_cddb_infos(this, buffercache);
-		      }
-		    }
-		  }
-		}
-	      }
-	    }	  
-	  }
-	}
+          if (artist) {
+            this->cddb.disc_artist = strdup(artist);
+          }
+          this->cddb.disc_title = strdup(title);
+        }
+      }
+      else if (sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
+        char *pt;
+
+        pt = strrchr(buffer, '=');
+        if (pt) {
+          this->cddb.track[tnum].title = strdup(pt+1);
+        }
+      }
+      else {
+        if (!strncmp(buffer, "EXTD=", 5)) {
+          char *y;
+          int   nyear;
+
+          y = strstr(buffer, "YEAR:");
+          if (y) {
+            if (sscanf(y+5, "%4d", &nyear) == 1) {
+              char year[5];
+
+              snprintf(year, 5, "%d", nyear);
+              this->cddb.disc_year = strdup(year);
+            }
+          }
+        }
       }
     }
+
+    /* Save cddb info and close socket */
+    _cdda_save_cached_cddb_infos(this, buffercache);
     _cdda_cddb_socket_close(this);
   }
- 
 }
 
 /*
@@ -1986,7 +1993,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 	  char psz_win32_drive[7];
 	  
 #ifdef LOG
-	  printf( "xineplug_inp_cdda : using winNT/2K/XP ioctl layer" );
+	  printf( "input_cdda: using winNT/2K/XP ioctl layer" );
 #endif
 	  
 	  sprintf( psz_win32_drive, "\\\\.\\%c:", cdda_device[0] );
@@ -2019,7 +2026,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 	  if( hASPI == NULL || lpGetSupport == NULL || lpSendCommand == NULL )
 	  {
 #ifdef LOG
-		  printf( "xineplug_inp_cdda : unable to load aspi or get aspi function pointers" );
+		  printf( "input_cdda: unable to load aspi or get aspi function pointers" );
 #endif
 
 		  if( hASPI ) FreeLibrary( hASPI );
@@ -2033,7 +2040,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 	  if( HIBYTE( LOWORD ( dwSupportInfo ) ) == SS_NO_ADAPTERS )
 	  {
 #ifdef LOG
-		  printf( "xineplug_inp_cdda : no host adapters found (aspi)" );
+		  printf( "input_cdda: no host adapters found (aspi)" );
 #endif
 		  FreeLibrary( hASPI );
 		  return -1;
@@ -2042,7 +2049,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 	  if( HIBYTE( LOWORD ( dwSupportInfo ) ) != SS_COMP )
 	  {
 #ifdef LOG
-		  printf( "xineplug_inp_cdda : unable to initalize aspi layer" );
+		  printf( "input_cdda: unable to initalize aspi layer" );
 #endif
 		  FreeLibrary( hASPI );
 		  return -1;
@@ -2093,7 +2100,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
                       this_gen->lpSendCommand = lpSendCommand;
 
 #ifdef LOG
-                      printf( "xineplug_inp_cdda : using aspi layer" );
+                      printf( "input_cdda: using aspi layer" );
 #endif
 					  
                       return 0;
@@ -2102,7 +2109,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
                   {
                       FreeLibrary( hASPI );
 #ifdef LOG
-                      printf( "xineplug_inp_cdda : %s: is not a cdrom drive",
+                      printf( "input_cdda: %s: is not a cdrom drive",
 						  cdda_device[0] );
 #endif
                       return -1;
@@ -2114,7 +2121,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 	  FreeLibrary( hASPI );
 
 #ifdef LOG
-	  printf( "xineplug_inp_cdda : unable to get haid and target (aspi)" );
+	  printf( "input_cdda: unable to get haid and target (aspi)" );
 #endif
 	  
     }
