@@ -278,7 +278,7 @@ static void dv_decode_ac(DVVideoDecodeContext *s,
             if (pos >= 64) {
             read_error:
 #if defined(VLC_DEBUG) || 1
-                printf("error pos=%d\n", pos);
+                fprintf(stderr, "error pos=%d\n", pos);
 #endif
                 /* for errors, we consider the eob is reached */
                 mb->eob_reached = 1;
@@ -538,16 +538,17 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     width = 720;
     if (dsf) {
         avctx->frame_rate = 25;
+	avctx->frame_rate_base = 1;
         packet_size = PAL_FRAME_SIZE;
         height = 576;
         nb_dif_segs = 12;
     } else {
-        avctx->frame_rate = 30;
+        avctx->frame_rate = 30000;
+	avctx->frame_rate_base = 1001;
         packet_size = NTSC_FRAME_SIZE;
         height = 480;
         nb_dif_segs = 10;
     }
-    avctx->frame_rate_base= 1;
     /* NOTE: we only accept several full frames */
     if (buf_size < packet_size)
         return -1;
@@ -579,6 +580,9 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     else
         avctx->aspect_ratio = 4.0 / 3.0;
 
+    if(s->picture.data[0])
+        avctx->release_buffer(avctx, &s->picture);
+    
     s->picture.reference= 0;
     if(avctx->get_buffer(avctx, &s->picture) < 0) {
         fprintf(stderr, "get_buffer() failed\n");
@@ -616,23 +620,14 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     *data_size = sizeof(AVFrame);
     *(AVFrame*)data= s->picture;
     
-    avctx->release_buffer(avctx, &s->picture);
-    
     return packet_size;
 }
 
 static int dvvideo_decode_end(AVCodecContext *avctx)
 {
     DVVideoDecodeContext *s = avctx->priv_data;
-    int i;
-    
-    if(avctx->get_buffer == avcodec_default_get_buffer){
-        for(i=0; i<4; i++){
-            av_freep(&s->picture.base[i]);
-            s->picture.data[i]= NULL;
-        }
-        av_freep(&s->picture.opaque);
-    }
+
+    avcodec_default_free_buffers(avctx);    
 
     return 0;
 }
@@ -730,8 +725,8 @@ static int dvaudio_decode_frame(AVCodecContext *avctx,
 
     avctx->sample_rate = dv_audio_frequency[freq];
     avctx->channels = 2;
+    avctx->bit_rate = avctx->channels * avctx->sample_rate * 16;
     // What about:
-    // avctx->bit_rate = 
     // avctx->frame_size =
    
     *data_size = (dv_audio_min_samples[sys][freq] + smpls) * 

@@ -20,6 +20,8 @@
 /**
  * @file dsputil.h
  * DSP utils.
+ * note, many functions in here may use MMX which trashes the FPU state, it is
+ * absolutely necessary to call emms_c() between dsp & float/double code
  */
 
 #ifndef DSPUTIL_H
@@ -27,14 +29,17 @@
 
 #include "common.h"
 #include "avcodec.h"
+
+
 #include "xineutils.h"
 
 #if defined(ARCH_X86)
-#define HAVE_MMX 1 
+#define HAVE_MMX 1
 #endif
 
 #undef DEBUG
 
+//#define DEBUG
 /* dct code */
 typedef short DCTELEM;
 //typedef int DCTELEM;
@@ -152,7 +157,9 @@ typedef struct DSPContext {
     /* maybe create an array for 16/8 functions */
     /**
      * Halfpel motion compensation with rounding (a+b+1)>>1.
-     * *pixels_tab[ 0->16x16 1->8x8 ][ xhalfpel + 2*yhalfpel ]
+     * this is an array[2][4] of motion compensation funcions for 2 
+     * horizontal blocksizes (8,16) and the 4 halfpel positions<br>
+     * *pixels_tab[ 0->16xH 1->8xH ][ xhalfpel + 2*yhalfpel ]
      * @param block destination where the result is stored
      * @param pixels source
      * @param line_size number of bytes in a horizontal line of block
@@ -162,7 +169,9 @@ typedef struct DSPContext {
 
     /**
      * Halfpel motion compensation with rounding (a+b+1)>>1.
-     * *pixels_tab[ 0->16x16 1->8x8 ][ xhalfpel + 2*yhalfpel ]
+     * this is an array[2][4] of motion compensation funcions for 2 
+     * horizontal blocksizes (8,16) and the 4 halfpel positions<br>
+     * *pixels_tab[ 0->16xH 1->8xH ][ xhalfpel + 2*yhalfpel ]
      * @param block destination into which the result is averaged (a+b+1)>>1
      * @param pixels source
      * @param line_size number of bytes in a horizontal line of block
@@ -172,7 +181,9 @@ typedef struct DSPContext {
 
     /**
      * Halfpel motion compensation with no rounding (a+b)>>1.
-     * *pixels_tab[ 0->16x16 1->8x8 ][ xhalfpel + 2*yhalfpel ]
+     * this is an array[2][4] of motion compensation funcions for 2 
+     * horizontal blocksizes (8,16) and the 4 halfpel positions<br>
+     * *pixels_tab[ 0->16xH 1->8xH ][ xhalfpel + 2*yhalfpel ]
      * @param block destination where the result is stored
      * @param pixels source
      * @param line_size number of bytes in a horizontal line of block
@@ -182,7 +193,9 @@ typedef struct DSPContext {
 
     /**
      * Halfpel motion compensation with no rounding (a+b)>>1.
-     * *pixels_tab[ 0->16x16 1->8x8 ][ xhalfpel + 2*yhalfpel ]
+     * this is an array[2][4] of motion compensation funcions for 2 
+     * horizontal blocksizes (8,16) and the 4 halfpel positions<br>
+     * *pixels_tab[ 0->16xH 1->8xH ][ xhalfpel + 2*yhalfpel ]
      * @param block destination into which the result is averaged (a+b)>>1
      * @param pixels source
      * @param line_size number of bytes in a horizontal line of block
@@ -250,6 +263,7 @@ typedef struct DSPContext {
 
 } DSPContext;
 
+void dsputil_static_init(void);
 void dsputil_init(DSPContext* p, AVCodecContext *avctx);
 
 /**
@@ -286,7 +300,7 @@ extern int mm_flags;
 void add_pixels_clamped_mmx(const DCTELEM *block, uint8_t *pixels, int line_size);
 void put_pixels_clamped_mmx(const DCTELEM *block, uint8_t *pixels, int line_size);
 
-#if 0 
+#if 0
 static inline void emms(void)
 {
     __asm __volatile ("emms;":::"memory");

@@ -34,7 +34,8 @@
 #include "fastmemcpy.h"
 #endif
 
-#define CONFIG_RISKY
+//#undef NDEBUG
+//#include <assert.h>
 
 #ifdef CONFIG_ENCODERS
 static void encode_picture(MpegEncContext *s, int picture_number);
@@ -304,15 +305,8 @@ static void free_picture(MpegEncContext *s, Picture *pic){
         av_freep(&pic->motion_val[i]);
         av_freep(&pic->ref_index[i]);
     }
-
-    if(pic->type == FF_BUFFER_TYPE_INTERNAL){
-        for(i=0; i<4; i++){
-            av_freep(&pic->base[i]);
-            pic->data[i]= NULL;
-        }
-        av_freep(&pic->opaque);
-        pic->type= 0;
-    }else if(pic->type == FF_BUFFER_TYPE_SHARED){
+    
+    if(pic->type == FF_BUFFER_TYPE_SHARED){
         for(i=0; i<4; i++){
             pic->base[i]=
             pic->data[i]= NULL;
@@ -523,6 +517,7 @@ void MPV_common_end(MpegEncContext *s)
     for(i=0; i<MAX_PICTURE_COUNT; i++){
         free_picture(s, &s->picture[i]);
     }
+    avcodec_default_free_buffers(s->avctx);
     s->context_initialized = 0;
 }
 
@@ -934,7 +929,7 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
     s->mb_skiped = 0;
 
     assert(s->last_picture_ptr==NULL || s->out_format != FMT_H264);
-        
+
     /* mark&release old frames */
     if (s->pict_type != B_TYPE && s->last_picture_ptr) {
         avctx->release_buffer(avctx, (AVFrame*)s->last_picture_ptr);
@@ -950,9 +945,15 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
             }
         }
     }
-    
 alloc:
     if(!s->encoding){
+        /* release non refernce frames */
+        for(i=0; i<MAX_PICTURE_COUNT; i++){
+            if(s->picture[i].data[0] && !s->picture[i].reference /*&& s->picture[i].type!=FF_BUFFER_TYPE_SHARED*/){
+                s->avctx->release_buffer(s->avctx, (AVFrame*)&s->picture[i]);
+            }
+        }
+
         i= find_unused_picture(s, 0);
     
         pic= (AVFrame*)&s->picture[i];
@@ -977,6 +978,7 @@ alloc:
         s->last_picture_ptr= s->next_picture_ptr;
         s->next_picture_ptr= s->current_picture_ptr;
     }
+    
     if(s->last_picture_ptr) s->last_picture= *s->last_picture_ptr;
     if(s->next_picture_ptr) s->next_picture= *s->next_picture_ptr;
     if(s->new_picture_ptr ) s->new_picture = *s->new_picture_ptr;
@@ -1045,12 +1047,14 @@ void MPV_frame_end(MpegEncContext *s)
     assert(i<MAX_PICTURE_COUNT);
 #endif    
 
-    /* release non refernce frames */
-    for(i=0; i<MAX_PICTURE_COUNT; i++){
-        if(s->picture[i].data[0] && !s->picture[i].reference /*&& s->picture[i].type!=FF_BUFFER_TYPE_SHARED*/)
-            s->avctx->release_buffer(s->avctx, (AVFrame*)&s->picture[i]);
+    if(s->encoding){
+        /* release non refernce frames */
+        for(i=0; i<MAX_PICTURE_COUNT; i++){
+            if(s->picture[i].data[0] && !s->picture[i].reference /*&& s->picture[i].type!=FF_BUFFER_TYPE_SHARED*/){
+                s->avctx->release_buffer(s->avctx, (AVFrame*)&s->picture[i]);
+            }
+        }
     }
-    
     // clear copies, to avoid confusion
 #if 0
     memset(&s->last_picture, 0, sizeof(Picture));
@@ -1865,6 +1869,18 @@ inline int ff_h263_round_chroma(int x){
     }
 }
 
+/**
+ * motion compesation of a single macroblock
+ * @param s context
+ * @param dest_y luma destination pointer
+ * @param dest_cb chroma cb/u destination pointer
+ * @param dest_cr chroma cr/v destination pointer
+ * @param dir direction (0->forward, 1->backward)
+ * @param ref_picture array[3] of pointers to the 3 planes of the reference picture
+ * @param pic_op halfpel motion compensation function (average or put normally)
+ * @param pic_op qpel motion compensation function (average or put normally)
+ * the motion vectors are taken from s->mv and the MV type from s->mv_type
+ */
 static inline void MPV_motion(MpegEncContext *s, 
                               uint8_t *dest_y, uint8_t *dest_cb, uint8_t *dest_cr,
                               int dir, uint8_t **ref_picture, 
@@ -2774,17 +2790,33 @@ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
  */
 int ff_combine_frame( MpegEncContext *s, int next, uint8_t **buf, int *buf_size){
     ParseContext *pc= &s->parse_context;
-        
+
+#if 0
+    if(pc->overread){
+        printf("overread %d, state:%X next:%d index:%d o_index:%d\n", pc->overread, pc->state, next, pc->index, pc->overread_index);
+        printf("%X %X %X %X\n", (*buf)[0], (*buf)[1],(*buf)[2],(*buf)[3]);
+    }
+#endif
+
+    /* copy overreaded byes from last frame into buffer */
+    for(; pc->overread>0; pc->overread--){
+        pc->buffer[pc->index++]= pc->buffer[pc->overread_index++];
+    }
+    
     pc->last_index= pc->index;
 
-    if(next==-1){
+    /* copy into buffer end return */
+    if(next == END_NOT_FOUND){
         pc->buffer= av_fast_realloc(pc->buffer, &pc->buffer_size, (*buf_size) + pc->index + FF_INPUT_BUFFER_PADDING_SIZE);
 
         memcpy(&pc->buffer[pc->index], *buf, *buf_size);
         pc->index += *buf_size;
         return -1;
     }
-
+    
+    pc->overread_index= pc->index + next;
+    
+    /* append to buffer */
     if(pc->index){
         pc->buffer= av_fast_realloc(pc->buffer, &pc->buffer_size, next + pc->index + FF_INPUT_BUFFER_PADDING_SIZE);
 
@@ -2793,6 +2825,19 @@ int ff_combine_frame( MpegEncContext *s, int next, uint8_t **buf, int *buf_size)
         *buf= pc->buffer;
         *buf_size= pc->last_index + next;
     }
+
+    /* store overread bytes */
+    for(;next < 0; next++){
+        pc->state = (pc->state<<8) | pc->buffer[pc->last_index + next];
+        pc->overread++;
+    }
+
+#if 0
+    if(pc->overread){
+        printf("overread %d, state:%X next:%d index:%d o_index:%d\n", pc->overread, pc->state, next, pc->index, pc->overread_index);
+        printf("%X %X %X %X\n", (*buf)[0], (*buf)[1],(*buf)[2],(*buf)[3]);
+    }
+#endif
 
     return 0;
 }
@@ -3863,8 +3908,8 @@ static int dct_quantize_c(MpegEncContext *s,
         level = block[j];
         level = level * qmat[j];
 
-//        if(   bias+level >= (1<<(QMAT_SHIFT - 3))
-//           || bias-level >= (1<<(QMAT_SHIFT - 3))){
+//        if(   bias+level >= (1<<QMAT_SHIFT)
+//           || bias-level >= (1<<QMAT_SHIFT)){
         if(((unsigned)(level+threshold1))>threshold2){
             if(level>0){
                 level= (bias + level)>>QMAT_SHIFT;

@@ -39,13 +39,11 @@ libavcodec_la_SOURCES = \
 	mace.c \
 	mem.c \
 	mjpeg.c \
-	motion_est.c \
 	mpeg12.c \
 	mpegaudiodec.c \
 	mpegvideo.c \
 	msmpeg4.c \
 	opts.c \
-	ratecontrol.c \
 	rv10.c \
 	simple_idct.c \
 	svq1.c \
