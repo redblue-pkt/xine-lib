@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2004/12/01 13:51:57 mroi Exp $
+ * $Id: xine_decoder.c,v 1.4 2004/12/01 22:16:12 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -29,7 +29,6 @@
  */
 
 #include "xine_internal.h"
-#include <xine/osd.h>
 #define MAX_REGIONS 5
 
 typedef struct {
