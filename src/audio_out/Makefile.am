@@ -53,6 +53,7 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la $(oss_module) \
 #	$(sun_module) 
 
 xineplug_ao_out_none_la_SOURCES = audio_none_out.c
+xineplug_ao_out_none_la_LIBADD = $(XINE_LIB)
 xineplug_ao_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
