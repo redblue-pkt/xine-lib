@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.30 2001/08/25 07:51:24 guenter Exp $
+ * $Id: audio_decoder.c,v 1.31 2001/08/25 08:48:12 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -40,6 +40,8 @@ void *audio_decoder_loop (void *this_gen) {
   int              running = 1;
   int              i,j;
   audio_decoder_t *decoder;
+
+  profiler_start_count (1);
 
   while (running) {
 
@@ -183,9 +185,7 @@ void *audio_decoder_loop (void *this_gen) {
 		
 	    }
 	      
-	    profiler_start_count (1);
 	    decoder->decode_data (decoder, buf);
-	    profiler_stop_count (1);
 	  }
 	}
       } else
@@ -195,6 +195,7 @@ void *audio_decoder_loop (void *this_gen) {
     buf->free_buffer (buf);
   }
 
+  profiler_stop_count (1);
   pthread_exit(NULL);
 }
 

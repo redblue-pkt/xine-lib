@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.42 2001/08/20 23:00:05 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.43 2001/08/25 08:48:12 guenter Exp $
  *
  */
 
@@ -55,6 +55,9 @@ void *video_decoder_loop (void *this_gen) {
   int              streamtype;
   video_decoder_t *decoder;
   spu_decoder_t   *spu_decoder;
+
+
+  profiler_start_count (0);
 
   while (running) {
 
@@ -138,9 +141,7 @@ void *video_decoder_loop (void *this_gen) {
 
 	}
 	
-	profiler_start_count (0);
 	decoder->decode_data (this->cur_video_decoder_plugin, buf);  
-	profiler_stop_count (0);
       }
       break;
 
@@ -190,6 +191,8 @@ void *video_decoder_loop (void *this_gen) {
 
     buf->free_buffer (buf);
   }
+
+  profiler_stop_count (0);
 
   pthread_exit(NULL);
 }
