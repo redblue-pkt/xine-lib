@@ -1,4 +1,4 @@
-  * build system improvements: replacement functions, better work with headers
+  * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
   * Fix win32 playback on recent versions of Linux
   * Added cropping capability to some video_out drivers (Xv, XvMC, vidix).
@@ -6,6 +6,7 @@
   * Fixed displaying of mpeg2 files where width/height is not a multiple of 16
     (these files required cropping after decoding)
   * Fix crashes with some input plugins when no audio output was available
+  * Windows ports updates and cleanups
   
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
