@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.151 2003/02/21 05:24:36 tmmm Exp $
+ * $Id: demux_qt.c,v 1.152 2003/02/22 10:55:46 esnel Exp $
  *
  */
 
@@ -261,7 +261,6 @@ typedef struct {
 } qt_trak;
 
 typedef struct {
-  FILE *qt_file;
   int compressed_header;  /* 1 if there was a compressed moov; just FYI */
 
   unsigned int creation_time;  /* in ms since Jan-01-1904 */
@@ -549,7 +548,6 @@ qt_info *create_qt_info(void) {
   if (!info)
     return NULL;
 
-  info->qt_file = NULL;
   info->compressed_header = 0;
 
   info->creation_time = 0;
@@ -584,8 +582,22 @@ void free_qt_info(qt_info *info) {
   int i;
 
   if(info) {
-    if(info->traks)
+    if(info->traks) {
+      for (i = 0; i < info->trak_count; i++) {
+        free(info->traks[i].frames);
+        free(info->traks[i].edit_list_table);
+        free(info->traks[i].chunk_offset_table);
+        /* this pointer might have been set to -1 as a special case */
+        if (info->traks[i].sample_size_table != (void *)-1)
+          free(info->traks[i].sample_size_table);
+        free(info->traks[i].sync_sample_table);
+        free(info->traks[i].sample_to_chunk_table);
+        free(info->traks[i].time_to_sample_table);
+        free(info->traks[i].decoder_config);
+        free(info->traks[i].stsd);
+      }
       free(info->traks);
+    }
     if(info->references) {
       for (i = 0; i < info->reference_count; i++)
         free(info->references[i].url);
@@ -664,7 +676,6 @@ static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
 
   return numBytes;
 }
-
 
 /*
  * This function traverses through a trak atom searching for the sample
@@ -800,7 +811,8 @@ static qt_error parse_trak_atom (qt_trak *trak,
       /* copy whole stsd atom so it can later be sent to the decoder */
 
       trak->stsd_size = current_atom_size;
-      trak->stsd = xine_xmalloc (current_atom_size);
+      trak->stsd = realloc (trak->stsd, current_atom_size);
+      memset (trak->stsd, 0, trak->stsd_size);
 
       /* awful, awful hack to support a certain type of stsd atom that
        * contains more than 1 video description atom */
@@ -1086,7 +1098,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
             j += mp4_read_descr_len( &trak_atom[j], &len );
             debug_atom_load("      decoder config is %d (0x%X) bytes long\n",
               len, len);
-            trak->decoder_config = malloc(len);
+            trak->decoder_config = realloc(trak->decoder_config, len);
             trak->decoder_config_len = len;
             memcpy(trak->decoder_config,&trak_atom[j],len);
           }
@@ -1663,28 +1675,30 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
         info->trak_count * sizeof(qt_trak));
 
       parse_trak_atom (&info->traks[info->trak_count - 1], &moov_atom[i - 4]);
-      if (info->last_error != QT_OK)
+      if (info->last_error != QT_OK) {
+        info->trak_count--;
         return;
+      }
       i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == CPY_ATOM) {
 
       string_size = BE_16(&moov_atom[i + 4]) + 1;
-      info->copyright = xine_xmalloc(string_size);
+      info->copyright = realloc (info->copyright, string_size);
       strncpy(info->copyright, &moov_atom[i + 8], string_size - 1);
       info->copyright[string_size - 1] = 0;
 
     } else if (current_atom == DES_ATOM) {
 
       string_size = BE_16(&moov_atom[i + 4]) + 1;
-      info->description = xine_xmalloc(string_size);
+      info->description = realloc (info->description, string_size);
       strncpy(info->description, &moov_atom[i + 8], string_size - 1);
       info->description[string_size - 1] = 0;
 
     } else if (current_atom == CMT_ATOM) {
 
       string_size = BE_16(&moov_atom[i + 4]) + 1;
-      info->comment = xine_xmalloc(string_size);
+      info->comment = realloc (info->comment, string_size);
       strncpy(info->comment, &moov_atom[i + 8], string_size - 1);
       info->comment[string_size - 1] = 0;
 
@@ -2590,6 +2604,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
     if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
+      free_qt_info (this->qt);
       free (this);
       return NULL;
     }
@@ -2628,6 +2643,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
     if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
+      free_qt_info (this->qt);
       free (this);
       return NULL;
     }
