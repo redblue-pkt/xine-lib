@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.143 2004/06/14 13:43:11 mroi Exp $
+ * $Id: demux_mpeg.c,v 1.144 2004/10/18 21:55:00 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -905,9 +905,33 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers) {
 
 static void demux_mpeg_resync (demux_mpeg_t *this, uint32_t buf) {
 
-  while ((buf !=0x000001ba) && (this->status == DEMUX_OK)) {
+  if (INPUT_IS_SEEKABLE(this->input)) {
+    uint8_t dummy_buf[4096];
+    off_t len, pos;
 
-    buf = (buf << 8) | read_bytes (this, 1);
+    /* fast resync, read 4K block at once */
+    pos = 0;
+    len = 0;
+    while ((buf != 0x000001ba) && (this->status == DEMUX_OK)) {
+      if (pos == len) {
+	len = this->input->read(this->input, dummy_buf, sizeof(dummy_buf));
+        pos = 0;
+        if (len == 0) {
+          this->status = DEMUX_FINISHED;
+	  break;
+	}
+      }
+      buf = (buf << 8) | dummy_buf[pos];
+      pos++;
+    }
+    /* seek back to the pos of the 0x00001ba tag */
+    this->input->seek(this->input, pos-len, SEEK_CUR);
+
+  } else {
+    /* slow resync */
+    while ((buf !=0x000001ba) && (this->status == DEMUX_OK)) {
+      buf = (buf << 8) | read_bytes (this, 1);
+    }
   }
 }
 
