@@ -760,7 +760,7 @@ case "$host_or_hostalias" in
         AC_TRY_CFLAGS("-mmmx",f_mmmx="-mmmx", f_mmmx="")
         AC_TRY_CFLAGS("-msse",f_msse="-msse", f_msse="")
         AC_TRY_CFLAGS("-msse2",f_msse2="-msse2", f_msse2="")
-        AC_TRY_CFLAGS("-m3dnow",f_m3dnow="-m3dnow", f_-m3dnow="")
+        AC_TRY_CFLAGS("-m3dnow",f_m3dnow="-m3dnow", f_m3dnow="")
 
 	dnl add x86 specific gcc CFLAGS
 	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
