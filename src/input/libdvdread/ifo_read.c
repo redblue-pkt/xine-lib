@@ -1655,6 +1655,17 @@ static int ifoRead_VTS_ATTRIBUTES(ifo_handle_t *ifofile,
   return 1;
 }
 
+void hexdump (uint8_t *buf, int size) {
+  int i;
+
+  for (i=0; i<size; i++) {
+    printf ("%02x ", buf[i]);
+    if ( (i%8)==7)
+      printf ("\n");
+  }
+  printf ("\n");
+
+}
 
 
 int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
@@ -1686,6 +1697,8 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
     ifofile->vts_atrt = 0;
     return 0;
   }
+
+  hexdump (vts_atrt, VTS_ATRT_SIZE);
 
   B2N_16(vts_atrt->nr_of_vtss);
   B2N_32(vts_atrt->last_byte);

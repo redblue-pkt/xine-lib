@@ -47,7 +47,8 @@ lib_LTLIBRARIES = \
 	$(in_dvd) \
 	$(in_vcd) \
 	xineplug_inp_mms.la \
-	xineplug_inp_stdin_fifo.la
+	xineplug_inp_stdin_fifo.la \
+	xineplug_inp_pnm.la
 
 #lib_LTLIBRARIES = \
 #	$(in_cda) \
@@ -97,8 +98,12 @@ xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 #xineplug_inp_cda_la_LIBADD = $(XINE_LIB)
 #xineplug_inp_cda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+xineplug_inp_pnm_la_SOURCES = input_pnm.c net_buf_ctrl.c pnm.c
+xineplug_inp_pnm_la_LIBADD = $(XINE_LIB)
+xineplug_inp_pnm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
 include_HEADERS = input_plugin.h
-noinst_HEADERS = net_buf_ctrl.h mms.h
+noinst_HEADERS = net_buf_ctrl.h mms.h pnm.h
 
 EXTRA_DIST = input_dvd.c input_vcd.c
 
