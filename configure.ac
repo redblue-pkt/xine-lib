@@ -397,6 +397,19 @@ AC_SUBST(GLUT_LIBS)
 AC_SUBST(GLU_LIBS)
 AM_CONDITIONAL(HAVE_OPENGL, [ test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes" ] )
 
+dnl ---------------------------------------------
+dnl Check for platform which supports syncfb
+dnl ---------------------------------------------
+
+case "$host_or_hostalias" in
+  *linux* )
+    have_syncfb="yes"
+    ;;
+  *)
+    have_syncfb="no"
+    ;;
+esac
+AM_CONDITIONAL(HAVE_SYNCFB, test x"$have_syncfb" = "xyes")
 
 dnl ----------------------------------------------
 dnl Check for usable video-for-linux (v4l) support
@@ -691,7 +704,6 @@ AC_SUBST(DIRECTX_CFLAGS)
 AC_SUBST(DIRECTX_AUDIO_LIBS)
 AC_SUBST(DIRECTX_VIDEO_LIBS)
 AM_CONDITIONAL(HAVE_DIRECTX, test x$have_directx = "xyes" )
-
 
 dnl ---------------------------------------------
 dnl dxr3 / hollywood plus card
@@ -2108,7 +2120,10 @@ dnl Video plugins
 echo " * video driver plugins:"
 if test x"$no_x" != "xyes"; then
   echo "   - XShm (X11 shared memory)"
-  echo "   - SyncFB (for Matrox G200/G400 cards)"
+  dnl synfb
+  if test x$ac_have_syncfb = "xyes"; then
+    echo "   - SyncFB (for Matrox G200/G400 cards)"
+  fi
   dnl Xv
   if test x$ac_have_xv = "xyes"; then
     if test x$xv_lib="xlibXv.a"; then

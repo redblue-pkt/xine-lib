@@ -53,7 +53,7 @@ Juergen Keil <jk@tools.de>
 Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
   IRIX port, video out interface, opengl video output
 
-Robin KAY <komadori@myrealbox.com>
+Robin KAY <komadori [at] gekkou [dot] co [dot] uk>
   pgx64 video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
   decoder, Solaris port improvements and bugfixes, various video_out,
   misc bugfixes
