@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.5 2002/06/01 16:34:47 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.6 2002/06/03 20:29:16 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -49,6 +49,9 @@
 
 /* we adjust vpts_offset in metronom, when skip_count reaches this value */
 #define SKIP_TOLERANCE 200
+
+/* the number of frames to pass before we stop duration correction */
+#define FORCE_DURATION_WINDOW_SIZE 100
 
 /* offset for mpeg header parsing */
 #define HEADER_OFFSET 0
@@ -91,21 +94,25 @@ typedef struct dxr3_decoder_s {
   int              enhanced_mode;
   int              resync_window;
   int              skip_count;           /* syncing parameters */
-#if LOG_PTS
-  int64_t          last_pts;
-#endif
+  
+  int              correct_durations;
+  int64_t          last_vpts;
+  int              force_duration_window;
+  int              avg_duration;         /* logic to correct broken frame rates */
+  
 } dxr3_decoder_t;
 
 /* helper functions */
 static int       dxr3_present(xine_t *xine);
 static int       dxr3_mvcommand(int fd_control, int command);
 static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
-static int       get_duration(int framecode, int repeat_first_field);
+static int       get_duration(dxr3_decoder_t *this);
 
 /* config callbacks */
 static void      dxr3_update_priority(void *this_gen, cfg_entry_t *entry);
 static void      dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry);
 static void      dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry);
+static void      dxr3_update_correct_durations(void *this_gen, cfg_entry_t *entry);
 
 
 video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
@@ -114,6 +121,7 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   config_values_t *cfg;
   const char *confstr;
   int dashpos;
+  int64_t cur_offset;
   
   if (iface_version != 9) {
     printf( "dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
@@ -172,6 +180,14 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
     "dxr3.alt_play_mode", 1, "Use alternate Play mode",
     "Enabling this option will utilise a smoother play mode.",
     dxr3_update_enhanced_mode, this);
+  this->correct_durations               = cfg->register_bool(cfg,
+    "dxr3.correct_durations", 0, "Correct frame durations in broken streams",
+    "Enable this for streams with wrong frame durations.",
+    dxr3_update_correct_durations, this);
+  
+  /* set a/v offset to compensate dxr3 internal delay */
+  cur_offset = this->xine->metronom->get_option(this->xine->metronom, METRONOM_AV_OFFSET);
+  this->xine->metronom->set_option(this->xine->metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
   
   return &this->video_decoder;
 }
@@ -191,9 +207,7 @@ static int dxr3_can_handle(video_decoder_t *this_gen, int buf_type)
 static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-  metronom_t *metronom = this->xine->metronom;
   char tmpstr[128];
-  int64_t cur_offset;
   
   snprintf(tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
 #if LOG_VID
@@ -212,17 +226,13 @@ static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
   video_out->open(video_out);
   this->video_out = video_out;
   
-  this->resync_window = 0;
-  this->skip_count = 0;
+  this->resync_window         = 0;
+  this->skip_count            = 0;
   
-  cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
-  metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
-  /* a note on the 21600: this seems to be a necessary offset,
-     maybe the dxr3 needs some internal time, however it improves sync a lot */
-  
-#if LOG_PTS
-  this->last_vpts = metronom->get_current_time(metronom);
-#endif
+  this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
+  this->last_vpts             = 
+    this->xine->metronom->get_current_time(this->xine->metronom);
+  this->avg_duration          = 0;
 }
 
 static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
@@ -230,7 +240,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   ssize_t written;
   int64_t vpts;
-  int i, duration, skip;
+  int i, skip;
   vo_frame_t *img;
   uint8_t *buffer, byte;
   uint32_t shift;
@@ -280,18 +290,26 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     if (buf->decoder_flags & BUF_FLAG_PREVIEW)
       continue;
     
-    duration = get_duration(this->frame_rate_code, this->repeat_first_field);
     /* pretend like we have decoded a frame */
     img = this->video_out->get_frame (this->video_out,
       this->width, this->height, this->aspect,
       IMGFMT_MPEG, VO_BOTH_FIELDS);
     img->pts       = buf->pts;
     img->bad_frame = 0;
-    img->duration  = duration;
+    img->duration  = get_duration(this);
     
     skip = img->draw(img);
+    
     if (skip <= 0) { /* don't skip */
       vpts = img->vpts; /* copy so we can free img */
+      
+      if (this->correct_durations) {
+        /* calculate an average frame duration from metronom's vpts values */
+        this->avg_duration = this->avg_duration * 0.9 + (vpts - this->last_vpts) * 0.1;
+#if LOG_PTS
+        printf("dxr3_decode_video: average frame duration %d\n", this->avg_duration);
+#endif
+      }
       
       if (this->skip_count) this->skip_count--;
       
@@ -306,13 +324,14 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       }
       if (this->resync_window != 0 && this->resync_window > -RESYNC_WINDOW_SIZE)
         this->resync_window--;
-    }
-    else { /* metronom says skip, so don't set vpts */
+    } else { /* metronom says skip, so don't set vpts */
 #if LOG_VID
       printf("dxr3_decode_video: %d frames to skip\n", skip);
 #endif
       vpts = 0;
+      this->avg_duration = 0;
       
+      /* handle frame skip conditions */
       if (this->scr && !this->scr->scanning) this->skip_count += skip;
       if (this->skip_count > SKIP_TOLERANCE) {
         /* we have had enough skipping messages now, let's react */
@@ -337,10 +356,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       if (this->resync_window != 0 && this->resync_window < RESYNC_WINDOW_SIZE)
         this->resync_window++;
     }
+    this->last_vpts = img->vpts;
     img->free(img);
-#if LOG_PTS
-    this->last_vpts += img->duration; /* predict vpts */
-#endif
+
     /* if sync_every_frame was disabled, decrease the counter
      * for a retry 
      * (it might be due to crappy studio logos and stuff
@@ -405,9 +423,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     delay = vpts - this->xine->metronom->get_current_time(
       this->xine->metronom);
 #if LOG_PTS
-    printf("dxr3_decode_video: SETPTS got %lld expected = %lld (delta %lld) delay = %lld\n", 
-      vpts, this->last_vpts, vpts - this->last_vpts, delay);
-    this->last_vpts = vpts;
+    printf("dxr3_decode_video: SETPTS got %lld\n", vpts);
 #endif
     /* SETPTS only if less then one second in the future and
      * either buffer has pts or sync_every_frame is set */
@@ -427,8 +443,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   }
 #if LOG_PTS
   else if (buf->pts) {
-    printf("dxr3_decode_video: skip buf->pts = %lld (no vpts) last_vpts = %lld\n", 
-      buf->pts, this->last_vpts);
+    printf("dxr3_decode_video: skip buf->pts = %lld (no vpts)\n", buf->pts);
   }
 #endif
   
@@ -466,17 +481,12 @@ static void dxr3_close(video_decoder_t *this_gen)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   metronom_t *metronom = this->xine->metronom;
-  int64_t cur_offset;
   
   if (this->scr) {
     metronom->unregister_scr(metronom, &this->scr->scr_plugin);
     this->scr->scr_plugin.exit(&this->scr->scr_plugin);
     this->scr = NULL;
   }
-  
-  /* revert av_offset change done in dxr3_init */
-  cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
-  metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 21600);
   
   if (this->fd_video >= 0) close(this->fd_video);
   this->fd_video = -1;
@@ -531,11 +541,11 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
   this->have_header_info = 1;
 }
 
-static int get_duration(int framecode, int repeat_first_field)
+static int get_duration(dxr3_decoder_t *this)
 {
   int duration;
   
-  switch (framecode) {
+  switch (this->frame_rate_code) {
   case 1: /* 23.976 */
     duration = 3913;
     break;
@@ -543,10 +553,10 @@ static int get_duration(int framecode, int repeat_first_field)
     duration = 3750;
     break;
   case 3: /* 25.000 */
-    duration = repeat_first_field ? 5400 : 3600;
+    duration = this->repeat_first_field ? 5400 : 3600;
     break;
   case 4: /* 29.970 */
-    duration = repeat_first_field ? 4505 : 3003;
+    duration = this->repeat_first_field ? 4505 : 3003;
     break;
   case 5: /* 30.000 */
     duration = 3000;
@@ -561,9 +571,51 @@ static int get_duration(int framecode, int repeat_first_field)
     duration = 1509;
     break;
   default:
-    printf("dxr3_decode_video: warning: unknown frame rate code %d: using PAL\n", framecode);
+    printf("dxr3_decode_video: WARNING: unknown frame rate code %d: using PAL\n",
+      this->frame_rate_code);
     duration = 3600;  /* PAL 25fps */
     break;
+  }
+  
+  if (this->correct_durations) {
+    /* we set an initial average frame duration here */
+    if (!this->avg_duration) this->avg_duration = duration;
+  
+    /* Apply a correction to the framerate-code if metronom
+     * insists on a different frame duration.
+     * The code below is for NTCS streams labeled as PAL streams.
+     * (I have seen such things even on dvds!)
+     */
+    if (this->avg_duration && this->avg_duration < 3300 && duration == 3600) {
+      if (this->force_duration_window > 0) {
+        // we are already in a force_duration window, so we force duration
+        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
+        return 3000;
+      }
+      if (this->force_duration_window <= 0 && (this->force_duration_window += 10) > 0) {
+        // we just entered a force_duration window, so we start the correction
+        metronom_t *metronom = this->xine->metronom;
+        int64_t cur_offset;
+        printf("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n");
+        /* those weird streams need an offset, too */
+        cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+        metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 28800);
+        this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
+        return 3000;
+      }
+    }
+    
+    if (this->force_duration_window == -FORCE_DURATION_WINDOW_SIZE)
+      // we are far from a force_duration window
+      return duration;
+    if (--this->force_duration_window == 0) {
+      // we have just left a force_duration window
+      metronom_t *metronom = this->xine->metronom;
+      int64_t cur_offset;
+      cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
+      metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 28800);
+      this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
+    }
   }
   
   return duration;
@@ -587,5 +639,12 @@ static void dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
 {
   ((dxr3_decoder_t *)this_gen)->enhanced_mode = entry->num_value;
   printf("dxr3_decode_video: setting enhanced mode to %s\n", 
+    (entry->num_value ? "on" : "off"));
+}
+
+static void dxr3_update_correct_durations(void *this_gen, cfg_entry_t *entry)
+{
+  ((dxr3_decoder_t *)this_gen)->correct_durations = entry->num_value;
+  printf("dxr3_decode_video: setting correct_durations mode to %s\n", 
     (entry->num_value ? "on" : "off"));
 }
