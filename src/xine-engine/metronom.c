@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.3 2001/05/01 21:55:23 guenter Exp $
+ * $Id: metronom.c,v 1.4 2001/05/06 15:44:25 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,7 @@
 #define MAX_PTS_TOLERANCE 5000
 #define MAX_VIDEO_DELTA   1600
 #define AUDIO_SAMPLE_NUM 32768
+#define MAX_WRAP_TOLERANCE 180000
 
 static void metronom_reset (metronom_t *this) {
 
@@ -107,7 +108,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
     /*
      * did a wrap-around occur?
      */
-    if ( (pts+this->video_wrap_offset)<this->last_video_pts) {
+    if ( (pts+this->video_wrap_offset+MAX_WRAP_TOLERANCE)<this->last_video_pts) {
 
       this->video_wrap_offset = this->last_video_pts - pts 
 	+ this->num_video_vpts_guessed *(this->pts_per_frame + this->video_pts_delta);
@@ -202,7 +203,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
      * did a wrap-around occur?
      */
 
-    if ((pts+this->audio_wrap_offset)<this->last_audio_pts) {
+    if ((pts+this->audio_wrap_offset+MAX_WRAP_TOLERANCE)<this->last_audio_pts) {
 
       this->audio_wrap_offset = this->last_audio_pts - pts
 	+ this->num_audio_samples_guessed *(this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM ;
