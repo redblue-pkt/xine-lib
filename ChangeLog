@@ -4,6 +4,7 @@ xine-lib (1-beta10)
   * libdvdnav: PGC based positioning:
     seeking on DVDs now spans the entire feature
   * font encoding cleanup (xinefonts use unicode now)
+  * freetype2 support for OSD
   * ffmpeg sync (build 4663). WMV8 decoder enabled.
   * much more accurate time display with DVDs
   * xine health check fixes for non-mtrr machines
@@ -13,6 +14,7 @@ xine-lib (1-beta10)
   * DVD title/part MRLs (dvd:/<title>.<part>) work much more reliable
   * OGM subtitles support
   * network controler improvements
+  * generic error reporting mechanism using events
 	
 xine-lib (1-beta9)
   * implement XINE_PARAM_AUDIO_AMP_LEVEL so xine's volume can be
