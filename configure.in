@@ -1079,9 +1079,81 @@ chmod +x libtool-nofpic
 dnl
 dnl Some infos:
 dnl
-dnl Video plugins
 echo "xine-lib summary:"
 echo "----------------"
+
+dnl Input
+echo " * input plugins:"
+echo "   - file          - net"
+echo "   - stdin_fifo    - rtp"
+echo "   - http          - mms"
+if test x"$have_cdrom_ioctls" = "xyes"; then
+  echo "   - dvd           - vcd"
+  echo "   - cda"
+fi
+echo ""
+
+dnl Demuxers
+echo " * demultiplexer plugins:"
+echo "   - avi           - mpeg"
+echo "   - mpeg_block    - mpeg_audio"
+echo "   - mpeg_elem     - mpeg_pes"
+echo "   - mpeg_ts       - qt"
+echo "   - film          - roq"
+echo "   - fli           - smjpeg"
+echo "   - idcin         - wav"
+echo "   - cda"
+if test x"$enable_asf" = "xyes"; then
+  echo "   - asf"
+fi
+if test x"$no_oggvorbis" = "xno"; then
+  echo "   - ogg"
+fi
+echo ""
+
+dnl video decoders
+echo " * video decoder plugins:"
+echo "   - mpeg2           - ffmpeg"
+echo "   - cyuv            - divx4"
+echo "   - cinepak         - msvc"
+echo "   - fli             - msrle"
+echo "   - rgb             - yuv"
+echo "   - roqvideo        - svq1"
+if test x"$no_xvid" = "xno"; then
+  echo "   - xvid"
+fi
+if test x"$have_dxr3" = "xyes"; then
+  echo "   - dxr3_video"
+fi
+if test x"$enable_w32dll" = "xyes"; then
+  echo "   - w32dll"
+fi
+echo ""
+
+dnl audio decoders
+echo " * audio decoder plugins:"
+echo "   - a52             - dts"
+echo "   - mad             - faad"
+echo "   - adpcm           - lpcm"
+echo "   - roqaudio"
+if test x"$no_oggvorbis" = "xno"; then
+  echo "   - vorbis"
+fi
+if test x"$enable_w32dll" = "xyes"; then
+  echo "   - w32dll"
+fi
+echo ""
+
+dnl spu decoders
+echo " * subtitle decoder plugins:"
+echo "   - spu             - spucc"
+echo "   - sputext"
+if test x"$have_dxr3" = "xyes"; then
+  echo "   - dxr3_spu"
+fi
+echo ""
+
+dnl Video plugins
 echo " * video driver plugins:"
 if test x"$no_x" != "xyes"; then
   echo "   - XShm (X11 shared memory)"
@@ -1148,62 +1220,6 @@ if test x"$have_sunaudio" = "xyes"; then
 fi
 if test "x$am_cv_have_irixal" = xyes; then
   echo "   - irixal (Irix audio library)"
-fi
-echo ""
-
-dnl Decoders
-echo " * decoder plugins:"
-echo "   - a52             - dts"
-echo "   - mpeg2           - spu"
-echo "   - spucc           - sputext"
-echo "   - ffmpeg          - mad"
-echo "   - cyuv            - divx4"
-echo "   - cinepak         - msvc"
-echo "   - adpcm           - lpcm"
-echo "   - roqaudio        - roqvideo"
-echo "   - fli             - msrle"
-echo "   - rgb             - yuv"
-echo "   - svq1"
-if test x"$no_oggvorbis" = "xno"; then
-  echo "   - vorbis"
-fi
-if test x"$no_xvid" = "xno"; then
-  echo "   - xvid"
-fi
-if test x"$have_dxr3" = "xyes"; then
-  echo "   - dxr3_video      - dxr3_spu"
-fi
-if test x"$enable_w32dll" = "xyes"; then
-  echo "   - w32dll"
-fi
-echo ""
-
-dnl Demuxers
-echo " * demultiplexer plugins:"
-echo "   - avi           - mpeg"
-echo "   - mpeg_block    - mpeg_audio"
-echo "   - mpeg_elem     - mpeg_pes"
-echo "   - mpeg_ts       - qt"
-echo "   - film          - roq"
-echo "   - fli           - smjpeg"
-echo "   - idcin         - wav"
-echo "   - cda"
-if test x"$enable_asf" = "xyes"; then
-  echo "   - asf"
-fi
-if test x"$no_oggvorbis" = "xno"; then
-  echo "   - ogg"
-fi
-echo ""
-
-dnl Input
-echo " * input plugins:"
-echo "   - file          - net"
-echo "   - stdin_fifo    - rtp"
-echo "   - http          - mms"
-if test x"$have_cdrom_ioctls" = "xyes"; then
-  echo "   - dvd           - vcd"
-  echo "   - cda"
 fi
 echo "---"
 
