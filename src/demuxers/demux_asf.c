@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.163 2004/11/01 15:53:52 tmattern Exp $
+ * $Id: demux_asf.c,v 1.164 2004/12/14 22:55:06 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -463,11 +463,13 @@ static int asf_read_header (demux_asf_t *this) {
             /* Encrypted stream 
              * Parse the end of the header but do not demux the stream. 
              */
-            xine_log(this->stream->xine, XINE_LOG_MSG,
-		     _("demux_asf: warning: The stream id=%d is encrypted.\n"), stream_id);
-            _x_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
-		       _("Media stream scrambled/encrypted"), NULL);
-            this->mode = ASF_MODE_ENCRYPTED_CONTENT;
+            if (this->mode != ASF_MODE_ENCRYPTED_CONTENT) {
+              xine_log(this->stream->xine, XINE_LOG_MSG,
+                       _("demux_asf: warning: The stream id=%d is encrypted.\n"), stream_id);
+              _x_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+                         _("Media stream scrambled/encrypted"), NULL);
+              this->mode = ASF_MODE_ENCRYPTED_CONTENT;
+            }
           }
 
           get_le32(this);
@@ -961,8 +963,8 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 /* return 0 if ok */
 static int asf_parse_packet_align(demux_asf_t *this) {
 
-  uint64_t  current_pos, packet_pos;
-  uint32_t  mod;
+  uint64_t current_pos, packet_pos;
+  uint32_t mod;
   uint64_t packet_num;
 
   
@@ -983,18 +985,19 @@ static int asf_parse_packet_align(demux_asf_t *this) {
   
   /* check packet_count */
   packet_num = (current_pos - this->first_packet_pos) / this->packet_size;
+  lprintf("packet_num=%lld, packet_count=%lld\n", packet_num, this->packet_count);
   if (packet_num == this->packet_count) {
     /* end of payload data */
     current_pos = this->input->get_current_pos (this->input);
-    lprintf("demux_asf: end of payload data, current_pos=%lld\n", current_pos);
+    lprintf("end of payload data, current_pos=%lld\n", current_pos);
     {
       /* check new asf header */
       if (get_guid(this) == GUID_ASF_HEADER) {
-        lprintf("demux_asf: new asf header detected\n");
+        lprintf("new asf header detected\n");
         if (demux_asf_send_headers_common(this, 0))
           return 1;
       } else {
-        /* not an ASF stream or end of stream */
+	lprintf("not an ASF stream or end of stream\n");
         return 1;
       }
     }
