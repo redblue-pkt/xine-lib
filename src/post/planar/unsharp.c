@@ -17,10 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.16 2005/02/06 19:53:00 valtri Exp $
+ * $Id: unsharp.c,v 1.17 2005/02/13 13:14:43 valtri Exp $
  *
  * mplayer's unsharp
- * Copyright (C) 2002 R�mi Guyomarch <rguyom@pobox.com>
+ * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
  */
 
 #include "xine_internal.h"
@@ -216,6 +216,7 @@ static xine_post_api_descr_t * get_param_descr (void) {
 }
 
 static char * get_help (void) {
+  /* use real name "Rémi Guyomarch" in translations */
   return _("Unsharp mask / gaussian blur\n"
            "It is possible to set the width and height of the matrix, "
            "odd sized in both directions (min = 3x3, max = 13x11 or 11x13, "
