@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.13 2004/04/26 17:50:07 mroi Exp $
+ * $Id: xine_encoder.c,v 1.14 2004/04/26 18:03:01 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -152,7 +152,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->bit_rate = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.lavc_bitrate", 10000, 1000, 20000,
     _("libavcodec mpeg output bitrate (kbit/s)"),
-    _("The bitrate the libavcodec mpeg encoder should use for DXR3's encoding mode. 
+    _("The bitrate the libavcodec mpeg encoder should use for DXR3's encoding mode. "
       "Higher values will increase quality and CPU usage.\n"
       "This setting is only considered, when constant quality mode is disabled."), 10, NULL, NULL);
     this->context->bit_rate *= 1000; /* config in kbit/s, libavcodec wants bit/s */
