@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.87 2004/05/09 17:42:24 valtri Exp $
+ * $Id: xineutils.h,v 1.88 2004/06/14 16:36:40 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1009,7 +1009,7 @@ void xine_hexdump (const char *buf, int length);
 #else
 #  define XINE_PROFILE(function) function
 #  define XINE_PROFILE_ACCUMULATE(function) function
-#endif /* LOG */
+#endif /* DEBUG */
 
 
 /******** double chained lists with builtin iterator *******/
