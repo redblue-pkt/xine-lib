@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.33 2001/11/05 23:15:13 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.34 2001/11/06 11:49:44 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -28,7 +28,7 @@
  *                         and by Matthias Oelmann <mao@well.com>
  *          video_out_mga      by Aaron Holtzman   <aholtzma@ess.engr.uvic.ca>
  * 
- * tied togehter with lot of clue for xine by Matthias Dahl <matthew2k@web.de>
+ * tied togehter with lot of glue for xine by Matthias Dahl <matthew2k@web.de>
  * 
  */
 
