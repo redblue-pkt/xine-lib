@@ -20,7 +20,13 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.9 2004/01/01 18:14:51 valtri Exp $
+ * $Id: audio_directx_out.c,v 1.10 2004/01/05 00:51:44 valtri Exp $
+ */
+
+/*
+ * TODO:
+ *   - stop looping on stop (requires AO_CTRL_PLAY_STOP?)
+ *   - posibility of bad state when buffer overrun
  */
 
 typedef unsigned char boolean;
@@ -42,7 +48,7 @@ typedef unsigned char boolean;
 #define MAX_BITS		  16
 #define MAX_SAMPLE_RATE		  44100
 #define SOUND_BUFFER_DIV	  32
-#define SOUND_BUFFER_MAX	  MAX_CHANNELS * MAX_BITS * MAX_SAMPLE_RATE / SOUND_BUFFER_DIV
+#define SOUND_BUFFER_MAX	  MAX_CHANNELS * (MAX_BITS / 8) * (((MAX_SAMPLE_RATE / SOUND_BUFFER_DIV) + 1) & ~1)
 
 #define DSBUFF_INIT		  0
 #define DSBUFF_LEFT		  1
@@ -82,13 +88,12 @@ typedef struct {
   DSBPOSITIONNOTIFY	notify_events[ 2 ];
   
   /* buffer vars */
-  long	                buffer_size;
-  long	                buffer_init;
-  int		        write_status;
-  long	                write_pos;
-  
-  uint8_t  	        prebuff[ SOUND_BUFFER_MAX ];
-  uint32_t 	        prebuff_size;
+  long                  buffer_size;
+  int                   write_status;
+  unsigned long         write_pos;
+
+  uint8_t               prebuff[ SOUND_BUFFER_MAX ];
+  uint32_t              prebuff_size;
   
   /* current buffer properties */
   int		        bits;
@@ -215,7 +220,8 @@ boolean CreateSoundBuffer( ao_directx_t * ao_directx )
   /* calculate buffer and frame size */
 
   ao_directx->frsz        = ( ao_directx->bits / 8 ) * ao_directx->chnn;
-  ao_directx->buffer_size = ( ao_directx->frsz * ao_directx->rate ) / SOUND_BUFFER_DIV;
+  /* buffer size, must be even and aligned to frame size */
+  ao_directx->buffer_size = (ao_directx->frsz * ((ao_directx->rate / SOUND_BUFFER_DIV + 1) & ~1));
 
   /* release any existing sound buffer
    * related resources */
@@ -568,7 +574,7 @@ static int ao_directx_open( ao_driver_t * ao_driver, uint32_t bits, uint32_t rat
       return 0;
     }
 
-  CreateSoundBuffer( ao_directx );
+  if (!CreateSoundBuffer( ao_directx )) return 0;
 
   lprintf("ao_directx_open() Exit! Returning ao_directx->rate=%d\n", ao_directx->rate);
 
