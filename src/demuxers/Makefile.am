@@ -25,8 +25,8 @@ endif
 
 XINELIB = $(top_builddir)/src/xine-engine/libxine.la
 
-#	xineplug_dmx_mpeg_ts.la
 lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
+	xineplug_dmx_mpeg_ts.la \
 	xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la \
 	xineplug_dmx_mpeg.la \
@@ -79,9 +79,9 @@ xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS
 #xineplug_dmx_mpeg_pes_la_LIBADD = $(XINELIB)
 #xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
-#xineplug_dmx_mpeg_ts_la_LIBADD = $(XINELIB)
-#xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
+xineplug_dmx_mpeg_ts_la_LIBADD = $(XINELIB)
+xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c
 xineplug_dmx_qt_la_LIBADD = $(XINELIB)
