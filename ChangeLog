@@ -1,3 +1,6 @@
+xine-lib (1-beta6)
+  * fix DVD highlight problems
+	
 xine-lib (1-beta7)
   * libdvdnav updated to 0.1.6cvs: fixes a whole class of problems caused
     by dvdnav being a bit ahead in the stream due to xine's fifos
