@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.100 2002/06/16 22:15:11 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.101 2002/06/23 19:34:36 guenter Exp $
  *
  */
 
@@ -55,7 +55,7 @@ extern "C" {
  * \def XINE_LOGO_FILE
  * Default logo file.
  */
-#define XINE_LOGO_FILE     "file://@XINE_SKINPATH@/xine_logo.mpg"
+#define XINE_LOGO_FILE     "file://@XINE_SKINPATH@/xine_logo.mpv"
 
      /**
       * \defgroup build_info Build informations
