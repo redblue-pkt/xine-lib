@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.80 2004/04/26 17:50:08 mroi Exp $
+ * $Id: xine_decoder.c,v 1.81 2004/06/04 14:37:33 mroi Exp $
  *
  */
 
@@ -162,10 +162,11 @@ static void update_output_size (sputext_decoder_t *this) {
                                                              VO_PROP_WINDOW_HEIGHT) ||
         !this->img_duration || !this->osd ) {
 
-      int width, height; /* dummy */
+      int width = 0, height = 0; /* dummy */
         
-      if( this->stream->video_out->status(this->stream->video_out, NULL,
-                                           &width, &height, &this->img_duration )) {
+      this->stream->video_out->status(this->stream->video_out, NULL,
+                                      &width, &height, &this->img_duration );
+      if( width && height ) {
 
         this->width = this->stream->video_out->get_property(this->stream->video_out,
                                                              VO_PROP_WINDOW_WIDTH);
@@ -182,14 +183,16 @@ static void update_output_size (sputext_decoder_t *this) {
   } else {
     if( !this->width || !this->height || !this->img_duration || !this->osd ) {
         
-      if( this->stream->video_out->status(this->stream->video_out, NULL,
-                                           &this->width, &this->height, &this->img_duration )) {
-                                               
-        if( this->width && this->height && this->img_duration ) {
-          this->renderer = this->stream->osd_renderer;
-          
-          update_font_size (this, 1);
-        }
+      this->width = 0;
+      this->height = 0;
+      
+      this->stream->video_out->status(this->stream->video_out, NULL,
+                                      &this->width, &this->height, &this->img_duration );
+                                      
+      if( this->width && this->height && this->img_duration ) {
+        this->renderer = this->stream->osd_renderer;
+        
+        update_font_size (this, 1);
       }
     }
   }
