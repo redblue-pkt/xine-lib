@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.6 2001/08/05 08:59:04 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.7 2001/08/07 22:24:05 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -50,10 +50,9 @@ typedef struct dxr3_decoder_s {
 	vo_instance_t *video_out;
 
 	int fd_video;
-#if 0
-	int fd_control;
-#endif
 	int last_pts;
+	scr_plugin_t *scr;
+	int scr_prio;
 } dxr3_decoder_t;
 
 static int dxr3_tested = 0;
@@ -78,6 +77,80 @@ static void dxr3_presence_test()
 	dxr3_ok = 1;
 }
 
+typedef struct dxr3scr_s {
+	scr_plugin_t scr;
+	int fd_control;
+	int priority;
+} dxr3scr_t;
+
+static int dxr3scr_get_priority (scr_plugin_t *scr) {
+	dxr3scr_t *self = (dxr3scr_t*) scr;
+	return self->priority;
+}
+
+static void dxr3scr_set_speed (scr_plugin_t *scr, float ticks_ps) {
+	dxr3scr_t *self = (dxr3scr_t*) scr;
+	int em_speed = ticks_ps * 2304.0 / 90e3; /* 2304.0 == 0x900 */
+
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
+		fprintf(stderr, "dxr3scr: failed to set speed (%s)\n", strerror(errno));
+	printf("dxr3scr: set speed to %x\n", em_speed);
+}
+
+static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
+	dxr3scr_t *self = (dxr3scr_t*) scr;
+	vpts >>= 1;
+
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
+		fprintf(stderr, "dxr3scr: adjust failed.\n");
+}
+
+static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
+	dxr3scr_t *self = (dxr3scr_t*) scr;
+	start_vpts >>= 1;
+
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &start_vpts))
+		fprintf(stderr, "dxr3scr: start failed.\n");
+	/* mis-use start_vpts */
+	start_vpts = 0x900;
+	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &start_vpts);
+}
+
+static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
+	dxr3scr_t *self = (dxr3scr_t*) scr;
+	uint32_t pts;
+
+	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
+		fprintf(stderr, "dxr3scr: get current failed.\n");
+
+	return pts << 1;
+}
+
+static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
+	dxr3scr_t *self;
+
+	self = malloc(sizeof(*self));
+	memset(self, 0, sizeof(*self));
+
+	self->scr.interface_version = 1;
+	self->scr.get_priority      = dxr3scr_get_priority;
+	self->scr.set_speed         = dxr3scr_set_speed;
+	self->scr.adjust            = dxr3scr_adjust;
+	self->scr.start             = dxr3scr_start;
+	self->scr.get_current       = dxr3scr_get_current;
+
+	if ((self->fd_control = open (devname, O_WRONLY)) < 0) {
+		fprintf(stderr, "dxr3scr: Failed to open control device %s (%s)\n",
+		 devname, strerror(errno));
+		return NULL;
+	}
+
+	self->priority = dxr3->scr_prio;
+
+	printf("dxr3scr: init complete\n");
+	return &self->scr;
+}
+
 static int dxr3_can_handle (video_decoder_t *this_gen, int buf_type)
 {
 	if (!dxr3_tested)
@@ -92,16 +165,6 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 
 	printf("dxr3: Entering video init, devname=%s.\n",devname);
     
-#if 0
-	/* open control device */
-	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
-		this->fd_video = -1;
-		return;
-	}
-#endif
-
 	/* open video device */
 	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
 	if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
@@ -114,6 +177,14 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->video_out = video_out;
 
 	this->last_pts = 0;
+	
+	this->scr = dxr3scr_init(this);
+	this->video_decoder.metronom->register_scr(
+	 this->video_decoder.metronom, this->scr);
+
+	/* dxr3_init is called while the master scr already runs.
+	   therefore the scr must be started here */
+	this->scr->start(this->scr, 0);
 }
 
 static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
@@ -125,17 +196,13 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	if (buf->decoder_info[0] == 0) return;
 
 	if (buf->PTS) {
-		int vpts,pts;
-		pts = this->video_decoder.metronom->get_current_time
-		 (this->video_decoder.metronom);
-		vpts = this->video_decoder.metronom->got_video_frame
-		 (this->video_decoder.metronom, buf->PTS);
+		int vpts;
+		vpts = this->video_decoder.metronom->got_video_frame(
+		 this->video_decoder.metronom, buf->PTS);
 
-		if (vpts > pts && this->last_pts < vpts)
+		if (this->last_pts < vpts)
 		{
 			this->last_pts = vpts;
-			if (ioctl(this->fd_video,EM8300_IOCTL_VIDEO_SETSCR,&pts))
-				fprintf(stderr, "dxr3: set master pts failed.\n");
 
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				fprintf(stderr, "dxr3: set video pts failed.\n");
@@ -157,11 +224,11 @@ static void dxr3_close (video_decoder_t *this_gen)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 
-#if 0
-	ioctl(this->fd_control, EM8300_IOCTL_SET_PLAYMODE, EM8300_PLAYMODE_STOPPED);
-	close(this->fd_control);
-#endif
+	this->video_decoder.metronom->unregister_scr(
+	 this->video_decoder.metronom, this->scr);
+
 	close(this->fd_video);
+	this->fd_video = 0;
 
 	this->video_out->close(this->video_out);
 }
@@ -192,6 +259,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.close               = dxr3_close;
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.priority            = 10;
+
+	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10);
 
 	return (video_decoder_t *) this;
 }
