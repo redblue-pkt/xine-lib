@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.84 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.85 2003/02/01 14:33:06 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -258,11 +258,11 @@ static int ao_oss_open(ao_driver_t *this_gen,
     this->num_channels = 2; /* FIXME: is this correct ? */
     this->output_sample_rate = this->input_sample_rate;
     this->output_sample_k_rate = this->output_sample_rate / 1000;
-    printf ("audio_oss_out : AO_CAP_MODE_A52\n");
+    printf ("audio_oss_out: AO_CAP_MODE_A52\n");
     break;
   }
 
-  printf ("audio_oss_out : %d channels output\n",this->num_channels);
+  printf ("audio_oss_out: %d channels output\n",this->num_channels);
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   
   /*
@@ -389,15 +389,28 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
       bytes_left = 0;
     break;
   case OSS_SYNC_GETOPTR:
-    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    if (ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info)) {
+      perror ("audio_oss_out: SNDCTL_DSP_GETOPTR failed:");
+    }
     
+#ifdef LOG
+    printf ("audio_oss_out: %d bytes output\n", info.bytes);
+#endif
+
     bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
       
     if (bytes_left<=0) /* buffer ran dry */
       bytes_left = 0;
     break;
   case OSS_SYNC_GETODELAY:
-    ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
+    if (ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left)) {
+      perror ("audio_oss_out: DSP_GETODELAY ioctl():");
+    }
+    if (bytes_left<0)
+      bytes_left = 0;
+#ifdef LOG
+    printf ("audio_oss_out: %d bytes left\n", bytes_left);
+#endif
     break;
   }
 
@@ -823,7 +836,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     return NULL;
   }
     
-  printf ("audio_oss_out : supported modes are ");
+  printf ("audio_oss_out: supported modes are ");
   num_channels = 1; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==1) ) {
