@@ -1,0 +1,132 @@
+/*
+ * Globals for dxr3 videoout plugins
+ */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <math.h>
+
+#include <linux/em8300.h>
+#include "video_out.h"
+#include "xine_internal.h"
+
+/* for fast_memcpy: */
+#include "memcpy.h"
+
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <X11/Xutil.h>
+#ifdef HAVE_XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+#include "../video_out/video_out_x11.h"
+
+#define LOOKUP_DEV "dxr3_devname"
+#define DEFAULT_DEV "/dev/em8300"
+
+struct coeff {
+    	float 	k,m;
+};
+
+typedef struct {
+	int 	fd_control;
+	int 	overlay_enabled;
+	int 	xoffset;
+	int 	yoffset;
+	int 	xcorr;
+	int 	jitter;
+	int 	stability;
+	int 	colorkey;
+	float 	color_interval;
+	int 	screen_xres;
+	int 	screen_yres;
+	int 	screen_depth;
+
+	struct coeff colcal_upper[3];
+	struct coeff colcal_lower[3];
+} dxr3_overlay_t;
+
+typedef struct dxr3_driver_s {
+	vo_driver_t     vo_driver;
+	config_values_t *config;
+	int 		fd_control;
+        int 		fd_video;
+	int 		aspectratio;
+	int 		tv_mode;
+	em8300_bcs_t 	bcs;
+	
+	/* for encoder plugin */
+        uint8_t 	*out[3]; /* aligned buffer for YV12 data, copied from frames */
+        uint8_t 	*buf[3]; /* unaligned YV12 buffer */
+        int 		oheight; /* height after adding black bars to correct a.r. */
+	int 		video_iheight; /* input height (before adding black bars) */
+	int 		video_height;  /* output height (after adding bars) */
+
+	/* for overlay */
+	dxr3_overlay_t overlay;
+	Display 	*display;
+	Drawable 	win;
+	GC 		gc;     
+	XColor 		color;
+	int 		xpos, ypos;
+	int 		width, height; 
+	int 		overlay_enabled;
+	float 		desired_ratio;
+
+	int 		zoom_enabled;
+
+	int 		video_width;
+	int 		video_aspect;
+	
+	char 		*user_data;
+
+	void 		(*request_dest_size) (char *userdata, int video_width, int video_height, int *dest_x,
+		        	int *dest_y, int *dest_height, int *dest_width);
+} dxr3_driver_t;
+
+typedef struct dxr3_frame_s {
+  vo_frame_t    vo_frame;
+  int           width, height;
+  uint8_t       *mem[3]; 	/* allocated for YV12 or YUY2 buffers */
+  uint8_t       *real_base[3]; 	/* same buffers alligned on 16 bytes */
+  int           format;
+  dxr3_driver_t *vo_instance; 	/* points to self, for use in dxr3_frame_copy */
+  int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
+#if USE_MPEG_BUFFER
+  unsigned char *mpeg; 		/* encoded mpeg data */
+  unsigned int  mpeg_size; 	/* length of data */
+#endif
+}dxr3_frame_t;
+
+static char *devname;
+
+/* func definitions */
+/* Overlay functions */
+int dxr3_overlay_set_mode(dxr3_overlay_t *this, int mode);
+int dxr3_overlay_set_attributes(dxr3_overlay_t *this);
+int dxr3_overlay_set_screen(dxr3_overlay_t *this);
+int dxr3_overlay_set_window(dxr3_overlay_t *this,
+				 int xpos, int ypos, int width, int height);
+
+void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd);
+int dxr3_overlay_read_state(dxr3_overlay_t *this);
+void dxr3_get_keycolor(dxr3_driver_t *this);
+void dxr3_read_config(dxr3_driver_t *this);
+
+void *malloc_aligned (size_t alignment, size_t size, void **mem);
+void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis);
+
+/* xine accessable functions */
+int dxr3_get_property (vo_driver_t *this_gen, int property);
+int dxr3_set_property (vo_driver_t *this_gen, int property, int value);
+void dxr3_get_property_min_max (vo_driver_t *this_gen, int property, int *min, int *max);
+int dxr3_gui_data_exchange (vo_driver_t *this_gen,  int data_type, void *data);
+
+

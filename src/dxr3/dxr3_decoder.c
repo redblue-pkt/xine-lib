@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.28 2001/11/02 13:18:27 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.29 2001/11/07 12:30:54 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -586,7 +586,9 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 		strerror(errno));
     }
     break;
-	/* Temporarily use the stream title to find out if we have a menu... */
+	/* Temporarily use the stream title to find out if we have a menu... 
+	   obsoleted by XINE_EVENT_SPU_FORCEDISPLAY, but we'll keep it 'til
+	   the next version of dvdnav */
   case XINE_EVENT_UI_SET_TITLE:
     {
       if(strstr(event->data,"Menu"))

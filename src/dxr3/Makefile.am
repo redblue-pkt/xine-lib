@@ -1,6 +1,6 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c video_out_dxr3.c video_out_dxr3enc.c overlay.c
+EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_vo_encoder.c dxr3_vo_standard.c 
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -18,14 +18,14 @@ lib_LTLIBRARIES = $(dxr3_modules) $(dxr3enc_module)
 xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
-xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c overlay.c
+xineplug_vo_out_dxr3_la_SOURCES = dxr3_vo_standard.c dxr3_vo_core.c 
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
 
-xineplug_vo_out_dxr3enc_la_SOURCES = video_out_dxr3enc.c overlay.c
+xineplug_vo_out_dxr3enc_la_SOURCES = dxr3_vo_encoder.c dxr3_vo_core.c 
 xineplug_vo_out_dxr3enc_la_LDFLAGS = \
 		-avoid-version -module -lfame $(X_LIBS)
 
-include_HEADERS = dxr3_overlay.h
+include_HEADERS = dxr3_video_out.h dxr3_vo_encoder.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LINUX_INCLUDE)"
