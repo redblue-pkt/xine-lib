@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.112 2002/09/05 22:18:52 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.113 2002/09/07 20:09:28 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -183,7 +183,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     if (event.handled) {
 
-      char *next_mrl = event.mrl;
+      char *next_mrl = strdup(event.mrl);
 
 #ifdef LOG      
       printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
@@ -198,6 +198,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
 	this->input->close (this->input);
         this->input->open (this->input, next_mrl);
+
+	free(next_mrl);
 
 	event.event.type = XINE_EVENT_BRANCHED;
 	xine_send_event (this->xine, &event.event);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.7 2002/09/06 18:13:10 mroi Exp $
+ * $Id: xine.h.in,v 1.8 2002/09/07 20:09:28 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -351,9 +351,10 @@ int xine_register_report_codec_cb(xine_p self,
 #define XINE_PARAM_VO_SATURATION           0x01000004
 #define XINE_PARAM_VO_CONTRAST             0x01000005
 #define XINE_PARAM_VO_BRIGHTNESS           0x01000006
-#define XINE_PARAM_VO_ZOOM                 0x01000007
-#define XINE_PARAM_VO_PAN_SCAN             0x01000008         
-#define XINE_PARAM_VO_TVMODE               0x01000009
+#define XINE_PARAM_VO_ZOOM_X               0x01000007
+#define XINE_PARAM_VO_ZOOM_Y               0x01000008
+#define XINE_PARAM_VO_PAN_SCAN             0x01000009         
+#define XINE_PARAM_VO_TVMODE               0x0100000a
 
 #define XINE_VO_ZOOM_STEP                  100
 #define XINE_VO_ZOOM_MAX                   400
@@ -825,7 +826,7 @@ typedef struct {
  */
 typedef struct {
   xine_event_t     event;
-  char            *mrl;
+  const char      *mrl;
   int              handled;
 } xine_next_mrl_event_t;
 
