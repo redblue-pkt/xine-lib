@@ -26,7 +26,7 @@
 
 #else
 
-#	if defined (__i386__)
+#	if defined (__i386__) && defined(__GNUC__)
 
 #	define swab32(x) __i386_swab32(x)
 	static inline const uint32_t __i386_swab32(uint32_t x)
