@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.120 2003/06/12 23:18:17 tmattern Exp $
+ * $Id: demux_asf.c,v 1.121 2003/06/12 23:37:16 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1176,7 +1176,8 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
 
     if (stream && stream->fifo) {
       if (stream->resync && (*timestamp >= this->keyframe_ts)) {
-        printf ("demux_asf: stream resynced\n");
+        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+          printf ("demux_asf: stream resynced\n");
         stream->resync = 0;
         stream->skip = 0;
       }
@@ -1281,7 +1282,8 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
 
   if (stream && stream->fifo) {
     if (stream->resync && (*timestamp >= this->keyframe_ts) && !frag_offset) {
-      printf ("demux_asf: stream resynced\n");
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+        printf ("demux_asf: stream resynced\n");
       stream->resync = 0;
       stream->skip = 0;
     }
@@ -1903,8 +1905,8 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
       start_pos -= this->packet_size;
     }
     if (state != 5) {
-      /* begining of the stream */
-      printf ("demux_asf: demux_asf_seek: begining of the stream\n");
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+        printf ("demux_asf: demux_asf_seek: begining of the stream\n");
       this->input->seek (this->input, this->first_packet_pos, SEEK_SET);
     } else {
       this->input->seek (this->input, start_pos + this->packet_size, SEEK_SET);
