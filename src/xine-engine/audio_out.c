@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.65 2002/09/18 00:51:34 guenter Exp $
+ * $Id: audio_out.c,v 1.66 2002/09/19 01:59:50 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -538,14 +538,19 @@ static int ao_open(ao_instance_t *this,
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
+    break;
   case AO_CAP_MODE_STEREO:
     this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+    break;
   case AO_CAP_MODE_4CHANNEL:
     this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
+    break;
   case AO_CAP_MODE_5CHANNEL:
     this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
+    break;
   case AO_CAP_MODE_5_1CHANNEL:
     this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
+    break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
   default:
