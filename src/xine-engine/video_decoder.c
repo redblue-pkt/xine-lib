@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.93 2002/08/30 14:19:48 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.94 2002/08/30 15:03:00 f1rmb Exp $
  *
  */
 
@@ -246,7 +246,7 @@ void *video_decoder_loop (void *this_gen) {
 	xine_ui_event_t  ui_event;
 	
 	ui_event.event.type = XINE_EVENT_OUTPUT_NO_VIDEO;
-	ui_event.data       = this->cur_mrl;
+	ui_event.data       = this->cur_input_plugin->get_mrl(this->cur_input_plugin);
 	xine_send_event(this, &ui_event.event);
       }
       break;
@@ -287,7 +287,7 @@ void *video_decoder_loop (void *this_gen) {
 	    xine_report_codec( this, XINE_CODEC_VIDEO, 0, buf->type, 1);
 	    
 	    ui_event.event.type = XINE_EVENT_OUTPUT_VIDEO;
-	    ui_event.data       = this->cur_mrl;
+	    ui_event.data       = this->cur_input_plugin->get_mrl(this->cur_input_plugin);
 	    xine_send_event(this, &ui_event.event);
 	    
 	  }
