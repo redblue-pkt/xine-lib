@@ -133,12 +133,16 @@ typedef struct resource_nameinfo_s NE_NAMEINFO;
 /* module.c */
 extern FARPROC MODULE_GetProcAddress( HMODULE hModule, LPCSTR function, WIN_BOOL snoop );
 extern WINE_MODREF *MODULE32_LookupHMODULE( HMODULE hModule );
-extern WIN_BOOL MODULE_DllProcessAttach( WINE_MODREF *wm, LPVOID lpReserved );
-extern void MODULE_DllProcessDetach( WINE_MODREF *wm, WIN_BOOL bForceDetach, LPVOID lpReserved );
+/* This is static */
+/* extern WIN_BOOL MODULE_DllProcessAttach( WINE_MODREF *wm, LPVOID lpReserved ); */
+/* This is static */
+/* extern void MODULE_DllProcessDetach( WINE_MODREF *wm, WIN_BOOL bForceDetach, LPVOID lpReserved ); */
 extern void MODULE_DllThreadAttach( LPVOID lpReserved );
 extern void MODULE_DllThreadDetach( LPVOID lpReserved );
-extern WINE_MODREF *MODULE_LoadLibraryExA( LPCSTR libname, HFILE hfile, DWORD flags );
-extern WIN_BOOL MODULE_FreeLibrary( WINE_MODREF *wm );
+/* This is static */
+/* extern WINE_MODREF *MODULE_LoadLibraryExA( LPCSTR libname, HFILE hfile, DWORD flags ); */
+/* This is static */
+/* extern WIN_BOOL MODULE_FreeLibrary( WINE_MODREF *wm ); */
 extern WINE_MODREF *MODULE_FindModule( LPCSTR path );
 extern HMODULE MODULE_CreateDummyModule( LPCSTR filename, HMODULE module32 );
 extern FARPROC16 WINAPI WIN32_GetProcAddress16( HMODULE hmodule, LPCSTR name );

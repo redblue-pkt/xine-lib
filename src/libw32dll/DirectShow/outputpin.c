@@ -16,6 +16,8 @@ static int unimplemented(const char* s, void* p)
     return E_NOTIMPL;
 }
 
+/* In outputpin.h now *********
+******************************
 typedef struct CEnumMediaTypes
 {
     IEnumMediaTypes_vt* vt;
@@ -23,7 +25,7 @@ typedef struct CEnumMediaTypes
     AM_MEDIA_TYPE type;
     GUID interfaces[2];
 } CEnumMediaTypes;
-
+********************/
 
 static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes,

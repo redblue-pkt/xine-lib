@@ -27,6 +27,7 @@ struct _MemAllocator
     void ( *ResetPointer )(MemAllocator* This);
 };
 
-MemAllocator* MemAllocatorCreate();
+MemAllocator* MemAllocatorCreate(void);
+void MemAllocator_Destroy(MemAllocator* This);
 
 #endif /* DS_ALLOCATOR_H */

@@ -33,4 +33,18 @@ struct _COutputPin
 
 COutputPin* COutputPinCreate(const AM_MEDIA_TYPE* vhdr);
 
+typedef struct _CEnumMediaTypes  CEnumMediaTypes;
+
+struct _CEnumMediaTypes
+{
+    IEnumMediaTypes_vt* vt;
+    DECLARE_IUNKNOWN();
+    AM_MEDIA_TYPE type;
+    GUID interfaces[2];
+} ;
+
+
+void CEnumMediaTypes_Destroy(CEnumMediaTypes* This);
+CEnumMediaTypes* CEnumMediaTypesCreate(const AM_MEDIA_TYPE* amt);
+
 #endif /* DS_OUTPUTPIN_H */
