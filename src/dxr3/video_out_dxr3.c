@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.68 2003/01/12 20:56:39 f1rmb Exp $
+ * $Id: video_out_dxr3.c,v 1.69 2003/01/18 17:25:40 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -66,19 +66,27 @@
 #define LOG_OVR 0
 
 
-/* plugin class initialization function */
-static void       *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen);
+/* plugin class initialization functions */
+static void                *dxr3_x11_init_plugin(xine_t *xine, void *visual_gen);
+static void                *dxr3_aa_init_plugin(xine_t *xine, void *visual_gen);
+static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen);
 
 
 /* plugin catalog information */
-static vo_info_t   vo_info_dxr3 = {
+static vo_info_t   vo_info_dxr3_x11 = {
   10,                  /* priority        */
   XINE_VISUAL_TYPE_X11 /* visual type     */
 };
 
+static vo_info_t   vo_info_dxr3_aa = {
+  10,                  /* priority        */
+  XINE_VISUAL_TYPE_AA  /* visual type     */
+};
+
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 14, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
+  { PLUGIN_VIDEO_OUT, 14, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+  { PLUGIN_VIDEO_OUT, 14, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -128,7 +136,25 @@ static void        dxr3_update_swap_fields(void *data, xine_cfg_entry_t *entry);
 static void        dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
 
 
-static void *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
+static void *dxr3_x11_init_plugin(xine_t *xine, void *visual_gen)
+{
+  dxr3_driver_class_t *this = dxr3_vo_init_plugin(xine, visual_gen);
+  
+  if (!this) return NULL;
+  this->visual_type = XINE_VISUAL_TYPE_X11;
+  return &this->video_driver_class;
+}
+
+static void *dxr3_aa_init_plugin(xine_t *xine, void *visual_gen)
+{
+  dxr3_driver_class_t *this = dxr3_vo_init_plugin(xine, visual_gen);
+  
+  if (!this) return NULL;
+  this->visual_type = XINE_VISUAL_TYPE_AA;
+  return &this->video_driver_class;
+}
+
+static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
 {
   dxr3_driver_class_t *this;
   const char *confstr;
@@ -161,7 +187,7 @@ static void *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
   
   this->instance                           = 0;
   
-  return &this->video_driver_class;
+  return this;
 }
 
 static char *dxr3_vo_get_identifier(video_driver_class_t *class_gen)
@@ -323,8 +349,11 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   /* overlay or tvout? */
   confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
     _("Dxr3: videoout mode (tv or overlay)"), NULL, 0, NULL, NULL);
+  if (!(class->visual_type == XINE_VISUAL_TYPE_X11) && confnum > 1)
+    /* no overlay modes when not using X11 -> switch to letterboxed tv */
+    confnum = 0;
 #if LOG_VID
-  printf("video_out_dxr3: overlaymode = %s\n", videoout_modes[confnum]);
+  printf("video_out_dxr3: videomode = %s\n", videoout_modes[confnum]);
 #endif
   switch (confnum) {
   case 0: /* letterboxed tv mode */

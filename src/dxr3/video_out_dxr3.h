@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.13 2002/11/20 11:57:42 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.14 2003/01/18 17:25:41 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,6 +73,7 @@ typedef struct dxr3_driver_class_s {
   video_driver_class_t  video_driver_class;
   xine_t               *xine;
   
+  int                   visual_type;
   int                   instance;           /* we allow only one instance of this plugin */
   
   char                  devname[128];
