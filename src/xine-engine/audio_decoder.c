@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.91 2002/12/06 01:13:15 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.92 2002/12/18 03:59:10 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -83,7 +83,17 @@ void *audio_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_START:
+
+#ifdef LOG
+      printf ("audio_decoder: start\n");
+#endif
+
       if (stream->audio_decoder_plugin) {
+
+#ifdef LOG
+	printf ("audio_decoder: close old decoder\n");
+#endif	
+
 	free_audio_decoder (stream, stream->audio_decoder_plugin);
 	stream->audio_decoder_plugin = NULL;
 	stream->audio_track_map_entries = 0;
@@ -142,6 +152,9 @@ void *audio_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_RESET_DECODER:
+#ifdef LOG
+      printf ("audio_decoder: reset\n");
+#endif
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
       break;

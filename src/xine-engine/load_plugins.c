@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.122 2002/12/16 01:50:52 guenter Exp $
+ * $Id: load_plugins.c,v 1.123 2002/12/18 03:59:10 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -689,7 +689,6 @@ static void save_catalog (xine_t *this) {
 				  strlen(dirname) + 3);
   sprintf(dirfile, "%s/%s", xine_get_homedir(), dirname);
   mkdir (dirfile, 0755);
-  printf ("\n\nsave_catalog: %s created\n", dirfile);
   free (dirfile);
 
   if( (fp = fopen(cachefile,"w")) != NULL ) {
