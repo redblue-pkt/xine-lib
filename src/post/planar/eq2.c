@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.9 2003/10/22 20:38:10 komadori Exp $
+ * $Id: eq2.c,v 1.10 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -356,10 +356,35 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("Alternative software equalizer that uses lookup tables (very slow), "
+           "allowing gamma correction in addition to simple brightness, "
+           "contrast and saturation adjustment.\n"
+           "Note that it uses the same MMX optimized code as 'eq' if all "
+           "gamma values are 1.0.\n"
+           "\n"
+           "Parameters\n"
+           "  gamma\n"
+           "  brightness\n"
+           "  contrast\n"
+           "  saturation\n"
+           "  rgamma (gamma for the red component)\n"
+           "  ggamma (gamma for the green component)\n"
+           "  bgamma (gamma for the blue component)\n"
+           "\n"
+           "Value ranges are 0.1 - 10 for gammas, -2 - 2 for contrast "
+           "(negative values result in a negative image), -1 - 1 for "
+           "brightness and 0 - 3 for saturation.\n"
+           "\n"
+           "* mplayer's eq2 (C) Hampa Hug, Daniel Moreno, Richard Felker\n"
+           );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_eq2_out_s post_eq2_out_t;

@@ -144,6 +144,18 @@ void *expand_init_plugin(xine_t *xine, void *data)
   return class;
 }
 
+static char * get_help (void) {
+  return _("The expand plugin is meant to take frames of arbitrary aspect ratio and "
+           "converts them to 4:3 aspect by adding black bars on the top and bottom "
+           "of the frame. This allows us to shift overlays down into the black area "
+           "so they don't cover the image.\n"
+           "\n"
+           "Parameters (FIXME: better help)\n"
+           "  Enable_automatic_shift: Enable automatic overlay shifting\n"
+           "  Overlay_y_offset: Manually shift the overlay vertically\n"
+           "\n"
+         );
+}
 
 static post_plugin_t *expand_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
@@ -155,7 +167,7 @@ static post_plugin_t *expand_open_plugin(post_class_t *class_gen, int inputs,
   post_expand_out_t *output      = (post_expand_out_t *)malloc(sizeof(post_expand_out_t));
   post_video_port_t *port;
   static xine_post_api_t post_api =
-    { expand_set_parameters, expand_get_parameters, expand_get_param_descr };
+    { expand_set_parameters, expand_get_parameters, expand_get_param_descr, get_help };
   
   if (!this || !input || !input_param || !output || !video_target || !video_target[0]) {
     free(this);

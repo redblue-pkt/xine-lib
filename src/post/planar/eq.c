@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq.c,v 1.7 2003/10/22 20:38:10 komadori Exp $
+ * $Id: eq.c,v 1.8 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * mplayer's eq (soft video equalizer)
  * Copyright (C) Richard Felker
@@ -184,10 +184,27 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("Software equalizer with interactive controls just like the hardware "
+           "equalizer, for cards/drivers that do not support brightness and "
+           "contrast controls in hardware.\n"
+           "\n"
+           "Parameters\n"
+           "  brightness\n"
+           "  contrast\n"
+           "\n"
+           "Note: It is possible to use frontend's control window to set "
+           "these parameters.\n"
+           "\n"
+           "* mplayer's eq (C) Richard Felker\n"
+           );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_eq_out_s post_eq_out_t;

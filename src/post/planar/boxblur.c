@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: boxblur.c,v 1.8 2003/10/22 20:38:10 komadori Exp $
+ * $Id: boxblur.c,v 1.9 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * mplayer's boxblur
  * Copyright (C) 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -101,10 +101,22 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("Box blur does a simple blurring of the image.\n"
+           "\n"
+           "Parameters\n"
+           "  Radius: size of the filter\n"
+           "  Power: how often the filter should be applied\n"
+           "\n"
+           "* mplayer's boxblur (C) 2002 Michael Niedermayer\n"
+         );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_boxblur_out_s post_boxblur_out_t;

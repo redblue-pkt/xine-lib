@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.8 2003/10/22 20:38:10 komadori Exp $
+ * $Id: unsharp.c,v 1.9 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -222,10 +222,38 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("Unsharp mask / gaussian blur\n"
+           "It is possible to set the width and height of the matrix, "
+           "odd sized in both directions (min = 3x3, max = 13x11 or 11x13, "
+           "usually something between 3x3 and 7x7) and the relative amount "
+           "of sharpness/blur to add to the image (a sane range should be "
+           "-1.5 - 1.5).\n"
+           "\n"
+           "Parameters\n"
+           "\n"
+           "  Luma_matrix_width: Width of the matrix (must be odd)\n"
+           "\n"
+           "  Luma_matrix_height: Height of the matrix (must be odd)\n"
+           "\n"
+           "  Luma_amount: Relative amount of sharpness/blur (=0 disable, <0 blur, >0 sharpen)\n"
+           "\n"
+           "  Chroma_matrix_width: Width of the matrix (must be odd)\n"
+           "\n"
+           "  Chroma_matrix_height: Height of the matrix (must be odd)\n"
+           "\n"
+           "  Chroma_amount: Relative amount of sharpness/blur (=0 disable, <0 blur, >0 sharpen)\n"
+           "\n"
+           "\n"
+           "* mplayer's unsharp (C) 2002 Rémi Guyomarch\n"
+         );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_unsharp_out_s post_unsharp_out_t;

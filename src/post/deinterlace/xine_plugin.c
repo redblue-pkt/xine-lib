@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.20 2003/11/01 13:20:01 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.21 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -192,10 +192,67 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("Advanced tvtime/deinterlacer plugin with pulldown detection\n"
+           "This plugin aims to provide deinterlacing mechanisms comparable "
+           "to high quality progressive DVD players and so called "
+           "line-doublers, for use with computer monitors, projectors and "
+           "other progressive display devices.\n"
+           "\n"
+           "Parameters\n"
+           "\n"
+           "  Method: Select deinterlacing method/algorithm to use, see below for "
+           "explanation of each method.\n"
+           "\n"
+           "  Enabled: Enable/disable the plugin.\n"
+           "\n"
+           "  Pulldown: Choose the 2-3 pulldown detection algorithm. 24 FPS films "
+           "that have being converted to NTSC can be detected and intelligently "
+           "reconstructed to their original (non-interlaced) frames.\n"
+           "\n"
+           "  Framerate_mode: Selecting 'full' will deinterlace every field "
+           "to an unique frame for television quality and beyond. This feature will "
+           "effetively double the frame rate, improving smoothness. Note, however, "
+           "that full 59.94 FPS is not possible with plain 2.4 Linux kernel (that "
+           "use a timer interrupt frequency of 100Hz). Newer RedHat and 2.6 kernels "
+           "use higher HZ settings (512 and 1000, respectively) and should work fine.\n"
+           "\n"
+           "  Judder_correction: Once 2-3 pulldown is enabled and a film material "
+           "is detected, it is possible to reduce the frame rate to original rate "
+           "used (24 FPS). This will make the frames evenly spaced in time, "
+           "matching the speed they were shot and eliminating the judder effect.\n"
+           "\n"
+           "  Use_progressive_frame_flag: Well mastered MPEG2 streams uses a flag "
+           "to indicate progressive material. This setting control whether we trust "
+           "this flag or not (some rare and buggy mpeg2 streams set it wrong).\n"
+           "\n"
+           "  Chroma_filter: DVD/MPEG2 use an interlaced image format that has "
+           "a very poor vertical chroma resolution. Upsampling the chroma for purposes "
+           "of deinterlacing may cause some artifacts to occur (eg. color stripes). Use "
+           "this option to blur the chroma vertically after deinterlacing to remove "
+           "the artifacts. Warning: cpu intensive.\n"
+           "\n"
+           "  Cheap_mode: This will skip the expensive YV12->YUY2 image conversion, "
+           "tricking tvtime/dscaler routines like if they were still handling YUY2 "
+           "images. Of course, this is not correct, not all pixels will be evaluated "
+           "by the algorithms to decide the regions to deinterlace and chroma will be "
+           "processed separately. Nevertheless, it allows people with not so fast "
+           "systems to try deinterlace algorithms, in a tradeoff between quality "
+           "and cpu usage.\n"
+           "\n"
+           "Deinterlacing methods: (Not all methods are available for all plataforms)\n"
+           "\n"
+           "(FIXME: explain each method, check tvtime/dscaler docs... i fell lazy)\n"
+           "\n"
+           "* Uses several algorithms from tvtime and dscaler projects.\n"
+           );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_deinterlace_out_s post_deinterlace_out_t;

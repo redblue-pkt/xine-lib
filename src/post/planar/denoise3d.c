@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: denoise3d.c,v 1.8 2003/10/22 20:38:10 komadori Exp $
+ * $Id: denoise3d.c,v 1.9 2003/11/01 18:34:22 miguelfreitas Exp $
  *
  * mplayer's denoise3d
  * Copyright (C) 2003 Daniel Moreno <comac@comac.darktech.org>
@@ -134,10 +134,26 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
+static char * get_help (void) {
+  return _("This filter aims to reduce image noise producing smooth images and "
+           "making still images really still (This should enhance compressibility.). "
+           "It can be given from 0 to 3 parameters.  If you omit a parameter, "
+           "a reasonable value will be inferred.\n"
+           "\n"
+           "Parameters\n"
+           "  Luma: Spatial luma strength (default = 4)\n"
+           "  Chroma: Spatial chroma strength (default = 3)\n"
+           "  Time: Temporal strength (default = 6)\n"
+           "\n"
+           "* mplayer's denoise3d (C) 2003 Daniel Moreno\n"
+           );
+}
+
 static xine_post_api_t post_api = {
   set_parameters,
   get_parameters,
   get_param_descr,
+  get_help,
 };
 
 typedef struct post_denoise3d_out_s post_denoise3d_out_t;
