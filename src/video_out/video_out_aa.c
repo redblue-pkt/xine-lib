@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.4 2001/06/13 17:53:42 guenter Exp $
+ * $Id: video_out_aa.c,v 1.5 2001/06/13 18:22:38 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -56,6 +56,8 @@ typedef struct aa_frame_s {
 
   int           ratio_code;
 
+  int           format;
+
 } aa_frame_t;
 
 typedef struct {
@@ -76,7 +78,7 @@ typedef struct {
  */
 
 static uint32_t aa_get_capabilities (vo_driver_t *this) {
-  return VO_CAP_YV12;
+  return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
@@ -93,6 +95,17 @@ static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
 
 static void aa_dispose_frame (vo_frame_t *vo_img) {
   /* fixme: implement */
+
+  aa_frame_t *frame = (aa_frame_t *)vo_img;
+  
+  if (frame->mem[0])
+    free (frame->mem[0]);
+  if (frame->mem[1])
+    free (frame->mem[1]);
+  if (frame->mem[2])
+    free (frame->mem[2]);
+
+  free (frame);
 }
 
 static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
@@ -116,7 +129,8 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 
   aa_frame_t *frame = (aa_frame_t *) img;
 
-  if ((frame->width != width) || (frame->height != height)) {
+  if ((frame->width != width) || (frame->height != height) 
+      || (frame->format != format)) {
 
     if (frame->mem[0]) {
       free (frame->mem[0]);
@@ -132,13 +146,23 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       frame->mem[2] = NULL;
     }
 
-    image_size = width * height;
     frame->width  = width;
     frame->height = height;
+    frame->format = format;
 
-    frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
-    frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, (void**) &frame->mem[1]);
-    frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, (void**) &frame->mem[2]);
+
+    if (format == IMGFMT_YV12) {
+      image_size = width * height;
+      frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
+      frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, (void**) &frame->mem[1]);
+      frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, (void**) &frame->mem[2]);
+    } else if (format == IMGFMT_YUY2) {
+      image_size = width * 2 * height;
+      frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
+    } else {
+      printf ("alert! unsupported image format %04x\n", format);
+      exit (1);
+    }
 
     frame->ratio_code = ratio_code;
 
@@ -167,12 +191,24 @@ static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	  aa_imgwidth (this->context),
 	  aa_imgheight (this->context));
   */
-  for (y = 0; y<aa_imgheight (this->context); y++) {
-    for (x = 0; x<aa_imgwidth (this->context); x++) {
+
+  if (frame->format == IMGFMT_YV12) {
+    for (y = 0; y<aa_imgheight (this->context); y++) {
+      for (x = 0; x<aa_imgwidth (this->context); x++) {
       
-      *img++ = src_image[((int)((double) x * x_fact) +
-			  frame->width * (int)((double) y * y_fact))];
+	*img++ = src_image[((int)((double) x * x_fact) +
+			    frame->width * (int)((double) y * y_fact))];
       
+      }
+    }
+  } else {
+    for (y = 0; y<aa_imgheight (this->context); y++) {
+      for (x = 0; x<aa_imgwidth (this->context); x++) {
+      
+	*img++ = src_image[((int)((double) x * x_fact) * 2 +
+			    frame->width * 2 * (int)((double) y * y_fact))];
+      
+      }
     }
   }
 
