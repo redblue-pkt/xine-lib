@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.20 2002/04/23 13:14:34 esnel Exp $
+ * $Id: video_overlay.c,v 1.21 2002/06/26 12:33:31 mroi Exp $
  *
  */
 
@@ -80,7 +80,7 @@ static void add_showing_handle( video_overlay_t *this, int32_t handle )
     if( i != MAX_SHOWING )
       this->video_overlay_showing[i].handle = handle;
     else
-      fprintf(stderr,"video_overlay: error: no showing slots available\n");
+      printf("video_overlay: error: no showing slots available\n");
   }
   
   pthread_mutex_unlock( &this->video_overlay_showing_mutex );
@@ -273,7 +273,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     
     /* memcpy everything except the actual image */
     if ( this->video_overlay_events[new_event].event == NULL ) {
-      fprintf(stderr,"video_overlay: error: event slot is NULL!\n");
+      printf("video_overlay: error: event slot is NULL!\n");
     }
     this->video_overlay_events[new_event].event->event_type=event->event_type;
     this->video_overlay_events[new_event].event->vpts=event->vpts;
@@ -281,7 +281,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     this->video_overlay_events[new_event].event->object.pts=event->object.pts;
 
     if ( this->video_overlay_events[new_event].event->object.overlay ) {
-      fprintf(stderr,"video_overlay: add_event: event->object.overlay was not freed!\n");
+      printf("video_overlay: add_event: event->object.overlay was not freed!\n");
     }
     
     if( event->object.overlay ) {
@@ -296,7 +296,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
       this->video_overlay_events[new_event].event->object.overlay = NULL;
     }
   } else {
-    fprintf(stderr, "No spare subtitle event slots\n");
+    printf("No spare subtitle event slots\n");
     new_event = -1;
   }
   
@@ -364,7 +364,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           
           this->video_overlay_objects[handle].handle = handle;
           if( this->video_overlay_objects[handle].overlay ) {
-            fprintf(stderr,"video_overlay: error: object->overlay was not freed!\n");
+            printf("video_overlay: error: object->overlay was not freed!\n");
           }
           this->video_overlay_objects[handle].overlay = 
              this->video_overlay_events[this_event].event->object.overlay;
@@ -439,7 +439,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           
           this->video_overlay_objects[handle].handle = handle;
           if( this->video_overlay_objects[handle].overlay ) {
-            fprintf(stderr,"video_overlay: error: object->overlay was not freed!\n");
+            printf("video_overlay: error: object->overlay was not freed!\n");
           }
           this->video_overlay_objects[handle].overlay = 
              this->video_overlay_events[this_event].event->object.overlay;
