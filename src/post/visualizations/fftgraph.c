@@ -20,7 +20,7 @@
  * FftGraph Visualization Post Plugin For xine
  *   by Thibaut Mattern (tmattern@noos.fr)
  *
- * $Id: fftgraph.c,v 1.7 2003/11/26 19:30:17 mroi Exp $
+ * $Id: fftgraph.c,v 1.8 2003/12/03 10:52:41 andruil Exp $
  *
  */
 
@@ -233,22 +233,6 @@ static int fftgraph_rewire_video(xine_post_out_t *output_gen, void *data)
   return 1;
 }
 
-static int mode_channels( int mode ) {
-  switch( mode ) {
-  case AO_CAP_MODE_MONO:
-    return 1;
-  case AO_CAP_MODE_STEREO:
-    return 2;
-  case AO_CAP_MODE_4CHANNEL:
-    return 4;
-  case AO_CAP_MODE_5CHANNEL:
-    return 5;
-  case AO_CAP_MODE_5_1CHANNEL:
-    return 6;
-  }
-  return 0;
-}
-
 static int fftgraph_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
 
@@ -264,7 +248,7 @@ static int fftgraph_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   
   this->bits = bits;
   this->mode = mode;
-  this->channels = mode_channels(mode);
+  this->channels = _x_ao_mode2channels(mode);
   if( this->channels > MAXCHANNELS )
     this->channels = MAXCHANNELS;
   this->lines_per_channel = FFTGRAPH_HEIGHT / this->channels;

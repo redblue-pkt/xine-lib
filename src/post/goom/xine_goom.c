@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.44 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.45 2003/12/03 10:52:41 andruil Exp $
  *
  * GOOM post plugin.
  *
@@ -324,14 +324,14 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->post.xine_post.audio_input[1] = NULL;
   this->post.xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * 1);
   this->post.xine_post.video_input[0] = NULL;
-  
+
   this->post.input  = xine_list_new();
   this->post.output = xine_list_new();
-  
+
   xine_list_append_content(this->post.input, input);
   xine_list_append_content(this->post.output, output);
   xine_list_append_content(this->post.output, outputv);
-  
+
   this->post.dispose = goom_dispose;
 
   return &this->post;
@@ -362,12 +362,12 @@ static void goom_dispose(post_plugin_t *this_gen)
   this->class->ip = NULL;
 
   goom_close();
-  
+
   this->metronom->exit(this->metronom);
 
   if (this->stream)
     port->close(port, this->stream);
-    
+
   free(this->post.xine_post.audio_input);
   free(this->post.xine_post.video_input);
   free(xine_list_first_content(this->post.input));
@@ -418,22 +418,6 @@ static int goom_rewire_video(xine_post_out_t *output_gen, void *data)
   return 1;
 }
 
-static int mode_channels( int mode ) {
-  switch( mode ) {
-  case AO_CAP_MODE_MONO:
-    return 1;
-  case AO_CAP_MODE_STEREO:
-    return 2;
-  case AO_CAP_MODE_4CHANNEL:
-    return 4;
-  case AO_CAP_MODE_5CHANNEL:
-    return 5;
-  case AO_CAP_MODE_5_1CHANNEL:
-    return 6;
-  }
-  return 0;
-} 
-
 static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
 
@@ -442,7 +426,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 
   this->bits = bits;
   this->mode = mode;
-  this->channels = mode_channels(mode);
+  this->channels = _x_ao_mode2channels(mode);
   this->samples_per_frame = rate / this->fps;
   this->sample_rate = rate; 
   this->stream = stream;
@@ -578,7 +562,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
 
           while (goom_frame < goom_frame_end) {
             uint8_t r1, g1, b1, r2, g2, b2;
-      
+
 #ifdef __BIG_ENDIAN__
             goom_frame ++;
             r1 = *goom_frame; goom_frame++;
