@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.3 2001/08/01 19:09:42 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.4 2001/08/02 20:38:42 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -373,13 +373,11 @@ static void demux_ts_pes_buffer(
             m->buf = 0;
             /* return; */
 	    }
-
         }
-
         m->pes_len = ((ts[4] << 8) | ts[5]) ;
         if (m->pes_len) {
 		m->pes_len+=6;
-		m->pes_len_zero=1;
+		m->pes_len_zero=0;
 	} else {
 		m->pes_len_zero=1;
         }
@@ -391,22 +389,31 @@ static void demux_ts_pes_buffer(
         m->pes_buf_next = len;
 	return;
     } else if (m->buf) {
-        memcpy(m->buf->mem+m->pes_buf_next, ts, len);
-        m->pes_buf_next += len;
-        if( !m->pes_len_zero) {
-	    if (m->pes_buf_next == m->pes_len ) {
+        if( m->pes_buf_next+len <= m->buf->max_size) {
+            memcpy(m->buf->mem+m->pes_buf_next, ts, len);
+            m->pes_buf_next += len;
+            if( !m->pes_len_zero) {
+	        if (m->pes_buf_next == m->pes_len ) {
 /*
-                fprintf(stderr,"Queuing PES - len = %d\n",  m->pes_len);
-	        fprintf(stderr,"Queuing PES %02X\n",  m->buf->mem[3]);
+                    fprintf(stderr,"Queuing PES - len = %d\n",  m->pes_len);
+	            fprintf(stderr,"Queuing PES %02X\n",  m->buf->mem[3]);
  */
-                demux_ts_queue_pes(this, m->buf);
-                m->buf = 0;
-            } else if (m->pes_buf_next > m->pes_len) {
-                fprintf(stderr, "too much data read for PES (corrupt stream?)\n");
+                    demux_ts_queue_pes(this, m->buf);
+                    m->buf = 0;
+                } else if ( m->pes_buf_next > m->pes_len) {
+                    fprintf(stderr, "too much data read for PES (corrupt stream?)\n");
+                    m->buf->free_buffer(m->buf);
+                    m->buf = 0;
+		    m->pes_len_zero=0;
+                }
+	    } 
+        } else {
+                fprintf(stderr, "Buffer overflow on data read for PES (corrupt stream?)\n");
                 m->buf->free_buffer(m->buf);
                 m->buf = 0;
+		m->pes_len_zero=0;
             }
-	}
+        
     } else {
         fprintf(stderr, "nowhere to buffer input (corrupt stream?)\n");
     }

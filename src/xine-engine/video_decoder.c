@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.32 2001/07/30 19:21:29 guenter Exp $
+ * $Id: video_decoder.c,v 1.33 2001/08/02 20:38:42 jcdutton Exp $
  *
  */
 
@@ -177,8 +177,8 @@ void *video_decoder_loop (void *this_gen) {
 }
 
 void video_decoder_init (xine_t *this) {
-
-  this->video_fifo = fifo_buffer_new (1500, 4096);
+  
+  this->video_fifo = fifo_buffer_new (500, 65536);
 
   pthread_create (&this->video_thread, NULL, video_decoder_loop, this) ;
 }
