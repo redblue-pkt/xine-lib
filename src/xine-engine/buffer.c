@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.27 2003/03/30 15:19:46 tmattern Exp $
+ * $Id: buffer.c,v 1.28 2003/05/12 11:51:18 jcdutton Exp $
  *
  *
  * contents:
@@ -40,6 +40,7 @@
 #include "buffer.h"
 #include "xineutils.h"
 #include "xine_internal.h"
+#include <assert.h>
 
 /*
  * put a previously allocated buffer element back into the buffer pool
@@ -54,7 +55,11 @@ static void buffer_pool_free (buf_element_t *element) {
   this->buffer_pool_top = element;
 
   this->buffer_pool_num_free++;
-
+  if (this->buffer_pool_num_free > this->buffer_pool_capacity) {
+    printf("xine-lib:buffer: Their has been a fatal error: TOO MANY FREE's\n");
+    assert(0);
+  }
+  
   pthread_cond_signal (&this->buffer_pool_cond_not_empty);
 
   pthread_mutex_unlock (&this->buffer_pool_mutex);
@@ -242,7 +247,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
     buf = next;
   }
 
-  /*printf("Free buffers after clear: %d\n", fifo->buffer_pool_num_free);*/
+  /* printf("Free buffers after clear: %d\n", fifo->buffer_pool_num_free); */
   pthread_mutex_unlock (&fifo->mutex);
 }
 
@@ -400,6 +405,12 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   pthread_mutex_init (&this->buffer_pool_mutex, NULL);
   pthread_cond_init (&this->buffer_pool_cond_not_empty, NULL);
 
+  this->buffer_pool_num_free  = 0;
+  this->buffer_pool_capacity  = num_buffers;
+  this->buffer_pool_buf_size  = buf_size;
+  this->buffer_pool_alloc     = buffer_pool_alloc;
+  this->buffer_pool_try_alloc = buffer_pool_try_alloc;
+
   for (i = 0; i<num_buffers; i++) {
     buf_element_t *buf;
 
@@ -415,11 +426,6 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
     buffer_pool_free (buf);
   }
-  this->buffer_pool_num_free  = num_buffers;
-  this->buffer_pool_capacity  = num_buffers;
-  this->buffer_pool_buf_size  = buf_size;
-  this->buffer_pool_alloc     = buffer_pool_alloc;
-  this->buffer_pool_try_alloc = buffer_pool_try_alloc;
   this->get_cb                = NULL;
   this->put_cb                = NULL;
   this->get_cb_data           = NULL;
