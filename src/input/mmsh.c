@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.26 2003/12/09 00:02:30 f1rmb Exp $
+ * $Id: mmsh.c,v 1.27 2004/01/23 00:01:15 valtri Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -266,10 +266,10 @@ static int get_answer (mmsh_t *this) {
 
       if (linenum == 1) {
         int httpver, httpsub, httpcode;
-        char httpstatus[100];
+        char httpstatus[51];
 
-        if (sscanf(this->buf, "HTTP/%d.%d %d", &httpver, &httpsub,
-            &httpcode) != 3) {
+        if (sscanf(this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
+            &httpcode, httpstatus) != 4) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("libmmsh: bad response format\n"));
           return 0;

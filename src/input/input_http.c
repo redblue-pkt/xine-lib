@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.81 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_http.c,v 1.82 2004/01/23 00:01:08 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -714,9 +714,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
       if (linenum == 1) {
         int httpver, httpsub;
-	char httpstatus[BUFSIZE];
+	char httpstatus[51];
 
-	if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
+	if (sscanf(this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
 		   &httpcode, httpstatus) != 4)	{
 	  
 	  /* icecast ? */
