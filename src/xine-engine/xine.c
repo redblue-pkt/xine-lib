@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.180 2002/10/28 20:15:56 guenter Exp $
+ * $Id: xine.c,v 1.181 2002/10/29 01:55:44 guenter Exp $
  *
  * top-level xine functions
  *
@@ -57,9 +57,9 @@
 #include "xineutils.h"
 #include "compat.h"
 
-
+/*
 #define LOG
-
+*/
 
 void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
@@ -387,7 +387,8 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     = strdup (stream->input_class->get_identifier (stream->input_class));
 
 #ifdef LOG
-  printf ("xine: input plugin found\n");
+  printf ("xine: input plugin %s found\n", 
+	  stream->input_plugin->input_class->get_identifier(stream->input_plugin->input_class));
 #endif
 
   /*
