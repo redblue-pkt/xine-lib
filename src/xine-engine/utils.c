@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.4 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: utils.c,v 1.5 2001/10/03 15:16:50 jkeil Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -61,7 +61,7 @@ void *xmalloc(size_t size) {
  *
  */
 void *xmalloc_aligned (size_t alignment, size_t size) {
-  void *pMem;
+  char *pMem;
 
   pMem = xmalloc (size+alignment);
 
