@@ -9,6 +9,7 @@ docsdir = $(prefix)/share/doc/xine/faq
 docs: $(docs_DATA)
 
 distclean-generic: clean-docs
+	-rm -f Makefile $(CONFIG_CLEAN_FILES)
 
 docs-prepare: $(srcdir)/faq.sgml
 	if test "$(srcdir)" != "." ; then \

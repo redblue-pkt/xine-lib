@@ -19,6 +19,7 @@ docsdir = $(prefix)/share/doc/xine/hackersguide
 docs: $(docs_DATA)
 
 distclean-generic: clean-docs
+	-rm -f Makefile $(CONFIG_CLEAN_FILES)
 
 docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml) $(wildcard *.fig))
 	if test "$(srcdir)" != "." ; then \

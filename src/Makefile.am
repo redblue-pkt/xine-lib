@@ -14,6 +14,7 @@ SUBDIRS = \
 	liba52 \
 	libspudec \
 	libspucc \
+	libspucmml \
 	libsputext \
 	libdts \
 	libmad \

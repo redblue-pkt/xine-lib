@@ -41,6 +41,14 @@ Currently, best practice to get a release out looks like this:
            marked "untested".
    - you might want to run "make release-check", it will tell you about files
      from CVS missing in the release; be sure to check these
+
+       OR
+
+     you might want to run "make distcheck", this will test the
+     packaging, building, and testing of all xine-lib. This will
+     alert you to any missing files from the tarball or problems
+     in the Makefile rules.
+
    - does "make dist" produce a complete (ie. compilable) tarball
      (note: nightly build logs will tell you this.)
 
