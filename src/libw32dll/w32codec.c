@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.105 2002/12/06 01:44:07 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.106 2002/12/06 19:10:10 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -982,7 +982,7 @@ static void w32a_discontinuity (audio_decoder_t *this_gen) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
-  this->pts = 0;
+  this->pts = this->lastpts = this->sumpts = this->sumsize = 0;
 }
 
 static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
@@ -1099,6 +1099,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   this->outsize = out_size;
       
   this->size = 0;
+  this->pts = this->lastpts = this->sumpts = this->sumsize = 0;
 
   free(in_fmt);
 
