@@ -452,7 +452,7 @@ case $host in
         ;;
 
     sparc*-*-linux-*)
-        case $host_cpu in
+        case $host_alias in
         sparc-*)
             GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
             DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
