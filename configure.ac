@@ -1256,6 +1256,7 @@ echo "   - a52/ra-dnet     - dts"
 echo "   - mad             - adpcm"
 echo "   - linear pcm      - roqaudio"
 echo "   - log pcm         - gsm610"
+echo "   - ffmpeg"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi

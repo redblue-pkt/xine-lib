@@ -2,6 +2,7 @@ xine-lib (1.0.0-alpha1)
   * transport stream demuxer fixes
   * stdin_fifo input plugin
   * vcd input plugin  
+  * native Windows Media Audio (a.k.a. WMA, DivX audio) decoding via ffmpeg
 
 xine-lib (1.0.0-alpha0) 
 
