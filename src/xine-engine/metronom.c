@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.70 2002/03/12 22:23:14 guenter Exp $
+ * $Id: metronom.c,v 1.71 2002/03/20 23:12:58 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -274,7 +274,7 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts,
   return vpts;
 }
 
-static void metronom_handle_video_discontinuity (metronom_t *this, int is_stream_start,
+static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
 
   pthread_mutex_lock (&this->lock);
@@ -282,8 +282,8 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int is_stream
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
-  printf ("metronom: video discontinuity #%d, disc_off is %lld\n",
-	  this->video_discontinuity_count, disc_off);
+  printf ("metronom: video discontinuity #%d, type is %d, disc_off is %lld\n",
+	  this->video_discontinuity_count, type, disc_off);
   
   if (this->have_audio) {
     while (this->audio_discontinuity_count <
@@ -304,22 +304,21 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int is_stream
   if (this->in_discontinuity) 
     this->vpts_offset = this->next_vpts_offset;
 
-  if (is_stream_start) {
-    this->vpts_offset = this->video_vpts;
+  switch (type) {
+  case DISC_STREAMSTART:
+    this->vpts_offset      = this->video_vpts;
     this->in_discontinuity = 0;
-  } else {
+    break;
+  case DISC_ABSOLUTE:
+    this->next_vpts_offset = this->video_vpts - disc_off;
+    this->in_discontinuity = 30;
+    break;
+  case DISC_RELATIVE:
     this->next_vpts_offset = this->vpts_offset - disc_off;
     this->in_discontinuity = 30;
+    break;
   }
   pthread_mutex_unlock (&this->lock);
-}
-
-static void metronom_video_stream_start (metronom_t *this) {
-  metronom_handle_video_discontinuity (this, 1, 0);
-}
-
-static void metronom_expect_video_discontinuity (metronom_t *this, int64_t disc_off) {
-  metronom_handle_video_discontinuity (this, 0, disc_off);
 }
 
 static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
@@ -399,7 +398,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   pthread_mutex_unlock (&this->lock);
 }
 
-static void metronom_expect_audio_discontinuity (metronom_t *this, 
+static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
 
   pthread_mutex_lock (&this->lock);
@@ -407,8 +406,8 @@ static void metronom_expect_audio_discontinuity (metronom_t *this,
   this->audio_discontinuity_count++;
   pthread_cond_signal (&this->audio_discontinuity_reached);
   
-  printf ("metronom: audio discontinuity #%d, disc_off %lld\n",
-	  this->audio_discontinuity_count, disc_off);
+  printf ("metronom: audio discontinuity #%d, type is %d, disc_off %lld\n",
+	  this->audio_discontinuity_count, type, disc_off);
   
   while ( this->audio_discontinuity_count >
 	  this->video_discontinuity_count ) {
@@ -427,10 +426,6 @@ static void metronom_expect_audio_discontinuity (metronom_t *this,
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
   
   pthread_mutex_unlock (&this->lock);
-}
-
-static void metronom_audio_stream_start (metronom_t *this) {
-  metronom_expect_audio_discontinuity (this, 0);
 }
 
 static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts, 
@@ -587,10 +582,8 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->got_video_frame      = metronom_got_video_frame;
   this->got_audio_samples    = metronom_got_audio_samples;
   this->got_spu_packet       = metronom_got_spu_packet;
-  this->audio_stream_start   = metronom_audio_stream_start;
-  this->video_stream_start   = metronom_video_stream_start;
-  this->expect_audio_discontinuity = metronom_expect_audio_discontinuity;
-  this->expect_video_discontinuity = metronom_expect_video_discontinuity;
+  this->handle_audio_discontinuity = metronom_handle_audio_discontinuity;
+  this->handle_video_discontinuity = metronom_handle_video_discontinuity;
   this->set_av_offset        = metronom_set_av_offset;
   this->get_av_offset        = metronom_get_av_offset;
   this->start_clock          = metronom_start_clock;

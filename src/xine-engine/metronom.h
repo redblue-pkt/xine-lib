@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.22 2002/03/12 19:51:29 guenter Exp $
+ * $Id: metronom.h,v 1.23 2002/03/20 23:12:58 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -54,6 +54,11 @@ extern "C" {
 
 typedef struct metronom_s metronom_t ;
 typedef struct scr_plugin_s scr_plugin_t;
+
+  /* see below */
+#define DISC_STREAMSTART 0 
+#define DISC_RELATIVE    1     
+#define DISC_ABSOLUTE    2
 
 struct metronom_s {
 
@@ -116,27 +121,27 @@ struct metronom_s {
    * tell metronom about discontinuities.
    *
    * these functions are called due to a discontinuity detected at
-   * demux stage from SCR values. As SCR are not guarateed to happen with
-   * any regularity, we can not correct the xxx_wrap_offset right now.
+   * demux stage.
    *
-   * we will instead prepare both audio and video to correct the
-   * discontinuity at the first new PTS value (got_video_frame or
-   * got_audio_samples). As we can predict with reasonably accuracy what
-   * the old PTS would have being the calculated wrap_offset should be
-   * good.
+   * there are different types of discontinuities:
    *
-   * (the time between discontinuity is detected to where it is corrected
-   * may be called "discontinuity window". Inside this window we cannot
-   * use the xxx_wrap_offset for any pts -> vpts calculation as the result
-   * would be wrong. The vpts values will be predicted for pts == 0 and
-   * whenever we get a new pts we can calculate the new xxx_wrap_offset)
+   * DISC_STREAMSTART : new stream starts, expect pts values to start
+   *                    from zero immediately
+   * DISC_RELATIVE    : typically a wrap-around, expect pts with 
+   *                    a specified offset from the former ones soon
+   * DISC_ABSOLUTE    : typically a new menu stream (nav packets)
+   *                    pts will start from given value soon
    *
+   * for DISC_RELATIVE and DISC_ABSOLUTE metronom will enter a
+   * special discontinuity mode which means that it will ignore
+   * pts values for some time (about 1sec) to ignore any held-back
+   * reference frames that are flushed out of decoders containing
+   * pts values that do not mach the new offset. Then it will
+   * just switch to the new disc_offset and resume synced operation.
+   *                    
    */
-  void (*expect_audio_discontinuity) (metronom_t *this, int64_t disc_off);
-  void (*expect_video_discontinuity) (metronom_t *this, int64_t disc_off);
-
-  void (*audio_stream_start) (metronom_t *this);
-  void (*video_stream_start) (metronom_t *this);
+  void (*handle_audio_discontinuity) (metronom_t *this, int type, int64_t disc_off);
+  void (*handle_video_discontinuity) (metronom_t *this, int type, int64_t disc_off);
 
   /*
    * manually correct audio <-> video sync

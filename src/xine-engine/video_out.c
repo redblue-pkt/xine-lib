@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.80 2002/03/14 04:31:49 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.81 2002/03/20 23:12:58 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -258,9 +258,12 @@ static int vo_frame_draw (vo_frame_t *img) {
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / img->duration + 3) * 2;
 
+  if (frames_to_skip<0)
+    frames_to_skip = 0;
+
 #ifdef LOG
-  printf ("video_out: delivery diff : %lld, current vpts is %lld\n",
-	  diff, cur_vpts);
+  printf ("video_out: delivery diff : %lld, current vpts is %lld, %d frames to skip\n",
+	  diff, cur_vpts, frames_to_skip);
 #endif
 
   if (img->display_locked) {
@@ -286,6 +289,10 @@ static int vo_frame_draw (vo_frame_t *img) {
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
   } else {
+#ifdef LOG
+    printf ("video_out: bad_frame\n");
+#endif
+
     this->num_frames_skipped++;
 
     pthread_mutex_lock (&img->mutex);
@@ -669,7 +676,7 @@ static void *video_out_loop (void *this_gen) {
       if (usec_to_sleep>0) 
 	xine_usec_sleep (usec_to_sleep);
 
-    } while (usec_to_sleep > 0);
+    } while ( (usec_to_sleep > 0) && this->video_loop_running);
   }
 
 
