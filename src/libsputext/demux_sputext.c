@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.30 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.31 2003/12/17 13:41:05 valtri Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -92,8 +92,7 @@ typedef struct {
   subtitle_t        *subtitles;
   int                num;            /* number of subtitle structs */
   int                cur;            /* current subtitle           */
-  int                format;         /* constants see below        */     
-  subtitle_t        *previous_aqt_sub ;
+  int                format;         /* constants see below        */
   char               next_line[SUB_BUFSIZE]; /* a buffer for next line read from file */
 
 } demux_sputext_t;
@@ -102,7 +101,7 @@ typedef struct demux_sputext_class_s {
 
   demux_class_t      demux_class;
   
-  /* nothing needed here so far */
+  int                max_timeout;  /* default timeout of hidding subtitles */
 
 } demux_sputext_class_t;
 
@@ -110,16 +109,19 @@ typedef struct demux_sputext_class_s {
  * Demuxer code start
  */
 
-#define FORMAT_MICRODVD  0
-#define FORMAT_SUBRIP    1
-#define FORMAT_SUBVIEWER 2
-#define FORMAT_SAMI      3
-#define FORMAT_VPLAYER   4
-#define FORMAT_RT        5
-#define FORMAT_SSA       6 /* Sub Station Alpha */
-#define FORMAT_DUNNO     7 /*... erm ... dunnowhat. tell me if you know */
-#define FORMAT_MPSUB     8 
-#define FORMAT_AQTITLE   9 
+#define FORMAT_MICRODVD   0
+#define FORMAT_SUBRIP     1
+#define FORMAT_SUBVIEWER  2
+#define FORMAT_SAMI       3
+#define FORMAT_VPLAYER    4
+#define FORMAT_RT         5
+#define FORMAT_SSA        6 /* Sub Station Alpha */
+#define FORMAT_DUNNO      7 /*... erm ... dunnowhat. tell me if you know */
+#define FORMAT_MPSUB      8 
+#define FORMAT_AQTITLE    9 
+#define FORMAT_JACOBSUB   10
+#define FORMAT_SUBVIEWER2 11
+#define FORMAT_SUBRIP09   12
 
 static int eol(char p) {
   return (p=='\r' || p=='\n' || p=='\0');
@@ -180,7 +182,8 @@ static subtitle_t *sub_read_line_sami(demux_sputext_t *this, subtitle_t *current
   int state;
 
   p = NULL;
-  current->lines = current->start = current->end = 0;
+  current->lines = current->start = 0;
+  current->end = -1;
   state = 0;
   
   /* read the first line */
@@ -274,7 +277,7 @@ static subtitle_t *sub_read_line_microdvd(demux_sputext_t *this, subtitle_t *cur
   char *p, *next;
   int i;
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
   
   current->end=-1;
   do {
@@ -307,7 +310,7 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
   char *p=NULL, *q=NULL;
   int len;
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
   
   while (1) {
     if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
@@ -338,7 +341,7 @@ static subtitle_t *sub_read_line_subrip(demux_sputext_t *this,subtitle_t *curren
   char *p=NULL;
   int i,len;
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
   
   while (!current->text[0]) {
     if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
@@ -372,7 +375,7 @@ static subtitle_t *sub_read_line_vplayer(demux_sputext_t *this,subtitle_t *curre
   char *p=NULL, *next, *p2;
   int i;
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
     
   while (!current->text[0]) {
     if( this->next_line[0] == '\0' ) { /* if the buffer is empty.... */
@@ -432,7 +435,7 @@ static subtitle_t *sub_read_line_rt(demux_sputext_t *this,subtitle_t *current) {
   char *p=NULL,*next=NULL;
   int i,len,plen;
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
   
   while (!current->text[0]) {
     if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
@@ -534,7 +537,7 @@ static subtitle_t *sub_read_line_dunnowhat (demux_sputext_t *this, subtitle_t *c
   char line[LINE_LEN + 1];
   char text[LINE_LEN + 1];
   
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
   
   if (!read_line_from_input(this, line, LINE_LEN))
     return NULL;
@@ -597,7 +600,7 @@ static subtitle_t *sub_read_line_mpsub (demux_sputext_t *this, subtitle_t *curre
 static subtitle_t *sub_read_line_aqt (demux_sputext_t *this, subtitle_t *current) {
   char line[LINE_LEN + 1];
 
-  bzero (current, sizeof(subtitle_t));
+  memset (current, 0, sizeof(subtitle_t));
 
   while (1) {
     /* try to locate next subtitle_t */
@@ -607,17 +610,12 @@ static subtitle_t *sub_read_line_aqt (demux_sputext_t *this, subtitle_t *current
       break;
   }
   
-  if (this->previous_aqt_sub != NULL) 
-    this->previous_aqt_sub->end = current->start-1;
-  
-  this->previous_aqt_sub = current;
-  
   if (!read_line_from_input(this, line, LINE_LEN))
     return NULL;
   
   sub_readtext((char *) &line,&current->text[0]);
   current->lines = 1;
-  current->end = current->start; /* will be corrected by next subtitle_t */
+  current->end = -1;
   
   if (!read_line_from_input(this, line, LINE_LEN))
     return current;;
@@ -626,10 +624,271 @@ static subtitle_t *sub_read_line_aqt (demux_sputext_t *this, subtitle_t *current
   current->lines = 2;
   
   if ((current->text[0]=="") && (current->text[1]=="")) {
-    /* void subtitle -> end of previous marked and exit */
-    this->previous_aqt_sub = NULL;
     return NULL;
   }
+  
+  return current;
+}
+
+subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *current) {
+    char line1[LINE_LEN], line2[LINE_LEN], directive[LINE_LEN], *p, *q;
+    unsigned a1, a2, a3, a4, b1, b2, b3, b4, comment = 0;
+    static unsigned jacoTimeres = 30;
+    static int jacoShift = 0;
+
+    memset(current, 0, sizeof(subtitle_t));
+    memset(line1, 0, LINE_LEN);
+    memset(line2, 0, LINE_LEN);
+    memset(directive, 0, LINE_LEN);
+    while (!current->text[0]) {
+	if (!read_line_from_input(this, line1, LINE_LEN)) {
+	    return NULL;
+	}
+	if (sscanf
+	    (line1, "%u:%u:%u.%u %u:%u:%u.%u %[^\n\r]", &a1, &a2, &a3, &a4,
+	     &b1, &b2, &b3, &b4, line2) < 9) {
+	    if (sscanf(line1, "@%u @%u %[^\n\r]", &a4, &b4, line2) < 3) {
+		if (line1[0] == '#') {
+		    int hours = 0, minutes = 0, seconds, delta, inverter =
+			1;
+		    unsigned units = jacoShift;
+		    switch (toupper(line1[1])) {
+		    case 'S':
+			if (isalpha(line1[2])) {
+			    delta = 6;
+			} else {
+			    delta = 2;
+			}
+			if (sscanf(&line1[delta], "%d", &hours)) {
+			    if (hours < 0) {
+				hours *= -1;
+				inverter = -1;
+			    }
+			    if (sscanf(&line1[delta], "%*d:%d", &minutes)) {
+				if (sscanf
+				    (&line1[delta], "%*d:%*d:%d",
+				     &seconds)) {
+				    sscanf(&line1[delta], "%*d:%*d:%*d.%d",
+					   &units);
+				} else {
+				    hours = 0;
+				    sscanf(&line1[delta], "%d:%d.%d",
+					   &minutes, &seconds, &units);
+				    minutes *= inverter;
+				}
+			    } else {
+				hours = minutes = 0;
+				sscanf(&line1[delta], "%d.%d", &seconds,
+				       &units);
+				seconds *= inverter;
+			    }
+			    jacoShift =
+				((hours * 3600 + minutes * 60 +
+				  seconds) * jacoTimeres +
+				 units) * inverter;
+			}
+			break;
+		    case 'T':
+			if (isalpha(line1[2])) {
+			    delta = 8;
+			} else {
+			    delta = 2;
+			}
+			sscanf(&line1[delta], "%u", &jacoTimeres);
+			break;
+		    }
+		}
+		continue;
+	    } else {
+		current->start =
+		    (unsigned long) ((a4 + jacoShift) * 100.0 /
+				     jacoTimeres);
+		current->end =
+		    (unsigned long) ((b4 + jacoShift) * 100.0 /
+				     jacoTimeres);
+	    }
+	} else {
+	    current->start =
+		(unsigned
+		 long) (((a1 * 3600 + a2 * 60 + a3) * jacoTimeres + a4 +
+			 jacoShift) * 100.0 / jacoTimeres);
+	    current->end =
+		(unsigned
+		 long) (((b1 * 3600 + b2 * 60 + b3) * jacoTimeres + b4 +
+			 jacoShift) * 100.0 / jacoTimeres);
+	}
+	current->lines = 0;
+	p = line2;
+	while ((*p == ' ') || (*p == '\t')) {
+	    ++p;
+	}
+	if (isalpha(*p)||*p == '[') {
+	    int cont, jLength;
+
+	    if (sscanf(p, "%s %[^\n\r]", directive, line1) < 2)
+		return ERR;
+	    jLength = strlen(directive);
+	    for (cont = 0; cont < jLength; ++cont) {
+		if (isalpha(*(directive + cont)))
+		    *(directive + cont) = toupper(*(directive + cont));
+	    }
+	    if ((strstr(directive, "RDB") != NULL)
+		|| (strstr(directive, "RDC") != NULL)
+		|| (strstr(directive, "RLB") != NULL)
+		|| (strstr(directive, "RLG") != NULL)) {
+		continue;
+	    }
+	    /* no alignment */
+#if 0
+	    if (strstr(directive, "JL") != NULL) {
+		current->alignment = SUB_ALIGNMENT_HLEFT;
+	    } else if (strstr(directive, "JR") != NULL) {
+		current->alignment = SUB_ALIGNMENT_HRIGHT;
+	    } else {
+		current->alignment = SUB_ALIGNMENT_HCENTER;
+	    }
+#endif
+	    strcpy(line2, line1);
+	    p = line2;
+	}
+	for (q = line1; (!eol(*p)) && (current->lines < SUB_MAX_TEXT); ++p) {
+	    switch (*p) {
+	    case '{':
+		comment++;
+		break;
+	    case '}':
+		if (comment) {
+		    --comment;
+		    /* the next line to get rid of a blank after the comment */
+		    if ((*(p + 1)) == ' ')
+			p++;
+		}
+		break;
+	    case '~':
+		if (!comment) {
+		    *q = ' ';
+		    ++q;
+		}
+		break;
+	    case ' ':
+	    case '\t':
+		if ((*(p + 1) == ' ') || (*(p + 1) == '\t'))
+		    break;
+		if (!comment) {
+		    *q = ' ';
+		    ++q;
+		}
+		break;
+	    case '\\':
+		if (*(p + 1) == 'n') {
+		    *q = '\0';
+		    q = line1;
+		    current->text[current->lines++] = strdup(line1);
+		    ++p;
+		    break;
+		}
+		if ((toupper(*(p + 1)) == 'C')
+		    || (toupper(*(p + 1)) == 'F')) {
+		    ++p,++p;
+		    break;
+		}
+		if ((*(p + 1) == 'B') || (*(p + 1) == 'b') || 
+		    /* actually this means "insert current date here" */
+		    (*(p + 1) == 'D') || 
+		    (*(p + 1) == 'I') || (*(p + 1) == 'i') || 
+		    (*(p + 1) == 'N') || 
+		    /* actually this means "insert current time here" */
+		    (*(p + 1) == 'T') ||	
+		    (*(p + 1) == 'U') || (*(p + 1) == 'u')) {
+		    ++p;
+		    break;
+		}
+		if ((*(p + 1) == '\\') ||
+		    (*(p + 1) == '~') || (*(p + 1) == '{')) {
+		    ++p;
+		} else if (eol(*(p + 1))) {
+		    if (!read_line_from_input(this, directive, LINE_LEN))
+			return NULL;
+		    trail_space(directive);
+		    strncat(line2, directive,
+			    (LINE_LEN > 511) ? LINE_LEN : 511);
+		    break;
+		}
+	    default:
+		if (!comment) {
+		    *q = *p;
+		    ++q;
+		}
+	    }
+	}
+	*q = '\0';
+	current->text[current->lines] = strdup(line1);
+    }
+    current->lines++;
+    return current;
+}
+
+subtitle_t *sub_read_line_subviewer2(demux_sputext_t *this, subtitle_t *current) {
+    char line[LINE_LEN+1];
+    int a1,a2,a3,a4;
+    char *p=NULL;
+    int i,len;
+   
+    while (!current->text[0]) {
+        if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
+	if (line[0]!='{')
+	    continue;
+        if ((len=sscanf (line, "{T %d:%d:%d:%d",&a1,&a2,&a3,&a4)) < 4)
+            continue;
+        current->start = a1*360000+a2*6000+a3*100+a4/10;
+        for (i=0; i<SUB_MAX_TEXT;) {
+            if (!read_line_from_input(this, line, LINE_LEN)) break;
+            if (line[0]=='}') break;
+            len=0;
+            for (p=line; *p!='\n' && *p!='\r' && *p; ++p,++len);
+            if (len) {
+                current->text[i]=(char *)malloc (len+1);
+                if (!current->text[i]) return ERR;
+                strncpy (current->text[i], line, len); current->text[i][len]='\0';
+                ++i;
+            } else {
+                break;
+            }
+        }
+        current->lines=i;
+    }
+    return current;
+}
+
+static subtitle_t *sub_read_line_subrip09 (demux_sputext_t *this, subtitle_t *current) {
+  char line[LINE_LEN + 1];
+  char *next;
+  int h, m, s;
+  int i;
+  
+  memset (current, 0, sizeof(subtitle_t));
+  
+  do {
+    if (!read_line_from_input (this, line, LINE_LEN)) return NULL;
+  } while (sscanf (line, "[%d:%d:%d]", &h, &m, &s) != 3);
+
+  if (!read_line_from_input (this, line, LINE_LEN)) return NULL;
+
+  current->start = 360000 * h + 6000 * m + 100 * s;
+  current->end = -1;
+
+  next=line;
+  i=0;
+  while ((next = sub_readtext (next, &(current->text[i])))) {
+    if (current->text[i]==ERR) return ERR;
+    i++;
+    if (i>=SUB_MAX_TEXT) { 
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
+      current->lines=i;
+      return current;
+    }
+  }
+  current->lines= ++i;
   
   return current;
 }
@@ -708,6 +967,22 @@ static int sub_autodetect (demux_sputext_t *this) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "aqtitle subtitle format detected\n");
       return FORMAT_AQTITLE;
     }
+    if (sscanf(line, "@%d @%d", &i, &i) == 2 ||
+	sscanf(line, "%d:%d:%d.%d %d:%d:%d.%d", &i, &i, &i, &i, &i, &i, &i, &i) == 8) {
+      this->uses_time = 1;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "jacobsub subtitle format detected\n");
+      return FORMAT_JACOBSUB;
+    }
+    if (sscanf(line, "{T %d:%d:%d:%d",&i, &i, &i, &i) == 4) {
+      this->uses_time = 1;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subviewer 2.0 subtitle format detected\n");
+      return FORMAT_SUBVIEWER2;
+    }
+    if (sscanf(line, "[%d:%d:%d]", &i, &i, &i) == 3) {
+      this->uses_time = 1;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subrip 0.9 subtitle format detected\n");
+      return FORMAT_SUBRIP09;
+    }
   }
   
   return -1;  /* too many bad lines */
@@ -716,6 +991,7 @@ static int sub_autodetect (demux_sputext_t *this) {
 static subtitle_t *sub_read_file (demux_sputext_t *this) {
 
   int n_max;
+  int timeout;
   subtitle_t *first;
   subtitle_t * (*func[])(demux_sputext_t *this,subtitle_t *dest)=
   {
@@ -728,8 +1004,10 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     sub_read_line_ssa,
     sub_read_line_dunnowhat,
     sub_read_line_mpsub,
-    sub_read_line_aqt
-    
+    sub_read_line_aqt,
+    sub_read_line_jacobsub,
+    sub_read_line_subviewer2,
+    sub_read_line_subrip09,
   };
 
   /* Rewind (sub_autodetect() needs to read input from the beginning) */
@@ -757,8 +1035,12 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   this->num=0;n_max=32;
   first = (subtitle_t *) xine_xmalloc(n_max*sizeof(subtitle_t));
   if(!first) return NULL;
-    
-  while(1){
+  timeout = ((demux_sputext_class_t *)
+             (this->demux_plugin.demux_class))->max_timeout;
+  if (this->uses_time) timeout *= 100;
+  else timeout *= 10;
+
+  while(1) {
     subtitle_t *sub;
 
     if(this->num>=n_max){
@@ -775,11 +1057,26 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
       ++this->errs; 
     else {
       if (this->num > 0 && first[this->num-1].end == -1) {
-	first[this->num-1].end = sub->start;
+	/* end time not defined in the subtitle */
+	if (timeout > 0) { 
+	  /* timeout */
+	  if (timeout > sub->start - first[this->num-1].start) {
+	    first[this->num-1].end = sub->start;
+	  } else
+	    first[this->num-1].end = first[this->num-1].start + timeout;
+	} else {
+	  /* no timeout */
+	  first[this->num-1].end = sub->start;
+	}
       }
       ++this->num; /* Error vs. Valid */
     }
   }
+  /* timeout of last subtitle */
+  if (this->num > 0 && first[this->num-1].end == -1)
+    if (timeout > 0) {
+      first[this->num-1].end = first[this->num-1].start + timeout;
+    }
 
   if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
     char buffer[1024];
@@ -1026,6 +1323,12 @@ static void demux_class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
+static void config_timeout_cb(void *this_gen, xine_cfg_entry_t *entry) {
+  demux_sputext_class_t *this = (demux_sputext_class_t *)this_gen;
+
+  this->max_timeout = entry->num_value;
+}
+
 static void *init_sputext_demux_class (xine_t *xine, void *data) {
 
   demux_sputext_class_t *this ;
@@ -1040,6 +1343,17 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
   this->demux_class.get_mimetypes   = get_demux_mimetypes;
   this->demux_class.get_extensions  = get_demux_extensions;
   this->demux_class.dispose         = demux_class_dispose;
+
+  /* 
+   * Some subtitling formats, namely AQT and Subrip09, define the end of a
+   * subtitle as the beginning of the following. From end-user view it's 
+   * better define timeout of hidding. Setting to zero means "no timeout".
+   */
+  this->max_timeout = xine->config->register_num(xine->config, 
+                         "misc.sub_timeout", 4, 
+			 _("Default period to hide subtitles in seconds"),
+			 _("Define this to non-zero, if you want automatically hide subtitle after given time. Used only with subtitle formats, where are no end time."),
+			 20, config_timeout_cb, this);
 
   return this;
 }
