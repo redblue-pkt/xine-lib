@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.76 2001/11/18 03:53:24 guenter Exp $
+ * $Id: video_out_xv.c,v 1.77 2001/11/20 01:43:54 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -62,6 +62,8 @@
 #define XV_LOG
 */
 
+typedef struct xv_driver_s xv_driver_t;
+
 typedef struct {
   int                value;
   int                min;
@@ -70,6 +72,7 @@ typedef struct {
 
   cfg_entry_t       *entry;
 
+  xv_driver_t       *this;
 } xv_property_t;
 
 
@@ -84,7 +87,7 @@ typedef struct {
 } xv_frame_t;
 
 
-typedef struct {
+struct xv_driver_s {
 
   vo_driver_t        vo_driver;
 
@@ -159,7 +162,7 @@ typedef struct {
 
   char               scratch[256];
 
-} xv_driver_t;
+};
 
 int gX11Fail;
 
@@ -880,6 +883,16 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
   return this->props[property].value;
 }
 
+static void xv_property_callback (void *property_gen, cfg_entry_t *entry) {
+
+  xv_property_t *property = (xv_property_t *) property_gen;
+  xv_driver_t   *this = property->this;
+  
+  XvSetPortAttribute (this->display, this->xv_port,
+		      property->atom, entry->num_value);
+
+}
+
 static int xv_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
@@ -1133,10 +1146,13 @@ static void xv_check_capability (xv_driver_t *this,
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
+  printf ("video_out_xv: port attribute %s value is %d\n",
+	  str_prop, int_default);
+
   sprintf (this->scratch, "video.%s", str_prop);
 
   this->config->register_num (this->config, this->scratch, int_default,
-			      "Xv property", NULL, NULL, NULL);
+			      "Xv property", NULL, xv_property_callback, &this->props[property]);
 
   entry = this->config->lookup_entry (this->config, this->scratch);
 
@@ -1282,6 +1298,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->props[i].max   = 0;
     this->props[i].atom  = None;
     this->props[i].entry = NULL;
+    this->props[i].this  = this;
   }
 
   this->props[VO_PROP_INTERLACED].value     = 0;
@@ -1301,33 +1318,28 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  xv_check_capability (this, VO_CAP_HUE,
 			       VO_PROP_HUE, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_HUE");
-	  printf("XV_HUE ");
-	}
-	else if(!strcmp(attr[k].name, "XV_SATURATION")) {
+
+	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_CAP_SATURATION,
 			       VO_PROP_SATURATION, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_SATURATION");
-	  printf("XV_SATURATION ");
-	}
-	else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
+
+	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
 	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
 			       VO_PROP_BRIGHTNESS, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_BRIGHTNESS");
-	  printf("XV_BRIGHTNESS ");
-	}
-	else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
+
+	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
 	  xv_check_capability (this, VO_CAP_CONTRAST,
 			       VO_PROP_CONTRAST, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST");
-	  printf("XV_CONTRAST ");
-	}
-	else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
+
+	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xv_check_capability (this, VO_CAP_COLORKEY,
 			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
-	  printf("video_out_xv: colorkey is %08x\n", this->props[VO_PROP_COLORKEY].value);
-	}
-	else if(!strcmp(attr[k].name, "XV_FILTER")) {
+
+	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  Atom atom;
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
@@ -1341,7 +1353,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	}
       }
     }
-    printf("\n");
     XFree(attr);
   } else {
     printf("video_out_xv: no port attributes defined.\n");
@@ -1390,7 +1401,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
 						    deinterlace_methods, 
-						    "Software deinterlace method (Key I toggles deinterlacer on/off",
+						    "Software deinterlace method (Key I toggles deinterlacer on/off)",
 						    NULL, NULL, NULL);
   this->deinterlace_enabled = 0;
 
