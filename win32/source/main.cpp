@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Xine win32 UI
+ * xine win32 UI
  * by Matthew Grooms <elon@altavista.com>
  */
 
@@ -33,6 +33,7 @@ gGui_t *gGui;
 
 void RedirectIOToConsole()
 {
+#if !defined (__MINGW32__) && !defined (__CYGWIN32__)
     int                        hConHandle;
     long                       lStdHandle;
     CONSOLE_SCREEN_BUFFER_INFO coninfo;
@@ -91,6 +92,7 @@ void RedirectIOToConsole()
     // make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog 
     // point to console as well
     /*ios::sync_with_stdio();*/
+#endif
 }
 
 int WINAPI WinMain(	HINSTANCE hinst, HINSTANCE hprevinst, LPSTR cmdline, int ncmdshow )
@@ -98,10 +100,8 @@ int WINAPI WinMain(	HINSTANCE hinst, HINSTANCE hprevinst, LPSTR cmdline, int ncm
 	XINE_UI xine_ui;
 
 
-#if !defined (__MINGW32__)
 	/* We only need the output window for MSVC */
 	RedirectIOToConsole();
-#endif
 
 	// prepair our mrl(s) and add them
 	// to our playlist

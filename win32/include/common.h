@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: common.h,v 1.1 2003/04/20 16:42:09 guenter Exp $
+ * $Id: common.h,v 1.2 2004/01/02 22:42:03 valtri Exp $
  *
  */
 
@@ -29,9 +29,9 @@
 #endif
 
 #include <xine.h>
+#if 0
 #include <xineutils.h>
 
-#if (0)
 #include "Imlib-light/Imlib.h"
 
 #include "xitk.h"

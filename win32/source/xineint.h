@@ -17,14 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Xine win32 UI
+ * xine win32 UI
  * by Matthew Grooms <elon@altavista.com>
  */
 
-#include "configfile.h"
-#include "xine.h"
-#include "xineutils.h"
 #include "video_out_win32.h"
+#ifdef XINE_COMPILE
+#  include "configfile.h"
+#  include "xine.h"
+#else
+#  include <xine/configfile.h>
+#  include <xine.h>
+#endif
 
 #include <windows.h>
 #include <windowsx.h>

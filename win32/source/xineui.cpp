@@ -17,14 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Xine win32 UI
+ * xine win32 UI
  * by Matthew Grooms <elon@altavista.com>
  */
 
-#include <xinesuppt.h>
 #include "xineui.h"
 
-#include <pthread.h> /* pthread_mutex_init() */
+#ifdef _MSC_VER
+#  include <xinesuppt.h>
+#else
+#  include <sys/stat.h>
+#endif
+#include <pthread.h>
 
 /*
 #define LOG 1

@@ -17,26 +17,36 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Xine win32 UI
+ * xine win32 UI
  * by Matthew Grooms <elon@altavista.com>
  */
+
+#ifdef __CYGWIN32__
+#  define _WIN32_IE 0xFFFF
+#endif
 
 #include <windows.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <math.h>
-#include <ddraw.h>
+#ifdef _MSC_VER
+#  include <ddraw.h>
+#endif
 
-#include "xine.h"
+#include <xine.h>
 #include "xineint.h"
 #include "resource.h"
 
 #include "common.h"
 
-#include "video_out.h"
-#include "audio_out.h"
+#ifdef XINE_COMPILE
+#  include "video_out.h"
+#  include "audio_out.h"
+#else
+#  include <xine/video_out.h>
+#  include <xine/audio_out.h>
+#endif
 
-#include "video_out_win32.h"
 
 #ifndef _XINEUI_H_
 #define _XINEUI_H_
