@@ -61,7 +61,7 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
 				int brightness, int contrast, int saturation)
 {
   int a,s,i;
-  int crv, cbu, cgu, cgv;
+  int crv, cbu, cgu, cgv, cty;
 
   if( brightness <= 16 ) {
     a = 0;
@@ -76,22 +76,23 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
     *((unsigned char *)&mmx_addYw + i) = a;
   }
 
-  saturation = (saturation > 242) ? 242 : saturation;
-
   crv = Inverse_Table_6_9[this->matrix_coefficients][0];
   crv = (crv * saturation + 512) / 1024;
   cbu = Inverse_Table_6_9[this->matrix_coefficients][1];
   cbu = (cbu * saturation + 512) / 1024;
+  cbu = (cbu > 32767) ? 32767 : cbu;
   cgu = Inverse_Table_6_9[this->matrix_coefficients][2];
   cgu = (cgu * saturation + 512) / 1024;
   cgv = Inverse_Table_6_9[this->matrix_coefficients][3];
   cgv = (cgv * saturation + 512) / 1024;
+  cty = (76309 * contrast + 512) / 1024;
 
   for (i=0; i < 4; i++) {
     *((int16_t *)&mmx_U_green + i) = -cgu;
     *((int16_t *)&mmx_U_blue  + i) =  cbu;
     *((int16_t *)&mmx_V_red   + i) =  crv;
     *((int16_t *)&mmx_V_green + i) = -cgv;
+    *((int16_t *)&mmx_Y_coeff + i) =  cty;
   }
 }
 
