@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.161 2003/07/11 20:32:34 tmattern Exp $
+ * $Id: demux_avi.c,v 1.162 2003/07/12 18:42:44 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -721,6 +721,10 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
   for (i=0;i<hdrl_len;) {
     /* List tags are completly ignored */
+#ifdef LOG
+    printf("demux_asf: AVI_INIT: tag: %c%c%c%c\n",
+           hdrl_data[i], hdrl_data[i+1], hdrl_data[i+2], hdrl_data[i+3]);
+#endif
 
     if (strncasecmp(hdrl_data+i,"LIST",4)==0) {
       i+= 12;
@@ -733,8 +737,11 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     /* Interpret the tag and its args */
 
     if(strncasecmp(hdrl_data+i,"strh",4)==0) {
-
       i += 8;
+#ifdef LOG
+      printf("demux_asf: AVI_INIT: tag: %c%c%c%c\n",
+             hdrl_data[i], hdrl_data[i+1], hdrl_data[i+2], hdrl_data[i+3]);
+#endif
       if(strncasecmp(hdrl_data+i,"vids",4) == 0 && !vids_strh_seen) {
 
         AVI->compressor = *(uint32_t *) hdrl_data+i+4;
@@ -748,6 +755,9 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
         AVI->video_strn = num_stream;
         vids_strh_seen = 1;
+#ifdef LOG
+        printf("demux_asf: AVI_INIT: video stream header\n");
+#endif
         lasttag = 1; /* vids */
       } else if (strncasecmp (hdrl_data+i,"auds",4) ==0 /* && ! auds_strh_seen*/) {
         if(AVI->n_audio < MAX_AUDIO_STREAMS) {
@@ -765,6 +775,9 @@ static avi_t *AVI_init(demux_avi_t *this)  {
           a->dwSampleSize  = str2ulong(hdrl_data+i+44);
 	  a->audio_tot     = 0;
           auds_strh_seen = 1;
+#ifdef LOG
+        printf("demux_asf: AVI_INIT: audio stream header\n");
+#endif
           lasttag = 2; /* auds */
           AVI->n_audio++;
         }
@@ -794,6 +807,9 @@ static avi_t *AVI_init(demux_avi_t *this)  {
           printf("  biCompression %d='%.4s'\n", AVI->bih.biCompression,
                  &AVI->bih.biCompression);
         */
+#ifdef LOG
+        printf("demux_asf: AVI_INIT: video stream format\n");
+#endif
         vids_strf_seen = 1;
 
         /* load the palette, if there is one */
@@ -816,6 +832,9 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
         memcpy((void *)AVI->audio[AVI->n_audio-1]->wavex, hdrl_data+i, n);
         xine_waveformatex_le2me( AVI->audio[AVI->n_audio-1]->wavex );
+#ifdef LOG
+        printf("demux_asf: AVI_INIT: audio stream format\n");
+#endif
         auds_strf_seen = 1;
       }
       lasttag = 0;
@@ -839,6 +858,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
   AVI->video_tag[0] = AVI->video_strn/10 + '0';
   AVI->video_tag[1] = AVI->video_strn%10 + '0';
+  /* do not use the two following bytes */
   AVI->video_tag[2] = 'd';
   AVI->video_tag[3] = 'b';
 
@@ -849,6 +869,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
     AVI->audio[i]->audio_tag[0] = AVI->audio[i]->audio_strn/10 + '0';
     AVI->audio[i]->audio_tag[1] = AVI->audio[i]->audio_strn%10 + '0';
+    /* do not use the two following bytes */
     AVI->audio[i]->audio_tag[2] = 'w';
     AVI->audio[i]->audio_tag[3] = 'b';
   }
@@ -869,9 +890,12 @@ static avi_t *AVI_init(demux_avi_t *this)  {
          it is in the file */
 
       for(i=0;i<AVI->n_idx;i++)
-        if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
+        if( (AVI->idx[i][0] == AVI->video_tag[0]) &&
+            (AVI->idx[i][1] == AVI->video_tag[1]))
+          break;
 
-    /* try again for ##ix */
+#if 0
+      /* try again for ##ix */
       if (i>=AVI->n_idx) {
         AVI->video_tag[2] = 'i';
         AVI->video_tag[3] = 'x';
@@ -879,7 +903,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
       for(i=0;i<AVI->n_idx;i++)
         if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
-
+#endif
       if (i>=AVI->n_idx) {
         ERR_EXIT(AVI_ERR_NO_VIDS);
       }
@@ -914,7 +938,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     ioff = idx_type == 1 ? 8 : AVI->movi_start+4;
 
     for(i=0;i<AVI->n_idx;i++) {
-      if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0)	{
+      if((AVI->idx[i][0] == AVI->video_tag[0]) &&
+         (AVI->idx[i][1] == AVI->video_tag[1])) {
 	off_t pos = str2ulong(AVI->idx[i]+ 8)+ioff;
 	long len = str2ulong(AVI->idx[i]+12);
 	long flags = str2ulong(AVI->idx[i]+4);
@@ -923,7 +948,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 	}
       }
       for(n = 0; n < AVI->n_audio; n++) {
-	if(strncasecmp(AVI->idx[i],AVI->audio[n]->audio_tag,4) == 0) {
+	if((AVI->idx[i][0] == AVI->audio[n]->audio_tag[0]) &&
+           (AVI->idx[i][1] == AVI->audio[n]->audio_tag[1])) {
 	  off_t pos = str2ulong(AVI->idx[i]+ 8)+ioff;
 	  long len = str2ulong(AVI->idx[i]+12);
 	  if (audio_index_append(AVI, n, pos, len, AVI->audio[n]->audio_tot) == -1) {
