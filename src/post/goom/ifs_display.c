@@ -18,25 +18,12 @@ ifs_fun_mmx(guint32 * data, guint32 * back, int width, int height,
 
 		if ((x < width) && (y < height) && (x > 0) && (y > 0)) {
 			int     pos = x + (y * width);
-/*			register int b asm ("eax");
-
-			b = back[pos];
-			__asm__
-				("
-				 movd %%eax, %%mm0
-				 movd %%edx, %%mm1
-				 paddusb %%mm1, %%mm0
-				 movd %%mm0, %%eax
-				 "::
-				 "edx" (couleursl));
-			data[pos] = b;
-*/
 			movd_m2r(back[pos],mm0);
 			paddusb_r2r(mm1,mm0);
 			movd_r2m(mm0,data[pos]);
 		}
 	}
-	__asm__ __volatile__ ("emms");
+	emms();
 }
 #endif
 
