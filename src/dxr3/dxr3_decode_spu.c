@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.49 2004/07/20 16:37:44 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.50 2004/08/19 10:35:32 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -319,6 +319,11 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     xine_event_free(event);
   }
   
+  /* check, if we need to process the next PCI from the list */
+  pthread_mutex_lock(&this->pci_lock);
+  dxr3_spudec_update_nav(this);
+  pthread_mutex_unlock(&this->pci_lock);
+  
   if ( (buf->type & 0xffff0000) != BUF_SPU_DVD ||
        !(buf->decoder_flags & BUF_FLAG_SPECIAL) || 
        buf->decoder_info[1] != BUF_SPECIAL_SPU_DVD_SUBTYPE )
@@ -407,11 +412,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     return;
   }
   
-  /* check, if we need to process the next PCI from the list */
-  pthread_mutex_lock(&this->pci_lock);
-  dxr3_spudec_update_nav(this);
-  pthread_mutex_unlock(&this->pci_lock);
-  
   /* We parse the SPUs command and end sequence here for two reasons:
    * 1. Look for the display duration entry in the spu packets.
    *    If the spu is a menu button highlight pane, this entry must not exist,
@@ -453,9 +453,10 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	    state->parse++;
 	    break;
 	  case 0x01:  /* show */
-	  case 0x02:  /* hide */
 	    /* when only forced SPUs are allowed, change show to hide */
 	    if (spu_channel & 0x80) buf->content[offset_in_buffer] = 0x02;
+	    /* falling through intended */
+	  case 0x02:  /* hide */
 	    state->parse++;
 	    break;
 	  case 0x03:  /* colour lookup table */

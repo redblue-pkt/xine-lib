@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.108 2004/07/14 01:18:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.109 2004/08/19 10:35:32 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -80,6 +80,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG_DEBUG
   printf("libspudec:got buffer type = %x\n", buf->type);
 #endif
+
+  /* check, if we need to process the next PCI from the list */
+  pthread_mutex_lock(&this->nav_pci_lock);
+  spudec_update_nav(this);
+  pthread_mutex_unlock(&this->nav_pci_lock);
+
   if ( (buf->type & 0xffff0000) != BUF_SPU_DVD ||
        !(buf->decoder_flags & BUF_FLAG_SPECIAL) || 
        buf->decoder_info[1] != BUF_SPECIAL_SPU_DVD_SUBTYPE )
@@ -113,11 +119,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     this->state.vobsub = 1;
   }
     
-  /* check, if we need to process the next PCI from the list */
-  pthread_mutex_lock(&this->nav_pci_lock);
-  spudec_update_nav(this);
-  pthread_mutex_unlock(&this->nav_pci_lock);
-  
 #ifdef LOG_DEBUG
   printf("libspudec:got buffer type = %x\n", buf->type);
 #endif
