@@ -3,6 +3,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_spu.la
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_decode_spu_la_SOURCES = \
 	nav_read.c \
@@ -10,11 +11,14 @@ xineplug_decode_spu_la_SOURCES = \
 	spu.c \
 	xine_decoder.c
 
-xineplug_decode_spu_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_spu_la_LIBADD = $(XINE_LIB)
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = spu.h nav_read.h bswap.h nav_print.h
 include_HEADERS = spu_decoder_api.h nav_types.h
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 ##
 ## Install header files (default=$includedir/xine)

@@ -7,6 +7,7 @@ EXTRA_DIST = fooaudio.c
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 SUBDIRS = gsm610
 
@@ -20,20 +21,23 @@ xineplug_decode_roqaudio_la_SOURCES = roqaudio.c
 xineplug_decode_roqaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_adpcm_la_SOURCES = adpcm.c
-xineplug_decode_adpcm_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_adpcm_la_LIBADD = $(XINE_LIB)
 xineplug_decode_adpcm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_logpcm_la_SOURCES = logpcm.c
-xineplug_decode_logpcm_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_logpcm_la_LIBADD = $(XINE_LIB)
 xineplug_decode_logpcm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_gsm610_la_SOURCES = gsm610.c
 xineplug_decode_gsm610_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_gsm610_la_LIBADD = \
-	$(top_builddir)/src/xine-engine/libxine.la \
+	$(XINE_LIB) \
 	$(top_builddir)/src/libxineadec/gsm610/libgsm610.la
 
 # noinst_HEADERS = 
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

@@ -3,12 +3,16 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_spucc.la
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_decode_spucc_la_SOURCES =  cc_decoder.c xine_decoder.c
-xineplug_decode_spucc_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_spucc_la_LIBADD = $(XINE_LIB)
 xineplug_decode_spucc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = cc_decoder.h
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 ##
 ## Install header files (default=$includedir/xine)

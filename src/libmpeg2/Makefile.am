@@ -8,6 +8,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_mpeg2.la
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 #libmpeg2_la_SOURCES = slice.c header.c stats.c idct.c motion_comp.c\
 #	decode.c  idct_mmx.c motion_comp_mmx.c
@@ -28,10 +29,13 @@ xineplug_decode_mpeg2_la_SOURCES = \
 	stats.c \
 	xine_decoder.c
 
-xineplug_decode_mpeg2_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_mpeg2_la_LIBADD = $(XINE_LIB)
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h 
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

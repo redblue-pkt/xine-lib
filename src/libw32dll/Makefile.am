@@ -9,7 +9,7 @@ w32dll_codec = xineplug_decode_w32dll.la
 endif
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
-
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 libdir = $(XINE_PLUGINDIR)
 
 ##
@@ -23,11 +23,14 @@ xineplug_decode_w32dll_la_SOURCES = w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_w32dll_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
-        $(top_builddir)/src/xine-engine/libxine.la \
+	$(XINE_LIB) \
 	$(top_builddir)/src/libw32dll/DirectShow/libds_filter.la \
 	@KSTAT_LIBS@
 
 noinst_HEADERS = libwin32.h w32codec.h
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

@@ -2,7 +2,7 @@ AM_CFLAGS = $(LIBA52_CFLAGS)
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(LIBA52_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
-
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_a52.la
@@ -15,7 +15,7 @@ xineplug_decode_a52_la_SOURCES = \
 	parse.c \
 	xine_decoder.c
 
-xineplug_decode_a52_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_a52_la_LIBADD = $(XINE_LIB)
 xineplug_decode_a52_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = \
@@ -23,6 +23,9 @@ noinst_HEADERS = \
 	a52_internal.h \
 	bitstream.h \
 	tables.h
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 ##
 ## Install header files (default=$includedir/xine)

@@ -1,6 +1,7 @@
 AM_CFLAGS = $(X_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -22,11 +23,11 @@ endif
 lib_LTLIBRARIES = $(dxr3_modules) 
 
 xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c dxr3_scr.c
-xineplug_decode_dxr3_video_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_dxr3_video_la_LIBADD = $(XINE_LIB)
 xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
-xineplug_decode_dxr3_spu_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_decode_dxr3_spu_la_LIBADD = $(XINE_LIB)
 xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = \
@@ -38,6 +39,9 @@ xineplug_vo_out_dxr3_la_SOURCES = \
 xineplug_vo_out_dxr3_la_LIBADD = $(link_fame) $(link_rte) $(link_x_libs) \
 	$(top_builddir)/src/xine-utils/libxineutils.la
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
+
+$(XINE_LIB):
+	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 noinst_HEADERS = \
 	alphablend.h \
