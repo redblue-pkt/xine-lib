@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.205 2002/12/27 03:40:07 miguelfreitas Exp $
+ * $Id: xine.c,v 1.206 2002/12/27 19:14:41 mroi Exp $
  *
  * top-level xine functions
  *
@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
@@ -748,7 +749,12 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   pthread_mutex_lock (&stream->first_frame_lock);
   /* FIXME: howto detect if video frames will be produced */
   if (stream->first_frame_flag && stream->video_decoder_plugin) {
-    pthread_cond_wait(&stream->first_frame_reached, &stream->first_frame_lock);
+    struct timeval  tv;
+    struct timespec ts;
+    gettimeofday(&tv, NULL);
+    ts.tv_sec  = tv.tv_sec + 2;
+    ts.tv_nsec = tv.tv_usec * 1000;
+    pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
   }
   pthread_mutex_unlock (&stream->first_frame_lock);
 

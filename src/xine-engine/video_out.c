@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.126 2002/12/27 03:40:07 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.127 2002/12/27 19:14:41 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -337,16 +337,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       vo_frame_driver_copy(img);
     
     /*
-     * Wake up xine_play if it's waiting for a frame
-     */
-    pthread_mutex_lock (&stream->first_frame_lock);
-    if (stream->first_frame_flag) {
-      stream->first_frame_flag = 0;
-      pthread_cond_broadcast(&stream->first_frame_reached);
-    }
-    pthread_mutex_unlock (&stream->first_frame_lock);
-
-    /*
      * put frame into FIFO-Buffer
      */
 
@@ -647,6 +637,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 
 static void overlay_and_display_frame (vos_t *this, 
 				       vo_frame_t *img, int64_t vpts) {
+  xine_stream_t *stream;
 
 #ifdef LOG
   printf ("video_out: displaying image with vpts = %lld\n", 
@@ -677,6 +668,21 @@ static void overlay_and_display_frame (vos_t *this,
 
   this->driver->display_frame (this->driver, img);
   
+  /*
+   * Wake up xine_play if it's waiting for a frame
+   */
+  pthread_mutex_lock(&this->streams_lock);
+  for (stream = xine_list_first_content(this->streams); stream;
+       stream = xine_list_next_content(this->streams)) {
+    pthread_mutex_lock (&stream->first_frame_lock);
+    if (stream->first_frame_flag) {
+      stream->first_frame_flag = 0;
+      pthread_cond_broadcast(&stream->first_frame_reached);
+    }
+    pthread_mutex_unlock (&stream->first_frame_lock);
+  }
+  pthread_mutex_unlock(&this->streams_lock);
+
   this->redraw_needed = 0; 
 }
 
