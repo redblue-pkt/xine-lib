@@ -31,9 +31,9 @@
 
 Name:           %{name}
 Summary:        A portable video/audio library for unix-like systems.
-Summary(cs):    Pøenositelná video/audio knihovna pro unixovské systémy
-Summary(de):    Eine portabele Audio-/Video-Bibliothek für unixartige Systeme.
-Summary(fi):    Joustava video- ja ääniohjelmointikirjasto Unix-tyylisille käyttöjärjestelmille.
+Summary(cs):    PÃ¸enositelnÃ¡ video/audio knihovna pro unixovskÃ© systÃ©my
+Summary(de):    Eine portabele Audio-/Video-Bibliothek fÃ¼r unixartige Systeme.
+Summary(fi):    Joustava video- ja Ã¤Ã¤niohjelmointikirjasto Unix-tyylisille kÃ¤yttÃ¶jÃ¤rjestelmille.
 Version:        %{version}
 Release:        %{release}
 License:        GPL
@@ -67,50 +67,50 @@ complies to the GPL. More information about GPL-license can be found at
 http://www.gnu.org/licenses/gpl.html
 
 %description -l cs
-libxine je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
-zmen¹ení celkového nároku na výkon procesoru.
+libxine je tepajÃ­cÃ­ srdce xine (volnÃ¬ Â¹iÃ¸itelnÃ©ho videopÃ¸ehrÃ¡vaÃ¨e pod gpl
+licencÃ­ pro unixovskÃ© systÃ©my). Mimo jinÃ© poskytuje podporu pro dekÃ³dovÃ¡nÃ­
+(a pÃ¸ehrÃ¡vÃ¡nÃ­) s mnoha dnes dostupnÃ½mi audio/video kodeky jako jsou
+napÃ¸. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pouÂ¾Ã­vÃ¡ velkÃ½ poÃ¨et
+procesorovÃ¬ zÃ¡vislÃ½ch optimalizacÃ­ k dosaÂ¾enÃ­ plynulÃ©ho pÃ¸ehrÃ¡vÃ¡nÃ­ a
+zmenÂ¹enÃ­ celkovÃ©ho nÃ¡roku na vÃ½kon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít libxine ve va¹ich vlastních
+Dokud to bude ve shodÃ¬ s GPL, nevÃ¡hejte pouÂ¾Ã­t libxine ve vaÂ¹ich vlastnÃ­ch
 projektech.
 
 %description -l de
-libxine ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
-Video-Abspielprogramm für unixartige Systeme). libxine stellt die Funktionen
+libxine ist das HerzstÃ¼ck von xine (einem freien, GPL lizensiertem Audio- und
+Video-Abspielprogramm fÃ¼r unixartige Systeme). libxine stellt die Funktionen
 zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
-Verfügung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
+VerfÃ¼gung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
 Quicktime und RealMedia um nur einige zu nennen.
-Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
-Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
-gewährleisten zu könnnen.
+Die Bibliothek enthÃ¤lt und benutzt eine Vielzahl von prozessorspezifischen
+Optimierungen, um eine flÃ¼ssige Wiedergabe mit minimaler Prozessorbelastung
+gewÃ¤hrleisten zu kÃ¶nnnen.
 
-Zögern Sie nicht libxine in Ihren eigenen Projekten zu nutzen. Beachten Sie
+ZÃ¶gern Sie nicht libxine in Ihren eigenen Projekten zu nutzen. Beachten Sie
 hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen. Weitere
 Informationen zur GPL-Lizenz finden Sie unter http://www.gnu.org/licenses/gpl.html
 
 %description -l fi
-libxine on xinen sydän (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
-käyttöjärjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
-ja äänen purkamiseen (sekä näyttämiseen) suurimmalla osalla nykyaikaista äänen-
+libxine on xinen sydÃ¤n (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
+kÃ¤yttÃ¶jÃ¤rjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
+ja Ã¤Ã¤nen purkamiseen (sekÃ¤ nÃ¤yttÃ¤miseen) suurimmalla osalla nykyaikaista Ã¤Ã¤nen-
 ja kuvanpakkausformaateista.
-Tällaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
-mainitaksemme. xinen purkukirjasto käyttää monia matalan tason prosessoripohjaisia
-optimisaatiomenetelmiä tarjotakseen sulavan kuvantoistokokemuksen. Tämä on tarpeen
-myös minimoimaan tarvittavaa prosessoritehoa.
+TÃ¤llaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
+mainitaksemme. xinen purkukirjasto kÃ¤yttÃ¤Ã¤ monia matalan tason prosessoripohjaisia
+optimisaatiomenetelmiÃ¤ tarjotakseen sulavan kuvantoistokokemuksen. TÃ¤mÃ¤ on tarpeen
+myÃ¶s minimoimaan tarvittavaa prosessoritehoa.
 
-Olet tervetullut käyttämään libxine:a omissa projekteissasi kunhan ne ovat GPL-
-lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteesta:
+Olet tervetullut kÃ¤yttÃ¤mÃ¤Ã¤n libxine:a omissa projekteissasi kunhan ne ovat GPL-
+lisenssin kanssa yhteensopivia. lisÃ¤tietoja GPL-lisenssistÃ¤ lÃ¶ytyy osoitteesta:
 http://www.gnu.org/licenses/gpl.html
 
 %if %BUILD_DEVEL
 %package devel
 Summary:        Header files and documentation to develope programs with libxine.
-Summary(cs):    Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících libxine.
-Summary(de):    Headerdateien und Dokumentationen, um Programme mit libxine entwickeln zu können.
-Summary(fi):    Header-tiedostot ja dokumentaatio, joita tarvitset kehittäessäsi ohjelmia libxine:n kanssa.
+Summary(cs):    HlaviÃ¨kovÃ© soubory a dokumentace pro vÃ½voj programÃ¹ pouÂ¾Ã­vajÃ­cÃ­ch libxine.
+Summary(de):    Headerdateien und Dokumentationen, um Programme mit libxine entwickeln zu kÃ¶nnen.
+Summary(fi):    Header-tiedostot ja dokumentaatio, joita tarvitset kehittÃ¤essÃ¤si ohjelmia libxine:n kanssa.
 Group:	       Development/Libraries
 Obsoletes:      xine-lib-devel
 Obsoletes:      xine-devel
@@ -134,55 +134,55 @@ complies to the GPL. More information about GPL-license can be found at
 http://www.gnu.org/licenses/gpl.html
 
 %description devel -l cs
-Tento balíèek obsahuje hlavièkové soubory a dokumentaci potøebnou pro vývoj
-programù pou¾ívajících libxine.
+Tento balÃ­Ã¨ek obsahuje hlaviÃ¨kovÃ© soubory a dokumentaci potÃ¸ebnou pro vÃ½voj
+programÃ¹ pouÂ¾Ã­vajÃ­cÃ­ch libxine.
 
-libxine je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
-zmen¹ení celkového nároku na výkon procesoru.
+libxine je tepajÃ­cÃ­ srdce xine (volnÃ¬ Â¹iÃ¸itelnÃ©ho videopÃ¸ehrÃ¡vaÃ¨e pod gpl
+licencÃ­ pro unixovskÃ© systÃ©my). Mimo jinÃ© poskytuje podporu pro dekÃ³dovÃ¡nÃ­
+(a pÃ¸ehrÃ¡vÃ¡nÃ­) s mnoha dnes dostupnÃ½mi audio/video kodeky jako jsou
+napÃ¸. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pouÂ¾Ã­vÃ¡ velkÃ½ poÃ¨et
+procesorovÃ¬ zÃ¡vislÃ½ch optimalizacÃ­ k dosaÂ¾enÃ­ plynulÃ©ho pÃ¸ehrÃ¡vÃ¡nÃ­ a
+zmenÂ¹enÃ­ celkovÃ©ho nÃ¡roku na vÃ½kon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít libxine ve va¹ich vlastních
+Dokud to bude ve shodÃ¬ s GPL, nevÃ¡hejte pouÂ¾Ã­t libxine ve vaÂ¹ich vlastnÃ­ch
 projektech.
 
 %description devel -l de
-Dieses Paket enthält die Headerdateien und Dokumentationen, um Programme
-mit libxine entwickeln zu können.
+Dieses Paket enthÃ¤lt die Headerdateien und Dokumentationen, um Programme
+mit libxine entwickeln zu kÃ¶nnen.
 
-libxine ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
-Video-Abspielprogramm für unixartige Systeme). libxine stellt die Funktionen
+libxine ist das HerzstÃ¼ck von xine (einem freien, GPL lizensiertem Audio- und
+Video-Abspielprogramm fÃ¼r unixartige Systeme). libxine stellt die Funktionen
 zur Dekodierung und Wiedergabe vieler aktueller Audio- und Videocodecs zur
-Verfügung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
+VerfÃ¼gung, wie z.B. MPEG-4 (DivX), MPEG-2 (DVD, SVCD) und MPEG-1 (VCD),
 Quicktime und RealMedia um nur einige zu nennen.
-Die Bibliothek enthält und benutzt eine Vielzahl von prozessorspezifischen
-Optimierungen, um eine flüssige Wiedergabe mit minimaler Prozessorbelastung
-gewährleisten zu könnnen.
+Die Bibliothek enthÃ¤lt und benutzt eine Vielzahl von prozessorspezifischen
+Optimierungen, um eine flÃ¼ssige Wiedergabe mit minimaler Prozessorbelastung
+gewÃ¤hrleisten zu kÃ¶nnnen.
 
-Zögern Sie nicht libxine in Ihren eigenen Projekten zu nutzen. Beachten Sie
+ZÃ¶gern Sie nicht libxine in Ihren eigenen Projekten zu nutzen. Beachten Sie
 hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen. Weitere
 Informationen zur GPL-Lizenz finden Sie unter http://www.gnu.org/licenses/gpl.html
 
 %description devel -l fi
-libxine on xinen sydän (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
-käyttöjärjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
-ja äänen purkamiseen (sekä näyttämiseen) suurimmalla osalla nykyaikaista äänen-
+libxine on xinen sydÃ¤n (vapaa GPL-linsensoitu videosoitinohjelma Unix-tyylisille
+kÃ¤yttÃ¶jÃ¤rjestelmille), joka muun muassa tarjoaa mahdollisuudet pakatun videon
+ja Ã¤Ã¤nen purkamiseen (sekÃ¤ nÃ¤yttÃ¤miseen) suurimmalla osalla nykyaikaista Ã¤Ã¤nen-
 ja kuvanpakkausformaateista.
-Tällaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
-mainitaksemme. xinen purkukirjasto käyttää monia matalan tason prosessoripohjaisia
-optimisaatiomenetelmiä tarjotakseen sulavan kuvantoistokokemuksen. Tämä on tarpeen
-myös minimoimaan tarvittavaa prosessoritehoa.
+TÃ¤llaisia ovat mpeg-4 (DivX;-)), mpeg-2 (DVD, SVCD), mpeg-1 (VCD) muutamia
+mainitaksemme. xinen purkukirjasto kÃ¤yttÃ¤Ã¤ monia matalan tason prosessoripohjaisia
+optimisaatiomenetelmiÃ¤ tarjotakseen sulavan kuvantoistokokemuksen. TÃ¤mÃ¤ on tarpeen
+myÃ¶s minimoimaan tarvittavaa prosessoritehoa.
 
-Olet tervetullut käyttämään libxine:a omissa projekteissasi kunhan ne ovat GPL-
-lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteesta:
+Olet tervetullut kÃ¤yttÃ¤mÃ¤Ã¤n libxine:a omissa projekteissasi kunhan ne ovat GPL-
+lisenssin kanssa yhteensopivia. lisÃ¤tietoja GPL-lisenssistÃ¤ lÃ¶ytyy osoitteesta:
 http://www.gnu.org/licenses/gpl.html
 %endif
 
 %if %BUILD_ALSA09
 %package alsa09
 Summary:        libxine sound output plugin for alsa >= 0.9
-Summary(de):    libxine Soundausgabeplguin für Alsa >= 0.9
+Summary(de):    libxine Soundausgabeplguin fÃ¼r Alsa >= 0.9
 Summary(fi):    libxine-Ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-alsa09
@@ -192,7 +192,7 @@ Obsoletes:      libxine0-alsa09
 libxine sound output plugin for alsa >= 0.9
 
 %description alsa09 -l de
-libxine Soundausgabe Plugin für alsa >= 0.9
+libxine Soundausgabe Plugin fÃ¼r alsa >= 0.9
 
 %description alsa09 -l fi
 libxine-ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
@@ -201,7 +201,7 @@ libxine-ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 %if %BUILD_ARTS
 %package arts
 Summary:        libxine sound output plugin for arts (KDE-soundserver)
-Summary(de):    libxine Soundausgabeplugin für arts (KDE-Soundserver)
+Summary(de):    libxine Soundausgabeplugin fÃ¼r arts (KDE-Soundserver)
 Summary(fi):    libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-arts
@@ -211,7 +211,7 @@ Obsoletes:      libxine0-arts
 libxine sound output plugin for arts (KDE-soundserver)
 
 %description arts -l de
-libxine Soundausgabeplugin für arts (KDE-Soundserver)
+libxine Soundausgabeplugin fÃ¼r arts (KDE-Soundserver)
 
 %description arts -l fi
 libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
@@ -220,7 +220,7 @@ libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 %if %BUILD_ESD
 %package esd
 Summary:        libxine sound output plugin for enlightmend sound daemon
-Summary(de):    libxine Soundausgabeplugin für den Enlightmend Sound Daemon
+Summary(de):    libxine Soundausgabeplugin fÃ¼r den Enlightmend Sound Daemon
 Summary(fi):    libxine-ddnilisdke Enlightmend ddnipalvelimelle
 Group:          Development/Libraries
 Obsoletes:      xine-lib-esd
@@ -230,7 +230,7 @@ Obsoletes:      libxine0-esd
 libxine sound output plugin for enlightmend sound daemon (Gnome and Enlightment)
 
 %description esd -l de
-libxine Soundausgabeplugin für den Enlightmend Sound Daemon (Gnome und Enlightment)
+libxine Soundausgabeplugin fÃ¼r den Enlightmend Sound Daemon (Gnome und Enlightment)
 
 %description esd -l fi
 libxine-ddnilisdke Enlightmend ddnipalvelimelle
@@ -239,7 +239,7 @@ libxine-ddnilisdke Enlightmend ddnipalvelimelle
 %if %BUILD_SDL
 %package sdl
 Summary:        libxine video output plugin for SDL-library (Simple DirectMedia Layer)
-Summary(de):    libxine Videoausgabeplguin für SDL-Bibliothek (Simple DirectMedia Layer)
+Summary(de):    libxine Videoausgabeplguin fÃ¼r SDL-Bibliothek (Simple DirectMedia Layer)
 Summary(fi):    libxine-Videolisdke SDL grafiikkakirjastolle (Simple DirectMedia Layer)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-sdl
@@ -249,7 +249,7 @@ Obsoletes:      libxine0-sdl
 libxine video output plugin for SDL-library (Simple DirectMedia Layer)
 
 %description sdl -l de
-libxine Videoausgabeplguin für SDL-Bibliothek (Simple DirectMedia Layer)
+libxine Videoausgabeplguin fÃ¼r SDL-Bibliothek (Simple DirectMedia Layer)
 
 %description sdl -l fi
 libxine-Videolisdke SDL-grafiikkakirjastolle (Simple DirectMedia Layer)
@@ -258,7 +258,7 @@ libxine-Videolisdke SDL-grafiikkakirjastolle (Simple DirectMedia Layer)
 %if %BUILD_AA
 %package aa
 Summary:        libxine video output plugin for aa-library (ASCII Art)
-Summary(de):    libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
+Summary(de):    libxine Videoausgabeplugin fÃ¼r aa-Bibliothek (ASCII Art)
 Summary(fi):    libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-aa
@@ -270,7 +270,7 @@ Provides:       xine-extra
 libxine video output plugin for aa-library (ASCII Art)
 
 %description aa -l de
-libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
+libxine Videoausgabeplugin fÃ¼r aa-Bibliothek (ASCII Art)
 
 %description aa -l fi
 libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
@@ -330,7 +330,7 @@ libxine-Lukulisdke, jolla kdyttdjd voi soittaa DVD-levyjd
 %if %BUILD_DVB
 %package dvb
 Summary:        libxine input plugin for DigitalTV devices
-Summary(de):    libxine Einabeplugin für digitale TV-Karten
+Summary(de):    libxine Einabeplugin fÃ¼r digitale TV-Karten
 Summary(fi):    libxine-Lukulisdke, jolla kdyttdjd voi katsella DigitalTV-korttien ohjelmia
 Group:          Development/Libraries
 
@@ -339,8 +339,8 @@ libxine input plugin for Digital TV (Digital Video Broadcast - DVB) devices
 e.g. Hauppauge WinTV Nova supported by DVB drivers from Convergence
 
 %description dvb -l de
-libxine Eingabeplugin für digitale TV-Karten (Digital Video Broadcast - DVB)
-z.B. wird die Hauppauge WinTV Nova von Convergence unterstützt.
+libxine Eingabeplugin fÃ¼r digitale TV-Karten (Digital Video Broadcast - DVB)
+z.B. wird die Hauppauge WinTV Nova von Convergence unterstÃ¼tzt.
 
 %description dvb -l fi
 libxine-Lukulisdke, jolla kdyttdjd voi katsella DigitalTV-korttien ohjelmia
@@ -350,7 +350,7 @@ Esimerkiksi Haupaugen WinTV kortit ovat tuettuja DVB ajureilla.
 %if %BUILD_GNOME_VFS
 %package gnome-vfs
 Summary:        libxine input plugin for totem (a gnome frontend)
-Summary(de):    libxine Einabeplugin für totem (ein Gnome Frontend)
+Summary(de):    libxine Einabeplugin fÃ¼r totem (ein Gnome Frontend)
 Summary(fi):    libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine:n Gnome2 kdyttvliittymd
 Group:          Development/Libraries
 
@@ -358,7 +358,7 @@ Group:          Development/Libraries
 libxine input plugin for totem (a gnome frontend)
 
 %description gnome-vfs -l de
-libxine Einabeplugin für totem (ein Gnome Frontend)
+libxine Einabeplugin fÃ¼r totem (ein Gnome Frontend)
 
 %description gnome-vfs -l fi
 libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine Gnome2 kdyttvliittymd
@@ -367,7 +367,7 @@ libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine Gnome2 kdyttvliittymd
 %if %BUILD_FLAC
 %package flac
 Summary:        libxine sound input plugin for flac-files (Free Lossless Audio Codec)
-Summary(de):    libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec)
+Summary(de):    libxine Soundeinabeplugin fÃ¼r flac-Dateien (Free Lossless Audio Codec)
 Summary(fi):    libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 Group:          Development/Libraries
 
@@ -375,7 +375,7 @@ Group:          Development/Libraries
 libxine sound input plugin for flac-files (Free Lossless Audio Codec)
 
 %description flac -l de
-libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec == Freier, verlustfreier Audio-Codec)
+libxine Soundeinabeplugin fÃ¼r flac-Dateien (Free Lossless Audio Codec == Freier, verlustfreier Audio-Codec)
 
 %description flac -l fi
 libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
@@ -384,7 +384,7 @@ libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 %if %BUILD_OGG
 %package ogg
 Summary:        libxine sound/video input plugin for ogg/ogm-files
-Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
+Summary(de):    libxine Sound-/Videoeinabeplugin fÃ¼r ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
 Obsoletes:      xine-lib-oggvorbis
@@ -398,7 +398,7 @@ Provides:       %{libname}-oggtheora
 libxine sound/video input plugin for ogg/ogm-files
 
 %description ogg -l de
-libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
+libxine Sound-/Videoeinabeplugin fÃ¼r ogg/ogm-Dateien
 
 %description ogg -l fi
 libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
@@ -431,7 +431,7 @@ libxine Videoausgabeplugin per libstk (Set-top Toolkit)
 %endif
 
 %if %BUILD_DXR3
-%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %package dxr3
 Summary:        libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
 Summary(de):    libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
@@ -452,7 +452,7 @@ libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
 %endif
 
 %if %BUILD_XVMC
-%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %package xvmc
 Summary:        libxine video output plugin using XVideo-extension with motion compensation
 Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
@@ -472,7 +472,7 @@ libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %package w32dll
 Summary:        libxine decoding plugin using win32 dlls for native not supported formats
-Summary(de):    libxine Dekodierplugin, nutzt Win32 dlls für natvie nicht unterstützte Formate
+Summary(de):    libxine Dekodierplugin, nutzt Win32 dlls fÃ¼r natvie nicht unterstÃ¼tzte Formate
 Summary(fi):    libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 Group:          Development/Libraries
 Obsoletes:      xine-lib-w32dll
@@ -482,7 +482,7 @@ Obsoletes:      libxine0-w32dll
 libxine decoding plugin using win32 dlls for native not supported formats
 
 %description w32dll -l de
-libxine Dekodierplugin, nutzt Win32 dlls für native nicht unterstützte Formate
+libxine Dekodierplugin, nutzt Win32 dlls fÃ¼r native nicht unterstÃ¼tzte Formate
 
 %description w32dll -l fi
 libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
@@ -572,11 +572,13 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %if %BUILD_DXR3
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_dxr3
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
 grep "dxr3" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_dxr3
 grep -v "dxr3" ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
+%endif
 %endif
 
 %if %BUILD_SDL
@@ -628,19 +630,23 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %if %BUILD_XVMC
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
 grep "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_xvmc
 grep -v "xineplug_vo_out_xvmc\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
+%endif
 
 %if %BUILD_W32DLL
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_w32dll
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
 grep -E "xineplug_decode_qt\.|xineplug_decode_w32dll\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_w32dll
 grep -v -E "xineplug_decode_qt\.|xineplug_decode_w32dll\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
+%endif
 %endif
 
 %if %BUILD_DVB
@@ -708,7 +714,7 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %if %BUILD_DXR3
-%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %files dxr3 -f ../filelist_libxine1_dxr3
 %endif
 %endif
@@ -738,7 +744,7 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %if %BUILD_XVMC
-%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %files xvmc -f ../filelist_libxine1_xvmc
 %endif
 %endif
@@ -770,6 +776,9 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Thu Sep 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- konverted to UTF8
+- some fixes for non IA32 systems (especialy Athlon64/Opteron)
 * Sat May 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - activated opengl plugin
 * Tue Apr 06 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
@@ -856,7 +865,7 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 * Fri Sep 21 2001 Matthias Dahl <matthew2k@web.de>
 - added two missing files (xine-config man page and xine.m4)
 * Sun Sep 16 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
-- Merge patch from José Carlos Monteiro <jcm@netcabo.pt>:
+- Merge patch from Josï¿½Carlos Monteiro <jcm@netcabo.pt>:
   - Filelist and other minor updates,
   - Fixed some SuSE compatibility issues,
   - Added Portuguese summary.
