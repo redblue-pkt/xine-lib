@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.44 2001/12/24 13:00:35 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.45 2001/12/24 13:06:10 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -160,8 +160,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_info_t       *info;
   char                  ctl_name[12];
   int                   ctl_card;
-  int                   err, step;
   */
+  int                   err, step;
  // int                 open_mode=1; //NONBLOCK
   int                   open_mode=0; //BLOCK
 
