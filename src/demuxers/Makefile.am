@@ -4,12 +4,17 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
+
+if HAVE_VORBIS
+ogg_module = xineplug_dmx_ogg.la
+endif
+
 ##
 # IMPORTANT:
 # ---------
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 #
-lib_LTLIBRARIES = xineplug_dmx_ogg.la xineplug_dmx_avi.la \
+lib_LTLIBRARIES = $(ogg_module) xineplug_dmx_avi.la \
 	xineplug_dmx_mpeg_block.la xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
 	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la \
