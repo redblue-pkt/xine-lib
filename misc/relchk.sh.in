@@ -11,13 +11,12 @@ logerror="$topdir/dist-errors"
 getdir() {
   for file in `ls`; do
 
-    if test -d $file -a $file != "CVS" -a $file != $distdir; then 
+    if test -d $file -a $file != "CVS" -a $file != $distdir -a $file != "autom4te.cache"; then 
       (cd $file && getdir) || (cd ..) 
     else
       if test ! -d $file -a \
               $file != $log -a \
               $file != $logerror -a \
-              $file != "CVS" -a \
               $file != ${0##*/} -a \
               $file != "$distdir.tar.gz" -a \
               $file != "config.status"; then
