@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.25 2002/10/24 15:49:56 jkeil Exp $
+ * $Id: xineutils.h,v 1.26 2002/11/01 01:14:06 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -108,7 +108,7 @@ typedef	union {
 #define	mmx_m2r(op,mem,reg) \
 	__asm__ __volatile__ (#op " %0, %%" #reg \
 			      : /* nothing */ \
-			      : "X" (mem))
+			      : "m" (mem))
 
 #define	mmx_r2m(op,reg,mem) \
 	__asm__ __volatile__ (#op " %%" #reg ", %0" \
