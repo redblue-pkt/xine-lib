@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.64 2003/04/30 16:49:34 mroi Exp $
+ * $Id: spu.c,v 1.65 2003/05/02 15:54:33 miguelfreitas Exp $
  *
  */
 
@@ -228,7 +228,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       /* FIXME: Add command copying here */
       break;
    default:
-      XINE_ASSERT(0, "We drop out here for some reason. Why no default behavior?");
+      printf("libspudec: unknown pci.hli.hl_gi.hli_ss = %d\n", pci.hli.hl_gi.hli_ss );
       break;
   }
   pthread_mutex_unlock(&this->nav_pci_lock);
