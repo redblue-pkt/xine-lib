@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.5 2004/05/16 15:13:34 jcdutton Exp $
+ * $Id: upmix.c,v 1.6 2004/05/16 16:23:09 jcdutton Exp $
  *
  */
 
@@ -88,14 +88,8 @@ struct post_plugin_upmix_s {
   post_plugin_t post;
 
   /* private data */
-  xine_video_port_t *vo_port;
-  post_out_t         video_output;
 
-  /* private metronom for syncing the video */
-  metronom_t        *metronom;
-  
   double ratio;
-
   int data_idx;
   short data [2][NUMSAMPLES];
   audio_buffer_t *buf;   /* dummy buffer just to hold a copy of audio data */
@@ -106,8 +100,6 @@ struct post_plugin_upmix_s {
   int sample_counter;
   int samples_per_frame;
 
-  /* specific to upmix */
-  unsigned char current_yuv_byte;
 };
 
 /**************************************************************************
@@ -116,25 +108,8 @@ struct post_plugin_upmix_s {
 
 
 /**************************************************************************
- * xine video post plugin functions
+ * xine audio post plugin functions
  *************************************************************************/
-
-static int upmix_rewire_video(xine_post_out_t *output_gen, void *data)
-{
-  post_out_t *output = (post_out_t *)output_gen;
-  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
-  xine_video_port_t *new_port = (xine_video_port_t *)data;
-  post_plugin_upmix_t *this = (post_plugin_upmix_t *)output->post;
-  
-  if (!data)
-    return 0;
-  /* register our stream at the new output port */
-  old_port->close(old_port, NULL);
-  new_port->open(new_port, NULL);
-  /* reconnect ourselves */
-  this->vo_port = new_port;
-  return 1;
-}
 
 static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
@@ -184,24 +159,15 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->samples_per_frame = rate / FPS;
   this->data_idx = 0;
 
-  this->vo_port->open(this->vo_port, NULL);
-  this->metronom->set_master(this->metronom, stream->metronom);
-
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
 
 static void upmix_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream ) {
 
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
-  post_plugin_upmix_t *this = (post_plugin_upmix_t *)port->post;
 
   port->stream = NULL;
- 
-  this->vo_port->close(this->vo_port, NULL);
-  this->metronom->set_master(this->metronom, NULL);
- 
   port->original_port->close(port->original_port, stream );
-  
   _x_post_dec_usage(port);
 }
 
@@ -339,7 +305,6 @@ static void upmix_dispose(post_plugin_t *this_gen)
   post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
 
   if (_x_post_dispose(this_gen)) {
-    this->metronom->exit(this->metronom);
     if (this->sub) free(this->sub);
     free(this);
   }
@@ -350,36 +315,22 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_class_upmix_t  *class = (post_class_upmix_t *)class_gen;
   post_plugin_upmix_t *this  = (post_plugin_upmix_t *)xine_xmalloc(sizeof(post_plugin_upmix_t));
   post_in_t            *input;
   post_out_t           *output;
-  post_out_t           *outputv;
   post_audio_port_t    *port;
   
-  if (!this || !video_target || !video_target[0] || !audio_target || !audio_target[0] ) {
+  if (!this || !audio_target || !audio_target[0] ) {
     free(this);
     return NULL;
   }
   
   _x_post_init(&this->post, 1, 0);
   
-  this->metronom = _x_metronom_init(1, 0, class->xine);
-
-  this->vo_port = video_target[0];
-
   port = _x_post_intercept_audio_port(&this->post, audio_target[0], &input, &output);
   port->new_port.open       = upmix_port_open;
   port->new_port.close      = upmix_port_close;
   port->new_port.put_buffer = upmix_port_put_buffer;
-  
-  outputv                  = &this->video_output;
-  outputv->xine_out.name   = "generated video";
-  outputv->xine_out.type   = XINE_POST_DATA_VIDEO;
-  outputv->xine_out.data   = (xine_video_port_t **)&this->vo_port;
-  outputv->xine_out.rewire = upmix_rewire_video;
-  outputv->post            = &this->post;
-  xine_list_append_content(this->post.output, outputv);
   
   this->post.xine_post.audio_input[0] = &port->new_port;
   
