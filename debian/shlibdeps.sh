@@ -18,12 +18,16 @@ OPTIONAL="$installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_alsa.so
 	  $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_sdl.so
 	  $installdir/usr/lib/xine/plugins/$ver/xineplug_flac.so
 	  $installdir/usr/lib/xine/plugins/$ver/xineplug_inp_gnome_vfs.so
+          $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_caca.so
+          $installdir/usr/lib/xine/plugins/$ver/xineplug_inp_smb.so
 "
 
 RECOMMENDED="$installdir/usr/lib/xine/plugins/$ver/xineplug_decode_vorbis.so
              $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_oss.so
 	     $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_xv.so
 	     $installdir/usr/lib/xine/plugins/$ver/xineplug_dmx_ogg.so
+             $installdir/usr/lib/xine/plugins/$ver/xineplug_decode_theora.so
+             $installdir/usr/lib/xine/plugins/$ver/xineplug_dmx_mng.so
 "
 
 #start with all executables and shared objects

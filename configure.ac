@@ -492,8 +492,8 @@ dnl ----------------------------------------------
 dnl Check for Xv and XvMC support (iconv is also tested here?)
 dnl ----------------------------------------------
 
-dnl static linking is preferred!
-dnl but only dynamic linking is possible when using libtool < 1.4.0
+dnl With recent XFree86 or Xorg, dynamic linking is preferred!
+dnl Only dynamic linking is possible when using libtool < 1.4.0
 
 dnl ----------------------------------------------
 dnl SECTION: Check for Xv and XvMC support (iconv is also tested here?)
@@ -502,9 +502,9 @@ AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is insta
             xv_path="$withval",)
 
 AC_ARG_ENABLE(shared-xv,
-        AC_HELP_STRING([--enable-shared-xv],[Enable this to force linking against libXv.so]),
-        xv_prefer_shared="yes",
-        xv_prefer_shared="no")
+        AC_HELP_STRING([--enable-static-xv],[Enable this to force linking against libXv.a]),
+        xv_prefer_shared="no",
+        xv_prefer_shared="yes")
 
 if test x"$no_x" != "xyes"; then
 

@@ -1,3 +1,25 @@
+xine-lib (1.0-1) unstable; urgency=low
+
+  * new upstream release
+    * links libXv dynamically (closes: #287186)
+  * updated build dependancies:
+    * added libcaca (colored ASCII art) support
+    * added theora support
+    * added libsmbclient based SMB input plugin in addition to the gnomevfs one
+    * added libmodplug based support for various tracker formats
+    * added MNG support via libmng
+
+ -- Siggi Langauf <siggi@flake.langauf.de>  Sat, 25 Dec 2004 21:44:26 +0100
+
+xine-lib (1-rc8-1) unstable; urgency=high
+
+  * new upstream release (closes: #286030)
+    * fixes PNM and RTSP related security vulnerabilities (closes: #286077)
+    * fixes DVB playback for fullfeatured cards (possibly closes: #281873)
+  * added patch to fix aiff vulnerability (CAN-2004-1300, closes: #285899)
+
+ -- Siggi Langauf <siggi@debian.org>  Wed, 22 Dec 2004 11:31:09 +0100
+
 xine-lib (1-rc7-1) unstable; urgency=medium
 
   * New upstream release
