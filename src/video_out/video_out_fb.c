@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.9 2002/03/25 03:08:38 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.10 2002/05/06 00:48:09 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -115,7 +115,6 @@ typedef struct fb_driver_s {
   int              mem_size;
   uint8_t*         video_mem;       /* mmapped video memory */
   
-  int              zoom_mpeg1;
   int		   scaling_disabled;
   int              depth, bpp, bytes_per_pixel;
   int              expecting_event;
@@ -701,18 +700,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->config		    = config;
   this->output_scale_factor = 1.0;
-  this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
-						     "Zoom small video formats to double size",
+  
+  this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
+						     "disable all video scaling (faster!)",
 						     NULL, NULL, NULL);
-  /*
-   * FIXME: replace getenv() with config->lookup_int, merge with zoom_mpeg1?
-   *
-   * this->video_scale = config->lookup_int (config, "video_scale", 2);
-   *  0: disable all scaling (including aspect ratio switching, ...)
-   *  1: enable aspect ratio switch
-   *  2: like 1, double the size for small videos
-   */
-  this->scaling_disabled    = getenv("VIDEO_OUT_NOSCALE") != NULL;
 
   this->vo_driver.get_capabilities     = fb_get_capabilities;
   this->vo_driver.alloc_frame          = fb_alloc_frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.73 2002/05/03 14:20:19 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.74 2002/05/06 00:48:09 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -138,7 +138,6 @@ typedef struct xshm_driver_s {
   int                user_ratio;
 
   /* speed tradeoffs */
-  int                zoom_mpeg1;
   int		     scaling_disabled;
 
   int                expecting_event; /* completion event */
@@ -1278,19 +1277,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->gui_width	    = 0;
   this->gui_height	    = 0;
   this->user_ratio          = ASPECT_AUTO;
-  this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
-						     "Zoom small video formats to double size",
-						     NULL, NULL, NULL);
-  /*
-   * FIXME: replace getenv() with config->lookup_int, merge with zoom_mpeg1?
-   *
-   * this->video_scale = config->lookup_int (config, "video_scale", 2);
-   *  0: disable all scaling (including aspect ratio switching, ...)
-   *  1: enable aspect ratio switch
-   *  2: like 1, double the size for small videos
-   */
+  
   this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
-						     "disable all video scaling",
+						     "disable all video scaling (faster!)",
 						     NULL, NULL, NULL);
   this->drawable	    = visual->d;
   this->expecting_event	    = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.7 2002/03/07 13:26:15 jcdutton Exp $
+ * $Id: video_out_directfb.c,v 1.8 2002/05/06 00:48:09 miguelfreitas Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -100,9 +100,6 @@ typedef struct directfb_driver_s {
   int              last_frame_width;     /* original size */
   int              last_frame_height;    /* original size */
   int              last_frame_ratio_code;
-
-  /* TODO: check */
-  int              zoom_mpeg1;
 
   /* display anatomy */
   double           display_ratio;        /* given by visual parameter from init function */
@@ -540,9 +537,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->config		    = config;
   this->frame_width	    = 0;
   this->frame_height	    = 0;
-  this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
-						     "Zoom small video formats to double size",
-						     NULL, NULL, NULL);
 
   this->vo_driver.get_capabilities     = directfb_get_capabilities;
   this->vo_driver.alloc_frame          = directfb_alloc_frame;
