@@ -304,6 +304,11 @@ dnl
 AM_PATH_AALIB(1.2,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
+dnl
+dnl Check linux framebuffer device support
+dnl
+AC_CHECK_HEADER(linux/fb.h,have_fb=yes,)
+AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 dnl
 dnl Check for divx4
@@ -900,6 +905,9 @@ fi
 if test x$no_aalib != "xyes"; then
   echo "   - aa (Ascii ART)"
 fi
+if test x$have_fb = "xyes"; then
+  echo "   - fb (Linux framebuffer device)"
+fi
 if test x"$have_dxr3" = "xyes"; then
   if test x"$have_encoder" = "xyes"; then
     echo "   - dxr3 (Hollywood+ and Creative dxr3, both mpeg and non-mpeg video)"
@@ -926,7 +934,7 @@ if test x"$no_esd" != "xyes"; then
   echo "   - esd (Enlightened Sound Daemon)"
 fi
 if test x"$no_arts" != "xyes"; then
-  echo "   - arts ()"
+  echo "   - arts (aRts - KDE soundserver)"
 fi
 if test x"$have_sunaudio" = "xyes"; then
   echo "   - sun ()"
