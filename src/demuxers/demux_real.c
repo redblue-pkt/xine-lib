@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.63 2003/07/22 20:14:09 jstembridge Exp $
+ * $Id: demux_real.c,v 1.64 2003/07/22 20:36:51 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -601,19 +601,24 @@ unknown:
          (id == INDX_TAG))
         break;
       
-      stream = BE_16(&search_buffer[offset + 4]);
+      /* Check that this is a "keyframe" data chunk - in some files
+       * there are multiple streams but only one set of keyframe data - 
+       * trying to play one without makes horrible noises */
+      if(search_buffer[11] & PN_KEYFRAME_FLAG) {
+        stream = BE_16(&search_buffer[offset + 4]);
 
-      for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
-        if(stream == this->video_streams[i].mdpr->stream_number) {
-          this->video_stream = &this->video_streams[i];
-          lprintf("selecting video stream: %d\n", stream);
+        for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
+          if(stream == this->video_streams[i].mdpr->stream_number) {
+            this->video_stream = &this->video_streams[i];
+            lprintf("selecting video stream: %d\n", stream);
+          }
         }
-      }
       
-      for(i = 0; !this->audio_stream && (i < this->num_audio_streams); i++) {
-        if(stream == this->audio_streams[i].mdpr->stream_number) {
-          this->audio_stream = &this->audio_streams[i];
-          lprintf("selecting audio stream: %d\n", stream);
+        for(i = 0; !this->audio_stream && (i < this->num_audio_streams); i++) {
+          if(stream == this->audio_streams[i].mdpr->stream_number) {
+            this->audio_stream = &this->audio_streams[i];
+            lprintf("selecting audio stream: %d\n", stream);
+          }
         }
       }
 
@@ -622,6 +627,15 @@ unknown:
     
     if(INPUT_IS_SEEKABLE(this->input))
       this->input->seek(this->input, original_pos, SEEK_SET);
+  }
+  
+  /* Let the user know if we haven't managed to detect what streams to play */
+  if((!this->video_stream && this->num_video_streams) ||
+     (!this->audio_stream && this->num_audio_streams)) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "unable to determine which audio/video streams to play\n");
+    this->status = DEMUX_FINISHED;
+    return;
   }
     
   /* Send headers and set meta info */
