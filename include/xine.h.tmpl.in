@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.76 2002/02/01 09:53:54 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.77 2002/02/02 17:05:43 richwareham Exp $
  *
  */
 
@@ -1465,7 +1465,13 @@ char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id, int *num_mrls);
  * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
  */
 #define VISUAL_TYPE_GTK   4
-
+/**
+ * \def VISUAL_TYPE_DFB
+ * DirectFB visual type
+ * \sa xine_list_video_output_plugins, xine_load_video_output_plugin
+ */
+#define VISUAL_TYPE_DFB   5
+	       
                /** @} end of visual_types */
 
 /**

@@ -24,6 +24,10 @@ if HAVE_FB
 fb_module = xineplug_vo_out_fb.la
 endif
 
+if HAVE_DIRECTFB
+directfb_module = xineplug_vo_out_directfb.la
+endif
+
 if HAVE_SDL
 sdl_module = xineplug_vo_out_sdl.la
 endif
@@ -36,7 +40,7 @@ endif
 # scheme "xineplug_vo_out_"
 #
 lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module) \
-                  $(fb_module) $(sdl_module) $(opengl_module)
+                  $(fb_module) $(sdl_module) $(opengl_module) $(directfb_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext
@@ -62,6 +66,10 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_fb.c
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
+
+xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
+xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS)
+xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
 xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.67 2002/01/08 16:41:39 cvogler Exp $
+ * $Id: load_plugins.c,v 1.68 2002/02/02 17:05:43 richwareham Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -684,7 +684,7 @@ char **xine_list_video_output_plugins (int visual_type) {
 	 * and finally if all this went through get it's id
 	 */
 
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 
 	  printf("load_plugins: cannot load plugin %s:\n%s\n",
 		 str, dlerror());
@@ -800,7 +800,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 		
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 	  printf("load_plugins: video output plugin %s failed to link:\n%s\n",
 		 str, dlerror());
 	} else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.69 2002/01/09 22:33:04 jcdutton Exp $
+ * $Id: xine_internal.h,v 1.70 2002/02/02 17:05:43 richwareham Exp $
  *
  */
 
@@ -502,6 +502,7 @@ void load_decoder_plugins (xine_t *this,
 #define VISUAL_TYPE_AA    2
 #define VISUAL_TYPE_FB    3
 #define VISUAL_TYPE_GTK   4
+#define VISUAL_TYPE_DFB   5
 
 /*
  * list_video_output_plugins

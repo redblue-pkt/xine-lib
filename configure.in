@@ -341,6 +341,33 @@ AC_CHECK_HEADER(linux/fb.h,have_fb=yes,)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 dnl
+dnl Find pkg-config
+dnl
+AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+if test x$PKG_CONFIG = xno ; then
+  AC_MSG_ERROR([*** pkg-config not found. See http://pkgconfig.sourceforge.net])
+fi
+
+dnl
+dnl Check for DirectFB
+dnl
+DIRECTFB_REQUIRED_VERSION=0.9.7
+
+AC_MSG_CHECKING(for DirectFB)
+if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
+      AC_MSG_RESULT(found)
+      DIRECTFB_CFLAGS=`$PKG_CONFIG --cflags directfb`
+      DIRECTFB_LIBS=`$PKG_CONFIG --libs directfb`
+      have_directfb="yes"
+else
+  AC_MSG_RESULT([*** All of DIRECTFB dependent parts will be disabled ***])
+fi
+
+AC_SUBST(DIRECTFB_CFLAGS)
+AC_SUBST(DIRECTFB_LIBS)
+AM_CONDITIONAL(HAVE_DIRECTFB, test x$have_directfb = "xyes" )
+
+dnl
 dnl check for SDL
 dnl
 AM_PATH_SDL(1.1.5, AC_DEFINE(HAVE_SDL),[])
@@ -945,6 +972,9 @@ if test x$have_fb = "xyes"; then
 fi
 if test x"$no_sdl" != x"yes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
+fi
+if test x"$have_directfb" = "xyes"; then
+  echo "   - directfb (DirectFB driver)"
 fi
 if test x"$have_dxr3" = "xyes"; then
   if test x"$have_encoder" = "xyes"; then
