@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-09-18 09:07-0400\n"
-"PO-Revision-Date: 2002-08-30 20:03+0200\n"
+"PO-Revision-Date: 2002-09-20 08:24+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -502,20 +502,20 @@ msgid "demux_vqa: running time: %d min, %d sec\n"
 msgstr "demux_vga: Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_vqa.c:431
-#, fuzzy, c-format
+#, c-format
 msgid "demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"
-msgstr "demux_vqa: %dx%d VQA-Video, %d Hz IMA ADPCM Audio\n"
+msgstr "demux_vqa: %dx%d VQA-Video; %d-Kanal %d Hz IMA ADPCM Audio\n"
 
 #: src/demuxers/demux_wc3movie.c:197
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
-msgstr ""
+msgstr "demux_wc3movie: SHOT Paket referenziert ungültige Palette (%d >= %d)\n"
 
 #. report an unknown chunk and skip it
 #: src/demuxers/demux_wc3movie.c:288
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
-msgstr "demux_film: Unbekannter Video-Codec %c%c%c%c\n"
+msgstr "demux_wc3movie: Unbekanntes Paket entdeckt: %c%c%c%c\n"
 
 #: src/demuxers/demux_wc3movie.c:365 src/demuxers/demux_wc3movie.c:603
 msgid "valid mrls ending for mve demuxer"
@@ -523,7 +523,7 @@ msgstr "Gültige MRL-Endungen für MVE-Demultiplexer"
 
 #: src/demuxers/demux_wc3movie.c:436
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
-msgstr ""
+msgstr "demux_wc3movie: Beim Laden der Palette ist ein Problem aufgetreten\n"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -1104,38 +1104,37 @@ msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Farbpalette (Vordergrund,Rand,Hintergrund) für Untertitel"
 
 #: src/xine-engine/load_plugins.c:208
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr ""
-"load_plugins: Fehler beim laden des Plugins %s:\n"
-"%s\n"
+"load_plugins: Kann %s nicht untersuchen\n"
 
 #: src/xine-engine/load_plugins.c:239
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: plugin %s found\n"
-msgstr "load_plugins: Eingabe-Plugin gefunden : %s\n"
+msgstr "load_plugins: Plugin %s gefunden\n"
 
 #: src/xine-engine/load_plugins.c:265
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
-msgstr "load_plugins: Eingabe-Plugin gefunden : %s\n"
+msgstr "load_plugins: Unbekannter Plugintyp %d in %s\n"
 
 #: src/xine-engine/load_plugins.c:275
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: Kann Plugin %s nicht öffnen:\n"
+"load_plugins: Kann Plugininformation von %s nicht lesen:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:307
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: Kann Demultiplexer-Plugin %s nicht öffnen:\n"
+"load_plugins: (Stufe 2) Kann Pluginbibliothek %s nicht öffnen:\n"
 "%s\n"
 
 #: src/libffmpeg/xine_decoder.c:661
