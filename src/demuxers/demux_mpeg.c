@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.69 2002/08/04 21:45:10 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.70 2002/08/06 01:59:22 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -95,7 +95,15 @@ typedef struct demux_mpeg_s {
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
         ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
 
+/* these are the known top-level QT atoms */
+#define FREE_ATOM QT_ATOM('f', 'r', 'e', 'e')
+#define JUNK_ATOM QT_ATOM('j', 'u', 'n', 'k')
 #define MDAT_ATOM QT_ATOM('m', 'd', 'a', 't')
+#define MOOV_ATOM QT_ATOM('m', 'o', 'o', 'v')
+#define PNOT_ATOM QT_ATOM('p', 'n', 'o', 't')
+#define SKIP_ATOM QT_ATOM('s', 'k', 'i', 'p')
+#define WIDE_ATOM QT_ATOM('w', 'i', 'd', 'e')
+
 #define ATOM_PREAMBLE_SIZE 8
 
 /*
@@ -139,6 +147,16 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
       *mdat_size = atom_size;
       break;
     }
+
+    /* make sure the atom checks out as some other top-level atom before
+     * proceeding */
+    if ((atom != FREE_ATOM) &&
+        (atom != JUNK_ATOM) &&
+        (atom != MOOV_ATOM) &&
+        (atom != PNOT_ATOM) &&
+        (atom != SKIP_ATOM) &&
+        (atom != WIDE_ATOM))
+      break;
 
     /* 64-bit length special case */
     if (atom_size == 1) {
