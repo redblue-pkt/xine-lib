@@ -1,7 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = README faq.sgml
-docs_DATA = faq.html faq.txt
+docs_DATA = $(srcdir)/faq.html $(srcdir)/faq.txt
 
 docsdir = $(prefix)/share/doc/xine/faq
 
@@ -10,7 +10,7 @@ docs: $(docs_DATA)
 dist-hook:
 	@touch $(addprefix $(srcdir)/, $(EXTRA_DIST))
 	@make fail_if_missing=yes docs
-	cp $(addprefix $(srcdir)/, $(docs_DATA)) $(distdir)
+	cp $(docs_DATA) $(distdir)
 
 faq.html: $(srcdir)/faq.sgml
 	@if test "$(SGMLTOOLS)" != "no"; then \

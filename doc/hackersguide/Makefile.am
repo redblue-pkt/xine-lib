@@ -8,7 +8,8 @@ hackersguide_sgml = hackersguide.sgml \
 		    stream.sgml \
 		    output.sgml
 
-docs_DATA = hackersguide.html architecture.png library.png overlays.png post_frame.png
+docs_DATA = $(srcdir)/hackersguide.html \
+            architecture.png library.png overlays.png post_frame.png
 
 EXTRA_DIST = README $(hackersguide_sgml) \
 	architecture.fig library.fig overlays.fig post_frame.fig
@@ -20,7 +21,7 @@ docs: $(docs_DATA)
 dist-hook:
 	@touch $(addprefix $(srcdir)/, $(EXTRA_DIST))
 	@make fail_if_missing=yes docs
-	cp $(addprefix $(srcdir)/, $(docs_DATA)) $(distdir)
+	cp $(docs_DATA) $(distdir)
 
 hackersguide.html: $(addprefix $(srcdir)/, $(hackersguide_sgml))
 	@if test "$(SGMLTOOLS)" != "no"; then \
