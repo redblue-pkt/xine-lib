@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.42 2002/02/16 23:37:55 guenter Exp $
+ * $Id: video_out.h,v 1.43 2002/02/17 00:06:58 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -101,6 +101,8 @@ struct vo_frame_s {
   /* "backward" references to where this frame originates from */
   vo_instance_t             *instance;  
   vo_driver_t               *driver;
+
+  int                        id; /* debugging - track this frame */
 
   /*
    * member functions

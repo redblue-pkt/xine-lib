@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.72 2002/02/16 23:37:55 guenter Exp $
+ * $Id: video_out.c,v 1.73 2002/02/17 00:06:58 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -649,8 +649,12 @@ static void *video_out_loop (void *this_gen) {
      * if we have found a frame, display it
      */
 
-    if (img) 
+    if (img) {
+#ifdef VIDEO_OUT_LOG
+      printf ("video_out: displaying frame (id=%d)\n", img->id);
+#endif
       overlay_and_display_frame (this, img);
+    }
 
     /*
      * if we haven't heared from the decoder for some time
@@ -948,6 +952,8 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
     vo_frame_t *img;
 
     img = driver->alloc_frame (driver) ;
+
+    img->id        = i;
     
     img->instance  = &this->vo;
     img->free      = vo_frame_free ;

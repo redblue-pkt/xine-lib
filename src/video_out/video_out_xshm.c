@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.57 2002/02/16 22:43:24 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.58 2002/02/17 00:06:58 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -661,22 +661,6 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     frame->stripe_height = 16 * frame->output_height / frame->height;
 
-    frame->rgb_dst    = (uint8_t *)frame->image->data;
-    switch (flags) {
-    case VO_TOP_FIELD:
-      frame->rgb_dst    = (uint8_t *)frame->image->data;
-      frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
-      break;
-    case VO_BOTTOM_FIELD:
-      frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
-      frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
-      break;
-    case VO_BOTH_FIELDS:
-      frame->rgb_dst    = (uint8_t *)frame->image->data;
-      frame->stripe_inc = frame->stripe_height * frame->image->bytes_per_line;
-      break;
-    }
-
     /* 
      * set up colorspace converter
      */
@@ -706,6 +690,25 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       frame->yuv_stride = frame->image->bytes_per_line;
       break;
     }
+  }
+  
+  /*
+   * reset dest pointers
+   */
+
+  switch (flags) {
+  case VO_TOP_FIELD:
+    frame->rgb_dst    = (uint8_t *)frame->image->data;
+    frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
+    break;
+  case VO_BOTTOM_FIELD:
+    frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
+    frame->stripe_inc = 2 * frame->stripe_height * frame->image->bytes_per_line;
+    break;
+  case VO_BOTH_FIELDS:
+    frame->rgb_dst    = (uint8_t *)frame->image->data;
+    frame->stripe_inc = frame->stripe_height * frame->image->bytes_per_line;
+    break;
   }
 }
 
