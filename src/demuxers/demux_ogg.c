@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,11 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.66 2003/02/02 17:36:06 guenter Exp $
+ * $Id: demux_ogg.c,v 1.67 2003/02/23 22:07:06 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
  */
+/* 2003.02.09 (dilb) update of the handling for audio/video infos for strongarm cpus. */
+
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -58,41 +60,9 @@
 #define PTS_AUDIO                0
 #define PTS_VIDEO                1
 
-#define WRAP_THRESHOLD           220000
+#define WRAP_THRESHOLD           900000
 
-typedef struct dsogg_video_header_s {
-  int32_t width;
-  int32_t height;
-} dsogg_video_header_t;
 
-typedef struct dsogg_audio_header_s {
-  int16_t channels;
-  int16_t blockalign;
-  int32_t avgbytespersec;
-} dsogg_audio_header_t;
-
-typedef struct {
-
-  char streamtype[8];
-  uint32_t subtype;
-
-  int32_t size; /* size of the structure */
-
-  int64_t time_unit; /* in reference time */
-  int64_t samples_per_unit;
-  int32_t default_len; /* in media time */
-
-  int32_t buffersize;
-  int16_t bits_per_sample;
-
-  union {
-    /* video specific */
-    struct dsogg_video_header_s video;
-    /* audio specific */
-    struct dsogg_audio_header_s audio;
-  } hubba;
-} dsogg_header_t;
- 
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
 
@@ -419,66 +389,78 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	  } else if (!strncmp (&op.packet[1], "video", 5)) {
 	    
-	    dsogg_header_t   *oggh;
 	    buf_element_t    *buf;
 	    xine_bmiheader    bih;
 	    int               channel;
+
+            int16_t          locbits_per_sample;
+            uint32_t         locsubtype;
+            int32_t          locsize, locdefault_len, locbuffersize, locwidth, locheight;
+            int64_t          loctime_unit, locsamples_per_unit;
+
+            memcpy(&locsubtype, &op.packet[9], 4);
+            memcpy(&locsize, &op.packet[13], 4);
+            memcpy(&loctime_unit, &op.packet[17], 8);
+            memcpy(&locsamples_per_unit, &op.packet[25], 8);
+            memcpy(&locdefault_len, &op.packet[33], 4);
+            memcpy(&locbuffersize, &op.packet[37], 4);
+            memcpy(&locbits_per_sample, &op.packet[41], 2);
+            memcpy(&locwidth, &op.packet[45], 4);
+            memcpy(&locheight, &op.packet[49], 4);
 
 #ifdef LOG
 	    printf ("demux_ogg: direct show filter created stream detected, hexdump:\n");
 	    hex_dump (op.packet, op.bytes);
 #endif
 
-	    oggh = (dsogg_header_t *) &op.packet[1];
-
 	    channel = this->num_video_streams++;
 
-	    this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype);
+            this->buf_types[stream_num] = fourcc_to_buf_video (locsubtype);
 	    if( !this->buf_types[stream_num] )
 	      this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
 	    this->buf_types[stream_num] |= channel;
 	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 
 #ifdef LOG
-	    printf ("demux_ogg: subtype          %.4s\n", &oggh->subtype);
-	    printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
-	    printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
-	    printf ("demux_ogg: default_len      %d\n", oggh->default_len); 
-	    printf ("demux_ogg: buffersize       %d\n", oggh->buffersize); 
-	    printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
-	    printf ("demux_ogg: width            %d\n", oggh->hubba.video.width); 
-	    printf ("demux_ogg: height           %d\n", oggh->hubba.video.height); 
-	    printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
+            printf ("demux_ogg: subtype          %.4s\n", &locsubtype);
+            printf ("demux_ogg: time_unit        %lld\n", loctime_unit);
+            printf ("demux_ogg: samples_per_unit %lld\n", locsamples_per_unit);
+            printf ("demux_ogg: default_len      %d\n", locdefault_len);
+            printf ("demux_ogg: buffersize       %d\n", locbuffersize);
+            printf ("demux_ogg: bits_per_sample  %d\n", locbits_per_sample);
+            printf ("demux_ogg: width            %d\n", locwidth);
+            printf ("demux_ogg: height           %d\n", locheight);
+            printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);
 #endif
 
-	    bih.biSize=sizeof(xine_bmiheader);
-	    bih.biWidth = oggh->hubba.video.width;
-	    bih.biHeight= oggh->hubba.video.height;
-	    bih.biPlanes= 0;
-	    memcpy(&bih.biCompression, &oggh->subtype, 4);
-	    bih.biBitCount= 0;
-	    bih.biSizeImage=oggh->hubba.video.width*oggh->hubba.video.height;
-	    bih.biXPelsPerMeter=1;
-	    bih.biYPelsPerMeter=1;
-	    bih.biClrUsed=0;
-	    bih.biClrImportant=0;
-	    
-	    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-	    buf->decoder_flags = BUF_FLAG_HEADER;
-	    this->frame_duration = oggh->time_unit * 9 / 1000;
-	    buf->decoder_info[1] = this->frame_duration;
-	    memcpy (buf->content, &bih, sizeof (xine_bmiheader));
-	    buf->size = sizeof (xine_bmiheader);	  
-	    buf->type = this->buf_types[stream_num];
+            bih.biSize=sizeof(xine_bmiheader);
+            bih.biWidth = locwidth;
+            bih.biHeight= locheight;
+            bih.biPlanes= 0;
+            memcpy(&bih.biCompression, &locsubtype, 4);
+            bih.biBitCount= 0;
+            bih.biSizeImage=locwidth*locheight;
+            bih.biXPelsPerMeter=1;
+            bih.biYPelsPerMeter=1;
+            bih.biClrUsed=0;
+            bih.biClrImportant=0;
+
+            buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+            buf->decoder_flags = BUF_FLAG_HEADER;
+            this->frame_duration = loctime_unit * 9 / 1000;
+            buf->decoder_info[1] = this->frame_duration;
+            memcpy (buf->content, &bih, sizeof (xine_bmiheader));
+            buf->size = sizeof (xine_bmiheader);
+            buf->type = this->buf_types[stream_num];
 
 	    /*
 	     * video metadata
 	     */
 
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
-	      = oggh->hubba.video.width;
+              = locwidth;
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
-	      = oggh->hubba.video.height;
+              = locheight;
 	    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
 	      = this->frame_duration;
 
@@ -489,18 +471,33 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  } else if (!strncmp (&op.packet[1], "audio", 5)) {
 
 	    if (this->audio_fifo) {
-	      dsogg_header_t   *oggh;
 	      buf_element_t    *buf;
 	      int               codec;
 	      char              str[5];
 	      int               channel;
-	      
+
+              int16_t          locbits_per_sample, locchannels, locblockalign;
+              uint32_t         locsubtype;
+              int32_t          locsize, locdefault_len, locbuffersize, locavgbytespersec;
+              int64_t          loctime_unit, locsamples_per_unit;
+
+              memcpy(&locsubtype, &op.packet[9], 4);
+              memcpy(&locsize, &op.packet[13], 4);
+              memcpy(&loctime_unit, &op.packet[17], 8);
+              memcpy(&locsamples_per_unit, &op.packet[25], 8);
+              memcpy(&locdefault_len, &op.packet[33], 4);
+              memcpy(&locbuffersize, &op.packet[37], 4);
+              memcpy(&locbits_per_sample, &op.packet[41], 2);
+              memcpy(&locchannels, &op.packet[45], 2);
+              memcpy(&locblockalign, &op.packet[47], 2);
+              memcpy(&locavgbytespersec, &op.packet[49], 4);
+
+#ifdef LOG	      
 	      printf ("demux_ogg: direct show filter created audio stream detected, hexdump:\n");
 	      hex_dump (op.packet, op.bytes);
+#endif
 	      
-	      oggh = (dsogg_header_t *) &op.packet[1];
-	      
-	      memcpy(str, &oggh->subtype, 4);
+              memcpy(str, &locsubtype, 4);
 	      str[4] = 0;
 	      codec = atoi(str);
 	      
@@ -525,44 +522,44 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      }
 	      
 #ifdef LOG
-	      printf ("demux_ogg: subtype          0x%x\n", codec);
-	      printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
-	      printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
-	      printf ("demux_ogg: default_len      %d\n", oggh->default_len); 
-	      printf ("demux_ogg: buffersize       %d\n", oggh->buffersize); 
-	      printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
-	      printf ("demux_ogg: channels         %d\n", oggh->hubba.audio.channels); 
-	      printf ("demux_ogg: blockalign       %d\n", oggh->hubba.audio.blockalign); 
-	      printf ("demux_ogg: avgbytespersec   %d\n", oggh->hubba.audio.avgbytespersec); 
-	      printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
+              printf ("demux_ogg: subtype          0x%x\n", codec);
+              printf ("demux_ogg: time_unit        %lld\n", loctime_unit);
+              printf ("demux_ogg: samples_per_unit %lld\n", locsamples_per_unit);
+              printf ("demux_ogg: default_len      %d\n", locdefault_len);
+              printf ("demux_ogg: buffersize       %d\n", locbuffersize);
+              printf ("demux_ogg: bits_per_sample  %d\n", locbits_per_sample);
+              printf ("demux_ogg: channels         %d\n", locchannels);
+              printf ("demux_ogg: blockalign       %d\n", locblockalign);
+              printf ("demux_ogg: avgbytespersec   %d\n", locavgbytespersec);
+              printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);
 #endif
 	    
 	      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	      buf->type = this->buf_types[stream_num];
 	      buf->decoder_flags = BUF_FLAG_HEADER;
 	      buf->decoder_info[0] = 0;
-	      buf->decoder_info[1] = oggh->samples_per_unit;
-	      buf->decoder_info[2] = oggh->bits_per_sample;
-	      buf->decoder_info[3] = oggh->hubba.audio.channels;
+              buf->decoder_info[1] = locsamples_per_unit;
+              buf->decoder_info[2] = locbits_per_sample;
+              buf->decoder_info[3] = locchannels;
 	      this->audio_fifo->put (this->audio_fifo, buf);
 	      
 	      this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
-	      this->samplerate[stream_num] = oggh->samples_per_unit;
+              this->samplerate[stream_num] = locsamples_per_unit;
 	    
-	      this->avg_bitrate += oggh->hubba.audio.avgbytespersec*8;
+              this->avg_bitrate += locavgbytespersec*8;
 
 	      /*
 	       * audio metadata
 	       */
 
 	      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS]
-		= oggh->hubba.audio.channels;
+                = locchannels;
 	      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]
-		= oggh->bits_per_sample;
+                = locbits_per_sample;
 	      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE]
-		= oggh->samples_per_unit;
+                = locsamples_per_unit;
 	      this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE]
-		= oggh->hubba.audio.avgbytespersec*8;
+                = locavgbytespersec*8;
 
 	    } else /* no audio_fifo there */
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
