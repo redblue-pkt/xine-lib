@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.296 2004/08/02 12:51:21 miguelfreitas Exp $
+ * $Id: xine.c,v 1.297 2004/08/30 07:37:42 f1rmb Exp $
  */
 
 /*
@@ -1523,15 +1523,18 @@ void _x_select_spu_channel (xine_stream_t *stream, int channel) {
   switch (stream->spu_channel_user) {
   case -2:
     stream->spu_channel = -1;
-    stream->video_out->enable_ovl (stream->video_out, 0);
+    if(stream->video_out)
+      stream->video_out->enable_ovl (stream->video_out, 0);
     break;
   case -1:
     stream->spu_channel = stream->spu_channel_auto;
-    stream->video_out->enable_ovl (stream->video_out, 1);
+    if(stream->video_out)
+      stream->video_out->enable_ovl (stream->video_out, 1);
     break;
   default:
     stream->spu_channel = stream->spu_channel_user;
-    stream->video_out->enable_ovl (stream->video_out, 1);
+    if(stream->video_out)
+      stream->video_out->enable_ovl (stream->video_out, 1);
   }
   lprintf("set to %d\n",stream->spu_channel);
 
