@@ -9,6 +9,7 @@ xine (0.9.10) unstable; urgency=low
   * dxr3 compilation fixes
   * SyncFB video-out (brightness/contrast control is back, updated doc, ...)
   * new spec file for rpm package generation
+  * SDL video out driver (experimental)
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> 
 
