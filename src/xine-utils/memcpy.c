@@ -1,18 +1,18 @@
-/* 
+/*
  * Copyright (C) 2001-2002 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
@@ -42,9 +42,9 @@
 #include <string.h>
 #include "xine_internal.h"
 #include "xineutils.h"
- 
+
 void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
- 
+
 /* Original comments from mplayer (file: aclib.c)
  This part of code was taken by me from Linux-2.4.3 and slightly modified
 for MMX, MMX2, SSE instruction set. I have done it since linux uses page aligned
@@ -93,7 +93,7 @@ If you have questions please contact with me: Nick Kurshev: nickols_k@mail.ru.
     of memory copying on PentMMX, Celeron-1 and P2 upto 12% versus
     standard (non MMX-optimized) version.
     Note: on K6-2+ it speedups memory copying upto 25% and
-          on K7 and P3 about 500% (5 times). 
+          on K7 and P3 about 500% (5 times).
 */
 
 /* Additional notes on gcc assembly and processors: [MF]
@@ -102,7 +102,7 @@ prefetch0, prefetch1, prefetch2 which are not recognized by my gcc.
 prefetchnta is supported both on athlon and pentium 3.
 
 therefore i will take off prefetchnta instructions from the mmx1 version
-to avoid problems on pentium mmx and k6-2.  
+to avoid problems on pentium mmx and k6-2.
 
 quote of the day:
 "Using prefetches efficiently is more of an art than a science"
@@ -124,8 +124,8 @@ __asm__ __volatile__(\
 
 /* linux kernel __memcpy (from: /include/asm/string.h) */
 static __inline__ void * __memcpy (
-			       void * to, 
-			       const void * from, 
+			       void * to,
+			       const void * from,
 			       size_t n)
 {
 int d0, d1, d2;
@@ -146,7 +146,7 @@ int d0, d1, d2;
     : "=&c" (d0), "=&D" (d1), "=&S" (d2)
     :"0" (n/4), "q" (n),"1" ((long) to),"2" ((long) from)
     : "memory");
-  
+
   return (to);
 }
 
@@ -164,7 +164,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
   void *retval;
   size_t i;
   retval = to;
-    
+
   /* PREFETCH has effect even for MOVSB instruction ;) */
   __asm__ __volatile__ (
     "   prefetchnta (%0)\n"
@@ -173,7 +173,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
     "   prefetchnta 192(%0)\n"
     "   prefetchnta 256(%0)\n"
     : : "r" (from) );
-    
+
   if(len >= MIN_LEN)
   {
     register unsigned long int delta;
@@ -205,7 +205,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
         ((const unsigned char *)from)+=64;
         ((unsigned char *)to)+=64;
       }
-    else 
+    else
       /*
          Only if SRC is aligned on 16-byte boundary.
          It allows to use movaps instead of movups, which required data
@@ -366,7 +366,7 @@ static struct {
   void *(* function)(void *to, const void *from, size_t len);
   unsigned long long time;
   uint32_t cpu_require;
-} memcpy_method[] = 
+} memcpy_method[] =
 {
   { NULL, NULL, 0, 0 },
   { "glibc memcpy()", memcpy, 0, 0 },
@@ -387,7 +387,7 @@ static struct {
 static unsigned long long int rdtsc()
 {
   unsigned long long int x;
-  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));     
+  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
   return x;
 }
 #else
@@ -402,15 +402,15 @@ static unsigned long long int rdtsc()
 
 static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
   static int config_flags = -1;
-    
+
   int method;
 
   config_flags = xine_mm_accel();
 
   method = entry->num_value;
 
-  if (method != 0 
-      && (config_flags & memcpy_method[method].cpu_require) == 
+  if (method != 0
+      && (config_flags & memcpy_method[method].cpu_require) ==
       memcpy_method[method].cpu_require ) {
     printf("xine: using %s\n", memcpy_method[method].name );
     xine_fast_memcpy = memcpy_method[method].function;
@@ -427,27 +427,27 @@ void xine_probe_fast_memcpy(config_values_t *config)
   char *buf1, *buf2;
   int i, j, best;
   int config_flags = -1;
-  static char *memcpy_methods[] = { 
+  static char *memcpy_methods[] = {
     "probe", "glibc",
 #ifdef ARCH_X86
-    "kernel", "mmx", "mmxext", "sse", 
+    "kernel", "mmx", "mmxext", "sse",
 #endif
 #ifdef ARCH_PPC
     "ppcasm_memcpy", "ppcasm_cacheable_memcpy",
 #endif
     NULL
   };
-  
+
   config_flags = xine_mm_accel();
 
   best = config->register_enum (config, "misc.memcpy_method", 0,
-				memcpy_methods, 
+				memcpy_methods,
 				_("Memcopy method to use in xine for large data chunks."),
 				NULL, 20, update_fast_memcpy, NULL);
-  
+
   /* check if function is configured and valid for this machine */
-  if( best != 0 && 
-     (config_flags & memcpy_method[best].cpu_require) == 
+  if( best != 0 &&
+     (config_flags & memcpy_method[best].cpu_require) ==
       memcpy_method[best].cpu_require ) {
     printf("xine: using %s\n", memcpy_method[best].name );
     xine_fast_memcpy = memcpy_method[best].function;
@@ -455,12 +455,12 @@ void xine_probe_fast_memcpy(config_values_t *config)
   }
 
   best = 0;
-  
+
   xine_fast_memcpy = memcpy;
-  
+
   if( (buf1 = malloc(BUFSIZE)) == NULL )
     return;
-    
+
   if( (buf2 = malloc(BUFSIZE)) == NULL ) {
     free(buf1);
     return;
@@ -472,21 +472,21 @@ void xine_probe_fast_memcpy(config_values_t *config)
 
   for(i=1; memcpy_method[i].name; i++)
   {
-    if( (config_flags & memcpy_method[i].cpu_require) != 
+    if( (config_flags & memcpy_method[i].cpu_require) !=
          memcpy_method[i].cpu_require )
       continue;
 
     t = rdtsc();
-    for(j=0;j<50;j++) {	  
+    for(j=0;j<50;j++) {
       memcpy_method[i].function(buf2,buf1,BUFSIZE);
       memcpy_method[i].function(buf1,buf2,BUFSIZE);
-    }     
+    }
 
     t = rdtsc() - t;
     memcpy_method[i].time = t;
-    
+
     printf("\t%s : %lld\n",memcpy_method[i].name, t);
-    
+
     if( best == 0 || t < memcpy_method[best].time )
       best = i;
   }
