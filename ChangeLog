@@ -1,5 +1,6 @@
   * what a GOOM! post plugin
-
+  * Digital TV (DVB) input plugin (experimental)
+	
 xine-lib (1-beta1)
   * updated libfaad
   * improved engine for seeking and slider positioning

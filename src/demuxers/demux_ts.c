@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.71 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.72 2002/12/27 00:53:49 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -139,8 +139,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
-
-#define VALID_MRLS   "fifo,stdin,dvb,tcp"
+#include "events.h"
 
 /*
 #define TS_LOG
@@ -285,6 +284,9 @@ typedef struct {
   demux_ts_spu_lang spu_langs[MAX_NO_SPU_LANGS];
   int               no_spu_langs;
   int               current_spu_channel;
+
+  /* dvb */
+  xine_event_queue_t *event_queue;
 } demux_ts_t;
 
 typedef struct {
@@ -1597,6 +1599,33 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   }
 }
 
+/*
+ * check for pids change events
+ */
+
+static void demux_ts_event_handler (demux_ts_t *this) {
+
+  xine_event_t *event;
+
+  while ((event = xine_event_get (this->event_queue))) {
+
+
+    switch (event->type) {
+
+    case XINE_EVENT_PIDS_CHANGE:
+
+      this->videoPid    = INVALID_PID;
+      this->audioPid    = INVALID_PID;
+      this->media_num   = 0;
+      this->send_newpts = 1;
+
+      break;
+      
+    }
+
+    xine_event_free (event);
+  }
+}
 
 /*
  * send a piece of data down the fifos
@@ -1606,14 +1635,15 @@ static int demux_ts_send_chunk (demux_plugin_t *this_gen) {
 
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
+  demux_ts_event_handler (this);
+
   demux_ts_parse_packet(this);
 
   /* DVBSUB: check if channel has changed.  Dunno if I should, or
    * even could, lock the xine object. */
-  if (this->stream->spu_channel != this->current_spu_channel)
-    {
-      demux_ts_update_spu_channel(this);
-    }
+  if (this->stream->spu_channel != this->current_spu_channel) {
+    demux_ts_update_spu_channel(this);
+  }
 
   return this->status;
 }
@@ -1629,6 +1659,9 @@ static void demux_ts_dispose (demux_plugin_t *this_gen) {
     if (this->media[i].buf != NULL) 
       this->media[i].buf->free_buffer(this->media[i].buf);
   }
+
+  xine_event_dispose_queue (this->event_queue);
+
   free(this_gen);
 }
 
@@ -1953,6 +1986,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->spu_pid = INVALID_PID;
   this->no_spu_langs = 0;
   this->current_spu_channel = this->stream->spu_channel;
+
+  /* dvb */
+  this->event_queue = xine_event_new_queue (this->stream);
   
   return &this->demux_plugin;
 }

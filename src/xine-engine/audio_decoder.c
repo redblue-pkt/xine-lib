@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.95 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.96 2002/12/27 00:53:50 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -195,7 +195,8 @@ void *audio_decoder_loop (void *stream_gen) {
         while ( (i<stream->audio_track_map_entries) && (stream->audio_track_map[i]<buf->type) ) 
           i++;
         
-        if ( (i==stream->audio_track_map_entries) || (stream->audio_track_map[i] != buf->type) ) {
+        if ( (i==stream->audio_track_map_entries) 
+	     || (stream->audio_track_map[i] != buf->type) ) {
           
           j = stream->audio_track_map_entries;
           while (j>i) {
@@ -208,11 +209,22 @@ void *audio_decoder_loop (void *stream_gen) {
 
 	/* find out which audio type to decode */
 
+#ifdef LOG
+	printf ("audio_decoder: audio_channel_user = %d, map[0]=%08x\n",
+		stream->audio_channel_user,
+		stream->audio_track_map[0]);
+#endif
+
 	if (stream->audio_channel_user > -2) {
 
 	  if (stream->audio_channel_user == -1) {
 
 	    /* auto */
+
+#ifdef LOG
+	    printf ("audio_decoder: audio_channel_auto = %d\n",
+		    stream->audio_channel_auto);
+#endif
 
 	    if (stream->audio_channel_auto>=0) {
  
@@ -311,7 +323,7 @@ void audio_decoder_init (xine_stream_t *stream) {
    */
   stream->audio_fifo = fifo_buffer_new (230, 8192);
   stream->audio_channel_user = -1;
-  stream->audio_channel_auto = 0;
+  stream->audio_channel_auto = -1;
   stream->audio_track_map_entries = 0;
   stream->audio_type = 0;
 

@@ -1,0 +1,86 @@
+
+xine Digital TV (DVB)
+=====================
+
+xine can be used to watch digital television.
+
+xine supports Digital TV (Digital Video Broadcasting - DVB) cards
+using the Linux DVB driver from Convergence (so far this has only been
+tested using a Hauppauge WinTV Nova DVB-S card).
+
+driver download and installation
+--------------------------------
+
+Download and install the latest drivers from www.linuxtv.org. You will
+need kernel sources configured for your configuration for a successfull build,
+preferably in /usr/src/linux. Once you have that, unpack the driver sources
+
+# tar xfvz siemens_dvb-0.9.4.tar.gz
+
+and compile the driver
+
+# cd DVB/driver
+# make
+
+if that doesn't fail, do a
+
+# make insmod
+
+to load the generated modules into your running kernel. If everything went
+fine, you should have a line like
+
+dvb: 1 dvb(s) found!
+
+in your dmesg.
+
+
+install a channel list
+----------------------
+
+xine's dvb input plugin needs a channel/transponder list that fits your 
+satellite equipment. If you happen to live in central europe and want to
+watch free channels from the astra 1a position you're lucky - you can simply
+copy the dvb_channels file that comes with libxine (doc directory) 
+
+$ mkdir ~/.xine
+$ cp doc/dvb_channels ~/.xine
+
+otherwise you'll probably want to write your own channels file. The file
+format is very simple: for each station add three lines:
+
+Program Name
+A BBBBBBBB C DDDDDDDD E FFF GGG
+(empty line)
+
+with
+
+A - diseqc number
+
+B - Frequency
+
+C - LNB voltage (H/V polarisation switch)
+
+D - Symbol Rate
+
+E - FEC
+
+F - vpid (video program id)
+
+G - apid (audio program id)
+
+once you have written a working dvb_channels file for your location/satellite,
+you might want to share it with others on the xine-user mailing list :-)
+
+
+using xine to watch digital television
+--------------------------------------
+
+make sure you have a recent libxine and frontend installed (latest CVS as of 
+this writing). then simply start something like
+
+$ gxine dvb://
+
+you should be able to zap around using the NumPad-8 / NumPad-2 keys.
+An OSD menu for channel selection is currently being implemented.
+
+Have fun.

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.203 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: xine.c,v 1.204 2002/12/27 00:53:50 guenter Exp $
  *
  * top-level xine functions
  *
@@ -309,7 +309,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_decoder_streamtype = -1;
   stream->audio_out              = ao;
   stream->audio_channel_user     = -1;
-  stream->audio_channel_auto     = 0;
+  stream->audio_channel_auto     = -1;
   stream->audio_decoder_plugin   = NULL;
   stream->audio_decoder_streamtype = -1;
   stream->spu_channel_auto       = -1;
