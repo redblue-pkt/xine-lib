@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/08/31 17:57:54 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/09/01 01:51:50 jcdutton Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -42,10 +42,11 @@ typedef struct lpcm_decoder_s {
   audio_decoder_t  audio_decoder;
 
   uint32_t         pts;
-  uint32_t         last_pts;
-  uint32_t         last_size;
   uint32_t         rate;
-  
+  uint32_t         bits_per_sample; 
+  uint32_t         number_of_channels; 
+  uint32_t         ao_cap_mode; 
+   
   ao_instance_t  *audio_out;
   int              output_open;
   int		   cpu_be;	/* TRUE, if we're a Big endian CPU */
@@ -66,10 +67,11 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->audio_out     = audio_out;
   this->output_open   = 0;
   this->pts           = 0;
-  this->last_pts      = 0;
-  this->last_size     = 0;
   this->rate          = 0;
-
+  this->bits_per_sample=0; 
+  this->number_of_channels=0; 
+  this->ao_cap_mode=0; 
+ 
   this->cpu_be        = ( htons(1) == 1 );
 }
 
@@ -80,20 +82,17 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   int16_t *sample_buffer=(int16_t *)buf->content;
   int stream_be;
 
-  this->last_pts=this->pts; 
-  this->pts = buf->PTS; 
+  this->pts = buf->PTS;
+  this->rate=buf->decoder_info[1];
+  this->bits_per_sample=buf->decoder_info[2] ; 
+  this->number_of_channels=buf->decoder_info[3] ; 
+  this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
   if (buf->decoder_info[0] == 0)
     return;
-  if ((this->last_pts > 0) && (this->pts > 0) && (this->rate == 0)) {
-    this->rate=(22500 * this->last_size)/(this->pts-this->last_pts);
-  }
-  this->last_size=buf->size;
-  if (this->rate == 0) 
-    return;
   if (!this->output_open) {      
-    this->output_open = (this->audio_out->open (this->audio_out, 16, 
+    this->output_open = (this->audio_out->open (this->audio_out, this->bits_per_sample, 
                                                 this->rate,
-                                                AO_CAP_MODE_STEREO));
+                                                this->ao_cap_mode));
   }
   if (!this->output_open) 
     return;
@@ -104,9 +103,9 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     swab(sample_buffer, sample_buffer, buf->size);
 
   this->audio_out->write (this->audio_out,
-                                     sample_buffer,
-				     buf->size/4,
-                                     this->pts);
+                            sample_buffer,
+                            (((buf->size*8)/this->number_of_channels)/this->bits_per_sample),
+                            this->pts);
 
   
 }
@@ -117,7 +116,6 @@ void lpcm_close (audio_decoder_t *this_gen) {
 
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
-  printf("LPCM:Close\n");
   this->output_open = 0;
 }
 
