@@ -118,7 +118,7 @@ libintl.a libgnuintl.a: $(OBJECTS)
 # No -rpath, this is only a convenience library
 libintl.la libgnuintl.la: $(OBJECTS)
 	$(LIBTOOL) --mode=link \
-	  $(CC) $(CPPFLAGS) $(CFLAGS) $(XCFLAGS) $(LDFLAGS) -o $@ \
+	  $(CC) $(CPPFLAGS) $(CFLAGS) $(XCFLAGS) $(LDFLAGS) -static -o $@ \
 	  $(OBJECTS) @LIBICONV@ \
 	  -no-undefined
 
