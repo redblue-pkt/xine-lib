@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.63 2002/03/08 00:24:40 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.64 2002/03/10 21:16:16 miguelfreitas Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -439,7 +439,7 @@ static int get_duration(int framecode, int repeat_first_field)
 		/*duration=3600;*/
 		break;
 	case 4: /* 29.970 */
-		duration=repeat_first_field ? 3754 : 3003;
+		duration=repeat_first_field ? 4505 : 3003;
 		/*duration=3003;*/
 		break;
 	case 5: /* 30.000 */

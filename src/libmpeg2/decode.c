@@ -88,49 +88,48 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
   switch (mpeg2dec->picture->frame_rate_code) {
   case 1: /* 23.976 fps */
     frame->duration      = 3913;
-    frame->pts_corrector = 0;
     break;
   case 2: /* 24 fps */
     frame->duration      = 3750;
-    frame->pts_corrector = 0;
     break;
   case 3: /* 25 fps */
-    frame->duration      = mpeg2dec->picture->repeat_first_field ? 5400 : 3600;
-    frame->pts_corrector = 0;
+    frame->duration      = 3600;
     break;
   case 4: /* 29.97 fps */
-    if ((mpeg2dec->picture->repeat_first_field) || (mpeg2dec->last_repeat_first_field)) {
-      frame->duration      = 3754;
-      frame->pts_corrector = frame->repeat_first_field ? 375 : -375;
-    } else {
-      frame->duration      = 3003;
-      frame->pts_corrector = 0;
-    }
+    frame->duration      = 3003;
     break;
   case 5: /* 30 fps */
     frame->duration      = 3000;
-    frame->pts_corrector = 0;
     break;
   case 6: /* 50 fps */
     frame->duration      = 1800;
-    frame->pts_corrector = 0;
     break;
   case 7: /* 59.94 fps */
     frame->duration      = 1525;
-    frame->pts_corrector = 0;
     break;
   case 8: /* 60 fps */
     frame->duration      = 1509;
-    frame->pts_corrector = 0;
     break;
   default:
        /* printf ("invalid/unknown frame rate code : %d \n",
                frame->frame_rate_code); */
     frame->duration      = 3000;
-    frame->pts_corrector = 0;
   }
+  
+  if( mpeg2dec->picture->repeat_first_field ) {
+    if( !mpeg2dec->picture->progressive_sequence &&
+         mpeg2dec->picture->progressive_frame ) {
+      /* decoder should output 3 fields, so adjust duration to
+         count on this extra field time */
+      frame->duration += frame->duration/2;     
+    } else if( mpeg2dec->picture->progressive_sequence ) {
+      /* for progressive sequences the output should repeat the
+         frame 1 or 2 times depending on top_field_first flag. */
+      frame->duration *= (mpeg2dec->picture->top_field_first)?3:2;
+    }
+  }
+  
   /* printf("mpeg2dec: rff=%u\n",frame->repeat_first_field); */
-  mpeg2dec->last_repeat_first_field = frame->repeat_first_field;
 } 
 
 static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,

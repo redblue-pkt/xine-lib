@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.74 2002/03/01 09:29:50 guenter Exp $
+ * $Id: video_decoder.c,v 1.75 2002/03/10 21:16:14 miguelfreitas Exp $
  *
  */
 
@@ -106,7 +106,7 @@ void *video_decoder_loop (void *this_gen) {
 
       pthread_mutex_unlock (&this->finished_lock);
  
-      this->metronom->expect_video_discontinuity (this->metronom);
+      this->metronom->expect_video_discontinuity (this->metronom, 1);
 
       break;
 
@@ -186,7 +186,7 @@ void *video_decoder_loop (void *this_gen) {
 
       this->video_in_discontinuity = 1;
 
-      this->metronom->expect_video_discontinuity (this->metronom);
+      this->metronom->expect_video_discontinuity (this->metronom, 0);
 
       this->video_in_discontinuity = 0;
       break;

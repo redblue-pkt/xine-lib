@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.63 2002/03/08 19:17:05 guenter Exp $
+ * $Id: metronom.c,v 1.64 2002/03/10 21:16:15 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -289,10 +289,12 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts,
   return vpts;
 }
 
-static void metronom_expect_video_discontinuity (metronom_t *this) {
+static void metronom_expect_video_discontinuity (metronom_t *this, int starting) {
 
   pthread_mutex_lock (&this->lock);
 
+  this->video_starting = starting;
+  
   this->video_discontinuity  = 10;
   
   this->video_discontinuity_count++;
@@ -330,7 +332,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   pthread_mutex_lock (&this->lock);
   
   /* check for pts discontinuities against the predicted pts value */
-  if (pts) {
+  if (pts && this->last_video_pts) {
 
     int64_t diff, predicted_pts;
 
@@ -369,7 +371,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
      * check if there was any pending SCR discontinuity (video_discontinuity
      * is set from the decoder loop) together with pts discont.
      */
-    if (this->video_discontinuity && pts_discontinuity) {
+    if ( this->video_discontinuity && 
+         (pts_discontinuity || this->video_starting) ) {
+      this->video_starting = 0;
       this->video_discontinuity = 0;
       this->wrap_diff_counter = 0;
 
@@ -429,30 +433,22 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
 	this->video_vpts  = vpts;
 	this->video_drift = 0;
-	/* following line is useless (wrap_offset=wrap_offset)  */
-	/* this->video_wrap_offset = vpts - pts; */
 
 #ifdef LOG
-	printf ("metronom: video jump, wrap offset is now %lld\n",
-		this->video_wrap_offset);
+	printf ("metronom: video jump, ignoring predicted vpts\n");
 #endif
 	
       } else if (diff) {
 
-	this->video_drift = diff;
-
-	/* this->video_vpts -= diff / 8;*/ /* FIXME: better heuristics ? */
-	/* make wrap_offset consistent with the drift correction */
-	/* this->video_wrap_offset = this->video_vpts - pts; */
-	/* don't touch wrap here, wrap offsets are used for wrap compensation */
+	this->video_drift = diff / 30;
 
 #ifdef LOG
-	printf ("metronom: video drift, wrap offset is now %lld\n",
-		this->video_wrap_offset);
+	printf ("metronom: video drift, compensation will be %lld pts/frame\n",
+		this->video_drift);
 #endif
       }
     }
-
+                                          
     this->last_video_pts  = pts;
   } else
     this->last_video_pts  = this->video_vpts  - this->video_wrap_offset;
@@ -460,13 +456,12 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   img->vpts = this->video_vpts + this->av_offset;
 
 #ifdef LOG
-  printf ("metronom: video vpts for %10lld : %10lld\n", 
-	  pts, this->video_vpts);
+  printf ("metronom: video vpts for %10lld : %10lld (duration:%lld)\n", 
+	  pts, this->video_vpts, duration);
 #endif
-
-  this->video_vpts += duration - this->video_drift/30;
-
-  this->video_drift -= this->video_drift/30;
+  
+  this->video_vpts += duration - this->video_drift;
+  img->duration -= this->video_drift;
 
   pthread_mutex_unlock (&this->lock);
 }

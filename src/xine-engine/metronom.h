@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.19 2002/03/08 19:17:06 guenter Exp $
+ * $Id: metronom.h,v 1.20 2002/03/10 21:16:15 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -137,7 +137,7 @@ struct metronom_s {
    *
    */
   void (*expect_audio_discontinuity) (metronom_t *this);
-  void (*expect_video_discontinuity) (metronom_t *this);
+  void (*expect_video_discontinuity) (metronom_t *this, int starting);
 
   /*
    * manually correct audio <-> video sync
@@ -228,6 +228,7 @@ struct metronom_s {
   pthread_mutex_t lock;
 
   int             have_audio;
+  int             video_starting;
   int             video_discontinuity;
   int             video_discontinuity_count;
   int             audio_discontinuity;
