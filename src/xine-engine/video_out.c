@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.201 2004/06/26 13:51:13 mroi Exp $
+ * $Id: video_out.c,v 1.202 2004/07/05 17:13:37 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -444,7 +444,11 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       if (stream == XINE_ANON_STREAM) continue;
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag == 2) {
-        stream->first_frame_flag = (this->grab_only) ? 0 : 1;
+        if (this->grab_only) {
+          stream->first_frame_flag = 0;
+          pthread_cond_broadcast(&stream->first_frame_reached);
+        } else
+          stream->first_frame_flag = 1;
         img->is_first = FIRST_FRAME_MAX_POLL;
 
         lprintf ("get_next_video_frame first_frame_reached\n");
