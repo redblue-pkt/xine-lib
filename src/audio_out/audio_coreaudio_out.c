@@ -78,7 +78,8 @@ typedef struct coreaudio_driver_s {
   uint8_t        buf[BUFSIZE];
   uint32_t       buf_readpos;
   uint32_t       buf_writepos;
-
+  uint32_t       last_block_size;
+  
   pthread_mutex_t mutex;
   
 } coreaudio_driver_t;
@@ -119,6 +120,8 @@ static OSStatus ao_coreaudio_render_proc (coreaudio_driver_t *this,
         this->buf_readpos += ioData->mBuffers[i].mDataByteSize;
     }
 
+	this->last_block_size = req_size;
+	
     pthread_mutex_unlock (&this->mutex);
     
     return noErr;
@@ -144,6 +147,7 @@ static int ao_coreaudio_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate
   this->bytes_per_frame = 4;
   this->buf_readpos = 0;
   this->buf_writepos = 0;
+  this->last_block_size = 0;
   pthread_mutex_init (&this->mutex, NULL);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
@@ -294,7 +298,8 @@ static int ao_coreaudio_write(ao_driver_t *this_gen, int16_t *data,
 static int ao_coreaudio_delay (ao_driver_t *this_gen)
 {
   coreaudio_driver_t *this = (coreaudio_driver_t *) this_gen;
-  return (this->buf_writepos - this->buf_readpos) / this->bytes_per_frame;
+  return (this->buf_writepos - this->buf_readpos + this->last_block_size) 
+		  / this->bytes_per_frame;
 }
 
 static void ao_coreaudio_close(ao_driver_t *this_gen)
