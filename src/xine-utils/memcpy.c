@@ -91,6 +91,19 @@ If you have questions please contact with me: Nick Kurshev: nickols_k@mail.ru.
           on K7 and P3 about 500% (5 times). 
 */
 
+/* Additional notes on gcc assembly and processors: [MF]
+prefetch is specific for AMD processors, the intel ones should be
+prefetch0, prefetch1, prefetch2 which are not recognized by my gcc.
+prefetchnta is supported both on athlon and pentium 3.
+
+therefore i will take off prefetchnta instructions from the mmx1 version
+to avoid problems on pentium mmx and k6-2.  
+
+quote of the day:
+"Using prefetches efficiently is more of an art than a science"
+*/
+
+
 #ifdef ARCH_X86
 
 /* for small memory blocks (<256 bytes) this version is faster */
@@ -142,8 +155,17 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
 {
   void *retval;
   size_t i;
-    retval = to;
-
+  retval = to;
+    
+  /* PREFETCH has effect even for MOVSB instruction ;) */
+  __asm__ __volatile__ (
+    "   prefetchnta (%0)\n"
+    "   prefetchnta 64(%0)\n"
+    "   prefetchnta 128(%0)\n"
+    "   prefetchnta 192(%0)\n"
+    "   prefetchnta 256(%0)\n"
+    : : "r" (from) );
+    
   if(len >= MIN_LEN)
   {
     register unsigned long int delta;
@@ -216,15 +238,6 @@ static void * mmx_memcpy(void * to, const void * from, size_t len)
   size_t i;
   retval = to;
 
-   /* PREFETCH has effect even for MOVSB instruction ;) */
-  __asm__ __volatile__ (
-    "   prefetchnta (%0)\n"
-    "   prefetchnta 64(%0)\n"
-    "   prefetchnta 128(%0)\n"
-    "   prefetchnta 192(%0)\n"
-    "   prefetchnta 256(%0)\n"
-    : : "r" (from) );
-        
   if(len >= MMX1_MIN_LEN)
   {
     register unsigned long int delta;
@@ -241,7 +254,6 @@ static void * mmx_memcpy(void * to, const void * from, size_t len)
     for(; i>0; i--)
     {
       __asm__ __volatile__ (
-      "prefetchnta 320(%0)\n"
       "movq (%0), %%mm0\n"
       "movq 8(%0), %%mm1\n"
       "movq 16(%0), %%mm2\n"
