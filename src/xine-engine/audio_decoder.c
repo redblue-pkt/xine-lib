@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.73 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.74 2002/06/03 20:36:26 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -47,6 +47,7 @@ void *audio_decoder_loop (void *this_gen) {
   int              running = 1;
   audio_decoder_t *decoder;
   static int	   prof_audio_decode = -1;
+  static uint32_t  buftype_unknown = 0;
 
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
@@ -239,11 +240,19 @@ void *audio_decoder_loop (void *this_gen) {
 	    /* finally - decode data */
 	    
 	    if (decoder) 
-	    decoder->decode_data (decoder, buf);
+	      decoder->decode_data (decoder, buf);
+	    else if( buf->type != buftype_unknown ) {
+	      xine_log (this, XINE_LOG_MSG, "audio_decoder: no plugin available to handle '%s'\n",
+		        buf_audio_name( buf->type ) );
+	      buftype_unknown = buf->type;
+	    }
 	  }
 	} 
-      } else
-	printf ("audio_loop: unknown buffer type: %08x\n", buf->type);
+      } else if( buf->type != buftype_unknown ) {
+	  xine_log (this, XINE_LOG_MSG, "audio_decoder: unknown buffer type: %08x\n",
+		    buf->type );
+	  buftype_unknown = buf->type;
+      }
 
       xine_profiler_stop_count (prof_audio_decode);
     }

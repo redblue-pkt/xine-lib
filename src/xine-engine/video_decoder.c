@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.85 2002/05/24 22:09:45 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.86 2002/06/03 20:36:26 miguelfreitas Exp $
  *
  */
 
@@ -64,7 +64,8 @@ void *video_decoder_loop (void *this_gen) {
   spu_decoder_t   *spu_decoder;
   static int	   prof_video_decode = -1;
   static int	   prof_spu_decode = -1;
-
+  static uint32_t  buftype_unknown = 0;
+  
   if (prof_video_decode == -1)
     prof_video_decode = xine_profiler_allocate_slot ("video decoder");
   if (prof_spu_decode == -1)
@@ -260,9 +261,17 @@ void *video_decoder_loop (void *this_gen) {
 	  }
 
 	  decoder->decode_data (this->cur_video_decoder_plugin, buf);  
-	}
-      } else
-	printf ("video_decoder: unknown buffer type: %08x\n", buf->type);
+	
+	} else if( buf->type != buftype_unknown ) {
+	      xine_log (this, XINE_LOG_MSG, "video_decoder: no plugin available to handle '%s'\n",
+		        buf_video_name( buf->type ) );
+	    buftype_unknown = buf->type;
+        }
+      } else if( buf->type != buftype_unknown ) {
+	  xine_log (this, XINE_LOG_MSG, "video_decoder: unknown buffer type: %08x\n",
+		    buf->type );
+	  buftype_unknown = buf->type;
+      }
 
       xine_profiler_stop_count (prof_video_decode);
 
