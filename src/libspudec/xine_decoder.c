@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.63 2002/04/23 20:27:32 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.64 2002/04/23 21:48:06 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -222,12 +222,22 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
           but->buttonN,
           but->show);
         this->buttonN = but->buttonN;
+        if (this->button_filter != 1) {
+          /* Only update highlight is the menu will let us */
+          free(overlay_event);
+          free(overlay);
+          break;
+        }
+        if (but->show == 2) {
+          this->button_filter = 2;
+        }
         overlay_event->object.handle = this->menu_handle;
         overlay_event->object.pts = this->pci.hli.hl_gi.hli_s_ptm;
         overlay_event->object.overlay=overlay;
         overlay_event->event_type = EVENT_MENU_BUTTON;
         spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, but->show-1, overlay );
       } else {
+        fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
         overlay_event->object.handle = this->menu_handle;
         overlay_event->event_type = EVENT_HIDE_MENU;
       }
@@ -235,44 +245,10 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       if (this->vo_out) {
         ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
         ovl_instance->add_event (ovl_instance, (void *)overlay_event);
-      }
-/*****************
-        get current pci_t
-        get_current_state 0=no actions allowed.
-                          1=select/activate allowed.
-        spudec_fill_overlay_button(nav_pci, overlay, but->buttonN, but->show-1);
-        use button to fill overlay data.
-        result return 0 = no action.
-                      1 = show.
-                      2 = active. If button active, it stays active until next VOBU.
-                      3 = hide.  
-        overlay_event->object.handle = this->menu_handle;
-        overlay_event->object.pts = but->pts;
-        overlay_event->object.overlay=overlay;
-        overlay_event->event_type = EVENT_MENU_BUTTON;
-        overlay->clip_top = but->top;
-        overlay->clip_bottom = but->bottom;
-        overlay->clip_left = but->left;
-        overlay->clip_right = but->right;
-        overlay->clip_color[0] = this->state.clut[but->color[0]];
-        overlay->clip_color[1] = this->state.clut[but->color[1]];
-        overlay->clip_color[2] = this->state.clut[but->color[2]];
-        overlay->clip_color[3] = this->state.clut[but->color[3]];
-        overlay->clip_trans[0] = but->trans[0];
-        overlay->clip_trans[1] = but->trans[1];
-        overlay->clip_trans[2] = but->trans[2];
-        overlay->clip_trans[3] = but->trans[3];
-        overlay->clip_rgb_clut = 0;
       } else {
-        overlay_event->object.handle = this->menu_handle;
-        overlay_event->event_type = EVENT_HIDE_MENU;
+        free(overlay_event);
+        free(overlay);
       }
-      overlay_event->vpts = 0; 
-      if (this->vo_out) {
-        ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
-        ovl_instance->add_event (ovl_instance, (void *)overlay_event);
-      }
-****************/
     }
     break;
   case XINE_EVENT_SPU_CLUT:

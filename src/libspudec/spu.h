@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.12 2002/04/23 20:27:32 jcdutton Exp $
+ * $Id: spu.h,v 1.13 2002/04/23 21:48:06 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -112,6 +112,7 @@ typedef struct spudec_decoder_s {
   int              output_open;
   pci_t            pci;
   uint32_t         buttonN;  /* Current button number for highlights */
+  int32_t button_filter; /* Allow highlight changes or not */
 } spudec_decoder_t;
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);

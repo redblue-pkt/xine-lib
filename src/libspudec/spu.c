@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.34 2002/04/23 20:27:31 jcdutton Exp $
+ * $Id: spu.c,v 1.35 2002/04/23 21:48:06 jcdutton Exp $
  *
  */
 
@@ -147,6 +147,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   }
   if (pci.hli.hl_gi.hli_ss == 1) {
     xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+    this->button_filter=1;
     /*******************************
      * We should do something about fosl_btnn, but
      * until we can send the info to dvdnav, ignore it.
@@ -158,6 +159,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   if ( (pci.hli.hl_gi.hli_ss == 0) &&
     (this->pci.hli.hl_gi.hli_ss == 1) ) {
     xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+    this->button_filter=0;
     /* Hide menu spu between menus */
     printf("libspudec:nav:SHOULD HIDE SPU here\n");
     if( this->menu_handle < 0 ) {
