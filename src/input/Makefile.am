@@ -3,9 +3,9 @@ include $(top_srcdir)/misc/Makefile.common
 EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c input_rtp.c
 
 if HAVE_DVDNAV
-SUBDIRS = dvb libreal librtsp
+SUBDIRS = vcd dvb libreal librtsp
 else
-SUBDIRS = dvb libreal librtsp libdvdnav
+SUBDIRS = vcd dvb libreal librtsp libdvdnav
 endif
 
 libdir = $(XINE_PLUGINDIR)
@@ -18,7 +18,10 @@ libdir = $(XINE_PLUGINDIR)
 
 if HAVE_CDROM_IOCTLS
 in_dvd = xineplug_inp_dvd.la
+if ENABLE_VCDX
+else
 in_vcd = xineplug_inp_vcd.la
+endif
 #in_cda = xineplug_inp_cda.la
 endif
 
