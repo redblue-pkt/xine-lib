@@ -634,6 +634,10 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
   osd_font_t *font;
   int best = 0;
   int ret = 0;
+#ifdef HAVE_FT2
+  char pathname[1024];
+  int error_flag = 0;
+#endif
 
 #ifdef LOG_DEBUG  
   printf("osd_set_font %p name=%s\n", osd, fontname);
@@ -675,11 +679,22 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
       }
     }
     if (osd->ft2) {
+      /* try load font from current directory */
       if (FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face)) {
-	printf("osd: error loading font with ft2\n");
-      } else {
+        /* try load font from home directory */
+        sprintf(pathname, "%s/.xine/fonts/%s", xine_get_homedir(), fontname);
+        if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
+          /* try load font from xine font directory */
+          sprintf(pathname, "%s/%s", XINE_FONTDIR, fontname);
+          if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
+            error_flag = 1;
+	    printf("osd: error loading font %s with ft2\n", fontname);
+	  }
+        }
+      }
+      if (!error_flag) {
 	if (FT_Set_Pixel_Sizes(osd->ft2->face, 0, size)) {
-	  printf("osd: error setting font size (no scalable font?)");
+	  printf("osd: error setting font size (no scalable font?)\n");
 	} else {
 	  ret = 1;
 	  osd->ft2->useme = 1;
@@ -791,7 +806,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   if ((cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
     printf(_("osd: unsupported conversion %s -> UCS-2\n"), encoding);
     if (!def_charset_flag) {
-      printf("osd: trying iso-8859-1 -> UCS-2\n");
+      printf(_("osd: trying iso-8859-1 -> UCS-2\n"));
       if ((cd = iconv_open("UCS-2", "iso-8859-1")) == (iconv_t)-1) {
         printf(_("osd: iconv_open() failed\n"));
         pthread_mutex_unlock(&this->osd_mutex);
@@ -835,15 +850,14 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     }
 #endif
 
-#ifdef HAVE_FT2
-    } /* !(osd->ft2 && osd->ft2->useme) */
-#endif
-
-    
 #ifdef LOG_DEBUG  
-    printf("font %s [%d, U+%04X] %dx%d -> %d,%d\n", font->name, i, 
+    printf("font %s [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i, 
            unicode, font->fontchar[i].code, font->fontchar[i].width, 
            font->fontchar[i].height, x1, y1);
+#endif
+
+#ifdef HAVE_FT2
+    } /* !(osd->ft2 && osd->ft2->useme) */
 #endif
 
 #ifdef HAVE_FT2
@@ -883,6 +897,8 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
         dst += osd->width;
       }
       x1 += slot->advance.x >> 6;
+      if( x1 > osd->x2 ) osd->x2 = x1;
+      if( y1 > osd->y2 ) osd->y2 = y1;
 
     } else {
 #endif
