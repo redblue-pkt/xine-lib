@@ -1,5 +1,7 @@
 xine (0.9.10) unstable; urgency=low
 
+  * new resizing behaviour for xine-ui: user may choose if stream
+    size changes should update video window size.
   * fix VCD playback
   * libmad updated to 0.14.2b and optimized for speed 
   * cinepak video decoder (native)
