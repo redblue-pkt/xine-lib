@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2003-01-29 12:09+0100\n"
+"POT-Creation-Date: 2003-02-24 23:11+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -58,43 +58,43 @@ msgstr ""
 msgid "xine audio output plugin using esound"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:673
+#: src/audio_out/audio_oss_out.c:702
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:741
+#: src/audio_out/audio_oss_out.c:770
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:808
+#: src/audio_out/audio_oss_out.c:837
 msgid "Adjust a/v sync for OSS softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:809
+#: src/audio_out/audio_oss_out.c:838
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:843
+#: src/audio_out/audio_oss_out.c:872
 msgid "Enable 4.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:854
+#: src/audio_out/audio_oss_out.c:883
 msgid "Enable 5.0 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:865
+#: src/audio_out/audio_oss_out.c:894
 msgid "Enable 5.1 channel analog surround output"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:876
+#: src/audio_out/audio_oss_out.c:905
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:892
+#: src/audio_out/audio_oss_out.c:921
 msgid "oss mixer device"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:966
+#: src/audio_out/audio_oss_out.c:995
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr ""
 
@@ -122,12 +122,8 @@ msgstr ""
 msgid "Restoring index..."
 msgstr ""
 
-#: src/demuxers/demux_avi.c:657
+#: src/demuxers/demux_avi.c:658
 msgid "demux_avi: avi index is broken\n"
-msgstr ""
-
-#: src/demuxers/demux_mpgaudio.c:485
-msgid "demux_mpgaudio: no audio driver!\n"
 msgstr ""
 
 #: src/demuxers/demux_pes.c:529 src/demuxers/demux_pes.c:612
@@ -138,28 +134,16 @@ msgstr ""
 msgid "valid mrls ending for pes demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:2297
-msgid "demux_qt.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_qt.c:2302
-msgid "demux_qt.c: input is block organized, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_ogg.c:416
+#: src/demuxers/demux_ogg.c:387
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:203
+#: src/demuxers/demux_film.c:224
 msgid "invalid FILM chunk size\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:322
+#: src/demuxers/demux_film.c:379
 msgid "unrecognized FILM chunk\n"
-msgstr ""
-
-#: src/demuxers/demux_film.c:724
-msgid "demux_film.c: input not seekable, can not handle!\n"
 msgstr ""
 
 #: src/demuxers/demux_mpeg_block.c:299
@@ -179,19 +163,15 @@ msgstr ""
 msgid "demux_roq.c: input not seekable, can not handle!\n"
 msgstr ""
 
-#: src/demuxers/demux_fli.c:284
+#: src/demuxers/demux_fli.c:305
 msgid "demux_fli.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/demuxers/demux_idcin.c:496
-msgid "demux_idcin.c: input not seekable, can not handle!\n"
 msgstr ""
 
 #: src/demuxers/demux_smjpeg.c:417
 msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
 msgstr ""
 
-#: src/demuxers/demux_wav.c:317
+#: src/demuxers/demux_wav.c:322
 msgid "demux_wav.c: input not seekable, can not handle!\n"
 msgstr ""
 
@@ -233,118 +213,109 @@ msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
 
 #. report an unknown chunk and skip it
-#: src/demuxers/demux_wc3movie.c:300 src/demuxers/demux_wc3movie.c:503
+#: src/demuxers/demux_wc3movie.c:300 src/demuxers/demux_wc3movie.c:538
 #, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
 msgstr ""
 
-#: src/demuxers/demux_wc3movie.c:429
+#: src/demuxers/demux_wc3movie.c:449
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr ""
 
-#: src/demuxers/demux_wc3movie.c:676
-msgid "demux_mve.c: input not seekable, can not handle!\n"
-msgstr ""
-
-#: src/input/input_net.c:123
+#: src/input/input_net.c:122
 #, c-format
 msgid "input_net: socket(): %s\n"
 msgstr ""
 
-#: src/input/input_net.c:132
+#: src/input/input_net.c:131
 #, c-format
 msgid "input_net: connect(): %s\n"
 msgstr ""
 
-#: src/input/input_net.c:147
+#: src/input/input_net.c:146
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:159
+#: src/input/input_net.c:158
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
 msgstr ""
 
-#: src/input/input_net.c:391
+#: src/input/input_net.c:390
 msgid "net input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_rtp.c:155
+#: src/input/input_rtp.c:154
 #, c-format
 msgid "socket(): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:165
+#: src/input/input_rtp.c:164
 #, c-format
 msgid "bind(): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:183
+#: src/input/input_rtp.c:182
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:203
+#: src/input/input_rtp.c:202
 #, c-format
 msgid "unable to resolve '%s'.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:216
+#: src/input/input_rtp.c:215
 #, c-format
 msgid "unable to connect to '%s'.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:239
+#: src/input/input_rtp.c:238
 msgid "OUCH - ran out of buffers\n"
 msgstr ""
 
-#: src/input/input_rtp.c:269
+#: src/input/input_rtp.c:268
 #, c-format
 msgid "OUCH - dropped input packet %d %d\n"
 msgstr ""
 
-#: src/input/input_rtp.c:310
+#: src/input/input_rtp.c:309
 #, c-format
 msgid "Opening >%s<\n"
 msgstr ""
 
-#: src/input/input_rtp.c:338
+#: src/input/input_rtp.c:337
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/input/input_rtp.c:441
+#: src/input/input_rtp.c:440
 msgid "rtp input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_rtp.c:509 src/input/input_rtp.c:514
+#: src/input/input_rtp.c:508 src/input/input_rtp.c:513
 msgid "unable to allocate input buffer.\n"
 msgstr ""
 
-#: src/input/input_stdin_fifo.c:351
+#: src/input/input_stdin_fifo.c:364
 msgid "stdin streaming input plugin"
 msgstr ""
 
-#: src/input/input_file.c:126
+#: src/input/input_file.c:124
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr ""
 
-#: src/input/input_file.c:269
-#, c-format
-msgid "input_file: trying to open subtitle file '%s'\n"
-msgstr ""
-
-#: src/input/input_file.c:487
+#: src/input/input_file.c:457
 msgid "file input plugin"
 msgstr ""
 
-#: src/input/input_file.c:846
+#: src/input/input_file.c:816
 msgid "file browsing start location"
 msgstr ""
 
-#: src/input/input_file.c:853
+#: src/input/input_file.c:823
 msgid "list hidden files"
 msgstr ""
 
@@ -356,79 +327,83 @@ msgstr ""
 msgid "path to your local vcd device file"
 msgstr ""
 
-#: src/input/input_http.c:120
+#: src/input/input_http.c:119
 msgid "input_http: failed to open socket\n"
 msgstr ""
 
-#: src/input/input_http.c:129
+#: src/input/input_http.c:128
 msgid "input_http: cannot connect to host\n"
 msgstr ""
 
-#: src/input/input_http.c:144
+#: src/input/input_http.c:143
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
 msgstr ""
 
-#: src/input/input_http.c:156
+#: src/input/input_http.c:155
 #, c-format
 msgid "http: unable to connect to >%s<\n"
 msgstr ""
 
-#: src/input/input_http.c:443 src/input/input_http.c:794
-msgid "input_http: EAGAIN\n"
+#: src/input/input_http.c:451
+msgid "input_http: timeout\n"
 msgstr ""
 
-#: src/input/input_http.c:446
+#: src/input/input_http.c:456
 #, c-format
 msgid "input_http: read error %d\n"
 msgstr ""
 
-#: src/input/input_http.c:710
+#: src/input/input_http.c:730
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
 msgstr ""
 
-#: src/input/input_http.c:714
+#: src/input/input_http.c:734
 #, c-format
 msgid "%s via proxy >%s<"
 msgstr ""
 
-#: src/input/input_http.c:797
+#: src/input/input_http.c:814
+msgid "input_http: EAGAIN\n"
+msgstr ""
+
+#: src/input/input_http.c:817
 msgid "input_http: read error\n"
 msgstr ""
 
-#: src/input/input_http.c:829
+#: src/input/input_http.c:849
 msgid "input_http: invalid http answer\n"
 msgstr ""
 
-#: src/input/input_http.c:840
+#: src/input/input_http.c:860
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
 msgstr ""
 
-#: src/input/input_http.c:847
+#: src/input/input_http.c:867
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr ""
 
-#: src/input/input_http.c:858
+#: src/input/input_http.c:878
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr ""
 
-#: src/input/input_http.c:864
+#: src/input/input_http.c:884
 msgid "input_http: Location redirection not implemented\n"
 msgstr ""
 
-#: src/input/input_http.c:936
+#: src/input/input_http.c:956
 msgid "http input plugin"
 msgstr ""
 
-#: src/input/net_buf_ctrl.c:55
+#: src/input/net_buf_ctrl.c:57
 msgid "Buffering..."
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1484 src/libw32dll/w32codec.c:1556
+#: src/libw32dll/w32codec.c:1488 src/libw32dll/w32codec.c:1560
 msgid "path to win32 codec dlls"
 msgstr ""
 
@@ -445,51 +420,51 @@ msgstr ""
 msgid "syncfb (teletux) device node"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1053 src/video_out/video_out_fb.c:657
+#: src/video_out/video_out_xshm.c:1120 src/video_out/video_out_fb.c:965
 msgid "disable all video scaling (faster!)"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1200
+#: src/video_out/video_out_xshm.c:1271
 msgid "gamma correction for XShm driver"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1219
+#: src/video_out/video_out_xshm.c:1295
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1212
+#: src/video_out/video_out_xv.c:1248
 msgid "Colorkey used for Xv video overlay"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1219
+#: src/video_out/video_out_xv.c:1255
 msgid "Make Xv autopaint its colorkey"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1226
+#: src/video_out/video_out_xv.c:1262
 msgid "bilinear scaling mode (permedia 2/3)"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1232
+#: src/video_out/video_out_xv.c:1268
 msgid "double buffer to sync video to the retrace"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1279
+#: src/video_out/video_out_xv.c:1320
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1295
+#: src/video_out/video_out_xv.c:1336
 msgid "xine video output plugin using the MIT X video extension"
 msgstr ""
 
-#: src/video_out/video_out_fb.c:589
+#: src/video_out/video_out_fb.c:767
 msgid "framebuffer device"
 msgstr ""
 
-#: src/video_out/video_out_fb.c:766
-msgid "xine video output plugin using linux framebuffer device"
+#: src/video_out/video_out_fb.c:1002
+msgid "Xine video output plugin using the Linux frame buffer device"
 msgstr ""
 
-#: src/video_out/video_out_sdl.c:547
+#: src/video_out/video_out_sdl.c:551
 msgid "xine video output plugin using the Simple Direct Media Layer"
 msgstr ""
 
@@ -505,126 +480,145 @@ msgstr ""
 msgid "xine video output plugin using the DirectFB library."
 msgstr ""
 
-#: src/video_out/video_out_vidix.c:996
-msgid "xine video output plugin using libvidix"
+#: src/video_out/video_out_vidix.c:1081
+msgid "xine video output plugin using libvidix for x11"
 msgstr ""
 
-#: src/xine-engine/tvmode.c:339
+#: src/video_out/video_out_vidix.c:1154
+msgid "xine video output plugin using libvidix for linux frame buffer"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:302
 msgid "NVidia TV-Out support."
 msgstr ""
 
-#: src/xine-engine/video_out.c:390
+#: src/xine-engine/video_out.c:396
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:504
+#: src/xine-engine/video_out.c:510
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1296
+#: src/xine-engine/video_out.c:1446
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1299
+#: src/xine-engine/video_out.c:1449
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:496 src/xine-engine/xine.c:706
+#: src/xine-engine/xine.c:515 src/xine-engine/xine.c:764
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:532
+#: src/xine-engine/xine.c:551
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:730
+#: src/xine-engine/xine.c:590
+#, c-format
+msgid "xine: last_probed demuxer %s failed to start\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:788
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:766
+#: src/xine-engine/xine.c:824
 msgid "xine: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:859
+#: src/xine-engine/xine.c:917
 msgid "xine_play: no demux available\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:874
+#: src/xine-engine/xine.c:932
 msgid "xine_play: demux failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1358
+#: src/xine-engine/xine.c:1424
 msgid "messages"
 msgstr ""
 
-#: src/xine-engine/xine.c:1359
+#: src/xine-engine/xine.c:1425
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1279
+#: src/xine-engine/audio_out.c:1515
+msgid "choose method to sync audio and video"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1516
+msgid ""
+"'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
+"processed by your sound card"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1522
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1282
+#: src/xine-engine/audio_out.c:1525
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1288
+#: src/xine-engine/audio_out.c:1531
 msgid "adjust if audio is offsync"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1334
+#: src/xine-engine/audio_out.c:1577
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1338
+#: src/xine-engine/audio_out.c:1581
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1339
+#: src/xine-engine/audio_out.c:1582
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
-#: src/xine-engine/osd.c:851
+#: src/xine-engine/osd.c:883
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:269
+#: src/xine-engine/load_plugins.c:270
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:312
+#: src/xine-engine/load_plugins.c:313
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:357
+#: src/xine-engine/load_plugins.c:358
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:375
+#: src/xine-engine/load_plugins.c:376
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:395
+#: src/xine-engine/load_plugins.c:396
 #, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:413
+#: src/xine-engine/load_plugins.c:414
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -689,7 +683,11 @@ msgstr ""
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:404
+#: src/dxr3/video_out_dxr3.c:394
+msgid "Crops the overlay area from top and bottom to avoid green lines"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:407
 msgid "dxr3 preferred tv mode"
 msgstr ""
 
@@ -748,15 +746,15 @@ msgstr ""
 msgid "The encoding quality of the libfame mpeg encoder library."
 msgstr ""
 
-#: src/liba52/xine_decoder.c:676
+#: src/liba52/xine_decoder.c:674
 msgid "a/52 volume control"
 msgstr ""
 
-#: src/liba52/xine_decoder.c:679
+#: src/liba52/xine_decoder.c:677
 msgid "enable a/52 dynamic range compensation"
 msgstr ""
 
-#: src/liba52/xine_decoder.c:682
+#: src/liba52/xine_decoder.c:680
 msgid "enable audio downmixing to 2.0 surround stereo"
 msgstr ""
 
@@ -780,11 +778,11 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:399
+#: src/libsputext/xine_decoder.c:400
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:405
+#: src/libsputext/xine_decoder.c:406
 msgid "subtitle size (relative window size)"
 msgstr ""
 
@@ -820,19 +818,19 @@ msgid ""
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:360
+#: src/libxinevdec/fli.c:365
 #, c-format
 msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
 "chunk\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:376
+#: src/libxinevdec/fli.c:381
 #, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:402
+#: src/libxinevdec/fli.c:407
 #, c-format
 msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
