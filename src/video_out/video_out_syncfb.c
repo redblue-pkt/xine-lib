@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.25 2001/11/04 10:53:05 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.26 2001/11/04 22:43:07 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -96,7 +96,7 @@ typedef struct {
   int               palette;         // palette the syncfb module is using  
   int               overlay_state;   // 0 = off, 1 = on
   uint8_t*          video_mem;       // mmapped video memory
-  int               default_repeat;  // how many times a frame will be displayed
+  int               default_repeat;  // how many times a frame will be repeatedly displayed
 
   syncfb_config_t      syncfb_config;
   syncfb_capability_t  capabilities;
