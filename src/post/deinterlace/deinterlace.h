@@ -121,7 +121,7 @@ struct deinterlace_frame_data_s
 
 typedef void (*deinterlace_frame_t)( uint8_t *output, int outstride,
                                      deinterlace_frame_data_t *data,
-                                     int bottom_field, int width, int height );
+                                     int bottom_field, int second_field, int width, int height );
 
 
 /**

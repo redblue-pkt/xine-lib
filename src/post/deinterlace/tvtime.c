@@ -176,7 +176,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
                                              uint8_t *curframe,
                                              uint8_t *lastframe,
                                              uint8_t *secondlastframe,
-                                             int bottom_field,
+                                             int bottom_field, int second_field,
                                              int width,
                                              int frame_height,
                                              int instride,
@@ -279,7 +279,8 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
         data.f1 = lastframe;
         data.f2 = secondlastframe;
 
-        curmethod->deinterlace_frame( output, outstride, &data, bottom_field, width, frame_height );
+        curmethod->deinterlace_frame( output, outstride, &data, bottom_field, second_field,
+                                      width, frame_height );
 
     } else {
         int loop_size;
@@ -314,7 +315,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             data.t0 = curframe;
             data.b0 = curframe + (instride*2);
 
-            if( bottom_field ) {
+            if( second_field ) {
                 data.tt1 = (i < loop_size) ? (curframe - instride) : (curframe + instride);
                 data.m1  = curframe + instride;
                 data.bb1 = (i > 1) ? (curframe + (instride*3)) : (curframe + instride);
@@ -327,7 +328,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             data.t2 = lastframe;
             data.b2 = lastframe + (instride*2);
 
-            if( bottom_field ) {
+            if( second_field ) {
                 data.tt3 = (i < loop_size) ? (lastframe - instride) : (lastframe + instride);
                 data.m3  = lastframe + instride;
                 data.bb3 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
@@ -346,7 +347,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             data.m0  = curframe + (instride*2);
             data.bb0 = (i > 1) ? (curframe + (instride*4)) : (curframe + (instride*2));
 
-            if( bottom_field ) {
+            if( second_field ) {
                 data.t1 = curframe + instride;
                 data.b1 = (i > 1) ? (curframe + (instride*3)) : (curframe + instride);
             } else {
@@ -358,7 +359,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             data.m2  = lastframe + (instride*2);
             data.bb2 = (i > 1) ? (lastframe + (instride*4)) : (lastframe + (instride*2));
 
-            if( bottom_field ) {
+            if( second_field ) {
                 data.t2 = lastframe + instride;
                 data.b2 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
             } else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.29 2004/02/12 18:25:07 mroi Exp $
+ * $Id: xine_plugin.c,v 1.30 2004/04/09 02:57:05 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -704,7 +704,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
                              yuy2_frame->base[0], 
                              (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
                              (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                             fields[0], frame->width, frame->height, 
+                             fields[0], 0, frame->width, frame->height, 
                              yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
         } else {
           deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
@@ -712,21 +712,21 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
                              yuy2_frame->base[0], 
                              (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
                              (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                             fields[0], frame->width/2, frame->height, 
+                             fields[0], 0, frame->width/2, frame->height, 
                              yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
           deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
                              deinterlaced_frame->base[1],
                              yuy2_frame->base[1], 
                              (this->recent_frame[0])?this->recent_frame[0]->base[1]:yuy2_frame->base[1], 
                              (this->recent_frame[1])?this->recent_frame[1]->base[1]:yuy2_frame->base[1],
-                             fields[0], frame->width/4, frame->height/2,
+                             fields[0], 0, frame->width/4, frame->height/2,
                              yuy2_frame->pitches[1], deinterlaced_frame->pitches[1]);
           deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
                              deinterlaced_frame->base[2],
                              yuy2_frame->base[2], 
                              (this->recent_frame[0])?this->recent_frame[0]->base[2]:yuy2_frame->base[2], 
                              (this->recent_frame[1])?this->recent_frame[1]->base[2]:yuy2_frame->base[2],
-                             fields[0], frame->width/4, frame->height/2, 
+                             fields[0], 0, frame->width/4, frame->height/2, 
                              yuy2_frame->pitches[2], deinterlaced_frame->pitches[2]);
         }
       }
@@ -811,7 +811,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
                                  yuy2_frame->base[0], 
                                  (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
                                  (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                                 fields[1], frame->width, frame->height, 
+                                 fields[1], 1, frame->width, frame->height, 
                                  yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
             } else {
               deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
@@ -819,21 +819,21 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
                                  yuy2_frame->base[0], 
                                  (this->recent_frame[0])?this->recent_frame[0]->base[0]:yuy2_frame->base[0], 
                                  (this->recent_frame[1])?this->recent_frame[1]->base[0]:yuy2_frame->base[0],
-                                 fields[1], frame->width/2, frame->height,
+                                 fields[1], 1, frame->width/2, frame->height,
                                  yuy2_frame->pitches[0], deinterlaced_frame->pitches[0]);
               deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
                                  deinterlaced_frame->base[1],
                                  yuy2_frame->base[1], 
                                  (this->recent_frame[0])?this->recent_frame[0]->base[1]:yuy2_frame->base[1], 
                                  (this->recent_frame[1])?this->recent_frame[1]->base[1]:yuy2_frame->base[1],
-                                 fields[1], frame->width/4, frame->height/2,
+                                 fields[1], 1, frame->width/4, frame->height/2,
                                  yuy2_frame->pitches[1], deinterlaced_frame->pitches[1]);
               deinterlaced_frame->bad_frame = !tvtime_build_deinterlaced_frame(this->tvtime,
                                  deinterlaced_frame->base[0],
                                  yuy2_frame->base[0], 
                                  (this->recent_frame[0])?this->recent_frame[0]->base[2]:yuy2_frame->base[2], 
                                  (this->recent_frame[1])?this->recent_frame[1]->base[2]:yuy2_frame->base[2],
-                                 fields[1], frame->width/4, frame->height/2,
+                                 fields[1], 1, frame->width/4, frame->height/2,
                                  yuy2_frame->pitches[2], deinterlaced_frame->pitches[2]);
             }
           }

@@ -1,5 +1,5 @@
 /*****************************************************************************
-** $Id: greedy2frame_template.c,v 1.6 2004/02/12 20:53:31 mroi Exp $
+** $Id: greedy2frame_template.c,v 1.7 2004/04/09 02:57:06 miguelfreitas Exp $
 ******************************************************************************
 ** Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 ** port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,10 @@
 ** CVS Log
 **
 ** $Log: greedy2frame_template.c,v $
+** Revision 1.7  2004/04/09 02:57:06  miguelfreitas
+** tvtime deinterlacing algorithms assumed top_field_first=1
+** top_field_first=0 (aka bottom_field_first) should now work as expected
+**
 ** Revision 1.6  2004/02/12 20:53:31  mroi
 ** my gcc (partly 3.4 already) optimizes these away, because they are only used
 ** inside inline assembler (which the compiler does not recognize); so actually
@@ -101,15 +105,15 @@
 #if defined(IS_SSE)
 static void DeinterlaceGreedy2Frame_SSE(uint8_t *output, int outstride, 
                                  deinterlace_frame_data_t *data,
-                                 int bottom_field, int width, int height )
+                                 int bottom_field, int second_field, int width, int height )
 #elif defined(IS_3DNOW)
 static void DeinterlaceGreedy2Frame_3DNOW(uint8_t *output, int outstride,
                                    deinterlace_frame_data_t *data,
-                                   int bottom_field, int width, int height )
+                                   int bottom_field, int second_field, int width, int height )
 #else
 static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
                                  deinterlace_frame_data_t *data,
-                                 int bottom_field, int width, int height )
+                                 int bottom_field, int second_field, int width, int height )
 #endif
 {
 #ifdef ARCH_X86
@@ -135,19 +139,31 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
                                 (qwGreedyTwoFrameThreshold << 16);
 
 
-    if( bottom_field ) {
-        M1 = data->f0 + stride;
+    if( second_field ) {
+        M1 = data->f0;
         T1 = data->f0;
-        B1 = T1 + Pitch;
-        M0 = data->f1 + stride;
+        M0 = data->f1;
         T0 = data->f1;
+    } else {
+        M1 = data->f0;
+        T1 = data->f1;
+        M0 = data->f1;
+        T0 = data->f2;
+    }
+    
+    if( bottom_field ) {
+        M1 += stride;
+        T1 += 0;
+        B1 = T1 + Pitch;
+        M0 += stride;
+        T0 += 0;
         B0 = T0 + Pitch;
     } else {
-        M1 = data->f0 + Pitch;
-        T1 = data->f1 + stride;
+        M1 += Pitch;
+        T1 += stride;
         B1 = T1 + Pitch;
-        M0 = data->f1 + Pitch;
-        T0 = data->f2 + stride;
+        M0 += Pitch;
+        T0 += stride;
         B0 = T0 + Pitch;
 
         xine_fast_memcpy(Dest, M1, LineLength);
