@@ -28,7 +28,7 @@ xine-lib (1.0.1)
   * updated vidix to 0.9.9
   * plugin description accessor functions (may load plugins)
   * fixed translations, they wasn't used in some cases
-  * MSVC Win32 port update
+  * Win32 port updates: cross compilation of VCD, external ffmpeg with MSVC
 
 xine-lib (1.0)
   * unbreak DXR3 plugin
