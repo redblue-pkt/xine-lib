@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.15 2002/09/05 22:18:54 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.16 2002/09/18 15:43:34 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -584,6 +584,25 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
     this->last_width = this->width;
     this->last_height = this->height;
     this->last_aspect = this->aspect;
+    
+    /* update stream metadata */
+    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
+    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+    switch (this->aspect) {
+    case XINE_VO_ASPECT_SQUARE:
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
+      break;
+    case XINE_VO_ASPECT_4_3:
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+      break;
+    case XINE_VO_ASPECT_PAN_SCAN:
+    case XINE_VO_ASPECT_ANAMORPHIC:
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 / 9.0;
+      break;
+    case XINE_VO_ASPECT_DVB:
+      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11;
+      break;
+    }
   }
 }
 
@@ -622,6 +641,9 @@ static int get_duration(dxr3_decoder_t *this)
     duration = 3600;  /* PAL 25fps */
     break;
   }
+  
+  /* update stream metadata */
+  this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = duration;
   
   if (this->correct_durations) {
     /* we set an initial average frame duration here */
