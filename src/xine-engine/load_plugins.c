@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.89 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.90 2002/09/09 20:41:51 uid86226 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -424,7 +424,7 @@ static void map_decoders (xine_t *this) {
           break;
       
       /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE; i > pos; i--)
+      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
         catalog->audio_decoder_map[streamtype][i] = catalog->audio_decoder_map[streamtype][i - 1];
 	
       /* insert new decoder */
@@ -472,7 +472,7 @@ static void map_decoders (xine_t *this) {
           break;
       
       /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE; i > pos; i--)
+      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
         catalog->video_decoder_map[streamtype][i] = catalog->video_decoder_map[streamtype][i - 1];
 	
       /* insert new decoder */
@@ -520,7 +520,7 @@ static void map_decoders (xine_t *this) {
           break;
       
       /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE; i > pos; i--)
+      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
         catalog->spu_decoder_map[streamtype][i] = catalog->spu_decoder_map[streamtype][i - 1];
 	
       /* insert new decoder */
