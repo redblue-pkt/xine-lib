@@ -6,429 +6,1027 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-12-03 08:15+0100\n"
+"POT-Creation-Date: 2004-03-17 08:34+0100\n"
 "PO-Revision-Date: 2003-12-03 08:30+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ISO-8859-2\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
 "10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 
-#: src/audio_out/audio_alsa_out.c:306 src/audio_out/audio_alsa_out.c:1012
-#: src/audio_out/audio_alsa_out.c:1229 src/audio_out/audio_alsa_out.c:1266
+#: src/audio_out/audio_alsa_out.c:353 src/audio_out/audio_alsa_out.c:1117
+#: src/audio_out/audio_alsa_out.c:1347 src/audio_out/audio_alsa_out.c:1384
 msgid "device used for mono output"
-msgstr "zaøízení pou¾ité pro mono vıstup"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro mono vÃ½stup"
 
-#: src/audio_out/audio_alsa_out.c:316 src/audio_out/audio_alsa_out.c:1236
-#: src/audio_out/audio_alsa_out.c:1383
+#: src/audio_out/audio_alsa_out.c:363 src/audio_out/audio_alsa_out.c:1354
+#: src/audio_out/audio_alsa_out.c:1503
 msgid "device used for stereo output"
-msgstr "zaøízení pou¾ité pro stereo vıstup"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro stereo vÃ½stup"
 
-#: src/audio_out/audio_alsa_out.c:326 src/audio_out/audio_alsa_out.c:1243
+#: src/audio_out/audio_alsa_out.c:373 src/audio_out/audio_alsa_out.c:1361
 msgid "device used for 4-channel output"
-msgstr "zaøízení pou¾ité pro ètyøkanálovı vıstup"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro ÄtyÅ™kanÃ¡lovÃ½ vÃ½stup"
 
-#: src/audio_out/audio_alsa_out.c:338
+#: src/audio_out/audio_alsa_out.c:385
 msgid "device used for 5+ channel output"
-msgstr "zaøízení pou¾ité pro 5+ kanálovı vıstup"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro 5+ kanÃ¡lovÃ½ vÃ½stup"
 
-#: src/audio_out/audio_alsa_out.c:349 src/audio_out/audio_alsa_out.c:1250
-#: src/audio_out/audio_alsa_out.c:1257
+#: src/audio_out/audio_alsa_out.c:396 src/audio_out/audio_alsa_out.c:1368
+#: src/audio_out/audio_alsa_out.c:1375
 msgid "device used for 5.1-channel output"
-msgstr "zaøízení pou¾ité pro 5.1-kanálovı vıstup"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro 5.1-kanÃ¡lovÃ½ vÃ½stup"
 
-#: src/audio_out/audio_alsa_out.c:1145 src/audio_out/audio_alsa_out.c:1415
+#: src/audio_out/audio_alsa_out.c:413
+msgid "audio_alsa_out:Already open...WHY!"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:428
+#, c-format
+msgid "audio_alsa_out: snd_pcm_open() of %s failed: %s\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:430
+msgid ""
+"audio_alsa_out: >>> check if another program don't already use PCM <<<\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:443
+#, c-format
+msgid ""
+"audio_alsa_out: broken configuration for this PCM: no configurations "
+"available: %s\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1261 src/audio_out/audio_alsa_out.c:1535
 msgid "alsa mixer device"
-msgstr "mixovací zaøízení alsa"
+msgstr "mixovacÃ­ zaÅ™Ã­zenÃ­ alsa"
 
-#: src/audio_out/audio_alsa_out.c:1222 src/audio_out/audio_alsa_out.c:1320
-#: src/audio_out/audio_alsa_out.c:1334 src/audio_out/audio_alsa_out.c:1348
-#: src/audio_out/audio_alsa_out.c:1362 src/audio_out/audio_alsa_out.c:1399
-#: src/audio_out/audio_oss_out.c:915 src/audio_out/audio_oss_out.c:918
+#: src/audio_out/audio_alsa_out.c:1333
+#, c-format
+msgid "snd_lib_error_set_handler() failed: %d"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1340 src/audio_out/audio_alsa_out.c:1440
+#: src/audio_out/audio_alsa_out.c:1454 src/audio_out/audio_alsa_out.c:1468
+#: src/audio_out/audio_alsa_out.c:1482 src/audio_out/audio_alsa_out.c:1519
+#: src/audio_out/audio_oss_out.c:941 src/audio_out/audio_oss_out.c:944
 msgid "used to inform xine about what the sound card can do"
-msgstr "pou¾ito k informování xine o tom, co umí zvuková karta"
+msgstr "pouÅ¾ito k informovÃ¡nÃ­ xine o tom, co umÃ­ zvukovÃ¡ karta"
+
+#: src/audio_out/audio_alsa_out.c:1398
+#, fuzzy, c-format
+msgid "snd_pcm_open() failed:%d:%s\n"
+msgstr "osd: iconv_open() selhalo\n"
+
+#: src/audio_out/audio_alsa_out.c:1400
+msgid ">>> Check if another program don't already use PCM <<<\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1423
+msgid "audio_alsa_out : supported modes are "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1426
+msgid "8bit "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1430
+msgid "mono "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1434
+msgid "stereo "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1445
+#, fuzzy
+msgid "4-channel "
+msgstr "kanÃ¡l"
 
 #: src/audio_out/audio_alsa_out.c:1448
+msgid "(4-channel not enabled in xine config) "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1459
+#, fuzzy
+msgid "4.1-channel "
+msgstr "kanÃ¡l"
+
+#: src/audio_out/audio_alsa_out.c:1462
+msgid "(4.1-channel not enabled in xine config) "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1473
+#, fuzzy
+msgid "5-channel "
+msgstr "kanÃ¡l"
+
+#: src/audio_out/audio_alsa_out.c:1476
+msgid "(5-channel not enabled in xine config) "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1487
+#, fuzzy
+msgid "5.1-channel "
+msgstr "kanÃ¡l"
+
+#: src/audio_out/audio_alsa_out.c:1490
+msgid "(5.1-channel not enabled in xine config) "
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1525
+msgid "a/52 and DTS pass-through\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1528
+msgid "(a/52 and DTS pass-through not enabled in xine config)\n"
+msgstr ""
+
+#: src/audio_out/audio_alsa_out.c:1568
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
-msgstr "vıstupní zvukovı modul xine pou¾ije zvuková zaøízení/ovladaèe alsa"
+msgstr "vÃ½stupnÃ­ zvukovÃ½ modul xine pouÅ¾ije zvukovÃ¡ zaÅ™Ã­zenÃ­/ovladaÄe alsa"
 
-#: src/audio_out/audio_arts_out.c:360
+#: src/audio_out/audio_arts_out.c:365
 msgid "xine audio output plugin using kde artsd"
-msgstr "modul zvukového vıstupu xine pou¾ije artsd"
+msgstr "modul zvukovÃ©ho vÃ½stupu xine pouÅ¾ije artsd"
 
-#: src/audio_out/audio_directx_out.c:805 src/audio_out/audio_directx_out.c:822
-msgid "xine audio output plugin for win32 using directx"
-msgstr "modul zvukového vıstupu xine pro win32 pou¾ívající directx"
+#: src/audio_out/audio_esd_out.c:167
+#, c-format
+msgid "audio_esd_out: connecting to ESD server %s: %s\n"
+msgstr ""
 
-#: src/audio_out/audio_esd_out.c:532
+#: src/audio_out/audio_esd_out.c:499
+msgid "audio_esd_out: connecting to esd server...\n"
+msgstr ""
+
+#: src/audio_out/audio_esd_out.c:511
+#, c-format
+msgid "audio_esd_out: can't connect to %s ESD server: %s\n"
+msgstr ""
+
+#: src/audio_out/audio_esd_out.c:536
 msgid "esd audio output latency (adjust a/v sync)"
-msgstr "zpo¾dìní zvukového vıstupu esd (upraví synchronizaci zvuku a videa)"
+msgstr "zpoÅ¾dÄ›nÃ­ zvukovÃ©ho vÃ½stupu esd (upravÃ­ synchronizaci zvuku a videa)"
 
-#: src/audio_out/audio_esd_out.c:560
+#: src/audio_out/audio_esd_out.c:564
 msgid "xine audio output plugin using esound"
-msgstr "modul zvukového vıstupu xine pou¾ije esound"
+msgstr "modul zvukovÃ©ho vÃ½stupu xine pouÅ¾ije esound"
 
 #: src/audio_out/audio_irixal_out.c:385
 msgid "irixal audio output maximum gap length in 1/90000s"
-msgstr "maximální mezera zvukového vıstupu irixalu v 1/90000 s"
+msgstr "maximÃ¡lnÃ­ mezera zvukovÃ©ho vÃ½stupu irixalu v 1/90000 s"
 
 #: src/audio_out/audio_irixal_out.c:411
 msgid "xine audio output plugin using IRIX libaudio"
-msgstr "zvukovı vıstupní modul xine pou¾ije IRIX libaudio"
+msgstr "zvukovÃ½ vÃ½stupnÃ­ modul xine pouÅ¾ije IRIX libaudio"
 
-#: src/audio_out/audio_none_out.c:219
-msgid "xine dummy audio output plugin"
-msgstr "fiktivní modul zvukového vıstupu xine"
+#: src/audio_out/audio_oss_out.c:193
+#, c-format
+msgid "audio_oss_out: Opening audio device %s: %s\n"
+msgstr ""
 
-#: src/audio_out/audio_oss_out.c:707
-msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
-msgstr "zaøízení /dev/dsp# pou¾ité pro vıstup oss, -1 => autodetekce"
+#: src/audio_out/audio_oss_out.c:215
+#, c-format
+msgid ""
+"audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n"
+msgstr ""
 
-#: src/audio_out/audio_oss_out.c:775
+#: src/audio_out/audio_oss_out.c:227
+#, c-format
+msgid "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:536 src/audio_out/audio_oss_out.c:587
+#: src/audio_out/audio_oss_out.c:623
+#, fuzzy, c-format
+msgid "audio_oss_out: open() %s failed: %s\n"
+msgstr "input_cda: selhala funkce open(%s): %s.\n"
+
+#: src/audio_out/audio_oss_out.c:739
+msgid "OSS audio device name"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:740
+msgid ""
+"Specify base part of the audio device name then use oss_device_number to set "
+"the device number. Select auto if you want to probe for the device."
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:746
+msgid "OSS number N to append to audio device name /dev/dsp[N], -1 for none"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:747
+msgid ""
+"The audio device name is created by concatenating the oss_device_name and "
+"the audio device number (eg /dev/sound/dsp2). If you do not need a number, "
+"set to -1 (eg /dev/sound/dsp. The range of this variable is -1 or 0-15."
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:755
+msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:758
+msgid "audio_oss_out: Auto probe for audio device failed\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:774
+#, c-format
+msgid "audio_oss_out: using device >%s<\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:780 src/audio_out/audio_oss_out.c:860
+#, fuzzy, c-format
+msgid ""
+"audio_oss_out: opening audio device %s failed:\n"
+"%s\n"
+msgstr "input_cda: selhal pÅ™Ã­stup k serveru '%s:%d': %s\n"
+
+#: src/audio_out/audio_oss_out.c:801
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
-"metoda synchronizace zvuku a videa pou¾itá OSS, zále¾í na ovladaèi/hardwaru"
+"metoda synchronizace zvuku a videa pouÅ¾itÃ¡ OSS, zÃ¡leÅ¾Ã­ na ovladaÄi/hardwaru"
 
-#: src/audio_out/audio_oss_out.c:844
+#: src/audio_out/audio_oss_out.c:825
+msgid ""
+"audio_oss_out: Audio driver realtime sync disabled...\n"
+"audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
+"audio_oss_out: ...there may be audio/video synchronization issues\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:836
+msgid ""
+"audio_oss_out: Audio driver realtime sync disabled...\n"
+"audio_oss_out: ...probing output buffer size: "
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:853
+#, c-format
+msgid ""
+"%d bytes\n"
+"audio_oss_out: ...there may be audio/video synchronization issues\n"
+msgstr ""
+
+#: src/audio_out/audio_oss_out.c:869
 msgid "Adjust a/v sync for OSS softsync"
-msgstr "úprava synchronizace zvuku a videa pro softsync OSS"
+msgstr "Ãºprava synchronizace zvuku a videa pro softsync OSS"
 
-#: src/audio_out/audio_oss_out.c:845
+#: src/audio_out/audio_oss_out.c:870
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
-"Toto pou¾ijte k ruèní úpravì synchronizace zvuku a videa, jestli¾e pou¾íváte "
+"Toto pouÅ¾ijte k ruÄnÃ­ ÃºpravÄ› synchronizace zvuku a videa, jestliÅ¾e pouÅ¾Ã­vÃ¡te "
 "softwarovou synchronizaci"
 
-#: src/audio_out/audio_oss_out.c:879
+#: src/audio_out/audio_oss_out.c:905
 msgid "Enable 4.0 channel analog surround output"
-msgstr "povolit 4.0 kanálovı analogovı surround vıstup"
+msgstr "povolit 4.0 kanÃ¡lovÃ½ analogovÃ½ surround vÃ½stup"
 
-#: src/audio_out/audio_oss_out.c:891
+#: src/audio_out/audio_oss_out.c:917
 msgid "Enable 5.0 channel analog surround output"
-msgstr "povolit 5.0 kanálovı analogovı surround vıstup"
+msgstr "povolit 5.0 kanÃ¡lovÃ½ analogovÃ½ surround vÃ½stup"
 
-#: src/audio_out/audio_oss_out.c:903
+#: src/audio_out/audio_oss_out.c:929
 msgid "Enable 5.1 channel analog surround output"
-msgstr "povolit 5.1 kanálovı analogovı surround vıstup"
+msgstr "povolit 5.1 kanÃ¡lovÃ½ analogovÃ½ surround vÃ½stup"
 
-#: src/audio_out/audio_oss_out.c:933
-msgid "oss mixer device"
-msgstr "mixovací zaøízení OSS"
+#: src/audio_out/audio_oss_out.c:959
+#, fuzzy
+msgid "OSS mixer device"
+msgstr "mixovacÃ­ zaÅ™Ã­zenÃ­ OSS"
 
-#: src/audio_out/audio_oss_out.c:1008
+#: src/audio_out/audio_oss_out.c:995
+#, fuzzy, c-format
+msgid "audio_oss_out: open() mixer %s failed: %s\n"
+msgstr "input_cda: selhala funkce open(%s): %s.\n"
+
+#: src/audio_out/audio_oss_out.c:1034
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
-msgstr "vıstupní zvukovı modul xine pou¾ije zvuková zaøízení/ovladaèe OSS"
+msgstr "vÃ½stupnÃ­ zvukovÃ½ modul xine pouÅ¾ije zvukovÃ¡ zaÅ™Ã­zenÃ­/ovladaÄe OSS"
 
-#: src/audio_out/audio_sun_out.c:888
+#: src/audio_out/audio_sun_out.c:441
+#, fuzzy, c-format
+msgid "audio_sun_out: Opening audio device %s failed: %s\n"
+msgstr "input_cda: selhal pÅ™Ã­stup k serveru '%s:%d': %s\n"
+
+#: src/audio_out/audio_sun_out.c:889
 msgid "device used for audio output with the 'Sun' audio plugin"
-msgstr "zaøízení pou¾ité pro vıstup se zvukovım modulem 'Sun'"
+msgstr "zaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro vÃ½stup se zvukovÃ½m modulem 'Sun'"
 
-#: src/audio_out/audio_sun_out.c:964
+#: src/audio_out/audio_sun_out.c:909
+#, fuzzy, c-format
+msgid "audio_sun_out: opening audio device %s failed: %s\n"
+msgstr "input_cda: selhal pÅ™Ã­stup k serveru '%s:%d': %s\n"
+
+#: src/audio_out/audio_sun_out.c:965
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr "vıstupní zvukovı modul pou¾ije zvuková zaøízení/ovladaèe sun"
+msgstr "vÃ½stupnÃ­ zvukovÃ½ modul pouÅ¾ije zvukovÃ¡ zaÅ™Ã­zenÃ­/ovladaÄe sun"
 
-#: src/demuxers/demux_avi.c:461 src/demuxers/demux_avi.c:572
+#: src/audio_out/audio_none_out.c:223
+msgid "xine dummy audio output plugin"
+msgstr "fiktivnÃ­ modul zvukovÃ©ho vÃ½stupu xine"
+
+#: src/audio_out/audio_file_out.c:318
+#, fuzzy
+msgid "xine file audio output plugin"
+msgstr "fiktivnÃ­ modul zvukovÃ©ho vÃ½stupu xine"
+
+#: src/audio_out/audio_directx_out.c:832 src/audio_out/audio_directx_out.c:849
+msgid "xine audio output plugin for win32 using directx"
+msgstr "modul zvukovÃ©ho vÃ½stupu xine pro win32 pouÅ¾Ã­vajÃ­cÃ­ directx"
+
+#: src/demuxers/demux_asf.c:446
+#, fuzzy, c-format
+msgid ""
+"demux_asf: warning: The stream id=%d is encrypted\n"
+"."
+msgstr "demux_mpeg_pes: varovÃ¡nÃ­: selhalo dekÃ³dovÃ¡nÃ­ sekvence PACK id=0x%x.\n"
+
+#: src/demuxers/demux_asf.c:448
+msgid "Media stream scrambled/encrypted"
+msgstr ""
+
+#: src/demuxers/demux_asf.c:1699
+#, fuzzy, c-format
+msgid "demux_asf: Wrong ASX version: %s\n"
+msgstr "demux_asf: autorskÃ¡ prÃ¡va: %s\n"
+
+#: src/demuxers/demux_avi.c:542 src/demuxers/demux_avi.c:658
 msgid "Restoring index..."
 msgstr "Obnovuje se index..."
 
-#: src/demuxers/demux_avi.c:558 src/demuxers/demux_avi.c:1324
-msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %ll\n"
-msgstr "demux:avi: neplatnı datovı blok \"%c%c%c%c\" na pozici %ll\n"
+#: src/demuxers/demux_avi.c:643 src/demuxers/demux_avi.c:1666
+#, fuzzy, c-format
+msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %lld\n"
+msgstr "demux:avi: neplatnÃ½ datovÃ½ blok \"%c%c%c%c\" na pozici %ll\n"
 
-#: src/demuxers/demux_avi.c:743
+#: src/demuxers/demux_avi.c:841
 msgid "demux_avi: avi index is broken\n"
-msgstr "demux_avi: index avi je poru¹en\n"
+msgstr "demux_avi: index avi je poruÅ¡en\n"
 
-#: src/demuxers/demux_avi.c:752
+#: src/demuxers/demux_avi.c:850
 #, c-format
 msgid "demux_avi: failed to seek to the next chunk (pos %lld)\n"
-msgstr "demux_avi: selhalo nastavení pozice na dal¹í data (pozice %lld)\n"
+msgstr "demux_avi: selhalo nastavenÃ­ pozice na dalÅ¡Ã­ data (pozice %lld)\n"
 
-#: src/demuxers/demux_film.c:189
+#: src/demuxers/demux_film.c:188
 msgid "invalid FILM chunk size\n"
-msgstr "neplatná velikost datového bloku FILM\n"
+msgstr "neplatnÃ¡ velikost datovÃ©ho bloku FILM\n"
 
-#: src/demuxers/demux_film.c:344
+#: src/demuxers/demux_film.c:342
 msgid "unrecognized FILM chunk\n"
-msgstr "nerozpoznanı datovı blok FILM\n"
+msgstr "nerozpoznanÃ½ datovÃ½ blok FILM\n"
 
-#: src/demuxers/demux_mpeg_block.c:251
-msgid ""
-"demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
-"scrambled?\n"
+#: src/demuxers/demux_iff.c:235
+#, c-format
+msgid "iff-8svx/16sv: unknown compression: %d\n"
 msgstr ""
-"demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná jsou "
-"tyto data zakódována.\n"
 
-#: src/demuxers/demux_mpeg_block.c:634
+#: src/demuxers/demux_iff.c:369
+#, c-format
+msgid "iff-ilbm: unknown compression: %d\n"
+msgstr ""
+
+#: src/demuxers/demux_iff.c:570
+#, c-format
+msgid "iff: unknown Chunk: %s\n"
+msgstr ""
+
+#: src/demuxers/demux_mpeg_block.c:297
+#, c-format
+msgid ""
+"xine-lib:demux_mpeg_block: Unrecognised stream_id 0x%02x. Please report this "
+"to xine developers.\n"
+msgstr ""
+
+#: src/demuxers/demux_mpeg_block.c:308
+#, fuzzy
+msgid ""
+"demux_mpeg_block: error! freeing. Please report this to xine developers.\n"
+msgstr "neznÃ¡mÃ½ typ bloku VOC (0x%02X); prosÃ­m oznamte vÃ½vojÃ¡Å™Å¯m xine\n"
+
+#: src/demuxers/demux_mpeg_block.c:640
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
-"!demux_mpeg_block: varování: 10 rezervovanıch bitù hlavièky PES nenalezeno\n"
+"!demux_mpeg_block: varovÃ¡nÃ­: 10 rezervovanÃ½ch bitÅ¯ hlaviÄky PES nenalezeno\n"
 
-#: src/demuxers/demux_mpeg_block.c:645
+#: src/demuxers/demux_mpeg_block.c:650
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: PES header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_block: varování: hlavièka PES indikuje, ¾e tyto data mohou bıt "
-"za¹ifrována (¹ifrovací mód: %d)\n"
+"demux_mpeg_block: varovÃ¡nÃ­: hlaviÄka PES indikuje, Å¾e tyto data mohou bÃ½t "
+"zaÅ¡ifrovÃ¡na (Å¡ifrovacÃ­ mÃ³d: %d)\n"
 
-#: src/demuxers/demux_mpeg_pes.c:312
+#: src/demuxers/demux_mpeg_pes.c:306
+#, c-format
+msgid ""
+"xine-lib:demux_mpeg_pes: Unrecognised stream_id 0x%02x. Please report this "
+"to xine developers.\n"
+msgstr ""
+
+#: src/demuxers/demux_mpeg_pes.c:315
 #, c-format
 msgid "demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"
-msgstr "demux_mpeg_pes: varování: selhalo dekódování sekvence PACK id=0x%x.\n"
+msgstr "demux_mpeg_pes: varovÃ¡nÃ­: selhalo dekÃ³dovÃ¡nÃ­ sekvence PACK id=0x%x.\n"
 
-#: src/demuxers/demux_mpeg_pes.c:657
+#: src/demuxers/demux_mpeg_pes.c:674
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
-"demux_mpeg_pes: varování: 10 rezervovanıch bitù hlavièky PES nenalezeno\n"
+"demux_mpeg_pes: varovÃ¡nÃ­: 10 rezervovanÃ½ch bitÅ¯ hlaviÄky PES nenalezeno\n"
 
-#: src/demuxers/demux_mpeg_pes.c:668
+#: src/demuxers/demux_mpeg_pes.c:684
 #, c-format
 msgid ""
 "demux_mpeg_pes: warning: PES header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_pes: varování: hlavièka PES indikuje, ¾e tyto data mohou bıt "
-"za¹ifrována (¹ifrovací mód: %d)\n"
+"demux_mpeg_pes: varovÃ¡nÃ­: hlaviÄka PES indikuje, Å¾e tyto data mohou bÃ½t "
+"zaÅ¡ifrovÃ¡na (Å¡ifrovacÃ­ mÃ³d: %d)\n"
 
-#: src/demuxers/demux_ogg.c:763
+#: src/demuxers/demux_mpeg_pes.c:919
+#, fuzzy, c-format
+msgid ""
+"demux_mpeg_pes:Unrecognised private stream 1 0x%02x. Please report this to "
+"xine developers.\n"
+msgstr "neznÃ¡mÃ½ typ komprese VOC (0x%02X); prosÃ­m oznamte vÃ½vojÃ¡Å™Å¯m xine\n"
+
+#: src/demuxers/demux_ogg.c:736
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
-"ogg: zji¹tìna zvuková stopa vorbis, ale nenalezena ¾ádná hlavièka dat "
+"ogg: zjiÅ¡tÄ›na zvukovÃ¡ stopa vorbis, ale nenalezena Å¾Ã¡dnÃ¡ hlaviÄka dat "
 "vorbis.\n"
 
 #: src/demuxers/demux_snd.c:104
 msgid "demux_snd: bad header parameters\n"
-msgstr "demux_snd: ¹patné parametry hlavièky\n"
+msgstr "demux_snd: Å¡patnÃ© parametry hlaviÄky\n"
 
 #: src/demuxers/demux_snd.c:139
 #, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
-msgstr "demux_snd: nepodporovanı typ zvuku: %d\n"
+msgstr "demux_snd: nepodporovanÃ½ typ zvuku: %d\n"
 
 #: src/demuxers/demux_voc.c:105
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
-msgstr "neznámı typ bloku VOC (0x%02X); prosím oznamte vıvojáøùm xine\n"
+msgstr "neznÃ¡mÃ½ typ bloku VOC (0x%02X); prosÃ­m oznamte vÃ½vojÃ¡Å™Å¯m xine\n"
 
 #: src/demuxers/demux_voc.c:120
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
-msgstr "neznámı typ komprese VOC (0x%02X); prosím oznamte vıvojáøùm xine\n"
+msgstr "neznÃ¡mÃ½ typ komprese VOC (0x%02X); prosÃ­m oznamte vÃ½vojÃ¡Å™Å¯m xine\n"
 
 #: src/demuxers/demux_wc3movie.c:190
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
-"demux_wc3movie: datovı blok SHOT odkazoval na neplatnou paletu (%d >= %d)\n"
+"demux_wc3movie: datovÃ½ blok SHOT odkazoval na neplatnou paletu (%d >= %d)\n"
 
 #: src/demuxers/demux_wc3movie.c:404
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
-msgstr "demux_wc3movie: Byl zde problém bìhem naèítání datovıch blokù palety\n"
+msgstr "demux_wc3movie: Byl zde problÃ©m bÄ›hem naÄÃ­tÃ¡nÃ­ datovÃ½ch blokÅ¯ palety\n"
 
 #. data for the device name config entry
 #: src/dxr3/dxr3.h:33
 msgid "Dxr3: Device Name"
-msgstr "Dxr3: Jméno zaøízení"
+msgstr "Dxr3: JmÃ©no zaÅ™Ã­zenÃ­"
 
 #: src/dxr3/dxr3.h:34
 msgid "The device file of the dxr3 mpeg decoder card control device."
-msgstr "Soubor øídícího zaøízení dxr3 karty na dekódování mpegù."
+msgstr "Soubor Å™Ã­dÃ­cÃ­ho zaÅ™Ã­zenÃ­ dxr3 karty na dekÃ³dovÃ¡nÃ­ mpegÅ¯."
+
+#: src/dxr3/dxr3_decode_spu.c:214
+#, c-format
+msgid "dxr3_decode_spu: Failed to open spu device %s (%s)\n"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_spu.c:339
+msgid "requested button not available\n"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:221
+#, c-format
+msgid "dxr3_decode_video: Failed to open control device %s (%s)\n"
+msgstr ""
 
 #: src/dxr3/dxr3_decode_video.c:249
 msgid "Try to sync video every frame"
-msgstr "Zkusit synchronizovat video ka¾dı snímek"
+msgstr "Zkusit synchronizovat video kaÅ¾dÃ½ snÃ­mek"
 
 #: src/dxr3/dxr3_decode_video.c:250
 msgid "This is relevant for progressive video only (most PAL films)."
-msgstr "Toto má vıznam jen pro postupné video (vìt¹ina filmù PAL)"
+msgstr "Toto mÃ¡ vÃ½znam jen pro postupnÃ© video (vÄ›tÅ¡ina filmÅ¯ PAL)"
 
 #: src/dxr3/dxr3_decode_video.c:253
 msgid "Use alternate Play mode"
-msgstr "Pou¾ít alternativní re¾im pøehrávání"
+msgstr "PouÅ¾Ã­t alternativnÃ­ reÅ¾im pÅ™ehrÃ¡vÃ¡nÃ­"
 
-#: src/dxr3/dxr3_decode_video.c:254 src/dxr3/video_out_dxr3.c:279
+#: src/dxr3/dxr3_decode_video.c:254 src/dxr3/video_out_dxr3.c:278
 msgid "Enabling this option will utilise a smoother play mode."
-msgstr "Povolením této volby se vyu¾ije hlad¹í re¾im pøehrávání"
+msgstr "PovolenÃ­m tÃ©to volby se vyuÅ¾ije hladÅ¡Ã­ reÅ¾im pÅ™ehrÃ¡vÃ¡nÃ­"
 
 #: src/dxr3/dxr3_decode_video.c:257
 msgid "Correct frame durations in broken streams"
-msgstr "Opravovat dobu trvání snímkù v poru¹enıch sekvencích"
+msgstr "Opravovat dobu trvÃ¡nÃ­ snÃ­mkÅ¯ v poruÅ¡enÃ½ch sekvencÃ­ch"
 
 #: src/dxr3/dxr3_decode_video.c:258
 msgid "Enable this for streams with wrong frame durations."
-msgstr "Toto povolte pro sekvence s nesprávnou délkou snímkù."
+msgstr "Toto povolte pro sekvence s nesprÃ¡vnou dÃ©lkou snÃ­mkÅ¯."
+
+#: src/dxr3/dxr3_decode_video.c:505
+#, fuzzy, c-format
+msgid "dxr3_decode_video: Failed to open video device %s (%s)\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd (%s): %s\n"
+
+#: src/dxr3/dxr3_decode_video.c:580
+msgid "dxr3_decode_video: write to device would block. flushing\n"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:584
+#, c-format
+msgid "dxr3_decode_video: video device write failed (%s)\n"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:761
+#, c-format
+msgid "dxr3_decode_video: WARNING: unknown frame rate code %d\n"
+msgstr ""
+
+#: src/dxr3/dxr3_decode_video.c:789
+msgid ""
+"dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:123
+msgid "dxr3_mpeg_encoder: failed to init librte\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:160
+msgid ""
+"dxr3_mpeg_encoder: rte only handles video dimensions which are multiples of "
+"16\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:170
+msgid "dxr3_mpeg_encoder: failed to get rte context.\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:181
+msgid "dxr3_mpeg_encoder: could not create codec.\n"
+msgstr ""
 
 #: src/dxr3/dxr3_mpeg_encoders.c:189
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
-msgstr "Dxr3enc: vıstupní rychlost rte mpeg (kbit/s)"
+msgstr "Dxr3enc: vÃ½stupnÃ­ rychlost rte mpeg (kbit/s)"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:190
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
 msgstr ""
-"Bitová rychlost knihovny librte generující mpeg, jaká by se mìla pou¾ívat v "
-"re¾imu kódování dxr3"
+"BitovÃ¡ rychlost knihovny librte generujÃ­cÃ­ mpeg, jakÃ¡ by se mÄ›la pouÅ¾Ã­vat v "
+"reÅ¾imu kÃ³dovÃ¡nÃ­ dxr3"
+
+#: src/dxr3/dxr3_mpeg_encoders.c:234
+#, c-format
+msgid "dxr3_mpeg_encoder: cannot init the context: %s\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:242
+#, c-format
+msgid "dxr3_mpeg_encoder: cannot start encoding: %s\n"
+msgstr ""
+
+#: src/dxr3/dxr3_mpeg_encoders.c:376
+msgid "dxr3_mpeg_encoder: Couldn't start the FAME library\n"
+msgstr ""
 
 #: src/dxr3/dxr3_mpeg_encoders.c:391
 msgid "Dxr3enc: fame mpeg encoding quality"
-msgstr "Dxr3enc: kvalita mpeg kódování knihovny fame"
+msgstr "Dxr3enc: kvalita mpeg kÃ³dovÃ¡nÃ­ knihovny fame"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:392
 msgid "The encoding quality of the libfame mpeg encoder library."
-msgstr "Kvalita kódování knihovny libfame generující mpeg."
+msgstr "Kvalita kÃ³dovÃ¡nÃ­ knihovny libfame generujÃ­cÃ­ mpeg."
 
-#: src/dxr3/dxr3_scr.c:83
+#: src/dxr3/dxr3_scr.c:85
 msgid "Dxr3: SCR plugin priority"
 msgstr "Dxr3: priorita modulu SCR"
 
-#: src/dxr3/dxr3_scr.c:84
+#: src/dxr3/dxr3_scr.c:86
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
-msgstr "Priorita SCR vìt¹í ne¾ 5 udìlá z dxr3 hlavní hodiny xine."
+msgstr "Priorita SCR vÄ›tÅ¡Ã­ neÅ¾ 5 udÄ›lÃ¡ z dxr3 hlavnÃ­ hodiny xine."
 
-#: src/dxr3/video_out_dxr3.c:270
+#: src/dxr3/video_out_dxr3.c:269
 msgid "swap odd and even lines"
-msgstr "prohodit liché a sudé øádky"
+msgstr "prohodit lichÃ© a sudÃ© Å™Ã¡dky"
+
+#: src/dxr3/video_out_dxr3.c:272
+msgid "Add black bars to correct aspect ratio"
+msgstr "Upravit pomÄ›r stran pÅ™idÃ¡nÃ­m ÄernÃ½ch pruhÅ¯"
 
 #: src/dxr3/video_out_dxr3.c:273
-msgid "Add black bars to correct aspect ratio"
-msgstr "Upravit pomìr stran pøidáním èernıch pruhù"
-
-#: src/dxr3/video_out_dxr3.c:274
 msgid "If disabled, will assume source has 4:3 aspect ratio."
-msgstr "Jestli¾e je zakázáno, bude se pøedpokládat video s pomìrem stran 4:3."
+msgstr "JestliÅ¾e je zakÃ¡zÃ¡no, bude se pÅ™edpoklÃ¡dat video s pomÄ›rem stran 4:3."
 
-#: src/dxr3/video_out_dxr3.c:278
+#: src/dxr3/video_out_dxr3.c:277
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
-msgstr "dxr3: pou¾ít alternativní re¾im pøehrávání pro mpeg kodér"
+msgstr "dxr3: pouÅ¾Ã­t alternativnÃ­ reÅ¾im pÅ™ehrÃ¡vÃ¡nÃ­ pro mpeg kodÃ©r"
+
+#: src/dxr3/video_out_dxr3.c:288
+#, fuzzy, c-format
+msgid "video_out_dxr3: Failed to open control device %s (%s)\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd (%s): %s\n"
+
+#: src/dxr3/video_out_dxr3.c:296
+#, fuzzy, c-format
+msgid "video_out_dxr3: Failed to open video device %s (%s)\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd (%s): %s\n"
+
+#: src/dxr3/video_out_dxr3.c:338
+msgid "the encoder for non mpeg content"
+msgstr "kodÃ©r pro ne-mpeg obsah"
 
 #: src/dxr3/video_out_dxr3.c:339
-msgid "the encoder for non mpeg content"
-msgstr "kodér pro ne-mpeg obsah"
-
-#: src/dxr3/video_out_dxr3.c:340
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
 msgstr ""
-"Obsah jinı ne¾ mpeg musí projít dal¹í pøekódovávací fází, proto¾e dxr3 "
+"Obsah jinÃ½ neÅ¾ mpeg musÃ­ projÃ­t dalÅ¡Ã­ pÅ™ekÃ³dovÃ¡vacÃ­ fÃ¡zÃ­, protoÅ¾e dxr3 "
 "pracuje pouze s mpegy."
 
-#: src/dxr3/video_out_dxr3.c:379
+#: src/dxr3/video_out_dxr3.c:343
+msgid "video_out_dxr3: Mpeg encoder libavcodec failed to init.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:349
+msgid "video_out_dxr3: Mpeg encoder rte failed to init.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:356
+msgid "video_out_dxr3: Mpeg encoder fame failed to init.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:362
+msgid ""
+"video_out_dxr3: Mpeg encoding disabled.\n"
+"video_out_dxr3: that's ok, you don't need it for mpeg video like DVDs, but\n"
+"video_out_dxr3: you will not be able to play non-mpeg content using this "
+"video out\n"
+"video_out_dxr3: driver. See the README.dxr3 for details on configuring an "
+"encoder.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:368
+msgid ""
+"video_out_dxr3: No mpeg encoder compiled in.\n"
+"video_out_dxr3: that's ok, you don't need it for mpeg video like DVDs, but\n"
+"video_out_dxr3: you will not be able to play non-mpeg content using this "
+"video out\n"
+"video_out_dxr3: driver. See the README.dxr3 for details on configuring an "
+"encoder.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:383
 msgid "Dxr3: videoout mode (tv or overlay)"
-msgstr "Dxr3: videovıstupní re¾im (tv nebo overlay)"
+msgstr "Dxr3: videovÃ½stupnÃ­ reÅ¾im (tv nebo overlay)"
 
-#: src/dxr3/video_out_dxr3.c:409
+#: src/dxr3/video_out_dxr3.c:414
 msgid "Dxr3: overlay colorkey value"
-msgstr "Dxr3: hodnota klíèové barvy overlay"
+msgstr "Dxr3: hodnota klÃ­ÄovÃ© barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:412
+#: src/dxr3/video_out_dxr3.c:417
 msgid "Dxr3: overlay colorkey range"
-msgstr "Dxr3: rozsah klíèové barvy overlay"
+msgstr "Dxr3: rozsah klÃ­ÄovÃ© barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:413
+#: src/dxr3/video_out_dxr3.c:418
 msgid "A greater value widens the tolerance for the overlay keycolor"
-msgstr "Vìt¹í hodnota roz¹íøí toleranci pro klíèové barvy overlay"
+msgstr "VÄ›tÅ¡Ã­ hodnota rozÅ¡Ã­Å™Ã­ toleranci pro klÃ­ÄovÃ© barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:416
+#: src/dxr3/video_out_dxr3.c:421
 msgid "Crops the overlay area from top and bottom to avoid green lines"
 msgstr ""
-"Èistit pøekrıvanou oblast nahoøe a dole, aby se zabránilo zelenım øádkùm"
+"ÄŒistit pÅ™ekrÃ½vanou oblast nahoÅ™e a dole, aby se zabrÃ¡nilo zelenÃ½m Å™Ã¡dkÅ¯m"
 
-#: src/dxr3/video_out_dxr3.c:429
+#: src/dxr3/video_out_dxr3.c:425
+msgid "video_out_dxr3: please run autocal, overlay disabled\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:435
 msgid "dxr3 preferred tv mode"
-msgstr "dxr3 dal pøednost re¾imu tv"
+msgstr "dxr3 dal pÅ™ednost reÅ¾imu tv"
 
-#: src/input/input_cdda.c:2591
+#: src/dxr3/video_out_dxr3.c:461
+msgid "video_out_dxr3: setting video mode failed.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:691
+msgid ""
+"video_out_dxr3: Need an mpeg encoder to play non-mpeg videos on dxr3\n"
+"video_out_dxr3: Read the README.dxr3 for details.\n"
+msgstr ""
+
+#: src/dxr3/video_out_dxr3.c:1343
+msgid "video_out_dxr3: ERROR Reading overlay init file. Run autocal!\n"
+msgstr ""
+
+#: src/input/input_cdda.c:865
+#, fuzzy
+msgid "input_cdda: cannot connect to host.\n"
+msgstr "input_http: nelze se pÅ™ipojit k serveru\n"
+
+#: src/input/input_cdda.c:881
+#, fuzzy, c-format
+msgid "input_cdda: unable to resolve '%s'.\n"
+msgstr "input_net: nelze zjistit adresu '%s'.\n"
+
+#: src/input/input_cdda.c:895
+#, fuzzy, c-format
+msgid "input_cdda: unable to connect to '%s'.\n"
+msgstr "input_net: nelze se pÅ™ipojit k '%s'.\n"
+
+#: src/input/input_cdda.c:1725
+#, fuzzy, c-format
+msgid "input_cdda: successfuly connected to cddb server '%s:%d'.\n"
+msgstr "input_cda: ÃºspÄ›Å¡nÃ© pÅ™ipojenÃ­ k serveru '%s:%d'.\n"
+
+#: src/input/input_cdda.c:1730
+#, fuzzy, c-format
+msgid "input_cdda: failed to connect to cddb server '%s:%d' (%s).\n"
+msgstr "input_net: nelze se pÅ™ipojit k '%s'.\n"
+
+#: src/input/input_cdda.c:2608
 msgid "CD Digital Audio (aka. CDDA)"
-msgstr "digitální zvukové CD (CDDA)"
+msgstr "digitÃ¡lnÃ­ zvukovÃ© CD (CDDA)"
 
-#: src/input/input_cdda.c:2634
+#: src/input/input_cdda.c:2651
 msgid "device used for cdda drive"
-msgstr "Zaøízení pou¾ité pro jednotku CDDA"
+msgstr "ZaÅ™Ã­zenÃ­ pouÅ¾itÃ© pro jednotku CDDA"
 
-#: src/input/input_cdda.c:2638
+#: src/input/input_cdda.c:2655
 msgid "use cddb feature"
-msgstr "Pou¾ít vlastnosti cddb"
+msgstr "PouÅ¾Ã­t vlastnosti cddb"
 
-#: src/input/input_cdda.c:2642
+#: src/input/input_cdda.c:2659
 msgid "cddbp server name"
-msgstr "Jméno serveru cddbp"
+msgstr "JmÃ©no serveru cddbp"
 
-#: src/input/input_cdda.c:2646
+#: src/input/input_cdda.c:2663
 msgid "cddbp server port"
 msgstr "Port serveru cddbp"
 
-#: src/input/input_cdda.c:2651
+#: src/input/input_cdda.c:2668
 msgid "cddbp cache directory"
-msgstr "Adresáø se záznamy cddbp"
+msgstr "AdresÃ¡Å™ se zÃ¡znamy cddbp"
 
-#: src/input/input_dvb.c:998
+#: src/input/input_dvb.c:410 src/input/input_dvb.c:903
+#, fuzzy
+msgid "input_dvb: tuner_set_channel failed\n"
+msgstr "input_rip: selhalo nastavenÃ­ pozice\n"
+
+#: src/input/input_dvb.c:693
+#, fuzzy, c-format
+msgid "input_dvb: failed to open dvb channel file '%s'\n"
+msgstr "input_file: zkusÃ­ se otevÅ™Ã­t soubor s titulky '%s'\n"
+
+#: src/input/input_dvb.c:885
+#, fuzzy
+msgid "input_dvb: cannot open dvb device\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd >%s<\n"
+
+#: src/input/input_dvb.c:910
+#, fuzzy, c-format
+msgid "input_dvb: cannot open dvr device '%s'\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd >%s<\n"
+
+#: src/input/input_dvb.c:1005
 msgid "DVB (Digital TV) input plugin"
-msgstr "vstupní modul DVB (digitální TV)"
+msgstr "vstupnÃ­ modul DVB (digitÃ¡lnÃ­ TV)"
+
+#: src/input/input_dvd.c:542
+msgid "input_dvd: values of \\beta will give rise to dom!\n"
+msgstr ""
+
+#: src/input/input_dvd.c:561
+#, c-format
+msgid "input_dvd: Error getting next block from DVD (%s)\n"
+msgstr ""
+
+#: src/input/input_dvd.c:1383 src/input/input_dvd.c:1394
+#, fuzzy
+msgid "input_dvd: Error opening DVD device\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
 
 #: src/input/input_file.c:127
 #, c-format
 msgid "input_file: read error (%s)\n"
-msgstr "input_file: chyba ètení (%s)\n"
+msgstr "input_file: chyba ÄtenÃ­ (%s)\n"
 
 #: src/input/input_file.c:485
 msgid "file input plugin"
 msgstr "modul pro vstup ze souboru"
 
-#: src/input/input_file.c:844
+#: src/input/input_file.c:847
 msgid "file browsing start location"
-msgstr "Poèáteèní umístìní pøi procházení souborù"
+msgstr "PoÄÃ¡teÄnÃ­ umÃ­stÄ›nÃ­ pÅ™i prochÃ¡zenÃ­ souborÅ¯"
 
-#: src/input/input_file.c:851
+#: src/input/input_file.c:854
 msgid "list hidden files"
-msgstr "Ukazovat skryté soubory"
+msgstr "Ukazovat skrytÃ© soubory"
 
-#: src/input/input_gnome_vfs.c:216
-msgid "gnome-vfs input plugin as shipped with xine"
-msgstr "vstupní modul gnome-vfs dodanı se xine"
+#: src/input/vcd/vcdio.c:206
+#, fuzzy
+msgid "SEEK_CUR not implemented for nozero offset"
+msgstr "input_vcd: pro nenulovÃ½ offset nenÃ­ SEEK_CUR implementovÃ¡n!\n"
+
+#: src/input/vcd/vcdio.c:234
+msgid "SEEK_END not implemented yet."
+msgstr ""
+
+#: src/input/vcd/vcdio.c:237
+msgid "seek not implemented yet for"
+msgstr ""
+
+#: src/input/vcd/vcdplayer.c:88
+msgid "bad item type"
+msgstr ""
+
+#: src/input/vcd/vcdplayer.c:439
+msgid "bad entry number"
+msgstr ""
+
+#: src/input/vcd/vcdplayer.c:471
+msgid "bad segment number"
+msgstr ""
+
+#: src/input/vcd/vcdplayer.c:481
+msgid "Error in getting current segment number"
+msgstr ""
+
+#: src/input/vcd/vcdplayer.c:552
+msgid "Should have converted this above"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:172
+msgid "failed to find a device with a VCD"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:298
+msgid "was passed a null class parameter"
+msgstr ""
+
+#. Bad type.
+#: src/input/vcd/xineplug_inp_vcd.c:887
+msgid "Invalid current entry type"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:911
+msgid ""
+"Video CD plugin with PBC and support for: (X)VCD, (X)SVCD, HQVCD, CVD ... "
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1014
+msgid "selection has no return entry"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1024
+msgid "selection has no default entry"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1034
+msgid "selection has no next entry"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1042
+msgid "selection has no previous entry"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1049
+msgid "Unknown event type: "
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1282 src/input/vcd/xineplug_inp_vcd.c:1329
+msgid "The above message had unknown vcdimager log level"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1627
+msgid "default type to use on VCD autoplay"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1628
+msgid ""
+"What play unit to use when none is specified in an MRL, e.g. vcd:// or "
+"vcd:///dev/dvd:"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1638
+msgid "default CD drive used for VCD when none given"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1639
+msgid "What to use if no drive specified. If null, we'll scan for CD drives."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1649
+msgid "position slider range"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1650
+msgid "The range the stream playback position slider represents when playing."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1658
+msgid "Do we use read-ahead caching?"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1659
+msgid "Class may lead to jerky playback on low-end machines."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1669
+msgid "Automatically advance track/entry?"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1670
+msgid ""
+"If set, we should we automatically advance to the next entry or track. Used "
+"only when playback control (PBC) is not on."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1679
+msgid "Show 'rejected' LIDs?"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1691
+msgid "format string for display banner"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1692
+msgid ""
+"Format used in the GUI Title. Similar to the Unix date command. Format "
+"specifiers that start with a percent sign. Specifiers are %A, %C, %c, %F, %"
+"I, %L, %N, %P, %p, %S, %T, %V, %v, and %%."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1703
+msgid "format string for stream comment field"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1704
+msgid ""
+"Format used in the GUI Title. Similar to the Unix date command. Format "
+"specifiers that start with a percent sign. Specifiers are same as the "
+"title_format."
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1715
+msgid "debug flag mask"
+msgstr ""
+
+#: src/input/vcd/xineplug_inp_vcd.c:1716
+msgid "This integer when viewed in binary is a debugging mask"
+msgstr ""
 
 #: src/input/input_http.c:323 src/input/input_http.c:344
 #, c-format
 msgid "input_http: read error %d\n"
-msgstr "input_http: chyba ètení %d\n"
+msgstr "input_http: chyba ÄtenÃ­ %d\n"
 
 #: src/input/input_http.c:557
 msgid "Connecting HTTP server..."
-msgstr "Pøipojuje se k HTTP serveru..."
+msgstr "PÅ™ipojuje se k HTTP serveru..."
 
 #: src/input/input_http.c:726
 msgid "input_http: invalid http answer\n"
-msgstr "input_http: neplatná odpovìï http\n"
+msgstr "input_http: neplatnÃ¡ odpovÄ›Ä http\n"
 
 #: src/input/input_http.c:736
 #, c-format
 msgid "input_http: 3xx redirection: >%d %s<\n"
-msgstr "input_http: pøesmìrování 3xx: >%d %s<\n"
+msgstr "input_http: pÅ™esmÄ›rovÃ¡nÃ­ 3xx: >%d %s<\n"
 
 #: src/input/input_http.c:742
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
-msgstr "input_http: stav http není 2xx: >%d %s<\n"
+msgstr "input_http: stav http nenÃ­ 2xx: >%d %s<\n"
 
 #: src/input/input_http.c:752
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
-msgstr "input_http: délka obsahu = %Ld bytù\n"
+msgstr "input_http: dÃ©lka obsahu = %Ld bytÅ¯\n"
 
 #: src/input/input_http.c:846
 msgid "http input plugin"
-msgstr "vstupní modul http"
+msgstr "vstupnÃ­ modul http"
 
 #: src/input/input_http.c:882
 msgid "http proxy username"
-msgstr "HTTP proxy - u¾ivatelské jméno"
+msgstr "HTTP proxy - uÅ¾ivatelskÃ© jmÃ©no"
 
 #: src/input/input_http.c:885
 msgid "http proxy password"
@@ -442,9 +1040,23 @@ msgstr "HTTP proxy - server"
 msgid "http proxy port"
 msgstr "HTTP proxy - port"
 
-#: src/input/input_mms.c:405
+#: src/input/input_mms.c:418
 msgid "mms streaming input plugin"
-msgstr "vstupní modul mms pro streamovaná data"
+msgstr "vstupnÃ­ modul mms pro streamovanÃ¡ data"
+
+#: src/input/input_mms.c:450
+msgid "Network bandwidth"
+msgstr ""
+
+#: src/input/input_mms.c:457
+msgid "MMS protocol"
+msgstr ""
+
+#: src/input/input_mms.c:458
+msgid ""
+"Select the protocol above MMS. TCP is better but you may need HTTP behind "
+"the firewall."
+msgstr ""
 
 #: src/input/input_net.c:123 src/input/input_net.c:153
 #, c-format
@@ -464,669 +1076,1311 @@ msgstr "input_net: nelze zjistit adresu '%s'.\n"
 #: src/input/input_net.c:195 src/input/input_net.c:242
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
-msgstr "input_net: nelze se pøipojit k '%s'.\n"
+msgstr "input_net: nelze se pÅ™ipojit k '%s'.\n"
 
-#: src/input/input_net.c:509
+#: src/input/input_net.c:511
 msgid "net input plugin as shipped with xine"
-msgstr "vstupní modul pro sí» dodanı se xine"
+msgstr "vstupnÃ­ modul pro sÃ­Å¥ dodanÃ½ se xine"
 
 #: src/input/input_pnm.c:265
 msgid "pnm streaming input plugin"
-msgstr "vstupní modul pnm pro streamovaná data"
+msgstr "vstupnÃ­ modul pnm pro streamovanÃ¡ data"
 
-#: src/input/input_pvr.c:1543
-msgid "WinTV-PVR 250/350 input plugin"
-msgstr "vstupní modul WinTV-PVR 250/350"
-
-#: src/input/input_rtp.c:165
+#: src/input/input_rtp.c:182
 #, c-format
 msgid "socket(): %s.\n"
 msgstr "socket(): %s.\n"
 
-#: src/input/input_rtp.c:177
+#: src/input/input_rtp.c:192
+msgid "IP address specified is multicast\n"
+msgstr ""
+
+#: src/input/input_rtp.c:201
 #, c-format
 msgid "setsockopt(SO_RCVBUF): %s.\n"
 msgstr "setsockopt(SO_RCVBUF): %s.\n"
 
-#: src/input/input_rtp.c:183
+#: src/input/input_rtp.c:209
+#, fuzzy, c-format
+msgid "setsockopt(SO_REUSEADDR): %s.\n"
+msgstr "setsockopt(SO_RCVBUF): %s.\n"
+
+#: src/input/input_rtp.c:216
 #, c-format
 msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
-#: src/input/input_rtp.c:202
+#: src/input/input_rtp.c:236
+#, c-format
+msgid "Can't find address for iface %s:%s\n"
+msgstr ""
+
+#: src/input/input_rtp.c:254
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
-msgstr "setsockopt(IP_ADD_MEMBERSHIP) selhalo (jádro s multicastem?): %s.\n"
+msgstr "setsockopt(IP_ADD_MEMBERSHIP) selhalo (jÃ¡dro s multicastem?): %s.\n"
 
-#: src/input/input_rtp.c:222
+#: src/input/input_rtp.c:276
 #, c-format
 msgid "unable to resolve '%s'.\n"
 msgstr "nelze zjistit adresu '%s'.\n"
 
-#: src/input/input_rtp.c:235
+#: src/input/input_rtp.c:286
 #, c-format
 msgid "unable to bind to '%s'.\n"
-msgstr "nelze se pøipojit k '%s'.\n"
+msgstr "nelze se pÅ™ipojit k '%s'.\n"
 
-#: src/input/input_rtp.c:263
+#: src/input/input_rtp.c:314
 #, c-format
 msgid "recv(): %s.\n"
 msgstr "recv(): %s.\n"
 
-#: src/input/input_rtp.c:490
-msgid "RTP: waiting for preview data\n"
-msgstr "RTP: èeká se na poèáteèní data\n"
-
-#: src/input/input_rtp.c:496
-msgid "RTP: waiting for preview data: timeout\n"
-msgstr "RTP: èekání na poèáteèní data: èas vypr¹el\n"
-
-#: src/input/input_rtp.c:535
+#: src/input/input_rtp.c:602
 msgid "RTP: stopping reading thread...\n"
-msgstr "RTP: ukonèuje se ètecí vlákno...\n"
+msgstr "RTP: ukonÄuje se ÄtecÃ­ vlÃ¡kno...\n"
 
-#: src/input/input_rtp.c:538
+#: src/input/input_rtp.c:605
 msgid "RTP: reading thread terminated\n"
-msgstr "RTP: ètecí vlákno ukonèeno\n"
+msgstr "RTP: ÄtecÃ­ vlÃ¡kno ukonÄeno\n"
 
-#: src/input/input_rtp.c:554
+#: src/input/input_rtp.c:620
 #, c-format
-msgid "Opening >%s<\n"
-msgstr "Otvírá se >%s<\n"
+msgid "Opening >filename:%s port:%d interface:%s<\n"
+msgstr ""
 
-#: src/input/input_rtp.c:569
+#: src/input/input_rtp.c:637
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
-msgstr "input_rtp: nelze vytvoøit nové vlákno (%s)\n"
+msgstr "input_rtp: nelze vytvoÅ™it novÃ© vlÃ¡kno (%s)\n"
 
-#: src/input/input_rtp.c:652
+#: src/input/input_rtp.c:742
 msgid "RTP and UDP input plugin as shipped with xine"
-msgstr "vstupní modul pro RTP a UDP dodanı se xine"
+msgstr "vstupnÃ­ modul pro RTP a UDP dodanÃ½ se xine"
 
 #: src/input/input_rtsp.c:278
 msgid "rtsp streaming input plugin"
-msgstr "vstupní modul rtsp pro streamovaná data"
+msgstr "vstupnÃ­ modul rtsp pro streamovanÃ¡ data"
 
-#: src/input/input_stdin_fifo.c:338
+#: src/input/input_stdin_fifo.c:161
+#, c-format
+msgid "stdin: cannot seek back! (%lld > %lld)\n"
+msgstr ""
+
+#: src/input/input_stdin_fifo.c:248
+#, fuzzy, c-format
+msgid "stdin: failed to open '%s'\n"
+msgstr "input_http: selhalo otevÅ™enÃ­ soketu\n"
+
+#: src/input/input_stdin_fifo.c:340
 msgid "stdin streaming input plugin"
-msgstr "vstupní modul pro data ze standardního vstupu"
+msgstr "vstupnÃ­ modul pro data ze standardnÃ­ho vstupu"
 
-#: src/input/input_v4l.c:375
+#: src/input/input_vcd.c:849
+#, fuzzy
+msgid "input_vcd: malformed MRL. Use vcdo:/<track #>\n"
+msgstr "input_vcd: neplatnÃ© MRL. PouÅ¾ijte vcd://<stopa #>\n"
+
+#: src/input/input_vcd.c:855
+#, c-format
+msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
+msgstr "input_vcd: neplatnÃ¡ stopa %d (platnÃ½ rozsah: 0 .. %d)\n"
+
+#: src/input/input_vcd.c:922
+msgid "Video CD input plugin"
+msgstr "VstupnÃ­ modul pro video CD"
+
+#: src/input/input_vcd.c:964
+#, c-format
+msgid "unable to open %s: %s.\n"
+msgstr "nelze otevÅ™Ã­t %s: %s.\n"
+
+#: src/input/input_vcd.c:1040
+#, fuzzy, c-format
+msgid "input_vcd: unable to open %s: %s.\n"
+msgstr "input_dvd: nelze otevÅ™Ã­t mechaniku dvd (%s): %s\n"
+
+#: src/input/input_vcd.c:1094
+msgid "path to your local vcd device file"
+msgstr "Cesta k vaÅ¡emu mÃ­stnÃ­mu souboru VCD zaÅ™Ã­zenÃ­"
+
+#: src/input/mms.c:604
+msgid "Connecting MMS server (over tcp)..."
+msgstr "PÅ™ipojuje se k MMS serveru (pÅ™es TCP)..."
+
+#: src/input/media_helper.c:142
+#, c-format
+msgid "input_dvd: Device %s failed to open during eject calls\n"
+msgstr ""
+
+#: src/input/net_buf_ctrl.c:88
+msgid "Buffering..."
+msgstr "NahrÃ¡vÃ¡ se..."
+
+#: src/input/pnm.c:591
+#, c-format
+msgid ""
+"input_pnm: got message from server while reading stream:\n"
+"%s\n"
+msgstr ""
+
+#: src/input/pnm.c:729
+#, fuzzy, c-format
+msgid "input_pnm: failed to connect '%s'\n"
+msgstr "input_net: nelze se pÅ™ipojit k '%s'.\n"
+
+#: src/input/pnm.c:740
+#, fuzzy
+msgid "input_pnm: failed to set up stream\n"
+msgstr "input_http: selhalo otevÅ™enÃ­ soketu\n"
+
+#: src/input/librtsp/rtsp.c:438
+#, c-format
+msgid "rtsp: bad mrl: %s\n"
+msgstr ""
+
+#: src/input/librtsp/rtsp.c:495
+#, fuzzy, c-format
+msgid "rtsp: failed to connect to '%s'\n"
+msgstr "http: nelze se pÅ™ipojit k >%s<\n"
+
+#: src/input/librtsp/rtsp_session.c:82
+#, fuzzy, c-format
+msgid "rtsp_session: failed to connect to server %s\n"
+msgstr "http: nelze se pÅ™ipojit k >%s<\n"
+
+#: src/input/librtsp/rtsp_session.c:115
+msgid "rtsp_session: session can not be established.\n"
+msgstr ""
+
+#: src/input/librtsp/rtsp_session.c:131
+#, c-format
+msgid "rtsp_session: rtsp server type '%s' not supported yet. sorry.\n"
+msgstr ""
+
+#: src/input/mmsh.c:229
+#, fuzzy
+msgid "libmmsh: send error\n"
+msgstr "input_http: chyba ÄtenÃ­\n"
+
+#: src/input/mmsh.c:274
+msgid "libmmsh: bad response format\n"
+msgstr ""
+
+#: src/input/mmsh.c:280
+#, c-format
+msgid "libmmsh: 3xx redirection not implemented: >%d %s<\n"
+msgstr "libmmsh: pÅ™esmÄ›rovÃ¡nÃ­ 3xx nenÃ­ implementovÃ¡no: >%d %s<\n"
+
+#: src/input/mmsh.c:287
+#, c-format
+msgid "libmmsh: http status not 2xx: >%d %s<\n"
+msgstr "libmmsh: stav http nenÃ­ 2xx: >%d %s<\n"
+
+#: src/input/mmsh.c:295
+msgid "libmmsh: Location redirection not implemented\n"
+msgstr "libmmsh: PÅ™esmÄ›rovÃ¡nÃ­ umÃ­stÄ›nÃ­ nenÃ­ implementovÃ¡no\n"
+
+#: src/input/mmsh.c:542
+msgid "Connecting MMS server (over http)..."
+msgstr "PÅ™ipojuje se k MMS serveru (pÅ™es HTTP)..."
+
+#: src/input/mmsh.c:625
+msgid "invalid url\n"
+msgstr ""
+
+#: src/input/mmsh.c:630
+msgid "unsupported protocol\n"
+msgstr ""
+
+#: src/input/input_v4l.c:380
 msgid "Buffer underrun..."
 msgstr "Buffer podtekl..."
 
-#: src/input/input_v4l.c:379
+#: src/input/input_v4l.c:384
 msgid "Buffer overrun..."
-msgstr "Buffer pøetekl..."
+msgstr "Buffer pÅ™etekl..."
 
-#: src/input/input_v4l.c:382
+#: src/input/input_v4l.c:387
 msgid "Adjusting..."
-msgstr "Pøizpùsobuje se..."
+msgstr "PÅ™izpÅ¯sobuje se..."
 
-#: src/input/input_v4l.c:1936
+#: src/input/input_v4l.c:663
+msgid "Tuner name not found\n"
+msgstr ""
+
+#: src/input/input_v4l.c:1885
 msgid "v4l tv input plugin"
-msgstr "vstupní modul v4l tv"
+msgstr "vstupnÃ­ modul v4l tv"
 
-#: src/input/input_v4l.c:1940
+#: src/input/input_v4l.c:1889
 msgid "v4l radio input plugin"
-msgstr "vstupní modul v4l rádio"
+msgstr "vstupnÃ­ modul v4l rÃ¡dio"
 
-#: src/input/input_v4l.c:1973
+#: src/input/input_v4l.c:1921
 msgid "path to the v4l video device"
-msgstr "Cesta k zaøízení videa v4l"
+msgstr "Cesta k zaÅ™Ã­zenÃ­ videa v4l"
 
-#: src/input/input_v4l.c:1998
+#: src/input/input_v4l.c:1946
 msgid "path to the v4l radio device"
-msgstr "Cesta k zaøízení rádia v4l"
+msgstr "Cesta k zaÅ™Ã­zenÃ­ rÃ¡dia v4l"
 
-#: src/input/input_vcd.c:912
-msgid "Video CD input plugin"
-msgstr "Vstupní modul pro video CD"
+#: src/input/input_pvr.c:599
+#, fuzzy, c-format
+msgid "input_pvr: error creating pvr file (%s)\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
 
-#: src/input/input_vcd.c:1082
-msgid "path to your local vcd device file"
-msgstr "Cesta k va¹emu místnímu souboru VCD zaøízení"
+#: src/input/input_pvr.c:751
+#, fuzzy, c-format
+msgid "input_pvr: error opening pvr file (%s)\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
 
-#: src/input/mms.c:633
-msgid "Connecting MMS server (over tcp)..."
-msgstr "Pøipojuje se k MMS serveru (pøes TCP)..."
+#: src/input/input_pvr.c:827
+#, fuzzy, c-format
+msgid "input_pvr: read error (%s)\n"
+msgstr "input_file: chyba ÄtenÃ­ (%s)\n"
 
-#: src/input/mmsh.c:307
-#, c-format
-msgid "libmmsh: 3xx redirection not implemented: >%d %s<\n"
-msgstr "libmmsh: pøesmìrování 3xx není implementováno: >%d %s<\n"
+#: src/input/input_pvr.c:1140 src/input/input_pvr.c:1391
+#, fuzzy, c-format
+msgid "input_pvr: error opening device %s\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
 
-#: src/input/mmsh.c:313
-#, c-format
-msgid "libmmsh: http status not 2xx: >%d %s<\n"
-msgstr "libmmsh: stav http není 2xx: >%d %s<\n"
+#: src/input/input_pvr.c:1146 src/input/input_pvr.c:1397
+msgid "input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n"
+msgstr ""
 
-#: src/input/mmsh.c:320
-msgid "libmmsh: Location redirection not implemented\n"
-msgstr "libmmsh: Pøesmìrování umístìní není implementováno\n"
+#: src/input/input_pvr.c:1154 src/input/input_pvr.c:1406
+msgid "input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n"
+msgstr ""
 
-#: src/input/mmsh.c:566
-msgid "Connecting MMS server (over http)..."
-msgstr "Pøipojuje se k MMS serveru (pøes HTTP)..."
+#: src/input/input_pvr.c:1514
+msgid "WinTV-PVR 250/350 input plugin"
+msgstr "vstupnÃ­ modul WinTV-PVR 250/350"
 
-#: src/input/net_buf_ctrl.c:90
-msgid "Buffering..."
-msgstr "Nahrává se..."
+#: src/input/input_pvr.c:1540
+#, fuzzy
+msgid "device used for WinTV-PVR 250/350 (pvr plugin)"
+msgstr "vstupnÃ­ modul WinTV-PVR 250/350"
 
-#: src/liba52/xine_decoder.c:774
+#: src/input/input_gnome_vfs.c:221
+msgid "gnome-vfs input plugin as shipped with xine"
+msgstr "vstupnÃ­ modul gnome-vfs dodanÃ½ se xine"
+
+#: src/liba52/xine_decoder.c:710
+msgid "HELP! a mono-only audio driver?!\n"
+msgstr ""
+
+#: src/liba52/xine_decoder.c:773
 msgid "a/52 volume control"
-msgstr "nastavení hlasitosti a/52"
+msgstr "nastavenÃ­ hlasitosti a/52"
 
-#: src/liba52/xine_decoder.c:777
+#: src/liba52/xine_decoder.c:776
 msgid "enable a/52 dynamic range compensation"
-msgstr "povolit dynamické vyrovnávání rozsahu a/52"
+msgstr "povolit dynamickÃ© vyrovnÃ¡vÃ¡nÃ­ rozsahu a/52"
 
-#: src/liba52/xine_decoder.c:780
+#: src/liba52/xine_decoder.c:779
 msgid "enable audio downmixing to 2.0 surround stereo"
 msgstr "povolit redukci zvuku do 2.0 surround stereo"
 
-#: src/libdivx4/xine_decoder.c:527
+#: src/libdivx4/xine_decoder.c:528
 msgid "Relative path to libdivxdecore.so to open"
-msgstr "relativní cesta k libdivxdecore.so"
+msgstr "relativnÃ­ cesta k libdivxdecore.so"
 
-#: src/libdivx4/xine_decoder.c:552
+#: src/libdivx4/xine_decoder.c:553
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
 msgstr ""
-"úroveò dodateèného zpracování, 0 = ¾ádné a rychle, 6 = v¹echno a pomalu"
+"ÃºroveÅˆ dodateÄnÃ©ho zpracovÃ¡nÃ­, 0 = Å¾Ã¡dnÃ© a rychle, 6 = vÅ¡echno a pomalu"
 
-#: src/libdivx4/xine_decoder.c:555
+#: src/libdivx4/xine_decoder.c:556
 msgid "use divx4 plugin for msmpeg4v3 streams"
-msgstr "pou¾ít modul divx4 pro sekvence msmpeg4v3"
+msgstr "pouÅ¾Ã­t modul divx4 pro sekvence msmpeg4v3"
 
-#: src/libdivx4/xine_decoder.c:560
+#: src/libdivx4/xine_decoder.c:561
 msgid "Divx version to check for (set to 0 (default) if unsure)"
-msgstr "nejmen¹í dovolená verze Divx (jestli nevíte, nastavte 0 (pøedvolené))"
+msgstr "nejmenÅ¡Ã­ dovolenÃ¡ verze Divx (jestli nevÃ­te, nastavte 0 (pÅ™edvolenÃ©))"
 
-#: src/libffmpeg/xine_decoder.c:1326
-msgid "ffmpeg mpeg-4 postprocessing quality"
-msgstr "kvalita dodateèného zpracování ffmpeg mpeg-4"
+#: src/libfaad/xine_decoder.c:86
+msgid "libfaad: libfaad faacDecOpen() failed.\n"
+msgstr ""
+
+#: src/libfaad/xine_decoder.c:244
+msgid "libfaad: libfaad faacDecInit2() failed.\n"
+msgstr ""
+
+#: src/libfaad/xine_decoder.c:306
+msgid "libfaad: libfaad faacDecInit() failed.\n"
+msgstr ""
+
+#: src/libffmpeg/xine_encoder.c:154
+msgid "Dxr3enc: libavcodec mpeg output bitrate (kbit/s)"
+msgstr "Dxr3enc: vÃ½stupnÃ­ rychlost libavcodec mpeg (kbit/s)"
 
 #: src/libffmpeg/xine_encoder.c:155
-msgid "Dxr3enc: libavcodec mpeg output bitrate (kbit/s)"
-msgstr "Dxr3enc: vıstupní rychlost libavcodec mpeg (kbit/s)"
-
-#: src/libffmpeg/xine_encoder.c:156
 msgid ""
 "The bitrate the libavcodec mpeg encoder should use for dxr3's encoding mode"
 msgstr ""
-"Bitová rychlost mpeg kodéru libavcodec by mìla bıt pou¾ita pro kódovací "
-"re¾im dxr3"
+"BitovÃ¡ rychlost mpeg kodÃ©ru libavcodec by mÄ›la bÃ½t pouÅ¾ita pro kÃ³dovacÃ­ "
+"reÅ¾im dxr3"
 
-#: src/libffmpeg/xine_encoder.c:162
+#: src/libffmpeg/xine_encoder.c:161
 msgid "Dxr3enc: Use quantizer instead of bitrate"
-msgstr "Dxr3enc: Pou¾ít kvantizér namísto bitového toku"
+msgstr "Dxr3enc: PouÅ¾Ã­t kvantizÃ©r namÃ­sto bitovÃ©ho toku"
 
-#: src/libffmpeg/xine_encoder.c:167
+#: src/libffmpeg/xine_encoder.c:166
 msgid "Dxr3enc: Minimum quantizer"
-msgstr "Dxr3enc: Minimální kvantizér"
+msgstr "Dxr3enc: MinimÃ¡lnÃ­ kvantizÃ©r"
 
-#: src/libffmpeg/xine_encoder.c:171
+#: src/libffmpeg/xine_encoder.c:170
 msgid "Dxr3enc: Maximum quantizer"
-msgstr "Dxr3enc: Maximálné kvantizér"
+msgstr "Dxr3enc: MaximÃ¡lnÃ© kvantizÃ©r"
 
-#: src/libreal/audio_decoder.c:658 src/libreal/xine_decoder.c:583
+#: src/libffmpeg/audio_decoder.c:132
+#, c-format
+msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
+msgstr ""
+
+#: src/libffmpeg/audio_decoder.c:207
+msgid "ffmpeg_audio_dec: couldn't open decoder\n"
+msgstr ""
+
+#: src/libffmpeg/audio_decoder.c:242
+#, c-format
+msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:129
+msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:216
+msgid "ffmpeg_video_dec: couldn't open decoder\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:257
+msgid "ffmpeg_video_dec: direct rendering enabled\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:446
+#, c-format
+msgid "ffmpeg_video_dec: invalid/unknown frame rate code: %d \n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:461
+msgid "avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:837
+#, c-format
+msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:929
+#, c-format
+msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
+msgstr ""
+
+#: src/libffmpeg/video_decoder.c:1228
+msgid "ffmpeg mpeg-4 postprocessing quality"
+msgstr "kvalita dodateÄnÃ©ho zpracovÃ¡nÃ­ ffmpeg mpeg-4"
+
+#: src/libreal/audio_decoder.c:155
+#, c-format
+msgid "libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n"
+msgstr ""
+
+#: src/libreal/audio_decoder.c:313
+#, c-format
+msgid "libareal: decoder init failed, error code: 0x%x\n"
+msgstr ""
+
+#: src/libreal/audio_decoder.c:327
+#, c-format
+msgid "libareal: decoder flavor setup failed, error code: 0x%x\n"
+msgstr ""
+
+#: src/libreal/audio_decoder.c:364
+msgid "libareal: oups, real can do more than 2 channels ?\n"
+msgstr ""
+
+#: src/libreal/audio_decoder.c:659 src/libreal/xine_decoder.c:539
 msgid "path to real player codecs, if installed"
-msgstr "Cesta ke kodekùm real playeru, jsou-li nainstalovány"
+msgstr "Cesta ke kodekÅ¯m real playeru, jsou-li nainstalovÃ¡ny"
+
+#: src/libreal/xine_decoder.c:143
+msgid "libreal: Error resolving symbols! (version incompatibility?)\n"
+msgstr ""
 
 #: src/libspucc/xine_decoder.c:223
 msgid "Enable closed captions in MPEG-2 streams"
-msgstr "Povolit skryté titulky v sekvencích MPEG-2"
+msgstr "Povolit skrytÃ© titulky v sekvencÃ­ch MPEG-2"
 
 #: src/libspucc/xine_decoder.c:230
 msgid "Closed-captioning foreground/background scheme"
-msgstr "Zobrazení skrytıch titulkù (popøedí/pozadí)"
+msgstr "ZobrazenÃ­ skrytÃ½ch titulkÅ¯ (popÅ™edÃ­/pozadÃ­)"
 
 #: src/libspucc/xine_decoder.c:236
 msgid "Standard closed captioning font"
-msgstr "Standardní font skrytıch titulkù"
+msgstr "StandardnÃ­ font skrytÃ½ch titulkÅ¯"
 
 #: src/libspucc/xine_decoder.c:242
 msgid "Italic closed captioning font"
-msgstr "Font kurzívy u skrytıch titulkù"
+msgstr "Font kurzÃ­vy u skrytÃ½ch titulkÅ¯"
 
 #: src/libspucc/xine_decoder.c:248
 msgid "Closed captioning font size"
-msgstr "Velikost fontu skrytıch titulkù"
+msgstr "Velikost fontu skrytÃ½ch titulkÅ¯"
 
 #: src/libspucc/xine_decoder.c:253
 msgid "Center-adjust closed captions"
-msgstr "Centrování skrytıch titulkù"
+msgstr "CentrovÃ¡nÃ­ skrytÃ½ch titulkÅ¯"
 
-#: src/libsputext/xine_decoder.c:510
+#: src/libsputext/demux_sputext.c:1355
+msgid "Default period to hide subtitles in seconds"
+msgstr ""
+
+#: src/libsputext/demux_sputext.c:1356
+msgid ""
+"Define this to non-zero, if you want automatically hide subtitle after given "
+"time. Used only with subtitle formats, where are no end time."
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:687
 msgid "Subtitle size (relative window size)"
-msgstr "Velikost titulkù (vzhledem k velikosti okna)"
+msgstr "Velikost titulkÅ¯ (vzhledem k velikosti okna)"
 
-#: src/libsputext/xine_decoder.c:515
+#: src/libsputext/xine_decoder.c:692
 msgid "Subtitle vertical offset (relative window size)"
-msgstr "Vertikální posun titulkù (vzhledem k velikosti okna)"
+msgstr "VertikÃ¡lnÃ­ posun titulkÅ¯ (vzhledem k velikosti okna)"
 
-#: src/libsputext/xine_decoder.c:520
+#: src/libsputext/xine_decoder.c:697
 msgid "Font for external subtitles"
-msgstr "Font titulkù"
+msgstr "Font titulkÅ¯"
 
-#: src/libsputext/xine_decoder.c:525
+#: src/libsputext/xine_decoder.c:702
 msgid "Encoding of subtitles"
-msgstr "Kódování titulkù"
+msgstr "KÃ³dovÃ¡nÃ­ titulkÅ¯"
 
-#: src/libsputext/xine_decoder.c:530
-msgid "Use unscale OSD if possible"
-msgstr "Pou¾ívat OSD bez zmìn mìøítka, je-li to mo¾né"
+#: src/libsputext/xine_decoder.c:707
+#, fuzzy
+msgid "Use unscaled OSD if possible"
+msgstr "PouÅ¾Ã­vat OSD bez zmÄ›n mÄ›Å™Ã­tka, je-li to moÅ¾nÃ©"
 
-#: src/libsputext/xine_decoder_ogm.c:485
-msgid "font for external subtitles"
-msgstr "Font titulkù"
-
-#: src/libsputext/xine_decoder_ogm.c:491
-msgid "subtitle size (relative window size)"
-msgstr "Velikost titulkù (vzhledem k velikosti okna)"
-
-#: src/libsputext/xine_decoder_ogm.c:497
-msgid "subtitle vertical offset (relative window size)"
-msgstr "Vertikální posun titulkù (vzhledem k velikosti okna)"
-
-#: src/libsputext/xine_decoder_ogm.c:541
-msgid "encoding of subtitles"
-msgstr "Kódování titulkù"
-
-#: src/libw32dll/qt_decoder.c:609 src/libw32dll/qt_decoder.c:1122
-#: src/libw32dll/w32codec.c:1493 src/libw32dll/w32codec.c:1565
+#: src/libw32dll/qt_decoder.c:618 src/libw32dll/qt_decoder.c:1131
+#: src/libw32dll/w32codec.c:1569 src/libw32dll/w32codec.c:1641
 msgid "path to win32 codec dlls"
-msgstr "Cesta ke kodekùm win32"
+msgstr "Cesta ke kodekÅ¯m win32"
 
-#: src/libxinevdec/fli.c:366
+#: src/libw32dll/w32codec.c:570
+#, c-format
+msgid "w32codec: ICOpen failed! unknown codec %08lx / wrong parameters?\n"
+msgstr ""
+
+#: src/libw32dll/w32codec.c:579
+#, c-format
+msgid "w32codec: ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n"
+msgstr ""
+
+#: src/libw32dll/w32codec.c:612
+#, c-format
+msgid "w32codec: ICDecompressQuery failed: Error %ld\n"
+msgstr ""
+
+#: src/libw32dll/w32codec.c:623
+#, c-format
+msgid "w32codec: ICDecompressBegin failed: Error %ld\n"
+msgstr ""
+
+#: src/libw32dll/w32codec.c:669
 #, c-format
 msgid ""
-"FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
-"chunk\n"
+"w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n"
 msgstr ""
-"FLI: v datovém bloku FLI_COPY : zdrojová data (%d bytù) vìt¹í ne¾ data "
-"snímku, datovı blok se pøeskoèí\n"
 
-#: src/libxinevdec/fli.c:382
-#, c-format
-msgid "FLI: Unrecognized chunk type: %d\n"
-msgstr "FLI: Nerozpoznanı datovı blok: %d\n"
-
-#: src/libxinevdec/fli.c:408
+#: src/libw32dll/w32codec.c:680
 #, c-format
 msgid ""
-"  warning: processed FLI chunk where chunk size = %d\n"
-"  and final chunk ptr = %d\n"
+"w32codec: DMO_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n"
 msgstr ""
-"  varování: zpracován datovı blok FLI s velikostí = %d\n"
-"  a koncovım ukazatelem = %d\n"
 
-#. *************************************************************************
-#. * MS RLE specific decode functions
-#. ************************************************************************
-#: src/libxinevdec/msrle.c:76
-msgid "MS RLE: stream ptr just went out of bounds (1)\n"
-msgstr "MS RLE: ukazatel na data vy¹el z mezí (1)\n"
-
-#: src/libxinevdec/msrle.c:116
-msgid "MS RLE: frame ptr just went out of bounds (1)\n"
-msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (1)\n"
-
-#: src/libxinevdec/msrle.c:123
-msgid "MS RLE: stream ptr just went out of bounds (2)\n"
-msgstr "MS RLE: ukazatel na data vy¹el z mezí (2)\n"
-
-#: src/libxinevdec/msrle.c:146
-msgid "MS RLE: frame ptr just went out of bounds (2)\n"
-msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (2)\n"
-
-#: src/libxinevdec/msrle.c:167
+#: src/libw32dll/w32codec.c:800 src/libw32dll/w32codec.c:1459
 #, c-format
-msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
-msgstr "MS RLE: koncovı rámec dekódován i se zbytkem bytù (%d < %d)\n"
-
-#. *************************************************************************
-#. * RPZA specific decode functions
-#. ************************************************************************
-#: src/libxinevdec/qtrpza.c:83 src/libxinevdec/qtsmc.c:100
-msgid "warning: block counter just went negative (this should not happen)\n"
+msgid "w32codec: decoder failed to start. Is '%s' installed?\n"
 msgstr ""
-"varování: èítaè blokù právì pøe¹el do mínusu (toto by se nemìlo stát)\n"
 
-#: src/libxinevdec/qtrpza.c:129
-#, c-format
-msgid "First chunk byte is 0x%02x instead of 0x1e\n"
-msgstr "Byte první èásti dat je 0x%02x namísto 0x1e\n"
-
-#: src/libxinevdec/qtrpza.c:138
-msgid "MOV chunk size != encoded chunk size; using MOV chunk size\n"
-msgstr "Velikost èásti dat MOV != velikost zakódované èásti; pou¾ije se MOV\n"
-
-#: src/libxinevdec/qtrpza.c:271
-#, c-format
-msgid ""
-"Unknown opcode %d in rpza chunk. Skip remaining %d bytes of chunk data.\n"
+#: src/libw32dll/w32codec.c:1198
+msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr ""
-"Neznámı kód %d v èásti dat rpza. Pøeskoèí se %d zbıvajících bytù dat.\n"
 
-#: src/libxinevdec/qtsmc.c:139
+#: src/libw32dll/w32codec.c:1201
 #, c-format
-msgid ""
-"warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk "
-"size\n"
+msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr ""
-"Varování: velikost èásti dat MOV != zakódovaná velikost (%d != %d); pou¾ije "
-"se MOV\n"
 
-#: src/libxinevdec/qtsmc.c:151
-#, c-format
-msgid ""
-"SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n"
-msgstr "SMC dekodér právì vy¹el z mezí (stream ptr = %d, velikost = %d)\n"
-
-#: src/libxinevdec/qtsmc.c:158
-#, c-format
-msgid "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n"
-msgstr "SMC dekodér právì vy¹el z mezí (row ptr = %d, vı¹ka = %d)\n"
-
-#: src/libxinevdec/qtsmc.c:181
-#, c-format
-msgid "encountered repeat block opcode (%02X) but no blocks rendered yet\n"
+#: src/libw32dll/w32codec.c:1221
+msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr ""
-"vyskytl se kód opakování bloku (%02X), ale ¾ádnı blok je¹tì nebyl zpracován\n"
 
-#: src/libxinevdec/qtsmc.c:219
-#, c-format
-msgid ""
-"encountered repeat block opcode (%02X) but not enough blocks rendered yet\n"
+#: src/libw32dll/w32codec.c:1240
+msgid "w32codec: Error initializing DMO Audio\n"
 msgstr ""
-"vyskytl se kód opakování bloku (%02X), ale nebylo je¹tì zpracováno dost "
-"blokù\n"
 
-#: src/libxinevdec/qtsmc.c:490
-msgid "0xF0 opcode seen in SMC chunk (xine developers would like to know)\n"
-msgstr "V èásti dat SMC vidìn kód 0xF0 (vıvojáøi xine by to rádi vìdìli)\n"
+#: src/libxinevdec/bitplane.c:1275
+msgid "bitplane: error doing ByteRun1 decompression\n"
+msgstr ""
 
-#: src/libxvid/xine_decoder.c:221
+#: src/libxinevdec/bitplane.c:1334
+msgid "bitplane: Anim Opt 1 is not supported at the moment\n"
+msgstr ""
+
+#: src/libxinevdec/bitplane.c:1341
+msgid "bitplane: Anim Opt 2 is not supported at the moment\n"
+msgstr ""
+
+#: src/libxinevdec/bitplane.c:1391
+msgid "bitplane: Anim ASCIIJ is not supported at the moment\n"
+msgstr ""
+
+#: src/libxinevdec/bitplane.c:1397
+msgid "bitplane: This anim-type is not supported at the moment\n"
+msgstr ""
+
+#: src/libxvid/xine_decoder.c:226
 #, c-format
 msgid ""
 "xvid: there is mismatch between API used by currently installed XviD\n"
 "xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
-"xvid: je zde nekompatibilita mezi programovım rozhraním v souèasné dobì\n"
-"      instalované knihovny Xvid (%d.%d) a knihovny pou¾ité ke kompilaci\n"
+"xvid: je zde nekompatibilita mezi programovÃ½m rozhranÃ­m v souÄasnÃ© dobÄ›\n"
+"      instalovanÃ© knihovny Xvid (%d.%d) a knihovny pouÅ¾itÃ© ke kompilaci\n"
 "      tohoto modulu (%d.%d).\n"
-"      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìlo\n"
+"      PÅ™ekompilovÃ¡nÃ­ tohoto modulu se souÄasnou knihovnou XviD by mÄ›lo\n"
 "      pomoci.\n"
 
-#: src/post/goom/xine_goom.c:210
+#: src/post/goom/xine_goom.c:196
 msgid "Frames per second to generate with Goom"
-msgstr "Snímkù za sekundu generovanıch Goomem"
+msgstr "SnÃ­mkÅ¯ za sekundu generovanÃ½ch Goomem"
 
-#: src/post/goom/xine_goom.c:214
+#: src/post/goom/xine_goom.c:200
 msgid "Goom image width in pixels"
-msgstr "©íøka obrazu Goomu v pixelech"
+msgstr "Å Ã­Å™ka obrazu Goomu v pixelech"
 
-#: src/post/goom/xine_goom.c:218
+#: src/post/goom/xine_goom.c:204
 msgid "Goom image height in pixels"
-msgstr "Vı¹ka obrazu Goomu v pixelech"
+msgstr "VÃ½Å¡ka obrazu Goomu v pixelech"
 
-#: src/post/goom/xine_goom.c:224
+#: src/post/goom/xine_goom.c:210
 msgid "Colorspace conversion method used by Goom"
-msgstr "Metoda konverze barev pou¾itá Goomem"
+msgstr "Metoda konverze barev pouÅ¾itÃ¡ Goomem"
 
-#: src/post/mosaico/mosaico.c:171
-msgid "Default x position"
-msgstr "Pøedvolená pozice X"
+#: src/post/planar/pp.c:108
+msgid ""
+"FFmpeg libpostprocess plugin.\n"
+"\n"
+"Parameters\n"
+"\n"
+msgstr ""
 
-#: src/post/mosaico/mosaico.c:173
-msgid "Default y position"
-msgstr "Pøedvolená pozice Y"
+#: src/post/planar/pp.c:114
+msgid ""
+"\n"
+"* libpostprocess (C) Michael Niedermayer\n"
+msgstr ""
 
-#: src/post/mosaico/mosaico.c:175
-msgid "Default width"
-msgstr "Pøedvolená ¹íøka"
+#: src/post/planar/expand.c:223
+msgid ""
+"The expand plugin is meant to take frames of arbitrary aspect ratio and "
+"converts them to 4:3 aspect by adding black bars on the top and bottom of "
+"the frame. This allows us to shift overlays down into the black area so they "
+"don't cover the image.\n"
+"\n"
+"Parameters (FIXME: better help)\n"
+"  Enable_automatic_shift: Enable automatic overlay shifting\n"
+"  Overlay_y_offset: Manually shift the overlay vertically\n"
+"\n"
+msgstr ""
 
-#: src/post/mosaico/mosaico.c:177
-msgid "Default height"
-msgstr "Pøedvolená vı¹ka"
+#: src/post/planar/boxblur.c:103
+msgid ""
+"Box blur does a simple blurring of the image.\n"
+"\n"
+"Parameters\n"
+"  Radius: size of the filter\n"
+"  Power: how often the filter should be applied\n"
+"\n"
+"* mplayer's boxblur (C) 2002 Michael Niedermayer\n"
+msgstr ""
 
-#: src/post/mosaico/switch.c:126
-msgid "Default active stream"
-msgstr "Pøednastavená aktivní sekvence"
+#: src/post/planar/denoise3d.c:136
+msgid ""
+"This filter aims to reduce image noise producing smooth images and making "
+"still images really still (This should enhance compressibility.). It can be "
+"given from 0 to 3 parameters.  If you omit a parameter, a reasonable value "
+"will be inferred.\n"
+"\n"
+"Parameters\n"
+"  Luma: Spatial luma strength (default = 4)\n"
+"  Chroma: Spatial chroma strength (default = 3)\n"
+"  Time: Temporal strength (default = 6)\n"
+"\n"
+"* mplayer's denoise3d (C) 2003 Daniel Moreno\n"
+msgstr ""
 
-#: src/video_out/video_out_aa.c:306
+#: src/post/planar/eq.c:186
+msgid ""
+"Software equalizer with interactive controls just like the hardware "
+"equalizer, for cards/drivers that do not support brightness and contrast "
+"controls in hardware.\n"
+"\n"
+"Parameters\n"
+"  brightness\n"
+"  contrast\n"
+"\n"
+"Note: It is possible to use frontend's control window to set these "
+"parameters.\n"
+"\n"
+"* mplayer's eq (C) Richard Felker\n"
+msgstr ""
+
+#: src/post/planar/eq2.c:359
+msgid ""
+"Alternative software equalizer that uses lookup tables (very slow), allowing "
+"gamma correction in addition to simple brightness, contrast and saturation "
+"adjustment.\n"
+"Note that it uses the same MMX optimized code as 'eq' if all gamma values "
+"are 1.0.\n"
+"\n"
+"Parameters\n"
+"  gamma\n"
+"  brightness\n"
+"  contrast\n"
+"  saturation\n"
+"  rgamma (gamma for the red component)\n"
+"  ggamma (gamma for the green component)\n"
+"  bgamma (gamma for the blue component)\n"
+"\n"
+"Value ranges are 0.1 - 10 for gammas, -2 - 2 for contrast (negative values "
+"result in a negative image), -1 - 1 for brightness and 0 - 3 for "
+"saturation.\n"
+"\n"
+"* mplayer's eq2 (C) Hampa Hug, Daniel Moreno, Richard Felker\n"
+msgstr ""
+
+#: src/post/planar/unsharp.c:219
+msgid ""
+"Unsharp mask / gaussian blur\n"
+"It is possible to set the width and height of the matrix, odd sized in both "
+"directions (min = 3x3, max = 13x11 or 11x13, usually something between 3x3 "
+"and 7x7) and the relative amount of sharpness/blur to add to the image (a "
+"sane range should be -1.5 - 1.5).\n"
+"\n"
+"Parameters\n"
+"\n"
+"  Luma_matrix_width: Width of the matrix (must be odd)\n"
+"\n"
+"  Luma_matrix_height: Height of the matrix (must be odd)\n"
+"\n"
+"  Luma_amount: Relative amount of sharpness/blur (=0 disable, <0 blur, >0 "
+"sharpen)\n"
+"\n"
+"  Chroma_matrix_width: Width of the matrix (must be odd)\n"
+"\n"
+"  Chroma_matrix_height: Height of the matrix (must be odd)\n"
+"\n"
+"  Chroma_amount: Relative amount of sharpness/blur (=0 disable, <0 blur, >0 "
+"sharpen)\n"
+"\n"
+"\n"
+"* mplayer's unsharp (C) 2002 RÃ©mi Guyomarch\n"
+msgstr ""
+
+#: src/post/mosaico/mosaico.c:273
+msgid ""
+"Mosaico does simple picture in picture effects.\n"
+"\n"
+"Parameters\n"
+"  pip_num: the number of the picture slot the following settings apply to\n"
+"  x: the x coordinate of the left upper corner of the picture\n"
+"  y: the y coordinate of the left upper corner of the picture\n"
+"  w: the width of the picture\n"
+"  h: the height of the picture\n"
+msgstr ""
+
+#: src/post/mosaico/switch.c:230
+msgid ""
+"Switch can be used for fast switching between multiple inputs.\n"
+"\n"
+"Parameters\n"
+"  select: the number of the input which will be passed to the output\n"
+msgstr ""
+
+#: src/post/deinterlace/xine_plugin.c:195
+msgid ""
+"Advanced tvtime/deinterlacer plugin with pulldown detection\n"
+"This plugin aims to provide deinterlacing mechanisms comparable to high "
+"quality progressive DVD players and so called line-doublers, for use with "
+"computer monitors, projectors and other progressive display devices.\n"
+"\n"
+"Parameters\n"
+"\n"
+"  Method: Select deinterlacing method/algorithm to use, see below for "
+"explanation of each method.\n"
+"\n"
+"  Enabled: Enable/disable the plugin.\n"
+"\n"
+"  Pulldown: Choose the 2-3 pulldown detection algorithm. 24 FPS films that "
+"have being converted to NTSC can be detected and intelligently reconstructed "
+"to their original (non-interlaced) frames.\n"
+"\n"
+"  Framerate_mode: Selecting 'full' will deinterlace every field to an unique "
+"frame for television quality and beyond. This feature will effetively double "
+"the frame rate, improving smoothness. Note, however, that full 59.94 FPS is "
+"not possible with plain 2.4 Linux kernel (that use a timer interrupt "
+"frequency of 100Hz). Newer RedHat and 2.6 kernels use higher HZ settings "
+"(512 and 1000, respectively) and should work fine.\n"
+"\n"
+"  Judder_correction: Once 2-3 pulldown is enabled and a film material is "
+"detected, it is possible to reduce the frame rate to original rate used (24 "
+"FPS). This will make the frames evenly spaced in time, matching the speed "
+"they were shot and eliminating the judder effect.\n"
+"\n"
+"  Use_progressive_frame_flag: Well mastered MPEG2 streams uses a flag to "
+"indicate progressive material. This setting control whether we trust this "
+"flag or not (some rare and buggy mpeg2 streams set it wrong).\n"
+"\n"
+"  Chroma_filter: DVD/MPEG2 use an interlaced image format that has a very "
+"poor vertical chroma resolution. Upsampling the chroma for purposes of "
+"deinterlacing may cause some artifacts to occur (eg. color stripes). Use "
+"this option to blur the chroma vertically after deinterlacing to remove the "
+"artifacts. Warning: cpu intensive.\n"
+"\n"
+"  Cheap_mode: This will skip the expensive YV12->YUY2 image conversion, "
+"tricking tvtime/dscaler routines like if they were still handling YUY2 "
+"images. Of course, this is not correct, not all pixels will be evaluated by "
+"the algorithms to decide the regions to deinterlace and chroma will be "
+"processed separately. Nevertheless, it allows people with not so fast "
+"systems to try deinterlace algorithms, in a tradeoff between quality and cpu "
+"usage.\n"
+"\n"
+"Deinterlacing methods: (Not all methods are available for all plataforms)\n"
+"\n"
+"(FIXME: explain each method, check tvtime/dscaler docs... i fell lazy)\n"
+"\n"
+"* Uses several algorithms from tvtime and dscaler projects.\n"
+msgstr ""
+
+#: src/post/deinterlace/xine_plugin.c:321
+msgid "tvtime: No deinterlacing methods available, exiting.\n"
+msgstr ""
+
+#: src/video_out/video_out_aa.c:309
 msgid "xine video output plugin using the ascii-art library"
-msgstr "vıstupní modul videa xine pou¾ije knihovnu ascii-art"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije knihovnu ascii-art"
 
-#: src/video_out/video_out_directfb.c:565
+#: src/video_out/video_out_directfb.c:567
 msgid "xine video output plugin using the DirectFB library."
-msgstr "vıstupní modul videa xine pou¾ije knihovnu DirectFB"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije knihovnu DirectFB"
 
-#: src/video_out/video_out_directx.c:1193
-#: src/video_out/video_out_directx.c:1212
-msgid "xine video output plugin for win32 using directx"
-msgstr "vıstupní modul videa xine pro win32 pou¾ívající directx"
+#: src/video_out/video_out_fb.c:743
+#, c-format
+msgid ""
+"video_out_fb: only packed truecolor/directcolor is supported (%d).\n"
+"     Check 'fbset -i' or try 'fbset -depth 16'.\n"
+msgstr ""
 
 #: src/video_out/video_out_fb.c:775
 msgid "framebuffer device"
-msgstr "zaøízení framebuffer"
+msgstr "zaÅ™Ã­zenÃ­ framebuffer"
 
-#: src/video_out/video_out_fb.c:983 src/video_out/video_out_xshm.c:1061
+#: src/video_out/video_out_fb.c:844
+msgid "video_out_fb: Your video mode was not recognized, sorry.\n"
+msgstr ""
+
+#: src/video_out/video_out_fb.c:902
+#, c-format
+msgid "video_out_fb: %d video RAM buffers are available.\n"
+msgstr ""
+
+#: src/video_out/video_out_fb.c:908
+#, c-format
+msgid ""
+"WARNING: video_out_fb: Zero copy buffers are DISABLED because only %d "
+"buffers\n"
+"     are available which is less than the recommended %d buffers. Lowering\n"
+"     the frame buffer resolution might help.\n"
+msgstr ""
+
+#: src/video_out/video_out_fb.c:919
+msgid ""
+"WARNING: video_out_fb: Zero copy buffers are DISABLED because kernel driver\n"
+"     do not support screen panning (used for frame flips).\n"
+msgstr ""
+
+#: src/video_out/video_out_fb.c:982 src/video_out/video_out_xshm.c:1066
 msgid "disable all video scaling (faster!)"
-msgstr "zakázat ve¹keré zmìny mìøítka (rychlej¹í!)"
+msgstr "zakÃ¡zat veÅ¡kerÃ© zmÄ›ny mÄ›Å™Ã­tka (rychlejÅ¡Ã­!)"
+
+#: src/video_out/video_out_fb.c:989
+#, c-format
+msgid ""
+"WARNING: video_out_fb: current display depth is %d. For better performance\n"
+"     a depth of 16 bpp is recommended!\n"
+"\n"
+msgstr ""
 
 #: src/video_out/video_out_fb.c:1020
 msgid "Xine video output plugin using the Linux frame buffer device"
-msgstr "vıstupní modul videa xine pou¾ije zaøízení framebuffer"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije zaÅ™Ã­zenÃ­ framebuffer"
 
-#: src/video_out/video_out_none.c:275
+#: src/video_out/video_out_none.c:278
 msgid "xine video output plugin which displays nothing"
-msgstr "vıstupní modul videa xine, které nezobrazuje nic"
+msgstr "vÃ½stupnÃ­ modul videa xine, kterÃ© nezobrazuje nic"
 
-#: src/video_out/video_out_opengl.c:956
+#: src/video_out/video_out_opengl.c:963
 msgid "gamma correction for OpenGL driver"
-msgstr "gama korekce pro ovladaè OpenGL"
+msgstr "gama korekce pro ovladaÄ OpenGL"
 
-#: src/video_out/video_out_opengl.c:973
+#: src/video_out/video_out_opengl.c:980
 msgid "xine video output plugin using OpenGL - TNG"
-msgstr "vıstupní modul videa xine pou¾ije OpenGL"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije OpenGL"
 
-#: src/video_out/video_out_sdl.c:560
-msgid "xine video output plugin using the Simple Direct Media Layer"
-msgstr "vıstupní modul videa xine pou¾ije Simple Direct Media Layer"
-
-#. printf("video_out_stk: get_description()\n");
-#: src/video_out/video_out_stk.c:442
-msgid "xine video output plugin using the Libstk Surface Set-top Toolkit"
+#: src/video_out/video_out_pgx64.c:489
+msgid "video_out_pgx64: Warning: low video memory, multi-buffering disabled\n"
 msgstr ""
-"vıstupní modul videa xine pou¾ije knihovnu Libstk Surface Set-top Toolkit"
 
-#: src/video_out/video_out_syncfb.c:1013
+#: src/video_out/video_out_pgx64.c:516
+msgid "video_out_pgx64: Error: insuffucient video memory\n"
+msgstr ""
+
+#: src/video_out/video_out_pgx64.c:535
+msgid "video_out_pgx64: Warning: low video memory, double-buffering disabled\n"
+msgstr ""
+
+#: src/video_out/video_out_sdl.c:513
+msgid "sdl has to emulate a 16 bit surfaces, that will slow things down.\n"
+msgstr ""
+
+#: src/video_out/video_out_sdl.c:550
+msgid "video_out_sdl: fullscreen mode is NOT supported\n"
+msgstr ""
+
+#: src/video_out/video_out_sdl.c:561
+msgid "xine video output plugin using the Simple Direct Media Layer"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije Simple Direct Media Layer"
+
+#: src/video_out/video_out_syncfb.c:281
+msgid "video_out_syncfb: error. (YUY2 not supported by your graphic card)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:297
+msgid "video_out_syncfb: error. (YV12 not supported by your graphic card)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:926
+msgid "video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (3 plane))\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:931
+msgid "video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (2 plane))\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:936
+msgid "video_out_syncfb: info. (SyncFB module supports YUV 4:2:2)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:942
+msgid "video_out_syncfb: info. (SyncFB module supports YUY2)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:949
+msgid "video_out_syncfb: info. (SyncFB module supports RGB565)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:954
+msgid ""
+"video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor "
+"RGB565)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:973
+msgid ""
+"video_out_syncfb: info. (brightness/contrast control won't be available "
+"because your SyncFB kernel module seems to be outdated. Please refer to "
+"README.syncfb for informations on how to update it.)\n"
+msgstr ""
+
+#: src/video_out/video_out_syncfb.c:1042
 msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
 msgstr ""
-"vıstupní modul videa xine pou¾ije modul SyncFB pro karty Matrox G200/G400"
+"vÃ½stupnÃ­ modul videa xine pouÅ¾ije modul SyncFB pro karty Matrox G200/G400"
 
-#: src/video_out/video_out_syncfb.c:1031
+#: src/video_out/video_out_syncfb.c:1060
 msgid "syncfb (teletux) device node"
-msgstr "uzel zaøízení syncfb (teletux)"
+msgstr "uzel zaÅ™Ã­zenÃ­ syncfb (teletux)"
 
-#: src/video_out/video_out_vidix.c:1185
+#: src/video_out/video_out_vidix.c:1008
+msgid "video_out_vidix: adaptor supports the yuy2 format\n"
+msgstr ""
+
+#: src/video_out/video_out_vidix.c:1019
+msgid "video_out_vidix: adaptor supports the yv12 format\n"
+msgstr ""
+
+#: src/video_out/video_out_vidix.c:1035
+msgid "video_out_vidix: You have wrong version of VIDIX library\n"
+msgstr ""
+
+#: src/video_out/video_out_vidix.c:1043
+msgid "video_out_vidix: Couldn't find working VIDIX driver\n"
+msgstr ""
+
+#: src/video_out/video_out_vidix.c:1056
+#, c-format
+msgid "video_out_vidix: using driver: %s by %s\n"
+msgstr ""
+
+#: src/video_out/video_out_vidix.c:1135
 msgid "xine video output plugin using libvidix for x11"
-msgstr "vıstupní modul videa xine pou¾ije libvidix pro X11"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije libvidix pro X11"
 
-#: src/video_out/video_out_vidix.c:1261
+#: src/video_out/video_out_vidix.c:1212
 msgid "xine video output plugin using libvidix for linux frame buffer"
-msgstr "vıstupní modul videa xine pou¾ije libvidix pro linux frame buffer"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije libvidix pro linux frame buffer"
 
-#: src/video_out/video_out_xshm.c:1214
+#: src/video_out/video_out_xshm.c:188
+msgid ""
+"video_out_xshm: shared memory error when allocating image\n"
+"video_out_xshm: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:204
+#, c-format
+msgid ""
+"video_out_xshm: %s: allocating image\n"
+"video_out_xshm: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:214
+msgid ""
+"video_out_xshm: shared memory error (address error) when allocating image \n"
+"video_out_xshm: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:231
+msgid ""
+"video_out_xshm: x11 error during shared memory XImage creation\n"
+"video_out_xshm: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:1046
+msgid "video_out_xshm: No thread-safe X libraries available.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:1117
+#, c-format
+msgid ""
+"\n"
+"\n"
+"WARNING: current display depth is %d. For better performance\n"
+"a depth of 16 bpp is recommended!\n"
+"\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:1130
+msgid "video_out_xshm: MIT shared memory extension not present on display.\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:1212
+msgid "video_out_xshm: your video mode was not recognized, sorry :-(\n"
+msgstr ""
+
+#: src/video_out/video_out_xshm.c:1220
 msgid "gamma correction for XShm driver"
-msgstr "gama korekce pro ovladaè XShm"
+msgstr "gama korekce pro ovladaÄ XShm"
 
-#: src/video_out/video_out_xshm.c:1242
+#: src/video_out/video_out_xshm.c:1248
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr "vıstupní modul videa xine pou¾ije roz¹íøení MIT X shared memory"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije rozÅ¡Ã­Å™enÃ­ MIT X shared memory"
 
-#: src/video_out/video_out_xv.c:1286
+#: src/video_out/video_out_xv.c:282
+msgid ""
+"video_out_xv: XvShmCreateImage failed\n"
+"video_out_xv: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:292
+msgid ""
+"video_out_xv: XvShmCreateImage returned a zero size\n"
+"video_out_xv: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:300
+#, c-format
+msgid ""
+"video_out_xv: shared memory error in shmget: %svideo_out_xv: => not using "
+"MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:332
+msgid ""
+"video_out_xv: x11 error during shared memory XImage creation\n"
+"video_out_xv: => not using MIT Shared Memory extension.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1283 src/video_out/video_out_xvmc.c:1485
 msgid "Colorkey used for Xv video overlay"
-msgstr "Klíèová barva pou¾itá pro pøekrıvání videa u Xv"
+msgstr "KlÃ­ÄovÃ¡ barva pouÅ¾itÃ¡ pro pÅ™ekrÃ½vÃ¡nÃ­ videa u Xv"
 
-#: src/video_out/video_out_xv.c:1292
+#: src/video_out/video_out_xv.c:1289
 msgid "Make Xv autopaint its colorkey"
-msgstr "Pøimìt Xv automaticky kreslit klíèovou barvu"
+msgstr "PÅ™imÄ›t Xv automaticky kreslit klÃ­Äovou barvu"
 
-#: src/video_out/video_out_xv.c:1299
+#: src/video_out/video_out_xv.c:1296
 msgid "bilinear scaling mode (permedia 2/3)"
-msgstr "Bilineární re¾im ¹kálování (permedia 2/3)"
+msgstr "BilineÃ¡rnÃ­ reÅ¾im Å¡kÃ¡lovÃ¡nÃ­ (permedia 2/3)"
 
-#: src/video_out/video_out_xv.c:1306
+#: src/video_out/video_out_xv.c:1303 src/video_out/video_out_xvmc.c:1495
 msgid "double buffer to sync video to the retrace"
-msgstr "Dvojitı buffer k synchronizaci videa se zpìtnım bìhem paprsku"
+msgstr "DvojitÃ½ buffer k synchronizaci videa se zpÄ›tnÃ½m bÄ›hem paprsku"
 
-#: src/video_out/video_out_xv.c:1355
+#: src/video_out/video_out_xv.c:1333
+msgid "video_out_xv: this adaptor supports the yv12 format.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1338
+msgid "video_out_xv: this adaptor supports the yuy2 format.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1360
 msgid "workaround for some (buggy) XVideo drivers"
-msgstr "Obcházet chybu nìkterıch ovladaèù XVidea"
+msgstr "ObchÃ¡zet chybu nÄ›kterÃ½ch ovladaÄÅ¯ XVidea"
 
-#: src/video_out/video_out_xv.c:1361
+#: src/video_out/video_out_xv.c:1366 src/video_out/video_out_xvmc.c:1554
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
-"Softwarová metoda korekce prokládání (klávesa I zapíná a vypíná deinterlacer)"
+"SoftwarovÃ¡ metoda korekce proklÃ¡dÃ¡nÃ­ (klÃ¡vesa I zapÃ­nÃ¡ a vypÃ­nÃ¡ deinterlacer)"
 
-#: src/video_out/video_out_xv.c:1384
+#: src/video_out/video_out_xv.c:1389
 msgid "xine video output plugin using the MIT X video extension"
-msgstr "vıstupní modul videa xine pou¾ije roz¹íøení MIT X video"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije rozÅ¡Ã­Å™enÃ­ MIT X video"
 
-#: src/xine-engine/audio_out.c:1803
+#: src/video_out/video_out_xv.c:1420
+msgid "video_out_xv: No thread-safe X libraries available.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1426
+msgid "video_out_xv: Xv extension not present.\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1463
+msgid ""
+"video_out_xv: Xv extension is present but I couldn't find a usable yuv12 "
+"port.\n"
+"              Looks like your graphics hardware driver doesn't support Xv?!\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1472
+#, c-format
+msgid ""
+"video_out_xv: using Xv port %ld from adaptor %s for hardware colorspace "
+"conversion and scaling.\n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1597
+#, fuzzy
+msgid "xine video output plugin using the XvMC X video extension"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije rozÅ¡Ã­Å™enÃ­ MIT X video"
+
+#: src/video_out/video_out_xvmc.c:1643
+msgid "video_out_xvmc: XvMC extension not present.\n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1742
+msgid ""
+"video_out_xvmc: Xv extension is present but I couldn't find a usable yuv12 "
+"port.\n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1751
+#, c-format
+msgid ""
+"video_out_xvmc: using Xv port %ld from adaptor %s\n"
+"                for hardware colorspace conversion and scaling\n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1756
+msgid "                idct and motion compensation acceleration \n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1758
+msgid "                motion compensation acceleration only\n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1760
+msgid "                no XvMC support \n"
+msgstr ""
+
+#: src/video_out/video_out_xvmc.c:1761
+#, c-format
+msgid "                With Overlay = %d; UnsignedIntra = %d.\n"
+msgstr ""
+
+#. printf("video_out_stk: get_description()\n");
+#: src/video_out/video_out_stk.c:444
+msgid "xine video output plugin using the Libstk Surface Set-top Toolkit"
+msgstr ""
+"vÃ½stupnÃ­ modul videa xine pouÅ¾ije knihovnu Libstk Surface Set-top Toolkit"
+
+#: src/video_out/video_out_caca.c:311
+#, fuzzy
+msgid "xine video output plugin using the Color AsCii Art library"
+msgstr "vÃ½stupnÃ­ modul videa xine pouÅ¾ije knihovnu ascii-art"
+
+#: src/video_out/x11osd.c:195
+msgid "x11osd: XShape extension not available. unscaled overlay disabled.\n"
+msgstr ""
+
+#: src/video_out/x11osd.c:216
+msgid "x11osd: error creating window. unscaled overlay disabled.\n"
+msgstr ""
+
+#: src/video_out/x11osd.c:225 src/video_out/x11osd.c:234
+msgid "x11osd: error creating pixmap. unscaled overlay disabled.\n"
+msgstr ""
+
+#: src/video_out/video_out_directx.c:1218
+#: src/video_out/video_out_directx.c:1237
+msgid "xine video output plugin for win32 using directx"
+msgstr "vÃ½stupnÃ­ modul videa xine pro win32 pouÅ¾Ã­vajÃ­cÃ­ directx"
+
+#: src/xine-engine/audio_decoder.c:326
+#, fuzzy, c-format
+msgid "audio_decoder: no plugin available to handle '%s'\n"
+msgstr "nalezen dekodÃ©r zvuku: %s\n"
+
+#: src/xine-engine/audio_decoder.c:343
+#, c-format
+msgid "audio_decoder: error, unknown buffer type: %08x\n"
+msgstr ""
+
+#. FIXME: USB device unplugged.
+#. *        We should get the card into a closed state here, that involves closing
+#. *        the PCM as well as the MIXER.
+#. *        Maybe we should pause the stream until the USB device is plugged in again.
+#. *        Return values 0 happen even if usb not unplugged, so needs further investigation.
+#.
+#: src/xine-engine/audio_out.c:1125
+msgid "write to sound card failed. Was a USB device unplugged ?\n"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1233
+msgid "8 bits not supported by driver, converting to 16 bits.\n"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1241
+msgid "mono not supported by driver, converting to stereo.\n"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1247
+msgid "stereo not supported by driver, converting to mono.\n"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:1864
 msgid "choose method to sync audio and video"
 msgstr "vybrat metodu synchronizace zvuku a videa"
 
-#: src/xine-engine/audio_out.c:1804
+#: src/xine-engine/audio_out.c:1865
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
-"'resample' by mohlo bıt lep¹í, jestli¾e pou¾íváte kartu DXR3/H+ a zvuk "
-"(analogovı) je zpracováván va¹í zvukovou kartou"
+"'resample' by mohlo bÃ½t lepÅ¡Ã­, jestliÅ¾e pouÅ¾Ã­vÃ¡te kartu DXR3/H+ a zvuk "
+"(analogovÃ½) je zpracovÃ¡vÃ¡n vaÅ¡Ã­ zvukovou kartou"
 
-#: src/xine-engine/audio_out.c:1812
+#: src/xine-engine/audio_out.c:1873
 msgid "adjust whether resampling is done or not"
-msgstr "nastavit, jestli se má pøevzorkovávat nebo ne"
+msgstr "nastavit, jestli se mÃ¡ pÅ™evzorkovÃ¡vat nebo ne"
 
-#: src/xine-engine/audio_out.c:1815
+#: src/xine-engine/audio_out.c:1876
 msgid "if !=0 always resample to given rate"
-msgstr "pøi !=0 v¾dy pøevzorkovat na danou frekvenci"
+msgstr "pÅ™i !=0 vÅ¾dy pÅ™evzorkovat na danou frekvenci"
 
-#: src/xine-engine/audio_out.c:1821
+#: src/xine-engine/audio_out.c:1882
 msgid "adjust if audio is offsync"
-msgstr "upravte, jestli¾e bude zvuk nesynchronizovanı (A52 nebo AC5)"
+msgstr "upravte, jestliÅ¾e bude zvuk nesynchronizovanÃ½ (A52 nebo AC5)"
 
-#: src/xine-engine/audio_out.c:1887
+#: src/xine-engine/audio_out.c:1949
 msgid "Audio volume"
 msgstr "hlasitost zvuku"
 
-#: src/xine-engine/audio_out.c:1891
+#: src/xine-engine/audio_out.c:1953
 msgid "restore volume level at startup"
-msgstr "obnovit úroveò hlasitosti pøi startu"
+msgstr "obnovit ÃºroveÅˆ hlasitosti pÅ™i startu"
 
-#: src/xine-engine/audio_out.c:1892
+#: src/xine-engine/audio_out.c:1954
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
-"jestli¾e toto není nastaveno, xine nebude pøi spu¹tìní mìnit ¾ádná nastavení "
+"jestliÅ¾e toto nenÃ­ nastaveno, xine nebude pÅ™i spuÅ¡tÄ›nÃ­ mÄ›nit Å¾Ã¡dnÃ¡ nastavenÃ­ "
 "mixeru"
 
-#: src/xine-engine/configfile.c:676
-msgid "The current config file has been modified by a newer version of xine."
-msgstr "Stávající konfiguraèní soubor byl upraven novìj¹í verzí xine."
+#: src/xine-engine/audio_out.c:1983
+#, fuzzy
+msgid "audio_out: sorry, this should not happen. please restart xine.\n"
+msgstr ""
+"video_out: Lituji, toto by se nemÄ›lo pÅ™ihodit. ProsÃ­m restartujte xine.\n"
 
-#: src/xine-engine/configfile.c:978
+#: src/xine-engine/configfile.c:678
+msgid "The current config file has been modified by a newer version of xine."
+msgstr "StÃ¡vajÃ­cÃ­ konfiguraÄnÃ­ soubor byl upraven novÄ›jÅ¡Ã­ verzÃ­ xine."
+
+#: src/xine-engine/configfile.c:776
+#, c-format
+msgid "configfile: WARNING: backing up configfile to %s failed\n"
+msgstr ""
+
+#: src/xine-engine/configfile.c:777
+msgid "configfile: WARNING: your configuration will not be saved\n"
+msgstr ""
+
+#: src/xine-engine/configfile.c:872
+#, c-format
+msgid "configfile: WARNING: writing configuration to %s failed\n"
+msgstr ""
+
+#: src/xine-engine/configfile.c:873
+#, c-format
+msgid "configfile: WARNING: removing possibly broken config file %s\n"
+msgstr ""
+
+#: src/xine-engine/configfile.c:874
+#, c-format
+msgid "configfile: WARNING: you should check the backup file %s\n"
+msgstr ""
+
+#: src/xine-engine/configfile.c:997
 #, c-format
 msgid "configfile: entry '%s' mustn't be modified from MRL\n"
-msgstr "configfile: údaj '%s' nesmí bıt modifikován z MRL\n"
+msgstr "configfile: Ãºdaj '%s' nesmÃ­ bÃ½t modifikovÃ¡n z MRL\n"
 
-#: src/xine-engine/input_rip.c:131 src/xine-engine/input_rip.c:253
+#: src/xine-engine/load_plugins.c:310
 #, c-format
-msgid "input_rip: reading of saved data failed: %s\n"
-msgstr "input_rip: ètení ulo¾enıch dat selhalo: %s\n"
-
-#: src/xine-engine/input_rip.c:146
-msgid "input_rip: reading by input plugin failed\n"
-msgstr "input_rip: ètení vstupním modulem selhalo\n"
-
-#: src/xine-engine/input_rip.c:155 src/xine-engine/input_rip.c:284
-#: src/xine-engine/input_rip.c:647
-#, c-format
-msgid "input_rip: error writing to file %lld bytes: %s\n"
-msgstr "input_rip: chyba zápisu %lld bytù do souboru: %s\n"
-
-#: src/xine-engine/input_rip.c:177
-msgid "input_rip: open() function should never be called\n"
-msgstr "input_rip: funkce open() by nikdy nemìla bıt volána\n"
-
-#: src/xine-engine/input_rip.c:308 src/xine-engine/input_rip.c:416
-msgid "input_rip: seeking failed\n"
-msgstr "input_rip: selhalo nastavení pozice\n"
-
-#: src/xine-engine/input_rip.c:366 src/xine-engine/input_rip.c:385
-#, c-format
-msgid "input_rip: seeking failed: %s\n"
-msgstr "input_rip: selhalo nastavení pozice: %s\n"
-
-#: src/xine-engine/input_rip.c:393
-#, c-format
-msgid "input_rip: %lld bytes dropped\n"
-msgstr "input_rip: zahozeno %lld bytù\n"
-
-#: src/xine-engine/input_rip.c:545
-msgid "input_rip: input plugin not defined!\n"
-msgstr "input_rip: vstupní modul není definován!\n"
-
-#: src/xine-engine/input_rip.c:551
 msgid ""
-"input_rip: target directory wasn't specified, please fill out the option "
-"'misc.save_dir'\n"
+"load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n"
 msgstr ""
-"input_rip: cílovı adresáø nebyl specifikován, prosím vyplòte volbu 'misc."
-"save_dir'\n"
-
-#: src/xine-engine/input_rip.c:553
-msgid ""
-"The stream save feature is disabled until you set misc.save_dir in the "
-"configuration."
-msgstr ""
-"Vlastnost ukládání dat je zakázána, dokud nenastavíte v konfiguraci 'misc."
-"save_dir'."
-
-#: src/xine-engine/input_rip.c:560
-msgid "input_rip: ripping/caching of this source is not permitted!\n"
-msgstr "input_rip: ukládání z tohoto zdroje není povoleno!\n"
-
-#: src/xine-engine/input_rip.c:562
-msgid ""
-"xine is not allowed to save from this source. (possibly copyrighted "
-"material?)"
-msgstr ""
-"xine nemá dovoleno ukládat z tohoto zdroje (mo¾ná materiál chránìnı autorskımi právy?)"
-
-#: src/xine-engine/input_rip.c:569
-msgid "input_rip: file name not given!\n"
-msgstr "input_rip: nebyl dán název souboru!\n"
-
-#: src/xine-engine/input_rip.c:588
-#, c-format
-msgid "input_rip: stat on the file %s failed: %s\n"
-msgstr "input_rip: selhalo stat na souboru %s: %s\n"
-
-#: src/xine-engine/input_rip.c:609
-#, c-format
-msgid "input_rip: error opening file %s: %s\n"
-msgstr "input_rip: chyba otevírání souboru %s: %s\n"
 
 #: src/xine-engine/load_plugins.c:435
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
-msgstr "load_plugins: nelze provést stat na %s\n"
+msgstr "load_plugins: nelze provÃ©st stat na %s\n"
+
+#: src/xine-engine/load_plugins.c:472
+#, fuzzy, c-format
+msgid ""
+"load_plugins: cannot open plugin lib %s:\n"
+"%s\n"
+msgstr ""
+"load_plugins: nelze (fÃ¡ze 2) otevÅ™Ã­t knihovnu modulu %s:\n"
+"%s\n"
 
 #: src/xine-engine/load_plugins.c:481
 #, c-format
@@ -1136,7 +2390,7 @@ msgstr "load_plugins: nalezen modul %s\n"
 #: src/xine-engine/load_plugins.c:526
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
-msgstr "load_plugins: neznámı typ modulu %d v %s\n"
+msgstr "load_plugins: neznÃ¡mÃ½ typ modulu %d v %s\n"
 
 #: src/xine-engine/load_plugins.c:544
 #, c-format
@@ -1144,13 +2398,13 @@ msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nelze získat informace o modulu z %s:\n"
+"load_plugins: nelze zÃ­skat informace o modulu z %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:565
+#: src/xine-engine/load_plugins.c:564
 #, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
-msgstr "load_plugins: pøeskoèí se adresáø s moduly %s.\n"
+msgstr "load_plugins: pÅ™eskoÄÃ­ se adresÃ¡Å™ s moduly %s.\n"
 
 #: src/xine-engine/load_plugins.c:583
 #, c-format
@@ -1158,177 +2412,524 @@ msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nelze (fáze 2) otevøít knihovnu modulu %s:\n"
+"load_plugins: nelze (fÃ¡ze 2) otevÅ™Ã­t knihovnu modulu %s:\n"
 "%s\n"
 
-#. unknown character or character wider than 16 bits, try skip one byte
-#: src/xine-engine/osd.c:828
+#: src/xine-engine/load_plugins.c:604
+#, fuzzy, c-format
+msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
+msgstr ""
+"load_plugins: nelze zÃ­skat informace o modulu z %s:\n"
+"%s\n"
+
+#: src/xine-engine/load_plugins.c:1075
+#, fuzzy, c-format
+msgid "load_plugins: unknown content detection strategy %d\n"
+msgstr "load_plugins: neznÃ¡mÃ½ typ modulu %d v %s\n"
+
+#: src/xine-engine/load_plugins.c:1173
+#, fuzzy, c-format
+msgid "load_plugins: using demuxer '%s'\n"
+msgstr "load_plugins: nalezen modul %s\n"
+
+#: src/xine-engine/load_plugins.c:1486
+#, fuzzy, c-format
+msgid "load_plugins: failed to load audio output plugin <%s>\n"
+msgstr "load_plugins: nelze provÃ©st stat na %s\n"
+
+#: src/xine-engine/load_plugins.c:1489
+msgid ""
+"load_plugins: audio output auto-probing didn't find any usable audio "
+"driver.\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:622
+#, c-format
+msgid "font '%s-%d' already loaded, weird.\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:634
+#, c-format
+msgid "font '%s' loading failed (%d < %d)\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:644
+#, c-format
+msgid "wrong version for font '%s'. expected %d found %d.\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:758
+msgid "osd: cannot initialize ft2 library\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:774
+#, c-format
+msgid "osd: error loading font %s with ft2\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:781
+msgid "osd: error setting font size (no scalable font?)\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:855
 #, c-format
 msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
 "skipping\n"
 msgstr ""
-"osd: neznámá sekvence zaèínající bytem 0x%02X v kódování \"%s\", pøeskoèí "
+"osd: neznÃ¡mÃ¡ sekvence zaÄÃ­najÃ­cÃ­ bytem 0x%02X v kÃ³dovÃ¡nÃ­ \"%s\", pÅ™eskoÄÃ­ "
 "se\n"
 
-#: src/xine-engine/osd.c:879
+#: src/xine-engine/osd.c:908
 msgid "osd: can't find out current locale character set\n"
-msgstr "osd: nelze zjistit aktuální kódovou stránku\n"
+msgstr "osd: nelze zjistit aktuÃ¡lnÃ­ kÃ³dovou strÃ¡nku\n"
 
-#: src/xine-engine/osd.c:889
-#, c-format
-msgid "osd: unsupported conversion %s -> UCS-2, no conversion performed\n"
-msgstr "osd: nepodporovaná konverze %s -> UCS-2, nebude provádìna\n"
+#: src/xine-engine/osd.c:920
+#, fuzzy, c-format
+msgid "osd: unsupported conversion %s -> %s, no conversion performed\n"
+msgstr "osd: nepodporovanÃ¡ konverze %s -> UCS-2, nebude provÃ¡dÄ›na\n"
 
-#: src/xine-engine/osd.c:938 src/xine-engine/osd.c:1081
+#: src/xine-engine/osd.c:968 src/xine-engine/osd.c:1111
 msgid "osd: font isn't defined\n"
-msgstr "osd: font není definován\n"
+msgstr "osd: font nenÃ­ definovÃ¡n\n"
 
-#: src/xine-engine/osd.c:1340
+#: src/xine-engine/osd.c:1012
+msgid "osd: error loading glyph\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:1018
+msgid "osd: error in rendering glyph\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:1141
+#, c-format
+msgid "osd: error loading glyph %i\n"
+msgstr ""
+
+#: src/xine-engine/osd.c:1148
+#, fuzzy
+msgid "osd: error in rendering\n"
+msgstr "osd: font nenÃ­ definovÃ¡n\n"
+
+#: src/xine-engine/osd.c:1377
 msgid "Palette (foreground-border-background) to use on subtitles"
-msgstr "Paleta (popøedí-okraj-pozadí) pou¾itá na titulky"
+msgstr "Paleta (popÅ™edÃ­-okraj-pozadÃ­) pouÅ¾itÃ¡ na titulky"
+
+#: src/xine-engine/video_decoder.c:302
+#, fuzzy, c-format
+msgid "video_decoder: no plugin available to handle '%s'\n"
+msgstr "nalezen dekodÃ©r videa: %s\n"
+
+#: src/xine-engine/video_decoder.c:367
+#, c-format
+msgid "video_decoder: error, unknown buffer type: %08x\n"
+msgstr ""
 
 # This message should match with FAQ_cs.
-#: src/xine-engine/video_out.c:487
+#: src/xine-engine/video_out.c:514
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr "%d snímkù pøedanıch, %d snímkù pøeskoèenıch, %d snímkù zahozenıch\n"
+msgstr "%d snÃ­mkÅ¯ pÅ™edanÃ½ch, %d snÃ­mkÅ¯ pÅ™eskoÄenÃ½ch, %d snÃ­mkÅ¯ zahozenÃ½ch\n"
 
 # This message should match with FAQ_cs.
-#: src/xine-engine/video_out.c:617
-#, c-format
+#: src/xine-engine/video_out.c:655
+#, fuzzy, c-format
 msgid ""
-"video_out: throwing away image with pts %lld because it's too old (diff : %"
-"lld).\n"
+"video_out: throwing away image with pts %<PRId64> because it's too old "
+"(diff : %<PRId64>).\n"
 msgstr ""
-"video_out: zahození obrazu s pts %lld, proto¾e je pøíli¹ starı (rozdíl : %"
+"video_out: zahozenÃ­ obrazu s pts %lld, protoÅ¾e je pÅ™Ã­liÅ¡ starÃ½ (rozdÃ­l : %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:1532
-#, c-format
-msgid "video_out: can't create thread (%s)\n"
-msgstr "video_out: nelze vytvoøit vlákno (%s)\n"
-
-#. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1535
+#: src/xine-engine/video_out.c:1565
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
-"video_out: Lituji, toto by se nemìlo pøihodit. Prosím restartujte xine.\n"
+"video_out: Lituji, toto by se nemÄ›lo pÅ™ihodit. ProsÃ­m restartujte xine.\n"
 
-#: src/xine-engine/vo_scale.c:356
+#: src/xine-engine/vo_scale.c:355
 msgid "horizontal image position in the output window"
-msgstr "Horizontální pozice obrazu ve vıstupním oknì videa"
+msgstr "HorizontÃ¡lnÃ­ pozice obrazu ve vÃ½stupnÃ­m oknÄ› videa"
 
-#: src/xine-engine/vo_scale.c:360
+#: src/xine-engine/vo_scale.c:359
 msgid "vertical image position in the output window"
-msgstr "Vertikální pozice obrazu ve vıstupním oknì videa"
+msgstr "VertikÃ¡lnÃ­ pozice obrazu ve vÃ½stupnÃ­m oknÄ› videa"
 
-#: src/xine-engine/xine.c:552
+#: src/xine-engine/xine.c:613 src/xine-engine/xine.c:708
+#: src/xine-engine/xine.c:745 src/xine-engine/xine.c:781
+#: src/xine-engine/xine.c:793 src/xine-engine/xine.c:806
+#: src/xine-engine/xine.c:819 src/xine-engine/xine.c:845
+#: src/xine-engine/xine.c:870 src/xine-engine/xine.c:905
+#, fuzzy
+msgid "xine: error while parsing mrl\n"
+msgstr "xine: chyba bÄ›hem zpracovÃ¡nÃ­ MRL\n"
+
+#: src/xine-engine/xine.c:646
+#, fuzzy, c-format
+msgid "xine: found input plugin  : %s\n"
+msgstr "xine: nelze nalÃ©zt vstupnÃ­ modul pro MRL [%s]\n"
+
+#: src/xine-engine/xine.c:654
 #, c-format
 msgid "xine: input plugin cannot open MRL [%s]\n"
-msgstr "xine: vstupní modul nemù¾e otevøít MRL [%s]\n"
+msgstr "xine: vstupnÃ­ modul nemÅ¯Å¾e otevÅ™Ã­t MRL [%s]\n"
 
-#: src/xine-engine/xine.c:571
+#: src/xine-engine/xine.c:672
 #, c-format
 msgid "xine: cannot find input plugin for MRL [%s]\n"
-msgstr "xine: nelze nalézt vstupní modul pro MRL [%s]\n"
+msgstr "xine: nelze nalÃ©zt vstupnÃ­ modul pro MRL [%s]\n"
 
-#: src/xine-engine/xine.c:597
+#: src/xine-engine/xine.c:697
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
-msgstr "xine: selhalo spu¹tìní demultiplexoru %s\n"
+msgstr "xine: selhalo spuÅ¡tÄ›nÃ­ demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:634
+#: src/xine-engine/xine.c:733
 msgid "xine: join rip input plugin\n"
-msgstr "xine: pøipojen ripovací vstupní modul\n"
+msgstr "xine: pÅ™ipojen ripovacÃ­ vstupnÃ­ modul\n"
 
-#: src/xine-engine/xine.c:671
+#: src/xine-engine/xine.c:738
+#, fuzzy
+msgid "xine: error opening rip input plugin instance\n"
+msgstr "xine: pÅ™ipojen ripovacÃ­ vstupnÃ­ modul\n"
+
+#: src/xine-engine/xine.c:769
 #, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
-msgstr "xine: selhalo spu¹tìní posledního vyzkou¹eného demultiplexoru %s\n"
+msgstr "xine: selhalo spuÅ¡tÄ›nÃ­ poslednÃ­ho vyzkouÅ¡enÃ©ho demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:834
+#: src/xine-engine/xine.c:798
+msgid "ignoring video\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:811
+msgid "ignoring audio\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:824
+msgid "ignoring subpicture\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:895
+#, c-format
+msgid "subtitle mrl opened '%s'\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:899
+#, fuzzy
+msgid "xine: error opening subtitle mrl\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
+
+#. the option not found
+#: src/xine-engine/xine.c:931
 msgid "xine: error while parsing MRL\n"
-msgstr "xine: chyba bìhem zpracování MRL\n"
+msgstr "xine: chyba bÄ›hem zpracovÃ¡nÃ­ MRL\n"
 
-#: src/xine-engine/xine.c:838
+#. not permitted to change from MRL
+#: src/xine-engine/xine.c:934
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
-msgstr "xine: zmìna volby '%s' z MRL naní povolena\n"
+msgstr "xine: zmÄ›na volby '%s' z MRL nanÃ­ povolena\n"
 
-#: src/xine-engine/xine.c:859
+#: src/xine-engine/xine.c:954
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
-msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
+msgstr "xine: nelze nalÃ©zt demultiplexor pro >%s<\n"
 
-#: src/xine-engine/xine.c:897
+#: src/xine-engine/xine.c:970
+#, fuzzy, c-format
+msgid "xine: found demuxer plugin: %s\n"
+msgstr "xine: nelze nalÃ©zt demultiplexor pro >%s<\n"
+
+#: src/xine-engine/xine.c:990
 msgid "xine: demuxer failed to start\n"
-msgstr "xine: selhalo spu¹tìní demultiplexoru\n"
+msgstr "xine: selhalo spuÅ¡tÄ›nÃ­ demultiplexoru\n"
 
-#: src/xine-engine/xine.c:953
+#: src/xine-engine/xine.c:1039
 msgid "xine_play: no demux available\n"
-msgstr "xine_play: ¾ádnı dostupnı demultiplexor\n"
+msgstr "xine_play: Å¾Ã¡dnÃ½ dostupnÃ½ demultiplexor\n"
 
-#: src/xine-engine/xine.c:1024
+#: src/xine-engine/xine.c:1113
 msgid "xine_play: demux failed to start\n"
-msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
+msgstr "xine_play: selhalo spuÅ¡tÄ›nÃ­ demultiplexoru\n"
 
-#: src/xine-engine/xine.c:1281
+#: src/xine-engine/xine.c:1380
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
 msgstr ""
-"xine: Uvedenı adresáø pro ukládání \"%s\" by mohl znamenat bezpeènostní "
+"xine: UvedenÃ½ adresÃ¡Å™ pro uklÃ¡dÃ¡nÃ­ \"%s\" by mohl znamenat bezpeÄnostnÃ­ "
 "riziko.\n"
 
-#: src/xine-engine/xine.c:1285
+#: src/xine-engine/xine.c:1384
 msgid "The specified save_dir might be a security risk."
-msgstr "Uvedenı adresáø pro ukládání by mohl znamenat bezpeènostní riziko."
+msgstr "UvedenÃ½ adresÃ¡Å™ pro uklÃ¡dÃ¡nÃ­ by mohl znamenat bezpeÄnostnÃ­ riziko."
 
-#: src/xine-engine/xine.c:1320
+#: src/xine-engine/xine.c:1410
+msgid "xine: locale not supported by C library\n"
+msgstr ""
+
+#: src/xine-engine/xine.c:1419
 msgid "Media format detection strategy"
-msgstr "Strategie zji¹tování formátu dat"
+msgstr "Strategie zjiÅ¡tovÃ¡nÃ­ formÃ¡tu dat"
 
-#: src/xine-engine/xine.c:1330
+#: src/xine-engine/xine.c:1429
 msgid "Path for saving streams"
-msgstr "Cesta pro ukládání dat"
+msgstr "Cesta pro uklÃ¡dÃ¡nÃ­ dat"
 
-#: src/xine-engine/xine.c:1331
+#: src/xine-engine/xine.c:1430
 msgid "Streams will be saved only into this directory"
-msgstr "Sekvence budou ukládány pouze do tohoto adresáøe"
+msgstr "Sekvence budou uklÃ¡dÃ¡ny pouze do tohoto adresÃ¡Å™e"
 
-#: src/xine-engine/xine.c:1612
+#: src/xine-engine/xine.c:1438
+msgid "allow implicit changes to the configuration (e.g. by MRL)"
+msgstr ""
+
+#: src/xine-engine/xine.c:1439
+msgid ""
+"If enabled, you allow xine to change your configuration without explicit "
+"actions from your side. For example configuration changes demanded by MRLs "
+"or embedded into playlist will be executed.\n"
+"This setting is security critcal, because xine can receive MRLs or playlists "
+"from untrusted remote sources. If you allow them to arbitrarily change your "
+"configuration, you might end with a totally messed up xine."
+msgstr ""
+
+#: src/xine-engine/xine.c:1750
 msgid "messages"
-msgstr "zprávy"
+msgstr "zprÃ¡vy"
 
-#: src/xine-engine/xine.c:1613
+#: src/xine-engine/xine.c:1751
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/xine.c:1614
+#: src/xine-engine/xine.c:1752
 msgid "trace"
-msgstr "trasování"
+msgstr "trasovÃ¡nÃ­"
 
-#: src/xine-utils/memcpy.c:481
+#: src/xine-engine/input_rip.c:130 src/xine-engine/input_rip.c:252
+#, c-format
+msgid "input_rip: reading of saved data failed: %s\n"
+msgstr "input_rip: ÄtenÃ­ uloÅ¾enÃ½ch dat selhalo: %s\n"
+
+#: src/xine-engine/input_rip.c:145
+msgid "input_rip: reading by input plugin failed\n"
+msgstr "input_rip: ÄtenÃ­ vstupnÃ­m modulem selhalo\n"
+
+#: src/xine-engine/input_rip.c:154 src/xine-engine/input_rip.c:283
+#: src/xine-engine/input_rip.c:634
+#, c-format
+msgid "input_rip: error writing to file %lld bytes: %s\n"
+msgstr "input_rip: chyba zÃ¡pisu %lld bytÅ¯ do souboru: %s\n"
+
+#: src/xine-engine/input_rip.c:176
+msgid "input_rip: open() function should never be called\n"
+msgstr "input_rip: funkce open() by nikdy nemÄ›la bÃ½t volÃ¡na\n"
+
+#: src/xine-engine/input_rip.c:306 src/xine-engine/input_rip.c:410
+msgid "input_rip: seeking failed\n"
+msgstr "input_rip: selhalo nastavenÃ­ pozice\n"
+
+#: src/xine-engine/input_rip.c:363 src/xine-engine/input_rip.c:381
+#, c-format
+msgid "input_rip: seeking failed: %s\n"
+msgstr "input_rip: selhalo nastavenÃ­ pozice: %s\n"
+
+#: src/xine-engine/input_rip.c:388
+#, c-format
+msgid "input_rip: %lld bytes dropped\n"
+msgstr "input_rip: zahozeno %lld bytÅ¯\n"
+
+#: src/xine-engine/input_rip.c:539
+msgid "input_rip: input plugin not defined!\n"
+msgstr "input_rip: vstupnÃ­ modul nenÃ­ definovÃ¡n!\n"
+
+#: src/xine-engine/input_rip.c:545
+msgid ""
+"input_rip: target directory wasn't specified, please fill out the option "
+"'misc.save_dir'\n"
+msgstr ""
+"input_rip: cÃ­lovÃ½ adresÃ¡Å™ nebyl specifikovÃ¡n, prosÃ­m vyplÅˆte volbu 'misc."
+"save_dir'\n"
+
+#: src/xine-engine/input_rip.c:547
+msgid ""
+"The stream save feature is disabled until you set misc.save_dir in the "
+"configuration."
+msgstr ""
+"Vlastnost uklÃ¡dÃ¡nÃ­ dat je zakÃ¡zÃ¡na, dokud nenastavÃ­te v konfiguraci 'misc."
+"save_dir'."
+
+#: src/xine-engine/input_rip.c:554
+msgid "input_rip: ripping/caching of this source is not permitted!\n"
+msgstr "input_rip: uklÃ¡dÃ¡nÃ­ z tohoto zdroje nenÃ­ povoleno!\n"
+
+#: src/xine-engine/input_rip.c:556
+msgid ""
+"xine is not allowed to save from this source. (possibly copyrighted "
+"material?)"
+msgstr ""
+"xine nemÃ¡ dovoleno uklÃ¡dat z tohoto zdroje (moÅ¾nÃ¡ materiÃ¡l chrÃ¡nÄ›nÃ½ "
+"autorskÃ½mi prÃ¡vy?)"
+
+#: src/xine-engine/input_rip.c:562
+msgid "input_rip: file name not given!\n"
+msgstr "input_rip: nebyl dÃ¡n nÃ¡zev souboru!\n"
+
+#: src/xine-engine/input_rip.c:604
+#, c-format
+msgid "input_rip: error opening file %s: %s\n"
+msgstr "input_rip: chyba otevÃ­rÃ¡nÃ­ souboru %s: %s\n"
+
+#: src/xine-utils/memcpy.c:480
 msgid "Memcopy method to use in xine for large data chunks."
-msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
+msgstr "Metoda memcopy pouÅ¾itÃ¡ ve xine pro velkÃ© datovÃ© bloky"
+
+#: src/xine-utils/memcpy.c:504
+msgid "Benchmarking memcpy methods (smaller is better):\n"
+msgstr ""
+
+#~ msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
+#~ msgstr "zaÅ™Ã­zenÃ­ /dev/dsp# pouÅ¾itÃ© pro vÃ½stup oss, -1 => autodetekce"
+
+#~ msgid ""
+#~ "demux_mpeg_block: too many errors, stopping playback. Maybe this stream "
+#~ "is scrambled?\n"
+#~ msgstr ""
+#~ "demux_mpeg_block: pÅ™Ã­liÅ¡ mnoho chyb, zastavuje se pÅ™ehrÃ¡vÃ¡nÃ­. MoÅ¾nÃ¡ jsou "
+#~ "tyto data zakÃ³dovÃ¡na.\n"
+
+#~ msgid "RTP: waiting for preview data\n"
+#~ msgstr "RTP: ÄekÃ¡ se na poÄÃ¡teÄnÃ­ data\n"
+
+#~ msgid "RTP: waiting for preview data: timeout\n"
+#~ msgstr "RTP: ÄekÃ¡nÃ­ na poÄÃ¡teÄnÃ­ data: Äas vyprÅ¡el\n"
+
+#~ msgid "Opening >%s<\n"
+#~ msgstr "OtvÃ­rÃ¡ se >%s<\n"
+
+#~ msgid "font for external subtitles"
+#~ msgstr "Font titulkÅ¯"
+
+#~ msgid "subtitle size (relative window size)"
+#~ msgstr "Velikost titulkÅ¯ (vzhledem k velikosti okna)"
+
+#~ msgid "subtitle vertical offset (relative window size)"
+#~ msgstr "VertikÃ¡lnÃ­ posun titulkÅ¯ (vzhledem k velikosti okna)"
+
+#~ msgid "encoding of subtitles"
+#~ msgstr "KÃ³dovÃ¡nÃ­ titulkÅ¯"
+
+#~ msgid ""
+#~ "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, "
+#~ "skipping chunk\n"
+#~ msgstr ""
+#~ "FLI: v datovÃ©m bloku FLI_COPY : zdrojovÃ¡ data (%d bytÅ¯) vÄ›tÅ¡Ã­ neÅ¾ data "
+#~ "snÃ­mku, datovÃ½ blok se pÅ™eskoÄÃ­\n"
+
+#~ msgid "FLI: Unrecognized chunk type: %d\n"
+#~ msgstr "FLI: NerozpoznanÃ½ datovÃ½ blok: %d\n"
+
+#~ msgid ""
+#~ "  warning: processed FLI chunk where chunk size = %d\n"
+#~ "  and final chunk ptr = %d\n"
+#~ msgstr ""
+#~ "  varovÃ¡nÃ­: zpracovÃ¡n datovÃ½ blok FLI s velikostÃ­ = %d\n"
+#~ "  a koncovÃ½m ukazatelem = %d\n"
+
+#~ msgid "MS RLE: stream ptr just went out of bounds (1)\n"
+#~ msgstr "MS RLE: ukazatel na data vyÅ¡el z mezÃ­ (1)\n"
+
+#~ msgid "MS RLE: frame ptr just went out of bounds (1)\n"
+#~ msgstr "MS RLE: ukazatel na snÃ­mek vyÅ¡el z mezÃ­ (1)\n"
+
+#~ msgid "MS RLE: stream ptr just went out of bounds (2)\n"
+#~ msgstr "MS RLE: ukazatel na data vyÅ¡el z mezÃ­ (2)\n"
+
+#~ msgid "MS RLE: frame ptr just went out of bounds (2)\n"
+#~ msgstr "MS RLE: ukazatel na snÃ­mek vyÅ¡el z mezÃ­ (2)\n"
+
+#~ msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
+#~ msgstr "MS RLE: koncovÃ½ rÃ¡mec dekÃ³dovÃ¡n i se zbytkem bytÅ¯ (%d < %d)\n"
+
+#~ msgid "warning: block counter just went negative (this should not happen)\n"
+#~ msgstr ""
+#~ "varovÃ¡nÃ­: ÄÃ­taÄ blokÅ¯ prÃ¡vÄ› pÅ™eÅ¡el do mÃ­nusu (toto by se nemÄ›lo stÃ¡t)\n"
+
+#~ msgid "First chunk byte is 0x%02x instead of 0x1e\n"
+#~ msgstr "Byte prvnÃ­ ÄÃ¡sti dat je 0x%02x namÃ­sto 0x1e\n"
+
+#~ msgid "MOV chunk size != encoded chunk size; using MOV chunk size\n"
+#~ msgstr ""
+#~ "Velikost ÄÃ¡sti dat MOV != velikost zakÃ³dovanÃ© ÄÃ¡sti; pouÅ¾ije se MOV\n"
+
+#~ msgid ""
+#~ "Unknown opcode %d in rpza chunk. Skip remaining %d bytes of chunk data.\n"
+#~ msgstr ""
+#~ "NeznÃ¡mÃ½ kÃ³d %d v ÄÃ¡sti dat rpza. PÅ™eskoÄÃ­ se %d zbÃ½vajÃ­cÃ­ch bytÅ¯ dat.\n"
+
+#~ msgid ""
+#~ "warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk "
+#~ "size\n"
+#~ msgstr ""
+#~ "VarovÃ¡nÃ­: velikost ÄÃ¡sti dat MOV != zakÃ³dovanÃ¡ velikost (%d != %d); "
+#~ "pouÅ¾ije se MOV\n"
+
+#~ msgid ""
+#~ "SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n"
+#~ msgstr "SMC dekodÃ©r prÃ¡vÄ› vyÅ¡el z mezÃ­ (stream ptr = %d, velikost = %d)\n"
+
+#~ msgid "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n"
+#~ msgstr "SMC dekodÃ©r prÃ¡vÄ› vyÅ¡el z mezÃ­ (row ptr = %d, vÃ½Å¡ka = %d)\n"
+
+#~ msgid "encountered repeat block opcode (%02X) but no blocks rendered yet\n"
+#~ msgstr ""
+#~ "vyskytl se kÃ³d opakovÃ¡nÃ­ bloku (%02X), ale Å¾Ã¡dnÃ½ blok jeÅ¡tÄ› nebyl "
+#~ "zpracovÃ¡n\n"
+
+#~ msgid ""
+#~ "encountered repeat block opcode (%02X) but not enough blocks rendered "
+#~ "yet\n"
+#~ msgstr ""
+#~ "vyskytl se kÃ³d opakovÃ¡nÃ­ bloku (%02X), ale nebylo jeÅ¡tÄ› zpracovÃ¡no dost "
+#~ "blokÅ¯\n"
+
+#~ msgid "0xF0 opcode seen in SMC chunk (xine developers would like to know)\n"
+#~ msgstr "V ÄÃ¡sti dat SMC vidÄ›n kÃ³d 0xF0 (vÃ½vojÃ¡Å™i xine by to rÃ¡di vÄ›dÄ›li)\n"
+
+#~ msgid "Default x position"
+#~ msgstr "PÅ™edvolenÃ¡ pozice X"
+
+#~ msgid "Default y position"
+#~ msgstr "PÅ™edvolenÃ¡ pozice Y"
+
+#~ msgid "Default width"
+#~ msgstr "PÅ™edvolenÃ¡ Å¡Ã­Å™ka"
+
+#~ msgid "Default height"
+#~ msgstr "PÅ™edvolenÃ¡ vÃ½Å¡ka"
+
+#~ msgid "Default active stream"
+#~ msgstr "PÅ™ednastavenÃ¡ aktivnÃ­ sekvence"
+
+#~ msgid "input_rip: stat on the file %s failed: %s\n"
+#~ msgstr "input_rip: selhalo stat na souboru %s: %s\n"
+
+#~ msgid "video_out: can't create thread (%s)\n"
+#~ msgstr "video_out: nelze vytvoÅ™it vlÃ¡kno (%s)\n"
 
 #~ msgid "input not seekable, can not handle!\n"
-#~ msgstr "u tohoto vstupu není nastavitelná pozice, nelze zpracovat!\n"
+#~ msgstr "u tohoto vstupu nenÃ­ nastavitelnÃ¡ pozice, nelze zpracovat!\n"
 
 #~ msgid "valid mrls for pes demuxer"
-#~ msgstr "platná MRL pro demultiplexor PES"
+#~ msgstr "platnÃ¡ MRL pro demultiplexor PES"
 
 #~ msgid "valid mrls ending for pes demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor PES"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor PES"
 
 #~ msgid "Connecting MMS server..."
-#~ msgstr "Pøipojuje se k MMS serveru..."
+#~ msgstr "PÅ™ipojuje se k MMS serveru..."
 
 #~ msgid "osd: trying iso-8859-1 -> UCS-2\n"
-#~ msgstr "osd: zkusí se iso-8859-1 -> UCS-2\n"
-
-#~ msgid "osd: iconv_open() failed\n"
-#~ msgstr "osd: iconv_open() selhalo\n"
+#~ msgstr "osd: zkusÃ­ se iso-8859-1 -> UCS-2\n"
 
 #~ msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
 #~ msgstr ""
@@ -1336,39 +2937,27 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "zpracovat!\n"
 
 #~ msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
-#~ msgstr "demux_wc3movie: vyskytl se neznámı datovı blok: %c%c%c%c\n"
+#~ msgstr "demux_wc3movie: vyskytl se neznÃ¡mÃ½ datovÃ½ blok: %c%c%c%c\n"
 
 #~ msgid "Enable A52 / AC5 digital audio output via spdif"
-#~ msgstr "povolit A52 / AC5 digitální zvukovı vıstup pøes spdif"
+#~ msgstr "povolit A52 / AC5 digitÃ¡lnÃ­ zvukovÃ½ vÃ½stup pÅ™es spdif"
 
 #~ msgid "demux_fli.c: input not seekable, can not handle!\n"
 #~ msgstr ""
 #~ "demux_fli.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 #~ "zpracovat!\n"
 
-#~ msgid "input_http: failed to open socket\n"
-#~ msgstr "input_http: selhalo otevøení soketu\n"
-
-#~ msgid "input_http: cannot connect to host\n"
-#~ msgstr "input_http: nelze se pøipojit k serveru\n"
-
 #~ msgid "input_http: unable to resolve >%s<\n"
 #~ msgstr "input_http: nelze zjistit adresu >%s<\n"
 
-#~ msgid "http: unable to connect to >%s<\n"
-#~ msgstr "http: nelze se pøipojit k >%s<\n"
-
 #~ msgid "input_http: opening >/%s< on host >%s<"
-#~ msgstr "input_http: otvírá se >/%s< na serveru >%s<"
+#~ msgstr "input_http: otvÃ­rÃ¡ se >/%s< na serveru >%s<"
 
 #~ msgid "%s via proxy >%s<"
-#~ msgstr "%s pøes proxy >%s<"
+#~ msgstr "%s pÅ™es proxy >%s<"
 
 #~ msgid "input_http: EAGAIN\n"
 #~ msgstr "input_http: EAGAIN\n"
-
-#~ msgid "input_http: read error\n"
-#~ msgstr "input_http: chyba ètení\n"
 
 #~ msgid "demux_roq.c: input not seekable, can not handle!\n"
 #~ msgstr ""
@@ -1376,10 +2965,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "zpracovat!\n"
 
 #~ msgid "input_http: timeout\n"
-#~ msgstr "input_http: èas vypr¹el\n"
+#~ msgstr "input_http: Äas vyprÅ¡el\n"
 
 #~ msgid "NVidia TV-Out support."
-#~ msgstr "Podpora TV-vıstupu NVidia"
+#~ msgstr "Podpora TV-vÃ½stupu NVidia"
 
 #~ msgid "demux_wav.c: input not seekable, can not handle!\n"
 #~ msgstr ""
@@ -1402,16 +2991,16 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "zpracovat!\n"
 
 #~ msgid "Dxr3: contrast control"
-#~ msgstr "Dxr3: ovládání kontrastu"
+#~ msgstr "Dxr3: ovlÃ¡dÃ¡nÃ­ kontrastu"
 
 #~ msgid "Dxr3: saturation control"
-#~ msgstr "Dxr3: ovládání sytosti"
+#~ msgstr "Dxr3: ovlÃ¡dÃ¡nÃ­ sytosti"
 
 #~ msgid "Dxr3: brightness control"
-#~ msgstr "Dxr3: ovládání jasu"
+#~ msgstr "Dxr3: ovlÃ¡dÃ¡nÃ­ jasu"
 
 #~ msgid "demux_qt.c: input is block organized, can not handle!\n"
-#~ msgstr "demux_qt.c: vstup je blokovì organizovanı, nelze zpracovat!\n"
+#~ msgstr "demux_qt.c: vstup je blokovÄ› organizovanÃ½, nelze zpracovat!\n"
 
 #~ msgid "demux_film.c: input not seekable, can not handle!\n"
 #~ msgstr ""
@@ -1429,30 +3018,21 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "zpracovat!\n"
 
 #~ msgid "OUCH - ran out of buffers\n"
-#~ msgstr "JEJDA - buffery vyèerpány\n"
+#~ msgstr "JEJDA - buffery vyÄerpÃ¡ny\n"
 
 #~ msgid "OUCH - dropped input packet %d %d\n"
-#~ msgstr "JEJDA - zahozen vstupní paket %d %d\n"
+#~ msgstr "JEJDA - zahozen vstupnÃ­ paket %d %d\n"
 
 #~ msgid "unable to allocate input buffer.\n"
-#~ msgstr "nelze alokovat vstupní vyrovnávací pamì».\n"
+#~ msgstr "nelze alokovat vstupnÃ­ vyrovnÃ¡vacÃ­ pamÄ›Å¥.\n"
 
 #~ msgid "demux_mpgaudio: no audio driver!\n"
-#~ msgstr "demux_mpgaudio: ¾ádnı zvukovı ovladaè!\n"
+#~ msgstr "demux_mpgaudio: Å¾Ã¡dnÃ½ zvukovÃ½ ovladaÄ!\n"
 
 #~ msgid "demux_cda.c: input not seekable, can not handle!\n"
 #~ msgstr ""
 #~ "demux_cda.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 #~ "zpracovat!\n"
-
-#~ msgid "input_file: trying to open subtitle file '%s'\n"
-#~ msgstr "input_file: zkusí se otevøít soubor s titulky '%s'\n"
-
-#~ msgid "input_cda: server '%s:%d' successfuly connected.\n"
-#~ msgstr "input_cda: úspì¹né pøipojení k serveru '%s:%d'.\n"
-
-#~ msgid "input_cda: opening server '%s:%d' failed: %s\n"
-#~ msgstr "input_cda: selhal pøístup k serveru '%s:%d': %s\n"
 
 #~ msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
 #~ msgstr "input_cda: selhalo ioctl(CDROM_MEDIA_CHANGED): %s.\n"
@@ -1473,10 +3053,7 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ msgstr "input_cda: selhalo ioctl(CDROMPLAYMSF): %s.\n"
 
 #~ msgid "input_cda: No rights to open %s.\n"
-#~ msgstr "input_cda: Nejsou práva k otevøení %s.\n"
-
-#~ msgid "input_cda: open(%s) failed: %s.\n"
-#~ msgstr "input_cda: selhala funkce open(%s): %s.\n"
+#~ msgstr "input_cda: Nejsou prÃ¡va k otevÅ™enÃ­ %s.\n"
 
 #~ msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
 #~ msgstr "input_cda: selhalo ioctl(CDROMCLOSETRAY): %s\n"
@@ -1503,105 +3080,99 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ msgstr "input_cda: selhalo ioctl(CDROMREADTOCENTRY): %s.\n"
 
 #~ msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
-#~ msgstr "input_cda: neplatné MRL. Pou¾ijte cda://<stopa #>\n"
+#~ msgstr "input_cda: neplatnÃ© MRL. PouÅ¾ijte cda://<stopa #>\n"
 
 #~ msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-#~ msgstr "input_cda: neplatná stopa %d (platnı rozsah: 1 .. %d)\n"
+#~ msgstr "input_cda: neplatnÃ¡ stopa %d (platnÃ½ rozsah: 1 .. %d)\n"
 
 #~ msgid "input_cda: error seek to origin %d not implemented!\n"
-#~ msgstr "input_cda: posuv na cíl typu %d není implementován!\n"
+#~ msgstr "input_cda: posuv na cÃ­l typu %d nenÃ­ implementovÃ¡n!\n"
 
 #~ msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
-#~ msgstr "demux_qt: Soubor Apple Quicktime, %sdoba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_qt: Soubor Apple Quicktime, %sdoba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 #~ msgstr "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 
 #~ msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-#~ msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
-
-#~ msgid "channel"
-#~ msgid_plural "channels"
-#~ msgstr[0] "kanál"
-#~ msgstr[1] "kanály"
-#~ msgstr[2] "kanálù"
+#~ msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitÅ¯, %d %s\n"
 
 #~ msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
-#~ msgstr "demux_film: FILM verze %c%c%c%c, doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_film: FILM verze %c%c%c%c, doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
-#~ msgstr "demux_film: %c%c%c%c video @ %dx%d, hodiny pro pøehrávání %d Hz\n"
+#~ msgstr "demux_film: %c%c%c%c video @ %dx%d, hodiny pro pÅ™ehrÃ¡vÃ¡nÃ­ %d Hz\n"
 
 #~ msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
-#~ msgstr "demux_film: %d Hz, %d-bitovı %s%s PCM zvuk\n"
+#~ msgstr "demux_film: %d Hz, %d-bitovÃ½ %s%s PCM zvuk\n"
 
 #~ msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
-#~ msgstr "demux_roq: Soubor RoQ, video je %dx%d, %d snímkù/s\n"
+#~ msgstr "demux_roq: Soubor RoQ, video je %dx%d, %d snÃ­mkÅ¯/s\n"
 
 #~ msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
-#~ msgstr "demux_roq: 16 bitù, 22050 Hz %s RoQ DPCM zvuk\n"
+#~ msgstr "demux_roq: 16 bitÅ¯, 22050 Hz %s RoQ DPCM zvuk\n"
 
 #~ msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
 #~ msgstr "demux_fli: typ FLI: %04X, rychlost: %d/%d\n"
 
 #~ msgid "demux_fli: %d frames, %dx%d\n"
-#~ msgstr "demux_fli: %d rámcù, %dx%d\n"
+#~ msgstr "demux_fli: %d rÃ¡mcÅ¯, %dx%d\n"
 
 #~ msgid "demux_fli: running time: %d min, %d sec\n"
-#~ msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_fli: doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
-#~ msgstr "demux_idcin: Soubor Id CIN, video je %dx%d, 14 snímkù/s\n"
+#~ msgstr "demux_idcin: Soubor Id CIN, video je %dx%d, 14 snÃ­mkÅ¯/s\n"
 
 #~ msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
-#~ msgstr "demux_idcin: %d-bitovı, %d Hz %s PCM zvuk\n"
+#~ msgstr "demux_idcin: %d-bitovÃ½, %d Hz %s PCM zvuk\n"
 
 #~ msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
-#~ msgstr "demux_smjpeg: Soubor SMJPEG, doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_smjpeg: Soubor SMJPEG, doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 #~ msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 
 #~ msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-#~ msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+#~ msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitÅ¯, %d %s\n"
 
 #~ msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
-#~ msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
+#~ msgstr "demux_wav: formÃ¡t zvuku 0x%X, %d Hz, %d bitÅ¯/vzorek, %d %s\n"
 
 #~ msgid "demux_wav: running time = %lld min, %lld sec\n"
-#~ msgstr "demux_wav: doba pøehrávání = %lld min, %lld s\n"
+#~ msgstr "demux_wav: doba pÅ™ehrÃ¡vÃ¡nÃ­ = %lld min, %lld s\n"
 
 #~ msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
-#~ msgstr "demux_wav: prùmìrnì %d bytù/s, zarovnání bloku %d\n"
+#~ msgstr "demux_wav: prÅ¯mÄ›rnÄ› %d bytÅ¯/s, zarovnÃ¡nÃ­ bloku %d\n"
 
 #~ msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
-#~ msgstr "demux_aiff: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
+#~ msgstr "demux_aiff: %d Hz, %d kanÃ¡lÅ¯, %d bitÅ¯, %d snÃ­mkÅ¯\n"
 
 #~ msgid "demux_aiff: running time: %d min, %d sec\n"
-#~ msgstr "demux_aiff: doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_aiff: doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
-#~ msgstr "demux_snd: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
+#~ msgstr "demux_snd: %d Hz, %d kanÃ¡lÅ¯, %d bitÅ¯, %d snÃ­mkÅ¯\n"
 
 #~ msgid "demux_snd: running time: %d min, %d sec\n"
-#~ msgstr "demux_snd: doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_snd: doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid ""
 #~ "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
 #~ msgstr ""
-#~ "demux_voc: formát zvuku VOC 0x%X, %d Hz, doba pøehrávání: %d min, %d s\n"
+#~ "demux_voc: formÃ¡t zvuku VOC 0x%X, %d Hz, doba pÅ™ehrÃ¡vÃ¡nÃ­: %d min, %d s\n"
 
 #~ msgid "subtitle time offset in 1/100 sec"
-#~ msgstr "èasovı posun titulkù v 1/100 s"
+#~ msgstr "ÄasovÃ½ posun titulkÅ¯ v 1/100 s"
 
 #~ msgid "target encoding for subtitles (have to match font encoding)"
-#~ msgstr "cílové kódování titulkù (musí souhlasit s kódováním fontu)"
+#~ msgstr "cÃ­lovÃ© kÃ³dovÃ¡nÃ­ titulkÅ¯ (musÃ­ souhlasit s kÃ³dovÃ¡nÃ­m fontu)"
 
 #~ msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-#~ msgstr "zvukovı vıstupní modul xine pou¾ije zvuková zaøízení/ovladaèe arts"
+#~ msgstr "zvukovÃ½ vÃ½stupnÃ­ modul xine pouÅ¾ije zvukovÃ¡ zaÅ™Ã­zenÃ­/ovladaÄe arts"
 
 #~ msgid "allow illegal vlc codes in mpeg4 streams"
-#~ msgstr "dovolit nepøípustné kódy VLC v sekvencích mpeg4"
+#~ msgstr "dovolit nepÅ™Ã­pustnÃ© kÃ³dy VLC v sekvencÃ­ch mpeg4"
 
 #~ msgid "demux_vqa.c: input not seekable, can not handle!\n"
 #~ msgstr ""
@@ -1609,109 +3180,100 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "zpracovat!\n"
 
 #~ msgid "demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"
-#~ msgstr "demux_vqa: %dx%d video VQA; %d-kanálovı %d Hz IMA ADPCM zvuk\n"
+#~ msgstr "demux_vqa: %dx%d video VQA; %d-kanÃ¡lovÃ½ %d Hz IMA ADPCM zvuk\n"
 
 #~ msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
-#~ msgstr "demux_ts: FIXME: (nepodporováno) PAT pøesahuje více paketù TS\n"
+#~ msgstr "demux_ts: FIXME: (nepodporovÃ¡no) PAT pÅ™esahuje vÃ­ce paketÅ¯ TS\n"
 
 #~ msgid ""
 #~ "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-#~ msgstr "demux_ts: FIXME: (nepodporováno) PAT se skládá z více (%d) sekcí\n"
+#~ msgstr "demux_ts: FIXME: (nepodporovÃ¡no) PAT se sklÃ¡dÃ¡ z vÃ­ce (%d) sekcÃ­\n"
 
 #~ msgid ""
 #~ "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 #~ "calc_crc32: %.8x\n"
 #~ msgstr ""
-#~ "demux_ts: chyba z demultiplexoru! PAT s neplatnım CRC32: packet_crc32: "
+#~ "demux_ts: chyba z demultiplexoru! PAT s neplatnÃ½m CRC32: packet_crc32: "
 #~ "%.8x calc_crc32: %.8x\n"
 
 #~ msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
-#~ msgstr "demux_ts: chyba %02x %02x %02x (mìlo by bıt 0x000001)\n"
+#~ msgstr "demux_ts: chyba %02x %02x %02x (mÄ›lo by bÃ½t 0x000001)\n"
 
 #~ msgid "fifo unavailable (%d)\n"
-#~ msgstr "nedostupné fifo (%d)\n"
+#~ msgstr "nedostupnÃ© fifo (%d)\n"
 
 #~ msgid "demux_ts: unexpected cc %d (expected %d)\n"
-#~ msgstr "demux_ts: neoèekávané cc %d (oèekáváno: %d)\n"
+#~ msgstr "demux_ts: neoÄekÃ¡vanÃ© cc %d (oÄekÃ¡vÃ¡no: %d)\n"
 
 #~ msgid "demux_ts: corrupted pes encountered\n"
-#~ msgstr "demux_ts: vyskytla se poru¹ená hlavièka PES\n"
+#~ msgstr "demux_ts: vyskytla se poruÅ¡enÃ¡ hlaviÄka PES\n"
 
 #~ msgid "demux error! PMT with invalid pointer\n"
-#~ msgstr "chyba z demultiplexoru! PMT s neplatnım ukazatelem\n"
+#~ msgstr "chyba z demultiplexoru! PMT s neplatnÃ½m ukazatelem\n"
 
 #~ msgid ""
 #~ "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 #~ "calc_crc32: %#.8x\n"
 #~ msgstr ""
-#~ "demux_ts: chyba z demultiplexoru! PMT s neplatnım CRC32: packet_crc32: %"
+#~ "demux_ts: chyba z demultiplexoru! PMT s neplatnÃ½m CRC32: packet_crc32: %"
 #~ "#.8x calc_crc32: %#.8x\n"
 
 #~ msgid "demux error! PMT with inconsistent progInfo length\n"
-#~ msgstr "chyba z demultiplexoru! PMT s nekonzistentní délkou progInfo\n"
+#~ msgstr "chyba z demultiplexoru! PMT s nekonzistentnÃ­ dÃ©lkou progInfo\n"
 
 #~ msgid "demux error! PMT with inconsistent streamInfo length\n"
-#~ msgstr "chyba z demultiplexoru! PMT s nekonzistentní délkou streamInfo\n"
+#~ msgstr "chyba z demultiplexoru! PMT s nekonzistentnÃ­ dÃ©lkou streamInfo\n"
 
 #~ msgid "demux error! invalid ts sync byte %.2x\n"
-#~ msgstr "chyba z demultiplexoru! neplatnı synchronizaèní byte ts %.2x\n"
+#~ msgstr "chyba z demultiplexoru! neplatnÃ½ synchronizaÄnÃ­ byte ts %.2x\n"
 
 #~ msgid "demux error! transport error\n"
-#~ msgstr "chyba z demultiplexoru! chyba pøenosu\n"
+#~ msgstr "chyba z demultiplexoru! chyba pÅ™enosu\n"
 
 #~ msgid "demux_ts: demux error! invalid payload size %d\n"
-#~ msgstr "demux_ts: chyba z demultiplexoru! neplatná velikost dat %d\n"
+#~ msgstr "demux_ts: chyba z demultiplexoru! neplatnÃ¡ velikost dat %d\n"
 
 #~ msgid "valid mrls for ts demuxer"
-#~ msgstr "platná MRL pro demultiplexor TS"
+#~ msgstr "platnÃ¡ MRL pro demultiplexor TS"
 
 #~ msgid "demux %u ts_open!\n"
 #~ msgstr "demultiplexor %u ts_open!\n"
 
 #~ msgid "valid mrls ending for ts demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor TS"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor TS"
 
 #~ msgid "demux_ts: can't create new thread (%s)\n"
-#~ msgstr "demux_ts: nelze vytvoøit nové vlákno (%s)\n"
+#~ msgstr "demux_ts: nelze vytvoÅ™it novÃ© vlÃ¡kno (%s)\n"
 
 #~ msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
-#~ msgstr "input_vcd : chyba pøi ioctl CDROMREADTOCHDR\n"
+#~ msgstr "input_vcd : chyba pÅ™i ioctl CDROMREADTOCHDR\n"
 
 #~ msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-#~ msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY pro stopu %d\n"
+#~ msgstr "input_vcd: chyba pÅ™i ioctl CDROMREADTOCENTRY pro stopu %d\n"
 
 #~ msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
-#~ msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY pro lead-out\n"
+#~ msgstr "input_vcd: chyba pÅ™i ioctl CDROMREADTOCENTRY pro lead-out\n"
 
 #~ msgid "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
-#~ msgstr "input_vcd: chyba pøi ioctl CDROMREADTOCENTRY\n"
+#~ msgstr "input_vcd: chyba pÅ™i ioctl CDROMREADTOCENTRY\n"
 
 #~ msgid "scsi command failed with status %d\n"
-#~ msgstr "pøíkaz scsi selhal s vısledkem %d\n"
-
-#~ msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-#~ msgstr "input_vcd: neplatné MRL. Pou¾ijte vcd://<stopa #>\n"
-
-#~ msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
-#~ msgstr "input_vcd: neplatná stopa %d (platnı rozsah: 0 .. %d)\n"
+#~ msgstr "pÅ™Ã­kaz scsi selhal s vÃ½sledkem %d\n"
 
 #~ msgid "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"
-#~ msgstr "input_vcd: chyba pøi ioctl CDRIOCSETBLOCKSIZE %d\n"
+#~ msgstr "input_vcd: chyba pÅ™i ioctl CDRIOCSETBLOCKSIZE %d\n"
 
 #~ msgid "input_vcd: error in CDROMREADRAW\n"
-#~ msgstr "input_vcd: chyba pøi ioctl CDROMREADRAW\n"
+#~ msgstr "input_vcd: chyba pÅ™i ioctl CDROMREADRAW\n"
 
 #~ msgid "input_vcd: seek error %d\n"
-#~ msgstr "input_vcd: chyba pøi posuvu %d\n"
+#~ msgstr "input_vcd: chyba pÅ™i posuvu %d\n"
 
 #~ msgid "input_vcd: read error %d\n"
-#~ msgstr "input_vcd: chyba ètení %d\n"
-
-#~ msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
-#~ msgstr "input_vcd: pro nenulovı offset není SEEK_CUR implementován!\n"
+#~ msgstr "input_vcd: chyba ÄtenÃ­ %d\n"
 
 #~ msgid "input_vcd: error seek to origin %d not implemented!\n"
-#~ msgstr "input_vcd: posuv na cíl typu %d není implementován!\n"
+#~ msgstr "input_vcd: posuv na cÃ­l typu %d nenÃ­ implementovÃ¡n!\n"
 
 #~ msgid "input_vcd: CDROMCLOSETRAY failed: %s\n"
 #~ msgstr "input_vcd: selhalo ioctl CDROMCLOSETRAY: %s\n"
@@ -1722,77 +3284,74 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
 #~ msgstr "input_vcd: selhalo ioctl CDROM_DRIVE_STATUS: %s\n"
 
-#~ msgid "unable to open %s: %s.\n"
-#~ msgstr "nelze otevøít %s: %s.\n"
-
 #~ msgid "vcd_read_toc failed\n"
 #~ msgstr "selhala funkce vcd_read_toc\n"
 
 #~ msgid "valid mrls ending for elementary demuxer"
-#~ msgstr "platná zakonèení MRL pro základní demultiplexor"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro zÃ¡kladnÃ­ demultiplexor"
 
 #~ msgid "valid mrls for mpeg demuxer"
-#~ msgstr "platná zakonèení pro demultiplexor MPEG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ pro demultiplexor MPEG"
 
 #~ msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-#~ msgstr "demux_mpeg: prosím uveïte typ mpegu (mpeg1/mpeg2).\n"
+#~ msgstr "demux_mpeg: prosÃ­m uveÄte typ mpegu (mpeg1/mpeg2).\n"
 
 #~ msgid "valid mrls ending for mpeg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor MPEG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor MPEG"
 
 #~ msgid "valid mrls ending for ogg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor OGG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor OGG"
 
 #~ msgid "valid mrls for mpeg block demuxer"
-#~ msgstr "platná MRL pro blokovı demultiplexor MPEG"
+#~ msgstr "platnÃ¡ MRL pro blokovÃ½ demultiplexor MPEG"
 
 #~ msgid "valid mrls ending for mpeg block demuxer"
-#~ msgstr "platná zakonèení MRL pro blokovı demultiplexor MPEG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro blokovÃ½ demultiplexor MPEG"
 
 #~ msgid "valid mrls ending for smjpeg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor SMJPEG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor SMJPEG"
 
 #~ msgid "valid mrls ending for aiff demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor AIFF"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor AIFF"
 
 #~ msgid "valid mrls ending for snd demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor SND"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor SND"
 
 #~ msgid "valid mrls ending for voc demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor VOC"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor VOC"
 
 #~ msgid "valid mrls ending for vqa demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor VQA"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor VQA"
 
 #~ msgid "valid mrls ending for avi demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor AVI"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor AVI"
 
 #~ msgid "valid mrls ending for mpeg audio demuxer"
-#~ msgstr "platná zakonèení pro zvukovı demultiplexor MPEG"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ pro zvukovÃ½ demultiplexor MPEG"
 
 #~ msgid "valid mrls ending for qt demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor QT"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor QT"
 
 #~ msgid "valid mrls ending for asf demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor ASF"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor ASF"
 
 #~ msgid "valid mrls ending for film demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor FILM"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor FILM"
 
 #~ msgid "demux_film: unknown video codec %c%c%c%c\n"
-#~ msgstr "demux_film: neznámı kodek videa %c%c%c%c\n"
+#~ msgstr "demux_film: neznÃ¡mÃ½ kodek videa %c%c%c%c\n"
 
 #~ msgid "valid mrls ending for roq demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor ROQ"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor ROQ"
 
 #~ msgid "valid mrls ending for idcin demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor IdCIN"
 
 #~ msgid "valid mrls ending for wav demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor WAV"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor WAV"
 
 #~ msgid "valid mrls ending for mve demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor MVE"
+#~ msgstr "platnÃ¡ zakonÄenÃ­ MRL pro demultiplexor MVE"
 
 #~ msgid "lstat failed for %s{%s}\n"
 #~ msgstr "selhalo lstat pro %s{%s}\n"
@@ -1801,31 +3360,31 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ msgstr "%s(%d): selhal readlink(): %s\n"
 
 #~ msgid "input_file: get optional data, type %08x, sub %p\n"
-#~ msgstr "input_file: volitelná data, typ %08x, podtyp %p\n"
+#~ msgstr "input_file: volitelnÃ¡ data, typ %08x, podtyp %p\n"
 
 #~ msgid "Xv property"
 #~ msgstr "vlastnost Xv"
 
 #~ msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-#~ msgstr "xine_notify_stream_finished: nelze vytvoøit nové vlákno (%s)\n"
+#~ msgstr "xine_notify_stream_finished: nelze vytvoÅ™it novÃ© vlÃ¡kno (%s)\n"
 
 #~ msgid "demux_avi: video format = %s\n"
-#~ msgstr "demux_avi: video formát = %s\n"
+#~ msgstr "demux_avi: video formÃ¡t = %s\n"
 
 #~ msgid "demux_avi: video frame size %ld x %ld\n"
-#~ msgstr "demux_avi: velikost rámce videa %ld x %ld\n"
+#~ msgstr "demux_avi: velikost rÃ¡mce videa %ld x %ld\n"
 
 #~ msgid "demux_avi: audio format[%d] = 0x%lx\n"
-#~ msgstr "demux_avi: zvukovı formát[%d] = 0x%lx\n"
+#~ msgstr "demux_avi: zvukovÃ½ formÃ¡t[%d] = 0x%lx\n"
 
 #~ msgid "demux_avi: unknown audio type 0x%lx\n"
-#~ msgstr "demux_avi: neznámı typ zvuku 0x%lx\n"
+#~ msgstr "demux_avi: neznÃ¡mÃ½ typ zvuku 0x%lx\n"
 
 #~ msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 #~ msgstr "demux_avi: typ zvuku: %s (wFormatTag 0x%x)\n"
 
 #~ msgid "demux_avi: unknown video codec '%.4s'\n"
-#~ msgstr "demux_avi: neznámı kodek videa: '%.4s'\n"
+#~ msgstr "demux_avi: neznÃ¡mÃ½ kodek videa: '%.4s'\n"
 
 #~ msgid "demux_avi: video codec is '%s'\n"
 #~ msgstr "demux_avi: kodek videa je '%s'\n"
@@ -1834,38 +3393,35 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ msgstr "demux_mpgaudio: MPEG %s  Layer %d  %ld kb/s\n"
 
 #~ msgid "ogg: vorbis audio stream detected\n"
-#~ msgstr "ogg: detekována zvuková data vorbis\n"
+#~ msgstr "ogg: detekovÃ¡na zvukovÃ¡ data vorbis\n"
 
 #~ msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
-#~ msgstr "demux_asf: zvukovı formát: %s (wFormatTag 0x%x)\n"
+#~ msgstr "demux_asf: zvukovÃ½ formÃ¡t: %s (wFormatTag 0x%x)\n"
 
 #~ msgid "demux_asf: video format : %s\n"
-#~ msgstr "demux_asf: formát videa: %s\n"
+#~ msgstr "demux_asf: formÃ¡t videa: %s\n"
 
 #~ msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
-#~ msgstr "demux_asf: délka videa je %d s, rychlost dat je %d bytù/s\n"
+#~ msgstr "demux_asf: dÃ©lka videa je %d s, rychlost dat je %d bytÅ¯/s\n"
 
 #~ msgid "demux_asf: title        : %s\n"
-#~ msgstr "demux_asf: název         : %s\n"
+#~ msgstr "demux_asf: nÃ¡zev         : %s\n"
 
 #~ msgid "demux_asf: author       : %s\n"
 #~ msgstr "demux_asf: autor         : %s\n"
 
-#~ msgid "demux_asf: copyright    : %s\n"
-#~ msgstr "demux_asf: autorská práva: %s\n"
-
 #~ msgid "demux_asf: comment      : %s\n"
-#~ msgstr "demux_asf: komentáø      : %s\n"
+#~ msgstr "demux_asf: komentÃ¡Å™      : %s\n"
 
 #~ msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
 #~ msgstr ""
-#~ "demux_mpeg_block: Neznámá velikost bloku. Zkuste pou¾ít demux_mpeg.\n"
+#~ "demux_mpeg_block: NeznÃ¡mÃ¡ velikost bloku. Zkuste pouÅ¾Ã­t demux_mpeg.\n"
 
 #~ msgid "system layer format '%s' detected.\n"
-#~ msgstr "systémová vrstva zjistila formát '%s'.\n"
+#~ msgstr "systÃ©movÃ¡ vrstva zjistila formÃ¡t '%s'.\n"
 
 #~ msgid "stream format"
-#~ msgstr "formát dat"
+#~ msgstr "formÃ¡t dat"
 
 #~ msgid ""
 #~ "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -1873,10 +3429,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "demuxer plugin.\n"
 #~ "          Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_ts: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "          demultiplexním modulem.\n"
-#~ "          Nainstalování aktuálních demultiplexních modulù by mìlo "
+#~ "demux_ts: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "          Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "          demultiplexnÃ­m modulem.\n"
+#~ "          NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo "
 #~ "pomoci.\n"
 
 #~ msgid ""
@@ -1885,10 +3441,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "demux_avi: demuxer plugin.\n"
 #~ "Installing current demuxer plugins should help.\n"
 #~ msgstr ""
-#~ "demux_avi: tento modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_avi: tento modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_elem: plugin doesn't support plugin API version %d.\n"
@@ -1896,10 +3452,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this             demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_elem: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "            Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "            demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_elem: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "            Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "            demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_mpeg: plugin doesn't support plugin API version %d.\n"
@@ -1907,10 +3463,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this             demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_mpeg: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "            Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "            demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_mpeg: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "            Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "            demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_pes: plugin doesn't support plugin API version %d.\n"
@@ -1918,10 +3474,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_pes: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_pes: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -1929,10 +3485,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this           demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_qt: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "          demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_qt: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "          Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "          demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -1940,10 +3496,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_ogg: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_ogg: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1951,10 +3507,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_asf: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_asf: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_cda: plugin doesn't support plugin API version %d.\n"
@@ -1962,10 +3518,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_cda: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_cda: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_film: plugin doesn't support plugin API version %d.\n"
@@ -1973,10 +3529,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this             demuxer plugin. Installing current demux plugins should "
 #~ "help.\n"
 #~ msgstr ""
-#~ "demux_film: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "            Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "            demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_film: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "            Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "            demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -1984,11 +3540,11 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this                   demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_mpeg_block: modul nepodporuje programové rozhraní modulù ve verzi %"
+#~ "demux_mpeg_block: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %"
 #~ "d.\n"
-#~ "                  Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "                  demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "                  Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "                  demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_roq: plugin doesn't support plugin API version %d.\n"
@@ -1996,10 +3552,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_roq: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_roq: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_idcin: plugin doesn't support plugin API version %d.\n"
@@ -2007,10 +3563,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this              demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_idcin: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "             Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "             demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_idcin: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "             Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "             demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_smjpeg: plugin doesn't support plugin API version %d.\n"
@@ -2018,10 +3574,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this               demuxer plugin. Installing current demux plugins "
 #~ "should help.\n"
 #~ msgstr ""
-#~ "demux_smjpeg: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "              Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "              demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_smjpeg: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "              Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "              demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "demux_wav: plugin doesn't support plugin API version %d.\n"
@@ -2029,10 +3585,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this            demuxer plugin.\n"
 #~ "Installing current demux plugins should help.\n"
 #~ msgstr ""
-#~ "demux_wav: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
+#~ "demux_wav: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           demultiplexnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch demultiplexnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "net input plugin doesn't support plugin API version %d.\n"
@@ -2040,10 +3596,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Modul pro vstup ze sítì nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "Modul pro vstup ze sÃ­tÄ› nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "rtp input plugin doesn't support plugin API version %d.\n"
@@ -2051,10 +3607,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Vstupní modul rtp nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "VstupnÃ­ modul rtp nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -2062,11 +3618,11 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Vstupní modul stdin/fifo nepodporuje programové rozhraní modulù ve verzi %"
+#~ "VstupnÃ­ modul stdin/fifo nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %"
 #~ "d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "file input plugin doesn't support plugin API version %d.\n"
@@ -2074,10 +3630,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Modul pro vstup ze souborù nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "Modul pro vstup ze souborÅ¯ nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "vcd input plugin doesn't support plugin API version %d.\n"
@@ -2085,10 +3641,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Modul pro vstup z VCD nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "Modul pro vstup z VCD nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "http input plugin doesn't support plugin API version %d.\n"
@@ -2096,11 +3652,11 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Modul pro vstup pomocí protokolu http nepodporuje programové rozhraní ve "
+#~ "Modul pro vstup pomocÃ­ protokolu http nepodporuje programovÃ© rozhranÃ­ ve "
 #~ "verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "cda input plugin doesn't support plugin API version %d.\n"
@@ -2108,10 +3664,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "Vstupní modul cda nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "MODUL NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "VstupnÃ­ modul cda nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "MODUL NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "libmpeg2: plugin doesn't support plugin API version %d.\n"
@@ -2119,10 +3675,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "libmpeg2: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "libmpeg2: tento modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "          dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "libmpeg2: tento modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "          Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "          dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "libmpg123: plugin doesn't support plugin API version %d.\n"
@@ -2130,19 +3686,19 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "libmpg123: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "libmpg123: tento modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           dekódovacím modulem\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "libmpg123: tento modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           dekÃ³dovacÃ­m modulem\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "libspudec: Doesn't support plugin API version %d.\n"
 #~ "libspudec: This means there is a version mismatch between XINE and\n"
 #~ "libspudec: this plugin.\n"
 #~ msgstr ""
-#~ "libspudec: Nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi XINE a\n"
-#~ "           tímto modulem.\n"
+#~ "libspudec: Nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi XINE a\n"
+#~ "           tÃ­mto modulem.\n"
 
 #~ msgid ""
 #~ "w32codec: plugin doesn't support plugin API version %d.\n"
@@ -2150,49 +3706,43 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "w32codec: decoder plugin.\n"
 #~ "Installing current decoder plugins should help.\n"
 #~ msgstr ""
-#~ "w32codec: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "          Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "          dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù na dekódování by mìlo pomoci.\n"
+#~ "w32codec: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "          Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "          dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ na dekÃ³dovÃ¡nÃ­ by mÄ›lo pomoci.\n"
 
 #~ msgid "%s(%d) wrong first stage = %d !!\n"
-#~ msgstr "%s(%d) chybná první fáze (%d) !!\n"
+#~ msgstr "%s(%d) chybnÃ¡ prvnÃ­ fÃ¡ze (%d) !!\n"
 
 #~ msgid "%s(%s@%d): parameter should be non null, exiting\n"
-#~ msgstr "%s(%s@%d): parametr by nemìl bıt null, konec\n"
+#~ msgstr "%s(%s@%d): parametr by nemÄ›l bÃ½t null, konec\n"
 
 #~ msgid "load_plugins: demux plugin found : %s\n"
-#~ msgstr "load_plugins: nalezen demultiplexní modul : %s\n"
+#~ msgstr "load_plugins: nalezen demultiplexnÃ­ modul : %s\n"
 
 #~ msgid "load_plugins: too many demux plugins installed, exiting.\n"
 #~ msgstr ""
-#~ "load_plugins: instalováno pøíli¹ mnoho demultiplexních modulù, konec.\n"
+#~ "load_plugins: instalovÃ¡no pÅ™Ã­liÅ¡ mnoho demultiplexnÃ­ch modulÅ¯, konec.\n"
 
 #~ msgid ""
 #~ "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 #~ "function)\n"
 #~ msgstr ""
-#~ "load_plugins: %s není platnı vstupní modul (postrádá se funkce "
+#~ "load_plugins: %s nenÃ­ platnÃ½ vstupnÃ­ modul (postrÃ¡dÃ¡ se funkce "
 #~ "init_input_plugin()\n"
 
 #~ msgid "%s(%d): too many input plugins installed, exiting.\n"
-#~ msgstr "%s(%d): instalováno pøíli¹ mnoho modulù, konec.\n"
+#~ msgstr "%s(%d): instalovÃ¡no pÅ™Ã­liÅ¡ mnoho modulÅ¯, konec.\n"
 
 #~ msgid ""
 #~ "load_plugins: no input plugins found in %s! - Did you install xine "
 #~ "correctly??\n"
 #~ msgstr ""
-#~ "load_plugins: v adresáøi %s nenalezen ¾ádnı vstupní modul! - Byl xine "
-#~ "korektnì nainstalován??\n"
+#~ "load_plugins: v adresÃ¡Å™i %s nenalezen Å¾Ã¡dnÃ½ vstupnÃ­ modul! - Byl xine "
+#~ "korektnÄ› nainstalovÃ¡n??\n"
 
 #~ msgid "spu decoder plugin found : %s\n"
-#~ msgstr "nalezen dekodér titulkù : %s\n"
-
-#~ msgid "video decoder plugin found : %s\n"
-#~ msgstr "nalezen dekodér videa: %s\n"
-
-#~ msgid "audio decoder plugin found : %s\n"
-#~ msgstr "nalezen dekodér zvuku: %s\n"
+#~ msgstr "nalezen dekodÃ©r titulkÅ¯ : %s\n"
 
 #~ msgid ""
 #~ "liblpcm: plugin doesn't support plugin API version %d.\n"
@@ -2200,10 +3750,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "liblpcm: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "liblpcm: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "         Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "         dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "liblpcm: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "         Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "         dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -2211,10 +3761,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "ffmpeg: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "ffmpeg: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "        Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "        dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "ffmpeg: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "        Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "        dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
@@ -2222,10 +3772,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "this dxr3_decode_spu: decoder plugin. Installing current plugins should "
 #~ "help.\n"
 #~ msgstr ""
-#~ "dx3_decode_spu: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "                Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "                dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "dx3_decode_spu: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "                Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "                dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
@@ -2234,18 +3784,18 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "dxr3_decode_video: decoder plugin. Installing current plugins should "
 #~ "help.\n"
 #~ msgstr ""
-#~ "dx3_decode_video: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "                  Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "                  dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "dx3_decode_video: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "                  Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "                  dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid "Dxr3: video decoder priority"
-#~ msgstr "Dxr3: priorita dekodéru videa"
+#~ msgstr "Dxr3: priorita dekodÃ©ru videa"
 
 #~ msgid ""
 #~ "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
 #~ msgstr ""
-#~ "Priority dekodéru vìt¹í ne¾ 5 povolí hardwarové dekódování, 0 ho zaká¾e."
+#~ "Priority dekodÃ©ru vÄ›tÅ¡Ã­ neÅ¾ 5 povolÃ­ hardwarovÃ© dekÃ³dovÃ¡nÃ­, 0 ho zakÃ¡Å¾e."
 
 #~ msgid ""
 #~ "libmad: plugin doesn't support plugin API version %d.\n"
@@ -2253,10 +3803,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "libmad: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "libmad: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "        Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "        dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "libmad: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "        Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "        dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "liba52: plugin doesn't support plugin API version %d.\n"
@@ -2264,10 +3814,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "liba52: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "liba52: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "        Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "        dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "liba52: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "        Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "        dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "libdts: plugin doesn't support plugin API version %d.\n"
@@ -2275,10 +3825,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "libdts: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "libdts: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "        Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "        dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "libdts: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "        Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "        dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "divx4: plugin doesn't support plugin API version %d.\n"
@@ -2286,10 +3836,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "divx4: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "       Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "       dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "divx4: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "       Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "       dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid "priority of the divx4 plugin (>5 => enable)"
 #~ msgstr "priorita modulu divx4 (>5 => povolit)"
@@ -2300,38 +3850,38 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "libvorbis: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "libvorbis: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "libvorbis: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "libsputext: doesn't support plugin api version %d.\n"
 #~ "libsputext: This means there is a version mismatch between xine and\n"
 #~ "libsputext: this plugin.\n"
 #~ msgstr ""
-#~ "libsputext: nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "            Toto znamená nesluèitelnost verzí mezi xine a \n"
-#~ "            tímto modulem.\n"
+#~ "libsputext: nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "            Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a \n"
+#~ "            tÃ­mto modulem.\n"
 
 #~ msgid ""
 #~ "libspucc: doesn't support plugin api version %d.\n"
 #~ "libspucc: This means there is a version mismatch between xine and\n"
 #~ "libspucc: this plugin.\n"
 #~ msgstr ""
-#~ "libspucc: nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "          Toto znamená nesluèitelnost verzí mezi xine a \n"
-#~ "          tímto modulem.\n"
+#~ "libspucc: nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "          Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a \n"
+#~ "          tÃ­mto modulem.\n"
 
 #~ msgid ""
 #~ "xvid: plugin doesn't support plugin API version %d.\n"
 #~ "xvid: this means there's a version mismatch between xine and this\n"
 #~ "xvid: decoder plugin. Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "xvid: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "      Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "      dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "xvid: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "      Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "      dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid "priority of the xvid plugin (>5 => enable)"
 #~ msgstr "priorita modulu xvid (>5 => povolit)"
@@ -2342,10 +3892,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "cinepak: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "cinepak: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "         Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "         dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "cinepak: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "         Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "         dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "RoQ: plugin doesn't support plugin API version %d.\n"
@@ -2353,10 +3903,10 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "RoQ: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "     Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "     dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
+#~ "RoQ: modul nepodporuje programovÃ© rozhranÃ­ modulÅ¯ ve verzi %d.\n"
+#~ "     Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "     dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid ""
 #~ "RoQ Audio: plugin doesn't support plugin API version %d.\n"
@@ -2364,32 +3914,26 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "RoQ Audio: decoder plugin.\n"
 #~ "Installing current plugins should help.\n"
 #~ msgstr ""
-#~ "RoQ Audio: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
-
-#~ msgid "input_dvd: unable to open dvd drive (%s): %s\n"
-#~ msgstr "input_dvd: nelze otevøít mechaniku dvd (%s): %s\n"
+#~ "RoQ Audio: modul nepodporuje programovÃ© rozhranÃ­ ve verzi %d.\n"
+#~ "           Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto\n"
+#~ "           dekÃ³dovacÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid "USCSICMD dvd_read_copyright: %s"
 #~ msgstr "USCSICMD dvd_read_copyright: %s"
 
 #~ msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-#~ msgstr "neúspìch: ÈTENÍ STRUKTURY DVD (autorská práva)\n"
-
-#~ msgid "input_dvd: cannot open dvd drive >%s<\n"
-#~ msgstr "input_dvd: nelze otevøít mechaniku dvd >%s<\n"
+#~ msgstr "neÃºspÄ›ch: ÄŒTENÃ STRUKTURY DVD (autorskÃ¡ prÃ¡va)\n"
 
 #~ msgid "input_dvd: Could not read Copyright Structure\n"
-#~ msgstr "input_dvd: Ne¹lo pøeèíst strukturu s autorskımi právy\n"
+#~ msgstr "input_dvd: NeÅ¡lo pÅ™eÄÃ­st strukturu s autorskÃ½mi prÃ¡vy\n"
 
 #~ msgid ""
 #~ "input_dvd: Could not read Copyright Structure.\n"
 #~ "           Assuming disk is not encrypted.\n"
 #~ msgstr ""
-#~ "input_dvd: Ne¹lo pøeèíst strukturu s autorskımi právy.\n"
-#~ "           Bude se pøedpokládat, ¾e disk není za¹ifrovanı.\n"
+#~ "input_dvd: NeÅ¡lo pÅ™eÄÃ­st strukturu s autorskÃ½mi prÃ¡vy.\n"
+#~ "           Bude se pÅ™edpoklÃ¡dat, Å¾e disk nenÃ­ zaÅ¡ifrovanÃ½.\n"
 
 #~ msgid ""
 #~ "\n"
@@ -2399,28 +3943,28 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "           Please check http://dvd.sf.net for more information.\n"
 #~ msgstr ""
 #~ "\n"
-#~ "input_dvd: Litujeme, xine nepøehrává za¹ifrovaná DVD. Legální status CSS\n"
-#~ "           de¹ifrování je nejasnı a my neposkytujeme takovı kód.\n"
-#~ "           Více informací získáte na adrese http://dvd.sf.net\n"
+#~ "input_dvd: Litujeme, xine nepÅ™ehrÃ¡vÃ¡ zaÅ¡ifrovanÃ¡ DVD. LegÃ¡lnÃ­ status CSS\n"
+#~ "           deÅ¡ifrovÃ¡nÃ­ je nejasnÃ½ a my neposkytujeme takovÃ½ kÃ³d.\n"
+#~ "           VÃ­ce informacÃ­ zÃ­skÃ¡te na adrese http://dvd.sf.net\n"
 
 #~ msgid "input_dvd: Unable to find >%s< on dvd.\n"
-#~ msgstr "input_dvd: Na DVD nelze nalézt >%s<.\n"
+#~ msgstr "input_dvd: Na DVD nelze nalÃ©zt >%s<.\n"
 
 #~ msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
-#~ msgstr "input_dvd: chyba ètení: %Ld bytù není sektor!\n"
+#~ msgstr "input_dvd: chyba ÄtenÃ­: %Ld bytÅ¯ nenÃ­ sektor!\n"
 
 #~ msgid "input_dvd: read error in input_dvd plugin (%s)\n"
-#~ msgstr "input_dvd: chyba ètení v modulu input_dvd (%s)\n"
+#~ msgstr "input_dvd: chyba ÄtenÃ­ v modulu input_dvd (%s)\n"
 
 #~ msgid "input_dvd: short read in input_dvd (%d != %d)\n"
-#~ msgstr "input_dvd: krátké ètení v modulu input_dvd (%d != %d)\n"
+#~ msgstr "input_dvd: krÃ¡tkÃ© ÄtenÃ­ v modulu input_dvd (%d != %d)\n"
 
 #~ msgid ""
 #~ "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-#~ msgstr "input_dvd: chyba ètení v modulu input_dvd: %Ld bytù není sektor!\n"
+#~ msgstr "input_dvd: chyba ÄtenÃ­ v modulu input_dvd: %Ld bytÅ¯ nenÃ­ sektor!\n"
 
 #~ msgid "input_dvd: seek: %d is an unknown origin\n"
-#~ msgstr "input_dvd: seek: %d je neznámı poèátek\n"
+#~ msgstr "input_dvd: seek: %d je neznÃ¡mÃ½ poÄÃ¡tek\n"
 
 #~ msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
 #~ msgstr "input_dvd: ioctl CDROMCLOSETRAY selhalo: %s\n"
@@ -2443,29 +3987,29 @@ msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 #~ "This means there's a version mismatch between xine and this inputplugin.\n"
 #~ "Installing current input plugins should help.\n"
 #~ msgstr ""
-#~ "vstupní modul pro DVD nepodporuje programové rozhraní %d.\n"
-#~ "PLUGIN NEAKTIVNÍ.\n"
-#~ "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
-#~ "Nainstalování aktuálních vstupních modulù by mìlo pomoci.\n"
+#~ "vstupnÃ­ modul pro DVD nepodporuje programovÃ© rozhranÃ­ %d.\n"
+#~ "PLUGIN NEAKTIVNÃ.\n"
+#~ "Toto znamenÃ¡ nesluÄitelnost verzÃ­ mezi xine a tÃ­mto vstupnÃ­m modulem.\n"
+#~ "NainstalovÃ¡nÃ­ aktuÃ¡lnÃ­ch vstupnÃ­ch modulÅ¯ by mÄ›lo pomoci.\n"
 
 #~ msgid "path to your local dvd device file"
-#~ msgstr "cesta k va¹emu souboru DVD zaøízení"
+#~ msgstr "cesta k vaÅ¡emu souboru DVD zaÅ™Ã­zenÃ­"
 
 #~ msgid "path to a raw device set up for dvd access"
-#~ msgstr "cesta k raw zaøízení nastavenému pro pøístup k dvd"
+#~ msgstr "cesta k raw zaÅ™Ã­zenÃ­ nastavenÃ©mu pro pÅ™Ã­stup k dvd"
 
 #~ msgid "unable to open %s: %s."
-#~ msgstr "nelze otevøít %s: %s."
+#~ msgstr "nelze otevÅ™Ã­t %s: %s."
 
 #~ msgid ""
 #~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 #~ msgstr ""
-#~ "demux_qt: video kodek %s (%f snímkù/s), zvukovı kodek %s (%ld Hz, %d "
-#~ "bitù)\n"
+#~ "demux_qt: video kodek %s (%f snÃ­mkÅ¯/s), zvukovÃ½ kodek %s (%ld Hz, %d "
+#~ "bitÅ¯)\n"
 
 #~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
 #~ msgstr ""
-#~ "demux_ts: nastaven pøíznak PUSI, ale nenalezena hlavièka PES (poru¹ená "
+#~ "demux_ts: nastaven pÅ™Ã­znak PUSI, ale nenalezena hlaviÄka PES (poruÅ¡enÃ¡ "
 #~ "data?)\n"
 
 #~ msgid "RE-Sync failed\n"
