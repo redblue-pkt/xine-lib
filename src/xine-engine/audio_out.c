@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.98 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.99 2003/01/11 19:06:52 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -64,6 +64,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <inttypes.h>
+
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -120,6 +122,7 @@ typedef struct {
   pthread_mutex_t      streams_lock;
 
   int             audio_loop_running;
+  int             grab_only; /* => do not start thread, frontend will consume samples */
   int             audio_paused;
   pthread_t       audio_thread;
 
@@ -744,6 +747,71 @@ static void *ao_loop (void *this_gen) {
 }
 
 /*
+ * public a/v processing interface
+ */
+
+int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
+			       xine_audio_frame_t *frame) {
+
+  aos_t          *this = (aos_t *) this_gen;
+  audio_buffer_t *buf;
+  xine_stream_t  *stream;
+
+  while (!stream) {
+    stream = xine_list_first_content(this->streams);
+    if (!stream)
+      xine_usec_sleep (1000);
+  } 
+  
+  pthread_mutex_lock (&this->out_fifo->mutex);
+
+  buf = this->out_fifo->first;
+
+  /* FIXME: ugly, use conditions and locks instead */
+
+  while (!buf
+	 && (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK)) {
+
+    pthread_mutex_unlock(&this->out_fifo->mutex);
+    xine_usec_sleep (1000);
+    pthread_mutex_lock(&this->out_fifo->mutex);
+
+    buf = this->out_fifo->first;
+  }
+
+  if (!buf) {
+    pthread_mutex_unlock(&this->out_fifo->mutex);
+    return 0;
+  }
+
+  buf = fifo_remove_int (this->out_fifo);
+  pthread_mutex_unlock(&this->out_fifo->mutex);
+
+  frame->vpts            = buf->vpts;
+  frame->num_samples     = buf->num_frames;
+  frame->sample_rate     = this->input.rate;
+  frame->num_channels    = mode_channels (this->input.mode);
+  frame->bits_per_sample = this->input.bits;
+  frame->pos_stream      = buf->extra_info->input_pos;
+  frame->pos_time        = buf->extra_info->input_time;
+  frame->data            = (uint8_t *) buf->mem;
+  frame->xine_frame      = buf;
+
+  return 1;
+}
+
+void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *frame) {
+
+  aos_t          *this = (aos_t *) this_gen;
+  audio_buffer_t *buf;
+
+  buf = (audio_buffer_t *) frame->xine_frame;
+
+  fifo_append (this->free_fifo, buf);
+}
+
+
+/*
  * open the audio device for writing to, start audio output thread
  */
 
@@ -791,30 +859,33 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   this->input.mode            = mode;
   this->input.rate            = rate;
   this->input.bits            = bits;
-  
-  /* not all drivers/cards support 8 bits */
-  if( this->input.bits == 8 && 
-      !(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
-    bits = 16;      
-    printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
-  }
+
+  if (!this->grab_only) {
+    /* not all drivers/cards support 8 bits */
+    if( this->input.bits == 8 && 
+	!(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
+      bits = 16;      
+      printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
+    }
     
-  /* provide mono->stereo and stereo->mono conversions */
-  if( this->input.mode == AO_CAP_MODE_MONO && 
-      !(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
-    mode = AO_CAP_MODE_STEREO;
-    printf("audio_out: mono not supported by driver, converting to stereo.\n");
-  }
-  if( this->input.mode == AO_CAP_MODE_STEREO && 
-      !(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
-    mode = AO_CAP_MODE_MONO;
-    printf("audio_out: stereo not supported by driver, converting to mono.\n");
-  }
+    /* provide mono->stereo and stereo->mono conversions */
+    if( this->input.mode == AO_CAP_MODE_MONO && 
+	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
+      mode = AO_CAP_MODE_STEREO;
+      printf("audio_out: mono not supported by driver, converting to stereo.\n");
+    }
+    if( this->input.mode == AO_CAP_MODE_STEREO && 
+	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
+      mode = AO_CAP_MODE_MONO;
+      printf("audio_out: stereo not supported by driver, converting to mono.\n");
+    }
  
-  pthread_mutex_lock( &this->driver_lock );
-  output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
-  pthread_mutex_unlock( &this->driver_lock );
-  
+    pthread_mutex_lock( &this->driver_lock );
+    output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
+    pthread_mutex_unlock( &this->driver_lock );
+  } else
+    output_sample_rate = this->input.rate;
+
   if ( output_sample_rate == 0) {
     printf("audio_out: open failed!\n");
     return 0;
@@ -856,30 +927,32 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
   pthread_mutex_unlock(&this->streams_lock);
 
-  /*
-   * start output thread
-   */
+  if (!this->grab_only) {
+    /*
+     * start output thread
+     */
 
-  if( this->audio_thread ) {
-    printf("audio_out: pthread already running!\n");
+    if( this->audio_thread ) {
+      printf("audio_out: pthread already running!\n");
+    }
+    
+    this->audio_loop_running = 1;  
+    
+    pthread_attr_init(&pth_attrs);
+    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+    
+    if ((err = pthread_create (&this->audio_thread,
+			       &pth_attrs, ao_loop, this)) != 0) {
+      
+      /* FIXME: how does this happen ? */
+      
+      printf ("audio_out: can't create thread (%s)\n", strerror(err));
+      printf ("audio_out: sorry, this should not happen. please restart xine.\n");
+      abort();
+      
+    } else
+      printf ("audio_out: thread created\n");
   }
-  
-  this->audio_loop_running = 1;  
-
-  pthread_attr_init(&pth_attrs);
-  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
-
-  if ((err = pthread_create (&this->audio_thread,
-			     &pth_attrs, ao_loop, this)) != 0) {
-
-    /* FIXME: how does this happen ? */
-
-    printf ("audio_out: can't create thread (%s)\n", strerror(err));
-    printf ("audio_out: sorry, this should not happen. please restart xine.\n");
-    abort();
-
-  } else
-    printf ("audio_out: thread created\n");
 
   return this->output.rate;
 }
@@ -958,9 +1031,11 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
     }
   pthread_mutex_unlock(&this->streams_lock);
 
-  pthread_mutex_lock( &this->driver_lock );
-  this->driver->close(this->driver);  
-  pthread_mutex_unlock( &this->driver_lock );
+  if (!this->grab_only) {
+    pthread_mutex_lock( &this->driver_lock );
+    this->driver->close(this->driver);  
+    pthread_mutex_unlock( &this->driver_lock );
+  }
 }
 
 static void ao_exit(xine_audio_port_t *this_gen) {
@@ -970,18 +1045,20 @@ static void ao_exit(xine_audio_port_t *this_gen) {
   
   audio_buffer_t *buf, *next;
   
-  pthread_mutex_lock( &this->driver_lock );
-  
-  if((this->driver->get_capabilities(this->driver)) & AO_CAP_MIXER_VOL)
-    prop = AO_PROP_MIXER_VOL;
-  else if((this->driver->get_capabilities(this->driver)) & AO_CAP_PCM_VOL)
-    prop = AO_PROP_PCM_VOL;
-  
-  vol = this->driver->get_property(this->driver, prop);
-  this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
-  this->driver->exit(this->driver);
-  pthread_mutex_unlock( &this->driver_lock );
-  
+  if (!this->grab_only) {
+    pthread_mutex_lock( &this->driver_lock );
+    
+    if((this->driver->get_capabilities(this->driver)) & AO_CAP_MIXER_VOL)
+      prop = AO_PROP_MIXER_VOL;
+    else if((this->driver->get_capabilities(this->driver)) & AO_CAP_PCM_VOL)
+      prop = AO_PROP_PCM_VOL;
+    
+    vol = this->driver->get_property(this->driver, prop);
+    this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
+    this->driver->exit(this->driver);
+    pthread_mutex_unlock( &this->driver_lock );
+  }
+
   pthread_mutex_destroy(&this->driver_lock);
   pthread_mutex_destroy(&this->streams_lock);
   xine_list_free(this->streams);
@@ -1029,10 +1106,18 @@ static uint32_t ao_get_capabilities (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
   uint32_t result;
   
-  pthread_mutex_lock( &this->driver_lock );
-  result=this->driver->get_capabilities(this->driver);  
-  pthread_mutex_unlock( &this->driver_lock );
-  
+  if (this->grab_only) {
+
+    return AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO ;
+    /* FIXME: make configurable
+      | AO_CAP_MODE_4CHANNEL | AO_CAP_MODE_5CHANNEL
+      | AO_CAP_MODE_5_1CHANNEL | AO_CAP_8BITS;
+    */
+  } else {
+    pthread_mutex_lock( &this->driver_lock );
+    result=this->driver->get_capabilities(this->driver);  
+    pthread_mutex_unlock( &this->driver_lock );
+  }
   return result;
 }
 
@@ -1150,10 +1235,11 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
   return ret;        
 }
 
-xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
+xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
+				int grab_only) {
  
   config_values_t *config = xine->config;
-  aos_t *this;
+  aos_t           *this;
   int              i;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
 
@@ -1180,11 +1266,13 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
   this->ao.status                 = ao_status;
   
   this->audio_loop_running     = 0;
+  this->grab_only              = grab_only;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;
   this->discard_buffers        = 0;
   this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
-  this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
+  if (!grab_only)
+    this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes,

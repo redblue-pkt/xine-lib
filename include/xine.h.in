@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.50 2002/12/29 14:04:43 mroi Exp $
+ * $Id: xine.h.in,v 1.51 2003/01/11 19:06:52 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -275,9 +275,58 @@ int  xine_get_current_frame (xine_stream_t *stream,
  * these functions are intended to provide the basis for
  * re-encoding and other video processing applications
  *
- * warning: experimental
+ * warning: highly experimental
  *
  */
+
+
+xine_video_port_t *xine_new_framegrab_video_port (xine_t *self);
+
+typedef struct {
+
+  int64_t  vpts;       /* timestamp 1/90000 sec for a/v sync */
+  int64_t  duration;
+  int      width, height;
+  int      colorspace; /* XINE_IMGFMT_* */
+  double   aspect_ratio;
+
+  int      pos_stream; /* bytes from stream start */
+  int      pos_time;   /* milliseconds */
+
+  uint8_t *data;
+  void    *xine_frame; /* used internally by xine engine */
+} xine_video_frame_t;
+
+int xine_get_next_video_frame (xine_video_port_t *port,
+			       xine_video_frame_t *frame);
+
+void xine_free_video_frame (xine_video_port_t *port, xine_video_frame_t *frame);
+
+xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *self);
+
+typedef struct {
+
+  int64_t  vpts;       /* timestamp 1/90000 sec for a/v sync */
+  int      num_samples;
+  int      sample_rate;
+  int      num_channels;
+  int      bits_per_sample; /* per channel */
+
+  off_t    pos_stream; /* bytes from stream start */
+  int      pos_time;   /* milliseconds */
+
+  uint8_t *data;
+  void    *xine_frame; /* used internally by xine engine */
+} xine_audio_frame_t;
+
+int xine_get_next_audio_frame (xine_audio_port_t *port,
+			       xine_audio_frame_t *frame);
+
+void xine_free_audio_frame (xine_audio_port_t *port, xine_audio_frame_t *frame);
+
+  /*
+   * maybe future aproach:
+   */
 
 int xine_get_video_frame (xine_stream_t *stream,
 			  int timestamp, /* msec */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.134 2003/01/11 12:51:18 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.135 2003/01/11 19:06:53 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -35,6 +35,8 @@
 #include <zlib.h>
 #include <pthread.h>
 #include <assert.h>
+
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
 #include "xine_internal.h"
 #include "video_out.h"
@@ -79,6 +81,9 @@ typedef struct {
 
   video_overlay_instance_t *overlay_source;
   int                       overlay_enabled;
+
+  /* do we true real-time output or is this a grab only instance ? */
+  int                       grab_only;
 
   extra_info_t             *extra_info_base; /* used to free mem chunk */
 
@@ -307,26 +312,30 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   stream->metronom->got_video_frame (stream->metronom, img);
   this->current_duration = img->duration;
 
-  pic_vpts = img->vpts;
-  img->extra_info->vpts = img->vpts;
-  
-  cur_vpts = this->clock->get_current_time(this->clock);
-  this->last_delivery_pts = cur_vpts;
+  if (!this->grab_only) {
+
+    pic_vpts = img->vpts;
+    img->extra_info->vpts = img->vpts;
+
+    cur_vpts = this->clock->get_current_time(this->clock);
+    this->last_delivery_pts = cur_vpts;
 
 #ifdef LOG
-  printf ("video_out: got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
-	  cur_vpts, pic_vpts, img->pts);
+    printf ("video_out: got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
+	    cur_vpts, pic_vpts, img->pts);
 #endif
 
-  this->num_frames_delivered++;
+    this->num_frames_delivered++;
 
-  diff = pic_vpts - cur_vpts;
-  /* avoid division by zero */
-  if( img->duration <= 0 )
-    img->duration = 3000;
-  frames_to_skip = ((-1 * diff) / img->duration + 3) * 2;
+    diff = pic_vpts - cur_vpts;
+    /* avoid division by zero */
+    if( img->duration <= 0 )
+      img->duration = 3000;
+    frames_to_skip = ((-1 * diff) / img->duration + 3) * 2;
 
-  if (frames_to_skip<0)
+    if (frames_to_skip<0)
+      frames_to_skip = 0;
+  } else
     frames_to_skip = 0;
 
 #ifdef LOG
@@ -914,6 +923,91 @@ static void *video_out_loop (void *this_gen) {
   pthread_exit(NULL);
 }
 
+/*
+ * public function for video processing frontends to manually
+ * consume video frames
+ */
+
+int xine_get_next_video_frame (xine_video_port_t *this_gen,
+			       xine_video_frame_t *frame) {
+
+  vos_t         *this = (vos_t *) this_gen;
+  vo_frame_t    *img;
+  xine_stream_t *stream=NULL;
+
+  while (!stream) {
+    stream = xine_list_first_content(this->streams);
+    if (!stream)
+      xine_usec_sleep (1000);
+  } 
+
+  pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+  
+  img = this->display_img_buf_queue->first;
+
+  /* FIXME: ugly, use conditions and locks instead */
+
+  while (!img 
+	 && (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK)) {
+
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+    xine_usec_sleep (1000);
+    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+
+    img = this->display_img_buf_queue->first;
+  }
+
+  if (!img) {
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+    return 0;
+  }
+
+  /*
+   * remove frame from display queue and show it
+   */
+    
+  img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+  pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+
+  frame->vpts       = img->vpts;
+  frame->duration   = img->duration;
+  frame->width      = img->width;
+  frame->height     = img->height;
+
+  switch (img->ratio) {
+  case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
+  case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
+    frame->aspect_ratio = 16.0 /9.0;
+    break;
+  case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
+    frame->aspect_ratio = 2.11/1.0;
+    break;
+  case XINE_VO_ASPECT_SQUARE:      /* square pels */
+  case XINE_VO_ASPECT_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
+    frame->aspect_ratio = (double) img->width / (double) img->height;
+    break;
+  case 0:                          /* forbidden -> 4:3 */
+  default:
+  case XINE_VO_ASPECT_4_3:         /* 4:3             */
+    frame->aspect_ratio = 4.0 / 3.0;
+    break;
+  }
+  frame->colorspace = img->format;
+  frame->data       = img->base[0];
+  frame->xine_frame = img;
+
+  return 1;
+}
+
+void xine_free_video_frame (xine_video_port_t *port, 
+			    xine_video_frame_t *frame) {
+
+  vo_frame_t *img = (vo_frame_t *) frame->xine_frame;
+
+  vo_frame_dec_lock (img);
+}
+
+
 static uint32_t vo_get_capabilities (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->driver->get_capabilities (this->driver);
@@ -922,6 +1016,8 @@ static uint32_t vo_get_capabilities (xine_video_port_t *this_gen) {
 static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
+
+  printf ("video_out: vo_open \n\n\n");
 
   this->video_opened = 1;
   this->flush_frames = 0;
@@ -1087,7 +1183,8 @@ static void vo_flush (xine_video_port_t *this_gen) {
 }
 
 
-xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
+xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
+				int grabonly) {
 
   vos_t            *this;
   int               i;
@@ -1159,31 +1256,40 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
 				img);
   }
 
+  if (grabonly) {
 
-  /*
-   * start video output thread
-   *
-   * this thread will alwys be running, displaying the
-   * logo when "idle" thus making it possible to have
-   * osd when not playing a stream
-   */
+    this->video_loop_running   = 0;
+    this->video_opened         = 0;
+    this->grab_only            = 1;
 
-  this->video_loop_running   = 1;
-  this->video_opened         = 0;
-  
-  pthread_attr_init(&pth_attrs);
-  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+  } else {
 
-  if ((err = pthread_create (&this->video_thread,
-			     &pth_attrs, video_out_loop, this)) != 0) {
+    /*
+     * start video output thread
+     *
+     * this thread will alwys be running, displaying the
+     * logo when "idle" thus making it possible to have
+     * osd when not playing a stream
+     */
 
-    printf (_("video_out: can't create thread (%s)\n"), 
-	    strerror(err));
-    /* FIXME: how does this happen ? */
-    printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
-    abort();
-  } else
-    printf ("video_out: thread created\n");
+    this->video_loop_running   = 1;
+    this->video_opened         = 0;
+    this->grab_only            = 0;
+    
+    pthread_attr_init(&pth_attrs);
+    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+    
+    if ((err = pthread_create (&this->video_thread,
+			       &pth_attrs, video_out_loop, this)) != 0) {
+
+      printf (_("video_out: can't create thread (%s)\n"), 
+	      strerror(err));
+      /* FIXME: how does this happen ? */
+      printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
+      abort();
+    } else
+      printf ("video_out: thread created\n");
+  }
 
   return &this->vo;
 }

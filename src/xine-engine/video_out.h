@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.79 2003/01/11 12:51:18 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.80 2003/01/11 19:06:53 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -418,7 +418,7 @@ video_overlay_instance_t *video_overlay_new_instance ();
  * a given video driver
  */
 
-xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) ;
+xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver, int grabonly) ;
 
 #ifdef __cplusplus
 }

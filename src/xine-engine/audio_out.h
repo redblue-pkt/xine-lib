@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.48 2002/12/27 03:40:07 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.49 2003/01/11 19:06:52 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -260,7 +260,7 @@ struct audio_driver_class_s {
  * this initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) ;
+xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only) ;
 
 /*
  * audio output modes + capabilities

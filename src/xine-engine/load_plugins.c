@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.130 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.131 2003/01/11 19:06:52 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1251,7 +1251,44 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
     return NULL;
   }
 
-  port = vo_new_port(this, driver);
+  port = vo_new_port(this, driver, 0);
+  
+  return port;
+}
+
+xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
+
+  plugin_node_t      *node;
+  vo_driver_t        *driver;
+  xine_video_port_t  *port;
+  vo_info_t          *vo_info;
+  plugin_catalog_t   *catalog = this->plugin_catalog;
+  char               *id;
+
+  driver = NULL;
+  id     = "none";
+
+  pthread_mutex_lock (&catalog->lock);
+
+  node = xine_list_first_content (catalog->vout);
+  while (node) {
+
+    vo_info = node->info->special_info;
+    if (!strcasecmp (node->info->id, id)) {
+      driver = _load_video_driver (this, node, NULL);
+      break;
+    }
+    node = xine_list_next_content (catalog->vout);
+  }
+
+  pthread_mutex_unlock (&catalog->lock);
+
+  if (!driver) {
+    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    return NULL;
+  }
+
+  port = vo_new_port(this, driver, 1);
   
   return port;
 }
@@ -1392,7 +1429,16 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
     return NULL;
   }
 
-  port = ao_new_port(this, driver);
+  port = ao_new_port(this, driver, 0);
+
+  return port;
+}
+
+xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *this) {
+
+  xine_audio_port_t  *port;
+
+  port = ao_new_port (this, NULL, 1);
 
   return port;
 }
