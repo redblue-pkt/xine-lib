@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.154 2003/04/28 23:52:27 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.155 2003/04/30 20:19:20 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -281,6 +281,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->ratio          = ratio;
   img->format         = format;
   img->copy_called    = 0;
+  img->bad_frame      = 0;
   extra_info_reset ( img->extra_info );
   
   /* let driver ensure this image has the right format */
