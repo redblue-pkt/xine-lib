@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.112 2002/11/20 11:57:49 mroi Exp $
+ * $Id: video_out.c,v 1.113 2002/11/22 17:05:56 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -973,13 +973,22 @@ static void vo_flush (xine_video_port_t *this_gen) {
 
   pthread_mutex_lock (&this->display_img_buf_queue->mutex);
   num_buffers = this->display_img_buf_queue->num_buffers;
-  /* don't flush the last img, it improves seeking */
+  /* last img is kept as backup */
   printf ("video_out: flush fifo (%d buffers)\n", num_buffers);
   for (i = 1; i < num_buffers; i++) {
     img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
     vo_frame_dec_lock( img );
   }
-
+  if (this->display_img_buf_queue->first) {
+    if (this->img_backup) {
+#ifdef LOG
+      printf("video_out: overwriting frame backup\n");
+#endif
+      vo_frame_dec_lock( this->img_backup );
+    }
+    this->img_backup = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+  }
+  this->redraw_needed = 1;
   pthread_mutex_unlock (&this->display_img_buf_queue->mutex);
 }
 
