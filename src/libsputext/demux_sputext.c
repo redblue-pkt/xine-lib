@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.36 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.37 2004/07/22 14:19:12 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -57,6 +57,7 @@
 #define SUB_MAX_TEXT  5
 #define SUB_BUFSIZE   1024
 #define LINE_LEN      1000
+#define LINE_LEN_QUOT "1000"
 
 /*
  *  Demuxer typedefs
@@ -130,8 +131,13 @@ static int eol(char p) {
 
 static inline void trail_space(char *s) {
   int i;
-  while (isspace(*s)) 
-    strcpy(s, s + 1);
+  while (isspace(*s)) {
+    char *copy = s;
+    do {
+      copy[0] = copy[1];
+      copy++;
+    } while(*copy);
+  }
   i = strlen(s) - 1;
   while (i > 0 && isspace(s[i])) 
     s[i--] = '\0';
@@ -283,8 +289,8 @@ static subtitle_t *sub_read_line_microdvd(demux_sputext_t *this, subtitle_t *cur
   current->end=-1;
   do {
     if (!read_line_from_input (this, line, LINE_LEN)) return NULL;
-  } while ((sscanf (line, "{%ld}{}%[^\r\n]", &(current->start), line2) !=2) &&
-           (sscanf (line, "{%ld}{%ld}%[^\r\n]", &(current->start), &(current->end),line2) !=3)
+  } while ((sscanf (line, "{%ld}{}%" LINE_LEN_QUOT "[^\r\n]", &(current->start), line2) !=2) &&
+           (sscanf (line, "{%ld}{%ld}%" LINE_LEN_QUOT "[^\r\n]", &(current->start), &(current->end),line2) !=3)
 	  );
   
   p=line2;
@@ -604,7 +610,7 @@ static subtitle_t *sub_read_line_dunnowhat (demux_sputext_t *this, subtitle_t *c
   
   if (!read_line_from_input(this, line, LINE_LEN))
     return NULL;
-  if (sscanf (line, "%ld,%ld,\"%[^\"]", &(current->start),
+  if (sscanf (line, "%ld,%ld,\"%" LINE_LEN_QUOT "[^\"]", &(current->start),
 	      &(current->end), text) <3)
     return ERR;
   current->text[0] = strdup(text);
@@ -708,9 +714,9 @@ static subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *cur
 	    return NULL;
 	}
 	if (sscanf
-	    (line1, "%u:%u:%u.%u %u:%u:%u.%u %[^\n\r]", &a1, &a2, &a3, &a4,
+	    (line1, "%u:%u:%u.%u %u:%u:%u.%u %" LINE_LEN_QUOT "[^\n\r]", &a1, &a2, &a3, &a4,
 	     &b1, &b2, &b3, &b4, line2) < 9) {
-	    if (sscanf(line1, "@%u @%u %[^\n\r]", &a4, &b4, line2) < 3) {
+	    if (sscanf(line1, "@%u @%u %" LINE_LEN_QUOT "[^\n\r]", &a4, &b4, line2) < 3) {
 		if (line1[0] == '#') {
 		    int hours = 0, minutes = 0, seconds, delta, inverter =
 			1;
@@ -788,7 +794,7 @@ static subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *cur
 	if (isalpha(*p)||*p == '[') {
 	    int cont, jLength;
 
-	    if (sscanf(p, "%s %[^\n\r]", directive, line1) < 2)
+	    if (sscanf(p, "%s %" LINE_LEN_QUOT "[^\n\r]", directive, line1) < 2)
 		return ERR;
 	    jLength = strlen(directive);
 	    for (cont = 0; cont < jLength; ++cont) {
@@ -1284,7 +1290,7 @@ static int demux_sputext_get_optional_data(demux_plugin_t *this_gen,
   switch (data_type) {
   case DEMUX_OPTIONAL_DATA_SPULANG:
     if (channel == -1 || channel == 0) {
-      sprintf(data, "%s", "sub");
+      strcpy(data, "sub");
       return DEMUX_OPTIONAL_SUCCESS;
     }
   default:
