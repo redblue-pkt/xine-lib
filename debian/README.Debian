@@ -2,7 +2,7 @@ xine-lib for Debian
 -------------------
 
 This library is (part of) the official successor of the xine video player.
-Xine used to ship as two binary packages, one main player and an extra DVD
+xine used to ship as two binary packages, one main player and an extra DVD
 plugin, so you could replace that with one that supports CSS.
 With this version, a better Plugin architecture is introduced, so you can have
 several DVD plugins in parallel.
@@ -21,7 +21,7 @@ plugins, just read the DVD story that came with xine:
 The CSS plugin story...
 =======================
 
-Xine, as supported by upstream supports reading DVDs via an input plugin
+xine, as supported by upstream supports reading DVDs via an input plugin
 (available as package xine-dvd in Debian). But this plugin is restricted to
 non-encrypted DVDs, ie. a very small fraction of the DVDs currently
 available...
