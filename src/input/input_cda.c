@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.2 2001/12/08 03:01:40 f1rmb Exp $
+ * $Id: input_cda.c,v 1.3 2001/12/09 13:18:37 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -63,7 +63,11 @@
 #define DEBUG_POS
 */
 
+#if defined(__sun)
+#define CDROM	       "/vol/dev/aliases/cdrom0"
+#else
 #define CDROM          "/dev/cdaudio"
+#endif
 
 #define CDDB_SERVER    "freedb.freedb.org"
 #define CDDB_PORT      8880
@@ -692,7 +696,7 @@ static int _cda_open_cd(cdainfo_t *cda) {
       fprintf(stderr, "input_cda: No rights to open %s.\n", cda->device_name);
     }
     else if(errno != ENXIO) {
-      fprintf(stderr, "input_cda: open() failed: %s.\n", strerror(errno));
+      fprintf(stderr, "input_cda: open(%s) failed: %s.\n", cda->device_name, strerror(errno));
     }
     
     return 0;
@@ -935,8 +939,17 @@ static void _cda_play_track_to_track_from_pos(cdainfo_t *cda,
   else
     end = cda->track[(end_track - 1)].start - 1;
   
-  if(_cda_play_chunk_cd(cda, cda->track[start].start + (pos * 75), end))
+  if(_cda_play_chunk_cd(cda, cda->track[start].start + (pos * 75), end)) {
+#ifdef __sun
+    /*
+     * On solaris x86 with a PIONEER DVD-ROM DVD-105 the CDDA play 
+     * operation does not start if we immediately get a status from
+     * the drive.  A 0.1 second sleep avoids the problem.
+     */
+    xine_usec_sleep(100000);
+#endif
     _cda_get_status_cd(cda);
+  }
   
 }
 
