@@ -43,7 +43,7 @@ if test -f .cvsversion; then
 else
   XINE_PRE="beta2"
 fi
-8
+
 AC_SUBST(XINE_MAJOR)
 AC_SUBST(XINE_MINOR)
 AC_SUBST(XINE_SUB)
