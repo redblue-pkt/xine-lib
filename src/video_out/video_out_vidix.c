@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.23 2003/01/31 17:59:57 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.24 2003/01/31 19:20:25 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -98,7 +98,7 @@ struct vidix_driver_s {
   uint32_t            colourkey;
   int                 use_doublebuffer;
     
-  int                 yuv_format;
+  int                 supports_yv12;
           
   pthread_mutex_t     mutex;
 
@@ -145,7 +145,6 @@ static void free_framedata(vidix_frame_t* frame)
    }
 }
 
-#if 0
 static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
 {
    uint8_t*  y  = (uint8_t *)frame->vo_frame.base[0];
@@ -177,7 +176,6 @@ static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
       dst32 += (this->dstrides.y - frame->width) / 2;
    }
 }
-#endif
 
 static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
 {   
@@ -269,10 +267,13 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
       break;
       
     case XINE_IMGFMT_YV12:
-      if(this->vidix_play.flags & VID_PLAY_INTERLEAVED_UV)
-	write_frame_YUV420P2(this, frame);
-      else
-        write_frame_YUV420P3(this, frame);
+      if(this->supports_yv12) {
+        if(this->vidix_play.flags & VID_PLAY_INTERLEAVED_UV)
+          write_frame_YUV420P2(this, frame);
+        else
+          write_frame_YUV420P3(this, frame);
+      } else
+          write_frame_YUV422(this,frame);
 /*      switch(this->yuv_format) {
        case VIDEO_PALETTE_YUV422:
 	 write_frame_YUV422(this, frame);
@@ -435,7 +436,11 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
 
   memset(&this->vidix_play,0,sizeof(vidix_playback_t));
       
-  this->vidix_play.fourcc = this->delivered_format;
+  if(this->delivered_format == XINE_IMGFMT_YV12 && this->supports_yv12)
+    this->vidix_play.fourcc = IMGFMT_YV12;
+  else
+    this->vidix_play.fourcc = IMGFMT_YUY2;
+  
   this->vidix_play.capability = this->vidix_cap.flags; /* every ;) */
   this->vidix_play.blend_factor = 0; /* for now */
   this->vidix_play.src.x = this->sc.displayed_xoffset;
@@ -866,13 +871,16 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     printf("video_out_vidix: adaptor supports the yuy2 format\n");
   }
     
-  /* Detect if YV12 is supported */
+  /* Detect if YV12 is supported - we always support yv12 but we need
+     to know if we have to convert */
+  this->capabilities |= VO_CAP_YV12;
   vidix_fourcc.fourcc = IMGFMT_YV12;
   
   if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
-    this->capabilities |= VO_CAP_YV12;
-    printf("video_out_vidix: adaptor supports the yuy2 format\n");
-  }
+    this->supports_yv12 = 1;
+    printf("video_out_vidix: adaptor supports the yv12 format\n");
+  } else
+    this->supports_yv12 = 0;
     
   /* Find what equalizer flags are supported */  
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
