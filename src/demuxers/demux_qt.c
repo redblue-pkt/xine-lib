@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.71 2002/07/19 03:21:49 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.72 2002/07/19 14:07:38 pmhahn Exp $
  *
  */
 
@@ -1434,7 +1434,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
         this->qt->audio_sample_rate,
         this->qt->audio_bits,
         this->qt->audio_channels,
-        (this->qt->audio_channels == 1) ? _("channel") : _("channels"));
+        ngettext("channel", "channels", this->qt->audio_channels));
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
