@@ -261,6 +261,7 @@ if test x$enable_mlib = xyes; then
 	  CPPFLAGS="$saved_CPPFLAGS"
 	], , -L$mlibhome/lib)
 fi
+AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 AC_SUBST(MLIB_CFLAGS)
 
 
