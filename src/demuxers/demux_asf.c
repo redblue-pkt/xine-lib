@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.31 2002/03/19 02:12:49 guenter Exp $
+ * $Id: demux_asf.c,v 1.32 2002/03/26 18:23:35 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -514,9 +514,10 @@ static int asf_read_header (demux_asf_t *this) {
 
 	this->wavex_size = total_size; /* 18 + this->wavex[8]; */
      
-     if(!this->num_audio_streams)
 	asf_send_audio_header (this, stream_id);
-
+#ifdef LOG
+        printf ("found a_stream id=%d \n", stream_id);
+#endif
       } else {
 
 	get_le32(this); /* width */
@@ -526,8 +527,10 @@ static int asf_read_header (demux_asf_t *this) {
 
 	this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
 
-     if(!this->num_video_streams)
 	asf_send_video_header (this, stream_id);
+#ifdef LOG
+	printf ("found v_stream id=%d \n", stream_id);
+#endif
       }
       pos2 = this->input->get_current_pos (this->input);
       this->input->seek (this->input, gsize - (pos2 - pos1 + 24), SEEK_CUR);
@@ -906,6 +909,31 @@ static void asf_read_packet(demux_asf_t *this) {
   int            raw_id, stream_id, seq, frag_offset, payload_size, frag_len;
   int            timestamp, flags, i;
   asf_stream_t  *stream;
+  static int nb_all_p=0;
+  static int nb_p_c=0;
+  static int num_stream_c=0;
+  int id;
+
+ if ( !num_stream_c ){
+   if(this->num_streams > 0){
+     num_stream_c= this->num_streams ;
+     id=this->streams[num_stream_c-1].stream_id;
+    }
+   else
+     return ;
+  
+  }
+  else
+   id  = this->streams[num_stream_c-1].stream_id;;
+   
+ if (this->num_streams > 0 && nb_p_c < nb_all_p /this->num_streams -10){
+   if ( num_stream_c > 2 ){ /* still have at least one video stream except this*/
+       printf ("changing a videoo stream \n"); 
+       num_stream_c--;
+       id= this->streams[num_stream_c-1].stream_id;
+   }
+   nb_p_c = nb_all_p =0;
+ }
 
   if ((this->packet_size_left < FRAME_HEADER_SIZE) ||
       (this->packet_size_left <= this->packet_padsize) ||
@@ -932,10 +960,17 @@ static void asf_read_packet(demux_asf_t *this) {
   stream_id  = raw_id & 0x7f;
 
   stream    = NULL;
+  nb_all_p++;
   if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
-    for (i=0; i<this->num_streams; i++)
-      if (this->streams[i].stream_id == stream_id)
+#if LOG
+    printf ("asf_demuxer: got stream =%d \n", stream_id);
+#endif
+    for (i=0; i<this->num_streams; i++){
+      if (this->streams[i].stream_id == stream_id && (stream_id==1
+       ||  stream_id==id))
 	stream = &this->streams[i];
+	nb_p_c++;
+     }
     this->keyframe_found = 1;
   }
 
