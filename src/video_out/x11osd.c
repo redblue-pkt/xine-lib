@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.5 2003/12/06 14:25:24 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.6 2004/01/29 01:22:49 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -180,6 +180,7 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window)
   x11osd *osd;
   int event_basep, error_basep;
   XErrorHandler   old_handler = NULL;
+  XSetWindowAttributes  attr;
 
   osd = xine_xmalloc (sizeof (x11osd));
   if (!osd)
@@ -203,12 +204,13 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window)
   osd->width = XDisplayWidth (osd->display, osd->screen);
   osd->height = XDisplayHeight (osd->display, osd->screen);         
 
-  osd->window = XCreateSimpleWindow (osd->display, 
-                                     osd->parent_window,
-                                     0, 0,
-                                     osd->width, osd->height, 1, 
-                                     BlackPixel (osd->display, osd->screen),
-                                     BlackPixel (osd->display, osd->screen));
+  attr.override_redirect = True;
+  attr.background_pixel  = BlackPixel (osd->display, osd->screen);
+  osd->window = XCreateWindow(osd->display, osd->parent_window,
+                              0, 0, osd->width, osd->height, 0, 
+                              CopyFromParent, CopyFromParent, CopyFromParent, 
+                              CWBackPixel | CWOverrideRedirect, &attr);
+
   XSync(osd->display, False);
   if( x11_error ) {
     xprintf(osd->xine, XINE_VERBOSITY_LOG, _("x11osd: error creating window. unscaled overlay disabled.\n"));
