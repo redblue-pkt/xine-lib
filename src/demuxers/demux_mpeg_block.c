@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.180 2003/05/10 23:11:06 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.181 2003/05/11 11:32:31 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -674,7 +674,6 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
     if (result < 0) return -1;
 
     p += result;
-    track = p[0] & 0x0F; /* hack : ac3 track */
 
     if((p[0] & 0xE0) == 0x20) {
       spu_id = (p[0] & 0x1f);
@@ -738,6 +737,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
 
     if ((p[0]&0xF0) == 0x80) {
     
+      track = p[0] & 0x0F; /* hack : ac3 track */
       buf->decoder_info[1] = p[1]; /* Number of frame headers */
       buf->decoder_info[2] = p[2] << 8 | p[3]; /* First access unit pointer */
 
@@ -757,8 +757,11 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
 #ifdef LOG
         printf ("demux_mpeg_block: A52 PACK put on fifo\n");
 #endif
-      } else
+        return -1;
+      } else {
 	buf->free_buffer(buf);
+        return -1;
+      }
       
     } else if ((p[0]&0xf0) == 0xa0) {
 
@@ -776,6 +779,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
        * appears to be correct.
        */
 
+      track = p[0] & 0x0F;
       number_of_frame_headers = p[1];
       /* unknown = p[2]; */
       first_access_unit_pointer = p[3];
@@ -820,10 +824,15 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
 #ifdef LOG
         printf ("demux_mpeg_block: LPCM PACK put on fifo\n");
 #endif
-      } else
+        return -1;
+      } else {
 	buf->free_buffer(buf);
+        return -1;
+      }
       
     }
+    printf("demux_mpeg_block:Unrecognised private stream 1 %02x\n", p[0]);
+    assert(0);
     return -1;
 }
 
