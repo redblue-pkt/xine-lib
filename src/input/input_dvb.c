@@ -736,12 +736,6 @@ static channel_t *load_channels(dvb_input_plugin_t *this, int *num_ch, fe_type_t
     free(channels);
     return NULL;
   }
-  /* is this a valid channels.conf file? */
-  if(channels[0].service_id==0) {
-     xprintf(xine, XINE_VERBOSITY_LOG, "input_dvb:  problem with channels.conf format - is it in *zap format? - Exiting \n");
-     free(channels);
-     return NULL;
-  }
   
   *num_ch = num_channels;
   return channels;
@@ -948,13 +942,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
   /* first - the PAT. retrieve the entire section...*/  
-  if(dvb_set_sectfilter(this, INTERNAL_FILTER, 0, DMX_PES_OTHER, 0, 0xff)==0)
-  {
-    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error setting up Internal PAT filter - reverting to rc6 hehaviour\n");
-    dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
-    dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
-    return;
-  }
+  dvb_set_sectfilter(this, INTERNAL_FILTER, 0, DMX_PES_OTHER, 0, 0xff);
 
   /* wait for up to 15 seconds */
   if(poll(&pfd,1,12000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
@@ -1001,9 +989,9 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   dvb_set_sectfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid, DMX_PES_OTHER, 2, 0xff);
 
-  if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
+  if((poll(&pfd,1,15000)<1) || this->channels[this->channel].pmtpid==0) /* PMT timed out or couldn't be found - default to using channels.conf info */
   {
-    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PMT filter - reverting to rc6 hehaviour\n");
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: WARNING **** Reverting to rc6 hehaviour. Please regenerate your channels.conf in ?zap format ****\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
