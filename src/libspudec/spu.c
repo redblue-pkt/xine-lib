@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.41 2002/07/06 16:38:30 mroi Exp $
+ * $Id: spu.c,v 1.42 2002/07/19 17:16:39 mroi Exp $
  *
  */
 
@@ -324,6 +324,14 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
       pthread_mutex_lock(&this->nav_pci_lock);
       if (this->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
+        if (this->state.visible == EVENT_HIDE_MENU) {
+          /* menus are hidden via nav packet decoding, not here */
+	  /* FIXME: James is not sure about this solution and may want to look this over.
+	   *        I'm commiting it, because I haven't found a disc it breaks, but it fixes
+	   *        some instead.   Michael Roitzsch */
+          pthread_mutex_unlock(&this->nav_pci_lock);
+          continue;
+        }
         if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
           spu_button_t spu_button;
           xine_spu_event_t spu_event;
