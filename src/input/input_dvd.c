@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.81 2002/09/16 16:13:56 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.82 2002/09/16 16:55:35 jcdutton Exp $
  *
  */
 
@@ -82,7 +82,7 @@
 #include "nav_read.h"
 
 /* Print debug messages? */
-/* #define INPUT_DEBUG */
+#define INPUT_DEBUG
 
 /* Print trace messages? */
 /* #define INPUT_DEBUG_TRACE */
@@ -321,9 +321,8 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
     /* for each title, count the number of programs */
     for (i = 1; i <= num_titles; i++) {
       num_parts[i-1] = 0;
-      dvdnav_title_play(this->dvdnav, i);
-      /* This doesn't wok currently. Use 0 for now. */
-      /* dvdnav_get_number_of_programs(this->dvdnav, &num_parts[i-1]); */
+      /* dvdnav_title_play(this->dvdnav, i); */
+      dvdnav_get_number_of_parts(this->dvdnav, i, &num_parts[i-1]);
       num_parts[i-1] = 0;
       num_mrls += num_parts[i-1]; /* num_mrls = total number of programs */
     }
@@ -1487,6 +1486,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.82  2002/09/16 16:55:35  jcdutton
+ * Start to get mrl working for DVD button.
+ *
  * Revision 1.81  2002/09/16 16:13:56  jcdutton
  * Prevent a segfault when accessing the config.
  *
