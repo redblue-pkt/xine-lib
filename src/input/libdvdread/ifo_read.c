@@ -1698,7 +1698,7 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
     return 0;
   }
 
-  hexdump (vts_atrt, VTS_ATRT_SIZE);
+  /* hexdump (vts_atrt, VTS_ATRT_SIZE); */
 
   B2N_16(vts_atrt->nr_of_vtss);
   B2N_32(vts_atrt->last_byte);
