@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.101 2002/11/13 00:23:29 tmattern Exp $
+ * $Id: w32codec.c,v 1.102 2002/11/15 18:01:59 esnel Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1018,6 +1018,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
 					      (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   if (!this->output_open) {
     printf("w32codec: (ACM_Decoder) Cannot open audio output device\n");
+    free(in_fmt);
     return 0;
   }
   
@@ -1051,6 +1052,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
         xine_log (this->stream->xine, XINE_LOG_MSG,
                   "w32codec: (ACM_Decoder) acmStreamOpen error %d\n", (int) ret);
       this->srcstream = 0;
+      free(in_fmt);
       return 0;
     }
 
@@ -1068,6 +1070,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
     if( ret2 == NULL ) {
       xine_log (this->stream->xine, XINE_LOG_MSG, "w32codec: Error initializing DirectShow Audio\n");
       this->srcstream = 0;
+      free(in_fmt);
       return 0;
     }
     
@@ -1102,6 +1105,8 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   this->outsize = out_size;
       
   this->size = 0;
+
+  free(in_fmt);
 
   return 1;
 }
