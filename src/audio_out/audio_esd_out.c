@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.25 2002/12/27 17:49:17 jkeil Exp $
+ * $Id: audio_esd_out.c,v 1.26 2003/02/14 22:32:41 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -545,7 +545,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   this->ao_driver.exit                = ao_esd_exit;
   this->ao_driver.control	      = ao_esd_ctrl;
 
-  return this;
+  return &(this->ao_driver);
 }
 
 /*
