@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.28 2001/08/15 11:35:47 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.29 2001/08/25 07:12:16 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -116,6 +116,14 @@ void *audio_decoder_loop (void *this_gen) {
       break;
       
     default:
+
+      while (this->audio_mute==2) {
+	usleep (50000);
+      }
+
+      if (this->audio_mute)
+	break;
+
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
 	/* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type);  */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.18 2001/08/14 08:21:41 ehasenle Exp $
+ * $Id: metronom.c,v 1.19 2001/08/25 07:12:16 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,101 +56,93 @@
  */
 
 typedef struct unixscr_s {
-  scr_plugin_t scr;
-  struct timeval start_time;
-  uint32_t start_pts;
-  uint32_t last_pts;
-  pthread_mutex_t lock;
-  float speed;
+  scr_plugin_t     scr;
+
+  struct timeval   cur_time;
+  uint32_t         cur_pts;
+  double           speed_factor;
+
+  pthread_mutex_t  lock;
+
 } unixscr_t;
 
 static int unixscr_get_priority (scr_plugin_t *scr) {
   return 5; /* low priority */
 }
 
-static void unixscr_set_speed (scr_plugin_t *scr, float ticks_ps) {
-  unixscr_t *self = (unixscr_t*) scr;
-  uint32_t now = scr->get_current(scr);
+static int unixscr_set_speed (scr_plugin_t *scr, int speed) {
+  unixscr_t *this = (unixscr_t*) scr;
 
-  pthread_mutex_lock (&self->lock);
-  
-  gettimeofday(&self->start_time, NULL);
-  self->last_pts = self->start_pts = now;
-  self->speed = ticks_ps; /* ticks per second */
+  pthread_mutex_lock (&this->lock);
 
-  pthread_mutex_unlock (&self->lock);
+  this->speed_factor = (double) speed * 90000.0 / 4.0;
+
+  pthread_mutex_unlock (&this->lock);
+
+  return speed;
 }
 
 static void unixscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
-  unixscr_t *self = (unixscr_t*) scr;
+  unixscr_t *this = (unixscr_t*) scr;
 
-  int      delta;
-  int32_t current_time = self->scr.get_current(&self->scr);
+  pthread_mutex_lock (&this->lock);
 
-  pthread_mutex_lock (&self->lock);
+  this->cur_pts = vpts;
+  gettimeofday(&this->cur_time, NULL);
 
-  /* FIXME: this should be softer than a brute force warp... */
-  delta  = vpts;
-  delta -= current_time;
-  self->start_pts += delta;
-  /* TODO: remove */
-  printf("adjusting start_pts to %d\n", self->start_pts);  
-
-  pthread_mutex_unlock (&self->lock);
+  pthread_mutex_unlock (&this->lock);
 }
 
 static void unixscr_start (scr_plugin_t *scr, uint32_t start_vpts) {
-  unixscr_t *self = (unixscr_t*) scr;
+  unixscr_t *this = (unixscr_t*) scr;
 
-  pthread_mutex_lock (&self->lock);
+  pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&self->start_time, NULL);
-  self->last_pts = self->start_pts = start_vpts;
-  self->speed = REALTIME_PTS;
+  gettimeofday(&this->cur_time, NULL);
+  this->cur_pts = start_vpts;
 
-  pthread_mutex_unlock (&self->lock);
-
+  pthread_mutex_unlock (&this->lock);
 }
 
 static uint32_t unixscr_get_current (scr_plugin_t *scr) {
-  unixscr_t *self = (unixscr_t*) scr;
+  unixscr_t *this = (unixscr_t*) scr;
 
+  struct   timeval tv;
   uint32_t pts;
-  struct timeval tv;
-
-  pthread_mutex_lock (&self->lock);
+  
+  pthread_mutex_lock (&this->lock);
 
   gettimeofday(&tv, NULL);
-  pts  = (tv.tv_sec  - self->start_time.tv_sec) * self->speed;
-  pts += (tv.tv_usec - self->start_time.tv_usec) * self->speed / 1e6;
-  pts += self->start_pts;
-  
-  if (self->last_pts > pts) {
-    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
-    pts = self->last_pts;
-  }
 
-  pthread_mutex_unlock (&self->lock);
+  this->cur_pts += (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
+  this->cur_pts += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
+
+  pts = this->cur_pts;
+  memcpy (&this->cur_time, &tv, sizeof (tv));
+  
+  pthread_mutex_unlock (&this->lock);
 
   return pts;
 }
 
 static scr_plugin_t* unixscr_init () {
-  unixscr_t *self;
+  unixscr_t *this;
 
-  self = malloc(sizeof(*self));
-  memset(self, 0, sizeof(*self));
+  this = malloc(sizeof(*this));
+  memset(this, 0, sizeof(*this));
   
-  self->scr.interface_version = 1;
-  self->scr.get_priority      = unixscr_get_priority;
-  self->scr.set_speed         = unixscr_set_speed;
-  self->scr.adjust            = unixscr_adjust;
-  self->scr.start             = unixscr_start;
-  self->scr.get_current       = unixscr_get_current;
+  this->scr.interface_version = 2;
+  this->scr.get_priority      = unixscr_get_priority;
+  this->scr.set_speed         = unixscr_set_speed;
+  this->scr.adjust            = unixscr_adjust;
+  this->scr.start             = unixscr_start;
+  this->scr.get_current       = unixscr_get_current;
 
-  pthread_mutex_init (&self->lock, NULL);
+  unixscr_set_speed (&this->scr, SPEED_NORMAL);
 
-  return &self->scr;
+  pthread_mutex_init (&this->lock, NULL);
+
+  return &this->scr;
 }
  
 
@@ -176,20 +168,32 @@ static uint32_t metronom_get_current_time (metronom_t *this) {
 static void metronom_stop_clock(metronom_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, 0.0);
+    if (*scr) (*scr)->set_speed(*scr, SPEED_PAUSE);
 }
 
 static void metronom_resume_clock(metronom_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, REALTIME_PTS);
+    if (*scr) (*scr)->set_speed(*scr, SPEED_NORMAL);
 }
 
 
 
-static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
-{
+static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts) {
   this->scr_master->adjust(this->scr_master, desired_pts);
+}
+
+static int metronom_set_speed (metronom_t *this, int speed) {
+
+  scr_plugin_t **scr;
+  int            true_speed;
+
+  true_speed = this->scr_master->set_speed (this->scr_master, speed);
+
+  for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
+    if (*scr) (*scr)->set_speed(*scr, true_speed);
+
+  return true_speed;
 }
 
 /*
@@ -603,7 +607,7 @@ static scr_plugin_t* get_master_scr(metronom_t *this) {
 static int metronom_register_scr (metronom_t *this, scr_plugin_t *scr) {
   int i;
 
-  if (scr->interface_version != 1) return -1;
+  if (scr->interface_version != 2) return -1;
 
   for (i=0; i<MAX_SCR_PROVIDERS; i++)
     if (this->scr_list[i] == NULL) break;
@@ -668,6 +672,7 @@ metronom_t * metronom_init (int have_audio) {
   this->adjust_clock      = metronom_adjust_clock;
   this->register_scr      = metronom_register_scr;
   this->unregister_scr    = metronom_unregister_scr;
+  this->set_speed         = metronom_set_speed;
 
   this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
   this->register_scr(this, unixscr_init());

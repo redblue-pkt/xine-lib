@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.9 2001/08/07 16:00:10 ehasenle Exp $
+ * $Id: metronom.h,v 1.10 2001/08/25 07:12:16 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -121,13 +121,12 @@ struct metronom_s {
   int32_t (*get_av_offset) (metronom_t *this);
 
   /*
-   * ****************************************
-   *       master clock functions
-   * ****************************************
+   * system clock reference (SCR) functions
    */
 
   /*
    * start metronom clock (no clock reset)
+   * at given pts
    */
   void (*start_clock) (metronom_t *this, uint32_t pts);
 
@@ -154,6 +153,14 @@ struct metronom_s {
    * adjust master clock to external timer (e.g. audio hardware)
    */
   void (*adjust_clock) (metronom_t *this, uint32_t desired_pts);
+
+
+  /*
+   * set clock speed
+   * for constants see xine_internal.h
+   */
+
+  int (*set_speed) (metronom_t *this, int speed);
 
   /*
    * (un)register a System Clock Reference provider at the metronom
@@ -207,13 +214,24 @@ struct metronom_s {
 
 metronom_t *metronom_init (int have_audio);
 
+/*
+ * SCR plugins
+ */
+
 struct scr_plugin_s
 {
   int interface_version;
 
   int (*get_priority) (scr_plugin_t *this);
 
-  void (*set_speed) (scr_plugin_t *this, float pts_ps);
+  /* 
+   * set/get clock speed 
+   *
+   * for speed constants see xine_internal.h
+   * returns actual speed
+   */
+
+  int (*set_speed) (scr_plugin_t *this, int speed);
 
   void (*adjust) (scr_plugin_t *this, uint32_t vpts);
 

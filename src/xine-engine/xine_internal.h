@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.40 2001/08/23 21:40:05 guenter Exp $
+ * $Id: xine_internal.h,v 1.41 2001/08/25 07:12:16 guenter Exp $
  *
  */
 
@@ -119,9 +119,7 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 
 #define XINE_STOP      0 
 #define XINE_PLAY      1 
-#define XINE_PAUSE     2 
-#define XINE_SEEK      3
-#define XINE_QUIT      4
+#define XINE_QUIT      2
 
 typedef struct xine_s xine_t;
 
@@ -145,6 +143,7 @@ struct xine_s {
   int                        demux_strategy;
 
   int                        status;
+  int                        speed;
   off_t                      cur_input_pos;
   char                       cur_mrl[1024];
 
@@ -166,6 +165,7 @@ struct xine_s {
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
+  int                        paused;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;
@@ -176,6 +176,7 @@ struct xine_s {
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   int                        audio_finished;
+  int                        audio_mute;
 
   gui_stream_end_cb_t        stream_end_cb;
   gui_get_next_mrl_cb_t      get_next_mrl_cb;
@@ -233,6 +234,28 @@ void xine_seek (xine_t *this, char *MRL, int pos);
  */
 void xine_pause (xine_t *this);
 
+/*
+ * set/get playback speed
+ *
+ * constants see below
+ */
+
+void xine_set_speed (xine_t *this, int speed);
+int xine_get_speed (xine_t *this);
+
+#define SPEED_PAUSE   0
+#define SPEED_SLOW_4  1
+#define SPEED_SLOW_2  2
+#define SPEED_NORMAL  4
+#define SPEED_FAST_2  8
+#define SPEED_FAST_4 16
+
+/*
+ * manually adjust a/v sync
+ */
+
+void xine_set_av_offset (xine_t *this, int offset_pts);
+int xine_get_av_offset (xine_t *this);
 
 /*
  * stop playing
