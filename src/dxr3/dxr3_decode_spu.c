@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.26 2002/11/20 11:57:41 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.27 2002/11/21 21:39:43 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -66,7 +66,7 @@ static decoder_info_t dxr3_spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 11, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_SPU_DECODER, 12, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -80,6 +80,7 @@ static void           dxr3_spudec_class_dispose(spu_decoder_class_t *class_gen);
 /* plugin instance functions */
 static void    dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf);
 static void    dxr3_spudec_reset(spu_decoder_t *this_gen);
+static void    dxr3_spudec_discontinuity(spu_decoder_t *this_gen);
 static void    dxr3_spudec_dispose(spu_decoder_t *this_gen);
 static int     dxr3_spudec_get_nav_pci(spu_decoder_t *this_gen, pci_t *pci);
 static void    dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int32_t mode);
@@ -182,6 +183,7 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   
   this->spu_decoder.decode_data       = dxr3_spudec_decode_data;
   this->spu_decoder.reset             = dxr3_spudec_reset;
+  this->spu_decoder.discontinuity     = dxr3_spudec_discontinuity;
   this->spu_decoder.dispose           = dxr3_spudec_dispose;
   this->spu_decoder.get_nav_pci       = dxr3_spudec_get_nav_pci;
   this->spu_decoder.set_button        = dxr3_spudec_set_button;
@@ -476,6 +478,10 @@ static void dxr3_spudec_reset(spu_decoder_t *this_gen)
  
   for (i = 0; i < MAX_SPU_STREAMS; i++)
     this->spu_stream_state[i].spu_length = 0;
+}
+
+static void dxr3_spudec_discontinuity(spu_decoder_t *this_gen)
+{
 }
 
 static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
