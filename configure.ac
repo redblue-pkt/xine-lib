@@ -625,6 +625,17 @@ AC_CHECK_LIB(mng, mng_initialize,
 AM_CONDITIONAL(HAVE_LIBMNG, test x"$have_libmng" = "xyes")
 AC_SUBST(MNG_LIBS)
 
+dnl ---------------------------------------------
+dnl PNG lib.
+dnl ---------------------------------------------
+AC_CHECK_LIB(png, png_create_read_struct,
+	[ AC_CHECK_HEADER(png.h,
+		[ have_libpng=yes
+		  PNG_LIBS="-lpng" ], 
+		AC_MSG_RESULT([*** image decoder will be disabled ***]))],
+	AC_MSG_RESULT([*** image decoder will be disabled ***]))
+AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
+AC_SUBST(PNG_LIBS)
 
 dnl ---------------------------------------------
 dnl OSS style audio interface
@@ -1420,6 +1431,9 @@ if test x"$have_dxr3" = "xyes"; then
 fi
 if test x"$enable_w32dll" = "xyes"; then
   echo "   - w32dll"
+fi
+if test x"$have_libpng" = "xyes"; then
+  echo "   - png"
 fi
 echo ""
 

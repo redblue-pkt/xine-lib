@@ -2,9 +2,14 @@ EXTRA_DIST = foovideo.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
+if HAVE_LIBPNG
+image_module = xineplug_decode_image.la
+endif
+
 libdir = $(XINE_PLUGINDIR)
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
-lib_LTLIBRARIES = \
+
+lib_LTLIBRARIES = $(image_module) \
 	xineplug_decode_cinepak.la \
 	xineplug_decode_cyuv.la \
 	xineplug_decode_fli.la \
@@ -85,6 +90,10 @@ xineplug_decode_interplayvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_
 xineplug_decode_yuv_frames_la_SOURCES = yuv_frames.c
 xineplug_decode_yuv_frames_la_LIBADD = $(XINE_LIB)
 xineplug_decode_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_decode_image_la_SOURCES = image.c
+xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(PNG_LIBS)
+xineplug_decode_image_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = svq1_codebooks.h
 

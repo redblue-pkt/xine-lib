@@ -56,7 +56,7 @@ Stephen Torri <storri@users.sourceforge.net>
   health check
 
 Stefan Holst <mail@s-holst.de>
-  real media streaming support, input_net fixes
+  real media streaming support, input_net fixes, image demuxer/decoder
 
 xine is using
 =============

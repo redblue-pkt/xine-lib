@@ -1,3 +1,5 @@
+  * loading and displaying png images (e.g. for logos)
+
 xine-lib (1-beta9)
   * implement XINE_PARAM_AUDIO_AMP_LEVEL so xine's volume can be
     set independantly from other applications
