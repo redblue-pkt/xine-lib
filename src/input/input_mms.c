@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.36 2003/02/23 22:28:26 tmattern Exp $
+ * $Id: input_mms.c,v 1.37 2003/02/24 00:12:06 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -120,8 +120,6 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
               
   this->curpos += n;
 
-  if (n != len)
-    nbc_end_of_stream (this->nbc);
   return n;
 }
 

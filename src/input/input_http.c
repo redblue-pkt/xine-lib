@@ -464,8 +464,6 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     if (!n) break;
   }
 
-  if (num_bytes != nlen)
-    nbc_end_of_stream (this->nbc);
   return num_bytes;
 }
 
