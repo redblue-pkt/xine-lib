@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.72 2002/04/14 00:58:23 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.73 2002/05/03 14:20:19 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -512,8 +512,10 @@ static void xshm_compute_ideal_size (xshm_driver_t *this, xshm_frame_t *frame) {
 
     frame->ratio_factor = this->display_ratio * desired_ratio;
 
-    corr_factor = frame->ratio_factor / image_ratio ;
-
+    /* compiler bug? using frame->ratio_factor here gave me
+       some wrong numbers. */
+    corr_factor = this->display_ratio * desired_ratio / image_ratio ;
+    
     if (fabs(corr_factor - 1.0) < 0.005) {
       frame->ideal_width  = frame->width;
       frame->ideal_height = frame->height;
@@ -521,13 +523,12 @@ static void xshm_compute_ideal_size (xshm_driver_t *this, xshm_frame_t *frame) {
     } else {
 
       if (corr_factor >= 1.0) {
-	frame->ideal_width  = frame->width * corr_factor + 0.5;
-	frame->ideal_height = frame->height;
+        frame->ideal_width  = frame->width * corr_factor + 0.5;
+        frame->ideal_height = frame->height;
       } else {
-	frame->ideal_width  = frame->width;
-	frame->ideal_height = frame->height / corr_factor + 0.5;
+        frame->ideal_width  = frame->width;
+        frame->ideal_height = frame->height / corr_factor + 0.5;
       }
-
     }
   }
 }
@@ -823,7 +824,7 @@ static int xshm_redraw_needed (vo_driver_t *this_gen) {
   if( this->cur_frame )
   {
     this->frame_output_cb (this->user_data,
-			   this->cur_frame->output_width, this->cur_frame->output_height, 
+			   this->cur_frame->ideal_width, this->cur_frame->ideal_height, 
 			   &gui_x, &gui_y, &gui_width, &gui_height,
 			   &gui_win_x, &gui_win_y );
 
@@ -885,7 +886,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
      */
 
     this->frame_output_cb (this->user_data,
-			   frame->output_width, frame->output_height, 
+			   frame->ideal_width, frame->ideal_height, 
 			   &gui_x, &gui_y, &gui_width, &gui_height,
 			   &gui_win_x, &gui_win_y);
 
