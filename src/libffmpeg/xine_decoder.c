@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2002/10/14 19:29:19 guenter Exp $
+ * $Id: xine_decoder.c,v 1.57 2002/10/14 20:47:31 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -254,21 +254,6 @@ static void find_sequence_header (ff_decoder_t *this,
       init_codec (this, codec);
     }
   }
-}
-
-static void ff_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
-
-  ff_decoder_t *this = (ff_decoder_t *) this_gen;
-
-  this->video_out  = video_out;
-  this->decoder_ok = 0;
-  this->buf = NULL;
-
-  this->shift         = 0xffffff00;
-  this->code          = 0xb4;
-  this->chunk_ptr     = this->chunk_buffer;
-
-  this->is_continous  = 0;
 }
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -632,10 +617,10 @@ static void ff_dispose (video_decoder_t *this_gen) {
 }
 
 void * open_plugin (void *class_gen, xine_stream_t *stream, 
-		    const void *data) {
+		    const void *vo_gen) {
 
-
-  ff_decoder_t *this ;
+  ff_decoder_t  *this ;
+  vo_instance_t *vo = (vo_instance_t *) vo_gen;
 
   this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
 
@@ -649,6 +634,16 @@ void * open_plugin (void *class_gen, xine_stream_t *stream,
   this->class                             = (ff_class_t *) class_gen;
 
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
+
+  this->video_out     = vo;
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  this->shift         = 0xffffff00;
+  this->code          = 0xb4;
+  this->chunk_ptr     = this->chunk_buffer;
+
+  this->is_continous  = 0;
 
   return (video_decoder_t *) this;
 }
