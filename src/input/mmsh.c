@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.24 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: mmsh.c,v 1.25 2003/12/05 22:31:41 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -880,7 +880,7 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
       else
 	n = bytes_left;
 
-      memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
+      xine_fast_memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
 
       this->asf_header_read += n;
       total += n;
@@ -890,10 +890,8 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
 
       bytes_left = this->buf_size - this->buf_read;
 
-      while (!bytes_left) {
-	
+      if (bytes_left == 0) {
 	this->buf_read = 0;
-
 	if (!get_media_packet (this)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
 	           "libmmsh: get_media_packet failed\n");
@@ -901,22 +899,19 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
 	}
 	bytes_left = this->buf_size;
       }
-      
 
-      if ((len-total)<bytes_left)
+      if ((len-total) < bytes_left)
 	n = len-total;
       else
 	n = bytes_left;
 
-      memcpy (&data[total], &this->buf[this->buf_read], n);
+      xine_fast_memcpy (&data[total], &this->buf[this->buf_read], n);
 
       this->buf_read += n;
       total += n;
     }
   }
-
   return total;
-
 }
 
 

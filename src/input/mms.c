@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.37 2003/12/04 21:48:36 tmattern Exp $
+ * $Id: mms.c,v 1.38 2003/12/05 22:31:41 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -1138,7 +1138,7 @@ int mms_read (mms_t *this, char *data, int len) {
       else
         n = bytes_left;
 
-      memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
+      xine_fast_memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
 
       this->asf_header_read += n;
       total += n;
@@ -1157,20 +1157,18 @@ int mms_read (mms_t *this, char *data, int len) {
         bytes_left = this->buf_size;
       }
 
-      if (len <= bytes_left)
-        n = len;
+      if ((len - total) < bytes_left)
+        n = len - total;
       else
         n = bytes_left;
 
-      memcpy (&data[total], &this->buf[this->buf_read], n);
+      xine_fast_memcpy (&data[total], &this->buf[this->buf_read], n);
 
       this->buf_read += n;
       total += n;
     }
   }
-
   return total;
-
 }
 
 
