@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.85 2002/09/22 04:23:24 tmmm Exp $
+ * $Id: demux_qt.c,v 1.86 2002/09/22 17:07:52 tmmm Exp $
  *
  */
 
@@ -475,7 +475,6 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   sample_table->sample_to_chunk_table = NULL;
   sample_table->time_to_sample_table = NULL;
   sample_table->decoder_config = NULL;
-  sample_table->sample_size_table = NULL;
 
   /* default type */
   sample_table->type = MEDIA_OTHER;
@@ -679,7 +678,6 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           last_error = QT_NO_MEMORY;
           goto free_sample_table;
         }
-
         /* load the sample size table */
         for (j = 0; j < sample_table->sample_size_count; j++)
           sample_table->sample_size_table[j] =
@@ -962,13 +960,13 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
              final chunk number (the number of offsets in stco table) */
           chunk_end = sample_table->chunk_offset_count + 1;
 
-          /* iterate through each sample in a chunk */
-          for (j = chunk_start - 1; j < chunk_end - 1; j++) {
-            sample_table->frames[j].official_byte_count =
-              official_audio_byte_counter;
-            official_audio_byte_counter +=
-              sample_table->sample_to_chunk_table[i].samples_per_chunk;
-          }
+        /* iterate through each sample in a chunk */
+        for (j = chunk_start - 1; j < chunk_end - 1; j++) {
+          sample_table->frames[j].official_byte_count =
+            official_audio_byte_counter;
+          official_audio_byte_counter +=
+            sample_table->sample_to_chunk_table[i].samples_per_chunk;
+        }
       }
     }
 
@@ -1164,16 +1162,16 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   }
 
   /* free the temporary tables on the way out */
-/*
   for (i = 0; i < sample_table_count; i++) {
     free(sample_tables[i].edit_list_table);
     free(sample_tables[i].chunk_offset_table);
-    free(sample_tables[i].sample_size_table);
+    /* this pointer might have been set to -1 as a special case */
+    if (sample_tables[i].sample_size_table != (void *)-1)
+      free(sample_tables[i].sample_size_table);
     free(sample_tables[i].time_to_sample_table);
     free(sample_tables[i].sample_to_chunk_table);
     free(sample_tables[i].sync_sample_table);
   }
-*/
   free(sample_tables);
 }
 
