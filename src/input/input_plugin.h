@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.37 2002/11/17 17:48:47 mroi Exp $
+ * $Id: input_plugin.h,v 1.38 2002/11/18 11:36:28 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -189,13 +189,6 @@ struct input_plugin_s {
 #define INPUT_CAP_AUDIOLANG            0x00000008
 #define INPUT_CAP_SPULANG              0x00000010
  
-/*
- * INPUT_CAP_VARIABLE_BITRATE:
- *   FIXME: ???
- */
-
-#define INPUT_CAP_VARIABLE_BITRATE     0x00000020
-
 /* 
  * INPUT_CAP_PREVIEW:
  *   get_optional_data can handle INPUT_OPTIONAL_DATA_PREVIEW 
