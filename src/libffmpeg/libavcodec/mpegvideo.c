@@ -1439,8 +1439,8 @@ int MPV_encode_picture(AVCodecContext *avctx,
         if (s->out_format == FMT_MJPEG)
             mjpeg_picture_trailer(s);
         
-        if(s->flags&CODEC_FLAG_PASS1)
 #ifdef CONFIG_ENCODERS_FULL
+        if(s->flags&CODEC_FLAG_PASS1)
             ff_write_pass1_stats(s);
 #endif
 
@@ -3091,17 +3091,15 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
     }
 
+#ifdef CONFIG_ENCODERS_FULL
     if(!s->umvplus){
         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
-#ifdef CONFIG_ENCODERS_FULL
             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
         
             ff_fix_long_p_mvs(s);
-#endif
         }
 
         if(s->pict_type==B_TYPE){
-#ifdef CONFIG_ENCODERS_FULL
             int a, b;
 
             a = ff_get_best_fcode(s, s->b_forw_mv_table, MB_TYPE_FORWARD);
@@ -3116,9 +3114,9 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_fix_long_b_mvs(s, s->b_back_mv_table, s->b_code, MB_TYPE_BACKWARD);
             ff_fix_long_b_mvs(s, s->b_bidir_forw_mv_table, s->f_code, MB_TYPE_BIDIR);
             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
-#endif
         }
     }
+#endif
     
     if (s->fixed_qscale) 
         s->frame_qscale = s->current_picture.quality;
