@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.23 2004/07/20 21:38:34 tmattern Exp $
+ * $Id: video_decoder.c,v 1.24 2004/07/30 19:08:48 miguelfreitas Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -855,9 +855,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                        this->aspect_ratio*10000);
   }
   
-  if (buf->decoder_flags & BUF_FLAG_FRAME_START)
-    this->pts = buf->pts;
-  else if (this->is_mpeg12 && buf->pts)
+  if (buf->pts)
     this->pts = buf->pts;
 
   if ((this->decoder_ok && this->size) || this->is_mpeg12) {

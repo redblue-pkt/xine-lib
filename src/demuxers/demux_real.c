@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.100 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.101 2004/07/30 19:08:47 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1224,7 +1224,12 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
            (buf->decoder_flags & BUF_FLAG_FRAME_START))
           pts = (int64_t) real_fix_timestamp(this, buf->content, timestamp) * 90;
         
-        buf->pts = pts;
+        /* this test was moved from ffmpeg video decoder.
+         * fixme: is pts only valid on frame start? */
+        if( buf->decoder_flags & BUF_FLAG_FRAME_START )
+          buf->pts = pts;
+        else
+          buf->pts = 0;
         pts = 0;
         
         buf->extra_info->input_normpos = normpos;
