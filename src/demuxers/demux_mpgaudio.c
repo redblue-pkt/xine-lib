@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.94 2003/03/09 11:49:01 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.95 2003/03/09 12:18:01 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -514,7 +514,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       /* disqualify the file if it is, in fact, an AVI file or has a CDXA
        * marker */
-      printf("demux_mpgaudio: AVI_TAG: 0x%08x, riff_check: 0x%08x\n", AVI_TAG, BE_32(riff_check));
       if ((BE_32(riff_check) == AVI_TAG) ||
           (BE_32(riff_check) == CDXA_TAG)) {
 #ifdef LOG
