@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.59 2002/08/13 15:55:23 mroi Exp $
+ * $Id: input_dvd.c,v 1.60 2002/08/13 16:04:27 jkeil Exp $
  *
  */
 
@@ -57,8 +57,10 @@
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 #include <sys/dvdio.h>
 #include <sys/cdio.h> /* CDIOCALLOW etc... */
-#elif defined(__linux__)
+#elif defined(HAVE_LINUX_CDROM_H)
 #include <linux/cdrom.h>
+#elif defined(HAVE_SYS_CDIO_H)
+#include <sys/cdio.h>
 #else
 #warning "This might not compile due to missing cdrom ioctls"
 #endif
@@ -1397,6 +1399,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.60  2002/08/13 16:04:27  jkeil
+ * Solaris uses <sys/cdio.h> for CDROM/DVD-ROM ioctl, too.  Try to use autoconf
+ * HAVE_headerfile macros...  (The xxxBSD part nees a bit work)
+ *
  * Revision 1.59  2002/08/13 15:55:23  mroi
  * change error to warning
  *
