@@ -4,7 +4,7 @@
 
 lib_LTLIBRARIES = libxineutils.la
 
-EXTRA_DIST = $(pppc_files) ppc_asm.tmpl
+EXTRA_DIST = ppcasm_string.S ppc_asm.tmpl
 
 if PPC_ARCH
 pppc_files = ppcasm_string.S 
