@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.126 2002/10/26 02:12:27 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.127 2002/10/26 02:32:52 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -177,63 +177,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     this->status = DEMUX_FINISHED;
     return ;
   }
-#if 0
-
-  if (buf==NULL) {
-    xine_next_mrl_event_t event;
-
-#ifdef LOG
-    printf ("demux_mpeg_block: read_block failed\n");
-#endif
-
-    /*
-     * check if seamless branching is possible
-     */
-
-    event.event.type = XINE_EVENT_NEED_NEXT_MRL;
-    event.handled = 0;
-    xine_send_event (this->xine, &event.event);
-
-    /* strdup segfaults is passed a NULL */
-    if (event.handled && event.mrl) {
-
-      char *next_mrl = strdup(event.mrl);
-
-#ifdef LOG      
-      printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
-#endif
-
-      if (next_mrl && this->input->is_branch_possible 
-	  && this->input->is_branch_possible (this->input, next_mrl)) {
-
-#ifdef LOG      
-        printf ("demux_mpeg_block: branching\n");
-#endif
-
-	this->input->close (this->input);
-        this->input->open (this->input, next_mrl);
-
-	free(next_mrl);
-
-	event.event.type = XINE_EVENT_BRANCHED;
-	xine_send_event (this->xine, &event.event);
-	
-	buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
-	if (!buf) {
-	  this->status = DEMUX_FINISHED;
-	  return ;
-        }
-
-      } else {
-	this->status = DEMUX_FINISHED;
-	return ;
-      }
-    } else {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-  }
-#endif
 
   /* If this is not a block for the demuxer, pass it
    * straight through. */
@@ -963,7 +906,8 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   if (!this->rate)
     this->rate = demux_mpeg_block_estimate_rate (this);
   
-  if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
+  /*  if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0)*/
+  {
     
     int num_buffers = NUM_PREVIEW_BUFFERS;
     
@@ -978,6 +922,10 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   }
   this->status = DEMUX_FINISHED;
 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_BITRATE]   = this->rate * 50 * 8;
+
   xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
@@ -987,7 +935,7 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
 
 static int demux_mpeg_block_start (demux_plugin_t *this_gen,
-				    off_t start_pos, int start_time) {
+				   off_t start_pos, int start_time) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;

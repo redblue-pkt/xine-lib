@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.101 2002/10/24 22:48:25 guenter Exp $
+ * $Id: demux_qt.c,v 1.102 2002/10/26 02:32:52 guenter Exp $
  *
  */
 
@@ -1908,6 +1908,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf(_("demux_qt.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
+    printf(_("demux_qt.c: input is block organized, can not handle!\n"));
     return NULL;
   }
 
