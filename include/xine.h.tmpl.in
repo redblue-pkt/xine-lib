@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.34 2001/07/26 11:36:45 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.35 2001/07/26 12:11:17 f1rmb Exp $
  *
  */
 
@@ -42,6 +42,14 @@ extern "C" {
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifndef XINE_COMPILE
+#include <xine/video_out.h>
+#endif
+
+#ifndef DOC_HIDDEN
+#include <xine/events.h>
+#endif
 
 /**
  * \def XINE_SKINDIR
@@ -312,6 +320,7 @@ int xine_check_version(int major, int minor, int sub);
 
                /** @} end of video_ratio */
 
+#ifdef DOC_HIDDEN
 /**
  * \struct vo_frame_t
  * Opaque data type.
@@ -396,7 +405,7 @@ struct vo_driver_s {
   void (*exit) (vo_driver_t *self);
 
 };
-
+#endif
           /** @} end of video_group */
 
           /** 
@@ -424,6 +433,8 @@ typedef void ao_functions_t;
  * \struct cfg_data_t
  * Opaque data type.
  */
+
+#ifdef DOC_HIDDEN
 typedef void cfg_data_t;
 /**
  * \struct config_values_t
@@ -472,7 +483,7 @@ struct config_values_s {
    */
   cfg_data_t *data;
 };
-
+#endif
                /** @} end of config_group */
   
 
@@ -1064,12 +1075,13 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
 	   * @{
 	   */
 
-
+#ifdef DOC_HIDDEN
 /**
  * Opaque data type.
  * \sa event_listener_t, xine_send_event
  */
 typedef void event_t;
+#endif
 
 /**
  * Event listener callback.
