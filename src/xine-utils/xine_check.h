@@ -1,7 +1,7 @@
 #ifndef XINE_CHECK_H
 #define XINE_CHECK_H
 #include <stdio.h>
-
+#include "xine.h"
 
 #define XINE_HEALTH_CHECK_OK            0
 #define XINE_HEALTH_CHECK_FAIL          1
@@ -15,23 +15,6 @@
 #define CHECK_DMA       4
 #define CHECK_X         5
 #define CHECK_XV        6
-
-struct xine_health_check_s {
-  int status;
-  const char* cdrom_dev;
-  const char* dvd_dev;
-  char* msg;
-};
-
-typedef struct xine_health_check_s xine_health_check_t;
-
-typedef struct {
-  FILE    *fd;
-  char    *filename;
-  char    *ln;
-  char     buf[256];
-} file_info_t;
-
 
 /*
  * Start checking xine setup here

@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,8 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.148 2002/11/10 13:38:04 mroi Exp $
- * 
+ * $Id: video_out_xv.c,v 1.149 2002/11/10 20:35:50 storri Exp $
+ *
  * video_out_xv.c, X11 video extension interface for xine
  *
  * based on mpeg2dec code from
@@ -123,7 +123,7 @@ struct xv_driver_s {
 
   /* all scaling information goes here */
   vo_scale_t         sc;
-  
+
   xv_frame_t         deinterlace_frame;
   int                deinterlace_method;
   int                deinterlace_enabled;
@@ -162,7 +162,7 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
   xv_driver_t *this = (xv_driver_t *) vo_img->driver;
 
   if (frame->image) {
-    
+
     if (this->use_shm) {
       XLockDisplay (this->display);
       XShmDetach (this->display, &frame->shminfo);
@@ -307,7 +307,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     image->data = shminfo->shmaddr;
 
     XShmAttach(this->display, shminfo);
-  
+
     XSync(this->display, False);
     shmctl(shminfo->shmid, IPC_RMID, 0);
 
@@ -324,7 +324,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     /*
      * Now that the Xserver has learned about and attached to the
      * shared memory segment,  delete it.  It's actually deleted by
-     * the kernel when all users of that segment have detached from 
+     * the kernel when all users of that segment have detached from
      * it.  Gives an automatic shared memory cleanup in case we crash.
      */
     shmctl (shminfo->shmid, IPC_RMID, 0);
@@ -458,7 +458,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     XUnlockDisplay (this->display);
   }
 
-  
+
   if ( this->deinterlace_method != DEINTERLACE_ONEFIELDXV ) {
 #ifdef DEINTERLACE_CROMA
 
@@ -501,7 +501,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
       specially when fast memcpys are available.
     */
     uint8_t *dst, *src;
-    
+
     dst = this->deinterlace_frame.image->data;
     src = this->recent_frames[0]->image->data;
     for( i = 0; i < frame->height; i+=2 ) {
@@ -509,7 +509,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
       dst+=frame->width;
       src+=2*frame->width;
     }
-    
+
     dst = this->deinterlace_frame.image->data + frame->width*frame->height / 2;
     src = this->recent_frames[0]->image->data + frame->width*frame->height;
     for( i = 0; i < frame->height; i+=4 ) {
@@ -517,7 +517,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
       dst+=frame->width / 2;
       src+=frame->width;
     }
-    
+
     dst = this->deinterlace_frame.image->data + frame->width*frame->height * 5 / 8;
     src = this->recent_frames[0]->image->data + frame->width*frame->height * 5 / 4;
     for( i = 0; i < frame->height; i+=4 ) {
@@ -526,7 +526,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
       src+=frame->width;
     }
   }
-  
+
   this->cur_frame = &this->deinterlace_frame;
 }
 
@@ -542,10 +542,10 @@ static void xv_clean_output_area (xv_driver_t *this) {
   if (this->use_colorkey) {
     XSetForeground (this->display, this->gc, this->colorkey);
     XFillRectangle (this->display, this->drawable, this->gc,
-		    this->sc.output_xoffset, this->sc.output_yoffset, 
+		    this->sc.output_xoffset, this->sc.output_yoffset,
 		    this->sc.output_width, this->sc.output_height);
   }
-  
+
   XUnlockDisplay (this->display);
 }
 
@@ -565,9 +565,9 @@ static void xv_compute_ideal_size (xv_driver_t *this) {
  */
 
 static void xv_compute_output_size (xv_driver_t *this) {
-  
+
   vo_scale_compute_output_size( &this->sc );
-  
+
   /* onefield_xv divide by 2 the number of lines */
   if (this->deinterlace_enabled
       && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
@@ -628,28 +628,28 @@ static int xv_redraw_needed (xine_vo_driver_t *this_gen) {
   int ret = 0;
 
   if( this->cur_frame ) {
-    
+
     this->sc.delivered_height   = this->cur_frame->height;
     this->sc.delivered_width    = this->cur_frame->width;
     this->sc.delivered_ratio_code = this->cur_frame->ratio_code;
-    
+
     xv_compute_ideal_size(this);
-    
-    if( vo_scale_redraw_needed( &this->sc ) ) {  
+
+    if( vo_scale_redraw_needed( &this->sc ) ) {
 
       xv_compute_output_size (this);
 
       xv_clean_output_area (this);
-    
+
       ret = 1;
     }
-  } 
+  }
   else
     ret = 1;
-  
+
   return ret;
 }
-  
+
 static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -666,7 +666,7 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
 #endif
   } else {
 
-    /* 
+    /*
      * queue frames (deinterlacing)
      * free old frames
      */
@@ -676,7 +676,7 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->cur_frame = frame;
 
 
-  
+
     /*
      * let's see if this frame is different in size / aspect
      * ratio from the previous one
@@ -690,16 +690,16 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->sc.force_redraw = 1;    /* trigger re-calc of output size */
     }
 
-    /* 
+    /*
      * deinterlace frame if necessary
      * (currently only working for YUV images)
      */
 
-    if (this->deinterlace_enabled && this->deinterlace_method 
+    if (this->deinterlace_enabled && this->deinterlace_method
         && frame->format == XINE_IMGFMT_YV12)
       xv_deinterlace_frame (this);
 
-    /* 
+    /*
      * tell gui that we are about to display a frame,
      * ask for offset and output size
      */
@@ -728,7 +728,7 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
     XFlush(this->display);
 
     XUnlockDisplay (this->display);
-    
+
   }
   /*
   printf ("video_out_xv: xv_display_frame... done\n");
@@ -738,8 +738,8 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
 static int xv_get_property (xine_vo_driver_t *this_gen, int property) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
-  
-  printf ("video_out_xv: property #%d = %d\n", property, 
+
+  printf ("video_out_xv: property #%d = %d\n", property,
 	  this->props[property].value);
 
   return this->props[property].value;
@@ -749,9 +749,9 @@ static void xv_property_callback (void *property_gen, xine_cfg_entry_t *entry) {
 
   xv_property_t *property = (xv_property_t *) property_gen;
   xv_driver_t   *this = property->this;
-  
+
   XvSetPortAttribute (this->display, this->xv_port,
-		      property->atom, 
+		      property->atom,
 		      entry->num_value);
 
 }
@@ -760,7 +760,7 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
 			    int property, int value) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
-  
+
   if (this->props[property].atom != None) {
     XvSetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom, value);
@@ -794,9 +794,9 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
       printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n",
 	     this->props[property].value);
       this->sc.user_ratio = value;
-      
+
       xv_compute_ideal_size (this);
-      
+
       this->sc.force_redraw = 1;    /* trigger re-calc of output size */
       break;
     case VO_PROP_ZOOM_X:
@@ -805,11 +805,11 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
         this->props[property].value = value;
         printf ("video_out_xv: VO_PROP_ZOOM_X = %d\n",
 		this->props[property].value);
-  
+
 	this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
-	           
+
 	xv_compute_ideal_size (this);
-      
+
 	this->sc.force_redraw = 1;    /* trigger re-calc of output size */
       }
       break;
@@ -819,15 +819,15 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
         this->props[property].value = value;
         printf ("video_out_xv: VO_PROP_ZOOM_Y = %d\n",
 		this->props[property].value);
-  
+
 	this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
-	           
+
 	xv_compute_ideal_size (this);
-      
+
 	this->sc.force_redraw = 1;    /* trigger re-calc of output size */
       }
       break;
-    } 
+    }
   }
 
   return value;
@@ -846,10 +846,10 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   xv_driver_t     *this = (xv_driver_t *) this_gen;
-  
+
   switch (data_type) {
   case XINE_GUI_SEND_COMPLETION_EVENT: {
-   
+
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
 
     if (cev->drawable == this->drawable) {
@@ -863,14 +863,14 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
   case XINE_GUI_SEND_EXPOSE_EVENT: {
 
     /* XExposeEvent * xev = (XExposeEvent *) data; */
-    
+
     /* FIXME : take care of completion events */
-    
+
     if (this->cur_frame) {
       int i;
-      
+
       XLockDisplay (this->display);
-      
+
       if (this->use_shm) {
 	XvShmPutImage(this->display, this->xv_port,
 		      this->drawable, this->gc, this->cur_frame->image,
@@ -897,7 +897,7 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
       }
 
       XFlush(this->display);
-      
+
       XUnlockDisplay (this->display);
     }
   }
@@ -928,8 +928,8 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
           && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
         rect->y = rect->y * 2;
         rect->h = rect->h * 2;
-      }			
-      
+      }
+
     }
     break;
 
@@ -996,16 +996,16 @@ static void xv_check_capability (xv_driver_t *this,
 
   this->capabilities |= capability;
 
-  /* 
+  /*
    * some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
    */
   if (VO_PROP_COLORKEY && (attr.max_value == ~0))
     attr.max_value = 2147483615;
-  
+
   this->props[property].min  = attr.min_value;
   this->props[property].max  = attr.max_value;
   this->props[property].atom = XInternAtom (this->display, str_prop, False);
-  
+
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
@@ -1018,32 +1018,32 @@ static void xv_check_capability (xv_driver_t *this,
       this->config->register_bool (this->config, config_name, int_default,
 				   config_desc,
 				   NULL, 10, xv_property_callback, &this->props[property]);
-      
+
     } else {
       this->config->register_range (this->config, config_name, int_default,
-				    this->props[property].min, this->props[property].max,   
-				    config_desc, 
+				    this->props[property].min, this->props[property].max,
+				    config_desc,
 				    NULL, 10, xv_property_callback, &this->props[property]);
     }
-    
+
     entry = this->config->lookup_entry (this->config, config_name);
-    
+
     this->props[property].entry = entry;
-  
+
     xv_set_property (&this->vo_driver, property, entry->num_value);
 
     if (capability == VO_CAP_COLORKEY) {
       this->use_colorkey = 1;
       this->colorkey = entry->num_value;
     }
-  } else 
+  } else
     this->props[property].value  = int_default;
 
 }
 
 static void xv_update_deinterlace(void *this_gen, xine_cfg_entry_t *entry) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
-  
+
   this->deinterlace_method = entry->num_value;
 }
 
@@ -1051,9 +1051,9 @@ static void xv_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
   Atom atom;
   int xv_filter;
-  
+
   xv_filter = entry->num_value;
-  
+
   atom = XInternAtom (this->display, "XV_FILTER", False);
 
   XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
@@ -1064,9 +1064,9 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
   xv_driver_t *this = (xv_driver_t *) this_gen;
   Atom atom;
   int xv_double_buffer;
-  
+
   xv_double_buffer = entry->num_value;
-  
+
   atom = XInternAtom (this->display, "XV_DOUBLE_BUFFER", False);
 
   XvSetPortAttribute (this->display, this->xv_port, atom, xv_double_buffer);
@@ -1108,11 +1108,11 @@ static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const voi
   this->screen            = visual->screen;
   this->xv_port           = class->xv_port;
   this->config            = config;
-  
+
   vo_scale_init (&this->sc, 1, 0 );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
-  
+
   this->drawable          = visual->d;
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->capabilities      = 0;
@@ -1198,9 +1198,9 @@ static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const voi
 	  xv_check_capability (this, VO_CAP_COLORKEY,
 			       VO_PROP_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
-			       "video.xv_colorkey", 
+			       "video.xv_colorkey",
 			       _("Colorkey used for Xv video overlay"));
-	  
+
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xv_check_capability (this, VO_CAP_AUTOPAINT_COLORKEY,
 			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
@@ -1238,7 +1238,7 @@ static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const voi
 
   this->xv_format_yv12 = 0;
   this->xv_format_yuy2 = 0;
-  
+
   for(i = 0; i < formats; i++) {
 #ifdef LOG
     printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
@@ -1260,12 +1260,12 @@ static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const voi
    * try to create a shared image
    * to find out if MIT shm really works, using supported format
    */
-  myimage = create_ximage (this, &myshminfo, 100, 100, 
+  myimage = create_ximage (this, &myshminfo, 100, 100,
 			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
   dispose_ximage (this, &myshminfo, myimage);
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
-						    deinterlace_methods, 
+						    deinterlace_methods,
 						    _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
 						    NULL, 10, xv_update_deinterlace, this);
   this->deinterlace_enabled = 0;
@@ -1289,7 +1289,7 @@ static void dispose_class (video_driver_class_t *this_gen) {
 
   xv_class_t        *this = (xv_class_t *) this_gen;
 
-  XvFreeAdaptorInfo (this->adaptor_info); 
+  XvFreeAdaptorInfo (this->adaptor_info);
 
   free (this);
 }
@@ -1387,7 +1387,7 @@ static vo_info_t vo_info_xv = {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, 10, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

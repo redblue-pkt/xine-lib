@@ -280,21 +280,23 @@ xine_health_check_xv (xine_health_check_t* hc) {
 
 #ifdef HAVE_X11
 #ifdef HAVE_XV
-  Display *dpy;
-  unsigned int ver, rev, eventB, reqB, errorB;
-  char * disname = NULL;
-  void * dl_handle;
-  int (*xvquery_extension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
-  Display* (*xopendisplay)(Display*);
-  char* (*xdisplayname)(char*);
-  char* display_name = "";
-  char * err = NULL;
+  Display               *dpy;
+  unsigned int          ver, rev, eventB, reqB, errorB;
+  char                  *disname = NULL;
+  void                  *dl_handle;
+  Display               *(*xopendisplay)(Display*);
+  char                  *(*xdisplayname)(char*);
+  char                  *display_name = "";
+  char                  *err = NULL;
+  int                   formats, adaptors, i;
+  XvImageFormatValues   *img_formats;
+  XvAdaptorInfo     *adaptor_info;
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
   /* Get reference to XOpenDisplay */
   dlerror(); /* clear error code */
-  dl_handle = dlopen("libX11.a", RTLD_LAZY);
+  dl_handle = dlopen("libX11.so", RTLD_LAZY);
   if(!dl_handle) {
     hc->msg = dlerror();
     hc->status = XINE_HEALTH_CHECK_FAIL;
@@ -308,11 +310,10 @@ xine_health_check_xv (xine_health_check_t* hc) {
     hc->status = XINE_HEALTH_CHECK_FAIL;
     return hc;
   }
-  dlclose(dl_handle);
 
   /* Get reference to XDisplayName */
   dlerror(); /* clear error code */
-  dl_handle = dlopen("libX11.a", RTLD_LAZY);
+  dl_handle = dlopen("libX11.so", RTLD_LAZY);
   if(!dl_handle) {
     hc->msg = dlerror();
     hc->status = XINE_HEALTH_CHECK_FAIL;
@@ -320,24 +321,6 @@ xine_health_check_xv (xine_health_check_t* hc) {
   }
 
   xdisplayname = dlsym(dl_handle,"XDisplayName");
-
-  if((err = dlerror()) != NULL) {
-    hc->msg = err;
-    hc->status = XINE_HEALTH_CHECK_FAIL;
-    return hc;
-  }
-  dlclose(dl_handle);
-
-  /* Get reference to XvQueryExtension */
-  dlerror(); /* clear error code */
-  dl_handle = dlopen("libXv.a", RTLD_LAZY);
-  if(!dl_handle) {
-    hc->msg = dlerror();
-    hc->status = XINE_HEALTH_CHECK_FAIL;
-    return hc;
-  }
-
-  xvquery_extension = dlsym(dl_handle,"XvQueryExtension");
 
   if((err = dlerror()) != NULL) {
     hc->msg = err;
@@ -359,7 +342,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
     return hc;
   }
 
-  if((Success != (*xvquery_extension)(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
+  if((Success != XvQueryExtension(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
     hc->msg = (char*) malloc (sizeof (char) * 80);
     sprintf(hc->msg, "No X-Video Extension on %s", (disname != NULL) ? disname : xdisplayname(NULL));
     hc->status = XINE_HEALTH_CHECK_FAIL;
@@ -368,6 +351,36 @@ xine_health_check_xv (xine_health_check_t* hc) {
     hc->msg = (char*) malloc (sizeof (char) * (33-4) + sizeof(unsigned int) * 2 + 1);
     sprintf(hc->msg, "X-Video Extension version %d.%d\n", ver , rev);
     hc->status = XINE_HEALTH_CHECK_OK;
+  }
+
+  /*
+   * check adaptors, search for one that supports (at least) yuv12
+   */
+
+  if (Success != XvQueryAdaptors(dpy,DefaultRootWindow(dpy),
+				 &adaptors,&adaptor_info))  {
+    hc->msg = "video_out_xv: XvQueryAdaptors failed.\n";
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+
+  img_formats = XvListImageFormats (dpy, adaptor_info->base_id, &formats);
+
+  for(i = 0; i < formats; i++) {
+
+    printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
+	    img_formats[i].id, (char*)&img_formats[i].id,
+	    (img_formats[i].format == XvPacked) ? "packed" : "planar");
+
+    if (img_formats[i].id == XINE_IMGFMT_YV12)  {
+      printf("video_out_xv: this adaptor supports the yv12 format.\n");
+      hc->msg = "video_out_xv: this adaptor supports the yv12 format.\n";
+      hc->status = XINE_HEALTH_CHECK_OK;
+    } else if (img_formats[i].id == XINE_IMGFMT_YUY2) {
+      printf("video_out_xv: this adaptor supports the yuy2 format.\n");
+      hc->msg = "video_out_xv: this adaptor supports the yuy2 format.\n";
+      hc->status = XINE_HEALTH_CHECK_OK;
+    }
   }
 
   return hc;
@@ -384,6 +397,12 @@ xine_health_check_xv (xine_health_check_t* hc) {
   return hc;
 #endif /* ! HAVE_X11 */
 }
+
+/* ---------------------------------------------------- *
+ * ---   Borrowed Code from: XV TestCard program,  --- * 
+ * ---            by Alastair M. Robinson           --- *
+ * ---             based on code by AW              --- *
+ * ---------------------------------------------------- */
 
 #else	/* !__linux__ */
 xine_health_check_t*
