@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.9 2002/11/04 00:03:19 tmmm Exp $
+ * $Id: color.c,v 1.10 2002/12/01 07:12:41 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -132,6 +132,11 @@ int v_g_table[256];
 int v_b_table[256];
 
 void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
+void (*yuv9_to_yv12)
+  (unsigned char *y_src, unsigned char *y_dest, int y_pitch,
+   unsigned char *u_src, unsigned char *u_dest, int u_pitch,
+   unsigned char *v_src, unsigned char *v_dest, int v_pitch,
+   int width, int height);
 
 /*
  * init_yuv_planes
@@ -431,6 +436,134 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
 #endif
 }
 
+static void hscale_chroma_line (unsigned char *dst, unsigned char *src,
+  int width) {
+
+  unsigned int n1, n2;
+  int       x;
+
+  n1       = *src;
+  *(dst++) = n1;
+
+  for (x=0; x < (width - 1); x++) {
+    n2       = *(++src);
+    *(dst++) = (3*n1 + n2 + 2) >> 2;
+    *(dst++) = (n1 + 3*n2 + 2) >> 2;
+    n1       = n2;
+  }
+
+  *dst = n1;
+}
+
+static void vscale_chroma_line (unsigned char *dst, int pitch,
+  unsigned char *src1, unsigned char *src2, int width) {
+
+  unsigned int t1, t2;
+  unsigned int n1, n2, n3, n4;
+  unsigned int *dst1, *dst2;
+  int       x;
+
+  dst1 = (unsigned int *) dst;
+  dst2 = (unsigned int *) (dst + pitch);
+
+  /* process blocks of 4 pixels */
+  for (x=0; x < (width / 4); x++) {
+    n1  = *(((unsigned int *) src1)++);
+    n2  = *(((unsigned int *) src2)++);
+    n3  = (n1 & 0xFF00FF00) >> 8;
+    n4  = (n2 & 0xFF00FF00) >> 8;
+    n1 &= 0x00FF00FF;
+    n2 &= 0x00FF00FF;
+
+    t1 = (2*n1 + 2*n2 + 0x20002);
+    t2 = (n1 - n2);
+    n1 = (t1 + t2);
+    n2 = (t1 - t2);
+    t1 = (2*n3 + 2*n4 + 0x20002);
+    t2 = (n3 - n4);
+    n3 = (t1 + t2);
+    n4 = (t1 - t2);
+
+    *(dst1++) = ((n1 >> 2) & 0x00FF00FF) | ((n3 << 6) & 0xFF00FF00);
+    *(dst2++) = ((n2 >> 2) & 0x00FF00FF) | ((n4 << 6) & 0xFF00FF00);
+  }
+
+  /* process remaining pixels */
+  for (x=(width & ~0x3); x < width; x++) {
+    n1 = src1[x];
+    n2 = src2[x];
+
+    dst[x]       = (3*n1 + n2 + 2) >> 2;
+    dst[x+pitch] = (n1 + 3*n2 + 2) >> 2;
+  }
+}
+
+static void upsample_c_plane_c(unsigned char *src, int src_width, 
+  int src_height, unsigned char *dest, unsigned int dest_pitch) {
+
+  unsigned char *cr1;
+  unsigned char *cr2;
+  unsigned char *tmp;
+  int y;
+  int chroma_width = (src_width + 15) & ~0xF;
+
+  cr1 = &dest[dest_pitch * (src_height * 2 - 2)];
+  cr2 = &dest[dest_pitch * (src_height * 2 - 3)];
+
+  /* horizontally upscale first line */
+  hscale_chroma_line (cr1, src, src_width);
+  src += chroma_width;
+
+  /* store first line */
+  memcpy (dest, cr1, src_width * 2);
+  dest += dest_pitch;
+
+  for (y = 0; y < (src_height - 1); y++) {
+
+    hscale_chroma_line (cr2, src, src_width);
+    src += chroma_width;
+
+    /* interpolate and store two lines */
+    vscale_chroma_line (dest, dest_pitch, cr1, cr2, src_width * 2);
+    dest += 2 * dest_pitch;
+
+    /* swap buffers */
+    tmp = cr2;
+    cr2 = cr1;
+    cr1 = tmp;
+  }
+
+  /* horizontally upscale and store last line */
+  src -= chroma_width;
+  hscale_chroma_line (dest, src, src_width);
+}
+
+/*
+ * yuv9_to_yv12_c
+ *
+ */
+void yuv9_to_yv12_c
+  (unsigned char *y_src, unsigned char *y_dest, int y_pitch,
+   unsigned char *u_src, unsigned char *u_dest, int u_pitch,
+   unsigned char *v_src, unsigned char *v_dest, int v_pitch,
+   int width, int height) {
+
+  int y;
+
+  /* Y plane */
+  for (y=0; y < height; y++) {
+    xine_fast_memcpy (y_dest, y_src, width);
+    y_src += width;
+    y_dest += y_pitch;
+  }
+
+  /* U plane */
+  upsample_c_plane_c(u_src, width / 4, height / 4, u_dest, u_pitch);
+
+  /* V plane */
+  upsample_c_plane_c(v_src, width / 4, height / 4, v_dest, v_pitch);
+}
+
 /*
  * init_yuv_conversion
  *
@@ -442,6 +575,7 @@ void init_yuv_conversion(void) {
 
   int i;
 
+  /* initialize the RGB -> YUV tables */
   for (i = 0; i < 256; i++) {
 
     y_r_table[i] = Y_R * i;
@@ -457,8 +591,14 @@ void init_yuv_conversion(void) {
     v_b_table[i] = V_B * i;
   }
 
+  /* determine best YUV444 -> YUY2 converter to use */
   if (xine_mm_accel() & MM_ACCEL_X86_MMX)
     yuv444_to_yuy2 = yuv444_to_yuy2_mmx;
   else
     yuv444_to_yuy2 = yuv444_to_yuy2_c;
+
+  /* determine best YUV9 -> YV12 converter to use (only the portable C
+   * version is available so far) */
+  yuv9_to_yv12 = yuv9_to_yv12_c;
+
 }
