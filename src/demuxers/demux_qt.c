@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.37 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.38 2002/06/03 13:50:50 miguelfreitas Exp $
  *
  */
 
@@ -1092,7 +1092,7 @@ static void *demux_qt_loop (void *this_gen) {
         }
         last_frame_pts = buf->pts;
       } else if ((this->qt->frames[i].type == MEDIA_AUDIO) && 
-          this->audio_fifo) {
+          this->audio_fifo && this->qt->audio_type) {
         /* load an audio sample and packetize it */
         remaining_sample_bytes = this->qt->frames[i].size;
         this->input->seek(this->input, this->qt->frames[i].offset,
@@ -1319,7 +1319,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     buf->type = this->qt->video_type;
     this->video_fifo->put (this->video_fifo, buf);
 
-    if (this->audio_fifo) {
+    if (this->audio_fifo && this->qt->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->content = buf->mem;
       buf->type = this->qt->audio_type;
