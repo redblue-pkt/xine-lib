@@ -2,25 +2,27 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-# For DVD
-if HAVE_DVDNAV
-DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  $(DVDNAV_CFLAGS)
-link_dvdnav = $(DVDNAV_LIBS)
-else
-DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
-  -I$(top_srcdir)/src/input/libdvdnav/
-link_dvdnav = $(top_srcdir)/src/input/libdvdnav/libdvdnav.la
-endif
-
 lib_LTLIBRARIES = xineplug_decode_spu.la
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
+
+if HAVE_DVDNAV
 
 xineplug_decode_spu_la_SOURCES = \
 	spu.c \
 	xine_decoder.c
+xineplug_decode_spu_la_LIBADD = $(XINE_LIB) $(DVDNAV_LIBS)
 
-xineplug_decode_spu_la_LIBADD = $(XINE_LIB) $(link_dvdnav)
+else
+
+xineplug_decode_spu_la_SOURCES = \
+	nav_read.c \
+	spu.c \
+	xine_decoder.c
+AM_CPPFLAGS = -I$(top_srcdir)/src/input/libdvdnav
+xineplug_decode_spu_la_LIBADD = $(XINE_LIB)
+
+endif
+
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = spu.h

@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.63 2003/04/29 15:58:32 jcdutton Exp $
+ * $Id: spu.c,v 1.64 2003/04/30 16:49:34 mroi Exp $
  *
  */
 
@@ -56,13 +56,12 @@
 #include "buffer.h"
 #include "xine-engine/bswap.h"
 #ifdef HAVE_DVDNAV
-#include <dvdnav/nav_read.h>
-#include <dvdnav/nav_print.h>
+#  include <dvdnav/nav_read.h>
+#  include <dvdnav/nav_print.h>
 #else
-#include "../input/libdvdnav/nav_read.h"
-#include "../input/libdvdnav/nav_print.h"
+#  include "nav_read.h"
+#  include "nav_print.h"
 #endif
-
 
 
 /*

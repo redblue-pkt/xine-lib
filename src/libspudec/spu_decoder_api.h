@@ -26,10 +26,14 @@
 
 #define SPU_DECODER_IFACE_VERSION 13
 
-#ifdef HAVE_DVDNAV
-#include <dvdnav/nav_types.h>
+#ifdef XINE_COMPILE
+#  ifdef HAVE_DVDNAV
+#    include <dvdnav/nav_types.h>
+#  else
+#    include "../input/libdvdnav/nav_types.h"
+#  endif
 #else
-#include "../input/libdvdnav/nav_types.h"
+#  include "nav_types.h"
 #endif
 
 /*
