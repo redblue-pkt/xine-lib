@@ -19,6 +19,20 @@
  *
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
+ *
+ * how to set up mp1e for use with this plugin:
+ * 
+ * use mp1 to capture the live stream, e.g.
+ * mp1e -b 1200 -R 4,32 -a 0 -B 160 -v >live.mpg 
+ *
+ * add an extra service "xine" to /etc/services and /etc/inetd.conf, e.g.:
+ * /etc/services:
+ * xine       1025/tcp
+ * /etc/inetd.conf:
+ * xine            stream  tcp     nowait  bartscgr        /usr/sbin/tcpd /usr/bin/tail -f /home/bartscgr/Projects/inf.misc/live.mpg
+ *
+ * now restart inetd and you can use xine to watch the live stream, e.g.:
+ * xine tcp://192.168.0.43:1025.mpg
  */
 
 #ifdef HAVE_CONFIG_H
