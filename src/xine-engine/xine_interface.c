@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.6 2002/09/06 18:13:12 mroi Exp $
+ * $Id: xine_interface.c,v 1.7 2002/09/09 13:55:57 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -321,7 +321,22 @@ void xine_set_param (xine_p this_ro, int param, int value) {
 
   case XINE_PARAM_AUDIO_MUTE:
     break; /* FIXME: implement */
-
+    
+  case XINE_PARAM_VO_DEINTERLACE:
+  case XINE_PARAM_VO_ASPECT_RATIO:
+  case XINE_PARAM_VO_HUE:
+  case XINE_PARAM_VO_SATURATION:
+  case XINE_PARAM_VO_CONTRAST:
+  case XINE_PARAM_VO_BRIGHTNESS:
+  case XINE_PARAM_VO_ZOOM_X:
+  case XINE_PARAM_VO_ZOOM_Y:
+  case XINE_PARAM_VO_PAN_SCAN:
+  case XINE_PARAM_VO_TVMODE:
+    this->video_driver->set_property(this->video_driver, param & 0xffffff, value);
+    break;
+    
+  default:
+    printf ("xine_interface: unknown param %d\n", param);
   }
 }
 
@@ -349,9 +364,21 @@ int  xine_get_param (xine_p this, int param) {
   case XINE_PARAM_AUDIO_MUTE:
     return -1; /* FIXME: implement */
 
+  case XINE_PARAM_VO_DEINTERLACE:
+  case XINE_PARAM_VO_ASPECT_RATIO:
+  case XINE_PARAM_VO_HUE:
+  case XINE_PARAM_VO_SATURATION:
+  case XINE_PARAM_VO_CONTRAST:
+  case XINE_PARAM_VO_BRIGHTNESS:
+  case XINE_PARAM_VO_ZOOM_X:
+  case XINE_PARAM_VO_ZOOM_Y:
+  case XINE_PARAM_VO_PAN_SCAN:
+  case XINE_PARAM_VO_TVMODE:
+    return this->video_driver->get_property(this->video_driver, param & 0xffffff);
+    break;
+    
   default:
     printf ("xine_interface: unknown param %d\n", param);
-    abort ();
   }
 
   return 0;
