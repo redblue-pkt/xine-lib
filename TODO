@@ -1,4 +1,63 @@
 
+The road to 1.0
+
+required for 1.0pre
+-------------------
+
+- input_vcd
+- input_stdin, input_net (guenter)
+- demux_asf: content detection for files (guenter)
+- file plugin: handle URIS (translate %-encoded characters, # as separator)
+  (guenter)
+
+
+required for 1.0
+----------------
+
+- decoder plugin garbage collection (unload unused decoder plugins)
+- fix memleaks
+- brightness/contrast : map to specified ranges 
+- implement get_audio/video_frame at least for 1 set of demuxer+decoders
+  implement null_audio/video_output plugins
+  implement test frontend that uses these functions
+- use report_codec function again so uis can display error messages if
+  codecs are missing
+- fix rate estimation in demux_mpeg/demux_mpeg_block
+- fix streaming if small files (e.g. http)
+- implement timeout in input_http, implement it correctly using select()
+- fix potential overflow in compressor audio filter
+- xine health check
+- sputext decoder plugin
+- spucc decoder plugin
+- xvid decoder plugin
+- faad decoder plugin
+- opengl video output plugin
+- esd audio output plugin
+- arts audio output plugin
+- irix audio output plugin
+- input_dvd: detect errors, display useful error messages
+
+opional
+-------
+
+- input_rtp
+- mmsh support
+- theora support
+- come up with a better idea how to specify external subtitle files
+- audio filter plugins
+- detect broken savage drivers in health check, disable Xv in that case
+- dvb support (guenter)
+- icecast metadata (guenter)
+- id3v2 (guenter)
+- syncfb video output plugin
+- vidix video output plugin
+- pgx64 video output plugin
+- fb video output plugin
+- sdl video output plugin
+- directfb video output plugin
+- reduce memory footprint (e.g. variable fifo buffer sizes...)
+
+
 Assigned tasks
 ==============
 
