@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.82 2001/11/30 12:32:01 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.83 2001/12/01 23:01:18 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -840,7 +840,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if ( (frame->width != this->delivered_width)
 	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
-	 printf("debug: change frame format\n");
+	 printf("video_out_xv: change frame format\n");
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
 
