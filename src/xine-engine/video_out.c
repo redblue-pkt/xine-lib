@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.15 2001/06/10 01:26:46 guenter Exp $
+ * $Id: video_out.c,v 1.16 2001/06/11 01:27:03 heikos Exp $
  *
  */
 
@@ -186,9 +186,12 @@ static void *video_out_loop (void *this_gen) {
 	  "it's too old (diff : %d > %d).\n",pts,diff,
 	  this->pts_per_half_frame);
 	*/
-	printf ("video_out : throwing away image with pts %d because "
-		"it's too old (diff : %d > %d).\n",pts,diff,
-		this->pts_per_half_frame);
+
+	fprintf (stderr,
+		 "video_out : throwing away image with pts %d because "
+		 "it's too old (diff : %d > %d).\n",pts,diff,
+		 this->pts_per_half_frame);
+
 	this->num_frames_discarded++;
 
 	img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
@@ -392,7 +395,6 @@ static int vo_frame_draw (vo_frame_t *img) {
 
       this->num_frames_discarded++;
       xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
-      printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
 
       return frames_to_skip;
 
@@ -420,7 +422,8 @@ static int vo_frame_draw (vo_frame_t *img) {
    */
   
   if (this->num_frames_delivered>199) {
-    printf ("%d frames delivered, %d frames skipped, %d frames discarded\n", 
+    fprintf (stderr, 
+	     "%d frames delivered, %d frames skipped, %d frames discarded\n", 
             this->num_frames_delivered, this->num_frames_skipped, this->num_frames_discarded);
 
     this->num_frames_delivered = 0;
