@@ -2,6 +2,8 @@
 # the Makefile for the native xine audio decoders
 #
 
+EXTRA_DIST = fooaudio.c
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
