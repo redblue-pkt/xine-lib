@@ -5,7 +5,7 @@ xine (0.9.5) unstable; urgency=low
   * demux_asf bugfixes
   * input_http bugfixes, proxy, auth and proxy-auth support
   * snapshots of YUY2 images should work now
-  * SyncFB video out plugin: quite some bug fixes and YUY2 support
+  * SyncFB video out plugin: bug fixes, YUY2 support and several enhancements
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov  6 11:06:53 CET 2001
 
