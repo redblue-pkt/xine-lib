@@ -347,7 +347,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
 
 #else	/* !__linux__ */
 xine_health_check_t*
-xine_health_check (xine_health_check_t* hc)
+xine_health_check (xine_health_check_t* hc, int check_num)
 {
   hc->status = XINE_HEALTH_CHECK_UNSUPPORTED;
   hc->msg = "Xine health check not supported on the OS.\n";
