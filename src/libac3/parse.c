@@ -24,7 +24,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include "ac3.h"
 #include "ac3_internal.h"
 
@@ -185,6 +184,30 @@ static int parse_exponents (int expstr, int ngrps, uint8_t exponent,
     return 0;
 }
 
+static int parse_deltba (int8_t * deltba)
+{
+    int deltnseg, deltlen, delta, j;
+
+    memset (deltba, 0, 50);
+
+    deltnseg = bitstream_get (3);
+    j = 0;
+    do {
+	j += bitstream_get (5);
+	deltlen = bitstream_get (4);
+	delta = bitstream_get (3);
+	delta -= (delta >= 4) ? 3 : 4;
+	if (!deltlen)
+	    continue;
+	if (j + deltlen >= 50)
+	    return 1;
+	while (deltlen--)
+	    deltba[j++] = delta;
+    } while (deltnseg--);
+
+    return 0;
+}
+
 static inline int zero_snr_offsets (ac3_state_t * state, audblk_t * audblk)
 {
     int i;
@@ -284,7 +307,7 @@ int parse_audblk (ac3_state_t * state, audblk_t * audblk)
 		audblk->endmant[i] = audblk->cplstrtmant;
 	    else {
 		audblk->chbwcod[i] = bitstream_get (6);
-		audblk->endmant[i] = ((audblk->chbwcod[i] + 12) * 3) + 37;
+		audblk->endmant[i] = audblk->chbwcod[i] * 3 + 73;
 	    }
 	}
 
@@ -358,25 +381,13 @@ int parse_audblk (ac3_state_t * state, audblk_t * audblk)
 	    audblk->cplba.deltbae = bitstream_get (2);
 	for (i = 0; i < state->nfchans; i++)
 	    audblk->ba[i].deltbae = bitstream_get (2);
-	if (audblk->cplinu && (audblk->cplba.deltbae == DELTA_BIT_NEW)) {
-	    audblk->cplba.deltnseg = bitstream_get (3);
-	    for (i = 0; i < audblk->cplba.deltnseg + 1; i++) {
-		audblk->cplba.deltoffst[i] = bitstream_get (5);
-		audblk->cplba.deltlen[i] = bitstream_get (4);
-		audblk->cplba.deltba[i] = bitstream_get (3);
-	    }
-	}
-	for (i = 0; i < state->nfchans; i++) {
-	    if (audblk->ba[i].deltbae == DELTA_BIT_NEW) {
-		int j;
-		audblk->ba[i].deltnseg = bitstream_get (3);
-		for (j = 0; j < audblk->ba[i].deltnseg + 1; j++) {
-		    audblk->ba[i].deltoffst[j] = bitstream_get (5);
-		    audblk->ba[i].deltlen[j] = bitstream_get (4);
-		    audblk->ba[i].deltba[j] = bitstream_get (3);
-		}
-	    }
-	}
+	if (audblk->cplinu && (audblk->cplba.deltbae == DELTA_BIT_NEW) &&
+	    parse_deltba (audblk->cplba.deltba))
+	    return 1;
+	for (i = 0; i < state->nfchans; i++)
+	    if ((audblk->ba[i].deltbae == DELTA_BIT_NEW) &&
+		parse_deltba (audblk->ba[i].deltba))
+		return 1;
     }
 
     if (do_bit_alloc) {
@@ -385,20 +396,24 @@ int parse_audblk (ac3_state_t * state, audblk_t * audblk)
 	    memset (audblk->fbw_bap, 0, sizeof (audblk->fbw_bap));
 	    memset (audblk->lfe_bap, 0, sizeof (audblk->lfe_bap));
 	} else {
+	    static int bndtab[16] = {31, 35, 37, 39, 41, 42, 43, 44,
+				     45, 45, 46, 46, 47, 47, 48, 48};
+
 	    if (audblk->cplinu)
 		bit_allocate (state->fscod, audblk, &audblk->cplba,
-			      audblk->cplstrtmant, audblk->cplendmant,
-			      (audblk->cplfleak << 8) + 768,
-			      (audblk->cplsleak << 8) + 768,
-			      audblk->cpl_exp, audblk->cpl_bap, 0);
+			      bndtab[audblk->cplbegf], audblk->cplstrtmant,
+			      audblk->cplendmant,
+			      2304 - (audblk->cplfleak << 8),
+			      2304 - (audblk->cplsleak << 8),
+			      audblk->cpl_exp, audblk->cpl_bap);
 	    for (i = 0; i < state->nfchans; i++)
-		bit_allocate (state->fscod, audblk, audblk->ba + i, 0,
+		bit_allocate (state->fscod, audblk, audblk->ba + i, 0, 0,
 			      audblk->endmant[i], 0, 0,
-			      audblk->fbw_exp[i], audblk->fbw_bap[i], 0);
+			      audblk->fbw_exp[i], audblk->fbw_bap[i]);
 	    if (state->lfeon) {
 		audblk->lfeba.deltbae = DELTA_BIT_NONE;
-		bit_allocate (state->fscod, audblk, &audblk->lfeba, 0, 7, 0, 0,
-			      audblk->lfe_exp, audblk->lfe_bap, 1);
+		bit_allocate (state->fscod, audblk, &audblk->lfeba, 0, 0, 7,
+			      0, 0, audblk->lfe_exp, audblk->lfe_bap);
 	    }
 	}
     }
