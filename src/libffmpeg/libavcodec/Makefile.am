@@ -6,9 +6,9 @@ SUBDIRS = armv4l i386 mlib alpha
 
 EXTRA_DIST = fdctref.c imgresample.c
 
-#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@ -DHAVE_AV_CONFIG_H
+#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@
 
-CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS) -DHAVE_AV_CONFIG_H
+CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -37,7 +37,7 @@ noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h \
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS) -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

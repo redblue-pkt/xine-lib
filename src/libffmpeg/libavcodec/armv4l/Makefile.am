@@ -2,9 +2,9 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+#CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@
 
-CFLAGS = -O2 $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -28,7 +28,7 @@ noinst_HEADERS =
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

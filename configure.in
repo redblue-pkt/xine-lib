@@ -202,7 +202,7 @@ AC_SUBST(LIBFFMPEG_CFLAGS)
 
 LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
 LIBA52_CFLAGS=""
-LIBFFMPEG_CFLAGS=""
+LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H"
 
 AC_ARG_ENABLE(altivec, [  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
 	      enable_altivec=no, enable_altivec=yes)
