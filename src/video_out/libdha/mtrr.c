@@ -4,11 +4,11 @@
     2002	- Linux version by Nick Kurshev
     Licence: GPL
 */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
 
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 #include "libdha.h"
 #include "AsmMacros.h"
