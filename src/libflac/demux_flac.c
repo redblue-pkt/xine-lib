@@ -233,8 +233,8 @@ flac_metadata_callback (const FLAC__SeekableStreamDecoder *decoder,
        this->bits_per_sample = metadata->data.stream_info.bits_per_sample;
        this->channels        = metadata->data.stream_info.channels;
        this->sample_rate     = metadata->data.stream_info.sample_rate;
-       this->length_in_msec  = (this->total_samples * 10 /
-                                (this->sample_rate / 100))/1000;
+       this->length_in_msec  = (this->total_samples * 1000) /
+                                this->sample_rate;
      }
      return;
 }
@@ -283,11 +283,9 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
                         - this->data_start;
 
     current_pts = current_file_pos;
-    current_pts *= 90000;
-    if (this->sample_rate != 0)
-    {
-        current_pts /= this->sample_rate;
-    }
+    current_pts *= this->length_in_msec * 90;
+    if( (this->data_size - this->data_start) > 0 )
+        current_pts /= (this->data_size - this->data_start);
 
     if (this->seek_flag) {
         _x_demux_control_newpts (this->stream, current_pts, 0);
@@ -304,7 +302,7 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_FLAC;
         buf->extra_info->input_pos    = current_file_pos;
-        buf->extra_info->input_length = this->data_size;
+        buf->extra_info->input_length = this->data_size - this->data_start;
         buf->extra_info->input_time   = current_pts / 90;
         //buf->pts = current_pts;
 
