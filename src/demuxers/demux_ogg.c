@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.18 2002/03/27 15:30:16 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.19 2002/04/04 10:36:35 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -40,12 +40,47 @@
 #include "xineutils.h"
 #include "demux.h"
 
+#define LOG
+
 #define CHUNKSIZE 8500
 
 #define MAX_STREAMS 16
 
 #define VALID_ENDS  "ogg"
 
+typedef struct dsogg_video_header_s {
+  int32_t width;
+  int32_t height;
+} dsogg_video_header_t;
+
+typedef struct dsogg_audio_header_s {
+  int16_t channels;
+  int16_t blockalign;
+  int32_t avgbytespersec;
+} dsogg_audio_header_t;
+
+typedef struct {
+
+  char streamtype[8];
+  char subtype[4];
+
+  int32_t size; /* size of the structure */
+
+  int64_t time_unit; /* in reference time */
+  int64_t samples_per_unit;
+  int32_t default_len; /* in media time */
+
+  int32_t buffersize;
+  int16_t bits_per_sample;
+
+  union {
+    /* video specific */
+    struct dsogg_video_header_s video;
+    /* audio specific */
+    struct dsogg_audio_header_s audio;
+  } hubba;
+} dsogg_header_t;
+ 
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
 
@@ -67,13 +102,46 @@ typedef struct demux_ogg_s {
   ogg_sync_state        oy;
   ogg_stream_state      os;
   ogg_page              og;
-  
+
   ogg_stream_state      oss[MAX_STREAMS];
   uint32_t              buf_types[MAX_STREAMS];
   int                   num_streams;
+
+  int                   pkg_count;
+
 } demux_ogg_t ;
 
-static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
+static void hex_dump (uint8_t *p, int length) {
+
+  int i;
+
+  for (i=0; i<length; i++) {
+    unsigned char c = p[i];
+
+    printf ("%02x", c);
+
+    if ((i % 16) == 15)
+      printf ("\n");
+
+    if ((i % 2) == 1)
+      printf (" ");
+
+  }
+  printf ("\n");
+
+  for (i=0; i<length; i++) {
+    unsigned char c = p[i];
+    if ( (c>=20) && (c<128))
+      printf ("%c", c);
+    else
+      printf (".");
+  }
+  printf ("\n");
+  
+
+}
+
+static void demux_ogg_send_package (demux_ogg_t *this) {
 
   int i;
   int stream_num = -1;
@@ -139,6 +207,27 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 	  xine_log (this->xine, XINE_LOG_FORMAT,
 		    _("ogg: vorbis audio stream detected\n"));
 
+	} else if (!strncmp (&op.packet[1], "video", 5)) {
+
+	  dsogg_header_t *oggh;
+
+	  printf ("demux_ogg: direct show filter created stream detected, hexdump:\n");
+	  
+	  hex_dump (op.packet, op.bytes);
+
+	  oggh = (dsogg_header_t *) &op.packet[1];
+
+	  printf ("demux_ogg: subtype          %.4s\n", oggh->subtype);
+	  printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
+	  printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
+	  printf ("demux_ogg: default_len      %d\n", oggh->default_len); 
+	  printf ("demux_ogg: buffersize       %d\n", oggh->buffersize); 
+	  printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
+	  printf ("demux_ogg: width            %d\n", oggh->hubba.video.width); 
+	  printf ("demux_ogg: height           %d\n", oggh->hubba.video.height); 
+
+	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
+
 	} else {
 	  printf ("demux_ogg: unknown streamtype, signature: >%.8s<\n",
 		  op.packet);
@@ -150,6 +239,8 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	}
       }
+
+      this->pkg_count++;
       
       if ( this->audio_fifo 
 	   && (this->buf_types[stream_num] & 0xFF000000) == BUF_AUDIO_BASE) {
@@ -176,7 +267,7 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 	buf->pts    = 0; /* FIXME */
 	buf->size   = op.bytes;
 	
-	buf->decoder_info[0] = is_content;
+	buf->decoder_flags = 0;
 
 	buf->input_pos  = this->input->get_current_pos (this->input);
 	buf->input_time = 0;
@@ -199,7 +290,7 @@ static void *demux_ogg_loop (void *this_gen) {
   this->send_end_buffers = 1;
 
   while (this->status == DEMUX_OK) {
-    demux_ogg_send_package (this, 0);
+    demux_ogg_send_package (this);
   }
 
   /*
@@ -313,8 +404,9 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
   this->input->seek (this->input, 0, SEEK_SET);
 
   /* send header */
+  this->pkg_count = 0;
   for (i=0; i<5; i++) 
-    demux_ogg_send_package (this, 0);
+    demux_ogg_send_package (this);
 
 
   /*
