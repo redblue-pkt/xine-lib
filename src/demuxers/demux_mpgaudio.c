@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.42 2002/05/16 22:18:39 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.43 2002/05/19 12:27:36 esnel Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -510,7 +510,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
     return NULL;
   }
   
-  this         = malloc (sizeof (demux_mpgaudio_t));
+  this         = xine_xmalloc (sizeof (demux_mpgaudio_t));
   this->config = xine->config;
   this->xine   = xine;
 
