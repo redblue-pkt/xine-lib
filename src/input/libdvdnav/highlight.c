@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: highlight.c,v 1.15 2003/05/16 09:56:50 mroi Exp $
+ * $Id: highlight.c,v 1.16 2003/06/02 06:36:33 f1rmb Exp $
  *
  */
 
@@ -213,7 +213,8 @@ dvdnav_status_t dvdnav_get_current_highlight(dvdnav_t *this, int32_t *button) {
   }
 
   /* Simply return the appropriate value based on the SPRM */
-  (*button) = this->position_current.button;
+  if(((*button) = this->position_current.button) == -1)
+    (*button) = this->vm->state.HL_BTNN_REG >> 10;
   
   return DVDNAV_STATUS_OK;
 }

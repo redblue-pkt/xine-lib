@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.87 2003/05/28 04:26:02 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.88 2003/06/02 06:36:30 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1255,6 +1255,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
 #define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
 #define XINE_EVENT_UI_NUM_BUTTONS        10 /* number of buttons for interactive menus */
+#define XINE_EVENT_SPU_BUTTON            11 /* the mouse pointer enter/leave a button */
 
 /* input events coming from frontend */
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101
@@ -1458,6 +1459,10 @@ typedef struct {
 
 } xine_set_mpeg_data_t;
 
+typedef struct {
+  int                 direction; /* 0 leave, 1 enter */
+  int32_t             button; /* button number */
+} xine_spu_button_t;
 
 #ifdef XINE_ENABLE_EXPERIMENTAL_FEATURES
 
