@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.287 2004/04/05 17:58:54 hadess Exp $
+ * $Id: xine.c,v 1.288 2004/04/08 16:20:14 f1rmb Exp $
  */
 
 /*
@@ -326,7 +326,7 @@ void xine_stop (xine_stream_t *stream) {
 
   stream->ignore_speed_change = 1;
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
-  
+
   if (stream->audio_out)
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
   if (stream->video_out)
@@ -1239,7 +1239,6 @@ void xine_dispose (xine_stream_t *stream) {
 }
 
 void xine_exit (xine_t *this) {
-
   int i;
 
   xprintf (this, XINE_VERBOSITY_DEBUG, "xine_exit: bye!\n");
@@ -1248,18 +1247,19 @@ void xine_exit (xine_t *this) {
     this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   _x_dispose_plugins (this);
-  
-  xine_list_free(this->streams);
-  
+
+  if(this->streams)
+    xine_list_free(this->streams);
+
   if(this->clock)
     this->clock->exit (this->clock);
   
   if(this->config)
     this->config->dispose(this->config);
-  
-  if(this->port_ticket)
+
+  if(this->port_ticket && this->port_ticket->dispose)
     this->port_ticket->dispose(this->port_ticket);
-  
+
 #if defined(WIN32)
   WSACleanup();
 #endif
@@ -1270,7 +1270,6 @@ void xine_exit (xine_t *this) {
 }
 
 xine_t *xine_new (void) {
-
   xine_t      *this;
   int          i;
 
@@ -1282,6 +1281,11 @@ xine_t *xine_new (void) {
   this = xine_xmalloc (sizeof (xine_t));
   if (!this)
     _x_abort();
+
+  this->plugin_catalog = NULL;
+  this->save_path      = NULL;
+  this->streams        = NULL;
+  this->clock          = NULL;
 
 #ifdef ENABLE_NLS
   /*
@@ -1566,8 +1570,9 @@ int xine_get_status (xine_stream_t *stream) {
 
 void _x_set_speed (xine_stream_t *stream, int speed) {
 
-  if (stream->ignore_speed_change) return;
-  
+  if (stream->ignore_speed_change)
+    return;
+
   if (speed <= XINE_SPEED_PAUSE)
     speed = XINE_SPEED_PAUSE;
   else if (speed > XINE_SPEED_FAST_4)
