@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.35 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: input_vcd.c,v 1.36 2002/01/18 23:16:05 f1rmb Exp $
  *
  */
 
@@ -960,7 +960,7 @@ static void vcd_plugin_stop (input_plugin_t *this_gen) {
  *
  */
 static char *vcd_plugin_get_description (input_plugin_t *this_gen) {
-  return _("plain file input plugin as shipped with xine");
+  return _("vcd device input plugin as shipped with xine");
 }
 
 /*
