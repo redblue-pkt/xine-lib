@@ -20,6 +20,7 @@ xine-lib (1-beta5)
     enduring - audio stutters in DVD playback)
   * win32 loader bugfixes (most notably indeo, quicktime and wmv9)
   * FFT post plugin improvements
+  * 'Qclp' Qualcomm PureVoice audio decoing via Quicktime DLL
 
 xine-lib (1-beta4)
   * http input fixes
