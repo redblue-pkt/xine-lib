@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.23 2001/09/27 12:48:01 jkeil Exp $
+ * $Id: input_vcd.c,v 1.24 2001/10/03 15:09:04 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -230,7 +230,7 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
     {
       struct cdrom_read cdread;
       cdread.cdread_lba = 4*lba;
-      cdread.cdread_bufaddr = data->subheader;
+      cdread.cdread_bufaddr = (caddr_t)data->subheader;
       cdread.cdread_buflen = 2336;
 
       if(ioctl(this->fd,CDROMREADMODE2,&cdread)==-1) {
@@ -285,7 +285,7 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
       
       sc.uscsi_cdb = (caddr_t)&cdb;
       sc.uscsi_cdblen = 12;
-      sc.uscsi_bufaddr = data->subheader;
+      sc.uscsi_bufaddr = (caddr_t)data->subheader;
       sc.uscsi_buflen = 2340;
       sc.uscsi_flags = USCSI_ISOLATE | USCSI_READ;
       sc.uscsi_timeout = 20;
