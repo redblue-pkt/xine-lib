@@ -395,9 +395,12 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
              [ AC_MSG_CHECKING(for $xv_lib location)
                if test -f "$xv_path/$xv_lib"; then
                  AC_MSG_RESULT(found in $xv_path)
-                 XV_LIB="-lXv"
+                 XV_LIB="-L$xv_path -lXv"
 	         AC_DEFINE(HAVE_XV,1,[Define this if you have libXv installed])
 	         ac_have_xv="yes"
+		 if test x$xv_lib = "xlibXv.a" ; then
+		   AC_DEFINE(HAVE_XV_STATIC,1,[Define this if you have libXv.a])
+		 fi
                else
                  AC_MSG_RESULT(not found in $xv_path)
 	         echo
@@ -411,6 +414,7 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
 	         echo
                fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
+AM_CONDITIONAL(HAVE_XV_STATIC, test x$ac_have_xv = "xyes" -a x$xv_lib = "xlibXv.a")
 dnl
 dnl xine_check use Xv functions API.
 dnl

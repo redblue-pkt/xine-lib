@@ -331,7 +331,10 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   Display               *dpy;
   unsigned int          ver, rev, eventB, reqB, errorB;
   char                  *disname = NULL;
-  void                  *x11_handle, *xv_handle;
+  void                  *x11_handle;
+#ifndef HAVE_XV_STATIC
+  void                  *xv_handle;
+#endif
   Display               *(*xopendisplay)(char*);
   char                  *(*xdisplayname)(char*);
   int                   (*xvqueryextension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
@@ -374,6 +377,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     return hc;
   }
   
+#ifndef HAVE_XV_STATIC
   dlerror(); /* clear error code */
   xv_handle = dlopen("libXv.so", RTLD_LAZY);
   if(!xv_handle) {
@@ -412,6 +416,11 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     dlclose(xv_handle);
     return hc;
   }
+#else
+  xvqueryextension   = XvQueryExtension;
+  xvqueryadaptors    = XvQueryAdaptors;
+  xvlistimageformats = XvListImageFormats;
+#endif
   
   if(!(dpy = (*xopendisplay)(disname))) {
 
@@ -420,7 +429,9 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n", disname);
     dlclose(x11_handle);
+#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
+#endif
     return hc;
   }
 
@@ -430,7 +441,9 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n",disname);
     dlclose(x11_handle);
+#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
+#endif
     return hc;
   }
   else {
@@ -445,7 +458,9 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 				 &adaptors,&adaptor_info))  {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: XvQueryAdaptors failed.\n");
     dlclose(x11_handle);
+#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
+#endif
     return hc;
   }
 
@@ -467,7 +482,9 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   }
 
   dlclose(x11_handle);
+#ifndef HAVE_XV_STATIC
   dlclose(xv_handle);
+#endif
   
   return hc;
 #else
@@ -475,7 +492,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   hc->explanation = "You can improve performance by installing an X11\n"
     "driver that supports the Xv protocol extentsion.";
 
-  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X-Video Extension");
+  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X-Video Extension was present at compile time");
   return hc;
 #endif /* ! HAVE_HV */
 #else
@@ -483,7 +500,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   hc->explanation = "You can improve performance by installing an X11\n"
     "driver that supports the Xv protocol extentsion.";
 
-  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X11 windowing system");
+  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X11 windowing system was present at compile time");
   return hc;
 #endif /* ! HAVE_X11 */
 }

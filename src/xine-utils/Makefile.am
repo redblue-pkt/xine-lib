@@ -10,7 +10,11 @@ if PPC_ARCH
 pppc_files = ppcasm_string.S 
 endif
 
-AM_CFLAGS = $(THREAD_CFLAGS) @ANSI_FLAGS@
+if HAVE_XV_STATIC
+xv_libs = $(XV_LIB)
+endif
+
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) @ANSI_FLAGS@
 
 libxineutils_la_SOURCES = $(pppc_files) \
 	cpu_accel.c \
@@ -25,7 +29,7 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmlparser.c \
 	xine_buffer.c 
 
-libxineutils_la_LIBADD = $(THREAD_LIBS)
+libxineutils_la_LIBADD = $(THREAD_LIBS) $(xv_libs)
 
 include_HEADERS = attributes.h \
 	compat.h \
@@ -37,7 +41,7 @@ include_HEADERS = attributes.h \
 	xine_buffer.h
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
