@@ -51,7 +51,7 @@ main() {
 
   rm -rf $distdir
   rm -f $distdir.tar.gz
-  ./config.status
+  ./config.status --recheck
 
   echo " * Log is ${log##*/}"
   echo " * Error log is ${logerror##*/}"
