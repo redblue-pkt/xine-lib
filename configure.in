@@ -1159,6 +1159,8 @@ echo "   - cyuv            - divx4"
 echo "   - cinepak         - msvc"
 echo "   - adpcm           - lpcm"
 echo "   - roqaudio        - roqvideo"
+echo "   - fli             - msrle"
+echo "   - rgb             - yuv"
 echo "   - svq1"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
