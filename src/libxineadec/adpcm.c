@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.6 2002/06/12 04:00:28 tmmm Exp $
+ * $Id: adpcm.c,v 1.7 2002/06/20 02:57:41 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -719,6 +719,17 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       SE_16BIT(sample2[1]);
     }
 
+    /* first 2 samples go directly to the output */
+    if (this->channels == 1) {
+      this->decode_buffer[out_ptr++] = sample2[0];
+      this->decode_buffer[out_ptr++] = sample1[0];
+    } else {
+      this->decode_buffer[out_ptr++] = sample2[0];
+      this->decode_buffer[out_ptr++] = sample2[1];
+      this->decode_buffer[out_ptr++] = sample1[0];
+      this->decode_buffer[out_ptr++] = sample1[1];
+    }
+
     j = MS_ADPCM_PREAMBLE_SIZE * this->channels;
     while (j < this->in_block_size) {
       /* get the next nibble */
@@ -832,7 +843,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         case BUF_AUDIO_MSADPCM:
           this->out_block_size =
             (this->in_block_size - 
-            (MS_ADPCM_PREAMBLE_SIZE * this->channels)) * 2;
+            ((MS_ADPCM_PREAMBLE_SIZE - 2) * this->channels)) * 2;
           break;
 
         case BUF_AUDIO_DK4ADPCM:
