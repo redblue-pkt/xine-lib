@@ -45,8 +45,5 @@ xine_health_check_t* xine_health_check_x(xine_health_check_t*);
 /* health_check Xv extension */
 xine_health_check_t* xine_health_check_xv(xine_health_check_t*);
 
-/* Format message string */
-/* Format must not be NULL */
-static void set_hc_result (xine_health_check_t* hc, int state, char *format, ...);
 #endif
 

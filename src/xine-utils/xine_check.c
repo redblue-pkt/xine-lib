@@ -94,6 +94,56 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
   return hc;
 }
 
+static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
+
+  va_list   args;
+  char     *buf = NULL;
+  int       n, size;
+
+  if (!hc) {
+    printf("%s() GASP, hc is NULL\n", __XINE_FUNCTION__);
+    abort();
+  }
+
+  if (!format) {
+    printf("%s() GASP, format is NULL\n", __XINE_FUNCTION__);
+    abort();
+  }
+
+  size = strlen(format) + 1;
+
+  if((buf = malloc(size)) == NULL) {
+    printf("%s() GASP, malloc() failed\n", __XINE_FUNCTION__);
+    abort();
+  }
+
+  while(1) {
+    va_start(args, format);
+    n = vsnprintf(buf, size, format, args);
+    va_end(args);
+
+    if(n > -1 && n < size) {
+      break;
+      }
+
+    if(n > -1) {
+      size = n + 1;
+    }
+    else {
+      size *= 2;
+    }
+
+    if((buf = realloc(buf, size)) == NULL) {
+      printf("%s() GASP, realloc() failed\n", __XINE_FUNCTION__);
+      abort();
+    }
+  }
+
+  hc->msg = buf;
+  hc->status = state;
+}
+
+
 xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
   struct utsname kernel;
 
@@ -361,51 +411,4 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
 }
 #endif	/* !__linux__ */
 
-static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
 
-  va_list   args;
-  char     *buf = NULL;
-  int       n, size;
-
-  if (!hc) {
-    printf("%s() GASP, hc is NULL\n", __XINE_FUNCTION__);
-    abort();
-  }
-
-  if (!format) {
-    printf("%s() GASP, format is NULL\n", __XINE_FUNCTION__);
-    abort();
-  }
-
-  size = strlen(format) + 1;
-
-  if((buf = malloc(size)) == NULL) {
-    printf("%s() GASP, malloc() failed\n", __XINE_FUNCTION__);
-    abort();
-  }
-
-  while(1) {
-    va_start(args, format);
-    n = vsnprintf(buf, size, format, args);
-    va_end(args);
-
-    if(n > -1 && n < size) {
-      break;
-      }
-
-    if(n > -1) {
-      size = n + 1;
-    }
-    else {
-      size *= 2;
-    }
-
-    if((buf = realloc(buf, size)) == NULL) {
-      printf("%s() GASP, realloc() failed\n", __XINE_FUNCTION__);
-      abort();
-    }
-  }
-
-  hc->msg = buf;
-  hc->status = state;
-}
