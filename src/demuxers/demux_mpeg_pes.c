@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.10 2003/09/13 00:49:07 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.11 2003/09/13 19:46:53 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -889,7 +889,14 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 
     } else if((p[0]==0x0b) && (p[1]==0x77)) {
 
-      /* A52/AC3 streams in some DVB broadcasts. */      
+      /*
+       * A52/AC3 streams in some DVB-S recordings made with VDR. 
+       * It is broadcast by a german tv-station called PRO7.
+       * PRO7 uses dolby 5.1 (A52 5.1) in some of the movies they broadcast,
+       * (and they would switch it to stereo-sound(A52 2.0) during commercials.)
+       * Here is the coresponding line from a channel.conf for the astra-satelite:
+       * Pro-7:12480:v:S19.2E:27500:255:256;257:32:0:898:0:0:0
+       */
 
       buf->decoder_info[1] = 0; /* Number of frame headers */
       buf->decoder_info[2] = 0; /* First access unit pointer */
