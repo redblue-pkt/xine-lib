@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.15 2002/12/23 15:36:37 tmmm Exp $
+ * $Id: fli.c,v 1.16 2002/12/23 21:15:06 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -104,7 +104,7 @@ void decode_fli_frame(fli_decoder_t *this) {
   int color_packets;
   int color_changes;
   int color_shift;
-  unsigned r, g, b;
+  unsigned char r, g, b;
 
   int lines, x;
   int compressed_lines;
