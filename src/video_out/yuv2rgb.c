@@ -1,7 +1,8 @@
 /*
  * yuv2rgb.c
  *
- * This file is part of xine, a unix video player.
+ * Copyright (C) 2003 the xine project
+ * This file is part of xine, a free video player.
  *
  * based on work from mpeg2dec:
  * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
@@ -22,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.40 2003/02/02 17:27:45 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.41 2003/03/06 16:49:32 guenter Exp $
  */
 
 #include "config.h"
@@ -35,7 +36,9 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 
+/*
 #define	LOG
+*/
 
 static int prof_scale_line = -1;
 
@@ -2391,7 +2394,7 @@ static void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
 
 
   default:
-    fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
+    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", mode);
     abort();
   }
   
@@ -3184,16 +3187,20 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
 
     yuv2rgb_init_mmxext (this);
 
+#ifdef LOG
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using MMXEXT for colorspace transform\n");
+#endif
   }
 
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
 
     yuv2rgb_init_mmx (this);
 
+#ifdef LOG
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using MMX for colorspace transform\n");
+#endif
   }
 #endif
 #if HAVE_MLIB
@@ -3201,12 +3208,16 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
 
     yuv2rgb_init_mlib (this);
 
+#ifdef LOG
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using medialib for colorspace transform\n");
+#endif
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {
+#ifdef LOG
     printf ("yuv2rgb: no accelerated colorspace conversion found\n");
+#endif
     yuv2rgb_c_init (this);
   }
 

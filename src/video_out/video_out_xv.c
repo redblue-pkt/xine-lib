@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.160 2003/03/05 22:12:48 esnel Exp $
+ * $Id: video_out_xv.c,v 1.161 2003/03/06 16:49:32 guenter Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -137,6 +137,8 @@ struct xv_driver_s {
   uint32_t           colorkey;
 
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
+
+  xine_t            *xine;
 };
 
 typedef struct {
@@ -146,6 +148,7 @@ typedef struct {
   XvPortID             xv_port;
   XvAdaptorInfo       *adaptor_info;
   unsigned int         adaptor_num;
+  xine_t              *xine;
 } xv_class_t;
 
 int gX11Fail;
@@ -274,8 +277,10 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 			     width, height, shminfo);
 
     if (image == NULL )  {
-      printf("video_out_xv: XvShmCreateImage failed\n");
-      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf("video_out_xv: XvShmCreateImage failed\n");
+	printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      }
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -285,15 +290,19 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 			  IPC_CREAT | 0777);
 
     if (image->data_size==0) {
-      printf("video_out_xv: XvShmCreateImage returned a zero size\n");
-      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf("video_out_xv: XvShmCreateImage returned a zero size\n");
+	printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      }
       this->use_shm = 0;
       goto finishShmTesting;
     }
 
     if (shminfo->shmid < 0 ) {
-      perror("video_out_xv: shared memory error in shmget: ");
-      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	perror("video_out_xv: shared memory error in shmget: ");
+	printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      }
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -301,13 +310,15 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     shminfo->shmaddr  = (char *) shmat(shminfo->shmid, 0, 0);
 
     if (shminfo->shmaddr == NULL) {
-      printf("video_out_xv: shared memory error (address error NULL)\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("video_out_xv: shared memory error (address error NULL)\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
 
     if (shminfo->shmaddr == ((char *) -1)) {
-      printf("video_out_xv: shared memory error (address error)\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("video_out_xv: shared memory error (address error)\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -321,8 +332,10 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
     shmctl(shminfo->shmid, IPC_RMID, 0);
 
     if (gX11Fail) {
-      printf ("video_out_xv: x11 error during shared memory XImage creation\n");
-      printf ("video_out_xv: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf ("video_out_xv: x11 error during shared memory XImage creation\n");
+	printf ("video_out_xv: => not using MIT Shared Memory extension.\n");
+      }
       shmdt (shminfo->shmaddr);
       shmctl (shminfo->shmid, IPC_RMID, 0);
       shminfo->shmid = -1;
@@ -775,8 +788,9 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
-  printf ("video_out_xv: property #%d = %d\n", property,
-	  this->props[property].value);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+    printf ("video_out_xv: property #%d = %d\n", property,
+	    this->props[property].value);
 
   return this->props[property].value;
 }
@@ -818,8 +832,10 @@ static int xv_set_property (vo_driver_t *this_gen,
     case VO_PROP_INTERLACED:
 
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
-	     this->props[property].value);
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf("video_out_xv: VO_PROP_INTERLACED(%d)\n",
+	       this->props[property].value);
+      }
       this->deinterlace_enabled = value;
       if (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) {
          xv_compute_ideal_size (this);
@@ -832,8 +848,10 @@ static int xv_set_property (vo_driver_t *this_gen,
 	value = ASPECT_AUTO;
 
       this->props[property].value = value;
-      printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n",
-	     this->props[property].value);
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n",
+	       this->props[property].value);
+      }
       this->sc.user_ratio = value;
 
       xv_compute_ideal_size (this);
@@ -844,8 +862,9 @@ static int xv_set_property (vo_driver_t *this_gen,
 
       if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf ("video_out_xv: VO_PROP_ZOOM_X = %d\n",
-		this->props[property].value);
+	if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	  printf ("video_out_xv: VO_PROP_ZOOM_X = %d\n",
+		  this->props[property].value);
 
 	this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
 
@@ -858,8 +877,9 @@ static int xv_set_property (vo_driver_t *this_gen,
 
       if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf ("video_out_xv: VO_PROP_ZOOM_Y = %d\n",
-		this->props[property].value);
+	if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	  printf ("video_out_xv: VO_PROP_ZOOM_Y = %d\n",
+		  this->props[property].value);
 
 	this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
 
@@ -1054,8 +1074,9 @@ static void xv_check_capability (xv_driver_t *this,
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
-  printf ("video_out_xv: port attribute %s (%d) value is %d\n",
-	  str_prop, property, int_default);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+    printf ("video_out_xv: port attribute %s (%d) value is %d\n",
+	    str_prop, property, int_default);
 
   if (config_name) {
     /* is this a boolean property ? */
@@ -1111,7 +1132,8 @@ static void xv_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
   atom = XInternAtom (this->display, "XV_FILTER", False);
 
   XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
-  printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+    printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
 }
 
 static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) {
@@ -1124,7 +1146,8 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
   atom = XInternAtom (this->display, "XV_DOUBLE_BUFFER", False);
 
   XvSetPortAttribute (this->display, this->xv_port, atom, xv_double_buffer);
-  printf("video_out_xv: double buffering mode = %d\n",xv_double_buffer);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+    printf("video_out_xv: double buffering mode = %d\n",xv_double_buffer);
 }
 
 static void xv_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {
@@ -1152,8 +1175,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
   display = visual->display;
 
-  printf ("video_out_xv: open_plugin\n");
-
   this = malloc (sizeof (xv_driver_t));
 
   if (!this) {
@@ -1173,16 +1194,17 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 
-  this->drawable          = visual->d;
-  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->capabilities      = 0;
-  this->expecting_event   = 0;
-  this->use_shm           = 1;
-  this->deinterlace_method = 0;
+  this->drawable                = visual->d;
+  this->gc                      = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->capabilities            = 0;
+  this->expecting_event         = 0;
+  this->use_shm                 = 1;
+  this->deinterlace_method      = 0;
   this->deinterlace_frame.image = NULL;
-  this->use_colorkey      = 0;
-  this->colorkey          = 0;
-  this->x11_old_error_handler = NULL;
+  this->use_colorkey            = 0;
+  this->colorkey                = 0;
+  this->x11_old_error_handler   = NULL;
+  this->xine                    = class->xine;
 
   XAllocNamedColor (this->display,
 		    DefaultColormap(this->display, this->screen),
@@ -1286,7 +1308,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
       }
     }
     XFree(attr);
-  } else {
+  } else if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)  {
     printf("video_out_xv: no port attributes defined.\n");
   }
 
@@ -1308,11 +1330,13 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     if (fo[i].id == XINE_IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;
-      printf("video_out_xv: this adaptor supports the yv12 format.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("video_out_xv: this adaptor supports the yv12 format.\n");
     } else if (fo[i].id == XINE_IMGFMT_YUY2) {
       this->xv_format_yuy2 = fo[i].id;
       this->capabilities |= VO_CAP_YUY2;
-      printf("video_out_xv: this adaptor supports the yuy2 format.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("video_out_xv: this adaptor supports the yuy2 format.\n");
     }
   }
 
@@ -1427,7 +1451,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	    "driver doesn't support Xv?!\n");
     /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     return NULL;
-  } else
+  } else if (xine->verbosity >= XINE_VERBOSITY_LOG)
     printf ("video_out_xv: using Xv port %ld from adaptor %s for hardware "
             "colorspace conversion and scaling.\n", xv_port,
             adaptor_info[adaptor_num].name);
@@ -1447,6 +1471,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->xv_port           = xv_port;
   this->adaptor_info      = adaptor_info;
   this->adaptor_num       = adaptor_num;
+  this->xine              = xine;
 
   return this;
 }

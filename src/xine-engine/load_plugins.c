@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.141 2003/02/23 21:32:48 guenter Exp $
+ * $Id: load_plugins.c,v 1.142 2003/03/06 16:49:32 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -150,7 +150,7 @@ static void _insert_plugin (xine_t *this,
   int                i;
 
   if (info->API != api_version) {
-    if (this->verbosity)
+    if (this->verbosity >= XINE_VERBOSITY_DEBUG)
       printf ("load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n",
 	      info->id, info->API, api_version);
     return;
@@ -296,7 +296,7 @@ static void collect_plugins(xine_t *this, char *path){
 
 	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 
-	    if (this->verbosity) {
+	    if (this->verbosity >= XINE_VERBOSITY_DEBUG) {
 	      char *dl_error_msg = dlerror();
 	      /* too noisy -- but good to catch unresolved references */
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
@@ -1034,8 +1034,6 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
       printf ("load_plugins: probing demux '%s'\n", node->info->id);
 #endif
       if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
-	if (stream->xine->verbosity)
-	  printf ("load_plugins: using demuxer '%s'\n", node->info->id);
 	pthread_mutex_unlock (&catalog->lock);
 	return plugin;
       }
@@ -1627,7 +1625,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
-      if (stream->xine->verbosity) 
+      if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
 	printf("load_plugins: plugin %s failed to init its class.\n", 
 	       node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
@@ -1647,7 +1645,8 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
       return vd;
     } else {
       /* remove non working plugin from catalog */
-      printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
+      if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+	printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
           catalog->video_decoder_map[stream_type][j];

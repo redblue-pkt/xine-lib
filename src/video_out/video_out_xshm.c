@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.107 2003/02/22 16:56:01 hadess Exp $
+ * $Id: video_out_xshm.c,v 1.108 2003/03/06 16:49:32 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -123,12 +123,14 @@ typedef struct xshm_driver_s {
 
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
+  xine_t            *xine;
 } xshm_driver_t;
 
 typedef struct {
   video_driver_class_t driver_class;
 
   config_values_t     *config;
+  xine_t              *xine;
 } xshm_class_t;
 
 
@@ -143,7 +145,7 @@ static int HandleXError (Display *display, XErrorEvent *xevent) {
 
   XGetErrorText (display, xevent->error_code, str, 1024);
 
-  printf ("received X error event: %s\n", str);
+  printf ("video_out_xshm: received X error event: %s\n", str);
 
   gX11Fail = 1;
   return 0;
@@ -191,8 +193,10 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 			      height);
 
     if (myimage == NULL )  {
-      printf ("video_out_xshm: shared memory error when allocating image\n");
-      printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf ("video_out_xshm: shared memory error when allocating image\n");
+	printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      }
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -206,8 +210,10 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 			  IPC_CREAT | 0777);
     
     if (shminfo->shmid < 0 ) {
-      printf ("video_out_xshm: %s: allocating image\n",strerror(errno));
-      printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf ("video_out_xshm: %s: allocating image\n",strerror(errno));
+	printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      }
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -215,8 +221,10 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     shminfo->shmaddr  = (char *) shmat(shminfo->shmid, 0, 0);
   
     if (shminfo->shmaddr == ((char *) -1)) {
-      printf ("video_out_xshm: shared memory error (address error) when allocating image \n");
-      printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf ("video_out_xshm: shared memory error (address error) when allocating image \n");
+	printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      }
       shmctl (shminfo->shmid, IPC_RMID, 0);
       shminfo->shmid = -1;
       this->use_shm = 0;
@@ -231,8 +239,10 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     XSync(this->display, False);
 
     if (gX11Fail) {
-      printf ("video_out_xshm: x11 error during shared memory XImage creation\n");
-      printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+	printf ("video_out_xshm: x11 error during shared memory XImage creation\n");
+	printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
+      }
       shmdt (shminfo->shmaddr);
       shmctl (shminfo->shmid, IPC_RMID, 0);
       shminfo->shmid = -1;
@@ -836,8 +846,10 @@ static int xshm_set_property (vo_driver_t *this_gen,
     if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
     this->sc.user_ratio = value;
-    printf ("video_out_xshm: aspect ratio changed to %s\n",
-	    vo_scale_aspect_ratio_name(value));
+    if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+      printf ("video_out_xshm: aspect ratio changed to %s\n",
+	      vo_scale_aspect_ratio_name(value));
+    }
 
   } else if (property == VO_PROP_BRIGHTNESS) {
 
@@ -1126,6 +1138,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 					 0, NULL);
 
   this->x11_old_error_handler = NULL;
+  this->xine                = class->xine;
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
@@ -1162,12 +1175,13 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->visual = attribs.visual;
   this->depth  = attribs.depth;
   
-  if (this->depth>16)
-    printf ("\n\n"
-	    "WARNING: current display depth is %d. For better performance\n"
-	    "a depth of 16 bpp is recommended!\n\n",
-	    this->depth);
-
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+    if (this->depth>16)
+      printf ("\n\n"
+	      "WARNING: current display depth is %d. For better performance\n"
+	      "a depth of 16 bpp is recommended!\n\n",
+	      this->depth);
+  }
 
   /*
    * check for X shared memory support
@@ -1176,7 +1190,8 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   if (XShmQueryExtension(display)) {
     this->use_shm = 1;
   } else {
-    printf ("video_out_xshm: MIT shared memory extension not present on display.\n");
+    if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
+      printf ("video_out_xshm: MIT shared memory extension not present on display.\n");
     this->use_shm = 0;
   }
 
@@ -1200,12 +1215,14 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   cpu_byte_order = htonl(1) == 1 ? MSBFirst : LSBFirst;
   swapped = cpu_byte_order != this->image_byte_order;
 
-  printf ("video_out_xshm: video mode depth is %d (%d bpp), %s, %sswapped,\n"
-	  "\tred: %08lx, green: %08lx, blue: %08lx\n",
-	  this->depth, this->bpp,
-	  visual_class_name(this->visual),
-	  swapped ? "" : "not ",
-	  this->visual->red_mask, this->visual->green_mask, this->visual->blue_mask);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
+    printf ("video_out_xshm: video mode depth is %d (%d bpp), %s, %sswapped,\n"
+	    "\tred: %08lx, green: %08lx, blue: %08lx\n",
+	    this->depth, this->bpp,
+	    visual_class_name(this->visual),
+	    swapped ? "" : "not ",
+	    this->visual->red_mask, this->visual->green_mask, this->visual->blue_mask);
+  }
 
   mode = 0;
 
@@ -1312,6 +1329,7 @@ static void *xshm_init_class (xine_t *xine, void *visual_gen) {
   this->driver_class.dispose         = xshm_dispose_class;
 
   this->config          = xine->config;
+  this->xine            = xine;
 
   return this;
 }

@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2001 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.33 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: video_out_aa.c,v 1.34 2003/03/06 16:49:31 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *

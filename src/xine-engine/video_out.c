@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.147 2003/02/28 02:51:51 storri Exp $
+ * $Id: video_out.c,v 1.148 2003/03/06 16:49:33 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1447,7 +1447,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
       /* FIXME: how does this happen ? */
       printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
       abort();
-    } else
+    } else if (xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf ("video_out: thread created\n");
   }
 

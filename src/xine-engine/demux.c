@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -31,7 +31,9 @@
 #include "demuxers/demux.h"
 #include "buffer.h"
 
+/*
 #define LOG
+*/
 
 /* internal use only - called from demuxers on seek/stop
  * warning: after clearing decoders fifos an absolute discontinuity

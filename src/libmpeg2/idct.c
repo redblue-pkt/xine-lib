@@ -264,12 +264,16 @@ void mpeg2_idct_init (uint32_t mm_accel)
 {
 #ifdef ARCH_X86
     if (mm_accel & MM_ACCEL_X86_MMXEXT) {
+#ifdef LOG
 	fprintf (stderr, "Using MMXEXT for IDCT transform\n");
+#endif
 	mpeg2_idct_copy = mpeg2_idct_copy_mmxext;
 	mpeg2_idct_add = mpeg2_idct_add_mmxext;
 	mpeg2_idct_mmx_init ();
     } else if (mm_accel & MM_ACCEL_X86_MMX) {
+#ifdef LOG
 	fprintf (stderr, "Using MMX for IDCT transform\n");
+#endif
 	mpeg2_idct_copy = mpeg2_idct_copy_mmx;
 	mpeg2_idct_add = mpeg2_idct_add_mmx;
 	mpeg2_idct_mmx_init ();
@@ -277,7 +281,9 @@ void mpeg2_idct_init (uint32_t mm_accel)
 #endif
 #ifdef ARCH_PPC
     if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
+#ifdef LOG
 	fprintf (stderr, "Using altivec for IDCT transform\n");
+#endif
 	mpeg2_idct_copy = mpeg2_idct_copy_altivec;
 	mpeg2_idct_add = mpeg2_idct_add_altivec;
 	mpeg2_idct_altivec_init ();
@@ -290,7 +296,9 @@ void mpeg2_idct_init (uint32_t mm_accel)
 	env_var = getenv ("MLIB_NON_IEEE");
 
 	if (env_var == NULL) {
+#ifdef LOG
 	    fprintf (stderr, "Using mlib for IDCT transform\n");
+#endif
 	    mpeg2_idct_add = mpeg2_idct_add_mlib;
 	} else {
 	    fprintf (stderr, "Using non-IEEE mlib for IDCT transform\n");
@@ -302,7 +310,9 @@ void mpeg2_idct_init (uint32_t mm_accel)
     {
 	int i;
 
+#ifdef LOG
 	fprintf (stderr, "No accelerated IDCT transform found\n");
+#endif
 	mpeg2_idct_copy = mpeg2_idct_copy_c;
 	mpeg2_idct_add = mpeg2_idct_add_c;
 	for (i = -384; i < 640; i++)
