@@ -198,10 +198,11 @@
     If possible, it is desirable that a demuxer can seek randomly through
     the stream. This is easier for some file formats and essentially impossible
     for other formats. xine's seeking API function allows a seek target to be
-    specified in terms of stream offset from 0, or time in milliseconds from 0.
-    Offset-based seeking is useful for seek bars in multimedia applications.
+    specified in terms of a ratio from 0 to 65535, or time in milliseconds from 0.
     Time-based seeking is useful for specifying, e.g., a 1-minute jump forward
-    or backward in a stream.
+    or backward in a stream. With the ratio-based seeking, the demuxer can
+    interpret the ratio value in the domain he sees most fit. This can also be
+    some sort of time or a simple file offset.
    </para>
    <para>
     If a multimedia stream has video, there generally needs to be a way to
@@ -299,6 +300,17 @@
     stream data and see if it is of the expected type), by extension (check the
     name of the MRL and see if the file extension is correct), or explicitly
     (the engine is passing on a user request to force this demuxer to be used).
+   </para>
+   <para>
+    The order in which the engine queries the available demuxers is determined
+    by the priority stated in the demuxer_info_t, which is attached to every
+    demuxer's plugin info structure. Demuxers with higher priority values are
+    called before those with lower priority. The order amongst demuxers of
+    equal priority is undefined. The idea behind this is to have the demuxers
+    for high-level container formats have high priorities, while the raw format
+    demuxers have low priorities. This way, a stream of a high-level container
+    format with a beginning that happens to look like a low-level raw format is
+    still handled by the correct demuxer, because it is queried first.
    </para>
    <para>
     NOTE: In the course of checking the stream by content, care must be taken
