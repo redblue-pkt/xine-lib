@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.6 2001/12/01 23:13:12 guenter Exp $
+ * $Id: video_overlay.c,v 1.7 2001/12/09 18:36:48 jcdutton Exp $
  *
  */
 
@@ -456,6 +456,15 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           
           if( !this->video_overlay_objects[handle].overlay ) {
             fprintf(stderr,"video_overlay: error: button event received and no overlay allocated.\n");
+            if( this->video_overlay_events[this_event].event->object.overlay->rle ) {
+              printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
+              free( this->video_overlay_events[this_event].event->object.overlay->rle );
+            }
+            
+            /* The null test was done at the start of this case statement */
+            free (this->video_overlay_events[this_event].event->object.overlay);
+            this->video_overlay_events[this_event].event->object.overlay = NULL;
+            break;
           }
                
           this->video_overlay_objects[handle].handle = handle;
