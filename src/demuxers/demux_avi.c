@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.151 2003/03/02 16:01:35 tmattern Exp $
+ * $Id: demux_avi.c,v 1.152 2003/03/02 17:00:31 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1674,6 +1674,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_avi_t    *this;
+  uint8_t         buf[MAX_PREVIEW_SIZE];
 
   this         = xine_xmalloc (sizeof (demux_avi_t));
   this->stream = stream;
@@ -1701,24 +1702,33 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
 
-    if ((input->get_capabilities(input) & INPUT_CAP_BLOCK) ||
-        (this->streaming)) {
+    if (input->get_capabilities(input) & INPUT_CAP_BLOCK) {
       printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
 	      this->AVI_errno);
       free (this);
       return NULL;
     }
 
-    input->seek(input, 0, SEEK_SET);
-
-    this->avi = AVI_init (this);
-
-    if (!this->avi) {
+    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+      input->seek(input, 0, SEEK_SET);
+      if (input->read(input, buf, 12) != 12) {
+        free (this);
+        return NULL;
+      }
+      input->seek(input, 0, SEEK_SET);
+    } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
+      input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    } else {
       free (this);
       return NULL;
     }
 
-  break;
+    if( strncasecmp(buf  ,"RIFF",4) !=0 ||
+        strncasecmp(buf+8,"AVI ",4) !=0 ) {
+      free (this);
+      return NULL;
+    }
+    break;
 
   case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
@@ -1740,15 +1750,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   /* we want to fall through here */
   case METHOD_EXPLICIT: {
-
-    this->avi = AVI_init (this);
-
-    if (!this->avi) {
-      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
-	      this->AVI_errno);
-      free (this);
-      return NULL;
-    }
   }
   break;
 
@@ -1757,6 +1758,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
+  this->avi = AVI_init (this);
+  if (!this->avi) {
+    printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
+            this->AVI_errno);
+    free (this);
+    return NULL;
+  }
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
