@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.63 2002/04/28 16:16:18 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.64 2002/04/28 18:55:13 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -28,7 +28,8 @@
  *                         and by Matthias Oelmann <mao@well.com>
  *          video_out_mga      by Aaron Holtzman   <aholtzma@ess.engr.uvic.ca>
  * 
- * tied togehter with lot of glue for xine by Matthias Dahl <matthew2k@web.de>
+ * glued together for xine
+ *    and currently maintained by Matthias Dahl    <matthew2k@web.de>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -66,7 +67,6 @@ typedef struct {
   int                value;
   int                min;
   int                max;
-  char              *key;
 } syncfb_property_t;
 
 typedef struct {
@@ -168,7 +168,6 @@ struct syncfb_driver_s {
   int                output_xoffset;
   int                output_yoffset;
 
-  int                deinterlace_enabled;
   int                video_win_visibility;
 
   void              *user_data;
@@ -181,8 +180,6 @@ struct syncfb_driver_s {
 			   int *dest_height, int *dest_width,
 			   int *win_x, int *win_y);
 };
-
-int gX11Fail;
 
 /*
  * internal video_out_syncfb functions
@@ -331,8 +328,7 @@ static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
 
 static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
-   switch(frame->format) {
-      
+   switch(frame->format) {   
     case IMGFMT_YUY2:
       if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422))
 	write_frame_YUY2(this, frame);
@@ -341,13 +337,17 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       break;
       
     case IMGFMT_YV12:
-      if(this->yuv_format == VIDEO_PALETTE_YUV422) {
+      switch(this->yuv_format) {
+       case VIDEO_PALETTE_YUV422:
 	 write_frame_YUV422(this, frame);
-      } else if(this->yuv_format == VIDEO_PALETTE_YUV420P2) {
+	 break;
+       case VIDEO_PALETTE_YUV420P2:
 	 write_frame_YUV420P2(this, frame);
-      } else if(this->yuv_format == VIDEO_PALETTE_YUV420P3) {
+	 break;
+       case VIDEO_PALETTE_YUV420P3:
 	 write_frame_YUV420P3(this, frame);
-      } else {
+	 break;
+       default:
 	 printf("video_out_syncfb: error. (YV12 not supported by your graphic card)\n");
       }	   
       break;
@@ -398,7 +398,6 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
     /*
      * supply required functions
      */
-
     frame->vo_frame.copy    = NULL;
     frame->vo_frame.field   = syncfb_frame_field;
     frame->vo_frame.dispose = syncfb_frame_dispose;
@@ -600,10 +599,10 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
-      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
+      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_CROP;
 	
-      if(this->deinterlace_enabled)
-	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
+      if(this->props[VO_PROP_INTERLACED].value)
+	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
 	
       switch(this->cur_frame->format) {
        case IMGFMT_YV12:
@@ -624,17 +623,17 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       this->syncfb_config.src_height     = this->cur_frame->height;
 	
       this->syncfb_config.image_width    = this->output_width;
-      this->syncfb_config.image_height   = (this->deinterlace_enabled) ? (this->output_height-2) : this->output_height;
+      this->syncfb_config.image_height   = (this->props[VO_PROP_INTERLACED].value) ? (this->output_height-2) : this->output_height;
 	
       this->syncfb_config.image_xorg     = this->output_xoffset + this->gui_win_x;
       this->syncfb_config.image_yorg     = this->output_yoffset + this->gui_win_y;
 	
       this->syncfb_config.src_crop_top   = this->displayed_yoffset;
-      this->syncfb_config.src_crop_bot   = (this->deinterlace_enabled && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
+      this->syncfb_config.src_crop_bot   = (this->props[VO_PROP_INTERLACED].value && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
       this->syncfb_config.src_crop_left  = this->displayed_xoffset;
       this->syncfb_config.src_crop_right = this->displayed_xoffset;
 	
-      this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : this->default_repeat;
+      this->syncfb_config.default_repeat   = (this->props[VO_PROP_INTERLACED].value) ? 1 : this->default_repeat;
 	
       if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
 	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
@@ -771,7 +770,6 @@ static int syncfb_set_property (vo_driver_t *this_gen,
   switch (property) {
     case VO_PROP_INTERLACED:
       this->props[property].value = value;
-      this->deinterlace_enabled   = value;
      
       printf("video_out_syncfb: VO_PROP_INTERLACED(%d)\n", 
 	     this->props[property].value);
@@ -980,20 +978,22 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       return NULL;
    }
 
-  /*
-   * init properties
-   */
+   /* mmap whole video memory */
+   this->video_mem = (uint8_t *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
 
-   for(i = 0; i < VO_NUM_PROPERTIES; i++) {
+   /*
+    * init properties and capabilities
+    */   
+   for (i = 0; i<VO_NUM_PROPERTIES; i++) {
       this->props[i].value = 0;
       this->props[i].min   = 0;
       this->props[i].max   = 0;
-      this->props[i].key   = NULL;
    }
 
-   /* mmap whole video memory */
-   this->video_mem = (uint8_t *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
-     
+   this->props[VO_PROP_INTERLACED].value   = 0;
+   this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
+   this->props[VO_PROP_ZOOM_FACTOR].value  = 100;
+
    /* check for formats we need... */
    this->supported_capabilities = 0;
    this->yuv_format = 0;
@@ -1026,6 +1026,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       */
       printf("video_out_syncfb: SyncFB module supports RGB565.\n");
    }
+
    if(!this->supported_capabilities) {
       printf("video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor RGB565)\n");
       
@@ -1034,7 +1035,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       
       return NULL;
    }
-   
+
    if(ioctl(this->fd,SYNCFB_GET_PARAMS,&this->params) == 0) {
       this->props[VO_PROP_CONTRAST].value = this->params.contrast;
       this->props[VO_PROP_CONTRAST].min   = 0;
@@ -1045,40 +1046,43 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       this->props[VO_PROP_BRIGHTNESS].max   = 127;
 
       this->supported_capabilities |=  (VO_CAP_CONTRAST | VO_CAP_BRIGHTNESS);
-   }
-   else {
-      printf("video_out_syncfb: info. (your SyncFB kernel module does not support brightness/contrast control. Please refer to README.syncfb for informations on how to update it.)\n");
+   } else {
+      printf("video_out_syncfb: info. (brightness/contrast control won\'t be available because your SyncFB kernel module seems to be outdated. Please refer to README.syncfb for informations on how to update it.)\n");
    }
 
+  // check for virtual screen size and screen depth - this is rather important
+  // because that data is later used for free memory calculation
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);
    
-  this->bufinfo.id        = -1;
-  this->config            = config;
-  this->display           = visual->display;
-  this->overlay           = NULL;
-  this->screen            = visual->screen;
-  this->display_ratio     = visual->display_ratio;
-  this->frame_output_cb   = visual->frame_output_cb;
-  this->user_data         = visual->user_data;
-  this->output_xoffset    = 0;
-  this->output_yoffset    = 0;
-  this->output_width      = 0;
-  this->output_height     = 0;
-  this->displayed_xoffset = 0;
-  this->displayed_yoffset = 0;
-  this->displayed_width   = 0;
-  this->displayed_height  = 0;
-  this->gui_x             = 0;
-  this->gui_y             = 0;
-  this->gui_width         = 0;
-  this->gui_height        = 0;
-  this->drawable          = visual->d;
-  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->supported_capabilities = 0;
-  this->virtual_screen_height  = attr.height;
-  this->virtual_screen_width   = attr.width;
-  this->screen_depth           = attr.depth;
-  this->video_win_visibility   = 1;
+  this->virtual_screen_height = attr.height;
+  this->virtual_screen_width  = attr.width;
+  this->screen_depth          = attr.depth;
+  
+  // initialize the rest of the variables now with default values
+  this->bufinfo.id           = -1;
+  this->config               = config;
+  this->default_repeat       = config->register_range(config, "video.syncfb_default_repeat", 3, 1, 4, "default frame repeat for SyncFB", NULL, NULL, NULL);
+  this->display              = visual->display;
+  this->display_ratio        = visual->display_ratio;
+  this->displayed_height     = 0;
+  this->displayed_width      = 0;
+  this->displayed_xoffset    = 0;
+  this->displayed_yoffset    = 0;
+  this->drawable             = visual->d;
+  this->frame_output_cb      = visual->frame_output_cb;
+  this->gc                   = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->gui_height           = 0;
+  this->gui_width            = 0;
+  this->gui_x                = 0;
+  this->gui_y                = 0;
+  this->output_xoffset       = 0;
+  this->output_yoffset       = 0;
+  this->output_height        = 0;
+  this->output_width         = 0;
+  this->overlay              = NULL;
+  this->screen               = visual->screen;   
+  this->user_data            = visual->user_data;
+  this->video_win_visibility = 1;
    
   XAllocNamedColor(this->display,
 		   DefaultColormap(this->display, this->screen),
@@ -1095,22 +1099,6 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.gui_data_exchange    = syncfb_gui_data_exchange;
   this->vo_driver.exit                 = syncfb_exit;
   this->vo_driver.redraw_needed        = syncfb_redraw_needed;
-
-  /*
-   * init properties
-   */
-
-  for (i = 0; i<VO_NUM_PROPERTIES; i++) {
-    this->props[i].value = 0;
-    this->props[i].min   = 0;
-    this->props[i].max   = 0;
-  }
-
-  this->props[VO_PROP_INTERLACED].value     = 0;
-  this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
-  this->props[VO_PROP_ZOOM_FACTOR].value    = 100;
-
-  this->deinterlace_enabled = 0;
 
   return &this->vo_driver;
 }
