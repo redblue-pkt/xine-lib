@@ -50,6 +50,8 @@ xine-lib (1-rc3b)
     to continue playback in case of errors
   * ignore the hue setting on NVidia cards using the Xv video output
     as both the XFree86 and the proprietary driver are broken
+  * fix long standing problem with xine using alsa's dmix audio out.
+    Sound is now continuous.
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

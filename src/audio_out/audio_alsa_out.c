@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.133 2004/03/20 20:45:18 hadess Exp $
+ * $Id: audio_alsa_out.c,v 1.134 2004/03/21 03:29:43 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -788,11 +788,14 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #ifdef LOG_DEBUG
       printf("audio_alsa_out:write:loop:waiting for Godot\n");
 #endif
-      wait_result = snd_pcm_wait(this->audio_fd, 1000000);
+      snd_pcm_status(this->audio_fd, pcm_stat);
+      if ( snd_pcm_status_get_avail(pcm_stat) < number_of_frames) {
+        wait_result = snd_pcm_wait(this->audio_fd, 1000000);
 #ifdef LOG_DEBUG
-      printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
+        printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
 #endif
-      if (wait_result < 0) return 0;
+        if (wait_result < 0) return 0;
+      }
     }
     if (this->mmap != 0) {
       result = snd_pcm_mmap_writei(this->audio_fd, buffer, number_of_frames);
@@ -822,6 +825,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
       buffer += result * this->bytes_per_frame;
     }
   }
+#if 0
   if ( (state == SND_PCM_STATE_RUNNING) ) {
 #ifdef LOG_DEBUG
     printf("audio_alsa_out:write:loop:waiting for Godot2\n");
@@ -832,6 +836,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #endif
     if (wait_result < 0) return 0;
   }
+#endif
 #ifdef LOG_DEBUG
   gettimeofday(&now, 0);
   printf("audio_alsa_out:write: Time = %ld.%ld\n", now.tv_sec, now.tv_usec);
