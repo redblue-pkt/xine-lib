@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.75 2005/01/30 16:51:20 tmattern Exp $
+ * $Id: configfile.c,v 1.76 2005/02/07 18:53:17 tmattern Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -505,7 +505,7 @@ static char *config_register_string (config_values_t *this,
   _x_assert(key);
   _x_assert(def_value);
 
-  pthread_mutex_unlock(&this->config_lock);
+  pthread_mutex_lock(&this->config_lock);
 
   entry = config_register_key(this, key, exp_level, changed_cb, cb_data);
 
