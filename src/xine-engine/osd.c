@@ -255,6 +255,24 @@ static void osd_clear (osd_object_t *osd) {
   osd->y2 = 0;
 }
 
+/*
+ * Draw a point.
+ */
+
+static void osd_point (osd_object_t *osd, int x, int y, int color) {
+  
+#ifdef LOG_DEBUG
+  printf("osd_point %p (%d x %d)\n", osd, x, y);
+#endif
+  
+  /* update clipping area */
+  osd->x1 = MIN(osd->x1, x);
+  osd->x2 = MAX(osd->x2, (x + 1));
+  osd->y1 = MIN(osd->y1, y);
+  osd->y2 = MAX(osd->y2, (y + 1));
+  
+  *(osd->area + y * osd->width + x) = color;
+}
 
 /*
  * Bresenham line implementation on osd object
@@ -897,6 +915,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
   this->set_position       = osd_set_position;
   this->set_font           = osd_set_font;
   this->clear              = osd_clear;
+  this->point              = osd_point;
   this->line               = osd_line;
   this->filled_rect        = osd_filled_rect;
   this->render_text        = osd_render_text;

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.12 2003/02/11 16:42:42 miguelfreitas Exp $
+ * $Id: osd.h,v 1.13 2003/03/08 17:22:16 f1rmb Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -89,14 +89,19 @@ struct osd_renderer_s {
    */
   int (*hide) (osd_object_t *osd, int64_t vpts );
 
-  /*
+  /* 
+   * draw point.
+   */
+  void (*point) (osd_object_t *osd, int x, int y, int color);
+       
+       /*
    * Bresenham line implementation on osd object
    */
   void (*line) (osd_object_t *osd,
 		int x1, int y1, int x2, int y2, int color );
   
   /*
-   * filled retangle
+   * filled rectangle
    */
   void (*filled_rect) (osd_object_t *osd,
 		       int x1, int y1, int x2, int y2, int color );

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.43 2003/03/08 12:53:04 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.44 2003/03/08 17:22:16 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -536,7 +536,7 @@ xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int hei
 }
   
 void xine_osd_draw_point(xine_osd_t *this, int x, int y, int color) {
-  this->osd.area[y * this->osd.width + x] = color;
+  this->osd.renderer->point(&this->osd, x, y, color);
 } 
 
 void xine_osd_draw_line(xine_osd_t *this, int x1, int y1, int x2, int y2, int color) {
