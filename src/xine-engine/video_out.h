@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.7 2001/06/09 11:34:01 heikos Exp $
+ * $Id: video_out.h,v 1.8 2001/06/18 15:43:01 richwareham Exp $
  *
  *
  * xine version of video_out.h 
@@ -48,6 +48,8 @@ typedef struct vo_frame_s vo_frame_t;
 typedef struct vo_driver_s vo_driver_t ;
 typedef struct vo_instance_s vo_instance_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
+
+typedef struct spudec_s spudec_t;
 
 /* public part, video drivers may add private fields */
 struct vo_frame_s {
@@ -120,6 +122,7 @@ struct vo_instance_s {
 
   vo_driver_t       *driver;
   metronom_t        *metronom;
+  spudec_t          *spu_decoder;
   
   img_buf_fifo_t    *free_img_buf_queue;
   img_buf_fifo_t    *display_img_buf_queue;
@@ -239,7 +242,7 @@ struct vo_driver_s {
  * a given video driver
  */
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
+vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom, spudec_t *spu_decoder) ;
 
 /*
  * to build a dynamic video output plugin

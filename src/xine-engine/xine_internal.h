@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.24 2001/06/18 09:39:05 richwareham Exp $
+ * $Id: xine_internal.h,v 1.25 2001/06/18 15:43:01 richwareham Exp $
  *
  */
 
@@ -130,6 +130,7 @@ typedef struct xine_s {
 
   fifo_buffer_t             *spu_fifo;
   pthread_t                  spu_thread;
+  spudec_t                  *spu_decoder;
 
   int                        audio_channel;
   int                        spu_channel;

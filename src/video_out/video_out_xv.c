@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.43 2001/06/17 22:34:36 guenter Exp $
+ * $Id: video_out_xv.c,v 1.44 2001/06/18 15:43:00 richwareham Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -466,7 +466,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
-    
+
     XLockDisplay (this->display);
     
     this->cur_frame = frame;

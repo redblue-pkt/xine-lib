@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.c,v 1.1 2001/06/18 09:39:05 richwareham Exp $
+ * $Id: spu_decoder.c,v 1.2 2001/06/18 15:43:01 richwareham Exp $
  *
  */
 
@@ -27,18 +27,22 @@
 
 #include "xine_internal.h"
 
+#include "libspudec/spudec.h"
+
 void *spu_decoder_loop (void *this_gen) {
 
   buf_element_t   *buf;
   xine_t          *this = (xine_t *) this_gen;
   int              running = 1;
   int              streamtype;
+  spudec_t        *decoder;
 
+  decoder = this->spu_decoder;
   while (running) {
 
     /* printf ("video_decoder: getting buffer...\n"); */
 
-    buf = this->video_fifo->get (this->spu_fifo);
+    buf = this->spu_fifo->get (this->spu_fifo);
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
 
@@ -55,6 +59,18 @@ void *spu_decoder_loop (void *this_gen) {
       running = 0;
       break;
 
+    default:
+      if ( (buf->type & 0xFF000000) == BUF_SPU_BASE ) {
+	int stream_id;
+
+	printf ("spu_decoder: got an SPU buffer, type %08x\n", buf->type); 
+
+	stream_id = buf->type & 0xFF;
+
+	if(decoder) {
+	  decoder->push_packet(decoder, buf);
+	}
+      }
     }
 
     buf->free_buffer (buf);
@@ -64,8 +80,15 @@ void *spu_decoder_loop (void *this_gen) {
 }
 
 void spu_decoder_init (xine_t *this) {
+  buf_element_t *buf;
+
+  this->spu_decoder = spudec_init(this); 
 
   this->spu_fifo = fifo_buffer_new (1500, 4096);
+
+  buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
+  buf->type = BUF_CONTROL_START;
+  this->spu_fifo->put (this->spu_fifo, buf);
 
   pthread_create (&this->spu_thread, NULL, spu_decoder_loop, this) ;
 }
@@ -80,6 +103,9 @@ void spu_decoder_shutdown (xine_t *this) {
   buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
   buf->type = BUF_CONTROL_QUIT;
   this->spu_fifo->put (this->spu_fifo, buf);
+
+  spudec_close(this->spu_decoder);
+  this->spu_decoder = NULL;
 
   pthread_join (this->spu_thread, &p);
 }

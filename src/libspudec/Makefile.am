@@ -4,7 +4,7 @@ EXTRA_DIST =
 
 noinst_LTLIBRARIES = libspudec.la
 
-libspudec_la_SOURCES = #spudec.c
+libspudec_la_SOURCES = spudec.c spudec.h
 
 noinst_HEADERS = spudec.h
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.23 2001/06/17 02:22:30 guenter Exp $
+ * $Id: video_out.c,v 1.24 2001/06/18 15:43:01 richwareham Exp $
  *
  */
 
@@ -35,6 +35,7 @@
 #include "utils.h"
 #include "monitor.h"
 
+#include "libspudec/spudec.h"
 
 #define NUM_FRAME_BUFFERS     20
 
@@ -266,9 +267,10 @@ static void *video_out_loop (void *this_gen) {
     img->bDisplayLock = 0;
     pthread_mutex_unlock (&img->mutex);
 
-    /* FIXME: spudec_overlay_yuv (img->mem[0], img->mem[1], img->mem[2]) */
+    /* Overlay SPU FIXME: Check image format */
+    this->spu_decoder->overlay_yuv (this->spu_decoder, pts, 
+				    img->base[0], img->base[1], img->base[2]);
 
-    
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
     this->driver->display_frame (this->driver, img); 
   }
@@ -461,7 +463,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
-vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
+vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom, spudec_t *spu_decoder) {
 
   vo_instance_t *this;
   int            i;
@@ -470,6 +472,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
 
   this->driver                = driver;
   this->metronom              = metronom;
+  this->spu_decoder           = spu_decoder;
 
   this->open                  = vo_open;
   this->get_frame             = vo_get_frame;

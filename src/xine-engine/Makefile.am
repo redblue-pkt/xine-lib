@@ -12,7 +12,7 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
 	utils.c load_plugins.c video_decoder.c spu_decoder.c \
 	audio_decoder.c video_out.c
 libxine_la_LIBADD = cpu_accel.lo \
-##	$(top_srcdir)/src/libspudec/libspudec.la \
+	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
 	$(DYNAMIC_LD_LIBS)
 	-lm 

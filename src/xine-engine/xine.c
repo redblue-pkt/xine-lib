@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.27 2001/06/18 09:39:05 richwareham Exp $
+ * $Id: xine.c,v 1.28 2001/06/18 15:43:01 richwareham Exp $
  *
  * top-level xine functions
  *
@@ -219,17 +219,6 @@ static void xine_play_internal (xine_t *this, char *mrl,
 	  this->cur_demuxer_plugin->get_identifier());
   
   /*
-   * Init SPU decoder with colour lookup table. 
-   */
-
-  /* FIXME
-  if(this->cur_input_plugin->get_clut) 
-    spudec_init(this->cur_input_plugin->get_clut());
-  else 
-    spudec_init(NULL);
-  */
-
-  /*
    * metronom
    */
 
@@ -417,12 +406,18 @@ xine_t *xine_init (vo_driver_t *vo,
   this->cur_input_pos = 0;
 
   /*
+   * init SPU decoder (must be done before video decoder
+   * so that this->spu_decoder is valid).
+   */
+  spu_decoder_init (this);
+
+  /*
    * init and start decoder threads
    */
 
   load_decoder_plugins (this, config, DECODER_PLUGIN_IFACE_VERSION);
 
-  this->video_out = vo_new_instance (vo, this->metronom);
+  this->video_out = vo_new_instance (vo, this->metronom, this->spu_decoder);
   video_decoder_init (this);
 
   if(ao) {
@@ -430,11 +425,6 @@ xine_t *xine_init (vo_driver_t *vo,
     this->audio_out->connect (this->audio_out, this->metronom);
   }
   audio_decoder_init (this);
-
-  /*
-   * init SPU decoder
-   */
-  spu_decoder_init (this);
 
   return this;
 }
