@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.37 2004/04/26 17:50:10 mroi Exp $
+ * $Id: video_out_sdl.c,v 1.38 2004/06/08 03:28:31 conrad Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -50,7 +50,7 @@
 #if defined (__FreeBSD__)
 # include <SDL11/SDL.h>
 #else
-# include <SDL/SDL.h>
+# include "SDL.h"
 #endif
 
 #define LOG_MODULE "video_out_sdl"
