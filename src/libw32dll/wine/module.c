@@ -193,7 +193,7 @@ static WIN_BOOL MODULE_InitDll( WINE_MODREF *wm, DWORD type, LPVOID lpReserved )
 static WIN_BOOL MODULE_DllProcessAttach( WINE_MODREF *wm, LPVOID lpReserved )
 {
     WIN_BOOL retv = TRUE;
-    int i;
+    /* int i; -- not used */
     assert( wm );
 
     /* prevent infinite recursion in case of cyclical dependencies */
@@ -254,7 +254,7 @@ static WIN_BOOL MODULE_DllProcessAttach( WINE_MODREF *wm, LPVOID lpReserved )
 static void MODULE_DllProcessDetach( WINE_MODREF* wm, WIN_BOOL bForceDetach, LPVOID lpReserved )
 {
     //    WINE_MODREF *wm=local_wm;
-    modref_list* l = local_wm;
+    /* modref_list* l = local_wm; -- not used */
     wm->flags &= ~WINE_MODREF_PROCESS_ATTACHED;
     MODULE_InitDll( wm, DLL_PROCESS_DETACH, lpReserved );
 /*    while (l)
@@ -281,7 +281,7 @@ static WINE_MODREF *MODULE_LoadLibraryExA( LPCSTR libname, HFILE hfile, DWORD fl
 {
 	DWORD err = GetLastError();
 	WINE_MODREF *pwm;
-	int i;
+	/* int i; -- not used */
 //	module_loadorder_t *plo;
 
         SetLastError( ERROR_FILE_NOT_FOUND );

@@ -106,10 +106,10 @@ DS_VideoDecoder * DS_VideoDecoder_Open(char* dllname, GUID* guid, BITMAPINFOHEAD
         
 	bihs = (format->biSize < (int) sizeof(BITMAPINFOHEADER)) ?
 	    sizeof(BITMAPINFOHEADER) : format->biSize;
-        bihs = sizeof(VIDEOINFOHEADER) - sizeof(BITMAPINFOHEADER) + bihs;
      
         this->iv.m_bh = (BITMAPINFOHEADER*)malloc(bihs);
         memcpy(this->iv.m_bh, format, bihs);
+
         this->iv.m_State = STOP;
         //this->iv.m_pFrame = 0;
         this->iv.m_Mode = DIRECT;
@@ -118,6 +118,7 @@ DS_VideoDecoder * DS_VideoDecoder_Open(char* dllname, GUID* guid, BITMAPINFOHEAD
         this->iv.m_fQuality = 0.0f;
         this->iv.m_bCapable16b = true;
                 
+        bihs += sizeof(VIDEOINFOHEADER) - sizeof(BITMAPINFOHEADER);
 	this->m_sVhdr = (VIDEOINFOHEADER*)malloc(bihs);
 	memset(this->m_sVhdr, 0, bihs);
 	memcpy(&this->m_sVhdr->bmiHeader, this->iv.m_bh, this->iv.m_bh->biSize);
@@ -725,7 +726,7 @@ int DS_VideoDecoder_SetValue(DS_VideoDecoder *this, const char* name, int value)
 {
     if (this->m_bIsDivX4) {
 	IDivxFilterInterface* pIDivx=NULL;
-	printf("DS_SetValue for DIVX4, name=%s  value=%d\n",name,value);
+//	printf("DS_SetValue for DIVX4, name=%s  value=%d\n",name,value);
 	if (this->m_pDS_Filter->m_pFilter->vt->QueryInterface((IUnknown*)this->m_pDS_Filter->m_pFilter, &IID_IDivxFilterInterface, (void**)&pIDivx))
 	{
 	    printf("No such interface\n");
@@ -764,7 +765,7 @@ int DS_VideoDecoder_SetValue(DS_VideoDecoder *this, const char* name, int value)
 // get5=set4 19
 	// get6=set5 23
     	hidden = (IHidden*)((int)this->m_pDS_Filter->m_pFilter + 0xb8);
-	printf("DS_SetValue for DIVX, name=%s  value=%d\n",name,value);
+//	printf("DS_SetValue for DIVX, name=%s  value=%d\n",name,value);
 	if (strcmp(name, "Quality") == 0)
 	{
             this->m_iLastQuality = value;
@@ -826,7 +827,7 @@ int DS_VideoDecoder_SetValue(DS_VideoDecoder *this, const char* name, int value)
 	return result;
     }
 #endif
-    printf("DS_SetValue for ????, name=%s  value=%d\n",name,value);
+//    printf("DS_SetValue for ????, name=%s  value=%d\n",name,value);
     return 0;
 }
 /*

@@ -21,6 +21,9 @@
 ***************************************************************************/
 #include "config.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "winbase.h"
 #include "windef.h"
@@ -33,19 +36,15 @@
 #include "msacmdrv.h"
 #include "wineacm.h"
 #include "ext.h"
-#include "driver.h"
-#include "debugtools.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#pragma pack(1)
+#include "driver.h"
+
 #define OpenDriverA DrvOpen
 #define CloseDriver DrvClose
 
-extern char *win32_codec_name;
+#pragma pack(1)
 
-static inline PWINE_ACMSTREAM ACM_GetStream(HACMSTREAM has)
+static PWINE_ACMSTREAM	ACM_GetStream(HACMSTREAM has)
 {
     return (PWINE_ACMSTREAM)has;
 }
@@ -74,7 +73,7 @@ MMRESULT WINAPI acmDriverAddA(PHACMDRIVERID phadid, HINSTANCE hinstModule,
      * LoadDriver on it, to be sure we can call SendDriverMessage on the
      * hDrvr handle.
      */
-    *phadid = (HACMDRIVERID) MSACM_RegisterDriver(NULL, 0, hinstModule);
+    *phadid = (HACMDRIVERID) MSACM_RegisterDriver(NULL, NULL, hinstModule);
     
     /* FIXME: lParam, dwPriority and fdwAdd ignored */
     
@@ -191,7 +190,8 @@ MMRESULT WINAPI acmDriverOpen(PHACMDRIVER phad, HACMDRIVERID hadid, DWORD fdwOpe
     PWINE_ACMDRIVERID	padid;
     PWINE_ACMDRIVER	pad;
     ICOPEN		icopen;
-    HDRVR		hdrv;
+    /* HDRVR		hdrv; -- not used */
+
 
 
     TRACE("(%p, %x, %08lu)\n", phad, hadid, fdwOpen);
@@ -207,8 +207,7 @@ MMRESULT WINAPI acmDriverOpen(PHACMDRIVER phad, HACMDRIVERID hadid, DWORD fdwOpe
 	return MMSYSERR_INVALFLAG;
     
     pad = HeapAlloc(MSACM_hHeap, 0, sizeof(WINE_ACMDRIVER));
-    if (!pad)
-	return MMSYSERR_NOMEM;
+    if (!pad) return MMSYSERR_NOMEM;
 
     pad->obj.pACMDriverID = padid;
     icopen.fccType		= mmioFOURCC('a', 'u', 'd', 'c');
@@ -216,8 +215,7 @@ MMRESULT WINAPI acmDriverOpen(PHACMDRIVER phad, HACMDRIVERID hadid, DWORD fdwOpe
     icopen.dwSize		= sizeof(ICOPEN);
     icopen.dwFlags		= 0;
 
-    icopen.pV1Reserved = padid->pszFileName;
-    if (!padid->hInstModule)
+   if (!padid->hInstModule)
 	pad->hDrvr = OpenDriverA((long)&icopen);
     else
 	pad->hDrvr = padid->hInstModule;
@@ -226,7 +224,7 @@ MMRESULT WINAPI acmDriverOpen(PHACMDRIVER phad, HACMDRIVERID hadid, DWORD fdwOpe
 	HeapFree(MSACM_hHeap, 0, pad);
 	return MMSYSERR_ERROR;
     }
-
+    
     pad->pfnDriverProc = GetProcAddress(pad->hDrvr, "DriverProc");
 
     /* insert new pad at beg of list */
@@ -235,7 +233,7 @@ MMRESULT WINAPI acmDriverOpen(PHACMDRIVER phad, HACMDRIVERID hadid, DWORD fdwOpe
 
     /* FIXME: Create a WINE_ACMDRIVER32 */
     *phad = (HACMDRIVER)pad;
-
+    
     return MMSYSERR_NOERROR;
 }
 
@@ -269,19 +267,22 @@ PWINE_ACMDRIVERID MSACM_pLastACMDriverID = NULL;
 /***********************************************************************
  *           MSACM_RegisterDriver32() 
  */
-PWINE_ACMDRIVERID MSACM_RegisterDriver(const char* pszFileName,
-				       WORD wFormatTag,
+PWINE_ACMDRIVERID MSACM_RegisterDriver(LPSTR pszDriverAlias, LPSTR pszFileName,
 				       HINSTANCE hinstModule)
-{
+//
+// File names are stored in driver.c. I reuse this variable to store driver ID
+// in it. If it's <0x10000, it is primary codec for corresponding format.
+//				       
+{ 
     PWINE_ACMDRIVERID padid;
 
-    TRACE("('%s', '%x', 0x%08x)\n", pszFileName, wFormatTag, hinstModule);
+    TRACE("('%s', '%x', 0x%08x)\n", pszDriverAlias, pszFileName, hinstModule);
 
     padid = (PWINE_ACMDRIVERID) HeapAlloc(MSACM_hHeap, 0, sizeof(WINE_ACMDRIVERID));
-    padid->pszFileName = (char*)malloc(strlen(pszFileName)+1);
-    strcpy(padid->pszFileName, pszFileName);
+    padid->pszDriverAlias = (char*)malloc(strlen(pszDriverAlias)+1);
+    strcpy(padid->pszDriverAlias, pszDriverAlias);
 //    1~strdup(pszDriverAlias);
-    padid->wFormatTag = wFormatTag;
+    padid->pszFileName = pszFileName;
     padid->hInstModule = hinstModule;
     padid->bEnabled = TRUE;
     padid->pACMDriverList = NULL;
@@ -296,6 +297,23 @@ PWINE_ACMDRIVERID MSACM_RegisterDriver(const char* pszFileName,
     return padid;
 }
 
+/***********************************************************************
+ *           MSACM_RegisterAllDrivers32() 
+ */
+void MSACM_RegisterAllDrivers(void)
+{
+    /*LPSTR pszBuffer;
+    DWORD dwBufferLength; -- not used */
+    
+    if (MSACM_pFirstACMDriverID)
+	return;
+    
+    MSACM_RegisterDriver("divxa32", (LPSTR)0x161, 0);  // DivX/WMA     [07]
+    MSACM_RegisterDriver("msadp32", (LPSTR)0x2, 0);    // MS ADPCM     [08]
+    MSACM_RegisterDriver("l3codeca", (LPSTR)0x55, 0);  // MPEG Layer-3 [12]
+//    MSACM_RegisterDriver("imaadp32", (LPSTR)0x11, 0);  // IMA ADPCM    [13]
+//    MSACM_RegisterDriver("msgsm32", (LPSTR)0x32, 0);   // MS GSM 6.10  [14]
+}
 
 /***********************************************************************
  *           MSACM_UnregisterDriver32()
@@ -307,8 +325,10 @@ PWINE_ACMDRIVERID MSACM_UnregisterDriver(PWINE_ACMDRIVERID p)
     while (p->pACMDriverList)
 	acmDriverClose((HACMDRIVER) p->pACMDriverList, 0);
     
-    if (p->pszFileName)
-	free(p->pszFileName);
+    if (p->pszDriverAlias)
+	HeapFree(MSACM_hHeap, 0, p->pszDriverAlias);
+//    if (p->pszFileName)
+//	HeapFree(MSACM_hHeap, 0, p->pszFileName);
     
     if (p == MSACM_pFirstACMDriverID)
 	MSACM_pFirstACMDriverID = p->pNextACMDriverID;
@@ -378,6 +398,8 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
     int			wfxSrcSize;
     int			wfxDstSize;
     
+    //printf("gcc-3.0 bug, pwfxSrc=%p, pwfxSrc->cbSize=%d\n", pwfxSrc, pwfxSrc->cbSize);
+
     TRACE("(%p, 0x%08x, %p, %p, %p, %ld, %ld, %ld)\n",
 	  phas, had, pwfxSrc, pwfxDst, pwfltr, dwCallback, dwInstance, fdwOpen);
 
@@ -397,6 +419,7 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
     was = HeapAlloc(MSACM_hHeap, 0, sizeof(*was) + wfxSrcSize + wfxDstSize + ((pwfltr) ? sizeof(WAVEFILTER) : 0));
     if (was == NULL)
 	return MMSYSERR_NOMEM;
+    
     was->drvInst.cbStruct = sizeof(was->drvInst);
     was->drvInst.pwfxSrc = (PWAVEFORMATEX)((LPSTR)was + sizeof(*was));
     memcpy(was->drvInst.pwfxSrc, pwfxSrc, wfxSrcSize);
@@ -430,7 +453,7 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
 	    goto errCleanUp;
     } else {
 	PWINE_ACMDRIVERID wadi;
-	short drv_tag;
+	/* short drv_tag; -- not used */
 	ret = ACMERR_NOTPOSSIBLE;
 /*	if(pwfxSrc->wFormatTag==1)//compression
 	    drv_tag=pwfxDst->wFormatTag;
@@ -456,22 +479,10 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
 		    }
 		}
 		acmDriverClose(had, 0L);*/
-	//if(MSACM_pFirstACMDriverID==NULL)
-	//    MSACM_RegisterAllDrivers();
+	if(MSACM_pFirstACMDriverID==NULL)
+	    MSACM_RegisterAllDrivers();	
 	
-	for (wadi = MSACM_pFirstACMDriverID; wadi; wadi = wadi->pNextACMDriverID)
-	{
-	    /* Check Format */
-	    if ((int)wadi->wFormatTag != (int)pwfxSrc->wFormatTag) continue;
-	}
-	if( !wadi )
-	    MSACM_RegisterDriver(win32_codec_name, (int)pwfxSrc->wFormatTag, 0);
-	
-	for (wadi = MSACM_pFirstACMDriverID; wadi; wadi = wadi->pNextACMDriverID)
-	{
-	    /* Check Format */
-	    if ((int)wadi->wFormatTag != (int)pwfxSrc->wFormatTag) continue;
-
+	for (wadi = MSACM_pFirstACMDriverID; wadi; wadi = wadi->pNextACMDriverID) {
 	    ret = acmDriverOpen(&had, (HACMDRIVERID)wadi, 0L);
 	    if (ret == MMSYSERR_NOERROR) {
 		if ((wad = MSACM_GetDriver(had)) != 0) {
@@ -480,8 +491,6 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
 		    was->hAcmDriver = had;
 		    
 		    ret = SendDriverMessage(wad->hDrvr, ACMDM_STREAM_OPEN, (DWORD)&was->drvInst, 0L);
-		    //lhacm - crash printf("RETOPEN %d\n", ret);
-                    //ret = 0;
 		    if (ret == MMSYSERR_NOERROR) {
 			if (fdwOpen & ACM_STREAMOPENF_QUERY) {
 			    acmDriverClose(had, 0L);
@@ -503,7 +512,6 @@ MMRESULT WINAPI acmStreamOpen(PHACMSTREAM phas, HACMDRIVER had, PWAVEFORMATEX pw
 	if (phas)
 	    *phas = (HACMSTREAM)was;
 	TRACE("=> (%d)\n", ret);
-        CodecAlloc();
 	return ret;
     }
 errCleanUp:		
@@ -530,7 +538,6 @@ MMRESULT WINAPI acmStreamClose(HACMSTREAM has, DWORD fdwClose)
 	if (was->hAcmDriver)
 	    acmDriverClose(was->hAcmDriver, 0L);	
 	HeapFree(MSACM_hHeap, 0, was);
-        CodecRelease();
     }
     TRACE("=> (%d)\n", ret);
     return ret;
@@ -547,7 +554,7 @@ MMRESULT WINAPI acmStreamConvert(HACMSTREAM has, PACMSTREAMHEADER pash,
     PACMDRVSTREAMHEADER	padsh;
 
     TRACE("(0x%08x, %p, %ld)\n", has, pash, fdwConvert);
-
+    
     if ((was = ACM_GetStream(has)) == NULL)
 	return MMSYSERR_INVALHANDLE;
     if (!pash || pash->cbStruct < sizeof(ACMSTREAMHEADER))

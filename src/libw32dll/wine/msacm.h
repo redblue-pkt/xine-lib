@@ -5,8 +5,6 @@
 #ifndef __WINE_MSACM_H
 #define __WINE_MSACM_H
 
-#define D_MSACM 1
-
 #include "windef.h"
 #include "driver.h"
 #include "mmreg.h"
@@ -933,6 +931,7 @@ MMRESULT WINAPI acmStreamSize(
 MMRESULT WINAPI acmStreamUnprepareHeader(
   HACMSTREAM has, PACMSTREAMHEADER pash, DWORD fdwUnprepare
 );
+void MSACM_RegisterAllDrivers(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

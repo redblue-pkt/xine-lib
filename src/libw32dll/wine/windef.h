@@ -105,7 +105,7 @@ extern "C" {
 
 /* Calling conventions definitions */
 
-#if defined(__i386__) && !defined(WINE_TYPEDEFS_ONLY)
+#ifdef __i386__
 # if defined(__GNUC__) && ((__GNUC__ > 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)))
 #  ifndef _EGCS_ 
 #define __stdcall __attribute__((__stdcall__))
@@ -127,18 +127,24 @@ extern "C" {
 #define PASCAL      __stdcall
 #define pascal      __stdcall
 #define _pascal     __stdcall
+#if !defined(__CYGWIN__)
 #define _stdcall    __stdcall
+#endif
 #define _fastcall   __stdcall
 #define __fastcall  __stdcall
 #define __export    __stdcall
 #define CDECL       __cdecl
 #define _CDECL      __cdecl
 #define cdecl       __cdecl
+#if !defined(__CYGWIN__)
 #define _cdecl      __cdecl
+#endif
 #define WINAPIV     __cdecl
 #define APIENTRY    WINAPI
 
+#if !defined(__CYGWIN__)
 #define __declspec(x)
+#endif
 #define dllimport
 #define dllexport
 

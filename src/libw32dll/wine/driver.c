@@ -9,7 +9,6 @@
 #endif
 
 #include "win32.h"
-#include "driver.h"
 #include "pe_image.h"
 #include "winreg.h"
 #include "vfw.h"
@@ -131,7 +130,7 @@ DrvOpen(LPARAM lParam2)
     char unknown[0x24];
 //    char* codec_name=icopen->fccHandler;
 
-    //Setup_LDT_Keeper();
+    Setup_FS_Segment();
 
     if (!(npDriver = DrvAlloc(&hDriver, &uDrvResult)))
 	return ((HDRVR) 0);

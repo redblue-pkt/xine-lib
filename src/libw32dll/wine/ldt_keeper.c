@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.3 2001/11/08 21:39:04 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.4 2002/06/21 01:44:17 miguelfreitas Exp $
  *
  *
  * contents:
@@ -46,12 +46,14 @@
  * be modified before program creates first thread
  * - avifile includes this file from C++ code
  * and initializes it at the start of player!
+ * it might sound like a hack and it really is - but
+ * as aviplay is deconding video with more than just one
+ * thread currently it's necessary to do it this way
+ * this might change in the future
  */
 
+/* applied some modification to make make our xine friend more happy */
 #include "ldt_keeper.h"
-/*
-#include "winnt.h"
-*/
 
 #include <string.h>
 #include <stdlib.h>
@@ -65,9 +67,16 @@
 #include <asm/unistd.h>
 #include <asm/ldt.h>
 /* prototype it here, so we won't depend on kernel headers */
+#ifdef  __cplusplus
+extern "C" {
+#endif
 int modify_ldt(int func, void *ptr, unsigned long bytecount);
+#ifdef  __cplusplus
+}
+#endif
 #else
 #if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <machine/segments.h>
 #include <machine/sysarch.h>
 #endif
 
@@ -79,7 +88,7 @@ int modify_ldt(int func, void *ptr, unsigned long bytecount);
 #ifdef  __cplusplus
 extern "C" {
 #endif
-extern int sysi86(int, void*);
+int sysi86(int, void*);
 #ifdef  __cplusplus
 }
 #endif
@@ -88,7 +97,7 @@ extern int sysi86(int, void*);
 #define NUMSYSLDTS     6       /* Let's hope the SunOS 5.8 value is OK */
 #endif
 
-#define TEB_SEL_IDX     NUMSYSLDTS
+#define       TEB_SEL_IDX     NUMSYSLDTS
 #endif
 
 #define LDT_ENTRIES     8192
@@ -123,14 +132,6 @@ struct modify_ldt_ldt_s {
 #define       TEB_SEL LDT_SEL(TEB_SEL_IDX)
 
 /**
- *
- *  This should be performed before we create first thread. See remarks
- *  for write_ldt(), linux/kernel/ldt.c.
- *
- */
-
-
-/**
  * here is a small logical problem with Restore for multithreaded programs -
  * in C++ we use static class for this...
  */
@@ -138,8 +139,6 @@ struct modify_ldt_ldt_s {
 #ifdef __cplusplus
 extern "C"
 #endif
-
-
 void Setup_FS_Segment(void)
 {
     __asm__ __volatile__(
@@ -154,6 +153,8 @@ __ASM_GLOBAL_FUNC( __set_fs, "movl 4(%esp),%eax\n\tmovw %ax,%fs\n\tret" )
 /* we don't need this - use modify_ldt instead */
 #if 0
 #ifdef __linux__
+/* XXX: why is this routine from libc redefined here? */
+/* NOTE: the redefined version ignores the count param, count is hardcoded as 16 */
 static int LDT_Modify( int func, struct modify_ldt_ldt_s *ptr,
 		       unsigned long count )
 {
@@ -201,22 +202,30 @@ static void LDT_EntryToBytes( unsigned long *buffer, const struct modify_ldt_ldt
 }
 #endif
 
-LDT_FS * Setup_LDT_Keeper(void)
+ldt_fs_t* Setup_LDT_Keeper(void)
 {
     struct modify_ldt_ldt_s array;
     int ret;
-    LDT_FS *ldt_fs;
-    
-    ldt_fs = malloc( sizeof( LDT_FS ) );
-    
+    ldt_fs_t* ldt_fs = (ldt_fs_t*) malloc(sizeof(ldt_fs_t));
+
+    if (!ldt_fs)
+	return NULL;
+
     ldt_fs->fd = open("/dev/zero", O_RDWR);
-    ldt_fs->fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
-		  ldt_fs->fd, 0);
-    if(ldt_fs->fs_seg==(void*)-1)
-    {
-	perror("ERROR: Couldn't allocate memory for fs segment");
+    if(ldt_fs->fd<0){
+        perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: ");
 	return NULL;
     }
+    ldt_fs->fs_seg = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE,
+			  ldt_fs->fd, 0);
+    if (ldt_fs->fs_seg == (void*)-1)
+    {
+	perror("ERROR: Couldn't allocate memory for fs segment");
+        close(ldt_fs->fd);
+        free(ldt_fs);
+	return NULL;
+    }
+    *(void**)((char*)ldt_fs->fs_seg+0x18) = ldt_fs->fs_seg;
     array.base_addr=(int)ldt_fs->fs_seg;
     array.entry_number=TEB_SEL_IDX;
     array.limit=array.base_addr+getpagesize()-1;
@@ -226,6 +235,7 @@ LDT_FS * Setup_LDT_Keeper(void)
     array.contents=MODIFY_LDT_CONTENTS_DATA;
     array.limit_in_pages=0;
 #ifdef __linux__
+    //ret=LDT_Modify(0x1, &array, sizeof(struct modify_ldt_ldt_s));
     ret=modify_ldt(0x1, &array, sizeof(struct modify_ldt_ldt_s));
     if(ret<0)
     {
@@ -271,21 +281,18 @@ LDT_FS * Setup_LDT_Keeper(void)
 
     ldt_fs->prev_struct = (char*)malloc(sizeof(char) * 8);
     *(void**)array.base_addr = ldt_fs->prev_struct;
-    
+
     return ldt_fs;
 }
 
-void Restore_LDT_Keeper(LDT_FS *ldt_fs)
+void Restore_LDT_Keeper(ldt_fs_t* ldt_fs)
 {
-    if (ldt_fs == NULL)
-        return;
-    if (ldt_fs->fs_seg == 0)
+    if (ldt_fs == NULL || ldt_fs->fs_seg == 0)
 	return;
     if (ldt_fs->prev_struct)
 	free(ldt_fs->prev_struct);
     munmap((char*)ldt_fs->fs_seg, getpagesize());
-    
+    ldt_fs->fs_seg = 0;
     close(ldt_fs->fd);
-    
-    free( ldt_fs );    
+    free(ldt_fs);
 }

@@ -10,14 +10,12 @@
     Returned by COutputPin through call IPin::EnumMediaTypes().
 */
 
-static int unimplemented(const char* s, void* p)
+static inline int output_unimplemented(const char* s, void* p)
 {
     Debug printf("%s(%p) called (UNIMPLEMENTED)", s, p);
     return E_NOTIMPL;
 }
 
-/* In outputpin.h now *********
-******************************
 typedef struct CEnumMediaTypes
 {
     IEnumMediaTypes_vt* vt;
@@ -25,7 +23,7 @@ typedef struct CEnumMediaTypes
     AM_MEDIA_TYPE type;
     GUID interfaces[2];
 } CEnumMediaTypes;
-********************/
+
 
 static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes,
@@ -60,8 +58,7 @@ static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 static HRESULT STDCALL CEnumMediaTypes_Skip(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes)
 {
-    Debug unimplemented("CEnumMediaTypes::Skip", This);
-    return E_NOTIMPL;
+    return output_unimplemented("CEnumMediaTypes::Skip", This);
 }
 
 static HRESULT STDCALL CEnumMediaTypes_Reset(IEnumMediaTypes * This)
@@ -216,8 +213,7 @@ static HRESULT STDCALL COutputPin_ConnectionMediaType(IPin * This,
 static HRESULT STDCALL COutputPin_QueryPinInfo(IPin * This,
 					       /* [out] */ PIN_INFO *pInfo)
 {
-    Debug unimplemented("COutputPin_QueryPinInfo", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_QueryPinInfo", This);
 }
 
 static HRESULT STDCALL COutputPin_QueryDirection(IPin * This,
@@ -233,15 +229,13 @@ static HRESULT STDCALL COutputPin_QueryDirection(IPin * This,
 static HRESULT STDCALL COutputPin_QueryId(IPin * This,
 					  /* [out] */ LPWSTR *Id)
 {
-    Debug unimplemented("COutputPin_QueryId", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_QueryId", This);
 }
 
 static HRESULT STDCALL COutputPin_QueryAccept(IPin * This,
 					      /* [in] */ const AM_MEDIA_TYPE *pmt)
 {
-    Debug unimplemented("COutputPin_QueryAccept", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_QueryAccept", This);
 }
 
 static HRESULT STDCALL COutputPin_EnumMediaTypes(IPin * This,
@@ -258,26 +252,22 @@ static HRESULT STDCALL COutputPin_QueryInternalConnections(IPin * This,
 						     /* [out] */ IPin **apPin,
 						     /* [out][in] */ ULONG *nPin)
 {
-    Debug unimplemented("COutputPin_QueryInternalConnections", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_QueryInternalConnections", This);
 }
 
 static HRESULT STDCALL COutputPin_EndOfStream(IPin * This)
 {
-    Debug unimplemented("COutputPin_EndOfStream", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_EndOfStream", This);
 }
 
 static HRESULT STDCALL COutputPin_BeginFlush(IPin * This)
 {
-    Debug unimplemented("COutputPin_BeginFlush", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_BeginFlush", This);
 }
 
 static HRESULT STDCALL COutputPin_EndFlush(IPin * This)
 {
-    Debug unimplemented("COutputPin_EndFlush", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_EndFlush", This);
 }
 
 static HRESULT STDCALL COutputPin_NewSegment(IPin * This,
@@ -353,8 +343,7 @@ static HRESULT STDCALL COutputPin_NotifyAllocator(IMemInputPin* This,
 static HRESULT STDCALL COutputPin_GetAllocatorRequirements(IMemInputPin* This,
 							   /* [out] */ ALLOCATOR_PROPERTIES* pProps)
 {
-    Debug unimplemented("COutputPin_GetAllocatorRequirements", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_GetAllocatorRequirements", This);
 }
 
 static HRESULT STDCALL COutputPin_Receive(IMemInputPin* This,
@@ -397,14 +386,12 @@ static HRESULT STDCALL COutputPin_ReceiveMultiple(IMemInputPin * This,
 					    /* [in] */ long nSamples,
 					    /* [out] */ long *nSamplesProcessed)
 {
-    Debug unimplemented("COutputPin_ReceiveMultiple", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_ReceiveMultiple", This);
 }
 
 static HRESULT STDCALL COutputPin_ReceiveCanBlock(IMemInputPin * This)
 {
-    Debug unimplemented("COutputPin_ReceiveCanBlock", This);
-    return E_NOTIMPL;
+    return output_unimplemented("COutputPin_ReceiveCanBlock", This);
 }
 
 static void COutputPin_SetFramePointer(COutputPin* This, char** z)

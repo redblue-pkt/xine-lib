@@ -113,12 +113,12 @@ DWORD WINAPI GetDriverFlags( HDRVR hDriver );
 extern "C" {
 #endif
  
-void SetCodecPath(const char* path);
 void CodecAlloc(void);
 void CodecRelease(void);
  
-HDRVR DrvOpen(LPARAM lParam2);
-void DrvClose(HDRVR hdrvr);
+#include "vfw.h"
+extern HDRVR VFWAPI DrvOpen(LPARAM lParam2);
+extern void DrvClose(HDRVR hdrvr);
  
 #ifdef __cplusplus
 }

@@ -1,13 +1,12 @@
 #ifndef __WINE_VFW_H
 #define __WINE_VFW_H
-#define D_VFW 1
 //#include "pshpack1.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 #ifndef __WINE_WINGDI_H
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
     short    bfType;
     long   bfSize;
@@ -18,7 +17,7 @@ typedef struct
 
 #ifndef _BITMAPINFOHEADER_
 #define _BITMAPINFOHEADER_
-typedef struct
+typedef struct __attribute__((__packed__))
 {
     long 	biSize;
     long  	biWidth;
@@ -215,10 +214,10 @@ typedef struct {
 } ICCOMPRESS;
 
 long VFWAPIV ICCompress(
-	HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiOutput,void* lpData,
-	LPBITMAPINFOHEADER lpbiInput,void* lpBits,long* lpckid,
+	HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiOutput,void* lpOutputBuf,
+	LPBITMAPINFOHEADER lpbiInput,void* lpImage,long* lpckid,
 	long* lpdwFlags,long lFrameNum,long dwFrameSize,long dwQuality,
-	LPBITMAPINFOHEADER lpbiPrev,void* lpPrev
+	LPBITMAPINFOHEADER lpbiInputPrev,void* lpImagePrev
 );
 
 
@@ -381,9 +380,7 @@ typedef struct {
 
 
 long VFWAPIV ICDecompress(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
-
 long VFWAPIV ICDecompressEx(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
-
 long VFWAPIV ICUniversalEx(HIC hic,int command,LPBITMAPINFOHEADER lpbiFormat,LPBITMAPINFOHEADER lpbi);
 
 
@@ -410,7 +407,7 @@ long VFWAPIV ICUniversalEx(HIC hic,int command,LPBITMAPINFOHEADER lpbiFormat,LPB
     	hic,ICM_DECOMPRESSEX_QUERY, (lpbiInput),		\
 	(lpbiOutput)						\
     )
-    
+
 #define ICDecompressGetFormat(hic, lpbiInput, lpbiOutput)		\
     ((long)ICSendMessage(						\
     	hic,ICM_DECOMPRESS_GET_FORMAT, (long)(void*)(lpbiInput),	\

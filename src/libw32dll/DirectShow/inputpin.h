@@ -14,7 +14,7 @@ struct _CBaseFilter2
     IPin* ( *GetPin )(CBaseFilter2* This);
 };
 
-CBaseFilter2* CBaseFilter2Create(void);
+CBaseFilter2* CBaseFilter2Create();
 
 
 typedef struct _CBaseFilter CBaseFilter;

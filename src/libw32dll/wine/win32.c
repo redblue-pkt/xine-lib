@@ -187,17 +187,16 @@ static inline void dbgprintf(char* fmt, ...)
 	va_end(va);
     }
 #endif
-#if 0
-// al3x: it break divx audio. btw it should be if(verbose>2){ ... } anyway...
-// #ifdef MPLAYER
+#undef MPLAYER
+#ifdef MPLAYER
     #include "../mp_msg.h"
+    if (verbose > 2)
     {
-	char buf[1024];
 	va_list va;
-
-        va_start(va, fmt);
-	vsnprintf((char *)&buf[0], 1023, fmt, va);
-	mp_dbg(MSGT_WIN32, MSGL_DBG3, (char *)&buf[0]);
+	
+	va_start(va, fmt);
+//	vprintf(fmt, va);
+	mp_dbg(MSGT_WIN32, MSGL_DBG3, fmt, va);
 	va_end(va);
     }
 #endif
@@ -336,6 +335,7 @@ struct CRITSECT
     pthread_t id;
     pthread_mutex_t mutex;
     int locked;
+    long deadbeef;
 };
 
 void* mreq_private(int size, int to_zero, int type);
@@ -407,6 +407,7 @@ int my_release(void* memory)
 	break;
     default:
 	//memset(memory, 0xcc, header->size);
+	;
     }
 
     header->deadbeef = 0;
@@ -444,17 +445,19 @@ inline void* my_mreq(int size, int to_zero)
     return mreq_private(size, to_zero, AREATYPE_CLIENT);
 }
 
-static inline int my_size(void* memory)
+static /*inline*/ int my_size(void* memory)
 {
+    if(!memory) return 0;
     return ((alloc_header*)memory)[-1].size;
 }
 
 static void* my_realloc(void* memory, int size)
 {
     void *ans = memory;
-    int osize = my_size(memory);
+    int osize;
     if (memory == NULL)
 	return my_mreq(size, 0);
+    osize = my_size(memory);
     if (osize < size)
     {
 	ans = my_mreq(size, 0);
@@ -506,6 +509,7 @@ static HMODULE WINAPI expGetDriverModuleHandle(DRVR* pdrv)
 }
 
 #define	MODULE_HANDLE_kernel32	((HMODULE)0x120)
+#define	MODULE_HANDLE_user32	((HMODULE)0x121)
 
 static HMODULE WINAPI expGetModuleHandleA(const char* name)
 {
@@ -781,12 +785,20 @@ static void* WINAPI expWaitForSingleObject(void* object, int duration)
     return (void *)ret;
 }
 
+static int pf_set = 0;
 static BYTE PF[64] = {0,};
+
+static void WINAPI expGetSystemInfo(SYSTEM_INFO* si); /* forward declaration */
 
 static WIN_BOOL WINAPI expIsProcessorFeaturePresent(DWORD v)
 {
     WIN_BOOL result;
     if(v>63)result=0;
+    if (!pf_set)
+    {
+	SYSTEM_INFO si;
+	expGetSystemInfo(&si);
+    }
     else result=PF[v];
     dbgprintf("IsProcessorFeaturePresent(0x%x) => 0x%x\n", v, result);
     return result;
@@ -811,9 +823,7 @@ static void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
     /* FIXME: better values for the two entries below... */
     static int cache = 0;
     static SYSTEM_INFO cachedsi;
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__svr4__)
     unsigned int regs[4];
-#endif
     dbgprintf("GetSystemInfo(%p) =>\n", si);
 
     if (cache) {
@@ -822,6 +832,7 @@ static void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
 	return;
     }
     memset(PF,0,sizeof(PF));
+    pf_set = 1;
 
     cachedsi.u.s.wProcessorArchitecture     = PROCESSOR_ARCHITECTURE_INTEL;
     cachedsi.dwPageSize 			= getpagesize();
@@ -1092,17 +1103,17 @@ static long WINAPI expHeapDestroy(void* heap)
     return 1;
 }
 
-static long WINAPI expHeapFree(int arg1, int arg2, void* ptr)
+static long WINAPI expHeapFree(HANDLE heap, DWORD dwFlags, LPVOID lpMem)
 {
-    dbgprintf("HeapFree(0x%x, 0x%x, pointer 0x%x) => 1\n", arg1, arg2, ptr);
-    if (heapfreehack != ptr && ptr != (void*)0xffffffff)
-	my_release(ptr);
+    dbgprintf("HeapFree(0x%x, 0x%x, pointer 0x%x) => 1\n", heap, dwFlags, lpMem);
+    if (heapfreehack != lpMem && lpMem != (void*)0xffffffff)
+	my_release(lpMem);
     else
     {
 	if (!heapfreehackshown++)
-	    printf("Info: HeapFree deallocating same memory twice! (%p)\n", ptr);
+	    printf("Info: HeapFree deallocating same memory twice! (%p)\n", lpMem);
     }
-    heapfreehack = ptr;
+    heapfreehack = lpMem;
     return 1;
 }
 static long WINAPI expHeapSize(int heap, int flags, void* pointer)
@@ -1208,8 +1219,8 @@ static void WINAPI expInitializeCriticalSection(CRITICAL_SECTION* c)
 	    printf("InitializeCriticalSection(%p) - no more space in list\n", c);
 	    return;
 	}
-	printf("got unused space at %d\n", i);
-	cs = expmalloc(sizeof(struct CRITSECT));
+	dbgprintf("got unused space at %d\n", i);
+	cs = malloc(sizeof(struct CRITSECT));
 	if (!cs)
 	{
 	    printf("InitializeCriticalSection(%p) - out of memory\n", c);
@@ -1224,10 +1235,12 @@ static void WINAPI expInitializeCriticalSection(CRITICAL_SECTION* c)
     }
 #else
     {
-	struct CRITSECT* cs = mreq_private(sizeof(struct CRITSECT), 0, AREATYPE_CRITSECT);
+	struct CRITSECT* cs = mreq_private(sizeof(struct CRITSECT) + sizeof(CRITICAL_SECTION),
+					   0, AREATYPE_CRITSECT);
 	pthread_mutex_init(&cs->mutex, NULL);
 	cs->locked=0;
-	*(void**)c = cs;
+        cs->deadbeef = 0xdeadbeef;
+	*(void**)c = cs + 1;
     }
 #endif
     return;
@@ -1238,17 +1251,18 @@ static void WINAPI expEnterCriticalSection(CRITICAL_SECTION* c)
 #ifdef CRITSECS_NEWTYPE
     struct CRITSECT* cs = critsecs_get_unix(c);
 #else
-    struct CRITSECT* cs=*(struct CRITSECT**)c;
+    struct CRITSECT* cs = (*(struct CRITSECT**)c) - 1;
+
 #endif
-    dbgprintf("EnterCriticalSection(0x%x)\n",c);
+    dbgprintf("EnterCriticalSection(0x%x) %p maso:0x%x\n",c, cs, cs->deadbeef);
     if (!cs)
     {
-	printf("entered uninitialized critisec!\n");
+	dbgprintf("entered uninitialized critisec!\n");
 	expInitializeCriticalSection(c);
 #ifdef CRITSECS_NEWTYPE
 	cs=critsecs_get_unix(c);
 #else
-	cs=*(struct CRITSECT**)c;
+	cs = (*(struct CRITSECT**)c) - 1;
 #endif
 	printf("Win32 Warning: Accessed uninitialized Critical Section (%p)!\n", c);
     }
@@ -1265,13 +1279,13 @@ static void WINAPI expLeaveCriticalSection(CRITICAL_SECTION* c)
 #ifdef CRITSECS_NEWTYPE
     struct CRITSECT* cs = critsecs_get_unix(c);
 #else
-    struct CRITSECT* cs=*(struct CRITSECT**)c;
+    struct CRITSECT* cs = (*(struct CRITSECT**)c) - 1;
 #endif
     //    struct CRITSECT* cs=(struct CRITSECT*)c;
-    dbgprintf("LeaveCriticalSection(0x%x)\n",c);
+    dbgprintf("LeaveCriticalSection(0x%x) 0x%x\n",c, cs->deadbeef);
     if (!cs)
     {
-	printf("Win32 Warning: Leaving noninitialized Critical Section %p!!\n", c);
+	printf("Win32 Warning: Leaving uninitialized Critical Section %p!!\n", c);
 	return;
     }
     cs->locked=0;
@@ -1283,7 +1297,7 @@ static void WINAPI expDeleteCriticalSection(CRITICAL_SECTION *c)
 #ifdef CRITSECS_NEWTYPE
     struct CRITSECT* cs = critsecs_get_unix(c);
 #else
-    struct CRITSECT* cs=*(struct CRITSECT**)c;
+    struct CRITSECT* cs= (*(struct CRITSECT**)c) - 1;
 #endif
     //    struct CRITSECT* cs=(struct CRITSECT*)c;
     dbgprintf("DeleteCriticalSection(0x%x)\n",c);
@@ -1337,31 +1351,35 @@ static int WINAPI expTlsAlloc()
 	if(tls_use_map[i]==0)
 	{
 	    tls_use_map[i]=1;
+	    dbgprintf("TlsAlloc() => %d\n",i);
 	    return i;
 	}
+    dbgprintf("TlsAlloc() => -1 (ERROR)\n");
     return -1;
 }
 
-static int WINAPI expTlsSetValue(void idx, void* value)
+static int WINAPI expTlsSetValue(DWORD index, void* value)
 {
-    int index = (int) idx;
-    if((index<0) || (index>64))
+    dbgprintf("TlsSetValue(%d,%p)\n",index,value);
+//    if((index<0) || (index>64))
+    if((index>=64))
 	return 0;
     *(void**)((char*)fs_seg+0x88+4*index) = value;
     return 1;
 }
 
-static void* WINAPI expTlsGetValue(int idx)
+static void* WINAPI expTlsGetValue(DWORD index)
 {
-    int index = (int) idx;
-    if((index<0) || (index>64))
-	return 0;
-    return *(void**)((char*)fs_seg+0x88+index);
+    dbgprintf("TlsGetValue(%d)\n",index);
+//    if((index<0) || (index>64))
+    if((index>=64)) return NULL;
+    return *(void**)((char*)fs_seg+0x88+4*index);
 }
 
 static int WINAPI expTlsFree(int idx)
 {
     int index = (int) idx;
+    dbgprintf("TlsFree(%d)\n",index);
     if((index<0) || (index>64))
 	return 0;
     tls_use_map[index]=0;
@@ -1589,7 +1607,7 @@ static long WINAPI expGetVersionExA(OSVERSIONINFOA* c)
     c->dwMajorVersion=4;
     c->dwMinorVersion=0;
     c->dwBuildNumber=0x4000457;
-#if 0
+#if 1
     // leave it here for testing win9x-only codecs
     c->dwPlatformId=VER_PLATFORM_WIN32_WINDOWS;
     strcpy(c->szCSDVersion, " B");
@@ -1932,7 +1950,8 @@ static HRSRC WINAPI expFindResourceA(HMODULE module, char* name, char* type)
     HRSRC result;
 
     result=FindResourceA(module, name, type);
-    dbgprintf("FindResourceA(module 0x%x, name 0x%x(%s), type 0x%x(%s)) => 0x%x\n", module, HIWORD(name) ? name : "UNICODE", HIWORD(type) ? type : "UNICODE", result);
+    dbgprintf("FindResourceA(module 0x%x, name 0x%x(%s), type 0x%x(%s)) => 0x%x\n",
+	module, name, HIWORD(name) ? name : "UNICODE", type, HIWORD(type) ? type : "UNICODE", result);
     return result;
 }
 
@@ -1960,6 +1979,10 @@ static int WINAPI expFreeResource(long res)
 static int WINAPI expCloseHandle(long v1)
 {
     dbgprintf("CloseHandle(0x%x) => 1\n", v1);
+    /* do not close stdin,stdout and stderr */
+    if (v1 > 2)
+	if (!close(v1))
+	    return 0;
     return 1;
 }
 
@@ -2132,9 +2155,13 @@ static int WINAPI expLoadLibraryA(char* name)
 
     // PIMJ and VIVO audio are loading  kernel32.dll
     if (strcasecmp(name, "kernel32.dll") == 0 || strcasecmp(name, "kernel32") == 0)
-//	return MODULE_HANDLE_kernel32;
-	return ERROR_SUCCESS; /* yeah, we have also the kernel32 calls */
+	return MODULE_HANDLE_kernel32;
+//	return ERROR_SUCCESS; /* yeah, we have also the kernel32 calls */
 			      /* exported -> do not return failed! */
+
+    if (strcasecmp(name, "user32.dll") == 0 || strcasecmp(name, "user32") == 0)
+//	return MODULE_HANDLE_kernel32;
+	return MODULE_HANDLE_user32;
 
     result=LoadLibraryA(name);
     dbgprintf("Returned LoadLibraryA(0x%x='%s'), def_path=%s => 0x%x\n", name, name, win32_def_path, result);
@@ -2150,10 +2177,14 @@ static int WINAPI expFreeLibrary(int module)
 static void* WINAPI expGetProcAddress(HMODULE mod, char* name)
 {
     void* result;
-    if(mod!=MODULE_HANDLE_kernel32)
+    switch(mod){
+    case MODULE_HANDLE_kernel32:
+	result=LookupExternalByName("kernel32.dll", name); break;
+    case MODULE_HANDLE_user32:
+	result=LookupExternalByName("user32.dll", name); break;
+    default:
 	result=GetProcAddress(mod, name);
-    else
-	result=LookupExternalByName("kernel32.dll", name);
+    }
     dbgprintf("GetProcAddress(0x%x, '%s') => 0x%x\n", mod, name, result);
     return result;
 }
@@ -2214,6 +2245,7 @@ static void* WINAPI expSleep(int time)
     dbgprintf("Sleep(%d) => 0\n", time);
     return 0;
 }
+
 // why does IV32 codec want to call this? I don't know ...
 static int WINAPI expCreateCompatibleDC(int hdc)
 {
@@ -2679,6 +2711,12 @@ static int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int 
     return strlen(field);
 }
 
+static int WINAPI expSetEnvironmentVariableA(const char *name, const char *value)
+{
+    dbgprintf("SetEnvironmentVariableA(%s, %s)\n", name, value);
+    return 0;
+}
+
 static void* WINAPI expCoTaskMemAlloc(ULONG cb)
 {
     return my_mreq(cb, 0);
@@ -2788,8 +2826,23 @@ long CoCreateInstance(GUID* rclsid, struct IUnknown* pUnkOuter,
 
 static int WINAPI expIsRectEmpty(CONST RECT *lprc)
 {
-    int r = (!lprc || (lprc->right == lprc->left) || (lprc->top == lprc->bottom));
+    int r = 0;
+//    int r = (!lprc || (lprc->right == lprc->left) || (lprc->top == lprc->bottom));
+    int w,h;
+    
+    if (lprc)
+    {
+	w = lprc->right - lprc->left;
+	h = lprc->bottom - lprc->top;
+	if (w <= 0 || h <= 0)
+	    r = 1;
+    }
+    else
+	r = 1;
+
     dbgprintf("IsRectEmpty(%p) => %s\n", lprc, (r) ? "TRUE" : "FALSE");
+//    printf("Rect: left: %d, top: %d, right: %d, bottom: %d\n",
+//	lprc->left, lprc->top, lprc->right, lprc->bottom);
     return r;
 }
 
@@ -2934,14 +2987,69 @@ static HANDLE WINAPI expCreateFileA(LPCSTR cs1,DWORD i1,DWORD i2,
 	return r;
     }
 
+#if 0
+    /* we need this for some virtualdub filters */  
+    {
+	int r;
+	int flg = 0;
+	if (GENERIC_READ & i1)
+	    flg |= O_RDONLY;
+	else if (GENERIC_WRITE & i1)
+	{
+	    flg |= O_WRONLY;
+	    printf("Warning: openning filename %s  %d (flags; 0x%x) for write\n", cs1, r, flg);
+	}
+	r=open(cs1, flg);
+	return r;
+    }    
+#endif
+
     return atoi(cs1+2);
 }
+static UINT WINAPI expGetSystemDirectoryA(
+  char* lpBuffer,  // address of buffer for system directory
+  UINT uSize        // size of directory buffer
+){
+    dbgprintf("GetSystemDirectoryA(%p,%d)\n", lpBuffer,uSize);
+    if(!lpBuffer) strcpy(lpBuffer,".");
+    return 1;
+}
+/*
 static char sysdir[]=".";
 static LPCSTR WINAPI expGetSystemDirectoryA()
 {
     dbgprintf("GetSystemDirectoryA() => 0x%x='%s'\n", sysdir, sysdir);
     return sysdir;
 }
+*/
+static DWORD WINAPI expGetFullPathNameA
+(
+	LPCTSTR lpFileName,
+	DWORD nBufferLength,
+	LPTSTR lpBuffer,
+	LPTSTR lpFilePart
+){
+    if(!lpFileName) return 0;
+    dbgprintf("GetFullPathNameA('%s',%d,%p,%p)\n",lpFileName,nBufferLength,
+	lpBuffer, lpFilePart);
+    strcpy(lpFilePart, lpFileName);
+    strcpy(lpBuffer, lpFileName);
+//    strncpy(lpBuffer, lpFileName, rindex(lpFileName, '\\')-lpFileName);
+    return strlen(lpBuffer);
+}
+
+static DWORD WINAPI expGetShortPathNameA
+(
+        LPCSTR longpath,
+        LPSTR shortpath,
+        DWORD shortlen
+){
+    if(!longpath) return 0;
+    dbgprintf("GetShortPathNameA('%s',%p,%d)\n",longpath,shortpath,shortlen);
+    strcpy(shortpath,longpath);
+    return strlen(shortpath);
+}
+			
 static WIN_BOOL WINAPI expReadFile(HANDLE h,LPVOID pv,DWORD size,LPDWORD rd,LPOVERLAPPED unused)
 {
     int result;
@@ -3075,6 +3183,7 @@ static HRESULT WINAPI expCoCreateFreeThreadedMarshaler(void *pUnkOuter, void **p
 {
     printf("CoCreateFreeThreadedMarshaler(%p, %p) called!\n",
 	   pUnkOuter, ppUnkInner);
+//    return 0;
     return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
@@ -3134,6 +3243,15 @@ static void expfree(void* mem)
     dbgprintf("free(%p)\n", mem);
     my_release(mem);
 }
+/* needed by atrac3.acm */
+static void *expcalloc(int num, int size)
+{
+    void* result=my_mreq(num*size,1);
+    dbgprintf("calloc(%d,%d) => %p\n", num,size,result);
+    if(result==0)
+	printf("WARNING: calloc() failed\n");
+    return result;
+}
 static void* expnew(int size)
 {
     //    printf("NEW:: Call from address %08x\n STACK DUMP:\n", *(-1+(int*)&size));
@@ -3156,11 +3274,32 @@ static int expdelete(void* memory)
     my_release(memory);
     return 0;
 }
+#if 1
 static int exp_initterm(int v1, int v2)
 {
     dbgprintf("_initterm(0x%x, 0x%x) => 0\n", v1, v2);
     return 0;
 }
+#else
+/* merged from wine - 2002.04.21 */
+typedef void (*_INITTERMFUNC)(void);
+static int exp_initterm(_INITTERMFUNC *start, _INITTERMFUNC *end)
+{
+    _INITTERMFUNC *current = start;
+
+    dbgprintf("_initterm(0x%x, 0x%x)\n", start, end);
+    while (current < end)
+    {
+	if (*current)
+	{
+	    printf("call init func: %p\n", *current);
+	    (**current)();
+	}
+	current++;
+    }
+    return 0;
+}
+#endif
 
 static int expwsprintfA(char* string, char* format, ...)
 {
@@ -3489,7 +3628,181 @@ static int exp_setjmp3(void* jmpbuf, int x)
 	return 0;
 }
 
+static DWORD WINAPI expGetCurrentProcessId(void)
+{
+    return getpid(); //(DWORD)NtCurrentTeb()->pid;
+}
 
+static HANDLE WINAPI
+expCreateMutexA( SECURITY_ATTRIBUTES *sa, WIN_BOOL owner, LPCSTR name ){
+    static int x=0xcfcf9898;
+    //++x;
+    dbgprintf("CreateMutexA(%p,%d,'%s') => %d\n",sa,owner,name,x);
+    return x;
+}
+
+typedef struct {
+    UINT	wPeriodMin;
+    UINT	wPeriodMax;
+} TIMECAPS, *LPTIMECAPS;
+
+static MMRESULT WINAPI exptimeGetDevCaps(LPTIMECAPS lpCaps, UINT wSize)
+{
+    dbgprintf("timeGetDevCaps(%p, %u) !\n", lpCaps, wSize);
+
+    lpCaps->wPeriodMin = 1;
+    lpCaps->wPeriodMax = 65535;
+    return 0;
+}
+
+static MMRESULT WINAPI exptimeBeginPeriod(UINT wPeriod)
+{
+    dbgprintf("timeBeginPeriod(%u) !\n", wPeriod);
+
+    if (wPeriod < 1 || wPeriod > 65535) return 96+1; //TIMERR_NOCANDO;
+    return 0;
+}
+
+static void WINAPI expGlobalMemoryStatus(
+            LPMEMORYSTATUS lpmem
+) {
+    static MEMORYSTATUS	cached_memstatus;
+    static int cache_lastchecked = 0;
+    SYSTEM_INFO si;
+    FILE *f;
+
+    if (time(NULL)==cache_lastchecked) {
+	memcpy(lpmem,&cached_memstatus,sizeof(MEMORYSTATUS));
+	return;
+    }
+
+#if 1
+    f = fopen( "/proc/meminfo", "r" );
+    if (f)
+    {
+        char buffer[256];
+        int total, used, free, shared, buffers, cached;
+
+        lpmem->dwLength = sizeof(MEMORYSTATUS);
+        lpmem->dwTotalPhys = lpmem->dwAvailPhys = 0;
+        lpmem->dwTotalPageFile = lpmem->dwAvailPageFile = 0;
+        while (fgets( buffer, sizeof(buffer), f ))
+        {
+	    /* old style /proc/meminfo ... */
+            if (sscanf( buffer, "Mem: %d %d %d %d %d %d", &total, &used, &free, &shared, &buffers, &cached ))
+            {
+                lpmem->dwTotalPhys += total;
+                lpmem->dwAvailPhys += free + buffers + cached;
+            }
+            if (sscanf( buffer, "Swap: %d %d %d", &total, &used, &free ))
+            {
+                lpmem->dwTotalPageFile += total;
+                lpmem->dwAvailPageFile += free;
+            }
+
+	    /* new style /proc/meminfo ... */
+	    if (sscanf(buffer, "MemTotal: %d", &total))
+	    	lpmem->dwTotalPhys = total*1024;
+	    if (sscanf(buffer, "MemFree: %d", &free))
+	    	lpmem->dwAvailPhys = free*1024;
+	    if (sscanf(buffer, "SwapTotal: %d", &total))
+	        lpmem->dwTotalPageFile = total*1024;
+	    if (sscanf(buffer, "SwapFree: %d", &free))
+	        lpmem->dwAvailPageFile = free*1024;
+	    if (sscanf(buffer, "Buffers: %d", &buffers))
+	        lpmem->dwAvailPhys += buffers*1024;
+	    if (sscanf(buffer, "Cached: %d", &cached))
+	        lpmem->dwAvailPhys += cached*1024;
+        }
+        fclose( f );
+
+        if (lpmem->dwTotalPhys)
+        {
+            DWORD TotalPhysical = lpmem->dwTotalPhys+lpmem->dwTotalPageFile;
+            DWORD AvailPhysical = lpmem->dwAvailPhys+lpmem->dwAvailPageFile;
+            lpmem->dwMemoryLoad = (TotalPhysical-AvailPhysical)
+                                      / (TotalPhysical / 100);
+        }
+    } else
+#endif
+    {
+	/* FIXME: should do something for other systems */
+	lpmem->dwMemoryLoad    = 0;
+	lpmem->dwTotalPhys     = 16*1024*1024;
+	lpmem->dwAvailPhys     = 16*1024*1024;
+	lpmem->dwTotalPageFile = 16*1024*1024;
+	lpmem->dwAvailPageFile = 16*1024*1024;
+    }
+    expGetSystemInfo(&si);
+    lpmem->dwTotalVirtual  = si.lpMaximumApplicationAddress-si.lpMinimumApplicationAddress;
+    /* FIXME: we should track down all the already allocated VM pages and substract them, for now arbitrarily remove 64KB so that it matches NT */
+    lpmem->dwAvailVirtual  = lpmem->dwTotalVirtual-64*1024;
+    memcpy(&cached_memstatus,lpmem,sizeof(MEMORYSTATUS));
+    cache_lastchecked = time(NULL);
+
+    /* it appears some memory display programs want to divide by these values */
+    if(lpmem->dwTotalPageFile==0)
+        lpmem->dwTotalPageFile++;
+
+    if(lpmem->dwAvailPageFile==0)
+        lpmem->dwAvailPageFile++;
+}
+
+/**********************************************************************
+ * SetThreadPriority [KERNEL32.@]  Sets priority for thread.
+ *
+ * RETURNS
+ *    Success: TRUE
+ *    Failure: FALSE
+ */
+static WIN_BOOL WINAPI expSetThreadPriority(
+    HANDLE hthread, /* [in] Handle to thread */
+    INT priority)   /* [in] Thread priority level */
+{
+    dbgprintf("SetThreadPriority(%p,%d)\n",hthread,priority);
+    return TRUE;
+}
+
+static void WINAPI expExitProcess( DWORD status )
+{
+    printf("EXIT - code %d\n",status);
+    exit(status);
+}
+
+static INT WINAPI expMessageBoxA(HWND hWnd, LPCSTR text, LPCSTR title, UINT type){
+    printf("MSGBOX '%s' '%s' (%d)\n",text,title,type);
+    return 1;
+}
+
+/* these are needed for mss1 */
+
+/* defined in stubs.s */
+void exp_EH_prolog(void);
+
+#include <netinet/in.h>
+static WINAPI inline unsigned long int exphtonl(unsigned long int hostlong)
+{
+//    dbgprintf("htonl(%x) => %x\n", hostlong, htonl(hostlong));
+    return htonl(hostlong);
+}
+
+static WINAPI inline unsigned long int expntohl(unsigned long int netlong)
+{
+//    dbgprintf("ntohl(%x) => %x\n", netlong, ntohl(netlong));
+    return ntohl(netlong);
+}
+
+int expRegisterClassA(const void/*WNDCLASSA*/ *wc)
+{
+    dbgprintf("RegisterClassA(%p) => random id\n", wc);
+    return time(NULL); /* be precise ! */
+}
+
+int expUnregisterClassA(const char *className, HINSTANCE hInstance)
+{
+    dbgprintf("UnregisterClassA(%s, %p) => 0\n", className, hInstance);
+    return 0;
+}
 
 struct exports
 {
@@ -3600,6 +3913,7 @@ struct exports exp_kernel32[]=
     FF(GetLocalTime, -1)
     FF(GetSystemTime, -1)
     FF(GetEnvironmentVariableA, -1)
+    FF(SetEnvironmentVariableA, -1)
     FF(RtlZeroMemory,-1)
     FF(RtlMoveMemory,-1)
     FF(RtlFillMemory,-1)
@@ -3616,6 +3930,8 @@ struct exports exp_kernel32[]=
     FF(CreateFileA,-1)
     FF(GetSystemDirectoryA,-1)
     FF(GetWindowsDirectoryA,-1)
+    FF(GetShortPathNameA,-1)
+    FF(GetFullPathNameA,-1)
     FF(SetErrorMode, -1)
     FF(IsProcessorFeaturePresent, -1)
     FF(GetProcessAffinityMask, -1)
@@ -3633,6 +3949,12 @@ struct exports exp_kernel32[]=
     FF(DuplicateHandle,-1)
     FF(GetTickCount, -1)
     FF(SetThreadAffinityMask,-1)
+    FF(GetCurrentProcessId,-1)
+    FF(CreateMutexA,-1)
+    FF(GlobalMemoryStatus,-1)
+    FF(SetThreadPriority,-1)
+    FF(ExitProcess,-1)
+    {"LoadLibraryExA", -1, (void*)&LoadLibraryExA},
 };
 
 struct exports exp_msvcrt[]={
@@ -3674,6 +3996,9 @@ struct exports exp_msvcrt[]={
     FF(fprintf,-1)
     FF(printf,-1)
     FF(getenv,-1)
+    FF(_EH_prolog,-1)
+    FF(calloc,-1)
+    {"ceil",-1,(void*)&ceil}
 };
 struct exports exp_winmm[]={
     FF(GetDriverModuleHandle, -1)
@@ -3681,6 +4006,8 @@ struct exports exp_winmm[]={
     FF(DefDriverProc, -1)
     FF(OpenDriverA, -1)
     FF(OpenDriver, -1)
+    FF(timeGetDevCaps, -1)
+    FF(timeBeginPeriod, -1)
 };
 struct exports exp_user32[]={
     FF(LoadStringA, -1)
@@ -3699,6 +4026,9 @@ struct exports exp_user32[]={
     FF(GetSysColorBrush,-1)
     FF(GetWindowDC, -1)
     FF(DrawTextA, -1)
+    FF(MessageBoxA, -1)
+    FF(RegisterClassA, -1)
+    FF(UnregisterClassA, -1)
 };
 struct exports exp_advapi32[]={
     FF(RegCloseKey, -1)
@@ -3739,9 +4069,44 @@ struct exports exp_comctl32[]={
     FF(StringFromGUID2, -1)
     FF(InitCommonControls, 17)
 };
-
+struct exports exp_wsock32[]={
+    FF(htonl,8)
+    FF(ntohl,14)
+};
 struct exports exp_msdmo[]={
     FF(memcpy, -1) // just test
+};
+
+/*  realplayer8:
+	DLL Name: PNCRT.dll
+	vma:  Hint/Ord Member-Name
+	22ff4	  615  free
+	2302e	  250  _ftol
+	22fea	  666  malloc
+	2303e	  609  fprintf
+	2305e	  167  _adjust_fdiv
+	23052	  280  _initterm
+
+	22ffc	  176  _beginthreadex
+	23036	  284  _iob
+	2300e	   85  __CxxFrameHandler
+	23022	  411  _purecall
+*/
+struct exports exp_pncrt[]={
+    FF(malloc, -1) // just test
+    FF(free, -1) // just test
+    FF(fprintf, -1) // just test
+    {"_adjust_fdiv", -1, (void*)&_adjust_fdiv},
+    FF(_ftol,-1)
+    FF(_initterm, -1)
+};
+
+/* needed for Morgand MJPEG */
+struct exports exp_msvfw32[]={
+    {"ICOpen", -1, (void *)&ICOpen},
+    {"ICClose", -1, (void *)&ICClose},
+    {"ICDecompress", -1, (void *)&ICDecompress},
+    {"ICSendMessage", -1, (void *)&ICSendMessage}
 };
 
 #define LL(X) \
@@ -3758,11 +4123,17 @@ struct libs libraries[]={
     LL(ole32)
     LL(crtdll)
     LL(comctl32)
+    LL(wsock32)
     LL(msdmo)
+    LL(msvfw32)
+    LL(pncrt)
 };
-
-char* win32_called_unk = "Called unk_%s\n";
-
+#if defined(__CYGWIN__) || defined(__OS2__) || defined (__OpenBSD__)
+#define MANGLE(a) "_" #a
+#else
+#define MANGLE(a) #a
+#endif
+static char* called_unk = "Called unk_%s\n";
 static void ext_stubs(void)
 {
     // expects:
@@ -3774,9 +4145,9 @@ static void ext_stubs(void)
 	 "movl $0, %eax		\n\t"
 	 "movl $0, %edx		\n\t"
 	 "shl $5,%eax		\n\t"			// ax * 32
-	 "addl $export_names,%eax \n\t"
+	 "addl $"MANGLE(export_names)",%eax \n\t"
 	 "pushl %eax		\n\t"
-	 "pushl win32_called_unk \n\t"
+	 "pushl "MANGLE(called_unk)"	\n\t"
 	 "call *%edx		\n\t"                   // printf (via dx)
 	 "addl $8,%esp		\n\t"
 	 "xorl %eax,%eax	\n\t"
@@ -3817,6 +4188,8 @@ void* LookupExternal(const char* library, int ordinal)
     }
     //    printf("%x %x\n", &unk_exp1, &unk_exp2);
 
+    printf("External func %s:%d\n", library, ordinal);
+
     for(i=0; i<sizeof(libraries)/sizeof(struct libs); i++)
     {
 	if(strcasecmp(library, libraries[i].name))
@@ -3829,7 +4202,36 @@ void* LookupExternal(const char* library, int ordinal)
 	    return libraries[i].exps[j].func;
 	}
     }
-    printf("External func %s:%d\n", library, ordinal);
+
+    /* ok, this is a hack, and a big memory leak. should be fixed. - alex */
+    {
+	HMODULE *hand;
+	WINE_MODREF *wm;
+	void *func;
+
+	hand = LoadLibraryA(library);
+	if (!hand)
+	    goto no_dll;
+	wm = MODULE32_LookupHMODULE(hand);
+	if (!wm)
+	{
+	    FreeLibrary(hand);
+	    goto no_dll;
+	}
+	func = PE_FindExportedFunction(wm, ordinal, 0);
+	if (!func)
+	{
+	    printf("No such ordinal in external dll\n");
+	    FreeLibrary(hand);
+	    goto no_dll;
+	}
+
+	printf("External dll loaded (offset: %p, func: %p)\n",
+	    hand, func);
+	return func;
+    }
+
+no_dll:
     if(pos>150)return 0;
     sprintf(export_names[pos], "%s:%d", library, ordinal);
     return add_stub(pos);
@@ -3881,7 +4283,7 @@ void my_garbagecollection(void)
 	unfreecnt++;
 	my_release(mem);
     }
-    printf("Total Unfree %d bytes cnt %d [%p,%d]\n",unfree, unfreecnt, last_alloc, alccnt);
+    dbgprintf("Total Unfree %d bytes cnt %d [%p,%d]\n",unfree, unfreecnt, last_alloc, alccnt);
 #endif
     g_tls = NULL;
     list = NULL;

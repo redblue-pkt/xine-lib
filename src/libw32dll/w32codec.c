@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.81 2002/06/12 12:22:36 f1rmb Exp $
+ * $Id: w32codec.c,v 1.82 2002/06/21 01:44:17 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -81,6 +81,12 @@ static GUID dvsd_clsid =
 	{0xAF, 0x79, 0x00, 0xAA, 0x00, 0xB6, 0x7A, 0x42}
 };
 
+static GUID msmpeg4_clsid =
+{
+	0x82CCd3E0, 0xF71A, 0x11D0,
+	{ 0x9f, 0xe5, 0x00, 0x60, 0x97, 0x78, 0xea, 0x66}
+};
+
 
 /* some data is shared inside wine loader.
  * this mutex seems to avoid some segfaults
@@ -124,7 +130,7 @@ typedef struct w32v_decoder_s {
   int               stream_id;
   int               skipframes;  
   
-  LDT_FS *ldt_fs;
+  ldt_fs_t *ldt_fs;
 } w32v_decoder_t;
 
 typedef struct w32a_decoder_s {
@@ -156,7 +162,7 @@ typedef struct w32a_decoder_s {
   GUID             *guid;
   DS_AudioDecoder  *ds_dec;
   
-  LDT_FS *ldt_fs;
+  ldt_fs_t *ldt_fs;
 } w32a_decoder_t;
 
 
@@ -166,7 +172,7 @@ typedef struct w32a_decoder_s {
  * the last of them to close both.
  * hopefuly some day we will fix the wine loader to remove that.
  */   
-#define SYNC_SHUTDOWN
+//#define SYNC_SHUTDOWN
 
 #ifdef SYNC_SHUTDOWN
 w32v_decoder_t *w32v_instance;
@@ -281,10 +287,17 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   switch (buf_type) {
   case BUF_VIDEO_MSMPEG4_V12:
     /* Microsoft MPEG-4 v1/v2 */
+    /* old dll is disabled now due segfaults 
+     * (using directshow instead)
     this->yuv_supported=1;
     this->yuv_hack_needed=1;
     this->flipped=1;
     return "mpg4c32.dll";
+    */
+    this->yuv_supported=1;
+    this->ds_driver = 1;
+    this->guid=&msmpeg4_clsid;
+    return "mpg4ds32.ax";    
 
   case BUF_VIDEO_MSMPEG4_V3:
     /* Microsoft MPEG-4 v3 */
@@ -876,7 +889,9 @@ static void w32v_close (video_decoder_t *this_gen) {
       if( this->ds_dec )
         DS_VideoDecoder_Destroy(this->ds_dec);
     }
+#ifdef SYNC_SHUTDOWN
     w32v_instance = NULL;
+#endif
     Restore_LDT_Keeper( this->ldt_fs );
   }
   pthread_mutex_unlock(&win32_codec_mutex);
@@ -1297,14 +1312,19 @@ static void w32a_close (audio_decoder_t *this_gen) {
 #endif
   {
     if( !this->ds_driver ) {
-      if( this->srcstream )
+      if( this->srcstream ) {
         acmStreamClose(this->srcstream, 0);
+        this->srcstream = 0;
+      }
     } else {
       if( this->ds_dec )
         DS_AudioDecoder_Destroy(this->ds_dec);
+      this->ds_dec = NULL;
     }
 
+#ifdef SYNC_SHUTDOWN
     w32a_instance = NULL;
+#endif
     Restore_LDT_Keeper(this->ldt_fs);
   }
   pthread_mutex_unlock(&win32_codec_mutex);
