@@ -166,8 +166,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if ( picture->current_frame && ((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 
-#if 0 
-	    printf ("type %s: %s\n",
+	  if (!mpeg2dec->drop_frame)
+	    picture->current_frame->bad_frame = 0;
+#ifdef LOG
+	    printf ("libmpeg2: drawing frame %d type %s: %s\n",
+		    picture->current_frame->id,
 		    picture->picture_coding_type == I_TYPE ? "I" :
 		    picture->picture_coding_type == P_TYPE ? "P" : "B",
 		    picture->current_frame->bad_frame ? "BAD" : "good");
@@ -214,9 +217,26 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  case B_TYPE:
 	    
 	    if (mpeg2dec->frames_to_drop>1) {
+#ifdef LOG
+	      printf ("libmpeg2: dropping b-frame because frames_to_drop==%d\n",
+		      mpeg2dec->frames_to_drop);
+#endif
 	      mpeg2dec->drop_frame = 1;
 	    } else if (!picture->forward_reference_frame || picture->forward_reference_frame->bad_frame 
 		       || !picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
+#ifdef LOG
+	      printf ("libmpeg2: dropping b-frame because ref is bad (");
+	      if (picture->forward_reference_frame)
+		printf ("fw ref frame %d, bad %d;", picture->forward_reference_frame->id,
+			picture->forward_reference_frame->bad_frame);
+	      else
+		printf ("fw ref frame not there;");
+	      if (picture->backward_reference_frame)
+		printf ("bw ref frame %d, bad %d)\n", picture->backward_reference_frame->id,
+			picture->backward_reference_frame->bad_frame);
+	      else
+		printf ("fw ref frame not there)\n");
+#endif
 	      mpeg2dec->drop_frame = 1;
 	    }
 	    break;
@@ -225,12 +245,25 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    
 	    if (mpeg2dec->frames_to_drop>2) {
 	      mpeg2dec->drop_frame = 1;
+#ifdef LOG
+	      printf ("libmpeg2: dropping p-frame because frames_to_drop==%d\n",
+		      mpeg2dec->frames_to_drop);
+#endif
 	    } else if (!picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
 	      mpeg2dec->drop_frame = 1;
+#ifdef LOG
+	      if (picture->backward_reference_frame->bad_frame)
+		printf ("libmpeg2: dropping p-frame because ref %d is bad\n", picture->backward_reference_frame->id);
+	      else
+		printf ("libmpeg2: dropping p-frame because no ref frame\n");
+#endif
 	    }
 	    break;
 	    
 	  case I_TYPE:
+#ifdef LOG
+	    printf ("libmpeg2: I-Frame\n");
+#endif
 	    /* for the sake of dvd menus, never drop i-frames
 	    if (mpeg2dec->frames_to_drop>4) {
 	      mpeg2dec->drop_frame = 1;
@@ -350,15 +383,19 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 		get_frame_duration(mpeg2dec, picture->current_frame);
 
+#ifdef LOG
+		printf ("libmpeg2: decoding frame %d, type %s\n",
+			picture->current_frame->id, picture->picture_coding_type == I_TYPE ? "I" :
+			picture->picture_coding_type == P_TYPE ? "P" : "B");
+#endif
 		mpeg2dec->pts = 0;
 	    }
 	}
 
 	if (!(mpeg2dec->drop_frame)) {
-	    /* printf ("slice_process\n"); */
-
-	  if (slice_process (picture, code, buffer) == 1)
+	  if (slice_process (picture, code, buffer) == 1) {
 	    picture->current_frame->bad_frame = 0;
+	  }
 
 #ifdef ARCH_X86
 	    if (config.flags & MM_ACCEL_X86_MMX)
@@ -457,7 +494,8 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 
     vo_frame_t *img;
     
-    printf ("libmpeg2: blasting out backward reference frame on flush\n");
+    printf ("libmpeg2: blasting out backward reference frame %d on flush\n",
+	    picture->backward_reference_frame->id);
     
     picture->backward_reference_frame->drawn = 1;
     
@@ -467,7 +505,7 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     img->pts = 0;
     img->scr = 0;
     img->bad_frame = 0;
-    img->drawn = 1;
+    img->drawn = 1; 
 
     img->draw(img);
     img->free(img);
