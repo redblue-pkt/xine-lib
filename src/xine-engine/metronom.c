@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.114 2003/03/27 18:57:05 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.115 2003/04/07 01:28:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -588,14 +588,13 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
   case METRONOM_ADJ_VPTS_OFFSET:
     this->audio_vpts += value;
 
-/*#ifdef LOG*/
     /* that message should be rare, please report otherwise.
      * when xine is in some sort of "steady state" hearing it
      * once in a while means a small sound card drift (or system
      * clock drift -- who knows?). nothing to worry about.
      */
-    printf ("metronom: fixing sound card drift by %lld pts\n", value );
-/*#endif*/
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("metronom: fixing sound card drift by %lld pts\n", value );
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",
