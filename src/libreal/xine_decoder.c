@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2002/12/22 00:35:05 komadori Exp $
+ * $Id: xine_decoder.c,v 1.23 2002/12/23 13:41:16 holstsn Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -50,8 +50,8 @@ typedef struct {
 
 } real_class_t;
 
-#define BUF_SIZE       32768
-#define CHUNK_TAB_SIZE 64
+#define BUF_SIZE       65536
+#define CHUNK_TAB_SIZE 128
 
 typedef struct realdec_decoder_s {
   video_decoder_t  video_decoder;
