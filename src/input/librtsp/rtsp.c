@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.8 2003/03/28 22:44:19 holstsn Exp $
+ * $Id: rtsp.c,v 1.9 2003/04/10 02:30:48 miguelfreitas Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include "rtsp.h"
 
