@@ -1,5 +1,9 @@
 /*
  * yuv2rgb.c
+ *
+ * This file is part of xine, a unix video player.
+ *
+ * based on work from mpeg2dec:
  * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -17,6 +21,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: yuv2rgb.c,v 1.9 2001/07/17 19:40:27 guenter Exp $
  */
 
 #include "config.h"
