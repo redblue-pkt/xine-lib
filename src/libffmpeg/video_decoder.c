@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.3 2004/02/01 06:00:56 tmmm Exp $
+ * $Id: video_decoder.c,v 1.4 2004/02/01 22:45:17 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -756,6 +756,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
   {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
+  {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
+  {BUF_VIDEO_RV20,        CODEC_ID_RV20,      "Real Video 2.0 (ffmpeg)"},
   {BUF_VIDEO_IV31,        CODEC_ID_INDEO3,    "Indeo Video 3.1 (ffmpeg)"},
   {BUF_VIDEO_IV32,        CODEC_ID_INDEO3,    "Indeo Video 3.2 (ffmpeg)"},
   {BUF_VIDEO_SORENSON_V1, CODEC_ID_SVQ1,      "Sorenson Video 1 (ffmpeg)"},
@@ -804,13 +806,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
 
-  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    lprintf ("standard header\n");
-
-    /* init package containing bih */
-    memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
-    this->video_step = buf->decoder_info[1];
+    lprintf ("header\n");
 
     /* init codec */
     this->codec = NULL;
@@ -825,25 +823,25 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     if (!this->codec) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
-               _("ffmpeg_video_dec: couldn't find/open ffmpeg decoder for buf type 0x%X\n"),
+               _("ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"),
                codec_type);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
       return;
     }
 
-    init_video_codec (this, (xine_bmiheader *)buf->content );
-    init_postprocess (this);
-
-  } else if ((buf->decoder_flags & BUF_FLAG_HEADER) && 
-             !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
-  
-    lprintf("header\n");
+    if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     
-    switch(codec_type) {
-      case BUF_VIDEO_RV10:
-        this->codec = avcodec_find_decoder(CODEC_ID_RV10);
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-                         "Real Video 1.0 (ffmpeg)");
+      /* init package containing bih */
+      memcpy ( &this->bih, buf->content, sizeof(xine_bmiheader) );
+      this->video_step = buf->decoder_info[1];
 
+      init_video_codec (this, (xine_bmiheader *) buf->content );
+            
+    } else {
+    
+      switch (codec_type) {
+      case BUF_VIDEO_RV10:
+      case BUF_VIDEO_RV20:
         this->bih.biWidth  = BE_16(&buf->content[12]);
         this->bih.biHeight = BE_16(&buf->content[14]);
         
@@ -858,16 +856,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
                 "ffmpeg_video_dec: unknown header for buf type 0x%X\n", codec_type);
         return;
+      }
+      
+      init_video_codec (this, NULL);
     }
     
-    if(!this->codec) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              _("ffmpeg_video_dec: couldn't open ffmpeg decoder for buf type 0x%X\n"),
-              codec_type);
-      return;
-    }
-
-    init_video_codec(this, NULL);
     init_postprocess(this);
     
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
@@ -1216,6 +1209,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MJPEG,
   BUF_VIDEO_H263,
   BUF_VIDEO_RV10,
+  BUF_VIDEO_RV20,
   BUF_VIDEO_IV31,
   BUF_VIDEO_IV32,
   BUF_VIDEO_SORENSON_V1,
