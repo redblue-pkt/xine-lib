@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.4 2001/04/19 23:13:09 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.5 2001/04/24 22:18:15 guenter Exp $
  *
  */
 
@@ -88,6 +88,11 @@ typedef void (*gui_status_callback_func_t)(int nStatus);
  */
 #define XINE_QUIT      3
 /** @} end of statgroup */
+
+#define DEMUX_DEFAULT_STRATEGY    0
+#define DEMUX_REVERT_STRATEGY     1
+#define DEMUX_CONTENT_STRATEGY    2
+#define DEMUX_EXTENSION_STRATEGY  3
 
 /**
  * @defgroup xine_api API functions
