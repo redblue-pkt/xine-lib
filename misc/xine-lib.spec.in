@@ -250,6 +250,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc README TODO AUTHORS COPYING ChangeLog
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
+%{_libdir}/pkgconfig/*
 %{_libdir}/xine/plugins/%{dirversion}/xineplug_*
 %{_libdir}/xine/plugins/%{dirversion}/post/*
 %{_datadir}/xine/libxine1/fonts/*
@@ -276,6 +277,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Dec 24 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Update for libxine 1.0beta1 added pkgconfig-directory
 * Wed Dec 11 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Update for libxine 1.0beta0, fonts-directory has been changed
 * Sat Dec 07 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
