@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.1 2002/11/11 19:46:25 f1rmb Exp $
+ * $Id: video_out_none.c,v 1.2 2002/11/11 20:02:39 f1rmb Exp $
  *
  * Was originally part of toxine frontend.
  */
@@ -207,6 +207,21 @@ static void none_get_property_min_max(xine_vo_driver_t *vo_driver,
   *max = 0;
 }
 
+static int none_gui_data_exchange(xine_vo_driver_t *vo_driver, int data_type, void *data) {
+/*   none_driver_t     *this = (none_driver_t *) vo_driver; */
+
+  switch (data_type) {
+  case XINE_GUI_SEND_COMPLETION_EVENT:
+  case XINE_GUI_SEND_DRAWABLE_CHANGED:
+  case XINE_GUI_SEND_EXPOSE_EVENT:
+  case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
+  case XINE_GUI_SEND_VIDEOWIN_VISIBLE:
+  case XINE_GUI_SEND_SELECT_VISUAL:
+    break;
+  }
+
+  return 0;
+}
 static void none_dispose(xine_vo_driver_t *vo_driver) {
   none_driver_t *this = (none_driver_t *) vo_driver;
 
@@ -236,7 +251,7 @@ static xine_vo_driver_t *open_plugin(video_driver_class_t *driver_class, const v
   driver->vo_driver.get_property         = none_get_property;
   driver->vo_driver.set_property         = none_set_property;
   driver->vo_driver.get_property_min_max = none_get_property_min_max;
-  driver->vo_driver.gui_data_exchange    = NULL;
+  driver->vo_driver.gui_data_exchange    = none_gui_data_exchange;
   driver->vo_driver.dispose              = none_dispose;
   driver->vo_driver.redraw_needed        = none_redraw_needed;
   
