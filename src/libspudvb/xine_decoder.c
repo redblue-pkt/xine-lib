@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2004/12/07 10:52:23 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.10 2004/12/07 12:21:34 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -650,25 +650,27 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 	this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
 	segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
 	new_i = this->dvbsub->i + segment_length + 4;
-
-	/* SEGMENT_DATA_FIELD */
-	switch (segment_type & 0xff) {
-	case 0x10:
-	  process_page_composition_segment (this);
-	  break;
-	case 0x11:
-	  process_region_composition_segment (this);
-	  break;
-	case 0x12: 
-	  process_CLUT_definition_segment(this);
-	  break;
-	case 0x13:
-	  process_object_data_segment (this);
-	  break;
-	case 0x80:		/* we have enough data to decode */
-	  break;
-	default:
-	  break;
+	/* verify we've the right segment */
+	if(this->dvbsub->page.page_id==this->spu_descriptor->comp_page_id){
+  	  /* SEGMENT_DATA_FIELD */
+  	  switch (segment_type & 0xff) {
+  	    case 0x10:
+  	      process_page_composition_segment (this);
+              break;
+            case 0x11:
+              process_region_composition_segment (this);
+              break;
+            case 0x12: 
+              process_CLUT_definition_segment(this);
+              break;
+            case 0x13:
+              process_object_data_segment (this);
+              break;
+            case 0x80:		/* we have enough data to decode */
+              break;
+            default:
+              break;
+          }
 	}
 	this->dvbsub->i = new_i;
       }
