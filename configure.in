@@ -473,19 +473,24 @@ case "$host_or_hostalias" in
 	    ]
 	fi
 
+    	dnl enable x86 specific parts of the code
+	dnl
+	dnl all of this stuff needs gcc/gas; it uses gnu c compiler extensions
+	dnl like the extended asm() or __attribute(__cdecl__), or other direct
+	dnl mmx/sse/3dnow assembler instructions. 
+	dnl
+	AC_DEFINE([ARCH_X86],,[x86 architecture])
+	AC_DEFINE(FPM_INTEL)
+	enable_w32dll="yes"
+    	enable_ffmmx="yes"
     else
 	dnl add x86 specific cc CFLAGS
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+    	AC_DEFINE(FPM_64BIT)
     fi
 
-    dnl enable x86 specific parts of the code
-    enable_w32dll="yes"
-    enable_ffmmx="yes"
-
-    AC_DEFINE([ARCH_X86],,[x86 architecture])
     AC_DEFINE(__i386__)
-    AC_DEFINE(FPM_INTEL)
     ;;
 
   alphaev56-*)
@@ -528,13 +533,14 @@ case "$host_or_hostalias" in
 	esac
 	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+        AC_DEFINE(FPM_SPARC)		dnl uses gnu c asm extensions
     else
 	cc_optimize_cflags="-O"
 	cc_debug_cflags="-O"
+    	AC_DEFINE(FPM_64BIT)		dnl use portable version with non-gcc
     fi
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS $cc_optimize_cflags"
     DEBUG_CFLAGS="$DEBUG_CFLAGS $cc_debug_cflags"
-    AC_DEFINE(FPM_SPARC)
     ;;
 
   mips-*)
