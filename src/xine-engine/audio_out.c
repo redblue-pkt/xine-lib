@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.174 2004/05/15 23:44:26 jcdutton Exp $
+ * $Id: audio_out.c,v 1.175 2004/05/16 21:39:55 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -447,12 +447,12 @@ static void write_pause_burst(aos_t *this, uint32_t num_frames) {
 
 static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
-  int num_frames ;
+  int64_t num_frames ;
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-           "inserting %d 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
+           "inserting %" PRId64 " 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
