@@ -1276,11 +1276,6 @@ int VIDIX_NAME(vixInit)(const char *args)
 
     mga_vid_in_use = 0;
 
-    printf("Matrox MGA G200/G400/G450 YUV Video interface v2.01 (c) Aaron Holtzman & A'rpi\n");
-#ifdef CRTC2
-    printf("Driver compiled with TV-out (second-head) support\n");
-#endif
-
     if (!probed)
     {
 	printf(MGA_MSG" driver was not probed but is being initializing\n");
