@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.20 2003/12/04 22:15:25 jstembridge Exp $
+ * $Id: utils.c,v 1.21 2003/12/06 16:10:01 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -93,8 +93,10 @@ const char *xine_get_homedir(void) {
       homedir[sizeof(homedir) - 1] = '\0';
     }
   } else {
-    strncpy(homedir, pw->pw_dir, sizeof(homedir));
+    char *s = strdup(pw->pw_dir);
+    strncpy(homedir, s, sizeof(homedir));
     homedir[sizeof(homedir) - 1] = '\0';
+    free(s);
   }
 
   if(!homedir[0]) {
