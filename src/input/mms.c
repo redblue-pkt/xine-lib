@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.10 2002/09/06 18:13:11 mroi Exp $
+ * $Id: mms.c,v 1.11 2002/10/02 15:54:51 mroi Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -517,9 +517,9 @@ static void interp_header (mms_t *this) {
   }
 }
 
-static char *mms_url_s[] = { "MMS://", "MMSU://", "MMST://", NULL };
+const static char *const mms_url_s[] = { "MMS://", "MMSU://", "MMST://", NULL };
 
-static int mms_valid_url (char* url, char** mms_url) {
+static int mms_valid_url (char* url, const char *const * mms_url) {
   int i = 0;
   int len;
     

@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.12 2002/10/01 04:48:32 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.13 2002/10/02 15:54:52 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -117,7 +117,7 @@ typedef struct {
 } demux_mve_t;
 
 /* bizarre palette lookup table */
-unsigned char wc3_pal_lookup[] = {
+const unsigned char wc3_pal_lookup[] = {
 0x00, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0E, 0x10, 0x12, 0x13, 0x15, 0x16,
 0x18, 0x19, 0x1A,
 0x1C, 0x1D, 0x1F, 0x20, 0x21, 0x23, 0x24, 0x25, 0x27, 0x28, 0x29, 0x2A, 0x2C,

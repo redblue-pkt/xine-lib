@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.62 2002/09/18 22:12:17 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.63 2002/10/02 15:54:51 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -87,7 +87,7 @@ typedef struct {
 
 
 /* bitrate table tabsel_123[mpeg version][layer][bitrate index] */
-int tabsel_123[2][3][16] = {
+const int tabsel_123[2][3][16] = {
    { {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,},
      {0,32,48,56, 64, 80, 96,112,128,160,192,224,256,320,384,},
      {0,32,40,48, 56, 64, 80, 96,112,128,160,192,224,256,320,} },
@@ -98,7 +98,8 @@ int tabsel_123[2][3][16] = {
 };
 
 /* sampling rate frequency table */
-long freqs[9] = { 44100, 48000, 32000,
+const long freqs[9] = {
+                  44100, 48000, 32000,
                   22050, 24000, 16000 ,
                   11025 , 12000 , 8000 };
 
