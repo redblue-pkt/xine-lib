@@ -68,7 +68,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 void nbc_check_buffers (nbc_t *this) {
 
-  int fifo_fill, video_fifo_fill, audio_fifo_fill;        /* number of buffers */
+  int video_fifo_fill, audio_fifo_fill;                   /* number of buffers */
   int video_fifo_free, audio_fifo_free;                   /* number of free buffers */
   int data_length, video_data_length, audio_data_length;  /* fifo length in second */
   uint32_t video_data_size, audio_data_size;              /* fifo size in bytes */
@@ -82,10 +82,8 @@ void nbc_check_buffers (nbc_t *this) {
   else
     audio_fifo_fill = 0;
 
-  fifo_fill = audio_fifo_fill + video_fifo_fill;
-
   /* start buffering if fifos are empty */
-  if (fifo_fill == 0) {
+  if ((audio_fifo_fill == 0) || (video_fifo_fill == 0)) {
     if (!this->buffering) {
 
       /* increase/decrease marks to adapt to stream/network needs */
@@ -138,10 +136,11 @@ void nbc_check_buffers (nbc_t *this) {
       data_length = (video_data_length > audio_data_length) ? video_data_length : audio_data_length;
 
 #ifdef LOG
-      printf("net_buf_ctrl: vb=%d, ab=%d, vf=%d, af=%d, vdl=%d, adl=%d, dl=%d\n",
+      printf("net_buf_ctrl: vb=%d, ab=%d, vf=%d, af=%d, vdl=%d, adl=%d, dl=%d\r",
              video_fifo_fill, audio_fifo_fill,
              video_fifo_free, audio_fifo_free,
              video_data_length, audio_data_length, data_length);
+      fflush(stdout);
 #endif
       /* stop buffering because:
        *    - fifos are filled enough
@@ -150,8 +149,11 @@ void nbc_check_buffers (nbc_t *this) {
       if ((data_length >= this->high_water_mark) ||
           (video_fifo_free == 1) ||
           (audio_fifo_free == 1) ) {
-        /* unpause */
 
+        /* unpause */
+#ifdef LOG
+        printf("\n");
+#endif
         this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
         this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
         if (this->stream->audio_out)
