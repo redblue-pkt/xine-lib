@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.69 2004/12/12 22:01:30 mroi Exp $
+ * $Id: configfile.c,v 1.70 2004/12/13 03:49:44 dsalt Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -88,11 +88,10 @@ static config_entry_translation_t config_entry_translation[] = {
   { "codec.ffmpeg_pp_quality",			"video.processing.ffmpeg_pp_quality" },
   { "codec.real_codecs_path",			"decoder.external.real_codecs_path" },
   { "codec.win32_path",				"decoder.external.win32_codecs_path" },
-  { "decoder.%s_priority",			"engine.decoder_priorities.%s" },
-  { "dxr3.alt_play_mode",			"dxr3.playback.alt_play_mode" },
+/*{ "decoder.%s_priority",			"engine.decoder_priorities.%s" },*/
   { "dxr3.color_interval",			"dxr3.output.keycolor_interval" },
   { "dxr3.correct_durations",			"dxr3.playback.correct_durations" },
-  { "dxr3.device_number",			"dxr3.device_number" },
+/*{ "dxr3.device_number",			"dxr3.device_number" },*/
   { "dxr3.devicename",				"" },
   { "dxr3.enc_add_bars",			"dxr3.encoding.add_bars" },
   { "dxr3.enc_alt_play_mode",			"dxr3.encoding.alt_play_mode" },
@@ -106,7 +105,7 @@ static config_entry_translation_t config_entry_translation[] = {
   { "dxr3.lavc_quantizer",			"dxr3.encoding.lavc_quantizer" },
   { "dxr3.preferred_tvmode",			"dxr3.output.tvmode" },
   { "dxr3.rte_bitrate",				"dxr3.encoding.rte_bitrate" },
-  { "dxr3.scr_priority",			"dxr3.scr_priority" },
+/*{ "dxr3.scr_priority",			"dxr3.scr_priority" },*/
   { "dxr3.shrink_overlay_area",			"dxr3.output.shrink_overlay_area" },
   { "dxr3.sync_every_frame",			"dxr3.playback.sync_every_frame" },
   { "dxr3.videoout_mode",			"dxr3.output.mode" },
@@ -343,24 +342,57 @@ static cfg_entry_t *__config_add (config_values_t *this, const char *key, int ex
   return entry;
 }
 
+static const char *__config_translate_key (const char *key) {
+  /* Returns translated key or, if no translation found, NULL.
+   * Translated key may be in a static buffer allocated within this function.
+   * NOT re-entrant; assumes that config_lock is held.
+   */
+  unsigned trans;
+  static char *newkey = NULL;
+
+  /* first, special-case the decoder entries (so that new ones can be added
+   * without requiring modification of the translation table)
+   */
+  if (!strncmp (key, "decoder.", 8) &&
+      !strcmp (key + (trans = strlen (key)) - 9, "_priority")) {
+    newkey = realloc (newkey, trans + 27 - 17); /* diff. in string lengths */
+    sprintf (newkey, "engine.decoder_priorities.%.*s", trans - 17, key + 8);
+    return newkey;
+  }
+
+  /* search the translation table... */
+  for (trans = 0;
+       trans < sizeof(config_entry_translation) / sizeof(config_entry_translation[0]);
+       trans++)
+    if (config_entry_translation[trans].new[0] && strcmp(key, config_entry_translation[trans].old) == 0)
+      return config_entry_translation[trans].new;
+
+  return NULL;
+}
+
 static void __config_lookup_entry_int (config_values_t *this, const char *key,
 				       cfg_entry_t **entry, cfg_entry_t **prev) {
-  *entry = this->first;
-  *prev  = NULL;
 
-  while (*entry && strcmp((*entry)->key, key)) {
-    *prev  = *entry;
-    *entry = (*entry)->next;
-  }
+  int trans;
+
+  /* try twice at most (second time with translation from old key name) */
+  for (trans = 2; trans; --trans) {
+    *entry = this->first;
+    *prev  = NULL;
+
+    while (*entry && strcmp((*entry)->key, key)) {
+      *prev  = *entry;
+      *entry = (*entry)->next;
+    }
   
-  if (!*entry) {
+    if (*entry)
+      return;
+
     /* we did not find a match, maybe this is an old config entry name
      * trying to translate */
-    unsigned trans;
-    for (trans = 0; !*entry &&
-	 trans < sizeof(config_entry_translation) / sizeof(config_entry_translation[0]); trans++)
-      if (config_entry_translation[trans].new[0] && strcmp(key, config_entry_translation[trans].old) == 0)
-        __config_lookup_entry_int(this, config_entry_translation[trans].new, entry, prev);
+    key = __config_translate_key(key);
+    if (!key)
+      return;
   }
 }
 
@@ -884,13 +916,9 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	  pthread_mutex_lock(&this->config_lock);
 	  if (this->current_version < CONFIG_FILE_VERSION) {
 	    /* old config file -> let's see if we have to rename this one */
-	    unsigned trans;
-	    for (trans = 0;
-		 trans < sizeof(config_entry_translation) / sizeof(config_entry_translation[0]); trans++)
-	      if (strcmp(key, config_entry_translation[trans].old) == 0) {
-		key = config_entry_translation[trans].new;
-		break;
-	      }
+	    key = __config_translate_key(key);
+	    if (!key)
+	      key = line; /* no translation? fall back on untranslated key */
 	  }
 	  entry = __config_add (this, key, 50);
 	  entry->unknown_value = strdup(value);
