@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.1 2003/01/04 20:42:48 tmmm Exp $
+ * $Id: oscope.c,v 1.2 2003/01/05 15:05:55 miguelfreitas Exp $
  *
  */
 
@@ -265,50 +265,59 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
   vo_frame_t         *frame;
   int16_t *data;
   int8_t *data8;
+  int samples_used = 0;
+  uint64_t vpts = buf->vpts;
   int i, j;
 
   this->sample_counter += buf->num_frames;
   
   j = (this->channels >= 2) ? 1 : 0;
 
-  if( this->bits == 8 ) {
-    data8 = (int8_t *)buf->mem;
-
-    /* scale 8 bit data to 16 bits and convert to signed as well */
-    for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-         i++, this->data_idx++, data8 += this->channels ) {
-      this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
-      this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
-    }
-  } else {
-    data = buf->mem;
-
-    for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
-         i++, this->data_idx++, data += this->channels ) {
-      this->data[0][this->data_idx] = data[0];
-      this->data[1][this->data_idx] = data[j];
-    }
-  }
-
-  if( this->sample_counter >= this->samples_per_frame &&
-      this->data_idx == NUMSAMPLES ) {
-
-    this->data_idx = 0;
-
-    frame = this->vo_port->get_frame (this->vo_port, OSCOPE_WIDTH, OSCOPE_HEIGHT,
-                                      XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
-                                      VO_BOTH_FIELDS);
-    frame->pts = buf->vpts;
-    frame->duration = 90000 * this->sample_counter / this->sample_rate;
-
-    draw_oscope_dots(this);
-    yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
-
-    frame->draw(frame, stream);
-    frame->free(frame);
+  do {
     
-    this->sample_counter = 0;
-  }
+    if( this->bits == 8 ) {
+      data8 = (int8_t *)buf->mem;
+      data8 += samples_used * this->channels;
+  
+      /* scale 8 bit data to 16 bits and convert to signed as well */
+      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
+           i++, this->data_idx++, data8 += this->channels ) {
+        this->data[0][this->data_idx] = ((int16_t)data8[0] << 8) - 0x8000;
+        this->data[1][this->data_idx] = ((int16_t)data8[j] << 8) - 0x8000;
+      }
+    } else {
+      data = buf->mem;
+      data += samples_used * this->channels;
+  
+      for( i = 0; i < buf->num_frames && this->data_idx < NUMSAMPLES;
+           i++, this->data_idx++, data += this->channels ) {
+        this->data[0][this->data_idx] = data[0];
+        this->data[1][this->data_idx] = data[j];
+      }
+    }
+  
+    if( this->sample_counter >= this->samples_per_frame &&
+        this->data_idx == NUMSAMPLES ) {
+  
+      this->data_idx = 0;
+      samples_used += this->samples_per_frame;
+  
+      frame = this->vo_port->get_frame (this->vo_port, OSCOPE_WIDTH, OSCOPE_HEIGHT,
+                                        XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+                                        VO_BOTH_FIELDS);
+      frame->pts = vpts;
+      vpts = 0;
+      frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      this->sample_counter -= this->samples_per_frame;
+          
+      draw_oscope_dots(this);
+      yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
+  
+      frame->draw(frame, stream);
+      frame->free(frame);
+
+    }
+  } while( this->sample_counter >= this->samples_per_frame );
   port->original_port->put_buffer(port->original_port, buf, stream );  
 }
 
