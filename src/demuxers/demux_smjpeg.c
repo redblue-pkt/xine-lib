@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.8 2002/08/09 00:27:35 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.9 2002/08/31 18:20:50 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -551,8 +551,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->xine   = xine;
 
   (void *) this->config->register_string(this->config,
-                                         "mrl.ends_film", VALID_ENDS,
-                                         _("valid mrls ending for film demuxer"),
+                                         "mrl.ends_smjpeg", VALID_ENDS,
+                                         _("valid mrls ending for smjpeg demuxer"),
                                          NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
