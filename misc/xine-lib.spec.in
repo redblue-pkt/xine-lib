@@ -31,7 +31,7 @@ complies to the GPL.
 %package -n %{libname}
 Summary:   Required libs to run programs dynamically linked with %{name}.
 Group:	   Development/Libraries
-Obsoletes: %{name}
+Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis
 Provides:  %{name} = %{version}-%{release}
 Requires:  zlib
 
@@ -51,7 +51,7 @@ complies to the GPL.
 %package -n %{libname}-devel
 Summary:   Header files and documentation to develope programs with %{name}.
 Group:	   Development/Libraries
-Obsoletes: %{name}-devel
+Obsoletes: xine-lib-devel
 Provides:  %{name}-devel = %{version}-%{release}
 Requires:  %{libname} = %{version}-%{release}
 
@@ -77,11 +77,11 @@ if [ ! -f configure ]; then
    ./cvscompile.sh
 fi
 %configure
-%make
+make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-%makeinstall_std
+make DESTDIR=%{?buildroot:%{buildroot}} install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
