@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.49 2002/03/26 01:47:17 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.50 2002/03/31 14:36:42 mlampard Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -344,8 +344,13 @@ static void *ao_loop (void *this_gen) {
            cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
            bufs_since_sync >= SYNC_BUF_INTERVAL ) {
            
-        this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
-                                   -gap/SYNC_GAP_RATE );
+        if (!this->metronom->get_option(this->metronom, METRONOM_DENY_BACKWARD_ADJUST) ||
+            gap < 0) {
+                this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
+                                           -gap/SYNC_GAP_RATE );
+        } else {
+                ao_fill_gap(this, gap);
+        }
         last_sync_time = cur_time;
         bufs_since_sync = 0;
       }
