@@ -437,14 +437,24 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
     /* read errors */
     if (n < 0) {
-      switch (errno) {
-      case EAGAIN:
-	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
-	continue;
-      default:
-	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
-	return 0;
+      if(errno == EAGAIN) {
+        fd_set rset;
+        struct timeval timeout;
+    
+        FD_ZERO (&rset);
+        FD_SET  (this->fh, &rset);
+        
+        timeout.tv_sec  = 30;
+        timeout.tv_usec = 0;
+        
+        if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
+          xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: timeout\n"));
+          return 0;
+        }
+        continue;
       }
+      xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
+      return 0;
     }
     
     num_bytes += n;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.6 2003/01/29 10:49:24 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.7 2003/02/05 00:08:55 miguelfreitas Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -175,26 +175,24 @@ static ssize_t read_stream(int fd, void *buf, size_t count) {
 
   while (total < count) {
   
-#if 0
-    fd_set rset;
-    struct timeval timeout;
-
-    FD_ZERO (&rset);
-    FD_SET  (fd, &rset);
-    
-    timeout.tv_sec  = 30;
-    timeout.tv_usec = 0;
-    
-    if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
-      return -1;
-    }
-#endif
-    
     ret=read (fd, ((uint8_t*)buf)+total, count-total);
 
     if (ret<0) {
-      if(errno == EAGAIN)
+      if(errno == EAGAIN) {
+        fd_set rset;
+        struct timeval timeout;
+    
+        FD_ZERO (&rset);
+        FD_SET  (fd, &rset);
+        
+        timeout.tv_sec  = 30;
+        timeout.tv_usec = 0;
+        
+        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
+          return -1;
+        }
         continue;
+      }
       
       printf ("rtsp: read error.\n");
       return ret;

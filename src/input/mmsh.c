@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.10 2003/01/31 14:06:17 miguelfreitas Exp $
+ * $Id: mmsh.c,v 1.11 2003/02/05 00:10:30 miguelfreitas Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -180,28 +180,34 @@ static ssize_t read_timeout(int fd, void *buf, size_t count) {
 
   while (total < count) {
   
-    fd_set rset;
-    struct timeval timeout;
-
-    FD_ZERO (&rset);
-    FD_SET  (fd, &rset);
-    
-    timeout.tv_sec  = 30;
-    timeout.tv_usec = 0;
-    
-    if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
-      return -1;
-    }
-    
     ret=read (fd, ((uint8_t*)buf)+total, count-total);
 
-    if (ret<=0) {
+    if (ret<0) {
+      if(errno == EAGAIN) {
+        fd_set rset;
+        struct timeval timeout;
+    
+        FD_ZERO (&rset);
+        FD_SET  (fd, &rset);
+        
+        timeout.tv_sec  = 30;
+        timeout.tv_usec = 0;
+        
+        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
+          return -1;
+        }
+        continue;
+      }
+
 #ifdef LOG
       printf ("libmmsh: read error.\n");
 #endif
       return ret;
     } else
       total += ret;
+      
+    /* end of stream */
+    if (!ret) break;
   }
 
 #ifdef LOG
