@@ -13,6 +13,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * improved support for ogg-streams containing video (so-called ogm streams)
   * spu encoding for full overlay support with dxr3
   * icecast/shoutcast support
+  * dvd raw device support
 
 xine-lib (0.9.13) unstable; urgency=low
 
