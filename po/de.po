@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.12\n"
+"Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-03 20:55+0200\n"
-"PO-Revision-Date: 2002-07-24 09:21+0200\n"
+"PO-Revision-Date: 2002-08-05 07:59+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
