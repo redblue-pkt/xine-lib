@@ -789,8 +789,6 @@ static void dvb_class_dispose (input_class_t *this_gen) {
 
   dvb_input_class_t  *cls = (dvb_input_class_t *) this_gen;
 
-  free (cls->mrls[0]);
-
   free (cls);
 }
 
