@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.60 2003/07/12 17:01:42 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.61 2003/07/12 17:04:36 miguelfreitas Exp $
  *
  */
 
@@ -287,8 +287,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           
         diff = start - extra_info.frame_number;
         
-        /* draw it if less than 2 seconds left */
-        if( diff < 2*90000 / this->img_duration ) {
+        /* draw it if less than 1/2 second left */
+        if( diff < 90000/2 / this->img_duration ) {
           start_vpts = extra_info.vpts + diff * this->img_duration;
           end_vpts = start_vpts + (end-start) * this->img_duration;
      
@@ -316,8 +316,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           
         diff = start - extra_info.input_time;
         
-        /* draw it if less than 2 seconds left */
-        if( diff < 2000 ) {
+        /* draw it if less than 1/2 second left */
+        if( diff < 500 ) {
           start_vpts = extra_info.vpts + diff * 90;
           end_vpts = start_vpts + (end-start) * 90;
           
