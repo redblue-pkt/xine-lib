@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.18 2001/08/17 16:15:36 f1rmb Exp $
+ * $Id: input_file.c,v 1.19 2001/08/28 22:44:10 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -369,7 +369,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   int                 (*func) ()        = _sortfiles_default;
 
   *nFiles = 0;
-  memset(&current_dir, 0, strlen(current_dir));
+  memset(current_dir, 0, sizeof current_dir);
 
   /* 
    * No origin location, so got the content of the current directory
@@ -409,7 +409,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   
   while((pdirent = readdir(pdir)) != NULL) {
     
-    memset(&fullfilename, 0, strlen(fullfilename));
+    memset(fullfilename, 0, sizeof fullfilename);
     sprintf(fullfilename, "%s/%s", current_dir, pdirent->d_name);
     
     if(is_a_dir(fullfilename)) {
@@ -429,7 +429,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	char linkbuf[PATH_MAX + NAME_MAX + 1];
 	int linksize;
 	
-	memset(&linkbuf, 0, PATH_MAX + NAME_MAX);
+	memset(linkbuf, 0, sizeof linkbuf);
 	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
 	
 	if(linksize < 0) {
@@ -463,7 +463,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	char linkbuf[PATH_MAX + NAME_MAX + 1];
 	int linksize;
 	
-	memset(&linkbuf, 0, PATH_MAX + NAME_MAX);
+	memset(linkbuf, 0, sizeof linkbuf);
 	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
 	
 	if(linksize < 0) {
@@ -497,7 +497,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	char linkbuf[PATH_MAX + NAME_MAX + 1];
 	int linksize;
 	
-	memset(&linkbuf, 0, PATH_MAX + NAME_MAX);
+	memset(linkbuf, 0, sizeof linkbuf);
 	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
 	
 	if(linksize < 0) {

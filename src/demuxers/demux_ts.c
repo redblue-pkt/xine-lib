@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.8 2001/08/28 19:16:19 guenter Exp $
+ * $Id: demux_ts.c,v 1.9 2001/08/28 22:44:09 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ * 27-Aug-2001 Hubert Matthews  Reviewed by: n/a
+ *	                        Added in synchronisation code.
+ *
  *  1-Aug-2001 James Courtier-Dutton <jcdutton>
  *                              Reviewed by: n/a
  *                              TS Streams with zero PES lenght should now work.
@@ -389,9 +392,11 @@ static void demux_ts_pes_buffer(
 /*
 	fprintf(stderr,"starting new pes, len = %d %d %02X\n", m->pes_len, m->pes_len_zero,ts[3]);
  */
+ 	if (m->fifo) {	/* allow running without sound card */
         m->buf = m->fifo->buffer_pool_alloc(m->fifo);
         memcpy(m->buf->mem, ts, len);
         m->pes_buf_next = len;
+	}
 	return;
     } else if (m->buf) {
         if( m->pes_buf_next+len <= m->buf->max_size) {
@@ -599,10 +604,123 @@ static void demux_ts_pmt_parse(
     }
 }
 
+/*********************************************************************
+ *
+ * 2001/08/26 Hubert Matthews
+ *
+ * Added input synchronisation code.  This code ensures synchronisation 
+ * where possible by checking that we have 5 sync bytes at 188 bytes apart.  
+ * On startup, it finds the first packet with a sync byte in it and starts 
+ * buffering after that.  It starts to release packets to the demux when it
+ * has found five synchronised packets in a row.  If sync is broken at any 
+ * time (bit error or dropped multicast packet, for instance) it dumps all 
+ * its buffers and attempts to acquire sync again. 
+ *
+ * Returns NULL when it is in buffering mode, and the address of an aligned
+ * packet otherwise.  NULL causes the calling function to go back around its 
+ * loop, so its harmless and easier than doing the packet looping internally.
+ */
+
+#define SYNC_BYTE   0x47
+#define MIN_SYNCS   5
+#define BUF_SIZE    ((MIN_SYNCS+1) * PKT_SIZE)
+#define WRAP_ADD(x, incr, limit)    \
+					(x) += (incr); \
+					if ((x) >= (limit)) (x) -= (limit)
+#define BUMP(x)     WRAP_ADD((x), PKT_SIZE, (BUF_SIZE - PKT_SIZE))
+
+/* When we've acquired sync, we need to set all of the continuity
+ * counters to an invalid value to disable the sequence checking */
+
+static void resetAllCCs(demux_ts * this) 
+{
+	int i;
+	for (i = 0; i != MAX_PIDS; ++i)
+		this->media[i].counter = INVALID_CC;
+}
+
+/* Find the first sync byte in the packet pointed to by p */
+
+static int searchForSyncByte(const unsigned char * p)
+{
+    const unsigned char * start = p, * end = p + PKT_SIZE;
+
+    while (p != end && *p != SYNC_BYTE)
+        p++;
+
+    if (p == end)
+        return -1;
+    else
+        return p - start;
+}
+
+/* Main synchronisation routine.
+ * Returns NULL when it is in buffering mode, and the address of an aligned
+ * packet otherwise.  NULL causes the calling function to go back around its 
+ * loop, so its harmless and easier than doing the packet looping internally.
+ */
+
+static unsigned char * demux_synchronise(demux_ts * this)
+{
+    static int in, out, count;          /* statics are zeroed */
+    static unsigned char buf[BUF_SIZE];
+
+    int syncByte, syncBytePosn;
+    unsigned char * retPtr = NULL;
+
+    if (this->input->read(this->input, &buf[in], PKT_SIZE) != PKT_SIZE) {
+        if (count > 0) {
+            int oldOut = out;	/* drain pipeline on end of stream */
+            BUMP(out);
+            count--;
+            retPtr = &buf[oldOut];
+		} else {
+        	this->status = DEMUX_FINISHED;
+		}
+        return retPtr;
+    }
+
+    syncBytePosn = out;
+    WRAP_ADD(syncBytePosn, count * PKT_SIZE, BUF_SIZE - PKT_SIZE);
+    syncByte = buf[syncBytePosn];
+
+    if (syncByte != SYNC_BYTE) {        /* new packet not in sync */
+        int syncPosn = searchForSyncByte(&buf[in]);
+        if (syncPosn > 0) {
+            memmove(&buf[0], &buf[in + syncPosn], PKT_SIZE - syncPosn);
+            in = PKT_SIZE - syncPosn;
+        } else {
+            in = 0;         /* no sync byte in packet, so start again */
+        }
+        out = count = 0;
+    } else {                /* this packet extends the sync run */
+        BUMP(in);
+        count++;
+        if (count > MIN_SYNCS) {	/* sync acquired */
+            int oldOut = out;
+			resetAllCCs(this);
+            BUMP(out);
+            count--;
+            retPtr = &buf[oldOut];
+        }
+    }
+
+    return retPtr;
+}
+
+#undef BUMP
+#undef WRAP_ADD
+#undef MIN_SYNCS
+#undef BUF_SIZE
+#undef SYNC_BYTE
+
+/***************************************************************************/
+
 static void demux_ts_parse_ts(
     demux_ts *this)
 {
-    unsigned char originalPkt[PKT_SIZE];
+    /* unsigned char originalPkt[PKT_SIZE]; */
+    unsigned char * originalPkt;
     unsigned int sync_byte;
     unsigned int transport_error_indicator;
     unsigned int payload_unit_start_indicator;
@@ -614,14 +732,11 @@ static void demux_ts_parse_ts(
     unsigned int data_offset;
     unsigned int data_len;
 
+    /* get next synchronised packet, or NULL */
+    originalPkt = demux_synchronise(this);
+    if (originalPkt == NULL)
+      return;
 
-    /*
-     * TBD: implement some sync checking WITH recovery.
-     */
-    if (this->input->read(this->input, originalPkt, PKT_SIZE) != PKT_SIZE) {
-        this->status = DEMUX_FINISHED;
-        return;
-    }
     sync_byte=originalPkt[0];
     transport_error_indicator = (originalPkt[1]  >> 7) & 0x01;
     payload_unit_start_indicator = (originalPkt[1] >> 6) & 0x01;
@@ -684,9 +799,7 @@ static void demux_ts_parse_ts(
             } else if (pid == 0) {
                 demux_ts_pat_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
             } else if (pid == 0x1fff) {
-		/* 
-		 fprintf(stderr,"Null Packet\n");
-		 */
+		/* fprintf(stderr,"Null Packet\n"); */
 	    }
         }
     }
