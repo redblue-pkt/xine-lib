@@ -1,4 +1,4 @@
-AM_CFLAGS = -I$(srcdir)/wine
+AM_CFLAGS = -I$(srcdir)/wine -DWIN32_PATH=\"@w32_path@\"
 
 #DEBUG_CFLAGS = @DEBUG_CFLAGS@ -I$(srcdir)/wine
 

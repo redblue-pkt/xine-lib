@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.117 2003/02/17 03:19:58 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.118 2003/03/09 12:19:13 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1484,7 +1484,7 @@ static void *init_video_decoder_class (xine_t *xine, void *data) {
   config_values_t *cfg;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
+  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
 					 _("path to win32 codec dlls"),
 					 NULL, 0, NULL, NULL);
 
@@ -1556,7 +1556,7 @@ static void *init_audio_decoder_class (xine_t *xine, void *data) {
 
   cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", 
-					 "/usr/lib/win32",
+					 WIN32_PATH,
 					 _("path to win32 codec dlls"),
 					 NULL, 0, NULL, NULL);
 
