@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.81 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.82 2002/12/21 14:57:36 esnel Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -122,7 +122,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv. 
    */ 
-  this->bih.biWidth = (this->bih.biWidth + 7) & (~7);
+  this->bih.biWidth = (this->bih.biWidth + 1) & (~1);
 
   this->av_picture = avcodec_alloc_picture();
   this->context = avcodec_alloc_context();
