@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.94 2002/10/06 03:48:13 komadori Exp $
+ * $Id: demux_qt.c,v 1.95 2002/10/08 12:45:58 jkeil Exp $
  *
  */
 
@@ -661,7 +661,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
         /* fetch audio parameters */
         sample_table->media_description.audio.codec_format =
-          *(uint32_t *)&trak_atom[i + 0x10];
+          ME_32(&trak_atom[i + 0x10]);
         sample_table->media_description.audio.sample_rate =
           BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
