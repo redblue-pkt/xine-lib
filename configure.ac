@@ -400,9 +400,13 @@ AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disa
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 dnl ---------------------------------------------
-dnl Check solaris framebuffer device support
+dnl Check solaris framebuffer device support (only on Solaris SPARC)
 dnl ---------------------------------------------
 AC_CHECK_HEADER(sys/fbio.h, ac_have_sunfb=yes,)
+case $host in
+sparc*) ;;
+*)	ac_have_sunfb=no ;;
+esac
 AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
 
 dnl ---------------------------------------------
