@@ -27,17 +27,11 @@ README.freebsd
 README.irix
   hints on running xine on IRIX
 
-README.mrl
-  defines exactly what MRLs (media resource locators) are
-
 README.network_dvd
   how to play DVDs / Audio CDs over the network
 
 README.opengl
   how to use xine's OpenGL video output
-
-README.plugins
-  information about plugin concepts in xine for developers
 
 README.solaris
   hints on running xine on Solaris
