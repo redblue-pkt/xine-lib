@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.71 2002/04/16 02:36:46 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.72 2002/04/20 18:31:03 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -980,6 +980,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
   unsigned long in_size=in_fmt_->nBlockAlign;
   unsigned long out_size;
   audio_buffer_t *audio_buffer;
+  int audio_buffer_mem_size;
 
   in_fmt = (WAVEFORMATEX *) malloc (64);
 
@@ -999,8 +1000,14 @@ static int w32a_init_audio (w32a_decoder_t *this,
     printf("w32codec: (ACM_Decoder) Cannot open audio output device\n");
     return 0;
   }
+  
   audio_buffer = this->audio_out->get_buffer (this->audio_out);
+  audio_buffer_mem_size = audio_buffer->mem_size;
+  audio_buffer->num_frames = 0;
+  audio_buffer->vpts       = 0;
+  this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
+  
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
   wf.nAvgBytesPerSec = 2*wf.nSamplesPerSec*wf.nChannels;
@@ -1030,8 +1037,8 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
     acmStreamSize(this->srcstream, in_size, &out_size, ACM_STREAMSIZEF_SOURCE);
     out_size*=2;
-    if(out_size < audio_buffer->mem_size) 
-      out_size=audio_buffer->mem_size;
+    if(out_size < audio_buffer_mem_size) 
+      out_size=audio_buffer_mem_size;
     printf("w32codec: Audio buffer min. size: %d\n",(int)out_size);
   
     acmStreamSize(this->srcstream, out_size, (LPDWORD) &this->rec_audio_src_size, 
@@ -1046,7 +1053,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
       return 0;
     }
     
-    out_size = audio_buffer->mem_size;  
+    out_size = audio_buffer_mem_size;  
     printf("w32codec: output buffer size: %d\n",(int)out_size);
     this->rec_audio_src_size=DS_AudioDecoder_GetSrcSize(this->ds_dec,out_size);
     

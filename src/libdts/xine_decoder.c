@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.18 2002/04/20 18:31:03 miguelfreitas Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -121,6 +121,14 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       return;
     }
       
+    if ((data_in[0] != 0x7f) || 
+        (data_in[1] != 0xfe) ||
+        (data_in[2] != 0x80) ||
+        (data_in[3] != 0x01)) {
+      printf("DTS Sync bad\n");
+      return;
+    }
+    
     audio_buffer = this->audio_out->get_buffer (this->audio_out);
     audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
     audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
@@ -134,13 +142,6 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
  
     data_out=(uint8_t *) audio_buffer->mem;
 
-    if ((data_in[0] != 0x7f) || 
-        (data_in[1] != 0xfe) ||
-        (data_in[2] != 0x80) ||
-        (data_in[3] != 0x01)) {
-      printf("DTS Sync bad\n");
-      return;
-    }
     ac5_type=((data_in[4] & 0x01) << 6) | ((data_in[5] >>2) & 0x3f);
     ac5_length=((data_in[5] & 0x03) << 12) | ((data_in[6] & 0xff) << 4) | ((data_in[7] & 0xf0) >> 4);
     ac5_length++;
@@ -169,26 +170,28 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   
     if (ac5_length > 8191) {
       printf("ac5_length too long\n");
-      return;
-    }
-  
-    if (ac5_length <= 248) {
-      ac5_pcm_length = 64;
-    } else if (ac5_length <= 504) {
-      ac5_pcm_length = 128;
-    } else if (ac5_length <= 1016) {
-      ac5_pcm_length = 256;
-    } else if (ac5_length <= 2040) {
-      ac5_pcm_length = 512;
-    } else if (ac5_length <= 4088) {
-      ac5_pcm_length = 1024;
+      ac5_pcm_length = 0;
     } else {
-      printf("BAD AC5 length\n");
-      ac5_pcm_length = 512; 
+  
+      if (ac5_length <= 248) {
+        ac5_pcm_length = 64;
+      } else if (ac5_length <= 504) {
+        ac5_pcm_length = 128;
+      } else if (ac5_length <= 1016) {
+        ac5_pcm_length = 256;
+      } else if (ac5_length <= 2040) {
+        ac5_pcm_length = 512;
+      } else if (ac5_length <= 4088) {
+        ac5_pcm_length = 1024;
+      } else {
+        printf("BAD AC5 length\n");
+        ac5_pcm_length = 512; 
+      }
+      if (ac5_pcm_length < (512 )) {
+         ac5_pcm_length = 512 ;
+      }
     }
-    if (ac5_pcm_length < (512 )) {
-       ac5_pcm_length = 512 ;
-    }
+    
     /* printf("DTS length=%d loop=%d pts=%u\n",ac5_pcm_length,n,audio_buffer->vpts); */
     audio_buffer->num_frames = ac5_pcm_length;
 
@@ -198,7 +201,9 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     data_out[5] = 0;		                /* Unknown */
     data_out[6] = (ac5_length << 3) & 0xff;   /* ac5_length * 8   */
     data_out[7] = ((ac5_length ) >> 5) & 0xff;
-    swab(data_in, &data_out[8], ac5_length );
+
+    if( ac5_pcm_length )
+      swab(data_in, &data_out[8], ac5_length );
       
     this->audio_out->put_buffer (this->audio_out, audio_buffer);
   }
