@@ -124,6 +124,8 @@ typedef struct picture_s {
 
     int mpeg1;
 
+    int skip_non_intra_dct;
+
     /* these things are not needed by the decoder */
     /* this is a temporary interface, we will build a better one later. */
     int aspect_ratio_information;

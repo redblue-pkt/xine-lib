@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.21 2001/05/25 10:30:56 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.22 2001/05/26 00:48:47 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -151,7 +151,7 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
 
   if ((frame->width != width) || (frame->height != height) || (frame->format != format)) {
 
-    printf ("video_out_xv: updating frame to %d x %d (ratio=%d, format=%08x)\n",width,height,ratio_code,format);
+    /* printf ("video_out_xv: updating frame to %d x %d (ratio=%d, format=%08x)\n",width,height,ratio_code,format); */
 
     XLockDisplay (this->display); 
 

@@ -59,8 +59,10 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 void mpeg2_close (mpeg2dec_t * mpeg2dec);
 
 int mpeg2_decode_data (mpeg2dec_t * mpeg2dec,
-		       uint8_t * data_start, uint8_t * data_end, uint32_t pts);
+		       uint8_t * data_start, uint8_t * data_end, 
+		       uint32_t pts);
 
-void decode_free_image_buffers (mpeg2dec_t * mpeg2dec) ;
+void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
+				 uint8_t * data_start, uint8_t * data_end);
 
-void mpeg2_drop (mpeg2dec_t * mpeg2dec, int flag);
+

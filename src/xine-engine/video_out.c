@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.8 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: video_out.c,v 1.9 2001/05/26 00:48:47 guenter Exp $
  *
  */
 
@@ -352,6 +352,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   int32_t        diff;
   uint32_t       cur_vpts;
   uint32_t       pic_vpts ;
+  int            frames_to_skip;
 
   pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS);
   img->PTS = pic_vpts;
@@ -364,13 +365,13 @@ static int vo_frame_draw (vo_frame_t *img) {
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
+  frames_to_skip = (-1 * diff) / this->pts_per_frame + 1;
 
   xprintf (VERBOSE|VIDEO,"video_out:: delivery diff : %d\n",diff);
 
   if (cur_vpts>0) {
 
-    if (diff<0) {
-      int frames_to_skip = diff / this->pts_per_frame;
+    if (diff<(-1 * this->pts_per_half_frame)) {
 
       this->num_frames_discarded++;
       xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
@@ -410,7 +411,7 @@ static int vo_frame_draw (vo_frame_t *img) {
     this->num_frames_skipped   = 0;
   }
   
-  return 0; /* no frames to skip */
+  return frames_to_skip;
 }
 
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {

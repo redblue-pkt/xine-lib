@@ -1011,8 +1011,9 @@ static inline void slice_non_intra_DCT (picture_t * picture, uint8_t * dest,
     if (picture->mpeg1)
 	get_mpeg1_non_intra_block (picture);
     else
-	get_non_intra_block (picture);
-    idct_block_add (picture->DCTblock, dest, stride);
+        get_non_intra_block (picture);
+    if (!picture->skip_non_intra_dct)
+        idct_block_add (picture->DCTblock, dest, stride);
 }
 
 #define MOTION_Y(table,offset_x,offset_y,motion_x,motion_y,		\
@@ -1712,7 +1713,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 		}
 
 		coded_block_pattern = get_coded_block_pattern (picture);
-
+		
 		if (coded_block_pattern & 0x20)
 		    slice_non_intra_DCT (picture, dest[0] + offset,
 					 DCT_stride);
@@ -1733,7 +1734,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 					 stride >> 1);
 		if (coded_block_pattern & 0x1)
 		    slice_non_intra_DCT (picture, dest[2] + (offset >> 1),
-					 stride >> 1);
+					 stride >> 1); 
 	    }
 
 	    picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
