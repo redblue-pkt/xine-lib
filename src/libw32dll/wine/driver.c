@@ -18,7 +18,6 @@
 
 extern char* win32_def_path;
 
-
 #if 1
 
 /*
@@ -58,7 +57,7 @@ void SetCodecPath(const char* path)
     if(needs_free)free(win32_def_path);
     if(path==0)
     {
-        win32_def_path=WIN32_PATH;
+        win32_def_path="WIN32_PATH";
 	needs_free=0;
 	return;
     }

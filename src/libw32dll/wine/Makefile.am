@@ -10,12 +10,12 @@ noinst_LTLIBRARIES = $(wine_lib)
 # DEFAULT XINE FLAGS AND KNOW HOW TO FIX IT.
 CFLAGS = $(X_CFLAGS) -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
-	-DWIN32_PATH=\"@w32_path@\" -I$(srcdir)/.. -D__WINE__ \
+	-DWIN32_PATH="@w32_path@" -I$(srcdir)/.. -D__WINE__ \
 	-Ddbg_printf=__vprintf -DTRACE=__vprintf
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
-	-DWIN32_PATH=\\\"@w32_path@\\\" -I$(srcdir)/.. -D__WINE__ \
+	-DWIN32_PATH="@w32_path@" -I$(srcdir)/.. -D__WINE__ \
 	-Ddbg_printf=__vprintf -DTRACE=__vprintf
 	
 if HAVE_W32DLL
