@@ -16,55 +16,36 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mdct.h,v 1.2 2002/08/09 22:36:36 miguelfreitas Exp $
+** $Id: rvlc_scale_factors.h,v 1.1 2002/08/09 22:36:36 miguelfreitas Exp $
 **/
 
-#ifndef __MDCT_H__
-#define __MDCT_H__
+#ifndef __RVLC_SCF_H__
+#define __RVLC_SCF_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef USE_FFTW
-#include <fftw.h>
-#else
-#include "cfft.h"
-#endif
+typedef struct
+{
+    int8_t index;
+    uint8_t len;
+    uint32_t cw;
+} rvlc_huff_table;
 
-typedef struct {
-    real_t sin;
-    real_t cos;
-} faad_sincos;
 
-#ifndef USE_FFTW
-typedef struct {
-    real_t re;
-    real_t im;
-} faad_complex;
-#endif
+#define ESC_VAL 7
 
-typedef struct {
-    faad_sincos *sincos;
-#ifdef USE_FFTW
-    fftw_complex *Z1;
-    fftw_complex *Z2;
-    fftw_plan plan_backward;
-#ifdef LTP_DEC
-    fftw_plan plan_forward;
-#endif
-#else
-    real_t *Z1;
-    faad_complex *Z2;
-    cfft_info cfft;
-#endif
-    uint16_t N;
-} mdct_info;
 
-void faad_mdct_init(mdct_info *mdct, uint16_t N);
-void faad_mdct_end(mdct_info *mdct);
-void faad_imdct(mdct_info *mdct, real_t *X_in, real_t *X_out);
-void faad_mdct(mdct_info *mdct, real_t *X_in, real_t *X_out);
+uint8_t rvlc_scale_factor_data(ic_stream *ics, bitfile *ld);
+uint8_t rvlc_decode_scale_factors(ic_stream *ics, bitfile *ld);
+
+static uint8_t rvlc_decode_sf_forward(ic_stream *ics,
+                                      bitfile *ld_sf,
+                                      bitfile *ld_esc);
+static int8_t rvlc_huffman_sf(bitfile *ld_sf,
+                              bitfile *ld_esc);
+static int8_t rvlc_huffman_esc(bitfile *ld_esc);
 
 
 #ifdef __cplusplus

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.1 2002/07/14 23:43:01 miguelfreitas Exp $
+** $Id: common.h,v 1.2 2002/08/09 22:36:36 miguelfreitas Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -53,6 +53,9 @@ extern "C" {
 #endif
 
 /* COMPILE TIME DEFINITIONS */
+
+/* use the somewhat faster, but a lot larger FFTW library */
+//#define USE_FFTW
 
 /* use double precision */
 /* #define USE_DOUBLE_PRECISION */

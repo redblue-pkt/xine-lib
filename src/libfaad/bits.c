@@ -16,10 +16,11 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: bits.c,v 1.1 2002/07/14 23:43:01 miguelfreitas Exp $
+** $Id: bits.c,v 1.2 2002/08/09 22:36:36 miguelfreitas Exp $
 **/
 
 #include "common.h"
+#include <stdlib.h>
 #include "bits.h"
 
 /* initialize buffer, call once before first getbits or showbits */
@@ -60,4 +61,28 @@ uint8_t faad_byte_align(bitfile *ld)
         return (8 - remainder);
     }
     return 0;
+}
+
+uint8_t *faad_getbitbuffer(bitfile *ld, uint16_t bits
+                       DEBUGDEC)
+{
+    uint16_t i, temp;
+    uint16_t bytes = bits / 8;
+    uint8_t remainder = bits % 8;
+
+    uint8_t *buffer = (uint8_t*)malloc((bytes+1)*sizeof(uint8_t));
+
+    for (i = 0; i < bytes; i++)
+    {
+        buffer[i] = faad_getbits(ld, 8 DEBUGVAR(print,var,dbg));
+    }
+
+    if (remainder)
+    {
+        temp = faad_getbits(ld, remainder DEBUGVAR(print,var,dbg)) << (8-remainder);
+
+        buffer[bytes] = temp;
+    }
+
+    return buffer;
 }
