@@ -74,6 +74,8 @@ extern "C" {
 #define XINE_EVENT_INPUT_NUMBER_9       39
 #define XINE_EVENT_INPUT_NUMBER_10_ADD  40
 
+#define XINE_EVENT_ASPECT_CHANGE	41 /* Generally should be viewed as a hint to the GUI */
+
 
 
 /*
@@ -151,6 +153,14 @@ typedef struct {
   int64_t          pts;
   uint32_t         scr;
 } xine_closed_caption_event_t;
+
+/*
+ * Aspect ratio change (suggested)
+ */
+typedef struct {
+  xine_event_t     event;
+  int              ratio_code;
+} xine_aspect_ratio_event_t;
 
 #ifdef __cplusplus
 }
