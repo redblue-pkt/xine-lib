@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.27 2004/07/20 16:21:26 mroi Exp $
+ * $Id: demux_mpeg_pes.c,v 1.28 2004/12/17 20:08:46 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -476,7 +476,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
   if (this->mpeg1) {
   /* system_clock_reference */
 
-    this->scr  = (p[4] & 0x02) << 30;
+    this->scr  = (int64_t)(p[4] & 0x02) << 30;
     this->scr |= (p[5] & 0xFF) << 22;
     this->scr |= (p[6] & 0xFE) << 14;
     this->scr |= (p[7] & 0xFF) <<  7;
@@ -501,7 +501,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
 
     /* system_clock_reference */
 
-    this->scr  = (p[4] & 0x08) << 27 ;
+    this->scr  = (int64_t)(p[4] & 0x08) << 27 ;
     this->scr |= (p[4] & 0x03) << 28 ;
     this->scr |= p[5] << 20;
     this->scr |= (p[6] & 0xF8) << 12 ;
@@ -555,12 +555,12 @@ static int32_t parse_private_stream_2(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 
   /* NAV Packet */
 
-  start_pts  = (p[7+12] << 24);
+  start_pts  = ((int64_t)p[7+12] << 24);
   start_pts |= (p[7+13] << 16);
   start_pts |= (p[7+14] << 8);
   start_pts |= p[7+15];
 
-  end_pts  = (p[7+16] << 24);
+  end_pts  = ((int64_t)p[7+16] << 24);
   end_pts |= (p[7+17] << 16);
   end_pts |= (p[7+18] << 8);
   end_pts |= p[7+19];
@@ -1193,7 +1193,7 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
 	}
 
 	if ( ((p[0] & 0xf0) == 0x20) || ((p[0] & 0xf0) == 0x30) ) {
-	  pts  = (p[ 0] & 0x0E) << 29 ;
+	  pts  = (int64_t)(p[ 0] & 0x0E) << 29 ;
 	  pts |=  p[ 1]         << 22 ;
 	  pts |= (p[ 2] & 0xFE) << 14 ;
 	  pts |=  p[ 3]         <<  7 ;
@@ -1204,7 +1204,7 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
       
       if (p[7] & 0x80) { /* pts avail */
 	
-	pts  = (p[ 9] & 0x0E) << 29 ;
+	pts  = (int64_t)(p[ 9] & 0x0E) << 29 ;
 	pts |=  p[10]         << 22 ;
 	pts |= (p[11] & 0xFE) << 14 ;
 	pts |=  p[12]         <<  7 ;

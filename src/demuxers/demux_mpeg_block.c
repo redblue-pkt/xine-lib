@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.209 2004/07/11 10:43:01 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.210 2004/12/17 20:08:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -421,7 +421,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_block_t *this, uint8_
   if (this->mpeg1) {
   /* system_clock_reference */
 
-    this->scr  = (p[4] & 0x02) << 30;
+    this->scr  = (int64_t)(p[4] & 0x02) << 30;
     this->scr |= (p[5] & 0xFF) << 22;
     this->scr |= (p[6] & 0xFE) << 14;
     this->scr |= (p[7] & 0xFF) <<  7;
@@ -445,7 +445,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_block_t *this, uint8_
 
     /* system_clock_reference */
 
-    this->scr  = (p[4] & 0x08) << 27 ;
+    this->scr  = (int64_t)(p[4] & 0x08) << 27 ;
     this->scr |= (p[4] & 0x03) << 28 ;
     this->scr |= p[5] << 20;
     this->scr |= (p[6] & 0xF8) << 12 ;
@@ -489,12 +489,12 @@ static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_
   /* NAV Packet */
   this->packet_len = p[4] << 8 | p[5];
 
-  start_pts  = (p[7+12] << 24);
+  start_pts  = ((int64_t)p[7+12] << 24);
   start_pts |= (p[7+13] << 16);
   start_pts |= (p[7+14] << 8);
   start_pts |= p[7+15];
 
-  end_pts  = (p[7+16] << 24);
+  end_pts  = ((int64_t)p[7+16] << 24);
   end_pts |= (p[7+17] << 16);
   end_pts |= (p[7+18] << 8);
   end_pts |= p[7+19];
@@ -598,7 +598,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
     this->dts = 0;
     
     if ((p[0] & 0xf0) == 0x20) {
-      this->pts  = (p[ 0] & 0x0E) << 29 ;
+      this->pts  = (int64_t)(p[ 0] & 0x0E) << 29 ;
       this->pts |=  p[ 1]         << 22 ;
       this->pts |= (p[ 2] & 0xFE) << 14 ;
       this->pts |=  p[ 3]         <<  7 ;
@@ -608,13 +608,13 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
       this->packet_len -=5;
       return header_len;
     } else if ((p[0] & 0xf0) == 0x30) {
-      this->pts  = (p[ 0] & 0x0E) << 29 ;
+      this->pts  = (int64_t)(p[ 0] & 0x0E) << 29 ;
       this->pts |=  p[ 1]         << 22 ;
       this->pts |= (p[ 2] & 0xFE) << 14 ;
       this->pts |=  p[ 3]         <<  7 ;
       this->pts |= (p[ 4] & 0xFE) >>  1 ;
       
-      this->dts  = (p[ 5] & 0x0E) << 29 ;
+      this->dts  = (int64_t)(p[ 5] & 0x0E) << 29 ;
       this->dts |=  p[ 6]         << 22 ;
       this->dts |= (p[ 7] & 0xFE) << 14 ;
       this->dts |=  p[ 8]         <<  7 ;
@@ -657,7 +657,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
 
     if (p[7] & 0x80) { /* pts avail */
 
-      this->pts  = (p[ 9] & 0x0E) << 29 ;
+      this->pts  = (int64_t)(p[ 9] & 0x0E) << 29 ;
       this->pts |=  p[10]         << 22 ;
       this->pts |= (p[11] & 0xFE) << 14 ;
       this->pts |=  p[12]         <<  7 ;
@@ -670,7 +670,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
 
     if (p[7] & 0x40) { /* dts avail */
       
-      this->dts  = (p[14] & 0x0E) << 29 ;
+      this->dts  = (int64_t)(p[14] & 0x0E) << 29 ;
       this->dts |=  p[15]         << 22 ;
       this->dts |= (p[16] & 0xFE) << 14 ;
       this->dts |=  p[17]         <<  7 ;
@@ -1111,7 +1111,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 	}
 
 	if ( ((p[0] & 0xf0) == 0x20) || ((p[0] & 0xf0) == 0x30) ) {
-	  pts  = (p[ 0] & 0x0E) << 29 ;
+	  pts  = (int64_t)(p[ 0] & 0x0E) << 29 ;
 	  pts |=  p[ 1]         << 22 ;
 	  pts |= (p[ 2] & 0xFE) << 14 ;
 	  pts |=  p[ 3]         <<  7 ;
@@ -1122,7 +1122,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
       
       if (p[7] & 0x80) { /* pts avail */
 	
-	pts  = (p[ 9] & 0x0E) << 29 ;
+	pts  = (int64_t)(p[ 9] & 0x0E) << 29 ;
 	pts |=  p[10]         << 22 ;
 	pts |= (p[11] & 0xFE) << 14 ;
 	pts |=  p[12]         <<  7 ;

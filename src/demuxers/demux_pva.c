@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.19 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_pva.c,v 1.20 2004/12/17 20:08:47 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -233,7 +233,7 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
         return this->status;
       }
 
-      pts = (preamble[0] & 0x0e) << 29 ;
+      pts = (int64_t)(preamble[0] & 0x0e) << 29 ;
       pts |= (BE_16(&preamble[1]) & 0xFFFE) << 14;
       pts |= (BE_16(&preamble[3]) & 0xFFFE) >> 1;
 

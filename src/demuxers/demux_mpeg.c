@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.144 2004/10/18 21:55:00 tmattern Exp $
+ * $Id: demux_mpeg.c,v 1.145 2004/12/17 20:08:44 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -263,7 +263,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if ((flags & 0x80) == 0x80) {
 
       w = read_bytes(this, 1);
-      pts = (w & 0x0e) << 29 ;
+      pts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2);
       pts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2);
@@ -422,7 +422,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if ((flags & 0x80) == 0x80) {
 
       w = read_bytes(this, 1);
-      pts = (w & 0x0e) << 29 ;
+      pts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2);
       pts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2);
@@ -480,7 +480,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if ((flags & 0x80) == 0x80) {
 
       w = read_bytes(this, 1);
-      pts = (w & 0x0e) << 29 ;
+      pts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2);
       pts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2);
@@ -492,7 +492,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     if ((flags & 0x40) == 0x40) {
     
       w = read_bytes(this, 1);
-      dts = (w & 0x0e) << 29 ;
+      dts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2);
       dts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2);
@@ -583,7 +583,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       if (this->status != DEMUX_OK)
         return;
 
-      pts = (w & 0xe) << 29 ;
+      pts = (int64_t)(w & 0xe) << 29 ;
       w = read_bytes(this, 2); len -= 2;
 
       pts |= (w & 0xFFFE) << 14;
@@ -598,7 +598,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       if (this->status != DEMUX_OK)
         return;
 
-      pts = (w & 0x0e) << 29 ;
+      pts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2); len -= 2;
 
       pts |= (w & 0xFFFE) << 14;
@@ -608,7 +608,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       pts |= (w & 0xFFFE) >> 1;
 
       w = read_bytes(this, 1); len -= 1;
-      dts = (w & 0x0e) << 29 ;
+      dts = (int64_t)(w & 0x0e) << 29 ;
       w = read_bytes(this, 2); len -= 2;
       dts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2); len -= 2;
@@ -727,7 +727,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
     /* system_clock_reference */
 
-    scr  = (buf & 0x38) << 27;
+    scr  = (int64_t)(buf & 0x38) << 27;
     scr |= (buf & 0x03) << 28;
     buf  = read_bytes (this, 1);
     scr |= buf << 20;
@@ -765,7 +765,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
      /* system_clock_reference */
 
-     scr = (buf & 0x2) << 30;
+     scr = (int64_t)(buf & 0x2) << 30;
      buf = read_bytes (this, 2);
      scr |= (buf & 0xFFFE) << 14;
      buf = read_bytes (this, 2);
