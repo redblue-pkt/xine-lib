@@ -17,6 +17,14 @@
     standalone from http://sourceforge.net/projects/unichrome. 
     It will dlopen a hardware-specific XvMC library at runtime. 
   * Some fixes for crashes when trying to play encrypted DVDs without libdvdcss
+  * DXR3: fixed some rare audio dropouts
+  * DXR3: fixed forced subtitle handling; this fixes missing subtitles in
+    "The Lord of the Rings - The Two Towers"
+  * fixed wrong subtitle appearing in the trailer of "Girl, Interrupted" RC2
+  * fixed "NAV packet expected, but none found" error when toggling between
+    menu and feature with the Escape key [bug #1025469]
+  * video image scaling can now be disabled for more video output plugins
+    than XShm [feature requests #987635, #856408]
     
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
