@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.31 2003/08/09 23:15:46 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.32 2003/08/29 17:53:21 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1056,6 +1056,16 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         vf.tuner = 0;
         if( ioctl(this->dev_fd, VIDIOC_S_FREQUENCY, &vf) )
           printf("input_pvr: error setting v4l2 frequency\n");
+
+        /* workaround an ivtv bug where stream gets bad mpeg2 artifacts
+         * after changing inputs. reopening the device fixes it.
+         */
+        close(this->dev_fd);
+        this->dev_fd = open (PVR_DEVICE, O_RDWR);
+        if (this->dev_fd == -1) {
+          printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+          return;
+        }
 #else
         v.norm = VIDEO_MODE_NTSC;
         v.channel = this->input;
