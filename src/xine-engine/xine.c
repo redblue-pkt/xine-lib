@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.49 2001/08/25 07:51:24 guenter Exp $
+ * $Id: xine.c,v 1.50 2001/08/25 14:56:19 guenter Exp $
  *
  * top-level xine functions
  *
@@ -81,6 +81,7 @@ void xine_stop (xine_t *this) {
   
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    this->cur_demuxer_plugin->close (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
@@ -268,9 +269,26 @@ void xine_play (xine_t *this, char *MRL, int spos) {
 
 void xine_seek (xine_t *this, char *mrl, int pos) {
 
-  xine_stop (this);
-  xine_play (this, mrl, pos);
+  pthread_mutex_lock (&this->xine_lock);
 
+  printf ("xine_seek\n");
+
+  if (this->status == XINE_PLAY) {
+    
+    if(this->cur_demuxer_plugin) {
+      this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    }
+    
+    if(this->cur_input_plugin) {
+      this->cur_input_plugin->stop(this->cur_input_plugin);
+    }
+
+    this->status = XINE_STOP;
+  }
+
+  xine_play_internal (this, mrl, pos, (off_t)0);
+
+  pthread_mutex_unlock (&this->xine_lock);
 }
 
 int xine_eject (xine_t *this) {
