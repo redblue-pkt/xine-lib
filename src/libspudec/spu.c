@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.28 2002/01/05 18:14:27 jcdutton Exp $
+ * $Id: spu.c,v 1.29 2002/01/05 21:29:37 jcdutton Exp $
  *
  */
 
@@ -218,13 +218,14 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
+/**************************88
       if ( (trans->entry0 | trans->entry1 | trans->entry2 | trans->entry3) == 0) {
         ovl->trans[3] = 15;
         ovl->trans[2] = 15;
         ovl->trans[1] = 15;
         ovl->trans[0] = 0;
       }
-
+*************************/
 #ifdef LOG_DEBUG
       printf ("spu: \ttrans [%d %d %d %d]\n",
 	       ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);

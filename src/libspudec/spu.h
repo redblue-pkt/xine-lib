@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.7 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: spu.h,v 1.8 2002/01/05 21:29:37 jcdutton Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include "video_out.h"
 #include "video_overlay.h"
+#include "nav_types.h"
 
 #define NUM_SEQ_BUFFERS 50
 #define MAX_STREAMS 32
@@ -127,6 +128,7 @@ typedef struct spudec_decoder_s {
   vo_overlay_t     overlay;
   int              ovl_caps;
   int              output_open;
+  pci_t            pci;
 } spudec_decoder_t;
 
 

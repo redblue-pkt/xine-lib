@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2002/01/05 18:14:27 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.51 2002/01/05 21:29:37 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -124,6 +124,49 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
 #endif
   return;
 } 
+static void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
+  int button = 1;
+  btni_t *button_ptr;
+  int i;
+  /* FIXME: Need to communicate with dvdnav vm to get/set 
+    "self->vm->state.HL_BTNN_REG" info. 
+   */
+  if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+    button = this->pci.hli.hl_gi.fosl_btnn ;
+  }
+  if((button <= 0) || (button > this->pci.hli.hl_gi.btn_ns)) {
+    printf("Unable to select button number %i as it doesn't exist",
+	      button);
+    return ;
+  }
+  /* FIXME:Only the first grouping of buttons are used at the moment */
+  button_ptr = &this->pci.hli.btnit[button-1];
+  this->overlay.clip_left = button_ptr->x_start;
+  this->overlay.clip_top  = button_ptr->y_start;
+  this->overlay.clip_right = button_ptr->x_end;
+  this->overlay.clip_bottom = button_ptr->y_end;
+  if(button_ptr->btn_coln != 0) {
+    for (i = 0;i < 4; i++) {
+      this->overlay.color[i] = this->state.clut[0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (16 + 4*i))];
+      this->overlay.trans[i] = 0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (4*i));
+    }
+/*************************
+    printf("libspudec:xine_decode.c:color3=%08x\n",this->overlay.color[3]); 
+    printf("libspudec:xine_decode.c:color2=%08x\n",this->overlay.color[2]); 
+    printf("libspudec:xine_decode.c:color1=%08x\n",this->overlay.color[1]); 
+    printf("libspudec:xine_decode.c:color0=%08x\n",this->overlay.color[0]); 
+    printf("libspudec:xine_decode.c:trans3=%08x\n",this->overlay.trans[3]); 
+    printf("libspudec:xine_decode.c:trans2=%08x\n",this->overlay.trans[2]); 
+    printf("libspudec:xine_decode.c:trans1=%08x\n",this->overlay.trans[1]); 
+    printf("libspudec:xine_decode.c:trans0=%08x\n",this->overlay.trans[0]); 
+*************************/
+  } else {
+    /* No colours present in the NAV packet */
+  }
+
+  printf("libspudec:xine_decoder.c:NAV to SPU pts match!\n");
+  
+}
 
 static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 //  spu_overlay_event_t   *event;
@@ -177,6 +220,14 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       /* spudec_print_overlay( &this->overlay ); */
       printf ("spu: forced display:%s\n", this->state.menu ? "Yes" : "No" ); 
 #endif
+      if (this->pci.hli.hl_gi.hli_s_ptm == this->spu_stream_state[stream_id].pts) {
+        spudec_copy_nav_to_spu(this);
+      }
+      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3]) ) {
+        /* SPU is transparent so why bother displaying it. */
+        printf ("spu: transparent spu found, discarding it.\n" ); 
+        return;
+      }
   
       if ((this->state.modified) ) { 
         spu_draw_picture(&this->state, this->cur_seq, &this->overlay);
@@ -338,6 +389,9 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 //      self->vobu_start = self->dsi.dsi_gi.nv_pck_lbn;
 //      self->vobu_length = self->dsi.dsi_gi.vobu_ea;
     }
+  }
+  if (pci->hli.hl_gi.hli_ss == 1) {
+    xine_fast_memcpy(&this->pci, pci, sizeof(pci_t));
   }
   free(pci);
   free(dsi);
