@@ -17,10 +17,12 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.3 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: audio_out.c,v 1.4 2001/08/22 10:51:05 jcdutton Exp $
  * 
+ * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
+ *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
- * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
+ *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
  * 
  * General Programming Guidelines: -
  * New concept of an "audio_frame".
@@ -32,6 +34,11 @@
  * when dealing with audio_bytes instead of audio_frames.
  *
  * The number of samples passed to/from the audio driver is also sent in units of audio_frames.
+ * 
+ * Currently, James has tested with OSS: Standard stereo out, SPDIF PCM, SPDIF AC3
+ *                                 ALSA: Standard stereo out
+ * No testing has been done of ALSA SPDIF AC3 or any 4,5,5.1 channel output.
+ * Currently, I don't think resampling functions, as I cannot test it.
  */
 
 /* required for swab() */
@@ -100,6 +107,55 @@
 #define DSP_TEMPLATE "/dev/dsp%d"
 #endif
 
+struct frmsize_s
+{
+                uint16_t bit_rate;
+                uint16_t frm_size[3];
+};
+
+
+static const struct frmsize_s frmsizecod_tbl[64] =
+{
+                { 32  ,{64   ,69   ,96   } },
+                { 32  ,{64   ,70   ,96   } },
+                { 40  ,{80   ,87   ,120  } },
+                { 40  ,{80   ,88   ,120  } },
+                { 48  ,{96   ,104  ,144  } },
+                { 48  ,{96   ,105  ,144  } },
+                { 56  ,{112  ,121  ,168  } },
+                { 56  ,{112  ,122  ,168  } },
+                { 64  ,{128  ,139  ,192  } },
+                { 64  ,{128  ,140  ,192  } },
+                { 80  ,{160  ,174  ,240  } },
+                { 80  ,{160  ,175  ,240  } },
+                { 96  ,{192  ,208  ,288  } },
+                { 96  ,{192  ,209  ,288  } },
+                { 112 ,{224  ,243  ,336  } },
+                { 112 ,{224  ,244  ,336  } },
+                { 128 ,{256  ,278  ,384  } },
+                { 128 ,{256  ,279  ,384  } },
+                { 160 ,{320  ,348  ,480  } },
+                { 160 ,{320  ,349  ,480  } },
+                { 192 ,{384  ,417  ,576  } },
+                { 192 ,{384  ,418  ,576  } },
+                { 224 ,{448  ,487  ,672  } },
+                { 224 ,{448  ,488  ,672  } },
+                { 256 ,{512  ,557  ,768  } },
+                { 256 ,{512  ,558  ,768  } },
+                { 320 ,{640  ,696  ,960  } },
+                { 320 ,{640  ,697  ,960  } },
+                { 384 ,{768  ,835  ,1152 } },
+                { 384 ,{768  ,836  ,1152 } },
+                { 448 ,{896  ,975  ,1344 } },
+                { 448 ,{896  ,976  ,1344 } },
+                { 512 ,{1024 ,1114 ,1536 } },
+                { 512 ,{1024 ,1115 ,1536 } },
+                { 576 ,{1152 ,1253 ,1728 } },
+                { 576 ,{1152 ,1254 ,1728 } },
+                { 640 ,{1280 ,1393 ,1920 } },
+                { 640 ,{1280 ,1394 ,1920 } }
+};
+
 /*
  * open the audio device for writing to
  */
@@ -111,17 +167,17 @@ static int ao_open(ao_instance_t *self,
 	  printf("open failed!\n");
 	  return -1;
   }; 
-//  self->frame_rate_factor = (double) self->output_frame_rate / (double) self->input_frame_rate;
-  self->mode                   = mode;
+  self->mode                  = mode;
   self->input_frame_rate      = rate;
-  self->frames_in_buffer        = 0;
-  self->audio_started          = 0;
-  self->last_audio_vpts        = 0;
+  self->frames_in_buffer      = 0;
+  self->audio_started         = 0;
+  self->last_audio_vpts       = 0;
+  self->do_resample           = 0; /* Resampling currently not working. */
 
   self->output_frame_rate=rate;
   self->num_channels = self->driver->num_channels(self->driver); 
 
-  self->frame_rate_factor = (double) 1 / (double) 1;
+  self->frame_rate_factor = (double) self->output_frame_rate / (double) self->input_frame_rate; /* Alway produces 1 at the moment */
   self->audio_step         = (uint32_t) 90000 * (uint32_t) 32768
 	                                   / self->input_frame_rate;
   self->frames_per_kpts     = self->output_frame_rate * self->num_channels * 2 * 1024 / 90000;
@@ -160,7 +216,37 @@ static void ao_fill_gap (ao_instance_t *self, uint32_t pts_len) {
   }
 }
 
+/*
+ * This routine is currently not used, but I do not want to loose it.
+ * I think "(c) 2001 Andy Lo A Foe <andy@alsaplayer.org>" originally added it
+ * to ./xine-lib/src/audio_out/audio_alsa_out.c before the architecture changes
+ * So it has moved to here.
+ */
 
+void write_pause_burst(alsa_instance_t *this,int error)
+{
+#define BURST_SIZE 6144
+
+        unsigned char buf[8192];
+        unsigned short *sbuf = (unsigned short *)&buf[0];
+
+        sbuf[0] = 0xf872;
+        sbuf[1] = 0x4e1f;
+
+        if (error == 0)
+                // Audio ES Channel empty, wait for DD Decoder or pause
+                sbuf[2] = 0x0003;
+        else
+                // user stop, skip or error
+                sbuf[2] = 0x0103;
+
+        sbuf[3] = 0x0020;
+        sbuf[4] = 0x0000;
+        sbuf[5] = 0x0000;
+
+        memset(&sbuf[6], 0, BURST_SIZE - 96);
+	self->driver->write(self->driver, u_char * sbuf, BURST_SIZE / 4);
+}
 
 static int ao_write(ao_instance_t *self,
                                int16_t* output_frames, uint32_t num_frames,
@@ -276,8 +362,12 @@ static int ao_write(ao_instance_t *self,
       self->frame_buffer[0] = 0xf872;  //spdif syncword
       self->frame_buffer[1] = 0x4e1f;  // .............
       self->frame_buffer[2] = 0x0001;  // AC3 data
-      self->frame_buffer[3] = num_frames * 8;
-      self->frame_buffer[4] = 0x0b77;  // AC3 syncwork already in output_frames
+
+           data = (uint8_t *)&output_samples[1]; // skip AC3 sync
+           fscod = (data[2] >> 6) & 0x3;
+           frmsizecod = data[2] & 0x3f;
+           frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] << 4;
+           sample_buffer[3] = frame_size;
 
     // ac3 seems to be swabbed data
       swab(output_frames,self->frame_buffer+4,  num_frames  );

@@ -3,6 +3,7 @@ CFLAGS = @GLOBAL_CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CF
 #EXTRA_DIST = audio_alsa_out.c audio_alsa05_out.c audio_esd_out.c \
 #	audio_sun_out.c audio_arts_out.c 
 ## audio_irixal_out.c
+EXTRA_DIST = audio_alsa_out.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -21,7 +22,7 @@ if HAVE_ALSA05
 #alsa05_module = xineplug_ao_out_alsa05.la
 endif
 if HAVE_ALSA09
-#alsa_module = xineplug_ao_out_alsa.la
+alsa_module = xineplug_ao_out_alsa.la
 endif
 endif
 

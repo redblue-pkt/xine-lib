@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.30 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: audio_oss_out.c,v 1.31 2001/08/22 10:51:05 jcdutton Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -67,8 +67,6 @@
 #include "xine_internal.h"
 #include "monitor.h"
 #include "audio_out.h"
-#include "resample.h"
-#include "metronom.h"
 #include "utils.h"
 
 #ifndef AFMT_S16_NE
