@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.170 2003/12/14 23:23:17 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.171 2003/12/29 16:24:33 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -676,15 +676,8 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
   while (node) {
 
     fprintf(fp, "[%s]\n", node->filename );
-
-#ifndef _MSC_VER
-    fprintf(fp, "size=%llu\n", (unsigned long long) node->filesize );
-    fprintf(fp, "mtime=%llu\n", (unsigned long long) node->filemtime );
-#else
     fprintf(fp, "size=%llu\n", (uint64_t) node->filesize );
     fprintf(fp, "mtime=%llu\n", (uint64_t) node->filemtime );
-#endif /* _MSC_VER  */
-    
     fprintf(fp, "type=%d\n", node->info->type );
     fprintf(fp, "api=%d\n", node->info->API );
     fprintf(fp, "id=%s\n", node->info->id );
@@ -737,13 +730,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   ao_info_t *ao_info = NULL;
   post_info_t *post_info = NULL;
   int i;
-
-#ifndef _MSC_VER
-  unsigned long long llu;
-#else
   uint64_t llu;
-#endif /* _MSC_VER */
-
   unsigned long lu;
   char line[1024];
   char *value;

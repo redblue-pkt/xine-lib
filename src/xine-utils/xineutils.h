@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.77 2003/12/26 18:37:59 valtri Exp $
+ * $Id: xineutils.h,v 1.78 2003/12/29 16:24:33 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -108,13 +108,8 @@ uint32_t xine_mm_accel (void);
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 typedef	union {
-#ifdef _MSC_VER
-	int64_t		q;	/* Quadword (64-bit) value */
-	uint64_t	uq;	/* Unsigned Quadword */
-#else
-	long long		q;	/* Quadword (64-bit) value */
-	unsigned long long	uq;	/* Unsigned Quadword */
-#endif
+	int64_t			q;	/* Quadword (64-bit) value */
+	uint64_t		uq;	/* Unsigned Quadword */
 	int			d[2];	/* 2 Doubleword (32-bit) values */
 	unsigned int		ud[2];	/* 2 Unsigned Doubleword */
 	short			w[4];	/* 4 Word (16-bit) values */
