@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.203 2004/05/29 22:31:49 tmmm Exp $
+ * $Id: demux_avi.c,v 1.204 2004/06/05 14:11:24 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -993,12 +993,14 @@ static avi_t *AVI_init(demux_avi_t *this) {
         }
 
       } else if(lasttag == 2) {
+        xine_waveformatex *wavex;
+        
+        wavex = (xine_waveformatex *)malloc(n);
+        memcpy((void *)wavex, hdrl_data+i, n);
+        _x_waveformatex_le2me( wavex );
 
-        AVI->audio[AVI->n_audio-1]->wavex=(xine_waveformatex *)malloc(n);
-        AVI->audio[AVI->n_audio-1]->wavex_len=n;
-
-        memcpy((void *)AVI->audio[AVI->n_audio-1]->wavex, hdrl_data+i, n);
-        _x_waveformatex_le2me( AVI->audio[AVI->n_audio-1]->wavex );
+        AVI->audio[AVI->n_audio-1]->wavex     = wavex;
+        AVI->audio[AVI->n_audio-1]->wavex_len = n;
         lprintf("audio stream format\n");
         auds_strf_seen = 1;
       }
@@ -1924,7 +1926,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     
     if (this->avi->bih->biSize > buf->max_size) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              "demux_avi: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+              "demux_avi: private video decoder data length (%d) is greater than fifo buffer length (%d)\n",
                this->avi->bih->biSize, buf->max_size);
       buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
@@ -1980,26 +1982,31 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     if (this->audio_fifo) {
       for (i=0; i<this->avi->n_audio; i++) {
         avi_audio_t *a = this->avi->audio[i];
+        uint32_t todo = a->wavex_len;
+        uint32_t done = 0;
 
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        if (a->wavex_len > buf->max_size) {
-          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-                  "demux_avi: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
-                  a->wavex_len, buf->max_size);
-                  buf->free_buffer(buf);
-          this->status = DEMUX_FINISHED;
-          return;
+        while (todo) {
+          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          if (todo > buf->max_size) {
+            buf->size = buf->max_size;
+          } else {
+            buf->size = todo;
+          }
+          todo -= buf->size;
+  
+          buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER;
+          if (todo == 0)
+            buf->decoder_flags |= BUF_FLAG_FRAME_END;
+            
+          memcpy (buf->content, a->wavex + done, buf->size);
+          buf->type = a->audio_type | i;
+          buf->decoder_info[0] = 0;                         /* first package, containing wavex */
+          buf->decoder_info[1] = a->wavex->nSamplesPerSec;  /* Audio Rate */
+          buf->decoder_info[2] = a->wavex->wBitsPerSample;  /* Audio bits */
+          buf->decoder_info[3] = a->wavex->nChannels;       /* Audio channels */
+          this->audio_fifo->put (this->audio_fifo, buf);
+          done += buf->size;
         }
-
-        buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-        memcpy (buf->content, a->wavex, a->wavex_len);
-        buf->size = a->wavex_len;
-        buf->type = a->audio_type | i;
-        buf->decoder_info[0] = 0;                         /* first package, containing wavex */
-        buf->decoder_info[1] = a->wavex->nSamplesPerSec;  /* Audio Rate */
-        buf->decoder_info[2] = a->wavex->wBitsPerSample;  /* Audio bits */
-        buf->decoder_info[3] = a->wavex->nChannels;       /* Audio channels */
-        this->audio_fifo->put (this->audio_fifo, buf);
       }
 
       if(this->avi->n_audio == 1)
