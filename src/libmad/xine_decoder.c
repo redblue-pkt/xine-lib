@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2003/12/05 15:54:59 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.46 2003/12/06 19:09:38 tmattern Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -191,24 +191,32 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	  lprintf ("audio sample rate %d mode %08x\n", this->frame.header.samplerate, mode);
 
-	  _x_stream_info_set(this->xstream, XINE_STREAM_INFO_AUDIO_BITRATE, this->frame.header.bitrate);
-	  switch (this->frame.header.layer) {
-	  case MAD_LAYER_I:
-	    _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-	      "MPEG audio layer 1");
-	    break;
-	  case MAD_LAYER_II:
-	    _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-	      "MPEG audio layer 2");
-	    break;
-	  case MAD_LAYER_III:
-	    _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-	      "MPEG audio layer 3");
-	    break;
-	  default:
-	    _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
-	      "MPEG audio");
-	  }
+          /* the mpeg audio demuxer can set audio bitrate */
+          if (! _x_stream_info_get(this->xstream, XINE_STREAM_INFO_AUDIO_BITRATE)) {
+            _x_stream_info_set(this->xstream, XINE_STREAM_INFO_AUDIO_BITRATE,
+                               this->frame.header.bitrate);
+          }
+
+          /* the mpeg audio demuxer can set this meta info */
+          if (! _x_meta_info_get(this->xstream, XINE_META_INFO_AUDIOCODEC)) {
+            switch (this->frame.header.layer) {
+            case MAD_LAYER_I:
+              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+                "MPEG audio layer 1");
+              break;
+            case MAD_LAYER_II:
+              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+                "MPEG audio layer 2");
+              break;
+            case MAD_LAYER_III:
+              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+                "MPEG audio layer 3");
+              break;
+            default:
+              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+                "MPEG audio");
+            }
+          }
 	  
 	  if (this->output_open) {
 	    this->xstream->audio_out->close (this->xstream->audio_out, this->xstream);
