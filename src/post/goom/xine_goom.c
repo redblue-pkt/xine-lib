@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.38 2003/10/30 22:40:53 mroi Exp $
+ * $Id: xine_goom.c,v 1.39 2003/11/10 21:58:31 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -639,7 +639,9 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
           this->width_back = width;
           this->height_back = height;
 	  this->ratio = (double)width/(double)height;
-        }
+	  free_yuv_planes(&this->yuv);
+	  init_yuv_planes(&this->yuv, this->width, this->height);
+       }
     }
   } while( this->sample_counter >= this->samples_per_frame );
 }
