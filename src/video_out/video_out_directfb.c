@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.16 2003/03/06 16:49:31 guenter Exp $
+ * $Id: video_out_directfb.c,v 1.17 2003/05/31 18:33:30 miguelfreitas Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -384,7 +384,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   directfb_frame_t   *frame = (directfb_frame_t *) frame_gen;
 
   if( this->cur_frame )
-    this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+    this->cur_frame->vo_frame.free (&this->cur_frame->vo_frame);
   this->cur_frame = frame;
 
   if ( (frame->width      != this->last_frame_width)  ||
@@ -400,7 +400,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
 
   directfb_render_image (this, frame);
 
-  frame->vo_frame.displayed (&frame->vo_frame);
+  frame->vo_frame.free (&frame->vo_frame);
   this->cur_frame = NULL;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.25 2003/02/28 02:51:51 storri Exp $
+ * $Id: video_out_opengl.c,v 1.26 2003/05/31 18:33:31 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -731,7 +731,7 @@ static void opengl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
      * multiple threads rendering in many OpenGL implementations) */
     /* FIXME: check that */
 #if 1
-    frame->vo_frame.displayed (&frame->vo_frame);
+    frame->vo_frame.free (&frame->vo_frame);
 #endif
     DEBUGF ((stderr, "done display_frame\n"));
 }
@@ -999,7 +999,7 @@ static vo_info_t vo_info_opengl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 14, "opengl", XINE_VERSION_CODE,
+  { PLUGIN_VIDEO_OUT, 15, "opengl", XINE_VERSION_CODE,
     &vo_info_opengl, opengl_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

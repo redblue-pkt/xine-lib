@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.84 2003/01/29 15:34:28 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.85 2003/05/31 18:33:31 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -299,7 +299,7 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       break;
    }
    
-   frame->vo_frame.displayed(&frame->vo_frame);
+   frame->vo_frame.free(&frame->vo_frame);
 }
 
 void free_framedata(syncfb_frame_t* frame)
@@ -603,7 +603,7 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    if(this->overlay_state) {
       if(this->bufinfo.id != -1) {
 	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
-	 frame->vo_frame.displayed(&frame->vo_frame);
+	 frame->vo_frame.free(&frame->vo_frame);
 
 	 return;
       }
@@ -613,7 +613,7 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    
       if(this->bufinfo.id == -1) {
 	 printf("video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
-	 frame->vo_frame.displayed(&frame->vo_frame);
+	 frame->vo_frame.free(&frame->vo_frame);
 	 
 	 /* 
 	  * there are several "fixable" situations when this request will fail.
@@ -634,7 +634,7 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
 	printf("video_out_syncfb: error. (commit ioctl failed)\n");
    }
    else
-     frame->vo_frame.displayed(&frame->vo_frame);
+     frame->vo_frame.free(&frame->vo_frame);
    
    this->bufinfo.id = -1;   
 }
@@ -1057,7 +1057,7 @@ static vo_info_t vo_info_syncfb = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 14, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
+  { PLUGIN_VIDEO_OUT, 15, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.25 2003/03/19 15:29:27 holstsn Exp $
+ * $Id: video_out_fb.c,v 1.26 2003/05/31 18:33:30 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -582,7 +582,7 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if(this->use_zero_copy)
   {
     if(this->old_frame)
-      this->old_frame->vo_frame.displayed
+      this->old_frame->vo_frame.free
 	(&this->old_frame->vo_frame);
     this->old_frame = this->cur_frame;
     this->cur_frame = frame;
@@ -605,7 +605,7 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       dst += this->fb_bytes_per_line;
     } 
   
-    frame->vo_frame.displayed(&frame->vo_frame);
+    frame->vo_frame.free(&frame->vo_frame);
   }
 }
 
@@ -1053,7 +1053,7 @@ plugin_info_t xine_plugin_info[] =
   /* type, API, "name", version, special_info, init_function */  
   {
     PLUGIN_VIDEO_OUT,
-    14,
+    15,
     "fb",
     XINE_VERSION_CODE,
     &vo_info_fb, fb_init_class

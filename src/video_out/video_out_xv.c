@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.168 2003/05/26 11:35:52 hadess Exp $
+ * $Id: video_out_xv.c,v 1.169 2003/05/31 18:33:31 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -636,7 +636,7 @@ static void xv_add_recent_frame (xv_driver_t *this, xv_frame_t *frame) {
 
   i = VO_NUM_RECENT_FRAMES-1;
   if( this->recent_frames[i] )
-    this->recent_frames[i]->vo_frame.displayed
+    this->recent_frames[i]->vo_frame.free
        (&this->recent_frames[i]->vo_frame);
 
   for( ; i ; i-- )
@@ -654,7 +654,7 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
   for( i=0; i < VO_NUM_RECENT_FRAMES; i++ )
   {
     if( this->recent_frames[i] )
-      this->recent_frames[i]->vo_frame.displayed
+      this->recent_frames[i]->vo_frame.free
          (&this->recent_frames[i]->vo_frame);
     this->recent_frames[i] = NULL;
   }
@@ -1466,7 +1466,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 14, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 15, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

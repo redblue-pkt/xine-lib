@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.110 2003/05/26 11:33:01 hadess Exp $
+ * $Id: video_out_xshm.c,v 1.111 2003/05/31 18:33:31 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -734,7 +734,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
          || (this->cur_frame->sc.output_yoffset != frame->sc.output_yoffset) )
       clean_output_area (this, frame);
 
-    this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+    this->cur_frame->vo_frame.free (&this->cur_frame->vo_frame);
   }
 
   this->cur_frame = frame;
@@ -1289,6 +1289,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 14, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 15, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

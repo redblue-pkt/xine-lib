@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.11 2003/02/06 00:09:20 miguelfreitas Exp $
+ * $Id: post.c,v 1.12 2003/05/31 18:33:31 miguelfreitas Exp $
  */
  
 /*
@@ -146,10 +146,10 @@ static int post_frame_draw(vo_frame_t *vo_img, xine_stream_t *stream) {
   return vo_img->draw(vo_img, stream);
 }
 
-static void post_frame_displayed(vo_frame_t *vo_img) {
+static void post_frame_lock(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
   post_restore_video_frame(vo_img, port);
-  vo_img->displayed(vo_img);
+  vo_img->lock(vo_img);
 }
 
 static void post_frame_dispose(vo_frame_t *vo_img) {
@@ -165,7 +165,7 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   port->original_frame.copy       = frame->copy;
   port->original_frame.field      = frame->field;
   port->original_frame.draw       = frame->draw;
-  port->original_frame.displayed  = frame->displayed;
+  port->original_frame.lock       = frame->lock;
   port->original_frame.dispose    = frame->dispose;
   
   frame->port                     = &port->port;
@@ -173,7 +173,7 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->copy                     = frame->copy ? post_frame_copy : NULL; /* this one can be NULL */
   frame->field                    = post_frame_field;
   frame->draw                     = post_frame_draw;
-  frame->displayed                = post_frame_displayed;
+  frame->lock                     = post_frame_lock;
   frame->dispose                  = post_frame_dispose;
 }
 
@@ -183,7 +183,7 @@ void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->copy                     = port->original_frame.copy;
   frame->field                    = port->original_frame.field;
   frame->draw                     = port->original_frame.draw;
-  frame->displayed                = port->original_frame.displayed;
+  frame->lock                     = port->original_frame.lock;
   frame->dispose                  = port->original_frame.dispose;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.3 2003/05/30 14:10:49 mroi Exp $
+ * $Id: xine_encoder.c,v 1.4 2003/05/31 18:33:29 miguelfreitas Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -262,7 +262,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   if (frame->vo_frame.bad_frame) return 1;
     /* ignore old frames */
   if ((frame->vo_frame.width != this->context->width) || (frame->oheight != this->context->height)) {
-	frame->vo_frame.displayed(&frame->vo_frame);
+	frame->vo_frame.free(&frame->vo_frame);
     printf("LAVC ignoring frame !!!\n");
     return 1;
   }
@@ -273,7 +273,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* do the encoding */
   size = avcodec_encode_video(this->context, this->ffmpeg_buffer, DEFAULT_BUFFER_SIZE, this->picture);
 
-  frame->vo_frame.displayed(&frame->vo_frame);
+  frame->vo_frame.free(&frame->vo_frame);
 	
   if (drv->fd_video == CLOSED_FOR_ENCODER) {
       snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);

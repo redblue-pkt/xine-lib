@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.8 2003/02/22 14:21:37 mroi Exp $
+ * $Id: invert.c,v 1.9 2003/05/31 18:33:30 miguelfreitas Exp $
  */
  
 /*
@@ -37,7 +37,7 @@ post_info_t invert_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 2, "invert", XINE_VERSION_CODE, &invert_special_info, &invert_init_plugin },
+  { PLUGIN_POST, 3, "invert", XINE_VERSION_CODE, &invert_special_info, &invert_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

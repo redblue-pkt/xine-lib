@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.34 2003/03/06 16:49:31 guenter Exp $
+ * $Id: video_out_aa.c,v 1.35 2003/05/31 18:33:30 miguelfreitas Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -215,7 +215,7 @@ static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     }
   }
 
-  frame->vo_frame.displayed (&frame->vo_frame);
+  frame->vo_frame.free (&frame->vo_frame);
 
   aa_fastrender(this->context, 0, 0, 
 		aa_imgwidth (this->context), 
@@ -328,6 +328,6 @@ static vo_info_t vo_info_aa = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 14, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
+  { PLUGIN_VIDEO_OUT, 15, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -39,7 +39,7 @@ post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 2, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
+  { PLUGIN_POST, 3, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.159 2003/05/11 12:59:38 tmattern Exp $
+ * $Id: video_out.c,v 1.160 2003/05/31 18:33:31 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1477,7 +1477,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
     
     img->port      = &this->vo;
     img->free      = vo_frame_dec_lock;
-    img->displayed = vo_frame_dec_lock;
+    img->lock      = vo_frame_inc_lock;
     img->draw      = vo_frame_draw;
 
     img->extra_info = &this->extra_info_base[i];

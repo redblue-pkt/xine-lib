@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.81 2003/05/30 14:29:02 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.82 2003/05/31 18:33:28 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -88,9 +88,9 @@ static vo_info_t   vo_info_dxr3_aa = {
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 14, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+  { PLUGIN_VIDEO_OUT, 15, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
 #endif
-  { PLUGIN_VIDEO_OUT, 14, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
+  { PLUGIN_VIDEO_OUT, 15, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -903,7 +903,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     
     if (this->fd_video == CLOSED_FOR_DECODER) {
       /* no need to encode, when the device is already reserved for the decoder */
-      frame_gen->displayed(frame_gen);
+      frame_gen->free(frame_gen);
     } else {
       if (this->need_update) {
 	/* we cannot do this earlier, because vo_frame.duration is only valid here */
@@ -912,7 +912,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 	this->need_update = 0;
       }
       /* for non-mpeg, the encoder plugin is responsible for calling 
-       * frame_gen->displayed(frame_gen) ! */
+       * frame_gen->free(frame_gen) ! */
       this->enc->on_display_frame(this, frame);
     }
   
@@ -924,7 +924,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
         this->enc->on_unneeded(this);
       this->need_update = 0;
     }
-    frame_gen->displayed(frame_gen);
+    frame_gen->free(frame_gen);
   
   }
 }

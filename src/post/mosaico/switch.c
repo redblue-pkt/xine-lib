@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.2 2003/03/15 14:10:44 skaboy Exp $
+ * $Id: switch.c,v 1.3 2003/05/31 18:33:29 miguelfreitas Exp $
  */
  
 /*
@@ -41,7 +41,7 @@ post_info_t switch_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 2, "switch", SWVERSION, &switch_special_info, &switch_init_plugin },
+  { PLUGIN_POST, 3, "switch", SWVERSION, &switch_special_info, &switch_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

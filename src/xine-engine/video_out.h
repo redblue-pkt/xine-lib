@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.87 2003/05/20 13:50:57 mroi Exp $
+ * $Id: video_out.h,v 1.88 2003/05/31 18:33:32 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -75,7 +75,7 @@ struct vo_frame_s {
    * member functions
    */
 
-  /* this frame is no longer used by the decoder */
+  /* this frame is no longer used by the decoder, video driver, etc */
   void (*free) (vo_frame_t *vo_img);
   
   /* tell video driver to copy/convert a slice of this frame, may be NULL */
@@ -89,8 +89,11 @@ struct vo_frame_s {
      returns number of frames to skip if decoder is late */
   int (*draw) (vo_frame_t *vo_img, xine_stream_t *stream);
 
-  /* this frame is no longer used by the video driver */
-  void (*displayed) (vo_frame_t *vo_img);
+  /* lock frame as reference, must be paired with free.
+   * most decoders/drivers do not need to call this function since
+   * newly allocated frames are already locked once.
+   */
+  void (*lock) (vo_frame_t *vo_img);
 
   /* free memory/resources for this frame */
   void (*dispose) (vo_frame_t *vo_img);
@@ -280,7 +283,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  14
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  15
 
 struct vo_driver_s {
 

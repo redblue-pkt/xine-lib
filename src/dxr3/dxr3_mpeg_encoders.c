@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.11 2003/05/25 18:36:51 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.12 2003/05/31 18:33:28 miguelfreitas Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -270,7 +270,7 @@ static int rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
     this->rte_ptr = rte_push_video_data(this->context, this->rte_ptr,
       frame->vo_frame.vpts / 90000.0);
   }
-  frame->vo_frame.displayed(&frame->vo_frame);
+  frame->vo_frame.free(&frame->vo_frame);
   return 1;
 }
 
@@ -475,7 +475,7 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   if ((frame->vo_frame.width != this->fp.width) || (frame->oheight != this->fp.height)) {
     /* probably an old frame for a previous context. ignore it */
-    frame->vo_frame.displayed(&frame->vo_frame);
+    frame->vo_frame.free(&frame->vo_frame);
     return 1;
   }
 
@@ -488,7 +488,7 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   size = fame_encode_frame(this->context, &this->yuv, NULL);
 #endif
 
-  frame->vo_frame.displayed(&frame->vo_frame); 
+  frame->vo_frame.free(&frame->vo_frame); 
   
   if (drv->fd_video == CLOSED_FOR_ENCODER) {
     snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
