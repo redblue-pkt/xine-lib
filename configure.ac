@@ -1278,6 +1278,7 @@ echo "   - vqa           - aiff"
 echo "   - cda           - snd/au"
 echo "   - yuv4mpeg2     - real/realaudio"
 echo "   - ea wve        - raw dv"
+echo "   - interplay mve "
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
@@ -1299,7 +1300,7 @@ echo "   - rgb             - yuv"
 echo "   - roqvideo        - svq1"
 echo "   - idcin           - smc"
 echo "   - rpza            - wc3video"
-echo "   - qtrle"
+echo "   - qtrle           - interplayvideo"
 if test x"$no_xvid" = "xno"; then
   echo "   - xvid"
 fi
@@ -1317,7 +1318,7 @@ echo "   - a52/ra-dnet     - dts"
 echo "   - mad             - adpcm"
 echo "   - linear pcm      - roqaudio"
 echo "   - log pcm         - gsm610"
-echo "   - ffmpeg"
+echo "   - ffmpeg          - interplayaudio"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi

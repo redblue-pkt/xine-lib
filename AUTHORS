@@ -42,9 +42,9 @@ Michael Roitzsch <mroi@users.sourceforge.net>
 
 Mike Melanson <melanson@pcisys.net>
   QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, VQA, AIFF,
-  SND/AU, YUV4MPEG2, and Real file demuxers; RoQ audio decoder; various
-  ADPCM audio decoders; raw RGB & YUV support; FLI, MS & QT RLE, and QT 
-  SMC video decoders
+  SND/AU, YUV4MPEG2, Real, and Interplay MVE file demuxers; various
+  assorted DPCM and ADPCM audio decoders; raw RGB & YUV support; FLI, 
+  MS & QT RLE, QT SMC, and Interplay video decoders
 
 Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM

@@ -1,5 +1,6 @@
   * what a GOOM! post plugin
   * Digital TV (DVB) input plugin (experimental)
+  * Interplay MVE playback system (file demuxer, video decoder, audio decoder)
 	
 xine-lib (1-beta1)
   * updated libfaad
