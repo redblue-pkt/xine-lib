@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.133 2003/03/12 13:28:12 mroi Exp $
+ * $Id: input_dvd.c,v 1.134 2003/03/13 22:09:51 mroi Exp $
  *
  */
 
@@ -682,19 +682,6 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen, char *ch_buf, off_t len)
   return 1;
 }
   
-static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
- 
-  trace_print("Called\n");
-
-  if(!this || !this->dvdnav) {
-    return -1;
-  }
- 
-  dvdnav_sector_search(this->dvdnav, offset / DVD_BLOCK_SIZE , origin);
-  return dvd_plugin_get_current_pos(this_gen);
-}
-
 static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
   dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
   uint32_t pos=0;
@@ -707,6 +694,19 @@ static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
   }
   result = dvdnav_get_position(this->dvdnav, &pos, &length);
   return (off_t)pos * (off_t)DVD_BLOCK_SIZE;
+}
+
+static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+ 
+  trace_print("Called\n");
+
+  if(!this || !this->dvdnav) {
+    return -1;
+  }
+ 
+  dvdnav_sector_search(this->dvdnav, offset / DVD_BLOCK_SIZE , origin);
+  return dvd_plugin_get_current_pos(this_gen);
 }
 
 static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
@@ -1567,6 +1567,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.134  2003/03/13 22:09:51  mroi
+ * turn these around so that dvd_get_current_position is defined before used
+ *
  * Revision 1.133  2003/03/12 13:28:12  mroi
  * fix wrong return value of seek function, kindly reported by Nick Kurshev
  *
