@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.23 2004/04/17 19:54:31 mroi Exp $
+ * $Id: post.c,v 1.24 2004/05/18 02:01:39 miguelfreitas Exp $
  */
  
 /*
@@ -763,6 +763,8 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     (*output)->user_data = port;
     xine_list_append_content(post->output, *output);
   }
+    
+  original->status(original, port->stream, &port->bits, &port->rate, &port->mode);
   
   return port;
 }
