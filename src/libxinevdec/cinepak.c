@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.14 2002/09/05 22:19:02 mroi Exp $
+ * $Id: cinepak.c,v 1.15 2002/10/18 23:43:25 tmmm Exp $
  */
 
 #include <stdlib.h>
@@ -69,6 +69,7 @@ typedef struct cvid_decoder_s {
   cvid_strip_t	    strips[MAX_STRIPS];
 } cvid_decoder_t;
 
+static unsigned char     yuv_palette[256 * 4];
 
 static void cinepak_decode_codebook (cvid_codebook_t *codebook,
 				     int chunk_id, int size, uint8_t *data)
@@ -95,12 +96,30 @@ static void cinepak_decode_codebook (cvid_codebook_t *codebook,
       if ((data + n) > eod)
         break;
 
-      codebook[i].y0 = *data++;
-      codebook[i].y1 = *data++;
-      codebook[i].y2 = *data++;
-      codebook[i].y3 = *data++;
-      codebook[i].u  = 128 + ((n == 4) ? 0 : *data++);
-      codebook[i].v  = 128 + ((n == 4) ? 0 : *data++);
+      if (n == 6) {
+        codebook[i].y0 = *data++;
+        codebook[i].y1 = *data++;
+        codebook[i].y2 = *data++;
+        codebook[i].y3 = *data++;
+        codebook[i].u  = 128 + *data++;
+        codebook[i].v  = 128 + *data++;
+      } else {
+        codebook[i].y0 = yuv_palette[*(data + 0) * 4];
+        codebook[i].y1 = yuv_palette[*(data + 1) * 4];
+        codebook[i].y2 = yuv_palette[*(data + 2) * 4];
+        codebook[i].y3 = yuv_palette[*(data + 3) * 4];
+        codebook[i].u =
+          (yuv_palette[*(data + 0) * 4 + 1] +
+           yuv_palette[*(data + 1) * 4 + 1] +
+           yuv_palette[*(data + 2) * 4 + 1] +
+           yuv_palette[*(data + 3) * 4 + 1]) / 4;
+        codebook[i].v =
+          (yuv_palette[*(data + 0) * 4 + 2] +
+           yuv_palette[*(data + 1) * 4 + 2] +
+           yuv_palette[*(data + 2) * 4 + 2] +
+           yuv_palette[*(data + 3) * 4 + 2]) / 4;
+        data += 4;
+      }
     }
   }
 }
@@ -301,8 +320,25 @@ static void cvid_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
 
+  palette_entry_t *palette;
+  int i;
+
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
+
+  /* convert the RGB palette to a YUV palette */
+  if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
+    palette = (palette_entry_t *)buf->decoder_info[3];
+    for (i = 0; i < buf->decoder_info[2]; i++) {
+      yuv_palette[i * 4 + 0] =
+        COMPUTE_Y(palette[i].r, palette[i].g, palette[i].b);
+      yuv_palette[i * 4 + 1] =
+        COMPUTE_U(palette[i].r, palette[i].g, palette[i].b);
+      yuv_palette[i * 4 + 2] =
+        COMPUTE_V(palette[i].r, palette[i].g, palette[i].b);
+    }
+  }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     xine_bmiheader *bih;
