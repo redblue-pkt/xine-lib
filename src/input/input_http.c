@@ -87,7 +87,13 @@ typedef struct {
   char             preview[PREVIEW_SIZE];
   off_t            preview_size;
   off_t            preview_pos;
-
+  
+  /* ShoutCast */
+  int              shoutcast_mode;
+  int              shoutcast_metaint;
+  off_t            shoutcast_pos;
+  char            *shoutcast_songtitle;
+  
 } http_input_plugin_t;
 
 typedef struct {
@@ -295,6 +301,67 @@ static int http_plugin_basicauth (const char *user, const char *password,
   return 0;
 }
 
+static void http_plugin_read_metainf (input_plugin_t *this_gen) {
+ 
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+  char metadata_buf[4096];
+  char len = 0;
+  char *title_end;
+  char *songtitle, *title;
+  xine_event_t uevent;
+  xine_ui_data_t data;
+    
+  /* avoid recursion */
+  this->shoutcast_mode = 0;
+  
+  /* get the length of the metadata */
+  this_gen->read(this_gen, &len, 1);
+
+  if (len > 0) {
+    this_gen->read(this_gen, metadata_buf, len * 16);
+  
+    metadata_buf[len * 16] = '\0';
+#ifdef LOG
+  printf ("input_http: http_plugin_read_metainf: %s\n", metadata_buf);
+#endif
+    /* Extract the title of the current song */
+    if ((songtitle = strstr(metadata_buf, "StreamTitle='"))) {
+      songtitle += 13; /* skip "StreamTitle='" */
+      if ((title_end = strchr(songtitle, '\''))) {
+        *title_end = '\0';
+        
+        if (!this->shoutcast_songtitle ||
+           (strcmp(songtitle, this->shoutcast_songtitle))) {
+#ifdef LOG
+          printf ("input_http: http_plugin_read_metainf: songtitle: %s\n", songtitle);
+#endif
+          title = this->stream->meta_info [XINE_META_INFO_TITLE];
+          
+          if (this->shoutcast_songtitle)
+            free(this->shoutcast_songtitle);
+          this->shoutcast_songtitle = strdup(songtitle);
+
+          /* prepares the event */
+          strcpy(data.str, title); /* WARNING: the data.str is char[256] */
+          strcat(data.str, " - ");
+          strcat(data.str, songtitle);
+          data.str_len = strlen(title) + 3 + strlen(songtitle) + 1;
+          
+          /* sends the event */
+          uevent.type = XINE_EVENT_UI_SET_TITLE;
+          uevent.stream = this->stream;
+          uevent.data = &data;
+          uevent.data_length = sizeof(data);
+          xine_event_send(this->stream, &uevent);
+        }
+      }    
+    }
+  }  
+  
+  this->shoutcast_mode = 1;
+  this->shoutcast_pos  = 0; 
+}
+
 static off_t http_plugin_read (input_plugin_t *this_gen, 
 			       char *buf, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
@@ -306,6 +373,10 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
   while (num_bytes < nlen) {
 
+    if (this->shoutcast_mode && (this->shoutcast_pos == this->shoutcast_metaint)) {
+      http_plugin_read_metainf(this_gen);
+    }
+    
     if (this->preview_pos < this->preview_size) {
 
       n = this->preview_size - this->preview_pos;
@@ -317,13 +388,36 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 	      n, this->preview_size);
 #endif
 
-      memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
-
+      if (this->shoutcast_mode) {
+        if ((this->shoutcast_pos + n) < this->shoutcast_metaint) {
+          memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+          this->shoutcast_pos += n;
+        } else {
+          n = this->shoutcast_metaint - this->shoutcast_pos;
+          memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+          this->shoutcast_pos += n;
+        }
+      } else {
+        memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+      }
       this->preview_pos += n;
 
-    } else
-      n = read (this->fh, &buf[num_bytes], nlen - num_bytes);
-
+    } else {
+      n = nlen - num_bytes;
+      if (this->shoutcast_mode) {
+        if ((this->shoutcast_pos + n) < this->shoutcast_metaint) {
+          n = read (this->fh, &buf[num_bytes], n);
+          this->shoutcast_pos += n;
+        } else {
+          n = this->shoutcast_metaint - this->shoutcast_pos;
+          n = read (this->fh, &buf[num_bytes], n);
+          this->shoutcast_pos += n;
+        }
+      } else {
+        n = read (this->fh, &buf[num_bytes], n);
+      }
+    }
+      
     if (n <= 0) {
       
       switch (errno) {
@@ -377,6 +471,12 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
           = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
       }
 
+      if (sscanf(this->buf, "icy-metaint: %d", &this->shoutcast_metaint) == 1) {
+#ifdef LOG
+        printf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
+#endif
+      }
+      
       if (len == -1)
         done = 1;
       else
@@ -508,6 +608,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   int                  shoutcast = 0;
   
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
+  this->shoutcast_pos = 0;
 
   strncpy (this->mrlbuf, mrl, BUFSIZE);
   strncpy (this->mrlbuf2, mrl, BUFSIZE);
@@ -617,6 +718,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	   VERSION);
   
   strcat (this->buf, "Accept: */*\015\012");
+  strcat (this->buf, "Icy-MetaData: 1\015\012");
   
   strcat (this->buf, "\015\012");
   
@@ -746,6 +848,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->curpos  = 0;
   
   /* Trivial shoutcast detection */
+  this->shoutcast_metaint = 0;
+  this->shoutcast_songtitle = NULL;
   if (shoutcast ||
       !strncasecmp(this->preview, "ICY", 3)) {
     this->mrlbuf2[0] = 'i';
@@ -757,6 +861,10 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       free (this);
       return NULL;
     }
+    this->shoutcast_mode = 1;
+    this->shoutcast_pos = 0;
+  } else {
+    this->shoutcast_mode = 0;
   }
 
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
