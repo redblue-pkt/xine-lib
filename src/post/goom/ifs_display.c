@@ -1,5 +1,6 @@
 #include "ifs.h"
 #include "goom_config.h"
+#include "xineutils.h"
 
 extern volatile int     use_asm;
 
@@ -9,13 +10,15 @@ ifs_fun_mmx(guint32 * data, guint32 * back, int width, int height,
             int increment, int nbpt, IFSPoint *points, int couleursl)
 {
 	int i;
+	
+	movd_m2r(couleursl,mm1);
 	for (i = 0; i < nbpt; i += increment) {
 		int     x = points[i].x;
 		int     y = points[i].y;
 
 		if ((x < width) && (y < height) && (x > 0) && (y > 0)) {
 			int     pos = x + (y * width);
-			register int b asm ("eax");
+/*			register int b asm ("eax");
 
 			b = back[pos];
 			__asm__
@@ -27,6 +30,10 @@ ifs_fun_mmx(guint32 * data, guint32 * back, int width, int height,
 				 "::
 				 "edx" (couleursl));
 			data[pos] = b;
+*/
+			movd_m2r(back[pos],mm0);
+			paddusb_r2r(mm1,mm0);
+			movd_r2m(mm0,data[pos]);
 		}
 	}
 	__asm__ __volatile__ ("emms");
