@@ -949,7 +949,7 @@ src/libspucc/Makefile
 src/libvorbis/Makefile
 src/libxvid/Makefile
 src/libdivx4/Makefile
-src/libcinepak/Makefile
+src/libxinevdec/Makefile
 src/xine-utils/Makefile
 src/input/Makefile
 src/xine-engine/Makefile
@@ -1068,7 +1068,8 @@ echo "   - a52             - dts"
 echo "   - mpeg2           - spu"
 echo "   - ffmpeg          - mad"
 echo "   - vfill           - divx4"
-echo "   - cinepak"
+echo "   - cinepak         - msvc"
+echo "   - cyuv"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi
