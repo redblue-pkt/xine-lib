@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.120 2003/05/26 20:07:10 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.121 2003/05/28 18:16:46 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -145,13 +145,7 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
-  int align, width, height;
         
-  align=15;
-    
-  width  = (context->width +align)&~align;
-  height = (context->height+align)&~align;
-
   if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
       printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
@@ -162,8 +156,8 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   }
 
   img = this->stream->video_out->get_frame (this->stream->video_out,
-					    width,
-					    height,
+					    this->context->width,
+					    this->context->height,
 					    this->xine_aspect_ratio, 
 					    this->output_format,
 					    VO_BOTH_FIELDS);
@@ -283,6 +277,9 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 #ifdef ENABLE_DIRECT_RENDERING
     if( this->context->pix_fmt == PIX_FMT_YUV420P &&
         this->codec->capabilities & CODEC_CAP_DR1 ) {
+      this->context->width  = (this->context->width  + 15) & ~15;
+      this->context->height = (this->context->height + 15) & ~15;
+        
       this->context->get_buffer = get_buffer;
       this->context->release_buffer = release_buffer;
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
