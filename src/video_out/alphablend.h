@@ -75,6 +75,4 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height, int dst_pitch);
 
-void crop_overlay (vo_overlay_t * overlay);
-
 #endif

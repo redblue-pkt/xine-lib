@@ -113,7 +113,7 @@ xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
 xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_pgx32_la_SOURCES = alphablend.c video_out_pgx32.c
+xineplug_vo_out_pgx32_la_SOURCES = video_out_pgx32.c
 xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_pgx32_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
