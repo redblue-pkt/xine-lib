@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.63 2001/09/26 17:19:49 jkeil Exp $
+ * $Id: video_out_xv.c,v 1.64 2001/09/27 02:08:18 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -793,7 +793,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   case GUI_DATA_EX_COMPLETION_EVENT: {
    
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
- 
+
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
 
@@ -864,7 +864,7 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
   XvImageFormatValues * formatValues;
   int formats;
   int i;
-  
+
   formatValues = XvListImageFormats (display, port, &formats);
   for (i = 0; i < formats; i++)
     if ((formatValues[i].id == IMGFMT_YV12) &&
@@ -876,13 +876,13 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
   return 1;
 }
 
-static void xv_check_capability (xv_driver_t *this, 
+static void xv_check_capability (xv_driver_t *this,
 				 uint32_t capability,
-				 int property, XvAttribute attr, 
+				 int property, XvAttribute attr,
 				 int base_id, char *str_prop) {
 
   int          nDefault;
-  
+
   this->capabilities |= capability;
   this->props[property].min  = attr.min_value;
   this->props[property].max  = attr.max_value;
@@ -1029,18 +1029,17 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
 
   /*
-   * check this adaptor's capabilities 
+   * check this adaptor's capabilities
    */
 
   attr = XvQueryPortAttributes(display, xv_port, &nattr);
   if(attr && nattr) {
     int k;
-    
+
     for(k = 0; k < nattr; k++) {
-      
       if(attr[k].flags & XvSettable) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
-	  xv_check_capability (this, VO_CAP_HUE, 
+	  xv_check_capability (this, VO_CAP_HUE,
 			       VO_PROP_HUE, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_HUE");
 	  printf("XV_HUE ");
@@ -1058,16 +1057,23 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  printf("XV_BRIGHTNESS ");
 	}
 	else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
-	  xv_check_capability (this, VO_CAP_CONTRAST, 
+	  xv_check_capability (this, VO_CAP_CONTRAST,
 			       VO_PROP_CONTRAST, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST");
 	  printf("XV_CONTRAST ");
 	}
 	else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
-	  xv_check_capability (this, VO_CAP_COLORKEY, 
+	  xv_check_capability (this, VO_CAP_COLORKEY,
 			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
 	  printf("video_out_xv: colorkey is %08x\n", this->props[VO_PROP_COLORKEY].value);
+	}
+	else if(!strcmp(attr[k].name, "XV_FILTER")) {
+	  Atom atom;
+	  /* This setting is specific to Permedia 2/3 cards. */
+	  atom = XInternAtom (this->display, attr[k].name, False);
+	  XvSetPortAttribute (this->display, this->xv_port, atom, attr[k].max_value);
+	  printf("Enabling bilinear scaling\n");
 	}
       }
     }
@@ -1080,7 +1086,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XvFreeAdaptorInfo (adaptor_info);
 
   /*
-   * check supported image formats 
+   * check supported image formats
    */
 
   fo = XvListImageFormats(display, this->xv_port, (int*)&formats);
@@ -1092,7 +1098,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   for(i = 0; i < formats; i++) {
     xprintf(VERBOSE|VIDEO, "video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
 	    fo[i].id, (char*)&fo[i].id,
-	    (fo[i].format == XvPacked) ? "packed" : "planar");      
+	    (fo[i].format == XvPacked) ? "packed" : "planar");
     if (fo[i].id == IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;
@@ -1108,7 +1114,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     }
   }
 
-  /* 
+  /*
    * try to create a shared image
    * to find out if MIT shm really works
    */
