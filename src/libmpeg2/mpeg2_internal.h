@@ -67,9 +67,8 @@ typedef struct picture_s {
     uint8_t * bitstream_ptr;	/* buffer with stream data */
 
     uint8_t * dest[3];
+    int pitches[3];
     int offset;
-    int stride;
-    int uv_stride;
     unsigned int limit_x;
     unsigned int limit_y_16;
     unsigned int limit_y_8;
