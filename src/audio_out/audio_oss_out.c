@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.59 2002/03/11 19:58:00 jkeil Exp $
+ * $Id: audio_oss_out.c,v 1.60 2002/04/23 01:06:32 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -94,6 +94,7 @@
 #define OSS_SYNC_GETODELAY    1
 #define OSS_SYNC_GETOPTR      2
 #define OSS_SYNC_SOFTSYNC     3
+#define OSS_SYNC_PROBEBUFFER  4
 
 #ifdef CONFIG_DEVFS_FS
 #define DSP_TEMPLATE "/dev/sound/dsp%d"
@@ -121,6 +122,7 @@ typedef struct oss_driver_s {
   int              audio_started;
   int              sync_method;
   int              latency;
+  int              buffer_size;
 
   struct {
     char          *name;
@@ -333,6 +335,12 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
   struct        timeval tv;
 
   switch (this->sync_method) {
+  case OSS_SYNC_PROBEBUFFER:
+    if( this->bytes_in_buffer < this->buffer_size )
+      bytes_left = this->bytes_in_buffer;
+    else
+      bytes_left = this->buffer_size;
+    break;
 
   case OSS_SYNC_SOFTSYNC:
     /* use system real-time clock to get pseudo audio frame position */
@@ -562,7 +570,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
 }
 
 static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
-  oss_driver_t *this = (oss_driver_t *) this_gen;
+  /*oss_driver_t *this = (oss_driver_t *) this_gen;*/
 
   switch (cmd) {
 
@@ -593,7 +601,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              devnum;
   int              audio_fd;
   int              num_channels, status, arg;
-  static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", NULL};
+  static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", "probebuffer", NULL};
   
   this = (oss_driver_t *) malloc (sizeof (oss_driver_t));
 
@@ -709,6 +717,41 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("audio_oss_out: ...there may be audio/video synchronization issues\n");
 
     gettimeofday(&this->start_time, NULL);
+  }
+  
+  if (this->sync_method == OSS_SYNC_PROBEBUFFER) {
+    char *buf;
+    int c;
+  
+    printf ("audio_oss_out: Audio driver realtime sync disabled...\n");
+    printf ("audio_oss_out: ...probing output buffer size: ");
+    this->buffer_size = 0;
+    
+    if( (buf=malloc(1024)) != NULL ) {
+      memset(buf,0,1024);
+     
+      do {
+        c = write(audio_fd,buf,1024);
+        if( c != -1 )
+          this->buffer_size += c;
+      } while( c == 1024 );
+      
+      free(buf);
+    }
+    close(audio_fd);
+    printf ("%d bytes\n", this->buffer_size );
+    printf ("audio_oss_out: ...there may be audio/video synchronization issues\n");
+  
+    audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
+
+    if(audio_fd < 0) 
+    {
+      printf("audio_oss_out: opening audio device %s failed:\n%s\n",
+	   this->audio_dev, strerror(errno));
+
+      free (this);
+      return NULL;
+    }
   }
 
   this->latency = config->register_range (config, "audio.oss_latency", 0,
