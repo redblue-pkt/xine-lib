@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.78 2003/04/14 05:06:29 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.79 2003/04/15 03:41:23 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -558,8 +558,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	  buf->decoder_flags = BUF_FLAG_HEADER;
 	  this->frame_duration = loctime_unit * 9 / 1000;
-	  this->factor[stream_num] = loctime_unit * 9 / 1000;
-	  this->quotient[stream_num] = 1;
+	  this->factor[stream_num] = loctime_unit * 9;
+	  this->quotient[stream_num] = 1000;
 	  buf->decoder_info[1] = this->frame_duration;
 	  memcpy (buf->content, &bih, sizeof (xine_bmiheader));
 	  buf->size = sizeof (xine_bmiheader);
@@ -729,8 +729,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	    buf->decoder_flags = BUF_FLAG_HEADER;
 	    this->frame_duration = (*(int64_t*)(op.packet+164)) * 9 / 1000;
-	    this->factor[stream_num] = this->frame_duration;
-	    this->quotient[stream_num] = 1;
+	    this->factor[stream_num] = (*(int64_t*)(op.packet+164)) * 9;
+	    this->quotient[stream_num] = 1000;
 
 	    buf->decoder_info[1] = this->frame_duration;
 	    memcpy (buf->content, &bih, sizeof (xine_bmiheader));
