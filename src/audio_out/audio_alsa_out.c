@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.95 2003/06/22 17:10:41 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.96 2003/07/02 12:56:10 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,6 +42,8 @@
 #include <math.h>
 #include <alloca.h>
 
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
 #ifdef HAVE_ALSA_ASOUNDLIB_H
 #include <alsa/asoundlib.h>
 #elif HAVE_SYS_ASOUNDLIB_H
@@ -99,7 +101,7 @@ typedef struct alsa_driver_s {
   uint32_t           bits_per_sample;
   uint32_t           bytes_per_frame;
   uint32_t           bytes_in_buffer;      /* number of bytes writen to audio hardware   */
-  snd_pcm_sframes_t  buffer_size;
+  snd_pcm_uframes_t  buffer_size;
   int32_t            mmap; 
 
   struct {
@@ -237,8 +239,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_hw_params_t  *params;
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_access_mask_t *mask;
-  snd_pcm_sframes_t     buffer_size;
-  snd_pcm_sframes_t     period_size;
+  snd_pcm_uframes_t     period_size;
+  uint32_t              buffer_time=BUFFER_TIME;
   int                   err, dir;
   int                 open_mode=1; /* NONBLOCK */
   /* int                   open_mode=0;  BLOCK */
@@ -373,7 +375,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   /* set the sample format ([SU]{8,16{LE,BE}})*/
-  err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ?
+  err = snd_pcm_hw_params_set_format(this->audio_fd, params, (bits == 16) ?
 #ifdef WORDS_BIGENDIAN
 		  SND_PCM_FORMAT_S16_BE
 #else
@@ -392,34 +394,35 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
   /* set the stream rate [Hz] */
   dir=0;
-  err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, &dir);
+  err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, &rate, &dir);
   if (err < 0) {
     printf ("audio_alsa_out: rate not available\n");
     goto __close;
   }
-  this->output_sample_rate = (uint32_t)err;
+  this->output_sample_rate = (uint32_t)rate;
   if (this->input_sample_rate != this->output_sample_rate) {
     printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
 	    this->input_sample_rate, this->output_sample_rate);
   }
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
-  err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, BUFFER_TIME, &dir);
+  err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
   if (err < 0) {
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
-  this->buffer_size = buffer_size = snd_pcm_hw_params_get_buffer_size(params);
+  err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
   /* set the period time [us] (interrupt every x us|y samples ...) */
   dir=0;
-  err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, buffer_size/8, &dir);
-  /*err = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params, PERIOD_TIME, &dir); */
+  period_size=this->buffer_size/8;
+  err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, &period_size, &dir);
   if (err < 0) {
     printf ("audio_alsa_out: period time not available");
     goto __close;
   }
-  period_size = snd_pcm_hw_params_get_period_size(params, NULL);
-  if (2*period_size > buffer_size) {
+  dir=0;
+  err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
+  if (2*period_size > this->buffer_size) {
     printf ("audio_alsa_out: buffer to small, could not use\n");
     goto __close;
   }
@@ -466,7 +469,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
 
   /* never stop the transfer, even on xruns */
-  err = snd_pcm_sw_params_set_stop_threshold(this->audio_fd, swparams, buffer_size);
+  err = snd_pcm_sw_params_set_stop_threshold(this->audio_fd, swparams, this->buffer_size);
   if (err < 0) {
     printf ("audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
     goto __close;
