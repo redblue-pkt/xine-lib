@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.15 2003/10/23 20:12:34 mroi Exp $
+ * $Id: idcinvideo.c,v 1.16 2003/10/24 02:57:58 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -234,28 +234,26 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
     }
   }
 
-  /* initialize the Huffman tables */
-  if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-      (buf->decoder_info[1] == BUF_SPECIAL_IDCIN_HUFFMAN_TABLE)) {
-    histograms = (unsigned char *)buf->decoder_info_ptr[2];
-    for (i = 0; i < 256; i++) {
-      for(j = 0; j < HUF_TOKENS; j++)
-        huff_nodes[i][j].count = histograms[histogram_index++];
-      huff_build_tree(i);
-    }
-
-  }
-
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+    xine_bmiheader *bih = (xine_bmiheader *)buf->content;
+
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
       free(this->buf);
 
-    this->width = (buf->content[0] << 8) | buf->content[1];
-    this->height = (buf->content[2] << 8) | buf->content[3];
+    this->width = bih->biWidth;
+    this->height = bih->biHeight;
     this->ratio = (double)this->width/(double)this->height;
     this->video_step = buf->decoder_info[1];
+
+    /* initialize the Huffman tables */
+    histograms = (unsigned char *)buf->content + sizeof(xine_bmiheader);
+    for (i = 0; i < 256; i++) {
+      for(j = 0; j < HUF_TOKENS; j++)
+        huff_nodes[i][j].count = histograms[histogram_index++];
+      huff_build_tree(i);
+    }
 
     if (this->buf)
       free (this->buf);

@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.43 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_idcin.c,v 1.44 2003/10/24 02:57:58 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -107,19 +107,14 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  off_t                filesize; /* never set !!! */
-
-  unsigned int         video_width;
-  unsigned int         video_height;
-  unsigned int         audio_sample_rate;
-  unsigned int         audio_bytes_per_sample;
-  unsigned int         audio_channels;
+  off_t                filesize;
+  unsigned char        bih[sizeof(xine_bmiheader) + HUFFMAN_TABLE_SIZE];
+  xine_waveformatex    wave;
 
   int                  audio_chunk_size1;
   int                  audio_chunk_size2;
   int                  current_audio_chunk;
 
-  unsigned char        huffman_table[HUFFMAN_TABLE_SIZE];
   uint64_t             pts_counter;
 } demux_idcin_t;
 
@@ -203,7 +198,8 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_IDCIN;
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    buf->extra_info->input_pos = this->input->get_current_pos(this->input) -
+      IDCIN_HEADER_SIZE - HUFFMAN_TABLE_SIZE;;
     buf->extra_info->input_length = this->filesize;
     buf->extra_info->input_time = this->pts_counter / 90;
     buf->pts = this->pts_counter;
@@ -231,7 +227,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
 
   /* load the audio frame */
-  if (this->audio_fifo && this->audio_sample_rate) {
+  if (this->audio_fifo && this->wave.nSamplesPerSec) {
 
     if (this->current_audio_chunk == 1) {
       remaining_sample_bytes = this->audio_chunk_size1;
@@ -278,6 +274,8 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 /* returns 1 if the CIN file was opened successfully, 0 otherwise */
 static int open_idcin_file(demux_idcin_t *this) {
   unsigned char header[IDCIN_HEADER_SIZE];
+  xine_bmiheader *bih = (xine_bmiheader *)this->bih;
+  unsigned char *huffman_table = this->bih + sizeof(xine_bmiheader);
 
   if (xine_demux_read_header(this->input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
     return 0;
@@ -294,61 +292,64 @@ static int open_idcin_file(demux_idcin_t *this) {
    */
 
   /* check the width */
-  this->video_width = LE_32(&header[0]);
-  if ((this->video_width == 0) || (this->video_width > 1024))
+  bih->biWidth = LE_32(&header[0]);
+  if ((bih->biWidth == 0) || (bih->biWidth > 1024))
     return 0;
 
   /* check the height */
-  this->video_height = LE_32(&header[4]);
-  if ((this->video_height == 0) || (this->video_height > 1024))
+  bih->biHeight = LE_32(&header[4]);
+  if ((bih->biHeight == 0) || (bih->biHeight > 1024))
     return 0;
 
   /* check the audio sample rate */
-  this->audio_sample_rate = LE_32(&header[8]);
-  if ((this->audio_sample_rate != 0) &&
-     ((this->audio_sample_rate < 8000) || (this->audio_sample_rate > 48000)))
+  this->wave.nSamplesPerSec = LE_32(&header[8]);
+  if ((this->wave.nSamplesPerSec != 0) &&
+     ((this->wave.nSamplesPerSec < 8000) || (this->wave.nSamplesPerSec > 48000)))
     return 0;
 
   /* check the audio bytes/sample */
-  this->audio_bytes_per_sample = LE_32(&header[12]);
-  if (this->audio_bytes_per_sample > 2)
+  this->wave.wBitsPerSample = LE_32(&header[12]) * 8;
+  if (this->wave.wBitsPerSample > 16)
     return 0;
 
   /* check the audio channels */
-  this->audio_channels = LE_32(&header[16]);
-  if (this->audio_channels > 2)
+  this->wave.nChannels = LE_32(&header[16]);
+  if (this->wave.nChannels > 2)
     return 0;
 
   /* if execution got this far, qualify it as a valid Id CIN file
    * and continue loading */
-  lprintf("%dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
-    this->video_width, this->video_height,
-    this->audio_sample_rate,
-    this->audio_channels,
-    this->audio_bytes_per_sample * 8);
+  lprintf("%dx%d video, %d Hz, %d channels, %d bit PCM audio\n",
+    bih->biWidth, bih->biHeight,
+    this->wave.nSamplesPerSec,
+    this->wave.nChannels,
+    this->wave.wBitsPerSample);
 
   /* file is qualified; skip over the signature bytes in the stream */
   this->input->seek(this->input, IDCIN_HEADER_SIZE, SEEK_SET);
 
   /* read the Huffman table */
-  if (this->input->read(this->input, this->huffman_table,
-    HUFFMAN_TABLE_SIZE) != HUFFMAN_TABLE_SIZE)
+  if (this->input->read(this->input, huffman_table, HUFFMAN_TABLE_SIZE) != 
+    HUFFMAN_TABLE_SIZE)
     return 0;
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
-    (this->audio_channels) ? 1 : 0;
+    (this->wave.nChannels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
-    this->video_width;
+    bih->biWidth;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] =
-    this->video_height;
+    bih->biHeight;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
+    this->wave.nChannels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->audio_sample_rate;
+    this->wave.nSamplesPerSec;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->audio_bytes_per_sample * 8;
+    this->wave.wBitsPerSample;
+
+  this->filesize = this->input->get_length(this->input) - 
+    IDCIN_HEADER_SIZE - HUFFMAN_TABLE_SIZE;
 
   return 1;
 }
@@ -356,6 +357,7 @@ static int open_idcin_file(demux_idcin_t *this) {
 static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
   buf_element_t *buf;
+  xine_bmiheader *bih = (xine_bmiheader *)this->bih;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -366,42 +368,28 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   xine_demux_control_start(this->stream);
 
   /* send init info to decoders */
+  bih->biSize = sizeof(xine_bmiheader) + HUFFMAN_TABLE_SIZE;
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
-  /* really be a rebel: No structure at all, just put the video width
-   * and height straight into the buffer, BE_16 format */
-  buf->content[0] = (this->video_width >> 8) & 0xFF;
-  buf->content[1] = (this->video_width >> 0) & 0xFF;
-  buf->content[2] = (this->video_height >> 8) & 0xFF;
-  buf->content[3] = (this->video_height >> 0) & 0xFF;
-  buf->size = 4;
+  buf->size = bih->biSize;
+  memcpy(buf->content, this->bih, buf->size);
   buf->type = BUF_VIDEO_IDCIN;
   this->video_fifo->put (this->video_fifo, buf);
 
-  /* send the Huffman table */
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_SPECIAL;
-  buf->decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE;
-  buf->decoder_info[2] = sizeof(this->huffman_table);
-  buf->decoder_info_ptr[2] = &this->huffman_table;
-  buf->size = 0;
-  buf->type = BUF_VIDEO_IDCIN;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if (this->audio_fifo && this->audio_channels) {
+  if (this->audio_fifo && this->wave.nChannels) {
 
     /* initialize the chunk sizes */
-    if (this->audio_sample_rate % 14 != 0) {
-      this->audio_chunk_size1 = (this->audio_sample_rate / 14) *
-        this->audio_bytes_per_sample * this->audio_channels;
-      this->audio_chunk_size2 = (this->audio_sample_rate / 14 + 1) *
-        this->audio_bytes_per_sample * this->audio_channels;
+    if (this->wave.nSamplesPerSec % 14 != 0) {
+      this->audio_chunk_size1 = (this->wave.nSamplesPerSec / 14) *
+        this->wave.wBitsPerSample / 8 * this->wave.nChannels;
+      this->audio_chunk_size2 = (this->wave.nSamplesPerSec / 14 + 1) *
+        this->wave.wBitsPerSample / 8 * this->wave.nChannels;
     } else {
       this->audio_chunk_size1 = this->audio_chunk_size2 =
-        (this->audio_sample_rate / 14) * this->audio_bytes_per_sample *
-        this->audio_channels;
+        (this->wave.nSamplesPerSec / 14) * this->wave.wBitsPerSample / 8 *
+        this->wave.nChannels;
     }
     lprintf("audio_chunk_size[1,2] = %d, %d\n",
             this->audio_chunk_size1, this->audio_chunk_size2);
@@ -410,9 +398,11 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
     buf->type = BUF_AUDIO_LPCM_LE;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = this->audio_sample_rate;
-    buf->decoder_info[2] = this->audio_bytes_per_sample * 8;
-    buf->decoder_info[3] = this->audio_channels;
+    buf->decoder_info[1] = this->wave.nSamplesPerSec;
+    buf->decoder_info[2] = this->wave.wBitsPerSample;
+    buf->decoder_info[3] = this->wave.nChannels;
+    buf->size = sizeof(this->wave);
+    memcpy(buf->content, &this->wave, buf->size);
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }
@@ -429,7 +419,8 @@ static int demux_idcin_seek (demux_plugin_t *this_gen, off_t start_pos, int star
     this->status = DEMUX_OK;
 
     /* reposition stream past the Huffman tables */
-    this->input->seek(this->input, 0x14 + 0x10000, SEEK_SET);
+    this->input->seek(this->input, IDCIN_HEADER_SIZE + HUFFMAN_TABLE_SIZE, 
+      SEEK_SET);
 
     this->pts_counter = 0;
     this->current_audio_chunk = 1;

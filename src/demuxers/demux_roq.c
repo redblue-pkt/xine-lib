@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.42 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.43 2003/10/24 02:57:58 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,9 +69,12 @@ typedef struct {
 
   unsigned int         frame_pts_inc;
 
-  unsigned int         width;
-  unsigned int         height;
-  unsigned int         audio_channels;
+  xine_bmiheader       bih;
+  xine_waveformatex    wave;
+
+  int64_t              video_pts_counter;
+  unsigned int         audio_byte_count;
+
 } demux_roq_t ;
 
 typedef struct {
@@ -96,8 +99,9 @@ static int open_roq_file(demux_roq_t *this) {
       (LE_32(&preamble[2]) != 0xFFFFFFFF))
     return 0;
     
-  this->width = this->height = 0;
-  this->audio_channels = 0;  /* assume no audio at first */
+  this->bih.biSize = sizeof(xine_bmiheader);
+  this->bih.biWidth = this->bih.biHeight = 0;
+  this->wave.nChannels = 0;  /* assume no audio at first */
 
   /*
    * RoQ files enjoy a constant framerate; pts calculation:
@@ -128,11 +132,11 @@ static int open_roq_file(demux_roq_t *this) {
       if (this->input->read(this->input, preamble, 8) != 8)
         break;
 
-      this->width = LE_16(&preamble[0]);
-      this->height = LE_16(&preamble[2]);
+      this->bih.biWidth = LE_16(&preamble[0]);
+      this->bih.biHeight = LE_16(&preamble[2]);
 
       /* if an audio chunk was already found, search is done */
-      if (this->audio_channels)
+      if (this->wave.nChannels)
         break;
 
       /* prep the size for a seek */
@@ -141,12 +145,12 @@ static int open_roq_file(demux_roq_t *this) {
       /* if it was an audio chunk and the info chunk has already been
        * found (as indicated by width and height) then break */
       if (chunk_type == RoQ_SOUND_MONO) {
-        this->audio_channels = 1;
-        if (this->width && this->height)
+        this->wave.nChannels = 1;
+        if (this->bih.biWidth && this->bih.biHeight)
           break;
       } else if (chunk_type == RoQ_SOUND_STEREO) {
-        this->audio_channels = 2;
-        if (this->width && this->height)
+        this->wave.nChannels = 2;
+        if (this->bih.biWidth && this->bih.biHeight)
           break;
       }
     }
@@ -157,11 +161,13 @@ static int open_roq_file(demux_roq_t *this) {
 
   /* after all is said and done, if there is a width and a height,
    * regard it as being a valid file and reset to the first chunk */
-  if (this->width && this->height) {
+  if (this->bih.biWidth && this->bih.biHeight) {
     this->input->seek(this->input, 8, SEEK_SET);
   } else {
     return 0;
   }
+
+  this->video_pts_counter = this->audio_byte_count = 0;
 
   return 1;
 }
@@ -173,9 +179,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
   char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
   unsigned int chunk_type;
   unsigned int chunk_size;
-  int64_t video_pts_counter = 0;
   int64_t audio_pts;
-  unsigned int audio_byte_count = 0;
   off_t current_file_pos;
 
   /* fetch the next preamble */
@@ -199,10 +203,10 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
         
       /* do this calculation carefully because I can't trust the
        * 64-bit numerical manipulation */
-      audio_pts = audio_byte_count;
+      audio_pts = this->audio_byte_count;
       audio_pts *= 90000;
-      audio_pts /= (RoQ_AUDIO_SAMPLE_RATE * this->audio_channels);
-      audio_byte_count += chunk_size - 8;  /* do not count the preamble */
+      audio_pts /= (RoQ_AUDIO_SAMPLE_RATE * this->wave.nChannels);
+      this->audio_byte_count += chunk_size - 8;  /* do not count the preamble */
          
       current_file_pos = this->input->get_current_pos(this->input);
 
@@ -236,7 +240,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     }
   } else if (chunk_type == RoQ_INFO) {
     /* skip 8 bytes */
-    this->input->seek(this->input, 8, SEEK_CUR);
+    this->input->seek(this->input, chunk_size, SEEK_CUR);
   } else if ((chunk_type == RoQ_QUAD_CODEBOOK) ||
     (chunk_type == RoQ_QUAD_VQ)) {
 
@@ -265,7 +269,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_ROQ;
       buf->extra_info->input_pos = current_file_pos;
-      buf->pts = video_pts_counter;
+      buf->pts = this->video_pts_counter;
 
       if (chunk_size > buf->max_size)
         buf->size = buf->max_size;
@@ -284,7 +288,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
       this->video_fifo->put(this->video_fifo, buf);
     }
-    video_pts_counter += this->frame_pts_inc;
+    this->video_pts_counter += this->frame_pts_inc;
   } else {
     lprintf("encountered bad chunk type: %d\n", chunk_type);
   }
@@ -304,11 +308,11 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
-    (this->audio_channels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+    (this->wave.nChannels) ? 1 : 0;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
+    this->wave.nChannels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     RoQ_AUDIO_SAMPLE_RATE;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
@@ -321,24 +325,26 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
-  /* really be a rebel: No structure at all, just put the video width
-   * and height straight into the buffer, BE_16 format */
-  buf->content[0] = (this->width >> 8) & 0xFF;
-  buf->content[1] = (this->width >> 0) & 0xFF;
-  buf->content[2] = (this->height >> 8) & 0xFF;
-  buf->content[3] = (this->height >> 0) & 0xFF;
-  buf->size = 4;
+  buf->size = sizeof(xine_bmiheader);
+  memcpy(buf->content, &this->bih, buf->size);
   buf->type = BUF_VIDEO_ROQ;
   this->video_fifo->put (this->video_fifo, buf);
 
-  if (this->audio_fifo && this->audio_channels) {
+  if (this->audio_fifo && this->wave.nChannels) {
+    this->wave.nSamplesPerSec = RoQ_AUDIO_SAMPLE_RATE;
+    this->wave.wBitsPerSample = 16;
+    this->wave.nBlockAlign = (this->wave.wBitsPerSample / 8) * this->wave.nChannels;
+    this->wave.nAvgBytesPerSec = this->wave.nBlockAlign * this->wave.nSamplesPerSec;
+
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_ROQ;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = RoQ_AUDIO_SAMPLE_RATE;
     buf->decoder_info[2] = 16;
-    buf->decoder_info[3] = this->audio_channels;
+    buf->decoder_info[3] = this->wave.nChannels;
+    buf->size = sizeof(this->wave);
+    memcpy(buf->content, &this->wave, buf->size);
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }

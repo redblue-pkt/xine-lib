@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.20 2003/10/23 20:12:34 mroi Exp $
+ * $Id: roqvideo.c,v 1.21 2003/10/24 02:57:58 tmmm Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -391,6 +391,8 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+    xine_bmiheader *bih = (xine_bmiheader *)buf->content;
+
     this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
@@ -399,8 +401,8 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     this->buf = xine_xmalloc(VIDEOBUFSIZE);
     this->bufsize = VIDEOBUFSIZE;
     this->size = 0;
-    this->width = (buf->content[0] << 8) | buf->content[1];
-    this->height = (buf->content[2] << 8) | buf->content[3];
+    this->width = bih->biWidth;
+    this->height = bih->biHeight;
     this->ratio = (double)this->width/(double)this->height;
     this->skipframes = 0;
     this->video_step = buf->decoder_info[1];
