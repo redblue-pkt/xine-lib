@@ -19,12 +19,12 @@
  *
  * ID3 tag parser
  *
- * Supported versions: v1, v2.2
+ * Supported versions: v1, v2.2, v2.3
  * TODO: v2.4
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.2 2003/12/07 23:10:56 tmattern Exp $
+ * $Id: id3.c,v 1.3 2003/12/07 23:17:07 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
