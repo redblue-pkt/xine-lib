@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2003/05/03 14:24:09 mroi Exp $
+ * $Id: xine_decoder.c,v 1.59 2003/06/27 13:47:35 mroi Exp $
  *
  */
 
@@ -56,7 +56,10 @@ typedef enum {
 typedef struct sputext_class_s {
   spu_decoder_class_t class;
 
-  char              *src_encoding;  /* encoding of subtitle file */
+  subtitle_size      subtitle_size;   /* size of subtitles */
+  int                vertical_offset;
+  char              *font;            /* subtitle font */
+  char              *src_encoding;    /* encoding of subtitle file */
   
   xine_t            *xine;
 
@@ -80,10 +83,6 @@ typedef struct sputext_decoder_s {
   int                master_started;
   int                slave_started;
 
-  char              *font;          /* subtitle font */
-  subtitle_size      subtitle_size; /* size of subtitles */
-  int                vertical_offset;
-
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
 
@@ -99,7 +98,7 @@ static void update_font_size (sputext_decoder_t *this) {
     { 16, 20, 24, 32 }, /* SUBTITLE_SIZE_LARGE  */
   };
 
-  int *vec = sizes[this->subtitle_size];
+  int *vec = sizes[this->class->subtitle_size];
   int  y;
 
   if( this->width >= 512 )
@@ -115,8 +114,8 @@ static void update_font_size (sputext_decoder_t *this) {
 
   y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
   
-  if(((y - this->vertical_offset) >= 0) && ((y - this->vertical_offset) <= this->height))
-    y -= this->vertical_offset;
+  if(((y - this->class->vertical_offset) >= 0) && ((y - this->class->vertical_offset) <= this->height))
+    y -= this->class->vertical_offset;
   
   if( this->osd )
     this->renderer->free_object (this->osd);
@@ -126,7 +125,7 @@ static void update_font_size (sputext_decoder_t *this) {
 					    this->width,
 					    SUB_MAX_TEXT * this->line_height);
     
-    this->renderer->set_font (this->osd, this->font, this->font_size);
+    this->renderer->set_font (this->osd, this->class->font, this->font_size);
     this->renderer->set_position (this->osd, 0, y);
   }
 }
@@ -152,7 +151,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
             
       if( w > this->width && font_size > 16 ) {
         font_size -= 4;
-        this->renderer->set_font (this->osd, this->font, font_size);
+        this->renderer->set_font (this->osd, this->class->font, font_size);
       } else {
         break;
       }
@@ -164,7 +163,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   }
          
   if( font_size != this->font_size )
-    this->renderer->set_font (this->osd, this->font, this->font_size);
+    this->renderer->set_font (this->osd, this->class->font, this->font_size);
   
   if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
     sub_start = this->last_subtitle_end;
@@ -369,7 +368,7 @@ static void update_vertical_offset(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
-  this->vertical_offset = entry->num_value;
+  this->class->vertical_offset = entry->num_value;
   update_font_size(this);
 }
 
@@ -377,19 +376,19 @@ static void update_osd_font(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
-  this->font = entry->str_value;
+  this->class->font = entry->str_value;
   
   if( this->renderer )
-    this->renderer->set_font (this->osd, this->font, this->font_size);
+    this->renderer->set_font (this->osd, this->class->font, this->font_size);
   
-  printf("libsputext: spu_font = %s\n", this->font );
+  printf("libsputext: spu_font = %s\n", this->class->font );
 }
 
 static void update_subtitle_size(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
-  this->subtitle_size = entry->num_value;
+  this->class->subtitle_size = entry->num_value;
 
   update_font_size (this_gen);
 }
@@ -398,7 +397,6 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 
   sputext_class_t *class = (sputext_class_t *)class_gen;
   sputext_decoder_t *this ;
-  static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
 
   this = (sputext_decoder_t *) xine_xmalloc (sizeof (sputext_decoder_t));
 
@@ -412,24 +410,6 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 
   this->class  = class;
   this->stream = stream;
-
-  this->font           = class->xine->config->register_string(class->xine->config, 
-				"misc.spu_font", 
-				"sans", 
-				_("font for external subtitles"), 
-				NULL, 0, update_osd_font, this);
-  this->subtitle_size  = class->xine->config->register_enum(class->xine->config, 
-			      "misc.spu_subtitle_size", 
-			       1,
-			       subtitle_size_strings,
-			       _("subtitle size (relative window size)"), 
-			       NULL, 0, update_subtitle_size, this);
-
-  this->vertical_offset  = class->xine->config->register_num(class->xine->config,
-			      "misc.spu_vertical_offset", 
-			      0,
-			      _("subtitle vertical offset (relative window size)"), 
-			      NULL, 0, update_vertical_offset, this);
 
   return (spu_decoder_t *) this;
 }
@@ -456,6 +436,7 @@ static void update_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
+  static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
   sputext_class_t *this ;
 
 #ifdef LOG
@@ -471,10 +452,26 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   this->xine                   = xine;
 
+  this->subtitle_size  = xine->config->register_enum(xine->config, 
+			      "misc.spu_subtitle_size", 
+			       1,
+			       subtitle_size_strings,
+			       _("Subtitle size (relative window size)"), 
+			       NULL, 0, update_subtitle_size, this);
+  this->vertical_offset  = xine->config->register_num(xine->config,
+			      "misc.spu_vertical_offset", 
+			      0,
+			      _("Subtitle vertical offset (relative window size)"), 
+			      NULL, 0, update_vertical_offset, this);
+  this->font           = xine->config->register_string(xine->config, 
+				"misc.spu_font", 
+				"sans", 
+				_("Font for external subtitles"), 
+				NULL, 0, update_osd_font, this);
   this->src_encoding  = xine->config->register_string(xine->config, 
 				"misc.spu_src_encoding", 
 				"iso-8859-1", 
-				_("encoding of subtitles"), 
+				_("Encoding of subtitles"), 
 				NULL, 10, update_src_encoding, this);
 
   return &this->class;
@@ -491,6 +488,6 @@ static decoder_info_t spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 14, "sputext", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_SPU_DECODER | PLUGIN_MUST_PRELOAD, 14, "sputext", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
