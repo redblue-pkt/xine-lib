@@ -15,7 +15,8 @@ libdeinterlaceplugins_la_SOURCES = \
 	linearblend.c \
 	vfir.c \
 	weave.c \
-	greedy2frame.c
+	greedy2frame.c \
+	scalerbob.c
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
 libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
