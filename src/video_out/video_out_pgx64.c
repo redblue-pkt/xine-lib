@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.18 2002/12/13 23:41:52 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.19 2002/12/14 18:48:57 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -134,6 +134,7 @@ typedef struct {
 
   int colour_key, brightness, saturation;
   int deinterlace, deinterlace_method;
+  int double_pitch_hack, half_height_hack;
 } pgx64_driver_t;
 
 /*
@@ -342,7 +343,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     write_reg(this, SCALER_BUF0_OFFSET, frame->buf_y);
     write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
     write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
-    write_reg(this, SCALER_BUF_PITCH, this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->pitch * 2 : frame->pitch);
+    write_reg(this, SCALER_BUF_PITCH, frame->pitch);
     write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height));
     write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
@@ -352,38 +353,61 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 
   if (frame->format == XINE_IMGFMT_YV12) {
     switch (this->deinterlace ? this->deinterlace_method : ~0) {
+      case DEINTERLACE_ONEFIELD: {
+        register uint8_t *y = frame->vo_frame.base[0];
+        register uint8_t *ydest = this->fbbase+frame->buf_y;
+        register uint8_t *u = frame->vo_frame.base[1];
+        register uint8_t *v = frame->vo_frame.base[2];
+        register uint8_t *udest = this->fbbase+frame->buf_u;
+        register uint8_t *vdest = this->fbbase+frame->buf_v;
+        int i = 0;
+
+        for (i = 0; i < frame->height/2; i++, y += 2*frame->vo_frame.pitches[0], ydest += frame->vo_frame.pitches[0]) {
+          memcpy(ydest, y, frame->vo_frame.pitches[0]);
+        }
+
+        for (i = 0; i < frame->height/4; i++, u += 2*frame->vo_frame.pitches[1], udest += frame->vo_frame.pitches[1], v += 2*frame->vo_frame.pitches[2], vdest += frame->vo_frame.pitches[2]) {
+          memcpy(udest, u, frame->vo_frame.pitches[1]);
+          memcpy(vdest, v, frame->vo_frame.pitches[2]);
+        }
+      }
+      break;
+
       case DEINTERLACE_LINEARBLEND: {
         register uint8_t *first = frame->vo_frame.base[0];
-        register uint8_t *second = frame->vo_frame.base[0]+frame->width;
-        register uint8_t *third = frame->vo_frame.base[0]+(2*frame->width);
-        register uint8_t *last = frame->vo_frame.base[0]+(frame->width*frame->height);
+        register uint8_t *second = frame->vo_frame.base[0]+frame->vo_frame.pitches[0];
+        register uint8_t *third = frame->vo_frame.base[0]+(2*frame->vo_frame.pitches[0]);
+        register uint8_t *last = frame->vo_frame.base[0]+(frame->vo_frame.pitches[0]*frame->height);
         register uint8_t *dest = this->fbbase+frame->buf_y;
 
-        memcpy(dest, first, frame->width);
-        dest += frame->width;
+        memcpy(dest, first, frame->vo_frame.pitches[0]);
+        dest += frame->vo_frame.pitches[0];
 
-        for (;third != last;first++,second++,third++,dest++) {
+        for (; third != last; first++, second++, third++, dest++) {
           *dest = (*first + (*second << 1) + *third) >> 2;
         }
 
-        memcpy(dest, second, frame->width);
+        memcpy(dest, second, frame->vo_frame.pitches[0]);
+
+        memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
+        memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
       }
       break;
 
 #ifdef ENABLE_VIS
       case DEINTERLACE_LINEARBLEND_VIS: {
         register uint32_t *first = (uint32_t *)(frame->vo_frame.base[0]);
-        register uint32_t *second = (uint32_t *)(frame->vo_frame.base[0]+frame->width);
-        register uint32_t *third = (uint32_t *)(frame->vo_frame.base[0]+(2*frame->width));
-        register uint32_t *last = (uint32_t *)(frame->vo_frame.base[0]+(frame->width*frame->height));
+        register uint32_t *second = (uint32_t *)(frame->vo_frame.base[0]+frame->vo_frame.pitches[0]);
+        register uint32_t *third = (uint32_t *)(frame->vo_frame.base[0]+(2*frame->vo_frame.pitches[0]));
+        register uint32_t *last = (uint32_t *)(frame->vo_frame.base[0]+(frame->vo_frame.pitches[0]*frame->height));
         register uint32_t *dest = (uint32_t *)(this->fbbase+frame->buf_y);
 
         write_gsr((read_gsr() & 0xffffff07) | 0x000000008);
 
-        memcpy(dest, first, frame->width);
-        dest += frame->width/4;
+        memcpy(dest, first, frame->vo_frame.pitches[0]);
+        dest += frame->vo_frame.pitches[0]/4;
 
-        for (;third != last;first++,second++,third++,dest++) {
+        for (; third != last; first++, second++, third++, dest++) {
           asm volatile("ld	[%0], %%f0\n\t"
                        "fexpand	%%f0, %%f2\n\t"
                        "ld	[%1], %%f4\n\t"
@@ -400,19 +424,22 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
                          "%f6", "%f7", "%f8", "%f9", "%f10", "%f11");
         }
 
-        memcpy(dest, second, frame->width);
+        memcpy(dest, second, frame->vo_frame.pitches[0]);
+
+        memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
+        memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
       }
       break;
 #endif
 
       default: {
         memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
+
+        memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
+        memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
       }
       break;
     }
-
-    memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
-    memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
   }
   else {
     memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
