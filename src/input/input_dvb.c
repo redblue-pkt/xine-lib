@@ -80,10 +80,6 @@
 /* workaround for xine's unability to handle audio-only ts streams */
 #define FILTER_RADIO_STREAMS 
 
-#define FRONTEND_DEVICE "/dev/dvb/adapter0/frontend0"
-#define DEMUX_DEVICE    "/dev/dvb/adapter0/demux0"
-#define DVR_DEVICE      "/dev/dvb/adapter0/dvr0"
-
 #define BUFSIZE 16384
 
 #define NOPID 0xffff
@@ -92,24 +88,16 @@
  * administrative/system PIDs first */
 #define INTERNAL_FILTER 0
 #define PATFILTER 1
-#define CATFILTER 2
-#define NITFILTER 3
-#define SDTFILTER 4
-#define EITFILTER 5
-#define PCRFILTER 6
-#define VIDFILTER 7
-#define AUDFILTER 8
-#define AC3FILTER 9
-#define TXTFILTER 10
-#define SUBFILTER 11
-#define TSDTFILTER 12
-#define STFILTER 13
-#define TDTFILTER 14
-#define DITFILTER 15
-#define RSTFILTER 16
-/* define other pids to filter for */
-#define PMTFILTER 17
-#define MAXFILTERS 18
+#define PMTFILTER 2
+#define EITFILTER 3
+#define PCRFILTER 4
+#define VIDFILTER 5
+#define AUDFILTER 6
+#define AC3FILTER 7
+#define TXTFILTER 8
+#define SUBFILTER 9
+
+#define MAXFILTERS 10
 
 #define MAX_AUTOCHANNELS 200
 
@@ -120,7 +108,13 @@ typedef struct {
   int                            fd_pidfilter[MAXFILTERS];
 
   struct dvb_frontend_info       feinfo;
+  
+  int				 adapter_num;
 
+  char				 frontend_device[100];
+  char 				 dvr_device[100];
+  char				 demux_device[100];
+  
   struct dmx_pes_filter_params   pesFilterParams[MAXFILTERS];
   struct dmx_sct_filter_params	 sectFilterParams[MAXFILTERS];
   xine_t                        *xine;
@@ -409,11 +403,12 @@ static void tuner_dispose(tuner_t * this)
 }
 
 
-static tuner_t *tuner_init(xine_t * xine)
+static tuner_t *tuner_init(xine_t * xine, int adapter)
 {
 
     tuner_t *this;
     int x;
+    
     this = (tuner_t *) xine_xmalloc(sizeof(tuner_t));
     
     this->fd_frontend = -1;
@@ -421,8 +416,13 @@ static tuner_t *tuner_init(xine_t * xine)
       this->fd_pidfilter[x] = 0;
 
     this->xine = xine;
-
-    if ((this->fd_frontend = open(FRONTEND_DEVICE, O_RDWR)) < 0) {
+    this->adapter_num = adapter;
+    
+    snprintf(this->frontend_device,100,"/dev/dvb/adapter%i/frontend0",this->adapter_num);
+    snprintf(this->demux_device,100,"/dev/dvb/adapter%i/demux0",this->adapter_num);
+    snprintf(this->dvr_device,100,"/dev/dvb/adapter%i/dvr0",this->adapter_num);
+    
+    if ((this->fd_frontend = open(this->frontend_device, O_RDWR)) < 0) {
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "FRONTEND DEVICE: %s\n", strerror(errno));
       tuner_dispose(this);
       return NULL;
@@ -435,7 +435,7 @@ static tuner_t *tuner_init(xine_t * xine)
     }
 
     for (x = 0; x < MAXFILTERS; x++) {
-      this->fd_pidfilter[x] = open(DEMUX_DEVICE, O_RDWR);
+      this->fd_pidfilter[x] = open(this->demux_device, O_RDWR);
       if (this->fd_pidfilter[x] < 0) {
         xprintf(this->xine, XINE_VERBOSITY_DEBUG, "DEMUX DEVICE PIDfilter: %s\n", strerror(errno));
         tuner_dispose(this);
@@ -458,10 +458,12 @@ static tuner_t *tuner_init(xine_t * xine)
 static void dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid, int pidtype, int taptype)
 {
     tuner_t *tuner = this->tuner;
-    
-    ioctl(tuner->fd_pidfilter[filter], DMX_STOP);
 
-    this->channels[this->channel].pid[filter] = pid;
+    if(this->channels[this->channel].pid [filter] !=NOPID) {
+      ioctl(tuner->fd_pidfilter[filter], DMX_STOP);
+    }
+    
+    this->channels[this->channel].pid [filter] = pid;
     tuner->pesFilterParams[filter].pid = pid;
     tuner->pesFilterParams[filter].input = DMX_IN_FRONTEND;
     tuner->pesFilterParams[filter].output = taptype;
@@ -820,19 +822,12 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
 {
  
   int program_info_len;
-  int x;
   int pcr_pid;
   int has_video=0;
   int has_audio=0;
   int has_ac3=0;
   int has_subs=0;
   int has_text=0;
-
-  /* Clear all pids, the pmt will tell us which to use */
-  for (x = 0; x < MAXFILTERS; x++){
-    this->channels[this->channel].pid[x] = 0;
-    ioctl(this->tuner->fd_pidfilter[x], DMX_STOP);  
-  }  
 
   dvb_set_pidfilter(this, PMTFILTER, this->channels[this->channel].pmtpid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
   dvb_set_pidfilter(this, PATFILTER, 0, DMX_PES_OTHER,DMX_OUT_TS_TAP);
@@ -920,10 +915,11 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
   pfd.events = POLLPRI | POLLIN;
 
+
   /* first - the PAT */  
   dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
   /* wait for up to 1.5 seconds */
-  if(poll(&pfd,1,1500)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
+  if(poll(&pfd,1,15000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
   {
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
@@ -959,7 +955,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   bufptr = tmpbuffer;
     /* next - the PMT */
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
-  if(poll(&pfd,1,1500)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
+  if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
   {
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
@@ -1370,7 +1366,8 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
 
 
 static void switch_channel (dvb_input_plugin_t *this) {
-
+  
+  int x;
   xine_event_t     event;
   xine_pids_data_t data;
   xine_ui_data_t   ui_data;
@@ -1383,6 +1380,12 @@ static void switch_channel (dvb_input_plugin_t *this) {
   pthread_mutex_lock (&this->mutex);
   
   close (this->fd);
+
+  for (x = 0; x < MAXFILTERS; x++) {
+    close(this->tuner->fd_pidfilter[x]);
+    this->tuner->fd_pidfilter[x] = open(this->tuner->demux_device, O_RDWR);
+   }
+
   if (!tuner_set_channel (this, &this->channels[this->channel])) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: tuner_set_channel failed\n"));
     pthread_mutex_unlock (&this->mutex);
@@ -1413,7 +1416,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
 
   lprintf ("ui title event sent\n");
   
-  this->fd = open (DVR_DEVICE, O_RDONLY | O_NONBLOCK);
+  this->fd = open (this->tuner->dvr_device, O_RDONLY | O_NONBLOCK);
 
   pthread_mutex_unlock (&this->mutex);
   
@@ -1840,11 +1843,23 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     int num_channels;
     char str[256];
     char *ptr;
+    int x;
     xine_cfg_entry_t zoomdvb;
     config_values_t *config = this->stream->xine->config;
     xine_cfg_entry_t lastchannel;
+    xine_cfg_entry_t adapter;
 
-    if (!(tuner = tuner_init(this->class->xine))) {
+    config->register_num(config, "input.dvb_adapternum",
+				 0,
+				 _("Number of dvb card to use."),
+				 _("Leave this at zero unless you "
+				   "really have more than 1 card "
+				   "in your system."),
+				 0, NULL, (void *) this);
+    
+    xine_config_lookup_entry(this->stream->xine, "input.dvb_adapternum", &adapter);
+
+    if (!(tuner = tuner_init(this->class->xine,adapter.num_value))) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvb device\n"));
       return 0;
     }
@@ -2008,9 +2023,9 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
       return 0;
     }
 
-    if ((this->fd = open(DVR_DEVICE, O_RDONLY |O_NONBLOCK)) < 0) {
+    if ((this->fd = open(this->tuner->dvr_device, O_RDONLY |O_NONBLOCK)) < 0) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG,
-             _("input_dvb: cannot open dvr device '%s'\n"), DVR_DEVICE);
+             _("input_dvb: cannot open dvr device '%s'\n"), this->tuner->dvr_device);
       return 0;
     }
     if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,262144)<0)
@@ -2104,6 +2119,12 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, str);
     /* compute CRC table for rebuilding pat */
     ts_build_crc32_table(this);
+
+    /* Clear all pids, the pmt will tell us which to use */
+    for (x = 0; x < MAXFILTERS; x++){
+      this->channels[this->channel].pid[x] = NOPID;
+    }  
+
 
     return 1;
 }
