@@ -22,8 +22,6 @@
 /* Structure for the mpeg2dec decoder */
 
 typedef struct mpeg2dec_s {
-    xine_video_port_t * output;
-
     /* this is where we keep the state of the decoder */
     struct picture_s * picture, *picture_base;
     
@@ -46,6 +44,7 @@ typedef struct mpeg2dec_s {
     int64_t pts;
     uint32_t rff_pattern; 
     int force_aspect;
+
     xine_stream_t *stream;
     
     /* a spu decoder for possible closed captions */
@@ -55,8 +54,7 @@ typedef struct mpeg2dec_s {
 
 
 /* initialize mpegdec with a opaque user pointer */
-void mpeg2_init (mpeg2dec_t * mpeg2dec, 
-		 xine_video_port_t * output);
+void mpeg2_init (mpeg2dec_t * mpeg2dec);
 
 /* destroy everything which was allocated, shutdown the output */
 void mpeg2_close (mpeg2dec_t * mpeg2dec);

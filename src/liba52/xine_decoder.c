@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2002/12/22 23:32:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.45 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -79,7 +79,6 @@ typedef struct a52dec_decoder_s {
   int              a52_flags_map[11];
   int              ao_flags_map[11];
 
-  xine_audio_port_t *audio_out;
   int              audio_caps;
   int              bypass_mode;
   int              output_sampling_rate;
@@ -223,10 +222,10 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 	|| (output_mode != this->output_mode)) {
 
       if (this->output_open)
-	this->audio_out->close (this->audio_out, this->stream);
+	this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
 
-      this->output_open = this->audio_out->open (this->audio_out, 
+      this->output_open = this->stream->audio_out->open (this->stream->audio_out, 
 						 this->stream, 16,
 						 this->a52_sample_rate,
 						 output_mode) ;
@@ -243,7 +242,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
      * decode a52 and convert/interleave samples
      */
 
-    buf = this->audio_out->get_buffer (this->audio_out);
+    buf = this->stream->audio_out->get_buffer (this->stream->audio_out);
     int_samples = buf->mem;
     buf->num_frames = 256*6;
 
@@ -294,7 +293,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     /*  output decoded samples */
 
     buf->vpts       = pts;
-    this->audio_out->put_buffer (this->audio_out, buf, this->stream);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, buf, this->stream);
 
   } else {
 
@@ -308,7 +307,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
       a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
 
-      this->output_open = this->audio_out->open (this->audio_out,
+      this->output_open = this->stream->audio_out->open (this->stream->audio_out,
 						 this->stream, 16,
 						 sample_rate,
 						 AO_CAP_MODE_A52) ;
@@ -321,7 +320,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
        */
       uint32_t syncword, crc1, fscod,frmsizecod,bsid,bsmod,frame_size;
       uint8_t *data_out,*data_in;
-      audio_buffer_t *buf = this->audio_out->get_buffer (this->audio_out);
+      audio_buffer_t *buf = this->stream->audio_out->get_buffer (this->stream->audio_out);
       data_in=(uint8_t *) this->frame_buffer;
       data_out=(uint8_t *) buf->mem;
       syncword = data_in[0] | (data_in[1] << 8);
@@ -343,7 +342,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       buf->num_frames = 1536;
       buf->vpts       = pts;
 
-      this->audio_out->put_buffer (this->audio_out, buf, this->stream);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, buf, this->stream);
 
     }
   }
@@ -506,7 +505,7 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
   if (this->output_open)
-    this->audio_out->close (this->audio_out, this->stream);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
   this->output_open = 0;
 
@@ -551,7 +550,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   /* int i; */
 
-  this->audio_out     = stream->audio_out;
   this->audio_caps    = stream->audio_out->get_capabilities(stream->audio_out);
   this->syncword      = 0;
   this->sync_todo     = 7;

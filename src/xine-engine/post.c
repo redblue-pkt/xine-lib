@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.4 2002/12/25 15:03:20 mroi Exp $
+ * $Id: post.c,v 1.5 2002/12/26 21:53:42 miguelfreitas Exp $
  */
  
 /*
@@ -246,8 +246,6 @@ post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_por
   post_port->port.set_property           = post_audio_set_property;
   post_port->port.control                = post_audio_control;
   post_port->port.flush                  = post_audio_flush;
-  post_port->port.driver                 = original->driver;
-  
     
   post_port->original_port               = original;
   post_port->post                        = post;

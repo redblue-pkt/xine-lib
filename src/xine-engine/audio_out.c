@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.93 2002/12/24 14:00:55 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.94 2002/12/26 21:53:42 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -105,6 +105,50 @@
 #define SYNC_TIME_INVERVAL  (1 * 90000)
 #define SYNC_BUF_INTERVAL   NUM_AUDIO_BUFFERS / 2
 #define SYNC_GAP_RATE       4
+
+
+typedef struct {
+ 
+  xine_audio_port_t    ao; /* public part */
+
+  /* private stuff */
+  ao_driver_t         *driver;
+  pthread_mutex_t      driver_lock;
+  metronom_clock_t    *clock;
+  xine_t              *xine;
+  xine_list_t         *streams;
+  pthread_mutex_t      streams_lock;
+
+  int             audio_loop_running;
+  int             audio_paused;
+  pthread_t       audio_thread;
+
+  int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
+  int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
+  
+  ao_format_t     input, output;        /* format conversion done at audio_out.c */
+  double          frame_rate_factor;
+  
+  int             resample_conf;
+  int             force_rate;           /* force audio output rate to this value if non-zero */
+  int             do_resample;
+  int             gap_tolerance;
+  audio_fifo_t   *free_fifo;
+  audio_fifo_t   *out_fifo;
+  int64_t         last_audio_vpts;
+  
+  audio_buffer_t *frame_buf[2];         /* two buffers for "stackable" conversions */
+  int16_t        *zero_space;
+
+  int64_t         passthrough_offset;
+  int             flush_audio_driver;
+  int             discard_buffers;
+
+  int             do_compress;
+  double          compression_factor;   /* current compression */
+  double          compression_factor_max; /* user limit on compression */
+
+} aos_t;
 
 struct audio_fifo_s {
   audio_buffer_t    *first;
@@ -206,8 +250,8 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
 }
 
 
-static void write_pause_burst(xine_audio_port_t *this, uint32_t num_frames) { 
- 
+static void write_pause_burst(aos_t *this, uint32_t num_frames) { 
+  
   int error = 0;
   unsigned char buf[8192];
   unsigned short *sbuf = (unsigned short *)&buf[0];
@@ -244,7 +288,7 @@ static void write_pause_burst(xine_audio_port_t *this, uint32_t num_frames) {
 }
 
 
-static void ao_fill_gap (xine_audio_port_t *this, int64_t pts_len) {
+static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   int num_frames ;
 
@@ -285,7 +329,7 @@ static void ensure_buffer_size (audio_buffer_t *buf, int bytes_per_frame,
   buf->num_frames = frames;
 }
 
-static audio_buffer_t * swap_frame_buffers ( xine_audio_port_t *this ) {
+static audio_buffer_t * swap_frame_buffers ( aos_t *this ) {
   audio_buffer_t *tmp;
 
   tmp = this->frame_buf[1];
@@ -310,7 +354,7 @@ static int mode_channels( int mode ) {
   return 0;
 } 
 
-static void audio_filter_compress (xine_audio_port_t *this, int16_t *mem, int num_frames) {
+static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 
   int    i, maxs;
   double f_max;
@@ -358,7 +402,7 @@ static void audio_filter_compress (xine_audio_port_t *this, int16_t *mem, int nu
   }
 }
 
-static audio_buffer_t* prepare_samples( xine_audio_port_t  *this, audio_buffer_t *buf) {
+static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   double          acc_output_frames, output_frame_excess = 0;
   int             num_output_frames ;
 
@@ -492,7 +536,7 @@ static audio_buffer_t* prepare_samples( xine_audio_port_t  *this, audio_buffer_t
  */
 static void *ao_loop (void *this_gen) {
 
-  xine_audio_port_t *this = (xine_audio_port_t *) this_gen;
+  aos_t *this = (aos_t *) this_gen;
   int64_t         hw_vpts;
   audio_buffer_t *in_buf, *out_buf;
   int64_t         gap;
@@ -532,7 +576,7 @@ static void *ao_loop (void *this_gen) {
     }
     
     if (this->flush_audio_driver) {
-      this->control(this, AO_CTRL_FLUSH_BUFFERS);
+      this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS);
       this->flush_audio_driver = 0;
       continue;
     }
@@ -701,9 +745,10 @@ static void *ao_loop (void *this_gen) {
  * open the audio device for writing to, start audio output thread
  */
 
-static int ao_open(xine_audio_port_t *this, xine_stream_t *stream,
+static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
  
+  aos_t *this = (aos_t *) this_gen;
   int output_sample_rate, err;
   pthread_attr_t pth_attrs;
 
@@ -837,7 +882,9 @@ static int ao_open(xine_audio_port_t *this, xine_stream_t *stream,
   return this->output.rate;
 }
 
-static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this) {
+static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this_gen) {
+
+  aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
    
   buf = fifo_remove (this->free_fifo);
@@ -846,8 +893,10 @@ static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this) {
   return buf;
 }
 
-static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_stream_t *stream) {
+static void ao_put_buffer (xine_audio_port_t *this_gen, 
+                           audio_buffer_t *buf, xine_stream_t *stream) {
 
+  aos_t *this = (aos_t *) this_gen;
   int64_t pts;
 
   if (buf->num_frames == 0) {
@@ -876,8 +925,9 @@ static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_st
 #endif
 }
 
-static void ao_close(xine_audio_port_t *this, xine_stream_t *stream) {
+static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
+  aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *audio_buffer;
   xine_stream_t *cur;
 
@@ -910,7 +960,8 @@ static void ao_close(xine_audio_port_t *this, xine_stream_t *stream) {
   pthread_mutex_unlock( &this->driver_lock );
 }
 
-static void ao_exit(xine_audio_port_t *this) {
+static void ao_exit(xine_audio_port_t *this_gen) {
+  aos_t *this = (aos_t *) this_gen;
   int vol;
   int prop = 0;
   
@@ -971,7 +1022,8 @@ static void ao_exit(xine_audio_port_t *this) {
   free (this);
 }
 
-static uint32_t ao_get_capabilities (xine_audio_port_t *this) {
+static uint32_t ao_get_capabilities (xine_audio_port_t *this_gen) {
+  aos_t *this = (aos_t *) this_gen;
   uint32_t result;
   
   pthread_mutex_lock( &this->driver_lock );
@@ -981,7 +1033,8 @@ static uint32_t ao_get_capabilities (xine_audio_port_t *this) {
   return result;
 }
 
-static int ao_get_property (xine_audio_port_t *this, int property) {
+static int ao_get_property (xine_audio_port_t *this_gen, int property) {
+  aos_t *this = (aos_t *) this_gen;
   int ret;
 
   switch (property) {
@@ -993,6 +1046,10 @@ static int ao_get_property (xine_audio_port_t *this, int property) {
     ret = this->discard_buffers;
     break;
 
+  case AO_PROP_PAUSED:
+    ret = this->audio_paused;
+    break;
+
   default:
     pthread_mutex_lock( &this->driver_lock );
     ret = this->driver->get_property(this->driver, property);
@@ -1001,7 +1058,8 @@ static int ao_get_property (xine_audio_port_t *this, int property) {
   return ret;
 }
 
-static int ao_set_property (xine_audio_port_t *this, int property, int value) {
+static int ao_set_property (xine_audio_port_t *this_gen, int property, int value) {
+  aos_t *this = (aos_t *) this_gen;
   int ret;
 
   switch (property) {
@@ -1018,6 +1076,11 @@ static int ao_set_property (xine_audio_port_t *this, int property, int value) {
     ret = this->discard_buffers;
     break;
 
+  case AO_PROP_PAUSED:
+    this->audio_paused = value;
+    ret = this->audio_paused;
+    break;
+
   default:
     pthread_mutex_lock( &this->driver_lock );
     ret =  this->driver->set_property(this->driver, property, value);
@@ -1027,23 +1090,25 @@ static int ao_set_property (xine_audio_port_t *this, int property, int value) {
   return ret;
 }
 
-static int ao_control (xine_audio_port_t *this, int cmd, ...) {
+static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
 
+  aos_t *this = (aos_t *) this_gen;
   va_list args;
   void *arg;
   int rval;
 
+  pthread_mutex_lock( &this->driver_lock );
   va_start(args, cmd);
   arg = va_arg(args, void*);
-  pthread_mutex_lock( &this->driver_lock );
   rval = this->driver->control(this->driver, cmd, arg);
-  pthread_mutex_unlock( &this->driver_lock );
   va_end(args);
+  pthread_mutex_unlock( &this->driver_lock );
 
   return rval;
 }
 
-static void ao_flush (xine_audio_port_t *this) {
+static void ao_flush (xine_audio_port_t *this_gen) {
+  aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
 
   if( this->audio_loop_running ) {
@@ -1064,11 +1129,11 @@ static void ao_flush (xine_audio_port_t *this) {
 xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
  
   config_values_t *config = xine->config;
-  xine_audio_port_t *this;
+  aos_t *this;
   int              i;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
 
-  this = xine_xmalloc (sizeof (xine_audio_port_t)) ;
+  this = xine_xmalloc (sizeof (aos_t)) ;
 
   this->driver                = driver;
   this->xine                  = xine;
@@ -1078,16 +1143,17 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
   pthread_mutex_init( &this->streams_lock, NULL );
   pthread_mutex_init( &this->driver_lock, NULL );
 
-  this->open                   = ao_open;
-  this->get_buffer             = ao_get_buffer;
-  this->put_buffer             = ao_put_buffer;
-  this->close                  = ao_close;
-  this->exit                   = ao_exit;
-  this->get_capabilities       = ao_get_capabilities;
-  this->get_property           = ao_get_property;
-  this->set_property           = ao_set_property;
-  this->control                = ao_control;
-  this->flush                  = ao_flush;
+  this->ao.open                   = ao_open;
+  this->ao.get_buffer             = ao_get_buffer;
+  this->ao.put_buffer             = ao_put_buffer;
+  this->ao.close                  = ao_close;
+  this->ao.exit                   = ao_exit;
+  this->ao.get_capabilities       = ao_get_capabilities;
+  this->ao.get_property           = ao_get_property;
+  this->ao.set_property           = ao_set_property;
+  this->ao.control                = ao_control;
+  this->ao.flush                  = ao_flush;
+
   this->audio_loop_running     = 0;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;
@@ -1161,14 +1227,14 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
 			      0, NULL, NULL)) {
       int prop = 0;
 
-      if((ao_get_capabilities(this)) & AO_CAP_MIXER_VOL)
+      if((ao_get_capabilities(&this->ao)) & AO_CAP_MIXER_VOL)
 	prop = AO_PROP_MIXER_VOL;
-      else if((ao_get_capabilities(this)) & AO_CAP_PCM_VOL)
+      else if((ao_get_capabilities(&this->ao)) & AO_CAP_PCM_VOL)
 	prop = AO_PROP_PCM_VOL;
       
-      ao_set_property(this, prop, vol);
+      ao_set_property(&this->ao, prop, vol);
     }
   }
 
-  return this;
+  return &this->ao;
 }

@@ -102,14 +102,14 @@ void nbc_check_buffers (nbc_t *this) {
     this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
     if (this->stream->audio_out)
-      this->stream->audio_out->audio_paused = 2;
+      this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,2);
     this->buffering = 1;
 
   } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
     this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
     if (this->stream->audio_out)
-      this->stream->audio_out->audio_paused = 0;
+      this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,0);
     this->buffering = 0;
 
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -106,7 +106,7 @@ static void spucc_do_close(spucc_decoder_t *this)
 
 
 /* CAUTION: THIS FUNCTION ASSUMES THAT THE MUTEX IS ALREADY LOCKED! */
-static void spucc_do_init (spucc_decoder_t *this, xine_video_port_t *vo_out)
+static void spucc_do_init (spucc_decoder_t *this)
 {
   if (! this->cc_open) {
 #ifdef LOG_DEBUG
@@ -306,7 +306,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     pthread_mutex_lock(&this->cc_mutex);
     if (this->cc_cfg.cc_enabled) {
       if( !this->cc_open )
-	spucc_do_init (this, NULL);
+	spucc_do_init (this);
       
       if(this->cc_cfg.can_cc) {
 	decode_cc(this->ccdec, buf->content, buf->size,

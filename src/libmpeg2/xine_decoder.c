@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2002/12/22 15:03:04 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.47 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -50,7 +50,6 @@ typedef struct mpeg2dec_decoder_s {
   mpeg2dec_t       mpeg2;
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
-  xine_video_port_t *video_out;
 } mpeg2dec_decoder_t;
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -116,7 +115,7 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 
   mpeg2_close (&this->mpeg2);
 
-  this->video_out->close(this->video_out, this->stream);
+  this->stream->video_out->close(this->stream->video_out, this->stream);
 
   free (this);
 }
@@ -136,9 +135,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->class                             = (mpeg2_class_t *) class_gen;
   this->mpeg2.stream = stream;
 
-  mpeg2_init (&this->mpeg2, stream->video_out);
+  mpeg2_init (&this->mpeg2);
   stream->video_out->open(stream->video_out, stream);
-  this->video_out = stream->video_out;
   this->mpeg2.force_aspect = 0;
 
   return &this->video_decoder;

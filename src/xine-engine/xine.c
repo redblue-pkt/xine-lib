@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.202 2002/12/22 23:30:29 miguelfreitas Exp $
+ * $Id: xine.c,v 1.203 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -126,8 +126,8 @@ static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
 
   /* see coment on audio_out loop about audio_paused */
   if( stream->audio_out ) {
-    stream->audio_out->audio_paused = (speed != XINE_SPEED_NORMAL) + 
-      (speed == XINE_SPEED_PAUSE);
+    stream->audio_out->set_property( stream->audio_out, AO_PROP_PAUSED,
+      (speed != XINE_SPEED_NORMAL) + (speed == XINE_SPEED_PAUSE) );
 
     /*
      * slow motion / fast forward does not play sound, drop buffered

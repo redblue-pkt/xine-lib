@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.116 2002/12/22 15:02:06 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.117 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  */
 
@@ -143,8 +143,7 @@ void *video_decoder_loop (void *stream_gen) {
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      if (stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]
-	  && stream->audio_fifo) {
+      if (stream->audio_fifo) {
 
 	while (stream->finished_count_video > stream->finished_count_audio) {
 	  pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
@@ -153,11 +152,8 @@ void *video_decoder_loop (void *stream_gen) {
           
       pthread_mutex_unlock (&stream->counter_lock);
 
-      if (stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]) {
-	/* set engine status, send frontend notification event */
-	xine_handle_stream_end (stream, 
-				buf->decoder_flags & BUF_FLAG_END_STREAM);
-      }
+      /* set engine status, send frontend notification event */
+      xine_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
 
       /* Wake up xine_play if it's waiting for a frame */
       pthread_mutex_lock (&stream->first_frame_lock);

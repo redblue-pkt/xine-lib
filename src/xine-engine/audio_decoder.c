@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.94 2002/12/21 16:13:43 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.95 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -114,20 +114,11 @@ void *audio_decoder_loop (void *stream_gen) {
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      if (stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO]) {
-
-	while (stream->finished_count_video < stream->finished_count_audio) {
-	  pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
-	}
+      while (stream->finished_count_video < stream->finished_count_audio) {
+        pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
       }
           
       pthread_mutex_unlock (&stream->counter_lock);
-
-      if (!stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]) {
-	/* set engine status, send frontend notification event */
-	xine_handle_stream_end (stream, 
-				buf->decoder_flags & BUF_FLAG_END_STREAM);
-      }
 
       stream->audio_channel_auto = -1;
 

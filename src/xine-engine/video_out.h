@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.74 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.75 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -175,8 +175,6 @@ struct xine_video_port_s {
   /* the driver in use */
   vo_driver_t *driver;
 
-  /* private stuff can be added here */
-  
 };
 
 /* constants for the get/set property functions */

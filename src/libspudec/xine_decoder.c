@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.91 2002/12/21 16:35:46 esnel Exp $
+ * $Id: xine_decoder.c,v 1.92 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -146,7 +146,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 static void spudec_reset (spu_decoder_t *this_gen) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
   int i;
   
   if( this->menu_handle >= 0 )
@@ -172,7 +172,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 
   spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
   int                       i;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
   
   if( this->menu_handle >= 0 )
     ovl_instance->free_handle(ovl_instance,
@@ -266,8 +266,8 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }
   overlay_event->vpts = 0;
-  if (this->vo_out) {
-    ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  if (this->stream->video_out) {
+    ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
             overlay_event->event_type,
@@ -306,7 +306,6 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
  
   pthread_mutex_init(&this->nav_pci_lock, NULL);
 
-  this->vo_out      = stream->video_out;
   this->ovl_caps    = stream->video_out->get_capabilities(stream->video_out);
   this->output_open = 0;
   this->last_event_vpts = 0;

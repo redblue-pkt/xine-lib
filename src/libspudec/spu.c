@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.57 2002/11/26 16:05:00 mroi Exp $
+ * $Id: spu.c,v 1.58 2002/12/26 21:53:42 miguelfreitas Exp $
  *
  */
 
@@ -84,7 +84,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   uint32_t                  header_len;
   pci_t                     pci;
   dsi_t                     dsi;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
 
   p = buf->content;
   if (p[0] || p[1] || (p[2] != 1)) {
@@ -276,7 +276,7 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
 
 void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
   spudec_seq_t    *cur_seq;
-  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
+  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
   int pending = 1;
   cur_seq = &this->spudec_stream_state[stream_id].ra_seq;
 

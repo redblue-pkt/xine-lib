@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.45 2002/12/24 14:00:57 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.46 2002/12/26 21:53:42 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -220,45 +220,6 @@ struct xine_audio_port_s {
    */
   void (*flush) (xine_audio_port_t *this);
 
-  /* the driver in use */
-  ao_driver_t    *driver;
-  
-  /* private stuff */
-  pthread_mutex_t      driver_lock;
-  metronom_clock_t    *clock;
-  xine_t              *xine;
-  xine_list_t         *streams;
-  pthread_mutex_t      streams_lock;
-
-  int             audio_loop_running;
-  int             audio_paused;
-  pthread_t       audio_thread;
-
-  int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
-  int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
-  
-  ao_format_t     input, output;        /* format conversion done at audio_out.c */
-  double          frame_rate_factor;
-  
-  int             resample_conf;
-  int             force_rate;           /* force audio output rate to this value if non-zero */
-  int             do_resample;
-  int             gap_tolerance;
-  audio_fifo_t   *free_fifo;
-  audio_fifo_t   *out_fifo;
-  int64_t         last_audio_vpts;
-  
-  audio_buffer_t *frame_buf[2];         /* two buffers for "stackable" conversions */
-  int16_t        *zero_space;
-
-  int64_t         passthrough_offset;
-  int             flush_audio_driver;
-  int             discard_buffers;
-
-  int             do_compress;
-  double          compression_factor;   /* current compression */
-  double          compression_factor_max; /* user limit on compression */
-
 };
 
 typedef struct audio_driver_class_s audio_driver_class_t;
@@ -322,12 +283,12 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) ;
 #define AO_PROP_MUTE_VOL        2
 #define AO_PROP_COMPRESSOR      3
 #define AO_PROP_DISCARD_BUFFERS 4
-
+#define AO_PROP_PAUSED          5
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0
 #define AO_CTRL_PLAY_RESUME	1
-#define	AO_CTRL_FLUSH_BUFFERS	2
+#define AO_CTRL_FLUSH_BUFFERS	2      
 
 /* above that value audio frames are discarded */
 #define AO_MAX_GAP              15000

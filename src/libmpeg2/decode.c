@@ -50,8 +50,7 @@
 
 static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
 
-void mpeg2_init (mpeg2dec_t * mpeg2dec, 
-		 xine_video_port_t * output)
+void mpeg2_init (mpeg2dec_t * mpeg2dec)
 {
   static int do_init = 1;
   uint32_t mm_accel;
@@ -76,7 +75,6 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     mpeg2dec->frames_to_drop = 0;
     mpeg2dec->drop_frame = 0;
     mpeg2dec->in_slice = 0;
-    mpeg2dec->output = output;
     mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
     mpeg2dec->code = 0xb4;
     mpeg2dec->seek_mode = 0;
@@ -441,7 +439,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->current_frame =
-		        mpeg2dec->output->get_frame (mpeg2dec->output,
+		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
@@ -449,7 +447,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->picture_structure);
 		else {
 		    picture->current_frame =
-		        mpeg2dec->output->get_frame (mpeg2dec->output,
+		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
