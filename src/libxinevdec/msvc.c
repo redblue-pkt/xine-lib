@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.17 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: msvc.c,v 1.18 2002/12/18 19:20:33 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -247,7 +247,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Microsoft Video-1");
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
-  } else if (this->decoder_ok) {
+  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
     
     if (this->size + buf->size > this->bufsize) {
       this->bufsize = this->size + 2 * buf->size;
