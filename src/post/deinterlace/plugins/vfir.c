@@ -36,6 +36,7 @@
 #include "xineutils.h"
 #include "speedy.h"
 #include "deinterlace.h"
+#include "plugins.h"
 
 /**
  * The MPEG2 spec uses a slightly harsher filter, they specify

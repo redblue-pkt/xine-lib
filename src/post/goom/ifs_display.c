@@ -5,7 +5,7 @@
 extern volatile int     use_asm;
 
 #ifdef MMX
-void
+static void
 ifs_fun_mmx(guint32 * data, guint32 * back, int width, int height,
             int increment, int nbpt, IFSPoint *points, int couleursl)
 {
@@ -27,7 +27,7 @@ ifs_fun_mmx(guint32 * data, guint32 * back, int width, int height,
 }
 #endif
 
-void
+static void
 ifs_fun_c(guint32 * data, guint32 * back, int width, int height,
           int increment, int nbpt, IFSPoint *points, int couleursl)
 {

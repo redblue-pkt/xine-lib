@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.45 2003/08/16 20:15:55 jcdutton Exp $
+ * $Id: demux_wav.c,v 1.46 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,6 +41,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define WAV_SIGNATURE_SIZE 16
 /* this is the hex value for 'data' */

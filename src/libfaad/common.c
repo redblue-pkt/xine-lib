@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.c,v 1.2 2002/12/16 18:59:56 miguelfreitas Exp $
+** $Id: common.c,v 1.3 2003/08/25 21:51:40 f1rmb Exp $
 **/
 
 /* just some common functions that could be used anywhere */
@@ -25,6 +25,7 @@
 #include "structs.h"
 
 #include "syntax.h"
+#include "dither.h"
 
 /* Returns the sample rate index based on the samplerate */
 uint8_t get_sr_index(uint32_t samplerate)

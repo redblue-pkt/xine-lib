@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.29 2003/07/10 22:43:41 tmattern Exp $
+ * $Id: mms.c,v 1.30 2003/08/25 21:51:39 f1rmb Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -660,7 +660,7 @@ static void report_progress (xine_stream_t *stream, int p) {
  * TODO: error messages
  * returns 1 on error
  */
-int mms_parse_url(mms_t *this) {
+static int mms_parse_url(mms_t *this) {
   int     proto_len;
   char   *hostend;
   char   *forport;
@@ -712,7 +712,7 @@ int mms_parse_url(mms_t *this) {
 /*
  * returns 1 on error
  */
-int mms_tcp_connect(mms_t *this) {
+static int mms_tcp_connect(mms_t *this) {
   int progress, res;
   /* 
    * try to connect 
@@ -745,7 +745,7 @@ int mms_tcp_connect(mms_t *this) {
   return 0;
 }
 
-void mms_gen_guid(char guid[]) {
+static void mms_gen_guid(char guid[]) {
   static char digit[16] = "0123456789ABCDEF";
   int i = 0;
 

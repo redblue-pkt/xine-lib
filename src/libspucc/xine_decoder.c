@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.25 2003/05/03 14:24:08 mroi Exp $
+ * $Id: xine_decoder.c,v 1.26 2003/08/25 21:51:43 f1rmb Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -267,8 +267,8 @@ static void spucc_unregister_cfg_callbacks(config_values_t *xine_cfg) {
 
 
 /* called when the video frame size changes */
-void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
-{
+static void spucc_notify_frame_change(spucc_decoder_t *this, 
+				      int width, int height) {
 #ifdef LOG_DEBUG
   printf("spucc: new frame size: %dx%d\n", width, height);
 #endif

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.167 2003/08/21 00:37:26 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.168 2003/08/25 21:51:39 f1rmb Exp $
  *
  */
 
@@ -353,7 +353,7 @@ static void send_mouse_enter_leave_event(dvd_input_plugin_t *this, int direction
     this->mouse_buttonN = -1;
 }
  
-void update_title_display(dvd_input_plugin_t *this) {
+static void update_title_display(dvd_input_plugin_t *this) {
   xine_event_t uevent;
   xine_ui_data_t data;
   int tt=-1, pr=-1;
@@ -1611,7 +1611,7 @@ static char **dvd_class_get_autoplay_list (input_class_t *this_gen,
   return this->filelist2;
 }
 
-void dvd_class_dispose(input_class_t *this_gen) {
+static void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
   
   free(this->mrls); this->mrls = NULL;
@@ -1736,6 +1736,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.168  2003/08/25 21:51:39  f1rmb
+ * Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
+ *
  * Revision 1.167  2003/08/21 00:37:26  miguelfreitas
  * RIP Input Plugin
  *

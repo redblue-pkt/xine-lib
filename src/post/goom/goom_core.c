@@ -761,7 +761,7 @@ goom_update (gint16 data[2][512],
 }
 
 void
-goom_close ()
+goom_close (void)
 {
 	if (pixel != NULL)
 		free (pixel);
@@ -955,7 +955,7 @@ void goom_setAsmUse (int useIt)
 	use_asm = useIt;
 }
 
-int goom_getAsmUse ()
+int goom_getAsmUse (void)
 {
 	return use_asm;
 }

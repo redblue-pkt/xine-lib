@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.43 2003/08/25 14:32:37 mroi Exp $
+ * $Id: yuv2rgb.c,v 1.44 2003/08/25 21:51:50 f1rmb Exp $
  */
 
 #include "config.h"
@@ -3115,7 +3115,7 @@ static void yuy22rgb_c_init (yuv2rgb_factory_t *this)
   }
 }
 
-yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
+static yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
 
   yuv2rgb_t *this = xine_xmalloc (sizeof (yuv2rgb_t));
   

@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.31 2003/08/10 16:11:05 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.32 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -355,13 +355,13 @@ static void print_cdrom_toc(cdrom_toc *toc) {
 	}	
 }
 
-void init_cdrom_toc(cdrom_toc *toc) {
+static void init_cdrom_toc(cdrom_toc *toc) {
 
   toc->first_track = toc->last_track = toc->total_tracks = 0;
   toc->toc_entries = NULL;
 }
 
-void free_cdrom_toc(cdrom_toc *toc) {
+static void free_cdrom_toc(cdrom_toc *toc) {
 
   if(toc && toc->toc_entries)
     free(toc->toc_entries);

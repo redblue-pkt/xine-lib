@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.10 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_aud.c,v 1.11 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,6 +52,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define AUD_HEADER_SIZE 12
 #define AUD_CHUNK_PREAMBLE_SIZE 8

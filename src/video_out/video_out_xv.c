@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.171 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.172 2003/08/25 21:51:48 f1rmb Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -218,7 +218,7 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   return (vo_frame_t *) frame;
 }
 
-int HandleXError (Display *display, XErrorEvent *xevent) {
+static int HandleXError (Display *display, XErrorEvent *xevent) {
 
   char str [1024];
 

@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: remap.c,v 1.3 2003/04/29 15:58:30 jcdutton Exp $
+ * $Id: remap.c,v 1.4 2003/08/25 21:51:40 f1rmb Exp $
  */
 
 #include <stdlib.h>
@@ -51,7 +51,7 @@ struct remap_s {
     struct block_s *blocks;
 };
 
-remap_t* remap_new( char *title) {
+static remap_t* remap_new( char *title) {
     remap_t *map = malloc( sizeof(remap_t));
     map->title = strdup(title);
     map->maxblocks = 0;
@@ -142,10 +142,8 @@ static void remap_add_node( remap_t *map, block_t block) {
     }
 }
 
-int parseblock( 
-	char *buf, int *dom, int *tt, int *pg, 
-	unsigned long *start, unsigned long *end) 
-{
+static int parseblock(char *buf, int *dom, int *tt, int *pg, 
+		      unsigned long *start, unsigned long *end) {
     long tmp;
     char *tok;
     char *epos;

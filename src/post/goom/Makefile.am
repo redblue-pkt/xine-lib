@@ -29,3 +29,5 @@ xineplug_post_goom_la_SOURCES = xine_goom.c \
 
 xineplug_post_goom_la_LIBADD = $(XINE_LIB)
 xineplug_post_goom_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+noinst_HEADERS = zoom_filter_mmx.h

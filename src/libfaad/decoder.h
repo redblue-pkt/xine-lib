@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: decoder.h,v 1.3 2003/04/12 14:58:47 miguelfreitas Exp $
+** $Id: decoder.h,v 1.4 2003/08/25 21:51:41 f1rmb Exp $
 **/
 
 #ifndef __DECODER_H__
@@ -67,9 +67,9 @@ extern "C" {
 
 int8_t* FAADAPI faacDecGetErrorMessage(uint8_t errcode);
 
-uint32_t FAADAPI faacDecGetCapabilities();
+uint32_t FAADAPI faacDecGetCapabilities(void);
 
-faacDecHandle FAADAPI faacDecOpen();
+faacDecHandle FAADAPI faacDecOpen(void);
 
 faacDecConfigurationPtr FAADAPI faacDecGetCurrentConfiguration(faacDecHandle hDecoder);
 

@@ -46,6 +46,8 @@
 #define LOG 1
 */
 
+#include "demux_flac.h"
+
 /* FLAC Demuxer plugin */
 typedef struct demux_flac_s {
   demux_plugin_t        demux_plugin;
@@ -660,14 +662,3 @@ demux_flac_init_class (xine_t *xine, void *data) {
 
     return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 22, "flac", XINE_VERSION_CODE, NULL, demux_flac_init_class },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

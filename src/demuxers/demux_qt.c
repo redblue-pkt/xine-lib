@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.164 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.165 2003/08/25 21:51:38 f1rmb Exp $
  *
  */
 
@@ -571,7 +571,7 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
 }
 
 /* create a qt_info structure or return NULL if no memory */
-qt_info *create_qt_info(void) {
+static qt_info *create_qt_info(void) {
   qt_info *info;
 
   info = (qt_info *)xine_xmalloc(sizeof(qt_info));
@@ -609,7 +609,7 @@ qt_info *create_qt_info(void) {
 }
 
 /* release a qt_info structure and associated data */
-void free_qt_info(qt_info *info) {
+static void free_qt_info(qt_info *info) {
 
   int i, j;
 

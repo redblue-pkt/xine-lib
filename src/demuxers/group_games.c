@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.5 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: group_games.c,v 1.6 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,17 +29,7 @@
 #include "xine_internal.h"
 #include "demux.h"
 
-
-void *demux_eawve_init_plugin(xine_t *xine, void *data);
-void *demux_idcin_init_plugin (xine_t *xine, void *data);
-void *demux_ipmovie_init_plugin (xine_t *xine, void *data);
-void *demux_vqa_init_plugin (xine_t *xine, void *data);
-void *demux_wc3movie_init_plugin (xine_t *xine, void *data);
-void *demux_roq_init_plugin (xine_t *xine, void *data);
-void *demux_str_init_plugin (xine_t *xine, void *data);
-void *demux_film_init_plugin (xine_t *xine, void *data);
-void *demux_smjpeg_init_plugin (xine_t *xine, void *data);
-void *demux_fourxm_init_plugin (xine_t *xine, void *data);
+#include "group_games.h"
 
 /*
  * exported plugin catalog entries

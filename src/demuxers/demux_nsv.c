@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.4 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_nsv.c,v 1.5 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -478,7 +478,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-void *demux_nsv_init_plugin (xine_t *xine, void *data) {
+static void *demux_nsv_init_plugin (xine_t *xine, void *data) {
   demux_nsv_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_nsv_class_t));

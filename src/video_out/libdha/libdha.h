@@ -111,6 +111,9 @@ extern int	hwirq_uninstall(int bus, int dev, int func);
 
 /* CPU flushing support */
 extern void	cpu_flush(void *va,unsigned long length);
+
+extern void     libdha_exit(const char *message, int level);
+
 #ifdef __cplusplus
 }
 #endif

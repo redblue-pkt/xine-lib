@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.31 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_voc.c,v 1.32 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,6 +44,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define PCM_BLOCK_ALIGN 1024
 #define VOC_HEADER_SIZE 0x1A

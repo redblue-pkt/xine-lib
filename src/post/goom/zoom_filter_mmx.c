@@ -1,5 +1,6 @@
 #include "goom_config.h"
 #include "xineutils.h"
+#include "zoom_filter_mmx.h"
 
 #ifdef MMX
 #define BUFFPOINTNB 16
@@ -13,9 +14,9 @@
 #define PERTEDEC 4
 
 void zoom_filter_mmx (int prevX, int prevY,
-					  unsigned int *expix1, unsigned int *expix2,
-					  int *brutS, int *brutD, int buffratio,
-					  int precalCoef[16][16])
+		      unsigned int *expix1, unsigned int *expix2,
+		      int *brutS, int *brutD, int buffratio,
+		      int precalCoef[16][16])
 {
   unsigned int ax = (prevX-1)<<PERTEDEC, ay = (prevY-1)<<PERTEDEC;
   

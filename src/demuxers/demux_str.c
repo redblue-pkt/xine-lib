@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.14 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_str.c,v 1.15 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 /*
@@ -129,6 +129,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 /* There may be a RIFF/CDXA header at the beginning of the file, which
  * accounts for 0x2C bytes.  We need at most 0x30 bytes of the sector to
@@ -643,15 +644,3 @@ void *demux_str_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

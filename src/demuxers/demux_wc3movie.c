@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.39 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.40 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,6 +47,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \
@@ -748,15 +749,3 @@ void *demux_wc3movie_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 22, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

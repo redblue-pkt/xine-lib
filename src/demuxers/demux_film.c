@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.64 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.65 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,6 +51,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mdct.c,v 1.5 2003/04/12 14:58:47 miguelfreitas Exp $
+** $Id: mdct.c,v 1.6 2003/08/25 21:51:41 f1rmb Exp $
 **/
 
 /*
@@ -89,7 +89,7 @@ real_t const_tab[][5] =
 };
 #endif
 
-uint8_t map_N_to_idx(uint16_t N)
+static uint8_t map_N_to_idx(uint16_t N)
 {
     switch(N)
     {

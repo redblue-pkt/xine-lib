@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.41 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.42 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 #define RoQ_MAGIC_NUMBER 0x1084
 #define RoQ_CHUNK_PREAMBLE_SIZE 8
@@ -486,15 +487,3 @@ void *demux_roq_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

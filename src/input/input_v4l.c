@@ -702,7 +702,7 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
    return 1;   
 }
 
-int open_radio_capture_device(v4l_input_plugin_t *this)
+static int open_radio_capture_device(v4l_input_plugin_t *this)
 {
    int tuner_found = 0;
    int i = 0;
@@ -776,7 +776,7 @@ int open_radio_capture_device(v4l_input_plugin_t *this)
       return 2;
 }
 
-int close_radio_capture_device(v4l_input_plugin_t *this)
+static int close_radio_capture_device(v4l_input_plugin_t *this)
 {
    if (this->radio_fd > 0)
       close(this->radio_fd);
@@ -796,7 +796,7 @@ int close_radio_capture_device(v4l_input_plugin_t *this)
  * which the signal should be grabbed.
  * @return 1 on success, 0 on failure.
  */
-int open_video_capture_device(v4l_input_plugin_t *this)
+static int open_video_capture_device(v4l_input_plugin_t *this)
 {
    int i, j, ret, found = 0;
    int tuner_found = 0;
@@ -1042,7 +1042,7 @@ int open_video_capture_device(v4l_input_plugin_t *this)
  * This function opens an alsa capture device. This will be used to capture
  * audio data from.
  */
-int open_audio_capture_device(v4l_input_plugin_t *this)
+static int open_audio_capture_device(v4l_input_plugin_t *this)
 {
 #ifdef HAVE_ALSA
    DBGPRINT("Audio    Opening PCM Device\n");

@@ -36,10 +36,7 @@ extern volatile int     use_asm;
 
 #ifdef MMX
 /*int mmx_zoom () ;*/
-void    zoom_filter_mmx (int prevX, int prevY,
-												 unsigned int *expix1, unsigned int *expix2,
-												 int *brutS, int *brutD, int buffratio,
-												 int precalCoef[16][16]);
+#include "zoom_filter_mmx.h"
 #endif /* MMX */
 
 
@@ -106,7 +103,7 @@ static int *firedec = 0;
 
 
 /* retourne x>>s , en testant le signe de x */
-int ShiftRight (int x, const unsigned char s)
+static int ShiftRight (int x, const unsigned char s)
 {
 	if (x < 0)
 		return -(-x >> s);
@@ -118,7 +115,7 @@ int ShiftRight (int x, const unsigned char s)
 /** modif d'optim by Jeko : precalcul des 4 coefs résultant des 2 pos */
 int     precalCoef[16][16];
 
-void generatePrecalCoef ()
+static void generatePrecalCoef (void)
 {
 	static int firstime = 1;
 
@@ -173,7 +170,7 @@ void generatePrecalCoef ()
  px et py indique la nouvelle position (en sqrtperte ieme de pixel)
  (valeur * 16)
  */
-void calculatePXandPY (int x, int y, int *px, int *py)
+static void calculatePXandPY (int x, int y, int *px, int *py)
 {
 	if (theMode == WATER_MODE) {
 		static int wave = 0;
@@ -311,7 +308,7 @@ void setPixelRGB (Uint * buffer, Uint x, Uint y, Color c)
 }
 
 
-void setPixelRGB_ (Uint * buffer, Uint x, Color c)
+static void setPixelRGB_ (Uint * buffer, Uint x, Color c)
 {
 #ifdef _DEBUG
 	if (x >= resolx * c_resoly) {
@@ -363,7 +360,7 @@ void getPixelRGB (Uint * buffer, Uint x, Uint y, Color * c)
 }
 
 
-void getPixelRGB_ (Uint * buffer, Uint x, Color * c)
+static void getPixelRGB_ (Uint * buffer, Uint x, Color * c)
 {
 	register unsigned char *tmp8;
 
@@ -390,8 +387,7 @@ void getPixelRGB_ (Uint * buffer, Uint x, Color * c)
 }
 
 
-void
-c_zoom ()
+static void c_zoom (void)
 {
 	int     myPos, myPos2;
 	Color   couleur;

@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_ac3.c,v 1.10 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,6 +42,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define AC3_PREAMBLE_BYTES 5
 

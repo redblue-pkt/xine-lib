@@ -20,7 +20,7 @@
 ** nes_apu.c
 **
 ** NES APU emulation
-** $Id: nes_apu.c,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: nes_apu.c,v 1.2 2003/08/25 21:51:43 f1rmb Exp $
 */
 
 #include <string.h>
@@ -103,7 +103,7 @@ const int dmc_clocks[16] =
 static const int duty_lut[4] = { 2, 4, 8, 12 };
 
 
-void apu_setcontext(apu_t *src_apu)
+static void apu_setcontext(apu_t *src_apu)
 {
    apu = src_apu;
 }
@@ -1054,7 +1054,7 @@ void apu_reset(void)
       apu->ext->reset();
 }
 
-void apu_build_luts(int num_samples)
+static void apu_build_luts(int num_samples)
 {
    int i;
 
@@ -1154,6 +1154,9 @@ int32 apu_getcyclerate(void)
 
 /*
 ** $Log: nes_apu.c,v $
+** Revision 1.2  2003/08/25 21:51:43  f1rmb
+** Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.25 2003/07/18 23:50:25 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.26 2003/08/25 21:51:42 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -99,6 +99,12 @@ typedef struct {
     int    codec_data_length;
     void  *extras;
 } ra_init_t;
+
+void *__builtin_new(unsigned long size);
+void __builtin_delete (void *foo);
+void *__builtin_vec_new(unsigned long size);
+void __builtin_vec_delete(void *mem);
+void __pure_virtual(void);
 
 
 void *__builtin_new(unsigned long size) {

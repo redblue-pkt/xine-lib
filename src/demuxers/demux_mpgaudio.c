@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.105 2003/08/10 16:03:21 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.106 2003/08/25 21:51:38 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -38,6 +38,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 /*
 #define LOG
@@ -883,17 +884,3 @@ void *demux_mpgaudio_init_class (xine_t *xine, void *data) {
 
   return this;
 }
-
-
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 22, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

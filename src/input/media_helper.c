@@ -47,6 +47,7 @@
 #warning "This might not compile due to missing cdrom ioctls"
 #endif
 
+#include "media_helper.h"
 
 #define LOG_MEDIA_EJECT
 
@@ -92,7 +93,7 @@ int media_eject_media (char *device) {
   /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",device, this->current_dvd_device, this->opened, this->dvdnav); */
   media_umount_media(device);
   /**********
-        printf("ipnut_dvd: umount result: %s\n", 
+        printf("input_dvd: umount result: %s\n", 
                   strerror(errno));  
    ***********/
 

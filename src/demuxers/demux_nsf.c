@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.14 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_nsf.c,v 1.15 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,6 +53,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define NSF_HEADER_SIZE 0x80
 #define NSF_SAMPLERATE 44100

@@ -39,6 +39,8 @@
 #define LOG 1
 */
 
+#include "demux_flac.h"
+
 typedef struct {
   audio_decoder_class_t   decoder_class;
 } flac_class_t;
@@ -419,9 +421,6 @@ static decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   5                    /* priority        */
 };
-
-/* from demux_flac.c */
-void *demux_flac_init_class (xine_t *xine, void *data);
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  

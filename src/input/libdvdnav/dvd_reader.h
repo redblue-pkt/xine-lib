@@ -266,6 +266,12 @@ int DVDISOVolumeInfo( dvd_reader_t *, char *, unsigned int,
  */
 int DVDUDFCacheLevel( dvd_reader_t *, int );
 
+/**
+ * COMMENT ME
+ */
+void *GetUDFCacheHandle(dvd_reader_t *device);
+void SetUDFCacheHandle(dvd_reader_t *device, void *cache);
+
 #ifdef __cplusplus
 };
 #endif

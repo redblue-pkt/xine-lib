@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.19 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: fli.c,v 1.20 2003/08/25 21:51:43 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -86,7 +86,7 @@ typedef struct fli_decoder_s {
   
 } fli_decoder_t;
 
-void decode_fli_frame(fli_decoder_t *this) {
+static void decode_fli_frame(fli_decoder_t *this) {
   int stream_ptr = 0;
   int stream_ptr_after_color_chunk;
   int pixel_ptr;

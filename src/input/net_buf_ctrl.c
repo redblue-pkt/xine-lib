@@ -225,7 +225,8 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
 /* Put callback
  * the fifo mutex is locked */
-void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *this_gen) {
+static void nbc_put_cb (fifo_buffer_t *fifo, 
+			buf_element_t *buf, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
   int64_t progress = 0;
   int64_t video_p = 0;
@@ -335,7 +336,8 @@ void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *this_gen) {
 
 /* Get callback
  * the fifo mutex is locked */
-void nbc_get_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *this_gen) {
+static void nbc_get_cb (fifo_buffer_t *fifo,
+			buf_element_t *buf, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
   int other_fifo_free;
   pthread_mutex_lock(&this->mutex);

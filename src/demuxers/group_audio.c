@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.7 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: group_audio.c,v 1.8 2003/08/25 21:51:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,18 +29,7 @@
 #include "xine_internal.h"
 #include "demux.h"
 
-
-void *demux_ac3_init_plugin (xine_t *xine, void *data);
-void *demux_aud_init_plugin (xine_t *xine, void *data);
-void *demux_aiff_init_plugin (xine_t *xine, void *data);
-void *demux_cdda_init_plugin (xine_t *xine, void *data);
-void *demux_mpgaudio_init_class (xine_t *xine, void *data);
-void *demux_nsf_init_plugin (xine_t *xine, void *data);
-void *demux_realaudio_init_plugin (xine_t *xine, void *data);
-void *demux_snd_init_plugin (xine_t *xine, void *data);
-void *demux_voc_init_plugin (xine_t *xine, void *data);
-void *demux_vox_init_plugin (xine_t *xine, void *data);
-void *demux_wav_init_plugin (xine_t *xine, void *data);
+#include "group_audio.h"
 
 /*
  * exported plugin catalog entries

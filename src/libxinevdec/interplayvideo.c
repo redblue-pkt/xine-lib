@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayvideo.c,v 1.3 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: interplayvideo.c,v 1.4 2003/08/25 21:51:43 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -131,7 +131,7 @@ typedef struct interplay_decoder_s {
     pixel_ptr += this->width; \
   }
 
-void interplay_decode_frame(interplay_decoder_t *this) {
+static void interplay_decode_frame(interplay_decoder_t *this) {
 
   int pixel_ptr, motion_pixel_ptr;
   int x, y;

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.17 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: cyuv.c,v 1.18 2003/08/25 21:51:43 f1rmb Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -87,7 +87,7 @@ typedef struct cyuv_decoder_s {
  * height - the height of the output frame
  * bit_per_pixel - ignored for now: may be used later for conversions.
  */
-void cyuv_decode(unsigned char *buf, int size, unsigned char *frame,
+static void cyuv_decode(unsigned char *buf, int size, unsigned char *frame,
   int width, int height, int bit_per_pixel) {
 
   int i, xpos, ypos, cur_Y = 0, cur_U = 0, cur_V = 0;

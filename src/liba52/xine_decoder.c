@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2003/05/23 15:10:27 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.54 2003/08/25 21:51:40 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -140,7 +140,7 @@ static const struct frmsize_s frmsizecod_tbl[64] =
   { 640 ,{1280 ,1394 ,1920 } }
 };
 
-void a52dec_reset (audio_decoder_t *this_gen) {
+static void a52dec_reset (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
@@ -149,7 +149,7 @@ void a52dec_reset (audio_decoder_t *this_gen) {
   this->pts           = 0;
 }
 
-void a52dec_discontinuity (audio_decoder_t *this_gen) {
+static void a52dec_discontinuity (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
@@ -351,7 +351,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
   }
 }
 
-void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
   uint8_t          *current = buf->content;

@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.11 2003/08/10 16:11:05 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.12 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 /* 44100 samples/sec * 2 bytes/samples * 2 channels */
 #define CD_BYTES_PER_SECOND (44100 * 2 * 2)

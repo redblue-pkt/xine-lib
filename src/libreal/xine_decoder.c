@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.49 2003/08/25 21:51:43 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -107,6 +107,10 @@ typedef struct {
         int format;
 } rv_init_t;
 
+
+void *__builtin_vec_new(unsigned long size);
+void __builtin_vec_delete(void *mem);
+void __pure_virtual(void);
 
 /*
  * real codec loader

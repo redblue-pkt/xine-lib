@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.15 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: qtsmc.c,v 1.16 2003/08/25 21:51:43 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -102,7 +102,7 @@ typedef struct qtsmc_decoder_s {
   } \
 }
 
-void decode_qtsmc(qtsmc_decoder_t *this) {
+static void decode_qtsmc(qtsmc_decoder_t *this) {
 
   int i;
   int stream_ptr = 0;

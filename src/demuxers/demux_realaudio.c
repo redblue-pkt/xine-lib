@@ -21,7 +21,7 @@
 /*
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.21 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_realaudio.c,v 1.22 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,6 +40,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define RA_FILE_HEADER_SIZE 16
 #define RA_AUDIO_HEADER_SIZE 0x39

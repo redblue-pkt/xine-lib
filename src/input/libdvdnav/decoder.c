@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.11 2003/05/16 09:56:50 mroi Exp $
+ * $Id: decoder.c,v 1.12 2003/08/25 21:51:40 f1rmb Exp $
  *
  */
 
@@ -125,7 +125,8 @@ static uint16_t eval_reg_or_data(command_t* command, int32_t imm, int32_t start)
    xBBB_BBBB, if immediate use all 7 bits for data else use
    lower four bits for the general purpose register number. */
 /* Evaluates gprm or data depending on bit, data is in byte n */
-uint16_t eval_reg_or_data_2(command_t* command, int32_t imm, int32_t start) {
+static uint16_t eval_reg_or_data_2(command_t* command, 
+				   int32_t imm, int32_t start) {
   if(imm) /* immediate */
     return vm_getbits(command, (start - 1), 7);
   else

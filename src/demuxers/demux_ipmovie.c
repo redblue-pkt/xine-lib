@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.12 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_ipmovie.c,v 1.13 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 #define IPMOVIE_SIGNATURE "Interplay MVE File\x1A\0"
 #define IPMOVIE_SIGNATURE_SIZE 20
@@ -732,15 +733,3 @@ void *demux_ipmovie_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 22, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

@@ -20,7 +20,7 @@
 ** nsf.c
 **
 ** NSF loading/saving related functions
-** $Id: nsf.c,v 1.2 2003/01/09 18:36:40 jkeil Exp $
+** $Id: nsf.c,v 1.3 2003/08/25 21:51:43 f1rmb Exp $
 */
 
 #include <stdio.h>
@@ -297,7 +297,7 @@ void nsf_frame(nsf_t *nsf)
 }
 
 /* Deallocate memory */
-void nes_shutdown(nsf_t *nsf)
+static void nes_shutdown(nsf_t *nsf)
 {
    int i;
 
@@ -579,6 +579,9 @@ void nsf_setfilter(nsf_t *nsf, int filter_type)
 
 /*
 ** $Log: nsf.c,v $
+** Revision 1.3  2003/08/25 21:51:43  f1rmb
+** Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
+**
 ** Revision 1.2  2003/01/09 18:36:40  jkeil
 ** memcpy copies too much, corrupts malloc heap
 **

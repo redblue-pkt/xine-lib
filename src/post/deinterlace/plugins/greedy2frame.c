@@ -35,7 +35,7 @@
 #include "deinterlace.h"
 #include "speedtools.h"
 #include "speedy.h"
-
+#include "plugins.h"
 
 // debugging feature
 // output the value of mm4 at this point which is pink where we will weave

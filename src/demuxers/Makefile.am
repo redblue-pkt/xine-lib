@@ -137,4 +137,4 @@ xineplug_dmx_nsv_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_nsv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
-noinst_HEADERS = asfheader.h qtpalette.h
+noinst_HEADERS = asfheader.h qtpalette.h group_games.h group_audio.h

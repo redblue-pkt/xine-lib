@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.13 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: idcinvideo.c,v 1.14 2003/08/25 21:51:43 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -92,7 +92,7 @@ static int num_huff_nodes[256];
 /*
  *  Decodes input Huffman data using the Huffman table.
  */
-void huff_decode(idcinvideo_decoder_t *this) {
+static void huff_decode(idcinvideo_decoder_t *this) {
   hnode_t *hnodes;
   long i;
   int prev;
@@ -135,7 +135,7 @@ void huff_decode(idcinvideo_decoder_t *this) {
  *  Returns the node index of the lowest unused node, or -1 if all nodes
  *  are used.
  */
-int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
+static int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
   int i;
   int best, best_node;
 
@@ -167,7 +167,7 @@ int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
  *   num_huff_nodes[prev] - contains the index to the root node of the tree.
  *     That is: huff_nodes[prev][num_huff_nodes[prev]] is the root node.
  */
-void huff_build_tree(int prev) {
+static void huff_build_tree(int prev) {
   hnode_t *node, *hnodes;
   int num_hnodes, i;
 

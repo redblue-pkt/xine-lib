@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.31 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_aiff.c,v 1.32 2003/08/25 21:51:38 f1rmb Exp $
  *
  */
 
@@ -41,6 +41,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \

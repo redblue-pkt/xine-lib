@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.87 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.88 2003/08/25 21:51:48 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -132,7 +132,7 @@ typedef struct {
  */
 
 /* returns boolean value (1 success, 0 failure) */
-int syncfb_overlay_on(syncfb_driver_t* this)
+static int syncfb_overlay_on(syncfb_driver_t* this)
 {
    if(ioctl(this->fd, SYNCFB_ON)) {	
       printf("video_out_syncfb: error. (on ioctl failed)\n");
@@ -144,7 +144,7 @@ int syncfb_overlay_on(syncfb_driver_t* this)
 }
 
 /* returns boolean value (1 success, 0 failure) */
-int syncfb_overlay_off(syncfb_driver_t* this)
+static int syncfb_overlay_off(syncfb_driver_t* this)
 {  
    if(ioctl(this->fd, SYNCFB_OFF)) {
       printf("video_out_syncfb: error. (off ioctl failed)\n");
@@ -302,7 +302,7 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
    frame->vo_frame.free(&frame->vo_frame);
 }
 
-void free_framedata(syncfb_frame_t* frame)
+static void free_framedata(syncfb_frame_t* frame)
 {
 /*   if(frame->data_mem[0]) {
       free(frame->data_mem[0]);

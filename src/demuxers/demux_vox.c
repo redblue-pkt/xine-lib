@@ -22,7 +22,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.6 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_vox.c,v 1.7 2003/08/25 21:51:39 f1rmb Exp $
  *
  */
 
@@ -42,6 +42,7 @@
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
+#include "group_audio.h"
 
 #define DIALOGIC_SAMPLERATE 8000
 

@@ -201,7 +201,7 @@ draw_line (int *data, int x1, int y1, int x2, int y2, int col, int screenx,
 	}
 }
 
-void
+static void
 genline (int id, float param, GMUnitPointer * l, int rx, int ry)
 {
 	int     i;
@@ -235,7 +235,7 @@ genline (int id, float param, GMUnitPointer * l, int rx, int ry)
 	}
 }
 
-guint32 getcouleur (int mode)
+static guint32 getcouleur (int mode)
 {
 	switch (mode) {
 	case GML_RED:
@@ -268,7 +268,7 @@ goom_lines_set_res (GMLine * gml, int rx, int ry)
 }
 
 
-void
+static void
 goom_lines_move (GMLine * l)
 {
 	int     i;
@@ -314,7 +314,7 @@ goom_lines_switch_to (GMLine * gml, int IDdest, float param, int col)
 /*  printf ("couleur %d : %x\n",col,gml->color2); */
 }
 
-inline unsigned char
+static inline unsigned char
 lighten (unsigned char value, float power)
 {
 	int     val = value;
@@ -333,7 +333,7 @@ lighten (unsigned char value, float power)
 	}
 }
 
-void
+static void
 lightencolor (int *col, float power)
 {
 	unsigned char *color;

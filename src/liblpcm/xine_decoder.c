@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2003/05/19 10:06:36 tchamp Exp $
+ * $Id: xine_decoder.c,v 1.43 2003/08/25 21:51:42 f1rmb Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -62,16 +62,16 @@ typedef struct lpcm_decoder_s {
   int		   cpu_be;	/* TRUE, if we're a Big endian CPU */
 } lpcm_decoder_t;
 
-void lpcm_reset (audio_decoder_t *this_gen) {
+static void lpcm_reset (audio_decoder_t *this_gen) {
 
   /* lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen; */
 
 }
 
-void lpcm_discontinuity (audio_decoder_t *this_gen) {
+static void lpcm_discontinuity (audio_decoder_t *this_gen) {
 }
 
-void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
   int16_t        *sample_buffer=(int16_t *)buf->content;

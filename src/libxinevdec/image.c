@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.5 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: image.c,v 1.6 2003/08/25 21:51:43 f1rmb Exp $
  *
  * a image video decoder
  */
@@ -81,12 +81,12 @@ typedef struct image_decoder_s {
  * png stuff
  */
 
-void info_callback(png_structp png_ptr, png_infop info);
-void row_callback(png_structp png_ptr, png_bytep new_row,
-    png_uint_32 row_num, int pass);
-void end_callback(png_structp png_ptr, png_infop info);
+static void info_callback(png_structp png_ptr, png_infop info);
+static void row_callback(png_structp png_ptr, png_bytep new_row,
+			 png_uint_32 row_num, int pass);
+static void end_callback(png_structp png_ptr, png_infop info);
 
-int initialize_png_reader(image_decoder_t *this) {
+static int initialize_png_reader(image_decoder_t *this) {
  
   this->png_ptr = png_create_read_struct
       (PNG_LIBPNG_VER_STRING, (png_voidp)this,
@@ -113,7 +113,7 @@ int initialize_png_reader(image_decoder_t *this) {
   return 0;
 }
 
-int finalize_png_reader(image_decoder_t *this) {
+static void finalize_png_reader(image_decoder_t *this) {
 
   png_destroy_read_struct(&this->png_ptr, &this->info_ptr,
 	 (png_infopp)NULL);
@@ -122,7 +122,8 @@ int finalize_png_reader(image_decoder_t *this) {
 
 }
 
-int process_data(image_decoder_t *this, png_bytep buffer, png_uint_32 length) {
+static int process_data(image_decoder_t *this, 
+			png_bytep buffer, png_uint_32 length) {
    
   if (setjmp(this->jmpbuf)) {
     png_destroy_read_struct(&this->png_ptr, &this->info_ptr, (png_infopp)NULL);
@@ -136,7 +137,7 @@ int process_data(image_decoder_t *this, png_bytep buffer, png_uint_32 length) {
   * process png header (do some conversions if necessary)
   */
 
-void info_callback(png_structp png_ptr, png_infop info_ptr) {
+static void info_callback(png_structp png_ptr, png_infop info_ptr) {
   int i;
   image_decoder_t *this = png_get_progressive_ptr(png_ptr);
 
@@ -187,7 +188,7 @@ void info_callback(png_structp png_ptr, png_infop info_ptr) {
   this->rows_valid = 1;
 }
 
-void row_callback(png_structp png_ptr, png_bytep new_row,
+static void row_callback(png_structp png_ptr, png_bytep new_row,
   png_uint_32 row_num, int pass) {
 
   image_decoder_t *this = png_get_progressive_ptr(png_ptr);
@@ -208,7 +209,7 @@ void row_callback(png_structp png_ptr, png_bytep new_row,
 #define	ONE_HALF	( (int32_t) (1<< (SCALEBITS-1)) )
 #define	CBCR_OFFSET	(CENTERSAMPLE << SCALEBITS)
 
-void end_callback(png_structp png_ptr, png_infop info) {
+static void end_callback(png_structp png_ptr, png_infop info) {
 
   vo_frame_t *img; /* video out frame */
   int row, col;

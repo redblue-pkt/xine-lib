@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.4 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_4xm.c,v 1.5 2003/08/25 21:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,7 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+#include "group_games.h"
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch0) | \

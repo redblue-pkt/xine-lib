@@ -26,6 +26,7 @@
 #endif
 #include "speedy.h"
 #include "deinterlace.h"
+#include "plugins.h"
 
 static void deinterlace_scanline_double( uint8_t *output,
                                          deinterlace_scanline_data_t *data,
