@@ -990,6 +990,10 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   uint16_t unicode;
   size_t inbytesleft;
 
+#ifdef HAVE_FT2
+  FT_UInt previous = 0;
+#endif
+
   lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
  
   /* some sanity checks for the color indices */
@@ -1015,6 +1019,11 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     }
   }
 
+#ifdef HAVE_FT2
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  int first = 1;
+#endif
+
   if( x1 < osd->x1 ) osd->x1 = x1;
   if( y1 < osd->y1 ) osd->y1 = y1;
 
@@ -1031,90 +1040,100 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     inbytesleft--;
 #endif
 
-#ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->useme) {
-      i = FT_Get_Char_Index( osd->ft2->face, unicode );
-    } else {
-#endif
-    
-    i = osd_search(font->fontchar, font->num_fontchars, unicode);
-
-    lprintf("font '%s' [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i, 
-           unicode, font->fontchar[i].code, font->fontchar[i].width, 
-           font->fontchar[i].height, x1, y1);
-
-#ifdef HAVE_FT2
-    } /* !(osd->ft2 && osd->ft2->useme) */
-#endif
 
 #ifdef HAVE_FT2
     if (osd->ft2 && osd->ft2->useme) {
       int gheight, gwidth;
-      FT_GlyphSlot  slot = osd->ft2->face->glyph;
-      
+
+      FT_GlyphSlot slot = osd->ft2->face->glyph;
+
+      i = FT_Get_Char_Index( osd->ft2->face, unicode );
+
+      /* add kerning relative to the previous letter */
+      if (use_kerning && previous && i) {
+        FT_Vector delta;
+        FT_Get_Kerning(osd->ft2->face, previous, i, FT_KERNING_DEFAULT, &delta);
+        x1 += delta.x / 64;
+      }
+      previous = i;
+
       if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph\n"));
-	continue;
+        continue;
       }
 
       if (slot->format != ft_glyph_format_bitmap) {
-	if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering glyph\n"));
+        if (FT_Render_Glyph(slot, ft_render_mode_normal))
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering glyph\n"));
       }
 
-      dst = osd->area + y1 * osd->width + x1;
+      /* we shift the whole glyph down by it's ascender so that the specified coordinate
+       * is the top left corner which is much more practical than the baseline as the user
+       * normally has no idea where the baseline is
+       */
+      dst = osd->area + (y1+(osd->ft2->face->ascender/64)-slot->bitmap_top) * osd->width;
       src = (uint8_t*) slot->bitmap.buffer;
       gheight = slot->bitmap.rows;
       gwidth  = slot->bitmap.width;
 
+      if (first) x1 -= slot->bitmap_left;
+      first = 0;
+
       for( y = 0; y < gheight; y++ ) {
         uint8_t *s = src;
-	uint8_t *d = dst 
-	  - slot->bitmap_top * osd->width
-	  + slot->bitmap_left;
+        uint8_t *d = dst + x1 + slot->bitmap_left;
 
-	while (s < src + gwidth) {
-	  if(d <= (osd->area + (osd->width * osd->height)))
-	    *d = (uint8_t)(*s/26+1) + (uint8_t) color_base;
-	  
-	  d++;
-	  s++;
-	}
+        while (s < src + gwidth) {
+          if ((d > osd->area) && (d < osd->area + osd->width * osd->height) &&
+              (d < dst + osd->width) && (*s > 0))
+            *d = (uint8_t)(*s/25) + (uint8_t) color_base;
+          
+          d++;
+          s++;
+        }
         src += slot->bitmap.pitch;
         dst += osd->width;
       }
+
       x1 += slot->advance.x >> 6;
       if( x1 > osd->x2 ) osd->x2 = x1;
       if( y1 > osd->y2 ) osd->y2 = y1;
 
     } else {
+
 #endif
 
-    if ( i != font->num_fontchars ) {
-      dst = osd->area + y1 * osd->width + x1;
-      src = font->fontchar[i].bmp;
+      i = osd_search(font->fontchar, font->num_fontchars, unicode);
+  
+      lprintf("font '%s' [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i, 
+             unicode, font->fontchar[i].code, font->fontchar[i].width, 
+             font->fontchar[i].height, x1, y1);
+  
+      if ( i != font->num_fontchars ) {
+        dst = osd->area + y1 * osd->width + x1;
+        src = font->fontchar[i].bmp;
+        
+        for( y = 0; y < font->fontchar[i].height; y++ ) {
+          int width = font->fontchar[i].width;
+          uint8_t *s = src, *d = dst;
+  
+          while (s < src + width) {
+            if(d <= (osd->area + (osd->width * osd->height)) 
+               && *s > 1) /* skip drawing transparency */
+              *d = *s + (uint8_t) color_base;
+            
+            d++;
+            s++;
+          }
+          src += font->fontchar[i].width;
+          dst += osd->width;
+        }
+        x1 += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
       
-      for( y = 0; y < font->fontchar[i].height; y++ ) {
-	int width = font->fontchar[i].width;
-	uint8_t *s = src, *d = dst;
-
-	while (s < src + width) {
-	  if(d <= (osd->area + (osd->width * osd->height)) 
-	     && *s > 1) /* skip drawing transparency */
-	    *d = *s + (uint8_t) color_base;
-	  
-	  d++;
-	  s++;
-	}
-        src += font->fontchar[i].width;
-        dst += osd->width;
+        if( x1 > osd->x2 ) osd->x2 = x1;
+        if( y1 + font->fontchar[i].height > osd->y2 ) 
+          osd->y2 = y1 + font->fontchar[i].height;
       }
-      x1 += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
-    
-      if( x1 > osd->x2 ) osd->x2 = x1;
-      if( y1 + font->fontchar[i].height > osd->y2 ) 
-        osd->y2 = y1 + font->fontchar[i].height;
-    }
     
 #ifdef HAVE_FT2
     } /* !(osd->ft2 && osd->ft2->useme) */
@@ -1158,6 +1177,13 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
     }
   }
 
+#ifdef HAVE_FT2
+  /* not all free type fonts provide kerning */
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  FT_UInt previous = 0;
+  int first_glyph = 1;
+#endif
+
   *width = 0;
   *height = 0;
 
@@ -1176,10 +1202,17 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
 #ifdef HAVE_FT2
     if (osd->ft2 && osd->ft2->useme) {
-      int first = 1;
       FT_GlyphSlot  slot = osd->ft2->face->glyph;
 
       i = FT_Get_Char_Index( osd->ft2->face, unicode);
+
+      /* kerning add the relative to the previous letter */
+      if (use_kerning && previous && i) {
+        FT_Vector delta;
+        FT_Get_Kerning(osd->ft2->face, previous, i, FT_KERNING_DEFAULT, &delta);
+        *width += delta.x / 64;
+      }
+      previous = i;
 
       if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph %i\n"), i);
@@ -1189,13 +1222,17 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
       if (slot->format != ft_glyph_format_bitmap) {
         if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering\n"));
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering\n"));
       }
-      if (first) *width += slot->bitmap_left;
-      first = 0;
+      /* left shows the left edge relative to the base point. A positive value means the
+       * letter is shifted right, so we need to subtract the value from the width
+       */
+      if (first_glyph) *width -= slot->bitmap_left;
+      first_glyph = 0;
       *width += slot->advance.x >> 6;
-      /* font height from baseline to top */
-      *height = MAX(*height, slot->bitmap_top);
+      /* we return the height of the font for the height, so we are on the save side
+       */
+      *height = osd->ft2->face->height >> 6;
       text++;
     } else {
 #endif
@@ -1210,6 +1247,22 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
     } /* !(osd->ft2 && osd->ft2->useme) */
 #endif
   }
+
+#ifdef HAVE_FT2
+  if (osd->ft2 && osd->ft2->useme) {
+    /* if we have a true type font we need to do some corrections for the last
+     * letter. As this one is still in the gylph slot we can still work with
+     * it. For the last letter be must not use advance and width but the real
+     * width of the bitmap. We're right from the base point so we subtract the
+     * advance value that was added in the for-loop and add the width. We have
+     * to also add the left bearing because the letter might be shifted left or
+     * right and then the right edge is also shifted
+     */
+    *width -= osd->ft2->face->glyph->advance.x >> 6;
+    *width += osd->ft2->face->glyph->bitmap.width;
+    *width += osd->ft2->face->glyph->bitmap_left;
+  }
+#endif
 
   pthread_mutex_unlock (&this->osd_mutex);
 

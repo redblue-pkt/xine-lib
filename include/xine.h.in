@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.136 2004/12/14 20:45:22 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.137 2005/01/22 23:29:06 holstsn Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1822,15 +1822,14 @@ void        xine_osd_draw_line     (xine_osd_t *self, int x1, int y1,
 void        xine_osd_draw_rect     (xine_osd_t *self, int x1, int y1,
 				    int x2, int y2,
 				    int color, int filled );
-/* for freetype2 fonts x1 and y1 specifies the beginning of the baseline,
-   for xine fonts x1 and y1 specifies the upper left corner of the text
-   to be rendered */
+/*  x1 and y1 specifies the upper left corner of the text to be rendered */
 void        xine_osd_draw_text     (xine_osd_t *self, int x1, int y1,
 				    const char *text, int color_base);
 void        xine_osd_draw_bitmap   (xine_osd_t *self, uint8_t *bitmap,
 				    int x1, int y1, int width, int height,
 				    uint8_t *palette_map);
-/* for freetype2 fonts the height is taken from _baseline_ to top */
+/* for freetype2 fonts the height is the maximum height for the whole font and not
+ * only for the specified text */
 void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
 				    int *width, int *height);
 /* with freetype2 support compiled in, you can also specify a font file
@@ -1859,6 +1858,11 @@ void        xine_osd_clear         (xine_osd_t *self);
  * color index, up to the size of the text palette.
  *
  * Use OSD_TEXT1, OSD_TEXT2, ... for some preassigned color indices.
+ *
+ * these palettes are not really well working the true type fonts.
+ * First thing is that these fonts can not have a border. So the best
+ * result you can get by loading a linearly blending palette from the
+ * background (at index 0) to the forground color (at index 10)
  */
 void        xine_osd_set_text_palette (xine_osd_t *self,
 				       int palette_number,
