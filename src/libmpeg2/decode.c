@@ -520,6 +520,10 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   */
 }
 
+/* flush must never allocate any frame (get_frame/duplicate_frame).
+ * it is called from inside video_out loop and frame allocation
+ * may cause some (rare) deadlocks.
+ */
 void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 
   picture_t *picture = mpeg2dec->picture;
@@ -529,8 +533,6 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
   
   if (picture->current_frame && !picture->current_frame->drawn &&
       !picture->current_frame->bad_frame) {
-
-    vo_frame_t *img;
     
     printf ("libmpeg2: blasting out current frame %d on flush\n",
 	    picture->current_frame->id);
@@ -538,16 +540,8 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     picture->current_frame->drawn = 1;
     get_frame_duration(mpeg2dec, picture->current_frame);
     
-    /* output a copy instead of the frame used by decoder */
-    img = picture->current_frame->instance->duplicate_frame(picture->current_frame->instance, 
-								       picture->current_frame);
-    img->pts = 0;
-    img->bad_frame = 0;
-    img->drawn = 1; 
-    
-    img->draw(img);
-    img->free(img);
-
+    picture->current_frame->pts = 0;
+    picture->current_frame->draw(picture->current_frame);
   }
 
 }
