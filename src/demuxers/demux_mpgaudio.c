@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.52 2002/08/06 03:21:59 tmmm Exp $
+ * $Id: demux_mpgaudio.c,v 1.53 2002/08/10 21:39:53 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -121,10 +121,7 @@ static int mpg123_head_check(unsigned long head) {
 static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
 {
   int lsf, mpeg25;
-  int lay, sampling_frequency, bitrate_index, padding;
-  long framesize = 1;
-  static int bs[4] = {0, 384, 1152, 1152};
-  double tpf;
+  int lay, bitrate_index;
   char * ver;
 
   /*
@@ -149,44 +146,12 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
   /* Layer I, II, III */
   lay = 4-((newhead>>17)&3);
 
-/*
-  if(mpeg25) {
-    sampling_frequency = 6 + ((newhead>>10)&0x3);
-  }
-  else {
-    sampling_frequency = ((newhead>>10)&0x3) + (lsf*3);
-  }
-*/
-
   bitrate_index = ((newhead>>12)&0xf);
-/*
-  padding   = ((newhead>>9)&0x1);
-
-  switch(lay)
-  {
-    case 1:
-      framesize  = (long) tabsel_123[lsf][0][bitrate_index] * 12000;
-      framesize /= freqs[sampling_frequency];
-      framesize  = ((framesize+padding)<<2)-4;
-      break;
-    case 2:
-      framesize = (long) tabsel_123[lsf][1][bitrate_index] * 144000;
-      framesize /= freqs[sampling_frequency];
-      framesize += padding - 4;
-      break;
-    case 3:
-      framesize  = (long) tabsel_123[lsf][2][bitrate_index] * 144000;
-      framesize /= freqs[sampling_frequency]<<(lsf);
-      framesize = framesize + padding - 4;
-      break;
-  }
-
-  tpf = (double) bs[lay];
-  tpf /= freqs[sampling_frequency] << lsf;
-
-  this->bitrate = (double) framesize / tpf;
-*/
   this->bitrate = tabsel_123[lsf][lay - 1][bitrate_index];
+  
+  if( !this->bitrate ) /* bitrate can't be zero, default to 128 */
+    this->bitrate = 128;
+    
   xine_log (this->xine, XINE_LOG_FORMAT, 
 	    _("demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"), ver, lay, this->bitrate );
   this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1000 / 8));
@@ -214,7 +179,7 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
   buf_element_t *buf = NULL;
   uint32_t head;
   off_t buffer_pos;
-  uint64_t pts;
+  uint64_t pts = 0;
 
   buffer_pos = this->input->get_current_pos(this->input);
   if(this->audio_fifo)
@@ -240,13 +205,12 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
          break;
       }
     }
+  } else {
+    pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
+    check_newpts(this, pts);
   }
 
-  pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
-  check_newpts(this, pts);
-
   /*buf->pts             = 0;*/
-  /*buf->scr             = 0;*/
   buf->input_pos       = this->input->get_current_pos(this->input);
   buf->input_time      = buf->input_pos * this->stream_length /
                          this->input->get_length(this->input);
