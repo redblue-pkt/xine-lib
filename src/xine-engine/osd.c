@@ -39,9 +39,9 @@
 #include "video_out.h"
 #include "osd.h"
 
-
+/*
 #define LOG_DEBUG 1
-
+*/
 
 #ifdef MAX
 #undef MAX
