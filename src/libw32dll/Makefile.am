@@ -24,7 +24,7 @@ xineplug_decode_w32dll_la_LIBADD = $(top_builddir)/src/libw32dll/wine/libwine.la
 	$(top_builddir)/src/libw32dll/DirectShow/libds_filter.la @KSTAT_LIBS@
 #	$(top_builddir)/src/libw32dll/dshow_cpp/libds_filter.la @KSTAT_LIBS@
 
-noinst_HEADERS = w32codec.h
+noinst_HEADERS = w32codec.h libwin32.h
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

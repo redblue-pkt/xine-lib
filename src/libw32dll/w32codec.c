@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.43 2001/11/15 14:28:18 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.44 2001/11/16 17:55:20 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -40,7 +40,6 @@
 #include "DirectShow/guids.h"
 #include "DirectShow/DS_AudioDecoder.h"
 #include "DirectShow/DS_VideoDecoder.h"
-//#include "dshow_cpp/DS_AudioDec.h"
 
 #include "video_out.h"
 #include "audio_out.h"
@@ -86,6 +85,7 @@ typedef struct w32v_decoder_s {
   int               decoder_ok;
 
   BITMAPINFOHEADER  bih, o_bih; 
+  char              scratch1[10]; /* some codecs overflow o_bih */
   HIC               hic;
   int               yuv_supported ;
   int		    yuv_hack_needed ;
@@ -111,13 +111,16 @@ typedef struct w32a_decoder_s {
   audio_decoder_t   audio_decoder;
 
   ao_instance_t    *audio_out;
-    int		    output_open;
+  int               output_open;
   int               decoder_ok;
 
   unsigned char    *buf;
   int               size;   
   uint32_t          pts;
   uint32_t          scr;
+  
+  /* these are used for pts estimation */
+  uint32_t lastpts, sumpts, sumsize;
 
   unsigned char    *outbuf;
   int               outsize;
@@ -451,7 +454,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   if ( this->img_buffer )
     free (this->img_buffer);
   this->img_buffer = malloc (this->o_bih.biSizeImage);
-  
+    
   if ( this->buf )
     free (this->buf);
   this->bufsize = VIDEOBUFSIZE;
@@ -475,16 +478,8 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
 
   this->ldt_fs = Setup_LDT_Keeper();
   
-  outfmt = IMGFMT_15RGB;
-  if (this->yuv_supported) {
-    vo_cap = this->video_out->get_capabilities (this->video_out);
-    if (vo_cap & VO_CAP_YUY2)
-      outfmt = IMGFMT_YUY2;
-  }
-
   ci.dll=win32_codec_name;
   memcpy(&ci.guid,this->guid,sizeof(ci.guid));
-
   this->ds_dec = DS_VideoDecoder_Create(&ci, &this->bih, this->flipped, 0);
   
   if(!this->ds_dec){
@@ -493,9 +488,15 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
     this->decoder_ok = 0;
     return;
   }
-    
 
-  if(outfmt==IMGFMT_YUY2 || outfmt==IMGFMT_15RGB)
+  outfmt = IMGFMT_15RGB;
+  if (this->yuv_supported) {
+    vo_cap = this->video_out->get_capabilities (this->video_out);
+    if (vo_cap & VO_CAP_YUY2)
+      outfmt = IMGFMT_YUY2;
+  }
+
+  if(outfmt==IMGFMT_YUY2 || outfmt==IMGFMT_15RGB )
     this->o_bih.biBitCount=16;
   else
     this->o_bih.biBitCount=outfmt&0xFF;
@@ -706,6 +707,11 @@ static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
+  if ( !this->ds_driver ) {
+  } else {
+    DS_VideoDecoder_Destroy(this->ds_dec);
+  }
+  
   if ( this->img_buffer ) {
     free (this->img_buffer);
     this->img_buffer = NULL;
@@ -916,24 +922,38 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   HRESULT hr;
   int size_read, size_written;
   /* DWORD srcsize=0; */
-  int in_avg_pts_kbyte = 0;
-
-  
-  /* FIXME: the current code for estimating output pts don't work
-     on wraps and seeks!!!
-     also there might be serious sync problems. in short: it's 
-     somewhat broken and need fix.
+    
+  /* FIXME: this code still far from perfect, there are a/v sync
+     issues with some streams.
   */
   
-  if( !this->size || pts < this->pts || scr < this->scr ) {
+  /* buffer empty -> take pts/scr from package */
+  if( !this->size ) {
     this->pts = pts;
     this->scr = scr;
-  } else {
-    /* input based estimation disabled -> bad results */
-    /* in_avg_pts_kbyte = (pts - this->pts) * 1024 / this->size; */
+    /*
+    printf("w32codec: resync pts (%d)\n",this->pts);
+    */
+    this->sumpts = this->sumsize = 0;
+  } else if ( !this->pts ) {
+    if( pts )
+      this->sumpts += (pts - this->lastpts);
+    this->sumsize += size;
   }
   
-   
+  /* force resync every 4 seconds */
+  if( this->sumpts >= 4 * 90000 && pts ) {
+    this->pts = pts - this->size * this->sumpts / this->sumsize;
+    this->scr = scr - this->size * this->sumpts / this->sumsize; 
+    /*
+    printf("w32codec: estimated resync pts (%d)\n",this->pts);
+    */
+    this->sumpts = this->sumsize = 0;
+  }
+  
+  if( pts )
+    this->lastpts = pts;
+     
   if( this->size + size > this->max_audio_src_size ) {
     this->max_audio_src_size = this->size + size;
     printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
@@ -991,8 +1011,6 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	      ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
       */
       DstLengthUsed = ash.cbDstLengthUsed;
-      pts = this->pts;
-      scr = this->scr;
       p = this->outbuf;
       
       while( DstLengthUsed )
@@ -1009,14 +1027,13 @@ static void w32a_decode_audio (w32a_decoder_t *this,
         printf("  outputing %d bytes, pts = %d\n", bufsize, pts );
         */
 	audio_buffer->num_frames = bufsize / (this->num_channels*2);
-	audio_buffer->vpts       = pts;
-	audio_buffer->scr        = scr;
+	audio_buffer->vpts       = this->pts;
+	audio_buffer->scr        = this->scr;
 
 	this->audio_out->put_buffer (this->audio_out, audio_buffer);
         
-	pts += bufsize / (this->num_channels*2) * 90000 / this->rate;
-        scr += bufsize / (this->num_channels*2) * 90000 / this->rate;
-	DstLengthUsed -= bufsize;
+	this->pts = this->scr = 0;
+        DstLengthUsed -= bufsize;
 	p += bufsize;
       }
     }
@@ -1025,14 +1042,6 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     } else {
       this->size-=ash.cbSrcLengthUsed;
       fast_memcpy( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
-      
-      if( in_avg_pts_kbyte ) {
-        this->pts += ash.cbSrcLengthUsed * in_avg_pts_kbyte / 1024;
-        this->scr += ash.cbSrcLengthUsed * in_avg_pts_kbyte / 1024;
-      } else {
-        this->pts += ash.cbDstLengthUsed / (this->num_channels*2) * 90000 / this->rate;
-        this->scr += ash.cbDstLengthUsed / (this->num_channels*2) * 90000 / this->rate;
-      }
     }
 
     if( !this->ds_driver ) {
