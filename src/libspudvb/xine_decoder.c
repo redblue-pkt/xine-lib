@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2004/12/18 19:47:02 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.16 2004/12/18 19:51:46 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -575,7 +575,6 @@ static void* dvbsub_timer_func(void *this_gen) {
     dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
 
     while (!this->dvbsub_timer_stop) {
-printf("Foo Nasty Thread here...\n");
 	pthread_mutex_lock(&this->dvbsub_timer_mutex);      
 	if(this->dvbsub_timer_tcount++ > SUB_TIMEOUT)
           this->stream->osd_renderer->hide (this->osd, 0);
