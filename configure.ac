@@ -1173,6 +1173,7 @@ echo "   - idcin         - wav"
 echo "   - wc3 mve       - voc"
 echo "   - vqa           - aiff"
 echo "   - cda           - snd/au"
+echo "   - yuv4mpeg2"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
