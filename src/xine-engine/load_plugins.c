@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.197 2005/02/12 15:13:30 tmattern Exp $
+ * $Id: load_plugins.c,v 1.198 2005/02/13 14:24:26 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -357,7 +357,6 @@ static void _insert_node (xine_t *this,
 
   _x_assert(this);
   _x_assert(list);
-  _x_assert(file);
   _x_assert(info);
   if (info->API != api_version) {
     xprintf(this, XINE_VERBOSITY_LOG, 
@@ -398,9 +397,14 @@ static void _insert_node (xine_t *this,
     decoder_old = info->special_info;
     decoder_new = xine_xmalloc(sizeof(decoder_info_t));
     if (decoder_old == NULL) {
-      xprintf (this, XINE_VERBOSITY_DEBUG,
-	       "load_plugins: plugin %s from %s is broken: special_info = NULL\n",
-	       info->id, entry->file->filename);
+      if (file)
+	xprintf (this, XINE_VERBOSITY_DEBUG,
+		 "load_plugins: plugin %s from %s is broken: special_info = NULL\n",
+		 info->id, entry->file->filename);
+      else
+	xprintf (this, XINE_VERBOSITY_DEBUG,
+		 "load_plugins: statically linked plugin %s is broken: special_info = NULL\n",
+		 info->id);
       _x_abort();
     }
     for (i=0; decoder_old->supported_types[i] != 0; ++i);
@@ -477,8 +481,8 @@ static void _insert_node (xine_t *this,
     break;
   }
 
-  if (info->type & PLUGIN_NO_UNLOAD) {
-    entry->file->no_unload = 1;
+  if (file && (info->type & PLUGIN_NO_UNLOAD)) {
+    file->no_unload = 1;
   }
 
   xine_list_append_priority_content (list, entry, priority);
@@ -506,21 +510,28 @@ static plugin_catalog_t *_new_catalog(void){
   return catalog;
 }
 
-
-static void _register_plugins(xine_t *this, plugin_file_t *file, plugin_info_t *info) {
+static void _register_plugins_internal(xine_t *this, plugin_file_t *file, plugin_info_t *info) {
   _x_assert(this);
   _x_assert(info);
 
   while ( info && info->type != PLUGIN_NONE ){
-    
-    xine_log (this, XINE_LOG_PLUGIN,
-	      _("load_plugins: plugin %s found\n"), file->filename);
-    
+
+    if (file)
+      xine_log (this, XINE_LOG_PLUGIN,
+		_("load_plugins: plugin %s found\n"), file->filename);
+    else
+      xine_log (this, XINE_LOG_PLUGIN,
+		_("load_plugins: static plugin found\n"));
+      
     if (this->plugin_catalog->plugin_count >= PLUGIN_MAX ||
 	(this->plugin_catalog->decoder_count >= DECODER_MAX &&
 	 info->type >= PLUGIN_AUDIO_DECODER && info->type <= PLUGIN_SPU_DECODER)) {
-      xine_log (this, XINE_LOG_PLUGIN,
-		_("load_plugins: plugin limit reached, %s could not be loaded\n"), file->filename);
+      if (file)
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("load_plugins: plugin limit reached, %s could not be loaded\n"), file->filename);
+      else
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("load_plugins: plugin limit reached, static plugin could not be loaded\n"));
     } else {
       switch (info->type & PLUGIN_TYPE_MASK){
       case PLUGIN_INPUT:
@@ -559,14 +570,18 @@ static void _register_plugins(xine_t *this, plugin_file_t *file, plugin_info_t *
 		      POST_PLUGIN_IFACE_VERSION);
 	break;
       default:
-	xine_log (this, XINE_LOG_PLUGIN,
-		  _("load_plugins: unknown plugin type %d in %s\n"),
-		  info->type, file->filename);
+	if (file)
+	  xine_log (this, XINE_LOG_PLUGIN,
+		    _("load_plugins: unknown plugin type %d in %s\n"),
+		    info->type, file->filename);
+	else
+	  xine_log (this, XINE_LOG_PLUGIN,
+		    _("load_plugins: unknown statically linked plugin type %d\n"), info->type);
       }
       this->plugin_catalog->plugin_count++;
     }
     
-    /* get next info either from lib or cache */
+    /* get next info */
     if( file && !file->lib_handle ) {
       lprintf("get cached info\n");
       info = _get_cached_info (this, file->filename, file->filesize, file->filemtime, info);
@@ -574,6 +589,10 @@ static void _register_plugins(xine_t *this, plugin_file_t *file, plugin_info_t *
       info++;
     }
   }
+}
+
+void xine_register_plugins(xine_t *self, plugin_info_t *info) {
+  return _register_plugins_internal(self, NULL, info);
 }
 
 /*
@@ -667,7 +686,7 @@ static void collect_plugins(xine_t *this, char *path){
 
 	      file = _insert_file(this, this->plugin_catalog->file, str, &statbuffer, lib);
 
-	      _register_plugins(this, file, info);
+	      _register_plugins_internal(this, file, info);
 	    }
 	    else {
 	      const char *error = dlerror();

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.16 2004/06/10 18:54:31 mroi Exp $
+ * $Id: xine_plugin.h,v 1.17 2005/02/13 14:24:25 tmattern Exp $
  *
  * generic plugin definitions
  *
@@ -89,5 +89,18 @@ typedef struct {
 typedef struct {
   int                      priority;
 } input_info_t;
+
+
+/* register a list of statically linked plugins
+ * info is a list of plugin_info_t terminated by PLUGIN_NONE
+ * example:
+ *   plugin_info_t acme_plugin_info[] = {
+ *     { PLUGIN_VIDEO_OUT, 20, "acme", XINE_VERSION_CODE, &vo_info_acme,
+ *   init_class_acme },
+ *     { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+ *   };
+ *
+ */
+void xine_register_plugins(xine_t *self, plugin_info_t *info);
 
 #endif
