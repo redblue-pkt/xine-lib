@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.74 2002/11/01 17:41:04 mroi Exp $
+ * $Id: demux_asf.c,v 1.75 2002/11/03 20:39:28 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -40,9 +40,9 @@
 #include "demux.h"
 #include "xineutils.h"
 
-/*
+
 #define LOG
-*/
+
 
 #define PACKET_SIZE        3200
 #define PACKET_HEADER_SIZE   12
@@ -396,6 +396,12 @@ static int asf_read_header (demux_asf_t *this) {
   get_guid(this, &g);
   if (memcmp(&g, &asf_header, sizeof(GUID))) {
     printf ("demux_asf: file doesn't start with an asf header\n");
+#ifdef LOG
+    printf ("demux_asf: GUID: 0x%x, 0x%x, 0x%x, "
+	    "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
+	    g.v1, g.v2, g.v3,
+	    g.v4[0], g.v4[1], g.v4[2], g.v4[3], g.v4[4], g.v4[5], g.v4[6], g.v4[7]);
+#endif
     return 0;
   }
   get_le64(this);
@@ -1313,6 +1319,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 	input->seek (input, 0, SEEK_SET);
 	if (input->read (input, buf, 8192) != 8192)
 	  return NULL;
+
+#ifdef LOG
+	printf ("demux_asf: PREVIEW data unavailable, but seek+read worked.\n");
+#endif
 
       } else
 	return NULL;

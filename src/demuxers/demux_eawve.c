@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.2 2002/11/03 01:11:14 komadori Exp $
+ * $Id: demux_eawve.c,v 1.3 2002/11/03 20:39:28 guenter Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -137,12 +137,12 @@ static int process_header(demux_eawve_t *this)
   int inHeader;
   uint32_t blockid, size;
 
-  if (this->input->get_current_pos(this->input) != 0) {
-    if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-      return 0;
-    }
-    this->input->seek(this->input, 0, SEEK_SET);
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    /* FIXME: use preview data in that case */
+    return 0;
   }
+
+  this->input->seek(this->input, 0, SEEK_SET);
 
   if (this->input->read(this->input, (void*)&blockid, 4) != 4) {
     return 0;
