@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.121 2004/03/03 20:09:18 mroi Exp $
+ * $Id: audio_decoder.c,v 1.122 2004/03/03 20:17:40 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -410,7 +410,8 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
     stream->audio_fifo = _x_dummy_fifo_buffer_new (5, 8192);
     return;
   } else {
-  
+    int num_buffers;
+    
     /* The fifo size is based on dvd playback where buffers are filled
      * with 2k of data. With 230 buffers and a typical audio data rate
      * of 1.8 Mbit/s (four ac3 streams), the fifo can hold about 2 seconds
@@ -418,7 +419,15 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
      * We provide buffers of 8k size instead of 2k for demuxers sending
      * larger chunks.
      */
-    stream->audio_fifo = _x_fifo_buffer_new (230, 8192);
+    
+    num_buffers = stream->xine->config->register_num (stream->xine->config,
+                                                      "audio.num_buffers",
+                                                      230,
+                                                      "number of audio buffers to allocate (higher values mean smoother playback but higher latency)",
+                                                      NULL, 20,
+                                                      NULL, NULL);
+  
+    stream->audio_fifo = _x_fifo_buffer_new (num_buffers, 8192);
     stream->audio_channel_user = -1;
     stream->audio_channel_auto = -1;
     stream->audio_track_map_entries = 0;
