@@ -8,6 +8,8 @@ if HAVE_VIDIX
 dha_lib = libdha.la
 endif
 
+awk_generated = pci_dev_ids.c pci_ids.h pci_names.c pci_names.h pci_vendors.h
+
 noinst_LTLIBRARIES = $(dha_lib)
 
 libdha_la_SOURCES = libdha.c mtrr.c pci.c pci_names.c mmi.c
@@ -22,17 +24,18 @@ noinst_HEADERS = AsmMacros.h libdha.h
 ## for OpenBSD LIBS += -li386
 
 ## We have to create some files, on the fly, this is why this rule is needed.
-awk-depends:
+pci_db2c.awk:
+oth/pci.db:
+
+$(awk_generated): pci_db2c.awk oth/pci.db
 	$(AWK) -f $(top_srcdir)/src/video_out/libdha/pci_db2c.awk \
 	  $(top_srcdir)/src/video_out/libdha/oth/pci.db
 
-pci_names.lo: awk-depends
+pci_names.lo: $(awk_generated)
 	source='$*.c' object='$@' libtool=yes \
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
 	$(LTCOMPILE) -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
-
-pci_names.c: awk-depends
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @STATIC@ -DXINE_COMPILE"
@@ -45,7 +48,7 @@ install-debug: debug
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* test
-	-rm -f pci_dev_ids.c pci_ids.h pci_names.c pci_names.h pci_vendors.h
+	-rm -f $(awk_generated)
 
 maintainer-clean-generic:
 	-@echo "This command is intended for maintainers to use;"
