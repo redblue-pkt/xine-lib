@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.53 2003/11/15 20:43:11 mroi Exp $
+ * $Id: metronom.h,v 1.54 2003/11/16 12:15:21 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -166,16 +166,24 @@ struct metronom_s {
   void (*set_option) (metronom_t *self, int option, int64_t value);
   int64_t (*get_option) (metronom_t *self, int option);
   
+  /*
+   * set a master metronom
+   * this is currently useful to sync independently generated streams
+   * (e.g. by post plugins) to the discontinuity domain of another
+   * metronom
+   */
+  void (*set_master) (metronom_t *self, metronom_t *master);
+  
   void (*exit) (metronom_t *self);
 
-  /*
-   * pointer to current xine object. 
-   */
-  xine_t *xine;
-  
+/*#ifdef XINE_ENGINE_INTERNAL*/
+#if 1
   /*
    * metronom internal stuff
    */
+  xine_t         *xine;
+  
+  metronom_t     *master;
 
   int64_t         pts_per_smpls;
 
@@ -213,6 +221,7 @@ struct metronom_s {
   int64_t         last_video_pts;
   int64_t         last_audio_pts;
   
+#endif
 };
 
 /*
