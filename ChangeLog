@@ -1,3 +1,13 @@
+xine (0.9.1) unstable; urgency=low
+
+  * support for subtitle names
+  * new software deinterlacer (try --deinterlace; caution: CPU intensive!)
+  * new --version argument
+  * autoconf-2.52/automake-1.5 support (please test!)
+  * lots of small bugfxes...
+
+ -- Siggi Langauf <siggi@debian.org>  Tue, 18 Sep 2001 01:48:38 +0200
+
 xine (0.9.0) unstable; urgency=low
 
   * generic menu support
