@@ -166,7 +166,7 @@ xineplug_dmx_eawve_la_SOURCES = demux_eawve.c
 xineplug_dmx_eawve_la_LIBADD = $(XINELIB)
 xineplug_dmx_eawve_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-include_HEADERS = demux.h qtpalette.h
+include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h
 
 $(XINELIB):
