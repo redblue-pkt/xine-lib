@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.15 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_realaudio.c,v 1.16 2003/01/23 16:12:14 miguelfreitas Exp $
  *
  */
 
@@ -374,7 +374,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return NULL;
+  return "audio/x-realaudio: ra: RealAudio File;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {

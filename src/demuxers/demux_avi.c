@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.147 2003/01/10 21:10:56 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.148 2003/01/23 16:12:00 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1563,8 +1563,8 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "video/msvideo: avi: AVI animation;"
-         "video/x-msvideo: avi: AVI animation;";
+  return "video/msvideo: avi: AVI video;"
+         "video/x-msvideo: avi: AVI video;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.156 2003/01/11 11:29:22 esnel Exp $
+ * $Id: demux_mpeg_block.c,v 1.157 2003/01/23 16:12:04 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1180,7 +1180,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "";
+  return NULL;
 }
 
 static void class_dispose (demux_class_t *this_gen) {

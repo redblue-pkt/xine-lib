@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.5 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.6 2003/01/23 16:12:03 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -368,10 +368,10 @@ static char *get_extensions(demux_class_t *this_gen)
 
 static char *get_mimetypes(demux_class_t *this_gen)
 {
-  return "image/png: png: PNG image"
-         "image/x-png: png: PNG image"
-         "video/mng: mng: MNG animation"
-         "video/x-mng: mng: MNG animation";
+  return "image/png: png: PNG image;"
+         "image/x-png: png: PNG image;"
+         "video/mng: mng: MNG animation;"
+         "video/x-mng: mng: MNG animation;";
 }
 
 static void class_dispose(demux_class_t *this)

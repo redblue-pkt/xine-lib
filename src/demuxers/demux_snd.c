@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.25 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_snd.c,v 1.26 2003/01/23 16:12:15 miguelfreitas Exp $
  *
  */
 
@@ -403,7 +403,10 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return NULL;
+  return "audio/basic: snd,au: ULAW (Sun) audio;"
+         "audio/x-basic: snd,au: ULAW (Sun) audio;"
+         "audio/x-pn-au: snd,au: ULAW (Sun) audio;"; 
+
 }
 
 static void class_dispose (demux_class_t *this_gen) {

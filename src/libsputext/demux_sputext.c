@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.9 2003/01/12 15:29:08 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.10 2003/01/23 16:12:19 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -994,7 +994,10 @@ static char *get_demux_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_demux_mimetypes (demux_class_t *this_gen) {
-  return "text/plain: asc txt sub srt: VIDEO subtitles;";
+  return NULL;
+
+  /* do not report this mimetype, it might confuse browsers. */
+  /* "text/plain: asc txt sub srt: VIDEO subtitles;" */
 }
 
 static void demux_class_dispose (demux_class_t *this_gen) {

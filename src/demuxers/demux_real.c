@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_real.c,v 1.37 2003/01/23 16:12:13 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -416,17 +416,9 @@ static void real_parse_headers (demux_real_t *this) {
 		  return;
 		}
 	      
-		if (!strncmp (fourcc, "dnet", 4)) 
-		  this->audio_buf_type = BUF_AUDIO_DNET;
-		else if (!strncmp (fourcc, "sipr", 4)) 
-		  this->audio_buf_type = BUF_AUDIO_SIPRO;
-		else if (!strncmp (fourcc, "cook", 4))
-		  this->audio_buf_type = BUF_AUDIO_COOK;
-		else if (!strncmp (fourcc, "atrc", 4))
-		  this->audio_buf_type = BUF_AUDIO_ATRK;
-		else 
-		  this->audio_buf_type = 0;
-		
+		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = *(uint32_t *)fourcc;
+		this->audio_buf_type = formattag_to_buf_audio(*(uint32_t *)fourcc);
+
 #ifdef LOG
 		printf ("demux_real: audio codec, buf type %08x\n",
 			this->audio_buf_type);
@@ -468,37 +460,17 @@ static void real_parse_headers (demux_real_t *this) {
 #endif
 		this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = mdpr->avg_bit_rate;
 
-                /* if ( strncmp(video_fmt, "RV10", 4) == 0 ) {
-                  this->video_stream_num = mdpr->stream_number;
-                  this->video_buf_type   = BUF_VIDEO_RV10;
-                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-#ifdef LOG
-                  printf("demux_real: RV10 video detected\n");
-#endif
-                } else */ if ( strncmp(video_fmt, "RV20", 4) == 0 ) {
-                  this->video_stream_num = mdpr->stream_number;
-                  this->video_buf_type   = BUF_VIDEO_RV20;
-                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-#ifdef LOG
-                  printf("demux_real: RV20 video detected\n");
-#endif
-                } else if ( strncmp(video_fmt, "RV30", 4) == 0 ) {
-                  this->video_stream_num = mdpr->stream_number;
-                  this->video_buf_type   = BUF_VIDEO_RV30;
-                  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+                this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = *(uint32_t *)video_fmt;
 
-#ifdef LOG
-                  printf("demux_real: RV30 video detected\n");
-#endif
-                } else if ( strncmp(video_fmt, "RV40", 4) == 0 ) {
+                this->video_buf_type = fourcc_to_buf_video(*(uint32_t *)video_fmt);
+
+		if( this->video_buf_type ) {
+
                   this->video_stream_num = mdpr->stream_number;
-                  this->video_buf_type   = BUF_VIDEO_RV40;
                   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-#ifdef LOG
-                  printf("demux_real: RV40 video detected\n");
-#endif
                 } else {
-                  fprintf(stderr, "demux_real: codec not recognized as video\n");
+                  printf("demux_real: video codec [%c%c%c%c] not recognized\n", 
+                         video_fmt[0],video_fmt[1],video_fmt[2],video_fmt[3]);
                 }
 
                 if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] ) {
@@ -1177,8 +1149,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/x-pn-realaudio: ra, rm, ram: Real Media File;"
-         "audio/x-realaudio: ra: Real Media File;"; 
+  return "audio/x-pn-realaudio: ra, rm, ram: Real Media File;"; 
 }
 
 static void class_dispose (demux_class_t *this_gen) {

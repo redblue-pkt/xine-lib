@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.36 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_fli.c,v 1.37 2003/01/23 16:12:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -365,7 +365,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return NULL;
+  return "video/x-flic: fli,flc: Autodesk FLIC files;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {

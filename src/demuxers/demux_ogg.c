@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.60 2003/01/10 21:11:05 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.61 2003/01/23 16:12:12 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1045,7 +1045,8 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/x-ogg: ogg: OggVorbis Audio;";
+  return "audio/x-ogg: ogg: OggVorbis Audio;"
+         "application/x-ogg: ogg: OggVorbis Audio;"; 
 }
 
 static void class_dispose (demux_class_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.51 2003/01/18 15:29:21 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.52 2003/01/23 16:12:19 miguelfreitas Exp $
  *
  *
  * contents:
@@ -264,13 +264,6 @@ static video_db_t video_db[] = {
 },
 {
   {
-    0
-  },
-  BUF_VIDEO_RV10,
-  ""
-},
-{
-  {
     meFOURCC('D','I','B',' '),  /* device-independent bitmap */
     meFOURCC('r','a','w',' '),
     0
@@ -503,6 +496,31 @@ static video_db_t video_db[] = {
 },
 {
   {
+    meFOURCC('R', 'V', '1', '0'),
+    0
+  },
+  BUF_VIDEO_RV10,
+  "Real Video 1.0"
+},
+{
+  {
+    meFOURCC('R', 'V', '2', '0'),
+    0
+  },
+  BUF_VIDEO_RV20,
+  "Real Video 2.0"
+},
+{
+  {
+    meFOURCC('R', 'V', '3', '0'),
+    0
+  },
+  BUF_VIDEO_RV30,
+  "Real Video 3.0"
+},
+{
+  {
+    meFOURCC('R', 'V', '4', '0'),
     0
   },
   BUF_VIDEO_RV40,
@@ -718,6 +736,30 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_DNET,
   "RealAudio DNET"
+},
+{
+  {
+    meFOURCC('s', 'i', 'p', 'r'),
+    0
+  },
+  BUF_AUDIO_SIPRO,
+  "RealAudio SIPRO"
+},
+{
+  {
+    meFOURCC('c', 'o', 'o', 'k'),
+    0
+  },
+  BUF_AUDIO_COOK,
+  "RealAudio COOK"
+},
+{
+  {
+    meFOURCC('a', 't', 'r', 'c'),
+    0
+  },
+  BUF_AUDIO_ATRK,
+  "RealAudio ATRK"
 },
 {
   {

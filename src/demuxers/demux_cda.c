@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.40 2003/01/10 21:10:57 miguelfreitas Exp $
+ * $Id: demux_cda.c,v 1.41 2003/01/23 16:12:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -259,7 +259,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/cda: CD Audio";
+  return NULL;
 }
 
 static void class_dispose (demux_class_t *this_gen) {

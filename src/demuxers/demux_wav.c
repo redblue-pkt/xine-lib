@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.35 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_wav.c,v 1.36 2003/01/23 16:12:15 miguelfreitas Exp $
  *
  */
 
@@ -403,7 +403,10 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return NULL;
+  return "audio/x-wav: wav: WAV audio;"
+         "audio/wav: wav: WAV audio;"
+         "audio/x-pn-wav: wav: WAV audio;"
+         "audio/x-pn-windows-acm: wav: WAV audio;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
