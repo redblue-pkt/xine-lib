@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.203 2004/07/06 22:53:23 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.204 2004/07/15 21:20:06 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -405,9 +405,11 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     }
     frames_to_skip = ((-1 * diff) / duration + this->frame_drop_limit) * 2;
 
-    if (frames_to_skip < 0)
+    /* do not skip decoding until output fifo frames are consumed */
+    if (this->display_img_buf_queue->num_buffers > this->frame_drop_limit ||
+        frames_to_skip < 0)
       frames_to_skip = 0;
-
+      
     lprintf ("delivery diff : %" PRId64 ", current vpts is %" PRId64 ", %d frames to skip\n",
 	     diff, cur_vpts, frames_to_skip);
     
