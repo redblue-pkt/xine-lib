@@ -45,7 +45,7 @@
 #include <zlib.h>
 #include <inttypes.h>
 
-#include "Imlib.h"
+#include <Imlib.h>
 
 #define LUMARED   0.299
 #define LUMAGREEN 0.587
