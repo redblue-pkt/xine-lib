@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.30 2003/02/21 01:55:18 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.31 2003/02/21 19:54:52 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -46,6 +46,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
+#include <errno.h>
 #endif
 
 #include "xine.h"
@@ -1100,24 +1101,44 @@ static vo_info_t vo_info_vidix = {
 
 #ifdef HAVE_FB
 static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
-  vidix_driver_t          *this = open_plugin(class_gen);
-  int                      fd;
-  struct fb_var_screeninfo fb_var;
+  vidix_driver_t           *this = open_plugin(class_gen);
+  config_values_t          *config = this->config;
+  char                     *device;
+  int                       fd;
+  struct fb_var_screeninfo  fb_var;
     
   this->visual_type = XINE_VISUAL_TYPE_FB;
   
-  fd = open("/dev/fb0", O_RDONLY);
-  ioctl(fd, FBIOGET_VSCREENINFO, &fb_var);
+  /* Register config option for fb device */
+  device = config->register_string(config, "video.vidixfb_device", "/dev/fb0",
+    "frame buffer device for vidix overlay", NULL, 10, NULL, NULL);
   
+  /* Open fb device for reading */
+  if((fd = open("/dev/fb0", O_RDONLY)) < 0) {
+    printf("video_out_vidix: unable to open frame buffer device \"%s\": %s\n", 
+      device, strerror(errno));
+    return NULL;
+  }
+  
+  /* Read screen info */
+  if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) != 0) {
+    perror("video_out_vidix: error in ioctl FBIOGET_VSCREENINFO");
+    close(fd);
+    return NULL;
+  }
+  
+  /* Store screen bpp and dimensions */
   this->depth = fb_var.bits_per_pixel;
   this->fb_width = fb_var.xres;
   this->fb_height = fb_var.yres;
   
+  /* Close device */
   close(fd);
   
   this->sc.frame_output_cb   = vidixfb_frame_output_cb;
   this->sc.user_data         = this;
     
+  /* No need for colour key on the frame buffer */
   this->use_colourkey = 0;
   
   query_fourccs(this);
