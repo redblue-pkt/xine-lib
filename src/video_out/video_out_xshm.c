@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.31 2001/09/09 15:49:22 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.32 2001/09/10 00:53:06 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -226,7 +226,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
     this->bytes_per_pixel = this->bpp / 8;
     this->byte_order = myimage->byte_order;
     
-    shminfo->shmid=shmget(IPC_PRIVATE, 
+    shminfo->shmid=shmget(IPC_PRIVATE,
 			  myimage->bytes_per_line * myimage->height, 
 			  IPC_CREAT | 0777);
     
@@ -365,7 +365,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
     this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
 				src[0], src[1], src[2]);
   } else {
-    
+
     this->yuv2rgb->yuy22rgb_fun (this->yuv2rgb, frame->rgb_dst,
 				 src[0]);
 				 
@@ -748,7 +748,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     this->expecting_event--;
     frame->vo_frame.displayed (&frame->vo_frame);
-    
+
   } else {
 
     if ( (frame->rgb_width != this->last_frame_rgb_width)
@@ -776,34 +776,37 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
     XLockDisplay (this->display);
 
+    if( this->cur_frame )
+      this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
     this->cur_frame = frame;
 
     xoffset  = (this->gui_width - frame->rgb_width) / 2;
     yoffset  = (this->gui_height - frame->rgb_height) / 2;
 
     if (this->use_shm) {
-    
-      XShmPutImage(this->display, 
+
+      XShmPutImage(this->display,
 		   this->drawable, this->gc, frame->image,
 		   0, 0, xoffset, yoffset,
 		   frame->rgb_width, frame->rgb_height, True);
 
       this->expecting_event = 10;
 
-      XFlush(this->display); 
-    
+      XFlush(this->display);
+
     } else {
 
-      XPutImage(this->display, 
+      XPutImage(this->display,
 		this->drawable, this->gc, frame->image,
 		0, 0, xoffset, yoffset,
 		frame->rgb_width, frame->rgb_height);
-      
-      XFlush(this->display); 
-      
+
+      XFlush(this->display);
+
       frame->vo_frame.displayed (&frame->vo_frame);
+      this->cur_frame = NULL;
     }
-    
+
     XUnlockDisplay (this->display);
     
   }
@@ -845,7 +848,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void xshm_get_property_min_max (vo_driver_t *this_gen, 
+static void xshm_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* xshm_driver_t *this = (xshm_driver_t *) this_gen;  */
@@ -927,18 +930,18 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
     break;
   case GUI_DATA_EX_COMPLETION_EVENT: {
-   
+
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
     
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
-      
+
       if (this->cur_frame) {
 	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
 	this->cur_frame = NULL;
       }
     }
-    
+
   }
   break;
 
@@ -961,10 +964,10 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
       if (this->use_shm) {
 	
-	XShmPutImage(this->display, 
+	XShmPutImage(this->display,
 		     this->drawable, this->gc, this->cur_frame->image,
 		     0, 0, xoffset, yoffset,
-		     this->cur_frame->rgb_width, this->cur_frame->rgb_height, 
+		     this->cur_frame->rgb_width, this->cur_frame->rgb_height,
 		     False);
     
       } else {
@@ -1044,7 +1047,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->zoom_mpeg1	    = config->lookup_int (config, "zoom_mpeg1", 1);
   /*
    * FIXME: replace getenv() with config->lookup_int, merge with zoom_mpeg1?
-   * 
+   *
    * this->video_scale = config->lookup_int (config, "video_scale", 2);
    *  0: disable all scaling (including aspect ratio switching, ...)
    *  1: enable aspect ratio switch
@@ -1083,7 +1086,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XGetWindowAttributes(display, this->drawable, &attribs);
   this->visual = attribs.visual;
   this->depth  = attribs.depth;
-  
+
   if (this->depth>16) 
     printf ("\n\n"
 	    "WARNING: current display depth is %d. For better performance\n"
