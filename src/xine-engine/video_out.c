@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.33 2001/07/10 19:33:05 guenter Exp $
+ * $Id: video_out.c,v 1.34 2001/07/11 23:31:45 guenter Exp $
  *
  */
 
@@ -36,7 +36,7 @@
 #include "utils.h"
 #include "monitor.h"
 
-#define NUM_FRAME_BUFFERS     20
+#define NUM_FRAME_BUFFERS     15
 
 struct img_buf_fifo_s {
   vo_frame_t        *first;

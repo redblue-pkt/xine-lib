@@ -264,6 +264,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		picture->current_frame->bFrameBad = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
 		mpeg2dec->pts = 0;
+		picture->current_frame->field(picture->current_frame, 
+					      picture->picture_structure);
 
 	    }
 	}
