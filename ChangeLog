@@ -1,3 +1,6 @@
+xine-lib (1-rc3)
+  * fix dvd menu blending when using tvtime plugin (yuy2 blend)
+
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
   * Fix some errors in sound state when exiting xine and using alsa.
