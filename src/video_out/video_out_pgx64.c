@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.25 2003/04/03 21:30:25 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.26 2003/04/09 21:47:35 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -693,14 +693,20 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   class->instance_count++;
   pthread_mutex_unlock(&class->mutex);
 
-  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/m640", "name of pgx64 device", NULL, 10, NULL, NULL);
+  devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", "name of pgx64 device", NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    printf("video_out_pgx64: can't open framebuffer device (%s)\n", devname);
+    printf("video_out_pgx64: can't open framebuffer device '%s'\n", devname);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
     printf("video_out_pgx64: ioctl failed, unable to determine framebuffer characteristics\n");
+    close(fbfd);
+    return NULL;
+  }
+
+  if (attr.real_type != 22) {
+    printf("video_out_pgx64: '%s' is not a mach64 framebuffer device\n", devname);
     close(fbfd);
     return NULL;
   }
