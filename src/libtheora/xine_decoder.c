@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2003/05/01 20:53:24 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.4 2003/05/03 17:27:02 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -74,7 +74,7 @@ static void readin_op (theora_decoder_t *this, char* src, int size) {
     this->packet=realloc(this->packet, this->op_max_size);
     this->op.packet=this->packet;
   }
-  memcpy ( this->packet+this->done, src, size);
+  xine_fast_memcpy ( this->packet+this->done, src, size);
   this->done=this->done+size;
 }
 
@@ -87,14 +87,14 @@ static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
   /*fixme - clarify if the frame must be copied or if there is a simpler solution
    like exchanging the pointers*/
   for(i=0;i<yuv->y_height;i++)
-    memcpy(frame->base[0]+yuv->y_width*i, 
+    xine_fast_memcpy(frame->base[0]+yuv->y_width*i, 
 	   yuv->y+yuv->y_stride*i, 
 	   yuv->y_width);
   for(i=0;i<yuv->uv_height;i++){
-    memcpy(frame->base[2]+yuv->uv_width*i, 
+    xine_fast_memcpy(frame->base[2]+yuv->uv_width*i, 
 	   yuv->v+yuv->uv_stride*i, 
 	   yuv->uv_width);
-    memcpy(frame->base[1]+yuv->uv_width*i, 
+    xine_fast_memcpy(frame->base[1]+yuv->uv_width*i, 
 	   yuv->u+yuv->uv_stride*i, 
 	   yuv->uv_width);
   }
@@ -110,7 +110,7 @@ static int collect_data (theora_decoder_t *this, buf_element_t *buf ) {
     this->reject=0;/*new packet - new try*/ 
 
     /*copy the ogg_packet struct and the sum, correct the adress of the packet*/
-    memcpy (&this->op, buf->content, op_size);
+    xine_fast_memcpy (&this->op, buf->content, op_size);
     this->op.packet=this->packet;
 
     readin_op (this, buf->content + op_size, buf->size - op_size );
@@ -179,7 +179,7 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     ret=theora_decode_packetin( &this->t_state, &this->op);
 
     if ( ret!=0) {
-      printf ("libtheora:Recieved an bad packet\n");
+      printf ("libtheora:Recieved a bad packet\n");
     } else if (!this->skipframes) {
 
       theora_decode_YUVout(&this->t_state,&yuv);
@@ -196,9 +196,9 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       frame->duration=this->frame_duration;
       this->skipframes=frame->draw(frame, this->stream);
       frame->free(frame);
-    } else
-      this->skipframes=0;
-      theora_decode_YUVout(&this->t_state,&yuv);
+    } else {
+      this->skipframes=this->skipframes-1;
+    }
   }
 }
 
