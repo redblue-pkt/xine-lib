@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.35 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_sdl.c,v 1.36 2003/12/29 18:07:49 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -85,6 +85,8 @@ struct sdl_driver_s {
   vo_driver_t        vo_driver;
 
   config_values_t   *config;
+  
+  int                hw_accel;
 
   SDL_Surface       *surface;
   uint32_t           sdlflags;
@@ -100,7 +102,7 @@ struct sdl_driver_s {
   int                screen;
   Drawable           drawable;
 #endif
-
+  
   vo_scale_t         sc;
   xine_t            *xine;
 };
@@ -459,14 +461,18 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes     window_attributes;
 #endif
-
+  
   this = (sdl_driver_t *) xine_xmalloc (sizeof (sdl_driver_t));
-  if (this)
+  if (!this)
     return NULL;
 
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
+  
+  this->hw_accel = class->config->register_bool(class->config, 
+    "video.sdl_hw_accel", 1, "use hardware acceleration if available",
+    NULL, 10, NULL, this);
 
-  xine_setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
+  xine_setenv("SDL_VIDEO_YUV_HWACCEL", (this->hw_accel) ? "1" : "0", 1);
   xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
 
   this->xine              = class->xine;
@@ -540,6 +546,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vo_driver.redraw_needed        = sdl_redraw_needed;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: in case of trouble, try setting video.sdl_hw_accel=0\n");
   xprintf (this->xine, XINE_VERBOSITY_LOG, _("video_out_sdl: fullscreen mode is NOT supported\n"));
   return &this->vo_driver;
 }
