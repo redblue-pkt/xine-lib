@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.54 2002/01/05 22:06:44 miguelfreitas Exp $
+ * $Id: dxr3_decoder.c,v 1.55 2002/01/07 21:26:04 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -79,6 +79,7 @@ static char *devname;
 
 /* lots of poohaa about pts things */
 #define LOG_PTS 0 
+#define LOG_SPU 0 
 
 #define MV_COMMAND 0
 #define MV_STATUS  1
@@ -613,9 +614,11 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		if ((delay > 0) && (delay < 90000) &&
 		    (this->sync_every_frame || buf->PTS)) {
 			/* update the dxr3's current pts value */	
+/*************
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
+**************/
 		}
 		if (delay >= 90000) {
 			/* frame more than 1 sec ahead */
@@ -799,8 +802,8 @@ static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 		/* dxr3 video out is not active. Play dead. */
 		return 0;
 	}
-	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT ||
-		type == BUF_SPU_SUBP_CONTROL);
+	return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || 
+		type == BUF_SPU_NAV || type == BUF_SPU_SUBP_CONTROL);
 }
 
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
@@ -818,6 +821,9 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 		 tmpstr, strerror(errno));
 		return;
 	}
+#if LOG_SPU
+        printf ("dxr3_spu: init: SPU_FD = %i\n",this->fd_spu);
+#endif
 
         for (i=0; i < MAX_SPU_STREAMS; i++) /* reset the spu filter for non-dvdnav */
                  this->spu_stream_state[i].stream_filter = 1;
@@ -837,40 +843,72 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	uint32_t stream_id = buf->type & 0x1f ;
 	
 	if (buf->type == BUF_SPU_CLUT) {
+#if LOG_SPU
+        printf ("dxr3_spu: BUF_SPU_CLUT\n" );
+#endif
+#if LOG_SPU
+        printf ("dxr3_spu: buf clut: SPU_FD = %i\n",this->fd_spu);
+#endif
 		if (buf->content[0] == 0)  /* cheap endianess detection */
 			swab_clut((int*)buf->content);
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
 			printf("dxr3: failed to set CLUT (%s)\n", strerror(errno));
 		return;
 	}
-
         if(buf->type == BUF_SPU_SUBP_CONTROL){
+/***************
 		int i;
                 uint32_t *subp_control = (uint32_t*) buf->content;
                 for (i = 0; i < 32; i++) {
 	        	this->spu_stream_state[i].stream_filter = subp_control[i];
                  }
+***************/
      		return;
 	}
-
+        if(buf->type == BUF_SPU_NAV){
+#if LOG_SPU
+          printf ("dxr3_spu: Got NAV packet\n");
+#endif
+     	  return;
+	}
 	/* Is this also needed for subpicture? */
-	if (buf->decoder_info[0] == 0) return;
+	if (buf->decoder_info[0] == 0) {
+#if LOG_SPU
+        printf ("dxr3_spu: Dropping SPU channel %d. Preview data\n", stream_id);
+#endif
+          return;
+        }
 
-	if ( this->spu_stream_state[stream_id].stream_filter == 0) return;
-
-	if (buf->PTS) {
+	if ( this->spu_stream_state[stream_id].stream_filter == 0) {
+#if LOG_SPU
+        printf ("dxr3_spu: Dropping SPU channel %d. Stream filtered\n", stream_id);
+#endif
+          return;
+        }
 /*
+	if (buf->PTS) {
 		int vpts;
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			printf("dxr3: spu setpts failed (%s)\n", strerror(errno));
-*/
 	}
+*/
+/* spu_channel is now set based on whether we are in the menu or not. */
+/* Bit 7 is set if only forced display SPUs should be shown */
+      if ( (this->xine->spu_channel & 0x1f) != stream_id  ) { 
+#if LOG_SPU
+        printf ("dxr3_spu: Dropping SPU channel %d. Not selected stream_id\n", stream_id);
+#endif
+        return;
+      }
 
-        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
+//        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
 
+#if LOG_SPU
+        printf ("dxr3_spu: write: SPU_FD = %i\n",this->fd_spu);
+#endif
 	written = write(this->fd_spu, buf->content, buf->size);
 	if (written < 0) {
 		printf("dxr3: spu device write failed (%s)\n",
@@ -885,14 +923,21 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 static void spudec_close (spu_decoder_t *this_gen)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+#if LOG_SPU
+        printf ("dxr3_spu: close: SPU_FD = %i\n",this->fd_spu);
+#endif
 	
 	close(this->fd_spu);
+        this->fd_spu				= 0;
 }
 
 static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
   xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
+#if LOG_SPU
+        printf ("dxr3_spu: event: SPU_FD = %i\n",this->fd_spu);
+#endif
   
   switch (event->event.type) {
   case XINE_EVENT_SPU_BUTTON:
@@ -901,12 +946,18 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
       spu_button_t *but = event->data;
       em8300_button_t btn;
       int i;
+#if LOG_SPU
+        printf ("dxr3_spu: SPU_BUTTON\n");
+#endif
       
       if (!but->show) {
-	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+//	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 	break;
       }
       btn.color = btn.contrast = 0;
+#if LOG_SPU
+        printf ("dxr3_spu: buttonN = %u\n",but->buttonN);
+#endif
       
       for (i = 0; i < 4; i++) {
 	btn.color    |= (but->color[i] & 0xf) << (4*i);
@@ -927,6 +978,12 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
   case XINE_EVENT_SPU_CLUT:
     {
       spu_cltbl_t *clut = event->data;
+#if LOG_SPU
+        printf ("dxr3_spu: SPU_CLUT\n");
+#endif
+#if LOG_SPU
+        printf ("dxr3_spu: clut: SPU_FD = %i\n",this->fd_spu);
+#endif
 #ifdef WORDS_BIGENDIAN
       swab_clut(clut->clut);
 #endif
@@ -951,7 +1008,11 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
     {
     	(int*)this->menu=event->data;
     }
-    break;    	 
+    break;
+  default:
+    {
+    }
+        	 
   }  
 }
 
@@ -990,6 +1051,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   this->spu_decoder.priority            = 10;
   this->xine				= xine;
   this->menu				= 0;
+  this->fd_spu				= 0;
   
   xine_register_event_listener(xine, spudec_event_listener, this);
   
