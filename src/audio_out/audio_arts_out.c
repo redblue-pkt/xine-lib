@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.5 2001/09/14 20:44:01 jcdutton Exp $
+ * $Id: audio_arts_out.c,v 1.6 2001/10/12 19:25:11 miguelfreitas Exp $
  */
 
 /* required for swab() */
@@ -118,6 +118,18 @@ static int ao_arts_open(ao_driver_t *this_gen,
   this->audio_stream=arts_play_stream(this->sample_rate, bits, this->num_channels, "xine");
 
   this->latency = arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY);
+  
+  /* try to keep latency low, if we don't do this we might end
+     with very high latencies for low quality sound and audio_out will
+     try to fill gaps every time...(values in ms) */
+  if( this->latency > 800 )
+  {
+     this->latency = 800 - arts_stream_get (this->audio_stream, ARTS_P_SERVER_LATENCY);
+     if( this->latency < 100 )
+       this->latency = 100;
+     arts_stream_set( this->audio_stream, ARTS_P_BUFFER_TIME, this->latency );
+     this->latency = arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY);
+  }
 
   printf ("audio_arts_out : latency %d ms\n", this->latency);
 
@@ -163,9 +175,7 @@ static int ao_arts_delay (ao_driver_t *this_gen)
      a very roughly aproximation.
   */
 
-  return arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY) * this->sample_rate / 1000;
-
-/*  return this->latency * this->sample_rate / 1000; */
+  return this->latency * this->sample_rate / 1000;
 }
 
 static void ao_arts_close(ao_driver_t *this_gen)
