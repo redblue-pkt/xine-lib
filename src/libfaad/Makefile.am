@@ -8,14 +8,13 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-
 CFLAGS = @CFLAGS@ -I$(srcdir)/fftw
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ -I$(srcdir)/fftw
 
-#if HAVE_FAAD
+if BUILD_FAAD
 faad_module = xineplug_decode_faad.la
-#endif
+endif
 
 lib_LTLIBRARIES = $(faad_module)
 
@@ -36,7 +35,6 @@ noinst_HEADERS = analysis.h bits.h common.h data.h decoder.h drc.h error.h \
 		 lt_predict.h mdct.h mp4.h ms.h output.h pns.h pulse.h \
 		 sbr_dec.h sbr_huff.h sbr_qmf.h sbr_syntax.h \
 		 specrec.h syntax.h tns.h codebook/hcb.h faad.h
-
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
