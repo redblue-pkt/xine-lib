@@ -125,7 +125,7 @@ Contributions
     'xinetic', 'CelomaGold', 'CelomaMdk' and 'CelomaChrome' skins.
 
   Bill Fink <billfink@mindspring.com>
-    powerpc patches, oss output softsync
+    powerpc patches, oss output softsync, "skip by chapter" feature
 
   Gert Vervoort <Gert.Vervoort@wxs.nl>
     LPCM audio decoder plugin, ffmpeg aspect ratio

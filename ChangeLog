@@ -18,6 +18,9 @@ xine-lib (0.9.13) unstable; urgency=low
   * demux_qt improvements to handle .mp4
   * initial support of Quicktime6 files
   * image redraw in paused mode (for window resize, adjusts etc)
+  * skip by chapters GUI enhancement
+  
+ -- Siggi Langauf <siggi@users.sf.net>  Sat,  3 Aug 2002 20:46:38 +0200
 
 xine-lib (0.9.12) unstable; urgency=low
 
@@ -435,6 +438,4 @@ xine (0.3.0+older) unstable; urgency=low
   
  -- Siggi Langauf <siggi@users.sourceforge.net>  Sun,  7 Jan 2001 23:59:12 +0100
 
-Local variables:
-mode: debian-changelog
-End:
+
