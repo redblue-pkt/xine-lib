@@ -7,6 +7,9 @@ libdir = $(XINE_PLUGINDIR)
 if HAVE_DXR3
 dxr3_modules = xineplug_decode_dxr3_video.la xineplug_decode_dxr3_spu.la xineplug_vo_out_dxr3.la 
 endif
+if HAVE_X11
+link_x_libs = $(X_LIBS) -lXext
+endif
 if HAVE_LIBFAME
 link_fame = -lfame
 endif
@@ -23,12 +26,8 @@ xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
 xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c dxr3_mpeg_encoders.c alphablend.c dxr3_spu_encoder.c
-if HAVE_X11
-xineplug_vo_out_dxr3_la_LIBADD = $(X_LIBS) -lXext
-xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(link_fame) $(link_rte) $(X_LIBS)
-else
-xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(link_fame) $(link_rte)
-endif
+xineplug_vo_out_dxr3_la_LIBADD =  $(link_fame) $(link_rte) $(link_x_libs)
+xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = dxr3.h dxr3_scr.h video_out_dxr3.h nav_types.h nav_read.h alphablend.h bswap.h
 
