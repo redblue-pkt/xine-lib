@@ -21,6 +21,7 @@ typedef struct DIR DIR;
 
 struct dirent
 {
+    unsigned short d_reclen;
     char *d_name;
 };
 

@@ -110,6 +110,7 @@ struct dirent *readdir(DIR *dir)
         {
             result         = &dir->result;
             result->d_name = dir->info.name;
+            result->d_reclen = strlen(dir->info.name);
         }
     }
     else
