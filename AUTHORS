@@ -486,5 +486,8 @@ Moritz Bunkus <moritz@bunkus.org>
 Szymon Stefanek <s.stefanek@libero.it>
   Improved DVB mrls and dvbs, dvbc and dvbt support
 
+Vincent Pelletier <subdino2004@yahoo.fr>
+  Word wrap and other improvements in libsputext.
+
   
 (let us know if we've forgotten anyone)

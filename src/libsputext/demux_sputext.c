@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.34 2004/04/26 17:50:08 mroi Exp $
+ * $Id: demux_sputext.c,v 1.35 2004/06/11 09:47:30 valtri Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -100,7 +100,7 @@ typedef struct {
 typedef struct demux_sputext_class_s {
 
   demux_class_t      demux_class;
-  
+
   int                max_timeout;  /* default timeout of hidding subtitles */
 
 } demux_sputext_class_t;
@@ -109,6 +109,7 @@ typedef struct demux_sputext_class_s {
  * Demuxer code start
  */
 
+#define FORMAT_UNKNOWN   -1
 #define FORMAT_MICRODVD   0
 #define FORMAT_SUBRIP     1
 #define FORMAT_SUBVIEWER  2
@@ -314,11 +315,15 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
   
   while (1) {
     if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
-    if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4) < 8) continue;
+    if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4) < 8) {
+      if (sscanf (line, "%d:%d:%d,%d,%d:%d:%d,%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4) < 8)
+        continue;
+    }
     current->start = a1*360000+a2*6000+a3*100+a4;
     current->end   = b1*360000+b2*6000+b3*100+b4;
     
-    if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
+    if (!read_line_from_input(this, line, LINE_LEN))
+      return NULL;
     
     p=q=line;
     for (current->lines=1; current->lines < SUB_MAX_TEXT; current->lines++) {
@@ -339,34 +344,91 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *this, subtitle_t *cu
 static subtitle_t *sub_read_line_subrip(demux_sputext_t *this,subtitle_t *current) {
   char line[LINE_LEN + 1];
   int a1,a2,a3,a4,b1,b2,b3,b4;
-  char *p=NULL;
-  int i,len;
+  int i,end_sub;
   
-  memset (current, 0, sizeof(subtitle_t));
-  
-  while (!current->text[0]) {
-    if (!read_line_from_input(this, line, LINE_LEN)) return NULL;
-  
-    if ((len=sscanf (line, "%d:%d:%d,%d --> %d:%d:%d,%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4)) < 8)
-      continue;
-    current->start = a1*360000+a2*6000+a3*100+a4/10;
-    current->end   = b1*360000+b2*6000+b3*100+b4/10;
-    for (i=0; i<SUB_MAX_TEXT;) {
-      if (!read_line_from_input(this, line, LINE_LEN)) break;
-      len=0;
-      for (p=line; *p!='\n' && *p!='\r' && *p; p++,len++);
-      if (len) {
-	current->text[i]=(char *)xine_xmalloc (len+1);
-	if (!current->text[i]) return ERR;
-	strncpy (current->text[i], line, len); current->text[i][len]='\0';
-	i++;
-      } else {
-	break;
+  memset(current,0,sizeof(subtitle_t));
+  do {
+    if(!read_line_from_input(this,line,LINE_LEN))
+      return NULL;
+  } while(sscanf(line,"%d:%d:%d,%d --> %d:%d:%d,%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4) < 8);
+  current->start = a1*360000+a2*6000+a3*100+a4/10;
+  current->end   = b1*360000+b2*6000+b3*100+b4/10;
+  i=0;
+  end_sub=0;
+  do {
+    char *p; /* pointer to the curently read char */
+    char temp_line[SUB_BUFSIZE]; /* subtitle line that will be transfered to current->text[i] */
+    int temp_index; /* ... and its index wich 'points' to the first EMPTY place -> last read char is at temp_index-1 if temp_index>0 */
+    temp_line[SUB_BUFSIZE-1]='\0'; /* just in case... */
+    if(!read_line_from_input(this,line,LINE_LEN)) {
+      if(i)
+        break; /* if something was read, transmit it */
+      else
+        return NULL; /* if not, repport EOF */
+    }
+    for(temp_index=0,p=line;*p!='\0' && !end_sub && temp_index<SUB_BUFSIZE && i<SUB_MAX_TEXT;p++) {
+      switch(*p) {
+        case '\\':
+          if(*(p+1)=='N' || *(p+1)=='n') {
+            temp_line[temp_index++]='\0'; /* end of curent line */
+            p++;
+          } else
+            temp_line[temp_index++]=*p;
+          break;
+        case '{':
+#if 0 /* italic not implemented in renderer, ignore them for now */
+          if(!strncmp(p,"{\\i1}",5) && temp_index+3<SUB_BUFSIZE) {
+            temp_line[temp_index++]='<';
+            temp_line[temp_index++]='i';
+            temp_line[temp_index++]='>';
+#else
+          if(!strncmp(p,"{\\i1}",5)) {
+#endif
+            p+=4;
+          }
+#if 0 /* italic not implemented in renderer, ignore them for now */
+          else if(!strncmp(p,"{\\i0}",5) && temp_index+4<SUB_BUFSIZE) {
+            temp_line[temp_index++]='<';
+            temp_line[temp_index++]='/';
+            temp_line[temp_index++]='i';
+            temp_line[temp_index++]='>';
+#else
+          else if(!strncmp(p,"{\\i0}",5)) {
+#endif
+            p+=4;
+          }
+          else
+            temp_line[temp_index++]=*p;
+          break;
+        case '\r': /* just ignore '\r's */
+          break;
+        case '\n':
+          temp_line[temp_index++]='\0';
+          break;
+        default:
+          temp_line[temp_index++]=*p;
+          break;
+      }
+      if(temp_index>0) {
+        if(temp_index==SUB_BUFSIZE)
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many characters in a subtitle line\n");
+        if(temp_line[temp_index-1]=='\0' || temp_index==SUB_BUFSIZE) {
+          if(temp_index>1) { /* more than 1 char (including '\0') -> that is a valid one */
+            current->text[i]=(char *)xine_xmalloc(temp_index);
+            if(!current->text[i])
+              return ERR;
+            strncpy(current->text[i],temp_line,temp_index); /* temp_index<=SUB_BUFSIZE is always true here */
+            i++;
+            temp_index=0;
+          } else
+            end_sub=1;
+        }
       }
     }
-    current->lines=i;
-  }
-  
+  } while(i<SUB_MAX_TEXT && !end_sub);
+  if(i>=SUB_MAX_TEXT)
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
+  current->lines=i;
   return current;
 }
 
@@ -903,7 +965,7 @@ static int sub_autodetect (demux_sputext_t *this) {
   while (j < 100) {
     j++;
     if (!read_line_from_input(this, line, LINE_LEN))
-      return -1;
+      return FORMAT_UNKNOWN;
 
     if ((sscanf (line, "{%d}{}", &i)==1) ||
         (sscanf (line, "{%d}{%d}", &i, &i)==2)) {
@@ -919,6 +981,12 @@ static int sub_autodetect (demux_sputext_t *this) {
     }
 
     if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",     &i, &i, &i, &i, &i, &i, &i, &i)==8){
+      this->uses_time=1;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subviewer subtitle format detected\n");
+      return FORMAT_SUBVIEWER;
+    }
+
+    if (sscanf (line, "%d:%d:%d,%d,%d:%d:%d,%d",     &i, &i, &i, &i, &i, &i, &i, &i)==8){
       this->uses_time=1;
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subviewer subtitle format detected\n");
       return FORMAT_SUBVIEWER;
@@ -986,7 +1054,7 @@ static int sub_autodetect (demux_sputext_t *this) {
     }
   }
   
-  return -1;  /* too many bad lines */
+  return FORMAT_UNKNOWN;  /* too many bad lines */
 }
 
 static subtitle_t *sub_read_file (demux_sputext_t *this) {
@@ -1019,7 +1087,7 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
   this->buflen = 0;
 
   this->format=sub_autodetect (this);
-  if (this->format==-1) {
+  if (this->format==FORMAT_UNKNOWN) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Could not determine file format\n");
     return NULL;
   }

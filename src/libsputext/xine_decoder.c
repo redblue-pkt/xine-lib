@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.81 2004/06/04 14:37:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.82 2004/06/11 09:47:30 valtri Exp $
  *
  */
 
@@ -299,17 +299,173 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
     if( this->renderer )
       this->renderer->set_font (this->osd, this->class->font, this->font_size);
   }
-  
+
+  font_size = this->font_size;
+  this->renderer->set_encoding(this->osd, this->class->src_encoding);
+
+  for (line = 0; line < this->lines; line++) /* first, check lenghts and word-wrap if needed */
+  {
+    int w, h;
+    if( this->ogm )
+      w = ogm_get_width( this, this->text[line]);
+    else
+      this->renderer->get_text_size( this->osd, this->text[line], &w, &h);
+    if( w > this->width ) { /* line is too long */
+      int chunks=(int)(w/this->width)+(w%this->width?1:0);
+      if( this->lines+chunks <= SUB_MAX_TEXT && chunks>1 ) { /* try adding newlines while keeping existing ones */
+        int a;
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,"Partial subtitle line splitting in %i chunks\n",chunks);
+        for(a=this->lines-1;a>=0;a--) {
+          if(a>line) /* lines after the too-long one */
+            memcpy(this->text[a+chunks-1],this->text[a],SUB_BUFSIZE);
+          else if(a==line) { /* line to be splitted */
+            int b,len=strlen(this->text[line]);
+            char *p=this->text[line];
+            for(b=0;b<chunks;b++) {
+              char *c;
+              if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+                strncpy(this->text[line+b],p,SUB_BUFSIZE);
+              else {
+                for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
+                if(*c==' ') {
+                  *c='\0';
+                  if(b) /* we are reading something that has to be moved to another line */
+                    strncpy(this->text[line+b],p,SUB_BUFSIZE);
+                  p=c+1;
+                }
+              }
+            }
+          }
+        }
+        this->lines+=chunks-1;
+      } else { /* regenerate all the lines to find something that better fits */
+        char buf[SUB_BUFSIZE*SUB_MAX_TEXT];
+        int a,w,h,chunks;
+        buf[0]='\0';
+        for(a=0;a<this->lines;a++) {
+          if(a) {
+            int len=strlen(buf);
+            buf[len]=' ';
+            buf[len+1]='\0';
+          }
+          strcat(buf,this->text[a]);
+        }
+        if( this->ogm )
+          w = ogm_get_width( this, buf);
+        else
+          this->renderer->get_text_size( this->osd, buf, &w, &h);
+        chunks=(int)(w/this->width)+(w%this->width?1:0);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Complete subtitle line splitting in %i chunks\n",chunks);
+        if(chunks<=SUB_MAX_TEXT) {/* if the length is over than SUB_MAX_TEXT*this->width nothing can be done */
+          int b,len=strlen(buf);
+          char *p=buf;
+          for(b=0;b<chunks;b++) {
+            char *c;
+            if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+              strncpy(this->text[b],p,SUB_BUFSIZE);
+            else {
+              for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
+              if(*c==' ') {
+                *c='\0';
+                strncpy(this->text[b],p,SUB_BUFSIZE);
+                p=c+1;
+              }
+            }
+          }
+          this->lines=chunks;
+        } else
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Subtitle too long to be splited\n");
+        line=this->lines;
+      }
+    }
+  }
+
+  font_size = this->font_size;
+  this->renderer->set_encoding(this->osd, this->class->src_encoding);
+
+  for (line = 0; line < this->lines; line++) /* first, check lenghts and word-wrap if needed */
+  {
+    int w, h;
+    if( this->ogm )
+      w = ogm_get_width( this, this->text[line]);
+    else
+      this->renderer->get_text_size( this->osd, this->text[line], &w, &h);
+    if( w > this->width ) { /* line is too long */
+      int chunks=(int)(w/this->width)+(w%this->width?1:0);
+      if( this->lines+chunks <= SUB_MAX_TEXT && chunks>1 ) { /* try adding newlines while keeping existing ones */
+        int a;
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,"Partial subtitle line splitting in %i chunks\n",chunks);
+        for(a=this->lines-1;a>=0;a--) {
+          if(a>line) /* lines after the too-long one */
+            memcpy(this->text[a+chunks-1],this->text[a],SUB_BUFSIZE);
+          else if(a==line) { /* line to be splitted */
+            int b,len=strlen(this->text[line]);
+            char *p=this->text[line];
+            for(b=0;b<chunks;b++) {
+              char *c;
+              if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+                strncpy(this->text[line+b],p,SUB_BUFSIZE);
+              else {
+                for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
+                if(*c==' ') {
+                  *c='\0';
+                  if(b) /* we are reading something that has to be moved to another line */
+                    strncpy(this->text[line+b],p,SUB_BUFSIZE);
+                  p=c+1;
+                }
+              }
+            }
+          }
+        }
+        this->lines+=chunks-1;
+      } else { /* regenerate all the lines to find something that better fits */
+        char buf[SUB_BUFSIZE*SUB_MAX_TEXT];
+        int a,w,h,chunks;
+        buf[0]='\0';
+        for(a=0;a<this->lines;a++) {
+          if(a) {
+            int len=strlen(buf);
+            buf[len]=' ';
+            buf[len+1]='\0';
+          }
+          strcat(buf,this->text[a]);
+        }
+        if( this->ogm )
+          w = ogm_get_width( this, buf);
+        else
+          this->renderer->get_text_size( this->osd, buf, &w, &h);
+        chunks=(int)(w/this->width)+(w%this->width?1:0);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Complete subtitle line splitting in %i chunks\n",chunks);
+        if(chunks<=SUB_MAX_TEXT) {/* if the length is over than SUB_MAX_TEXT*this->width nothing can be done */
+          int b,len=strlen(buf);
+          char *p=buf;
+          for(b=0;b<chunks;b++) {
+            char *c;
+            if(b==chunks-1) /* if we are reading the last chunk, copy it completly */
+              strncpy(this->text[b],p,SUB_BUFSIZE);
+            else {
+              for(c=p+(int)(len/chunks)+(len%chunks?1:0);*c!=' ' && c>p && c!='\0';c--);
+              if(*c==' ') {
+                *c='\0';
+                strncpy(this->text[b],p,SUB_BUFSIZE);
+                p=c+1;
+              }
+            }
+          }
+          this->lines=chunks;
+        } else
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Subtitle too long to be splited\n");
+        line=this->lines;
+      }
+    }
+  }
+
   if (this->last_lines)
     this->renderer->filled_rect (this->osd, 0, this->line_height * (SUB_MAX_TEXT - this->last_lines),
                                  this->width - 1, this->line_height * SUB_MAX_TEXT - 1, 0);
   this->last_lines = this->lines;
-  
   y = (SUB_MAX_TEXT - this->lines) * this->line_height;
-  font_size = this->font_size;
 
-  this->renderer->set_encoding(this->osd, this->class->src_encoding);
-  
   for (line = 0; line < this->lines; line++) {
     int w, h, x;
           
