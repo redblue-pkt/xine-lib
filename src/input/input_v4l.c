@@ -965,10 +965,6 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
     store_vid_frame(frame);
   }
   
-  /* Using deinterlaceing is highly recommended. Setting to true */
-  this->old_interlace = xine_get_param(this->stream, XINE_PARAM_VO_DEINTERLACE);
-  xine_set_param(this->stream, XINE_PARAM_VO_DEINTERLACE, 1);
-  
   /* Strip the vbi / sync signal from the image by zooming in */ 
   this->old_zoomx = xine_get_param(this->stream, XINE_PARAM_VO_ZOOM_X);
   this->old_zoomy = xine_get_param(this->stream, XINE_PARAM_VO_ZOOM_Y);
@@ -1542,9 +1538,6 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
               "input_v4l: Error while closing video file handler: %s\n", strerror(errno));
     else
       lprintf("Video device succesfully closed\n");
-    
-    /* Restore interlace setting */
-    xine_set_param(this->stream, XINE_PARAM_VO_DEINTERLACE, this->old_interlace);
     
     /* Restore zoom setting */ 
     xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_X, this->old_zoomx);

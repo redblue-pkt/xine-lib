@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.2 2004/10/30 13:34:33 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.3 2004/10/31 22:29:07 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -195,7 +195,8 @@ static buf_element_t *cache_plugin_read_block(input_plugin_t *this_gen, fifo_buf
     buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, todo);
     this->read_call++;
     this->main_read_call++;
-    this->cur_pos += buf->size;
+    if(buf)
+      this->cur_pos += buf->size;
   }
   return buf;
 }
