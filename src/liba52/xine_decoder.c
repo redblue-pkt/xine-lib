@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2003/09/01 14:30:56 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.57 2003/09/15 04:02:45 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -45,6 +45,7 @@
 
 /*
 #define LOG
+#define LOG_PTS
 */
 
 #undef DEBUG_A52
@@ -68,6 +69,8 @@ typedef struct a52dec_decoder_s {
   a52dec_class_t  *class;
   xine_stream_t   *stream;
   int64_t          pts;
+  int64_t          pts_list[5];
+  int32_t          pts_list_position;
 
   uint8_t          frame_buffer[3840];
   uint8_t         *frame_ptr;
@@ -147,6 +150,7 @@ static void a52dec_reset (audio_decoder_t *this_gen) {
   this->syncword      = 0;
   this->sync_state    = 0;
   this->pts           = 0;
+  this->pts_list_position = 0;
 }
 
 static void a52dec_discontinuity (audio_decoder_t *this_gen) {
@@ -190,7 +194,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
   /*
    * do we want to decode this frame in software?
    */
-
+#ifdef LOG_PTS
+  printf("a52dec:decode_frame:pts=%lld\n",pts);
+#endif 
   if (!this->bypass_mode) {
 
     int              a52_output_flags, i;
@@ -319,6 +325,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
     /*  output decoded samples */
 
     buf->vpts       = pts;
+
     this->stream->audio_out->put_buffer (this->stream->audio_out, buf, this->stream);
 
   } else {
@@ -385,6 +392,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG
   printf ("liba52: decode data %d bytes of type %08x, pts=%lld\n",
 	  buf->size, buf->type, buf->pts);
+  printf ("liba52: decode data decoder_info=%d, %d\n",buf->decoder_info[1],buf->decoder_info[2]);
 #endif
 
   if (buf->decoder_flags & BUF_FLAG_HEADER)
@@ -408,8 +416,21 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     end = buf->content + buf->size;
   }
 
-  if (buf->pts)
+  if (buf->pts) {
+    int32_t info;
+    info = buf->decoder_info[1];
     this->pts = buf->pts;
+    this->pts_list[this->pts_list_position]=buf->pts;
+    this->pts_list_position++;
+    if( this->pts_list_position > 3 )
+      this->pts_list_position = 3;
+    if (info == 2) {
+      this->pts_list[this->pts_list_position]=0;
+      this->pts_list_position++;
+      if( this->pts_list_position > 3 )
+        this->pts_list_position = 3;
+    }
+  }
 #if 0
   for(n=0;n < buf->size;n++) {
     if ((n % 32) == 0) printf("\n");
@@ -492,7 +513,19 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           } else break;
       
     case 3:  /* Ready for decode */
-          a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
+          a52dec_decode_frame (this, this->pts_list[0], buf->decoder_flags & BUF_FLAG_PREVIEW);
+          for(n=0;n<4;n++) {
+            this->pts_list[n] = this->pts_list[n+1];
+          }
+          this->pts_list_position--;
+          if( this->pts_list_position < 0 )
+            this->pts_list_position = 0;
+#if 0
+          printf("liba52: pts_list = %lld, %lld, %lld\n",
+            this->pts_list[0],
+            this->pts_list[1],
+            this->pts_list[2]);
+#endif
     case 4:  /* Clear up ready for next frame */
           this->pts = 0;
 	  this->syncword = 0;
@@ -550,6 +583,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->sync_state    = 0;
   this->output_open   = 0;
   this->pts           = 0;
+  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
+  this->pts_list_position = 0;
 
   if( !this->a52_state )
     this->a52_state = a52_init (xine_mm_accel());

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.120 2003/09/13 15:31:53 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.121 2003/09/15 04:02:45 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,7 +52,9 @@
 
 /*
 #define LOG
+#define LOG_AUDIO
 */
+
 
 /*
  * ****************************************
@@ -507,8 +509,9 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   int64_t vpts;
   int64_t diff;
 
-#ifdef LOG  
-  printf ("metronom: got %d audio samples, pts is %lld\n", nsamples, pts);
+#ifdef LOG_AUDIO  
+  printf ("metronom: got %d audio samples, pts is %lld, last pts = %lld\n", nsamples, pts, this->last_audio_pts);
+  printf ("metronom: AUDIO pts from last= %lld\n", pts-this->last_audio_pts);
 #endif
 
   pthread_mutex_lock (&this->lock);
@@ -529,7 +532,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
     else {
       if( this->audio_samples ) {
         /* calculate drift_step to recover vpts errors */
-#ifdef LOG  
+#ifdef LOG_AUDIO  
         printf("metronom: audio diff = %lld \n", diff );
 #endif
         diff *= AUDIO_SAMPLE_NUM;
@@ -543,7 +546,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
         
         this->audio_drift_step = diff;
                 
-#ifdef LOG  
+#ifdef LOG_AUDIO  
         printf("metronom: audio_drift = %lld, pts_per_smpls = %lld\n", diff,
                 this->pts_per_smpls );
 #endif
@@ -563,7 +566,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   this->audio_samples += nsamples;
   this->vpts_offset += nsamples * this->audio_drift_step / AUDIO_SAMPLE_NUM;
                         
-#ifdef LOG
+#ifdef LOG_AUDIO
   printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
 #endif
 
