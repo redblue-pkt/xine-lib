@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2003 the xine project
+ * Copyright (C) 2001-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.185 2004/06/01 22:05:47 jcdutton Exp $
+ * $Id: demux_qt.c,v 1.186 2004/06/07 21:15:04 jstembridge Exp $
  *
  */
 
@@ -91,6 +91,7 @@ typedef unsigned int qt_atom;
 
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
 #define WAVE_ATOM QT_ATOM('w', 'a', 'v', 'e')
+#define FRMA_ATOM QT_ATOM('f', 'r', 'm', 'a')
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
@@ -219,8 +220,8 @@ typedef union {
     unsigned int channels;
     unsigned int bits;
     unsigned int vbr;
-    unsigned int wave_present;
-    xine_waveformatex wave;
+    unsigned int wave_size;
+    xine_waveformatex *wave;
 
     /* special audio parameters */
     unsigned int samples_per_packet;
@@ -619,8 +620,14 @@ static void free_qt_info(qt_info *info) {
         free(info->traks[i].sample_to_chunk_table);
         free(info->traks[i].time_to_sample_table);
         free(info->traks[i].decoder_config);
-        for (j = 0; j < info->traks[i].stsd_atoms_count; j++)
-          free(info->traks[i].stsd_atoms[j].video.properties_atom);
+        for (j = 0; j < info->traks[i].stsd_atoms_count; j++) {
+          if (info->traks[i].type == MEDIA_AUDIO) {
+            free(info->traks[i].stsd_atoms[j].audio.properties_atom);
+            if (info->traks[i].stsd_atoms[j].audio.wave)
+              free(info->traks[i].stsd_atoms[j].audio.wave);
+          } else if (info->traks[i].type == MEDIA_VIDEO)
+            free(info->traks[i].stsd_atoms[j].video.properties_atom);
+        }
         free(info->traks[i].stsd_atoms);
       }
       free(info->traks);
@@ -1132,15 +1139,26 @@ static qt_error parse_trak_atom (qt_trak *trak,
           }
 
           /* check for a MS-style WAVE format header */
-          if ((current_atom_size >= 0x48) && 
-              (BE_32(&trak_atom[atom_pos + 0x34]) == WAVE_ATOM)) {
-            trak->stsd_atoms[k].audio.wave_present = 1;
-            memcpy(&trak->stsd_atoms[k].audio.wave, 
-              &trak_atom[atom_pos + 0x4C],
-              sizeof(trak->stsd_atoms[k].audio.wave));
-            _x_waveformatex_le2me(&trak->stsd_atoms[k].audio.wave);
+          if ((current_atom_size >= 0x4C) &&
+              (BE_32(&trak_atom[atom_pos + 0x34]) == WAVE_ATOM) &&
+              (BE_32(&trak_atom[atom_pos + 0x3C]) == FRMA_ATOM) &&
+              (ME_32(&trak_atom[atom_pos + 0x48]) == trak->stsd_atoms[k].audio.codec_fourcc)) {
+            int wave_size = BE_32(&trak_atom[atom_pos + 0x44]) - 8;
+            
+            if ((wave_size >= sizeof(xine_waveformatex)) &&
+                (current_atom_size >= (0x4C + wave_size))) {
+              trak->stsd_atoms[k].audio.wave_size = wave_size;
+              trak->stsd_atoms[k].audio.wave = xine_xmalloc(wave_size);
+              memcpy(trak->stsd_atoms[k].audio.wave, &trak_atom[atom_pos + 0x4C],
+                     wave_size);
+              _x_waveformatex_le2me(trak->stsd_atoms[k].audio.wave);
+            } else {
+              trak->stsd_atoms[k].audio.wave_size = 0;
+              trak->stsd_atoms[k].audio.wave = NULL;
+            }
           } else {
-            trak->stsd_atoms[k].audio.wave_present = 0;
+            trak->stsd_atoms[k].audio.wave_size = 0;
+            trak->stsd_atoms[k].audio.wave = NULL;
           }
 
           debug_atom_load("    audio properties atom #%d\n", k + 1);
@@ -2592,10 +2610,18 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[1] = audio_trak->properties->audio.sample_rate;
     buf->decoder_info[2] = audio_trak->properties->audio.bits;
     buf->decoder_info[3] = audio_trak->properties->audio.channels;
-    /* FIXME from jcdutton: Shouldn't this be a memcpy ? */
-    /* I don't know enough about this Quicktime demuxer to be sure */
-    buf->content = (void *)&audio_trak->properties->audio.wave;
-    buf->size = sizeof(audio_trak->properties->audio.wave);
+    
+    if( audio_trak->properties->audio.wave_size ) {
+      if( audio_trak->properties->audio.wave_size > buf->max_size )
+        buf->size = buf->max_size;
+      else
+        buf->size = audio_trak->properties->audio.wave_size;
+      memcpy(buf->content, audio_trak->properties->audio.wave, buf->size);
+    } else {
+      buf->size = 0;
+      buf->content = NULL;
+    }
+        
     this->audio_fifo->put (this->audio_fifo, buf);
     
     if( audio_trak->decoder_config ) {
