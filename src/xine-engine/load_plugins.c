@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.153 2003/05/26 23:34:41 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.154 2003/05/31 13:33:10 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1526,7 +1526,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
 	driver = _load_audio_driver (this, node, data);
 	break;
       }
-    } else {
+    } else if( ao_info->priority >= 0 ) {
       driver = _load_audio_driver (this, node, data);
       if (driver) {
 

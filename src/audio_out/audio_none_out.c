@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.2 2003/05/15 13:28:54 miguelfreitas Exp $
+ * $Id: audio_none_out.c,v 1.3 2003/05/31 13:33:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -245,7 +245,7 @@ static void *init_class (xine_t *xine, void *data) {
 }
 
 static ao_info_t ao_info_none = {
-  0
+  -1 /* do not auto probe this one */
 };
 
 /*
