@@ -50,7 +50,10 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
 	xineplug_dmx_realaudio.la \
 	xineplug_dmx_eawve.la \
 	xineplug_dmx_rawdv.la \
-	xineplug_dmx_ipmovie.la
+	xineplug_dmx_ipmovie.la \
+	xineplug_dmx_str.la \
+	xineplug_dmx_pva.la \
+	xineplug_dmx_aud.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
@@ -165,8 +168,20 @@ xineplug_dmx_mng_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
 xineplug_dmx_mng_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_ipmovie_la_SOURCES = demux_ipmovie.c
-xineplug_dmx_ipmovie_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
+xineplug_dmx_ipmovie_la_LIBADD = $(XINELIB)
 xineplug_dmx_ipmovie_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_str_la_SOURCES = demux_str.c
+xineplug_dmx_str_la_LIBADD = $(XINELIB)
+xineplug_dmx_str_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_pva_la_SOURCES = demux_pva.c
+xineplug_dmx_pva_la_LIBADD = $(XINELIB)
+xineplug_dmx_pva_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_aud_la_SOURCES = demux_aud.c
+xineplug_dmx_aud_la_LIBADD = $(XINELIB)
+xineplug_dmx_aud_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h
