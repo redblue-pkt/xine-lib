@@ -2,10 +2,6 @@
 Assigned tasks
 ==============
 
-- fix X11 remote / XShm output
-  fix field picture support  
-  guenter
-
 - FreeBSD port
 
   D. J. HAWKEY JR.
@@ -21,10 +17,6 @@ Assigned tasks
 - libac3 reentrant, downmixing, standards compliance
 
   Michel
-
-- esd audio output driver
-
-  Christian Bauer
 
 - a gtk/gnome gui, perhaps by building a bonobo component?
   this should be possible now, xine is a library and can be embedded
@@ -44,10 +36,6 @@ Assigned tasks
 - aalib output
 
   Heiko, Guenter
-
-- port over from OMS / implement a Mpeg Transport Stream demultiplexer
-
-  Paul Flinders, Chris Atenasio
 
 - Solaris(SPARC/intel) port
 
@@ -69,12 +57,21 @@ Assigned tasks
  
   Philip Stadermann
 
+- IRIX port
+
+  Matthias Hopf
+
+- a quicktime demuxer, based on openquicktime
+
+  guenter
+
+- optimize DVD raw device support by reading data in larger chunks
+
+  guenter
+
 Open Tasks
 ==========
 
-- make win32 codecs work again
-- a qt/kde gui
-- an OpenDivX decoder plugin (should be very easy)
 - SDL based video and audio output plugins
   I've seen patches about this before but with the monolitic xine
   this would have ment xine to become SDL-dependant. But now,
@@ -82,14 +79,15 @@ Open Tasks
   this is no longer a problem
 - fbdev based video output plugin
 - a win32 port, based on the SDL output plugins
-- a quicktime demuxer
 - a decoder plugin that uses xanim's quicktime codec plugins
   (pretty much like the libwin32) this could enable 3ivx support btw
-- port to other platforms (ppc, sparc...) - the architecture isn't
-  final yet, but I really hope that there are only minor changes
-  (mainly additions) to come
-- port to other OS (Free/Net/OpenBSD, IRIX, Solaris, Win32 ...?)
+- port to other OS (Net/OpenBSD, Win32 ...?)
 - deinterlace filters
+- IRIX audio output
+- asd support
+- xine hacker's guide
+- support for xanim codecs
+- ogg/vorbis support
 
 
 
