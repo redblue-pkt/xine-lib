@@ -38,16 +38,16 @@ static uint32_t arch_accel (void)
 
 #ifndef PIC
 #define cpuid(op,eax,ebx,ecx,edx)       \
-    asm ("cpuid"                        \
+    __asm__ ("cpuid"                        \
          : "=a" (eax),                  \
            "=b" (ebx),                  \
            "=c" (ecx),                  \
            "=d" (edx)                   \
          : "a" (op)                     \
          : "cc")
-#else   // PIC version : save ebx
+#else   /* PIC version : save ebx */
 #define cpuid(op,eax,ebx,ecx,edx)       \
-    asm ("pushl %%ebx\n\t"              \
+    __asm__ ("pushl %%ebx\n\t"              \
          "cpuid\n\t"                    \
          "movl %%ebx,%1\n\t"            \
          "popl %%ebx"                   \
@@ -59,7 +59,7 @@ static uint32_t arch_accel (void)
          : "cc")
 #endif
 
-  asm ("pushfl\n\t"
+  __asm__ ("pushfl\n\t"
        "pushfl\n\t"
        "popl %0\n\t"
        "movl %0,%1\n\t"
@@ -142,7 +142,7 @@ static uint32_t arch_accel (void)
 
     canjump = 1;
 
-    asm volatile ("mtspr 256, %0\n\t"
+    __asm__ volatile ("mtspr 256, %0\n\t"
 		  "vand %%v0, %%v0, %%v0"
 		  :
 		  : "r" (-1));
@@ -168,7 +168,7 @@ uint32_t xine_mm_accel (void)
 	accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
       } else {
 	signal (SIGILL, sigill_handler); 
-	__asm __volatile ("xorps %xmm0, %xmm0");
+	__asm__ volatile ("xorps %xmm0, %xmm0");
 	signal (SIGILL, SIG_DFL);
       }
     }
