@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.136 2002/12/22 16:09:30 esnel Exp $
+ * $Id: demux_qt.c,v 1.137 2003/01/01 19:47:43 tmmm Exp $
  *
  */
 
@@ -478,6 +478,28 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
       *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
       *moov_size = atom_size;
       break;
+    }
+
+    /* special case alert: 'free' atoms are known to contain 'cmov' atoms.
+     * If this is a free atom, check for cmov immediately following.
+     * QT Player can handle it, so xine should too. */
+    if (atom == FREE_ATOM) {
+
+      /* get the next atom preamble */
+      if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
+        ATOM_PREAMBLE_SIZE)
+        break;
+
+      /* if there is a cmov, qualify this free atom as the moov atom */
+      if (BE_32(&atom_preamble[4]) == CMOV_ATOM) {
+        /* pos = current pos minus 2 atom preambles */
+        *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE * 2;
+        *moov_size = atom_size;
+        break;
+      } else {
+        /* otherwise, rewind the stream */
+        input->seek(input, -ATOM_PREAMBLE_SIZE, SEEK_CUR);
+      }
     }
 
     /* if this atom is not the moov atom, make sure that it is at least one
