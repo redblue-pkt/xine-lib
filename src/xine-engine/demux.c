@@ -175,7 +175,8 @@ static void *demux_loop (void *stream_gen) {
     /* wait before sending end buffers: user might want to do a new seek */
     while(stream->demux_thread_running && 
           ((!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) ||
-           (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo))) &&
+           (stream->audio_out 
+	    && (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo)))) &&
           status == DEMUX_FINISHED ){
       pthread_mutex_unlock( &stream->demux_lock );
       xine_usec_sleep(100000);
