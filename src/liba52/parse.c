@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <inttypes.h>
+#include <stdio.h> /* For printf */
 #include <stdlib.h>
 #include <string.h>
 
@@ -48,7 +49,7 @@ sample_t * a52_init (uint32_t mm_accel, sample_t **samples_base)
     imdct_init (mm_accel);
 
     samples = xine_xmalloc_aligned (16, 256 * 12 * sizeof (sample_t),
-				    samples_base);
+				    (void**) samples_base);
     if (samples == NULL) {
 
       printf ("liba52: samples malloc failed!\n");
