@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.150 2003/03/02 15:15:07 tmattern Exp $
+ * $Id: demux_avi.c,v 1.151 2003/03/02 16:01:35 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1701,7 +1701,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
 
-    if (input->get_capabilities(input) & INPUT_CAP_BLOCK) {
+    if ((input->get_capabilities(input) & INPUT_CAP_BLOCK) ||
+        (this->streaming)) {
       printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
 	      this->AVI_errno);
       free (this);
