@@ -1,19 +1,19 @@
 # Order is important be careful changing SUBDIRS
-SUBDIRS = \
-	xine-utils \
-	xine-engine \
-	audio_out \
-	video_out \
-	dxr3 \
-	input \
-	libmpeg2 \
-	libspudec \
-	demuxers \
+#SUBDIRS = \
+#	xine-utils \
+#	xine-engine \
+#	audio_out \
+#	video_out \
+#	dxr3 \
+#	input \
+#	libmpeg2 \
+#	libspudec \
+#	demuxers \
 #	liba52 \
-	libffmpeg \
+#	libffmpeg \
 #	liblpcm \
 #	libw32dll \
-	libmad 
+#	libmad 
 #	libdts \
 #	libvorbis \
 #	libdivx4 \
@@ -23,6 +23,16 @@ SUBDIRS = \
 #	libxinevdec \
 #	libxineadec \
 #	libfaad
+
+SUBDIRS = \
+	xine-utils \
+	xine-engine \
+	audio_out \
+	video_out \
+	input \
+	demuxers \
+	libffmpeg \
+	libmad 
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

@@ -1,5 +1,6 @@
 xine-lib (next version) [someone fill in stability and urgency]
 
+  * dvd plugin replaced by dvdnav with full menu support
   * fix segfault on exit for w32codecs
   * fix yuy2 on xshm bug (affects w32codecs and msvc)
   * reimplemented x/y zoom
@@ -25,6 +26,8 @@ xine-lib (next version) [someone fill in stability and urgency]
   * decode id3v1 tags in mp3 files 
   * updated internal liba52 to version 0.7.4
   * numeric selection of dvd menu buttons (could make some dvd easter eggs accesible)
+  * big api cleanup
+  * xine engine can open more than one stream at a time
 	
 xine-lib (0.9.13) unstable; urgency=low
 
