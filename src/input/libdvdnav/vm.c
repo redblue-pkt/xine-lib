@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.9 2002/11/18 12:41:16 mroi Exp $
+ * $Id: vm.c,v 1.10 2002/11/23 11:08:12 mroi Exp $
  *
  */
 
@@ -358,7 +358,38 @@ int vm_position_get(vm_t *vm, vm_position_t *position) {
   position->still = (vm->state).pgc->cell_playback[(vm->state).cellN - 1].still_time;
   position->vobu_start = (vm->state).pgc->cell_playback[(vm->state).cellN - 1].first_sector;
   position->vobu_next = (vm->state).blockN;
-  /* position->vobu_next = 0; Just for now */
+
+  /* still already detrmined or not at PGC end */
+  if (position->still || (vm->state).cellN < (vm->state).pgc->nr_of_cells)
+    return 1;
+  /* handle PGC stills */
+  if ((vm->state).pgc->still_time) {
+    position->still = (vm->state).pgc->still_time;
+    return 1;
+  }
+  /* This is a rough fix for some strange still situations on some strange DVDs.
+   * There are discs (like the German "Back to the Future" RC2) where the only
+   * indication of a still is a cell playback time higher than the time the frames
+   * in this cell actually take to play (like 1 frame with 1 minute playback time).
+   * On the said BTTF disc, for these cells last_sector and last_vobu_start_sector
+   * are equal and the cells are very short, so we abuse these conditions to
+   * detect such discs. I consider these discs broken, so the fix is somewhat
+   * broken, too. */
+  if (((vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_sector ==
+       (vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_vobu_start_sector) &&
+      ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].last_sector -
+       (vm->state).pgc->cell_playback[(vm->state).cellN - 1].first_sector < 200)) {
+    int time;
+    time  = ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0xf0) * 36000;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.hour   & 0x0f) * 3600;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.minute & 0xf0) * 600;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.minute & 0x0f) * 60;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.second & 0xf0) * 10;
+    time += ((vm->state).pgc->cell_playback[(vm->state).cellN - 1].playback_time.second & 0x0f) * 1;
+    if (time > 0xff) time = 0xff;
+    position->still = time;
+  }
+  
   return 1;
 }
 
@@ -506,7 +537,7 @@ int vm_prev_pg(vm_t *vm)
 int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result)
 {
   vts_ptt_srpt_t *vts_ptt_srpt;
-  int title=0, part=0;
+  int title=0, part=0, ttn=0;
   int found = 0;
   int16_t pgcN, pgN;
 
@@ -527,24 +558,34 @@ int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result)
   pgN = vm->state.pgN;
   printf("VTS_PTT_SRPT - PGC: %3i PG: %3i\n",
     pgcN, pgN);
-  for(title=0;( (title < vts_ptt_srpt->nr_of_srpts) && (found == 0) );title++) {
-    for(part=0;((part < vts_ptt_srpt->title[title].nr_of_ptts) && (found == 0));part++) {
-      if ( (vts_ptt_srpt->title[title].ptt[part].pgcn == pgcN) &&
-           (vts_ptt_srpt->title[title].ptt[part].pgn == pgN ) ) {
+
+  for(ttn=0;( (ttn < vts_ptt_srpt->nr_of_srpts) && (found == 0) );ttn++) {
+    for(part=0;((part < vts_ptt_srpt->title[ttn].nr_of_ptts) && (found == 0));part++) {
+      if ( (vts_ptt_srpt->title[ttn].ptt[part].pgcn == pgcN) &&
+           (vts_ptt_srpt->title[ttn].ptt[part].pgn == pgN ) ) {
         found = 1;
         break;
       }
     }
     if (found != 0) break;
   }
-  title++;
+  ttn++;
   part++;
+  for(title=0; title < vm->vmgi->tt_srpt->nr_of_srpts; title++){
+    if( (vm->vmgi->tt_srpt->title[title].vts_ttn == ttn) &&
+        (vm->vmgi->tt_srpt->title[title].title_set_nr == vm->state.vtsN)){
+      found = 1;
+      break;
+    }
+  }
+  title++;
+
   if (found == 1) {
     fprintf(MSG_OUT, "libdvdnav: ************ this chapter FOUND!\n");
     fprintf(MSG_OUT, "libdvdnav: VTS_PTT_SRPT - Title %3i part %3i: PGC: %3i PG: %3i\n",
              title, part,
-             vts_ptt_srpt->title[title-1].ptt[part-1].pgcn ,
-             vts_ptt_srpt->title[title-1].ptt[part-1].pgn );
+             vts_ptt_srpt->title[ttn-1].ptt[part-1].pgcn ,
+             vts_ptt_srpt->title[ttn-1].ptt[part-1].pgn );
   } else {
     fprintf(MSG_OUT, "libdvdnav: ************ this chapter NOT FOUND!\n");
     return S_ERR;
@@ -1988,6 +2029,11 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.10  2002/11/23 11:08:12  mroi
+ * sync to latest libdvdnav cvs:
+ * * "Back to the Future" German RC2 fix
+ * * patch from Marco Zühlke for correct title number display
+ *
  * Revision 1.9  2002/11/18 12:41:16  mroi
  * sync to libdvdnav cvs
  * * fix read cache and improve it for slower drives
