@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.11 2001/09/24 18:15:59 jkeil Exp $
+ * $Id: audio_esd_out.c,v 1.12 2001/10/14 17:16:11 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,22 +42,26 @@
 
 #define AO_OUT_ESD_IFACE_VERSION 2
 
+#define GAP_TOLERANCE         5000
 
 typedef struct esd_driver_s {
 
-  ao_driver_t    ao_driver;
+  ao_driver_t      ao_driver;
 
-  int            audio_fd;
-  int            capabilities;
-  int            mode;
+  int              audio_fd;
+  int              capabilities;
+  int              mode;
 
-  int32_t        output_sample_rate, input_sample_rate;
-  double         sample_rate_factor;
-  uint32_t       num_channels;
-  uint32_t	 bytes_per_frame;
+  int32_t          output_sample_rate, input_sample_rate;
+  int32_t          output_sample_k_rate;
+  double           sample_rate_factor;
+  uint32_t         num_channels;
+  uint32_t	   bytes_per_frame;
+  uint32_t         bytes_in_buffer;      /* number of bytes writen to esd */
 
-  int            latency, gap_tolerance;
+  int              gap_tolerance, latency;
 
+  struct timeval   start_time;
 } esd_driver_t;
 
 
@@ -89,6 +93,7 @@ static int ao_esd_open(ao_driver_t *this_gen,
   this->mode                   = mode;
   this->input_sample_rate      = rate;
   this->output_sample_rate     = rate;
+  this->bytes_in_buffer        = 0;
 
   /*
    * open stream to ESD server
@@ -112,6 +117,7 @@ static int ao_esd_open(ao_driver_t *this_gen,
   if (this->output_sample_rate > 44100)
     this->output_sample_rate = 44100;
 
+  this->output_sample_k_rate   = this->output_sample_rate / 1000;
 
   this->audio_fd=esd_play_stream(format, this->output_sample_rate, NULL, NULL);
   if (this->audio_fd < 0) {
@@ -119,6 +125,8 @@ static int ao_esd_open(ao_driver_t *this_gen,
 	   getenv("ESPEAKER"), strerror(errno));
     return 0;
   }
+
+  gettimeofday(&this->start_time, NULL);
 
   return this->output_sample_rate;
 }
@@ -139,18 +147,59 @@ static int ao_esd_bytes_per_frame(ao_driver_t *this_gen)
 static int ao_esd_delay(ao_driver_t *this_gen)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
+  int           bytes_left;
+  int           frames;
+  struct        timeval tv;
 
-  return this->latency;
+  gettimeofday(&tv, NULL);
+
+  frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+    * this->output_sample_k_rate / 1000;
+  frames += (tv.tv_sec - this->start_time.tv_sec)
+    * this->output_sample_rate;
+
+  frames -= this->latency; 
+  
+  /* calc delay */
+  
+  bytes_left = this->bytes_in_buffer - frames * this->bytes_per_frame;
+  
+  if (bytes_left<=0) /* buffer ran dry */
+    bytes_left = 0;
+
+  return bytes_left / this->bytes_per_frame;
 }
 
 static int ao_esd_write(ao_driver_t *this_gen,
 			int16_t* frame_buffer, uint32_t num_frames)
 {
 
-  esd_driver_t *this = (esd_driver_t *) this_gen;
+  esd_driver_t  *this = (esd_driver_t *) this_gen;
+  int            simulated_bytes_in_buffer, frames ;
+  struct timeval tv;
 
   if (this->audio_fd<0)
     return 1;
+
+  /* check if simulated buffer ran dry */
+
+  gettimeofday(&tv, NULL);
+  
+  frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+    * this->output_sample_k_rate / 1000;
+  frames += (tv.tv_sec - this->start_time.tv_sec)
+    * this->output_sample_rate;
+  
+  frames -= this->latency; 
+
+  /* calc delay */
+  
+  simulated_bytes_in_buffer = frames * this->bytes_per_frame;
+  
+  if (this->bytes_in_buffer < simulated_bytes_in_buffer)
+    this->bytes_in_buffer = simulated_bytes_in_buffer;
+
+  this->bytes_in_buffer += num_frames * this->bytes_per_frame;
 
   write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame);
 
@@ -171,7 +220,7 @@ static uint32_t ao_esd_get_capabilities (ao_driver_t *this_gen) {
 
 static int ao_esd_get_gap_tolerance (ao_driver_t *this_gen) {
   esd_driver_t *this = (esd_driver_t *) this_gen;
-  return this->gap_tolerance ;
+  return GAP_TOLERANCE;
 }
 
 static void ao_esd_exit(ao_driver_t *this_gen)
@@ -246,7 +295,6 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->audio_fd           = -1;
   this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
   this->latency            = config->lookup_int (config, "esd_latency", 30000);
-  this->gap_tolerance      = config->lookup_int (config, "esd_gap_tolerance", 15000);
 
   this->ao_driver.get_capabilities    = ao_esd_get_capabilities;
   this->ao_driver.get_property        = ao_esd_get_property;
