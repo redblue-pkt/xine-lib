@@ -20,7 +20,7 @@ OTHERSRC = timer.c config.c planner.c twiddle.c executor.c \
 
 libfftw_la_SOURCES = $(CODELETS) $(OTHERSRC)
 
-noinst_HEADERS = fftw.h fftw-int.h f77_func.h
+noinst_HEADERS = fftw.h fftw-int.h f77_func.h config.h
 EXTRA_DIST = fftwf77.c
 
 debug:
