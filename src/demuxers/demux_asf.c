@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.48 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_asf.c,v 1.49 2002/07/05 20:54:37 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -54,7 +54,7 @@
 
 #define DEFRAG_BUFSIZE    65536
 
-#define VALID_ENDS    "asf,wmv"
+#define VALID_ENDS    "asf,wmv,wma"
 
 typedef struct {
   int               num;
@@ -95,10 +95,10 @@ typedef struct demux_asf_s {
   int               num_audio_streams;
   int               num_video_streams;
 
-  uint16_t          wavex[128];
+  uint16_t          wavex[1024];
   int               wavex_size;
 
-  uint16_t          bih[128];
+  uint16_t          bih[1024];
   int               bih_size;
 
   char              title[512];
@@ -517,21 +517,28 @@ static int asf_read_header (demux_asf_t *this) {
 
 	asf_send_audio_header (this, stream_id);
 #ifdef LOG
-        printf ("found a_stream id=%d \n", stream_id);
+        printf ("demux_asf: found a_stream id=%d \n", stream_id);
 #endif
       } else {
+
+	int i;
 
 	get_le32(this); /* width */
 	get_le32(this); /* height */
 	get_byte(this);
-	this->bih_size = get_le16(this); /* size */
+	
+	i = get_le16(this); /* size */
+	if( i > 0 && i < sizeof(this->bih) ) {
+	  this->bih_size = i;
+	  this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
+	  xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
 
-	this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
-	xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
-
-	asf_send_video_header (this, stream_id);
+	  asf_send_video_header (this, stream_id);
+	}
+	else
+	  printf ("demux_asf: invalid bih_size received (%d), v_stream ignored.\n", i );
 #ifdef LOG
-	printf ("found v_stream id=%d \n", stream_id);
+	printf ("demux_asf: found v_stream id=%d \n", stream_id);
 #endif
       }
       pos2 = this->input->get_current_pos (this->input);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.70 2002/07/01 13:51:27 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.71 2002/07/05 20:54:37 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -589,7 +589,8 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_PLAY_PAUSE:
     printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
-    ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+    if (this->sync_method != OSS_SYNC_SOFTSYNC)
+      ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     /*  Uncomment the following lines if RESET causes problems
      *  ao_oss_close(this_gen);
      *  ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
@@ -602,7 +603,8 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_FLUSH_BUFFERS:
     printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS\n");
-    ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+    if (this->sync_method != OSS_SYNC_SOFTSYNC)
+      ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     break;
   }
 

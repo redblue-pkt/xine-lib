@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.84 2002/07/05 17:32:04 mroi Exp $
+ * $Id: w32codec.c,v 1.85 2002/07/05 20:54:37 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -87,6 +87,12 @@ static GUID msmpeg4_clsid =
 	{ 0x9f, 0xe5, 0x00, 0x60, 0x97, 0x78, 0xea, 0x66}
 };
 
+static GUID mss1_clsid =
+{
+	0x3301a7c4, 0x0a8d, 0x11d4,
+	{ 0x91, 0x4d, 0x00, 0xc0, 0x4f, 0x61, 0x0d, 0x24 }
+};
+
 
 /* some data is shared inside wine loader.
  * this mutex seems to avoid some segfaults
@@ -107,7 +113,7 @@ typedef struct w32v_decoder_s {
   int64_t           video_step;
   int               decoder_ok;
 
-  BITMAPINFOHEADER  bih, o_bih; 
+  BITMAPINFOHEADER  *bih, o_bih; 
   char              scratch1[16]; /* some codecs overflow o_bih */
   HIC               hic;
   int               yuv_supported ;
@@ -383,6 +389,11 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->flipped=1;
     return "vp31vfw.dll";    
 
+  case BUF_VIDEO_MSS1:
+    this->ds_driver = 1;
+    this->guid=&mss1_clsid;
+    return "msscds32.ax";    
+
   }
 
   printf ("w32codec: this didn't happen: unknown video buf type %08x\n",
@@ -419,7 +430,8 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
 	   buf_type == BUF_VIDEO_DV ||
            buf_type == BUF_VIDEO_WMV7 ||
            buf_type == BUF_VIDEO_WMV8 ||
-           buf_type == BUF_VIDEO_VP31 );
+           buf_type == BUF_VIDEO_VP31 ||
+           buf_type == BUF_VIDEO_MSS1 );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -454,23 +466,23 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   }
 
   this->hic = ICOpen (mmioFOURCC('v','i','d','c'), 
-		      this->bih.biCompression, 
+		      this->bih->biCompression, 
 		      ICMODE_FASTDECOMPRESS);
 
   if(!this->hic){
     xine_log (this->xine, XINE_LOG_MSG, 
               "w32codec: ICOpen failed! unknown codec %08lx / wrong parameters?\n",
-              this->bih.biCompression);
+              this->bih->biCompression);
     this->decoder_ok = 0;
     return;
   }
 
-  ret = ICDecompressGetFormat(this->hic, &this->bih, &this->o_bih);
+  ret = ICDecompressGetFormat(this->hic, this->bih, &this->o_bih);
   if(ret){
     xine_log (this->xine, XINE_LOG_MSG, 
               "w32codec: ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n",
-              (char*)&this->o_bih.biCompression, this->bih.biCompression, 
-              this->bih.biBitCount, (long)ret);                
+              (char*)&this->o_bih.biCompression, this->bih->biCompression, 
+              this->bih->biBitCount, (long)ret);                
     this->decoder_ok = 0;
     return;
   }
@@ -488,7 +500,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
       * this->o_bih.biBitCount / 8;
 
   if (this->flipped)
-    this->o_bih.biHeight=-this->bih.biHeight; 
+    this->o_bih.biHeight=-this->bih->biHeight; 
 
   if(outfmt==IMGFMT_YUY2 && !this->yuv_hack_needed)
     this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2');
@@ -496,8 +508,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     this->o_bih.biCompression = 0;
       
   ret = (!this->ex_functions) 
-        ?ICDecompressQuery(this->hic, &this->bih, &this->o_bih)
-        :ICDecompressQueryEx(this->hic, &this->bih, &this->o_bih);
+        ?ICDecompressQuery(this->hic, this->bih, &this->o_bih)
+        :ICDecompressQueryEx(this->hic, this->bih, &this->o_bih);
   
   if(ret){
     xine_log (this->xine, XINE_LOG_MSG,
@@ -507,8 +519,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   }
   
   ret = (!this->ex_functions) 
-        ?ICDecompressBegin(this->hic, &this->bih, &this->o_bih)
-        :ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
+        ?ICDecompressBegin(this->hic, this->bih, &this->o_bih)
+        :ICDecompressBeginEx(this->hic, this->bih, &this->o_bih);
   
   if(ret){
     xine_log (this->xine, XINE_LOG_MSG,
@@ -549,12 +561,12 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   this->ldt_fs = Setup_LDT_Keeper();
   
   this->ds_dec = DS_VideoDecoder_Open(win32_codec_name, this->guid,
-                                        &this->bih, this->flipped, 0);
+                                        this->bih, this->flipped, 0);
   
   if(!this->ds_dec){
     xine_log (this->xine, XINE_LOG_MSG,
               "w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n",
-              this->bih.biCompression);
+              this->bih->biCompression);
     this->decoder_ok = 0;
     return;
   }
@@ -571,14 +583,14 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   else
     this->o_bih.biBitCount=outfmt&0xFF;
 
-  this->o_bih.biWidth = this->bih.biWidth;
-  this->o_bih.biHeight = this->bih.biHeight;
+  this->o_bih.biWidth = this->bih->biWidth;
+  this->o_bih.biHeight = this->bih->biHeight;
   
   this->o_bih.biSizeImage = this->o_bih.biWidth * this->o_bih.biHeight
       * this->o_bih.biBitCount / 8;
 
   if (this->flipped)
-    this->o_bih.biHeight=-this->bih.biHeight; 
+    this->o_bih.biHeight=-this->bih->biHeight; 
 
   if(outfmt==IMGFMT_YUY2 && !this->yuv_hack_needed)
     this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2');
@@ -631,7 +643,10 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
     /* init package containing bih */
-    memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
+    if( this->bih )
+      free( this->bih );
+    this->bih = malloc(buf->size);
+    memcpy ( this->bih, buf->content, buf->size );
     this->video_step = buf->decoder_info[1];
 #ifdef LOG
     printf ("w32codec: video_step is %lld\n", this->video_step);
@@ -699,11 +714,11 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       /* decoder video frame */
 
-      this->bih.biSizeImage = this->size;
+      this->bih->biSizeImage = this->size;
      
       img = this->video_out->get_frame (this->video_out,
-					this->bih.biWidth, 
-					this->bih.biHeight, 
+					this->bih->biWidth, 
+					this->bih->biHeight, 
 					42, 
 					IMGFMT_YUY2,
 					VO_BOTH_FIELDS);
@@ -727,10 +742,10 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       if( !this->ds_driver )
         ret = (!this->ex_functions)
               ?ICDecompress(this->hic, flags,
-			    &this->bih, this->buf, &this->o_bih, 
+			    this->bih, this->buf, &this->o_bih, 
 			    (this->skipframes)?NULL:img_buffer)
               :ICDecompressEx(this->hic, flags,
-			    &this->bih, this->buf, &this->o_bih,
+			    this->bih, this->buf, &this->o_bih,
 			    (this->skipframes)?NULL:img_buffer); 
       else {
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size,
@@ -755,7 +770,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   
 	  xine_profiler_start_count (this->prof_rgb2yuv);
   
-	  for (row=0; row<this->bih.biHeight; row++) {
+	  for (row=0; row<this->bih->biHeight; row++) {
   
 	    uint16_t *pixel, *out;
   
@@ -862,9 +877,9 @@ static void w32v_reset (video_decoder_t *this_gen) {
     if( this->hic )
     {
       if (!this->ex_functions) 
-        ICDecompressBegin(this->hic, &this->bih, &this->o_bih);
+        ICDecompressBegin(this->hic, this->bih, &this->o_bih);
       else
-        ICDecompressBeginEx(this->hic, &this->bih, &this->o_bih);
+        ICDecompressBeginEx(this->hic, this->bih, &this->o_bih);
     }
   } else {
   }
@@ -911,6 +926,11 @@ static void w32v_close (video_decoder_t *this_gen) {
   if ( this->buf ) {
     free (this->buf);
     this->buf = NULL;
+  }
+
+  if( this->bih ) {
+    free( this->bih );
+    this->bih = NULL;
   }
 
   if( this->decoder_ok )
@@ -1268,7 +1288,6 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    /* init package containing bih */
 
 #ifdef LOG
     printf ("w32codec: got audio header\n");

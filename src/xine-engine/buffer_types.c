@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.29 2002/07/04 19:36:55 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.30 2002/07/05 20:54:38 miguelfreitas Exp $
  *
  *
  * contents:
@@ -401,6 +401,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_DUCKTM1,
   "Duck Truemotion v1"
+},
+{
+  {
+    meFOURCC('M', 'S', 'S', '1'),
+    0
+  },
+  BUF_VIDEO_MSS1,
+  "Windows Screen Video"
 },
 { { 0 }, 0, "last entry" }
 };
