@@ -17,3 +17,6 @@ maintainer-clean-generic:
 	-@echo "This command is intended for maintainers to use;"
 	-@echo "it deletes files that may require special tools to rebuild."
 	-rm -f Makefile.in
+
+install-data-local: install-includeHEADERS
+	sed -e '/^\/\*_x_/d' xine.h > $(DESTDIR)$(includedir)/xine.h

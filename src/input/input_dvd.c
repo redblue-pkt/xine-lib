@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.178 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_dvd.c,v 1.179 2003/12/26 16:13:21 mroi Exp $
  *
  */
 
@@ -1215,6 +1215,7 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 	
 	if(lang != 0xffff)
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
+	  /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
 	else
 	  sprintf(data, " %c%c", '?', '?');
 	return INPUT_OPTIONAL_SUCCESS;
@@ -1256,6 +1257,7 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 
 	if(lang != 0xffff)
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
+	  /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
 	else
 	  sprintf(data, " %c%c", '?', '?');
 	return INPUT_OPTIONAL_SUCCESS;
@@ -1734,6 +1736,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.179  2003/12/26 16:13:21  mroi
+ * * cure the ABI breakage: XINE_LANG_MAX cannot be increased
+ * * add TODO items to provide a better solution
+ *
  * Revision 1.178  2003/12/14 22:13:23  siggi
  * API version bounce
  *

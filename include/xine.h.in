@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.111 2003/12/21 14:11:09 mroi Exp $
+ * $Id: xine.h.in,v 1.112 2003/12/26 16:13:22 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -37,6 +37,8 @@
  *     use xlockdisplay() or use two seperate connections to the x-server
  *
  */
+/*_x_ Lines formatted like this one are xine-lib developer comments.  */
+/*_x_ They will be removed from the installed version of this header. */
 
 #ifndef HAVE_XINE_H
 #define HAVE_XINE_H
@@ -798,7 +800,8 @@ int xine_get_audio_lang (xine_stream_t *stream, int channel,
 			 char *lang);
 int xine_get_spu_lang   (xine_stream_t *stream, int channel,
 			 char *lang);
-#define XINE_LANG_MAX                     128
+/*_x_ increasing this number means an incompatible ABI breakage! */
+#define XINE_LANG_MAX                     32
 
 /*
  * get position / length information

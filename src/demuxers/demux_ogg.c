@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.128 2003/12/23 21:22:38 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.129 2003/12/26 16:13:21 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1569,6 +1569,10 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
 	  if (this->language[stream_num]) {
             strncpy (str, this->language[stream_num], XINE_LANG_MAX);
 	    str[XINE_LANG_MAX - 1] = '\0';
+	    if (strlen(this->language[stream_num]) >= XINE_LANG_MAX)
+	      /* the string got truncated */
+	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
+	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  } else {
 	    snprintf(str, XINE_LANG_MAX, "channel %d",channel);
@@ -1589,6 +1593,10 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
 	  if (this->language[stream_num]) {
             strncpy (str, this->language[stream_num], XINE_LANG_MAX);
 	    str[XINE_LANG_MAX - 1] = '\0';
+	    if (strlen(this->language[stream_num]) >= XINE_LANG_MAX)
+	      /* the string got truncated */
+	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
+	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  } else {
             snprintf(str, XINE_LANG_MAX, "channel %d",channel);
