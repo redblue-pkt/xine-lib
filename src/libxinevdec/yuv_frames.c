@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.9 2003/12/14 22:13:25 siggi Exp $
+ * $Id: yuv_frames.c,v 1.10 2004/01/07 22:28:36 jstembridge Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -70,10 +70,19 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
 
   frame_size = buf->decoder_info[0] * buf->decoder_info[1];
 
-  xine_fast_memcpy (img->base[0], buf->content, frame_size);
-  xine_fast_memcpy (img->base[1], buf->content+frame_size, frame_size/4);
-  xine_fast_memcpy (img->base[2], buf->content+frame_size*5/4, frame_size/4);
-
+  yv12_to_yv12(
+   /* Y */
+    buf->content, buf->decoder_info[0],
+    img->base[0], img->pitches[0],
+   /* U */
+    buf->content + frame_size, buf->decoder_info[0] / 2,
+    img->base[1], img->pitches[1],
+   /* V */
+    buf->content + (frame_size * 5/4), buf->decoder_info[0] / 2,
+    img->base[2], img->pitches[2],
+   /* width x height */
+    buf->decoder_info[0], buf->decoder_info[1]);
+  
   img->draw (img, this->stream);
   img->free (img);
 
