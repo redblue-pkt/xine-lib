@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.88 2003/06/02 06:36:30 f1rmb Exp $
+ * $Id: xine.h.in,v 1.89 2003/06/18 12:59:39 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1250,7 +1250,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_UI_SET_TITLE           3 /* request title display change in ui */
 #define XINE_EVENT_UI_MESSAGE             4 /* message (dialog) for the ui to display */
 #define XINE_EVENT_FRAME_FORMAT_CHANGE    5 /* e.g. aspect ratio change during dvd playback */
-#define XINE_EVENT_AUDIO_LEVEL            6 /* report current audio level (l/r) */
+#define XINE_EVENT_AUDIO_LEVEL            6 /* report current audio level (l/r/mute) */
 #define XINE_EVENT_QUIT                   7 /* last event sent when stream is disposed */
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
 #define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
@@ -1375,7 +1375,8 @@ typedef struct {
  */
 typedef struct {
   int                 left;
-  int                 right;  /* 0..255 */
+  int                 right;  /* 0..100 % */
+  int                 mute;
 } xine_audio_level_data_t;
 
 /*

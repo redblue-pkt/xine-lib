@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.93 2003/06/06 14:01:11 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.94 2003/06/18 12:59:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,21 +84,21 @@ typedef struct {
 
 typedef struct alsa_driver_s {
 
-  ao_driver_t   ao_driver;
+  ao_driver_t        ao_driver;
 
-  alsa_class_t *class;
+  alsa_class_t      *class;
 
-  snd_pcm_t    *audio_fd;
-  int           capabilities;
-  int           open_mode;
-  int		has_pause_resume;
+  snd_pcm_t         *audio_fd;
+  int                capabilities;
+  int                open_mode;
+  int		     has_pause_resume;
 
-  int32_t       output_sample_rate, input_sample_rate;
-  double        sample_rate_factor;
-  uint32_t      num_channels;
-  uint32_t      bits_per_sample;
-  uint32_t      bytes_per_frame;
-  uint32_t      bytes_in_buffer;      /* number of bytes writen to audio hardware   */
+  int32_t            output_sample_rate, input_sample_rate;
+  double             sample_rate_factor;
+  uint32_t           num_channels;
+  uint32_t           bits_per_sample;
+  uint32_t           bytes_per_frame;
+  uint32_t           bytes_in_buffer;      /* number of bytes writen to audio hardware   */
   snd_pcm_sframes_t  buffer_size;
   int32_t            mmap; 
 
@@ -119,26 +119,9 @@ typedef struct alsa_driver_s {
 static snd_output_t *jcd_out;
 
 /*
- * Wait (blocking) till a mixer event happen
- */
-static void *ao_alsa_handle_event_thread(void *data) {
-  alsa_driver_t  *this = (alsa_driver_t *) data;
-
-  do {
-    snd_mixer_wait(this->mixer.handle, -1);
-    pthread_mutex_lock(&this->mixer.mutex);
-    snd_mixer_handle_events(this->mixer.handle);
-    pthread_mutex_unlock(&this->mixer.mutex);
-  } while(1);
-  
-  pthread_exit(NULL);
-}
-
-/*
  * Get and convert volume to percent value
  */
-static int ao_alsa_get_percent_from_volume(long val, long min, long max)
-{
+static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
   int range = max - min;
   int tmp;
   
@@ -150,10 +133,88 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max)
 }
 
 /*
+ * Wait (blocking) till a mixer event happen
+ */
+static void *ao_alsa_handle_event_thread(void *data) {
+  alsa_driver_t  *this = (alsa_driver_t *) data;
+
+  do {
+    int err, mute, sw, sw2;
+    long right_vol, left_vol;
+    
+    snd_mixer_wait(this->mixer.handle, -1);
+    pthread_mutex_lock(&this->mixer.mutex);
+    snd_mixer_handle_events(this->mixer.handle);
+
+    if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
+						  &left_vol)) < 0) {
+      printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+      continue;
+    }
+    
+    if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
+						  &right_vol)) < 0) {
+      printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+      continue;
+    }
+
+    if(snd_mixer_selem_has_playback_switch(this->mixer.elem)) {
+
+      if(snd_mixer_selem_has_playback_switch_joined(this->mixer.elem)) {
+	snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
+	mute = (sw) ? 0 : 1;
+      }
+      else {
+	if (this->mixer.mute & MIXER_MASK_LEFT)
+	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT, &sw);
+	if (SND_MIXER_SCHN_FRONT_RIGHT != SND_MIXER_SCHN_UNKNOWN && 
+	    (this->mixer.mute & MIXER_MASK_RIGHT))
+	  snd_mixer_selem_get_playback_switch(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT, &sw2);
+
+	mute = (sw || sw2) ? 0 : 1;
+      }
+    }
+    else
+      mute = (this->mixer.mute) ? 1 : 0;
+    
+    if((this->mixer.right_vol != right_vol) || (this->mixer.left_vol != left_vol) ||
+       (this->mixer.mute != mute)) {
+      xine_event_t              event;
+      xine_audio_level_data_t   data;
+      xine_stream_t            *stream;
+      
+      this->mixer.right_vol = right_vol;
+      this->mixer.left_vol  = left_vol;
+      this->mixer.mute      = (mute) ? MIXER_MASK_STEREO : 0;
+      
+      data.right = ao_alsa_get_percent_from_volume(this->mixer.right_vol, 
+						   this->mixer.min, this->mixer.max);
+      data.left  = ao_alsa_get_percent_from_volume(this->mixer.left_vol, 
+						   this->mixer.min, this->mixer.max);
+      data.mute  = (this->mixer.mute == MIXER_MASK_STEREO) ? 1 : 0;
+      
+      event.type        = XINE_EVENT_AUDIO_LEVEL;
+      event.data        = &data;
+      event.data_length = sizeof(data);
+      
+      pthread_mutex_lock(&this->class->xine->streams_lock);
+      for(stream = xine_list_first_content(this->class->xine->streams); 
+	  stream; stream = xine_list_next_content(this->class->xine->streams)) {
+	event.stream = stream;
+	xine_event_send(stream, &event);
+      }
+      pthread_mutex_unlock(&this->class->xine->streams_lock);
+    }
+    pthread_mutex_unlock(&this->mixer.mutex);
+  } while(1);
+  
+  pthread_exit(NULL);
+}
+
+/*
  * Convert percent value to volume and set
  */
-static long ao_alsa_get_volume_from_percent(int val, long min, long max)
-{
+static long ao_alsa_get_volume_from_percent(int val, long min, long max) {
   int range = max - min;
   long tmp;
   
@@ -168,8 +229,7 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 /*
  * open the audio device for writing to
  */
-static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
-{
+static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t *config = this->class->xine->config;
   char                 *pcm_device;
@@ -186,7 +246,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
   err = snd_output_stdio_attach(&jcd_out, stdout, 0);
-
+  
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->num_channels = 1;
@@ -422,7 +482,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_dump_setup(this->audio_fd, jcd_out); 
   snd_pcm_sw_params_dump(swparams, jcd_out);
 #endif
+  
   return this->output_sample_rate;
+
 __close:
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
@@ -432,8 +494,7 @@ __close:
 /*
  * Return the number of audio channels
  */
-static int ao_alsa_num_channels(ao_driver_t *this_gen)
-{
+static int ao_alsa_num_channels(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->num_channels;
 }
@@ -441,8 +502,7 @@ static int ao_alsa_num_channels(ao_driver_t *this_gen)
 /*
  * Return the number of bytes per frame
  */
-static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
-{
+static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->bytes_per_frame;
 }
@@ -450,8 +510,7 @@ static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
 /*
  * Return gap tolerance (in pts)
  */
-static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
-{
+static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen) {
   return GAP_TOLERANCE;
 }
 
@@ -461,8 +520,7 @@ static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
 /* FIXME: delay returns invalid data if status is not RUNNING. 
  * e.g When there is an XRUN or we are in PREPARED mode.
  */
-static int ao_alsa_delay (ao_driver_t *this_gen) 
-{
+static int ao_alsa_delay (ao_driver_t *this_gen)  {
   snd_pcm_sframes_t delay = 0;
   int err = 0;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
@@ -485,21 +543,25 @@ static int ao_alsa_delay (ao_driver_t *this_gen)
  */
 static void xrun(alsa_driver_t *this) 
 {
-  //snd_pcm_status_t *status;
+  /* snd_pcm_status_t *status; */
   int res;
 
-  //snd_pcm_status_alloca(&status);
-  //if ((res = snd_pcm_status(this->audio_fd, status))<0) {
-  //  printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
-  //  return;
-  //}
-  //snd_pcm_status_dump(status, jcd_out);
+  /* 
+     snd_pcm_status_alloca(&status);
+     if ((res = snd_pcm_status(this->audio_fd, status))<0) {
+       printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
+       return;
+     }
+     snd_pcm_status_dump(status, jcd_out);
+  */
   if (snd_pcm_state(this->audio_fd) == SND_PCM_STATE_XRUN) {
-    //struct timeval now, diff, tstamp;
-    //gettimeofday(&now, 0);
-    //snd_pcm_status_get_trigger_tstamp(status, &tstamp);
-    //timersub(&now, &tstamp, &diff);
-    //printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+    /*
+      struct timeval now, diff, tstamp;
+      gettimeofday(&now, 0);
+      snd_pcm_status_get_trigger_tstamp(status, &tstamp);
+      timersub(&now, &tstamp, &diff);
+      printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+    */
     printf ("audio_alsa_out: XRUN!!!\n");
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
       printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
@@ -512,8 +574,7 @@ static void xrun(alsa_driver_t *this)
 /*
  * Write audio data to output buffer (blocking using snd_pcm_wait)
  */
-static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
-{
+static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
   snd_pcm_sframes_t result;
   snd_pcm_status_t *pcm_stat;
   snd_pcm_state_t    state;
@@ -609,9 +670,9 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 /*
  * This is called when the decoder no longer uses the audio
  */
-static void ao_alsa_close(ao_driver_t *this_gen)
-{
+static void ao_alsa_close(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
+
   if(this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd = NULL;
   this->has_pause_resume = 0; /* This is set at open time */
@@ -628,8 +689,7 @@ static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
 /*
  * Shut down audio output driver plugin and free all resources allocated
  */
-static void ao_alsa_exit(ao_driver_t *this_gen)
-{
+static void ao_alsa_exit(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   void          *p;
 
@@ -1268,7 +1328,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*  this->config = xine->config; */
   this->xine = xine;
-   return this;
+  return this;
  }
 
 static ao_info_t ao_info_alsa = {
