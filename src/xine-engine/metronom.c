@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.94 2002/10/14 15:47:38 guenter Exp $
+ * $Id: metronom.c,v 1.95 2002/10/28 07:53:52 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -359,6 +359,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     break;
   }
   
+  this->last_video_pts = 0;
   this->discontinuity_handled_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
 
@@ -369,6 +370,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   int64_t vpts;
   int64_t pts = img->pts;
+  int64_t diff;
   
   pthread_mutex_lock (&this->lock);
 
@@ -385,9 +387,27 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       pts = 0; /* ignore pts during discontinuities */
   }
   
+  this->img_cpt++;
+  
   if (pts) {
-    int64_t diff;
 
+    /*
+     * Compute img duration if it's not provided by the decoder
+     * example: mpeg streams with an invalid frame rate
+     */
+    if (!img->duration) {
+      if (this->last_video_pts && this->img_cpt) {
+        this->img_duration = (pts - this->last_video_pts) / this->img_cpt;
+#ifdef LOG
+        printf("metronom: computed frame_duration = %lld\n", this->img_duration );
+#endif
+      }
+      this->img_cpt = 0;
+      this->last_video_pts = pts;
+      img->duration = this->img_duration;
+    }
+  
+  
     /*
      * compare predicted (this->video_vpts) and given (pts+vpts_offset)
      * pts values - hopefully they will be the same
@@ -423,8 +443,13 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
         printf ("metronom: video drift, drift is %lld\n", this->video_drift);
 #endif
     }
-  } 
+  } else {
+    if (!img->duration) {
+      img->duration = this->img_duration;
+    }  
+  }
 
+  
   img->vpts = this->video_vpts + this->av_offset;
 
 #ifdef LOG
@@ -748,7 +773,11 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   this->video_discontinuity_count = 0;
   this->discontinuity_handled_count = 0;
   pthread_cond_init (&this->video_discontinuity_reached, NULL);
-
+  this->img_duration              = 3000;
+  this->img_cpt                   = 0;
+  this->last_video_pts            = 0;
+  
+  
   /* initialize audio stuff */
 
   this->have_audio                = have_audio;
