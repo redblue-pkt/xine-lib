@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.6 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_image.c,v 1.7 2003/10/22 16:52:47 mroi Exp $
  *
  * image dummy demultiplexer
  */
@@ -74,13 +74,12 @@ static int demux_image_send_chunk (demux_plugin_t *this_gen) {
 
   if (buf->size <= 0) {
     buf->free_buffer(buf);
-    this->status = DEMUX_FINISHED;
+    xine_usec_sleep(250000);
   } else {
     lprintf("got %i bytes\n", buf->size);
-
     this->video_fifo->put (this->video_fifo, buf);
-    this->status = DEMUX_OK;
   }
+  this->status = DEMUX_OK;
   return this->status;
 }
 
