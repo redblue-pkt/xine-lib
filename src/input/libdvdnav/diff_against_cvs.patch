@@ -9,17 +9,6 @@
  
    (*dest) = NULL;
    this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
---- src/input/libdvdnav/dvdnav_internal.h
-+++ src/input/libdvdnav/dvdnav_internal.h
-@@ -35,8 +35,6 @@
- #include <string.h>
- #include <pthread.h>
- 
--#undef WORDS_BIGENDIAN
--
- #include "dvd_reader.h"
- #include "ifo_read.h"
- #include "ifo_types.h"
 --- src/input/libdvdnav/dvd_reader.c
 +++ src/input/libdvdnav/dvd_reader.c
 @@ -44,6 +44,7 @@
