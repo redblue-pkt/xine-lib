@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.58 2002/01/15 16:02:02 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.59 2002/01/15 17:30:51 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -311,6 +311,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 
   case BUF_VIDEO_MSVC:
     /* Video in Windows Video 1 */
+    /* note: can't play streams with 8bpp */
     this->flipped=1;
     this->yuv_supported=0;
     return "msvidc32.dll";    
@@ -785,7 +786,8 @@ static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
 	   (codec == BUF_AUDIO_IMC) ||
 	   (codec == BUF_AUDIO_LH) || 
 	   (codec == BUF_AUDIO_VOXWARE) ||
-           (codec == BUF_AUDIO_ACELPNET) );
+           (codec == BUF_AUDIO_ACELPNET) ||
+           (codec == BUF_AUDIO_VIVOG723) );
 }
 
 static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
@@ -814,6 +816,8 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     this->ds_driver=1;
     this->guid=&CLSID_Acelp;
     return "acelpdec.ax";
+  case BUF_AUDIO_VIVOG723:
+    return "vivog723.acm";
   }
   printf ("w32codec: this didn't happen: unknown audio buf type %08x\n",
 	  buf_type);

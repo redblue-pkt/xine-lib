@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.8 2002/01/15 16:02:03 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.9 2002/01/15 17:30:51 miguelfreitas Exp $
  *
  *
  * contents:
@@ -198,6 +198,9 @@ static video_db_t video_db[] = {
   {
     mmioFOURCC('I', '2', '6', '3'),
     mmioFOURCC('i', '2', '6', '3'),
+    mmioFOURCC('V', 'I', 'V', 'O'),
+    mmioFOURCC('v', 'i', 'v', 'o'),
+    mmioFOURCC('v', 'i', 'v', '1'),
     0
   },
   BUF_VIDEO_I263,
@@ -266,6 +269,9 @@ static video_db_t video_db[] = {
     mmioFOURCC('c','r','a','m'),
     mmioFOURCC('C','R','A','M'),
     mmioFOURCC('M','S','V','C'),
+    mmioFOURCC('m','s','v','c'),
+    mmioFOURCC('W','H','A','M'),
+    mmioFOURCC('w','h','a','m'),
     0
   },
   BUF_VIDEO_MSVC,
@@ -291,6 +297,16 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_VP31,
   "On2 VP3.1 Codec"
+},
+{
+  {
+    mmioFOURCC('H', '2', '6', '3'),
+    mmioFOURCC('h', '2', '6', '3'),
+    mmioFOURCC('U', '2', '6', '3'),
+    0
+  },
+  BUF_VIDEO_H263,
+  "H263 format"
 },
 { { 0 }, 0, "last entry" }
 };
@@ -394,6 +410,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_ACELPNET,
   "ACELP.net"
+},
+{
+  {
+    0x111, 0x112, 0
+  },
+  BUF_AUDIO_VIVOG723,
+  "Vivo G.723/Siren Audio Codec"
 },
 { { 0 }, 0, "last entry" }
 };
