@@ -1852,12 +1852,17 @@ if test x"$enable_fpic" != x; then
        ;;
    esac
 fi
+
+dnl made libtool-nofpic silent and not installing plugins's .la files
+cat libtool | sed -e 's/^show=\".*/show=\":\"/g' -e 's/# Install the pseudo\-library.*/continue/g' > libtool.tmp
+
 if test x$no_fpic = "xyes"; then
-  cat libtool | sed -e 's/^pic_flag=/#pic_flag=/' > libtool-nofpic
+  cat libtool.tmp | sed -e 's/^pic_flag=/#pic_flag=/' > libtool-nofpic
 else
-  cat libtool > libtool-nofpic
+  cat libtool.tmp > libtool-nofpic
 fi
 
+rm -f libtool.tmp
 chmod +x libtool-nofpic
 
 

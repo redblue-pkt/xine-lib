@@ -2,6 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool
 lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la

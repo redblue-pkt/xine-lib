@@ -1,5 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool
 noinst_LTLIBRARIES = libxineutils.la
 
 EXTRA_DIST = ppcasm_string.S ppc_asm.tmpl
