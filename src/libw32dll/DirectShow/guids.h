@@ -1,42 +1,41 @@
 #ifndef GUIDS_H
 #define GUIDS_H
 
-#include "../wine/com.h"
-#include "../wine/winbase.h"
-#include "../wine/vfw.h"
+#include "com.h"
+#include "wine/module.h"
+#include "wine/windef.h"
+#include "wine/vfw.h"
 
 extern int DSHOW_DEBUG;
 #define Debug if(DSHOW_DEBUG)
 
-typedef void IUnknown;
-
-typedef struct _MediaType
+typedef struct __attribute__((__packed__)) _MediaType
 {
-    GUID      majortype;		//0x0
-    GUID      subtype;			//0x10
-    int      bFixedSizeSamples;		//0x20
-    int      bTemporalCompression;	//0x24
-    unsigned long     lSampleSize;	//0x28
-    GUID      formattype;		//0x2c
-    IUnknown  *pUnk;			//0x3c
-    unsigned long     cbFormat;		//0x40
-    char *pbFormat;			//0x44
+    GUID	majortype;		//0x0
+    GUID	subtype;		//0x10
+    int		bFixedSizeSamples;	//0x20
+    int		bTemporalCompression;	//0x24
+    unsigned long lSampleSize;		//0x28
+    GUID	formattype;		//0x2c
+    IUnknown*	pUnk;			//0x3c
+    unsigned long cbFormat;		//0x40
+    char*	pbFormat;		//0x44
 } AM_MEDIA_TYPE;
 
 typedef enum
 {
-    PINDIR_INPUT	= 0,
-    PINDIR_OUTPUT	= PINDIR_INPUT + 1
+    PINDIR_INPUT = 0,
+    PINDIR_OUTPUT
 } PIN_DIRECTION;
 
 typedef long long REFERENCE_TIME;
 
-typedef struct _RECT32
+typedef struct __attribute__((__packed__)) RECT32
 {
     int left, top, right, bottom;
-}RECT32;
+} RECT32;
 
-typedef struct tagVIDEOINFOHEADER {
+typedef struct __attribute__((__packed__)) tagVIDEOINFOHEADER {
 
     RECT32            rcSource;          // The bit we really want to use
     RECT32            rcTarget;          // Where the video should go
@@ -44,7 +43,7 @@ typedef struct tagVIDEOINFOHEADER {
     unsigned long     dwBitErrorRate;    // Bit error rate for this stream
     REFERENCE_TIME    AvgTimePerFrame;   // Average time per frame (100ns units)
     BITMAPINFOHEADER  bmiHeader;
-    int spare[4];
+    //int               reserved[3];
 } VIDEOINFOHEADER;
 
 typedef struct _AllocatorProperties
@@ -56,13 +55,13 @@ typedef struct _AllocatorProperties
 } ALLOCATOR_PROPERTIES;
 
 typedef struct _IBaseFilter IBaseFilter;
-
 typedef struct _PinInfo
 {
-    IBaseFilter *pFilter;
+    IBaseFilter* pFilter;
     PIN_DIRECTION dir;
     unsigned short achName[128];
 } PIN_INFO;
+
 
 extern GUID IID_IBaseFilter;
 extern GUID IID_IEnumPins;

@@ -1,4 +1,4 @@
-CFLAGS = @GLOBAL_CFLAGS@ 
+CFLAGS = @GLOBAL_CFLAGS@ -Iwine
 
 SUBDIRS = wine DirectShow
 
@@ -28,7 +28,7 @@ debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit;\
 	done;
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -Iwine"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

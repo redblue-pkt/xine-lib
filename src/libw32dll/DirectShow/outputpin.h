@@ -5,37 +5,32 @@
 
 #include "allocator.h"
 
-typedef struct _COutputPin COutputPin; 
+typedef struct _COutputPin COutputPin;
 
-typedef struct _COutputMemPin
-{  
-    IMemInputPin_vt *vt;
+typedef struct _COutputMemPin COutputMemPin;
+struct _COutputMemPin
+{
+    IMemInputPin_vt* vt;
+    DECLARE_IUNKNOWN();
     char** frame_pointer;
     long* frame_size_pointer;
     MemAllocator* pAllocator;
     COutputPin* parent;
-}COutputMemPin;
+};
 
 struct _COutputPin
 {
-    IPin_vt *vt;
+    IPin_vt* vt;
+    DECLARE_IUNKNOWN();
     COutputMemPin* mempin;
-    int refcount;
     AM_MEDIA_TYPE type;
     IPin* remote;
+    void ( *SetFramePointer )(COutputPin*, char** z);
+    void ( *SetPointer2 )(COutputPin*, char* p);
+    void ( *SetFrameSizePointer )(COutputPin*, long* z);
+    void ( *SetNewFormat )(COutputPin*, const AM_MEDIA_TYPE* a);
 };
 
-
-COutputPin * COutputPin_Create(const AM_MEDIA_TYPE * vh);
-
-void COutputPin_Destroy(COutputPin *this);
-
-void COutputPin_SetFramePointer(COutputPin *this,char** z);
-
-void COutputPin_SetPointer2(COutputPin *this,char* p); 
-    
-void COutputPin_SetFrameSizePointer(COutputPin *this,long* z);
-
-void COutputPin_SetNewFormat(COutputPin *this, AM_MEDIA_TYPE * a); 
+COutputPin* COutputPinCreate(const AM_MEDIA_TYPE* vhdr);
 
 #endif /* DS_OUTPUTPIN_H */

@@ -5,7 +5,26 @@
 
 *********************************************************/
 
+#ifndef NOAVIFILE_HEADERS
+#include "audiodecoder.h"
+#include "except.h"
+#else
+#include "libwin32.h"
+#endif
+
+#include "DS_Filter.h"
+
+struct _DS_AudioDecoder
+{ 
+    WAVEFORMATEX in_fmt;
+    AM_MEDIA_TYPE m_sOurType, m_sDestType;
+    DS_Filter* m_pDS_Filter;
+    char* m_sVhdr;
+    char* m_sVhdr2;
+};
+
 #include "DS_AudioDecoder.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,25 +45,32 @@ const GUID MEDIASUBTYPE_PCM = {
 
 typedef long STDCALL (*GETCLASS) (GUID*, GUID*, void**);
 
-DS_AudioDecoder * DS_AudioDecoder_Create(const CodecInfo * info, const WAVEFORMATEX* wf)
+DS_AudioDecoder * DS_AudioDecoder_Open(char* dllname, GUID* guid, WAVEFORMATEX* wf)
+//DS_AudioDecoder * DS_AudioDecoder_Create(const CodecInfo * info, const WAVEFORMATEX* wf)
 {
     DS_AudioDecoder *this;
     int sz;
     WAVEFORMATEX* pWF;
-        
+
+#ifdef LDT_paranoia
+    Setup_LDT_Keeper();
+    Setup_FS_Segment();
+#endif
+
     this = malloc(sizeof(DS_AudioDecoder));
     
     sz = 18 + wf->cbSize;
     this->m_sVhdr = malloc(sz);
     memcpy(this->m_sVhdr, wf, sz);
-    this->m_sVhdr2 = malloc(sz);
-    memcpy(this->m_sVhdr2, this->m_sVhdr, sz);
+    this->m_sVhdr2 = malloc(18);
+    memcpy(this->m_sVhdr2, this->m_sVhdr, 18);
     
     pWF = (WAVEFORMATEX*)this->m_sVhdr2;
     pWF->wFormatTag = 1;
     pWF->wBitsPerSample = 16;
-    pWF->nBlockAlign = 2*pWF->nChannels;
+    pWF->nBlockAlign = pWF->nChannels * (pWF->wBitsPerSample + 7) / 8;
     pWF->cbSize = 0;
+    pWF->nAvgBytesPerSec = pWF->nBlockAlign * pWF->nSamplesPerSec;
     
     memcpy(&this->in_fmt,wf,sizeof(WAVEFORMATEX));
 
@@ -63,25 +89,34 @@ DS_AudioDecoder * DS_AudioDecoder_Create(const CodecInfo * info, const WAVEFORMA
     memset(&this->m_sDestType, 0, sizeof(this->m_sDestType));
     this->m_sDestType.majortype=MEDIATYPE_Audio;
     this->m_sDestType.subtype=MEDIASUBTYPE_PCM;
-    this->m_sDestType.subtype.f1=pWF->wFormatTag;
+//    this->m_sDestType.subtype.f1=pWF->wFormatTag;
     this->m_sDestType.formattype=FORMAT_WaveFormatEx;
     this->m_sDestType.bFixedSizeSamples=1;
     this->m_sDestType.bTemporalCompression=0;
-    this->m_sDestType.lSampleSize=2*wf->nChannels;
+    this->m_sDestType.lSampleSize=pWF->nBlockAlign;
+    if (wf->wFormatTag == 0x130)
+	// ACEL hack to prevent memory corruption
+        // obviosly we are missing something here
+	this->m_sDestType.lSampleSize *= 288;
     this->m_sDestType.pUnk=0;
-    this->m_sDestType.cbFormat=pWF->cbSize;
+    this->m_sDestType.cbFormat=18; //pWF->cbSize;
     this->m_sDestType.pbFormat=this->m_sVhdr2;
+
+#if 0
+print_wave_header(this->m_sVhdr);
+print_wave_header(this->m_sVhdr2);
+#endif
 
     /*try*/
     {
         ALLOCATOR_PROPERTIES props, props1;
-        this->m_pDS_Filter = DS_Filter_Create((const char*)info->dll, &info->guid, &this->m_sOurType, &this->m_sDestType);
+        this->m_pDS_Filter = DS_FilterCreate(dllname, guid, &this->m_sOurType, &this->m_sDestType);
 	if( !this->m_pDS_Filter ) {
            free(this);
            return NULL;
         }
         
-        DS_Filter_Start(this->m_pDS_Filter);
+        this->m_pDS_Filter->Start(this->m_pDS_Filter);
 
 	props.cBuffers=1;
         props.cbBuffer=this->m_sOurType.lSampleSize;
@@ -110,37 +145,41 @@ void DS_AudioDecoder_Destroy(DS_AudioDecoder *this)
     free(this);
 }
 
-int DS_AudioDecoder_Convert(DS_AudioDecoder *this, const void* in_data, uint_t in_size,
-			     void* out_data, uint_t out_size,
-			     uint_t* size_read, uint_t* size_written)
+int DS_AudioDecoder_Convert(DS_AudioDecoder *this, const void* in_data, unsigned int in_size,
+			     void* out_data, unsigned int out_size,
+			     unsigned int* size_read, unsigned int* size_written)
 {
-    uint_t written = 0;
-    uint_t read = 0;
+    unsigned int written = 0;
+    unsigned int read = 0;
         
     if (!in_data || !out_data)
 	return -1;
 
+#ifdef LDT_paranoia
+    Setup_FS_Segment();
+#endif
+
     in_size -= in_size%this->in_fmt.nBlockAlign;
     while (in_size>0)
     {
-	uint_t frame_size = 0;
+	unsigned int frame_size = 0;
 	char* frame_pointer;
 	IMediaSample* sample=0;
 	char* ptr;
 	int result;
 	
 //	this->m_pOurOutput->SetFramePointer(out_data+written);
-	COutputPin_SetFramePointer(this->m_pDS_Filter->m_pOurOutput,&frame_pointer);
-	COutputPin_SetFrameSizePointer(this->m_pDS_Filter->m_pOurOutput,(long*)&frame_size);
+	this->m_pDS_Filter->m_pOurOutput->SetFramePointer(this->m_pDS_Filter->m_pOurOutput,&frame_pointer);
+	this->m_pDS_Filter->m_pOurOutput->SetFrameSizePointer(this->m_pDS_Filter->m_pOurOutput,(long*)&frame_size);
 	this->m_pDS_Filter->m_pAll->vt->GetBuffer(this->m_pDS_Filter->m_pAll, &sample, 0, 0, 0);
 	if (!sample)
 	{
 	    Debug printf("DS_AudioDecoder::Convert() Error: null sample\n");
 	    break;
 	}
+	sample->vt->SetActualDataLength(sample, this->in_fmt.nBlockAlign);
 	sample->vt->GetPointer(sample, (BYTE **)&ptr);
 	memcpy(ptr, (const uint8_t*)in_data + read, this->in_fmt.nBlockAlign);
-	sample->vt->SetActualDataLength(sample, this->in_fmt.nBlockAlign);
 	sample->vt->SetSyncPoint(sample, 1);
 	sample->vt->SetPreroll(sample, 0);
 	result = this->m_pDS_Filter->m_pImp->vt->Receive(this->m_pDS_Filter->m_pImp, sample);
@@ -155,6 +194,7 @@ int DS_AudioDecoder_Convert(DS_AudioDecoder *this, const void* in_data, uint_t i
         sample->vt->Release((IUnknown*)sample);
 	read+=this->in_fmt.nBlockAlign;
 	written+=frame_size;
+	break;
     }
     if (size_read)
 	*size_read = read;

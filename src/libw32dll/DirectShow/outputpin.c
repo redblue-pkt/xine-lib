@@ -1,31 +1,37 @@
+
+#include "wine/winerror.h"
+#include "wine/windef.h"
 #include "outputpin.h"
-#include "allocator.h"
-#include "iunk.h"
-#include "../wine/winerror.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 /*
     An object beyond interface IEnumMediaTypes.
     Returned by COutputPin through call IPin::EnumMediaTypes().
 */
 
-typedef struct _CEnumMediaTypes
+static int unimplemented(const char* s, void* p)
 {
-    IEnumMediaTypes_vt *vt;
+    Debug printf("%s(%p) called (UNIMPLEMENTED)", s, p);
+    return E_NOTIMPL;
+}
+
+typedef struct CEnumMediaTypes
+{
+    IEnumMediaTypes_vt* vt;
+    DECLARE_IUNKNOWN();
     AM_MEDIA_TYPE type;
     GUID interfaces[2];
-    DECLARE_IUNKNOWN(CEnumMediaTypes)
-}CEnumMediaTypes;
+} CEnumMediaTypes;
+
 
 static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes,
 					    /* [size_is][out] */ AM_MEDIA_TYPE **ppMediaTypes,
 					    /* [out] */ ULONG *pcFetched)
 {
-    AM_MEDIA_TYPE * type=&((CEnumMediaTypes*)This)->type;
-    Debug printf("CEnumMediaTypes::Next() called\n");
+    AM_MEDIA_TYPE* type = &((CEnumMediaTypes*)This)->type;
+    Debug printf("CEnumMediaTypes::Next(%p) called\n", This);
     if (!ppMediaTypes)
 	return E_INVALIDARG;
     if (!pcFetched && (cMediaTypes!=1))
@@ -36,11 +42,12 @@ static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
     if (pcFetched)
 	*pcFetched=1;
     ppMediaTypes[0] = (AM_MEDIA_TYPE *)CoTaskMemAlloc(sizeof(AM_MEDIA_TYPE));
-    memcpy(*ppMediaTypes, type, sizeof(AM_MEDIA_TYPE));
+    // copy structures - C can handle this...
+    **ppMediaTypes = *type;
     if (ppMediaTypes[0]->pbFormat)
     {
 	ppMediaTypes[0]->pbFormat=(char *)CoTaskMemAlloc(ppMediaTypes[0]->cbFormat);
-	memcpy(ppMediaTypes[0]->pbFormat, type->pbFormat, sizeof(ppMediaTypes[0]->cbFormat));
+	memcpy(ppMediaTypes[0]->pbFormat, type->pbFormat, ppMediaTypes[0]->cbFormat);
     }
     if (cMediaTypes == 1)
 	return 0;
@@ -51,100 +58,73 @@ static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 static HRESULT STDCALL CEnumMediaTypes_Skip(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes)
 {
-    Debug printf("CEnumMediaTypes::Skip() called\n");
+    Debug unimplemented("CEnumMediaTypes::Skip", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL CEnumMediaTypes_Reset(IEnumMediaTypes * This)
 {
-    Debug printf("CEnumMediaTypes::Reset() called\n");
+    Debug printf("CEnumMediaTypes::Reset(%p) called\n", This);
     return 0;
 }
 
 static HRESULT STDCALL CEnumMediaTypes_Clone(IEnumMediaTypes * This,
 				      /* [out] */ IEnumMediaTypes **ppEnum)
 {
-    Debug printf("CEnumMediaTypes::Clone() called\n");
+    Debug printf("CEnumMediaTypes::Clone(%p) called\n", This);
     return E_NOTIMPL;
 }
 
-void CEnumMediaTypes_Destroy(CEnumMediaTypes * this)
+void CEnumMediaTypes_Destroy(CEnumMediaTypes* This)
 {
-   free(this->vt);
-   free(this);
+    free(This->vt);
+    free(This);
 }
 
 // IPin->IUnknown methods
 IMPLEMENT_IUNKNOWN(CEnumMediaTypes)
 
-CEnumMediaTypes * CEnumMediaTypes_Create(const AM_MEDIA_TYPE *amtype)
+CEnumMediaTypes* CEnumMediaTypesCreate(const AM_MEDIA_TYPE* amt)
 {
-    CEnumMediaTypes *this;
-    this = malloc(sizeof(CEnumMediaTypes));
-    
-    this->refcount = 1;
-    memcpy(&this->type,amtype,sizeof(AM_MEDIA_TYPE));
+    CEnumMediaTypes *This = (CEnumMediaTypes*) malloc(sizeof(CEnumMediaTypes)) ;
 
-    this->vt = malloc(sizeof(IEnumMediaTypes_vt));
-    this->vt->QueryInterface = CEnumMediaTypes_QueryInterface;
-    this->vt->AddRef = CEnumMediaTypes_AddRef;
-    this->vt->Release = CEnumMediaTypes_Release;
-    this->vt->Next = CEnumMediaTypes_Next;
-    this->vt->Skip = CEnumMediaTypes_Skip;
-    this->vt->Reset = CEnumMediaTypes_Reset;
-    this->vt->Clone = CEnumMediaTypes_Clone;
-    this->interfaces[0]=IID_IUnknown;
-    this->interfaces[1]=IID_IEnumMediaTypes;
-    
-    return this;
+    if (!This)
+        return NULL;
+
+    This->vt = (IEnumMediaTypes_vt*) malloc(sizeof(IEnumMediaTypes_vt));
+    if (!This->vt)
+    {
+	free(This);
+	return NULL;
+    }
+
+    This->refcount = 1;
+    This->type = *amt;
+
+    This->vt->QueryInterface = CEnumMediaTypes_QueryInterface;
+    This->vt->AddRef = CEnumMediaTypes_AddRef;
+    This->vt->Release = CEnumMediaTypes_Release;
+    This->vt->Next = CEnumMediaTypes_Next;
+    This->vt->Skip = CEnumMediaTypes_Skip;
+    This->vt->Reset = CEnumMediaTypes_Reset;
+    This->vt->Clone = CEnumMediaTypes_Clone;
+
+    This->interfaces[0] = IID_IUnknown;
+    This->interfaces[1] = IID_IEnumMediaTypes;
+
+    return This;
 }
 
 
-static HRESULT STDCALL COutputPin_AddRef(IUnknown* This)
-{
-    Debug printf("COutputPin_AddRef(%p) called (%d)\n",
-		 This, ((COutputPin*)This)->refcount);
-    ((COutputPin*)This)->refcount++;
-    return 0;
-}
-
-static HRESULT STDCALL COutputPin_Release(IUnknown* This)
-{
-    Debug printf("COutputPin_Release(%p) called (%d)\n",
-		 This, ((COutputPin*)This)->refcount);
-    if (--((COutputPin*)This)->refcount<=0)
-	COutputPin_Destroy((COutputPin*)This);
-
-    return 0;
-}
-
-static HRESULT STDCALL COutputPin_M_AddRef(IUnknown* This)
-{
-    COutputMemPin* p = (COutputMemPin*) This;
-    Debug printf("COutputPin_MAddRef(%p) called (%p,   %d)\n",
-		 p, p->parent, p->parent->refcount);
-    p->parent->refcount++;
-    return 0;
-}
-
-static HRESULT STDCALL COutputPin_M_Release(IUnknown* This)
-{
-    COutputMemPin* p = (COutputMemPin*) This;
-    Debug printf("COutputPin_MRelease(%p) called (%p,   %d)\n",
-		 p, p->parent, p->parent->refcount);
-    if (--p->parent->refcount <= 0)
-	COutputPin_Destroy(p->parent);
-    return 0;
-}
-
-/* Implementation of output pin object. */
-// Constructor
+/*************
+ * COutputPin
+ *************/
 
 
 static HRESULT STDCALL COutputPin_QueryInterface(IUnknown* This, GUID* iid, void** ppv)
 {
     COutputPin* p = (COutputPin*) This;
-    
+
     Debug printf("COutputPin_QueryInterface(%p) called\n", This);
     if (!ppv)
 	return E_INVALIDARG;
@@ -162,7 +142,7 @@ static HRESULT STDCALL COutputPin_QueryInterface(IUnknown* This, GUID* iid, void
 	return 0;
     }
 
-    Debug printf("Unknown interface : %08x-%04x-%04x-%02x%02x-" \
+    Debug printf("Unknown interface : %08x-%04x-%04x-%02x%02x-"
 		 "%02x%02x%02x%02x%02x%02x\n",
 		 iid->f1,  iid->f2,  iid->f3,
 		 (unsigned char)iid->f4[1], (unsigned char)iid->f4[0],
@@ -184,7 +164,7 @@ static HRESULT STDCALL COutputPin_Connect(IPin * This,
     {
 	pmt->pbFormat=CoTaskMemAlloc(pmt->cbFormat);
 	memcpy(pmt->pbFormat, ((COutputPin*)This)->type.pbFormat, pmt->cbFormat);
-    }	
+    }
 */
     //return E_NOTIMPL;
     return 0;// XXXXXXXXXXXXX CHECKME XXXXXXXXXXXXXXX
@@ -195,21 +175,21 @@ static HRESULT STDCALL COutputPin_ReceiveConnection(IPin * This,
 						    /* [in] */ IPin *pConnector,
 						    /* [in] */ const AM_MEDIA_TYPE *pmt)
 {
-    Debug printf("COutputPin_ReceiveConnection() called\n");
-    ((COutputPin*)This)->remote=pConnector;
+    Debug printf("COutputPin_ReceiveConnection(%p) called\n", This);
+    ((COutputPin*)This)->remote = pConnector;
     return 0;
 }
 
 static HRESULT STDCALL COutputPin_Disconnect(IPin * This)
 {
-    Debug printf("COutputPin_Disconnect() called\n");
+    Debug printf("COutputPin_Disconnect(%p) called\n", This);
     return 1;
 }
 
 static HRESULT STDCALL COutputPin_ConnectedTo(IPin * This,
 					/* [out] */ IPin **pPin)
 {
-    Debug printf("COutputPin_ConnectedTo() called\n");
+    Debug printf("COutputPin_ConnectedTo(%p) called\n", This);
     if (!pPin)
 	return E_INVALIDARG;
     *pPin = ((COutputPin*)This)->remote;
@@ -234,14 +214,14 @@ static HRESULT STDCALL COutputPin_ConnectionMediaType(IPin * This,
 static HRESULT STDCALL COutputPin_QueryPinInfo(IPin * This,
 					       /* [out] */ PIN_INFO *pInfo)
 {
-    Debug printf("COutputPin_QueryPinInfo() called\n");
+    Debug unimplemented("COutputPin_QueryPinInfo", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_QueryDirection(IPin * This,
 					   /* [out] */ PIN_DIRECTION *pPinDir)
 {
-    Debug printf("COutputPin_QueryDirection() called\n");
+    Debug printf("COutputPin_QueryDirection(%p) called\n", This);
     if (!pPinDir)
 	return E_INVALIDARG;
     *pPinDir = PINDIR_INPUT;
@@ -251,14 +231,14 @@ static HRESULT STDCALL COutputPin_QueryDirection(IPin * This,
 static HRESULT STDCALL COutputPin_QueryId(IPin * This,
 					  /* [out] */ LPWSTR *Id)
 {
-    Debug printf("COutputPin_QueryId() called\n");
+    Debug unimplemented("COutputPin_QueryId", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_QueryAccept(IPin * This,
 					      /* [in] */ const AM_MEDIA_TYPE *pmt)
 {
-    Debug printf("COutputPin_QueryAccept() called\n");
+    Debug unimplemented("COutputPin_QueryAccept", This);
     return E_NOTIMPL;
 }
 
@@ -268,7 +248,7 @@ static HRESULT STDCALL COutputPin_EnumMediaTypes(IPin * This,
     Debug printf("COutputPin_EnumMediaTypes() called\n");
     if (!ppEnum)
 	return E_INVALIDARG;
-    *ppEnum=(IEnumMediaTypes *)CEnumMediaTypes_Create(&((COutputPin*)This)->type);
+    *ppEnum = (IEnumMediaTypes*) CEnumMediaTypesCreate(&((COutputPin*)This)->type);
     return 0;
 }
 
@@ -276,25 +256,25 @@ static HRESULT STDCALL COutputPin_QueryInternalConnections(IPin * This,
 						     /* [out] */ IPin **apPin,
 						     /* [out][in] */ ULONG *nPin)
 {
-    Debug printf("COutputPin_QueryInternalConnections() called\n");
+    Debug unimplemented("COutputPin_QueryInternalConnections", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_EndOfStream(IPin * This)
 {
-    Debug printf("COutputPin_EndOfStream() called\n");
+    Debug unimplemented("COutputPin_EndOfStream", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_BeginFlush(IPin * This)
 {
-    Debug printf("COutputPin_BeginFlush() called\n");
+    Debug unimplemented("COutputPin_BeginFlush", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_EndFlush(IPin * This)
 {
-    Debug printf("COutputPin_EndFlush() called\n");
+    Debug unimplemented("COutputPin_EndFlush", This);
     return E_NOTIMPL;
 }
 
@@ -315,13 +295,14 @@ static HRESULT STDCALL COutputPin_NewSegment(IPin * This,
 static HRESULT STDCALL COutputPin_M_QueryInterface(IUnknown* This, GUID* iid, void** ppv)
 {
     COutputPin* p = (COutputPin*)This;
-    Debug printf("COutputPin_M_QueryInterface() called\n");
+
+    Debug printf("COutputPin_M_QueryInterface(%p) called\n", This);
     if (!ppv)
 	return E_INVALIDARG;
 
     if(!memcmp(iid, &IID_IUnknown, 16))
     {
-	*ppv=p;
+	*ppv = p;
 	p->vt->AddRef(This);
 	return 0;
     }
@@ -334,7 +315,7 @@ static HRESULT STDCALL COutputPin_M_QueryInterface(IUnknown* This, GUID* iid, vo
     }*/
     if(!memcmp(iid, &IID_IMemInputPin, 16))
     {
-	*ppv=p->mempin;
+	*ppv = p->mempin;
 	p->mempin->vt->AddRef(This);
 	return 0;
     }
@@ -350,16 +331,16 @@ static HRESULT STDCALL COutputPin_M_QueryInterface(IUnknown* This, GUID* iid, vo
 
 // IMemInputPin methods
 
-static HRESULT STDCALL COutputPin_GetAllocator(IMemInputPin * This,
-					 /* [out] */ IMemAllocator **ppAllocator)
+static HRESULT STDCALL COutputPin_GetAllocator(IMemInputPin* This,
+					 /* [out] */ IMemAllocator** ppAllocator)
 {
     Debug printf("COutputPin_GetAllocator(%p, %p) called\n", This->vt, ppAllocator);
-    *ppAllocator=(IMemAllocator *)MemAllocator_Create();
+    *ppAllocator = (IMemAllocator*) MemAllocatorCreate();
     return 0;
 }
-    
-static HRESULT STDCALL COutputPin_NotifyAllocator(IMemInputPin * This,
-						  /* [in] */ IMemAllocator *pAllocator,
+
+static HRESULT STDCALL COutputPin_NotifyAllocator(IMemInputPin* This,
+						  /* [in] */ IMemAllocator* pAllocator,
 						  /* [in] */ int bReadOnly)
 {
     Debug printf("COutputPin_NotifyAllocator(%p, %p) called\n", This, pAllocator);
@@ -367,27 +348,26 @@ static HRESULT STDCALL COutputPin_NotifyAllocator(IMemInputPin * This,
     return 0;
 }
 
-static HRESULT STDCALL COutputPin_GetAllocatorRequirements(IMemInputPin * This,
-							   /* [out] */ ALLOCATOR_PROPERTIES *pProps)
+static HRESULT STDCALL COutputPin_GetAllocatorRequirements(IMemInputPin* This,
+							   /* [out] */ ALLOCATOR_PROPERTIES* pProps)
 {
-    Debug printf("COutputPin_GetAllocatorRequirements() called\n");
+    Debug unimplemented("COutputPin_GetAllocatorRequirements", This);
     return E_NOTIMPL;
 }
 
-static HRESULT STDCALL COutputPin_Receive(IMemInputPin * This,
-				    /* [in] */ IMediaSample *pSample)
+static HRESULT STDCALL COutputPin_Receive(IMemInputPin* This,
+					  /* [in] */ IMediaSample* pSample)
 {
+    COutputMemPin* mp = (COutputMemPin*)This;
     char* pointer;
-    COutputMemPin* mp= (COutputMemPin*)This;
-    int len = pSample->vt->GetActualDataLength(pSample);
-    
+    int len;
+
     Debug printf("COutputPin_Receive(%p) called\n", This);
     if (!pSample)
 	return E_INVALIDARG;
-    
-    if (pSample->vt->GetPointer(pSample, (BYTE **)&pointer))
+    if (pSample->vt->GetPointer(pSample, (BYTE**) &pointer))
 	return -1;
-    
+    len = pSample->vt->GetActualDataLength(pSample);
     if (len == 0)
 	len = pSample->vt->GetSize(pSample);//for iv50
     //if(me.frame_pointer)memcpy(me.frame_pointer, pointer, len);
@@ -404,8 +384,9 @@ static HRESULT STDCALL COutputPin_Receive(IMemInputPin * This,
     fwrite(&((VIDEOINFOHEADER*)me.type.pbFormat)->bmiHeader, sizeof(BITMAPINFOHEADER), 1, file);
     fwrite(pointer, len, 1, file);
     fclose(file);
-*/    
+*/
 //    pSample->vt->Release((IUnknown*)pSample);
+
     return 0;
 }
 
@@ -414,82 +395,146 @@ static HRESULT STDCALL COutputPin_ReceiveMultiple(IMemInputPin * This,
 					    /* [in] */ long nSamples,
 					    /* [out] */ long *nSamplesProcessed)
 {
-    Debug printf("COutputPin_ReceiveMultiple() called (UNIMPLEMENTED)\n");
+    Debug unimplemented("COutputPin_ReceiveMultiple", This);
     return E_NOTIMPL;
 }
 
 static HRESULT STDCALL COutputPin_ReceiveCanBlock(IMemInputPin * This)
 {
-    Debug printf("COutputPin_ReceiveCanBlock() called (UNIMPLEMENTED)\n");
+    Debug unimplemented("COutputPin_ReceiveCanBlock", This);
     return E_NOTIMPL;
 }
 
-COutputPin * COutputPin_Create(const AM_MEDIA_TYPE * vh)
+static void COutputPin_SetFramePointer(COutputPin* This, char** z)
 {
-    COutputPin *this;
-    this = malloc(sizeof(COutputPin));
-    this->refcount = 1;
-    memcpy(&this->type,vh,sizeof(AM_MEDIA_TYPE));
-    this->remote=0;
-    this->vt = malloc(sizeof(IPin_vt));
-    this->vt->QueryInterface = COutputPin_QueryInterface;
-    this->vt->AddRef = COutputPin_AddRef;
-    this->vt->Release = COutputPin_Release;
-    this->vt->Connect = COutputPin_Connect;
-    this->vt->ReceiveConnection = COutputPin_ReceiveConnection;
-    this->vt->Disconnect = COutputPin_Disconnect;
-    this->vt->ConnectedTo = COutputPin_ConnectedTo;
-    this->vt->ConnectionMediaType = COutputPin_ConnectionMediaType;
-    this->vt->QueryPinInfo = COutputPin_QueryPinInfo;
-    this->vt->QueryDirection = COutputPin_QueryDirection;
-    this->vt->QueryId = COutputPin_QueryId;
-    this->vt->QueryAccept = COutputPin_QueryAccept;
-    this->vt->EnumMediaTypes = COutputPin_EnumMediaTypes;
-    this->vt->QueryInternalConnections = COutputPin_QueryInternalConnections;
-    this->vt->EndOfStream = COutputPin_EndOfStream;
-    this->vt->BeginFlush = COutputPin_BeginFlush;
-    this->vt->EndFlush = COutputPin_EndFlush;
-    this->vt->NewSegment = COutputPin_NewSegment;
-
-    this->mempin = malloc(sizeof(COutputMemPin));
-    this->mempin->vt = malloc(sizeof(IMemInputPin_vt));
-    this->mempin->vt->QueryInterface = COutputPin_M_QueryInterface;
-    this->mempin->vt->AddRef = COutputPin_M_AddRef;
-    this->mempin->vt->Release = COutputPin_M_Release;
-    this->mempin->vt->GetAllocator = COutputPin_GetAllocator;
-    this->mempin->vt->NotifyAllocator = COutputPin_NotifyAllocator;
-    this->mempin->vt->GetAllocatorRequirements = COutputPin_GetAllocatorRequirements;
-    this->mempin->vt->Receive = COutputPin_Receive;
-    this->mempin->vt->ReceiveMultiple = COutputPin_ReceiveMultiple;
-    this->mempin->vt->ReceiveCanBlock = COutputPin_ReceiveCanBlock;
-
-    this->mempin->frame_size_pointer = 0;
-    this->mempin->frame_pointer = 0;
-    this->mempin->pAllocator = 0;
-    this->mempin->parent = this;
-    
-    return this;
+    This->mempin->frame_pointer = z;
 }
 
-void COutputPin_Destroy(COutputPin *this)
+static void COutputPin_SetPointer2(COutputPin* This, char* p)
 {
-    free(this->vt);
-    free(this->mempin->vt);
-    free(this->mempin);
-    free(this);
+    if (This->mempin->pAllocator)
+        // fixme
+	This->mempin->pAllocator->SetPointer(This->mempin->pAllocator, p);
 }
 
-void COutputPin_SetFramePointer(COutputPin *this,char** z) 
-{ this->mempin->frame_pointer = z; }
-
-void COutputPin_SetPointer2(COutputPin *this,char* p) 
+static void COutputPin_SetFrameSizePointer(COutputPin* This, long* z)
 {
-	if (this->mempin->pAllocator)
-	    MemAllocator_SetPointer(this->mempin->pAllocator,p);
+    This->mempin->frame_size_pointer = z;
 }
-    
-void COutputPin_SetFrameSizePointer(COutputPin *this,long* z)
-{ this->mempin->frame_size_pointer = z; }
 
-void COutputPin_SetNewFormat(COutputPin *this, AM_MEDIA_TYPE * a) 
-{ memcpy(&this->type,a,sizeof(AM_MEDIA_TYPE)); }
+static void COutputPin_SetNewFormat(COutputPin* This, const AM_MEDIA_TYPE* amt)
+{
+    This->type = *amt;
+}
+
+static void COutputPin_Destroy(COutputPin* This)
+{
+    if (This->mempin->vt)
+	free(This->mempin->vt);
+    if (This->mempin)
+	free(This->mempin);
+    if (This->vt)
+	free(This->vt);
+    free(This);
+}
+
+static HRESULT STDCALL COutputPin_AddRef(IUnknown* This)
+{
+    Debug printf("COutputPin_AddRef(%p) called (%d)\n", This, ((COutputPin*)This)->refcount);
+    ((COutputPin*)This)->refcount++;
+    return 0;
+}
+
+static HRESULT STDCALL COutputPin_Release(IUnknown* This)
+{
+    Debug printf("COutputPin_Release(%p) called (%d)\n", This, ((COutputPin*)This)->refcount);
+    if (--((COutputPin*)This)->refcount <= 0)
+	COutputPin_Destroy((COutputPin*)This);
+
+    return 0;
+}
+
+static HRESULT STDCALL COutputPin_M_AddRef(IUnknown* This)
+{
+    COutputMemPin* p = (COutputMemPin*) This;
+    Debug printf("COutputPin_MAddRef(%p) called (%p, %d)\n", p, p->parent, p->parent->refcount);
+    p->parent->refcount++;
+    return 0;
+}
+
+static HRESULT STDCALL COutputPin_M_Release(IUnknown* This)
+{
+    COutputMemPin* p = (COutputMemPin*) This;
+    Debug printf("COutputPin_MRelease(%p) called (%p,   %d)\n",
+		 p, p->parent, p->parent->refcount);
+    if (--p->parent->refcount <= 0)
+	COutputPin_Destroy(p->parent);
+    return 0;
+}
+
+COutputPin* COutputPinCreate(const AM_MEDIA_TYPE* amt)
+{
+    COutputPin* This = (COutputPin*) malloc(sizeof(COutputPin));
+    IMemInputPin_vt* ivt;
+
+    if (!This)
+        return NULL;
+
+    This->vt = (IPin_vt*) malloc(sizeof(IPin_vt));
+    This->mempin = (COutputMemPin*) malloc(sizeof(COutputMemPin));
+    ivt = (IMemInputPin_vt*) malloc(sizeof(IMemInputPin_vt));
+
+    if (!This->vt || !This->mempin || !ivt)
+    {
+        COutputPin_Destroy(This);
+	return NULL;
+    }
+
+    This->mempin->vt = ivt;
+
+    This->refcount = 1;
+    This->remote = 0;
+    This->type = *amt;
+
+    This->vt->QueryInterface = COutputPin_QueryInterface;
+    This->vt->AddRef = COutputPin_AddRef;
+    This->vt->Release = COutputPin_Release;
+    This->vt->Connect = COutputPin_Connect;
+    This->vt->ReceiveConnection = COutputPin_ReceiveConnection;
+    This->vt->Disconnect = COutputPin_Disconnect;
+    This->vt->ConnectedTo = COutputPin_ConnectedTo;
+    This->vt->ConnectionMediaType = COutputPin_ConnectionMediaType;
+    This->vt->QueryPinInfo = COutputPin_QueryPinInfo;
+    This->vt->QueryDirection = COutputPin_QueryDirection;
+    This->vt->QueryId = COutputPin_QueryId;
+    This->vt->QueryAccept = COutputPin_QueryAccept;
+    This->vt->EnumMediaTypes = COutputPin_EnumMediaTypes;
+    This->vt->QueryInternalConnections = COutputPin_QueryInternalConnections;
+    This->vt->EndOfStream = COutputPin_EndOfStream;
+    This->vt->BeginFlush = COutputPin_BeginFlush;
+    This->vt->EndFlush = COutputPin_EndFlush;
+    This->vt->NewSegment = COutputPin_NewSegment;
+
+    This->mempin->vt->QueryInterface = COutputPin_M_QueryInterface;
+    This->mempin->vt->AddRef = COutputPin_M_AddRef;
+    This->mempin->vt->Release = COutputPin_M_Release;
+    This->mempin->vt->GetAllocator = COutputPin_GetAllocator;
+    This->mempin->vt->NotifyAllocator = COutputPin_NotifyAllocator;
+    This->mempin->vt->GetAllocatorRequirements = COutputPin_GetAllocatorRequirements;
+    This->mempin->vt->Receive = COutputPin_Receive;
+    This->mempin->vt->ReceiveMultiple = COutputPin_ReceiveMultiple;
+    This->mempin->vt->ReceiveCanBlock = COutputPin_ReceiveCanBlock;
+
+    This->mempin->frame_size_pointer = 0;
+    This->mempin->frame_pointer = 0;
+    This->mempin->pAllocator = 0;
+    This->mempin->refcount = 1;
+    This->mempin->parent = This;
+
+    This->SetPointer2 = COutputPin_SetPointer2;
+    This->SetFramePointer = COutputPin_SetFramePointer;
+    This->SetFrameSizePointer = COutputPin_SetFrameSizePointer;
+    This->SetNewFormat = COutputPin_SetNewFormat;
+
+    return This;
+}

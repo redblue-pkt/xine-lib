@@ -4,12 +4,16 @@
 #include "inputpin.h"
 #include "outputpin.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /**
    User will allocate and fill format structures, call Create(),
    and then set up m_pAll.
  **/
-typedef struct _DS_Filter DS_Filter;
 
+typedef struct _DS_Filter DS_Filter;
 struct _DS_Filter
 {
     int m_iHandle;
@@ -22,21 +26,20 @@ struct _DS_Filter
     IPin* m_pOurInput;
     COutputPin* m_pOurOutput;
 
-    AM_MEDIA_TYPE *m_pOurType;
-    AM_MEDIA_TYPE *m_pDestType;
+    AM_MEDIA_TYPE *m_pOurType, *m_pDestType;
     IMemAllocator* m_pAll;
     IMemInputPin* m_pImp;
-    int m_iState;
+
+    void ( *Start )(DS_Filter*);
+    void ( *Stop )(DS_Filter*);
 };
 
-void DS_Filter_Destroy(DS_Filter * this);
+DS_Filter* DS_FilterCreate(const char* dllname, const GUID* id,
+			   AM_MEDIA_TYPE* in_fmt, AM_MEDIA_TYPE* out_fmt);
+void DS_Filter_Destroy(DS_Filter* This);
 
-DS_Filter * DS_Filter_Create(const char* dllname, const GUID* id,
-		       AM_MEDIA_TYPE* in_fmt,
-		       AM_MEDIA_TYPE* out_fmt);
-
-void DS_Filter_Start(DS_Filter *this);
-
-void DS_Filter_Stop(DS_Filter *this);
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* DS_FILTER_H */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.53 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.54 2002/01/06 18:56:19 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -468,7 +468,6 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   uint32_t vo_cap;
   int outfmt;
-  CodecInfo ci;
 
   printf ("w32codec: init Direct Show video codec...\n");
   
@@ -477,9 +476,8 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
 
   this->ldt_fs = Setup_LDT_Keeper();
   
-  ci.dll=win32_codec_name;
-  memcpy(&ci.guid,this->guid,sizeof(ci.guid));
-  this->ds_dec = DS_VideoDecoder_Create(&ci, &this->bih, this->flipped, 0);
+  this->ds_dec = DS_VideoDecoder_Open(win32_codec_name, this->guid,
+                                        &this->bih, this->flipped, 0);
   
   if(!this->ds_dec){
     printf ("w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n",
@@ -606,10 +604,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->bih, this->buf,
 			 &this->o_bih, this->img_buffer);
       else {
-        CImage image;
-        image.ptr=this->img_buffer;
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, 
-                         this->size, 0, &image);
+                         this->size, 0, this->img_buffer);
       }
                          
       if (this->outfmt==IMGFMT_YUY2) {
@@ -871,16 +867,9 @@ static int w32a_init_audio (w32a_decoder_t *this,
     acmStreamSize(this->srcstream, out_size, (LPDWORD) &this->rec_audio_src_size, 
       ACM_STREAMSIZEF_DESTINATION);
   } else {
-    CodecInfo ci;
-       
-    ci.dll=win32_codec_name;
-    memcpy(&ci.guid,this->guid,sizeof(GUID));
     
-    /*__asm__ __volatile__(
-	   "int $0x3\n" : : 
-    	);*/
-
-    if( (this->ds_dec=DS_AudioDecoder_Create(&ci, in_fmt)) == NULL ) {
+    if( (this->ds_dec=DS_AudioDecoder_Open(win32_codec_name,
+                                           this->guid, in_fmt)) == NULL ) {
       printf("w32codec: Error initializing DirectShow Audio\n");
       this->srcstream = 0;
       return 0;
