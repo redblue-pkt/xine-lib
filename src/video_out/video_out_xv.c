@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.3 2001/04/26 11:36:12 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.4 2001/04/26 23:18:36 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -709,7 +709,7 @@ vo_driver_t *init_video_out_plugin (int iface, config_values_t *config,
     display = (Display *) visual;
     break;
 
-  defaut:
+  default:
     printf("%s: Wrong output type (%d)\n", __FILE__, visual_type);
     return NULL;
   break;
@@ -827,7 +827,7 @@ vo_driver_t *init_video_out_plugin (int iface, config_values_t *config,
    * check this adaptor's capabilities 
    */
 
-  attr = XvQueryPortAttributes(display, adaptor_info[i].base_id, &nattr);
+  attr = XvQueryPortAttributes(display, xv_port, &nattr);
   if(attr && nattr) {
     int k;
     
@@ -891,7 +891,7 @@ vo_driver_t *init_video_out_plugin (int iface, config_values_t *config,
   /*
    * find out screen dimensions
    */
-  
+
 #ifdef HAVE_XINERAMA
   /* Spark
    * some Xinerama stuff
@@ -919,6 +919,8 @@ vo_driver_t *init_video_out_plugin (int iface, config_values_t *config,
   } else {
     /* no Xinerama */
     xprintf (VERBOSE|VIDEO, "Display is not using Xinerama.\n");
+    this->fullscreen_width  = DisplayWidth (display, this->screen);
+    this->fullscreen_height = DisplayHeight (display, this->screen);
   } 
 #else
   this->fullscreen_width  = DisplayWidth (display, this->screen);
@@ -928,6 +930,9 @@ vo_driver_t *init_video_out_plugin (int iface, config_values_t *config,
   res_h = (this->fullscreen_width*1000 / DisplayWidthMM (display, this->screen));
   res_v =  (this->fullscreen_height*1000 / DisplayHeightMM (display, this->screen));
   this->display_ratio = res_h / res_v;
+
+/*  printf ("video_out_xv: fullscreen_width = %d, fullscreen_height = %d, res_h = %f, res_v = %f\n",this->fullscreen_width, this->fullscreen_height, res_h, res_v); */
+	  
 
   /*
    * init window
