@@ -60,6 +60,9 @@
 /* Define this if you have libXv installed */
 #undef HAVE_XV
 
+/* Define this if you have OpenGL support available */
+#undef HAVE_OPENGL
+
 /* Define this if you have libXinerama installed */
 #undef HAVE_XINERAMA
 

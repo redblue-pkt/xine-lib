@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.11 2002/01/03 22:41:54 jcdutton Exp $
+ * $Id: video_out_x11.h,v 1.12 2002/01/22 20:15:00 mshopf Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -109,6 +109,11 @@ typedef struct {
 
 /* int *data */
 #define GUI_DATA_EX_FULLSCREEN        	   7
+
+/* *data contains chosen visual, select a new one or change it to NULL
+ * to indicate the visual to use or that no visual will work */
+/* XVisualInfo **data */
+#define GUI_SELECT_VISUAL                  8
 
 #ifdef __cplusplus
 }

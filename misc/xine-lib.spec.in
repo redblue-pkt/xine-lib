@@ -56,6 +56,11 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_AA_TRUE@Group:       Development/Libraries
 @HAVE_AA_TRUE@Requires:    xine-lib >= %{ver}
 
+@HAVE_OPENGL_TRUE@%package opengl
+@HAVE_OPENGL_TRUE@Summary:     XINE - OpenGL support.
+@HAVE_OPENGL_TRUE@Group:       Development/Libraries
+@HAVE_OPENGL_TRUE@Requires:    xine-lib >= %{ver}
+
 @W32DLL_DEP@%package w32dll
 @W32DLL_DEP@Summary:     XINE - win32dll decoder support.
 @W32DLL_DEP@Group:       Development/Libraries
@@ -129,6 +134,9 @@ ler qualquer vídeo com máximo desempenho.
 
 @HAVE_AA_TRUE@%description aa
 @HAVE_AA_TRUE@video plugin using Ascii Art library.
+
+@HAVE_OPENGL_TRUE@%description opengl
+@HAVE_OPENGL_TRUE@video plugin using OpenGL library.
 
 @W32DLL_DEP@%description w32dll
 @W32DLL_DEP@win32dll decoder support.
@@ -316,6 +324,11 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_AA_TRUE@%defattr(-,root,root)
 @HAVE_AA_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
 @HAVE_AA_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
+
+@HAVE_OPENGL_TRUE@%files opengl
+@HAVE_OPENGL_TRUE@%defattr(-,root,root)
+@HAVE_OPENGL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_opengl.la
+@HAVE_OPENGL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_opengl.so
 
 @W32DLL_DEP@%files w32dll
 @W32DLL_DEP@%defattr(-,root,root)

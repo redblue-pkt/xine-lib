@@ -240,6 +240,17 @@ dnl but only dynamic linking is possible when using libtool < 1.4.0
 AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
 
 
+dnl
+dnl Check for OpenGL
+dnl
+AC_CHECK_LIB(GL, glBegin,
+             OPENGL_LIBS="-lGL"
+             ac_have_opengl="yes",,
+             -lGL)
+AC_SUBST(OPENGL_LIBS)
+AM_CONDITIONAL(HAVE_OPENGL, test x$ac_have_opengl = "xyes")
+
+
 host_or_hostalias="$host"
 if test "$host_or_hostalias" = ""; then
     dnl user has called ./configure with a host parameter unknown to
