@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2004/01/07 22:23:33 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.59 2004/01/10 01:47:14 tmattern Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 
-#define LOG_MODULE "read_decoder"
+#define LOG_MODULE "real_decoder"
 #define LOG_VERBOSE
 /*
 #define LOG
@@ -52,7 +52,6 @@ typedef struct {
 } real_class_t;
 
 #define BUF_SIZE       65536
-#define CHUNK_TAB_SIZE 128
 
 typedef struct realdec_decoder_s {
   video_decoder_t  video_decoder;
@@ -63,11 +62,11 @@ typedef struct realdec_decoder_s {
 
   void            *rv_handle;
 
-  unsigned long (*rvyuv_custom_message)(unsigned long*,void*);
-  unsigned long (*rvyuv_free)(void*);
-  unsigned long (*rvyuv_hive_message)(unsigned long,unsigned long);
-  unsigned long (*rvyuv_init)(void*, void*); /* initdata,context */
-  unsigned long (*rvyuv_transform)(char*, char*,unsigned long*,unsigned long*,void*);
+  uint32_t        (*rvyuv_custom_message)(uint32_t*, void*);
+  uint32_t        (*rvyuv_free)(void*);
+  uint32_t        (*rvyuv_hive_message)(uint32_t, uint32_t);
+  uint32_t        (*rvyuv_init)(void*, void*); /* initdata,context */
+  uint32_t        (*rvyuv_transform)(char*, char*, uint32_t*, uint32_t*,void*);
 
   void            *context;
 
@@ -79,15 +78,10 @@ typedef struct realdec_decoder_s {
   int              chunk_buffer_max;
 
   int              num_chunks;
-  uint32_t        *chunk_tab;
-  int              chunk_tab_max;
+  uint8_t         *chunk_tab;
+  int              chunk_tab_size;
 
-  uint8_t          chunk_id;
-  
-  /* keep track of timestamps, estimate framerate */
   uint64_t         pts;
-  int              num_frames;
-  uint64_t         last_pts;
   uint64_t         duration;
 
   uint8_t         *frame_buffer;
@@ -98,18 +92,18 @@ typedef struct realdec_decoder_s {
 
 /* we need exact positions */
 typedef struct {
-        short unk1;
-        short w;
-        short h;
-        short unk3;
-        int unk2;
-        int subformat;
-        int unk5;
-        int format;
+  int16_t  unk1;
+  int16_t  w;
+  int16_t  h;
+  int16_t  unk3;
+  int32_t  unk2;
+  int32_t  subformat;
+  int32_t  unk5;
+  int32_t  format;
 } rv_init_t;
 
 
-void *__builtin_vec_new(unsigned long size);
+void *__builtin_vec_new(uint32_t size);
 void __builtin_vec_delete(void *mem);
 void __pure_virtual(void);
 
@@ -158,8 +152,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   /* unsigned int* extrahdr = (unsigned int*) (buf->content+28); */
   int           result;
-  rv_init_t     init_data = {11, 0, 0, 0, 0, 
-			     0, 1, 0}; /* rv30 */
+  rv_init_t     init_data = {11, 0, 0, 0, 0, 0, 1, 0}; /* rv30 */
 
 
   switch (buf->type) {
@@ -189,7 +182,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->width  = (init_data.w + 1) & (~1);
   this->height = (init_data.h + 1) & (~1);
-  this->ratio  = (double)this->width/(double)this->height;
+  this->ratio  = (double)this->width / (double)this->height;
 
   lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
 	   "this->width=%d(0x%x), this->height=%d(0x%x)\n",
@@ -222,26 +215,26 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
-    int            i, j;
-    unsigned long *cmsg24;
-    unsigned long  cmsg_data[9];
+    int       i, j;
+    uint32_t *cmsg24;
+    uint32_t  cmsg_data[9];
 
-    cmsg24 = xine_xmalloc((buf->size - 34 + 2) * sizeof(unsigned long));
+    cmsg24 = xine_xmalloc((buf->size - 34 + 2) * sizeof(uint32_t));
     
-    cmsg24[0]=this->width;
-    cmsg24[1]=this->height;
+    cmsg24[0] = this->width;
+    cmsg24[1] = this->height;
     for(i = 2, j = 34; j < buf->size; i++, j++)
       cmsg24[i] = 4 * buf->content[j];
     
-    cmsg_data[0]=0x24;
-    cmsg_data[1]=1+((init_data.subformat>>16)&7);
-    cmsg_data[2]=(unsigned long) cmsg24;
+    cmsg_data[0] = 0x24;
+    cmsg_data[1] = 1 + ((init_data.subformat >> 16) & 7);
+    cmsg_data[2] = (uint32_t) cmsg24;
 
 #ifdef LOG
     printf ("libreal: CustomMessage cmsg_data:\n");
-    xine_hexdump ((char *) cmsg_data, sizeof (cmsg_data));
+    xine_hexdump ((uint8_t *) cmsg_data, sizeof (cmsg_data));
     printf ("libreal: cmsg24:\n");
-    xine_hexdump ((char *) cmsg24, (buf->size - 34 + 2) * sizeof(unsigned long));
+    xine_hexdump ((uint8_t *) cmsg24, (buf->size - 34 + 2) * sizeof(uint32_t));
 #endif
     
     this->rvyuv_custom_message (cmsg_data, this->context);
@@ -251,15 +244,12 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->stream->video_out->open(this->stream->video_out, this->stream);
     
-  this->frame_size   = this->width*this->height;
-  this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
+  this->frame_size   = this->width * this->height;
+  this->frame_buffer = xine_xmalloc (this->width * this->height * 3 / 2);
   
   this->chunk_buffer = xine_xmalloc (BUF_SIZE);
   this->chunk_buffer_max = BUF_SIZE;
   
-  this->chunk_tab = (uint32_t *) xine_xmalloc(CHUNK_TAB_SIZE * sizeof(uint32_t));
-  this->chunk_tab_max = CHUNK_TAB_SIZE;
-
   return 1;
 }
 
@@ -267,7 +257,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
   lprintf ("decode_data, flags=0x%08x, len=%d, pts=%lld ...\n", 
-	   buf->decoder_flags, buf->size, buf->pts);
+           buf->decoder_flags, buf->size, buf->pts);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
@@ -279,162 +269,133 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
   } else if (this->decoder_ok && this->context) {
 
-    if (this->chunk_buffer_size + buf->size > this->chunk_buffer_max) {
-      this->chunk_buffer_max = this->chunk_buffer_size + 2 * buf->size;
-      this->chunk_buffer = realloc (this->chunk_buffer, this->chunk_buffer_max);
-    }
+    /* Each frame starts with BUF_FLAG_FRAME_START and ends with
+     * BUF_FLAG_FRAME_END.
+     * The last buffer contains the chunk offset table.
+     */
+
+    if (!(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
     
-    if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
+      lprintf ("buffer (%d bytes)\n", buf->size);
 
-      if (this->num_chunks>0) {
+      if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
+        /* new frame starting */
 
-	int            result;
-	vo_frame_t    *img;
+        this->chunk_buffer_size = 0;
+        this->pts = buf->pts;
+        lprintf ("new frame starting, pts=%lld\n", this->pts);
 
-	unsigned long  transform_out[5];
-	unsigned long  transform_in[6];
-
-	transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
-	transform_in[1] = 0; /* unknown, seems to be unused  */
-	transform_in[2] = this->num_chunks-1; /* number of sub-packets - 1 */
-	transform_in[3] = (unsigned long) this->chunk_tab; /* table of sub-packet offsets */
-	transform_in[4] = 0; /* unknown, seems to be unused  */
-	transform_in[5] = this->pts/90; /* timestamp (the integer value from the stream) */
-
-#ifdef LOG
-	printf ("libreal: got %d chunks in buffer and new frame is starting\n",
-		this->num_chunks);
-
-	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
-	xine_hexdump (this->chunk_buffer, this->chunk_buffer_size);
-
-	printf ("libreal: transform_in:\n");
-	xine_hexdump ((char *) transform_in, 6*4);
-	
-	printf ("libreal: chunk_table:\n");
-	xine_hexdump ((char *) this->chunk_tab, this->num_chunks*8+8);
-#endif
-	
-	result = this->rvyuv_transform (this->chunk_buffer, 
-					this->frame_buffer, 
-					transform_in,
-					transform_out, 
-					this->context);
-
-	lprintf ("transform result: %08x\n", result);
-	lprintf ("transform_out:\n");
-#ifdef LOG
-	xine_hexdump ((char *) transform_out, 5*4);
-#endif
-
-	/* Sometimes the stream contains video of a different size
-	 * to that specified in the realmedia file */
-	if(transform_out[0] && ((transform_out[3] != this->width) || 
-				(transform_out[4] != this->height))) {
-	  this->width  = transform_out[3];
-	  this->height = transform_out[4];
-
-	  this->frame_size = this->width * this->height;
-          
-	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
-	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
-	}
-        
-	img = this->stream->video_out->get_frame (this->stream->video_out,
-						  /* this->av_picture.linesize[0],  */
-						  this->width,
-						  this->height,
-						  this->ratio, 
-						  XINE_IMGFMT_YV12,
-						  VO_BOTH_FIELDS);
-	
-	if ( this->last_pts && (this->pts != this->last_pts)) {
-	  int64_t new_duration;
-
-	  img->pts         = this->pts;
-	  new_duration     = (this->pts - this->last_pts) / (this->num_frames+1);
-	  this->duration   = (this->duration * 9 + new_duration)/10;
-	  this->num_frames = 0;
-	} else {
-	  img->pts       = 0;
-	  this->num_frames++;
-	}
-
-	if (this->pts)
-	  this->last_pts = this->pts;
-
-	img->duration  = this->duration; 
-	_x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
-	img->bad_frame = 0;
-	
-	lprintf ("pts %lld %lld diff %lld # %d est. duration %lld\n", 
-		 this->pts, 
-		 buf->pts,
-		 buf->pts - this->pts,
-		 this->num_frames,
-		 this->duration);
-
-	yv12_to_yv12(
-	 /* Y */
-	  this->frame_buffer, this->width,
-	  img->base[0], img->pitches[0],
-	 /* U */
-	  this->frame_buffer + this->frame_size, this->width/2,
-	  img->base[1], img->pitches[1],
-	 /* V */
-	  this->frame_buffer + this->frame_size * 5/4, this->width/2,
-	  img->base[2], img->pitches[2],
-	 /* width x height */
-	  this->width, this->height);
-
-	img->draw(img, this->stream);
-	img->free(img);
-	
+      }
+      
+      if ((this->chunk_buffer_size + buf->size) > BUF_SIZE) {
+        lprintf ("the frame is too long\n");
+        return;
       }
 
-      /* new frame starting */
+      xine_fast_memcpy (this->chunk_buffer + this->chunk_buffer_size,
+                        buf->content,
+                        buf->size);
 
-      lprintf ("new frame starting (%d bytes)\n", buf->size);
+      this->chunk_buffer_size += buf->size;
 
-      memcpy (this->chunk_buffer, buf->content, buf->size);
-
-      this->chunk_buffer_size = buf->size;
-      this->chunk_tab[0]      = 1;
-      this->chunk_tab[1]      = 0;
-      this->num_chunks        = 1;
-
-      this->chunk_id          = buf->content[0];
-
-      if (buf->pts)
-	this->pts = buf->pts;
-      else
-	this->pts = 0;
     } else {
+      /* end of frame, chunk table */
+     
+      lprintf ("special buffer (%d bytes)\n", buf->size);
+      
+      if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
 
-      /* buffer another fragment */
+        int            result;
+        vo_frame_t    *img;
 
-      lprintf ("another fragment (%d chunks in buffer)\n", this->num_chunks);
+        uint32_t       transform_out[5];
+        uint32_t       transform_in[6];
 
-      if (((buf->type != BUF_VIDEO_RV30) && (buf->type != BUF_VIDEO_RV40)) ||
-          (buf->content[0] == this->chunk_id)) {
+        lprintf ("chunk table\n");
 
-	memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
+        this->num_chunks = buf->decoder_info[2];
+        this->chunk_tab = buf->decoder_info_ptr[2];
+        this->chunk_tab_size = 8 * (this->num_chunks + 1);
 
-	if(2*this->num_chunks+1 >= this->chunk_tab_max) {
-	  this->chunk_tab_max += CHUNK_TAB_SIZE;
-	  this->chunk_tab = realloc (this->chunk_tab, 
-				     this->chunk_tab_max * sizeof(uint32_t));
-	}
+        this->duration = buf->decoder_info[3];
 
-	this->chunk_tab[2*this->num_chunks]    = 1;
-	this->chunk_tab[2*this->num_chunks+1]  = this->chunk_buffer_size; 
-	this->num_chunks++;
-	this->chunk_buffer_size               += buf->size;
-	
-	if (buf->pts)
-	  this->pts = buf->pts;
+        transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
+        transform_in[1] = 0;                       /* unknown, seems to be unused  */
+        transform_in[2] = this->num_chunks;        /* number of sub-packets - 1 */
+        transform_in[3] = (uint32_t) this->chunk_tab; /* table of sub-packet offsets */
+        transform_in[4] = 0;                       /* unknown, seems to be unused  */
+        transform_in[5] = this->pts / 90;          /* timestamp (the integer value from the stream) */
+
+#ifdef LOG
+        printf ("libreal: got %d chunks\n",
+                this->num_chunks);
+
+        printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
+        xine_hexdump (this->chunk_buffer, this->chunk_buffer_size);
+
+        printf ("libreal: transform_in:\n");
+        xine_hexdump ((uint8_t *) transform_in, 6 * 4);
+
+        printf ("libreal: chunk_table:\n");
+        xine_hexdump ((uint8_t *) this->chunk_tab, this->chunk_tab_size);
+#endif
+
+        result = this->rvyuv_transform (this->chunk_buffer,
+                                        this->frame_buffer,
+                                        transform_in,
+                                        transform_out,
+                                        this->context);
+
+        lprintf ("transform result: %08x\n", result);
+        lprintf ("transform_out:\n");
+  #ifdef LOG
+        xine_hexdump ((uint8_t *) transform_out, 5 * 4);
+  #endif
+
+        /* Sometimes the stream contains video of a different size
+         * to that specified in the realmedia file */
+        if(transform_out[0] && ((transform_out[3] != this->width) ||
+                                (transform_out[4] != this->height))) {
+          this->width  = transform_out[3];
+          this->height = transform_out[4];
+
+          this->frame_size = this->width * this->height;
+
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+        }
+
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                                  /* this->av_picture.linesize[0],  */
+                                                  this->width,
+                                                  this->height,
+                                                  this->ratio,
+                                                  XINE_IMGFMT_YV12,
+                                                  VO_BOTH_FIELDS);
+
+        img->duration  = this->duration;
+        _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
+        img->bad_frame = 0;
+
+        yv12_to_yv12(
+         /* Y */
+          this->frame_buffer, this->width,
+          img->base[0], img->pitches[0],
+         /* U */
+          this->frame_buffer + this->frame_size, this->width/2,
+          img->base[1], img->pitches[1],
+         /* V */
+          this->frame_buffer + this->frame_size * 5/4, this->width/2,
+          img->base[2], img->pitches[2],
+         /* width x height */
+          this->width, this->height);
+
+        img->draw(img, this->stream);
+        img->free(img);
+
+      } else {
+        /* unsupported special buf */
       }
-
     }
   }
 
@@ -450,15 +411,13 @@ static void realdec_flush (video_decoder_t *this_gen) {
 static void realdec_reset (video_decoder_t *this_gen) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
   
-  this->num_chunks        = 0;
+  this->chunk_buffer_size = 0;
 }
 
 static void realdec_discontinuity (video_decoder_t *this_gen) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
   
-  this->pts        = 0;
-  this->last_pts   = 0;
-  this->num_frames = 0;
+  this->pts = 0;
 }
 
 static void realdec_dispose (video_decoder_t *this_gen) {
@@ -482,9 +441,6 @@ static void realdec_dispose (video_decoder_t *this_gen) {
   if (this->chunk_buffer)
     free (this->chunk_buffer);
     
-  if (this->chunk_tab)
-    free (this->chunk_tab);
-
   free (this);
 
   lprintf ("dispose done\n");
@@ -509,9 +465,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this->context    = 0;
   this->num_chunks = 0;
   this->pts        = 0;
-  this->last_pts   = 0;
-  this->num_frames = 0;
-  this->duration   = 6000;
+
+  this->duration   = 0;
 
   return &this->video_decoder;
 }
@@ -535,7 +490,7 @@ static void dispose_class (video_decoder_class_t *this) {
 /*
  * some fake functions to make real codecs happy 
  */
-void *__builtin_vec_new(unsigned long size) {
+void *__builtin_vec_new(uint32_t size) {
   return malloc(size);
 }
 void __builtin_vec_delete(void *mem) {
