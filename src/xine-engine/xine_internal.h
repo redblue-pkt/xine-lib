@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.152 2003/12/23 21:22:41 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.153 2004/01/11 15:54:23 jstembridge Exp $
  *
  */
 
@@ -344,6 +344,12 @@ void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
                         off_t input_pos, off_t input_length,
                         int input_time, int total_time,
                         uint32_t frame_number);
+
+int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input, 
+                            int size, int64_t pts, uint32_t type, 
+                            uint32_t decoder_flags, off_t input_pos, 
+                            off_t input_length, int input_time, 
+                            int total_time, uint32_t frame_number);
 
 
 /* 

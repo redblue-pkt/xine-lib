@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.44 2003/12/23 21:22:40 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.45 2004/01/11 15:54:23 jstembridge Exp $ 
  */
 
 
@@ -506,4 +506,54 @@ void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
 
     fifo->put (fifo, buf);
   }
+}
+
+/*
+ * Analogous to above, but reads data from input plugin
+ *
+ * If reading fails, -1 is returned
+ */
+int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input, 
+                            int size, int64_t pts, uint32_t type, 
+                            uint32_t decoder_flags, off_t input_pos, 
+                            off_t input_length, int input_time, 
+                            int total_time, uint32_t frame_number) {
+  buf_element_t *buf;
+
+  decoder_flags |= BUF_FLAG_FRAME_START;
+
+  while (fifo && size) {
+
+    buf = fifo->buffer_pool_alloc (fifo);
+
+    if ( size > buf->max_size ) {
+      buf->size          = buf->max_size;
+      buf->decoder_flags = decoder_flags;
+    } else {
+      buf->size          = size;
+      buf->decoder_flags = BUF_FLAG_FRAME_END | decoder_flags;
+    }
+    decoder_flags &= ~BUF_FLAG_FRAME_START;
+
+    if(input->read(input, buf->content, buf->size) < buf->size) {
+      buf->free_buffer(buf);
+      return -1;    
+    }
+    size -= buf->size;
+
+    buf->pts = pts;
+    pts = 0;
+
+    buf->extra_info->input_pos     = input_pos;
+    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_time    = input_time;
+    buf->extra_info->total_time    = total_time;
+    buf->extra_info->frame_number  = frame_number;
+
+    buf->type                      = type;
+
+    fifo->put (fifo, buf);
+  }
+  
+  return 0;
 }
