@@ -197,7 +197,7 @@ AC_PATH_XTRA
 if test x"$no_x" != "xyes"; then
     AC_DEFINE(HAVE_X11)
 fi
-AM_CONDITIONAL([HAVE_X11], [test x"$no_x" != "xyes"])
+AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
 
 
 dnl
@@ -267,7 +267,7 @@ AM_PATH_OGG([no_oggvorbis=no
             AM_PATH_VORBIS(no_oggvorbis=no, 
                            AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))],
             AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
-AM_CONDITIONAL([HAVE_VORBIS], [test x"$no_oggvorbis" = "xno"])
+AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_oggvorbis" = "xno"])
 
 
 dnl
@@ -346,7 +346,7 @@ dnl IRIX style audio interface
 dnl
 AM_CHECK_IRIXAL([AC_DEFINE(HAVE_IRIXAL)],
 	[AC_MSG_RESULT([*** All of IRIX AL dependent parts will be disabled ***])])
-AM_CONDITIONAL([HAVE_IRIXAL], [test "x$am_cv_have_irixal" = xyes])
+AM_CONDITIONAL(HAVE_IRIXAL, [test "x$am_cv_have_irixal" = xyes])
 
 dnl
 dnl Solaris kstat kernel statistics
@@ -362,7 +362,7 @@ dnl
 AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
 AM_CHECK_CDROM_IOCTLS([AC_DEFINE([HAVE_CDROM_IOCTLS])],
 	[AC_MSG_RESULT([*** DVD and (S)VCD support will be disabled ***])])
-AM_CONDITIONAL([HAVE_CDROM_IOCTLS], [test x"$have_cdrom_ioctls" = "xyes"])
+AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
 
 dnl
 dnl dxr3 / hollywood plus card
@@ -380,7 +380,7 @@ dnl zlib
 dnl
 dnl Test for libz
 AC_CHECK_LIB(z, gzsetparams, [AC_CHECK_HEADER(zlib.h,have_zlib=yes,)])
-AM_CONDITIONAL([HAVE_ZLIB], [test x"$have_zlib" = "xyes"])
+AM_CONDITIONAL(HAVE_ZLIB, [test x"$have_zlib" = "xyes"])
 
 
 dnl
