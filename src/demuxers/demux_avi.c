@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.101 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.102 2002/07/16 18:22:20 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1225,14 +1225,14 @@ static int demux_avi_start (demux_plugin_t *this_gen,
   demux_avi_t    *this = (demux_avi_t *) this_gen;
   int             i;
   buf_element_t  *buf;
-  int64_t         video_pts = 0;
+  int64_t         video_pts = 0, max_pos, min_pos = 0, cur_pos;
   int             err;
   unsigned char  *sub;
   video_index_entry_t *vie = NULL;
   int             status;
 
   pthread_mutex_lock( &this->mutex );
-
+   
   this->status = DEMUX_OK;
 
   if( !this->thread_running ) {
@@ -1277,53 +1277,60 @@ static int demux_avi_start (demux_plugin_t *this_gen,
    * incrementally growing the index in a loop, so that if the index
    * grow is going to take a while, the user is notified via the OSD
    * (which only shows up if >= 1000 index entries are added at a time). */
-  if (start_pos) {
 
+  /* We know for sure the last index entry is past our starting
+   * point; find the lowest index entry that's past our starting
+   * point. */
+  min_pos = 0;
+  max_pos = this->avi->video_idx.video_frames - 1;
+ 
+  if (start_pos) {
     if (idx_grow(this, start_pos_stopper, &start_pos) < 0) {
       /* We read as much of the file as we could, and didn't reach our
        * starting point.  Too bad. */
       this->status = DEMUX_FINISHED;
       printf ("demux_avi: video seek to start failed\n");
     } else {
-      /* We know for sure the last index entry is past our starting
-       * point; find the lowest index entry that's past our starting
-       * point.  This could in theory be turned into a binary search,
-       * but it's a linear search for now. */
-      while(1) {
-	vie = video_cur_index_entry(this);
-	if ((vie->pos >= start_pos) && (vie->flags & AVIIF_KEYFRAME)) {
-	  break;
-	}
-	this->avi->video_posf += 1;
+      while(min_pos < max_pos) {
+        this->avi->video_posf = (min_pos+max_pos)/2-1;
+        do {
+          this->avi->video_posf++;
+          vie = video_cur_index_entry(this);
+        } while (!(vie->flags & AVIIF_KEYFRAME));
+        cur_pos = this->avi->video_posf;
+        if (cur_pos == max_pos) break;
+        if (vie->pos >= start_pos) {
+          max_pos = cur_pos;
+        } else {
+          min_pos = cur_pos;
+        }
       }
-    }
-
+    }    
     video_pts = get_video_pts (this, this->avi->video_posf);
-
   } else if (start_time) {
-
     video_pts = start_time * 90000;
-
     if (idx_grow(this, start_time_stopper, &video_pts) < 0) {
       /* We read as much of the file as we could, and didn't reach our
        * starting point.  Too bad. */
       this->status = DEMUX_FINISHED;
       printf ("demux_avi: video seek to start failed\n");
     } else {
-      /* We know for sure the last index entry is past our starting
-       * point; find the lowest index entry that's past our starting
-       * point.  This could in theory be turned into a binary search,
-       * but it's a linear search for now. */
-      while(1) {
-        vie = video_cur_index_entry(this);
-        if ((get_video_pts (this, this->avi->video_posf) >= video_pts)
-             && (vie->flags & AVIIF_KEYFRAME)) {
-          break;
+      while(min_pos < max_pos) {
+        this->avi->video_posf = (min_pos+max_pos)/2-1;
+        do {
+          this->avi->video_posf++;
+          vie = video_cur_index_entry(this);
+        } while (!(vie->flags & AVIIF_KEYFRAME));
+        cur_pos = this->avi->video_posf;
+        if (cur_pos == max_pos) break;
+        if (get_video_pts (this, cur_pos) >= video_pts) {
+          max_pos = cur_pos;
+        } else {
+          min_pos = cur_pos;
         }
-        this->avi->video_posf += 1;
       }
-      video_pts = get_video_pts (this, this->avi->video_posf);
-    }
+    }    
+    video_pts = get_video_pts (this, this->avi->video_posf);    
   }
 
   /* Seek audio.  We can do this incrementally, on the theory that the
@@ -1331,22 +1338,28 @@ static int demux_avi_start (demux_plugin_t *this_gen,
    * position we've already found, so we won't be seeking though the
    * file much at this point. */
   if (!this->no_audio && this->status == DEMUX_OK) {
+    audio_index_entry_t *aie;
     for(i=0; i < this->avi->n_audio; i++) {
-      while (1) {
-	audio_index_entry_t *aie =
-	  audio_cur_index_entry(this, this->avi->audio[i]);
-
-	if (aie && get_audio_pts(this, i, this->avi->audio[i]->audio_posc,
-	    aie->tot, 0) >= video_pts) {
-	  break;
-	}
-        if (!aie) {
-          this->status = DEMUX_FINISHED;
-
-          printf ("demux_avi: audio seek to start failed\n");
-          break;
+      max_pos=this->avi->audio[i]->audio_idx.audio_chunks-1;
+      min_pos=0;
+      while (max_pos>min_pos) {
+        cur_pos = this->avi->audio[i]->audio_posc=(max_pos+min_pos)/2;
+        aie = audio_cur_index_entry(this, this->avi->audio[i]);
+        if (aie) {
+          if (get_audio_pts(this, i, cur_pos, aie->tot, 0) >= video_pts) {
+            max_pos = cur_pos;
+          } else {
+            min_pos = cur_pos+1;
+          }
+        } else {
+          if (cur_pos>min_pos) {
+            max_pos = cur_pos;
+          } else {
+            this->status = DEMUX_FINISHED;
+            printf ("demux_avi: audio seek to start failed\n");
+            break;
+          }
         }
-        this->avi->audio[i]->audio_posc++;
       }
     }
   }
