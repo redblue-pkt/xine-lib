@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.94 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_http.c,v 1.95 2004/07/23 13:47:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1032,6 +1032,8 @@ static void *init_class (xine_t *xine, void *data) {
     
     free(http_proxy);
   }
+  else
+    proxy_env = NULL; /* proxy_env can be "" */
 
   /*
    * proxy settings
