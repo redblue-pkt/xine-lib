@@ -102,7 +102,7 @@ AC_PROG_AWK
 dnl ---------------------------------------------
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
 dnl ---------------------------------------------
-AM_PROG_AS_MOD
+AM_PROG_AS
 
 dnl ---------------------------------------------
 dnl Libtool
@@ -705,6 +705,7 @@ DEBUG_CFLAGS="$DEBUG_CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COM
 
 enable_w32dll="no"
 enable_ffmmx="no"
+enable_armv4l="no"
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
@@ -718,6 +719,7 @@ case "$host_or_hostalias" in
     enable_ffmmx="yes"
     no_fpic="yes"
     ;;
+
 
 
   i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-*)
@@ -893,6 +895,14 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
+  armv4l-*-linux*)
+    CFLAGS="$CFLAGS -O2  -fsigned-char  -ffast-math -mcpu=strongarm1100 -fomit-frame-pointer -fthread-jumps  -fregmove"
+    dnl    CFLAGS="$CFLAGS -O1 -fforce-mem -fforce-addr -fthread-jumps -fcse-follow-jumps -fcse-skip-blocks -fexpensive-optimizations -fregmove -fschedule-insns2 -finline-functions -fsigned-char -fomit-frame-pointer -march=armv4 -mtune=strongarm"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O2"
+    AC_DEFINE_UNQUOTED(FPM_ARM,,[Define to select libmad fixed point arithmetic implementation])
+    enable_armv4l="yes"
+    ;;
+
   *)
     echo
     echo "****************************** WARNING ******************************"
@@ -930,6 +940,12 @@ AC_SUBST(W32DLL_DEP)
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 
 dnl ---------------------------------------------
+dnl HAVE_ARMV4L is currently used in libavcodec makefile.am
+dnl ---------------------------------------------
+AM_CONDITIONAL(HAVE_ARMV4L, test x"$enable_armv4l" = "xyes")
+
+
+dnl ---------------------------------------------
 dnl gcc __attribute__ ((aligned ()))
 dnl ---------------------------------------------
 AC_C_ATTRIBUTE_ALIGNED
@@ -965,6 +981,10 @@ AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)
 
+dnl Where aclocal m4 files should be installed
+XINE_ACFLAGS="-I ${datadir}/aclocal"
+AC_DEFINE_UNQUOTED(XINE_ACFLAGS, "$XINE_ACFLAGS", [Path where aclocal m4 files will be.])
+AC_SUBST(XINE_ACFLAGS)
 
 dnl Where architecture independent data (e.g. logo) will/should be installed
 eval XINE_DATADIR="${datadir}/xine"
