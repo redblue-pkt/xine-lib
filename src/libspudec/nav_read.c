@@ -29,6 +29,7 @@
 
 /*
 #define LOG_NAV_READ
+#define STRICT
 */
 
 void nav_read_pci(pci_t *pci, unsigned char *buffer) {
@@ -97,6 +98,7 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   navPrint_PCI(pci);
 #endif
 
+#ifdef STRICT
   /* Asserts */
 
   /* pci pci gi */ 
@@ -157,6 +159,7 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
     }
   }
 #endif
+#endif
 }
 
 void nav_read_dsi(dsi_t *dsi, unsigned char *buffer) {
@@ -208,9 +211,11 @@ void nav_read_dsi(dsi_t *dsi, unsigned char *buffer) {
     B2N_32(dsi->synci.sp_synca[i]);
 
   
+#ifdef STRICT
   /* Asserts */
 
   /* dsi dsi gi */
   assert(dsi->dsi_gi.zero1 == 0);
+#endif
 }
 
