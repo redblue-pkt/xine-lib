@@ -19,7 +19,8 @@ getdir() {
               $file != $logerror -a \
               $file != "CVS" -a \
               $file != ${0##*/} -a \
-              $file != "$distdir.tar.gz"; then
+              $file != "$distdir.tar.gz" -a \
+              $file != "config.status"; then
 
         orifile=`pwd`/$file
 
@@ -41,8 +42,9 @@ getdir() {
 main() {
   rm -f $log $logerror
 
-  ./configure $CONFIG_ARGS && make dist && mv $distdir.tar.gz $distdir.tmp.tar.gz
-  make clean && make distclean && mv $distdir.tmp.tar.gz $distdir.tar.gz
+  make config.status && make dist && mv $distdir.tar.gz $distdir.tmp.tar.gz && \
+  cp config.status config.tmp.status && make clean && make distclean && \
+  mv $distdir.tmp.tar.gz $distdir.tar.gz && mv config.tmp.status config.status && \
   tar -xzf $distdir.tar.gz
 
   echo "Check is running, be patient..."
@@ -50,6 +52,7 @@ main() {
 
   rm -rf $distdir
   rm -f $distdir.tar.gz
+  ./config.status
 
   echo " * Log is ${log##*/}"
   echo " * Error log is ${logerror##*/}"
