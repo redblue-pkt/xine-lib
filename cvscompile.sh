@@ -1,8 +1,7 @@
 #!/bin/sh
 # Run this to generate all the initial Makefiles, etc.
 
-srcdir=`dirname $0`
-test -z "$srcdir" && srcdir=.
+rm -f config.cache
 
 #m4_files="_xine.m4 alsa.m4 arts.m4 esd.m4 aa.m4 irixal.m4"
 if test -d $srcdir/m4; then
@@ -14,6 +13,9 @@ else
     echo "Directory 'm4' is missing."
     exit 1
 fi
+
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
 
 (test -f $srcdir/configure.in) || {
     echo -n "*** Error ***: Directory "\`$srcdir\'" does not look like the"
