@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2001/07/10 21:50:31 guenter Exp $
+ * $Id: xine_decoder.c,v 1.12 2001/07/10 22:11:06 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -66,7 +66,7 @@ typedef struct ac3dec_decoder_s {
   int              ac3_flags_map[8];
   int              ao_flags_map[8];
 
-  int16_t          samples [6 * 6 * 256];
+  int16_t          samples [6 * 256];
 
   ao_functions_t  *audio_out;
   int              audio_caps;
@@ -280,43 +280,8 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       output_mode = this->ao_flags_map[ac3_output_flags];
 
       /*
-       * decode ac3 and convert/interleave samples
+       * (re-)open output device
        */
-
-      for (i = 0; i < 6; i++) {
-	if (ac3_block (&this->ac3_state)) {
-	  printf ("libac3: ac3_block error\n");
-	  goto error;
-	}
-	
-	switch (output_mode) {
-	case AO_CAP_MODE_MONO:
-	  float_to_int (*samples, this->samples+i*256, 1);
-	  break;
-	case AO_CAP_MODE_STEREO:
-	  float_to_int (samples[0], this->samples+i*256*2, 2);
-	  float_to_int (samples[1], this->samples+1+i*256*2, 2);
-	  break;
-	case AO_CAP_MODE_4CHANNEL:
-	  float_to_int (samples[0], this->samples+i*256*4,   4);
-	  float_to_int (samples[1], this->samples+1+i*256*4, 4);
-	  float_to_int (samples[2], this->samples+2+i*256*4, 4);
-	  float_to_int (samples[3], this->samples+3+i*256*4, 4);
-	  break;
-	case AO_CAP_MODE_5CHANNEL:
-	  float_to_int (samples[0], this->samples+i*256*5,   5);
-	  float_to_int (samples[1], this->samples+1+i*256*5, 5);
-	  float_to_int (samples[2], this->samples+2+i*256*5, 5);
-	  float_to_int (samples[3], this->samples+3+i*256*5, 5);
-	  float_to_int (samples[4], this->samples+4+i*256*5, 5);
-	  break;
-	default:
-	  printf ("libac3: help - unsupported mode %08x\n", output_mode);
-	}
-      }
-      
-
-      /*  output decoded samples */
 
       if (!this->output_open 
 	  || (this->ac3_sample_rate != this->output_sampling_rate) 
@@ -333,15 +298,55 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	this->output_mode = output_mode;
       }
 
-      if (this->output_open) {
+
+      if (!this->output_open) 
+	goto error;
+
+
+      /*
+       * decode ac3 and convert/interleave samples
+       */
+
+      for (i = 0; i < 6; i++) {
+	if (ac3_block (&this->ac3_state)) {
+	  printf ("libac3: ac3_block error\n");
+	  goto error;
+	}
+	
+	switch (output_mode) {
+	case AO_CAP_MODE_MONO:
+	  float_to_int (*samples, this->samples, 1);
+	  break;
+	case AO_CAP_MODE_STEREO:
+	  float_to_int (samples[0], this->samples, 2);
+	  float_to_int (samples[1], this->samples+1, 2);
+	  break;
+	case AO_CAP_MODE_4CHANNEL:
+	  float_to_int (samples[0], this->samples,   4);
+	  float_to_int (samples[1], this->samples+1, 4);
+	  float_to_int (samples[2], this->samples+2, 4);
+	  float_to_int (samples[3], this->samples+3, 4);
+	  break;
+	case AO_CAP_MODE_5CHANNEL:
+	  float_to_int (samples[0], this->samples,   5);
+	  float_to_int (samples[1], this->samples+1, 5);
+	  float_to_int (samples[2], this->samples+2, 5);
+	  float_to_int (samples[3], this->samples+3, 5);
+	  float_to_int (samples[4], this->samples+4, 5);
+	  break;
+	default:
+	  printf ("libac3: help - unsupported mode %08x\n", output_mode);
+	}
+
+	/*  output decoded samples */
 
 	this->audio_out->write_audio_data (this->audio_out,
 					   this->samples,
-					   256*6,
+					   256,
 					   this->pts);
 	this->pts = 0;
       }
-
+      
     error:
 
     } else {
