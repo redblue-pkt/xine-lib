@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.2 2002/05/28 00:09:37 tmmm Exp $
+ * $Id: demux_roq.c,v 1.3 2002/06/05 13:05:19 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -125,40 +125,47 @@ static void *demux_roq_loop (void *this_gen) {
         /* adjust the chunk size */
         chunk_size += RoQ_CHUNK_PREAMBLE_SIZE;
 
-        /* do this calculation carefully because I can't trust the
-         * 64-bit numerical manipulation */
-        audio_pts = audio_byte_count;
-        audio_pts *= 90000;
-        audio_pts /= (RoQ_AUDIO_SAMPLE_RATE * this->audio_channels);
-        audio_byte_count += chunk_size - 8;  /* do not count the preamble */
 
-        current_file_pos = this->input->get_current_pos(this->input);
+        if( this->audio_fifo ) {
+        
+          /* do this calculation carefully because I can't trust the
+           * 64-bit numerical manipulation */
+          audio_pts = audio_byte_count;
+          audio_pts *= 90000;
+          audio_pts /= (RoQ_AUDIO_SAMPLE_RATE * this->audio_channels);
+          audio_byte_count += chunk_size - 8;  /* do not count the preamble */
+         
+          current_file_pos = this->input->get_current_pos(this->input);
 
-        /* packetize the audio */
-        while (chunk_size) {
-          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->content = buf->mem;
-          buf->type = BUF_AUDIO_ROQ;
-          buf->input_pos = current_file_pos;
-          buf->decoder_flags = 0;
-          buf->pts = audio_pts;
+          /* packetize the audio */
+          while (chunk_size) {
+            buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+            buf->content = buf->mem;
+            buf->type = BUF_AUDIO_ROQ;
+            buf->input_pos = current_file_pos;
+            buf->decoder_flags = 0;
+            buf->pts = audio_pts;
 
-          if (chunk_size > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = chunk_size;
-          chunk_size -= buf->size;
+            if (chunk_size > buf->max_size)
+              buf->size = buf->max_size;
+            else
+              buf->size = chunk_size;
+            chunk_size -= buf->size;
 
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            this->status = DEMUX_FINISHED;
-            break;
-          }
+            if (this->input->read(this->input, buf->content, buf->size) !=
+              buf->size) {
+              this->status = DEMUX_FINISHED;
+              break;
+            }
 
-          if (!chunk_size)
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
-          this->audio_fifo->put(this->audio_fifo, buf);
+            if (!chunk_size)
+              buf->decoder_flags |= BUF_FLAG_FRAME_END;
+            this->audio_fifo->put(this->audio_fifo, buf);
 //printf ("audio packet pts = %lld\n", buf->pts);
+          }
+        } else {
+          /* no audio -> skip chunk */
+          this->input->seek(this->input, chunk_size, SEEK_CUR);
         }
       } else if (chunk_type == RoQ_INFO) {
         /* skip 8 bytes */
@@ -222,6 +229,14 @@ static void *demux_roq_loop (void *this_gen) {
       /* someone may want to interrupt us */
       pthread_mutex_unlock(&this->mutex);
       pthread_mutex_lock(&this->mutex);
+    }
+    
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
     }
   } while (this->status == DEMUX_OK);
 
@@ -422,7 +437,7 @@ static int demux_roq_start (demux_plugin_t *this_gen,
     buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
     buf->type = BUF_CONTROL_START;
     this->video_fifo->put(this->video_fifo, buf);
-    if (this->audio_fifo && this->audio_channels) {
+    if (this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
       buf->type = BUF_CONTROL_START;
       this->audio_fifo->put(this->audio_fifo, buf);
@@ -436,12 +451,7 @@ static int demux_roq_start (demux_plugin_t *this_gen,
     if (this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->disc_off = 0;
-
-      if (this->audio_channels)
-        buf->type = BUF_CONTROL_NEWPTS;
-      else
-        buf->type = BUF_CONTROL_NOP;
-
+      buf->type = BUF_CONTROL_NEWPTS;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 

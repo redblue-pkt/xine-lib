@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.1 2002/05/27 21:17:57 tmmm Exp $
+ * $Id: roqvideo.c,v 1.2 2002/06/05 13:05:19 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -462,7 +462,6 @@ static void roq_close (video_decoder_t *this_gen) {
   free(this->u[1]);
   free(this->v[0]);
   free(this->v[1]);
-  free(this);
 }
 
 static char *roq_get_id(void) {
