@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.10 2002/02/09 07:13:24 guenter Exp $
+ * $Id: buffer_types.c,v 1.11 2002/03/11 12:31:26 guenter Exp $
  *
  *
  * contents:
@@ -123,13 +123,20 @@ static video_db_t video_db[] = {
     mmioFOURCC('d', 'i', 'v', '5'),
     mmioFOURCC('D', 'I', 'V', '6'),
     mmioFOURCC('d', 'i', 'v', '6'),
-    mmioFOURCC('3', 'I', 'V', '1'),
     mmioFOURCC('A', 'P', '4', '1'),
     mmioFOURCC('M', 'P', 'G', '3'),
     0
   },
   BUF_VIDEO_MSMPEG4_V3,
   "Microsoft MPEG-4 format v3"
+},
+{
+  {
+    mmioFOURCC('3', 'I', 'V', '1'),
+    0
+  },
+  BUF_VIDEO_3IVX,
+  "3ivx MPEG-4"
 },
 {
   {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.63 2002/02/09 07:13:24 guenter Exp $
+ * $Id: w32codec.c,v 1.64 2002/03/11 12:31:26 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -128,7 +128,6 @@ typedef struct w32a_decoder_s {
   unsigned char    *buf;
   int               size;   
   int64_t           pts;
-  int64_t           scr;
   
   /* these are used for pts estimation */
   int64_t           lastpts, sumpts, sumsize;
@@ -575,7 +574,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
           buf->decoder_info[0]=%d\n", 
 	  buf->type, buf, buf->decoder_info[0]);
 	  */
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
     if ( buf->type & 0xff )
       return;
     
@@ -618,7 +617,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->size += buf->size;
 
-    if (buf->decoder_info[0] == 2)  {
+    if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
       HRESULT     ret;
       vo_frame_t *img;
@@ -719,7 +718,6 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
       
       img->pts = buf->pts;
-      img->scr = buf->scr;
       if(ret || this->skipframes) {
         if( !this->skipframes )
 	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
@@ -977,8 +975,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 			       unsigned char *data, 
 			       uint32_t size, 
 			       int frame_end, 
-			       int64_t pts,
-			       int64_t scr) {
+			       int64_t pts) {
 
   static ACMSTREAMHEADER ash;
   HRESULT hr;
@@ -989,10 +986,9 @@ static void w32a_decode_audio (w32a_decoder_t *this,
      issues with some streams.
   */
   
-  /* buffer empty -> take pts/scr from package */
+  /* buffer empty -> take pts from package */
   if( !this->size ) {
     this->pts = pts;
-    this->scr = scr;
     /*
     printf("w32codec: resync pts (%d)\n",this->pts);
     */
@@ -1006,7 +1002,6 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   /* force resync every 4 seconds */
   if( this->sumpts >= 4 * 90000 && pts ) {
     this->pts = pts - this->size * this->sumpts / this->sumsize;
-    this->scr = scr - this->size * this->sumpts / this->sumsize; 
     /*
     printf("w32codec: estimated resync pts (%d)\n",this->pts);
     */
@@ -1090,11 +1085,10 @@ static void w32a_decode_audio (w32a_decoder_t *this,
         */
 	audio_buffer->num_frames = bufsize / (this->num_channels*2);
 	audio_buffer->vpts       = this->pts;
-	audio_buffer->scr        = this->scr;
 
 	this->audio_out->put_buffer (this->audio_out, audio_buffer);
         
-	this->pts = this->scr = 0;
+	this->pts = 0;
         DstLengthUsed -= bufsize;
 	p += bufsize;
       }
@@ -1119,7 +1113,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
     /* init package containing bih */
 
     this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
@@ -1128,8 +1122,8 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       return;
 
     w32a_decode_audio (this, buf->content, buf->size,
-		       buf->decoder_info[0]==2, 
-		       buf->pts, buf->scr);
+		       buf->decoder_flags & BUF_FLAG_FRAME_END, 
+		       buf->pts);
   }
 }
 

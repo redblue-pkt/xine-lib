@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.24 2002/02/17 17:32:50 guenter Exp $
+ * $Id: audio_out.h,v 1.25 2002/03/11 12:31:26 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -137,7 +137,6 @@ struct audio_buffer_s {
   int                num_frames;
 
   int64_t            vpts;
-  int64_t            scr;
   uint32_t           frame_header_count;
   uint32_t           first_access_unit;
 };

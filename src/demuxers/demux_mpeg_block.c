@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.77 2002/02/17 17:32:50 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.78 2002/03/11 12:31:24 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -74,7 +74,7 @@ typedef struct demux_mpeg_block_s {
 
   uint8_t              *scratch;
 
-  uint32_t              last_scr;
+  int64_t               last_scr;
 } demux_mpeg_block_t ;
 
 
@@ -84,10 +84,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   uint8_t       *p;
   int            bMpeg1=0;
   uint32_t       header_len;
-  uint32_t       PTS;
+  int64_t        PTS;
   uint32_t       packet_len;
   uint32_t       stream_id;
-  uint32_t       scr = this->last_scr;
+  int64_t        scr = this->last_scr;
 
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
@@ -149,7 +149,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if (this->audio_fifo) {
       cbuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       cbuf->type = buf->type;
-      cbuf->decoder_info[0] = buf->decoder_info[0];
+      cbuf->decoder_flags = buf->decoder_flags;
       this->audio_fifo->put (this->audio_fifo, cbuf);
     }
 
@@ -158,9 +158,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   p = buf->content; /* len = this->mnBlocksize; */
   if (preview_mode)
-    buf->decoder_info[0] = 0;
+    buf->decoder_flags = BUF_FLAG_PREVIEW;
   else
-    buf->decoder_info[0] = 1;
+    buf->decoder_flags = 0;
 
   buf->input_pos = this->input->get_current_pos (this->input);
 
@@ -182,7 +182,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       scr |= (p[6] & 0xFF) <<  7;
       scr |= (p[7] & 0xFE) >>  1;
 
-      buf->scr = scr;
+      /* buf->scr = scr; */
 
       /* mux_rate */
 
@@ -214,7 +214,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       scr += ( (p[8] & 0x03 << 7) | (p[9] & 0xFE >> 1) );
       */
 
-      buf->scr = scr;
+      /* buf->scr = scr; */
 
       /* mux_rate */
 
@@ -259,7 +259,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   /* discontinuity ? */
   {  
-    int32_t scr_diff = scr - this->last_scr;
+    int64_t scr_diff = scr - this->last_scr;
 
 #ifdef LOG
     printf ("demux_mpeg_block: scr %d last_scr %d diff %d\n",
@@ -276,13 +276,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_CONTROL_DISCONTINUITY;
-      buf->scr  = scr;
+      buf->disc_off = scr_diff;
       this->video_fifo->put (this->video_fifo, buf);
 
       if (this->audio_fifo) {
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	buf->type = BUF_CONTROL_DISCONTINUITY;
-	buf->scr  = scr;
+	buf->disc_off = scr_diff;
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
@@ -565,13 +565,13 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM;
     this->video_fifo->put (this->video_fifo, buf);
     
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
+      buf->decoder_flags   = BUF_FLAG_END_STREAM;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
@@ -591,7 +591,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   int            is_mpeg1=0;
   off_t          pos, last_pos;
   off_t          step;
-  uint32_t       PTS, last_PTS;
+  int64_t        PTS, last_PTS;
   int            rate;
   int            count;
   int            stream_id;
@@ -748,14 +748,14 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
+  buf->decoder_flags   = BUF_FLAG_END_USER;
 
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER; 
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }

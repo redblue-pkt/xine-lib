@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.63 2002/03/10 21:43:30 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.64 2002/03/11 12:31:26 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -84,7 +84,7 @@ void *audio_decoder_loop (void *this_gen) {
       this->audio_finished = 0;
       pthread_mutex_unlock (&this->finished_lock);
 
-      this->metronom->expect_audio_discontinuity (this->metronom);
+      this->metronom->audio_stream_start (this->metronom);
       
       break;
       
@@ -98,7 +98,7 @@ void *audio_decoder_loop (void *this_gen) {
       
       pthread_mutex_lock (&this->finished_lock);
 
-      if (!this->audio_finished && (buf->decoder_info[0]==0)) {
+      if (!this->audio_finished && (buf->decoder_flags==BUF_FLAG_END_USER)) {
         this->audio_finished = 1;
 
         if (this->video_finished) {
@@ -131,7 +131,7 @@ void *audio_decoder_loop (void *this_gen) {
     case BUF_CONTROL_DISCONTINUITY:
       printf ("audio_decoder: discontinuity ahead\n");
 
-      this->metronom->expect_audio_discontinuity (this->metronom);
+      this->metronom->expect_audio_discontinuity (this->metronom, buf->disc_off);
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:

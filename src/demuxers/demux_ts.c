@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.37 2002/02/17 17:32:50 guenter Exp $
+ * $Id: demux_ts.c,v 1.38 2002/03/11 12:31:24 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -545,7 +545,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
       buf->size            = m->size;
       buf->type            = m->type;
       buf->pts             = m->PTS;
-      buf->scr             = this->PCR;
+      /* buf->scr             = this->PCR; */
       buf->decoder_info[0] = 1;
       m->fifo->put (m->fifo, buf);
     }
@@ -557,7 +557,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
     buf->size            = len;
     buf->type            = m->type;
     buf->pts             = 0;
-    buf->scr             = 0;
+    /* buf->scr             = 0; */
     buf->input_pos       = this->input->get_current_pos(this->input);
     buf->decoder_info[0] = 1;
     m->fifo->put (m->fifo, buf);

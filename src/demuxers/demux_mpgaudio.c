@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.35 2002/02/17 17:32:50 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.36 2002/03/11 12:31:24 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -189,7 +189,7 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
   }
 
   buf->pts             = 0;
-  buf->scr             = 0;
+  /*buf->scr             = 0;*/
   buf->input_pos       = this->input->get_current_pos(this->input);
   buf->input_time      = buf->input_pos * this->stream_length /
                          this->input->get_length(this->input);

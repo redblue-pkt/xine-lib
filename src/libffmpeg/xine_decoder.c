@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/03/11 12:31:25 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -41,6 +41,10 @@
 
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
+
+/*
+#define LOG
+*/
 
 /* now this is ripped of wine's vfw.h */
 typedef struct {
@@ -129,12 +133,12 @@ static void ff_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_decoder_t *this = (ff_decoder_t *) this_gen;
 
-  /*
-  printf ("ffmpeg: processing packet type = %08x, buf : %d, buf->decoder_info[0]=%d\n", 
-	  buf->type, buf, buf->decoder_info[0]);
-  */
+#ifdef LOG
+  printf ("ffmpeg: processing packet type = %08x, buf : %d, buf->decoder_flags=%08x\n", 
+	  buf->type, buf, buf->decoder_flags);
+#endif
 
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
     AVCodec *codec = NULL;
     int codec_type;
@@ -226,7 +230,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     this->size += buf->size;
 
-    if (buf->decoder_info[0] == 2)  {
+    if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
       vo_frame_t *img;
       int         got_picture, len, y;

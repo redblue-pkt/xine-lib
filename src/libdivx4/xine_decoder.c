@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2002/02/24 17:09:54 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.19 2002/03/11 12:31:25 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -59,6 +59,8 @@
 
 #if CATCH_SIGSEGV
 #include <signal.h>
+
+#define LOG
 
 /* to be able to restore the old handler */
 void (*old_handler)(int);
@@ -333,7 +335,7 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
   /* divx4 currently does not support MSMPEG4 v1/v2 */
   return ( (buf_type == BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311) ||
            /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
-           buf_type == BUF_VIDEO_MPEG4);
+           buf_type == BUF_VIDEO_MPEG4 || buf_type == BUF_VIDEO_3IVX);
 }
 
 /* copied verbatim from ffmpeg plugin */
@@ -356,8 +358,17 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
-  if (buf->decoder_info[0] == 0) { /* need to initialize */
+#ifdef LOG
+  printf ("divx4: decoding buffer %08x, flags = %08x\n", buf, buf->decoder_flags);
+#endif 
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
     /* only proceed if version is good and initialization succeeded */
+
+#ifdef LOG
+    printf ("divx4: get_version...\n");
+#endif 
+
     divx4_get_version(this);	
     this->decoder_ok = ( divx4_check_version(this) &&
                          divx4_init_decoder(this, buf) );
@@ -391,7 +402,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
   this->size += buf->size;
 
-  if (buf->decoder_info[0] == 2)  { /* need to decode a frame */
+  if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
     img = this->video_out->get_frame (this->video_out, this->biWidth,
 				      this->biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, 
@@ -525,7 +536,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 								"use divx4 plugin for msmpeg4v3 streams",
 								NULL, NULL, NULL);
   this->size				  = 0;
-   /* allow override of version checking by user */
+  /* allow override of version checking by user */
   this->version 			  = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
 							      "Divx version to check for (set to 0 (default) if unsure)",
 							      NULL, NULL, NULL);

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.57 2002/03/11 12:31:26 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -430,7 +430,7 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
          it yet and we cannot provide correct vpts values. use current_time 
          instead as an aproximation.
       */
-      this->event.vpts = metronom->got_spu_packet(metronom, pci->pci_gi.vobu_s_ptm, 0, 0);
+      this->event.vpts = metronom->got_spu_packet(metronom, pci->pci_gi.vobu_s_ptm, 0);
       ovl_instance->add_event(ovl_instance, (void *)&this->event);
     } else {
       printf("libspudec: No video_overlay handles left for menu\n");
@@ -481,7 +481,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   }
 
 
-  if (buf->decoder_info[0] == 0)  /* skip preview data */
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)  /* skip preview data */
     return;
 
   if ( this->spu_stream_state[stream_id].stream_filter == 0) 
@@ -489,7 +489,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->pts) {
     metronom_t *metronom = this->xine->metronom;
-    uint32_t vpts = metronom->got_spu_packet(metronom, buf->pts, 0, buf->scr);
+    uint32_t vpts = metronom->got_spu_packet(metronom, buf->pts, 0);
     
     if (vpts < this->buf_pts) {
       /* FIXME: Don't do this yet, 

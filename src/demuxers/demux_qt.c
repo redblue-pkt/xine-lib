@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.22 2002/03/01 09:29:50 guenter Exp $
+ * $Id: demux_qt.c,v 1.23 2002/03/11 12:31:24 guenter Exp $
  *
- * demultiplexer for quicktime streams, based on:
+ * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
  * openquicktime.c
  *
@@ -54,7 +54,14 @@
 #include "libw32dll/wine/vfw.h"
 #include "libw32dll/wine/mmreg.h"
 
-#define VALID_ENDS   "mov"
+
+#define LOG
+
+
+#define DBG_QT
+
+
+#define VALID_ENDS   "mov,mp4"
 
 /* OpenQuicktime Codec Parameter Types */
 #define QUICKTIME_UNKNOWN_PARAMETER         -1
@@ -69,6 +76,10 @@
 
 typedef int64_t longest;
 typedef uint64_t ulongest;
+
+#ifdef DBG_QT
+int debug_fh;
+#endif
 
 /*
 typedef __s64 longest;
@@ -191,6 +202,7 @@ typedef struct {
 typedef struct {
   long sample_count;
   long sample_duration;
+  int64_t pts;
 } quicktime_stts_table_t;
 
 typedef struct {
@@ -513,6 +525,17 @@ typedef struct quicktime_struc {
   
 } quicktime_t;
 
+typedef struct {
+  int64_t           pts;
+  off_t             offset;
+  int               first_sample;
+  int               last_sample;
+  int32_t           type;
+  quicktime_trak_t *track;
+} qt_idx_t;
+
+#define MAX_QT_INDEX 200000
+
 typedef struct demux_qt_s {
   demux_plugin_t        demux_plugin;
 
@@ -531,6 +554,8 @@ typedef struct demux_qt_s {
   int                   send_end_buffers;
 
   quicktime_t          *qt;
+  qt_idx_t              index[MAX_QT_INDEX];
+  int                   num_index_entries;
 
   int			has_audio;	 /* 1 if this qt stream has audio */
 
@@ -555,171 +580,163 @@ typedef struct demux_qt_s {
 
 /* Disk I/O */
 
-static longest quicktime_ftell(quicktime_t *file)
-{
+static longest quicktime_ftell(quicktime_t *file) {
   return file->ftell_position;
 }
 
-static int quicktime_fseek(quicktime_t *file, longest offset)
-{
+static int quicktime_fseek(quicktime_t *file, longest offset) {
   file->ftell_position = offset;
-  if(offset > file->total_length || offset < 0) return 1;
-  if (file->input->seek(file->input, file->ftell_position, SEEK_SET))
-    {
-      //		perror("quicktime_read_data FSEEK");
-      return 1;
-    }
+  if(offset > file->total_length || offset < 0) 
+    return 1;
+  if (file->input->seek(file->input, file->ftell_position, SEEK_SET)) {
+    /*		perror("quicktime_read_data FSEEK"); */
+    return 1;
+  }
   return 0;
 }
 
 /* Read entire buffer from the preload buffer */
-static int quicktime_read_preload(quicktime_t *file, char *data, longest size)
-{
+static int quicktime_read_preload(quicktime_t *file, char *data, longest size) {
   longest selection_start = file->file_position;
   longest selection_end = file->file_position + size;
   longest fragment_start, fragment_len;
 
   fragment_start = file->preload_ptr + (selection_start - file->preload_start);
-  while(fragment_start < 0) fragment_start += file->preload_size;
-  while(fragment_start >= file->preload_size) fragment_start -= file->preload_size;
+  while(fragment_start < 0) 
+    fragment_start += file->preload_size;
+  while(fragment_start >= file->preload_size) 
+    fragment_start -= file->preload_size;
 
   // gcc 2.96 fails here
-       while(selection_start < selection_end)
-	 {
-	   fragment_len = selection_end - selection_start;
-	   if(fragment_start + fragment_len > file->preload_size)
-	     fragment_len = file->preload_size - fragment_start;
+  while (selection_start < selection_end) {
+    fragment_len = selection_end - selection_start;
+    if (fragment_start + fragment_len > file->preload_size)
+      fragment_len = file->preload_size - fragment_start;
 
-	   memcpy(data, file->preload_buffer + fragment_start, fragment_len);
-	   fragment_start += fragment_len;
-	   data = data + fragment_len;
+    memcpy (data, file->preload_buffer + fragment_start, fragment_len);
+    fragment_start += fragment_len;
+    data = data + fragment_len;
 
-	   if(fragment_start >= file->preload_size) fragment_start = (longest)0;
-	   selection_start += fragment_len;
-	 }
+    if (fragment_start >= file->preload_size) 
+      fragment_start = (longest)0;
+    selection_start += fragment_len;
+  }
   return 0;
 }
 
-static int quicktime_read_data(quicktime_t *file, char *data, longest size)
-{
+static int quicktime_read_data(quicktime_t *file, char *data, longest size) {
+
   int result = 1;
-  if(file->decompressed_buffer)
-    {
-      if(file->decompressed_position < file->decompressed_buffer_size)
-	{
-	  memcpy(data, 
-		 file->decompressed_buffer+file->decompressed_position,
-		 size);
-	  file->decompressed_position+=size;
-	  return result;
-	}
-      else
-	{
-	  //printf("Deleting Decompressed buffer\n");
-	  file->decompressed_position = 0;
-	  file->decompressed_buffer_size=0;
-	  free(file->decompressed_buffer);
-	  file->decompressed_buffer = NULL;
-	}
+
+  if (file->decompressed_buffer) {
+
+    if (file->decompressed_position < file->decompressed_buffer_size) {
+      memcpy(data, 
+	     file->decompressed_buffer+file->decompressed_position,
+	     size);
+      file->decompressed_position+=size;
+      return result;
+
+    } else {
+
+      //printf("Deleting Decompressed buffer\n");
+      file->decompressed_position = 0;
+      file->decompressed_buffer_size=0;
+      free(file->decompressed_buffer);
+      file->decompressed_buffer = NULL;
     }
+  }
 
 
-  if(!file->preload_size)
-    {
-      //printf("quicktime_read_data 0x%llx\n", file->file_position);
+  if (!file->preload_size) {
+    //printf("quicktime_read_data 0x%llx\n", file->file_position);
+    file->quicktime_fseek(file, file->file_position);
+    /* result = fread(data, size, 1, (FILE*)file->stream); */
+    result = file->input->read(file->input, data, size);
+    file->ftell_position += size;
+
+  } else {
+
+    longest selection_start = file->file_position;
+    longest selection_end = file->file_position + size;
+    longest fragment_start, fragment_len;
+
+    if(selection_end - selection_start > file->preload_size) {
+      /* Size is larger than preload size.  Should never happen. */
+      //printf("read data 1\n");
       file->quicktime_fseek(file, file->file_position);
       /* result = fread(data, size, 1, (FILE*)file->stream); */
       result = file->input->read(file->input, data, size);
       file->ftell_position += size;
+
+    } else if (selection_start >= file->preload_start 
+	       && selection_start < file->preload_end 
+	       && selection_end <= file->preload_end 
+	       && selection_end > file->preload_start) {
+      /* Entire range is in buffer */
+      //printf("read data 2\n");
+      quicktime_read_preload(file, data, size);
+
+    } else if (selection_end > file->preload_end 
+	       && selection_end - file->preload_size < file->preload_end) {
+      /* Range is after buffer */
+      /* Move the preload start to within one preload length of the selection_end */
+      //printf("read data 3\n");
+      while (selection_end - file->preload_start > file->preload_size) {
+	fragment_len = selection_end - file->preload_start - file->preload_size;
+	if (file->preload_ptr + fragment_len > file->preload_size) 
+	  fragment_len = file->preload_size - file->preload_ptr;
+	file->preload_start += fragment_len;
+	file->preload_ptr += fragment_len;
+	if (file->preload_ptr >= file->preload_size) 
+	  file->preload_ptr = 0;
+      }
+
+      /* Append sequential data after the preload end to the new end */
+      fragment_start = file->preload_ptr + file->preload_end - file->preload_start;
+      while (fragment_start >= file->preload_size) 
+	fragment_start -= file->preload_size;
+
+      while (file->preload_end < selection_end) {
+	fragment_len = selection_end - file->preload_end;
+	if (fragment_start + fragment_len > file->preload_size) 
+	  fragment_len = file->preload_size - fragment_start;
+	file->quicktime_fseek(file, file->preload_end);
+	/* result = fread(&(file->preload_buffer[fragment_start]), fragment_len, 1, (FILE*)file->stream); */
+	result = file->input->read (file->input,
+				    &(file->preload_buffer[fragment_start]), 
+				    fragment_len);
+	file->ftell_position += fragment_len;
+	file->preload_end += fragment_len;
+	fragment_start += fragment_len;
+	if (fragment_start >= file->preload_size) 
+	  fragment_start = 0;
+      }
+
+      quicktime_read_preload(file, data, size);
+    } else {
+      //printf("quicktime_read_data 4 selection_start %lld selection_end %lld preload_start %lld\n", selection_start, selection_end, file->preload_start);
+      /* Range is before buffer or over a preload_size away from the end of the buffer. */
+      /* Replace entire preload buffer with range. */
+      file->quicktime_fseek(file, file->file_position);
+      /* result = fread(file->preload_buffer, size, 1, (FILE*)file->stream); */
+      result = file->input->read(file->input, file->preload_buffer, size);
+      file->ftell_position += size;
+      file->preload_start = file->file_position;
+      file->preload_end = file->file_position + size;
+      file->preload_ptr = 0;
+      //printf("quicktime_read_data 5\n");
+      quicktime_read_preload(file, data, size);
+      //printf("quicktime_read_data 6\n");
     }
-  else
-    {
-      longest selection_start = file->file_position;
-      longest selection_end = file->file_position + size;
-      longest fragment_start, fragment_len;
-
-      if(selection_end - selection_start > file->preload_size)
-	{
-	  /* Size is larger than preload size.  Should never happen. */
-	  //printf("read data 1\n");
-	  file->quicktime_fseek(file, file->file_position);
-	  /* result = fread(data, size, 1, (FILE*)file->stream); */
-	  result = file->input->read(file->input, data, size);
-	  file->ftell_position += size;
-	}
-      else
-	if(selection_start >= file->preload_start && 
-	   selection_start < file->preload_end &&
-	   selection_end <= file->preload_end &&
-	   selection_end > file->preload_start)
-	  {
-	    /* Entire range is in buffer */
-	    //printf("read data 2\n");
-	    quicktime_read_preload(file, data, size);
-	  }
-	else
-	  if(selection_end > file->preload_end && 
-	     selection_end - file->preload_size < file->preload_end)
-	    {
-	      /* Range is after buffer */
-	      /* Move the preload start to within one preload length of the selection_end */
-	      //printf("read data 3\n");
-	      while(selection_end - file->preload_start > file->preload_size)
-		{
-		  fragment_len = selection_end - file->preload_start - file->preload_size;
-		  if(file->preload_ptr + fragment_len > file->preload_size) 
-		    fragment_len = file->preload_size - file->preload_ptr;
-		  file->preload_start += fragment_len;
-		  file->preload_ptr += fragment_len;
-		  if(file->preload_ptr >= file->preload_size) file->preload_ptr = 0;
-		}
-
-	      /* Append sequential data after the preload end to the new end */
-	      fragment_start = file->preload_ptr + file->preload_end - file->preload_start;
-	      while(fragment_start >= file->preload_size) fragment_start -= file->preload_size;
-
-	      while(file->preload_end < selection_end)
-		{
-		  fragment_len = selection_end - file->preload_end;
-		  if(fragment_start + fragment_len > file->preload_size) fragment_len = file->preload_size - fragment_start;
-		  file->quicktime_fseek(file, file->preload_end);
-				/* result = fread(&(file->preload_buffer[fragment_start]), fragment_len, 1, (FILE*)file->stream); */
-		  result = file->input->read (file->input,
-					      &(file->preload_buffer[fragment_start]), 
-					      fragment_len);
-		  file->ftell_position += fragment_len;
-		  file->preload_end += fragment_len;
-		  fragment_start += fragment_len;
-		  if(fragment_start >= file->preload_size) fragment_start = 0;
-		}
-
-	      quicktime_read_preload(file, data, size);
-	    }
-	  else
-	    {
-	      //printf("quicktime_read_data 4 selection_start %lld selection_end %lld preload_start %lld\n", selection_start, selection_end, file->preload_start);
-	      /* Range is before buffer or over a preload_size away from the end of the buffer. */
-	      /* Replace entire preload buffer with range. */
-	      file->quicktime_fseek(file, file->file_position);
-	      /* result = fread(file->preload_buffer, size, 1, (FILE*)file->stream); */
-	      result = file->input->read(file->input, file->preload_buffer, size);
-	      file->ftell_position += size;
-	      file->preload_start = file->file_position;
-	      file->preload_end = file->file_position + size;
-	      file->preload_ptr = 0;
-	      //printf("quicktime_read_data 5\n");
-	      quicktime_read_preload(file, data, size);
-	      //printf("quicktime_read_data 6\n");
-	    }
-    }
+  }
 
   //printf("quicktime_read_data 1 %lld %lld\n", file->file_position, size);
   file->file_position += size;
   return result;
 }
 
-static longest quicktime_position(quicktime_t *file) 
-{ 
+static longest quicktime_position(quicktime_t *file) { 
 
   if (file->decompressed_buffer) {
     return file->decompressed_position;
@@ -866,10 +883,9 @@ static void quicktime_read_char32(quicktime_t *file, char *string)
   file->quicktime_read_data(file, string, 4);
 }
 
-static int quicktime_set_position(quicktime_t *file, longest position) 
-{
+static int quicktime_set_position(quicktime_t *file, longest position) {
   //if(file->wr) printf("quicktime_set_position 0x%llx\n", position);
-  if(file->decompressed_buffer)
+  if (file->decompressed_buffer)
     file->decompressed_position = position;
   else
     file->file_position = position;
@@ -877,8 +893,8 @@ static int quicktime_set_position(quicktime_t *file, longest position)
   return 0;
 }
 
-static void quicktime_copy_char32(char *output, char *input)
-{
+static void quicktime_copy_char32(char *output, char *input) {
+
   *output++ = *input++;
   *output++ = *input++;
   *output++ = *input++;
@@ -886,15 +902,15 @@ static void quicktime_copy_char32(char *output, char *input)
 }
 
 
-static unsigned long quicktime_current_time(void)
-{
+static unsigned long quicktime_current_time(void) {
+
   time_t t;
   time (&t);
   return (t+(66*31536000)+1468800);
 }
 
-static int quicktime_match_32(char *input, char *output)
-{
+static int quicktime_match_32(char *input, char *output) {
+
   if(input[0] == output[0] &&
      input[1] == output[1] &&
      input[2] == output[2] &&
@@ -904,8 +920,8 @@ static int quicktime_match_32(char *input, char *output)
     return 0;
 }
 
-static void quicktime_read_pascal(quicktime_t *file, char *data)
-{
+static void quicktime_read_pascal(quicktime_t *file, char *data) {
+
   char len = quicktime_read_char(file);
   file->quicktime_read_data(file, data, len);
   data[(int) len] = 0;
@@ -913,29 +929,28 @@ static void quicktime_read_pascal(quicktime_t *file, char *data)
 
 /* matrix.c */
 
-static void quicktime_matrix_init(quicktime_matrix_t *matrix)
-{
+static void quicktime_matrix_init(quicktime_matrix_t *matrix) {
+
   int i;
-  for(i = 0; i < 9; i++) matrix->values[i] = 0;
+  for (i = 0; i < 9; i++) 
+    matrix->values[i] = 0;
+
   matrix->values[0] = matrix->values[4] = 1;
   matrix->values[8] = 16384;
 }
 
-static void quicktime_matrix_delete(quicktime_matrix_t *matrix)
-{
+static void quicktime_matrix_delete(quicktime_matrix_t *matrix) {
 }
 
-static void quicktime_read_matrix(quicktime_t *file, quicktime_matrix_t *matrix)
-{
+static void quicktime_read_matrix(quicktime_t *file, 
+				  quicktime_matrix_t *matrix) {
   int i = 0;
-  for(i = 0; i < 9; i++)
-    {
-      matrix->values[i] = quicktime_read_fixed32(file);
-    }
+  for(i = 0; i < 9; i++) {
+    matrix->values[i] = quicktime_read_fixed32(file);
+  }
 }
 
-static int quicktime_get_timescale(float frame_rate)
-{
+static int quicktime_get_timescale(float frame_rate) {
   int timescale = 600;
   /* Encode the 29.97, 23.976, 59.94 framerates */
   if(frame_rate - (int)frame_rate != 0) 
@@ -950,9 +965,10 @@ static int quicktime_get_timescale(float frame_rate)
 
 /* mvhd.c */
 
-static int quicktime_mvhd_init(quicktime_mvhd_t *mvhd)
-{
+static int quicktime_mvhd_init(quicktime_mvhd_t *mvhd) {
+
   int i;
+
   mvhd->version = 0;
   mvhd->flags = 0;
   mvhd->creation_time = quicktime_current_time();
@@ -961,7 +977,8 @@ static int quicktime_mvhd_init(quicktime_mvhd_t *mvhd)
   mvhd->duration = 0;
   mvhd->preferred_rate = 1.0;
   mvhd->preferred_volume = 0.996094;
-  for(i = 0; i < 10; i++) mvhd->reserved[i] = 0;
+  for(i = 0; i < 10; i++) 
+    mvhd->reserved[i] = 0;
   quicktime_matrix_init(&(mvhd->matrix));
   mvhd->preview_time = 0;
   mvhd->preview_duration = 0;
@@ -973,13 +990,11 @@ static int quicktime_mvhd_init(quicktime_mvhd_t *mvhd)
   return 0;
 }
 
-static int quicktime_mvhd_delete(quicktime_mvhd_t *mvhd)
-{
+static int quicktime_mvhd_delete(quicktime_mvhd_t *mvhd) {
   return 0;
 }
 
-static void quicktime_read_mvhd(quicktime_t *file, quicktime_mvhd_t *mvhd)
-{
+static void quicktime_read_mvhd(quicktime_t *file, quicktime_mvhd_t *mvhd) {
   mvhd->version = quicktime_read_char(file);
   mvhd->flags = quicktime_read_int24(file);
   mvhd->creation_time = quicktime_read_int32(file);
@@ -2009,24 +2024,20 @@ static void quicktime_read_stsd(quicktime_t *file, quicktime_minf_t *minf, quick
 
 /* stts.c */
 
-static void quicktime_stts_init(quicktime_stts_t *stts)
-{
+static void quicktime_stts_init(quicktime_stts_t *stts) {
   stts->version = 0;
   stts->flags = 0;
   stts->total_entries = 0;
 }
 
-static void quicktime_stts_init_table(quicktime_stts_t *stts)
-{
-  if(!stts->total_entries)
-    {
-      stts->total_entries = 1;
-      stts->table = (quicktime_stts_table_t*)malloc(sizeof(quicktime_stts_table_t) * stts->total_entries);
-    }
+static void quicktime_stts_init_table(quicktime_stts_t *stts) {
+  if(!stts->total_entries) {
+    stts->total_entries = 1;
+    stts->table = (quicktime_stts_table_t*)malloc(sizeof(quicktime_stts_table_t) * stts->total_entries);
+  }
 }
 
-static void quicktime_stts_init_video(quicktime_t *file, quicktime_stts_t *stts, int time_scale, float frame_rate)
-{
+static void quicktime_stts_init_video(quicktime_t *file, quicktime_stts_t *stts, int time_scale, float frame_rate) {
   quicktime_stts_table_t *table;
   quicktime_stts_init_table(stts);
   table = &(stts->table[0]);
@@ -2036,8 +2047,7 @@ static void quicktime_stts_init_video(quicktime_t *file, quicktime_stts_t *stts,
   //printf("quicktime_stts_init_video %ld %f\n", time_scale, (double)frame_rate);
 }
 
-static void quicktime_stts_init_audio(quicktime_t *file, quicktime_stts_t *stts, int sample_rate)
-{
+static void quicktime_stts_init_audio(quicktime_t *file, quicktime_stts_t *stts, int sample_rate) {
   quicktime_stts_table_t *table;
   quicktime_stts_init_table(stts);
   table = &(stts->table[0]);
@@ -2046,49 +2056,47 @@ static void quicktime_stts_init_audio(quicktime_t *file, quicktime_stts_t *stts,
   table->sample_duration = 1;
 }
 
-static void quicktime_stts_delete(quicktime_stts_t *stts)
-{
+static void quicktime_stts_delete(quicktime_stts_t *stts) {
   if(stts->total_entries) free(stts->table);
   stts->total_entries = 0;
 }
 
-static void quicktime_read_stts(quicktime_t *file, quicktime_stts_t *stts)
-{
+static void quicktime_read_stts(quicktime_t *file, 
+				quicktime_stts_t *stts,
+				long time_scale) {
   int i;
+ 
   stts->version = quicktime_read_char(file);
   stts->flags = quicktime_read_int24(file);
   stts->total_entries = quicktime_read_int32(file);
 
   stts->table = (quicktime_stts_table_t*)malloc(sizeof(quicktime_stts_table_t) * stts->total_entries);
-  for(i = 0; i < stts->total_entries; i++)
-    {
-      stts->table[i].sample_count = quicktime_read_int32(file);
-      stts->table[i].sample_duration = quicktime_read_int32(file);
-    }
+  printf ("demux_qt: reading stts... (time scale is %ld units/sec)\n",
+	  time_scale);
+  for(i = 0; i < stts->total_entries; i++) {
+    stts->table[i].sample_count = quicktime_read_int32(file);
+    stts->table[i].sample_duration = quicktime_read_int32(file);
+  }
 }
 
 /* stsc.c */
 
-static void quicktime_stsc_init(quicktime_stsc_t *stsc)
-{
+static void quicktime_stsc_init(quicktime_stsc_t *stsc) {
   stsc->version = 0;
   stsc->flags = 0;
   stsc->total_entries = 0;
   stsc->entries_allocated = 0;
 }
 
-static void quicktime_stsc_init_table(quicktime_t *file, quicktime_stsc_t *stsc)
-{
-  if(!stsc->entries_allocated)
-    {
-      stsc->total_entries = 0;
-      stsc->entries_allocated = 2000;
-      stsc->table = (quicktime_stsc_table_t*)calloc(1, sizeof(quicktime_stsc_table_t) * stsc->entries_allocated);
-    }
+static void quicktime_stsc_init_table(quicktime_t *file, quicktime_stsc_t *stsc) {
+  if(!stsc->entries_allocated) {
+    stsc->total_entries = 0;
+    stsc->entries_allocated = 2000;
+    stsc->table = (quicktime_stsc_table_t*)calloc(1, sizeof(quicktime_stsc_table_t) * stsc->entries_allocated);
+  }
 }
 
-static void quicktime_stsc_init_video(quicktime_t *file, quicktime_stsc_t *stsc)
-{
+static void quicktime_stsc_init_video(quicktime_t *file, quicktime_stsc_t *stsc) {
   quicktime_stsc_table_t *table;
   quicktime_stsc_init_table(file, stsc);
   table = &(stsc->table[0]);
@@ -2097,8 +2105,7 @@ static void quicktime_stsc_init_video(quicktime_t *file, quicktime_stsc_t *stsc)
   table->id = 1;
 }
 
-static void quicktime_stsc_init_audio(quicktime_t *file, quicktime_stsc_t *stsc, int sample_rate)
-{
+static void quicktime_stsc_init_audio(quicktime_t *file, quicktime_stsc_t *stsc, int sample_rate) {
   quicktime_stsc_table_t *table;
   quicktime_stsc_init_table(file, stsc);
   table = &(stsc->table[0]);
@@ -2107,9 +2114,9 @@ static void quicktime_stsc_init_audio(quicktime_t *file, quicktime_stsc_t *stsc,
   table->id = 1;
 }
 
-static void quicktime_stsc_delete(quicktime_stsc_t *stsc)
-{
-  if(stsc->total_entries) free(stsc->table);
+static void quicktime_stsc_delete(quicktime_stsc_t *stsc) {
+  if(stsc->total_entries) 
+    free(stsc->table);
   stsc->total_entries = 0;
 }
 
@@ -2122,29 +2129,27 @@ static void quicktime_read_stsc(quicktime_t *file, quicktime_stsc_t *stsc)
 	
   stsc->entries_allocated = stsc->total_entries;
   stsc->table = (quicktime_stsc_table_t*)malloc(sizeof(quicktime_stsc_table_t) * stsc->total_entries);
-  for(i = 0; i < stsc->total_entries; i++)
-    {
-      stsc->table[i].chunk = quicktime_read_int32(file);
-      stsc->table[i].samples = quicktime_read_int32(file);
-      stsc->table[i].id = quicktime_read_int32(file);
-    }
+  for(i = 0; i < stsc->total_entries; i++) {
+    stsc->table[i].chunk = quicktime_read_int32(file);
+    stsc->table[i].samples = quicktime_read_int32(file);
+    stsc->table[i].id = quicktime_read_int32(file);
+  }
 }
 
 
-static int quicktime_update_stsc(quicktime_stsc_t *stsc, long chunk, long samples)
-{
+static int quicktime_update_stsc(quicktime_stsc_t *stsc, long chunk, long samples) {
   /* long i; */
 
-  if(chunk > stsc->entries_allocated)
-    {
-      stsc->entries_allocated = chunk * 2;
-      stsc->table =(quicktime_stsc_table_t*)realloc(stsc->table, sizeof(quicktime_stsc_table_t) * stsc->entries_allocated);
-    }
+  if (chunk > stsc->entries_allocated) {
+    stsc->entries_allocated = chunk * 2;
+    stsc->table =(quicktime_stsc_table_t*)realloc(stsc->table, sizeof(quicktime_stsc_table_t) * stsc->entries_allocated);
+  }
 
   stsc->table[chunk - 1].samples = samples;
   stsc->table[chunk - 1].chunk = chunk;
   stsc->table[chunk - 1].id = 1;
-  if(chunk > stsc->total_entries) stsc->total_entries = chunk;
+  if (chunk > stsc->total_entries) 
+    stsc->total_entries = chunk;
   return 0;
 }
 
@@ -2158,8 +2163,7 @@ static int quicktime_update_stsc(quicktime_stsc_t *stsc, long chunk, long sample
 
 /* stsz.c */
 
-static void quicktime_stsz_init(quicktime_stsz_t *stsz)
-{
+static void quicktime_stsz_init(quicktime_stsz_t *stsz) {
   stsz->version = 0;
   stsz->flags = 0;
   stsz->sample_size = 0;
@@ -2167,48 +2171,42 @@ static void quicktime_stsz_init(quicktime_stsz_t *stsz)
   stsz->entries_allocated = 0;
 }
 
-static void quicktime_stsz_init_video(quicktime_t *file, quicktime_stsz_t *stsz)
-{
+static void quicktime_stsz_init_video(quicktime_t *file, quicktime_stsz_t *stsz) {
   stsz->sample_size = 0;
-  if(!stsz->entries_allocated)
-    {
-      stsz->entries_allocated = 2000;
-      stsz->total_entries = 0;
-      stsz->table = (quicktime_stsz_table_t*)malloc(sizeof(quicktime_stsz_table_t) * stsz->entries_allocated);
-    }
+  if(!stsz->entries_allocated) {
+    stsz->entries_allocated = 2000;
+    stsz->total_entries = 0;
+    stsz->table = (quicktime_stsz_table_t*)malloc(sizeof(quicktime_stsz_table_t) * stsz->entries_allocated);
+  }
 }
 
-static void quicktime_stsz_init_audio(quicktime_t *file, quicktime_stsz_t *stsz, int channels, int bits)
-{
+static void quicktime_stsz_init_audio(quicktime_t *file, quicktime_stsz_t *stsz, int channels, int bits) {
   /*stsz->sample_size = channels * bits / 8; */
   stsz->sample_size = 1;   /* ? */
   stsz->total_entries = 0;   /* set this when closing */
   stsz->entries_allocated = 0;
 }
 
-static void quicktime_stsz_delete(quicktime_stsz_t *stsz)
-{
-  if(!stsz->sample_size && stsz->total_entries) free(stsz->table);
+static void quicktime_stsz_delete(quicktime_stsz_t *stsz) {
+  if(!stsz->sample_size && stsz->total_entries) 
+    free(stsz->table);
   stsz->total_entries = 0;
   stsz->entries_allocated = 0;
 }
 
-static void quicktime_read_stsz(quicktime_t *file, quicktime_stsz_t *stsz)
-{
+static void quicktime_read_stsz(quicktime_t *file, quicktime_stsz_t *stsz) {
   long i;
   stsz->version = quicktime_read_char(file);
   stsz->flags = quicktime_read_int24(file);
   stsz->sample_size = quicktime_read_int32(file);
   stsz->total_entries = quicktime_read_int32(file);
   stsz->entries_allocated = stsz->total_entries;
-  if(!stsz->sample_size)
-    {
-      stsz->table = (quicktime_stsz_table_t*)malloc(sizeof(quicktime_stsz_table_t) * stsz->entries_allocated);
-      for(i = 0; i < stsz->total_entries; i++)
-	{
-	  stsz->table[i].size = quicktime_read_int32(file);
-	}
+  if(!stsz->sample_size) {
+    stsz->table = (quicktime_stsz_table_t*)malloc(sizeof(quicktime_stsz_table_t) * stsz->entries_allocated);
+    for(i = 0; i < stsz->total_entries; i++) {
+      stsz->table[i].size = quicktime_read_int32(file);
     }
+  }
 }
 
 static void quicktime_update_stsz(quicktime_stsz_t *stsz, long sample, long sample_size)
@@ -2390,44 +2388,35 @@ static void quicktime_stbl_delete(quicktime_stbl_t *stbl)
   quicktime_stco_delete(&(stbl->stco));
 }
 
-static int quicktime_read_stbl(quicktime_t *file, quicktime_minf_t *minf, quicktime_stbl_t *stbl, quicktime_atom_t *parent_atom)
-{
+static int quicktime_read_stbl(quicktime_t *file, quicktime_minf_t *minf, long time_scale,
+			       quicktime_stbl_t *stbl, quicktime_atom_t *parent_atom) {
   quicktime_atom_t leaf_atom;
   
-  do
-    {
-      quicktime_atom_read_header(file, &leaf_atom);
+  do {
+    quicktime_atom_read_header(file, &leaf_atom);
       
-      //printf("quicktime_read_stbl 1\n");
-      /* mandatory */
-      if(quicktime_atom_is(&leaf_atom, "stsd"))
-	{ 
-	  //printf("STSD start %lld end %lld", leaf_atom.start, leaf_atom.end);
-	  quicktime_read_stsd(file, minf, &(stbl->stsd)); 
-	  /* Some codecs store extra information at the end of this */
-	  quicktime_atom_skip(file, &leaf_atom);
-	}
-      else
-	if(quicktime_atom_is(&leaf_atom, "stts"))
-	  { quicktime_read_stts(file, &(stbl->stts)); }
-	else
-	  if(quicktime_atom_is(&leaf_atom, "stss"))
-	    { quicktime_read_stss(file, &(stbl->stss)); }
-	  else
-	    if(quicktime_atom_is(&leaf_atom, "stsc"))
-	      { quicktime_read_stsc(file, &(stbl->stsc)); }
-	    else
-	      if(quicktime_atom_is(&leaf_atom, "stsz"))
-		{ quicktime_read_stsz(file, &(stbl->stsz)); }
-	      else
-		if(quicktime_atom_is(&leaf_atom, "co64"))
-		  { quicktime_read_stco64(file, &(stbl->stco)); }
-		else
-		  if(quicktime_atom_is(&leaf_atom, "stco"))
-		    { quicktime_read_stco(file, &(stbl->stco)); }
-		  else
-		    quicktime_atom_skip(file, &leaf_atom);
-    }while(quicktime_position(file) < parent_atom->end);
+    //printf("quicktime_read_stbl 1\n");
+    /* mandatory */
+    if(quicktime_atom_is(&leaf_atom, "stsd")) { 
+      //printf("STSD start %lld end %lld", leaf_atom.start, leaf_atom.end);
+      quicktime_read_stsd(file, minf, &(stbl->stsd)); 
+      /* Some codecs store extra information at the end of this */
+      quicktime_atom_skip(file, &leaf_atom);
+    } else if(quicktime_atom_is(&leaf_atom, "stts")) { 
+      quicktime_read_stts(file, &(stbl->stts), time_scale); 
+    } else if(quicktime_atom_is(&leaf_atom, "stss")) { 
+      quicktime_read_stss(file, &(stbl->stss)); 
+    } else if(quicktime_atom_is(&leaf_atom, "stsc")) { 
+      quicktime_read_stsc(file, &(stbl->stsc)); 
+    } else if(quicktime_atom_is(&leaf_atom, "stsz")) { 
+      quicktime_read_stsz(file, &(stbl->stsz)); 
+    } else if(quicktime_atom_is(&leaf_atom, "co64")) { 
+      quicktime_read_stco64(file, &(stbl->stco)); 
+    } else if(quicktime_atom_is(&leaf_atom, "stco")) { 
+      quicktime_read_stco(file, &(stbl->stco)); 
+    } else
+      quicktime_atom_skip(file, &leaf_atom);
+  } while (quicktime_position(file) < parent_atom->end);
   
   return 0;
 }
@@ -2488,37 +2477,30 @@ static void quicktime_minf_delete(quicktime_minf_t *minf)
   quicktime_hdlr_delete(&(minf->hdlr));
 }
 
-static int quicktime_read_minf(quicktime_t *file, quicktime_minf_t *minf, quicktime_atom_t *parent_atom)
-{
+static int quicktime_read_minf(quicktime_t *file, quicktime_minf_t *minf, 
+			       long time_scale,
+			       quicktime_atom_t *parent_atom) {
   quicktime_atom_t leaf_atom;
   
-  do
-    {
-      quicktime_atom_read_header(file, &leaf_atom);
-      //printf("quicktime_read_minf 1\n");
-      
-      /* mandatory */
-      if(quicktime_atom_is(&leaf_atom, "vmhd"))
-	{ minf->is_video = 1; quicktime_read_vmhd(file, &(minf->vmhd)); }
-      else
-	if(quicktime_atom_is(&leaf_atom, "smhd"))
-	  { minf->is_audio = 1; quicktime_read_smhd(file, &(minf->smhd)); }
-	else
-	  if(quicktime_atom_is(&leaf_atom, "hdlr"))
-	    { 
-	      quicktime_read_hdlr(file, &(minf->hdlr)); 
-	      /* Main Actor doesn't write component name */
-	      quicktime_atom_skip(file, &leaf_atom);
-	    }
-	  else
-	    if(quicktime_atom_is(&leaf_atom, "dinf"))
-	      { quicktime_read_dinf(file, &(minf->dinf), &leaf_atom); }
-	    else
-	      if(quicktime_atom_is(&leaf_atom, "stbl"))
-		{ quicktime_read_stbl(file, minf, &(minf->stbl), &leaf_atom); }
-	      else
-		quicktime_atom_skip(file, &leaf_atom);
-    }while(quicktime_position(file) < parent_atom->end);
+  do {
+    quicktime_atom_read_header(file, &leaf_atom);
+    //printf("quicktime_read_minf 1\n");
+    
+    /* mandatory */
+    if (quicktime_atom_is(&leaf_atom, "vmhd")) { 
+      minf->is_video = 1; quicktime_read_vmhd(file, &(minf->vmhd)); 
+    } else if (quicktime_atom_is(&leaf_atom, "smhd")) { 
+      minf->is_audio = 1; quicktime_read_smhd(file, &(minf->smhd)); 
+    } else if (quicktime_atom_is(&leaf_atom, "hdlr")) { 
+      quicktime_read_hdlr(file, &(minf->hdlr)); 
+      /* Main Actor doesn't write component name */
+      quicktime_atom_skip(file, &leaf_atom);
+    } else if (quicktime_atom_is(&leaf_atom, "dinf")) { quicktime_read_dinf(file, &(minf->dinf), &leaf_atom); 
+    } else if (quicktime_atom_is(&leaf_atom, "stbl")){ 
+      quicktime_read_stbl(file, minf, time_scale, &(minf->stbl), &leaf_atom); 
+    } else
+      quicktime_atom_skip(file, &leaf_atom);
+  } while (quicktime_position(file) < parent_atom->end);
   
   return 0;
 }
@@ -2568,31 +2550,27 @@ static void quicktime_mdia_delete(quicktime_mdia_t *mdia)
   quicktime_minf_delete(&(mdia->minf));
 }
 
-static int quicktime_read_mdia(quicktime_t *file, quicktime_mdia_t *mdia, quicktime_atom_t *trak_atom)
-{
+static int quicktime_read_mdia(quicktime_t *file, quicktime_mdia_t *mdia, 
+			       quicktime_atom_t *trak_atom) {
+
   quicktime_atom_t leaf_atom;
   
-  do
-    {
-      quicktime_atom_read_header(file, &leaf_atom);
-      //printf("quicktime_read_mdia 0x%llx\n", quicktime_position(file));
-      
-      /* mandatory */
-      if(quicktime_atom_is(&leaf_atom, "mdhd"))
-	{ quicktime_read_mdhd(file, &(mdia->mdhd)); }
-      else
-	if(quicktime_atom_is(&leaf_atom, "hdlr"))
-	  {
-	    quicktime_read_hdlr(file, &(mdia->hdlr)); 
-	    /* Main Actor doesn't write component name */
-	    quicktime_atom_skip(file, &leaf_atom);
-	  }
-	else
-	  if(quicktime_atom_is(&leaf_atom, "minf"))
-	    { quicktime_read_minf(file, &(mdia->minf), &leaf_atom); }
-	  else
-	    quicktime_atom_skip(file, &leaf_atom);
-    }while(quicktime_position(file) < trak_atom->end);
+  do {
+    quicktime_atom_read_header(file, &leaf_atom);
+    //printf("quicktime_read_mdia 0x%llx\n", quicktime_position(file));
+    
+    /* mandatory */
+    if(quicktime_atom_is(&leaf_atom, "mdhd")) { 
+      quicktime_read_mdhd(file, &(mdia->mdhd)); 
+    } else if(quicktime_atom_is(&leaf_atom, "hdlr")) {
+      quicktime_read_hdlr(file, &(mdia->hdlr)); 
+      /* Main Actor doesn't write component name */
+      quicktime_atom_skip(file, &leaf_atom);
+    } else if(quicktime_atom_is(&leaf_atom, "minf")) { 
+      quicktime_read_minf(file, &(mdia->minf), mdia->mdhd.time_scale, &leaf_atom); 
+    } else
+      quicktime_atom_skip(file, &leaf_atom);
+  } while (quicktime_position(file) < trak_atom->end);
   
   
   return 0;
@@ -2817,9 +2795,9 @@ static long quicktime_track_samples(quicktime_t *file, quicktime_trak_t *trak)
 }
 
 static int quicktime_chunk_of_sample(longest *chunk_sample, 
-			      longest *chunk, 
-			      quicktime_trak_t *trak, 
-			      long sample)
+				     longest *chunk, 
+				     quicktime_trak_t *trak, 
+				     long sample)
 {
   quicktime_stsc_table_t *table = trak->mdia.minf.stbl.stsc.table;
   long total_entries = trak->mdia.minf.stbl.stsc.total_entries;
@@ -2831,12 +2809,11 @@ static int quicktime_chunk_of_sample(longest *chunk_sample,
   chunk1samples = 0;
   chunk2entry = 0;
 
-  if(!total_entries)
-    {
-      *chunk_sample = 0;
-      *chunk = 0;
-      return 0;
-    }
+  if(!total_entries) {
+    *chunk_sample = 0;
+    *chunk = 0;
+    return 0;
+  }
 
   do
     {
@@ -2864,7 +2841,7 @@ static int quicktime_chunk_of_sample(longest *chunk_sample,
       else
 	sample_duration = 1; // this way nothing is broken ... I hope
 		  
-				  chunk1samples = table[chunk2entry].samples * sample_duration;
+      chunk1samples = table[chunk2entry].samples * sample_duration;
       chunk1 = chunk2;
 
       if(chunk2entry < total_entries)
@@ -2986,18 +2963,15 @@ static longest quicktime_sample_range_size(quicktime_trak_t *trak,
   return total;
 }
 
-static longest quicktime_sample_to_offset(quicktime_trak_t *trak, long sample)
-{
+static longest quicktime_sample_to_offset(quicktime_trak_t *trak, long sample) {
   longest chunk, chunk_sample, chunk_offset1, chunk_offset2;
 
   quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, sample);
-  //		printf("\tBEFORE  quicktime_chunk_to_offset chunk %lld, chunk_sample %lld\n", chunk, chunk_sample);
+  printf("demux_qt: quicktime_sample_to_offset chunk %lld, chunk_sample %lld, sample %ld\n", 
+	 chunk, chunk_sample, sample);
+
   chunk_offset1 = quicktime_chunk_to_offset(trak, chunk);
-  //		printf("\tAFTER  quicktime_chunk_to_offset %lld\n", chunk_offset1);
   chunk_offset2 = chunk_offset1 + quicktime_sample_range_size(trak, chunk_sample, sample);
-  //		printf("\tAFTER  AFTER %lld\n", chunk_offset2);
-  //printf("quicktime_sample_to_offset chunk %lld sample %lld chunk_offset %lld chunk_sample %lld chunk_offset + samples %lld\n",
-	   //	 chunk, sample, chunk_offset1, chunk_sample, chunk_offset2);
   return chunk_offset2;
 }
 
@@ -3044,17 +3018,15 @@ static int quicktime_update_tables(quicktime_t *file,
 #endif
 
 static int quicktime_trak_duration(quicktime_trak_t *trak, 
-			    long *duration, 
-			    long *timescale)
-{
+				   long *duration, 
+				   long *timescale) {
   quicktime_stts_t *stts = &(trak->mdia.minf.stbl.stts);
   int i;
   *duration = 0;
 
-  for(i = 0; i < stts->total_entries; i++)
-    {
-      *duration += stts->table[i].sample_duration * stts->table[i].sample_count;
-    }
+  for(i = 0; i < stts->total_entries; i++) {
+    *duration += stts->table[i].sample_duration * stts->table[i].sample_count;
+  }
 
   *timescale = trak->mdia.mdhd.time_scale;
   return 0;
@@ -3377,76 +3349,68 @@ static int quicktime_set_audio_position(quicktime_t *file, longest sample, int t
   longest offset, chunk_sample, chunk;
   quicktime_trak_t *trak;
 
-  if(file->total_atracks)
-    {
-      trak = file->atracks[track].track;
-      file->atracks[track].current_position = sample;
-      //		printf("BEFORE  quicktime_chunk_of_sample track %d sample %li\n", track, sample);
-      quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, sample);
-      file->atracks[track].current_chunk = chunk;
-      //		printf("AFTER  quicktime_chunk_of_sample chunk %d chunk_sample %d\n", chunk, chunk_sample);
-      offset = quicktime_sample_to_offset(trak, sample);
-      //		printf("AFTER  quicktime_sample_to_offset offset %li\n", offset);
-      quicktime_set_position(file, offset);
-    }
+  if(file->total_atracks) {
+    trak = file->atracks[track].track;
+    file->atracks[track].current_position = sample;
+    //		printf("BEFORE  quicktime_chunk_of_sample track %d sample %li\n", track, sample);
+    quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, sample);
+    file->atracks[track].current_chunk = chunk;
+    //		printf("AFTER  quicktime_chunk_of_sample chunk %d chunk_sample %d\n", chunk, chunk_sample);
+    offset = quicktime_sample_to_offset(trak, sample);
+    //		printf("AFTER  quicktime_sample_to_offset offset %li\n", offset);
+    quicktime_set_position(file, offset);
+  }
 
   return 0;
 }
 
-static int quicktime_set_video_position(quicktime_t *file, longest frame, int track)
-{
+static int quicktime_set_video_position(quicktime_t *file, longest frame, 
+					int track) {
   longest offset, chunk_sample, chunk;
   quicktime_trak_t *trak;
 
-  if(file->total_vtracks)
-    {
-      trak = file->vtracks[track].track;
-      file->vtracks[track].current_position = frame;
-      quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, frame);
-      file->vtracks[track].current_chunk = chunk;
-      offset = quicktime_sample_to_offset(trak, frame);
-      quicktime_set_position(file, offset);
-    }
+  if(file->total_vtracks) {
+    trak = file->vtracks[track].track;
+    file->vtracks[track].current_position = frame;
+    quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, frame);
+    file->vtracks[track].current_chunk = chunk;
+    offset = quicktime_sample_to_offset(trak, frame);
+    quicktime_set_position(file, offset);
+  }
   return 0;
 }
 
-static int quicktime_audio_tracks(quicktime_t *file)
-{
+static int quicktime_audio_tracks(quicktime_t *file) {
   int i, result = 0;
   quicktime_minf_t *minf;
-  for(i = 0; i < file->moov.total_tracks; i++)
-    {
-      minf = &(file->moov.trak[i]->mdia.minf);
-      if(minf->is_audio)
-	result++;
-    }
+  for(i = 0; i < file->moov.total_tracks; i++) {
+    minf = &(file->moov.trak[i]->mdia.minf);
+    if(minf->is_audio)
+      result++;
+  }
   return result;
 }
 
-static int quicktime_has_audio(quicktime_t *file)
-{
-  if(quicktime_audio_tracks(file)) return 1;
+static int quicktime_has_audio(quicktime_t *file) {
+  if(quicktime_audio_tracks(file)) 
+    return 1;
   return 0;
 }
 
-static long quicktime_sample_rate(quicktime_t *file, int track)
-{
-/*   return 8000;*/
+static long quicktime_sample_rate(quicktime_t *file, int track) {
   if(file->total_atracks)
     return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].sample_rate;
   return 0;
 }
 
-static int quicktime_audio_bits(quicktime_t *file, int track)
-{
+static int quicktime_audio_bits(quicktime_t *file, int track) {
   if(file->total_atracks)
     return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].sample_size;
 
   return 0;
 }
 
-static char* quicktime_audio_compressor(quicktime_t *file, int track)
-{
+static char* quicktime_audio_compressor(quicktime_t *file, int track) {
   if (track < file->total_atracks)
     return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].format;
   /*
@@ -3456,74 +3420,66 @@ static char* quicktime_audio_compressor(quicktime_t *file, int track)
   return "NONE";
 }
 
-static int quicktime_track_channels(quicktime_t *file, int track)
-{
+static int quicktime_track_channels(quicktime_t *file, int track) {
   if(track < file->total_atracks)
     return file->atracks[track].channels;
 
   return 0;
 }
 
-static int quicktime_channel_location(quicktime_t *file, int *quicktime_track, int *quicktime_channel, int channel)
-{
+static int quicktime_channel_location(quicktime_t *file, int *quicktime_track, 
+				      int *quicktime_channel, int channel) {
   int current_channel = 0, current_track = 0;
   *quicktime_channel = 0;
   *quicktime_track = 0;
-  for(current_channel = 0, current_track = 0; current_track < file->total_atracks; )
-    {
-      if(channel >= current_channel)
-	{
-	  *quicktime_channel = channel - current_channel;
-	  *quicktime_track = current_track;
-	}
-
-      current_channel += file->atracks[current_track].channels;
-      current_track++;
+  for(current_channel = 0, current_track = 0; current_track < file->total_atracks; ) {
+    if(channel >= current_channel) {
+      *quicktime_channel = channel - current_channel;
+      *quicktime_track = current_track;
     }
+
+    current_channel += file->atracks[current_track].channels;
+    current_track++;
+  }
   return 0;
 }
 
-static int quicktime_video_tracks(quicktime_t *file)
-{
+static int quicktime_video_tracks(quicktime_t *file) {
   int i, result = 0;
-  for(i = 0; i < file->moov.total_tracks; i++)
-    {
-      if(file->moov.trak[i]->mdia.minf.is_video) result++;
-    }
+  for(i = 0; i < file->moov.total_tracks; i++) {
+    if(file->moov.trak[i]->mdia.minf.is_video) 
+      result++;
+  }
   return result;
 }
 
 
-static int quicktime_has_video(quicktime_t *file)
-{
-  if(quicktime_video_tracks(file)) return 1;
+static int quicktime_has_video(quicktime_t *file) {
+  if (quicktime_video_tracks(file)) 
+    return 1;
   return 0;
 }
 
-static int quicktime_video_width(quicktime_t *file, int track)
-{
+static int quicktime_video_width(quicktime_t *file, int track) {
   if(file->total_vtracks)
     return file->vtracks[track].track->tkhd.track_width;
   return 0;
 }
 
-static int quicktime_video_height(quicktime_t *file, int track)
-{
+static int quicktime_video_height(quicktime_t *file, int track) {
   if(file->total_vtracks)
     return file->vtracks[track].track->tkhd.track_height;
   return 0;
 }
 
-static int quicktime_video_depth(quicktime_t *file, int track)
-{
+static int quicktime_video_depth(quicktime_t *file, int track) {
   if(file->total_vtracks)
     return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].depth;
   return 0;
 }
 
 
-static float quicktime_frame_rate(quicktime_t *file, int track)
-{
+static float quicktime_frame_rate(quicktime_t *file, int track) {
   if(file->total_vtracks > track)
     return (float)file->vtracks[track].track->mdia.mdhd.time_scale / 
       file->vtracks[track].track->mdia.minf.stbl.stts.table[0].sample_duration;
@@ -3531,209 +3487,21 @@ static float quicktime_frame_rate(quicktime_t *file, int track)
   return 0;
 }
 
-static char* quicktime_video_compressor(quicktime_t *file, int track)
-{
+static char* quicktime_video_compressor(quicktime_t *file, int track) {
   return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].format;
 }
 
 
-static long quicktime_read_audio(quicktime_t *file, char *audio_buffer, long samples, int track)
-{
-  longest chunk_sample, chunk;
-  int result = 1;
-  quicktime_trak_t *trak = file->atracks[track].track;
-  longest fragment_len, chunk_end;
-  longest position = file->atracks[track].current_position;
-  longest end = position + samples;
-  longest bytes, total_bytes = 0;
-  longest buffer_offset;
-
-  quicktime_chunk_of_sample(&chunk_sample, &chunk, trak, position);
-  buffer_offset = 0;
-
-  while(position < end && result)
-    {
-      quicktime_set_audio_position(file, position, track);
-      fragment_len = quicktime_chunk_samples(trak, chunk);
-      chunk_end = chunk_sample + fragment_len;
-      fragment_len -= position - chunk_sample;
-      if(position + fragment_len > chunk_end) fragment_len = chunk_end - position;
-      if(position + fragment_len > end) fragment_len = end - position;
-
-      bytes = quicktime_samples_to_bytes(trak, fragment_len);
-      result = file->quicktime_read_data(file, &audio_buffer[buffer_offset], bytes);
-
-      total_bytes += bytes;
-      position += fragment_len;
-      chunk_sample = position;
-      buffer_offset += bytes;
-      chunk++;
-    }
-
-  file->atracks[track].current_position = position;
-  if(!result) return 0;
-  return total_bytes;
-}
-
-static int quicktime_read_chunk(quicktime_t *file, char *output, int track, longest chunk, longest byte_start, longest byte_len)
-{
-  quicktime_set_position(file, quicktime_chunk_to_offset(file->atracks[track].track, chunk) + byte_start);
-  if(file->quicktime_read_data(file, output, byte_len)) return 0;
-  else
-    return 1;
-}
-
-static long quicktime_frame_size(quicktime_t *file, long frame, int track)
-{
-  long bytes = 0;
-  quicktime_trak_t *trak = file->vtracks[track].track;
-
-  if(trak->mdia.minf.stbl.stsz.sample_size)
-    {
-      bytes = trak->mdia.minf.stbl.stsz.sample_size;
-    }
-  else
-    {
-      long total_frames = quicktime_track_samples(file, trak);
-      if(frame < 0) frame = 0;
-      else
-	if(frame > total_frames - 1) frame = total_frames - 1;
-      bytes = trak->mdia.minf.stbl.stsz.table[frame].size;
-    }
-
-
-  return bytes;
-}
-
-#if 0
-static longest quicktime_read_next_packet(quicktime_t *file, unsigned char *outbuf, int *isVideo, int *thetrak)
-{
-  longest packet_start;
-  longest min_video_delta  = 100000000000;
-  longest min_audio_delta = 100000000000;
-  longest min_video_start=0;
-  longest min_audio_start=0;
-  longest current_position = quicktime_position(file);
-  long packet = 0;
-  long min_audio_packet=0;
-  long min_video_packet=0;
-  int trak = 0;
-  int min_audio_trak=0;
-  int min_video_trak=0;
-
-
-  for(trak = 0; trak < file->total_vtracks; trak++) {
-    packet = quicktime_offset_to_chunk(&packet_start, file->vtracks[trak].track, current_position);
-    /* printf("video_packet %d, video position %li\n", packet, packet_start); */
-    if(current_position - packet_start  < min_video_delta) {
-      min_video_delta = current_position - packet_start;
-      min_video_trak = trak;
-      min_video_packet = packet;
-      min_video_start = packet_start;
-    }
-  }
-
-  for(trak = 0; trak < file->total_atracks; trak++) {
-    packet = quicktime_offset_to_chunk(&packet_start, file->atracks[trak].track, current_position);
-    /* printf("audio packet %d, audio position %li ", packet, packet_start); */
-    if(current_position - packet_start  < min_audio_delta) {
-      min_audio_delta = current_position - packet_start;
-      min_audio_trak = trak;
-      min_audio_packet = packet;
-      min_audio_start = packet_start;
-    }
-  }
-  if(min_audio_delta < min_video_delta) {
-    longest chunksize =  file->atracks[min_audio_trak].track->mdia.minf.stbl.stsz.table[min_audio_packet-1].size;
-    /* printf("audio chunksize %li min_audio_start %li\n", chunksize, min_audio_start); */
-    *thetrak = min_audio_trak;
-    *isVideo = 0;
-    file->quicktime_fseek(file, min_audio_start);
-    file->quicktime_read_data(file,(char*)outbuf, chunksize);
-    return chunksize;
-  } else {
-    longest chunksize =  file->vtracks[min_video_trak].track->mdia.minf.stbl.stsz.table[min_video_packet-1].size;
-    /* printf("video chunksize %li\n", chunksize); */
-    *thetrak = min_video_trak;
-    *isVideo = 1;
-    file->quicktime_fseek(file, min_video_start);
-    file->quicktime_read_data(file,(char*)outbuf, chunksize);
-    return chunksize;
-
-  }
-
-  return 0;
-}
-#endif
-
-static long quicktime_read_frame(quicktime_t *file, unsigned char *video_buffer, int track)
-{
-  longest bytes;
-  int result = 0;
-
-  /* quicktime_trak_t *trak = file->vtracks[track].track; */
-  bytes = quicktime_frame_size(file, file->vtracks[track].current_position, track);
-
-  quicktime_set_video_position(file, file->vtracks[track].current_position, track);
-  result = file->quicktime_read_data(file, (char*)video_buffer, bytes);
-  file->vtracks[track].current_position++;
-
-  if(!result) return 0;
-  return bytes;
-}
-
-/* return -1 if there is NO keyframe after */
-static long quicktime_get_keyframe_after(quicktime_t *file, long frame, int track)
-{
-  quicktime_trak_t *trak = file->vtracks[track].track;
-  quicktime_stss_t *stss = &trak->mdia.minf.stbl.stss;
-  int lo, hi;
 	
-  lo = 0;
-  hi = stss->total_entries-1;
-  if (stss->table[lo].sample-1>=frame) return stss->table[lo].sample-1;
-  if (stss->table[hi].sample-1< frame) return -1;
-  while (hi>lo+1) {
-    /* here: stss->table[lo].sample-1<frame
-       stss->table[hi].sample-1>=frame */	       
-    int med = (lo+hi)/2;
-    if (stss->table[med].sample-1<frame) lo = med; else hi = med;
-  }
-  /* here: hi=lo+1 */
-  return stss->table[hi].sample-1;
-}
-	
-
-
-static int quicktime_read_frame_init(quicktime_t *file, int track)
-{
-  /* quicktime_trak_t *trak = file->vtracks[track].track; */
-  quicktime_set_video_position(file, file->vtracks[track].current_position, track);
-  if(quicktime_ftell(file) != file->file_position) 
-    {
-      file->input->seek (file->input, file->file_position, SEEK_SET);
-      file->ftell_position = file->file_position;
-    }
-  return 0;
-}
-
-static int quicktime_read_frame_end(quicktime_t *file, int track)
-{
-  file->file_position = quicktime_ftell(file);
-  file->vtracks[track].current_position++;
-  return 0;
-}
-
-static int quicktime_init_video_map(quicktime_t *file, quicktime_video_map_t *vtrack, quicktime_trak_t *trak)
-{
+static int quicktime_init_video_map(quicktime_t *file, quicktime_video_map_t *vtrack, 
+				    quicktime_trak_t *trak) {
   vtrack->track = trak;
   vtrack->current_position = 0;
   vtrack->current_chunk = 1;
   return 0;
 }
 
-static int quicktime_delete_video_map(quicktime_t *file, quicktime_video_map_t *vtrack)
-{
+static int quicktime_delete_video_map(quicktime_t *file, quicktime_video_map_t *vtrack) {
   return 0;
 }
 
@@ -3746,17 +3514,15 @@ static int quicktime_init_audio_map(quicktime_t *file, quicktime_audio_map_t *at
   return 0;
 }
 
-static int quicktime_delete_audio_map(quicktime_t *file, quicktime_audio_map_t *atrack)
-{
+static int quicktime_delete_audio_map(quicktime_t *file, quicktime_audio_map_t *atrack) {
   return 0;
 }
 
-static void quicktime_mdat_delete(quicktime_mdat_t *mdat)
-{
+static void quicktime_mdat_delete(quicktime_mdat_t *mdat) {
 }
 
-static void quicktime_read_mdat(quicktime_t *file, quicktime_mdat_t *mdat, quicktime_atom_t *parent_atom, xine_t *xine)
-{
+static void quicktime_read_mdat(quicktime_t *file, quicktime_mdat_t *mdat, 
+				quicktime_atom_t *parent_atom, xine_t *xine) {
   mdat->atom.size = parent_atom->size;
   mdat->atom.start = parent_atom->start;
   quicktime_atom_skip(file, parent_atom);
@@ -3824,8 +3590,7 @@ static int quicktime_read_info(quicktime_t *file, xine_t *xine) {
 
 /* ============================= Initialization functions */
 
-static int quicktime_init(quicktime_t *file)
-{
+static int quicktime_init(quicktime_t *file) {
 
   memset(file, sizeof(quicktime_t), 0);
 
@@ -3836,8 +3601,7 @@ static int quicktime_init(quicktime_t *file)
   return 0;
 }
 
-static int quicktime_delete(quicktime_t *file)
-{
+static int quicktime_delete(quicktime_t *file) {
   int i;
 
   if(file->total_atracks) {
@@ -3922,8 +3686,7 @@ static void  quicktime_close(quicktime_t *file)
   free(file);
 }
 
-static quicktime_t* quicktime_open(input_plugin_t *input, xine_t *xine)
-{
+static quicktime_t* quicktime_open(input_plugin_t *input, xine_t *xine) {
   quicktime_t *new_file = calloc(1, sizeof(quicktime_t));
 
   quicktime_init(new_file);
@@ -3952,131 +3715,112 @@ static quicktime_t* quicktime_open(input_plugin_t *input, xine_t *xine)
   return new_file;
 }
 
-
 /*
  * now for the xine-specific demuxer stuff
  */
 
+static off_t demux_qt_get_sample_size (quicktime_trak_t *trak, int sample_num) {
+
+  quicktime_stsz_t *stsz;
+
+  stsz = &trak->mdia.minf.stbl.stsz;
+
+  if (stsz->sample_size)
+    return stsz->sample_size;
+
+  return stsz->table[sample_num].size;
+}
+
 static void *demux_qt_loop (void *this_gen) {
 
   buf_element_t *buf = NULL;
-  demux_qt_t *this = (demux_qt_t *) this_gen;
-  uint32_t audio_pts, video_pts, frame_num, audio_pos;
+  demux_qt_t    *this = (demux_qt_t *) this_gen;
+  int            idx;
+  off_t          offset, size, todo;
+  fifo_buffer_t *fifo;
+  int64_t        pts;
+  uint32_t       flags;
 
-  /* printf ("demux_qt: demux loop starting...\n"); */
+#ifdef LOG
+  printf ("demux_qt: demux loop starting...\n"); 
+#endif
+
+  idx = 0;
 
   do {
 
-    if (this->has_audio) {
-      audio_pos = quicktime_audio_position (this->qt, 0);
+    int is_audio, sample_num;
 
-      if ( (audio_pos + 256) > quicktime_audio_length (this->qt, 0)) {
-	this->status = DEMUX_FINISHED;
-	break;
-      }
-    }
-
-    /*
-    printf ("audio pos:%d < %d\n",
-	    audio_pos, quicktime_audio_length (this->qt, 0));
-    */
-
-    audio_pts = quicktime_audio_position (this->qt, 0) * this->audio_factor ;
-
-    frame_num = quicktime_video_position (this->qt, 0);
-    if ( frame_num == quicktime_video_length (this->qt, 0) ) {
-      this->status = DEMUX_FINISHED;
+    if (idx >= this->num_index_entries)
       break;
-    }
 
-    /*
-    printf ("video pos:%d < %d\n",
-	    frame_num, quicktime_video_length (this->qt, 0));
-    */
+    is_audio = (this->index[idx].type & BUF_MAJOR_MASK) == BUF_AUDIO_BASE;
 
-    video_pts = frame_num * this->video_step ;
+    if (is_audio)
+      fifo = this->audio_fifo;
+    else
+      fifo = this->video_fifo;
 
-    if ( this->has_audio && this->audio_fifo && (audio_pts < video_pts)) { 
+    offset = this->index[idx].offset;
+    pts    = this->index[idx].pts;
 
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      
-      buf->content = buf->mem;
-      
-      if ( !(buf->size = quicktime_read_audio (this->qt, buf->content, 256, 0)) ) {
-	this->status = DEMUX_FINISHED;
-	buf->free_buffer (buf);
-      } else {
+    for (sample_num = this->index[idx].first_sample; sample_num <= this->index[idx].last_sample; sample_num++) {
 
-	/* int count; */
-      
-	buf->pts             = audio_pts;
-	buf->scr             = audio_pts;
-	buf->type            = this->audio_type;
-	buf->decoder_info[0] = 1;
-	buf->input_time      = 0;
-	buf->input_pos       = 0;
+      todo = demux_qt_get_sample_size (this->index[idx].track, sample_num);
 
-	/*
-	for (count=0; count<buf->size; count++){
+#ifdef LOG
+      printf ("demux_qt: [idx:%04d type:%08x len:%08lld ] ---------------------------\n", 
+	      idx, this->index[idx].type, todo);
+#endif
 
-	  printf ("%02x ", buf->content[count]);
-	  if ( !(count % 8) )
-	    printf ("  ");
-	  if ( !(count % 16) )
-	    printf ("\n");
-	}
-	*/
+      flags = BUF_FLAG_FRAME_START;
+      while (todo) {
 
-	this->audio_fifo->put (this->audio_fifo, buf);
+	buf = fifo->buffer_pool_alloc (fifo);
+
+	if (todo>buf->max_size)
+	  size = buf->max_size;
+	else
+	  size = todo;
+	todo -= size;
+
+	quicktime_set_position (this->qt, offset);
+    
+	buf->size          = this->qt->quicktime_read_data (this->qt, buf->mem, size);
+#ifdef LOG
+	printf ("demux_qt: generated buffer of %d bytes \n", buf->size);
+#endif
+    
+	buf->content       = buf->mem;
+
+#ifdef DBG_QT
+	if (is_audio)
+	  write (debug_fh, buf->mem, buf->size);
+#endif
+
+	buf->type          = this->index[idx].type;
+	buf->pts           = pts;
+	buf->input_pos     = this->qt->file_position;
+	if (todo)
+	  buf->decoder_flags = flags;
+	else
+	  buf->decoder_flags = flags | BUF_FLAG_FRAME_END;
+
+
+	fifo->put (fifo, buf);
+
+	pts = 0;
+	flags = 0;
+	offset += size;
       }
 
-    } else {
-
-      int size;/* = quicktime_frame_size (this->qt, frame_num, 0); */
-
-      if (! (size=quicktime_read_frame (this->qt, this->scratch, 0)))
-	this->status = DEMUX_FINISHED;
-      else {
-	int pos=0;
-
-	while (size>0) {
-	  int copy_bytes;
-
-	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-	  if (size>buf->max_size) {
-	    copy_bytes = buf->max_size;
-	    buf->decoder_info[0] = 1;
-	  } else {
-	    copy_bytes = size;
-	    buf->decoder_info[0] = 2;
-	  }      
-
-	  memcpy (buf->mem, &this->scratch[pos], copy_bytes);
-
-	  buf->content         = buf->mem;
-	  buf->size            = copy_bytes;
-	  buf->pts             = video_pts;
-	  buf->scr             = video_pts;
-	  buf->type            = this->video_type;
-	  buf->input_time      = video_pts / 90000;
-	  buf->input_pos       = this->input->get_current_pos(this->input);
-	
-	  this->video_fifo->put (this->video_fifo, buf); 
-
-	  pos += copy_bytes;
-	  size -= copy_bytes;
-	}
-      }
     }
+    idx++;
 
   } while (this->status == DEMUX_OK) ;
-  
 
-  /*
   printf ("demux_qt: demux loop finished (status: %d)\n",
 	  this->status);
-  */
 
   this->status = DEMUX_FINISHED;
 
@@ -4104,7 +3848,11 @@ static void demux_qt_close (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   free (this);
-  
+
+#ifdef DBG_QT
+  close (debug_fh);
+#endif  
+
 }
 
 static void demux_qt_stop (demux_plugin_t *this_gen) {
@@ -4203,6 +3951,8 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
     this->wavex.wFormatTag = WAVE_FORMAT_ADPCM;
   } else if (!strncasecmp (audio, ".mp3", 4)) {
     this->audio_type = BUF_AUDIO_MPEG;
+  } else if (!strncasecmp (audio, "mp4a", 4)) {
+    this->audio_type = BUF_AUDIO_AAC;
   } else {
     printf ("demux_qt: unknown audio codec >%s<\n",
 	    audio);
@@ -4210,6 +3960,180 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   }
 
   return 1;
+}
+
+static void demux_qt_add_index_entry (demux_qt_t *this, off_t offset, 
+				      int first_sample, int last_sample,
+				      int64_t pts, int32_t type,
+				      quicktime_trak_t *track) {
+
+  int i,j;
+
+  /*
+   * insertion sort 
+   */
+
+  for (i=0; i<this->num_index_entries; i++) {
+    if (this->index[i].pts >= pts)
+      break;
+  }
+
+  for (j=this->num_index_entries; j>i; j--) 
+    this->index[j] = this->index[j-1];
+  
+  this->index[i].pts          = pts;
+  this->index[i].offset       = offset;
+  this->index[i].first_sample = first_sample;
+  this->index[i].last_sample  = last_sample;
+  this->index[i].type         = type;
+  this->index[i].track        = track;
+
+  this->num_index_entries++;
+}
+
+static void demux_qt_index_trak (demux_qt_t *this, quicktime_trak_t *trak, uint32_t type) {
+
+  quicktime_stsz_t *stsz;
+  quicktime_stsc_t *stsc;
+  quicktime_stco_t *stco;
+  quicktime_stts_t *stts;
+  long              time_scale;
+  int               stsc_entry, stsc_first, stsc_cur, stsc_next;
+  int               stsc_samples, stsc_last_sample, stsc_first_sample;
+  int               stts_entry, stts_first_sample, stts_last_sample;
+  int64_t           stts_duration, stts_pts, pts;
+  off_t             chunk_offset;
+
+  stts        = &trak->mdia.minf.stbl.stts;
+  stsz        = &trak->mdia.minf.stbl.stsz;
+  stsc        = &trak->mdia.minf.stbl.stsc;
+  stco        = &trak->mdia.minf.stbl.stco;
+  time_scale  = trak->mdia.mdhd.time_scale;
+  pts         = 0;
+
+  /*
+   * generate one entry per chunk
+   */
+  
+  /* chunk-tracking */
+
+  stsc_entry        = 0;
+  stsc_first        = stsc->table[stsc_entry].chunk; 
+  stsc_cur          = stsc_first;
+
+  if (stsc->total_entries>(stsc_entry+1))
+    stsc_next       = stsc->table[stsc_entry+1].chunk;
+  else
+    stsc_next       = 1000000;
+  
+  stsc_samples      = stsc->table[stsc_entry].samples;
+  stsc_last_sample  = stsc_samples-1;
+  stsc_first_sample = 0;
+  
+  /* time-to-sample tracking */
+  
+  stts_entry        = 0;
+  stts_first_sample = 0;
+  stts_last_sample  = stts->table[stts_entry].sample_count-1;
+  stts_duration     = stts->table[stts_entry].sample_duration * 90000 / time_scale;
+  stts_pts          = 0;
+  
+  while (stsc_cur < stco->total_entries) {
+    
+    printf ("demux_qt: chunk # is %d...\n", stsc_cur);
+    
+    chunk_offset = stco->table[stsc_cur-1].offset;
+
+    /*
+     * add index entry
+     */
+
+#ifdef LOG
+    printf ("demux_qt: index entry, sample_num=%d, offset = %lld, sample %d-%d, pts = %lld\n",
+	    stsc_first_sample, chunk_offset, stsc_first_sample, stsc_last_sample, pts);
+#endif
+
+    demux_qt_add_index_entry (this, chunk_offset, stsc_first_sample, stsc_last_sample, pts, type,
+			      trak);
+
+    /*
+     * next chunk
+     */
+
+    stsc_cur ++;
+
+    /*
+     * offset of chunk / sample
+     */
+    
+    while (stsc_cur >= stsc_next) {
+      
+      stsc_entry++;
+      
+      stsc_first = stsc->table[stsc_entry].chunk; 
+
+      if (stsc->total_entries>(stsc_entry+1))
+	stsc_next = stsc->table[stsc_entry+1].chunk;
+      else
+	stsc_next = 1000000;
+	
+      stsc_samples      = stsc->table[stsc_entry].samples;
+    }      
+
+    stsc_first_sample  = stsc_last_sample + 1;
+    stsc_last_sample   = stsc_first_sample + stsc_samples - 1;
+
+    printf ("demux_qt: chunk offset is %lld...\n", chunk_offset);
+
+
+    /* 
+     * find out about pts of sample
+     */
+
+    while (stsc_first_sample > stts_last_sample) {
+
+      stts_pts          += stts_duration * stts->table[stts_entry].sample_count;
+      stts_entry++;
+      stts_first_sample  = stts_last_sample+1;
+      stts_last_sample  += stts->table[stts_entry].sample_count;
+      stts_duration      = stts->table[stts_entry].sample_duration * 90000 / time_scale;
+    }
+
+    pts = stts_pts + (stsc_first_sample - stts_first_sample) * stts_duration;
+
+  }
+
+}
+
+static void demux_qt_create_index (demux_qt_t *this) {
+
+  int               track_num;
+  quicktime_trak_t *trak;
+
+  this->num_index_entries = 0;
+
+  /* video */
+
+  printf ("demux_qt: generating index, video entries...\n");
+
+  for (track_num = 0; track_num<this->qt->total_vtracks; track_num++) {
+
+    trak        = this->qt->vtracks[track_num].track;
+
+    demux_qt_index_trak (this, trak, this->video_type | track_num);
+  }
+
+  /* audio */
+
+  printf ("demux_qt: generating index, audio entries...\n");
+
+  for (track_num = 0; track_num<this->qt->total_atracks; track_num++) {
+
+    trak = this->qt->atracks[track_num].track;
+
+    demux_qt_index_trak (this, trak, this->audio_type | track_num);
+  }
+  printf ("demux_qt: index generation done.\n");
 }
 
 static void demux_qt_start (demux_plugin_t *this_gen,
@@ -4224,6 +4148,10 @@ static void demux_qt_start (demux_plugin_t *this_gen,
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
   this->send_end_buffers = 1;
+
+#ifdef DBG_QT
+  debug_fh = open ("/tmp/t.mp3", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+#endif
 
   /*
    * init quicktime parser
@@ -4248,6 +4176,12 @@ static void demux_qt_start (demux_plugin_t *this_gen,
     this->status = DEMUX_FINISHED;
     return;
   }
+
+  /*
+   * generate index
+   */
+
+  demux_qt_create_index (this);
 
   /* 
    * send start buffer
@@ -4286,6 +4220,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->content = buf->mem;
+  buf->decoder_flags   = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0; /* first package, containing bih */
   buf->decoder_info[1] = this->video_step;
   memcpy (buf->content, &this->bih, sizeof (this->bih));
@@ -4295,6 +4230,8 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   this->video_fifo->put (this->video_fifo, buf);
 
+  printf ("demux_qt: sent buffer %08x\n", buf);
+
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->content = buf->mem;
@@ -4302,6 +4239,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 	    sizeof (this->wavex));
     buf->size = sizeof (this->wavex);
     buf->type = this->audio_type;
+    buf->decoder_flags   = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0; /* first package, containing wavex */
     buf->decoder_info[1] = quicktime_sample_rate (this->qt, 0);
     buf->decoder_info[2] = quicktime_audio_bits (this->qt, 0); 

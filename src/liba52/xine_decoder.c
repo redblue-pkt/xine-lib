@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.18 2002/03/11 12:31:25 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -265,7 +265,7 @@ static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
   }
 }
 
-static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts, uint32_t scr) {
+static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
   int output_mode = AO_CAP_MODE_STEREO;
 
@@ -380,7 +380,6 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts, uint32_t 
       
     buf->num_frames = 256*6;
     buf->vpts       = pts;
-    buf->scr        = scr;
 
     this->audio_out->put_buffer (this->audio_out, buf);
 
@@ -431,7 +430,6 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts, uint32_t 
 
       buf->num_frames = 1536;
       buf->vpts       = pts;
-      buf->scr        = scr;
       
       this->audio_out->put_buffer (this->audio_out, buf);
       
@@ -447,7 +445,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
   
-  if (buf->decoder_info[0] == 0)
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
   
   /*
@@ -464,7 +462,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   while (current != end) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      a52dec_decode_frame (this, this->pts, buf->scr);
+      a52dec_decode_frame (this, this->pts);
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif

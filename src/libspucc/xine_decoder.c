@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2002/03/11 12:31:26 guenter Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -267,7 +267,7 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
   
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
   } else {
     pthread_mutex_lock(&this->cc_mutex);
     if (this->cc_cfg.cc_enabled) {
@@ -276,7 +276,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       
       if(this->cc_cfg.can_cc) {
 	decode_cc(this->ccdec, buf->content, buf->size,
-		  buf->pts, buf->scr);
+		  buf->pts);
       }
     }
     pthread_mutex_unlock(&this->cc_mutex);
@@ -321,8 +321,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	  spucc_do_init (this, NULL);
 	if (this->cc_cfg.can_cc) {
 	  decode_cc(this->ccdec, closed_caption->buffer,
-		    closed_caption->buf_len, closed_caption->pts,
-		    closed_caption->scr);
+		    closed_caption->buf_len, closed_caption->pts);
 	}
       }
       pthread_mutex_unlock(&this->cc_mutex);

@@ -345,7 +345,6 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		picture->current_frame->bad_frame          = 1;
 		picture->current_frame->drawn              = 0;
 		picture->current_frame->pts                = mpeg2dec->pts;
-		picture->current_frame->scr                = mpeg2dec->scr;
                 picture->current_frame->top_field_first    = picture->top_field_first;
                 picture->current_frame->repeat_first_field = picture->repeat_first_field;
 
@@ -418,7 +417,7 @@ static inline uint8_t * copy_chunk (mpeg2dec_t * mpeg2dec,
 }
 
 int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
-		       uint32_t pts, uint32_t scr)
+		       uint64_t pts)
 {
     int ret;
     uint8_t code;
@@ -434,8 +433,6 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 
     if (pts)
       mpeg2dec->pts = pts;
-
-    mpeg2dec->scr = scr;
 
     while (current != end) {
 	code = mpeg2dec->code;
@@ -521,7 +518,6 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     if (picture->backward_reference_frame) {
       printf ("libmpeg2: blasting out backward reference frame on close\n");
       picture->backward_reference_frame->pts = 0;
-      picture->backward_reference_frame->scr = mpeg2dec->scr;
       get_frame_duration(mpeg2dec, picture->backward_reference_frame);
       if( !picture->backward_reference_frame->drawn)
         picture->backward_reference_frame->draw (picture->backward_reference_frame);
@@ -615,7 +611,6 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
     event.buffer = &buffer[2];
     event.buf_len = end - &buffer[2];
     event.pts = mpeg2dec->pts;
-    event.scr = mpeg2dec->scr;
     xine_send_event(mpeg2dec->xine, &event.event);
   }
 }

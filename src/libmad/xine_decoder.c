@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.14 2002/03/11 12:31:25 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -31,6 +31,10 @@
 #include "frame.h"
 #include "synth.h"
 #include "xineutils.h"
+
+/*
+#define LOG
+*/
 
 #define INPUT_BUF_SIZE  16384
 
@@ -82,7 +86,9 @@ static void mad_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   mad_stream_init (&this->stream);
   mad_frame_init  (&this->frame);
 
-  /* printf ("libmad: init\n"); */
+#ifdef LOG
+  printf ("libmad: init\n"); 
+#endif
 
 }
 
@@ -123,9 +129,10 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
 
-  /*
+  
+#ifdef LOG
   printf ("libmad: decode data, decoder_info[0]: %d\n", buf->decoder_info[0]);
-  */
+#endif  
 
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
     printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
@@ -133,7 +140,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     buf->size = INPUT_BUF_SIZE-this->bytes_in_buffer;
   }
   
-  if (buf->decoder_info[0] >0) {
+  if ((buf->decoder_flags & BUF_FLAG_HEADER) == 0) {
 
     xine_fast_memcpy (&this->buffer[this->bytes_in_buffer], 
 	    buf->content, buf->size);
@@ -177,9 +184,11 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    || (this->output_sampling_rate != this->frame.header.samplerate)
 	    || (this->output_mode != mode)) {
 
+#ifdef LOG
 	  printf ("libmad: audio sample rate %d mode %08x\n",
 		  this->frame.header.samplerate,
 		  mode);
+#endif
 
 	  if (this->output_open) {
 	    this->audio_out->close (this->audio_out);
@@ -226,14 +235,15 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	  audio_buffer->num_frames = pcm->length;
 	  audio_buffer->vpts       = buf->pts;
-	  audio_buffer->scr        = buf->scr;
 
 	  this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
 	  buf->pts = 0;
 
 	}
-	/* printf ("libmad: decode worked\n"); */
+#ifdef LOG
+	printf ("libmad: decode worked\n"); 
+#endif
       }
     } 
 

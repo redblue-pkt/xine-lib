@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.h,v 1.3 2002/01/07 23:04:26 cvogler Exp $
+ * $Id: cc_decoder.h,v 1.4 2002/03/11 12:31:26 guenter Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -56,7 +56,7 @@ void cc_decoder_close(cc_decoder_t *this_obj);
 void cc_decoder_init(void);
 
 void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
-	       uint32_t pts, uint32_t scr);
+	       int64_t pts);
 
 /* Instantiates a new closed captioning renderer. */
 cc_renderer_t *cc_renderer_open(osd_renderer_t *osd_renderer,
@@ -69,3 +69,4 @@ void cc_renderer_close(cc_renderer_t *this_obj);
 /* Updates the renderer configuration variables */
 void cc_renderer_update_cfg(cc_renderer_t *this_obj, int video_width,
 			    int video_height);
+

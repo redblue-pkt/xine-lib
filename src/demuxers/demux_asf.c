@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.23 2002/02/17 17:32:49 guenter Exp $
+ * $Id: demux_asf.c,v 1.24 2002/03/11 12:31:24 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -345,7 +345,7 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
 
   buf->size = this->wavex_size;
   buf->type = this->streams[this->num_streams].buf_type;
-  buf->decoder_info[0] = 0; /* first package, containing wavex */
+  buf->decoder_flags   = BUF_FLAG_HEADER;
   buf->decoder_info[1] = wavex->nSamplesPerSec;
   buf->decoder_info[2] = wavex->wBitsPerSample;
   buf->decoder_info[3] = wavex->nChannels;
@@ -390,7 +390,7 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->content = buf->mem;
-  buf->decoder_info[0] = 0; /* first package, containing bih */
+  buf->decoder_flags   = BUF_FLAG_HEADER;
   buf->decoder_info[1] = 3000; /* FIXME ? */
   memcpy (buf->content, &this->bih, this->bih_size);
   buf->size = this->bih_size;
@@ -591,12 +591,16 @@ static int asf_get_packet(demux_asf_t *this) {
   this->packet_flags = get_byte(this);
   this->segtype = get_byte(this);
   this->packet_padsize = 0;
-  
-  if (this->packet_flags & 0x40) {
-    get_le16(this);
-    printf ("demux_asf: absolute size ignored\n");
-    hdr_size += 2;
+
+  /* FIXME: really not necessary?
+     patch submitted by Andrei Lahun <Uman@editec-lotteries.com>
+
+     if (this->packet_flags & 0x40) {
+     get_le16(this);
+     printf ("demux_asf: absolute size ignored\n");
+     hdr_size += 2;
   }
+  */
       
   if (this->packet_flags & 0x10) {
     this->packet_padsize = get_le16(this);
@@ -684,7 +688,6 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
       buf->input_time = 0 ;
     }
     buf->pts        = timestamp * 90;
-    buf->scr        = timestamp * 90;
     buf->type       = stream->buf_type;
     buf->size       = bufsize;
     timestamp       = 0;
@@ -694,10 +697,10 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     /* test if whole packet read */
     if (stream->frag_offset == payload_size) {
-      buf->decoder_info[0] = 2;
+      buf->decoder_flags   = BUF_FLAG_FRAME_END;
       stream->frag_offset = 0;
     } else 
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags   = 0;
 
     stream->fifo->put (stream->fifo, buf);
   }
@@ -758,7 +761,6 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
           
           buf->pts        = stream->timestamp * 90 + stream->ts_per_kbyte * 
                             (p-stream->buffer) / 1024; 
-          buf->scr        = buf->pts;
           buf->type       = stream->buf_type;
           buf->size       = bufsize;
           
@@ -767,10 +769,10 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
           
           /* test if whole packet read */
           if ( !stream->frag_offset )
-            buf->decoder_info[0] = 2;
+	    buf->decoder_flags = BUF_FLAG_FRAME_END ;
           else 
-            buf->decoder_info[0] = 1;
-
+	    buf->decoder_flags = 0;
+	  
           stream->fifo->put (stream->fifo, buf);
         }
       }
@@ -1009,13 +1011,13 @@ static void *demux_asf_loop (void *this_gen) {
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
     this->video_fifo->put (this->video_fifo, buf);
     
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
+      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
@@ -1057,14 +1059,13 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
-
+  buf->decoder_flags   = BUF_FLAG_END_USER; 
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   

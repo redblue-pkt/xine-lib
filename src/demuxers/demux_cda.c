@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.8 2002/02/17 17:32:49 guenter Exp $
+ * $Id: demux_cda.c,v 1.9 2002/03/11 12:31:24 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -74,7 +74,6 @@ static int demux_cda_next (demux_cda_t *this) {
   len = this->input->get_length(this->input);
   
   buf->pts             = 0;
-  buf->scr             = 0;
   buf->input_pos       = pos;
   buf->input_time      = buf->input_pos / this->blocksize;
   buf->type            = BUF_CONTROL_NOP; /* Fake */

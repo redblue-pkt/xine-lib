@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.34 2002/03/01 09:29:50 guenter Exp $
+ * $Id: buffer.h,v 1.35 2002/03/11 12:31:26 guenter Exp $
  *
  *
  * contents:
@@ -98,6 +98,7 @@ extern "C" {
 #define BUF_VIDEO_REAL    	0x02170000
 #define BUF_VIDEO_VP31		0x02180000
 #define BUF_VIDEO_H263		0x02190000
+#define BUF_VIDEO_3IVX          0x021A0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -139,15 +140,18 @@ struct buf_element_s {
   buf_element_t        *next;
 
   unsigned char        *mem;
-  unsigned char        *content;   /* start of raw content in pMem (without header etc) */
+  unsigned char        *content;   /* start of raw content in mem (without header etc) */
 
-  int32_t               size ;     /* size of _content_ */
-  int32_t               max_size;        
+  int32_t               size ;     /* size of _content_                                     */
+  int32_t               max_size;  /* size of pre-allocated memory pointed to by "mem"      */ 
   uint32_t              type;
-  int64_t               pts;       /* presentation time stamp, used for a/v sync */
-  int64_t               scr;       /* system clock reference, used for discont. detection */
+  int64_t               pts;       /* presentation time stamp, used for a/v sync            */
+  int64_t               disc_off;  /* discontinuity offset                                  */
   off_t                 input_pos; /* remember where this buf came from in the input source */
   int                   input_time;/* time offset in seconds from beginning of stream       */
+
+  uint32_t              decoder_flags; /* stuff like keyframe, is_header ... see below      */
+
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
 
   void (*free_buffer) (buf_element_t *buf);
@@ -156,6 +160,14 @@ struct buf_element_s {
                                   /* free_buffer                          */
 
 } ;
+
+#define BUF_FLAG_KEYFRAME    0x0001
+#define BUF_FLAG_FRAME_START 0x0002
+#define BUF_FLAG_FRAME_END   0x0004
+#define BUF_FLAG_HEADER      0x0008
+#define BUF_FLAG_PREVIEW     0x0010
+#define BUF_FLAG_END_USER    0x0020
+#define BUF_FLAG_END_STREAM  0x0040
 
 typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s

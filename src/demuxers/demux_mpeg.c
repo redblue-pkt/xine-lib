@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.50 2002/02/17 17:32:50 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.51 2002/03/11 12:31:24 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -71,9 +71,9 @@ typedef struct demux_mpeg_s {
 
   int                  send_end_buffers;
 
-  uint32_t             last_scr;
+  int64_t              last_scr;
 
-} demux_mpeg_t ;
+} demux_mpeg_t;
 
 static uint32_t read_bytes (demux_mpeg_t *this, int n) {
   
@@ -113,10 +113,11 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
   return res;
 }
 
-static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr) {
+static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) {
 
   int            len, i;
-  uint32_t       w, flags, header_len, pts;
+  uint32_t       w, flags, header_len;
+  int64_t        pts;
   buf_element_t *buf = NULL;
 
   len = read_bytes(this, 2);
@@ -165,11 +166,11 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
     }
     buf->type      = BUF_AUDIO_A52 + track;
     buf->pts       = pts;
-    buf->scr       = scr;
+    /* buf->scr       = scr;*/
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
 
     buf->input_pos = this->input->get_current_pos (this->input);
 
@@ -215,11 +216,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
     }
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->pts       = pts;
-    buf->scr       = scr;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
@@ -260,11 +260,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
-    buf->scr  = scr;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -277,12 +276,12 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
 
 }
 
-static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, uint32_t scr) {
+static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) {
 
   int             len;
   uint32_t        w;
   int             i;
-  int             pts;
+  int64_t         pts;
   buf_element_t  *buf = NULL;
 
   len = read_bytes(this, 2);
@@ -372,11 +371,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
     }
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->pts       = pts;
-    buf->scr       = scr;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
     buf->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
       buf->input_time = buf->input_pos / (this->rate * 50);
@@ -395,11 +393,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
-    buf->scr  = scr;
     if (this->preview_mode)
-      buf->decoder_info[0] = 0;
+      buf->decoder_flags = BUF_FLAG_PREVIEW;
     else
-      buf->decoder_info[0] = 1;
+      buf->decoder_flags = 0;
     buf->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
       buf->input_time = buf->input_pos / (this->rate * 50);
@@ -420,7 +417,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
   uint32_t  buf ;
   int       mpeg_version;
-  uint32_t  scr;
+  int64_t   scr;
 
 
   buf = read_bytes (this, 1);
@@ -489,20 +486,20 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
   /* discontinuity ? */
   {  
-    int32_t scr_diff = scr - this->last_scr;
+    int64_t scr_diff = scr - this->last_scr;
     if (abs(scr_diff) > 60000) {
       
       buf_element_t *buf;
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_CONTROL_DISCONTINUITY;
-      buf->scr  = scr;
+      buf->disc_off = scr_diff;
       this->video_fifo->put (this->video_fifo, buf);
 
       if (this->audio_fifo) {
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	buf->type = BUF_CONTROL_DISCONTINUITY;
-	buf->scr  = scr;
+	buf->disc_off = scr_diff;
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
@@ -632,13 +629,13 @@ static void *demux_mpeg_loop (void *this_gen) {
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM;
     this->video_fifo->put (this->video_fifo, buf);
 
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
+      buf->decoder_flags   = BUF_FLAG_END_STREAM;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
@@ -680,13 +677,13 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
+  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 

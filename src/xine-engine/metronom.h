@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.20 2002/03/10 21:16:15 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.21 2002/03/11 12:31:26 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -58,8 +58,7 @@ typedef struct scr_plugin_s scr_plugin_t;
 struct metronom_s {
 
   /*
-   * Pointer to current xine object. We use a void pointer to avoid type declaration clash.
-   * Ugly but working.
+   * pointer to current xine object. a void pointer is used to avoid type declaration clash.
    */
   void *xine;
 
@@ -90,7 +89,6 @@ struct metronom_s {
    *
    * parameter pts      : pts for audio data if known, 0 otherwise
    *           nsamples : number of samples delivered
-   *           scr      : system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for audio data
    *
@@ -100,21 +98,19 @@ struct metronom_s {
    */
 
   int64_t (*got_audio_samples) (metronom_t *this, int64_t pts, 
-				int nsamples, int64_t scr); 
+				int nsamples); 
 
   /*
    * called by SPU decoder whenever a packet is delivered to it
    *
    * parameter pts      : pts for SPU packet if known, 0 otherwise
-   *           scr      : system clock reference, may be 0 or == pts if unknown
    *
    * return value: virtual pts for SPU packet
    * (this is the only pts to vpts function that cannot update the wrap_offset
    * due to the lack of regularity on spu packets)
    */
 
-  int64_t (*got_spu_packet) (metronom_t *this, int64_t pts, int64_t duration,
-			      int64_t scr); 
+  int64_t (*got_spu_packet) (metronom_t *this, int64_t pts, int64_t duration);
 
   /*
    * tell metronom about discontinuities.
@@ -136,8 +132,11 @@ struct metronom_s {
    * whenever we get a new pts we can calculate the new xxx_wrap_offset)
    *
    */
-  void (*expect_audio_discontinuity) (metronom_t *this);
-  void (*expect_video_discontinuity) (metronom_t *this, int starting);
+  void (*expect_audio_discontinuity) (metronom_t *this, int64_t disc_off);
+  void (*expect_video_discontinuity) (metronom_t *this, int64_t disc_off);
+
+  void (*audio_stream_start) (metronom_t *this);
+  void (*video_stream_start) (metronom_t *this);
 
   /*
    * manually correct audio <-> video sync
@@ -203,21 +202,16 @@ struct metronom_s {
 
   int64_t         pts_per_smpls;
 
-  int64_t         audio_pts_delta;
-
   int64_t         video_vpts;
   int64_t         spu_vpts;
   int64_t         audio_vpts;
 
-  int64_t         video_wrap_offset;
-  int64_t         audio_wrap_offset;
-  int             wrap_diff_counter;
+  int64_t         vpts_offset;
+  int64_t         next_vpts_offset;
 
-  int64_t         last_video_pts;
+  int             in_discontinuity;
+
   int64_t         video_drift;
-
-  int64_t         last_audio_pts;
-  int             num_audio_samples_guessed;
 
   int64_t         av_offset;
 
@@ -228,10 +222,7 @@ struct metronom_s {
   pthread_mutex_t lock;
 
   int             have_audio;
-  int             video_starting;
-  int             video_discontinuity;
   int             video_discontinuity_count;
-  int             audio_discontinuity;
   int             audio_discontinuity_count;
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;

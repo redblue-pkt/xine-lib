@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/03/11 12:31:25 guenter Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -89,7 +89,7 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   int             stream_be;
   audio_buffer_t *audio_buffer;
 
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->number_of_channels=buf->decoder_info[3] ; 
@@ -100,7 +100,7 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (!this->output_open) {      
     /*
      * with dvdnav we do not get a preview buffer with audio format
-     * information (buf->decoder_info[0] == 0).
+     * information (buf->decoder_flags & BUF_FLAG_PREVIEW).
      * grab the audio format from the first audio data buffer, in case
      * the audio format is not yet known.
      */
@@ -130,7 +130,6 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     memcpy (audio_buffer->mem, sample_buffer, buf->size);
 
   audio_buffer->vpts       = buf->pts;
-  audio_buffer->scr        = buf->scr;
   audio_buffer->num_frames = (((buf->size*8)/this->number_of_channels)/this->bits_per_sample);
 
   this->audio_out->put_buffer (this->audio_out, audio_buffer);

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.64 2002/03/10 21:16:16 miguelfreitas Exp $
+ * $Id: dxr3_decoder.c,v 1.65 2002/03/11 12:31:25 guenter Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -972,7 +972,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		return;
 	}
 	/* Is this also needed for subpicture? */
-	if (buf->decoder_info[0] == 0) {
+	if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
 #if LOG_SPU
         printf ("dxr3_spu: Dropping SPU channel %d. Preview data\n", stream_id);
 #endif

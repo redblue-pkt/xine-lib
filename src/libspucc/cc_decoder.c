@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.6 2002/01/08 20:38:05 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.7 2002/03/11 12:31:26 guenter Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -315,8 +315,7 @@ struct cc_decoder_s {
   uint32_t lastcode;
 
   /* The PTS and SCR at which the captioning chunk started */
-  uint32_t pts;
-  uint32_t scr;
+  int64_t pts;
   /* holds the NTSC frame offset to last known pts/scr */
   uint32_t f_offset;
 
@@ -757,11 +756,11 @@ static void ccmem_exit(cc_memory_t *this)
 
 /*----------------- cc_renderer_t methods -------------------------------*/
 
-static uint32_t cc_renderer_calc_vpts(cc_renderer_t *this, uint32_t pts,
-				      uint32_t scr, uint32_t ntsc_frame_offset)
+static uint32_t cc_renderer_calc_vpts(cc_renderer_t *this, int64_t pts,
+				      uint32_t ntsc_frame_offset)
 {
   metronom_t *metronom = this->metronom;
-  uint32_t vpts = metronom->got_spu_packet(metronom, pts, 0, scr);
+  uint32_t vpts = metronom->got_spu_packet(metronom, pts, 0);
   return vpts + ntsc_frame_offset * NTSC_FRAME_DURATION;
 }
 
@@ -773,7 +772,7 @@ static int cc_renderer_on_display(cc_renderer_t *this)
 }
 
 
-static void cc_renderer_hide_caption(cc_renderer_t *this, uint32_t vpts)
+static void cc_renderer_hide_caption(cc_renderer_t *this, int64_t vpts)
 {
   if (this->displayed) {
     this->osd_renderer->hide(this->cap_display, vpts);
@@ -783,7 +782,7 @@ static void cc_renderer_hide_caption(cc_renderer_t *this, uint32_t vpts)
 
 
 static void cc_renderer_show_caption(cc_renderer_t *this, cc_buffer_t *buf,
-			      uint32_t vpts)
+				     int64_t vpts)
 {
 #ifdef LOG_DEBUG
   printf("spucc: cc_renderer: show\n");
@@ -960,8 +959,8 @@ static void cc_hide_displayed(cc_decoder_t *this)
 #endif
 
   if (cc_renderer_on_display(this->cc_cfg->renderer)) {
-    uint32_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
-					  this->scr, this->f_offset); 
+    int64_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
+					  this->f_offset); 
     cc_renderer_hide_caption(this->cc_cfg->renderer, vpts);
   }
 }
@@ -975,7 +974,7 @@ static void cc_show_displayed(cc_decoder_t *this)
 
   if (cc_onscreen_displayable(this)) {
     uint32_t vpts = cc_renderer_calc_vpts(this->cc_cfg->renderer, this->pts,
-					  this->scr, this->f_offset);
+					  this->f_offset);
 #ifdef LOG_DEBUG
     printf("cc_decoder: cc_show_displayed: showing caption %u at vpts %u\n", this->capid, vpts);
 #endif    
@@ -1231,7 +1230,7 @@ static void cc_decode_EIA608(cc_decoder_t *this, uint16_t data)
 
 
 void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
-	       uint32_t pts, uint32_t scr)
+	       int64_t pts)
 {
   /* The first number may denote a channel number. I don't have the
    * EIA-708 standard, so it is hard to say.
@@ -1259,7 +1258,6 @@ void decode_cc(cc_decoder_t *this, uint8_t *buffer, uint32_t buf_len,
 
   this->f_offset = 0;
   this->pts = pts;
-  this->scr = scr;
   
   while (curbytes < buf_len) {
     cc_code = *current++;
@@ -1324,7 +1322,7 @@ cc_decoder_t *cc_decoder_open(cc_config_t *cc_cfg)
   this->lastcode = 0;
   this->capid = 0;
 
-  this->pts = this->scr = this->f_offset = 0;
+  this->pts = this->f_offset = 0;
 
 #ifdef LOG_DEBUG
   printf("spucc: cc_decoder_open\n");

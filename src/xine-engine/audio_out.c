@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.43 2002/03/01 09:29:50 guenter Exp $
+ * $Id: audio_out.c,v 1.44 2002/03/11 12:31:26 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -474,7 +474,7 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
   pts = buf->vpts;
 
   buf->vpts = this->metronom->got_audio_samples (this->metronom, pts, 
-						 buf->num_frames, buf->scr);
+						 buf->num_frames);
 
 #ifdef LOG
   printf ("audio_out: got buffer, pts=%lld, vpts=%lld\n",

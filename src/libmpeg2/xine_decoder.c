@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/02/17 17:32:50 guenter Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/03/11 12:31:26 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -81,12 +81,12 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
   pthread_mutex_lock (&this->lock);
 
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     mpeg2_find_sequence_header (&this->mpeg2, buf->content, buf->content + buf->size);
   } else {
     
     mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
-		       buf->pts, buf->scr);
+		       buf->pts);
   }
 
   pthread_mutex_unlock (&this->lock);
