@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.122 2004/03/03 20:17:40 mroi Exp $
+ * $Id: audio_decoder.c,v 1.123 2004/03/12 14:53:16 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -395,6 +395,19 @@ static void *audio_decoder_loop (void *stream_gen) {
     }
   }
 
+  /* free all held header buffers */
+  if( first_header ) {
+    buf_element_t  *cur, *next;
+
+    cur = first_header;
+    while( cur ) {
+      next = cur->next;
+      cur->free_buffer (cur);
+      cur = next;
+    }
+    first_header = last_header = NULL;
+  }
+  
   running_ticket->release(running_ticket, 0);
   
   return NULL;
