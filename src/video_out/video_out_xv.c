@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.31 2001/06/03 18:08:56 guenter Exp $
+ * $Id: video_out_xv.c,v 1.32 2001/06/03 19:11:06 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -94,6 +94,7 @@ typedef struct {
   GC                 gc;
   XvPortID           xv_port;
   XColor             black;
+  int                expecting_event; /* completion event handling */
 
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
@@ -431,31 +432,34 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
-  if ( (frame->width != this->delivered_width)
-       || (frame->height != this->delivered_height) 
-       || (frame->ratio_code != this->delivered_ratio_code) ) {
+  if (this->expecting_event) {
+    frame->vo_frame.displayed (&frame->vo_frame);
 
-    xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
+  } else {
+
+    if ( (frame->width != this->delivered_width)
+	 || (frame->height != this->delivered_height) 
+	 || (frame->ratio_code != this->delivered_ratio_code) ) {
+      
+      xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
+    }
+    
+    XLockDisplay (this->display);
+    
+    XvShmPutImage(this->display, this->xv_port, 
+		  this->drawable, this->gc, frame->image,
+		  0, 0,  frame->width, frame->height-5,
+		  this->output_xoffset, this->output_yoffset,
+		  this->output_width, this->output_height, True);
+    
+    this->expecting_event = 1;
+    
+    XFlush(this->display); 
+    
+    XUnlockDisplay (this->display);
+    
+    this->cur_frame = frame;
   }
-
-  XLockDisplay (this->display);
-
-  XvShmPutImage(this->display, this->xv_port, 
-		this->drawable, this->gc, frame->image,
-		0, 0,  frame->width, frame->height-5,
-		this->output_xoffset, this->output_yoffset,
-		this->output_width, this->output_height, False);
-
-  XFlush(this->display); 
-
-  XUnlockDisplay (this->display);
-  
-  /* FIXME: this should be done using the completion event */
-  if (this->cur_frame) {
-    this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
-  }
-
-  this->cur_frame = frame;
 }
 
 /*
@@ -544,10 +548,21 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
 
     break;
-  case GUI_DATA_EX_COMPLETION_EVENT:
-    
-    /* FIXME : implement */
+  case GUI_DATA_EX_COMPLETION_EVENT: {
+   
+    XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
+ 
+    if (cev->drawable == this->drawable) {
+      this->expecting_event = 0;
 
+      /* FIXME: this should be done using the completion event */
+      if (this->cur_frame) {
+	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+	this->cur_frame = NULL;
+      }
+    }
+
+  }
     break;
 
   case GUI_DATA_EX_EXPOSE_EVENT:
@@ -792,7 +807,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  xv_check_capability (this, VO_CAP_COLORKEY, 
 			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[i].base_id, "XV_COLORKEY");
-	  printf("video_out_xv: colorkey is %08x ", this->props[VO_PROP_COLORKEY].value);
+	  printf("video_out_xv: colorkey is %08x\n", this->props[VO_PROP_COLORKEY].value);
 	}
       }
     }
