@@ -1688,6 +1688,115 @@
 
   </sect1>
 
+  <sect1 id="overlay">
+   <title>OSD and overlay related questions</title>
+
+   <sect2 id="unscaledosd">
+    <title>What is this "unscaled" OSD about?</title>
+    <para>
+     Since version 1-rc3 of xine-lib supports a new method for rendering OSD
+     (On Screen Display) and subtitles. This method uses a X11 extension
+     called XShape that allows using screen resolution instead of
+     stream resolution. It is called "unscaled" OSD because it does not
+     scales with the video being played.
+    </para>
+    <para>
+     Suppose you are watching a 320x200 video in full screen. Normal OSD
+     would be blended at 320x200 and then scaled to full screen (lets say,
+     1024x768), resulting in big and ugly fonts. The unscaled overlay is
+     drawn directly to screen, creating a sharper and better looking OSD.
+    </para>
+    <para>
+     There are side effects too. Sometimes the unscaled overlay show some
+     glitch just before disappearing. Some people may be annoyed enough
+     by that and might want to disable the usage of unscaled overlay
+     altogether.
+    </para>
+    <para>
+     Unscaled OSD usage by subtitles and xine-ui is controlled by 
+     the following settings
+     (<filename>~/.xine/config</filename> or <filename>~/.gxine/config</filename>):
+     <programlisting>&nbsp;&nbsp;&nbsp;gui.osd_use_unscaled:0</programlisting>
+     <programlisting>&nbsp;&nbsp;&nbsp;misc.spu_use_unscaled_osd:0</programlisting>
+    </para>
+   </sect2>
+
+   <sect2 id="noosd">
+    <title>I can't see the OSD or it leaves a black box over the image!</title>
+    <para>
+     If you are using xine-lib version 1-rc3 or newer, this is probably
+     due buggy XV drivers that do not support 
+     <link linkend="unscaledosd">unscaled OSD</link> (the XShape
+     extension) properly. 
+    </para>
+    <para>
+     There have being reports of some ATI drivers that don't allow 
+     displaying anything over the video. The VIA Epia binary drivers
+     is reported to leave a black box where the OSD was displayed.
+    </para>
+    <para>
+     The problem may be fixed by either updating the video driver, 
+     or disabling xine unscaled OSD support.
+    </para>
+   </sect2>
+
+   <sect2 id="overlaycolorleak">
+    <title>Why colors of overlays/subtitles seem to be "leaking"?</title>
+    <para>
+     xine blends most overlays, specially the ones from DVD discs,
+     directly over the image (scaled OSD). Unfortunately most codecs
+     (like MPEG2) use a subsampled image format (YV12) that makes
+     properly blending an interesting challenge.
+    </para>
+    <para>
+     In short, this is a known xine bug. There have being discussions
+     on improving the blending quality but, so far, nobody implemented
+     a better (scaled) overlay renderer. Contact developers if you want
+     to try doing something about it.
+    </para>
+   </sect2>
+
+   <sect2 id="uglysubtitles">
+    <title>Why external subtitles look so ugly?</title>
+    <para>
+    You are probably using a xine-lib version older than 1-rc3.
+    Try upgrading your copy and read the 
+    <link linkend="unscaledosd">section about unscaled osd</link>.
+    </para>
+   </sect2>
+
+   <sect2 id="subtitlesoutsidevideo">
+    <title>Why subtitles can't be displayed outside the video?</title>
+    <para>
+    It is possible, but older xine versions may not support it. There are two
+    alternatives for rendering the subtitles outside the video image:
+    </para>
+    <para>
+     <itemizedlist>
+      <listitem>
+       <para>
+        Use the "expand" post plugin to increase frame height adding
+        black bars to it. This will allow blending the subtitles
+        over the black bars, since they will be part of the video now.
+       </para>
+      </listitem>
+      <listitem>
+       <para>
+        Use <link linkend="unscaledosd">unscaled OSD</link>, as it
+        does not requires any video to render the subtitles on.
+       </para>
+      </listitem>
+     </itemizedlist>
+    </para>
+    <para>
+    Also notice that DVD overlays (including subtitles) are meant to
+    be displayed in a fixed position, this is how the DVD menu 
+    highlighting works. xine does not support moving them.
+    </para>
+   </sect2>
+
+  </sect1>
+
   <sect1 id="errors">
    <title>Error Messages: What they mean and what you can do</title>
 
