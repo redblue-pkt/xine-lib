@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.163 2003/04/05 12:28:15 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.164 2003/04/06 13:33:09 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -307,7 +307,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   if (stream_id == 0xbf) {  /* NAV Packet */
 
     int64_t start_pts, end_pts;
-    int64_t cell_time, frames;
 
     start_pts  = (p[7+12] << 24);
     start_pts |= (p[7+13] << 16);
@@ -319,25 +318,33 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     end_pts |= (p[7+18] << 8);
     end_pts |= p[7+19];
 
-    cell_time  = (p[7+0x18] >> 4  ) * 10 * 60 * 60 * 1000;
-    cell_time += (p[7+0x18] & 0x0f)      * 60 * 60 * 1000;
-    cell_time += (p[7+0x19] >> 4  )      * 10 * 60 * 1000;
-    cell_time += (p[7+0x19] & 0x0f)           * 60 * 1000;
-    cell_time += (p[7+0x1a] >> 4  )           * 10 * 1000;
-    cell_time += (p[7+0x1a] & 0x0f)                * 1000;
-    frames  = ((p[7+0x1b] & 0x30) >> 4) * 10;
-    frames += ((p[7+0x1b] & 0x0f)     )     ;
+    /* some input plugins like DVD can have better timing information and have
+     * already set the input_time, so we can use the cell elapsed time from
+     * the NAV packet for a much more accurate timing */
+    if (buf->extra_info->input_time) {
+      int64_t cell_time, frames;
+      
+      cell_time  = (p[7+0x18] >> 4  ) * 10 * 60 * 60 * 1000;
+      cell_time += (p[7+0x18] & 0x0f)      * 60 * 60 * 1000;
+      cell_time += (p[7+0x19] >> 4  )      * 10 * 60 * 1000;
+      cell_time += (p[7+0x19] & 0x0f)           * 60 * 1000;
+      cell_time += (p[7+0x1a] >> 4  )           * 10 * 1000;
+      cell_time += (p[7+0x1a] & 0x0f)                * 1000;
+      frames  = ((p[7+0x1b] & 0x30) >> 4) * 10;
+      frames += ((p[7+0x1b] & 0x0f)     )     ;
   
-    if (p[7+0x1b] & 0x80)
-      cell_time += (frames * 1000)/25;
-    else
-      cell_time += (frames * 1000)/30;
+      if (p[7+0x1b] & 0x80)
+        cell_time += (frames * 1000)/25;
+      else
+        cell_time += (frames * 1000)/30;
 
-    this->last_cell_time = cell_time;
-    this->last_cell_pos = buf->extra_info->input_pos;
-    this->last_begin_time = buf->extra_info->input_time;
+      this->last_cell_time = cell_time;
+      this->last_cell_pos = buf->extra_info->input_pos;
+      this->last_begin_time = buf->extra_info->input_time;
+    }
+    
 #ifdef LOG
-    printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
+      printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
 	    start_pts, end_pts);
 #endif
 
