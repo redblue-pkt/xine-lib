@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.84 2002/12/01 17:07:17 tmattern Exp $
+ * $Id: demux_asf.c,v 1.85 2002/12/02 22:33:30 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -152,6 +152,7 @@ typedef struct demux_asf_s {
   int               video_stream;
   int               audio_stream_id;
   int               video_stream_id;
+  int               control_stream_id;
 
   uint16_t          wavex[1024];
   int               wavex_size;
@@ -641,7 +642,7 @@ static int asf_read_header (demux_asf_t *this) {
               this->streams[this->num_streams].defrag = 0;
         
 #ifdef LOG
-            printf ("demux_asf: found a_stream id=%d \n", stream_id);
+            printf ("demux_asf: found an audio stream id=%d \n", stream_id);
 #endif
             this->num_audio_streams++;
           }
@@ -671,17 +672,21 @@ static int asf_read_header (demux_asf_t *this) {
               printf ("demux_asf: invalid bih_size received (%d), v_stream ignored.\n", i );
 
 #ifdef LOG
-            printf ("demux_asf: found v_stream id=%d \n", stream_id);
+            printf ("demux_asf: found a video stream id=%d \n", stream_id);
 #endif
             this->num_video_streams++;
           }
           else if (type == CODEC_TYPE_CONTROL) {
-            printf ("demux_asf: CODEC_TYPE_CONTROL\n");
+            this->streams[this->num_streams].stream_id   = stream_id;
+            this->control_stream_id = stream_id;
 
             /* This code does'nt work
             while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
             while (get_byte(this) != 0) {while (get_byte(this) != 0) {}}
             */  
+#ifdef LOG
+            printf ("demux_asf: found a control stream id=%d \n", stream_id);
+#endif
           }
 
           this->num_streams++;
@@ -1161,6 +1166,19 @@ static void asf_read_packet(demux_asf_t *this) {
         stream = &this->streams[i];
       }
     }
+
+#ifdef LOG
+    /* display control stream content */
+    if (stream_id == this->control_stream_id) {
+      printf("demux_asf: Control Stream : begin\n");
+      for (i = 0; i < (this->packet_size_left - s_hdr_size); i++){
+        printf("%c", get_byte(this));
+      }    
+      printf("\ndemux_asf: Control Stream : end\n");
+      return;
+    }
+#endif
+
   }
   
   switch ((this->segtype >> 4) & 3){
@@ -1280,7 +1298,7 @@ static void asf_read_packet(demux_asf_t *this) {
 #endif
       
 
-      if (stream) {
+      if (stream && stream->fifo) {
 #ifdef LOG
         printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
 #endif
@@ -1345,7 +1363,7 @@ static void asf_read_packet(demux_asf_t *this) {
     
     this->packet_size_left -= s_hdr_size;
 
-    if (stream) {
+    if (stream && stream->fifo) {
     
 #ifdef LOG
       printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
@@ -1427,6 +1445,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   this->video_stream             = 0;
   this->audio_stream_id          = 0;
   this->video_stream_id          = 0;
+  this->control_stream_id        = 0;
   this->packet_size              = 0;
   this->seqno                    = 0;
   this->frame_duration           = 3000;
@@ -1512,9 +1531,6 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
-  printf("demux_asf: demux_asf_seek begin\n");
-  
-  
   this->status = DEMUX_OK;
 
   xine_demux_flush_engine(this->stream);
@@ -1551,7 +1567,6 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek = 1;
   }
 
-  printf("demux_asf: demux_asf_seek end\n");
   return this->status;
 }
 
