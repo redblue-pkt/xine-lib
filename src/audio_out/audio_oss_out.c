@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.26 2001/08/05 19:04:34 ehasenle Exp $
+ * $Id: audio_oss_out.c,v 1.27 2001/08/12 01:03:55 guenter Exp $
  */
 
 /* required for swab() */
@@ -179,7 +179,16 @@ static int ao_open(ao_functions_t *this_gen,
   if(tmp > 44100)
      tmp = 44100;
 #endif
-  ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp);
+  if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
+
+    printf ("audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n", this->input_sample_rate);
+
+    tmp = 44100;
+    if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
+      printf ("audio_oss_out: error: 44100 Hz sampling rate not supported\n");
+      return -1;
+    }
+  }
   this->output_sample_rate = tmp;
 
   xprintf (VERBOSE|AUDIO, "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
