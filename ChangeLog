@@ -2,6 +2,7 @@
   * guess codeset for OSD if nl_langinfo(CODESET) is missing or not working
   * new option - list of domains, where don't use proxy
   * fix possible crashes in front-ends that create and delete streams
+  * send a message to the front-end when the audio device is busy
   * revert changes to the DVD plugin that made it impossible to play mounted
     DVDs
 

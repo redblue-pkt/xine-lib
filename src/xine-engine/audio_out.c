@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.169 2004/03/16 12:25:05 mroi Exp $
+ * $Id: audio_out.c,v 1.170 2004/04/05 20:01:27 hadess Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -998,9 +998,26 @@ static void *ao_loop (void *this_gen) {
         pthread_mutex_lock( &this->driver_lock ); 
         delay = this->driver->delay(this->driver);
       }
-    } else 
+      pthread_mutex_unlock( &this->driver_lock );
+    } else {
+      xine_stream_t *stream;
       delay = 0;
-    pthread_mutex_unlock( &this->driver_lock ); 
+
+      pthread_mutex_unlock( &this->driver_lock );
+      xprintf(this->xine, XINE_VERBOSITY_LOG,
+              _("audio_oss_out: delay calculation impossible with an unavailable audio device\n"));
+
+      pthread_mutex_lock(&this->xine->streams_lock);
+      for (stream = xine_list_first_content(this->xine->streams);
+           stream; stream = xine_list_next_content(this->xine->streams))
+      {
+        _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+	/* This is necessary for the message to get to the front-end at some
+	 * point before another message is sent */
+	sched_yield();
+      }
+      pthread_mutex_unlock(&this->xine->streams_lock);
+    }
 
     cur_time = this->clock->get_current_time (this->clock);  
     
@@ -1110,10 +1127,14 @@ static void *ao_loop (void *this_gen) {
 #endif
 
       lprintf ("loop: writing %d samples to sound device\n", out_buf->num_frames);
-      
-      pthread_mutex_lock( &this->driver_lock );
-      result = this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
-      pthread_mutex_unlock( &this->driver_lock );
+
+      if (this->driver_open) {
+        pthread_mutex_lock( &this->driver_lock );
+        result = this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
+        pthread_mutex_unlock( &this->driver_lock );
+      } else {
+        result = 0;
+      }
       
       if( result < 0 ) {
         /* FIXME: USB device unplugged.
@@ -1248,7 +1269,6 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     }
  
     output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
-    this->driver_open = 1;
   } else
     output_sample_rate = this->input.rate;
 
@@ -1256,7 +1276,9 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     this->driver_open = 0;
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "open failed!\n");
     return 0;
-  }; 
+  } else {
+    this->driver_open = 1;
+  }
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "output sample rate %d\n", output_sample_rate);
 
