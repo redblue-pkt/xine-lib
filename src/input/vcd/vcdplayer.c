@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdplayer.c,v 1.12 2005/01/02 02:51:39 rockyb Exp $
+  $Id: vcdplayer.c,v 1.13 2005/01/02 13:51:01 rockyb Exp $
  
-  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -694,40 +694,19 @@ _vcdplayer_set_origin(vcdplayer_t *p_vcdplayer)
             p_vcdplayer->end_lsn);
 }
 
-#define RETURN_NULL_BLOCK \
-  memset (buf, 0, M2F2_SECTOR_SIZE); \
-  buf[0] = 0;  buf[1] = 0; buf[2] = 0x01; \
-  return READ_BLOCK
-
-#define RETURN_NULL_STILL \
-  memset (buf, 0, M2F2_SECTOR_SIZE); \
-  buf[0] = 0;  buf[1] = 0; buf[2] = 0x01; \
+#define RETURN_NULL_STILL                       \
+  p_vcdplayer->i_still = 127;                   \
+  memset (p_buf, 0, M2F2_SECTOR_SIZE);          \
+  p_buf[0] = 0;  p_buf[1] = 0; p_buf[2] = 0x01; \
   return READ_STILL_FRAME
-
-#define SLEEP_1_SEC_AND_HANDLE_EVENTS \
-  if (p_vcdplayer->handle_events()) goto skip_next_play; \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto skip_next_play; \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto skip_next_play; \
-  p_vcdplayer->sleep(250000);                            \
-  if (p_vcdplayer->handle_events()) goto skip_next_play; \
-  p_vcdplayer->sleep(250000);                            
-/*  if (p_vcdplayer->i_still) p_vcdplayer->force_redisplay();    */
 
 /* Handles PBC navigation when reaching the end of a play item. */
 static vcdplayer_read_status_t
-vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
+vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
 {
   /* We are in playback control. */
   vcdinfo_itemid_t itemid;
 
-  if (0 != p_vcdplayer->i_still && p_vcdplayer->i_still != STILL_READING) {
-      SLEEP_1_SEC_AND_HANDLE_EVENTS;
-      if (p_vcdplayer->i_still > 0) p_vcdplayer->i_still--;
-      return READ_STILL_FRAME;
-  }
-  
   /* The end of an entry is really the end of the associated 
      sequence (or track). */
   
@@ -754,13 +733,10 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
     if (_vcdplayer_inc_play_item(p_vcdplayer))
       goto skip_next_play;
 
-    /* Handle any wait time given. */
-    if (STILL_READING == p_vcdplayer->i_still) {
-      if (wait_time != 0) {
-        p_vcdplayer->i_still = wait_time - 1;
-        SLEEP_1_SEC_AND_HANDLE_EVENTS ;
-        return READ_STILL_FRAME;
-      }
+    /* Set caller to handle wait time given. */
+    if (STILL_READING == p_vcdplayer->i_still && wait_time > 0) {
+      p_vcdplayer->i_still = wait_time;
+      return READ_STILL_FRAME;
     }
     break;
   }
@@ -776,10 +752,9 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
       dbg_print(INPUT_DBG_PBC, "wait_time: %d, looped: %d, max_loop %d\n", 
                 wait_time, p_vcdplayer->i_loop, max_loop);
       
-      /* Handle any wait time given */
-      if (STILL_READING == p_vcdplayer->i_still) {
-        p_vcdplayer->i_still = wait_time - 1;
-        SLEEP_1_SEC_AND_HANDLE_EVENTS ;
+      /* Set caller to handle wait time given. */
+      if (STILL_READING == p_vcdplayer->i_still && wait_time > 0) {
+        p_vcdplayer->i_still = wait_time;
         return READ_STILL_FRAME;
       }
       
@@ -822,7 +797,6 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
           goto skip_next_play;
         } else if (p_vcdplayer->i_still) {
           /* Hack: Just go back and do still again */
-          SLEEP_1_SEC_AND_HANDLE_EVENTS ;
           RETURN_NULL_STILL ;
         }
       }
@@ -855,7 +829,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
    is to do something that's probably right or helpful.
 */
 static vcdplayer_read_status_t
-vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
+vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
 {
   /* Not in playback control. Do we advance automatically or stop? */
   switch (p_vcdplayer->play_item.type) {
@@ -869,43 +843,21 @@ vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
       return READ_END;
     break;
   case VCDINFO_ITEM_TYPE_SPAREID2:  
-    /* printf("SPAREID2\n"); */
-    if (p_vcdplayer->i_still) {
-      RETURN_NULL_STILL ;
-      /* Hack: Just go back and do still again */
-      /*p_vcdplayer->force_redisplay();
-        p_vcdplayer->i_lsn = p_vcdplayer->origin_lsn;*/
-    } 
-    return READ_END;
+    RETURN_NULL_STILL ;
 
   case VCDINFO_ITEM_TYPE_NOTFOUND:  
     LOG_ERR(p_vcdplayer, "NOTFOUND outside PBC -- not supposed to happen\n");
-    if (p_vcdplayer->i_still) {
-      RETURN_NULL_STILL ;
-      /* Hack: Just go back and do still again */
-      /*p_vcdplayer->force_redisplay();
-        p_vcdplayer->i_lsn = p_vcdplayer->origin_lsn;*/
-    } else 
-      return READ_END;
+    return READ_END;
     break;
 
   case VCDINFO_ITEM_TYPE_LID:  
     LOG_ERR(p_vcdplayer, "LID outside PBC -- not supposed to happen\n");
-    if (p_vcdplayer->i_still) {
-      RETURN_NULL_STILL ;
-      /* Hack: Just go back and do still again */
-      /* p_vcdplayer->force_redisplay();
-         p_vcdplayer->i_lsn = p_vcdplayer->origin_lsn; */
-    } else 
-      return READ_END;
+    return READ_END;
     break;
 
   case VCDINFO_ITEM_TYPE_SEGMENT:
-    if (p_vcdplayer->i_still) {
-      /* Hack: Just go back and do still again */
-      RETURN_NULL_STILL ;
-    }
-    return READ_END;
+    /* Hack: Just go back and do still again */
+    RETURN_NULL_STILL ;
   }
   return READ_BLOCK;
 }
@@ -919,7 +871,7 @@ vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *buf)
   interpret the next item in the playback-control list.
 */
 vcdplayer_read_status_t
-vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf, 
+vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf, 
                 const off_t nlen) 
 {
 
@@ -935,8 +887,8 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf,
 
   handle_item_continuation:
     read_status = vcdplayer_pbc_is_on(p_vcdplayer) 
-      ? vcdplayer_pbc_nav(p_vcdplayer, buf) 
-      : vcdplayer_non_pbc_nav(p_vcdplayer, buf);
+      ? vcdplayer_pbc_nav(p_vcdplayer, p_buf) 
+      : vcdplayer_non_pbc_nav(p_vcdplayer, p_buf);
 
     if (READ_BLOCK != read_status) return read_status;
   }
@@ -986,7 +938,7 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *buf,
       /* We've run off of the end of this entry. Do we continue or stop? */
       goto handle_item_continuation;
       
-    memcpy (buf, vcd_sector.data, M2F2_SECTOR_SIZE);
+    memcpy (p_buf, vcd_sector.data, M2F2_SECTOR_SIZE);
     return READ_BLOCK;
   }
 }

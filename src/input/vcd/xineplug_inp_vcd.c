@@ -1,7 +1,7 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.30 2005/01/02 02:51:39 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.31 2005/01/02 13:51:01 rockyb Exp $
  
-  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -619,6 +619,16 @@ vcd_plugin_read (input_plugin_t *this_gen, char *buf, const off_t nlen)
   return (off_t) 1;
 }
 
+#define SLEEP_1_SEC_AND_HANDLE_EVENTS                    \
+  if (p_vcdplayer->handle_events()) goto read_block;     \
+  p_vcdplayer->sleep(250000);                            \
+  if (p_vcdplayer->handle_events()) goto read_block;     \
+  p_vcdplayer->sleep(250000);                            \
+  if (p_vcdplayer->handle_events()) goto read_block;     \
+  p_vcdplayer->sleep(250000);                            \
+  if (p_vcdplayer->handle_events()) goto read_block;     \
+  p_vcdplayer->sleep(250000);                            
+
 /*!
   From xine plugin spec:
 
@@ -631,7 +641,7 @@ static buf_element_t *
 vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
 			  const off_t nlen) 
 {
-  vcdplayer_t        *vcdplayer = &my_vcd.player;
+  vcdplayer_t        *p_vcdplayer = &my_vcd.player;
   buf_element_t      *buf;
   uint8_t            data[M2F2_SECTOR_SIZE];
 
@@ -645,15 +655,21 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   /* Should we change this to <= instead of !=? */
   if (nlen != M2F2_SECTOR_SIZE) return NULL;
 
-  switch (vcdplayer_read(vcdplayer, data, nlen)) {
+  if (p_vcdplayer->i_still > 0) goto read_still;
+
+ read_block:
+  switch (vcdplayer_read(p_vcdplayer, data, nlen)) {
   case READ_END:
     /* End reached. Return NULL to indicated this. */
     return NULL;
   case READ_ERROR:
     /* Some sort of error. */
     return NULL;
+  read_still:
   case READ_STILL_FRAME: 
     {
+      p_vcdplayer->i_still--;
+      SLEEP_1_SEC_AND_HANDLE_EVENTS ;
       dbg_print(INPUT_DBG_STILL, "Handled still event\n");
       buf = fifo->buffer_pool_alloc (fifo);
       buf->type = BUF_CONTROL_NOP;
@@ -669,22 +685,19 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   
   buf->content = buf->mem;
 
-  if (vcdplayer->i_still != my_vcd.i_old_still) {
-    if (vcdplayer->i_still) {
-      my_vcd.i_old_deinterlace = xine_get_param(my_vcd.stream, 
-                                                XINE_PARAM_VO_DEINTERLACE);
-      xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE, 0);
-      dbg_print(INPUT_DBG_STILL, "going into still, saving deinterlace %d\n", 
-                my_vcd.i_old_deinterlace);
-    } else {
-      dbg_print(INPUT_DBG_STILL, 
-                "going out of still, restoring deinterlace\n");
-      xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE,
-                     my_vcd.i_old_deinterlace);
-    }
-    
+  if (STILL_READING == p_vcdplayer->i_still && 0 == my_vcd.i_old_still) {
+    my_vcd.i_old_deinterlace = xine_get_param(my_vcd.stream, 
+                                              XINE_PARAM_VO_DEINTERLACE);
+    xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE, 0);
+    dbg_print(INPUT_DBG_STILL, "going into still, saving deinterlace %d\n", 
+              my_vcd.i_old_deinterlace);
+  } else if (0 == p_vcdplayer->i_still && 0 != my_vcd.i_old_still) {
+    dbg_print(INPUT_DBG_STILL, 
+              "going out of still, restoring deinterlace\n");
+    xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE,
+                   my_vcd.i_old_deinterlace);
   }
-  my_vcd.i_old_still = vcdplayer->i_still;
+  my_vcd.i_old_still = p_vcdplayer->i_still;
   
   /* Ideally this should probably be nlen.  */
   memcpy (buf->mem, data, M2F2_SECTOR_SIZE);
