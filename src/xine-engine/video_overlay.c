@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.7 2001/12/09 18:36:48 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.8 2001/12/16 20:46:17 miguelfreitas Exp $
  *
  */
 
@@ -386,6 +386,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
           vo_overlay_t *overlay;
+          int menu_changed = 0;
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
 #endif
@@ -394,6 +395,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           if( !this->video_overlay_objects[handle].overlay ) {
             this->video_overlay_objects[handle].overlay
                = xine_xmalloc( sizeof(vo_overlay_t) );
+            menu_changed = 1;
           }
           overlay = this->video_overlay_objects[handle].overlay;
           
@@ -409,7 +411,13 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 	       event_overlay->x + event_overlay->width,
 	       event_overlay->y + event_overlay->height);
 #endif
-	
+          if( overlay->num_rle != event_overlay->num_rle ||
+              overlay->width != event_overlay->width || 
+              overlay->height != event_overlay->height ||
+              overlay->x != event_overlay->x ||
+              overlay->y != event_overlay->y )
+            menu_changed = 1;
+
           overlay->rle = event_overlay->rle;
           
           overlay->data_size = event_overlay->data_size;
@@ -418,25 +426,38 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           overlay->y = event_overlay->y;
           overlay->width = event_overlay->width;
           overlay->height = event_overlay->height;
-          overlay->rgb_clut = event_overlay->rgb_clut;
-          if((event_overlay->color[0] +
-              event_overlay->color[1] +
-              event_overlay->color[2] +
-              event_overlay->color[3]) > 0 ) {
-            overlay->color[0] = event_overlay->color[0];
-            overlay->color[1] = event_overlay->color[1];
-            overlay->color[2] = event_overlay->color[2];
-            overlay->color[3] = event_overlay->color[3];
+          
+          if( menu_changed ) {
+            if((event_overlay->color[0] +
+                event_overlay->color[1] +
+                event_overlay->color[2] +
+                event_overlay->color[3]) > 0 ) {
+              overlay->color[0] = event_overlay->color[0];
+              overlay->color[1] = event_overlay->color[1];
+              overlay->color[2] = event_overlay->color[2];
+              overlay->color[3] = event_overlay->color[3];
+              
+              overlay->rgb_clut = event_overlay->rgb_clut;
+            }
+            if((event_overlay->trans[0] +
+                event_overlay->trans[1] +
+                event_overlay->trans[2] +
+                event_overlay->trans[3]) > 0 ) {
+              overlay->trans[0] = event_overlay->trans[0];
+              overlay->trans[1] = event_overlay->trans[1];
+              overlay->trans[2] = event_overlay->trans[2];
+              overlay->trans[3] = event_overlay->trans[3];
+            }
           }
-          if((event_overlay->trans[0] +
-              event_overlay->trans[1] +
-              event_overlay->trans[2] +
-              event_overlay->trans[3]) > 0 ) {
-            overlay->trans[0] = event_overlay->trans[0];
-            overlay->trans[1] = event_overlay->trans[1];
-            overlay->trans[2] = event_overlay->trans[2];
-            overlay->trans[3] = event_overlay->trans[3];
+                    
+          /* let EVENT_MENU_BUTTON set the correct clipping box */
+          if( menu_changed ) {
+            overlay->clip_top = overlay->height;
+            overlay->clip_bottom = 0;
+            overlay->clip_left = overlay->width;
+            overlay->clip_right = 0;
           }
+          
           add_showing_handle( this, handle );
           
           /* The null test was done at the start of this case statement */
