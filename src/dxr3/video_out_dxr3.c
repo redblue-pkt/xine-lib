@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.27 2002/06/15 10:42:21 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.28 2002/06/17 15:17:15 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -437,8 +437,9 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       frame_gen->base[0] = frame_gen->base[1] = frame_gen->base[2] = NULL;
     }
     
-    if (ratio_code < 3 || ratio_code> 4) aspect = ASPECT_FULL;
-    else aspect = ASPECT_ANAMORPHIC;
+    aspect = this->aspect;
+    if (ratio_code == 1 || ratio_code == 2) aspect = ASPECT_FULL;
+    if (ratio_code == 3 || ratio_code == 4) aspect = ASPECT_ANAMORPHIC;
     
     if(this->aspect != aspect)
       dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, aspect);
