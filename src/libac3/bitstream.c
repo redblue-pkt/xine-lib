@@ -21,8 +21,8 @@
  *
  */
 
+#include <inttypes.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <stdio.h>
 
 #include "ac3.h"
@@ -31,30 +31,21 @@
 
 #define BUFFER_SIZE 4096
 
-struct uint32_alignment {
-    char    	a;
-    uint32_t	b;
-};
-#define	UINT32_ALIGNMENT	offsetof(struct uint32_alignment, b)
-
-
-static uint32_t *buffer_start;
+static uint8_t *buffer_start;
 
 uint32_t bits_left;
 uint32_t current_word;
 
 void bitstream_set_ptr (uint8_t * buf)
 {
-    int align = (long)buf & (UINT32_ALIGNMENT-1);
-    buffer_start = (uint32_t *) (buf - align);
+    buffer_start = buf;
     bits_left = 0;
-    if (align > 0) bitstream_get(align * 8);
 }
 
 static inline void
 bitstream_fill_current()
 {
-    current_word = *buffer_start++;
+    current_word = *((uint32_t*)buffer_start)++;
     current_word = swab32(current_word);
 }
 

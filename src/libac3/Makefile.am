@@ -7,15 +7,12 @@ libdir = $(XINE_PLUGINDIR)
 lib_LTLIBRARIES = xineplug_decode_ac3.la
 
 xineplug_decode_ac3_la_SOURCES =  bitstream.c bit_allocate.c \
-	coeff.c decode.c debug.c dither.c downmix.c imdct.c \
-	imdct_mlib.c parse.c rematrix.c sanity_check.c stats.c \
+	parse.c downmix.c imdct.c imdct_mlib.c \
 	xine_decoder.c
 xineplug_decode_ac3_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = ac3.h ac3_internal.h bit_allocate.h \
-	bitstream.h coeff.h debug.h decode.h dither.h \
-	downmix.h imdct.h parse.h rematrix.h \
-	sanity_check.h stats.h
+noinst_HEADERS = ac3.h ac3_internal.h \
+	bitstream.h tables.h
 
 ##
 ## Install header files (default=$includedir/xine)

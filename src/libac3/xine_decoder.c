@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/06/09 17:07:21 guenter Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/07/10 21:50:31 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -36,10 +36,13 @@
 
 #include "audio_out.h"
 #include "ac3.h"
+#include "ac3_internal.h"
 #include "buffer.h"
 #include "xine_internal.h"
 
 #define FRAME_SIZE 4096
+
+stream_samples_t samples;	
 
 /* int ac3file; */
 
@@ -54,10 +57,20 @@ typedef struct ac3dec_decoder_s {
   int              frame_length, frame_todo;
   uint16_t         syncword;
 
+  ac3_state_t      ac3_state;
+  int              ac3_flags;
+  int              ac3_bit_rate;
+  int              ac3_sample_rate;
+  float            ac3_level;
+
+  int              ac3_flags_map[8];
+  int              ao_flags_map[8];
+
+  int16_t          samples [6 * 6 * 256];
+
   ao_functions_t  *audio_out;
   int              audio_caps;
   int              bypass_mode;
-  int              max_num_channels;
   int              output_sampling_rate;
   int              output_open;
   int              output_mode;
@@ -72,6 +85,7 @@ int ac3dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
 void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
 
   ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;
+  /* int i; */
 
   this->audio_out     = audio_out;
   this->audio_caps    = audio_out->get_capabilities(audio_out);
@@ -91,21 +105,86 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
   else {
     this->bypass_mode = 0;
 
+    this->ac3_flags_map[AC3_MONO]   = AC3_MONO;
+    this->ac3_flags_map[AC3_STEREO] = AC3_STEREO;
+    this->ac3_flags_map[AC3_3F]     = AC3_STEREO; 
+    this->ac3_flags_map[AC3_2F1R]   = AC3_STEREO; 
+    this->ac3_flags_map[AC3_3F1R]   = AC3_STEREO; 
+    this->ac3_flags_map[AC3_2F2R]   = AC3_STEREO;
+    this->ac3_flags_map[AC3_3F2R]   = AC3_STEREO;
+    
+    this->ao_flags_map[AC3_MONO]    = AO_CAP_MODE_MONO;
+    this->ao_flags_map[AC3_STEREO]  = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[AC3_3F]      = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[AC3_2F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[AC3_3F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[AC3_2F2R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_STEREO;
+
     /* find best mode */
-    if (this->audio_caps & AO_CAP_MODE_5CHANNEL)
-      this->max_num_channels = 5;
-    else if (this->audio_caps & AO_CAP_MODE_4CHANNEL)
-      this->max_num_channels = 4;
-    else if (this->audio_caps & AO_CAP_MODE_STEREO)
-      this->max_num_channels = 2;
-    else {
+    if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
+
+      this->ac3_flags_map[AC3_2F2R]   = AC3_2F2R;
+      this->ac3_flags_map[AC3_3F2R]   = AC3_3F2R;
+      this->ao_flags_map[AC3_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_4CHANNEL) {
+
+      this->ac3_flags_map[AC3_2F2R]   = AC3_2F2R;
+      this->ac3_flags_map[AC3_3F2R]   = AC3_2F2R;
+
+      this->ao_flags_map[AC3_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_4CHANNEL;
+
+    /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
+       defaults are ok */
+    } else {
       printf ("HELP! a mono-only audio driver?!\n");
-      this->max_num_channels = 1;
+
+      this->ac3_flags_map[AC3_MONO]   = AC3_MONO;
+      this->ac3_flags_map[AC3_STEREO] = AC3_MONO;
+      this->ac3_flags_map[AC3_3F]     = AC3_MONO; 
+      this->ac3_flags_map[AC3_2F1R]   = AC3_MONO; 
+      this->ac3_flags_map[AC3_3F1R]   = AC3_MONO; 
+      this->ac3_flags_map[AC3_2F2R]   = AC3_MONO;
+      this->ac3_flags_map[AC3_3F2R]   = AC3_MONO;
+      
+      this->ao_flags_map[AC3_MONO]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_STEREO]  = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_3F]      = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_2F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_3F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_2F2R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_MONO;
     }
   }
 
+  /*
+  for (i = 0; i<8; i++)
+    this->ac3_flags_map[i] |= AC3_ADJUST_LEVEL;
+*/
   /* ac3file = open ("test.ac3", O_CREAT); */
 
+}
+
+static inline int16_t blah (int32_t i)
+{
+    if (i > 0x43c07fff)
+        return 32767;
+    else if (i < 0x43bf8000)
+        return -32768;
+    else
+        return i - 0x43c00000;
+}
+
+static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
+    int i;
+    int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
+
+    for (i = 0; i < 256; i++) {
+        s16[num_channels*i] = blah (f[i]);
+    }
 }
 
 void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -114,8 +193,6 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   uint8_t     *current = buf->content;
   uint8_t     *end = buf->content + buf->size;
-  ac3_frame_t *ac3_frame=NULL;
-/*    int          sampling_rate; */
   int          output_mode = AO_CAP_MODE_STEREO;
 
   uint8_t byte;
@@ -123,7 +200,8 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_info[0] == 0)
     return;
 
-  this->pts = buf->PTS;
+  if (buf->PTS)
+    this->pts = buf->PTS;
   
   while (current != end) {
 
@@ -144,7 +222,7 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    this->frame_buffer[0] = 0x0b;
 	    this->frame_buffer[1] = 0x77;
 	  
-	    this->sync_todo = 4;
+	    this->sync_todo = 5;
 	    this->frame_ptr = this->frame_buffer+2;
 	  }
 	} else {
@@ -152,8 +230,12 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  this->sync_todo--;
 
 	  if (this->sync_todo==0) {
-	    this->frame_length = ac3_frame_length (this->frame_buffer);
-	    this->frame_todo = this->frame_length - 6;
+
+	    this->frame_length = ac3_syncinfo (this->frame_buffer,
+					       &this->ac3_flags,
+					       &this->ac3_sample_rate,
+					       &this->ac3_bit_rate);
+	    this->frame_todo = this->frame_length - 7;
 	  }
 
 	}
@@ -175,33 +257,69 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
      */
 
     if (!this->bypass_mode) {
+
+      int ac3_output_flags, i;
+      float level = this->ac3_level;
       
       /* oki, decode this frame in software*/
 
       /* write (ac3file, this->frame_buffer, this->frame_length); */
 
-      ac3_frame = ac3_decode_frame (this->frame_buffer, this->max_num_channels);
-
       /* determine output mode */
-      switch (ac3_frame->num_channels) {
-      case 1:
-	output_mode = AO_CAP_MODE_MONO;
-	break;
-      case 2:
-	output_mode = AO_CAP_MODE_STEREO;
-	break;
-      case 4:
-	output_mode = AO_CAP_MODE_4CHANNEL;
-	break;
-      case 5:
-	output_mode = AO_CAP_MODE_5CHANNEL;
-	break;
+
+      ac3_output_flags = this->ac3_flags_map[this->ac3_flags & AC3_CHANNEL_MASK];
+
+      if (ac3_frame (&this->ac3_state, 
+		     this->frame_buffer, 
+		     &ac3_output_flags,
+		     &level, 384)) {
+	printf ("libac3: ac3_frame error\n");
+	goto error;
       }
+
+      output_mode = this->ao_flags_map[ac3_output_flags];
+
+      /*
+       * decode ac3 and convert/interleave samples
+       */
+
+      for (i = 0; i < 6; i++) {
+	if (ac3_block (&this->ac3_state)) {
+	  printf ("libac3: ac3_block error\n");
+	  goto error;
+	}
+	
+	switch (output_mode) {
+	case AO_CAP_MODE_MONO:
+	  float_to_int (*samples, this->samples+i*256, 1);
+	  break;
+	case AO_CAP_MODE_STEREO:
+	  float_to_int (samples[0], this->samples+i*256*2, 2);
+	  float_to_int (samples[1], this->samples+1+i*256*2, 2);
+	  break;
+	case AO_CAP_MODE_4CHANNEL:
+	  float_to_int (samples[0], this->samples+i*256*4,   4);
+	  float_to_int (samples[1], this->samples+1+i*256*4, 4);
+	  float_to_int (samples[2], this->samples+2+i*256*4, 4);
+	  float_to_int (samples[3], this->samples+3+i*256*4, 4);
+	  break;
+	case AO_CAP_MODE_5CHANNEL:
+	  float_to_int (samples[0], this->samples+i*256*5,   5);
+	  float_to_int (samples[1], this->samples+1+i*256*5, 5);
+	  float_to_int (samples[2], this->samples+2+i*256*5, 5);
+	  float_to_int (samples[3], this->samples+3+i*256*5, 5);
+	  float_to_int (samples[4], this->samples+4+i*256*5, 5);
+	  break;
+	default:
+	  printf ("libac3: help - unsupported mode %08x\n", output_mode);
+	}
+      }
+      
 
       /*  output decoded samples */
 
       if (!this->output_open 
-	  || (ac3_frame->sampling_rate != this->output_sampling_rate) 
+	  || (this->ac3_sample_rate != this->output_sampling_rate) 
 	  || (output_mode != this->output_mode)) {
       
 	if (this->output_open)
@@ -209,19 +327,23 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 
 	this->output_open = (this->audio_out->open (this->audio_out, 16, 
-						    ac3_frame->sampling_rate,
+						    this->ac3_sample_rate,
 						    output_mode) == 1);
-	this->output_sampling_rate = ac3_frame->sampling_rate;
+	this->output_sampling_rate = this->ac3_sample_rate;
 	this->output_mode = output_mode;
       }
 
       if (this->output_open) {
+
 	this->audio_out->write_audio_data (this->audio_out,
-					   ac3_frame->audio_data,
+					   this->samples,
 					   256*6,
 					   this->pts);
 	this->pts = 0;
       }
+
+    error:
+
     } else {
 
       /*
@@ -229,8 +351,13 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
        */
 
       if (!this->output_open) {
+
+	int sample_rate, bit_rate, flags;
+
+	ac3_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
+
 	this->output_open = (this->audio_out->open (this->audio_out, 16, 
-						    ac3_sampling_rate(this->frame_buffer),
+						    sample_rate,
 						    AO_CAP_MODE_AC3) == 1);
 	this->output_mode = AO_CAP_MODE_AC3;
       }
@@ -261,6 +388,8 @@ void ac3dec_close (audio_decoder_t *this_gen) {
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
 
+  this->output_open = 0;
+
   /* close (ac3file); */
 }
 
@@ -283,6 +412,8 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   this->audio_decoder.decode_data         = ac3dec_decode_data;
   this->audio_decoder.close               = ac3dec_close;
   this->audio_decoder.get_identifier      = ac3dec_get_id;
+
+  this->ac3_level = (float) cfg->lookup_int (cfg, "ac3_level", 100) / 100.0;
   
   return (audio_decoder_t *) this;
 }
