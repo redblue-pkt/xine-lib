@@ -461,7 +461,7 @@ Jeff Smith <whydoubt@yahoo.com>
   CACA video output plugin
 
 Yann Vernier <yann@algonet.se>
-  Via Ezra cpu detection
+  Via Ezra cpu detection, colorkey overlay support for OSD
 
 David Woodhouse
   file (wave) audio out plugin
