@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.116 2002/11/18 11:33:59 mroi Exp $
+ * $Id: input_dvd.c,v 1.117 2002/11/18 11:48:35 mroi Exp $
  *
  */
 
@@ -1235,7 +1235,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->dvdnav                 = NULL;
   this->opened                 = 0;
-  this->seekable               = 1;
+  this->seekable               = 0;
   this->buttonN                = 0;
   this->typed_buttonN          = 0;
   this->dvd_name[0]            = 0;
@@ -1664,6 +1664,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.117  2002/11/18 11:48:35  mroi
+ * DVD input should now be initially unseekable
+ *
  * Revision 1.116  2002/11/18 11:33:59  mroi
  * getting rid of obviously unused INPUT_CAP_VARIABLE_BITRATE
  * fix ejecting (works now)
