@@ -28,6 +28,7 @@
  
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
@@ -393,6 +394,7 @@ void ff_init_me(MpegEncContext *s){
     }
 }
       
+#if 0
 static int pix_dev(uint8_t * pix, int line_size, int mean)
 {
     int s, i, j;
@@ -414,6 +416,7 @@ static int pix_dev(uint8_t * pix, int line_size, int mean)
     }
     return s;
 }
+#endif
 
 static inline void no_motion_search(MpegEncContext * s,
 				    int *mx_ptr, int *my_ptr)
@@ -809,13 +812,8 @@ static inline void get_limits(MpegEncContext *s, int *range, int *xmin, int *ymi
     if (s->unrestricted_mv) {
         *xmin = -16;
         *ymin = -16;
-        if(s->avctx->codec->id!=CODEC_ID_MPEG4){
-            *xmax = s->mb_width*16;
-            *ymax = s->mb_height*16;
-        }else {
-            *xmax = s->width;
-            *ymax = s->height;
-        }
+        *xmax = s->mb_width*16;
+        *ymax = s->mb_height*16;
     } else {
         *xmin = 0;
         *ymin = 0;
@@ -832,6 +830,7 @@ static inline int h263_mv4_search(MpegEncContext *s, int xmin, int ymin, int xma
     int P[10][2];
     int dmin_sum=0, mx4_sum=0, my4_sum=0;
     uint8_t * const mv_penalty= s->me.mv_penalty[s->f_code] + MAX_MV;
+    int same=1;
 
     for(block=0; block<4; block++){
         int mx4, my4;
@@ -930,7 +929,12 @@ static inline int h263_mv4_search(MpegEncContext *s, int xmin, int ymin, int xma
             
         s->motion_val[ s->block_index[block] ][0]= mx4;
         s->motion_val[ s->block_index[block] ][1]= my4;
+
+        if(mx4 != mx || my4 != my) same=0;
     }
+    
+    if(same)
+        return INT_MAX;
     
     if(s->dsp.me_sub_cmp[0] != s->dsp.mb_cmp[0]){
         dmin_sum += s->dsp.mb_cmp[0](s, s->new_picture.data[0] + s->mb_x*16 + s->mb_y*16*s->linesize, s->me.scratchpad, s->linesize);
@@ -1088,7 +1092,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
     printf("varc=%4d avg_var=%4d (sum=%4d) vard=%4d mx=%2d my=%2d\n",
 	   varc, s->avg_mb_var, sum, vard, mx - xx, my - yy);
 #endif
-    if(s->flags&CODEC_FLAG_HQ){
+    if(s->avctx->mb_decision > FF_MB_DECISION_SIMPLE){
         if (vard <= 64 || vard < varc)
             s->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
         else
@@ -1100,14 +1104,17 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
             mb_type|= MB_TYPE_INTER;
             s->me.sub_motion_search(s, &mx, &my, dmin, rel_xmin, rel_ymin, rel_xmax, rel_ymax,
 				   pred_x, pred_y, &s->last_picture, 0, 0, mv_penalty);
+            if(s->flags&CODEC_FLAG_MV0)
+                if(mx || my)
+                    mb_type |= MB_TYPE_SKIPED; //FIXME check difference
         }else{
             mx <<=shift;
             my <<=shift;
         }
         if((s->flags&CODEC_FLAG_4MV)
            && !s->me.skip && varc>50 && vard>10){
-            h263_mv4_search(s, rel_xmin, rel_ymin, rel_xmax, rel_ymax, mx, my, shift);
-            mb_type|=MB_TYPE_INTER4V;
+            if(h263_mv4_search(s, rel_xmin, rel_ymin, rel_xmax, rel_ymax, mx, my, shift) < INT_MAX)
+                mb_type|=MB_TYPE_INTER4V;
 
             set_p_mv_tables(s, mx, my, 0);
         }else
@@ -1320,8 +1327,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 3) << 2) | (motion_fx & 3);
         src_x = mb_x * 16 + (motion_fx >> 2);
         src_y = mb_y * 16 + (motion_fy >> 2);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        assert(src_x >=-16 && src_x<=s->h_edge_pos);
+        assert(src_y >=-16 && src_y<=s->v_edge_pos);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1329,8 +1336,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 3) << 2) | (motion_bx & 3);
         src_x = mb_x * 16 + (motion_bx >> 2);
         src_y = mb_y * 16 + (motion_by >> 2);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        assert(src_x >=-16 && src_x<=s->h_edge_pos);
+        assert(src_y >=-16 && src_y<=s->v_edge_pos);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1338,8 +1345,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 1) << 1) | (motion_fx & 1);
         src_x = mb_x * 16 + (motion_fx >> 1);
         src_y = mb_y * 16 + (motion_fy >> 1);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        assert(src_x >=-16 && src_x<=s->h_edge_pos);
+        assert(src_y >=-16 && src_y<=s->v_edge_pos);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1347,8 +1354,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 1) << 1) | (motion_bx & 1);
         src_x = mb_x * 16 + (motion_bx >> 1);
         src_y = mb_y * 16 + (motion_by >> 1);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        assert(src_x >=-16 && src_x<=s->h_edge_pos);
+        assert(src_y >=-16 && src_y<=s->v_edge_pos);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1497,20 +1504,27 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
     int fmin, bmin, dmin, fbmin;
     int type=0;
     
-    dmin= direct_search(s, mb_x, mb_y);
+    s->me.skip=0;
+    if (s->codec_id == CODEC_ID_MPEG4)
+        dmin= direct_search(s, mb_x, mb_y);
+    else
+        dmin= INT_MAX;
 
+    s->me.skip=0;
     fmin= ff_estimate_motion_b(s, mb_x, mb_y, s->b_forw_mv_table, &s->last_picture, s->f_code) + 3*penalty_factor;
+    
+    s->me.skip=0;
     bmin= ff_estimate_motion_b(s, mb_x, mb_y, s->b_back_mv_table, &s->next_picture, s->b_code) + 2*penalty_factor;
 //printf(" %d %d ", s->b_forw_mv_table[xy][0], s->b_forw_mv_table[xy][1]);
 
+    s->me.skip=0;
     fbmin= bidir_refine(s, mb_x, mb_y) + penalty_factor;
 //printf("%d %d %d %d\n", dmin, fmin, bmin, fbmin);
     {
         int score= fmin;
         type = MB_TYPE_FORWARD;
         
-        // RAL: No MB_TYPE_DIRECT in MPEG-1 video (only MPEG-4)
-        if (s->codec_id != CODEC_ID_MPEG1VIDEO && dmin <= score){
+        if (dmin <= score){
             score = dmin;
             type = MB_TYPE_DIRECT;
         }
@@ -1528,7 +1542,7 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
         s->current_picture.mc_mb_var[mb_y*s->mb_stride + mb_x] = score; //FIXME use SSE
     }
 
-    if(s->flags&CODEC_FLAG_HQ){
+    if(s->avctx->mb_decision > FF_MB_DECISION_SIMPLE){
         type= MB_TYPE_FORWARD | MB_TYPE_BACKWARD | MB_TYPE_BIDIR | MB_TYPE_DIRECT; //FIXME something smarter
         if(dmin>256*256*16) type&= ~MB_TYPE_DIRECT; //dont try direct mode if its invalid for this MB
     }
@@ -1589,8 +1603,9 @@ void ff_fix_long_p_mvs(MpegEncContext * s)
 {
     const int f_code= s->f_code;
     int y, range;
+    assert(s->pict_type==P_TYPE);
 
-    range = (((s->codec_id == CODEC_ID_MPEG1VIDEO) ? 8 : 16) << f_code);
+    range = (((s->out_format == FMT_MPEG1) ? 8 : 16) << f_code);
     
     if(s->msmpeg4_version) range= 16;
     
@@ -1650,7 +1665,7 @@ void ff_fix_long_b_mvs(MpegEncContext * s, int16_t (*mv_table)[2], int f_code, i
     int y;
 
     // RAL: 8 in MPEG-1, 16 in MPEG-4
-    int range = (((s->codec_id == CODEC_ID_MPEG1VIDEO) ? 8 : 16) << f_code);
+    int range = (((s->out_format == FMT_MPEG1) ? 8 : 16) << f_code);
     
     if(s->avctx->me_range && range > s->avctx->me_range) range= s->avctx->me_range;
 

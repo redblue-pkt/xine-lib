@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.130 2003/10/23 20:12:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.131 2003/10/27 15:24:38 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -230,13 +230,20 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
    * first frame. setting to -1 avoid enabling DR1 for them.
    */
   this->context->pix_fmt = -1;
-  
+
   if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
     this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
     this->context->extradata = malloc(this->context->extradata_size);
     memcpy( this->context->extradata, 
             (uint8_t *)bih + sizeof(xine_bmiheader),
             this->context->extradata_size ); 
+  }
+  if ((this->codec->id == CODEC_ID_XAN_WC3) ||
+      (this->codec->id == CODEC_ID_INTERPLAY_VIDEO)) {
+    /* dupe certain decoders by giving them an empty palette; these
+     * decoders do not care about the palette during initialization */
+    this->context->extradata_size = sizeof(AVPaletteControl);
+    this->context->extradata = xine_xmalloc(this->context->extradata_size);
   }
   
   if(bih)
@@ -278,7 +285,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   
   if((this->context->pix_fmt == PIX_FMT_RGBA32) ||
      (this->context->pix_fmt == PIX_FMT_RGB565) ||
-     (this->context->pix_fmt == PIX_FMT_RGB555)) {
+     (this->context->pix_fmt == PIX_FMT_RGB555) ||
+     (this->context->pix_fmt == PIX_FMT_PAL8)) {
     this->output_format = XINE_IMGFMT_YUY2;
     init_yuv_planes(&this->yuv, this->context->width, this->context->height);
   } else {
@@ -643,6 +651,45 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
             
     yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
           
+  } else if (this->context->pix_fmt == PIX_FMT_PAL8) {
+          
+    int x, plane_ptr = 0;
+    uint8_t *src;
+    uint8_t pixel;
+    uint32_t *palette32 = (uint32_t *)su;  /* palette is in data[1] */
+    uint32_t rgb_color;
+    uint8_t r, g, b;
+    uint8_t y_palette[256];
+    uint8_t u_palette[256];
+    uint8_t v_palette[256];
+
+    for (x = 0; x < 256; x++) {
+      rgb_color = palette32[x];
+      b = rgb_color & 0xFF;
+      rgb_color >>= 8;
+      g = rgb_color & 0xFF;
+      rgb_color >>= 8;
+      r = rgb_color & 0xFF;
+      y_palette[x] = COMPUTE_Y(r, g, b);
+      u_palette[x] = COMPUTE_U(r, g, b);
+      v_palette[x] = COMPUTE_V(r, g, b);
+    }
+
+    for(y = 0; y < this->context->height; y++) {
+      src = sy;
+      for(x = 0; x < this->context->width; x++) {
+        pixel = *src++;
+
+        this->yuv.y[plane_ptr] = y_palette[pixel];
+        this->yuv.u[plane_ptr] = u_palette[pixel];
+        this->yuv.v[plane_ptr] = v_palette[pixel];
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
   } else {
           
     for (y=0; y<this->context->height; y++) {
@@ -828,6 +875,56 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
 	= strdup ("4XM (ffmpeg)");
       break;
+    case BUF_VIDEO_CINEPAK:
+      this->codec = avcodec_find_decoder (CODEC_ID_CINEPAK);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Cinepak (ffmpeg)");
+      break;
+    case BUF_VIDEO_MSVC:
+      this->codec = avcodec_find_decoder (CODEC_ID_MSVIDEO1);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Microsoft Video 1 (ffmpeg)");
+      break;
+    case BUF_VIDEO_MSRLE:
+      this->codec = avcodec_find_decoder (CODEC_ID_MSRLE);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Microsoft RLE (ffmpeg)");
+      break;
+    case BUF_VIDEO_RPZA:
+      this->codec = avcodec_find_decoder (CODEC_ID_RPZA);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Apple Quicktime Video/RPZA (ffmpeg)");
+      break;
+    case BUF_VIDEO_CYUV:
+      this->codec = avcodec_find_decoder (CODEC_ID_CYUV);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Creative YUV (ffmpeg)");
+      break;
+    case BUF_VIDEO_ROQ:
+      this->codec = avcodec_find_decoder (CODEC_ID_ROQ);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Id Software RoQ (ffmpeg)");
+      break;
+    case BUF_VIDEO_IDCIN:
+      this->codec = avcodec_find_decoder (CODEC_ID_IDCIN);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Id Software CIN (ffmpeg)");
+      break;
+    case BUF_VIDEO_WC3:
+      this->codec = avcodec_find_decoder (CODEC_ID_XAN_WC3);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Xan (ffmpeg)");
+      break;
+    case BUF_VIDEO_VQA:
+      this->codec = avcodec_find_decoder (CODEC_ID_WS_VQA);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Westwood Studios VQA (ffmpeg)");
+      break;
+    case BUF_VIDEO_INTERPLAY:
+      this->codec = avcodec_find_decoder (CODEC_ID_INTERPLAY_VIDEO);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("Interplay MVE (ffmpeg)");
+      break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
 	      buf->type & 0xFFFF0000);
@@ -843,13 +940,45 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     init_video_codec (this, (xine_bmiheader *)buf->content );
     init_postprocess (this);
 
-  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
+    free(this->context->extradata);
+    this->context->extradata = NULL;
+    this->context->extradata_size = 0;
 
-    this->context->extradata_size = buf->decoder_info[2];
-    this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
-    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
-      buf->decoder_info[2]);
+  } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
+
+    /* take care of all the various types of special buffers */
+
+    /* first, free any previous extradata chunk */
+    free(this->context->extradata);
+    this->context->extradata = NULL;
+    this->context->extradata_size = 0;
+
+    if (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM) {
+
+      this->context->extradata_size = buf->decoder_info[2];
+      this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+      memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+        buf->decoder_info[2]);
+
+    } else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
+
+      int i;
+      palette_entry_t *demuxer_palette;
+      AVPaletteControl *decoder_palette;
+
+      this->context->extradata_size = sizeof(AVPaletteControl);
+      this->context->extradata = xine_xmalloc(this->context->extradata_size);
+
+      decoder_palette = (AVPaletteControl *)this->context->extradata;
+      demuxer_palette = (palette_entry_t *)buf->decoder_info_ptr[2];
+
+      for (i = 0; i < buf->decoder_info[2]; i++) {
+        decoder_palette->palette[i * 3 + 0] = demuxer_palette[i].r;
+        decoder_palette->palette[i * 3 + 1] = demuxer_palette[i].g;
+        decoder_palette->palette[i * 3 + 2] = demuxer_palette[i].b;
+      }
+      decoder_palette->palette_changed = 1;
+    }
 
   } else if (this->decoder_ok) {
 
@@ -916,7 +1045,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
           len = this->size;
 	  got_picture = 1;
 	} else
-	  len = avcodec_decode_video (this->context, this->av_frame,
+          len = avcodec_decode_video (this->context, this->av_frame,
 				      &got_picture, &this->buf[offset],
 				      this->size);
 	if (len<0) {
@@ -943,7 +1072,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	printf ("ffmpeg: got a picture\n");
 #endif
 
-	this->aspect_ratio = this->context->aspect_ratio;
+	this->aspect_ratio = av_q2d (this->context->sample_aspect_ratio);
 
 	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
 	  img = (vo_frame_t*)this->av_frame->opaque;
@@ -1079,9 +1208,9 @@ void avcodec_register_all(void)
     register_avcodec(&wmav1_decoder);
     register_avcodec(&wmav2_decoder);
     register_avcodec(&indeo3_decoder);
-    register_avcodec(&mpeg_decoder);
+    register_avcodec(&mpeg1video_decoder);
     register_avcodec(&dvvideo_decoder);
-    register_avcodec(&dvaudio_decoder);
+    register_avcodec(&pcm_s16le_decoder);
     register_avcodec(&mjpeg_decoder);
     register_avcodec(&mjpegb_decoder);
     register_avcodec(&mp2_decoder);
@@ -1095,6 +1224,26 @@ void avcodec_register_all(void)
     register_avcodec(&fourxm_decoder);
     register_avcodec(&ra_144_decoder);
     register_avcodec(&ra_288_decoder);
+    register_avcodec(&adpcm_ms_decoder);
+    register_avcodec(&adpcm_ima_qt_decoder);
+    register_avcodec(&adpcm_ima_wav_decoder);
+    register_avcodec(&adpcm_ima_dk3_decoder);
+    register_avcodec(&adpcm_ima_dk4_decoder);
+    register_avcodec(&adpcm_ima_ws_decoder);
+    register_avcodec(&adpcm_xa_decoder);
+    register_avcodec(&pcm_alaw_decoder);
+    register_avcodec(&pcm_mulaw_decoder);
+    register_avcodec(&roq_dpcm_decoder);
+    register_avcodec(&interplay_dpcm_decoder);
+    register_avcodec(&cinepak_decoder);
+    register_avcodec(&msvideo1_decoder);
+    register_avcodec(&msrle_decoder);
+    register_avcodec(&rpza_decoder);
+    register_avcodec(&roq_decoder);
+    register_avcodec(&idcin_decoder);
+    register_avcodec(&xan_wc3_decoder);
+    register_avcodec(&vqa_decoder);
+    register_avcodec(&interplay_video_decoder);
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
@@ -1120,7 +1269,8 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if((this->context) && 
    ((this->context->pix_fmt == PIX_FMT_RGBA32) ||
     (this->context->pix_fmt == PIX_FMT_RGB565) ||
-    (this->context->pix_fmt == PIX_FMT_RGB555)))
+    (this->context->pix_fmt == PIX_FMT_RGB555) ||
+    (this->context->pix_fmt == PIX_FMT_PAL8)))
     free_yuv_planes(&this->yuv);
   
   if( this->context )
@@ -1278,6 +1428,61 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->codec = avcodec_find_decoder (CODEC_ID_MP3LAME);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	= strdup ("MP3 (ffmpeg)");
+      break;
+    case BUF_AUDIO_MSADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_MS);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("MS ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_QTIMAADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_QT);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("QT IMA ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_MSIMAADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_WAV);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("MS IMA ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_DK3ADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_DK3);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Duck DK3 ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_DK4ADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_DK4);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Duck DK4 ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_VQA_IMA:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_IMA_WS);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Westwood Studios IMA (ffmpeg)");
+      break;
+    case BUF_AUDIO_XA_ADPCM:
+      this->codec = avcodec_find_decoder (CODEC_ID_ADPCM_XA);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("CD-ROM/XA ADPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_MULAW:
+      this->codec = avcodec_find_decoder (CODEC_ID_PCM_MULAW);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("mu-law logarithmic PCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_ALAW:
+      this->codec = avcodec_find_decoder (CODEC_ID_PCM_ALAW);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("A-law logarithmic PCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_ROQ:
+      this->codec = avcodec_find_decoder (CODEC_ID_ROQ_DPCM);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("RoQ DPCM (ffmpeg)");
+      break;
+    case BUF_AUDIO_INTERPLAY:
+      this->codec = avcodec_find_decoder (CODEC_ID_INTERPLAY_DPCM);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Interplay DPCM (ffmpeg)");
       break;
     }
 
@@ -1527,8 +1732,18 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
   BUF_VIDEO_HUFFYUV,
-/*  BUF_VIDEO_VP31,*/
+  BUF_VIDEO_VP31,
   BUF_VIDEO_4XM,
+  BUF_VIDEO_CINEPAK,
+  BUF_VIDEO_MSVC,
+  BUF_VIDEO_MSRLE,
+  BUF_VIDEO_RPZA,
+  BUF_VIDEO_CYUV,
+  BUF_VIDEO_ROQ,
+  BUF_VIDEO_IDCIN,
+  BUF_VIDEO_WC3,
+  BUF_VIDEO_VQA,
+  BUF_VIDEO_INTERPLAY,
   0 
 };
 
@@ -1543,6 +1758,17 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_DV,
   BUF_AUDIO_14_4,
   BUF_AUDIO_28_8,
+  BUF_AUDIO_MULAW,
+  BUF_AUDIO_ALAW,
+  BUF_AUDIO_MSADPCM,
+  BUF_AUDIO_QTIMAADPCM,
+  BUF_AUDIO_MSIMAADPCM,
+  BUF_AUDIO_DK3ADPCM,
+  BUF_AUDIO_DK4ADPCM,
+  BUF_AUDIO_XA_ADPCM,
+  BUF_AUDIO_ROQ,
+  BUF_AUDIO_INTERPLAY,
+  BUF_AUDIO_VQA_IMA,
   /* BUF_AUDIO_MPEG, */
   0
 };

@@ -39,7 +39,6 @@
 
 /* dct code */
 typedef short DCTELEM;
-//typedef int DCTELEM;
 
 void fdct_ifast (DCTELEM *data);
 void ff_jpeg_fdct_islow (DCTELEM *data);
@@ -167,7 +166,7 @@ typedef struct DSPContext {
 
     /**
      * Halfpel motion compensation with rounding (a+b+1)>>1.
-     * this is an array[4][4] of motion compensation functions for 4
+     * This is an array[4][4] of motion compensation functions for 4 
      * horizontal blocksizes (2,4,8,16) and the 4 halfpel positions<br>
      * *pixels_tab[ 0->16xH 1->8xH ][ xhalfpel + 2*yhalfpel ]
      * @param block destination into which the result is averaged (a+b+1)>>1
@@ -212,7 +211,7 @@ typedef struct DSPContext {
      */
     tpel_mc_func put_tpel_pixels_tab[11]; //FIXME individual func ptr per width?
     tpel_mc_func avg_tpel_pixels_tab[11]; //FIXME individual func ptr per width?
-    
+
     qpel_mc_func put_qpel_pixels_tab[2][16];
     qpel_mc_func avg_qpel_pixels_tab[2][16];
     qpel_mc_func put_no_rnd_qpel_pixels_tab[2][16];
@@ -240,10 +239,18 @@ typedef struct DSPContext {
     /* huffyuv specific */
     void (*add_bytes)(uint8_t *dst/*align 16*/, uint8_t *src/*align 16*/, int w);
     void (*diff_bytes)(uint8_t *dst/*align 16*/, uint8_t *src1/*align 16*/, uint8_t *src2/*align 1*/,int w);
+    /**
+     * subtract huffyuv's variant of median prediction
+     * note, this might read from src1[-1], src2[-1]
+     */
+    void (*sub_hfyu_median_prediction)(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w, int *left, int *left_top);
     void (*bswap_buf)(uint32_t *dst, uint32_t *src, int w);
     
     /* (I)DCT */
     void (*fdct)(DCTELEM *block/* align 16*/);
+    
+    /* IDCT really*/
+    void (*idct)(DCTELEM *block/* align 16*/);
     
     /**
      * block -> idct -> clip to unsigned 8 bit -> dest.
@@ -496,6 +503,12 @@ static inline long int lrintf(float x)
 #else
     return (int)(rint(x));
 #endif
+}
+#endif
+
+#if defined(CONFIG_OS2) || defined(CONFIG_SUNOS)
+static inline float floorf(float f) { 
+    return floor(f); 
 }
 #endif
 

@@ -213,9 +213,77 @@ static inline int isVertDC_C(uint8_t src[], int stride, PPContext *c){
 
 static inline int isHorizMinMaxOk(uint8_t src[], int stride, int QP)
 {
-	if(abs(src[0] - src[7]) > 2*QP) return 0;
-
+	int i;
+#if 1
+	for(i=0; i<2; i++){
+		if((unsigned)(src[0] - src[5] + 2*QP) > 4*QP) return 0;
+		src += stride;
+		if((unsigned)(src[2] - src[7] + 2*QP) > 4*QP) return 0;
+		src += stride;
+		if((unsigned)(src[4] - src[1] + 2*QP) > 4*QP) return 0;
+		src += stride;
+		if((unsigned)(src[6] - src[3] + 2*QP) > 4*QP) return 0;
+		src += stride;
+	}
+#else        
+	for(i=0; i<8; i++){
+		if((unsigned)(src[0] - src[7] + 2*QP) > 4*QP) return 0;
+		src += stride;
+	}
+#endif
 	return 1;
+}
+
+static inline int isVertMinMaxOk_C(uint8_t src[], int stride, int QP)
+{
+#if 1
+#if 1
+	int x;
+	src+= stride*4;
+	for(x=0; x<BLOCK_SIZE; x+=4)
+	{
+		if((unsigned)(src[  x + 0*stride] - src[  x + 5*stride] + 2*QP) > 4*QP) return 0;
+		if((unsigned)(src[1+x + 2*stride] - src[1+x + 7*stride] + 2*QP) > 4*QP) return 0;
+		if((unsigned)(src[2+x + 4*stride] - src[2+x + 1*stride] + 2*QP) > 4*QP) return 0;
+		if((unsigned)(src[3+x + 6*stride] - src[3+x + 3*stride] + 2*QP) > 4*QP) return 0;
+	}
+#else
+	int x;
+	src+= stride*3;
+	for(x=0; x<BLOCK_SIZE; x++)
+	{
+		if((unsigned)(src[x + stride] - src[x + (stride<<3)] + 2*QP) > 4*QP) return 0;
+	}
+#endif
+	return 1;
+#else
+	int x;
+	src+= stride*4;
+	for(x=0; x<BLOCK_SIZE; x++)
+	{
+		int min=255;
+		int max=0;
+		int y;
+		for(y=0; y<8; y++){
+			int v= src[x + y*stride];
+			if(v>max) max=v;
+			if(v<min) min=v;
+		}
+		if(max-min > 2*QP) return 0;
+	}
+	return 1;
+#endif
+}
+
+static inline int vertClassify_C(uint8_t src[], int stride, PPContext *c){
+	if( isVertDC_C(src, stride, c) ){
+		if( isVertMinMaxOk_C(src, stride, c->QP) )
+			return 1;
+		else
+			return 0;
+	}else{
+		return 2;
+	}
 }
 
 static inline void doHorizDefFilter(uint8_t dst[], int stride, int QP)
@@ -481,18 +549,18 @@ char *pp_help=
 "tn:64:128:256\n"
 "Filters			Options\n"
 "short	long name	short	long option	Description\n"
-"*	*		a	autoq		cpu power dependant enabler\n"
-"			c	chrom		chrominance filtring enabled\n"
-"			y	nochrom		chrominance filtring disabled\n"
-"hb	hdeblock	(2 Threshold)		horizontal deblocking filter\n"
+"*	*		a	autoq		CPU power dependent enabler\n"
+"			c	chrom		chrominance filtering enabled\n"
+"			y	nochrom		chrominance filtering disabled\n"
+"hb	hdeblock	(2 threshold)		horizontal deblocking filter\n"
 "	1. difference factor: default=32, higher -> more deblocking\n"
 "	2. flatness threshold: default=39, lower -> more deblocking\n"
 "			the h & v deblocking filters share these\n"
-"			so u cant set different thresholds for h / v\n"
-"vb	vdeblock	(2 Threshold)		vertical deblocking filter\n"
-"h1	x1hdeblock				Experimental h deblock filter 1\n"
-"v1	x1vdeblock				Experimental v deblock filter 1\n"
-"dr	dering					Deringing filter\n"
+"			so you can't set different thresholds for h / v\n"
+"vb	vdeblock	(2 threshold)		vertical deblocking filter\n"
+"h1	x1hdeblock				experimental h deblock filter 1\n"
+"v1	x1vdeblock				experimental v deblock filter 1\n"
+"dr	dering					deringing filter\n"
 "al	autolevels				automatic brightness / contrast\n"
 "			f	fullyrange	stretch luminance to (0..255)\n"
 "lb	linblenddeint				linear blend deinterlacer\n"
@@ -502,9 +570,9 @@ char *pp_help=
 "fd	ffmpegdeint				ffmpeg deinterlacer\n"
 "de	default					hb:a,vb:a,dr:a,al\n"
 "fa	fast					h1:a,v1:a,dr:a,al\n"
-"tn	tmpnoise	(3 Thresholds)		Temporal Noise Reducer\n"
+"tn	tmpnoise	(3 threshold)		temporal noise reducer\n"
 "			1. <= 2. <= 3.		larger -> stronger filtering\n"
-"fq	forceQuant	<quantizer>		Force quantizer\n"
+"fq	forceQuant	<quantizer>		force quantizer\n"
 ;
 
 pp_mode_t *pp_get_mode_by_name_and_quality(char *name, int quality)

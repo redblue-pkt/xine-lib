@@ -25,6 +25,7 @@
 #    include <stdlib.h>
 #    include <stdio.h>
 #    include <string.h>
+#    include <ctype.h>
 #    ifndef __BEOS__
 #        include <errno.h>
 #    else
@@ -98,19 +99,23 @@ typedef signed __int64 int64_t;
 #        define int64_t_C(c)     (c ## i64)
 #        define uint64_t_C(c)    (c ## i64)
 
-#        define inline __inline
+#    ifdef HAVE_AV_CONFIG_H
+#            define inline __inline
+#    endif
 
 #    else
 #        define int64_t_C(c)     (c ## LL)
 #        define uint64_t_C(c)    (c ## ULL)
 #    endif /* __MINGW32__ */
 
-#    ifdef _DEBUG
-#        define DEBUG
-#    endif
+#    ifdef HAVE_AV_CONFIG_H
+#        ifdef _DEBUG
+#            define DEBUG
+#        endif
 
-#    define snprintf _snprintf
-#    define vsnprintf _vsnprintf
+#        define snprintf _snprintf
+#        define vsnprintf _vsnprintf
+#    endif
 
 /* CONFIG_WIN32 end */
 #elif defined (CONFIG_OS2)
@@ -118,12 +123,12 @@ typedef signed __int64 int64_t;
 
 #include <inttypes.h>
 
-#ifdef HAVE_AV_CONFIG_H
-
 #ifndef int64_t_C
 #define int64_t_C(c)     (c ## LL)
 #define uint64_t_C(c)    (c ## ULL)
 #endif
+
+#ifdef HAVE_AV_CONFIG_H
 
 #ifdef USE_FASTMEMCPY
 #include "fastmemcpy.h"
@@ -138,13 +143,14 @@ typedef signed __int64 int64_t;
 
 /* unix */
 
-#    include <inttypes.h>
+#include <inttypes.h>
 
-#    ifdef HAVE_AV_CONFIG_H
-#        ifndef int64_t_C
-#            define int64_t_C(c)     (c ## LL)
-#            define uint64_t_C(c)    (c ## ULL)
-#        endif
+#ifndef int64_t_C
+#define int64_t_C(c)     (c ## LL)
+#define uint64_t_C(c)    (c ## ULL)
+#endif
+
+#ifdef HAVE_AV_CONFIG_H
 
 #        ifdef USE_FASTMEMCPY
 #            include "fastmemcpy.h"
@@ -263,10 +269,7 @@ typedef struct PutBitContext {
     int64_t data_out_size; /* in bytes */
 } PutBitContext;
 
-void init_put_bits(PutBitContext *s, 
-                   uint8_t *buffer, int buffer_size,
-                   void *opaque,
-                   void (*write_data)(void *, uint8_t *, int));
+void init_put_bits(PutBitContext *s, uint8_t *buffer, int buffer_size);
 
 int64_t get_bit_count(PutBitContext *s); /* XXX: change function name */
 void align_put_bits(PutBitContext *s);
@@ -350,23 +353,14 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
 
-    assert(bit_left >= 0 && bit_left <= 32);
-
     //    printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
     /* XXX: optimize */
     if (n < bit_left) {
-        if (n == 32)
-	    bit_buf = value;
-	else
-	    bit_buf = (bit_buf<<n) | value;
+        bit_buf = (bit_buf<<n) | value;
         bit_left-=n;
     } else {
-	if (bit_left == 32)
-	    bit_buf=0;
-	else
-	    bit_buf<<=bit_left;
-        if (n - bit_left < 32)
-	    bit_buf |= value >> (n - bit_left);
+	bit_buf<<=bit_left;
+        bit_buf |= value >> (n - bit_left);
 #ifdef UNALIGNED_STORES_ARE_BAD
         if (3 & (int) s->buf_ptr) {
             s->buf_ptr[0] = bit_buf >> 24;
@@ -1062,15 +1056,12 @@ static inline int ff_sqrt(int a)
  */
 static inline int ff_get_fourcc(const char *s){
     assert( strlen(s)==4 );
-    
+
     return (s[0]) + (s[1]<<8) + (s[2]<<16) + (s[3]<<24);
 }
 
 #define MKTAG(a,b,c,d) (a | (b << 8) | (c << 16) | (d << 24))
 #define MKBETAG(a,b,c,d) (d | (c << 8) | (b << 16) | (a << 24))
-
-
-void ff_float2fraction(int *nom_arg, int *denom_arg, double f, int max);
 
 
 #ifdef ARCH_X86
@@ -1146,7 +1137,7 @@ if(256*256*256*64%(tcount+tskip_count)==0){\
 #define CHECKED_ALLOCZ(p, size)\
 {\
     p= av_mallocz(size);\
-    if(p==NULL){\
+    if(p==NULL && (size)!=0){\
         perror("malloc");\
         goto fail;\
     }\

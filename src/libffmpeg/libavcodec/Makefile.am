@@ -18,8 +18,13 @@ noinst_LTLIBRARIES = libavcodec.la
 
 libavcodec_la_SOURCES = \
 	4xm.c \
+	adpcm.c \
+	asv1.c \
+	cabac.c \
+	cinepak.c \
 	common.c \
 	cyuv.c \
+	dpcm.c \
 	dsputil.c \
 	dv.c \
 	error_resilience.c \
@@ -30,8 +35,10 @@ libavcodec_la_SOURCES = \
 	h263dec.c \
 	h264.c \
 	huffyuv.c \
+	idcinvideo.c \
 	imgconvert.c \
 	indeo3.c \
+	interplayvideo.c \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
@@ -43,16 +50,25 @@ libavcodec_la_SOURCES = \
 	mpegaudiodec.c \
 	mpegvideo.c \
 	msmpeg4.c \
+	msrle.c \
+	msvideo1.c \
 	opts.c \
+	pcm.c \
 	ra144.c \
 	ra288.c \
 	ratecontrol.c \
+	rational.c \
+	roqvideo.c \
+	rpza.c \
 	rv10.c \
 	simple_idct.c \
 	svq1.c \
 	utils.c \
+	vcr1.c \
 	vp3.c \
-	wmadec.c 
+	vqavideo.c \
+	wmadec.c \
+	xan.c
 
 libavcodec_la_LDFLAGS = \
 	$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
@@ -63,6 +79,7 @@ libavcodec_la_LDFLAGS = \
 
 noinst_HEADERS = \
 	avcodec.h \
+	cabac.h \
 	common.h \
 	dsputil.h \
 	dvdata.h \
@@ -81,6 +98,8 @@ noinst_HEADERS = \
 	mpegvideo.h \
 	msmpeg4data.h \
 	os_support.h \
+	ra144.h \
+	ra288.h \
 	simple_idct.h \
 	svq1_cb.h \
 	svq1_vlc.h \

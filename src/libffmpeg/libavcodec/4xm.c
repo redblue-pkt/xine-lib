@@ -426,6 +426,11 @@ static inline void idct_put(FourXContext *f, int x, int y){
         for(i=4; i<6; i++) idct(block[i]);
     }
 
+/* Note transform is:
+y= ( 1b + 4g + 2r)/14
+cb=( 3b - 2g - 1r)/14
+cr=(-1b - 4g + 5r)/14
+*/ 
     for(y=0; y<8; y++){
         for(x=0; x<8; x++){
             DCTELEM *temp= block[(x>>2) + 2*(y>>2)] + 2*(x&3) + 2*8*(y&3); //FIXME optimize
@@ -551,7 +556,7 @@ static int decode_i_frame(FourXContext *f, uint8_t *buf, int length){
     uint16_t *dst= (uint16_t*)f->current_picture.data[0];
     const int stride= f->current_picture.linesize[0]>>1;
     const int bitstream_size= get32(buf);
-    const int token_count= get32(buf + bitstream_size + 8);
+    const int token_count __attribute__((unused)) = get32(buf + bitstream_size + 8);
     int prestream_size= 4*get32(buf + bitstream_size + 4);
     uint8_t *prestream= buf + bitstream_size + 12;
     

@@ -2526,6 +2526,24 @@ static void diff_bytes_c(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w){
         dst[i+0] = src1[i+0]-src2[i+0];
 }
 
+static void sub_hfyu_median_prediction_c(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w, int *left, int *left_top){
+    int i;
+    uint8_t l, lt;
+
+    l= *left;
+    lt= *left_top;
+
+    for(i=0; i<w; i++){
+        const int pred= mid_pred(l, src1[i], (l + src1[i] - lt)&0xFF);
+        lt= src1[i];
+        l= src2[i];
+        dst[i]= l - pred;
+    }    
+
+    *left= l;
+    *left_top= lt;
+}
+
 #define BUTTERFLY2(o1,o2,i1,i2) \
 o1= (i1)+(i2);\
 o2= (i1)-(i2);
@@ -2860,10 +2878,12 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
     if(avctx->idct_algo==FF_IDCT_INT){
         c->idct_put= ff_jref_idct_put;
         c->idct_add= ff_jref_idct_add;
+        c->idct    = j_rev_dct;
         c->idct_permutation_type= FF_LIBMPEG2_IDCT_PERM;
     }else{ //accurate/default
         c->idct_put= simple_idct_put;
         c->idct_add= simple_idct_add;
+        c->idct    = simple_idct;
         c->idct_permutation_type= FF_NO_IDCT_PERM;
     }
 
@@ -3005,6 +3025,7 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
         
     c->add_bytes= add_bytes_c;
     c->diff_bytes= diff_bytes_c;
+    c->sub_hfyu_median_prediction= sub_hfyu_median_prediction_c;
     c->bswap_buf= bswap_buf;
 
 #ifdef HAVE_MMX

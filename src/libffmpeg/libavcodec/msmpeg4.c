@@ -58,17 +58,13 @@
 static uint32_t v2_dc_lum_table[512][2];
 static uint32_t v2_dc_chroma_table[512][2];
 
-#ifdef CONFIG_ENCODERS
 static inline void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n);
-#endif //CONFIG_ENCODERS
 static inline int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                                        int n, int coded, const uint8_t *scantable);
 static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr);
 static int msmpeg4_decode_motion(MpegEncContext * s, 
                                  int *mx_ptr, int *my_ptr);
-#ifdef CONFIG_ENCODERS
 static void msmpeg4v2_encode_motion(MpegEncContext * s, int val);
-#endif //CONFIG_ENCODERS
 static void init_h263_dc_for_msmpeg4(void);
 static inline void msmpeg4_memsetw(short *tab, int val, int n);
 #ifdef CONFIG_ENCODERS
@@ -86,7 +82,9 @@ int frame_count = 0;
 
 #include "msmpeg4data.h"
 
+#ifdef CONFIG_ENCODERS //strangely gcc includes this even if its not references
 static uint8_t rl_length[NB_RL_TABLES][MAX_LEVEL+1][MAX_RUN+1][2];
+#endif //CONFIG_ENCODERS
 
 #ifdef STATS
 
@@ -850,8 +848,6 @@ static inline int msmpeg4_pred_dc(MpegEncContext * s, int n,
 
 #define DC_MAX 119
 
-#ifdef CONFIG_ENCODERS
-
 static void msmpeg4_encode_dc(MpegEncContext * s, int level, int n, int *dir_ptr)
 {
     int sign, code;
@@ -1043,8 +1039,6 @@ else
 	}
     }
 }
-
-#endif //CONFIG_ENCODERS
 
 /****************************************/
 /* decoding stuff */
@@ -1319,13 +1313,14 @@ return -1;
             break;
         }
         s->no_rounding = 1;
-/*	printf("qscale:%d rlc:%d rl:%d dc:%d mbrl:%d slice:%d   \n", 
+        if(s->avctx->debug&FF_DEBUG_PICT_INFO)
+	    printf("qscale:%d rlc:%d rl:%d dc:%d mbrl:%d slice:%d   \n", 
 		s->qscale,
 		s->rl_chroma_table_index,
 		s->rl_table_index, 
 		s->dc_table_index,
                 s->per_mb_rl_table,
-                s->slice_height);*/
+                s->slice_height);
     } else {
         switch(s->msmpeg4_version){
         case 1:
@@ -1365,14 +1360,17 @@ return -1;
             s->inter_intra_pred= (s->width*s->height < 320*240 && s->bit_rate<=II_BITRATE);
             break;
         }
-/*	printf("skip:%d rl:%d rlc:%d dc:%d mv:%d mbrl:%d qp:%d   \n", 
+        
+        if(s->avctx->debug&FF_DEBUG_PICT_INFO)
+	    printf("skip:%d rl:%d rlc:%d dc:%d mv:%d mbrl:%d qp:%d   \n", 
 		s->use_skip_mb_code, 
 		s->rl_table_index, 
 		s->rl_chroma_table_index, 
 		s->dc_table_index,
 		s->mv_table_index,
                 s->per_mb_rl_table,
-                s->qscale);*/
+                s->qscale);
+
 	if(s->flipflop_rounding){
 	    s->no_rounding ^= 1;
 	}else{
@@ -1411,7 +1409,8 @@ int msmpeg4_decode_ext_header(MpegEncContext * s, int buf_size)
     else if(left<length+8)
     {
         s->flipflop_rounding= 0;
-        printf("ext header missing, %d left\n", left);
+        if(s->msmpeg4_version != 2)
+            printf("ext header missing, %d left\n", left);
     }
     else
     {
@@ -1427,8 +1426,6 @@ static inline void msmpeg4_memsetw(short *tab, int val, int n)
     for(i=0;i<n;i++)
         tab[i] = val;
 }
-
-#ifdef CONFIG_ENCODERS
 
 static void msmpeg4v2_encode_motion(MpegEncContext * s, int val)
 {
@@ -1462,8 +1459,6 @@ static void msmpeg4v2_encode_motion(MpegEncContext * s, int val)
         }
     }
 }
-
-#endif //CONFIG_ENCODERS
 
 /* this is identical to h263 except that its range is multiplied by 2 */
 static int msmpeg4v2_decode_motion(MpegEncContext * s, int pred, int f_code)

@@ -64,7 +64,7 @@ static int encode_ext_header(Wmv2Context *w){
     PutBitContext pb;
     int code;
         
-    init_put_bits(&pb, s->avctx->extradata, s->avctx->extradata_size, NULL, NULL);
+    init_put_bits(&pb, s->avctx->extradata, s->avctx->extradata_size);
 
     put_bits(&pb, 5, s->avctx->frame_rate / s->avctx->frame_rate_base); //yes 29.97 -> 29
     put_bits(&pb, 11, FFMIN(s->bit_rate/1024, 2047));
@@ -101,7 +101,6 @@ static int wmv2_encode_init(AVCodecContext *avctx){
 }
 
 static int wmv2_encode_end(AVCodecContext *avctx){
-    Wmv2Context * const w= avctx->priv_data;
     
     if(MPV_encode_end(avctx) < 0)
         return -1;
@@ -587,7 +586,6 @@ static inline int wmv2_decode_inter_block(Wmv2Context *w, DCTELEM *block, int n,
 
 static void wmv2_add_block(Wmv2Context *w, DCTELEM *block1, uint8_t *dst, int stride, int n){
     MpegEncContext * const s= &w->s;
-    uint8_t temp[2][64];
 
     switch(w->abt_type_table[n]){
     case 0:

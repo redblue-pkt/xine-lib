@@ -19,8 +19,21 @@
 #ifndef _DSPUTIL_PPC_
 #define _DSPUTIL_PPC_
 
-#ifdef POWERPC_TBL_PERFORMANCE_REPORT
+#ifdef CONFIG_DARWIN
+/* The Apple assembler shipped w/ gcc-3.3 knows about DCBZL, previous assemblers don't
+   We assume here that the Darwin GCC is from Apple.... */
+#if (__GNUC__ * 100 + __GNUC_MINOR__ < 303)
+#define NO_DCBZL
+#endif
+#else /* CONFIG_DARWIN */
+/* I don't think any non-Apple assembler knows about DCBZL */
+#define NO_DCBZL
+#endif /* CONFIG_DARWIN */
+
+#ifdef POWERPC_PERFORMANCE_REPORT
 void powerpc_display_perf_report(void);
+/* the 604* have 2, the G3* have 4, the G4s have 6 */
+#define POWERPC_NUM_PMC_ENABLED 4
 /* if you add to the enum below, also add to the perfname array
    in dsputil_ppc.c */
 enum powerpc_perf_index {
@@ -37,6 +50,7 @@ enum powerpc_perf_index {
   altivec_put_pixels16_xy2_num,
   altivec_put_no_rnd_pixels16_xy2_num,
   powerpc_clear_blocks_dcbz32,
+  powerpc_clear_blocks_dcbz128,
   powerpc_perf_total
 };
 enum powerpc_data_index {
@@ -46,78 +60,65 @@ enum powerpc_data_index {
   powerpc_data_num,
   powerpc_data_total
 };
-extern unsigned long long perfdata[powerpc_perf_total][powerpc_data_total];
-#ifdef POWERPC_PERF_USE_PMC
-extern unsigned long long perfdata_miss[powerpc_perf_total][powerpc_data_total];
+extern unsigned long long perfdata[POWERPC_NUM_PMC_ENABLED][powerpc_perf_total][powerpc_data_total];
+
+#define POWERPC_GET_PMC1(a) asm volatile("mfspr %0, 937" : "=r" (a))
+#define POWERPC_GET_PMC2(a) asm volatile("mfspr %0, 938" : "=r" (a))
+#if (POWERPC_NUM_PMC_ENABLED > 2)
+#define POWERPC_GET_PMC3(a) asm volatile("mfspr %0, 941" : "=r" (a))
+#define POWERPC_GET_PMC4(a) asm volatile("mfspr %0, 942" : "=r" (a))
+#else
+#define POWERPC_GET_PMC3(a) do {} while (0)
+#define POWERPC_GET_PMC4(a) do {} while (0)
 #endif
-
-#ifndef POWERPC_PERF_USE_PMC
-#define POWERPC_GET_CYCLES(a) asm volatile("mftb %0" : "=r" (a))
-#define POWERPC_TBL_DECLARE(a, cond) register unsigned long tbl_start, tbl_stop
-#define POWERPC_TBL_START_COUNT(a, cond) do { POWERPC_GET_CYCLES(tbl_start); } while (0)
-#define POWERPC_TBL_STOP_COUNT(a, cond) do {     \
-  POWERPC_GET_CYCLES(tbl_stop);                  \
-  if (tbl_stop > tbl_start)                      \
-  {                                              \
-    unsigned long diff =  tbl_stop - tbl_start;  \
-    if (cond)                                    \
-    {                                            \
-      if (diff < perfdata[a][powerpc_data_min])  \
-        perfdata[a][powerpc_data_min] = diff;    \
-      if (diff > perfdata[a][powerpc_data_max])  \
-        perfdata[a][powerpc_data_max] = diff;    \
-      perfdata[a][powerpc_data_sum] += diff;     \
-      perfdata[a][powerpc_data_num] ++;          \
-    }                                            \
-  }                                              \
+#if (POWERPC_NUM_PMC_ENABLED > 4)
+#define POWERPC_GET_PMC5(a) asm volatile("mfspr %0, 929" : "=r" (a))
+#define POWERPC_GET_PMC6(a) asm volatile("mfspr %0, 930" : "=r" (a))
+#else
+#define POWERPC_GET_PMC5(a) do {} while (0)
+#define POWERPC_GET_PMC6(a) do {} while (0)
+#endif
+#define POWERPC_PERF_DECLARE(a, cond) unsigned long pmc_start[POWERPC_NUM_PMC_ENABLED], pmc_stop[POWERPC_NUM_PMC_ENABLED], pmc_loop_index;
+#define POWERPC_PERF_START_COUNT(a, cond) do { \
+  POWERPC_GET_PMC6(pmc_start[5]); \
+  POWERPC_GET_PMC5(pmc_start[4]); \
+  POWERPC_GET_PMC4(pmc_start[3]); \
+  POWERPC_GET_PMC3(pmc_start[2]); \
+  POWERPC_GET_PMC2(pmc_start[1]); \
+  POWERPC_GET_PMC1(pmc_start[0]); \
+  } while (0)
+#define POWERPC_PERF_STOP_COUNT(a, cond) do { \
+  POWERPC_GET_PMC1(pmc_stop[0]); \
+  POWERPC_GET_PMC2(pmc_stop[1]); \
+  POWERPC_GET_PMC3(pmc_stop[2]); \
+  POWERPC_GET_PMC4(pmc_stop[3]); \
+  POWERPC_GET_PMC5(pmc_stop[4]); \
+  POWERPC_GET_PMC6(pmc_stop[5]); \
+  if (cond)                       \
+  {                               \
+    for(pmc_loop_index = 0;       \
+        pmc_loop_index < POWERPC_NUM_PMC_ENABLED; \
+        pmc_loop_index++)         \
+    {                             \
+      if (pmc_stop[pmc_loop_index] >= pmc_start[pmc_loop_index]) \
+      {                           \
+        unsigned long diff =      \
+          pmc_stop[pmc_loop_index] - pmc_start[pmc_loop_index];   \
+        if (diff < perfdata[pmc_loop_index][a][powerpc_data_min]) \
+          perfdata[pmc_loop_index][a][powerpc_data_min] = diff;   \
+        if (diff > perfdata[pmc_loop_index][a][powerpc_data_max]) \
+          perfdata[pmc_loop_index][a][powerpc_data_max] = diff;   \
+        perfdata[pmc_loop_index][a][powerpc_data_sum] += diff;    \
+        perfdata[pmc_loop_index][a][powerpc_data_num] ++;         \
+      }                           \
+    }                             \
+  }                               \
 } while (0)
-
-#else /* POWERPC_PERF_USE_PMC */
-#define POWERPC_GET_CYCLES(a) asm volatile("mfspr %0, 937" : "=r" (a))
-#define POWERPC_GET_MISS(a) asm volatile("mfspr %0, 938" : "=r" (a))
-#define POWERPC_TBL_DECLARE(a, cond) register unsigned long cycles_start, cycles_stop, miss_start, miss_stop
-#define POWERPC_TBL_START_COUNT(a, cond) do { POWERPC_GET_MISS(miss_start); POWERPC_GET_CYCLES(cycles_start); } while (0)
-#define POWERPC_TBL_STOP_COUNT(a, cond) do {     \
-  POWERPC_GET_CYCLES(cycles_stop);               \
-  POWERPC_GET_MISS(miss_stop);                   \
-  if (cycles_stop >= cycles_start)               \
-  {                                              \
-    unsigned long diff =                         \
-                cycles_stop - cycles_start;      \
-    if (cond)                                    \
-    {                                            \
-      if (diff < perfdata[a][powerpc_data_min])  \
-        perfdata[a][powerpc_data_min] = diff;    \
-      if (diff > perfdata[a][powerpc_data_max])  \
-        perfdata[a][powerpc_data_max] = diff;    \
-      perfdata[a][powerpc_data_sum] += diff;     \
-      perfdata[a][powerpc_data_num] ++;          \
-    }                                            \
-  }                                              \
-  if (miss_stop >= miss_start)                   \
-  {                                              \
-    unsigned long diff =                         \
-                miss_stop - miss_start;          \
-    if (cond)                                    \
-    {                                            \
-      if (diff < perfdata_miss[a][powerpc_data_min]) \
-        perfdata_miss[a][powerpc_data_min] = diff;   \
-      if (diff > perfdata_miss[a][powerpc_data_max]) \
-        perfdata_miss[a][powerpc_data_max] = diff;   \
-      perfdata_miss[a][powerpc_data_sum] += diff;    \
-      perfdata_miss[a][powerpc_data_num] ++;         \
-    }                                            \
-  }                                              \
-} while (0)
-
-#endif /* POWERPC_PERF_USE_PMC */
-
-
-#else /* POWERPC_TBL_PERFORMANCE_REPORT */
+#else /* POWERPC_PERFORMANCE_REPORT */
 // those are needed to avoid empty statements.
-#define POWERPC_TBL_DECLARE(a, cond)        int altivec_placeholder __attribute__ ((unused))
-#define POWERPC_TBL_START_COUNT(a, cond)    do {} while (0)
-#define POWERPC_TBL_STOP_COUNT(a, cond)     do {} while (0)
-#endif /* POWERPC_TBL_PERFORMANCE_REPORT */
+#define POWERPC_PERF_DECLARE(a, cond)        int altivec_placeholder __attribute__ ((unused))
+#define POWERPC_PERF_START_COUNT(a, cond)    do {} while (0)
+#define POWERPC_PERF_STOP_COUNT(a, cond)     do {} while (0)
+#endif /* POWERPC_PERFORMANCE_REPORT */
 
 #endif /*  _DSPUTIL_PPC_ */
