@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.78 2002/12/16 23:47:57 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.79 2002/12/17 00:30:07 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -622,6 +622,7 @@ static void ff_reset (video_decoder_t *this_gen) {
 #endif
 
   this->size = 0;
+  avcodec_flush_buffers(this->context);
 }
 
 static void ff_discontinuity (video_decoder_t *this_gen) {
