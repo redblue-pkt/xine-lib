@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.245 2003/04/23 14:33:05 miguelfreitas Exp $
+ * $Id: xine.c,v 1.246 2003/04/25 22:27:35 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -738,7 +738,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(subtitle_mrl, tmp, stream_setup - tmp);
 	    subtitle_mrl[stream_setup - tmp] = '\0';
 	  } else {
-	    subtitle_mrl = (char *)malloc(strlen(tmp));
+	    subtitle_mrl = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(subtitle_mrl, tmp, strlen(tmp));
 	    subtitle_mrl[strlen(tmp)] = '\0';
 	  }
