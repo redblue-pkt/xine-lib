@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.2 2002/07/11 03:57:23 tmmm Exp $
+ * $Id: demux_fli.c,v 1.3 2002/07/13 19:49:00 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,7 +106,6 @@ static void *demux_fli_loop (void *this_gen) {
     /* main demuxer loop */
     while (this->status == DEMUX_OK) {
 
-//printf ("loading chunk #%d\n", i);
       /* check if all the frames have been sent */
       if (i >= this->frame_count) {
         this->status = DEMUX_FINISHED;
@@ -126,9 +125,8 @@ static void *demux_fli_loop (void *this_gen) {
       /* rewind over the size and packetize the chunk */
       this->input->seek(this->input, -6, SEEK_CUR);
 
-//printf (" chunk magic = %X\n", chunk_magic);
-      if ((chunk_magic = FLI_CHUNK_MAGIC_1) || 
-          (chunk_magic = FLI_CHUNK_MAGIC_2)) {
+      if ((chunk_magic == FLI_CHUNK_MAGIC_1) || 
+          (chunk_magic == FLI_CHUNK_MAGIC_2)) {
         while (chunk_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->content = buf->mem;
@@ -153,12 +151,11 @@ static void *demux_fli_loop (void *this_gen) {
 
           if (!chunk_size)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
-//printf ("check 6\n");
           this->video_fifo->put(this->video_fifo, buf);
-//printf ("check 7\n");
         }
         pts_counter += this->frame_pts_inc;
-      }
+      } else
+        this->input->seek(this->input, chunk_size, SEEK_CUR);
 
       i++;
 
