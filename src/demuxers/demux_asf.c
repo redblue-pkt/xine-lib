@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.45 2002/06/12 12:22:28 f1rmb Exp $
+ * $Id: demux_asf.c,v 1.46 2002/06/21 01:37:21 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -40,12 +40,6 @@
 #include "xine_internal.h"
 #include "demux.h"
 #include "xineutils.h"
-
-#define	WINE_TYPEDEFS_ONLY
-#include "libw32dll/wine/avifmt.h"
-#include "libw32dll/wine/windef.h"
-#include "libw32dll/wine/vfw.h"
-#include "libw32dll/wine/mmreg.h"
 
 /*
 #define LOG
