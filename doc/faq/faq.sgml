@@ -1200,7 +1200,7 @@
       The following explains how to get the above configuration 
       going with xine. Some parts of it may applicable to other 
       configurations (cards that use the EMU10k1 chip) as well.
-    <para>
+    </para>
 
     <sect2>
 
@@ -1395,7 +1395,7 @@
       method. You can do this by setting the configuration entry
       <parameter>audio.av_sync_method</parameter> to <parameter>resample</parameter>.
     </para>
-    <pata>
+    <para>
       If you receive the metronom message more often,
       maybe switching to different drivers (alsa to oss or vise-versa)
       can help here. It has also been reported that setting the configuration
@@ -1414,7 +1414,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="soundloss">
     <title>xine seems to lose sound arbitrarily during playback, especially with DVDs</title>
     
     <para>
