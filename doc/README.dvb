@@ -5,19 +5,24 @@ xine Digital TV (DVB)
 xine can be used to watch digital television.
 
 xine supports Digital TV (Digital Video Broadcasting - DVB) cards
-using the Linux DVB driver from Convergence (so far this has only been
-tested using a Hauppauge WinTV Nova DVB-S card).
+using the Linux DVB driver from Convergence (http://www.linuxtv.org).
+DVB-S (direct satellite reception), DVB-C (Cable) and DVB-T (Teresstrical)
+cards should be supported (e.g. the Hauppauge WinTV Nova DVB-S card).
 
 driver download and installation
 --------------------------------
 
-Download and install the latest drivers from www.linuxtv.org. You will
-need kernel sources configured for your configuration for a successfull build,
-preferably in /usr/src/linux. Once you have that, unpack the driver sources
+Download and install the drivers from http://www.linuxtv.org CVS:
 
-# tar xfvz siemens_dvb-0.9.4.tar.gz
+# cvs -d :pserver:anonymous@linuxtv.org:/cvs/linuxtv login
 
-and compile the driver
+[empty password]
+
+# cvs -d :pserver:anonymous@linuxtv.org:/cvs/linuxtv co DVB
+
+You will need kernel sources configured for your configuration for 
+a successfull build, preferably in /usr/src/linux. Once you have that
+you should be ready to compile the driver
 
 # cd DVB/driver
 # make
@@ -27,9 +32,12 @@ if that doesn't fail, do a
 # make insmod
 
 to load the generated modules into your running kernel. If everything went
-fine, you should have a line like
+fine, you should have something like
 
-dvb: 1 dvb(s) found!
+DVB: registering new adapter (TT-Budget/WinTV-NOVA-S  PCI).
+PCI: Found IRQ 10 for device 00:0d.0
+PCI: Sharing IRQ 10 with 00:0c.0
+DVB: registering frontend 0:0 (stv0299 based (e.g. Alps BSRU6 or LG TDQB-S00x))...
 
 in your dmesg.
 
@@ -38,40 +46,14 @@ install a channel list
 ----------------------
 
 xine's dvb input plugin needs a channel/transponder list that fits your 
-satellite equipment. If you happen to live in central europe and want to
-watch free channels from the astra 1a position you're lucky - you can simply
-copy the dvb_channels file that comes with libxine (doc directory) 
+dvb equipment. xine now uses the channels.conf format of szap, czap and 
+tzap as appropriate for DVB-S, DVB-C and DVB-T.
 
-$ mkdir ~/.xine
-$ cp doc/dvb_channels ~/.xine
+You should be able to find example channel config files in
 
-otherwise you'll probably want to write your own channels file. The file
-format is very simple: for each station add three lines:
+DVB/apps/szap
 
-Program Name
-A BBBBBBBB C DDDDDDDD E FFF GGG
-(empty line)
-
-with
-
-A - diseqc number
-
-B - Frequency
-
-C - LNB voltage (H/V polarisation switch)
-    (4: horizontal, 2: vertical polarisation)
-
-D - Symbol Rate
-
-E - FEC
-
-F - vpid (video program id)
-
-G - apid (audio program id)
-
-once you have written a working dvb_channels file for your location/satellite,
-you might want to share it with others on the xine-user mailing list :-)
-
+as checked out from CVS.
 
 using xine to watch digital television
 --------------------------------------

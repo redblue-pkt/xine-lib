@@ -1,9 +1,0 @@
-This directories contains header files for the Linux DVB drivers
-from convergence integrated media GmbH
-
- Copyright (C) 2000 Ralph  Metzler <ralph@convergence.de>
-                  & Marcus Metzler <marcus@convergence.de>
-                    for convergence integrated media GmbH
-
-released under the LGPL license. For details see the individual 
-header files.

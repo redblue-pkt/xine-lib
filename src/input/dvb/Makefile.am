@@ -1,8 +1,6 @@
 noinst_HEADERS =     \
-	demux.h      \
 	dmx.h        \
-	frontend.h   \
-	sec.h         
+	frontend.h   
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

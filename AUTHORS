@@ -318,5 +318,8 @@ Anders D. Wiehe <anders@wiehe.org>
 Zoltán Böszörményi <zboszor@freemail.hu>
   tremendous help in porting sputext to 1.0 API
 
+Micael Beronius <micael.beronius@telia.com>
+Chris Purnell <cjp@lost.org.uk>
+  DVB plugin port to new API, DVB-C support, updates, fixes
 
 (let us know if we've forgotten anyone)

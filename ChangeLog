@@ -11,7 +11,8 @@
   * Dialogic ADPCM audio decoder
   * reporting of unhandled codecs
   * NSF audio decoding via Nosefart
-
+  * DVB plugin updated to new DVB API, DVB-C and DVB-T support
+	
 xine-lib (1-beta2)
   * what a GOOM! post plugin
   * Digital TV (DVB) input plugin (experimental)

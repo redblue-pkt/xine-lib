@@ -3,9 +3,9 @@
 ##
 
 if HAVE_DVDNAV
-SUBDIRS = ost libreal librtsp libdvdread
+SUBDIRS = dvb libreal librtsp libdvdread
 else
-SUBDIRS = ost libreal librtsp libdvdread libdvdnav
+SUBDIRS = dvb libreal librtsp libdvdread libdvdnav
 endif
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic

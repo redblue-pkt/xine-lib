@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -38,9 +38,9 @@
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 
-#include "ost/dmx.h"
-#include "ost/sec.h"
-#include "ost/frontend.h"
+/* These will eventually be #include <linux/dvb/...> */
+#include "dvb/dmx.h"
+#include "dvb/frontend.h"
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -51,43 +51,34 @@
 #define LOG
 */
 
-#define FRONTEND_DEVICE "/dev/ost/frontend"
-#define SEC_DEVICE      "/dev/ost/sec"
-#define DEMUX_DEVICE    "/dev/ost/demux"
-#define DVR_DEVICE      "/dev/ost/dvr"
+#define FRONTEND_DEVICE "/dev/dvb/adapter0/frontend0"
+#define DEMUX_DEVICE    "/dev/dvb/adapter0/demux0"
+#define DVR_DEVICE      "/dev/dvb/adapter0/dvr0"
 
 #define BUFSIZE 4096
 
 #define NOPID 0xffff
 
 typedef struct {
-  int                       fd_frontend;
-  int                       fd_sec;
-  int                       fd_demuxa, fd_demuxv, fd_demuxtt;
+  int                            fd_frontend;
+  int                            fd_demuxa, fd_demuxv;
 
-  FrontendInfo              feinfo;
-  FrontendParameters        front_param;
+  struct dvb_frontend_info       feinfo;
 
-  struct secCommand         scmd;
-  struct secCmdSequence     scmds;
-  struct dmxPesFilterParams pesFilterParamsV;
-  struct dmxPesFilterParams pesFilterParamsA;
-  struct dmxPesFilterParams pesFilterParamsTT;
+  struct dmx_pes_filter_params   pesFilterParamsV;
+  struct dmx_pes_filter_params   pesFilterParamsA;
 
 } tuner_t;
 
 typedef struct {
 
   char *name;
-  int   freq; /* freq - lof */
-  int   tone; /* SEC_TONE_ON/OFF */
-  int   volt; /* SC_VOLTAGE_13/18 */
-  int   diseqcnr;
-  int   srate;
-  int   fec;
-  int   vpid;
-  int   apid;
-
+  struct dvb_frontend_parameters front_param;
+  int vpid;
+  int apid;
+  int sat_no;
+  int tone;
+  int pol;   
 } channel_t;
 
 typedef struct {
@@ -106,13 +97,13 @@ typedef struct {
   dvb_input_class_t  *cls;
 
   xine_stream_t      *stream;
-  
+
   char               *mrl;
 
   off_t               curpos;
 
   nbc_t              *nbc;
- 
+
   tuner_t            *tuner;
   channel_t          *channels;
   int                 fd;
@@ -127,10 +118,84 @@ typedef struct {
   /* scratch buffer for forward seeking */
   char                seek_buf[BUFSIZE];
 
-  int                 out_fd; /* recording function */
-
 } dvb_input_plugin_t;
 
+typedef struct {
+	char *name;
+	int value;
+} Param;
+
+static const Param inversion_list [] = {
+	{ "INVERSION_OFF", INVERSION_OFF },
+	{ "INVERSION_ON", INVERSION_ON },
+	{ "INVERSION_AUTO", INVERSION_AUTO },
+        { NULL, 0 }
+};
+
+static const Param bw_list [] = {
+	{ "BANDWIDTH_6_MHZ", BANDWIDTH_6_MHZ },
+	{ "BANDWIDTH_7_MHZ", BANDWIDTH_7_MHZ },
+	{ "BANDWIDTH_8_MHZ", BANDWIDTH_8_MHZ },
+        { NULL, 0 }
+};
+
+static const Param fec_list [] = {
+	{ "FEC_1_2", FEC_1_2 },
+	{ "FEC_2_3", FEC_2_3 },
+	{ "FEC_3_4", FEC_3_4 },
+	{ "FEC_4_5", FEC_4_5 },
+	{ "FEC_5_6", FEC_5_6 },
+	{ "FEC_6_7", FEC_6_7 },
+	{ "FEC_7_8", FEC_7_8 },
+	{ "FEC_8_9", FEC_8_9 },
+	{ "FEC_AUTO", FEC_AUTO },
+	{ "FEC_NONE", FEC_NONE },
+        { NULL, 0 }
+};
+
+static const Param guard_list [] = {
+	{"GUARD_INTERVAL_1_16", GUARD_INTERVAL_1_16},
+	{"GUARD_INTERVAL_1_32", GUARD_INTERVAL_1_32},
+	{"GUARD_INTERVAL_1_4", GUARD_INTERVAL_1_4},
+	{"GUARD_INTERVAL_1_8", GUARD_INTERVAL_1_8},
+        { NULL, 0 }
+};
+
+static const Param hierarchy_list [] = {
+	{ "HIERARCHY_1", HIERARCHY_1 },
+	{ "HIERARCHY_2", HIERARCHY_2 },
+	{ "HIERARCHY_4", HIERARCHY_4 },
+	{ "HIERARCHY_NONE", HIERARCHY_NONE },
+        { NULL, 0 }
+};
+
+static const Param qam_list [] = {
+	{ "QPSK", QPSK },
+	{ "QAM_128", QAM_128 },
+	{ "QAM_16", QAM_16 },
+	{ "QAM_256", QAM_256 },
+	{ "QAM_32", QAM_32 },
+	{ "QAM_64", QAM_64 },
+        { NULL, 0 }
+};
+
+static const Param transmissionmode_list [] = {
+	{ "TRANSMISSION_MODE_2K", TRANSMISSION_MODE_2K },
+	{ "TRANSMISSION_MODE_8K", TRANSMISSION_MODE_8K },
+        { NULL, 0 }
+};
+
+static void tuner_dispose (tuner_t *this) {
+
+  if (this->fd_frontend >= 0)
+    close (this->fd_frontend);
+  if (this->fd_demuxa >= 0)
+    close (this->fd_demuxa);
+  if (this->fd_demuxv >= 0)
+    close (this->fd_demuxv);
+
+  free (this);
+}
 
 static tuner_t *tuner_init () {
 
@@ -138,69 +203,52 @@ static tuner_t *tuner_init () {
 
   this = malloc (sizeof (tuner_t));
 
+  this->fd_frontend = -1;
+  this->fd_demuxa = -1;
+  this->fd_demuxv = -1;
+
   if ((this->fd_frontend = open(FRONTEND_DEVICE, O_RDWR)) < 0){
-    perror("FRONTEND DEVICE: ");
-    free (this);
+    perror("FRONTEND DEVICE");
+    tuner_dispose(this);
     return NULL;
   }
 
-  ioctl (this->fd_frontend, FE_GET_INFO, &this->feinfo);
-  if (this->feinfo.type==FE_QPSK) {
-
-    if ((this->fd_sec = open (SEC_DEVICE, O_RDWR)) < 0) {
-      perror ("SEC DEVICE: ");
-      free (this);
-      return NULL;
-    }
-  }
-
-  this->fd_demuxtt = open (DEMUX_DEVICE, O_RDWR);
-  if (this->fd_demuxtt < 0) {
-    perror ("DEMUX DEVICE tt: ");
-    free (this);
+  if ((ioctl (this->fd_frontend, FE_GET_INFO, &this->feinfo)) < 0) {
+    perror("FE_GET_INFO");
+    tuner_dispose(this);
     return NULL;
   }
 
   this->fd_demuxa = open (DEMUX_DEVICE, O_RDWR);
   if (this->fd_demuxa < 0) {
-    perror ("DEMUX DEVICE audio: ");
-    free (this);
+    perror ("DEMUX DEVICE audio");
+    tuner_dispose(this);
     return NULL;
   }
 
   this->fd_demuxv=open (DEMUX_DEVICE, O_RDWR);
   if (this->fd_demuxv < 0) {
-    perror ("DEMUX DEVICE video: ");
-    free (this);
+    perror ("DEMUX DEVICE video");
+    tuner_dispose(this);
     return NULL;
   }
 
   return this;
 }
 
-static void tuner_dispose (tuner_t *this) {
-
-  close (this->fd_frontend);
-  close (this->fd_sec);
-  close (this->fd_demuxa);
-  close (this->fd_demuxv);
-  close (this->fd_demuxtt);
-
-  free (this);
-}
 
 static void tuner_set_vpid (tuner_t *this, ushort vpid) {
 
   if (vpid==0 || vpid==NOPID || vpid==0x1fff) {
-    ioctl (this->fd_demuxv, DMX_STOP, 0);
+    ioctl (this->fd_demuxv, DMX_STOP);
     return;
   }
 
-  this->pesFilterParamsV.pid     = vpid;
-  this->pesFilterParamsV.input   = DMX_IN_FRONTEND;
-  this->pesFilterParamsV.output  = DMX_OUT_TS_TAP;
-  this->pesFilterParamsV.pesType = DMX_PES_VIDEO;
-  this->pesFilterParamsV.flags   = DMX_IMMEDIATE_START;
+  this->pesFilterParamsV.pid      = vpid;
+  this->pesFilterParamsV.input    = DMX_IN_FRONTEND;
+  this->pesFilterParamsV.output   = DMX_OUT_TS_TAP;
+  this->pesFilterParamsV.pes_type = DMX_PES_VIDEO;
+  this->pesFilterParamsV.flags    = DMX_IMMEDIATE_START;
   if (ioctl(this->fd_demuxv, DMX_SET_PES_FILTER,
 	    &this->pesFilterParamsV) < 0)
     perror("set_vpid");
@@ -208,155 +256,100 @@ static void tuner_set_vpid (tuner_t *this, ushort vpid) {
 
 static void tuner_set_apid (tuner_t *this, ushort apid) {
   if (apid==0 || apid==NOPID || apid==0x1fff) {
-    ioctl (this->fd_demuxa, DMX_STOP, apid);
+    ioctl (this->fd_demuxa, DMX_STOP);
     return;
   }
-  
-  this->pesFilterParamsA.pid     = apid;
-  this->pesFilterParamsA.input   = DMX_IN_FRONTEND;
-  this->pesFilterParamsA.output  = DMX_OUT_TS_TAP;
-  this->pesFilterParamsA.pesType = DMX_PES_AUDIO;
-  this->pesFilterParamsA.flags   = DMX_IMMEDIATE_START;
+
+  this->pesFilterParamsA.pid      = apid;
+  this->pesFilterParamsA.input    = DMX_IN_FRONTEND;
+  this->pesFilterParamsA.output   = DMX_OUT_TS_TAP;
+  this->pesFilterParamsA.pes_type = DMX_PES_AUDIO;
+  this->pesFilterParamsA.flags    = DMX_IMMEDIATE_START;
   if (ioctl (this->fd_demuxa, DMX_SET_PES_FILTER,
 	     &this->pesFilterParamsA) < 0)
     perror("set_apid");
 }
 
-static void tuner_set_ttpid (tuner_t *this, ushort ttpid) {
+static int tuner_set_diseqc(tuner_t *this, channel_t *c)
+{
+   struct dvb_diseqc_master_cmd cmd =
+      {{0xe0, 0x10, 0x38, 0xf0, 0x00, 0x00}, 4};
 
-  if (ttpid==0 || ttpid== NOPID || ttpid==0x1fff) {
-    ioctl (this->fd_demuxtt, DMX_STOP, 0);
-    return;
-  }
-  this->pesFilterParamsTT.pid     = ttpid;
-  this->pesFilterParamsTT.input   = DMX_IN_FRONTEND;
-  this->pesFilterParamsTT.output  = DMX_OUT_DECODER;
-  this->pesFilterParamsTT.pesType = DMX_PES_TELETEXT;
-  this->pesFilterParamsTT.flags   = DMX_IMMEDIATE_START;
-  if (ioctl(this->fd_demuxtt, DMX_SET_PES_FILTER,
-	    &this->pesFilterParamsTT) < 0) {
-    /* printf("PID=%04x\n", ttpid); */
-    perror("set_ttpid");
-  }
+   cmd.msg[3] = 0xf0 | ((c->sat_no * 4) & 0x0f) |
+      (c->tone ? 1 : 0) | (c->pol ? 0 : 2);
+
+   if (ioctl(this->fd_frontend, FE_SET_TONE, SEC_TONE_OFF) < 0)
+      return 0;
+   if (ioctl(this->fd_frontend, FE_SET_VOLTAGE,
+	     c->pol ? SEC_VOLTAGE_13 : SEC_VOLTAGE_18) < 0)
+      return 0;
+   usleep(15000);
+   if (ioctl(this->fd_frontend, FE_DISEQC_SEND_MASTER_CMD, &cmd) < 0)
+      return 0;
+   usleep(15000);
+   if (ioctl(this->fd_frontend, FE_DISEQC_SEND_BURST,
+	     (c->sat_no / 4) % 2 ? SEC_MINI_B : SEC_MINI_A) < 0)
+      return 0;
+   usleep(15000);
+   if (ioctl(this->fd_frontend, FE_SET_TONE,
+	     c->tone ? SEC_TONE_ON : SEC_TONE_OFF) < 0)
+      return 0;
+
+   return 1;
 }
 
-static void tuner_get_front (tuner_t *this) {
-  tuner_set_vpid (this, 0);
-  tuner_set_apid (this, 0);
-  tuner_set_ttpid(this, 0);
-  this->scmds.voltage         = SEC_VOLTAGE_13;
-  this->scmds.miniCommand     = SEC_MINI_NONE;
-  this->scmds.continuousTone  = SEC_TONE_OFF;
-  this->scmds.numCommands     = 1;
-  this->scmds.commands        = &this->scmd;
-}
+static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
+			  *front_param) {
+  fe_status_t status;
 
-static void tuner_set_diseqc_nr (tuner_t *this, int nr) {
-
-  this->scmd.type=0;
-  this->scmd.u.diseqc.addr = 0x10;
-  this->scmd.u.diseqc.cmd = 0x38;
-  this->scmd.u.diseqc.numParams = 1;
-  this->scmd.u.diseqc.params[0] = 0xF0 | ((nr * 4) & 0x0F) |
-    (this->scmds.continuousTone == SEC_TONE_ON ? 1 : 0) |
-    (this->scmds.voltage==SEC_VOLTAGE_18 ? 2 : 0);
-}
-
-static void tuner_set_tp (tuner_t *this, int freq, int tone, 
-			  int volt, int diseqcnr,
-			  int srate, int fec) {
-
-  static const uint8_t rfectab[9] = {1,2,3,0,4,0,5,0,0};
-
-  this->front_param.Frequency = freq;
-  this->scmds.continuousTone  = tone;
-  this->scmds.voltage         = volt;
-  tuner_set_diseqc_nr (this, diseqcnr);
-  this->front_param.u.qpsk.SymbolRate = srate;
-  this->front_param.u.qpsk.FEC_inner = (CodeRate)rfectab[fec];
-  this->front_param.Inversion = INVERSION_AUTO;
-}
-
-static int tuner_tune_it (tuner_t *this, FrontendParameters *front_param) {
-  FrontendEvent event;
-  struct pollfd pfd[1];
-  
-  if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0)
+  if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0) {
     perror("setfront front");
-  
-  pfd[0].fd=this->fd_frontend;
-  pfd[0].events=POLLIN;
-  if (poll(pfd,1,2000)) {
-    if (pfd[0].revents & POLLIN){
-      if (ioctl(this->fd_frontend, FE_GET_EVENT, &event)
-	  == -EBUFFEROVERFLOW){
-	perror("fe get event");
-	return 0;
-      }
-      switch(event.type){
-      case FE_UNEXPECTED_EV:
-	perror("unexpected event\n");
-	return 0;
-      case FE_FAILURE_EV:
-	perror("failure event\n");
-	return 0;
-	
-      case FE_COMPLETION_EV:
-	fprintf(stderr, "completion event\n");
-	return 1;
-      }
-    }
   }
+  
+  do {
+    if (ioctl(this->fd_frontend, FE_READ_STATUS, &status) < 0) {
+      perror("fe get event");
+      return 0;
+     }
+     printf("input_dvb: status: %x\n", status);
+     if (status & FE_HAS_LOCK) {
+       return 1;
+    }
+    usleep(500000);
+  }
+  while (!(status & FE_TIMEDOUT));
+
   return 0;
 }
 
-
-static int tuner_set_front (tuner_t *this) {
-  this->scmds.miniCommand = SEC_MINI_NONE;
-  this->scmds.numCommands=1;
-  this->scmds.commands=&this->scmd;
-  
-  tuner_set_vpid (this, 0);
-  tuner_set_apid (this, 0);
-  tuner_set_ttpid(this,0);
-  
-  if (this->feinfo.type==FE_QPSK) {
-    if (ioctl(this->fd_sec, SEC_SEND_SEQUENCE, &this->scmds) < 0)
-      perror("setfront sec");
-    usleep(70000);
-  }
-  return tuner_tune_it(this, &this->front_param);
-}
-
 static void print_channel (channel_t *channel) {
-
-  printf ("input_dvb: channel '%s' diseqc %d freq %d volt %d srate %d fec %d vpid %d apid %d\n",
+  printf ("input_dvb: channel '%s' freq %d vpid %d apid %d\n",
 	  channel->name,
-	  channel->diseqcnr,
-	  channel->freq,
-	  channel->volt,
-	  channel->srate,
-	  channel->fec,
+	  channel->front_param.frequency,
 	  channel->vpid,
 	  channel->apid);
-
 }
 
 
-static int tuner_set_channel (tuner_t *this, 
+static int tuner_set_channel (tuner_t *this,
 			      channel_t *c) {
 
   print_channel (c);
 
-  tuner_get_front (this);
-  tuner_set_tp (this, c->freq, c->tone, c->volt, c->diseqcnr, c->srate, c->fec);
-  if (!tuner_set_front (this))
+  tuner_set_vpid (this, 0);
+  tuner_set_apid (this, 0);
+
+  if (this->feinfo.type==FE_QPSK) {
+    if (!tuner_set_diseqc(this, c))
+      return 0;
+  }
+
+  if (!tuner_tune_it (this, &c->front_param))
     return 0;
-  
+
   tuner_set_vpid  (this, c->vpid);
   tuner_set_apid  (this, c->apid);
-  tuner_set_ttpid (this, 0);
-  
+
   return 1; /* fixme: error handling */
 }
 
@@ -364,15 +357,15 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
 
   int i, channel ;
 
-  this->stream->osd_renderer->filled_rect (this->osd, 0, 0, 395, 400, 2); 
+  this->stream->osd_renderer->filled_rect (this->osd, 0, 0, 395, 400, 2);
 
   channel = this->channel - 5;
 
   for (i=0; i<11; i++) {
 
     if ( (channel >= 0) && (channel < this->num_channels) )
-      this->stream->osd_renderer->render_text (this->osd, 10, 10+i*35, 
-					     this->channels[channel].name, 
+      this->stream->osd_renderer->render_text (this->osd, 10, 10+i*35,
+					     this->channels[channel].name,
 					     OSD_TEXT3);
     channel ++;
   }
@@ -394,7 +387,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
   pthread_mutex_lock (&this->mutex);
   
   close (this->fd);
-  
+
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
     printf ("input_dvb: tuner_set_channel failed\n");
     pthread_mutex_unlock (&this->mutex);
@@ -408,11 +401,11 @@ static void switch_channel (dvb_input_plugin_t *this) {
   event.data_length = sizeof (xine_pids_data_t);
 
   printf ("input_dvb: sending event\n");
-  
+
   xine_event_send (this->stream, &event);
 
   this->fd = open (DVR_DEVICE, O_RDONLY);
-  
+
   pthread_mutex_unlock (&this->mutex);
 
   this->stream->osd_renderer->hide (this->osd, 0);
@@ -440,27 +433,27 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 	this->channel++;
       osd_show_channel (this);
       break;
-      
+
     case XINE_EVENT_INPUT_PREVIOUS:
       if (this->channel>0)
 	this->channel--;
       osd_show_channel (this);
       break;
-      
+
     case XINE_EVENT_INPUT_DOWN:
       if (this->channel < (this->num_channels-1)) {
 	this->channel++;
 	switch_channel (this);
       }
       break;
-      
+
     case XINE_EVENT_INPUT_UP:
       if (this->channel>0) {
 	this->channel--;
 	switch_channel (this);
       }
       break;
-    
+
     case XINE_EVENT_INPUT_SELECT:
       switch_channel (this);
       break;
@@ -469,7 +462,7 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
       this->stream->osd_renderer->hide (this->osd, 0);
       break;
 
-#if 0      
+#if 0
     default:
       printf ("input_dvb: got an event, type 0x%08x\n", event->type);
 #endif
@@ -479,7 +472,9 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
   }
 }
 
-static off_t dvb_plugin_read (input_plugin_t *this_gen, 
+
+
+static off_t dvb_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
   off_t n, total;
@@ -511,14 +506,11 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
     }
   }
 
-  if (this->out_fd>0)
-    write (this->out_fd, buf, total);
-
   pthread_mutex_unlock( &this->mutex );
   return total;
 }
 
-static buf_element_t *dvb_plugin_read_block (input_plugin_t *this_gen, 
+static buf_element_t *dvb_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t todo) {
   /* dvb_input_plugin_t   *this = (dvb_input_plugin_t *) this_gen;  */
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
@@ -527,7 +519,7 @@ static buf_element_t *dvb_plugin_read_block (input_plugin_t *this_gen,
 
   buf->content = buf->mem;
   buf->type    = BUF_DEMUX_BLOCK;
-  
+
   total_bytes = dvb_plugin_read (this_gen, buf->content, todo);
 
   if (total_bytes != todo) {
@@ -540,7 +532,7 @@ static buf_element_t *dvb_plugin_read_block (input_plugin_t *this_gen,
   return buf;
 }
 
-static off_t dvb_plugin_seek (input_plugin_t *this_gen, off_t offset, 
+static off_t dvb_plugin_seek (input_plugin_t *this_gen, off_t offset,
 			      int origin) {
 
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
@@ -593,12 +585,11 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
     this->nbc = NULL;
   }
 
-  if (this->out_fd>0)
-    close (this->out_fd);
-
   xine_event_dispose_queue (this->event_queue);
 
   free (this->mrl);
+  free (this->channels);
+  tuner_dispose ( ((dvb_input_plugin_t *)this)->tuner );
   free (this);
 }
 
@@ -608,21 +599,28 @@ static char* dvb_plugin_get_mrl (input_plugin_t *this_gen) {
   return this->mrl;
 }
 
-static int dvb_plugin_get_optional_data (input_plugin_t *this_gen, 
+static int dvb_plugin_get_optional_data (input_plugin_t *this_gen,
 					 void *data, int data_type) {
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static channel_t *load_channels (int *num_ch) {
+static int find_param(const Param *list, const char *name)
+{
+  while (list->name && strcmp(list->name, name))
+    list++;
+  return list->value;;
+}
 
-  FILE         *f;
-  unsigned char str[BUFSIZE];
-  unsigned char filename[BUFSIZE];
-  channel_t    *channels;
-  int           num_channels;
+static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
 
-  snprintf (filename, BUFSIZE, "%s/.xine/dvb_channels", xine_get_homedir());
+  FILE      *f;
+  char       str[BUFSIZE];
+  char       filename[BUFSIZE];
+  channel_t *channels;
+  int        num_channels;
+
+  snprintf (filename, BUFSIZE, "%s/.xine/channels.conf", xine_get_homedir());
 
   f = fopen (filename, "rb");
   if (!f) {
@@ -635,7 +633,6 @@ static channel_t *load_channels (int *num_ch) {
    */
   num_channels = 0;
   while ( fgets (str, BUFSIZE, f)) {
-    fgets (str, BUFSIZE, f);
     num_channels++;
   }
   fclose (f);
@@ -650,53 +647,175 @@ static channel_t *load_channels (int *num_ch) {
   f = fopen (filename, "rb");
   num_channels = 0;
   while ( fgets (str, BUFSIZE, f)) {
-    
-    int freq;
 
-    channels[num_channels].name = strdup (str);
+    unsigned long freq;
+    char *field, *tmp;
 
-    fgets (str, BUFSIZE, f);
+    tmp = str;
+    if (!(field = strsep(&tmp, ":")))
+	continue;
 
-    sscanf (str, "%d %d %d %d %d %d %d\n", 
-	    &channels[num_channels].diseqcnr,
-	    &freq,
-	    &channels[num_channels].volt,
-	    &channels[num_channels].srate,
-	    &channels[num_channels].fec,
-	    &channels[num_channels].vpid,
-	    &channels[num_channels].apid);
+    channels[num_channels].name = strdup(field);
 
-    if (freq > 11700000) {
-      channels[num_channels].freq = freq - 10600000;
-      channels[num_channels].tone = SEC_TONE_ON;
-    } else {
-      channels[num_channels].freq = freq - 9750000;
-      channels[num_channels].tone = SEC_TONE_OFF;
+    if (!(field = strsep(&tmp, ":")))
+	continue;
+
+    freq = strtoul(field, NULL, 0);
+
+    switch (fe_type)
+    {
+    case FE_QPSK:
+
+      if (freq > 11700) {
+        channels[num_channels].front_param.frequency = (freq - 10600)*1000;
+        channels[num_channels].tone = 1;
+      } else {
+        channels[num_channels].front_param.frequency = (freq - 9750)*1000;
+        channels[num_channels].tone = 0;
+      }
+
+      channels[num_channels].front_param.inversion = INVERSION_OFF;
+      
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].pol = (field[0] == 'h' ? 0 : 1);
+      
+      if (!(field = strsep(&tmp, ":")))
+	break;
+      
+      channels[num_channels].sat_no = strtoul(field, NULL, 0);
+      
+      if (!(field = strsep(&tmp, ":")))
+	break;
+      
+      channels[num_channels].front_param.u.qpsk.symbol_rate =
+	strtoul(field, NULL, 0) * 1000;
+
+      channels[num_channels].front_param.u.qpsk.fec_inner = FEC_AUTO;
+
+      break;
+
+    case FE_QAM:
+
+      channels[num_channels].front_param.frequency = freq;
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.inversion =
+	find_param(inversion_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.qam.symbol_rate =
+	strtoul(field, NULL, 0);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.qam.fec_inner =
+	find_param(fec_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.qam.modulation =
+	find_param(qam_list, field);
+
+      break;
+
+    case FE_OFDM:
+
+      channels[num_channels].front_param.frequency = freq;
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.inversion =
+	find_param(inversion_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.bandwidth =
+	find_param(bw_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.code_rate_HP =
+	find_param(fec_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.code_rate_LP =
+	find_param(fec_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.constellation =
+	find_param(qam_list, field);
+
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.transmission_mode =
+	find_param(transmissionmode_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.guard_interval =
+	find_param(guard_list, field);
+
+      if (!(field = strsep(&tmp, ":")))
+	break;
+
+      channels[num_channels].front_param.u.ofdm.hierarchy_information =
+	find_param(hierarchy_list, field);
+
+      break;
+
     }
+
+    if (!(field = strsep(&tmp, ":")))
+	continue;
+
+    channels[num_channels].vpid = strtoul(field, NULL, 0);
+
+    if (!(field = strsep(&tmp, ":")))
+	continue;
+
+    channels[num_channels].apid = strtoul(field, NULL, 0);
 
 #ifdef LOG
     printf ("input: dvb channel %s loaded\n", channels[num_channels].name);
 #endif
 
     num_channels++;
-  } 
+  }
 
   *num_ch = num_channels;
   return channels;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, 
-				    xine_stream_t *stream, 
+static input_plugin_t *open_plugin (input_class_t *cls_gen,
+				    xine_stream_t *stream,
 				    const char *data) {
 
-  dvb_input_class_t  *cls = (dvb_input_class_t *) cls_gen; 
+  dvb_input_class_t  *cls = (dvb_input_class_t *) cls_gen;
   dvb_input_plugin_t *this;
   tuner_t            *tuner;
   channel_t          *channels;
   int                 num_channels;
   char               *mrl = (char *) data;
 
-  if (strncasecmp (mrl, "dvb:/",5)) 
+  if (strncasecmp (mrl, "dvb:/",5))
     return NULL;
 
   if ( !(tuner = tuner_init()) ) {
@@ -704,11 +823,11 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
     return NULL;
   }
 
-  if ( !(channels = load_channels(&num_channels)) ) {
+  if ( !(channels = load_channels(&num_channels, tuner->feinfo.type)) ) {
     tuner_dispose (tuner);
     return NULL;
   }
-  
+
   this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
   this->tuner    = tuner;
@@ -719,17 +838,21 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
     printf ("input_dvb: tuner_set_channel failed\n");
+    tuner_dispose(this->tuner);
+    free(this->channels);
     free (this);
     return NULL;
   }
 
   if ((this->fd = open (DVR_DEVICE, O_RDONLY)) < 0){
     printf ("input_dvb: cannot open dvr device '%s'\n", DVR_DEVICE);
+    tuner_dispose(this->tuner);
+    free(this->channels);
     free (this);
     return NULL;
   }
 
-  this->mrl = strdup(mrl); 
+  this->mrl = strdup(mrl);
 
   this->curpos       = 0;
   this->nbc          = nbc_init (stream);
@@ -755,15 +878,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 
   pthread_mutex_init (&this->mutex, NULL);
 
-#if 0
-  this->out_fd = open ("foo.ts", O_CREAT | O_WRONLY | O_TRUNC, 0644);
-#else
-  this->out_fd = 0;
-#endif
-
   this->event_queue = xine_event_new_queue (this->stream);
 
-  this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer, 
+  this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer,
 						      410, 410);
   this->stream->osd_renderer->set_position (this->osd, 20, 20);
   this->stream->osd_renderer->set_font (this->osd, "cetus", 32);
@@ -787,9 +904,7 @@ static char *dvb_class_get_identifier (input_class_t *this_gen) {
 }
 
 static void dvb_class_dispose (input_class_t *this_gen) {
-
-  dvb_input_class_t  *cls = (dvb_input_class_t *) this_gen;
-
+  dvb_input_class_t *cls = (dvb_input_class_t *) this_gen;
   free (cls);
 }
 
@@ -797,9 +912,9 @@ static int dvb_class_eject_media (input_class_t *this_gen) {
   return 1;
 }
 
-static char ** dvb_class_get_autoplay_list (input_class_t *this_gen, 
+static char ** dvb_class_get_autoplay_list (input_class_t *this_gen,
 					    int *num_files) {
-  dvb_input_class_t  *cls = (dvb_input_class_t *) this_gen;
+  dvb_input_class_t *cls = (dvb_input_class_t *) this_gen;
 
   *num_files = 1;
   return cls->mrls;
@@ -835,7 +950,7 @@ static void *init_class (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_INPUT, 11, "DVB", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
