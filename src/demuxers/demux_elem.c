@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.25 2001/10/25 00:46:58 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.26 2001/11/04 22:49:28 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -189,8 +189,6 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
   
-  this->status = DEMUX_OK;
-  
   this->blocksize = this->input->get_blocksize(this->input);
   if (!this->blocksize)
     this->blocksize = 2048;
@@ -225,6 +223,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   /*
    * now start demuxing
    */
+  this->status = DEMUX_OK;
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_elem_loop, this)) != 0) {
