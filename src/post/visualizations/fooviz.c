@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.5 2003/03/11 17:40:31 jkeil Exp $
+ * $Id: fooviz.c,v 1.6 2003/04/30 06:58:51 tmattern Exp $
  *
  */
 
@@ -226,6 +226,7 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
                                         XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
+      frame->bad_frame = 0;
       frame->pts = vpts;
       vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;

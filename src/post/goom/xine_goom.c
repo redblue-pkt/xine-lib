@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.29 2003/04/09 20:15:52 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.30 2003/04/30 06:58:50 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -540,6 +540,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
                                         VO_BOTH_FIELDS);
       
       frame->extra_info->invalid = 1;
+      frame->bad_frame = 0;
       frame->pts = vpts;
       vpts = 0;
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
