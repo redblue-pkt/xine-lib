@@ -1647,9 +1647,12 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 	if (channel_menu_visible) {
 	  channel_menu_visible = 0;
 	  switch_channel (this);
-	} else {
+	} 
+#if 0	/* disable mouse left click -> EPG for now. */	
+	else {
 	  show_eit(this);
 	}
+#endif	
 	break;
 
       case MOUSE_WHEEL_UP:
@@ -2498,16 +2501,6 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[4] = 0;
 
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
-
-
-  /* dislay channel name in top left of display */
-  config->register_bool(config, "input.dvbdisplaychan",
-			0,
-			_("display DVB channel name"),
-			_("This will display the current "
-			  "channel name in xine's on-screen-display. "
-			  "Menu button 7 will disable this temporarily."),
-			0, NULL, NULL);
 
   /* Enable remembering of last watched channel */
   config->register_bool(config, "input.dvb_last_channel_enable",
