@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.37 2001/09/08 15:41:20 guenter Exp $
+ * $Id: demux_avi.c,v 1.38 2001/09/08 18:11:41 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -158,10 +158,10 @@ typedef struct demux_avi_s {
 
 #define AVI_ERR_NO_AVI       9     /* Not an AVI file */
 
-#define AVI_ERR_NO_HDRL     10     /* AVI file has no has no header list,
+#define AVI_ERR_NO_HDRL     10     /* AVI file has no header list,
                                       corrupted ??? */
 
-#define AVI_ERR_NO_MOVI     11     /* AVI file has no has no MOVI list,
+#define AVI_ERR_NO_MOVI     11     /* AVI file has no MOVI list,
                                       corrupted ??? */
 
 #define AVI_ERR_NO_VIDS     12     /* AVI file contains no video data */

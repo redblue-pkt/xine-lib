@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.19 2001/09/06 13:36:18 jkeil Exp $
+ * $Id: w32codec.c,v 1.20 2001/09/08 18:11:41 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -52,12 +52,10 @@ typedef struct w32v_decoder_s {
   BITMAPINFOHEADER  bih, o_bih; 
   HIC               hic;
   int               yuv_supported ;
-  int               yuv_hack_needed ;
   int               flipped ;
   unsigned char     buf[128*1024];
   void             *our_out_buffer;
   int               size;
-  long		    outfmt;
 } w32v_decoder_t;
 
 typedef struct w32a_decoder_s {
@@ -77,61 +75,34 @@ typedef struct w32a_decoder_s {
 
 
 static char* get_vids_codec_name(w32v_decoder_t *this,
-				 unsigned long fccHandler, 
-				 BITMAPINFOHEADER *bih) {
+				 int buf_type) {
 
   this->yuv_supported=0;
-  this->yuv_hack_needed=0;
   this->flipped=0;
-  switch(fccHandler){
-  case mmioFOURCC('M', 'P', 'G', '4'):
-  case mmioFOURCC('m', 'p', 'g', '4'):
-  case mmioFOURCC('M', 'P', '4', '2'):
-  case mmioFOURCC('m', 'p', '4', '2'):
-    /*	case mmioFOURCC('M', 'P', '4', '3'):
-            case mmioFOURCC('m', 'p', '4', '3'): */
-    /* Video in Microsoft MPEG-4 format */
-    this->yuv_supported=1;
-    this->yuv_hack_needed=1;
-    return "mpg4c32.dll";
-  case mmioFOURCC('M', 'P', '4', '3'):
-  case mmioFOURCC('m', 'p', '4', '3'):
-    /* Video in MPEG-4 v3 (really DivX) format */
-    bih->biCompression=mmioFOURCC('d', 'i', 'v', '3');  /* hack */
-    this->yuv_supported=1;
-    this->yuv_hack_needed=1;
-    return "divxc32.dll";
 
-  case mmioFOURCC('D', 'I', 'V', '3'):
-  case mmioFOURCC('d', 'i', 'v', '3'):
-  case mmioFOURCC('D', 'I', 'V', '4'):
-  case mmioFOURCC('d', 'i', 'v', '4'):
-  case mmioFOURCC('M', 'P', '4', '1'):
-  case mmioFOURCC('m', 'p', '4', '1'):
-    /* Video in DivX ;-) format */
-    this->yuv_supported  =1;
-    this->yuv_hack_needed=1;
-    return "divxc32.dll";
-    
-  case mmioFOURCC('I', 'V', '5', '0'):	    
-  case mmioFOURCC('i', 'v', '5', '0'):	 
+  switch (buf_type) {
+  case BUF_VIDEO_IV50:
     /* Video in Indeo Video 5 format */
     this->yuv_supported=1;   /* YUV pic is upside-down :( */
+    this->flipped=1;
     return "ir50_32.dll";
-							
-  case mmioFOURCC('I', 'V', '4', '1'):	    
-  case mmioFOURCC('i', 'v', '4', '1'):	    
+
+  case BUF_VIDEO_IV41:
     /* Video in Indeo Video 4.1 format */
     this->flipped=1;
     return "ir41_32.dll";
     
-  case mmioFOURCC('I', 'V', '3', '2'):	    
-  case mmioFOURCC('i', 'v', '3', '2'):
+  case BUF_VIDEO_IV32:
     /* Video in Indeo Video 3.2 format */
     this->flipped=1;
     return "ir32_32.dll";
     
-  case mmioFOURCC('c', 'v', 'i', 'd'):
+  case BUF_VIDEO_IV31:
+    /* Video in Indeo Video 3.1 format */
+    this->flipped=1;
+    return "ir32_32.dll";
+
+  case BUF_VIDEO_CINEPACK:
     /* Video in Cinepak format */
     this->yuv_supported=1;
     return "iccvid.dll";
@@ -142,26 +113,21 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 	 return "ativcr1.dll";
     */
 
-  case mmioFOURCC('V', 'C', 'R', '2'):
+  case BUF_VIDEO_ATIVCR2:
     /* Video in ATI VCR2 format */
     this->yuv_supported=1;
     return "ativcr2.dll";
     
-  case mmioFOURCC('I', '2', '6', '3'):
-  case mmioFOURCC('i', '2', '6', '3'):
+  case BUF_VIDEO_I263:
     /* Video in I263 format */
     return "i263_32.drv";
     
-  case mmioFOURCC('M', 'J', 'P', 'G'):
-    /* Video in MJPEG format */
-    this->yuv_supported=1;
-    return "mcmjpg32.dll";
-    /* return "m3jpeg32.dll";
-       return "libavi_mjpeg.so"; */
   }
-  printf("UNKNOWN video codec: %.4s (0x%0X)\n",(char*)&fccHandler,(int)fccHandler);
-  printf("If you know this video format and codec, you can edit w32codec.c in the source!\n");
-  printf("Please contact the author, send this movie to be supported by future version.\n");
+
+  printf ("w32codec: this didn't happen: unknown video buf type %08x\n",
+	  buf_type);
+  
+
   return NULL;
 }
 
@@ -175,15 +141,13 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  return ( buf_type == BUF_VIDEO_AVI ||
-           buf_type == BUF_VIDEO_MSMPEG4 ||
-           buf_type == BUF_VIDEO_MJPEG ||
-           buf_type == BUF_VIDEO_IV50 ||
+  return ( buf_type == BUF_VIDEO_IV50 ||
            buf_type == BUF_VIDEO_IV41 ||
            buf_type == BUF_VIDEO_IV32 ||
            buf_type == BUF_VIDEO_CINEPACK ||
            /* buf_type == BUF_VIDEO_ATIVCR1 || */
-           buf_type == BUF_VIDEO_ATIVCR2 );
+           buf_type == BUF_VIDEO_ATIVCR2 ||
+	   buf_type == BUF_VIDEO_I263);
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -195,30 +159,20 @@ static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 }
 
 
-static void w32v_init_codec (w32v_decoder_t *this) {
+static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 
-  HRESULT ret;
-  uint32_t vo_cap;
-  int outfmt;
+  HRESULT  ret;
 
   printf ("init codec...\n");
-
-  vo_cap = this->video_out->get_capabilities (this->video_out);
-  if (vo_cap & VO_CAP_YUY2)
-    outfmt = IMGFMT_YUY2;
-  else if (vo_cap & VO_CAP_YV12)
-    outfmt = IMGFMT_YV12;
-  else {
-    printf ("video output driver doesn't support YUY2/YV12 !!\n");
-    this->decoder_ok = 0;
-    return;
-  }
 
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
   
-  win32_codec_name = get_vids_codec_name (this, this->bih.biCompression, &this->bih);  
-  this->hic = ICOpen( mmioFOURCC('v','i','d','c'), this->bih.biCompression, ICMODE_FASTDECOMPRESS);
+  win32_codec_name = get_vids_codec_name (this, buf_type);
+
+  this->hic = ICOpen (mmioFOURCC('v','i','d','c'), 
+		      this->bih.biCompression, 
+		      ICMODE_FASTDECOMPRESS);
 
   if(!this->hic){
     printf ("ICOpen failed! unknown codec / wrong parameters?\n");
@@ -233,25 +187,22 @@ static void w32v_init_codec (w32v_decoder_t *this) {
     return;
   }
 
-  if(outfmt==IMGFMT_YUY2)
+  printf ("w32codec: video output format: %.4s %08x\n",
+	  (char*)&this->o_bih.biCompression,
+	  this->o_bih.biCompression);
+
+  if (this->flipped)
+    this->o_bih.biHeight=-this->bih.biHeight; 
+
+  if (this->yuv_supported) {
     this->o_bih.biBitCount=16;
-  else if (outfmt==IMGFMT_YV12)
-    this->o_bih.biBitCount=12;
-  else
-    this->o_bih.biBitCount=outfmt&0xFF;//   //24;
+    this->o_bih.biCompression = IMGFMT_YUY2;
+  } else { 
+    this->o_bih.biCompression = 0; /* RGB */
+    this->o_bih.biBitCount = 16;
+  }
 
   this->o_bih.biSizeImage = this->o_bih.biWidth*this->o_bih.biHeight*this->o_bih.biBitCount/8;
-  
-  /*
-  if(!flipped)
-    this->o_bih.biHeight=-bih.biHeight; */ /* flip image! */
-
-  this->o_bih.biHeight=-this->bih.biHeight; 
-
-  if(outfmt==IMGFMT_YUY2 && !this->yuv_hack_needed)
-    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2');
-  else if(outfmt==IMGFMT_YV12 && !this->yuv_hack_needed)
-    this->o_bih.biCompression = mmioFOURCC('Y','V','1','2');
 
   ret = ICDecompressQuery(this->hic, &this->bih, &this->o_bih);
   
@@ -268,19 +219,12 @@ static void w32v_init_codec (w32v_decoder_t *this) {
     return;
   }
 
-  if (outfmt==IMGFMT_YUY2 && this->yuv_hack_needed) {
-    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2'); 
-  } else if (outfmt==IMGFMT_YV12 && this->yuv_hack_needed) {
-    this->o_bih.biCompression = mmioFOURCC('Y','V','1','2'); 
-  }
-  
   this->size = 0;
 
   this->our_out_buffer = malloc (this->o_bih.biSizeImage);
 
   this->video_out->open (this->video_out);
 
-  this->outfmt = outfmt;
   this->decoder_ok = 1;
 }
 
@@ -288,7 +232,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
   /*
-  printf ("w32codec: processing packet type = %08x, buf : %d, buf->decoder_info[0]=%d\n", 
+  printf ("w32codec: processing packet type = %08x, buf : %d, 
+          buf->decoder_info[0]=%d\n", 
 	  buf->type, buf, buf->decoder_info[0]);
 	  */
 
@@ -298,7 +243,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
     this->video_step = buf->decoder_info[1];
 
-    w32v_init_codec (this);
+    w32v_init_codec (this, buf->type);
     
   } else if (this->decoder_ok) {
 
@@ -321,14 +266,47 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biWidth, 
 					this->bih.biHeight, 
 					42, 
-					this->outfmt /*IMGFMT_YUY2*/,
+					IMGFMT_YUY2,
 					this->video_step,
 					VO_BOTH_FIELDS);
 
       ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
 			 &this->bih, this->buf,
 			 &this->o_bih, img->base[0]);
-      
+
+      {
+	int row;
+	for (row=0; row<this->bih.biHeight; row++) {
+	  int col;
+	  for (col=0; col<this->o_bih.biWidth; col++) {
+	    
+	    uint16_t *pixel;
+	    uint8_t   r,g,b;
+	    uint8_t   y,u,v;
+	    
+	    pixel = img->base[0] + 2 * (row * this->o_bih.biWidth + col);
+	
+	    b = (*pixel & 0x003C) << 3;
+	    g = (*pixel & 0x03E0) >> 5 << 3;
+	    r = (*pixel & 0xF800) >> 10 << 3;
+	    
+	    y = (uint8_t) (0.299 * (double) r + 0.587 * (double) g + 0.114 * (double) b);
+	    
+	    if (!(col & 0x0001)) {
+	      /* even pixel, do u */
+	      u = (uint8_t) (- 0.1684 * (double) r - 0.3316 * (double) g + 0.5000 * (double) b + 128.0);
+	      *pixel = ( (uint16_t) u << 8) | (uint16_t) y;
+	    } else {
+	      /* odd pixel, do v */
+	      v = (uint8_t) (0.5000 * (double) r - 0.4187 * (double) g - 0.0813 * (double) b + 128.0);
+	      *pixel = ( (uint16_t) v << 8) | (uint16_t) y;
+	    }
+
+	    //printf("r %02x g %02x b %02x y %02x u %02x v %02x\n",r,g,b,y,u,v);
+	  }
+	}
+      }
+
       img->PTS = buf->PTS;
       if(ret) {
 	printf("Error decompressing frame, err=%ld\n", (long)ret); 
@@ -341,23 +319,11 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	int stride = this->o_bih.biWidth;
 	uint8_t* src[3];
 	  
-	if (this->outfmt == IMGFMT_YUY2) {
-	  src[0] = img->base[0];
+	src[0] = img->base[0];
 	  
-	  while ((height -= 16) >= 0) {
-	    img->copy(img, src);
-	    src[0] += 32 * stride;
-	  }
-	} else {
-	  src[0] = img->base[0];
-	  src[2] = src[0] + height * this->o_bih.biWidth;
-	  src[1] = src[2] + height * this->o_bih.biWidth / 4;
-	  while ((height -= 16) >= 0) {
-	    img->copy(img, src);
-	    src[0] += 16 * stride;
-	    src[1] +=  4 * stride;
-	    src[2] +=  4 * stride;
-	  }
+	while ((height -= 16) >= 0) {
+	  img->copy(img, src);
+	  src[0] += 32 * stride;
 	}
       }
 
@@ -388,28 +354,28 @@ static char *w32v_get_id(void) {
 
 static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
 
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_AVI);
+  int codec = buf_type & 0xFFFF0000;
+
+  return ( (codec == BUF_AUDIO_DIVXA) ||
+	   (codec == BUF_AUDIO_MSADPCM) ||
+	   (codec == BUF_AUDIO_IMAADPCM) ||
+	   (codec == BUF_AUDIO_MSGSM) );
 }
 
-static char* get_auds_codec_name(w32a_decoder_t *this, int id){
+static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
 
-  switch (id){
-  case 0x160:/* DivX audio */
-  case 0x161:/* DivX audio */
+  switch (buf_type) {
+  case BUF_AUDIO_DIVXA:
     return "divxa32.acm";
-  case 0x2:  /* MS ADPCM   */
+  case BUF_AUDIO_MSADPCM:
     return "msadp32.acm";
-  case 0x55: /* MPEG l3    */
-    return "l3codeca.acm";
-  case 0x11: /* IMA ADPCM  */
+  case BUF_AUDIO_IMAADPCM:
     return "imaadp32.acm";
-  case 0x31: /* MS GSM     */
-  case 0x32: /* MS GSM     */
+  case BUF_AUDIO_MSGSM:
     return "msgsm32.acm";
   }
-  printf("UNKNOWN audio codec: 0x%0X\n",id);
-  printf("If you know this audio format and codec, you can edit codecs.c in the source!\n");
-  printf("Please contact the author, send this movie to be supported by future version.\n");
+  printf ("w32codec: this didn't happen: unknown audio buf type %08x\n",
+	  buf_type);
   return NULL;
 }
 
@@ -422,7 +388,9 @@ static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->decoder_ok = 0;
 }
 
-static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
+static int w32a_init_audio (w32a_decoder_t *this,
+			    WAVEFORMATEX *in_fmt_,
+			    int buf_type) {
 
   HRESULT ret;
   static WAVEFORMATEX wf;     
@@ -433,12 +401,6 @@ static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
 
   memcpy (in_fmt, in_fmt_, sizeof (WAVEFORMATEX) + in_fmt_->cbSize);
 
-  if ( (in_fmt->wFormatTag == 0x01) || (in_fmt->wFormatTag == 0x2000)
-       || (in_fmt->wFormatTag == 0x50) || (in_fmt->wFormatTag == 0x53) ) {
-    /* handled by other codecs in source code */
-    return 1;
-  }
-  
   this->srcstream = 0;
   this->num_channels  = in_fmt->nChannels;
   
@@ -461,7 +423,7 @@ static int w32a_init_audio (w32a_decoder_t *this, WAVEFORMATEX *in_fmt_){
   wf.wBitsPerSample  = 16;
   wf.cbSize          = 0;
   
-  win32_codec_name = get_auds_codec_name (this, in_fmt->wFormatTag);
+  win32_codec_name = get_auds_codec_name (this, buf_type);
   ret=acmStreamOpen(&this->srcstream,(HACMDRIVER)NULL,
                     in_fmt,
 		    &wf,
@@ -577,7 +539,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_info[0] == 0) {
     /* init package containing bih */
 
-    this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content);
+    this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
   } else if (this->decoder_ok) {
 
     w32a_decode_audio (this, buf->content, buf->size,

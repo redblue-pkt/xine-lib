@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.10 2001/09/08 00:44:41 guenter Exp $
+ * $Id: buffer.h,v 1.11 2001/09/08 18:11:41 guenter Exp $
  *
  *
  * contents:
@@ -71,17 +71,18 @@ extern "C" {
 #define BUF_VIDEO_MPEG       0x02000000
 #define BUF_VIDEO_MPEG4      0x02010000
 #define BUF_VIDEO_QUICKTIME  0x02020000
-#define BUF_VIDEO_AVI        0x02030000
+#define BUF_VIDEO_SORENSON   0x02030000
 #define BUF_VIDEO_MSMPEG4    0x02040000
 #define BUF_VIDEO_MJPEG      0x02050000
 #define BUF_VIDEO_IV50       0x02060000
 #define BUF_VIDEO_IV41       0x02070000
 #define BUF_VIDEO_IV32       0x02080000
-#define BUF_VIDEO_CINEPACK   0x02090000
+#define BUF_VIDEO_IV31       0x02090000
 #define BUF_VIDEO_ATIVCR1    0x020a0000
 #define BUF_VIDEO_ATIVCR2    0x020b0000
 #define BUF_VIDEO_I263       0x020c0000
 #define BUF_VIDEO_RV10       0x020d0000
+#define BUF_VIDEO_CINEPACK   0x020e0000
 
 /* audio buffer types:  */
 
@@ -90,8 +91,11 @@ extern "C" {
 #define BUF_AUDIO_MPEG       0x03010000
 #define BUF_AUDIO_LPCM_BE    0x03020000
 #define BUF_AUDIO_LPCM_LE    0x03030000
-#define BUF_AUDIO_AVI        0x03040000
+#define BUF_AUDIO_DIVXA      0x03040000
 #define BUF_AUDIO_DTS        0x03050000
+#define BUF_AUDIO_MSADPCM    0x03060000
+#define BUF_AUDIO_IMAADPCM   0x03070000
+#define BUF_AUDIO_MSGSM      0x03080000 
 
 /* spu buffer types:    */
  
