@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.74 2002/04/23 13:52:22 esnel Exp $
+ * $Id: load_plugins.c,v 1.75 2002/04/23 15:45:26 esnel Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -539,7 +539,7 @@ void load_decoder_plugins (xine_t *this,
 	      spu_decoder_t *sdp;
 	      int            streamtype;
 	      
-	      sdp = (spu_decoder_t *) initplug(5, this);
+	      sdp = (spu_decoder_t *) initplug(6, this);
 	      if (sdp) {
 		int *used = (int *)xine_xmalloc (sizeof (int));
 

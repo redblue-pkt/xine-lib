@@ -318,7 +318,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   mms_input_plugin_t *this;
   config_values_t    *config;
   
-  if (iface != 5) {
+  if (iface != 6) {
     printf ("mms input plugin doesn't support plugin API version %d.\n"
 	    "PLUGIN DISABLED.\n"
 	    "This means there's a version mismatch between xine and this input"

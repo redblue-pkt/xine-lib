@@ -337,7 +337,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   net_input_plugin_t *this;
   config_values_t    *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     LOG_MSG(xine,
 	    _("net input plugin doesn't support plugin API version %d.\n"
 	      "PLUGIN DISABLED.\n"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.72 2002/04/10 10:37:41 miguelfreitas Exp $
+ * $Id: dxr3_decoder.c,v 1.73 2002/04/23 15:45:19 esnel Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -759,6 +759,10 @@ static void dxr3_flush_decoder(void *this_gen, cfg_entry_t *entry)
 	entry->num_value = 0;	
 }
 
+static void dxr3_dispose (video_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 video_decoder_t *init_video_decoder_plugin (int iface_version,
  xine_t *xine)
 {
@@ -767,7 +771,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	char *tmpstr;
 	int dashpos;
 
-	if (iface_version != 6) {
+	if (iface_version != 7) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 		 "dxr3: this means there's a version mismatch between xine and this\n"
 		 "dxr3: decoder plugin. Installing current plugins should help.\n",
@@ -803,6 +807,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.reset		= dxr3_reset;
+	this->video_decoder.dispose		= dxr3_dispose;
 	this->video_decoder.priority            = cfg->register_num(cfg,
 		"dxr3.decoder_priority", 10, "Dxr3: video decoder priority", NULL, NULL, NULL);
 	
@@ -1161,6 +1166,14 @@ static char *spudec_get_id(void)
 	return "dxr3-spudec";
 }
 
+static void spudec_dispose (spu_decoder_t *this_gen) {
+  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
+
+  xine_remove_event_listener (this->xine, spudec_event_listener);
+
+  free (this);
+}
+
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
 {
   spudec_decoder_t *this;
@@ -1168,7 +1181,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   char *tmpstr;
   int dashpos;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 	    "dxr3: this means there's a version mismatch between xine and this "
 	    "dxr3: decoder plugin.\nInstalling current plugins should help.\n",
@@ -1205,6 +1218,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine)
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
+  this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.priority            = 10;
   this->xine				= xine;
   this->menu				= 0;

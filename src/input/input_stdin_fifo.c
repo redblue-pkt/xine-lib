@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.23 2002/04/23 13:30:43 esnel Exp $
+ * $Id: input_stdin_fifo.c,v 1.24 2002/04/23 15:45:21 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -351,7 +351,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   stdin_input_plugin_t *this;
   config_values_t      *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     xine_log (xine, XINE_LOG_PLUGIN,
 	      _("stdin/fifo input plugin doesn't support plugin API version %d.\n"
 		"PLUGIN DISABLED.\n"

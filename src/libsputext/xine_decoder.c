@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2002/04/23 13:30:44 esnel Exp $
+ * $Id: xine_decoder.c,v 1.21 2002/04/23 15:45:25 esnel Exp $
  *
  * code based on mplayer module:
  *
@@ -1005,7 +1005,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
 
-  if (iface_version != 5) {
+  if (iface_version != 6) {
     printf("libsputext: doesn't support plugin api version %d.\n"
 	   "libsputext: This means there is a version mismatch between xine and\n"
 	   "libsputext: this plugin.\n", iface_version);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.23 2002/04/23 13:30:43 esnel Exp $
+ * $Id: input_plugin.h,v 1.24 2002/04/23 15:45:21 esnel Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -33,7 +33,7 @@ extern "C" {
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   5
+#define INPUT_PLUGIN_IFACE_VERSION   6
  
 #define MAX_MRL_ENTRIES 255
 

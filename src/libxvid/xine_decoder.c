@@ -228,11 +228,15 @@ static char *xvid_get_id(void) {
     return "XviD video decoder";
 }
 
+static void xvid_dispose (video_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     xvid_decoder_t *this;
     XVID_INIT_PARAM xinit;
     
-    if (iface_version != 6) {
+    if (iface_version != 7) {
 	printf ("xvid: plugin doesn't support plugin API version %d.\n"
 		"xvid: this means there's a version mismatch between xine and this\n"
 		"xvid: decoder plugin. Installing current plugins should help.\n",
@@ -260,6 +264,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     this->video_decoder.flush		  = xvid_flush;
     this->video_decoder.close		  = xvid_close_plugin;
     this->video_decoder.get_identifier	  = xvid_get_id;
+    this->video_decoder.dispose		  = xvid_dispose;
     this->video_decoder.priority	  = 6;
     this->frame_size			  = 0;
     
