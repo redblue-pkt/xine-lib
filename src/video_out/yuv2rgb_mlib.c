@@ -81,7 +81,7 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
 
   if (this->do_scale) {
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &image);
 
     assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
     for (;;) {
@@ -137,9 +137,11 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
       dy -= 32768;
     }
   } else {
+    this->next_slice (this, &image);
+
     mlib_stat = mlib_VideoColorYUV2RGB420(image, py, pu, pv,
 					  this->source_width,
-					  this->source_height,
+					  this->slice_height,
 					  this->rgb_stride,
 					  this->y_stride,
 					  this->uv_stride);
@@ -156,7 +158,7 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
 
   if (this->do_scale) {
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &image);
 
     assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
     for (;;) {
@@ -212,9 +214,11 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
       dy -= 32768;
     }
   } else {
+    this->next_slice (this, &image);
+
     mlib_stat = mlib_VideoColorYUV2ARGB420(image, py, pu, pv,
 					   this->source_width,
-					   this->source_height,
+					   this->slice_height,
 					   this->rgb_stride,
 					   this->y_stride,
 					   this->uv_stride);
@@ -231,7 +235,7 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
 
   if (this->do_scale) {
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &image);
 
     assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
     for (;;) {
@@ -287,9 +291,11 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
       dy -= 32768;
     }
   } else {
+    this->next_slice (this, &image);
+
     mlib_stat = mlib_VideoColorYUV2ABGR420(image, py, pu, pv,
 					   this->source_width,
-					   this->source_height,
+					   this->slice_height,
 					   this->rgb_stride,
 					   this->y_stride,
 					   this->uv_stride);

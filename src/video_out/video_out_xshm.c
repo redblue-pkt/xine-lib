@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.100 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.101 2003/01/24 17:04:37 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -84,7 +84,6 @@ typedef struct xshm_frame_s {
   yuv2rgb_t         *yuv2rgb; /* yuv2rgb converter set up for this frame */
   uint8_t           *rgb_dst;
   int                yuv_stride;
-  int                stripe_height, stripe_inc;
 
 } xshm_frame_t;
 
@@ -310,18 +309,6 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 
   vo_img->copy_called = 1;
   
-  if ((char *) frame->rgb_dst + frame->stripe_inc > (char *) frame->image->data
-      	+ frame->image->bytes_per_line * frame->image->height) {
-    /* frame->rgb_dst can walk off the end of the frame's image data when
-     * xshm_frame_field, which resets it, is not called properly. This can
-     * happen with corrupt MPEG streams
-     * FIXME: Is there a way to ensure frame->rgb_dst validity?
-     */
-#ifdef LOG
-    printf("video_out_xshm: corrupt value of frame->rgb_dst -- skipping\n");
-#endif
-    return;
-  }
 #ifdef LOG
   printf ("video_out_xshm: copy... (format %d)\n", frame->format);
 #endif
@@ -336,7 +323,6 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 				 
   }
   
-  frame->rgb_dst += frame->stripe_inc; 
 #ifdef LOG
   printf ("video_out_xshm: copy...done\n");
 #endif
@@ -350,17 +336,16 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
   switch (which_field) {
   case VO_TOP_FIELD:
     frame->rgb_dst    = (uint8_t *)frame->image->data;
-    frame->stripe_inc = 2*frame->stripe_height * frame->image->bytes_per_line;
     break;
   case VO_BOTTOM_FIELD:
     frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
-    frame->stripe_inc = 2*frame->stripe_height * frame->image->bytes_per_line;
     break;
   case VO_BOTH_FIELDS:
     frame->rgb_dst    = (uint8_t *)frame->image->data;
-    frame->stripe_inc = frame->stripe_height * frame->image->bytes_per_line;
     break;
   }
+
+  frame->yuv2rgb->next_slice (frame->yuv2rgb, NULL);
 }
 
 static void xshm_frame_dispose (vo_frame_t *vo_img) {
@@ -423,8 +408,8 @@ static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
   vo_scale_compute_output_size( &frame->sc );
 
   /* avoid problems in yuv2rgb */
-  if (frame->sc.output_height < ((frame->sc.delivered_height + 15) >> 4))
-    frame->sc.output_height = ((frame->sc.delivered_height + 15) >> 4);
+  if (frame->sc.output_height < 1)
+    frame->sc.output_height = 1;
   if (frame->sc.output_width < 8)
     frame->sc.output_width = 8;
   if (frame->sc.output_width & 1) /* yuv2rgb_mlib needs an even YUV2 width */
@@ -561,12 +546,9 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       frame->chunk[2] = NULL;
     }
 
-    frame->stripe_height = 16 * frame->sc.output_height / frame->sc.delivered_height;
-
 #ifdef LOG
     printf ("video_out_xshm: stripe out_ht=%i, deliv_ht=%i\n",
 	    frame->sc.output_height, frame->sc.delivered_height);
-    printf ("video_out_xshm: stripe height is %d\n", frame->stripe_height); 
 #endif
 
     /* 
@@ -578,22 +560,22 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     case VO_BOTTOM_FIELD:
       frame->yuv2rgb->configure (frame->yuv2rgb,
 				 frame->sc.delivered_width,
-				 16,
+				 frame->sc.delivered_height,
 				 2*frame->vo_frame.pitches[0],
 				 2*frame->vo_frame.pitches[1],
 				 frame->sc.output_width,
-				 frame->stripe_height,
+				 frame->sc.output_height,
 				 frame->image->bytes_per_line*2);
       frame->yuv_stride = frame->image->bytes_per_line*2;
       break;
     case VO_BOTH_FIELDS:
       frame->yuv2rgb->configure (frame->yuv2rgb,
 				 frame->sc.delivered_width,
-				 16,
+				 frame->sc.delivered_height,
 				 frame->vo_frame.pitches[0],
 				 frame->vo_frame.pitches[1],
 				 frame->sc.output_width,
-				 frame->stripe_height,
+				 frame->sc.output_height,
 				 frame->image->bytes_per_line);
       frame->yuv_stride = frame->image->bytes_per_line;
       break;

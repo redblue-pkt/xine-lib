@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.34 2002/10/10 14:05:19 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.35 2003/01/24 17:04:39 esnel Exp $
  */
 
 #include "config.h"
@@ -69,6 +69,31 @@ static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 }
 
 
+static int yuv2rgb_next_slice (yuv2rgb_t *this, uint8_t **dest) {
+  int y0, y1;
+
+  if (dest == NULL) {
+    this->slice_offset = 0;
+    this->slice_height = 16;
+    return 0;
+  }
+  if (this->slice_height == this->source_height) {
+    return this->dest_height;
+  }
+
+  y0 = (this->slice_offset * this->dest_height) / this->source_height;
+  y1 = ((this->slice_offset + this->slice_height) * this->dest_height) / this->source_height;
+  *dest += (this->rgb_stride * y0);
+
+  if ((this->slice_offset + this->slice_height) >= this->source_height) {
+    this->slice_offset = 0;
+    return (this->dest_height - y0);
+  } else {
+    this->slice_offset += this->slice_height;
+    return (y1 - y0);
+  }
+}
+
 static int yuv2rgb_configure (yuv2rgb_t *this, 
 			      int source_width, int source_height,
 			      int y_stride, int uv_stride,
@@ -88,7 +113,9 @@ static int yuv2rgb_configure (yuv2rgb_t *this,
   this->dest_width    = dest_width;
   this->dest_height   = dest_height;
   this->rgb_stride    = rgb_stride;
-  
+  this->slice_height  = source_height;
+  this->slice_offset  = 0;
+
   if (this->y_chunk) {
     free (this->y_chunk);
     this->y_buffer = this->y_chunk = NULL;
@@ -1367,7 +1394,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = (uint32_t*)_dst;
@@ -1431,7 +1458,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
       } while( dy>=32768);
     }
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = (uint32_t*)_dst;
       dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
@@ -1498,7 +1525,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = _dst;
@@ -1562,7 +1589,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
       } while (dy>=32768);
     }
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = _dst;
       dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
@@ -1629,7 +1656,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = _dst;
@@ -1694,7 +1721,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
     }
 
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = _dst;
       dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
@@ -1760,7 +1787,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = (uint16_t*)_dst;
@@ -1824,7 +1851,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       } while( dy>=32768);
     }
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = (uint16_t*)_dst;
       dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
@@ -1890,7 +1917,7 @@ static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = (uint8_t*)_dst;
@@ -1954,7 +1981,7 @@ static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
       } while( dy>=32768 );
     }
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = (uint8_t*)_dst;
       dst_2 = (void*)( (uint8_t *)_dst + this->rgb_stride );
@@ -2009,7 +2036,7 @@ static void yuv2rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst,
     scale_line_func_t scale_line = this->scale_line;
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (;;) {
       scale_line (_py, _dst, this->dest_width, this->step_dx);
@@ -2035,7 +2062,7 @@ static void yuv2rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst,
       */
     }
   } else {
-    for (height = this->source_height; --height >= 0; ) {
+    for (height = this->next_slice (this, &_dst); --height >= 0; ) {
       xine_fast_memcpy(_dst, _py, this->dest_width);
       _dst += this->rgb_stride;
       _py += this->y_stride;
@@ -2065,7 +2092,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    dst_height = this->dest_height;
+    dst_height = this->next_slice (this, &_dst);
 
     for (height = 0;; ) {
       dst_1 = _dst;
@@ -2129,7 +2156,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       } while( dy>=32768 );
     }
   } else {
-    height = this->source_height >> 1;
+    height = this->next_slice (this, &_dst) >> 1;
     do {
       dst_1 = _dst;
       dst_2 = _dst + this->rgb_stride;
@@ -2539,7 +2566,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
   
   for (;;) {
     dst_1 = (uint32_t*)_dst;
@@ -2618,7 +2645,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
 
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
   
   for (;;) {
     dst_1 = _dst;
@@ -2696,7 +2723,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
 
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
   
   for (;;) {
     dst_1 = _dst;
@@ -2770,7 +2797,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
 
   for (;;) {
     dst_1 = (uint16_t*)_dst;
@@ -2844,7 +2871,7 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
   
   for (;;) {
     dst_1 = _dst;
@@ -2908,7 +2935,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
   if (this->do_scale) {
     dy = 0;
-    height = this->dest_height;
+    height = this->next_slice (this, &_dst) >> 1;
   
     for (;;) {
       scale_line_2 (_p, _dst, this->dest_width, this->step_dx);
@@ -2931,7 +2958,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       dy &= 32767;
     }
   } else {
-    for (height = this->source_height; --height >= 0; ) { 
+    for (height = this->next_slice (this, &_dst); --height >= 0; ) { 
       dst = _dst;
       y = _p;
       for (width = this->source_width; --width >= 0; ) {
@@ -2961,7 +2988,7 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
     
   dy = 0;
-  height = this->dest_height;
+  height = this->next_slice (this, &_dst) >> 1;
   
   for (;;) {
     dst_1 = _dst;
@@ -3076,6 +3103,7 @@ yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
   this->yuv2rgb_single_pixel_fun = factory->yuv2rgb_single_pixel_fun;
 
   this->configure                = yuv2rgb_configure;
+  this->next_slice               = yuv2rgb_next_slice;
   return this;
 }
 
@@ -3176,4 +3204,3 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
 
   return this;
 }
-

@@ -383,8 +383,8 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->source_height;
-    int dst_height = this->dest_height;
+    int height     = this->slice_height;
+    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     width >>= 3;
@@ -494,8 +494,8 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->source_height;
-    int dst_height = this->dest_height;
+    int height     = this->slice_height;
+    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     width >>= 3;
@@ -603,8 +603,8 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->source_height;
-    int dst_height = this->dest_height;
+    int height     = this->slice_height;
+    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
@@ -714,8 +714,8 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->source_height;
-    int dst_height = this->dest_height;
+    int height     = this->slice_height;
+    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
@@ -824,8 +824,8 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->source_height;
-    int dst_height = this->dest_height;
+    int height     = this->slice_height;
+    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */

@@ -52,6 +52,11 @@ struct yuv2rgb_s {
 		    int rgb_stride);
 
   /*
+   * start a new field or frame if dest is NULL
+   */
+  int (*next_slice) (yuv2rgb_t *this, uint8_t **dest);
+
+  /*
    * this is the function to call for the yuv2rgb and scaling process
    */
   yuv2rgb_fun_t     yuv2rgb_fun;
@@ -74,6 +79,7 @@ struct yuv2rgb_s {
   int               y_stride, uv_stride;
   int               dest_width, dest_height;
   int               rgb_stride;
+  int               slice_height, slice_offset;
   int               step_dx, step_dy;
   int               do_scale;
 
@@ -147,5 +153,6 @@ void mmx_yuv2rgb_set_gamma(int gamma);
 void yuv2rgb_init_mmxext (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mmx (yuv2rgb_factory_t *this);
 void yuv2rgb_init_mlib (yuv2rgb_factory_t *this);
+int yuv2rgb_slice (yuv2rgb_t *this, uint8_t **dest);
 
 #endif
