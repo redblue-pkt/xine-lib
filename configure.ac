@@ -618,7 +618,6 @@ if test x$ac_have_xxmc = "xyes"; then
                [Define 1 if you have vldXvMC.h])
   fi
 fi
-AM_CONDITIONAL(HAVE_VLDXVMC, test x$ac_have_vldxvmc_h = "xyes")
 dnl Try fallback to standard XvMC if vld failed
 if test x$ac_have_xxmc = "xno"; then
   if test x$xxmc_stub == "xXvMCW"; then
@@ -656,6 +655,7 @@ else
 fi
 LIBS="$saved_libs"
 fi
+AM_CONDITIONAL(HAVE_VLDXVMC, test x$ac_have_vldxvmc_h = "xyes")
 AM_CONDITIONAL(HAVE_XXMC, test x$ac_have_xxmc = "xyes")
 AC_SUBST(XXMC_LIB)
 	   
