@@ -24,41 +24,26 @@
  *
  */
 
-#include "stdio.h"
+#include <sys/timeb.h>
+#include <signal.h>
 #include "timer.h"
 
-#include <signal.h>
 
 #ifndef SIGALRM
 #define SIGALRM 14
 #endif
 
- /*
-	this function returns somewhat
-	accurate unix time with the data
-	accurate to the first call to get
-	of day and the resolution accurate
-	to ~ miliseconds.
-*/
 
-static time_t startseconds = 0;
+int gettimeofday(struct timeval *tv, struct timezone *tz) {
+  struct timeb timebuffer;
 
-int gettimeofday( struct timeval *tp, struct timezone *tzp )
-{
-	MMTIME mmtime;
+  ftime(&timebuffer);
+  tv->tv_sec = timebuffer.time; 
+  tv->tv_usec = timebuffer.millitm * 1000; 
 
-	// clock() returns time in miliseconds
+  return 0;
+}
 
-	if( !startseconds )
-		startseconds = time( 0 );
-
-	timeGetSystemTime( &mmtime, sizeof( mmtime ) );      
-
-	tp->tv_sec	= ( mmtime.u.ms / 1000 ) + startseconds;
-	tp->tv_usec	= ( mmtime.u.ms % 1000 ) * 1000;
-
-	return 0;
-};
 
 /*
 	These functions are designed to mimick
