@@ -825,7 +825,7 @@ void ifoPrint_VTS_TMAPT(vts_tmapt_t *vts_tmapt) {
   int i, j;
   
   printf("Number of VTS_TMAPS: %i\n", vts_tmapt->nr_of_tmaps);
-  //printf("Last byte: %i\n", vts_tmapt->last_byte);
+  /*printf("Last byte: %i\n", vts_tmapt->last_byte);*/
   
   for(i = 0; i < vts_tmapt->nr_of_tmaps; i++) {
     printf("TMAP %i\n", i);
