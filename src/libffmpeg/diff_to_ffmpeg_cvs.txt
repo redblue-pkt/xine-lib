@@ -611,3 +611,47 @@ diff -u -r1.31 mpegvideo.c
      
      if (s->fixed_qscale) 
          s->frame_qscale = s->current_picture.quality;
+Index: libavcodec/h263.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavcodec/h263.c,v
+retrieving revision 1.29
+diff -u -r1.29 h263.c
+--- libavcodec/h263.c	19 Jun 2003 00:47:19 -0000	1.29
++++ libavcodec/h263.c	27 Jun 2003 13:51:30 -0000
+@@ -4606,6 +4606,7 @@
+         s->divx_version= ver;
+         s->divx_build= build;
+         s->divx_packed= e==3 && last=='p';
++#if 0
+         if(s->picture_number==0){
+             printf("This file was encoded with DivX%d Build%d", ver, build);
+             if(s->divx_packed)
+@@ -4613,6 +4614,7 @@
+             else
+                 printf("\n");
+         }
++#endif
+     }
+     
+     /* ffmpeg detection */
+@@ -4628,16 +4630,20 @@
+     if(e==4){
+         s->ffmpeg_version= ver*256*256 + ver2*256 + ver3;
+         s->lavc_build= build;
++#if 0
+         if(s->picture_number==0)
+             printf("This file was encoded with libavcodec build %d\n", build);
++#endif
+     }
+     
+     /* xvid detection */
+     e=sscanf(buf, "XviD%d", &build);
+     if(e==1){
+         s->xvid_build= build;
++#if 0
+         if(s->picture_number==0)
+             printf("This file was encoded with XviD build %d\n", build);
++#endif
+     }
+ 
+ //printf("User Data: %s\n", buf);

@@ -4606,6 +4606,7 @@ static int decode_user_data(MpegEncContext *s, GetBitContext *gb){
         s->divx_version= ver;
         s->divx_build= build;
         s->divx_packed= e==3 && last=='p';
+#if 0
         if(s->picture_number==0){
             printf("This file was encoded with DivX%d Build%d", ver, build);
             if(s->divx_packed)
@@ -4613,6 +4614,7 @@ static int decode_user_data(MpegEncContext *s, GetBitContext *gb){
             else
                 printf("\n");
         }
+#endif
     }
     
     /* ffmpeg detection */
@@ -4628,16 +4630,20 @@ static int decode_user_data(MpegEncContext *s, GetBitContext *gb){
     if(e==4){
         s->ffmpeg_version= ver*256*256 + ver2*256 + ver3;
         s->lavc_build= build;
+#if 0
         if(s->picture_number==0)
             printf("This file was encoded with libavcodec build %d\n", build);
+#endif
     }
     
     /* xvid detection */
     e=sscanf(buf, "XviD%d", &build);
     if(e==1){
         s->xvid_build= build;
+#if 0
         if(s->picture_number==0)
             printf("This file was encoded with XviD build %d\n", build);
+#endif
     }
 
 //printf("User Data: %s\n", buf);
