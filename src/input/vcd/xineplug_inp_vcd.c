@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.19 2004/07/18 14:46:59 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.20 2004/07/18 14:52:50 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -791,7 +791,7 @@ static xine_mrl_t **
 vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
                     int *num_files) {
 
-  char             intended_vcd_device[MRL_MAX_LEN+1]="";
+  char             intended_vcd_device[MRL_MAX_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
 
   vcd_input_class_t *class = (vcd_input_class_t *) this_gen;
@@ -1453,7 +1453,7 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 {
   vcd_input_class_t  *class = (vcd_input_class_t *) class_gen;
 
-  char intended_vcd_device[MRL_MAX_LEN+1]="";
+  char intended_vcd_device[MRL_MAX_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
   char *check_mrl=NULL;
   bool used_default;
