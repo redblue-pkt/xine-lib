@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.116 2002/11/25 22:02:15 guenter Exp $
+ * $Id: load_plugins.c,v 1.117 2002/12/01 15:10:04 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -45,6 +45,7 @@
 #include "demuxers/demux.h"
 #include "input/input_plugin.h"
 #include "video_out.h"
+#include "post.h"
 #include "metronom.h"
 #include "configfile.h"
 #include "xineutils.h"
@@ -201,6 +202,7 @@ static plugin_catalog_t *_new_catalog(void){
   catalog->video = xine_list_new();
   catalog->aout  = xine_list_new();
   catalog->vout  = xine_list_new();
+  catalog->post  = xine_list_new();
 
   pthread_mutex_init (&catalog->lock, NULL);
 
@@ -230,19 +232,21 @@ static void collect_plugins(xine_t *this, char *path){
       struct stat statbuffer;
 
       str = xine_xmalloc(strlen(path) + strlen(pEntry->d_name) + 2);
-      sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+      sprintf (str, "%s/%s", path, pEntry->d_name);
 
       if (stat(str, &statbuffer)) {
 	xine_log (this, XINE_LOG_PLUGIN,
 		  _("load_plugins: unable to stat %s\n"), str);
-      }
-      else if( strstr(str, ".so") ) {
+      } else {
 
 	switch (statbuffer.st_mode & S_IFMT){
 
 	case S_IFREG:
 	  /* regular file, ie. plugin library, found => load it */
 
+	  if(!strstr(str, ".so") )
+	    break;
+	  
 	  plugin_name = str;
 
 	  if(!(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
@@ -294,6 +298,10 @@ static void collect_plugins(xine_t *this, char *path){
 		case PLUGIN_VIDEO_OUT:
 		  _insert_plugin (this, this->plugin_catalog->vout, str, info,
 				  VIDEO_OUT_DRIVER_IFACE_VERSION);
+		  break;
+		case PLUGIN_POST:
+		  _insert_plugin (this, this->plugin_catalog->post, str, info,
+				  POST_PLUGIN_IFACE_VERSION);
 		  break;
 		default:
 		  xine_log (this, XINE_LOG_PLUGIN,
@@ -1347,6 +1355,121 @@ void free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
   pthread_mutex_unlock (&catalog->lock);
 }
 
+const char *const *xine_list_post_plugins(xine_t *xine) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  plugin_node_t    *node;
+  int               i;
+  
+  pthread_mutex_lock (&catalog->lock);
+
+  i = 0;
+  node = xine_list_first_content (catalog->post);
+  while (node) {
+    catalog->ids[i] = node->info->id;
+    i++;
+    node = xine_list_next_content (catalog->post);
+  }
+  catalog->ids[i] = NULL;
+
+  pthread_mutex_unlock (&catalog->lock);
+  return catalog->ids;
+}
+
+xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
+			    xine_audio_port_t **audio_target,
+			    xine_video_port_t **video_target) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  plugin_node_t    *node;
+  
+  pthread_mutex_lock(&catalog->lock);
+  
+  node = xine_list_first_content(catalog->post);
+  while (node) {
+    
+    if (strcmp(node->info->id, name) == 0) {
+      post_plugin_t *post;
+      
+      if (!node->plugin_class)
+        node->plugin_class = _load_plugin_class(xine, node->filename,
+						node->info, NULL);
+      if (!node->plugin_class) {
+        printf("load_plugins: requested post plugin %s failed to load\n", name);
+	pthread_mutex_unlock(&catalog->lock);
+	return NULL;
+      }
+      
+      post = ((post_class_t *)node->plugin_class)->open_plugin(node->plugin_class,
+        inputs, audio_target, video_target);
+
+      if (post) {
+        xine_post_in_t  *input;
+	xine_post_out_t *output;
+	int i;
+	
+        post->node = node;
+        node->ref++;
+	pthread_mutex_unlock(&catalog->lock);
+	
+	/* init the lists of announced connections */
+	i = 0;
+	input = xine_list_first_content(post->input);
+	while (input) {
+	  i++;
+	  input = xine_list_next_content(post->input);
+	}
+	post->input_ids = malloc(sizeof(char *) * (i + 1));
+	i = 0;
+	input = xine_list_first_content(post->input);
+	while (input)  {
+	  post->input_ids[i++] = input->name;
+	  input = xine_list_next_content(post->input);
+	}
+	post->input_ids[i] = NULL;
+	
+	i = 0;
+	output = xine_list_first_content(post->output);
+	while (output) {
+	  i++;
+	  output = xine_list_next_content(post->output);
+	}
+	post->output_ids = malloc(sizeof(char *) * (i + 1));
+	i = 0;
+	output = xine_list_first_content(post->output);
+	while (output)  {
+	  post->output_ids[i++] = output->name;
+	  output = xine_list_next_content(post->output);
+	}
+	post->output_ids[i] = NULL;
+	
+	return &post->xine_post;
+      } else {
+        printf("load_plugins: post plugin %s failed to instantiate itself\n", name);
+	pthread_mutex_unlock(&catalog->lock);
+	return NULL;
+      }
+    }
+    
+    node = xine_list_next_content(catalog->post);
+  }
+  
+  pthread_mutex_unlock(&catalog->lock);
+  
+  printf("load_plugins: no post plugin named %s found\n", name);
+  return NULL;
+}
+
+void xine_post_dispose(xine_t *xine, xine_post_t *post_gen) {
+  post_plugin_t *post = (post_plugin_t *)post_gen;
+  plugin_node_t *node = post->node;
+  
+  pthread_mutex_lock(&xine->plugin_catalog->lock);
+  free(post->input_ids);
+  free(post->output_ids);
+  post->dispose(post);
+  node->ref--;
+  pthread_mutex_unlock(&xine->plugin_catalog->lock);
+}
+
 /* get a list of file extensions for file types supported by xine
  * the list is separated by spaces 
  *
@@ -1496,6 +1619,9 @@ static void dispose_plugin_list (xine_list_t *list) {
       case PLUGIN_VIDEO_OUT:
         ((video_driver_class_t *)cls)->dispose ((video_driver_class_t *)cls);
         break;
+      case PLUGIN_POST:
+        ((post_class_t *)cls)->dispose ((post_class_t *)cls);
+        break;
       }
     }
 
@@ -1520,6 +1646,7 @@ static void dispose_plugin_list (xine_list_t *list) {
 
     node = xine_list_next_content (list);
   }
+  xine_list_free(list);
 }
 
 
@@ -1536,6 +1663,7 @@ void dispose_plugins (xine_t *this) {
   dispose_plugin_list (this->plugin_catalog->video);
   dispose_plugin_list (this->plugin_catalog->aout);
   dispose_plugin_list (this->plugin_catalog->vout);
+  dispose_plugin_list (this->plugin_catalog->post);
 
   free (this->plugin_catalog);
 }

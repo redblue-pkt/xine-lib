@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.6 2002/10/17 17:43:44 mroi Exp $
+ * $Id: xine_plugin.h,v 1.7 2002/12/01 15:10:04 mroi Exp $
  *
  * generic plugin definitions
  *
@@ -34,6 +34,7 @@
 #define PLUGIN_SPU_DECODER    5
 #define PLUGIN_AUDIO_OUT      6
 #define PLUGIN_VIDEO_OUT      7
+#define PLUGIN_POST           8
 
 
 typedef struct {
