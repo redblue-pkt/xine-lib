@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.53 2003/01/31 18:29:47 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.54 2003/02/19 21:37:17 jstembridge Exp $
  *
  *
  * contents:
@@ -525,6 +525,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_RV40,
   "Real Video 4.0"
+},
+{
+  {
+    meFOURCC('H', 'F', 'Y', 'U'),
+    0,
+  },
+  BUF_VIDEO_HUFFYUV,
+  "HuffYUV"
 },
 { { 0 }, 0, "last entry" }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.92 2003/02/04 22:01:34 hadess Exp $
+ * $Id: xine_decoder.c,v 1.93 2003/02/19 21:37:16 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -398,6 +398,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("DV (ffmpeg)");
+      break;
+    case BUF_VIDEO_HUFFYUV:
+      this->codec = avcodec_find_decoder (CODEC_ID_HUFFYUV);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("huffyuv (ffmpeg)");
       break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
@@ -1092,6 +1097,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_JPEG, 
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
+  BUF_VIDEO_HUFFYUV,
   0 
 };
 

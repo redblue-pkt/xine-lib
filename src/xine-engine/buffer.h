@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.100 2003/02/08 13:52:44 tmattern Exp $
+ * $Id: buffer.h,v 1.101 2003/02/19 21:37:16 jstembridge Exp $
  *
  *
  * contents:
@@ -142,6 +142,7 @@ extern "C" {
 #define BUF_VIDEO_RV40		0x02390000
 #define BUF_VIDEO_PSX_MDEC	0x023A0000
 #define BUF_VIDEO_YUV_FRAMES	0x023B0000 /* uncompressed YUV, delivered by v4l input plugin */
+#define BUF_VIDEO_HUFFYUV	0x023C0000
 
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */

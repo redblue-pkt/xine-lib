@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.148 2003/01/23 16:12:00 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.149 2003/02/19 21:37:15 jstembridge Exp $
  *
  * demultiplexer for avi streams
  *
@@ -161,7 +161,7 @@ typedef struct
   long                   max_idx;  /* number of index entries actually allocated */
   unsigned char        (*idx)[16]; /* index entries (AVI idx1 tag) */
   video_index_t          video_idx;
-  xine_bmiheader         bih;
+  xine_bmiheader        *bih;
   off_t                  movi_start;
 
   int                    palette_count;
@@ -515,6 +515,7 @@ static void AVI_close(avi_t *AVI)
 
   if(AVI->idx) free(AVI->idx);
   if(AVI->video_idx.vindex) free(AVI->video_idx.vindex);
+  if(AVI->bih) free(AVI->bih);
 
   for(i=0; i<AVI->n_audio; i++) {
     if(AVI->audio[i]->audio_idx.aindex) free(AVI->audio[i]->audio_idx.aindex);
@@ -727,12 +728,18 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       i += 8;
       if(lasttag == 1) {
         /* printf ("size : %d\n",sizeof(AVI->bih)); */
-        memcpy (&AVI->bih, hdrl_data+i, sizeof(AVI->bih));
-        xine_bmiheader_le2me( &AVI->bih );
+        AVI->bih = (xine_bmiheader *) 
+          xine_xmalloc((n < sizeof(xine_bmiheader)) ? sizeof(xine_bmiheader) : n);
+        if(AVI->bih == NULL) {
+          this->AVI_errno = AVI_ERR_NO_MEM;
+          return 0;
+        }
+        memcpy (AVI->bih, hdrl_data+i, n);
+        xine_bmiheader_le2me( AVI->bih );
         
         /* stream_read(demuxer->stream,(char*) &avi_header.bih,MIN(size2,sizeof(avi_header.bih))); */
-        AVI->width  = AVI->bih.biWidth;
-        AVI->height = AVI->bih.biHeight;
+        AVI->width  = AVI->bih->biWidth;
+        AVI->height = AVI->bih->biHeight;
 
         /*
           printf ("size : %d x %d (%d x %d)\n", AVI->width, AVI->height, AVI->bih.biWidth, AVI->bih.biHeight);
@@ -742,16 +749,16 @@ static avi_t *AVI_init(demux_avi_t *this)  {
         vids_strf_seen = 1;
 
         /* load the palette, if there is one */
-        AVI->palette_count = AVI->bih.biClrUsed;
+        AVI->palette_count = AVI->bih->biClrUsed;
         if (AVI->palette_count > 256) {
           printf ("demux_avi: number of colors exceeded 256 (%d)",
             AVI->palette_count);
           AVI->palette_count = 256;
         }
         for (j = 0; j < AVI->palette_count; j++) {
-          AVI->palette[j].b = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 0);
-          AVI->palette[j].g = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 1);
-          AVI->palette[j].r = *(hdrl_data + i + sizeof(AVI->bih) + j * 4 + 2);
+          AVI->palette[j].b = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 0);
+          AVI->palette[j].g = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 1);
+          AVI->palette[j].r = *(hdrl_data + i + sizeof(xine_bmiheader) + j * 4 + 2);
         }
 
       } else if(lasttag == 2) {
@@ -1216,10 +1223,10 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[1] = this->video_step;
-    memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
-    buf->size = sizeof (this->avi->bih);
+    memcpy (buf->content, this->avi->bih, this->avi->bih->biSize);
+    buf->size = this->avi->bih->biSize;
 
-    this->avi->video_type = fourcc_to_buf_video(this->avi->bih.biCompression);
+    this->avi->video_type = fourcc_to_buf_video(this->avi->bih->biCompression);
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = *(uint32_t *)this->avi->compressor;
 
     if (!this->avi->video_type)
@@ -1228,7 +1235,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     if (!this->avi->video_type) {
 
       printf ("demux_avi: unknown video codec '%.4s'\n",
-	      (char*)&this->avi->bih.biCompression);
+	      (char*)&this->avi->bih->biCompression);
       this->avi->video_type = BUF_VIDEO_UNKNOWN;
        
     }
