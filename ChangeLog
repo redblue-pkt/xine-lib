@@ -1,3 +1,5 @@
+  * several bugfixes
+  * still frame detection
   * closed caption decoding
   * ffmpeg updated to cvs version
   * metronom bugfixes
