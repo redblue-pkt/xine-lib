@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.2 2002/12/01 19:05:57 mroi Exp $
+ * $Id: invert.c,v 1.3 2002/12/01 20:27:15 mroi Exp $
  */
  
 /*
@@ -174,6 +174,8 @@ static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width,
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = invert_draw;
+  /* decoders should not copy the frames, we do that here */
+  frame->copy = NULL;
   return frame;
 }
 
@@ -195,6 +197,13 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     size = inverted_frame->pitches[0] * inverted_frame->height;
     for (i = 0; i < size; i++)
       inverted_frame->base[0][i] = 0xff - frame->base[0][i];
+    if (inverted_frame->copy) {
+      uint8_t *buf[3];
+      for (i = 0, buf[0] = inverted_frame->base[0];
+	   i < inverted_frame->height;
+	   i += 16, buf[0] += 16 * inverted_frame->pitches[0])
+	inverted_frame->copy(inverted_frame, buf);
+    }
     break;
   case XINE_IMGFMT_YV12:
     /* Y */
@@ -209,6 +218,17 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     size = inverted_frame->pitches[2] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
+    if (inverted_frame->copy) {
+      uint8_t *buf[3];
+      for (i = 0, buf[0] = inverted_frame->base[0],
+		  buf[1] = inverted_frame->base[1],
+		  buf[2] = inverted_frame->base[2];
+	   i < inverted_frame->height;
+	   i += 16, buf[0] += 16 * inverted_frame->pitches[0],
+		    buf[1] +=  8 * inverted_frame->pitches[1],
+		    buf[2] +=  8 * inverted_frame->pitches[2])
+	inverted_frame->copy(inverted_frame, buf);
+    }
     break;
   default:
     printf("invert: cannot handle image format %d\n", frame->format);
@@ -216,10 +236,10 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     post_restore_video_frame(frame, port);
     return frame->draw(frame, stream);
   } 
-  post_restore_video_frame(frame, port);
   skip = inverted_frame->draw(inverted_frame, stream);
   inverted_frame->free(inverted_frame);
   frame->vpts = inverted_frame->vpts;
+  post_restore_video_frame(frame, port);
   
   return skip;
 }
