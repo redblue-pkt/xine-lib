@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.66 2002/03/11 23:43:58 guenter Exp $
+ * $Id: demux_avi.c,v 1.67 2002/03/12 11:04:06 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1039,7 +1039,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     return;
   }
   buf->type = this->avi->video_type;
-  LOG_MSG(this->xine, _("demux_avi: video codec >%s<\n"), buf_video_name(buf->type));
+  LOG_MSG(this->xine, _("demux_avi: video codec '%s'\n"), buf_video_name(buf->type));
 
   this->video_fifo->put (this->video_fifo, buf);
 

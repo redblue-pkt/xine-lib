@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.11 2002/03/11 12:31:26 guenter Exp $
+ * $Id: buffer_types.c,v 1.12 2002/03/12 11:04:07 guenter Exp $
  *
  *
  * contents:
@@ -67,6 +67,7 @@ static video_db_t video_db[] = {
 },
 {
   {
+    mmioFOURCC('D', 'X', '5', '0'),
     mmioFOURCC('D', 'I', 'V', 'X'),
     mmioFOURCC('d', 'i', 'v', 'x'),
     mmioFOURCC('D', 'i', 'v', 'x'),

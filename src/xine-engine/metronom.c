@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.66 2002/03/12 01:35:54 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.67 2002/03/12 11:04:07 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -367,11 +367,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	
     } else {
 
-      /* this will fix video drift with a constant compensation each
-         frame for about 1 second of video. since a valid pts must
-         happen before that the difference will be recalculated,
-         resulting in a new (smaller) video_drift value. */
-      this->video_drift = diff/30;
+      this->video_drift = diff;
 
 #ifdef LOG
       if (diff)
@@ -388,7 +384,14 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	  (this->video_drift<0)?'+':'-', abs(this->video_drift) );
 #endif
   
-  img->duration -= this->video_drift;
+  /* this will fix video drift with a constant compensation each
+     frame for about 1 second of video.  */
+  img->duration -= this->video_drift/30;
+  if (this->video_drift) 
+    this->video_drift -= this->video_drift / 30;
+  if (this->video_drift<0) 
+    this->video_drift = 0;
+
   this->video_vpts += img->duration;
 
   pthread_mutex_unlock (&this->lock);
