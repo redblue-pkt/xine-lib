@@ -28,7 +28,7 @@ noinst_HEADERS = bswap.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_SKINPATH@/xine_logo.mpg\""
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_SKINPATH@/xine_logo.mpg\\\""
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
