@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.183 2004/06/23 19:45:52 mroi Exp $
+ * $Id: load_plugins.c,v 1.184 2004/07/22 14:27:48 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -925,12 +925,12 @@ static void save_catalog (xine_t *this) {
   const char *dirname = CACHE_CATALOG_DIR;
     
   cachefile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
-                                    strlen(relname) + 3);
+                                    strlen(relname) + 2);
   sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
   
   /* make sure homedir (~/.xine) exists */
   dirfile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
-				  strlen(dirname) + 3);
+				  strlen(dirname) + 2);
   sprintf(dirfile, "%s/%s", xine_get_homedir(), dirname);
   mkdir (dirfile, 0755);
   free (dirfile);
@@ -963,7 +963,7 @@ static void load_cached_catalog (xine_t *this) {
   const char *relname = CACHE_CATALOG_FILE;
     
   cachefile = (char *) xine_xmalloc(strlen(xine_get_homedir()) + 
-                                    strlen(relname) + 3);
+                                    strlen(relname) + 2);
   sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
   
   if( (fp = fopen(cachefile,"r")) != NULL ) {
