@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.53 2002/06/16 16:48:03 tmmm Exp $
+ * $Id: demux_qt.c,v 1.54 2002/06/18 06:45:51 tmmm Exp $
  *
  */
 
@@ -360,6 +360,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   qt_error last_error = QT_OK;
 
   /* initialize sample table structure */
+  sample_table->edit_list_table = NULL;
   sample_table->chunk_offset_table = NULL;
   sample_table->sample_size_table = NULL;
   sample_table->sync_sample_table = NULL;
@@ -913,7 +914,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
   /* free the temporary tables on the way out */
 /*
-  for (j = 0; j < sample_table_count; j++) {
+  for (i = 0; i < sample_table_count; i++) {
+    free(sample_tables[i].edit_list_table);
     free(sample_tables[i].chunk_offset_table);
     free(sample_tables[i].sample_size_table);
     free(sample_tables[i].time_to_sample_table);
