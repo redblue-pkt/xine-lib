@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.22 2002/10/23 04:58:16 tmmm Exp $
+ * $Id: demux_roq.c,v 1.23 2002/10/23 21:49:41 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -514,9 +514,21 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
+#if 0
+    printf ("demux_roq: %02x %02x %02x %02x %02x %02x %02x %02x \n",
+	    preamble[0],
+	    preamble[1],
+	    preamble[2],
+	    preamble[3],
+	    preamble[4],
+	    preamble[5],
+	    preamble[6],
+	    preamble[7]);
+#endif
+
     /* check for the RoQ magic numbers */
-    if ((LE_16(&preamble[0]) == RoQ_MAGIC_NUMBER) &&
-        (LE_32(&preamble[2]) == 0xFFFFFFFF)) {
+    if ((LE_16(&preamble[0]) != RoQ_MAGIC_NUMBER) ||
+        (LE_32(&preamble[2]) != 0xFFFFFFFF)) {
       free (this);
       return NULL;
     }
