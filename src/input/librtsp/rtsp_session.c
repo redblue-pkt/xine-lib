@@ -17,11 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.8 2003/01/31 14:06:17 miguelfreitas Exp $
+ * $Id: rtsp_session.c,v 1.9 2003/02/11 16:20:40 heikos Exp $
  *
  * high level interface to rtsp servers.
  */
 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
