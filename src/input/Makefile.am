@@ -88,7 +88,7 @@ xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
 xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB)
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_rtp_la_SOURCES = input_rtp.c
+xineplug_inp_rtp_la_SOURCES = input_rtp.c net_buf_ctrl.c
 xineplug_inp_rtp_la_LIBADD = $(XINE_LIB)
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
