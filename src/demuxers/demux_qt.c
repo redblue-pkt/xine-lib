@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.88 2002/09/28 17:13:16 tmmm Exp $
+ * $Id: demux_qt.c,v 1.89 2002/09/30 01:16:15 tmmm Exp $
  *
  */
 
@@ -231,7 +231,6 @@ typedef struct {
   unsigned int modification_time;
   unsigned int timescale;  /* base clock frequency is Hz */
   unsigned int duration;
-  off_t input_length;
         
   int64_t moov_first_offset;
   int64_t moov_last_offset;
@@ -292,6 +291,9 @@ typedef struct {
   xine_bmiheader       bih;
   unsigned int         current_frame;
   unsigned int         last_frame;
+
+  off_t                data_start;
+  off_t                data_size;
 
 } demux_qt_t;
 
@@ -371,7 +373,6 @@ qt_info *create_qt_info(void) {
   info->modification_time = 0;
   info->timescale = 0;
   info->duration = 0;
-  info->input_length = 0;
 
   info->audio_codec = 0;
   info->audio_sample_rate = 0;
@@ -1033,11 +1034,11 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
       /* if this is the last edit list entry, don't let the duration
        * expire (so set it to an absurdly large value) */
       if (edit_list_index == sample_table->edit_list_count)
-        edit_list_duration = 0xFFFFFFFF;
+        edit_list_duration = 0xFFFFFFFFFFFF;
 //printf ("edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
     } else {
       edit_list_media_time = 0;
-      edit_list_duration = 0xFFFFFFFF;
+      edit_list_duration = 0xFFFFFFFFFFFF;
 //printf ("no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
     }
 
@@ -1047,11 +1048,10 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
 
 //printf ("%d: (before) pts = %lld...", i, sample_table->frames[i].pts);
 
-      if (sample_table->frames[i].pts < edit_list_media_time)
+      if (sample_table->frames[i].pts < edit_list_media_time) 
         sample_table->frames[i].pts = edit_list_pts_counter;
       else {
-        /* this is not strictly correct but seems to work well enough */
-        if (i < sample_table->frame_count)
+        if (i < sample_table->frame_count - 1)
           frame_duration = 
             (sample_table->frames[i + 1].pts - sample_table->frames[i].pts);
 
@@ -1081,11 +1081,11 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
           /* if this is the last edit list entry, don't let the duration
            * expire (so set it to an absurdly large value) */
           if (edit_list_index == sample_table->edit_list_count)
-            edit_list_duration = 0xFFFFFFFF;
+            edit_list_duration = 0xFFFFFFFFFFFF;
 //printf ("edit list table exists: %d, %lld\n", edit_list_media_time, edit_list_duration);
         } else {
           edit_list_media_time = 0;
-          edit_list_duration = 0xFFFFFFFF;
+          edit_list_duration = 0xFFFFFFFFFFFF;
 //printf ("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);
         }
       }
@@ -1347,8 +1347,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     return info->last_error;
   }
       
-  info->input_length = input->get_length (input);
-
   /* traverse through the file looking for the moov atom */
   info->moov_first_offset = -1;
 
@@ -1471,8 +1469,7 @@ static void *demux_qt_loop (void *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf = NULL;
-  int64_t last_frame_pts = 0;
-  unsigned int i;
+  unsigned int i, j;
   unsigned int remaining_sample_bytes;
   int edit_list_compensation = 0;
   int frame_duration;
@@ -1495,9 +1492,6 @@ static void *demux_qt_loop (void *this_gen) {
       if (this->last_frame + 1 != this->current_frame) {
         /* send new pts */
         xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, BUF_FLAG_SEEK);
-
-        /* reset last_frame_pts on seek */
-        last_frame_pts = 0;
       }
 
       this->last_frame = this->current_frame;
@@ -1525,11 +1519,22 @@ static void *demux_qt_loop (void *this_gen) {
         this->input->seek(this->input, this->qt->frames[i].offset,
           SEEK_SET);
 
+        /* frame duration is the pts diff between this video frame and
+         * the next video frame (so search for the next video frame) */
+        frame_duration = 0;
+        j = i;
+        while (++j < this->qt->frame_count) {
+          if (this->qt->frames[j].type == MEDIA_VIDEO) {
+            frame_duration = 
+              this->qt->frames[j].pts - this->qt->frames[i].pts;
+            break;
+          }
+        }
+
         /* Due to the edit lists, some successive frames have the same pts
          * which would ordinarily cause frame_duration to be 0 which can
          * cause DIV-by-0 errors in the engine. Perform this little trick
          * to compensate. */
-        frame_duration = this->qt->frames[i].pts - last_frame_pts;
         if (!frame_duration) {
           frame_duration = 1;
           edit_list_compensation++;
@@ -1538,18 +1543,24 @@ static void *demux_qt_loop (void *this_gen) {
           edit_list_compensation = 0;
         }
 
+/*
+printf ("hey %d) video frame, size %d, pts %lld, duration %d\n",
+  i, 
+  this->qt->frames[i].size,
+  this->qt->frames[i].pts,
+  frame_duration);
+*/
+
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = this->qt->video_type;
-          buf->input_pos = this->qt->frames[i].offset;
-          buf->input_length = this->qt->input_length;
+          buf->input_pos = this->qt->frames[i].offset - this->data_start;
+          buf->input_length = this->data_size;
           buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
 
-          if (last_frame_pts) {
-            buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-            buf->decoder_info[0] = frame_duration;
-          }
+          buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+          buf->decoder_info[0] = frame_duration;
 
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -1571,7 +1582,7 @@ static void *demux_qt_loop (void *this_gen) {
 
           this->video_fifo->put(this->video_fifo, buf);
         }
-        last_frame_pts = buf->pts;
+
       } else if ((this->qt->frames[i].type == MEDIA_AUDIO) && 
           this->audio_fifo && this->qt->audio_type) {
         /* load an audio sample and packetize it */
@@ -1579,11 +1590,18 @@ static void *demux_qt_loop (void *this_gen) {
         this->input->seek(this->input, this->qt->frames[i].offset,
           SEEK_SET);
 
+/*
+printf ("you %d) audio frame, size %d, pts %lld\n",
+  i, 
+  this->qt->frames[i].size,
+  this->qt->frames[i].pts);
+*/
+
         while (remaining_sample_bytes) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->type = this->qt->audio_type;
           buf->input_pos = this->qt->frames[i].offset;
-          buf->input_length = this->qt->input_length;
+          buf->input_length = this->data_size;
           buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
 
@@ -1662,6 +1680,12 @@ static int demux_qt_send_headers (demux_qt_t *this) {
     this->status = DEMUX_FINISHED;
     return DEMUX_CANNOT_HANDLE;
   }
+
+  this->data_start = this->qt->frames[0].offset;
+  this->data_size =
+    this->qt->frames[this->qt->frame_count - 1].offset +
+    this->qt->frames[this->qt->frame_count - 1].size -
+    this->data_size;
 
   this->bih.biWidth = this->qt->video_width;
   this->bih.biHeight = this->qt->video_height;
@@ -1758,17 +1782,22 @@ static int demux_qt_open(demux_plugin_t *this_gen,
   return DEMUX_CANNOT_HANDLE;
 }
 
+static int demux_qt_seek (demux_plugin_t *this_gen,
+                          off_t start_pos, int start_time);
+
 static int demux_qt_start (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
+                           off_t start_pos, int start_time) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  /* perform a seek with the start_pos before starting the demuxer */
+  demux_qt_seek(this_gen, start_pos, start_time);
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->waiting_for_keyframe = 0;
 
     /* print vital stats */
     xine_log (this->xine, XINE_LOG_MSG,
@@ -1857,7 +1886,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     this->send_end_buffers = 1;
     this->thread_running = 1;
 
-    this->current_frame = 0;
     this->last_frame = 0;
 
     if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
@@ -1871,9 +1899,8 @@ static int demux_qt_start (demux_plugin_t *this_gen,
   return DEMUX_OK;
 }
 
-
 static int demux_qt_seek (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
+                          off_t start_pos, int start_time) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
   int best_index;
@@ -1884,11 +1911,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   pthread_mutex_lock(&this->mutex);
 
-  if (!this->thread_running) {
-    status = this->status;
-    pthread_mutex_unlock( &this->mutex );
-    return status;
-  }
+  this->waiting_for_keyframe = 0;
 
   /* perform a binary search on the sample table, testing the offset
    * boundaries first */
@@ -1940,7 +1963,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   this->current_frame = best_index;
   this->status = DEMUX_OK;
-  
+
   xine_demux_flush_engine(this->xine);
 
   pthread_mutex_unlock( &this->mutex );
