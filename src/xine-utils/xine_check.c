@@ -398,12 +398,6 @@ xine_health_check_xv (xine_health_check_t* hc) {
 #endif /* ! HAVE_X11 */
 }
 
-/* ---------------------------------------------------- *
- * ---   Borrowed Code from: XV TestCard program,  --- * 
- * ---            by Alastair M. Robinson           --- *
- * ---             based on code by AW              --- *
- * ---------------------------------------------------- */
-
 #else	/* !__linux__ */
 xine_health_check_t*
 xine_health_check (xine_health_check_t* hc, int check_num)
