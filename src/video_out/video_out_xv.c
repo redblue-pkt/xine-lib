@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.26 2001/05/28 13:42:02 guenter Exp $
+ * $Id: video_out_xv.c,v 1.27 2001/05/28 20:13:46 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -485,12 +485,12 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *dat
     
     /* FIXME : take care of completion events */
 
-    frame = this->cur_frame;
-
-    XvShmPutImage(this->display, this->xv_port, this->drawable, this->gc, frame->image,
-		  0, 0,  frame->width, frame->height-5,
-		  this->output_xoffset, this->output_yoffset,
-		  this->output_width, this->output_height, False);
+    if((frame = this->cur_frame) != NULL)
+      XvShmPutImage(this->display, this->xv_port, 
+		    this->drawable, this->gc, frame->image,
+		    0, 0,  frame->width, frame->height-5,
+		    this->output_xoffset, this->output_yoffset,
+		    this->output_width, this->output_height, False);
     break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
