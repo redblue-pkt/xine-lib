@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.68 2002/12/08 21:43:52 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.69 2002/12/09 17:33:36 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -143,7 +143,10 @@
 #define VALID_MRLS   "fifo,stdin,dvb,tcp"
 
 /*
-  #define TS_LOG
+#define TS_LOG
+*/
+
+/*
   #define TS_PMT_LOG
   #define TS_READ_STATS // activates read statistics generation
 */
@@ -172,6 +175,20 @@
 
 #define	MIN(a,b)   (((a)<(b))?(a):(b))
 #define	MAX(a,b)   (((a)>(b))?(a):(b))
+
+#define PROG_STREAM_MAP  0xBC
+#define PRIVATE_STREAM1  0xBD
+#define PADDING_STREAM   0xBE
+#define PRIVATE_STREAM2  0xBF
+#define AUDIO_STREAM_S   0xC0
+#define AUDIO_STREAM_E   0xDF
+#define VIDEO_STREAM_S   0xE0
+#define VIDEO_STREAM_E   0xEF
+#define ECM_STREAM       0xF0
+#define EMM_STREAM       0xF1
+#define DSM_CC_STREAM    0xF2
+#define ISO13522_STREAM  0xF3
+#define PROG_STREAM_DIR  0xFF
 
 /*
 **
@@ -226,6 +243,7 @@ typedef struct {
 
   int              blockSize;
   int              rate;
+  int              media_num;
   demux_ts_media   media[MAX_PIDS];
   uint32_t         program_number[MAX_PMTS];
   uint32_t         pmt_pid[MAX_PMTS];
@@ -262,11 +280,11 @@ typedef struct {
 #endif
 
   /* DVBSUB */
-  unsigned int spu_pid;
-  unsigned int spu_media;
+  unsigned int      spu_pid;
+  unsigned int      spu_media;
   demux_ts_spu_lang spu_langs[MAX_NO_SPU_LANGS];
-  int no_spu_langs;
-  int current_spu_channel;
+  int               no_spu_langs;
+  int               current_spu_channel;
 } demux_ts_t;
 
 typedef struct {
@@ -871,7 +889,6 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   uint32_t       calc_crc32;
   unsigned int programInfoLength;
   unsigned int codedLength;
-  unsigned int mediaIndex;
   unsigned int pid;
   unsigned char *stream;
   unsigned int i;
@@ -1007,7 +1024,6 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   /*
    * Extract the elementary streams.
    */
-  mediaIndex = 0;
   this->no_spu_langs = 0;
   while (section_length > 0) {
     unsigned int streamInfoLength;
@@ -1032,8 +1048,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT video pid %.4x\n", pid);
 #endif
-        demux_ts_pes_new(this, mediaIndex, pid, this->video_fifo,stream[0]);
-	this->videoMedia = mediaIndex;
+        demux_ts_pes_new(this, this->media_num, pid, this->video_fifo,stream[0]);
+	this->videoMedia = this->media_num;
 	this->videoPid = pid;
       }
 
@@ -1044,9 +1060,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT audio pid %.4x\n", pid);
 #endif
-        demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
+        demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
         this->audioPid = pid;
-        this->audioMedia = mediaIndex;
+        this->audioMedia = this->media_num;
 	demux_ts_get_lang_desc(this, this->audioLang,
 			       stream + 5, streamInfoLength);
       }
@@ -1066,9 +1082,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 #ifdef TS_PMT_LOG
           printf ("demux_ts: PMT AC3 audio pid %.4x\n", pid);
 #endif
-          demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
+          demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
           this->audioPid = pid;
-          this->audioMedia = mediaIndex;
+          this->audioMedia = this->media_num;
 	  demux_ts_get_lang_desc(this, this->audioLang,
 				 stream + 5, streamInfoLength);
           break;
@@ -1096,9 +1112,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 		lang->desc.aux_page_id =
 		  (stream[pos + 6] << 8) | stream[pos + 7];
 		lang->pid = pid;
-		lang->media_index = mediaIndex;
+		lang->media_index = this->media_num;
 		
-		demux_ts_pes_new(this, mediaIndex,
+		demux_ts_pes_new(this, this->media_num,
 				 pid, this->video_fifo,
 				 stream[0]);
 
@@ -1121,9 +1137,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       printf ("\n");
 #endif
       if (this->audioPid == INVALID_PID) {
-	demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo, stream[0]);
+	demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
         this->audioPid = pid;
-        this->audioMedia = mediaIndex;
+        this->audioMedia = this->media_num;
 	demux_ts_get_lang_desc(this, this->audioLang,
 			       stream + 5, streamInfoLength);
       }
@@ -1139,7 +1155,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 #endif
       break;
     }
-    mediaIndex++;
+    this->media_num++;
     stream += codedLength;
     section_length -= codedLength;
   }
@@ -1478,7 +1494,42 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   }
 
   data_len = PKT_SIZE - data_offset;
+
+  /*
+   * audio/video pid auto-detection, if necessary
+   */
     
+  if (originalPkt[1] & 0x40){
+    
+    int t = originalPkt[data_offset+3];
+    
+    switch (t) {
+    case VIDEO_STREAM_S ... VIDEO_STREAM_E:
+      if ( this->videoPid == INVALID_PID) {
+
+	printf ("demux_ts: auto-detected video pid %d\n",
+		pid);
+
+	this->videoPid = pid;
+	this->videoMedia = this->media_num;
+	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, t);
+      }
+      break;
+    case PRIVATE_STREAM1:
+    case AUDIO_STREAM_S ... AUDIO_STREAM_E:
+      if ( this->audioPid == INVALID_PID) {
+
+	printf ("demux_ts: auto-detected audio pid %d\n",
+		pid);
+
+	this->audioPid = pid;
+	this->audioMedia = this->media_num;
+	demux_ts_pes_new(this, this->media_num++, pid, this->audio_fifo, t);
+      }
+      break;
+    }
+  }
+  
   if (data_len > PKT_SIZE) {
 
     printf ("demux_ts: demux error! invalid payload size %d\n",
@@ -1605,6 +1656,7 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
 
   this->videoPid = INVALID_PID;
   this->audioPid = INVALID_PID;
+  this->media_num= 0;
 
   xine_demux_control_start (this->stream);
   
