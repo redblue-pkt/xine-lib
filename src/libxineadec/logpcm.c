@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.6 2002/10/23 04:05:07 tmmm Exp $
+ * $Id: logpcm.c,v 1.7 2002/11/03 06:08:54 tmmm Exp $
  *
  */
 
@@ -233,6 +233,9 @@ static void logpcm_dispose (audio_decoder_t *this_gen) {
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
+
+  if (this->buf)
+    free(this->buf);
 
   free (this_gen);
 }

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.9 2002/10/23 02:55:01 tmmm Exp $
+ * $Id: roqaudio.c,v 1.10 2002/11/03 06:08:54 tmmm Exp $
  *
  */
 
@@ -152,6 +152,9 @@ static void roqaudio_dispose (audio_decoder_t *this_gen) {
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
+
+  if (this->buf)
+    free(this->buf);
 
   free (this_gen);
 }

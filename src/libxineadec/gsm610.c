@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.2 2002/10/23 04:16:24 tmmm Exp $
+ * $Id: gsm610.c,v 1.3 2002/11/03 06:08:54 tmmm Exp $
  *
  */
 
@@ -218,6 +218,9 @@ static void gsm610_dispose (audio_decoder_t *this_gen) {
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
+
+  if (this->buf)
+    free(this->buf);
 
   free (this_gen);
 }
