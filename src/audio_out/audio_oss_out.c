@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.108 2004/05/07 13:37:00 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.109 2004/06/03 12:56:25 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -57,9 +57,6 @@
 #   include <sys/soundcard.h>
 #  endif
 #else
-# if defined(__linux__)
-#  include <linux/config.h> /* Check for DEVFS */
-# endif
 # include <sys/soundcard.h>
 #endif
 #include <sys/ioctl.h>
