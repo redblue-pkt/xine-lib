@@ -1,8 +1,10 @@
   * PSX STR file demuxer
   * Westwood Studios AUD demuxer
   * PVA file demuxer
+  * VOX file demuxer
   * basic oscilloscope post plugin
   * CD digital audio input source and stream demuxer
+  * Dialogic ADPCM audio decoder
 
 xine-lib (1-beta2)
   * what a GOOM! post plugin

@@ -1289,6 +1289,7 @@ echo "   - yuv4mpeg2     - real/realaudio"
 echo "   - ea wve        - raw dv"
 echo "   - interplay mve - psx str"
 echo "   - ws aud        - pva"
+echo "   - vox"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
