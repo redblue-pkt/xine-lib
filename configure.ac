@@ -927,7 +927,7 @@ case "$host_or_hostalias" in
 	sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
 	sun4u)
 	  case `$CC --version 2>/dev/null` in
-	  [12].*)
+	  1.*|2.*)
 	    # -mcpu=ultrasparc triggers a GCC 2.95.x compiler bug when
 	    # compiling video_out.c:
 	    #   gcc: Internal compiler error: program cc1 got fatal signal 11
