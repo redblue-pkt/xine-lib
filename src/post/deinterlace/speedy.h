@@ -110,7 +110,9 @@ extern void (*filter_luma_14641_packed422_inplace_scanline)( uint8_t *data, int 
 extern unsigned int (*diff_factor_packed422_scanline)( uint8_t *cur, uint8_t *old, int width );
 extern unsigned int (*comb_factor_packed422_scanline)( uint8_t *top, uint8_t *mid,
                                                        uint8_t *bot, int width );
-extern void (*linearblend_chroma_packed422_scanline)( uint8_t *output, int width,
+extern void (*vfilter_chroma_121_packed422_scanline)( uint8_t *output, int width,
+                                                      uint8_t *m, uint8_t *t, uint8_t *b);
+extern void (*vfilter_chroma_332_packed422_scanline)( uint8_t *output, int width,
                                                       uint8_t *m, uint8_t *t, uint8_t *b);
 extern void (*kill_chroma_packed422_inplace_scanline)( uint8_t *data, int width );
 extern void (*mirror_packed422_inplace_scanline)( uint8_t *data, int width );

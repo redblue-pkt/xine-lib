@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.5 2003/06/17 17:14:13 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.6 2003/06/18 01:27:50 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -515,7 +515,7 @@ static void apply_chroma_filter( uint8_t *data, int stride, int width, int heigh
    * at all, we just want a kind of filter here.
    */
   for( i = 0; i < height; i++, data += stride ) {
-    linearblend_chroma_packed422_scanline( data, width,
+    vfilter_chroma_332_packed422_scanline( data, width,
                                            data, 
                                            (i) ? (data - stride) : data,
                                            (i < height-1) ? (data + stride) : data );
