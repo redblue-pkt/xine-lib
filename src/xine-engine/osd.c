@@ -180,7 +180,7 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
   
   pthread_mutex_lock (&this->osd_mutex);  
   
-  /* check if osd is valid (something draw on it) */
+  /* check if osd is valid (something drawn on it) */
   if( osd->x2 >= osd->x1 ) {
  
     this->event.object.handle = osd->handle;
@@ -192,10 +192,12 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
     this->event.object.overlay->height = osd->y2 - osd->y1 + 1;
  
     this->event.object.overlay->clip_top    = 0;
-    this->event.object.overlay->clip_bottom = this->event.object.overlay->height - 1;
+    this->event.object.overlay->clip_bottom = this->event.object.overlay->height +
+                                              osd->display_x;
     this->event.object.overlay->clip_left   = 0;
-    this->event.object.overlay->clip_right  = this->event.object.overlay->width - 1;
-    
+    this->event.object.overlay->clip_right  = this->event.object.overlay->width +
+                                              osd->display_y;
+   
     spare = osd->y2 - osd->y1;
     
     this->event.object.overlay->data_size = 1024;
