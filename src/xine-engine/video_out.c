@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.210 2004/10/14 23:25:24 tmattern Exp $
+ * $Id: video_out.c,v 1.211 2004/10/17 19:13:09 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1603,7 +1603,8 @@ static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img ) {
   dupl->is_first  = img->is_first;
 
   dupl->stream    = img->stream;
-  _x_refcounter_inc(img->stream->refcounter);
+  if (img->stream)
+    _x_refcounter_inc(img->stream->refcounter);
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
   
   /* delay frame processing for now, we might not even need it (eg. frame will be discarded) */
