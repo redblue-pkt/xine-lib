@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.84 2003/04/20 21:13:25 guenter Exp $
+ * $Id: video_out.h,v 1.85 2003/04/23 14:33:03 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -141,6 +141,7 @@ struct vo_frame_s {
   pthread_mutex_t            mutex; /* protect access to lock_count */
   
   int                        id; /* debugging - track this frame */
+  int                        is_first;
 
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.152 2003/04/02 12:28:09 hadess Exp $
+ * $Id: video_out.c,v 1.153 2003/04/23 14:33:02 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -372,6 +372,25 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     printf ("video_out: frame is ok => appending to display buffer\n");
 #endif
 
+    /*
+     * check for first frame after seek and mark it
+     */
+    img->is_first = 0;
+    pthread_mutex_lock(&this->streams_lock);
+    for (stream = xine_list_first_content(this->streams); stream;
+         stream = xine_list_next_content(this->streams)) {
+      pthread_mutex_lock (&stream->first_frame_lock);
+      if (stream->first_frame_flag == 2) {
+        stream->first_frame_flag = (this->grab_only)?0:1;
+        img->is_first = 1;
+#ifdef LOG
+        printf ("video_out: get_next_video_frame first_frame_reached\n");
+#endif
+      }
+      pthread_mutex_unlock (&stream->first_frame_lock);
+    }
+    pthread_mutex_unlock(&this->streams_lock);
+
     vo_frame_inc_lock( img );
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
@@ -500,6 +519,21 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   diff = 1000000; /* always enter the while-loop */
 
   while (img && (diff > img->duration || this->discard_frames)) {
+
+    if (img->is_first) {
+#ifdef LOG
+      printf("video_out: expire_frames: first_frame !\n");
+#endif
+      /*
+       * before displaying the first frame without
+       * "metronom prebuffering" we should make sure it's 
+       * not used as a decoder reference anymore.
+       */
+      if( img->lock_counter == 1 )
+        img->vpts = cur_vpts;
+      break;
+    }
+
     pts = img->vpts;
     diff = cur_vpts - pts;
       
@@ -712,17 +746,19 @@ static void overlay_and_display_frame (vos_t *this,
   /*
    * Wake up xine_play if it's waiting for a frame
    */
-  pthread_mutex_lock(&this->streams_lock);
-  for (stream = xine_list_first_content(this->streams); stream;
-       stream = xine_list_next_content(this->streams)) {
-    pthread_mutex_lock (&stream->first_frame_lock);
-    if (stream->first_frame_flag) {
-      stream->first_frame_flag = 0;
-      pthread_cond_broadcast(&stream->first_frame_reached);
+  if( this->last_frame->is_first ) {
+    pthread_mutex_lock(&this->streams_lock);
+    for (stream = xine_list_first_content(this->streams); stream;
+         stream = xine_list_next_content(this->streams)) {
+      pthread_mutex_lock (&stream->first_frame_lock);
+      if (stream->first_frame_flag) {
+        stream->first_frame_flag = 0;
+        pthread_cond_broadcast(&stream->first_frame_reached);
+      }
+      pthread_mutex_unlock (&stream->first_frame_lock);
     }
-    pthread_mutex_unlock (&stream->first_frame_lock);
+    pthread_mutex_unlock(&this->streams_lock);
   }
-  pthread_mutex_unlock(&this->streams_lock);
 
   this->redraw_needed = 0; 
 }
@@ -802,7 +838,12 @@ static void *video_out_loop (void *this_gen) {
   int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
  
-  /* nice(-2); */
+  /* nice(-value) will fail silently for normal users.
+   * however when running as root this may provide smoother
+   * playback. follow the link for more information:
+   * http://cambuca.ldhs.cetuc.puc-rio.br/~miguel/multimedia_sim/
+   */
+  nice(-2);
     
   /*
    * here it is - the heart of xine (or rather: one of the hearts
@@ -838,9 +879,9 @@ static void *video_out_loop (void *this_gen) {
       printf ("video_out: displaying frame (id=%d)\n", img->id);
 #endif
       overlay_and_display_frame (this, img, vpts);
-      }
-    else
-    {
+
+    } else {
+
       check_redraw_needed( this, vpts );
     }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.45 2003/04/20 21:13:23 guenter Exp $
+ * $Id: metronom.h,v 1.46 2003/04/23 14:33:01 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -63,10 +63,10 @@ typedef struct scr_plugin_s scr_plugin_t;
 /* metronom prebuffer can be adjusted with XINE_PARAM_METRONOM_PREBUFFER.
  * it sets how much the first video/audio frame should be delayed to
  * have some prebuffering at the output layers. reducing this value (about
- * 1/3 sec) may result in faster seeking (good to simulate play backwards,
+ * 1/10 sec) may result in faster seeking (good to simulate play backwards,
  * for example).
  */
-#define PREBUFFER_PTS_OFFSET  30000
+#define PREBUFFER_PTS_OFFSET  9000
 
   /* see below */
 #define DISC_STREAMSTART 0 

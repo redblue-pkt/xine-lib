@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.244 2003/04/22 23:30:55 tchamp Exp $
+ * $Id: xine.c,v 1.245 2003/04/23 14:33:05 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -903,37 +903,6 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
     xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
-  /* Wait until the first frame produced by the previous
-   * xine_play call is pushed into the video_out fifo
-   * see video_out.c
-   */
-  pthread_mutex_lock (&stream->first_frame_lock);
-  /* FIXME: howto detect if video frames will be produced */
-  if (stream->first_frame_flag && stream->video_decoder_plugin) {
-    struct timeval  tv;
-    struct timespec ts;
-    gettimeofday(&tv, NULL);
-    ts.tv_sec  = tv.tv_sec + 2;
-    ts.tv_nsec = tv.tv_usec * 1000;
-    pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
-  }
-  pthread_mutex_unlock (&stream->first_frame_lock);
-
-  /*
-   * start/seek demux
-   */
-  if (start_pos) {
-    pthread_mutex_lock( &stream->current_extra_info_lock );
-    len = stream->current_extra_info->input_length;
-    pthread_mutex_unlock( &stream->current_extra_info_lock );
-    /* FIXME: do we need to protect concurrent access to input plugin here? */
-    if ((len == 0) && stream->input_plugin)
-      len = stream->input_plugin->get_length (stream->input_plugin);
-    share = (double) start_pos / 65535;
-    pos = (off_t) (share * len) ;
-  } else
-    pos = 0;
-
   if (!stream->demux_plugin) {
     xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine_play: no demux available\n"));
@@ -942,22 +911,54 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     return 0;
   }
 
+  /* hint demuxer thread we want to interrupt it */
   stream->demux_action_pending = 1;
+
+  /* discard audio/video buffers to get engine going and take the lock faster */
   if (stream->audio_out)
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
   if (stream->video_out)
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+
   pthread_mutex_lock( &stream->demux_lock );
+  /* demux_lock taken. now demuxer is suspended */
+
+  /*
+   * start/seek demux
+   */
+  if (start_pos) {
+    pthread_mutex_lock( &stream->current_extra_info_lock );
+    len = stream->current_extra_info->input_length;
+    pthread_mutex_unlock( &stream->current_extra_info_lock );
+    if ((len == 0) && stream->input_plugin)
+      len = stream->input_plugin->get_length (stream->input_plugin);
+    share = (double) start_pos / 65535;
+    pos = (off_t) (share * len) ;
+  } else
+    pos = 0;
+
+  /* seek to new position (no data is sent to decoders yet) */
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
+
   stream->demux_action_pending = 0;
+
   if (stream->audio_out)
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   if (stream->video_out)
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
+
+  /* before resuming the demuxer, set first_frame_flag */
   pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = 1;
+  stream->first_frame_flag = 2;
   pthread_mutex_unlock (&stream->first_frame_lock);
+
+  /* before resuming the demuxer, reset current position information */
+  pthread_mutex_lock( &stream->current_extra_info_lock );
+  extra_info_reset( stream->current_extra_info );
+  pthread_mutex_unlock( &stream->current_extra_info_lock );
+
+  /* now resume demuxer thread if it is running already */
   pthread_mutex_unlock( &stream->demux_lock );
 
   if (demux_status != DEMUX_OK) {
@@ -973,9 +974,21 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     stream->status = XINE_STATUS_PLAY;
   }
 
-  pthread_mutex_lock( &stream->current_extra_info_lock );
-  extra_info_reset( stream->current_extra_info );
-  pthread_mutex_unlock( &stream->current_extra_info_lock );
+
+  /* Wait until the first frame produced is displayed
+   * see video_out.c
+   */
+  pthread_mutex_lock (&stream->first_frame_lock);
+  /* FIXME: howto detect if video frames will be produced */
+  if (stream->first_frame_flag && stream->video_decoder_plugin) {
+    struct timeval  tv;
+    struct timespec ts;
+    gettimeofday(&tv, NULL);
+    ts.tv_sec  = tv.tv_sec + 2;
+    ts.tv_nsec = tv.tv_usec * 1000;
+    pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
+  }
+  pthread_mutex_unlock (&stream->first_frame_lock);
 
   if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf ("xine: xine_play_internal ...done\n");
