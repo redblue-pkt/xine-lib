@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.164 2003/04/06 13:33:09 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.165 2003/04/06 13:43:46 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -344,7 +344,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
     
 #ifdef LOG
-      printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
+    printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
 	    start_pts, end_pts);
 #endif
 
