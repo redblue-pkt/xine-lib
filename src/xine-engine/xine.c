@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.260 2003/10/24 09:34:01 mroi Exp $
+ * $Id: xine.c,v 1.261 2003/11/07 17:12:47 miguelfreitas Exp $
  */
 
 /*
@@ -183,6 +183,12 @@ static void xine_stop_internal (xine_stream_t *stream) {
     
     xine_demux_stop_thread( stream );
     lprintf ("stop thread done\n");
+  
+    /* set normal speed again (now that demuxer/input pair is suspended) 
+     * some input plugin may have changed speed by itself, we must ensure
+     * the engine is not paused.
+     */
+    xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
     xine_demux_flush_engine( stream );
     lprintf ("flush engine done\n");
@@ -914,9 +920,6 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_play\n");
 
-  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
-    xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
-
   if (!stream->demux_plugin) {
     xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine_play: no demux available\n"));
@@ -928,6 +931,10 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   /* hint demuxer thread we want to interrupt it */
   stream->demux_action_pending = 1;
 
+  /* set normal speed */
+  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
+    xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
+  
   /* discard audio/video buffers to get engine going and take the lock faster */
   if (stream->audio_out)
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
@@ -937,6 +944,13 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   pthread_mutex_lock( &stream->demux_lock );
   /* demux_lock taken. now demuxer is suspended */
 
+  /* set normal speed again (now that demuxer/input pair is suspended) 
+   * some input plugin may have changed speed by itself, we must ensure
+   * the engine is not paused.
+   */
+  if (stream->xine->clock->speed != XINE_SPEED_NORMAL)
+    xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
+  
   /*
    * start/seek demux
    */
