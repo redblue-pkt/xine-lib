@@ -101,6 +101,21 @@ struct IAudioEncoder
 	START,
     };
 
+typedef struct _BitmapInfo
+{
+    long 	biSize;
+    long  	biWidth;
+    long  	biHeight;
+    short 	biPlanes;
+    short 	biBitCount;
+    long 	biCompression;
+    long 	biSizeImage;
+    long  	biXPelsPerMeter;
+    long  	biYPelsPerMeter;
+    long 	biClrUsed;
+    long 	biClrImportant;
+    int 	colors[3];    
+} BitmapInfo;
 
 typedef struct _IVideoDecoder
 {
@@ -132,9 +147,8 @@ typedef struct _IVideoDecoder
     int m_bCapable16b;
 
     BITMAPINFOHEADER* m_bh;	// format of input data (might be larger - e.g. huffyuv)
-    BITMAPINFOHEADER m_decoder;	// format of decoder output
-    BITMAPINFOHEADER m_obh;		// format of returned frames
-    int colors[3];
+    BitmapInfo m_decoder;	// format of decoder output
+    BitmapInfo m_obh;		// format of returned frames
 }IVideoDecoder;
 
 /*

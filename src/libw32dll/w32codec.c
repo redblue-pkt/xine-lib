@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.44 2001/11/16 17:55:20 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.45 2001/11/16 20:21:09 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -85,7 +85,7 @@ typedef struct w32v_decoder_s {
   int               decoder_ok;
 
   BITMAPINFOHEADER  bih, o_bih; 
-  char              scratch1[10]; /* some codecs overflow o_bih */
+  char              scratch1[16]; /* some codecs overflow o_bih */
   HIC               hic;
   int               yuv_supported ;
   int		    yuv_hack_needed ;

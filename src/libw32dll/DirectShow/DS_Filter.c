@@ -216,6 +216,9 @@ void DS_Filter_Start(DS_Filter *this)
 	return;
 
     Debug printf("DS_Filter::Start() %p\n", this->m_pFilter);
+
+    this->m_pFilter->vt->Pause(this->m_pFilter);
+    
     hr=this->m_pFilter->vt->Run(this->m_pFilter, 0);
     if (hr != 0)
     {

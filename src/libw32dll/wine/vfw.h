@@ -31,6 +31,9 @@ typedef struct
     long  	biYPelsPerMeter;
     long 	biClrUsed;
     long 	biClrImportant;
+    /* very, very dirty HACK to make WMV8 work.
+       we must fix DS_VideoDecoder.c to remove the line below */
+    int 	colors[3];
 } BITMAPINFOHEADER, *PBITMAPINFOHEADER, *LPBITMAPINFOHEADER;
 typedef struct {
 	BITMAPINFOHEADER bmiHeader;

@@ -43,7 +43,8 @@ typedef struct tagVIDEOINFOHEADER {
     unsigned long     dwBitRate;         // Approximate bit data rate
     unsigned long     dwBitErrorRate;    // Bit error rate for this stream
     REFERENCE_TIME    AvgTimePerFrame;   // Average time per frame (100ns units)
-    BITMAPINFOHEADER bmiHeader;
+    BITMAPINFOHEADER  bmiHeader;
+    int spare[4];
 } VIDEOINFOHEADER;
 
 typedef struct _AllocatorProperties

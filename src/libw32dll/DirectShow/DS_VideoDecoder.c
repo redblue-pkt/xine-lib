@@ -79,7 +79,7 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
 	bihs = (format->biSize < (int) sizeof(BITMAPINFOHEADER)) ?
 	    sizeof(BITMAPINFOHEADER) : format->biSize;
         bihs = sizeof(VIDEOINFOHEADER) - sizeof(BITMAPINFOHEADER) + bihs;
-
+     
         this->iv.m_bh = (BITMAPINFOHEADER*)malloc(bihs);
         memcpy(this->iv.m_bh, format, bihs);
         this->iv.m_State = STOP;
@@ -94,10 +94,10 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
 	memset(this->m_sVhdr, 0, bihs);
 	memcpy(&this->m_sVhdr->bmiHeader, this->iv.m_bh, this->iv.m_bh->biSize);
 	this->m_sVhdr->rcSource.left = this->m_sVhdr->rcSource.top = 0;
-//	this->m_sVhdr->rcSource.right = this->m_sVhdr->bmiHeader.biWidth;
-//      this->m_sVhdr->rcSource.bottom = this->m_sVhdr->bmiHeader.biHeight;
-	this->m_sVhdr->rcSource.right = 0;
-	this->m_sVhdr->rcSource.bottom = 0;
+	this->m_sVhdr->rcSource.right = this->m_sVhdr->bmiHeader.biWidth;
+	this->m_sVhdr->rcSource.bottom = this->m_sVhdr->bmiHeader.biHeight;
+	//this->m_sVhdr->rcSource.right = 0;
+	//this->m_sVhdr->rcSource.bottom = 0;
 	this->m_sVhdr->rcTarget = this->m_sVhdr->rcSource;
 
 	this->m_sOurType.majortype = MEDIATYPE_Video;
@@ -111,8 +111,8 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
         this->m_sOurType.pbFormat = (char*)this->m_sVhdr;
 
 	this->m_sVhdr2 = (VIDEOINFOHEADER*)(malloc(sizeof(VIDEOINFOHEADER)+12));
-	memcpy(this->m_sVhdr2, this->m_sVhdr, sizeof(VIDEOINFOHEADER));
-        memset((char*)this->m_sVhdr2 + sizeof(VIDEOINFOHEADER), 0, 12);
+	memcpy(this->m_sVhdr2, this->m_sVhdr, sizeof(VIDEOINFOHEADER)+12);
+        //memset((char*)this->m_sVhdr2 + sizeof(VIDEOINFOHEADER), 0, 12);
 	this->m_sVhdr2->bmiHeader.biCompression = 0;
 	this->m_sVhdr2->bmiHeader.biBitCount = 24;
 
@@ -128,6 +128,7 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
 	this->m_sDestType.pUnk = 0;
 	this->m_sDestType.cbFormat = sizeof(VIDEOINFOHEADER);
 	this->m_sDestType.pbFormat = (char*)this->m_sVhdr2;
+        
         memset(&this->iv.m_obh, 0, sizeof(this->iv.m_obh));
 	memcpy(&this->iv.m_obh, this->iv.m_bh, sizeof(this->iv.m_obh) < (unsigned) this->iv.m_bh->biSize
 	       ? sizeof(this->iv.m_obh) : (unsigned) this->iv.m_bh->biSize);
@@ -154,7 +155,7 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
 	    }
 	}
 
-	this->iv.m_decoder = this->iv.m_obh;
+        memcpy( &this->iv.m_decoder, &this->iv.m_obh, sizeof(this->iv.m_obh) );
 
 	switch (this->iv.m_bh->biCompression)
 	{
@@ -253,18 +254,17 @@ int DS_VideoDecoder_DecodeInternal(DS_VideoDecoder *this, const void* src, int s
     IMediaSample* sample = 0;
     char* ptr;
     int result;
-    int q;
     
     Debug printf("DS_VideoDecoder_DecodeInternal(%p,%p,%d,%d,%p)\n",this,src,size,is_keyframe,pImage->ptr);
             
     this->m_pDS_Filter->m_pAll->vt->GetBuffer(this->m_pDS_Filter->m_pAll, &sample, 0, 0, 0);
-
+    
     if (!sample)
     {
 	Debug printf("ERROR: null sample\n");
 	return -1;
     }
-
+    
     //cout << "DECODE " << (void*) pImage << "   d: " << (void*) pImage->Data() << endl;
     if (pImage)
     {
@@ -305,6 +305,7 @@ int DS_VideoDecoder_DecodeInternal(DS_VideoDecoder *this, const void* src, int s
 
     sample->vt->Release((IUnknown*)sample);
 
+#if 0
     if (this->m_bIsDivX)
     {
 	int q;
@@ -367,6 +368,7 @@ int DS_VideoDecoder_DecodeInternal(DS_VideoDecoder *this, const void* src, int s
 	    }
 	}
     }
+#endif
 
     return 0;
 }
@@ -420,13 +422,13 @@ int DS_VideoDecoder_SetDestFmt(DS_VideoDecoder *this, int bits, fourcc_t csp)
 	    }
             
             if( bits == 16 ) {
-	      this->iv.colors[0]=0xF800;
-	      this->iv.colors[1]=0x07E0;
-	      this->iv.colors[2]=0x001F;
+	      this->iv.m_obh.colors[0]=0xF800;
+	      this->iv.m_obh.colors[1]=0x07E0;
+	      this->iv.m_obh.colors[2]=0x001F;
             } else if ( bits == 15 ) {
-	      this->iv.colors[0]=0x7C00;
-	      this->iv.colors[1]=0x03E0;
-	      this->iv.colors[2]=0x001F;
+	      this->iv.m_obh.colors[0]=0x7C00;
+	      this->iv.m_obh.colors[1]=0x03E0;
+	      this->iv.m_obh.colors[2]=0x001F;
             } else {
 	      this->iv.m_obh.biSize = sizeof(BITMAPINFOHEADER);
 	      this->iv.m_obh.biCompression = 0;	//BI_RGB
@@ -541,7 +543,7 @@ int DS_VideoDecoder_SetDestFmt(DS_VideoDecoder *this, int bits, fourcc_t csp)
 	return -1;
     }
 
-    this->iv.m_decoder = this->iv.m_obh;
+    memcpy( &this->iv.m_decoder, &this->iv.m_obh, sizeof(this->iv.m_obh));
 
 //    m_obh=temp;
 //    if(csp)
