@@ -365,7 +365,9 @@ static struct {
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
   { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX },
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
+# ifndef __FreeBSD__
   { "SSE optimized memcpy()", sse_memcpy, 0, MM_MMXEXT|MM_SSE },
+# endif
 #endif /* ARCH_X86 */
   { NULL, NULL, 0, 0 }
 };
