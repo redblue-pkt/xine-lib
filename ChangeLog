@@ -18,6 +18,7 @@
   * fix reception of the last bytes in a http connection
     (fixes parsing of reference/playlist files using http, eg .ram)
   * fix time displaying for flac files
+  * fix playback of some broken ASF streams
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
