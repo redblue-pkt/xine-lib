@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.170 2004/04/05 20:01:27 hadess Exp $
+ * $Id: audio_out.c,v 1.171 2004/04/07 18:07:25 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -871,8 +871,8 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
 #endif
       /* we want to add factor * num_frames to each buffer */
       diff = gap_diff;
-      duration = (int64_t)info->window_duration + (int64_t)info->last_factor;
-      factor = diff / duration;
+      duration = info->window_duration;
+      factor = diff / duration + info->last_factor;
 
       info->last_factor = factor;
       this->resample_sync_factor = 1.0 + factor;
