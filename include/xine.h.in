@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.64 2003/03/07 01:13:03 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.65 2003/03/07 19:04:36 holstsn Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1433,7 +1433,7 @@ void        xine_osd_set_palette   (xine_osd_t *self,
  * palette. The OSD palette is then modified starting at this
  * color index, up to the size of the text palette.
  *
- * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
+ * Use OSD_TEXT1, OSD_TEXT2, ... for some preassigned color indices.
  */
 void        xine_osd_set_text_palette (xine_osd_t *self,
 				       int palette_number,
