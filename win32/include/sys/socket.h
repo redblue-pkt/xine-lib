@@ -20,6 +20,9 @@
  * WIN32 PORT,
  */
 
+#ifndef _SOCKET_H
+#define _SOCKET_H
+
 #include <fcntl.h> /* Not sure that this is needed */
 
 #include <io.h> /* open, close, ... */
@@ -31,8 +34,4 @@
 #define SIGALRM 14
 #endif
 
-/* Some real good hacks! */
-#undef errno
-#define errno WSAGetLastError
-
-#define EINPROGRESS WSAEINPROGRESS
+#endif /* _SOCKET_H */

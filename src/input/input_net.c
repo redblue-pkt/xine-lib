@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.47 2003/05/15 20:23:17 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.48 2003/05/20 16:23:44 tchamp Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -48,8 +48,12 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#ifndef WIN32
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
+
 #include <errno.h>
 #include <sys/time.h>
 
@@ -62,6 +66,11 @@
 #define LOG_MSG(xine, message, args...) {                            \
     xine_log(xine, XINE_LOG_MSG, message, ##args);                   \
     printf(message, ##args);                                         \
+  }
+#elif defined (WIN32)
+#define LOG_MSG(xine, message, args) {                               \
+    xine_log(xine, XINE_LOG_MSG, message, #args);                    \
+    printf(message, #args);                                          \
   }
 #else
 #define LOG_MSG(xine, ...) {                                         \
@@ -127,7 +136,12 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   sin.sin_addr   = ia;
   sin.sin_port   = htons(port);
   
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
+#ifndef WIN32
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
+#else
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+#endif
+  {
     LOG_MSG (xine, _("input_net: connect(): %s\n"), strerror(errno));
     close(s);
     return -1;

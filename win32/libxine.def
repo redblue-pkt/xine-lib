@@ -72,6 +72,7 @@ xine_demux_control_start
 xine_demux_flush_engine
 xine_demux_check_extension
 xine_demux_read_header
+xine_read_abort
 
 fourcc_to_buf_video
 formattag_to_buf_audio

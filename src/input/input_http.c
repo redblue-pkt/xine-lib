@@ -31,9 +31,13 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#ifndef WIN32
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
+#endif /* WIN32 */
+
 #include <sys/time.h>
 
 #include "xine_internal.h"
@@ -123,8 +127,13 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
   sin.sin_family = AF_INET;	
   sin.sin_addr   = ia;
   sin.sin_port   = htons(port);
-	
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
+
+#ifndef WIN32  
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
+#else
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+#endif /* WIN32 */
+  {
     xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to host", NULL);
     xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: cannot connect to host\n"));
     close(s);

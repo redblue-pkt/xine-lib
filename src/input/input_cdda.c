@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.24 2003/05/20 02:06:13 tmmm Exp $
+ * $Id: input_cdda.c,v 1.25 2003/05/20 16:23:44 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -684,7 +684,6 @@ static int read_cdrom_toc(cdda_input_plugin_t *this_gen, cdrom_toc *toc) {
   else
   {
 	  DWORD dwBytesReturned;
-      DWORD dw; 
 	  CDROM_TOC cdrom_toc;
 	  int i;
 
@@ -694,10 +693,10 @@ static int read_cdrom_toc(cdda_input_plugin_t *this_gen, cdrom_toc *toc) {
 		  &dwBytesReturned, NULL ) == 0 )
 	  {
 #ifdef LOG
-		  printf( "xineplug_inp_cdda : could not read TOCHDR\n" );
-          dw = GetLastError();
-          printf("GetLastError returned %u\n", dw); 
-
+        DWORD dw; 
+        printf( "xineplug_inp_cdda : could not read TOCHDR\n" );
+        dw = GetLastError();
+        printf("GetLastError returned %u\n", dw); 
 #endif
 		  return -1;
 	  }
@@ -749,7 +748,6 @@ static int read_cdrom_toc(cdda_input_plugin_t *this_gen, cdrom_toc *toc) {
 static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_frames,
   unsigned char *data) {
 
-  DWORD dw; 
   DWORD dwBytesReturned;
   RAW_READ_INFO raw_read_info;
 
@@ -783,6 +781,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 			  &dwBytesReturned, NULL ) == 0 )
 		  {
 #ifdef LOG
+              DWORD dw; 
 			  printf( "xineplug_inp_cdda : could not read frame\n" );
               dw = GetLastError();
               printf("GetLastError returned %u\n", dw); 
@@ -838,7 +837,12 @@ static int host_connect_attempt (struct in_addr ia, int port)
   sin.sin_addr   = ia;
   sin.sin_port   = htons(port);
 
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
+#ifndef WIN32  
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
+#else
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+#endif /* WIN32 */
+  {
     printf("input_cdda: cannot connect to host\n");
     close(s);
     return -1;
