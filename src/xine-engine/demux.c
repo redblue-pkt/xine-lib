@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $id$ 
+ * $Id: demux.c,v 1.38 2003/11/12 17:54:30 mroi Exp $ 
  */
 
 
