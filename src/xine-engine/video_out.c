@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.195 2004/05/29 14:45:25 mroi Exp $
+ * $Id: video_out.c,v 1.196 2004/05/30 21:33:39 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -586,7 +586,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   
   image_size = img->pitches[0] * img->height;
 
-  if (img->format == XINE_IMGFMT_YV12) {
+  switch (img->format) {
+  case XINE_IMGFMT_YV12:
     yv12_to_yv12(
      /* Y */
       img->base[0], img->pitches[0],
@@ -599,7 +600,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
       dupl->base[2], dupl->pitches[2],
      /* width x height */
       img->width, img->height);
-  } else {
+    break;
+  case XINE_IMGFMT_YUY2:
     yuy2_to_yuy2(
      /* src */
       img->base[0], img->pitches[0],
@@ -607,7 +609,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
       dupl->base[0], dupl->pitches[0],
      /* width x height */
       img->width, img->height);
-  }  
+    break;
+  }
   
   dupl->bad_frame   = 0;
   dupl->pts         = 0;
