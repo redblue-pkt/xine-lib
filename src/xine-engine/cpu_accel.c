@@ -42,22 +42,24 @@ static uint32_t x86_accel (void)
 	 : "a" (op)			\
 	 : "cc")
 
-    /*
+    
     asm ("pushfl\n\t"
+	 "pushfl\n\t"
 	 "popl %0\n\t"
 	 "movl %0,%1\n\t"
 	 "xorl $0x200000,%0\n\t"
 	 "pushl %0\n\t"
 	 "popfl\n\t"
 	 "pushfl\n\t"
-	 "popl %0"
+	 "popl %0\n\t"
+	 "popfl"
          : "=a" (eax),
 	   "=b" (ebx)
 	 :
 	 : "cc");
 
-    if (eax == ebx)*/		/* no cpuid */
-    /* return 0; */
+    if (eax == ebx)		/* no cpuid */
+      return 0; 
 
     cpuid (0x00000000, eax, ebx, ecx, edx);
     if (!eax)			/* vendor string only */
