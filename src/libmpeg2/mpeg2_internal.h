@@ -139,6 +139,13 @@ typedef struct picture_s {
     int bitrate;
     uint32_t frame_centre_horizontal_offset;
     uint32_t frame_centre_vertical_offset;
+    uint32_t video_format;
+    uint32_t colour_description;
+    uint32_t colour_primatives;
+    uint32_t transfer_characteristics;
+    uint32_t matrix_coefficients;
+    uint32_t display_horizontal_size;
+    uint32_t display_vertical_size;
 
 } picture_t;
 

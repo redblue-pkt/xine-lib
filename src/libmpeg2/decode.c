@@ -22,6 +22,10 @@
  *
  */
 
+/*
+#define LOG_PAN_SCAN
+*/
+
 #include "config.h"
 
 #include <stdio.h>
@@ -278,9 +282,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	break;
 
     case 0xb7:	/* sequence end code */
+#ifdef LOG_PAN_SCAN
       printf ("libmpeg2:SEQUENCE END CODE NOT HANDLED!\n");
+#endif
     case 0xb8:	/* group of pictures start code */
+#ifdef LOG_PAN_SCAN
       printf ("libmpeg2:GROUP of PICTURES NOT HANDLED!\n");
+#endif
     default:
 	if (code >= 0xb9)
 	    fprintf (stderr, "stream not demultiplexed ?\n");

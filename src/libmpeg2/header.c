@@ -19,6 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/*
+#define LOG_PAN_SCAN
+*/
+
 #include "config.h"
 
 #include <stdio.h>  /* For printf debugging */
@@ -83,13 +87,15 @@ static uint32_t get_bits(uint8_t *buffer, uint32_t count, uint32_t *bit_position
     bit_bite = bit_offset;
     if (count < bit_offset) {
       bit_mask ^=  ((1 << (bit_offset-count)) - 1);
-      bit_bite -= count;
+      bit_bite = count;
     }
-    printf("Bitmask=0x%04x byte_offset=%u bit_offset=%u\n",bit_mask, byte_offset, bit_offset);
+#ifdef LOG_PAN_SCAN
+    printf("Byte=0x%02x Bitmask=0x%04x byte_offset=%u bit_offset=%u bit_byte=%u count=%u\n",buffer[byte_offset], bit_mask, byte_offset, bit_offset, bit_bite,count);
+#endif
     result = (result << bit_bite) | ((buffer[byte_offset] & bit_mask) >> (bit_offset-bit_bite));
     *bit_position+=bit_bite;
     count-=bit_bite;
-  } while (count > 0); 
+  } while ((count > 0) && (byte_offset<50) ); 
   return result;
 }
 
@@ -269,6 +275,34 @@ static int header_process_picture_coding_extension (picture_t * picture, uint8_t
 
 static int header_process_sequence_display_extension (picture_t * picture, uint8_t * buffer) {
   /* FIXME: implement. */
+  uint32_t bit_position;
+  uint32_t padding;
+  bit_position = 0; 
+  padding = get_bits(buffer, 4, &bit_position);
+  picture->video_format = get_bits(buffer, 3, &bit_position);
+  picture->colour_description = get_bits(buffer, 1, &bit_position);
+  if(picture->colour_description) {
+  picture->colour_primatives = get_bits(buffer, 8, &bit_position);
+  picture->transfer_characteristics = get_bits(buffer, 8, &bit_position);
+  picture->matrix_coefficients = get_bits(buffer, 8, &bit_position);
+  }
+  picture->display_horizontal_size = get_bits(buffer, 14, &bit_position);
+  padding = get_bits(buffer, 1, &bit_position);
+  picture->display_vertical_size = get_bits(buffer, 14, &bit_position);
+#ifdef LOG_PAN_SCAN
+  printf("Sequence_display_extension\n");
+  printf("     video_format: %u\n", picture->video_format);
+  printf("     colour_description: %u\n", picture->colour_description);
+  if(picture->colour_description) {
+  printf("     colour_primatives: %u\n", picture->colour_primatives);
+  printf("     transfer_characteristics %u\n", picture->transfer_characteristics);
+  printf("     matrix_coefficients %u\n", picture->matrix_coefficients);
+  }
+  printf("     display_horizontal_size %u\n", picture->display_horizontal_size);
+  printf("     display_vertical_size %u\n", picture->display_vertical_size);
+#endif
+
+
   return 0;
 }
 
@@ -276,15 +310,18 @@ static int header_process_picture_display_extension (picture_t * picture, uint8_
   /* FIXME: implement. */
   uint32_t bit_position;
   uint32_t padding;
+  bit_position = 0; 
   padding = get_bits(buffer, 4, &bit_position);
   picture->frame_centre_horizontal_offset = get_bits(buffer, 16, &bit_position);
   padding = get_bits(buffer, 1, &bit_position);
   picture->frame_centre_vertical_offset = get_bits(buffer, 16, &bit_position);
   padding = get_bits(buffer, 1, &bit_position);
 
+#ifdef LOG_PAN_SCAN
   printf("Pan & Scan centre (x,y) = (%u, %u)\n",  
     picture->frame_centre_horizontal_offset,
     picture->frame_centre_vertical_offset);
+#endif
 
   return 0;
 }
@@ -293,65 +330,51 @@ int header_process_extension (picture_t * picture, uint8_t * buffer)
 {
     switch (buffer[0] & 0xf0) {
     case 0x00:	/* reserved */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x10:	/* sequence extension */
 	return header_process_sequence_extension (picture, buffer);
 
     case 0x20:	/* sequence display extension for Pan & Scan */
-        printf("Extension=0x%02x\n",buffer[0] & 0xf0);
 	return header_process_sequence_display_extension (picture, buffer);
 
     case 0x30:	/* quant matrix extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
 	return header_process_quant_matrix_extension (picture, buffer);
 
     case 0x40:	/* copyright extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x50:	/* sequence scalable extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x60:	/* reserved */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x70:	/* picture display extension for Pan & Scan */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
 	return header_process_picture_display_extension (picture, buffer);
 
     case 0x80:	/* picture coding extension */
 	return header_process_picture_coding_extension (picture, buffer);
 
     case 0x90:	/* picture spacial scalable extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xA0:	/* picture temporal scalable extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xB0:	/* camera parameters extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xC0:	/* ITU-T extension */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xD0:	/* reserved */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xE0:	/* reserved */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xF0:	/* reserved */
-    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
     }
 
