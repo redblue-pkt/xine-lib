@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.8 2003/12/14 00:28:02 f1rmb Exp $ 
+ * $Id: info_helper.c,v 1.9 2003/12/14 00:33:36 f1rmb Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -272,9 +272,15 @@ void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
       
       *meta = '\0';
 
-      __meta_info_set_unlocked(stream, info, (const char *) p);
+      if(stream->meta_info[info])
+	free(stream->meta_info[info]);
+      
+      stream->meta_info[info] = p;
+      
+      if(stream->meta_info[info] && strlen(stream->meta_info[info]))
+	__chomp(stream->meta_info[info]);
     }
-
+    
   }
   pthread_mutex_unlock(&stream->meta_mutex);
 }
