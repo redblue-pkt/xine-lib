@@ -57,7 +57,7 @@ xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
 xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
-xineplug_ao_out_sun_la_LIBADD = $(IRIXAL_LIBS)
+xineplug_ao_out_sun_la_LIBADD = 
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_irixal_la_SOURCES = audio_irixal_out.c 
