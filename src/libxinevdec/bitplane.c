@@ -22,7 +22,7 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.4 2004/02/22 16:47:30 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.5 2004/02/22 18:31:48 manfredtremmel Exp $
  */
 
 #include <stdio.h>
@@ -693,7 +693,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
                              this->width_decode,             /* width                   */
                              this->height,                   /* hight                   */
                              this->num_bitplanes,            /* number bitplanes        */
-                             this->bytes_per_pixel,          /* used Bytes per pixel    */
+                             this->full_bytes_per_pixel,     /* used Bytes per pixel    */
                              this->rgb_palette);             /* Palette (RGB)           */
       }
 
@@ -712,8 +712,8 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
         case 3:
           for (row_ptr = 0; row_ptr < this->height; row_ptr++) {
             for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
-              i                         = (row_ptr * this->width_decode * this->bytes_per_pixel) +
-                                          (pixel_ptr * this->bytes_per_pixel);
+              i                         = (row_ptr * this->width_decode * this->full_bytes_per_pixel) +
+                                          (pixel_ptr * this->full_bytes_per_pixel);
               j                         = (row_ptr * this->width) + pixel_ptr;
               r                         = this->rgb_buf[i++];
               g                         = this->rgb_buf[i++];
