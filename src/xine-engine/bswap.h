@@ -6,13 +6,13 @@
 #include "config.h"
 #endif
 
+#include "xineutils.h"
+
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
-#include <assert.h>
 #else
-
 #include <inttypes.h>
-#include <assert.h>
+
 
 #ifdef ARCH_X86
 inline static unsigned short ByteSwap16(unsigned short x)
@@ -106,7 +106,7 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 
 inline static void* check_ptr_alignment(void* ptr, int align)
 {
-  assert((int)ptr % align == 0);
+  XINE_ASSERT((int)ptr % align == 0, "Improper pointer alignment.");
   return ptr;
 }
 

@@ -26,9 +26,6 @@
 #include "dsputil.h"
 #include "mpegvideo.h"
 
-//#undef NDEBUG
-//#include <assert.h>
-
 #define SQ(a) ((a)*(a))
 
 #define P_LEFT P[1]
@@ -961,7 +958,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
     Picture * const pic= &s->current_picture;
     uint16_t * const mv_penalty= s->me.mv_penalty[s->f_code] + MAX_MV;
     
-    assert(s->quarter_sample==0 || s->quarter_sample==1);
+    XINE_ASSERT(s->quarter_sample==0 || s->quarter_sample==1, "value out of range: %d", s->quarter_sample);
 
     s->me.penalty_factor    = get_penalty_factor(s, s->avctx->me_cmp);
     s->me.sub_penalty_factor= get_penalty_factor(s, s->avctx->me_sub_cmp);
@@ -1132,7 +1129,8 @@ int ff_pre_estimate_p_frame_motion(MpegEncContext * s,
     const int mv_stride= s->mb_width + 2;
     const int xy= mb_x + 1 + (mb_y + 1)*mv_stride;
     
-    assert(s->quarter_sample==0 || s->quarter_sample==1);
+    XINE_ASSERT((s->quarter_sample==0 || s->quarter_sample==1),
+		"value out of range: %d", s->quarter_sample);
 
     s->me.pre_penalty_factor    = get_penalty_factor(s, s->avctx->me_pre_cmp);
 
@@ -1298,8 +1296,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 3) << 2) | (motion_fx & 3);
         src_x = mb_x * 16 + (motion_fx >> 2);
         src_y = mb_y * 16 + (motion_fy >> 2);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
+        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1307,8 +1305,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 3) << 2) | (motion_bx & 3);
         src_x = mb_x * 16 + (motion_bx >> 2);
         src_y = mb_y * 16 + (motion_by >> 2);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
+        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1316,8 +1314,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 1) << 1) | (motion_fx & 1);
         src_x = mb_x * 16 + (motion_fx >> 1);
         src_y = mb_y * 16 + (motion_fy >> 1);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
+        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1325,8 +1323,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 1) << 1) | (motion_bx & 1);
         src_x = mb_x * 16 + (motion_bx >> 1);
         src_y = mb_y * 16 + (motion_by >> 1);
-        assert(src_x >=-16 && src_x<=s->width);
-        assert(src_y >=-16 && src_y<=s->height);
+        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
+        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1421,7 +1419,9 @@ static inline int direct_search(MpegEncContext * s,
         if(s->mv_type == MV_TYPE_16X16) break;
     }
     
-    assert(xmax <= 15 && ymax <= 15 && xmin >= -16 && ymin >= -16);
+    XINE_ASSERT(xmax <= 15 && ymax <= 15 && xmin >= -16 && ymin >= -16, 
+		"xmax (%d) > 15\nymax (%d) >15\nxmin (%d) < -16\nymin (%d) < -16",
+		xmax, ymax, xmin, ymin);
     
     if(xmax < 0 || xmin >0 || ymax < 0 || ymin > 0){
         s->b_direct_mv_table[mot_xy][0]= 0;

@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <inttypes.h>
 #include <mlib_video.h>
 
@@ -83,7 +82,8 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
+    XINE_ASSERT((this->dest_width&1) == 0, "mlib needs an even YUV2 width.");
+
     for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
@@ -160,7 +160,8 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
+    XINE_ASSERT((this->dest_width&1) == 0, "mlib needs an even YUV2 width");
+
     for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
@@ -237,7 +238,8 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    assert((this->dest_width&1) == 0);	/* mlib needs an even YUV2 width */
+    XINE_ASSERT ((this->dest_width&1) == 0, "mlib needs an even YUV2 width.");
+
     for (;;) {
       scale_line (pu, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);

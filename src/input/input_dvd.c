@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.130 2003/02/26 20:45:18 mroi Exp $
+ * $Id: input_dvd.c,v 1.131 2003/02/28 02:51:48 storri Exp $
  *
  */
 
@@ -1175,8 +1175,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 
   this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
   if (this == NULL) {
-    printf("input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
-    assert(0);
+    XINE_ASSERT(0, "input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
   }
 
   this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
@@ -1569,6 +1568,37 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.131  2003/02/28 02:51:48  storri
+ * Xine assert() replacement:
+ *
+ * All assert() function calls, with exceptions of libdvdread and libdvdnav, have been
+ * replaced with XINE_ASSERT. Functionally XINE_ASSERT behaves just likes its predecesor but its
+ * adding the ability to print out a stack trace at the point where the assertion fails.
+ * So here are a few examples.
+ *
+ * assert (0);
+ *
+ * This use of assert was found in a couple locations most favorably being the default case of a switch
+ * statement. This was the only thing there. So if the switch statement was unable to find a match
+ * it would have defaulted to this and the user and the developers would be stuck wonder who died and where.
+ *
+ * So it has been replaced with
+ *
+ * XINE_ASSERT(0, "We have reach this point and don't have a default case");
+ *
+ * It may seem a bit none descriptive but there is more going on behind the scene.
+ *
+ * In addition to checking a condition is true/false, in this case '0', the XINE_ASSERT
+ * prints out:
+ *
+ * <filename>:<function name>:<line number> - assertion '<assertion expression>' failed. <description>
+ *
+ * An example of this might be:
+ *
+ * input_dvd.c:open_plugin:1178 - assertion '0' failed. xine_malloc failed!!! You have run out of memory
+ *
+ * XINE_ASSERT and its helper function, print_trace, are found in src/xine-utils/xineutils.h
+ *
  * Revision 1.130  2003/02/26 20:45:18  mroi
  * adjust input_dvd to handle DVDNAV_WAIT events properly
  * (that is: wait for the fifos to become empty)

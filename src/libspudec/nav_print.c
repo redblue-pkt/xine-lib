@@ -25,7 +25,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <assert.h>
+#include "xineutils.h"
 
 #include "config.h" // Needed for WORDS_BIGENDIAN
 #include "nav_types.h"
@@ -34,10 +34,10 @@
 
 void print_time(dvd_time_t *dtime) {
   const char *rate;
-  assert((dtime->hour>>4) < 0xa && (dtime->hour&0xf) < 0xa);
-  assert((dtime->minute>>4) < 0x7 && (dtime->minute&0xf) < 0xa);
-  assert((dtime->second>>4) < 0x7 && (dtime->second&0xf) < 0xa);
-  assert((dtime->frame_u&0xf) < 0xa);
+  XINE_ASSERT(((dtime->hour>>4) < 0xa) && ((dtime->hour&0xf) < 0xa),"?");
+  XINE_ASSERT(((dtime->minute>>4) < 0x7) && ((dtime->minute&0xf) < 0xa),"?");
+  XINE_ASSERT(((dtime->second>>4) < 0x7) && ((dtime->second&0xf) < 0xa), "?");
+  XINE_ASSERT((dtime->frame_u&0xf) < 0xa, "?");
   
   printf("%02x:%02x:%02x.%02x", 
 	 dtime->hour,

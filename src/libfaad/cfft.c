@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: cfft.c,v 1.4 2003/01/31 01:20:26 storri Exp $
+** $Id: cfft.c,v 1.5 2003/02/28 02:51:48 storri Exp $
 **/
 
 /*
@@ -32,11 +32,6 @@
 #include "structs.h"
 
 #include <stdlib.h>
-#ifdef _WIN32_WCE
-#define assert(x)
-#else
-#include <assert.h>
-#endif
 
 #include "cfft.h"
 #include "cfft_tab.h"

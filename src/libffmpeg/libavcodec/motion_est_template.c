@@ -18,6 +18,8 @@
  *
  */
 
+#include "xineutils.h"
+
 //lets hope gcc will remove the unused vars ...(gcc 3.2.2 seems to do it ...)
 //Note, the last line is there to kill these ugly unused var warnings
 #define LOAD_COMMON(x, y)\
@@ -119,7 +121,9 @@ static int RENAME(hpel_motion_search)(MpegEncContext * s,
         CHECK_HALF_MV(0, 1, mx  , my  )        
         CHECK_HALF_MV(1, 1, mx  , my  )
 
-        assert(bx >= xmin*2 || bx <= xmax*2 || by >= ymin*2 || by <= ymax*2);
+        XINE_ASSERT((bx >= xmin*2 || bx <= xmax*2 || by >= ymin*2 || by <= ymax*2),
+		    "bx (%d) is not wihtin range %d to %d.\nby (%d) is not within range %d to %d",
+		    bx, xmin*2, xmax*2, by, ymin*2, ymax*2);
 
         *mx_ptr = bx;
         *my_ptr = by;
@@ -183,13 +187,14 @@ static int RENAME(hpel_motion_search)(MpegEncContext * s,
         int map_generation= s->me.map_generation;
         uint32_t *map= s->me.map;
         key= ((my-1)<<ME_MAP_MV_BITS) + (mx) + map_generation;
-        assert(map[(index-(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1)] == key);
+
+        XINE_ASSERT(map[(index-(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1)] == key,"map[%d] != %d",(index-(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1), key );
         key= ((my+1)<<ME_MAP_MV_BITS) + (mx) + map_generation;
-        assert(map[(index+(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1)] == key);
+        XINE_ASSERT(map[(index+(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1)] == key,"map[%d] != %d",(index+(1<<ME_MAP_SHIFT))&(ME_MAP_SIZE-1), key);
         key= ((my)<<ME_MAP_MV_BITS) + (mx+1) + map_generation;
-        assert(map[(index+1)&(ME_MAP_SIZE-1)] == key);
+        XINE_ASSERT(map[(index+1)&(ME_MAP_SIZE-1)] == key, "map[%d] != %d",(index+1)&(ME_MAP_SIZE-1), key);
         key= ((my)<<ME_MAP_MV_BITS) + (mx-1) + map_generation;
-        assert(map[(index-1)&(ME_MAP_SIZE-1)] == key);
+        XINE_ASSERT(map[(index-1)&(ME_MAP_SIZE-1)] == key, "map[%d] != %d",(index-1)&(ME_MAP_SIZE-1), key);
 #endif                
         if(t<=b){
             CHECK_HALF_MV(0, 1, mx  ,my-1)
@@ -230,7 +235,9 @@ static int RENAME(hpel_motion_search)(MpegEncContext * s,
             }
             CHECK_HALF_MV(0, 1, mx  , my)
         }
-        assert(bx >= xmin*2 && bx <= xmax*2 && by >= ymin*2 && by <= ymax*2);
+        XINE_ASSERT((bx >= xmin*2 && bx <= xmax*2 && by >= ymin*2 && by <= ymax*2),
+		    "bx (%d) is not wihtin range %d to %d.\nby (%d) is not within range %d to %d",
+		    bx, xmin*2, xmax*2, by, ymin*2, ymax*2);
     }
 
     *mx_ptr = bx;
@@ -260,8 +267,9 @@ static int RENAME(hpel_get_mb_score)(MpegEncContext * s, int mx, int my, int pre
     cmp_sub= s->dsp.mb_cmp[size];
     chroma_cmp_sub= s->dsp.mb_cmp[size+1];
     
-    assert(!s->me.skip);
-    assert(s->avctx->me_sub_cmp != s->avctx->mb_cmp);
+    XINE_ASSERT(!s->me.skip,"s->me.skip is not NULL");
+    XINE_ASSERT((s->avctx->me_sub_cmp != s->avctx->mb_cmp), "s->avctx->me_sub_cmp (%d) != s->avctx->mb_cmp (%d)",
+		s->avctx->me_sub_cmp,  s->avctx->mb_cmp	);
 
     CMP_HPEL(d, mx&1, my&1, mx>>1, my>>1, size);
     //FIXME check cbp before adding penalty for (0,0) vector
@@ -389,11 +397,12 @@ static int RENAME(qpel_motion_search)(MpegEncContext * s,
             
             cxy= 2*tl + (cx + cy)/4 - (cx2 + cy2) - 2*c; 
            
-            assert(16*cx2 + 4*cx + 32*c == 32*r);
-            assert(16*cx2 - 4*cx + 32*c == 32*l);
-            assert(16*cy2 + 4*cy + 32*c == 32*b);
-            assert(16*cy2 - 4*cy + 32*c == 32*t);
-            assert(16*cxy + 16*cy2 + 16*cx2 - 4*cy - 4*cx + 32*c == 32*tl);
+            XINE_ASSERT(16*cx2 + 4*cx + 32*c == 32*r, "%d != %d",16*cx2 + 4*cx + 32*c, 32*r);
+            XINE_ASSERT(16*cx2 - 4*cx + 32*c == 32*l, "%d != %d",16*cx2 - 4*cx + 32*c, 32*l);
+            XINE_ASSERT(16*cy2 + 4*cy + 32*c == 32*b, "%d != %d",16*cy2 + 4*cy + 32*c, 32*b);
+            XINE_ASSERT(16*cy2 - 4*cy + 32*c == 32*t, "%d != %d",16*cy2 - 4*cy + 32*c, 32*t);
+            XINE_ASSERT(16*cxy + 16*cy2 + 16*cx2 - 4*cy - 4*cx + 32*c == 32*tl, "%d != %d",
+			16*cxy + 16*cy2 + 16*cx2 - 4*cy - 4*cx + 32*c, 32*tl);
             
             for(ny= -3; ny <= 3; ny++){
                 for(nx= -3; nx <= 3; nx++){
@@ -495,7 +504,9 @@ static int RENAME(qpel_motion_search)(MpegEncContext * s,
         CHECK_QUARTER_MV(1, 1, mx-1, my  )
         CHECK_QUARTER_MV(1, 0, mx-1, my  )
 #endif
-        assert(bx >= xmin*4 && bx <= xmax*4 && by >= ymin*4 && by <= ymax*4);
+        XINE_ASSERT(bx >= xmin*4 && bx <= xmax*4 && by >= ymin*4 && by <= ymax*4,
+		    "bx (%d) is not wihtin range %d to %d.\nby (%d) is not within range %d to %d",
+		    bx, xmin*4, xmax*4, by, ymin*4, ymax*4);
 
         *mx_ptr = bx;
         *my_ptr = by;
@@ -526,8 +537,8 @@ static int RENAME(qpel_get_mb_score)(MpegEncContext * s, int mx, int my, int pre
     cmp_sub= s->dsp.mb_cmp[size];
     chroma_cmp_sub= s->dsp.mb_cmp[size+1];
     
-    assert(!s->me.skip);
-    assert(s->avctx->me_sub_cmp != s->avctx->mb_cmp);
+    XINE_ASSERT(!s->me.skip, "value 's->me.skip' is not NULL");
+    XINE_ASSERT(s->avctx->me_sub_cmp != s->avctx->mb_cmp, "%d != %d", s->avctx->me_sub_cmp, s->avctx->mb_cmp );
 
     CMP_QPEL(d, mx&3, my&3, mx>>2, my>>2, size);
     //FIXME check cbp before adding penalty for (0,0) vector
@@ -745,7 +756,7 @@ static inline int RENAME(sab_diamond_search)(MpegEncContext * s, int *best, int 
         
         if((key&((-1)<<(2*ME_MAP_MV_BITS))) != map_generation) continue;
         
-        assert(j<MAX_SAB_SIZE); //max j = number of predictors
+        XINE_ASSERT(j<MAX_SAB_SIZE, "%d >= %d", j, MAX_SAB_SIZE); //max j = number of predictors
         
         minima[j].height= score_map[i];
         minima[j].x= key & ((1<<ME_MAP_MV_BITS)-1); key>>=ME_MAP_MV_BITS;

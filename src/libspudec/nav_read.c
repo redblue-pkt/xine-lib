@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <assert.h>
+#include "xineutils.h"
 
 #include "config.h" // Needed for WORDS_BIGENDIAN
 #include "bswap.h"
@@ -35,7 +35,7 @@
 void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   int i, j;
 
-  assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
+  XINE_ASSERT(sizeof(pci_t) == (PCI_BYTES - 1), "Incorrect pci_t size: %d", sizeof(pci_t)); // -1 for substream id
   
   memcpy(pci, buffer, sizeof(pci_t));
 
@@ -102,22 +102,23 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   /* Asserts */
 
   /* pci pci gi */ 
-  assert(pci->pci_gi.zero1 == 0);
+  XINE_ASSERT(pci->pci_gi.zero1 == 0, "pci->pci_gi.zero1 != 0");
 
   /* pci hli hli_gi */
-  assert(pci->hli.hl_gi.zero1 == 0);
-  assert(pci->hli.hl_gi.zero2 == 0);
-  assert(pci->hli.hl_gi.zero3 == 0);
-  assert(pci->hli.hl_gi.zero4 == 0);
-  assert(pci->hli.hl_gi.zero5 == 0);
+  XINE_ASSERT(pci->hli.hl_gi.zero1 == 0, "pci->hli.hl_gi.zero1 != 0");
+  XINE_ASSERT(pci->hli.hl_gi.zero2 == 0, "pci->hli.hl_gi.zero2 != 0");
+  XINE_ASSERT(pci->hli.hl_gi.zero3 == 0, "pci->hli.hl_gi.zero3 != 0");
+  XINE_ASSERT(pci->hli.hl_gi.zero4 == 0, "pci->hli.hl_gi.zero4 != 0");
+  XINE_ASSERT(pci->hli.hl_gi.zero5 == 0, "pci->hli.hl_gi.zero5 != 0");
 
   /* Are there buttons defined here? */
   if((pci->hli.hl_gi.hli_ss & 0x03) != 0) {
-    assert(pci->hli.hl_gi.btn_ns != 0); 
-    assert(pci->hli.hl_gi.btngr_ns != 0); 
+    XINE_ASSERT(pci->hli.hl_gi.btn_ns != 0, "pci->li.hl_gi.btn_ns == 0"); 
+    XINE_ASSERT(pci->hli.hl_gi.btngr_ns != 0, "pci->li.hl_gi.btngr_ns == 0"); 
   } else {
-    assert((pci->hli.hl_gi.btn_ns != 0 && pci->hli.hl_gi.btngr_ns != 0) 
-	   || (pci->hli.hl_gi.btn_ns == 0 && pci->hli.hl_gi.btngr_ns == 0));
+    XINE_ASSERT((pci->hli.hl_gi.btn_ns != 0 && pci->hli.hl_gi.btngr_ns != 0)
+	   || (pci->hli.hl_gi.btn_ns == 0 && pci->hli.hl_gi.btngr_ns == 0),
+		"pci->hli.hl_gi.btn_ns & pci->hli.hl_gi.btngr_ns are not both the same");
   }
 
   /* pci hli btnit */
@@ -126,35 +127,35 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
   for(i = 0; i < pci->hli.hl_gi.btngr_ns; i++) {
     for(j = 0; j < (36 / pci->hli.hl_gi.btngr_ns); j++) {
       int n = (36 / pci->hli.hl_gi.btngr_ns) * i + j;
-      assert(pci->hli.btnit[n].zero1 == 0);
-      assert(pci->hli.btnit[n].zero2 == 0);
-      assert(pci->hli.btnit[n].zero3 == 0);
-      assert(pci->hli.btnit[n].zero4 == 0);
-      assert(pci->hli.btnit[n].zero5 == 0);
-      assert(pci->hli.btnit[n].zero6 == 0);
+      XINE_ASSERT(pci->hli.btnit[n].zero1 == 0,"pci->hli.btnit[%d].zero1 != 0", n);
+      XINE_ASSERT(pci->hli.btnit[n].zero2 == 0,"pci->hli.btnit[%d].zero2 != 0", n);
+      XINE_ASSERT(pci->hli.btnit[n].zero3 == 0,"pci->hli.btnit[%d].zero3 != 0", n);
+      XINE_ASSERT(pci->hli.btnit[n].zero4 == 0,"pci->hli.btnit[%d].zero4 != 0", n);
+      XINE_ASSERT(pci->hli.btnit[n].zero5 == 0,"pci->hli.btnit[%d].zero5 != 0", n);
+      XINE_ASSERT(pci->hli.btnit[n].zero6 == 0,"pci->hli.btnit[%d].zero6 != 0", n);
       
       if (j < pci->hli.hl_gi.btn_ns) {	
-	assert(pci->hli.btnit[n].x_start <= pci->hli.btnit[n].x_end);
-	assert(pci->hli.btnit[n].y_start <= pci->hli.btnit[n].y_end);
-	assert(pci->hli.btnit[n].up <= pci->hli.hl_gi.btn_ns);
-	assert(pci->hli.btnit[n].down <= pci->hli.hl_gi.btn_ns);
-	assert(pci->hli.btnit[n].left <= pci->hli.hl_gi.btn_ns);
-	assert(pci->hli.btnit[n].right <= pci->hli.hl_gi.btn_ns);
+	XINE_ASSERT(pci->hli.btnit[n].x_start <= pci->hli.btnit[n].x_end,"?");
+	XINE_ASSERT(pci->hli.btnit[n].y_start <= pci->hli.btnit[n].y_end,"?");
+	XINE_ASSERT(pci->hli.btnit[n].up <= pci->hli.hl_gi.btn_ns,"?");
+	XINE_ASSERT(pci->hli.btnit[n].down <= pci->hli.hl_gi.btn_ns,"?");
+	XINE_ASSERT(pci->hli.btnit[n].left <= pci->hli.hl_gi.btn_ns,"?");
+	XINE_ASSERT(pci->hli.btnit[n].right <= pci->hli.hl_gi.btn_ns,"?");
 	//vmcmd_verify(pci->hli.btnit[n].cmd);
       } else {
 	int k;
-	assert(pci->hli.btnit[n].btn_coln == 0);
-	assert(pci->hli.btnit[n].auto_action_mode == 0);
-	assert(pci->hli.btnit[n].x_start == 0);
-	assert(pci->hli.btnit[n].y_start == 0);
-	assert(pci->hli.btnit[n].x_end == 0);
-	assert(pci->hli.btnit[n].y_end == 0);
-	assert(pci->hli.btnit[n].up == 0);
-	assert(pci->hli.btnit[n].down == 0);
-	assert(pci->hli.btnit[n].left == 0);
-	assert(pci->hli.btnit[n].right == 0);
+	XINE_ASSERT(pci->hli.btnit[n].btn_coln == 0,"pci->hli.btnit[%d].btn_coln != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].auto_action_mode == 0,"pci->hli.btnit[%d].auto_action_mode != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].x_start == 0,"pci->hli.btnit[%d].x_start != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].y_start == 0,"pci->hli.btnit[%d].y_start != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].x_end == 0,"pci->hli.btnit[%d].x_end != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].y_end == 0,"pci->hli.btnit[%d].y_end != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].up == 0,"pci->hli.btnit[%d].up != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].down == 0,"pci->hli.btnit[%d].down != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].left == 0,"pci->hli.btnit[%d].left != 0", n);
+	XINE_ASSERT(pci->hli.btnit[n].right == 0,"pci->hli.btnit[%d].right != 0", n);
 	for (k = 0; k < 8; k++)
-	  assert(pci->hli.btnit[n].cmd.bytes[k] == 0); //CHECK_ZERO?
+	  XINE_ASSERT(pci->hli.btnit[n].cmd.bytes[k] == 0,"pci->hli.btnit[%d].cmd.bytes[%d] != 0", n, k); //CHECK_ZERO?
       }
     }
   }
@@ -165,7 +166,7 @@ void nav_read_pci(pci_t *pci, unsigned char *buffer) {
 void nav_read_dsi(dsi_t *dsi, unsigned char *buffer) {
   int i;
 
-  assert(sizeof(dsi_t) == DSI_BYTES - 1); // -1 for substream id
+  XINE_ASSERT(sizeof(dsi_t) == (DSI_BYTES - 1), "sizeof dsi_t is incorrect: %d", sizeof(dsi_t)); // -1 for substream id
   
   memcpy(dsi, buffer, sizeof(dsi_t));
 
@@ -215,7 +216,7 @@ void nav_read_dsi(dsi_t *dsi, unsigned char *buffer) {
   /* Asserts */
 
   /* dsi dsi gi */
-  assert(dsi->dsi_gi.zero1 == 0);
+  XINE_ASSERT(dsi->dsi_gi.zero1 == 0, "dsi->dsi_gi.zero1 != 0");
 #endif
 }
 

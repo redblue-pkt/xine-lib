@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.146 2003/02/22 14:22:13 mroi Exp $
+ * $Id: video_out.c,v 1.147 2003/02/28 02:51:51 storri Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -34,7 +34,6 @@
 #include <string.h>
 #include <zlib.h>
 #include <pthread.h>
-#include <assert.h>
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
@@ -126,7 +125,7 @@ static void vo_append_to_img_buf_queue_int (img_buf_fifo_t *queue,
 					vo_frame_t *img) {
 
   /* img already enqueue? (serious leak) */
-  assert (img->next==NULL);
+  XINE_ASSERT (img->next==NULL, "Image is already enqueue. Next image is not NULL");
 
   img->next = NULL;
 

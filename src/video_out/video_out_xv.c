@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.158 2003/02/22 16:56:01 hadess Exp $
+ * $Id: video_out_xv.c,v 1.159 2003/02/28 02:51:51 storri Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <assert.h>
 
 #if defined(__FreeBSD__)
 #include <machine/param.h>

@@ -169,7 +169,6 @@ typedef signed long long INT64;
 #    ifndef DEBUG
 #        define NDEBUG
 #    endif
-#    include <assert.h>
 
 /* dprintf macros */
 #    if defined(CONFIG_WIN32) && !defined(__MINGW32__)
@@ -326,7 +325,7 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
     st_out_bit_counts[st_current_index] += n;
 #endif
     //    printf("put_bits=%d %x\n", n, value);
-    assert(n == 32 || value < (1U << n));
+    XINE_ASSERT((n == 32 || value < (1U << n)), "?");
     
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
@@ -903,7 +902,7 @@ static inline int ff_sqrt(int a)
  * converts fourcc string to int
  */
 static inline int ff_get_fourcc(const char *s){
-    assert( strlen(s)==4 );
+    XINE_ASSERT( strlen(s)==4, "lenght of value 's' != 4: %d", strlen(s) );
     
     return (s[0]) + (s[1]<<8) + (s[2]<<16) + (s[3]<<24);
 }

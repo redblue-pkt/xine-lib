@@ -4,10 +4,10 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/long_term.c,v 1.1 2002/10/12 19:12:49 tmmm Exp $ */
+/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/long_term.c,v 1.2 2003/02/28 02:51:50 storri Exp $ */
 
 #include <stdio.h>
-#include <assert.h>
+#include "xineutils.h"
 
 #include "private.h"
 
@@ -40,7 +40,7 @@
   * uncut one.  (For a detailed explanation of why this is altogether
   * a bad idea, see Henry Spencer and Geoff Collyer, ``#ifdef Considered
   * Harmful''.)
-  */
+a  */
 
 #ifndef  USE_FLOAT_MUL
 
@@ -81,12 +81,13 @@ static void Cut_Calculation_of_the_LTP_parameters P5((st, d,dp,bc_out,Nc_out),
 	temp = 0;
 	if (dmax == 0) scal = 0;
 	else {
-		assert(dmax > 0);
+		XINE_ASSERT(dmax > 0, "value 'dmax' is not > 0: %d", dmax);
 		temp = gsm_norm( (longword)dmax << 16 );
 	}
 	if (temp > 6) scal = 0;
 	else scal = 6 - temp;
-	assert(scal >= 0);
+
+	XINE_ASSERT(scal >= 0, "value 'scal' is not >= 0: %d", scal);
 
 	/* Search for the maximum cross-correlation and coding of the LTP lag
 	 */
@@ -106,10 +107,10 @@ static void Cut_Calculation_of_the_LTP_parameters P5((st, d,dp,bc_out,Nc_out),
 
 	/*  Rescaling of L_max
 	 */
-	assert(scal <= 100 && scal >= -100);
+	XINE_ASSERT((scal <= 100) && (scal >= -100), "value 'scal' is not within range -100 to 100: %d", scal);
 	L_max = L_max >> (6 - scal);	/* sub(6, scal) */
 
-	assert( Nc <= 120 && Nc >= 40);
+	XINE_ASSERT( Nc <= 120 && Nc >= 40, "value 'Nc' is not within range 40 to 120: %d", Nc);
 
 	/*   Compute the power of the reconstructed short term residual
 	 *   signal dp[..]
@@ -181,14 +182,14 @@ static void Calculation_of_the_LTP_parameters P4((d,dp,bc_out,Nc_out),
 	temp = 0;
 	if (dmax == 0) scal = 0;
 	else {
-		assert(dmax > 0);
+		XINE_ASSERT(dmax > 0, "value 'dmax' is not > 0: %d", dmax);
 		temp = gsm_norm( (longword)dmax << 16 );
 	}
 
 	if (temp > 6) scal = 0;
 	else scal = 6 - temp;
 
-	assert(scal >= 0);
+	XINE_ASSERT(scal >= 0, "value 'scal' is not >= 0: %d", scal);
 
 	/*  Initialization of a working array wt
 	 */
@@ -241,10 +242,10 @@ static void Calculation_of_the_LTP_parameters P4((d,dp,bc_out,Nc_out),
 
 	/*  Rescaling of L_max
 	 */
-	assert(scal <= 100 && scal >=  -100);
+	XINE_ASSERT( (scal <= 100) && (scal >=  -100), "value 'scal' is not within range -100 to 100: %d", scal);
 	L_max = L_max >> (6 - scal);	/* sub(6, scal) */
 
-	assert( Nc <= 120 && Nc >= 40);
+	XINE_ASSERT( Nc <= 120 && Nc >= 40, "value 'Nc' is not within range 40 to 120: %d", Nc);
 
 	/*   Compute the power of the reconstructed short term residual
 	 *   signal dp[..]
@@ -322,14 +323,16 @@ static void Cut_Calculation_of_the_LTP_parameters P5((st, d,dp,bc_out,Nc_out),
 	temp = 0;
 	if (dmax == 0) scal = 0;
 	else {
-		assert(dmax > 0);
+		XINE_ASSERT(dmax > 0, "value 'dmax' is not > 0: %d", dmax);
+
 		temp = gsm_norm( (longword)dmax << 16 );
 	}
 
 	if (temp > 6) scal = 0;
 	else scal = 6 - temp;
 
-	assert(scal >= 0);
+	XINE_ASSERT(scal >= 0, "value 'scal' is not >= 0: %d", scal);
+
 	ltp_cut = (longword)SASR(dmax, scal) * st->ltp_cut / 100; 
 
 
@@ -421,10 +424,11 @@ static void Cut_Calculation_of_the_LTP_parameters P5((st, d,dp,bc_out,Nc_out),
 
 	/*  Rescaling of L_max
 	 */
-	assert(scal <= 100 && scal >=  -100);
+	XINE_ASSERT( (scal <= 100) && (scal >=  -100), "value 'scal' is not within range -100 to 100: %d", scal);
+
 	L_max = L_max >> (6 - scal);	/* sub(6, scal) */
 
-	assert( Nc <= 120 && Nc >= 40);
+	XINE_ASSERT( Nc <= 120 && Nc >= 40, "value 'Nc' is not within range 40 to 120: %d", Nc);
 
 	/*   Compute the power of the reconstructed short term residual
 	 *   signal dp[..]
@@ -498,14 +502,14 @@ static void Calculation_of_the_LTP_parameters P4((d,dp,bc_out,Nc_out),
 	temp = 0;
 	if (dmax == 0) scal = 0;
 	else {
-		assert(dmax > 0);
+		XINE_ASSERT(dmax > 0, "value 'dmax' is not > 0: %d", dmax);
 		temp = gsm_norm( (longword)dmax << 16 );
 	}
 
 	if (temp > 6) scal = 0;
 	else scal = 6 - temp;
 
-	assert(scal >= 0);
+	XINE_ASSERT(scal >= 0, "value 'scal' is not >= 0: %d", scal);
 
 	/*  Initialization of a working array wt
 	 */
@@ -586,10 +590,13 @@ static void Calculation_of_the_LTP_parameters P4((d,dp,bc_out,Nc_out),
 
 	/*  Rescaling of L_max
 	 */
-	assert(scal <= 100 && scal >=  -100);
+
+	XINE_ASSERT( (scal <= 100) && (scal >=  -100), "value 'scal' is not within range -100 to 100: %d", scal);
+
 	L_max = L_max >> (6 - scal);	/* sub(6, scal) */
 
-	assert( Nc <= 120 && Nc >= 40);
+	XINE_ASSERT( Nc <= 120 && Nc >= 40, "value 'Nc' is not within range 40 to 120: %d", Nc);
+
 
 	/*   Compute the power of the reconstructed short term residual
 	 *   signal dp[..]
@@ -659,7 +666,7 @@ static void Cut_Fast_Calculation_of_the_LTP_parameters P5((st,
 		else if (-d[k] > wt_max) wt_max = -d[best_k = k];
 	}
 
-	assert(wt_max >= 0);
+	XINE_ASSERT(wt_max >= 0, "value 'wt_max' is not >= 0: %d", wt_max);
 	wt_float = (float)wt_max;
 
 	for (k = -120; k < 0; ++k) dp_float[k] = (float)dp[k];
@@ -877,8 +884,12 @@ void Gsm_Long_Term_Predictor P7((S,d,dp,e,dpp,Nc,bc), 	/* 4x for 160 samples */
 	word	* bc	/* gain factor			OUT	*/
 )
 {
-	assert( d  ); assert( dp ); assert( e  );
-	assert( dpp); assert( Nc ); assert( bc );
+	XINE_ASSERT( d,"value 'd' is NULL");
+	XINE_ASSERT( dp, "value 'dp' is NULL");
+	XINE_ASSERT( e, "value 'e' is NULL");
+	XINE_ASSERT( dpp, "value 'dpp' is NULL");
+	XINE_ASSERT( Nc, "value 'Nc' is NULL");
+	XINE_ASSERT( bc, "value 'bc' is NULL" );
 
 #if defined(FAST) && defined(USE_FLOAT_MUL)
 	if (S->fast) 
@@ -924,7 +935,7 @@ void Gsm_Long_Term_Synthesis_Filtering P5((S,Ncr,bcr,erp,drp),
 	 */
 	Nr = Ncr < 40 || Ncr > 120 ? S->nrp : Ncr;
 	S->nrp = Nr;
-	assert(Nr >= 40 && Nr <= 120);
+	XINE_ASSERT(Nr >= 40 && Nr <= 120, "value 'Nr' is not within range of 40 to 120: %d", Nr);
 
 	/*  Decoding of the LTP gain bcr
 	 */
@@ -933,7 +944,7 @@ void Gsm_Long_Term_Synthesis_Filtering P5((S,Ncr,bcr,erp,drp),
 	/*  Computation of the reconstructed short term residual 
 	 *  signal drp[0..39]
 	 */
-	assert(brp != MIN_WORD);
+	XINE_ASSERT(brp != MIN_WORD, "value 'brp' is equal to MIN_WORD");
 
 	for (k = 0; k <= 39; k++) {
 		drpp   = GSM_MULT_R( brp, drp[ k - Nr ] );

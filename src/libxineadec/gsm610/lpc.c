@@ -4,10 +4,10 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/lpc.c,v 1.1 2002/10/12 19:12:49 tmmm Exp $ */
+/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/lpc.c,v 1.2 2003/02/28 02:51:50 storri Exp $ */
 
 #include <stdio.h>
-#include <assert.h>
+#include "xineutils.h"
 
 #include "private.h"
 
@@ -54,7 +54,7 @@ static void Autocorrelation P2((s, L_ACF),
 	 */
 	if (smax == 0) scalauto = 0;
 	else {
-		assert(smax > 0);
+		XINE_ASSERT(smax > 0, "Scale maximum (smax) is not greater than 0: %d", smax);
 		scalauto = 4 - gsm_norm( (longword)smax << 16 );/* sub(4,..) */
 	}
 
@@ -139,7 +139,7 @@ static void Autocorrelation P2((s, L_ACF),
 	/*   Rescaling of the array s[0..159]
 	 */
 	if (scalauto > 0) {
-		assert(scalauto <= 4); 
+		XINE_ASSERT(scalauto <= 4, "scalauto is not <= 4: %d", scalauto); 
 		for (k = 160; k--; *s++ <<= scalauto) ;
 	}
 }
@@ -194,10 +194,10 @@ static void Reflection_coefficients P2( (L_ACF, r),
 		return;
 	}
 
-	assert( L_ACF[0] != 0 );
+	XINE_ASSERT( L_ACF[0] != 0 , "L_ACF[0] is NULL");
 	temp = gsm_norm( L_ACF[0] );
 
-	assert(temp >= 0 && temp < 32);
+	XINE_ASSERT(temp >= 0 && temp < 32, "temp is not within range 0 to 32: %d", temp);
 
 	/* ? overflow ? */
 	for (i = 0; i <= 8; i++) ACF[i] = SASR( L_ACF[i] << temp, 16 );
@@ -221,9 +221,12 @@ static void Reflection_coefficients P2( (L_ACF, r),
 
 		*r = gsm_div( temp, P[0] );
 
-		assert(*r >= 0);
+		XINE_ASSERT(*r >= 0, "value 'r' is not >= 0: %d", *r);
+
 		if (P[1] > 0) *r = -*r;		/* r[n] = sub(0, r[n]) */
-		assert (*r != MIN_WORD);
+		
+		XINE_ASSERT (*r != MIN_WORD, "value 'r' is equal to MIN_WORD: %d", *r);
+
 		if (n == 8) return; 
 
 		/*  Schur recursion
@@ -264,21 +267,27 @@ static void Transformation_to_Log_Area_Ratios P1((r),
 
 		temp = *r;
 		temp = GSM_ABS(temp);
-		assert(temp >= 0);
+
+		XINE_ASSERT(temp >= 0, "value 'temp' is not >= 0: %d", temp);
 
 		if (temp < 22118) {
 			temp >>= 1;
 		} else if (temp < 31130) {
-			assert( temp >= 11059 );
+		  XINE_ASSERT(temp >= 11059, "value 'temp' is not >= 11059: %d", temp);
 			temp -= 11059;
 		} else {
-			assert( temp >= 26112 );
-			temp -= 26112;
-			temp <<= 2;
+		  XINE_ASSERT(temp >= 26112, "value 'temp' is not >= 26112: %d", temp);
+		  temp -= 26112;
+		  temp <<= 2;
 		}
-
-		*r = *r < 0 ? -temp : temp;
-		assert( *r != MIN_WORD );
+		
+		if (*r < 0) {
+		  *r = -temp;
+		}
+		else {
+		  *r = temp;
+		}
+		XINE_ASSERT (*r != MIN_WORD, "value 'r' is equal to MIN_WORD: %d", *r);
 	}
 }
 

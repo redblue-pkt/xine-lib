@@ -30,9 +30,6 @@
 #include "fastmemcpy.h"
 #endif
 
-//#undef NDEBUG
-//#include <assert.h>
-
 #define CONFIG_RISKY
 
 static void encode_picture(MpegEncContext *s, int picture_number);
@@ -283,13 +280,13 @@ int DCT_common_init(MpegEncContext *s)
 static int alloc_picture(MpegEncContext *s, Picture *pic, int shared){
     
     if(shared){
-        assert(pic->data[0]);
-        assert(pic->type == 0 || pic->type == FF_BUFFER_TYPE_SHARED);
+        XINE_ASSERT(pic->data[0], "pic->data[0] is NULL.");
+        XINE_ASSERT((pic->type == 0 || pic->type == FF_BUFFER_TYPE_SHARED), "Invalid pic->type: %d", pic->type);
         pic->type= FF_BUFFER_TYPE_SHARED;
     }else{
         int r;
         
-        assert(!pic->data[0]);
+        XINE_ASSERT(!pic->data[0],"pic->data[0] is not NULL.");
         
         r= s->avctx->get_buffer(s->avctx, (AVFrame*)pic);
         
@@ -895,7 +892,7 @@ static int find_unused_picture(MpegEncContext *s, int shared){
         }
     }
 
-    assert(i<MAX_PICTURE_COUNT);
+    XINE_ASSERT(i<MAX_PICTURE_COUNT,"value 'i' is >= MAX_PICTURE_COUNT: %d >= %d", i, MAX_PICTURE_COUNT);
     return i;
 }
 
@@ -917,7 +914,7 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
                 break;
             }    
         }
-        assert(i<MAX_PICTURE_COUNT);
+        XINE_ASSERT(i<MAX_PICTURE_COUNT,"value 'i' is >= MAX_PICTURE_COUNT: %d >= %d", i, MAX_PICTURE_COUNT);
 
         /* release forgotten pictures */
         /* if(mpeg124/h263) */
@@ -950,7 +947,7 @@ alloc:
     
     if(s->pict_type != I_TYPE && s->last_picture.data[0]==NULL){
         fprintf(stderr, "warning: first frame is no keyframe\n");
-        assert(s->pict_type != B_TYPE); //these should have been dropped if we dont have a reference
+        XINE_ASSERT(s->pict_type != B_TYPE, "These should have been dropped if we dont have a reference");
         goto alloc;
     }
    
@@ -1000,7 +997,7 @@ void MPV_frame_end(MpegEncContext *s)
             break;
         }    
     }
-    assert(i<MAX_PICTURE_COUNT);
+    XINE_ASSERT(i<MAX_PICTURE_COUNT,"value 'i' is >= MAX_PICTURE_COUNT: %d >= %d", i, MAX_PICTURE_COUNT);
 
     /* release non refernce frames */
     for(i=0; i<MAX_PICTURE_COUNT; i++){
@@ -1136,7 +1133,7 @@ static int load_input_picture(MpegEncContext *s, AVFrame *pic_arg){
 
 static void select_input_picture(MpegEncContext *s){
     int i;
-    const int encoding_delay= s->max_b_frames;
+    
     int coded_pic_num=0;    
 
     if(s->reordered_input_picture[0])
@@ -1244,8 +1241,11 @@ static void select_input_picture(MpegEncContext *s){
 
             s->current_picture= *pic;
         }else{
-            assert(   s->reordered_input_picture[0]->type==FF_BUFFER_TYPE_USER 
-                   || s->reordered_input_picture[0]->type==FF_BUFFER_TYPE_INTERNAL);
+	  XINE_ASSERT(
+		      (s->reordered_input_picture[0]->type==FF_BUFFER_TYPE_USER 
+		       || s->reordered_input_picture[0]->type==FF_BUFFER_TYPE_INTERNAL),
+		      "s->reordered_input_picture[0]->type is incorrect: %d",
+		      s->reordered_input_picture[0]->type);
             
             s->new_picture= *s->reordered_input_picture[0];
 
@@ -1283,7 +1283,7 @@ int MPV_encode_picture(AVCodecContext *avctx,
         s->pict_type= s->new_picture.pict_type;
         if (s->fixed_qscale){ /* the ratecontrol needs the last qscale so we dont touch it for CBR */
             s->qscale= (int)(s->new_picture.quality+0.5);
-            assert(s->qscale);
+            XINE_ASSERT(s->qscale,"s->qscale is NULL");
         }
 //emms_c();
 //printf("qs:%f %f %d\n", s->new_picture.quality, s->current_picture.quality, s->qscale);
@@ -2065,11 +2065,11 @@ void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
             UINT8 *mbskip_ptr = &s->mbskip_table[mb_xy];
             const int age= s->current_picture.age;
 
-            assert(age);
+            XINE_ASSERT(age, "value 'age' is NULL");
 
             if (s->mb_skiped) {
                 s->mb_skiped= 0;
-                assert(s->pict_type!=I_TYPE);
+                XINE_ASSERT(s->pict_type!=I_TYPE, "s->pict_type (%d) != I_TYPE (%d)", s->pict_type, I_TYPE);
  
                 (*mbskip_ptr) ++; /* indicate that this time we skiped it */
                 if(*mbskip_ptr >99) *mbskip_ptr= 99;
@@ -2286,7 +2286,7 @@ static inline void auto_requantize_coeffs(MpegEncContext *s, DCTELEM block[6][64
     const int minlevel= s->min_qcoeff;
     int largest=0, smallest=0;
 
-    assert(s->adaptive_quant);
+    XINE_ASSERT(s->adaptive_quant, "s->adaptive_quant is NULL");
     
     for(n=0; n<6; n++){
         if(s->mb_intra){
@@ -2439,7 +2439,7 @@ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
             
         if(s->codec_id==CODEC_ID_MPEG4){        
             if(!s->mb_intra){
-                assert(s->dquant==0 || s->mv_type!=MV_TYPE_8X8);
+                XINE_ASSERT((s->dquant==0 || s->mv_type!=MV_TYPE_8X8), "?");
 
                 if(s->mv_dir&MV_DIRECT)
                     s->dquant=0;
@@ -2677,7 +2677,7 @@ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
     case CODEC_ID_MJPEG:
         mjpeg_encode_mb(s, s->block); break;
     default:
-        assert(0);
+        XINE_ASSERT(0, "We have no default case. So if program control reaches here something is really wrong");
     }
 #endif
 }
@@ -2832,7 +2832,7 @@ static inline int sse(MpegEncContext *s, uint8_t *src1, uint8_t *src2, int w, in
         } 
     }
     
-    assert(acc>=0);
+    XINE_ASSERT(acc>=0,"value 'acc' is < 0: %d", acc);
     
     return acc;
 }
@@ -3591,7 +3591,7 @@ static int dct_quantize_trellis_c(MpegEncContext *s,
             int level= coeff[level_index][i];
             int unquant_coeff;
             
-            assert(level);
+            XINE_ASSERT(level, "value 'level' is NULL");
 
             if(s->out_format == FMT_H263){
                 if(level>0){
@@ -3710,7 +3710,7 @@ static int dct_quantize_trellis_c(MpegEncContext *s,
         return last_non_zero;
     
     i= last_i;
-    assert(last_level);
+    XINE_ASSERT(last_level, "value 'last_level' is NULL");
 //FIXME use permutated scantable
     block[ s->idct_permutation[ scantable[last_non_zero] ] ]= last_level;
     i -= last_run + 1;
@@ -3719,7 +3719,7 @@ static int dct_quantize_trellis_c(MpegEncContext *s,
         const int j= s->idct_permutation[ scantable[i - 1 + start_i] ];
     
         block[j]= level_tab[i];
-        assert(block[j]);
+        XINE_ASSERT(block[j], "value 'block[j]' is NULL");
     }
 
     return last_non_zero;
@@ -3926,7 +3926,7 @@ static void dct_unquantize_h263_c(MpegEncContext *s,
     int i, level, qmul, qadd;
     int nCoeffs;
     
-    assert(s->block_last_index[n]>=0);
+    XINE_ASSERT(s->block_last_index[n]>=0 , "s->block_last_index[%d] is < 0: %d", n, s->block_last_index[n]);
     
     qadd = (qscale - 1) | 1;
     qmul = qscale << 1;

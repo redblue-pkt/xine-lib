@@ -21,6 +21,7 @@
 #include "../dsputil.h"
 #include "../mpegvideo.h"
 #include "dsputil_altivec.h"
+#include "xineutils.h"
 
 // Swaps two variables (used for altivec registers)
 #define SWAP(a,b) \
@@ -523,7 +524,7 @@ POWERPC_TBL_DECLARE(altivec_dct_unquantize_h263_num, 1);
     int i, level, qmul, qadd;
     int nCoeffs;
     
-    assert(s->block_last_index[n]>=0);
+    XINE_ASSERT(s->block_last_index[n]>=0, "s->block_last_index[%d] < 0", n);
 
 POWERPC_TBL_START_COUNT(altivec_dct_unquantize_h263_num, 1);
     

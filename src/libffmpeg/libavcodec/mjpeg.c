@@ -24,6 +24,7 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include "xineutils.h"
 
 /* use two quantizer tables (one for luminance and one for chrominance) */
 /* not yet working */
@@ -477,7 +478,7 @@ static void escape_FF(MpegEncContext *s, int start)
     uint8_t *buf= s->pb.buf + start;
     int align= (-(int)(buf))&3;
     
-    assert((size&7) == 0);
+    XINE_ASSERT((size&7) == 0,"?");
     size >>= 3;
     
     ff_count=0;
@@ -533,7 +534,7 @@ void mjpeg_picture_trailer(MpegEncContext *s)
     put_bits(&s->pb, pad,0xFF>>(8-pad));
     flush_put_bits(&s->pb);
 
-    assert((s->header_bits&7)==0);
+    XINE_ASSERT((s->header_bits&7)==0, "?");
     
     escape_FF(s, s->header_bits>>3);
 

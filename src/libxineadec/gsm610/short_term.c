@@ -4,11 +4,10 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/short_term.c,v 1.1 2002/10/12 19:12:49 tmmm Exp $ */
+/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/short_term.c,v 1.2 2003/02/28 02:51:50 storri Exp $ */
 
 #include <stdio.h>
-#include <assert.h>
-
+#include "xineutils.h"
 #include "private.h"
 
 #include "gsm.h"
@@ -43,7 +42,7 @@ static void Decoding_of_the_coded_Log_Area_Ratios P2((LARc,LARpp),
 	 *		temp2  = *B << 1;
 	 *		temp1  = GSM_SUB( temp1, temp2 );
 	 *
-	 *		assert(*INVA != MIN_WORD);
+	 *		XINE_ASSERT(*INVA != MIN_WORD, "INVA table equlas MIN_WORD");
 	 *
 	 *		temp1  = GSM_MULT_R( *INVA, temp1 );
 	 *		*LARpp = GSM_ADD( temp1, temp1 );

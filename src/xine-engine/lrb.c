@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.c,v 1.3 2002/10/23 17:12:31 guenter Exp $
+ * $Id: lrb.c,v 1.4 2003/02/28 02:51:51 storri Exp $
  *
  */
 
@@ -25,7 +25,6 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
 #include "lrb.h"
 #include "xineutils.h"
 
@@ -49,7 +48,7 @@ void lrb_drop (lrb_t *this) {
   
   buf_element_t *buf = this->oldest;
 
-  assert (buf);
+  XINE_ASSERT(buf, "Oldest buffer element is NULL");
 
   this->oldest = buf->next;
 

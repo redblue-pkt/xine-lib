@@ -389,10 +389,13 @@ static int decode_init(AVCodecContext *avctx)
     height= s->height= avctx->height;
     avctx->coded_frame= &s->picture;
 
-s->bgr32=1;
-    assert(width && height);
-//if(avctx->extradata)
-//  printf("extradata:%X, extradata_size:%d\n", *(uint32_t*)avctx->extradata, avctx->extradata_size);
+    s->bgr32=1;
+    XINE_ASSERT(width,"value 'width' is not defined");
+    XINE_ASSERT(height, "value 'height' is not defined");
+
+    //if(avctx->extradata)
+    //  printf("extradata:%X, extradata_size:%d\n", *(uint32_t*)avctx->extradata, avctx->extradata_size);
+
     if(avctx->extradata_size){
         if((avctx->bits_per_sample&7) && avctx->bits_per_sample != 12)
             s->version=1; // do such files exist at all?
@@ -464,7 +467,7 @@ s->bgr32=1;
         }
         break;
     default:
-        assert(0);
+        XINE_ASSERT(0,"We do not have a default action.");
     }
     
 //    printf("pred:%d bpp:%d hbpp:%d il:%d\n", s->predictor, s->bitstream_bpp, avctx->bits_per_sample, s->interlaced);
@@ -509,7 +512,8 @@ static int encode_init(AVCodecContext *avctx)
     width= s->width= avctx->width;
     height= s->height= avctx->height;
     
-    assert(width && height);
+    XINE_ASSERT(width, "value 'width' is not defined");
+    XINE_ASSERT(height, "value 'height' is not defined");
     
     avctx->extradata= av_mallocz(1024*10);
     avctx->stats_out= av_mallocz(1024*10);

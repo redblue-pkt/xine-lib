@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.60 2003/02/20 18:09:10 siggi Exp $
+ * $Id: spu.c,v 1.61 2003/02/28 02:51:50 storri Exp $
  *
  */
 
@@ -224,7 +224,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       /* FIXME: Add command copying here */
       break;
    default:
-      assert(0);
+      XINE_ASSERT(0, "We drop out here for some reason. Why no default behavior?");
       break;
   }
   pthread_mutex_unlock(&this->nav_pci_lock);

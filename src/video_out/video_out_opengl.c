@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.24 2003/02/02 12:44:03 esnel Exp $
+ * $Id: video_out_opengl.c,v 1.25 2003/02/28 02:51:51 storri Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -61,7 +61,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <assert.h>
 
 #include <X11/Xlib.h>
 
@@ -338,7 +337,7 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 	frame->chunk[0] = frame->chunk[1] = frame->chunk[2] = NULL;
 	
 	frame->texture = calloc (1, BYTES_PER_PIXEL * image_size);
-	assert (frame->texture);
+	XINE_ASSERT(frame->texture, "Frame texture is NULL");
 
 	switch (format) {
 	case XINE_IMGFMT_YV12:
@@ -501,25 +500,25 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 
     /* already initialized? */
     if (! this->drawable || ! this->vinfo)
-    {
+      {
 	fprintf (stderr, "video_out_opengl: early exit due to missing drawable %lx vinfo %p\n", this->drawable, this->vinfo);
 	return;
-    }
-
+      }
+    
     /*
      * check for size changes
      */
     if (frame->width      != this->last_width    ||
 	frame->height     != this->last_height   ||
 	frame->ratio_code != this->last_ratio_code) {
-	
-	this->last_width      = frame->width;
-	this->last_height     = frame->height;
-	this->last_ratio_code = frame->ratio_code;
-	
-	DEBUGF ((stderr, "video_out_opengl: display format changed\n"));
-	opengl_compute_ideal_size  (this);
-	opengl_compute_output_size (this);
+      
+      this->last_width      = frame->width;
+      this->last_height     = frame->height;
+      this->last_ratio_code = frame->ratio_code;
+      
+      DEBUGF ((stderr, "video_out_opengl: display format changed\n"));
+      opengl_compute_ideal_size  (this);
+      opengl_compute_output_size (this);
     }
 
     /*
@@ -531,37 +530,42 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
     /*
      * check whether a new context has to be created
      */
-DEBUGF ((stderr, "video_out_opengl: CHECK\n"));
+    DEBUGF ((stderr, "video_out_opengl: CHECK\n"));
     if (((ctx == this->context || ! ctx) &&
 	 (this->context_state == CONTEXT_BAD ||
 	  this->context_state == CONTEXT_SAME_DRAWABLE)) ||
 	(self != this->renderthread))
     {
-static int glxAttrib[] = {
-GLX_RGBA, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
-} ;
-DEBUGF ((stderr, "video_out_opengl: ASSERT\n"));
-	assert (this->vinfo);
-DEBUGF ((stderr, "video_out_opengl: PASSED\n"));
-	if ((this->context_state == CONTEXT_SAME_DRAWABLE) &&
-	    (self == this->renderthread))
+
+      static int glxAttrib[] = {
+	GLX_RGBA, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
+      } ;
+
+      XINE_ASSERT (this->vinfo, "this->vinfo is NULL");
+
+      if ((this->context_state == CONTEXT_SAME_DRAWABLE) &&
+	  (self == this->renderthread))
 	{
-	    DEBUGF ((stderr, "destroy: %p\n", this->context));
-	    /* Unfortunately for _BAD the drawable is already destroyed.
-	     * This cannot be resolved right now and will be a memory leak. */
-	    if (this->context)
-		glXDestroyContext (this->display, this->context);
+	  DEBUGF ((stderr, "destroy: %p\n", this->context));
+	  /* Unfortunately for _BAD the drawable is already destroyed.
+	   * This cannot be resolved right now and will be a memory leak. */
+	  if (this->context)
+	    glXDestroyContext (this->display, this->context);
 	}
-DEBUGF ((stderr, "screen %dx%d\n", ((Screen *) this->screen)->width, ((Screen *)this->screen)->height));
-DEBUGF ((stderr, "glXChooseVisual\n"));
-this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
-	DEBUGF ((stderr, "create display %p vinfo %p\n", this->display, this->vinfo));
-	ctx = glXCreateContext (this->display, this->vinfo, NULL, True);
-	DEBUGF ((stderr, "created\n"));
-	assert (ctx);
-	this->context = ctx;
-	this->context_state = CONTEXT_RELOAD;
-	this->renderthread  = self;
+
+      DEBUGF ((stderr, "screen %dx%d\n", ((Screen *) this->screen)->width, ((Screen *)this->screen)->height));
+      DEBUGF ((stderr, "glXChooseVisual\n"));
+
+      this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
+      DEBUGF ((stderr, "create display %p vinfo %p\n", this->display, this->vinfo));
+      ctx = glXCreateContext (this->display, this->vinfo, NULL, True);
+      DEBUGF ((stderr, "created\n"));
+
+      XINE_ASSERT(ctx, "ctx is NULL");
+
+      this->context = ctx;
+      this->context_state = CONTEXT_RELOAD;
+      this->renderthread  = self;
     }
 
     if (this->context_state == CONTEXT_RELOAD && ! ctx)
@@ -909,7 +913,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
      * allocate plugin struct
      */
     this = calloc (1, sizeof (opengl_driver_t));
-    assert (this);
+    XINE_ASSERT (this, "OpenGL driver struct is not defined");
 
     this->config		    = class->config;
     this->display		    = visual->display;

@@ -21,9 +21,6 @@
 #include "dsputil.h"
 #include "mpegvideo.h"
 
-#undef NDEBUG // allways check asserts, the speed effect is far too small to disable them
-#include <assert.h>
-
 #ifndef M_E
 #define M_E 2.718281828
 #endif
@@ -95,8 +92,8 @@ int ff_rate_control_init(MpegEncContext *s)
             }
             e= sscanf(p, " in:%d ", &picture_number);
 
-            assert(picture_number >= 0);
-            assert(picture_number < rcc->num_entries);
+            XINE_ASSERT(picture_number >= 0,"Picture number is not >= 0: %d", picture_number);
+            XINE_ASSERT(picture_number < rcc->num_entries, "Picture number is not (%d) < rcc->num_entries (%d)", picture_number, rcc->num_entries);
             rce= &rcc->entry[picture_number];
 
             e+=sscanf(p, " in:%*d out:%*d type:%d q:%f itex:%d ptex:%d mv:%d misc:%d fcode:%d bcode:%d mc-var:%d var:%d icount:%d",
@@ -550,7 +547,7 @@ float ff_rate_estimate_qscale(MpegEncContext *s)
     int qmin, qmax;
     float br_compensation;
     double diff;
-    double short_term_q;
+    double short_term_q = 0;
     double fps;
     int picture_number= s->picture_number;
     int64_t wanted_bits;
@@ -574,8 +571,8 @@ float ff_rate_estimate_qscale(MpegEncContext *s)
     }
 
     if(s->flags&CODEC_FLAG_PASS2){
-        assert(picture_number>=0);
-        assert(picture_number<rcc->num_entries);
+        XINE_ASSERT(picture_number>=0,"Picture number is not >=0: %d", picture_number);
+        XINE_ASSERT(picture_number<rcc->num_entries, "Picture number (%d) is not < rcc->num_entries (%d)", picture_number, rcc->num_entries);
         rce= &rcc->entry[picture_number];
         wanted_bits= rce->expected_bits;
     }else{
@@ -591,7 +588,7 @@ float ff_rate_estimate_qscale(MpegEncContext *s)
     
     if(s->flags&CODEC_FLAG_PASS2){
         if(pict_type!=I_TYPE)
-            assert(pict_type == rce->new_pict_type);
+            XINE_ASSERT(pict_type == rce->new_pict_type, "pict_type (%d) != rce->new_pict_type (%d)", pict_type, rce->new_pict_type);
 
         q= rce->new_qscale / br_compensation;
 //printf("%f %f %f last:%d var:%d type:%d//\n", q, rce->new_qscale, br_compensation, s->frame_bits, var, pict_type);
@@ -631,11 +628,11 @@ float ff_rate_estimate_qscale(MpegEncContext *s)
     
         q= get_qscale(s, rce, rate_factor, picture_number);
 
-        assert(q>0.0);
+        XINE_ASSERT(q>0.0, "value 'q' is not > 0.0: %f", q);
 //printf("%f ", q);
         q= get_diff_limited_q(s, rce, q);
 //printf("%f ", q);
-        assert(q>0.0);
+        XINE_ASSERT(q>0.0, "value 'q' is not > 0.0: %f", q);
 
         if(pict_type==P_TYPE || s->intra_only){ //FIXME type dependant blur like in 2-pass
             rcc->short_term_qsum*=s->qblur;
@@ -647,13 +644,13 @@ float ff_rate_estimate_qscale(MpegEncContext *s)
             q= short_term_q= rcc->short_term_qsum/rcc->short_term_qcount;
 //printf("%f ", q);
         }
-        assert(q>0.0);
+        XINE_ASSERT(q>0.0, "value 'q' is not > 0.0: %f", q);
         
         q= modify_qscale(s, rce, q, picture_number);
 
         rcc->pass1_wanted_bits+= s->bit_rate/fps;
 
-        assert(q>0.0);
+        XINE_ASSERT(q>0.0, "value 'q' is not > 0.0: %f", q);
     }
 
     if(s->avctx->debug&FF_DEBUG_RC){
@@ -764,7 +761,8 @@ static int init_pass2(MpegEncContext *s)
         for(i=0; i<rcc->num_entries; i++){
             qscale[i]= get_qscale(s, &rcc->entry[i], rate_factor, i);
         }
-        assert(filter_size%2==1);
+	/* filter_size%2 == 1 */
+        XINE_ASSERT( filter_size%2==1 , "filter size is an even number: %d", filter_size);
 
         /* fixed I/B QP relative to P mode */
         for(i=rcc->num_entries-1; i>=0; i--){

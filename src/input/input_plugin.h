@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.45 2003/02/13 16:24:27 mroi Exp $
+ * $Id: input_plugin.h,v 1.46 2003/02/28 02:51:48 storri Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -25,7 +25,7 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
-#include <assert.h>
+#include "xineutils.h"
 #include "buffer.h"
 #include "configfile.h"
 
@@ -305,8 +305,8 @@ struct input_plugin_s {
  * Duplicate two mrls entries (s = source, d = destination).
  */
 #define MRL_DUPLICATE(s, d) {                                                 \
-  assert((s) != NULL);                                                        \
-  assert((d) != NULL);                                                        \
+  XINE_ASSERT((s) != NULL, "value 's' is NULL");                              \
+  XINE_ASSERT((d) != NULL, "value 'd' is NULL");                              \
                                                                               \
   if((s)->origin) {                                                           \
     if((d)->origin) {                                                         \
@@ -351,8 +351,8 @@ struct input_plugin_s {
 #define MRLS_DUPLICATE(s, d) {                                                \
   int i = 0;                                                                  \
                                                                               \
-  assert((s) != NULL);                                                        \
-  assert((d) != NULL);                                                        \
+  XINE_ASSERT((s) != NULL, "value 's' is NULL");                              \
+  XINE_ASSERT((d) != NULL, "value 'd' is NULL");                              \
                                                                               \
   while((s) != NULL) {                                                        \
     d[i] = (xine_mrl_t *) malloc(sizeof(xine_mrl_t));                                   \

@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: timer.c,v 1.3 2002/05/02 16:00:48 jcdutton Exp $
+ * $Id: timer.c,v 1.4 2003/02/28 02:51:50 storri Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -28,9 +28,7 @@
 # include <stdio.h>
 # include <stdlib.h>  /* For abort() */
 
-# ifdef HAVE_ASSERT_H
-#  include <assert.h>
-# endif
+# include "xineutils.h"
 
 # include "timer.h"
 
@@ -125,7 +123,7 @@ void reduce_rational(unsigned long *numer, unsigned long *denom)
 
   factor = gcd(*numer, *denom);
 
-  assert(factor != 0);
+  XINE_ASSERT(factor != 0, "value 'factor' is equal to 0. This will result in a divide by zero error.");
 
   *numer /= factor;
   *denom /= factor;
@@ -142,7 +140,7 @@ unsigned long scale_rational(unsigned long numer, unsigned long denom,
   reduce_rational(&numer, &denom);
   reduce_rational(&scale, &denom);
 
-  assert(denom != 0);
+  XINE_ASSERT(denom != 0, "value 'denom' is 0. This will result in a divide by zero error");
 
   if (denom < scale)
     return numer * (scale / denom) + numer * (scale % denom) / denom;

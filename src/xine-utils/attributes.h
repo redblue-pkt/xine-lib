@@ -21,6 +21,9 @@
 
 /* use gcc attribs to align critical data structures */
 
+#ifndef ATTRIBUTE_H_
+#define ATTRIBUTE_H_
+
 #ifdef ATTRIBUTE_ALIGNED_MAX
 #define ATTR_ALIGN(align) __attribute__ ((__aligned__ ((ATTRIBUTE_ALIGNED_MAX < align) ? ATTRIBUTE_ALIGNED_MAX : align)))
 #else
@@ -36,3 +39,6 @@
 #undef	ATTRIBUTE_PACKED
 #define	__attribute__(x)	/**/
 #endif
+
+#endif /* ATTRIBUTE_H_ */
+

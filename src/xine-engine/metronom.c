@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.111 2003/01/28 17:07:53 f1rmb Exp $
+ * $Id: metronom.c,v 1.112 2003/02/28 02:51:51 storri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,7 +32,6 @@
 #include <math.h>
 #include <string.h>
 #include <errno.h>
-#include <assert.h>
 
 #include "xine_internal.h"
 #include "metronom.h"

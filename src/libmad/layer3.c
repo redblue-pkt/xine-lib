@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: layer3.c,v 1.3 2002/04/30 18:46:58 miguelfreitas Exp $
+ * $Id: layer3.c,v 1.4 2003/02/28 02:51:49 storri Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -28,16 +28,13 @@
 # include <stdlib.h>
 # include <string.h>
 
-# ifdef HAVE_ASSERT_H
-#  include <assert.h>
-# endif
-
 # ifdef HAVE_LIMITS_H
 #  include <limits.h>
 # else
 #  define CHAR_BIT  8
 # endif
 
+# include "xineutils.h"
 # include "fixed.h"
 # include "bit.h"
 # include "stream.h"
@@ -1250,7 +1247,7 @@ enum mad_error III_huffdecode(struct mad_bitptr *ptr, mad_fixed_t xr[576],
     }
   }
 
-  assert(-bits_left <= MAD_BUFFER_GUARD * CHAR_BIT);
+  XINE_ASSERT(-bits_left <= (MAD_BUFFER_GUARD * CHAR_BIT), "-bits_left > (MAD_BUFFER_GUARD * CHAR_BIT");
 
 # if 0 && defined(DEBUG)
   if (bits_left < 0)
@@ -2433,8 +2430,8 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
 		   *stream->main_data + stream->md_len - si.main_data_begin);
 
       if (md_len > si.main_data_begin) {
-	assert(stream->md_len + md_len -
-	       si.main_data_begin <= MAD_BUFFER_MDLEN);
+	XINE_ASSERT((stream->md_len + md_len -
+		si.main_data_begin) <= MAD_BUFFER_MDLEN, "?");
 
 	memcpy(*stream->main_data + stream->md_len,
 	       mad_bit_nextbyte(&stream->ptr),

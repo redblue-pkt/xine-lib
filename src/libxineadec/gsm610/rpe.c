@@ -4,11 +4,10 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/rpe.c,v 1.1 2002/10/12 19:12:49 tmmm Exp $ */
+/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/rpe.c,v 1.2 2003/02/28 02:51:50 storri Exp $ */
 
 #include <stdio.h>
-#include <assert.h>
-
+#include "xineutils.h"
 #include "private.h"
 
 #include "gsm.h"
@@ -142,7 +141,7 @@ static void RPE_grid_selection P3((x,xM,Mc_out),
 	 *
 	 *		temp1    = SASR( x[m + 3*i], 2 );
 	 *
-	 *		assert(temp1 != MIN_WORD);
+	 *		XINE_ASSERT(temp1 != MIN_WORD,"temp1 equals MIN_WORD");
 	 *
 	 *		L_temp   = GSM_L_MULT( temp1, temp1 );
 	 *		L_result = GSM_L_ADD( L_temp, L_result );
@@ -246,8 +245,8 @@ static void APCM_quantization_xmaxc_to_exp_mant P3((xmaxc,exp_out,mant_out),
 		mant -= 8;
 	}
 
-	assert( exp  >= -4 && exp <= 6 );
-	assert( mant >= 0 && mant <= 7 );
+	XINE_ASSERT( exp  >= -4 && exp <= 6,"exp is not within range of -4 to 6: %d", exp );
+	XINE_ASSERT( mant >= 0 && mant <= 7,"mant is not within range of 0 to 7: %d", mant );
 
 	*exp_out  = exp;
 	*mant_out = mant;
@@ -290,14 +289,14 @@ static void APCM_quantization P5((xM,xMc,mant_out,exp_out,xmaxc_out),
 		itest |= (temp <= 0);
 		temp = SASR( temp, 1 );
 
-		assert(exp <= 5);
+		XINE_ASSERT(exp <= 5, "exp is greater than 5: %d", exp);
 		if (itest == 0) exp++;		/* exp = add (exp, 1) */
 	}
 
-	assert(exp <= 6 && exp >= 0);
+	XINE_ASSERT(exp <= 6 && exp >= 0, "exp is not within range of 0 to 6: %d", exp);
 	temp = exp + 5;
 
-	assert(temp <= 11 && temp >= 0);
+	XINE_ASSERT(temp <= 11 && temp >= 0, "temp is within range of 0 to 11: %d", temp);
 	xmaxc = gsm_add( SASR(xmax, temp), exp << 3 );
 
 	/*   Quantizing and coding of the xM[0..12] RPE sequence
@@ -320,15 +319,15 @@ static void APCM_quantization P5((xM,xMc,mant_out,exp_out,xmaxc_out),
 	/* Direct computation of xMc[0..12] using table 4.5
 	 */
 
-	assert( exp <= 4096 && exp >= -4096);
-	assert( mant >= 0 && mant <= 7 ); 
+	XINE_ASSERT((exp <= 4096) && (exp >= -4096), "exp is not within range of -4069 to 4096: %d", exp );
+	XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
 
 	temp1 = 6 - exp;		/* normalization by the exponent */
 	temp2 = gsm_NRFAC[ mant ];  	/* inverse mantissa 		 */
 
 	for (i = 0; i <= 12; i++) {
 
-		assert(temp1 >= 0 && temp1 < 16);
+		XINE_ASSERT(temp1 >= 0 && temp1 < 16, "temp1 is not within range of 0 to 15: %d", temp1);
 
 		temp = xM[i] << temp1;
 		temp = GSM_MULT( temp, temp2 );
@@ -361,24 +360,26 @@ static void APCM_inverse_quantization P4((xMc,mant,exp,xMp),
 	word	temp, temp1, temp2, temp3;
 	longword	ltmp;
 
-	assert( mant >= 0 && mant <= 7 ); 
+	XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
 
 	temp1 = gsm_FAC[ mant ];	/* see 4.2-15 for mant */
 	temp2 = gsm_sub( 6, exp );	/* see 4.2-15 for exp  */
 	temp3 = gsm_asl( 1, gsm_sub( temp2, 1 ));
 
 	for (i = 13; i--;) {
+	  XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
 
-		assert( *xMc <= 7 && *xMc >= 0 ); 	/* 3 bit unsigned */
+	  XINE_ASSERT((*xMc <= 7) && (*xMc >= 0), "xMc is not 3 bit unsigned: %d", *xMc ); /* 3 bit unsigned */
 
-		/* temp = gsm_sub( *xMc++ << 1, 7 ); */
-		temp = (*xMc++ << 1) - 7;	        /* restore sign   */
-		assert( temp <= 7 && temp >= -7 ); 	/* 4 bit signed   */
-
-		temp <<= 12;				/* 16 bit signed  */
-		temp = GSM_MULT_R( temp1, temp );
-		temp = GSM_ADD( temp, temp3 );
-		*xMp++ = gsm_asr( temp, temp2 );
+	  /* temp = gsm_sub( *xMc++ << 1, 7 ); */
+	  temp = (*xMc++ << 1) - 7;	        /* restore sign   */
+	  
+	  XINE_ASSERT((temp <= 7) && (temp >= -7), "temp is not 4 bit signed: %d", temp); /* 4 bit signed   */
+	  
+	  temp <<= 12;				/* 16 bit signed  */
+	  temp = GSM_MULT_R( temp1, temp );
+	  temp = GSM_ADD( temp, temp3 );
+	  *xMp++ = gsm_asr( temp, temp2 );
 	}
 }
 
@@ -399,7 +400,7 @@ static void RPE_grid_positioning P3((Mc,xMp,ep),
 {
 	int	i = 13;
 
-	assert(0 <= Mc && Mc <= 3);
+	XINE_ASSERT((0 <= Mc) && (Mc <= 3), "Mc is not within the range of 0 to 3: %d", Mc);
 
         switch (Mc) {
                 case 3: *ep++ = 0;

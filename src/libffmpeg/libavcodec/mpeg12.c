@@ -769,7 +769,7 @@ static int mpeg_decode_mb(MpegEncContext *s,
     
     dprintf("decode_mb: x=%d y=%d\n", s->mb_x, s->mb_y);
 
-    assert(s->mb_skiped==0);
+    XINE_ASSERT(s->mb_skiped==0, "s->mp_skiped is not 0: %d", s->mb_skiped);
 
     if (--s->mb_incr != 0) {
         /* skip mb */

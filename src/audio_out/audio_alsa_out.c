@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.85 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.86 2003/02/28 02:51:47 storri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -521,8 +521,7 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
     snd_pcm_status_dump(pcm_stat, jcd_out); 
 #endif
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-      printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-      assert(0);
+      XINE_ASSERT (0,"audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
     }
     state = snd_pcm_state(this->audio_fd);
 #ifdef LOG_DEBUG
@@ -556,8 +555,7 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
            (state != SND_PCM_STATE_DRAINING) ) {
         printf("audio_alsa_out:write:BAD STATE2, state = %d, going to try XRUN\n",state);
         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-          printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-          assert(0);
+          XINE_ASSERT(0, "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
         }
       }
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.21 2003/02/05 00:10:30 miguelfreitas Exp $
+ * $Id: mms.c,v 1.22 2003/02/28 02:51:48 storri Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -29,7 +29,6 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <assert.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>

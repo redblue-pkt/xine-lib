@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: mdct.c,v 1.3 2002/12/16 19:00:39 miguelfreitas Exp $
+** $Id: mdct.c,v 1.4 2003/02/28 02:51:49 storri Exp $
 **/
 
 /*
@@ -40,9 +40,9 @@
 
 #include <stdlib.h>
 #ifdef _WIN32_WCE
-#define assert(x)
+#define XINE_ASSERT(x)
 #else
-#include <assert.h>
+#include "xineutils.h"
 #endif
 
 #include "cfft.h"
@@ -115,7 +115,7 @@ mdct_info *faad_mdct_init(uint16_t N)
 
     mdct_info *mdct = (mdct_info*)malloc(sizeof(mdct_info));
 
-    assert(N % 8 == 0);
+    XINE_ASSERT( (N % 8 == 0), "?");
 
     mdct->N = N;
     mdct->sincos = (complex_t*)malloc(N/4*sizeof(complex_t));

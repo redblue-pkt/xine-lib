@@ -19,6 +19,7 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include "xineutils.h"
 
 void *av_mallocz(unsigned int size)
 {
@@ -124,8 +125,8 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     const int height= s->height;
     DefaultPicOpaque *opaque;
 /*    
-    assert(pic->data[0]==NULL);
-    assert(pic->type==0 || pic->type==FF_TYPE_INTERNAL);
+    XINE_ASSERT(pic->data[0]==NULL, "pic->data[0] != NULL");
+    XINE_ASSERT((pic->type==0) || (pic->type==FF_TYPE_INTERNAL), "pic->type incorrect: %d", pic->type);
 */
     if(pic->opaque){
         opaque= (DefaultPicOpaque *)pic->opaque;
@@ -202,7 +203,7 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
 void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
     
-    assert(pic->type==FF_BUFFER_TYPE_INTERNAL);
+    XINE_ASSERT(pic->type==FF_BUFFER_TYPE_INTERNAL, "pic->type does not equal FF_BUFFER_TYPE_INTERNAL: %d", pic->type);
     
     for(i=0; i<3; i++)
         pic->data[i]=NULL;

@@ -36,9 +36,7 @@
 #include "mpegvideo.h"
 #include "h263data.h"
 #include "mpeg4data.h"
-
-//#undef NDEBUG
-//#include <assert.h>
+#include "xineutils.h"
 
 #if 1
 #define PRINT_MB_TYPE(a) {}
@@ -481,9 +479,11 @@ void mpeg4_encode_mb(MpegEncContext * s,
                 s->last_mv[1][0][1]= 0;
             }
             
-            assert(s->dquant>=-2 && s->dquant<=2);
-            assert((s->dquant&1)==0);
-            assert(mb_type>=0);
+            XINE_ASSERT(s->dquant>=-2 && s->dquant<=2,
+			"value 's->dquant' is not within rang of -2 to 2: %d",
+			s->dquant);
+            XINE_ASSERT((s->dquant&1)==0,"?");
+            XINE_ASSERT(mb_type>=0, "value 'mb_type' is < 0: %d", mb_type);
 
             /* nothing to do if this MB was skiped in the next P Frame */
             if(s->next_picture.mbskip_table[s->mb_y * s->mb_width + s->mb_x]){ //FIXME avoid DCT & ...
@@ -501,7 +501,9 @@ void mpeg4_encode_mb(MpegEncContext * s,
             
             if ((cbp | motion_x | motion_y | mb_type) ==0) {
                 /* direct MB with MV={0,0} */
-                assert(s->dquant==0);
+                XINE_ASSERT(s->dquant==0,
+			    "value 's->dquant' is not 0: %d",
+			    s->dquant);
                 
                 put_bits(&s->pb, 1, 1); /* mb not coded modb1=1 */
 
@@ -1179,7 +1181,7 @@ static void h263_encode_motion(MpegEncContext * s, int val, int f_code)
             val -= 2*l;
         }
 
-        assert(val>=-l && val<l);
+        XINE_ASSERT(val>=-l && val<l);
 
         if (val >= 0) {
             sign = 0;
@@ -1342,8 +1344,8 @@ static void init_uni_dc_tab(void)
 static void init_uni_mpeg4_rl_tab(RLTable *rl, UINT32 *bits_tab, UINT8 *len_tab){
     int slevel, run, last;
     
-    assert(MAX_LEVEL >= 64);
-    assert(MAX_RUN   >= 63);
+    XINE_ASSERT(MAX_LEVEL >= 64, "MAX_LEVEL is < 64: %d", MAX_LEVEL);
+    XINE_ASSERT(MAX_RUN   >= 63, "MAX_RUN is < 63: %d", MAX_RUN);
 
     for(slevel=-64; slevel<64; slevel++){
         if(slevel==0) continue;
@@ -3212,8 +3214,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
         int modb1; // first bit of modb
         int modb2; // second bit of modb
         int mb_type;
-        int xy;
-
+ 
         s->mb_intra = 0; //B-frames never contain intra blocks
         s->mcsel=0;      //     ...               true gmc blocks
 

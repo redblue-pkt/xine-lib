@@ -19,6 +19,7 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include "xineutils.h"
 
 #if 1
 #define PRINT_QP(a, b) {}
@@ -244,7 +245,8 @@ static int decode_slice(MpegEncContext *s){
         s->mb_x= 0;
     }
     
-    assert(s->mb_x==0 && s->mb_y==s->mb_height);
+    XINE_ASSERT(s->mb_x==0, "s->mb_x (%d) != 0", s->mb_x);
+    XINE_ASSERT(s->mb_y==s->mb_height, "s->mb_y (%d) != s->mb_height (%d)", s->mb_y, s->mb_height);
 
     /* try to detect the padding bug */
     if(      s->codec_id==CODEC_ID_MPEG4

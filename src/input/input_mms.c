@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.37 2003/02/24 00:12:06 tmattern Exp $
+ * $Id: input_mms.c,v 1.38 2003/02/28 02:51:48 storri Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -28,7 +28,6 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <assert.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>

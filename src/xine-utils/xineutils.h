@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.33 2003/02/02 06:07:20 tmmm Exp $
+ * $Id: xineutils.h,v 1.34 2003/02/28 02:51:52 storri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -30,12 +30,19 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include "attributes.h"
 #include "compat.h"
 #include "xmlparser.h"
 #include "xine_buffer.h"
+#include "configfile.h"
+#include "config.h"
+  
+#include <stdio.h>
+#include <string.h>
+#include <execinfo.h>
 
 #ifdef __SUNPRO_C
 #define inline
@@ -782,6 +789,40 @@ extern int u_b_table[256];
 extern int v_r_table[256];
 extern int v_g_table[256];
 extern int v_b_table[256];
+
+
+  /* Code Taken from GNU C Library manual */
+/* Obtain a backtrace and print it to stdout. */
+static void
+print_trace (void)
+{
+  void *array[10];
+  size_t size;
+  char **strings;
+  size_t i;
+
+  size = backtrace (array, 10);
+  strings = backtrace_symbols (array, size);
+
+  printf ("Obtained %zd stack frames.\n", size);
+
+  for (i = 0; i < size; i++) {
+     printf ("%s\n", strings[i]);
+  }
+  free (strings);
+}
+
+/**
+ * Provide assert like feature with better description of failure 
+ * Thanks to Mark Thomas 
+ */ 
+#define XINE_ASSERT(exp, desc, args...)                         \
+  if (!(exp)) {                                                 \
+    printf("%s:%s:%d: assertion `" #exp "' failed. " desc "\n\n", \
+        __FILE__, __FUNCTION__, __LINE__, ##args);              \
+    print_trace();                                              \
+    abort();                                                    \
+  }
 
 
 /******** double chained lists with builtin iterator *******/

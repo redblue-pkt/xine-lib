@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.45 2003/02/02 12:33:23 hadess Exp $
+ * $Id: configfile.c,v 1.46 2003/02/28 02:51:51 storri Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include "configfile.h"
 #include "xineutils.h"
 #include "xine_internal.h"
@@ -214,8 +213,8 @@ static char *_xine_config_register_string (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  assert (key);
-  assert (def_value);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  XINE_ASSERT(def_value, "Default value is NULL. This is a required argument.");
 
 #ifdef LOG
   printf ("configfile: registering %s\n", key);
@@ -279,8 +278,7 @@ static int _xine_config_register_num (config_values_t *this,
 				      void *cb_data) {
 
   cfg_entry_t *entry;
-
-  assert (key);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
 #ifdef LOG
   printf ("configfile: registering %s\n", key);
@@ -338,8 +336,7 @@ static int _xine_config_register_bool (config_values_t *this,
 				       void *cb_data) {
 
   cfg_entry_t *entry;
-
-  assert (key);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
 #ifdef LOG
   printf ("configfile: registering %s\n", key);
@@ -398,8 +395,7 @@ static int _xine_config_register_range (config_values_t *this,
 					void *cb_data) {
 
   cfg_entry_t *entry;
-
-  assert (key);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
 #ifdef LOG
   printf ("configfile: registering range %s\n", key);
@@ -490,9 +486,8 @@ static int _xine_config_register_enum (config_values_t *this,
 				       void *cb_data) {
 
   cfg_entry_t *entry;
-
-  assert (key);
-  assert (values);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  XINE_ASSERT(values, "Argument 'values' is NULL. This is a required argument.");
 
 #ifdef LOG
   printf ("configfile: registering enum %s\n", key);
@@ -898,8 +893,8 @@ static void xine_config_unregister_cb (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  assert (this);
-  assert (key);
+  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  XINE_ASSERT(this, "Argument 'this' is NULL. Cannot find key if this is not set.");
 
   entry = _xine_config_lookup_entry (this, key);
   if (entry) {

@@ -24,6 +24,7 @@
 #include "../mpegvideo.h"
 #include "../avcodec.h"
 #include "../simple_idct.h"
+#include "xineutils.h"
 
 extern UINT8 zigzag_direct_noperm[64];
 extern UINT16 inv_zigzag_direct16[64];
@@ -41,7 +42,9 @@ static void dct_unquantize_h263_mmx(MpegEncContext *s,
     qmul = qscale << 1;
     qadd = (qscale - 1) | 1;
 
-    assert(s->block_last_index[n]>=0);
+    XINE_ASSERT(s->block_last_index[n]>=0,
+		"value 's->block_last_index[%d] is < 0: %d", 
+		n, s->block_last_index[n]);
         
     if (s->mb_intra) {
         if (!s->h263_aic) {
@@ -146,7 +149,9 @@ static void dct_unquantize_mpeg1_mmx(MpegEncContext *s,
     int nCoeffs;
     const UINT16 *quant_matrix;
 
-    assert(s->block_last_index[n]>=0);
+    XINE_ASSERT(s->block_last_index[n]>=0,
+		"value 's->block_last_index[%d] is < 0: %d", 
+		n, s->block_last_index[n]);
 
     nCoeffs= s->intra_scantable.raster_end[ s->block_last_index[n] ]+1;
 
@@ -274,7 +279,9 @@ static void dct_unquantize_mpeg2_mmx(MpegEncContext *s,
     int nCoeffs;
     const UINT16 *quant_matrix;
     
-    assert(s->block_last_index[n]>=0);
+    XINE_ASSERT(s->block_last_index[n]>=0,
+		"value 's->block_last_index[%d] is < 0: %d", 
+		n, s->block_last_index[n]);
 
     if(s->alternate_scan) nCoeffs= 63; //FIXME
     else nCoeffs= s->intra_scantable.raster_end[ s->block_last_index[n] ];

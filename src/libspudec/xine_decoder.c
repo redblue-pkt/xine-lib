@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.92 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.93 2003/02/28 02:51:50 storri Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -30,7 +30,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <assert.h>
 
 #include "xine_internal.h"
 #include "buffer.h"
@@ -261,7 +260,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
     pthread_mutex_unlock(&this->nav_pci_lock);
   } else {
   fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
-  assert(0);
+  XINE_ASSERT(0, "We dropped out here for some reason");
   overlay_event->object.handle = this->menu_handle;
   overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }
