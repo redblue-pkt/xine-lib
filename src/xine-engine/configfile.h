@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.5 2001/11/20 17:22:14 miguelfreitas Exp $
+ * $Id: configfile.h,v 1.6 2001/11/30 21:55:06 f1rmb Exp $
  *
  * config file management
  *
@@ -50,6 +50,7 @@ struct cfg_entry_s {
   /* type string */
   char            *str_value;
   char            *str_default;
+  char            *str_sticky;
 
   /* common to range, enum, num, bool: */
 
@@ -93,6 +94,9 @@ struct config_values_s {
    * not found in the config file or the current value
    * from the config file otherwise
    */
+
+  void (*register_empty) (config_values_t *this, 
+			  char *key);
 
   char* (*register_string) (config_values_t *this,
 			    char *key, 
@@ -187,6 +191,11 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.6  2001/11/30 21:55:06  f1rmb
+ * Add an automatic way for input plugin to add extra valid mrls:
+ * add at bottom of init_input_plugin() a line like this:
+ * REGISTER_VALID_MRLS(this->config, "mrl.mrls_mpeg_block", "xxx");
+ *
  * Revision 1.5  2001/11/20 17:22:14  miguelfreitas
  * testing some configfile stuff...
  *

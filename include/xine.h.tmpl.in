@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.57 2001/11/25 21:47:19 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.58 2001/11/30 21:55:05 f1rmb Exp $
  *
  */
 
@@ -501,6 +501,7 @@ struct cfg_entry_s {
   /* type string */
   char            *str_value;
   char            *str_default;
+  char            *str_sticky;
 
   /* common to range, enum, num, bool: */
 
@@ -544,6 +545,9 @@ struct config_values_s {
    * not found in the config file or the current value
    * from the config file otherwise
    */
+
+  void (*register_empty) (config_values_t *self, 
+			  char *key);
 
   char* (*register_string) (config_values_t *self,
 			    char *key, 

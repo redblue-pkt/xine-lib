@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.65 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.66 2001/11/30 21:55:05 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -38,7 +38,7 @@
 #include "xineutils.h"
 #include "demux.h"
 
-#define VALID_MRLS          "dvd,stdin,fifo,d4d,dmd"
+#define VALID_MRLS          "dvd,stdin,fifo"
 #define VALID_ENDS          "vob"
 
 #define NUM_PREVIEW_BUFFERS 250

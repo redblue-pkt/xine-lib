@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.11 2001/11/20 19:13:28 guenter Exp $
+ * $Id: configfile.c,v 1.12 2001/11/30 21:55:06 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -67,6 +67,7 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
   entry->config        = this;
   entry->key           = copy_string (key);
   entry->type          = CONFIG_TYPE_UNKNOWN;
+  entry->str_sticky    = NULL;
 
   entry->next          = NULL;
 
@@ -99,6 +100,28 @@ cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
   return entry;
 }
 
+
+static void config_file_register_empty (config_values_t *this, char *key) {
+  cfg_entry_t *entry;
+  
+  assert(key);
+  
+#ifdef CONFIG_LOG
+  printf ("configfile: register empty %s\n", key);
+#endif
+  
+  entry = config_file_lookup_entry (this, key);
+  
+  /* 
+   * Don't register as empty if entry already exist.
+   */
+  if(entry)
+    return;
+  
+  entry = config_file_add (this, key);
+}
+
+
 static char *config_file_register_string (config_values_t *this,
 					  char *key, char *def_value,
 					  char *description, 
@@ -127,18 +150,35 @@ static char *config_file_register_string (config_values_t *this,
   /* convert entry to string type if necessary */
 
   if (entry->type != CONFIG_TYPE_STRING) {
-    entry->type      = CONFIG_TYPE_STRING;
-    entry->str_value = entry->unknown_value;
+    entry->type = CONFIG_TYPE_STRING;
+    /* 
+     * if there is no unknown_value (made with register_empty) set
+     * it to default value 
+     */
+    if(!entry->unknown_value)
+      entry->unknown_value = strdup(def_value);
+    
+    /* 
+     * Check for sticky string
+     */
+    if(entry->str_sticky) {
+      entry->str_value = (char *) xine_xmalloc(strlen(entry->unknown_value) + 
+					       strlen(entry->str_sticky) + 1);
+      sprintf(entry->str_value, "%s%s", entry->unknown_value, entry->str_sticky);
+    }
+    else
+      entry->str_value = entry->unknown_value;
+    
   }
-
+  
   /* fill out rest of struct */
-
+  
   entry->str_default    = copy_string(def_value);
   entry->description    = description;
   entry->help           = help;       
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
-
+  
   return entry->str_value;
 }
 
@@ -554,6 +594,7 @@ config_values_t *config_file_init (char *filename) {
     exit (1);
   }
 
+  this->register_empty  = config_file_register_empty;
   this->register_string = config_file_register_string;
   this->register_range  = config_file_register_range;
   this->register_enum   = config_file_register_enum;
@@ -572,6 +613,11 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.12  2001/11/30 21:55:06  f1rmb
+ * Add an automatic way for input plugin to add extra valid mrls:
+ * add at bottom of init_input_plugin() a line like this:
+ * REGISTER_VALID_MRLS(this->config, "mrl.mrls_mpeg_block", "xxx");
+ *
  * Revision 1.11  2001/11/20 19:13:28  guenter
  * add more checks against incorrect configfile usage
  *
