@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.63 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_film.c,v 1.64 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -757,7 +757,7 @@ static int demux_film_seek (demux_plugin_t *this_gen, off_t start_pos, int start
       best_index = middle;
     }
   } else {
-    int64_t pts = 90000 * start_time;
+    int64_t pts = 90 * start_time;
 
     if (pts <= this->sample_table[0].pts)
       best_index = 0;

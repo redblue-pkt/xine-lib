@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.250 2003/06/20 20:57:28 andruil Exp $
+ * $Id: xine.c,v 1.251 2003/07/25 21:02:04 miguelfreitas Exp $
  */
 
 /*
@@ -963,9 +963,9 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  ret = xine_play_internal (stream, start_pos, start_time/1000);
+  ret = xine_play_internal (stream, start_pos, start_time);
   if( stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_PLAY) )
-    xine_play (stream->slave, start_pos, start_time/1000);
+    xine_play (stream->slave, start_pos, start_time);
 
   pthread_mutex_unlock (&stream->frontend_lock);
   

@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.64 2003/07/22 20:36:51 jstembridge Exp $
+ * $Id: demux_real.c,v 1.65 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1199,7 +1199,6 @@ static int demux_real_seek (demux_plugin_t *this_gen,
       while((index[i+1].offset < start_pos) && (i < entries - 1))
         i++;
     } else if(start_time) {
-      start_time *= 1000;
       while((index[i+1].timestamp < start_time) && (i < entries - 1))
         i++;
     }
@@ -1411,6 +1410,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "real", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 22, "real", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

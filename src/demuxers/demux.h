@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.31 2003/05/20 13:50:56 mroi Exp $
+ * $Id: demux.h,v 1.32 2003/07/25 21:02:04 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@
 #  include <xine/xine_internal.h>
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    21
+#define DEMUXER_PLUGIN_IFACE_VERSION    22
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -109,7 +109,7 @@ struct demux_plugin_s {
    * for seekable streams, a start position can be specified
    *
    * start_pos  : position in input source
-   * start_time : position measured in seconds from stream start
+   * start_time : position measured in miliseconds from stream start
    *
    * if both parameters are !=0 start_pos will be used
    * for non-seekable streams both values will be ignored

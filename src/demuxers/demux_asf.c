@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.125 2003/07/19 00:18:49 tmattern Exp $
+ * $Id: demux_asf.c,v 1.126 2003/07/25 21:02:04 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1776,6 +1776,8 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   int            i, state;
   int64_t        ts;
 
+  start_time /= 1000;
+
 #ifdef LOG
       printf ("demux_asf: demux_asf_seek: start_pos = %lld, start_time=%d\n",
               start_pos, start_time);
@@ -2125,6 +2127,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "asf", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 22, "asf", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

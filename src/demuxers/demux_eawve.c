@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.18 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_eawve.c,v 1.19 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -439,7 +439,7 @@ void *demux_eawve_init_plugin(xine_t *xine, void *data){
 
 #if 0
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 21, "wve", XINE_VERSION_CODE, NULL, (void*)demux_eawve_init_plugin},
+  { PLUGIN_DEMUX, 22, "wve", XINE_VERSION_CODE, NULL, (void*)demux_eawve_init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

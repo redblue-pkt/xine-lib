@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.5 2003/07/12 00:45:04 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.6 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1200,6 +1200,7 @@ static int demux_mpeg_pes_seek (demux_plugin_t *this_gen,
 				   off_t start_pos, int start_time) {
 
   demux_mpeg_pes_t *this = (demux_mpeg_pes_t *) this_gen;
+  start_time /= 1000;
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
@@ -1491,6 +1492,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "mpeg_pes", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "mpeg_pes", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.73 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_elem.c,v 1.74 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -287,6 +287,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "elem", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "elem", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

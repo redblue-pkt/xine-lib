@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.165 2003/07/19 19:11:45 tmattern Exp $
+ * $Id: demux_avi.c,v 1.166 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1566,7 +1566,7 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
   if (start_pos) {
     idx_grow(this, start_pos_stopper, &start_pos);
   } else if (start_time) {
-    video_pts = start_time * 90000;
+    video_pts = start_time * 90;
     idx_grow(this, start_time_stopper, &video_pts);
   }
 
@@ -1826,6 +1826,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "avi", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 22, "avi", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

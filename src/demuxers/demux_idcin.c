@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.41 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_idcin.c,v 1.42 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -562,7 +562,7 @@ void *demux_idcin_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
+  { PLUGIN_DEMUX, 22, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

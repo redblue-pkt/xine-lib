@@ -423,7 +423,7 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
     
     } else {
       
-        double distance = (double)start_time*1000.0;
+        double distance = (double)start_time;
         uint64_t target_sample = (uint64_t)(distance * this->total_samples);
         FLAC__bool s = false;
 
@@ -667,7 +667,7 @@ demux_flac_init_class (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "flac", XINE_VERSION_CODE, NULL, demux_flac_init_class },
+  { PLUGIN_DEMUX, 22, "flac", XINE_VERSION_CODE, NULL, demux_flac_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

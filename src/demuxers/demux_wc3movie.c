@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.38 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_wc3movie.c,v 1.39 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -538,6 +538,7 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
   unsigned int chunk_size;
   int new_shot = -1;
 
+  start_time /= 1000;
   this->status = DEMUX_OK;
   xine_demux_flush_engine(this->stream);
   this->seek_flag = 1;
@@ -755,7 +756,7 @@ void *demux_wc3movie_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
+  { PLUGIN_DEMUX, 22, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

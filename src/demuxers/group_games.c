@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.4 2003/05/26 21:06:01 tmmm Exp $
+ * $Id: group_games.c,v 1.5 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,15 +47,15 @@ void *demux_fourxm_init_plugin (xine_t *xine, void *data);
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "wve", XINE_VERSION_CODE, NULL, demux_eawve_init_plugin},
-  { PLUGIN_DEMUX, 21, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
-  { PLUGIN_DEMUX, 21, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
-  { PLUGIN_DEMUX, 21, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
-  { PLUGIN_DEMUX, 21, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
-  { PLUGIN_DEMUX, 21, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
-  { PLUGIN_DEMUX, 21, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
-  { PLUGIN_DEMUX, 21, "film", XINE_VERSION_CODE, NULL, demux_film_init_plugin },
-  { PLUGIN_DEMUX, 21, "smjpeg", XINE_VERSION_CODE, NULL, demux_smjpeg_init_plugin },
-  { PLUGIN_DEMUX, 21, "fourxm", XINE_VERSION_CODE, NULL, demux_fourxm_init_plugin },
+  { PLUGIN_DEMUX, 22, "wve", XINE_VERSION_CODE, NULL, demux_eawve_init_plugin},
+  { PLUGIN_DEMUX, 22, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
+  { PLUGIN_DEMUX, 22, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
+  { PLUGIN_DEMUX, 22, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
+  { PLUGIN_DEMUX, 22, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
+  { PLUGIN_DEMUX, 22, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
+  { PLUGIN_DEMUX, 22, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
+  { PLUGIN_DEMUX, 22, "film", XINE_VERSION_CODE, NULL, demux_film_init_plugin },
+  { PLUGIN_DEMUX, 22, "smjpeg", XINE_VERSION_CODE, NULL, demux_smjpeg_init_plugin },
+  { PLUGIN_DEMUX, 22, "fourxm", XINE_VERSION_CODE, NULL, demux_fourxm_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.105 2003/07/17 16:07:52 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.106 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1318,6 +1318,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   int i;
+  start_time /= 1000;
   /*
    * seek to start position
    */
@@ -1624,6 +1625,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 22, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

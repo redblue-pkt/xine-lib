@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.121 2003/07/16 14:14:17 andruil Exp $
+ * $Id: demux_mpeg.c,v 1.122 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -913,6 +913,7 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
 
   demux_mpeg_t   *this = (demux_mpeg_t *) this_gen;
+  start_time /= 1000;
 
   if (INPUT_IS_SEEKABLE(this->input)) {
 
@@ -1152,6 +1153,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "mpeg", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "mpeg", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

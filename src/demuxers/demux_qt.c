@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.163 2003/07/21 19:28:05 hadess Exp $
+ * $Id: demux_qt.c,v 1.164 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  */
 
@@ -2570,7 +2570,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
       best_index = middle;
     }
   } else {
-    int64_t pts = 90000 * start_time;
+    int64_t pts = 90 * start_time;
 
     if (pts <= trak->frames[0].pts)
       best_index = 0;
@@ -2852,6 +2852,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 21, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

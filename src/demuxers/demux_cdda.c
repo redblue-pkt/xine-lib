@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_cdda.c,v 1.10 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -134,6 +134,7 @@ static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
 
 static int demux_cdda_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
+  start_time /= 1000;
 
   if (start_pos)
     this->input->seek(this->input, start_pos, SEEK_SET);

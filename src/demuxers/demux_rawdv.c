@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.10 2003/07/19 11:57:29 mroi Exp $
+ * $Id: demux_rawdv.c,v 1.11 2003/07/25 21:02:05 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -292,7 +292,7 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
   }
 
   if( !start_pos && start_time ) {
-    start_pos = (start_time * 90000 / this->duration) * this->frame_size;
+    start_pos = (start_time * 90 / this->duration) * this->frame_size;
   }
   
   start_pos = start_pos - (start_pos % this->frame_size);  
@@ -425,6 +425,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "rawdv", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "rawdv", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

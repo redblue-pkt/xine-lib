@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.13 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_str.c,v 1.14 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 /*
@@ -651,7 +651,7 @@ void *demux_str_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
+  { PLUGIN_DEMUX, 22, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

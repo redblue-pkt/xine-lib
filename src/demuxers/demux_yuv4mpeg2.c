@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.23 2003/07/16 00:52:46 andruil Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.24 2003/07/25 21:02:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -245,6 +245,7 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
                                  off_t start_pos, int start_time) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
+  start_time /= 1000;
 
   if (INPUT_IS_SEEKABLE(this->input)) {
 
@@ -405,6 +406,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 21, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 22, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
