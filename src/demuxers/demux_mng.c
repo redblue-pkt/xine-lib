@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.6 2003/01/23 16:12:03 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.7 2003/03/19 20:01:04 komadori Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -117,7 +117,7 @@ mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 heig
 
   this->image = malloc(width * height * 3);
 
-  mng_set_canvasstyle(mngh, MNG_CANVAS_RGB8);
+  mng_set_canvasstyle(mngh, MNG_CANVAS_BGR8);
 
   return MNG_TRUE;
 }
