@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.39 2001/11/07 11:56:55 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.40 2001/11/07 13:34:14 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -302,7 +302,9 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 					int dest_x, int dest_y,
 					int dest_width, int dest_height)
 {
-   Window temp_window;
+   XWindowAttributes window_attributes;
+   Window            temp_window;
+   
    int posx, posy;
    
    static int prev_output_width   = 0;
@@ -315,8 +317,13 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 
    XLockDisplay(this->display);
 
-   XTranslateCoordinates(this->display, this->drawable, DefaultRootWindow(this->display), 0, 0, &posx, &posy, &temp_window);
+   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
 
+   if(window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
+     posx = posy = -1;
+   else
+     XTranslateCoordinates(this->display, this->drawable, window_attributes.root, 0, 0, &posx, &posy, &temp_window);
+   
    if(((double) dest_width / this->ratio_factor) < dest_height) {
       this->output_width   = dest_width;
       this->output_height  = (double) dest_width / this->ratio_factor;
@@ -929,7 +936,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       return NULL;
    }
    
-  XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);  
+  XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);
    
   this->bufinfo.id            = -1;   
   this->config                = config;
