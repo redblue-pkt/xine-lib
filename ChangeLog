@@ -7,6 +7,7 @@
   * live rawdv playback (from device)
   * plugin loader improvements
   * basic oscilloscope post plugin
+  * basic Fast Fourier Transform post plugin
   * CD digital audio input source and stream demuxer
   * Dialogic ADPCM audio decoder
   * reporting of unhandled codecs
