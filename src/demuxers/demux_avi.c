@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.136 2002/12/08 21:43:50 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.137 2002/12/11 19:01:37 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -322,10 +322,14 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
       this->avi->audio[track]->dwRate_audio * 90000.0;
   } else {
     /* constant bitrate */
-
-    return (postot+posb)/
-      this->avi->audio[track]->dwSampleSize * (double) this->avi->audio[track]->dwScale_audio /
-      this->avi->audio[track]->dwRate_audio * 90000.0;
+    if( this->avi->audio[track]->wavex && this->avi->audio[track]->wavex->nBlockAlign )
+      return (postot+posb)/
+        this->avi->audio[track]->wavex->nBlockAlign * (double) this->avi->audio[track]->dwScale_audio /
+        this->avi->audio[track]->dwRate_audio * 90000.0;
+    else
+      return (postot+posb)/
+        this->avi->audio[track]->dwSampleSize * (double) this->avi->audio[track]->dwScale_audio /
+        this->avi->audio[track]->dwRate_audio * 90000.0;
   }
 }
 
