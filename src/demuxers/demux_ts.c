@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.115 2004/12/20 20:00:27 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.116 2005/01/31 15:15:58 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -868,6 +868,7 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
     if (!demux_ts_parse_pes_header(this->stream->xine, m, ts, len, this->stream)) {
       m->corrupted_pes = 1;
       m->buf->free_buffer(m->buf);
+      m->buf = NULL;
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	      "demux_ts: PID 0x%.4x: corrupted pes encountered\n", m->pid);
 
@@ -1833,11 +1834,16 @@ static void demux_ts_dispose (demux_plugin_t *this_gen) {
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
   for (i=0; i < MAX_PMTS; i++) {
-    if (this->pmt[i] != NULL) free(this->pmt[i]);
+    if (this->pmt[i] != NULL) {
+      free(this->pmt[i]);
+      this->pmt[i] = NULL;
+    }
   }
   for (i=0; i < MAX_PIDS; i++) {
-    if (this->media[i].buf != NULL) 
+    if (this->media[i].buf != NULL) { 
       this->media[i].buf->free_buffer(this->media[i].buf);
+      this->media[i].buf = NULL;
+    }
   }
 
   xine_event_dispose_queue (this->event_queue);
