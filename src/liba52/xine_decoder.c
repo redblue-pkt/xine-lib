@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/10/22 04:42:45 storri Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/10/26 02:35:13 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -340,16 +340,14 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
-    return;
-
   if (buf->pts)
     this->pts = buf->pts;
 
   while (current != end) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      a52dec_decode_frame (this, this->pts);
+      if ((buf->decoder_flags & BUF_FLAG_PREVIEW)==0)
+	a52dec_decode_frame (this, this->pts);
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif
@@ -388,6 +386,25 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->a52_bit_rate);
 	    if (this->frame_length) {
 	      this->frame_todo = this->frame_length - 7;
+
+	      if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC]) {
+
+		if ((this->a52_flags & A52_3F2R) && (this->a52_flags & A52_LFE))
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.1");
+		else if ((this->a52_flags & A52_2F2R) || (this->a52_flags & A52_3F1R))
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.0");
+		else if ((this->a52_flags & A52_2F1R) || (this->a52_flags & A52_3F))
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 3.0");
+		else if (this->a52_flags & A52_STEREO)
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0");
+		else if (this->a52_flags & A52_MONO)
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 1.0");
+		else
+		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52");
+
+		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->a52_bit_rate;
+		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->a52_sample_rate;
+	      }
 	    } else {
 	      this->sync_todo = 7;
 	      this->syncword  = 0;
