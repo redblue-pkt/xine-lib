@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.62 2002/08/21 15:10:09 mroi Exp $
+ * $Id: input_dvd.c,v 1.63 2002/08/21 23:38:48 komadori Exp $
  *
  */
 
@@ -100,7 +100,7 @@
 /* The default DVD device on Solaris is not /dev/dvd */
 #if defined(__sun)
 #define DVD_PATH "/vol/dev/aliases/cdrom0"
-#define RDVD_PATH NULL
+#define RDVD_PATH ""
 #else
 #define DVD_PATH "/dev/dvd"
 #define RDVD_PATH "/dev/rdvd"
@@ -1373,13 +1373,13 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
       raw_device = config->register_string(config, "input.dvd_raw_device",
                            RDVD_PATH, "raw device set up for dvd access",
                            NULL, NULL, NULL);
-      if (raw_device) setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+      if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
 #endif
       
       mode = config->register_enum(config, "input.css_decryption_method", 0,
                            decrypt_modes, "the css decryption method libdvdcss should use",
                            NULL, NULL, NULL);
-      setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
+      xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
       
       dlclose(dvdcss);
     }
@@ -1427,6 +1427,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.63  2002/08/21 23:38:48  komadori
+ * fix portability problems
+ *
  * Revision 1.62  2002/08/21 15:10:09  mroi
  * use raw devices only with our patched local copy of libdvdread
  *
