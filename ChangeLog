@@ -1,3 +1,7 @@
+xine-lib (1-rc0a)
+  * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
+  * don't abort on MPEG_block stream errors
+
 xine-lib (1-rc0)
   * improved seeking accuracy of ogg_demuxer 
   * xine broadcaster (send stream to multiple xine clients simultaneously)

@@ -2,9 +2,8 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = libavcodec 
 
-# I don't think this should include internal docs that are not interesting
-# for end users at all... -siggi
-EXTRA_DIST =
+# this must always be included, even if the current machine has no DXR3...
+EXTRA_DIST = xine_decoder.c
 
 INTERNAL_DOCS = diff_to_ffmpeg_cvs.txt
 
