@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.39 2001/09/06 15:24:35 joachim_koenig Exp $
+ * $Id: demux_mpeg_block.c,v 1.40 2001/09/07 21:26:12 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -200,7 +200,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   /* we should now have a PES packet here */
 
   if (p[0] || p[1] || (p[2] != 1)) {
-    fprintf (stderr, "demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
+    printf ("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n",
+	    p[0], p[1], p[2]);
     buf->free_buffer (buf);
     return ;
   }
