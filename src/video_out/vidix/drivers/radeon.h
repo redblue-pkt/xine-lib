@@ -148,13 +148,23 @@
 #define	AIC_TLB_DATA				0x01E8
 #define	DAC_CNTL				0x0058
 /* DAC_CNTL bit	constants */
+#	define DAC_RANGE_CNTL_MSK		0x00000003
+#	define DAC_RANGE_PAL			0x00000000
+#	define DAC_RANGE_NTSC			0x00000001
+#	define DAC_RANGE_PS2			0x00000002
+#	define DAC_BLANKING			0x00000004
+#	define DAC_CMP_EN			0x00000008
+#	define DAC_CMP_OUTPUT			0x00000080
 #	define DAC_8BIT_EN			0x00000100
 #	define DAC_4BPP_PIX_ORDER		0x00000200
+#	define DAC_TVO_EN			0x00000400
+#	define DAC_TVO_OVR_EXCL			0x00000800
+#	define DAC_TVO_16BPP_DITH_EN		0x00001000
+#	define DAC_VGA_ADR_EN			(1 << 13)
+#	define DAC_PWDN				(1 << 15)
 #	define DAC_CRC_EN			0x00080000
 #	define DAC_MASK_ALL			(0xff << 24)
-#	define DAC_VGA_ADR_EN			(1 << 13)
 #	define DAC_RANGE_CNTL			(3 << 0)
-#	define DAC_BLANKING			(1 << 2)
 #define	DAC_CNTL2				0x007c
 /* DAC_CNTL2 bit constants */
 #	define DAC2_DAC_CLK_SEL			(1 <<  0)
@@ -284,6 +294,19 @@
 #	define CRTC_DISPLAY_DIS_BYTE		(1 <<  2)
 #define	RB3D_CNTL				0x1C3C
 #define	WAIT_UNTIL				0x1720
+#	define EVENT_CRTC_OFFSET		0x00000001
+#	define EVENT_RE_CRTC_VLINE		0x00000002
+#	define EVENT_FE_CRTC_VLINE		0x00000004
+#	define EVENT_CRTC_VLINE			0x00000008
+#	define EVENT_BM_VIP0_IDLE		0x00000010
+#	define EVENT_BM_VIP1_IDLE		0x00000020
+#	define EVENT_BM_VIP2_IDLE		0x00000040
+#	define EVENT_BM_VIP3_IDLE		0x00000080
+#	define EVENT_BM_VIDCAP_IDLE		0x00000100
+#	define EVENT_BM_GUI_IDLE		0x00000200
+#	define EVENT_CMDFIFO			0x00000400
+#	define EVENT_OV0_FLIP			0x00000800
+#	define EVENT_CMDFIFO_ENTRIES		0x07F00000
 #define	ISYNC_CNTL				0x1724
 #define	RBBM_GUICNTL				0x172C
 #define	RBBM_STATUS				0x0E40
@@ -735,6 +758,12 @@
 #	define CMP_MIX_OR			0x00000000L
 #	define CMP_MIX_AND			0x00000100L
 #define	OV0_TEST				0x04F8
+#define OV0_COL_CONV				0x04FC
+#	define OV0_CB_TO_B			0x0000007FL
+#	define OV0_CB_TO_G			0x0000FF00L
+#	define OV0_CR_TO_G			0x00FF0000L
+#	define OV0_CR_TO_R			0x7F000000L
+#	define OV0_NEW_COL_CONV			0x80000000L
 #define	OV0_LIN_TRANS_A				0x0D20
 #define	OV0_LIN_TRANS_B				0x0D24
 #define	OV0_LIN_TRANS_C				0x0D28
@@ -774,9 +803,25 @@
 #define IDCT_CONTROL				0x1FBC
 
 #define SE_MC_SRC2_CNTL				0x19D4
+#	define SECONDARY_SCALE_HACC		0x00001FFFL
+#	define SECONDARY_SCALE_VACC		0x0FFF0000L
+#	define SECONDARY_SCALE_PICTH_ADJ	0xC0000000L
 #define SE_MC_SRC1_CNTL				0x19D8
+#	define SCALE_HACC			0x00001FFFL
+#	define SCALE_VACC			0x0FFF0000L
+#	define IDCT_EN				0x10000000L
+#	define SECONDARY_TEX_EN			0x20000000L
+#	define SCALE_PICTH_ADJ			0xC0000000L
 #define SE_MC_DST_CNTL				0x19DC
+#	define DST_Y				0x00003FFFL
+#	define DST_X				0x3FFF0000L
+#	define DST_PITCH_ADJ			0xC0000000L
 #define SE_MC_CNTL_START			0x19E0
+#	define SCALE_OFFSET_PTR			0x0000000FL
+#	define DST_OFFSET			0x00FFFFF0L
+#	define ALPHA_EN				0x01000000L
+#	define SECONDARY_OFFSET_PTR		0x1E000000L
+#	define MC_DST_HEIGHT_WIDTH		0xE0000000L
 #ifndef RAGE128
 #define SE_MC_BUF_BASE				0x19E4
 #define PP_MC_CONTEXT				0x19E8
@@ -817,6 +862,7 @@
 #define CP_CSQ_CNTL				0x0740
 #define SCRATCH_UMSK				0x0770
 #define SCRATCH_ADDR				0x0774
+#ifndef RAGE128
 #define DMA_GUI_TABLE_ADDR			0x0780
 #	define DMA_GUI_COMMAND__BYTE_COUNT_MASK	0x001fffff
 #	define DMA_GUI_COMMAND__INTDIS		0x40000000
@@ -832,6 +878,7 @@
 #define DMA_VID_COMMAND				0x07AC
 #define DMA_VID_STATUS				0x07B0
 #define DMA_VID_ACT_DSCRPTR			0x07B4
+#endif
 #define CP_ME_CNTL				0x07D0
 #define CP_ME_RAM_ADDR				0x07D4
 #define CP_ME_RAM_RADDR				0x07D8
@@ -1031,6 +1078,20 @@
 #ifdef RAGE128
 #define GUI_STAT				0x1740
 #	define GUI_FIFOCNT_MASK			0x0fff
+#	define PM4_BUSY				(1 << 16)
+#	define MICRO_BUSY			(1 << 17)
+#	define FPU_BUSY				(1 << 18)
+#	define VC_BUSY				(1 << 19)
+#	define IDCT_BUSY			(1 << 20)
+#	define ENG_EV_BUSY			(1 << 21)
+#	define SETUP_BUSY			(1 << 22)
+#	define EDGE_WALK_BUSY			(1 << 23)
+#	define ADDRESSING_BUSY			(1 << 24)
+#	define ENG_3D_BUSY			(1 << 25)
+#	define ENG_2D_SM_BUSY			(1 << 26)
+#	define ENG_2D_BUSY			(1 << 27)
+#	define GUI_WB_BUSY			(1 << 28)
+#	define CACHE_BUSY			(1 << 29)
 #	define GUI_ACTIVE			(1 << 31)
 #endif
 #define	SRC_CLUT_ADDRESS			0x1780
@@ -1211,7 +1272,7 @@
 #define	RB2D_DSTCACHE_CTLSTAT			0x342C
 #define	RB2D_DSTCACHE_MODE			0x3428
 
-#define	BASE_CODE				0x0f0b
+#define	BASE_CODE				0x0f0b/*0x0f08*/
 #define	RADEON_BIOS_0_SCRATCH			0x0010
 #define	RADEON_BIOS_1_SCRATCH			0x0014
 #define	RADEON_BIOS_2_SCRATCH			0x0018
@@ -1303,6 +1364,7 @@
 #define	PPLL_POST3_DIV_MASK		0x00070000
 
 /* BUS MASTERING */
+#ifdef RAGE128
 #define BM_FRAME_BUF_OFFSET			0xA00
 #define BM_SYSTEM_MEM_ADDR			0xA04
 #define BM_COMMAND				0xA08
@@ -1338,7 +1400,8 @@
 #define BM_VIDCAP_BUF2				0xA68
 #define BM_VIDCAP_ACTIVE			0xA6c
 #define BM_GUI					0xA80
-
+#define BM_ABORT				0xA88
+#endif
 /* RAGE	THEATER	REGISTERS */
 
 #define DMA_VIPH0_COMMAND			0x0A00

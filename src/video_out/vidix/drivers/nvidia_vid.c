@@ -27,6 +27,8 @@ static unsigned int *PMC;
 
 typedef unsigned char U008;
 
+#define NVIDIA_MSG "[nvidia-unworking-driver] "
+
 #define NV_WR08(p,i,d)	(((U008 *)(p))[i]=(d))
 
 unsigned int nv_fifo_space = 0;
@@ -102,12 +104,12 @@ int vixProbe(int verbose,int force)
     unsigned int i, num_pci;
     int err;
     
-    printf("[nvidia] probe\n");
+    printf(NVIDIA_MSG"probe\n");
 
     err = pci_scan(lst, &num_pci);
     if (err)
     {
-	printf("Error occured during pci scan: %s\n", strerror(err));
+	printf(NVIDIA_MSG"Error occured during pci scan: %s\n", strerror(err));
 	return err;
     }
     else
@@ -125,13 +127,13 @@ int vixProbe(int verbose,int force)
 		    continue;
 		if (nv_card_ids[idx].flags & CARD_FLAGS_NOTSUPPORTED)
 		{
-		    printf("Found chip: %s, but not supported!\n",
+		    printf(NVIDIA_MSG"Found chip: %s, but not supported!\n",
 			nv_card_ids[idx].name);
 		    continue;
 		}
 		else
 		
-		    printf("Found chip: %s\n", nv_card_ids[idx].name);
+		    printf(NVIDIA_MSG"Found chip: %s\n", nv_card_ids[idx].name);
 		
 		memcpy(&nv_card_id, &nv_card_ids[idx], sizeof(struct nv_card_id_s));
 		nvidia_cap.device_id = nv_card_ids[idx].id;
@@ -139,11 +141,11 @@ int vixProbe(int verbose,int force)
 		memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
 		probed = 1;
 
-		printf("bus:card:func = %x:%x:%x\n",
+		printf(NVIDIA_MSG"bus:card:func = %x:%x:%x\n",
 		    pci_info.bus, pci_info.card, pci_info.func);
-		printf("vendor:device = %x:%x\n",
+		printf(NVIDIA_MSG"vendor:device = %x:%x\n",
 		    pci_info.vendor, pci_info.device);
-		printf("base0:base1:base2:baserom = %x:%x:%x:%x\n",
+		printf(NVIDIA_MSG"base0:base1:base2:baserom = %x:%x:%x:%x\n",
 		    pci_info.base0, pci_info.base1, pci_info.base2,
 		    pci_info.baserom);
 		break;
@@ -152,7 +154,7 @@ int vixProbe(int verbose,int force)
     }
 
     if (err)
-	printf("No chip found\n");
+	printf(NVIDIA_MSG"No chip found\n");
     return(err);
 }
 
@@ -160,15 +162,15 @@ int vixInit(void)
 {
     int card_option;
     
-    printf("[nvidia] init\n");
+    printf(NVIDIA_MSG"init\n");
     
     pci_config_read(pci_info.bus, pci_info.card, pci_info.func, 0x40,
 	4, &card_option);
-    printf("card_option: %x\n", card_option);
+    printf(NVIDIA_MSG"card_option: %x\n", card_option);
     
     if (!probed)
     {
-	printf("Driver was not probed but is being initialized\n");
+	printf(NVIDIA_MSG"Driver was not probed but is being initialized\n");
 	return(EINTR);
     }
     
@@ -179,7 +181,7 @@ int vixInit(void)
     if (fb_base == (void *)-1)
 	return(ENOMEM);
 
-    printf("ctrl_base: %p, fb_base: %p\n", ctrl_base, fb_base);
+    printf(NVIDIA_MSG"ctrl_base: %p, fb_base: %p\n", ctrl_base, fb_base);
 
     PFB = 	ctrl_base+0x00100000;
     PGRAPH =	ctrl_base+0x00400000;
@@ -187,16 +189,16 @@ int vixInit(void)
     FIFO =	ctrl_base+0x00800000;
     PCIO =	ctrl_base+0x00601000;
     PMC = 	ctrl_base+0x00000000;
-    printf("pfb: %p, pgraph: %p, pramin: %p, fifo: %p, pcio: %p\n",
+    printf(NVIDIA_MSG"pfb: %p, pgraph: %p, pramin: %p, fifo: %p, pcio: %p\n",
 	PFB, PGRAPH, PRAMIN, FIFO, PCIO);
     
     ScaledImage = FIFO+0x8000/4;
-    printf("ScaledImage: %p\n", ScaledImage);
+    printf(NVIDIA_MSG"ScaledImage: %p\n", ScaledImage);
 
     /* unlock */
     CRTCout(0x11, 0xff);
 
-    printf("fifo_free: %d\n", ScaledImage->fifo_free);
+    printf(NVIDIA_MSG"fifo_free: %d\n", ScaledImage->fifo_free);
 
     RIVA_FIFO_FREE(ScaledImage, 10);
     
@@ -216,7 +218,7 @@ int vixInit(void)
 	{
 	    if (*(PFB+0x0) & 0x00000100)
 	    {
-		printf("first ver\n");
+		printf(NVIDIA_MSG"first ver\n");
 		ram_size = ((*(PFB+0x0) >> 12) & 0x0f) * 1024 * 2 + 1024 * 2;
 	    }
 	    else
@@ -238,7 +240,7 @@ int vixInit(void)
 			ram_size = 1024*16;
 			break;
 		    default:
-			printf("Unknown ram size code: %d\n",
+			printf(NVIDIA_MSG"Unknown ram size code: %d\n",
 			    *(PFB+0x0) & 0x00000003);
 			break;
 		}
@@ -246,16 +248,16 @@ int vixInit(void)
 	    break;
 	}
 	default:
-	    printf("Unknown core: %d\n", nv_card_id.core);
+	    printf(NVIDIA_MSG"Unknown core: %d\n", nv_card_id.core);
     }
 
-    printf("ram_size: %d\n", ram_size);
+    printf(NVIDIA_MSG"ram_size: %d\n", ram_size);
     return 0;
 }
 
 void vixDestroy(void)
 {
-    printf("[nvidia] destory\n");
+    printf(NVIDIA_MSG"destory\n");
 }
 
 int vixGetCapability(vidix_capability_t *to)
@@ -266,7 +268,7 @@ int vixGetCapability(vidix_capability_t *to)
 
 int vixQueryFourcc(vidix_fourcc_t *to)
 {
-    printf("[nvidia] query fourcc (%x)\n", to->fourcc);
+    printf(NVIDIA_MSG"query fourcc (%x)\n", to->fourcc);
     to->flags = 0;
     to->depth = VID_DEPTH_32BPP;
     return 0;
@@ -282,7 +284,7 @@ int vixConfigPlayback(vidix_playback_t *info)
     int bpp = 32 >> 3;
     int size;
 
-    printf("[nvidia] config playback\n");
+    printf(NVIDIA_MSG"config playback\n");
     
     x = info->src.x;
     y = info->src.y;
@@ -315,12 +317,12 @@ int vixConfigPlayback(vidix_playback_t *info)
 
 int vixPlaybackOn(void)
 {
-    printf("[nvidia] playback on\n");
+    printf(NVIDIA_MSG"playback on\n");
     return 0;
 }
 
 int vixPlaybackOff(void)
 {
-    printf("[nvidia] playback off\n");
+    printf(NVIDIA_MSG"playback off\n");
     return 0;
 }

@@ -10,8 +10,11 @@
 #include "../fourcc.h"
 #include "../../libdha/libdha.h"
 #include "../../libdha/pci_ids.h"
+#include "../../libdha/pci_names.h"
 
 #define DEMO_DRIVER 1
+
+#define GENFB_MSG "[genfb-demo-driver] "
 
 static int fd;
 
@@ -48,32 +51,58 @@ unsigned int vixGetVersion(void)
 
 int vixProbe(int verbose,int force)
 {
+#if 0
     int err = 0;
 #ifdef DEMO_DRIVER
     err = ENOSYS;
 #endif
     
-    printf("[genfb] probe\n");
+    printf(GENFB_MSG"probe\n");
 
     fd = open("/dev/fb0", O_RDWR);
     if (fd < 0)
     {
-	printf("Error occured durint open: %s\n", strerror(errno));
+	printf(GENFB_MSG"Error occured durint open: %s\n", strerror(errno));
 	err = errno;
     }
     
     probed = 1;
 
     return(err);
+#else
+  pciinfo_t lst[MAX_PCI_DEVICES];
+  unsigned i,num_pci;
+  int err;
+  err = pci_scan(lst,&num_pci);
+  if(err)
+  {
+    printf(GENFB_MSG"Error occured during pci scan: %s\n",strerror(err));
+    return err;
+  }
+  else
+  {
+    err = ENXIO;
+    for(i=0;i<num_pci;i++)
+    {
+	if(verbose)
+	    printf(GENFB_MSG" Found chip [%04X:%04X] '%s' '%s'\n"
+	    ,lst[i].vendor
+	    ,lst[i].device
+	    ,pci_vendor_name(lst[i].vendor)
+	    ,pci_device_name(lst[i].vendor,lst[i].device));
+    }
+  }
+  return ENOSYS;
+#endif
 }
 
 int vixInit(void)
 {
-    printf("[genfb] init\n");
+    printf(GENFB_MSG"init\n");
     
     if (!probed)
     {
-	printf("Driver was not probed but is being initialized\n");
+	printf(GENFB_MSG"Driver was not probed but is being initialized\n");
 	return(EINTR);
     }
 
@@ -82,7 +111,7 @@ int vixInit(void)
 
 void vixDestroy(void)
 {
-    printf("[genfb] destory\n");
+    printf(GENFB_MSG"destory\n");
     return;
 }
 
@@ -94,7 +123,7 @@ int vixGetCapability(vidix_capability_t *to)
 
 int vixQueryFourcc(vidix_fourcc_t *to)
 {
-    printf("[genfb] query fourcc (%x)\n", to->fourcc);
+    printf(GENFB_MSG"query fourcc (%x)\n", to->fourcc);
 
     to->depth = VID_DEPTH_1BPP | VID_DEPTH_2BPP |
 		VID_DEPTH_4BPP | VID_DEPTH_8BPP |
@@ -108,7 +137,7 @@ int vixQueryFourcc(vidix_fourcc_t *to)
 
 int vixConfigPlayback(vidix_playback_t *info)
 {
-    printf("[genfb] config playback\n");
+    printf(GENFB_MSG"config playback\n");
 
     info->num_frames = 2;
     info->frame_size = info->src.w*info->src.h+(info->src.w*info->src.h)/2;
@@ -120,7 +149,7 @@ int vixConfigPlayback(vidix_playback_t *info)
     info->offset.v = ((info->src.w+31) & ~31) * info->src.h;
     info->offset.u = info->offset.v+((info->src.w+31) & ~31) * info->src.h/4;    
     info->dga_addr = malloc(info->num_frames*info->frame_size);   
-    printf("[genfb] frame_size: %d, dga_addr: %x\n",
+    printf(GENFB_MSG"frame_size: %d, dga_addr: %x\n",
 	info->frame_size, info->dga_addr);
 
     return(0);
@@ -128,18 +157,18 @@ int vixConfigPlayback(vidix_playback_t *info)
 
 int vixPlaybackOn(void)
 {
-    printf("[genfb] playback on\n");
+    printf(GENFB_MSG"playback on\n");
     return(0);
 }
 
 int vixPlaybackOff(void)
 {
-    printf("[genfb] playback off\n");
+    printf(GENFB_MSG"playback off\n");
     return(0);
 }
 
 int vixPlaybackFrameSelect(unsigned int frame)
 {
-    printf("[genfb] frameselect: %d\n", frame);
+    printf(GENFB_MSG"frameselect: %d\n", frame);
     return(0);
 }

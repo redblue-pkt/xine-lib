@@ -11,6 +11,7 @@
 #include <string.h>
 #include <math.h>
 #include <inttypes.h>
+#include <sys/mman.h>
 #include "../../libdha/pci_ids.h"
 #include "../../libdha/pci_names.h"
 #include "../vidix.h"
@@ -29,6 +30,25 @@
 #endif
 #endif
 
+//#undef RADEON_ENABLE_BM /* unfinished stuff. May corrupt your filesystem ever */
+#define RADEON_ENABLE_BM 1
+
+#ifdef RADEON_ENABLE_BM
+static void * radeon_dma_desc_base = 0;
+static unsigned long bus_addr_dma_desc = 0;
+static unsigned long *dma_phys_addrs = 0;
+#pragma pack(1)
+typedef struct
+{
+	uint32_t framebuf_offset;
+	uint32_t sys_addr;
+	uint32_t command;
+	uint32_t reserved;
+} bm_list_descriptor;
+#pragma pack()
+#endif
+
+#define VERBOSE_LEVEL 0
 static int __verbose = 0;
 
 typedef struct bes_registers_s
@@ -187,7 +207,43 @@ static video_registers_t vregs[] =
   DECLARE_VREG(IDCT_LEVELS),
   DECLARE_VREG(IDCT_AUTH_CONTROL),
   DECLARE_VREG(IDCT_AUTH),
-  DECLARE_VREG(IDCT_CONTROL)
+  DECLARE_VREG(IDCT_CONTROL),
+#ifdef RAGE128
+  DECLARE_VREG(BM_FRAME_BUF_OFFSET),
+  DECLARE_VREG(BM_SYSTEM_MEM_ADDR),
+  DECLARE_VREG(BM_COMMAND),
+  DECLARE_VREG(BM_STATUS),
+  DECLARE_VREG(BM_QUEUE_STATUS),
+  DECLARE_VREG(BM_QUEUE_FREE_STATUS),
+  DECLARE_VREG(BM_CHUNK_0_VAL),
+  DECLARE_VREG(BM_CHUNK_1_VAL),
+  DECLARE_VREG(BM_VIP0_BUF),
+  DECLARE_VREG(BM_VIP0_ACTIVE),
+  DECLARE_VREG(BM_VIP1_BUF),
+  DECLARE_VREG(BM_VIP1_ACTIVE),
+  DECLARE_VREG(BM_VIP2_BUF),
+  DECLARE_VREG(BM_VIP2_ACTIVE),
+  DECLARE_VREG(BM_VIP3_BUF),
+  DECLARE_VREG(BM_VIP3_ACTIVE),
+  DECLARE_VREG(BM_VIDCAP_BUF0),
+  DECLARE_VREG(BM_VIDCAP_BUF1),
+  DECLARE_VREG(BM_VIDCAP_BUF2),
+  DECLARE_VREG(BM_VIDCAP_ACTIVE),
+  DECLARE_VREG(BM_GUI),
+  DECLARE_VREG(BM_ABORT)
+#else
+  DECLARE_VREG(DMA_GUI_TABLE_ADDR),
+  DECLARE_VREG(DMA_GUI_SRC_ADDR),
+  DECLARE_VREG(DMA_GUI_DST_ADDR),
+  DECLARE_VREG(DMA_GUI_COMMAND),
+  DECLARE_VREG(DMA_GUI_STATUS),
+  DECLARE_VREG(DMA_GUI_ACT_DSCRPTR),
+  DECLARE_VREG(DMA_VID_SRC_ADDR),
+  DECLARE_VREG(DMA_VID_DST_ADDR),
+  DECLARE_VREG(DMA_VID_COMMAND),
+  DECLARE_VREG(DMA_VID_STATUS),
+  DECLARE_VREG(DMA_VID_ACT_DSCRPTR),
+#endif
 };
 
 static void * radeon_mmio_base = 0;
@@ -906,6 +962,84 @@ int vixProbe( int verbose,int force )
   return err;
 }
 
+#ifndef RAGE128
+enum radeon_montype
+{
+    MT_NONE,
+    MT_CRT, /* CRT-(cathode ray tube) analog monitor. (15-pin VGA connector) */
+    MT_LCD, /* Liquid Crystal Display */
+    MT_DFP, /* DFP-digital flat panel monitor. (24-pin DVI-I connector) */
+    MT_CTV, /* Composite TV out (not in VE) */
+    MT_STV  /* S-Video TV out (probably in VE only) */
+};
+
+typedef struct radeon_info_s
+{
+	int hasCRTC2;
+	int crtDispType;
+	int dviDispType;
+}rinfo_t;
+
+static rinfo_t rinfo;
+
+static char * GET_MON_NAME(int type)
+{
+  char *pret;
+  switch(type)
+  {
+    case MT_NONE: pret = "no"; break;
+    case MT_CRT:  pret = "CRT"; break;
+    case MT_DFP:  pret = "DFP"; break;
+    case MT_LCD:  pret = "LCD"; break;
+    case MT_CTV:  pret = "CTV"; break;
+    case MT_STV:  pret = "STV"; break;
+    default:      pret = "Unknown";
+  }
+  return pret;
+}
+
+static void radeon_get_moninfo (rinfo_t *rinfo)
+{
+	unsigned int tmp;
+
+	tmp = INREG(RADEON_BIOS_4_SCRATCH);
+
+	if (rinfo->hasCRTC2) {
+		/* primary DVI port */
+		if (tmp & 0x08)
+			rinfo->dviDispType = MT_DFP;
+		else if (tmp & 0x4)
+			rinfo->dviDispType = MT_LCD;
+		else if (tmp & 0x200)
+			rinfo->dviDispType = MT_CRT;
+		else if (tmp & 0x10)
+			rinfo->dviDispType = MT_CTV;
+		else if (tmp & 0x20)
+			rinfo->dviDispType = MT_STV;
+
+		/* secondary CRT port */
+		if (tmp & 0x2)
+			rinfo->crtDispType = MT_CRT;
+		else if (tmp & 0x800)
+			rinfo->crtDispType = MT_DFP;
+		else if (tmp & 0x400)
+			rinfo->crtDispType = MT_LCD;
+		else if (tmp & 0x1000)
+			rinfo->crtDispType = MT_CTV;
+		else if (tmp & 0x2000)
+			rinfo->crtDispType = MT_STV;
+	} else {
+		rinfo->dviDispType = MT_NONE;
+
+		tmp = INREG(FP_GEN_CNTL);
+
+		if (tmp & FP_EN_TMDS)
+			rinfo->crtDispType = MT_DFP;
+		else
+			rinfo->crtDispType = MT_CRT;
+	}
+}
+#endif
 int vixInit( void )
 {
   int err;
@@ -924,6 +1058,43 @@ int vixInit( void )
   printf(RADEON_MSG" Video memory = %uMb\n",radeon_ram_size/0x100000);
   err = mtrr_set_type(pci_info.base0,radeon_ram_size,MTRR_TYPE_WRCOMB);
   if(!err) printf(RADEON_MSG" Set write-combining type of video memory\n");
+#ifndef RAGE128
+  {
+    memset(&rinfo,0,sizeof(rinfo_t));
+    switch(def_cap.device_id)
+    {
+	case DEVICE_ATI_RADEON_VE_QY:
+	case DEVICE_ATI_RADEON_VE_QZ:
+	case DEVICE_ATI_RADEON_MOBILITY_M6:
+	case DEVICE_ATI_RADEON_MOBILITY_M62:
+	case DEVICE_ATI_RADEON_MOBILITY_M63:
+	case DEVICE_ATI_RADEON_QL:
+	case DEVICE_ATI_RADEON_8500_DV:
+	case DEVICE_ATI_RADEON_QW:
+			rinfo.hasCRTC2 = 1;
+			break;
+	default: break;
+    }
+    radeon_get_moninfo(&rinfo);
+	if(rinfo.hasCRTC2) {
+	    printf(RADEON_MSG" DVI port has %s monitor connected\n",GET_MON_NAME(rinfo.dviDispType));
+	    printf(RADEON_MSG" CRT port has %s monitor connected\n",GET_MON_NAME(rinfo.crtDispType));
+	}
+	else
+	    printf(RADEON_MSG" CRT port has %s monitor connected\n",GET_MON_NAME(rinfo.crtDispType));
+  }
+#endif
+#ifdef RADEON_ENABLE_BM
+  if(bm_open() == 0)
+  {
+	if((dma_phys_addrs = malloc(radeon_ram_size*sizeof(unsigned long)/4096)) != 0)
+					    def_cap.flags |= FLAG_DMA | FLAG_EQ_DMA;
+	else
+		printf(RADEON_MSG" Can't allocate temopary buffer for DMA\n");
+  }
+  else
+    if(__verbose) printf(RADEON_MSG" Can't initialize busmastering: %s\n",strerror(errno));
+#endif
   return 0;  
 }
 
@@ -931,6 +1102,7 @@ void vixDestroy( void )
 {
   unmap_phys_mem(radeon_mem_base,radeon_ram_size);
   unmap_phys_mem(radeon_mmio_base,0xFFFF);
+  bm_close();
 }
 
 int vixGetCapability(vidix_capability_t *to)
@@ -939,8 +1111,14 @@ int vixGetCapability(vidix_capability_t *to)
   return 0; 
 }
 
+/*
+  Full list of fourcc which are supported by Win2K radeon driver:
+  YUY2, UYVY, DDES, OGLT, OGL2, OGLS, OGLB, OGNT, OGNZ, OGNS,
+  IF09, YVU9, IMC4, M2IA, IYUV, VBID, DXT1, DXT2, DXT3, DXT4, DXT5
+*/
 uint32_t supported_fourcc[] = 
 {
+  IMGFMT_Y800, IMGFMT_YVU9, IMGFMT_IF09,
   IMGFMT_YV12, IMGFMT_I420, IMGFMT_IYUV, 
   IMGFMT_UYVY, IMGFMT_YUY2, IMGFMT_YVYU,
   IMGFMT_RGB15, IMGFMT_BGR15,
@@ -1058,9 +1236,6 @@ static void radeon_vid_display_video( void )
 
     bes_flags = SCALER_ENABLE |
                 SCALER_SMART_SWITCH |
-#ifdef RADEON
-		SCALER_HORZ_PICK_NEAREST |
-#endif
 		SCALER_Y2R_TEMP |
 		SCALER_PIX_EXPAND;
     if(besr.double_buff) bes_flags |= SCALER_DOUBLE_BUFFER;
@@ -1071,23 +1246,24 @@ static void radeon_vid_display_video( void )
     switch(besr.fourcc)
     {
         case IMGFMT_RGB15:
-        case IMGFMT_BGR15: bes_flags |= SCALER_SOURCE_15BPP; break;
+        case IMGFMT_BGR15: bes_flags |= SCALER_SOURCE_15BPP | 0x10000000; break;
 	case IMGFMT_RGB16:
-	case IMGFMT_BGR16: bes_flags |= SCALER_SOURCE_16BPP; break;
+	case IMGFMT_BGR16: bes_flags |= SCALER_SOURCE_16BPP | 0x10000000; break;
 /*
         case IMGFMT_RGB24:
         case IMGFMT_BGR24: bes_flags |= SCALER_SOURCE_24BPP; break;
 */
         case IMGFMT_RGB32:
-	case IMGFMT_BGR32: bes_flags |= SCALER_SOURCE_32BPP; break;
+	case IMGFMT_BGR32: bes_flags |= SCALER_SOURCE_32BPP | 0x10000000; break;
         /* 4:1:0*/
 	case IMGFMT_IF09:
         case IMGFMT_YVU9:  bes_flags |= SCALER_SOURCE_YUV9; break;
+	/* 4:0:0*/
+	case IMGFMT_Y800:
         /* 4:2:0 */
 	case IMGFMT_IYUV:
 	case IMGFMT_I420:
-	case IMGFMT_YV12:  bes_flags |= SCALER_SOURCE_YUV12;
-			   break;
+	case IMGFMT_YV12:  bes_flags |= SCALER_SOURCE_YUV12; break;
         /* 4:2:2 */
         case IMGFMT_YVYU:
 	case IMGFMT_UYVY:  bes_flags |= SCALER_SOURCE_YVYU422; break;
@@ -1095,10 +1271,39 @@ static void radeon_vid_display_video( void )
 	default:           bes_flags |= SCALER_SOURCE_VYUY422; break;
     }
     OUTREG(OV0_SCALE_CNTL,		bes_flags);
+#ifndef RAGE128
+    if(rinfo.hasCRTC2 && 
+       (rinfo.dviDispType == MT_CTV || rinfo.dviDispType == MT_STV))
+    {
+	/* TODO: suppress scaler output to CRTC here and enable TVO only */
+    }
+#endif
     OUTREG(OV0_REG_LOAD_CNTL,		0);
-    if(__verbose > 1) printf(RADEON_MSG"we wanted: scaler=%08X\n",bes_flags);
-    if(__verbose > 1) radeon_vid_dump_regs();
+    if(__verbose > VERBOSE_LEVEL) printf(RADEON_MSG"we wanted: scaler=%08X\n",bes_flags);
+    if(__verbose > VERBOSE_LEVEL) radeon_vid_dump_regs();
 }
+
+/* Goal of this function: hide RGB background and provide black screen around movie.
+   Useful in '-vo fbdev:vidix -fs -zoom' mode.
+   Reverse effect to colorkey */
+#ifdef RAGE128
+static void radeon_vid_exclusive( void )
+{
+/* this function works only with Rage128.
+   Radeon should has something the same */
+    unsigned screenw,screenh;
+    screenw = radeon_get_xres();
+    screenh = radeon_get_yres();
+    radeon_fifo_wait(2);
+    OUTREG(OV0_EXCLUSIVE_VERT,(((screenh-1)<<16)&EXCL_VERT_END_MASK));
+    OUTREG(OV0_EXCLUSIVE_HORZ,(((screenw/8+1)<<8)&EXCL_HORZ_END_MASK)|EXCL_HORZ_EXCLUSIVE_EN);
+}
+
+static void radeon_vid_non_exclusive( void )
+{
+    OUTREG(OV0_EXCLUSIVE_HORZ,0);
+}
+#endif
 
 static unsigned radeon_query_pitch(unsigned fourcc,const vidix_yuv_t *spitch)
 {
@@ -1140,8 +1345,9 @@ static unsigned radeon_query_pitch(unsigned fourcc,const vidix_yuv_t *spitch)
 		if(spy > 16 && spu == spy/2 && spv == spy/2)	pitch = spy;
 		else						pitch = 32;
 		break;
+	case IMGFMT_IF09:
 	case IMGFMT_YVU9:
-		if(spy > 32 && spu == spy/4 && spv == spy/4)	pitch = spy;
+		if(spy >= 64 && spu == spy/4 && spv == spy/4)	pitch = spy;
 		else						pitch = 64;
 		break;
 	default:
@@ -1155,16 +1361,19 @@ static unsigned radeon_query_pitch(unsigned fourcc,const vidix_yuv_t *spitch)
 static int radeon_vid_init_video( vidix_playback_t *config )
 {
     uint32_t i,tmp,src_w,src_h,dest_w,dest_h,pitch,h_inc,step_by,left,leftUV,top;
-    int is_420,is_rgb32,is_rgb,best_pitch,mpitch;
+    int is_400,is_410,is_420,is_rgb32,is_rgb,best_pitch,mpitch;
     radeon_vid_stop_video();
     left = config->src.x << 16;
     top =  config->src.y << 16;
     src_h = config->src.h;
     src_w = config->src.w;
-    is_420 = is_rgb32 = is_rgb = 0;
+    is_400 = is_410 = is_420 = is_rgb32 = is_rgb = 0;
     if(config->fourcc == IMGFMT_YV12 ||
        config->fourcc == IMGFMT_I420 ||
        config->fourcc == IMGFMT_IYUV) is_420 = 1;
+    if(config->fourcc == IMGFMT_YVU9 ||
+       config->fourcc == IMGFMT_IF09) is_410 = 1;
+    if(config->fourcc == IMGFMT_Y800) is_400 = 1;
     if(config->fourcc == IMGFMT_RGB32 ||
        config->fourcc == IMGFMT_BGR32) is_rgb32 = 1;
     if(config->fourcc == IMGFMT_RGB32 ||
@@ -1179,7 +1388,11 @@ static int radeon_vid_init_video( vidix_playback_t *config )
     mpitch = best_pitch-1;
     switch(config->fourcc)
     {
+	/* 4:0:0*/
+	case IMGFMT_Y800:
+	/* 4:1:0*/
 	case IMGFMT_YVU9:
+	case IMGFMT_IF09:
 	/* 4:2:0 */
 	case IMGFMT_IYUV:
 	case IMGFMT_YV12:
@@ -1222,27 +1435,73 @@ static int radeon_vid_init_video( vidix_playback_t *config )
     config->offsets[0] = 0;
     for(i=1;i<besr.vid_nbufs;i++)
 	    config->offsets[i] = config->offsets[i-1]+config->frame_size;
-    if(is_420)
+    if(is_420 || is_410 || is_400)
     {
         uint32_t d1line,d2line,d3line;
 	d1line = top*pitch;
-	d2line = src_h*pitch+(d1line>>2);
-	d3line = d2line+((src_h*pitch)>>2);
+	if(is_420)
+	{
+	    d2line = src_h*pitch+(d1line>>2);
+	    d3line = d2line+((src_h*pitch)>>2);
+	}
+	else
+	if(is_410)
+	{
+	    d2line = src_h*pitch+(d1line>>4);
+	    d3line = d2line+((src_h*pitch)>>4);
+	}
+	else
+	{
+	    d2line = 0;
+	    d3line = 0;
+	}
 	d1line += (left >> 16) & ~15;
-	d2line += (left >> 17) & ~15;
-	d3line += (left >> 17) & ~15;
+	if(is_420)
+	{
+	    d2line += (left >> 17) & ~15;
+	    d3line += (left >> 17) & ~15;
+	}
+	else /* is_410 */
+	{
+	    d2line += (left >> 18) & ~15;
+	    d3line += (left >> 18) & ~15;
+	}
 	config->offset.y = d1line & VIF_BUF0_BASE_ADRS_MASK;
-	config->offset.v = d2line & VIF_BUF1_BASE_ADRS_MASK;
-	config->offset.u = d3line & VIF_BUF2_BASE_ADRS_MASK;
+	if(is_400)
+	{
+	    config->offset.v = 0;
+	    config->offset.u = 0;
+	}
+	else
+	{
+	    config->offset.v = d2line & VIF_BUF1_BASE_ADRS_MASK;
+	    config->offset.u = d3line & VIF_BUF2_BASE_ADRS_MASK;
+	}
 	for(i=0;i<besr.vid_nbufs;i++)
 	{
 	    besr.vid_buf_base_adrs_y[i]=((radeon_overlay_off+config->offsets[i]+config->offset.y)&VIF_BUF0_BASE_ADRS_MASK);
-	    besr.vid_buf_base_adrs_v[i]=((radeon_overlay_off+config->offsets[i]+config->offset.v)&VIF_BUF1_BASE_ADRS_MASK)|VIF_BUF1_PITCH_SEL;
-	    besr.vid_buf_base_adrs_u[i]=((radeon_overlay_off+config->offsets[i]+config->offset.u)&VIF_BUF2_BASE_ADRS_MASK)|VIF_BUF2_PITCH_SEL;
+	    if(is_400)
+	    {
+		besr.vid_buf_base_adrs_v[i]=0;
+		besr.vid_buf_base_adrs_u[i]=0;
+	    }
+	    else
+	    {
+		besr.vid_buf_base_adrs_v[i]=((radeon_overlay_off+config->offsets[i]+config->offset.v)&VIF_BUF1_BASE_ADRS_MASK)|VIF_BUF1_PITCH_SEL;
+		besr.vid_buf_base_adrs_u[i]=((radeon_overlay_off+config->offsets[i]+config->offset.u)&VIF_BUF2_BASE_ADRS_MASK)|VIF_BUF2_PITCH_SEL;
+	    }
 	}
 	config->offset.y = ((besr.vid_buf_base_adrs_y[0])&VIF_BUF0_BASE_ADRS_MASK) - radeon_overlay_off;
-	config->offset.v = ((besr.vid_buf_base_adrs_v[0])&VIF_BUF1_BASE_ADRS_MASK) - radeon_overlay_off;
-	config->offset.u = ((besr.vid_buf_base_adrs_u[0])&VIF_BUF2_BASE_ADRS_MASK) - radeon_overlay_off;
+	if(is_400)
+	{
+	    config->offset.v = 0;
+	    config->offset.u = 0;
+	}
+	else
+	{
+	    config->offset.v = ((besr.vid_buf_base_adrs_v[0])&VIF_BUF1_BASE_ADRS_MASK) - radeon_overlay_off;
+	    config->offset.u = ((besr.vid_buf_base_adrs_u[0])&VIF_BUF2_BASE_ADRS_MASK) - radeon_overlay_off;
+	}
 	if(besr.fourcc == IMGFMT_I420 || besr.fourcc == IMGFMT_IYUV)
 	{
 	  uint32_t tmp;
@@ -1266,42 +1525,50 @@ static int radeon_vid_init_video( vidix_playback_t *config )
     besr.p1_h_accum_init = ((tmp <<  4) & 0x000f8000) |
 			   ((tmp << 12) & 0xf0000000);
 
-    tmp = ((left >> 1) & 0x0001ffff) + 0x00028000 + (h_inc << 2);
-    besr.p23_h_accum_init = ((tmp <<  4) & 0x000f8000) |
-			    ((tmp << 12) & 0x70000000);
     tmp = (top & 0x0000ffff) + 0x00018000;
     besr.p1_v_accum_init = ((tmp << 4) & OV0_P1_V_ACCUM_INIT_MASK)
 			    |(OV0_P1_MAX_LN_IN_PER_LN_OUT & 1);
+    tmp = ((left >> 1) & 0x0001ffff) + 0x00028000 + (h_inc << 2);
+    besr.p23_h_accum_init = ((tmp << 4) & 0x000f8000) |
+			    ((tmp << 12) & 0x70000000);
 
     tmp = ((top >> 1) & 0x0000ffff) + 0x00018000;
-    besr.p23_v_accum_init = is_420 ? ((tmp << 4) & OV0_P23_V_ACCUM_INIT_MASK)
+    besr.p23_v_accum_init = (is_420||is_410) ? 
+			    ((tmp << 4) & OV0_P23_V_ACCUM_INIT_MASK)
 			    |(OV0_P23_MAX_LN_IN_PER_LN_OUT & 1) : 0;
-
-    leftUV = (left >> 17) & 15;
+    leftUV = (left >> (is_410?18:17)) & 15;
     left = (left >> 16) & 15;
-    if(is_rgb && !is_rgb32) h_inc<<=1;
-    if(is_rgb32)
-	besr.h_inc = (h_inc >> 1) | ((h_inc >> 1) << 16);
+    if(is_rgb) 
+	besr.h_inc = (h_inc)|(h_inc<<16);
+    else
+    if(is_410)
+	besr.h_inc = h_inc | ((h_inc >> 2) << 16);
     else
 	besr.h_inc = h_inc | ((h_inc >> 1) << 16);
     besr.step_by = step_by | (step_by << 8);
     besr.y_x_start = (config->dest.x+X_ADJUST) | (config->dest.y << 16);
     besr.y_x_end = (config->dest.x + dest_w+X_ADJUST) | ((config->dest.y + dest_h) << 16);
     besr.p1_blank_lines_at_top = P1_BLNK_LN_AT_TOP_M1_MASK|((src_h-1)<<16);
-    if(is_420)
+    if(is_420 || is_410)
     {
-	src_h = (src_h + 1) >> 1;
+	src_h = (src_h + 1) >> (is_410?2:1);
 	besr.p23_blank_lines_at_top = P23_BLNK_LN_AT_TOP_M1_MASK|((src_h-1)<<16);
     }
     else besr.p23_blank_lines_at_top = 0;
     besr.vid_buf_pitch0_value = pitch;
-    besr.vid_buf_pitch1_value = is_420 ? pitch>>1 : pitch;
+    besr.vid_buf_pitch1_value = is_410 ? pitch>>2 : is_420 ? pitch>>1 : pitch;
     besr.p1_x_start_end = (src_w+left-1)|(left<<16);
-    src_w>>=1;
-    besr.p2_x_start_end = (src_w+left-1)|(leftUV<<16);
-    besr.p3_x_start_end = besr.p2_x_start_end;
-    
-
+    if(is_400)
+    {
+	besr.p2_x_start_end = 0;
+	besr.p3_x_start_end = 0;
+    }
+    else
+    {
+	if(is_410||is_420) src_w>>=is_410?2:1;
+	besr.p2_x_start_end = (src_w+left-1)|(leftUV<<16);
+	besr.p3_x_start_end = besr.p2_x_start_end;
+    }
     return 0;
 }
 
@@ -1312,6 +1579,15 @@ static void radeon_compute_framesize(vidix_playback_t *info)
   dbpp = radeon_vid_get_dbpp();
   switch(info->fourcc)
   {
+    case IMGFMT_Y800:
+		awidth = (info->src.w + (pitch-1)) & ~(pitch-1);
+		info->frame_size = awidth*info->src.h;
+		break;
+    case IMGFMT_YVU9:
+    case IMGFMT_IF09:
+		awidth = (info->src.w + (pitch-1)) & ~(pitch-1);
+		info->frame_size = awidth*(info->src.h+info->src.h/8);
+		break;
     case IMGFMT_I420:
     case IMGFMT_YV12:
     case IMGFMT_IYUV:
@@ -1329,11 +1605,13 @@ static void radeon_compute_framesize(vidix_playback_t *info)
 		info->frame_size = awidth*info->src.h;
 		break;
   }
+  info->frame_size = (info->frame_size+4095)&~4095;
 }
 
 int vixConfigPlayback(vidix_playback_t *info)
 {
   unsigned rgb_size,nfr;
+  uint32_t radeon_video_size;
   if(!is_supported_fourcc(info->fourcc)) return ENOSYS;
   if(info->num_frames>VID_PLAY_MAXFRAMES) info->num_frames=VID_PLAY_MAXFRAMES;
   if(info->num_frames==1) besr.double_buff=0;
@@ -1342,9 +1620,20 @@ int vixConfigPlayback(vidix_playback_t *info)
     
   rgb_size = radeon_get_xres()*radeon_get_yres()*((radeon_vid_get_dbpp()+7)/8);
   nfr = info->num_frames;
+  radeon_video_size = radeon_ram_size;
+#ifdef RADEON_ENABLE_BM
+  if(def_cap.flags & FLAG_DMA)
+  {
+     /* every descriptor describes one 4K page and takes 16 bytes in memory 
+	Note: probably it's ont good idea to locate them in video memory
+	but as initial release it's OK */
+	radeon_video_size -= radeon_ram_size * sizeof(bm_list_descriptor) / 4096;
+	radeon_dma_desc_base = pci_info.base0 + radeon_video_size;
+  }
+#endif
   for(;nfr>0; nfr--)
   {
-      radeon_overlay_off = radeon_ram_size - info->frame_size*nfr;
+      radeon_overlay_off = radeon_video_size - info->frame_size*nfr;
       radeon_overlay_off &= 0xffff0000;
       if(radeon_overlay_off >= (int)rgb_size ) break;
   }
@@ -1353,7 +1642,7 @@ int vixConfigPlayback(vidix_playback_t *info)
    nfr = info->num_frames;
    for(;nfr>0; nfr--)
    {
-      radeon_overlay_off = radeon_ram_size - info->frame_size*nfr;
+      radeon_overlay_off = radeon_video_size - info->frame_size*nfr;
       radeon_overlay_off &= 0xffff0000;
       if(radeon_overlay_off > 0) break;
    }
@@ -1368,7 +1657,16 @@ int vixConfigPlayback(vidix_playback_t *info)
 
 int vixPlaybackOn( void )
 {
+#ifdef RAGE128
+  unsigned dw,dh;
+#endif
   radeon_vid_display_video();
+#ifdef RAGE128
+  dh = (besr.y_x_end >> 16) - (besr.y_x_start >> 16);
+  dw = (besr.y_x_end & 0xFFFF) - (besr.y_x_start & 0xFFFF);
+  if(dw == radeon_get_xres() || dh == radeon_get_yres()) radeon_vid_exclusive();
+  else radeon_vid_non_exclusive();
+#endif
   return 0;
 }
 
@@ -1407,7 +1705,7 @@ int vixPlaybackFrameSelect(unsigned frame)
     OUTREG(OV0_VID_BUF5_BASE_ADRS,	off[5]);
     OUTREG(OV0_REG_LOAD_CNTL,		0);
     if(besr.vid_nbufs == 2) radeon_wait_vsync();
-    if(__verbose > 1) radeon_vid_dump_regs();
+    if(__verbose > VERBOSE_LEVEL) radeon_vid_dump_regs();
     return 0;
 }
 
@@ -1456,7 +1754,7 @@ int 	vixPlaybackSetEq( const vidix_video_eq_t * eq)
 #ifdef RAGE128
     br = equal.brightness * 64 / 1000;
     if(br < -64) br = -64; if(br > 63) br = 63;
-    sat = (equal.saturation + 1000) * 16 / 1000;
+    sat = (equal.saturation*31 + 31000) / 2000;
     if(sat < 0) sat = 0; if(sat > 31) sat = 31;
     OUTREG(OV0_COLOUR_CNTL, (br & 0x7f) | (sat << 8) | (sat << 16));
 #else
@@ -1604,3 +1902,82 @@ int vixSetGrKeys(const vidix_grkey_t *grkey)
     set_gr_key();
     return(0);
 }
+
+#ifdef RADEON_ENABLE_BM
+static int radeon_setup_frame( vidix_dma_t * dmai )
+{
+    bm_list_descriptor * list = (bm_list_descriptor *)radeon_dma_desc_base;
+    unsigned long dest_ptr;
+    unsigned i,n,count;
+    int retval;
+    if(dmai->dest_offset + dmai->size > radeon_ram_size) return E2BIG;
+    n = dmai->size / 4096;
+    if(dmai->size % 4096) n++;
+    if((retval = bm_virt_to_bus(dmai->src,dmai->size,dma_phys_addrs)) != 0) return retval;
+    dest_ptr = dmai->dest_offset;
+    count = dmai->size;
+    for(i=0;i<n;i++)
+    {
+	list[i].framebuf_offset = radeon_overlay_off + dest_ptr;
+	list[i].sys_addr = dma_phys_addrs[i]; 
+#ifdef RAGE128
+	list[i].command = (count > 4096 ? 4096 : count | BM_END_OF_LIST)|BM_FORCE_TO_PCI;
+#else
+	list[i].command = (count > 4096 ? 4096 : count | DMA_GUI_COMMAND__EOL);
+#endif
+	list[i].reserved = 0;
+printf("RADEON_DMA_TABLE[%i] %X %X %X %X\n",i,list[i].framebuf_offset,list[i].sys_addr,list[i].command,list[i].reserved);
+	dest_ptr += 4096;
+	count -= 4096;
+    }
+    return 0;
+}
+
+static int radeon_transfer_frame( void  )
+{
+    unsigned i;
+    radeon_engine_idle();
+    for(i=0;i<1000;i++) INREG(BUS_CNTL); /* FlushWriteCombining */
+    OUTREG(BUS_CNTL,(INREG(BUS_CNTL) | BUS_STOP_REQ_DIS)&(~BUS_MASTER_DIS));
+#ifdef RAGE128
+    OUTREG(BM_CHUNK_0_VAL,0x000000FF | BM_GLOBAL_FORCE_TO_PCI);
+    OUTREG(BM_CHUNK_1_VAL,0x0F0F0F0F);
+    OUTREG(BM_VIP0_BUF,bus_addr_dma_desc|SYSTEM_TRIGGER_SYSTEM_TO_VIDEO);
+//    OUTREG(GEN_INT_STATUS,INREG(GEN_INT_STATUS)|0x00010000);
+#else
+    OUTREG(MC_FB_LOCATION,
+	    ((pci_info.base0>>16)&0xffff)|
+	    ((pci_info.base0+INREG(CONFIG_APER_SIZE)-1)&0xffff0000));
+    if((INREG(MC_AGP_LOCATION)&0xffff)!=
+      (((pci_info.base0+INREG(CONFIG_APER_SIZE))>>16)&0xffff))
+    /*Radeon memory controller is misconfigured*/
+	    return EINVAL;
+    OUTREG(DMA_VID_ACT_DSCRPTR,bus_addr_dma_desc);
+//    OUTREG(GEN_INT_STATUS,INREG(GEN_INT_STATUS)|(1<<30));
+#endif
+    OUTREG(GEN_INT_STATUS,INREG(GEN_INT_STATUS)|0x00010000);
+    return 0;
+}
+
+
+int vixPlaybackCopyFrame( vidix_dma_t * dmai )
+{
+    int retval;
+    if(mlock(dmai->src,dmai->size) != 0) return errno;
+    retval = radeon_setup_frame(dmai);
+    if(retval == 0) retval = radeon_transfer_frame();
+    munlock(dmai->src,dmai->size);
+    return retval;
+}
+
+int	vixQueryDMAStatus( void )
+{
+    int bm_active;
+#if 1 //def RAGE128
+    bm_active=(INREG(GEN_INT_STATUS)&0x00010000)==0?1:0;
+#else
+    bm_active=(INREG(GEN_INT_STATUS)&(1<<30))==0?1:0;
+#endif
+    return bm_active?1:0;
+}
+#endif

@@ -80,8 +80,16 @@
 	#define PM3ByApertureMode_DOUBLE_WRITE_8MB		(4<<22)
 	#define PM3ByApertureMode_DOUBLE_WRITE_16MB		(5<<22)
 	#define PM3ByApertureMode_DOUBLE_WRITE_32MB		(6<<22)
+#define PM3Aperture1Stride					0x0308
+#define PM3Aperture1YStart					0x0310
+#define PM3Aperture1UStart					0x0318
+#define PM3Aperture1VStart					0x0320
 
 #define PM3ByAperture2Mode					0x0328
+#define PM3Aperture2Stride					0x0330
+#define PM3Aperture2YStart					0x0338
+#define PM3Aperture2UStart					0x0340
+#define PM3Aperture2VStart					0x0348
 	
 /**********************************************
 *  GLINT Permedia3 Memory Control (0x1000)    *

@@ -16,6 +16,14 @@
 #include <math.h>
 #include <inttypes.h>
 #include <fcntl.h>
+#include <sys/mman.h> /* for m(un)lock */
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#ifdef HAVE_MEMALIGN
+#define MACH64_ENABLE_BM 1
+#endif
+#endif
+
 
 #include "../vidix.h"
 #include "../fourcc.h"
@@ -27,20 +35,42 @@
 
 #define UNUSED(x) ((void)(x)) /**< Removes warning about unused arguments */
 
+
+#ifdef MACH64_ENABLE_BM
+
+#define cpu_to_le32(a) (a)
+#define VIRT_TO_CARD(a,b,c) bm_virt_to_bus(a,b,c)
+#pragma pack(1)
+typedef struct
+{
+	uint32_t framebuf_offset;
+	uint32_t sys_addr;
+	uint32_t command;
+	uint32_t reserved;
+} bm_list_descriptor;
+#pragma pack()
+static void *mach64_dma_desc_base[64];
+static unsigned long bus_addr_dma_desc = 0;
+static unsigned long *dma_phys_addrs;
+#endif
+
 static void *mach64_mmio_base = 0;
 static void *mach64_mem_base = 0;
 static int32_t mach64_overlay_offset = 0;
 static uint32_t mach64_ram_size = 0;
-static uint32_t mach64_buffer_base[10][3];
+static uint32_t mach64_buffer_base[64][3];
 static int num_mach64_buffers=-1;
 static int supports_planar=0;
+static int supports_colour_adj=0;
+static int supports_idct=0;
+static int supports_subpic=0;
 static int supports_lcd_v_stretch=0;
 
 pciinfo_t pci_info;
 static int probed = 0;
 static int __verbose = 0;
 
-#define VERBOSE_LEVEL 1
+#define VERBOSE_LEVEL 2
 
 typedef struct bes_registers_s
 {
@@ -117,7 +147,23 @@ static video_registers_t vregs[] =
   DECLARE_VREG(VIDEO_FORMAT),
   DECLARE_VREG(VIDEO_CONFIG),
   DECLARE_VREG(VIDEO_SYNC_TEST),
-  DECLARE_VREG(VIDEO_SYNC_TEST_B)
+  DECLARE_VREG(VIDEO_SYNC_TEST_B),
+  DECLARE_VREG(BUS_CNTL),
+  DECLARE_VREG(SRC_CNTL),
+  DECLARE_VREG(GUI_STAT),
+  DECLARE_VREG(BM_ADDR),
+  DECLARE_VREG(BM_DATA),
+  DECLARE_VREG(BM_HOSTDATA),
+  DECLARE_VREG(BM_GUI_TABLE_CMD),
+  DECLARE_VREG(BM_FRAME_BUF_OFFSET),
+  DECLARE_VREG(BM_SYSTEM_MEM_ADDR),
+  DECLARE_VREG(BM_COMMAND),
+  DECLARE_VREG(BM_STATUS),
+  DECLARE_VREG(BM_GUI_TABLE),
+  DECLARE_VREG(BM_SYSTEM_TABLE),
+  DECLARE_VREG(AGP_BASE),
+  DECLARE_VREG(AGP_CNTL),
+  DECLARE_VREG(CRTC_INT_CNTL)
 };
 
 /* VIDIX exports */
@@ -176,6 +222,17 @@ static __inline__ void OUTPLL(uint32_t addr,uint32_t val)
 		_tmp |= (val);						\
 		OUTPLL(addr, _tmp);					\
 	} while (0)
+	
+static void mach64_engine_reset( void )
+{
+  /* Kill off bus mastering with extreme predjudice... */
+  OUTREG(BUS_CNTL, INREG(BUS_CNTL) | BUS_MASTER_DIS);
+  /* Reset engine -- This is accomplished by setting bit 8 of the GEN_TEST_CNTL
+   register high, then low (per the documentation, it's on high to low transition
+   that the GUI engine gets reset...) */
+  OUTREG( GEN_TEST_CNTL, INREG( GEN_TEST_CNTL ) | GEN_GUI_EN );
+  OUTREG( GEN_TEST_CNTL, INREG( GEN_TEST_CNTL ) & ~GEN_GUI_EN );
+}
 
 static void mach64_fifo_wait(unsigned n) 
 {
@@ -184,8 +241,10 @@ static void mach64_fifo_wait(unsigned n)
 
 static void mach64_wait_for_idle( void ) 
 {
+    unsigned i;
     mach64_fifo_wait(16);
-    while ((INREG(GUI_STAT) & 1)!= 0);
+    for (i=0; i<2000000; i++) if((INREG(GUI_STAT) & GUI_ACTIVE) == 0) break;
+    if((INREG(GUI_STAT) & 1) != 0) mach64_engine_reset(); /* due card lookup */
 }
 
 static void mach64_wait_vsync( void )
@@ -443,10 +502,10 @@ static void reset_regs( void )
   }
 }
 
-
 int vixInit(void)
 {
   int err;
+  unsigned i;
   if(!probed)
   {
     printf("[mach64] Driver was not probed but is being initializing\n");
@@ -482,9 +541,20 @@ int vixInit(void)
 
 	if(INREG(SCALER_BUF0_OFFSET_U)) 	supports_planar=1;
   }
-  if(supports_planar)	printf("[mach64] Planar YUV formats are supported :)\n");
-  else			printf("[mach64] Planar YUV formats are not supported :(\n");
-  
+  printf("[mach64] Planar YUV formats are %s supported\n",supports_planar?"":"not");
+  supports_colour_adj=0;
+  OUTREG(SCALER_COLOUR_CNTL,-1);
+  if(INREG(SCALER_COLOUR_CNTL)) supports_colour_adj=1;
+  supports_idct=0;
+  OUTREG(IDCT_CONTROL,-1);
+  if(INREG(IDCT_CONTROL)) supports_idct=1;
+  OUTREG(IDCT_CONTROL,0);
+  printf("[mach64] IDCT is %s supported\n",supports_idct?"":"not");
+  supports_subpic=0;
+  OUTREG(SUBPIC_CNTL,-1);
+  if(INREG(SUBPIC_CNTL)) supports_subpic=1;
+  OUTREG(SUBPIC_CNTL,0);
+  printf("[mach64] subpictures are %s supported\n",supports_subpic?"":"not");
   if(   mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_P_M
      || mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_P_M2
      || mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_L
@@ -495,15 +565,46 @@ int vixInit(void)
   
   reset_regs();
   mach64_vid_make_default();
-
   if(__verbose > VERBOSE_LEVEL) mach64_vid_dump_regs();
+#ifdef MACH64_ENABLE_BM
+  if(bm_open() == 0)
+  {
+	mach64_cap.flags |= FLAG_DMA | FLAG_EQ_DMA;
+	if((dma_phys_addrs = malloc(mach64_ram_size*sizeof(unsigned long)/4096)) == 0)
+	{
+	    out_mem:
+	    printf("[mach64] Can't allocate temopary buffer for DMA\n");
+	    mach64_cap.flags &= ~FLAG_DMA & ~FLAG_EQ_DMA;
+	    return 0;
+	}
+	/*
+	    WARNING: We MUST have continigous descriptors!!!
+	    But: (720*720*2(YUV422)*16(sizeof(bm_descriptor)))/4096=4050
+	    Thus one 4K page is far enough to describe max movie size.
+	*/
+	for(i=0;i<64;i++)
+	    if((mach64_dma_desc_base[i] = memalign(4096,mach64_ram_size*sizeof(bm_list_descriptor)/4096)) == 0)
+		goto out_mem;
+  }
+  else
+    if(__verbose) printf("[mach64] Can't initialize busmastering: %s\n",strerror(errno));
+#endif
   return 0;
 }
 
 void vixDestroy(void)
 {
+  unsigned i;
   unmap_phys_mem(mach64_mem_base,mach64_ram_size);
   unmap_phys_mem(mach64_mmio_base,0x4000);
+#ifdef MACH64_ENABLE_BM
+  bm_close();
+  if(dma_phys_addrs) free(dma_phys_addrs);
+  for(i=0;i<64;i++) 
+  {
+    if(mach64_dma_desc_base[i]) free(mach64_dma_desc_base[i]);
+  }
+#endif
 }
 
 int vixGetCapability(vidix_capability_t *to)
@@ -612,7 +713,7 @@ static void mach64_vid_stop_video( void )
 
 static void mach64_vid_display_video( void )
 {
-    uint32_t vf;
+    uint32_t vf,sc,width;
     mach64_fifo_wait(14);
 
     OUTREG(OVERLAY_Y_X_START,			besr.y_x_start);
@@ -627,63 +728,65 @@ static void mach64_vid_display_video( void )
     OUTREG(SCALER_BUF1_OFFSET_U,		mach64_buffer_base[0][1]);
     OUTREG(SCALER_BUF1_OFFSET_V,		mach64_buffer_base[0][2]);
     mach64_wait_vsync();
-    
+    width = (besr.height_width >> 16 & 0x03FF);
+    sc = 	SCALE_EN | OVERLAY_EN | 
+		SCALE_BANDWIDTH | /* reset bandwidth status */
+		SCALE_PIX_EXPAND | /* dynamic range correct */
+		SCALE_Y2R_TEMP; /* use the equal temparature for every component of RGB */
+    /* Force clocks of scaler. */
+    if(width > 360 && !supports_planar && !mach64_is_interlace())
+	     sc |= SCALE_CLK_FORCE_ON;
+    /* Do we need that? And how we can improve the quality of 3dRageII scaler ?
+       3dRageII+ (non pro) is really crapped HW :(
+       ^^^^^^^^^^^^^^^^^^^
+	!!SCALER_WIDTH <= 360 provides full scaling functionality !!!!!!!!!!!!!
+	!!360 < SCALER_WIDTH <= 720 provides scaling with vertical replication (crap)
+	!!SCALER_WIDTH > 720 is illegal. (no comments)
+	
+       As for me - I would prefer to limit movie's width with 360 but it provides only
+       half of picture but with perfect quality. (NK) */
     mach64_fifo_wait(4);
-    OUTREG(OVERLAY_SCALE_CNTL, 0xC4000003);
-// OVERLAY_SCALE_CNTL bits & what they seem to affect
-// bit 0 no effect
-// bit 1 yuv2rgb coeff related
-// bit 2 horizontal interpolation if 0
-// bit 3 vertical interpolation if 0
-// bit 4 chroma encoding (0-> 128=neutral / 1-> 0->neutral)
-// bit 5-6 gamma correction
-// bit 7 nothing visible if set
-// bit 8-27 no effect
-// bit 28-31 nothing interresting just crashed my system when i played with them  :(
+    OUTREG(OVERLAY_SCALE_CNTL, sc);
 
     mach64_wait_for_idle();
-    vf = INREG(VIDEO_FORMAT);
-
-// Bits 16-19 seem to select the format
-// 0x0  dunno behaves strange
-// 0x1  dunno behaves strange
-// 0x2  dunno behaves strange
-// 0x3  BGR15
-// 0x4  BGR16
-// 0x5  BGR16 (hmm, that need investigation, 2 BGR16 formats, i guess 1 will have only 5bits for green)
-// 0x6  BGR32
-// 0x7  BGR32 with somehow mixed even / odd pixels ?
-// 0x8	YYYYUVUV
-// 0x9	YVU9
-// 0xA	YV12
-// 0xB	YUY2
-// 0xC	UYVY
-// 0xD  UYVY (no difference is visible if i switch between C/D for every even/odd frame)
-// 0xE  dunno behaves strange
-// 0xF  dunno behaves strange
-// Bit 28 all values are assumed to be 7 bit with chroma=64 for black (tested with YV12 & YUY2)
-// the remaining bits seem to have no effect
-
 
     switch(besr.fourcc)
     {
 	/* BGR formats */
-	case IMGFMT_BGR15: OUTREG(VIDEO_FORMAT, 0x00030000);  break;
-	case IMGFMT_BGR16: OUTREG(VIDEO_FORMAT, 0x00040000);  break;
-	case IMGFMT_BGR32: OUTREG(VIDEO_FORMAT, 0x00060000);  break;
+	case IMGFMT_BGR15: vf = SCALER_IN_RGB15;  break;
+	case IMGFMT_BGR16: vf = SCALER_IN_RGB16;  break;
+	case IMGFMT_BGR32: vf = SCALER_IN_RGB32;  break;
         /* 4:2:0 */
 	case IMGFMT_IYUV:
 	case IMGFMT_I420:
-	case IMGFMT_YV12:  OUTREG(VIDEO_FORMAT, 0x000A0000);  break;
-
-	case IMGFMT_YVU9:  OUTREG(VIDEO_FORMAT, 0x00090000);  break;
+	case IMGFMT_YV12:  vf = SCALER_IN_YUV12;  break;
+	/* 4:1:0 */
+	case IMGFMT_YVU9:  vf = SCALER_IN_YUV9;  break;
         /* 4:2:2 */
         case IMGFMT_YVYU:
-	case IMGFMT_UYVY:  OUTREG(VIDEO_FORMAT, 0x000C0000); break;
+	case IMGFMT_UYVY:  vf = SCALER_IN_YVYU422; break;
 	case IMGFMT_YUY2:
-	default:           OUTREG(VIDEO_FORMAT, 0x000B0000); break;
+	default:           vf = SCALER_IN_VYUY422; break;
     }
+    OUTREG(VIDEO_FORMAT,vf);
     if(__verbose > VERBOSE_LEVEL) mach64_vid_dump_regs();
+}
+
+/* Goal of this function: hide RGB background and provide black screen around movie.
+   Useful in '-vo fbdev:vidix -fs -zoom' mode.
+   Reverse effect to colorkey */
+static void mach64_vid_exclusive( void )
+{
+    unsigned screenw,screenh;
+    screenw = mach64_get_xres();
+    screenh = mach64_get_yres();
+    OUTREG(OVERLAY_EXCLUSIVE_VERT,(((screenh-1)<<16)&EXCLUSIVE_VERT_END));
+    OUTREG(OVERLAY_EXCLUSIVE_HORZ,(((screenw/8+1)<<8)&EXCLUSIVE_HORZ_END)|EXCLUSIVE_EN);
+}
+
+static void mach64_vid_non_exclusive( void )
+{
+    OUTREG(OVERLAY_EXCLUSIVE_HORZ,0);
 }
 
 static int mach64_vid_init_video( vidix_playback_t *config )
@@ -751,11 +854,11 @@ for(i=0; i<32; i++){
     
     if(mach64_is_interlace()) v_inc<<=1;
     if(mach64_is_dbl_scan() ) v_inc>>=1;
-    v_inc>>=4; // convert 16.16 -> 20.12
     v_inc/= dest_h;
-    
+    v_inc>>=4; // convert 16.16 -> 4.12
+
     h_inc = (src_w << (12+ecp)) / dest_w;
-    /* keep everything in 16.16 */
+    /* keep everything in 4.12 */
     config->offsets[0] = 0;
     for(i=1; i<config->num_frames; i++)
         config->offsets[i] = config->offsets[i-1] + config->frame_size;
@@ -870,19 +973,39 @@ int vixQueryFourcc(vidix_fourcc_t *to)
 
 int vixConfigPlayback(vidix_playback_t *info)
 {
+  unsigned rgb_size,nfr;
+  uint32_t mach64_video_size;
   if(!is_supported_fourcc(info->fourcc)) return ENOSYS;
+  if(info->src.h > 720 || info->src.w > 720)
+  {
+    printf("[mach64] Can't apply width or height > 720\n");
+    return EINVAL;
+  }
+  if(info->num_frames>VID_PLAY_MAXFRAMES) info->num_frames=VID_PLAY_MAXFRAMES;
 
   mach64_compute_framesize(info);
-
-  if(info->num_frames>4) info->num_frames=4;
-  for(;info->num_frames>0; info->num_frames--)
+  rgb_size = mach64_get_xres()*mach64_get_yres()*((mach64_vid_get_dbpp()+7)/8);
+  nfr = info->num_frames;
+  mach64_video_size = mach64_ram_size;
+  for(;nfr>0;nfr--)
   {
-      mach64_overlay_offset = mach64_ram_size - info->frame_size*info->num_frames;
+      mach64_overlay_offset = mach64_video_size - info->frame_size*nfr;
       mach64_overlay_offset &= 0xffff0000;
-      if(mach64_overlay_offset>0) break;
+      if(mach64_overlay_offset >= (int)rgb_size ) break;
   }
-  if(info->num_frames <= 0) return EINVAL;
-
+  if(nfr <= 3)
+  {
+   nfr = info->num_frames;
+   for(;nfr>0;nfr--)
+   {
+      mach64_overlay_offset = mach64_video_size - info->frame_size*nfr;
+      mach64_overlay_offset &= 0xffff0000;
+      if(mach64_overlay_offset>=0) break;
+   }
+  }
+  if(nfr <= 0) return EINVAL;
+  info->num_frames=nfr;
+  num_mach64_buffers = info->num_frames;
   info->dga_addr = (char *)mach64_mem_base + mach64_overlay_offset;
   mach64_vid_init_video(info);
   return 0;
@@ -890,8 +1013,20 @@ int vixConfigPlayback(vidix_playback_t *info)
 
 int vixPlaybackOn(void)
 {
+  int err;
+  unsigned dw,dh;
+  dw = (besr.y_x_end >> 16) - (besr.y_x_start >> 16);
+  dh = (besr.y_x_end & 0xFFFF) - (besr.y_x_start & 0xFFFF);
+  if(dw == mach64_get_xres() || dh == mach64_get_yres()) mach64_vid_exclusive();
+  else mach64_vid_non_exclusive();
   mach64_vid_display_video();
-  return 0;
+  err = INREG(SCALER_BUF_PITCH) == besr.vid_buf_pitch ? 0 : EINTR;
+  if(err)
+  {
+    printf("[mach64] *** Internal fatal error ***: Detected pitch corruption\n"
+	   "[mach64] Try decrease number of buffers\n");
+  }
+  return err;
 }
 
 int vixPlaybackOff(void)
@@ -905,18 +1040,17 @@ int vixPlaybackFrameSelect(unsigned int frame)
     uint32_t off[6];
     int i;
     int last_frame= (frame-1+num_mach64_buffers) % num_mach64_buffers;
-//printf("Selecting frame %d\n", frame);    
     /*
     buf3-5 always should point onto second buffer for better
     deinterlacing and TV-in
     */
     if(num_mach64_buffers==1) return 0;
-
     for(i=0; i<3; i++)
     {
     	off[i]  = mach64_buffer_base[frame][i];
     	off[i+3]= mach64_buffer_base[last_frame][i];
     }
+    if(__verbose > VERBOSE_LEVEL) printf("mach64_vid: flip_page = %u\n",frame);
 
 #if 0 // delay routine so the individual frames can be ssen better
 {
@@ -949,6 +1083,7 @@ vidix_video_eq_t equal =
 int 	vixPlaybackGetEq( vidix_video_eq_t * eq)
 {
   memcpy(eq,&equal,sizeof(vidix_video_eq_t));
+  if(!supports_colour_adj) eq->cap = VEQ_CAP_BRIGHTNESS;
   return 0;
 }
 
@@ -965,12 +1100,29 @@ int 	vixPlaybackSetEq( const vidix_video_eq_t * eq)
       equal.green_intensity = eq->green_intensity;
       equal.blue_intensity  = eq->blue_intensity;
     }
-    equal.flags = eq->flags;
-    br = equal.brightness * 64 / 1000;
-    if(br < -64) br = -64; if(br > 63) br = 63;
-    sat = (equal.saturation + 1000) * 16 / 1000;
-    if(sat < 0) sat = 0; if(sat > 31) sat = 31;
-    OUTREG(SCALER_COLOUR_CNTL, (br & 0x7f) | (sat << 8) | (sat << 16));
+    if(supports_colour_adj)
+    {
+	equal.flags = eq->flags;
+	br = equal.brightness * 64 / 1000;
+	if(br < -64) br = -64; if(br > 63) br = 63;
+	sat = (equal.saturation + 1000) * 16 / 1000;
+	if(sat < 0) sat = 0; if(sat > 31) sat = 31;
+	OUTREG(SCALER_COLOUR_CNTL, (br & 0x7f) | (sat << 8) | (sat << 16));
+    }
+    else
+    {
+	unsigned gamma;
+	br = equal.brightness * 3 / 1000;
+	if(br < 0) br = 0;
+	switch(br)
+	{
+	    default:gamma = SCALE_GAMMA_SEL_BRIGHT; break;
+	    case 1: gamma = SCALE_GAMMA_SEL_G14; break;
+	    case 2: gamma = SCALE_GAMMA_SEL_G18; break;
+	    case 3: gamma = SCALE_GAMMA_SEL_G22; break;
+	}
+	OUTREG(OVERLAY_SCALE_CNTL,(INREG(OVERLAY_SCALE_CNTL) & ~SCALE_GAMMA_SEL_MSK) | gamma);
+    }
   return 0;
 }
 
@@ -1043,3 +1195,67 @@ int vixSetGrKeys(const vidix_grkey_t *grkey)
 
     return(0);
 }
+
+#ifdef MACH64_ENABLE_BM
+static int mach64_setup_frame( vidix_dma_t * dmai )
+{
+    if(mach64_overlay_offset + dmai->dest_offset + dmai->size > mach64_ram_size) return E2BIG;
+    if(dmai->idx > VID_PLAY_MAXFRAMES-1) dmai->idx=0;
+    if(!(dmai->internal[dmai->idx] && (dmai->flags & BM_DMA_FIXED_BUFFS)))
+    {
+	bm_list_descriptor * list = (bm_list_descriptor *)mach64_dma_desc_base[dmai->idx];
+	unsigned long dest_ptr;
+	unsigned i,n,count;
+	int retval;
+	n = dmai->size / 4096;
+	if(dmai->size % 4096) n++;
+	if((retval = VIRT_TO_CARD(dmai->src,dmai->size,dma_phys_addrs)) != 0) return retval;
+	dmai->internal[dmai->idx] = mach64_dma_desc_base[dmai->idx];
+	dest_ptr = dmai->dest_offset;
+	count = dmai->size;
+	for(i=0;i<n;i++)
+	{
+	    list[i].framebuf_offset = mach64_overlay_offset + dest_ptr; /* offset within of video memory */
+	    list[i].sys_addr = dma_phys_addrs[i];
+	    list[i].command = (count > 4096 ? 4096 : (count | DMA_GUI_COMMAND__EOL));
+	    list[i].reserved = 0;
+#if 0
+printf("MACH64_DMA_TABLE[%i] %X %X %X %X\n",i,list[i].framebuf_offset,list[i].sys_addr,list[i].command,list[i].reserved);
+#endif
+	    dest_ptr += 4096;
+	    count -= 4096;
+	}
+    }
+    return 0;
+}
+
+static int mach64_transfer_frame( unsigned long ba_dma_desc )
+{
+    mach64_wait_for_idle();
+    OUTREG(BUS_CNTL,(INREG(BUS_CNTL)|BUS_MSTR_RESET));
+    OUTREG(CRTC_INT_CNTL,INREG(CRTC_INT_CNTL)|CRTC_BUSMASTER_EOL_INT|CRTC_BUSMASTER_EOL_INT_EN);
+    OUTREG(BUS_CNTL,(INREG(BUS_CNTL)|BUS_EXT_REG_EN|BUS_READ_BURST|BUS_PCI_READ_RETRY_EN) &(~BUS_MASTER_DIS));
+    OUTREG(BM_SYSTEM_TABLE,ba_dma_desc|SYSTEM_TRIGGER_SYSTEM_TO_VIDEO);
+    if(__verbose > VERBOSE_LEVEL) mach64_vid_dump_regs();    
+    return 0;
+}
+
+
+int vixPlaybackCopyFrame( vidix_dma_t * dmai )
+{
+    int retval;
+    if(!(dmai->flags & BM_DMA_FIXED_BUFFS)) if(bm_lock_mem(dmai->src,dmai->size) != 0) return errno;
+    retval = mach64_setup_frame(dmai);
+    VIRT_TO_CARD(mach64_dma_desc_base[dmai->idx],1,&bus_addr_dma_desc);
+    if(retval == 0) retval = mach64_transfer_frame(bus_addr_dma_desc);
+    if(!(dmai->flags & BM_DMA_FIXED_BUFFS)) bm_unlock_mem(dmai->src,dmai->size);
+    return retval;
+}
+
+int	vixQueryDMAStatus( void )
+{
+    int bm_off;
+    bm_off = INREG(CRTC_INT_CNTL) & CRTC_BUSMASTER_EOL_INT;
+    return bm_off?0:1;
+}
+#endif

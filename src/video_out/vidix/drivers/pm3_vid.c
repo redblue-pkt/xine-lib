@@ -34,6 +34,9 @@
 
 #include "pm3_regs.h"
 
+/* MBytes of video memory to use */
+#define PM3_VIDMEM 24
+
 #if 0
 #define TRACE_ENTER() fprintf(stderr, "%s: enter\n", __FUNCTION__)
 #define TRACE_EXIT() fprintf(stderr, "%s: exit\n", __FUNCTION__)
@@ -46,6 +49,8 @@ pciinfo_t pci_info;
 
 void *pm3_reg_base;
 void *pm3_mem;
+
+int pm3_vidmem = PM3_VIDMEM;
 
 static vidix_capability_t pm3_cap =
 {
@@ -131,8 +136,12 @@ int vixProbe(int verbose, int force)
 
 int vixInit(void)
 {
+    char *vm;
     pm3_reg_base = map_phys_mem(pci_info.base0, 0x20000);
-    pm3_mem = map_phys_mem(pci_info.base2, 0x2000000);
+    pm3_mem = map_phys_mem(pci_info.base1, 0x2000000);
+    if((vm = getenv("PM3_VIDMEM"))){
+	pm3_vidmem = strtol(vm, NULL, 0);
+    }
     return 0;
 }
 
@@ -235,9 +244,6 @@ int vixConfigPlayback(vidix_playback_t *info)
 
     TRACE_ENTER();
 
-    if(!is_supported_fourcc(info->fourcc))
-	return -1;
-
     switch(info->fourcc){
     case IMGFMT_YUY2:
 	format = FORMAT_YUV422;
@@ -257,28 +263,51 @@ int vixConfigPlayback(vidix_playback_t *info)
 
     pitch = src_w;
 
-    /* Assume we have 16 MB to play with */
-    info->num_frames = 0x1000000 / (pitch * src_h * 2);
+    info->num_frames = pm3_vidmem*1024*1024 / (pitch * src_h * 2);
     if(info->num_frames > VID_PLAY_MAXFRAMES)
 	info->num_frames = VID_PLAY_MAXFRAMES;
 
-    /* Start at 16 MB. Let's hope it's not in use. */
-    base0 = 0x1000000;
+    /* Use end of video memory. Assume the card has 32 MB */
+    base0 = (32-pm3_vidmem)*1024*1024;
     info->dga_addr = pm3_mem + base0;
 
-    info->dest.pitch.y = 2;
-    info->dest.pitch.u = 0;
-    info->dest.pitch.v = 0;
-    info->offset.y = 0;
-    info->offset.v = 0;
-    info->offset.u = 0;
+    if(info->fourcc == IMGFMT_YV12){
+	info->dest.pitch.y = 2;
+	info->dest.pitch.u = 2;
+	info->dest.pitch.y = 2;
+	info->offset.y = 0;
+	info->offset.v = src_w * src_h;
+	info->offset.u = src_w * src_h * 3/2;
+    } else {
+	info->dest.pitch.y = 2;
+	info->dest.pitch.u = 0;
+	info->dest.pitch.v = 0;
+	info->offset.y = 0;
+	info->offset.v = 0;
+	info->offset.u = 0;
+    }
     info->frame_size = pitch * src_h * 2;
+
     for(i = 0; i < info->num_frames; i++){
 	info->offsets[i] = info->frame_size * i;
 	frames[i] = (base0 + info->offsets[i]) >> 1;
     }
 
     compute_scale_factor(&src_w, &drw_w, &shrink, &zoom);
+
+#if 0
+    aperture_mode = READ_REG(PM3ByAperture1Mode);
+    if(info->fourcc == IMGFMT_YV12){
+/*     WRITE_REG(PM3Aperture0, base0 >> 1); */
+	WRITE_REG(PM3ByAperture1Mode,
+		  PM3ByApertureMode_FORMAT_YUYV |
+		  PM3ByApertureMode_PIXELSIZE_32BIT);
+	WRITE_REG(PM3Aperture1Stride, pitch);
+	WRITE_REG(PM3Aperture1YStart, base0 / 16);
+	WRITE_REG(PM3Aperture1VStart, (base0 + info->offset.v) / 16);
+	WRITE_REG(PM3Aperture1UStart, (base0 + info->offset.u) / 16);
+    }
+#endif
 
     WRITE_REG(PM3VideoOverlayBase0, base0 >> 1);
     WRITE_REG(PM3VideoOverlayStride, PM3VideoOverlayStride_STRIDE(pitch));
@@ -327,7 +356,7 @@ int vixConfigPlayback(vidix_playback_t *info)
 
     overlay_control = 
 	PM3RD_VideoOverlayControl_KEY_COLOR |
-	PM3RD_VideoOverlayControl_MODE_MAINKEY |
+	PM3RD_VideoOverlayControl_MODE_OVERLAYKEY |
 	PM3RD_VideoOverlayControl_DIRECTCOLOR_ENABLED;
 
     TRACE_EXIT();
@@ -366,5 +395,6 @@ int vixPlaybackOff(void)
 int vixPlaybackFrameSelect(unsigned int frame)
 {
     WRITE_REG(PM3VideoOverlayBase0, frames[frame]);
+/*     WRITE_REG(PM3Aperture0, frames[frame]); */
     return 0;
 }
