@@ -1,3 +1,6 @@
+xine-lib (1.0.1)
+  * fixed builds with Xv or the entire X11 unavailble
+
 xine-lib (1.0)
   * unbreak DXR3 plugin
   * fix crash in the AIFF demuxer on oversized chunks

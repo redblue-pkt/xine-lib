@@ -495,9 +495,6 @@ dnl ----------------------------------------------
 dnl With recent XFree86 or Xorg, dynamic linking is preferred!
 dnl Only dynamic linking is possible when using libtool < 1.4.0
 
-dnl ----------------------------------------------
-dnl SECTION: Check for Xv and XvMC support (iconv is also tested here?)
-dnl ----------------------------------------------
 AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
             xv_path="$withval",)
 
@@ -507,13 +504,9 @@ AC_ARG_ENABLE(shared-xv,
         xv_prefer_shared="yes")
 
 if test x"$no_x" != "xyes"; then
-
-  dnl -----------------------------------------------
-  dnl   Finding install Xv library
-  dnl -----------------------------------------------
   AC_FIND_LIBXV
-
 fi
+AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
 
 
 host_or_hostalias="$host"

@@ -43,8 +43,6 @@ AC_DEFUN([AC_TEST_LIBXV],
      ,
   [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 
-  AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
-
   dnl -----------------------------------------------
   dnl xine_check use Xv functions API.
   dnl -----------------------------------------------
@@ -66,7 +64,7 @@ AC_DEFUN([AC_FIND_LIBXV],
   AC_REQUIRE([AC_PATH_XTRA])
 
   # Set xv_path if its not done already
-  if test -z $xv_path; then
+  if test x$xv_path = x; then
     xv_path=`echo $X_LIBS | sed -e 's/\-L\(.*\)/\1/'`
   fi
 
@@ -77,7 +75,7 @@ AC_DEFUN([AC_FIND_LIBXV],
   fi
   
   # Try the other lib if prefered failed
-  if test -z $XV_LIB; then
+  if test x$XV_LIB = x; then
     if ! test "x$xv_prefer_shared" = "xyes"; then  
       AC_PATH_LIBXV_IMPL([libXv.so])
     else
@@ -85,7 +83,7 @@ AC_DEFUN([AC_FIND_LIBXV],
     fi
   fi
 
-  if ! test -z $XV_LIB; then
+  if ! test x$XV_LIB = x; then
     AC_TEST_LIBXV
   fi
 ])
