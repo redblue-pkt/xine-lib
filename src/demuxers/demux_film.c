@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.58 2003/02/22 07:20:25 tmmm Exp $
+ * $Id: demux_film.c,v 1.59 2003/02/22 15:00:43 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,6 +202,9 @@ static int open_film_file(demux_film_t *film) {
   /* load the rest of the FILM header */
   if (film->input->read(film->input, film_header, film_header_size) != 
     film_header_size) {
+    free (film->interleave_buffer);
+    free (film->sample_table);
+    free (film_header);
     return 0;
   }
 
@@ -219,6 +222,9 @@ static int open_film_file(demux_film_t *film) {
     if (i + chunk_size > film_header_size) {
       xine_log(film->stream->xine, XINE_LOG_MSG,
         _("invalid FILM chunk size\n"));
+      free (film->interleave_buffer);
+      free (film->sample_table);
+      free (film_header);
       return 0;
     }
 
@@ -360,14 +366,20 @@ static int open_film_file(demux_film_t *film) {
 
       /* allocate enough space in the interleave preload buffer for the 
        * first chunk (which will be more than enough for successive chunks) */
-      if (film->audio_type)
+      if (film->audio_type) {
+        if (film->interleave_buffer)
+          free(film->interleave_buffer);
         film->interleave_buffer = 
           xine_xmalloc(film->sample_table[0].sample_size);
+      }
       break;
 
     default:
       xine_log(film->stream->xine, XINE_LOG_MSG,
         _("unrecognized FILM chunk\n"));
+      free (film->interleave_buffer);
+      free (film->sample_table);
+      free (film_header);
       return 0;
     }
 
@@ -375,6 +387,8 @@ static int open_film_file(demux_film_t *film) {
   }
 
   film->total_time = largest_pts / 90;
+
+  free (film_header);
 
   return 1;
 }
