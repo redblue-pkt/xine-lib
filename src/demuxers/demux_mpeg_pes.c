@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.23 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_mpeg_pes.c,v 1.24 2004/05/16 21:35:16 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -897,8 +897,8 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       buf->decoder_info[2] = 0; /* First access unit pointer */
 
       buf->content   = p;
-      size = this->packet_len - result;
-      if ((size+result) > (buf->max_size) ) {
+      size = this->packet_len;
+      if ((size + result) > buf->max_size) {
         size = buf->max_size - result;
       }
       buf->size      = size;
@@ -913,17 +913,19 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       } else {
         buf->free_buffer(buf);
       }
-      if (this->packet_len <= (buf->max_size - 6)) {
+      if (size == this->packet_len) {
         return this->packet_len + result;
-      }	
+      }
+
       /* Handle Jumbo A52 frames from VDR. */
       offset = size;
       while (offset < this->packet_len) {
         int i;
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         size = this->packet_len - offset;
-        if (size > (buf->max_size)) size = buf->max_size;
-        offset+=size;
+        if (size > buf->max_size)
+          size = buf->max_size;
+        offset += size;
         i = this->input->read (this->input, buf->mem, (off_t) (size));
         if (i != size) {
           buf->free_buffer(buf);
@@ -944,7 +946,6 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 
       return this->packet_len + result;
     }
-
       
 
 
