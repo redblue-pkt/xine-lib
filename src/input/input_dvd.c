@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.27 2001/10/05 14:49:32 heikos Exp $
+ * $Id: input_dvd.c,v 1.28 2001/10/05 17:36:28 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -252,6 +252,7 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t nlen) {
 
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+  int		      bytes_read;
 
   if (nlen != DVD_VIDEO_LB_LEN) {
 
@@ -264,15 +265,19 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
   if (this->file_size_left < nlen)
     return 0;
 
-  if (read (this->raw_fd, buf, DVD_VIDEO_LB_LEN)) {
+  bytes_read = read (this->raw_fd, buf, DVD_VIDEO_LB_LEN);
+  if (bytes_read == DVD_VIDEO_LB_LEN) {
 
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
 
     return DVD_VIDEO_LB_LEN;
-  } else
-    fprintf (stderr, "read error in input_dvd plugin\n");
-
+  } else if (bytes_read < 0)
+    fprintf (stderr, "read error in input_dvd plugin (%s)\n",
+	     strerror (errno));
+  else
+    fprintf (stderr, "short read in input_dvd (%d != %d)\n",
+	     bytes_read, DVD_VIDEO_LB_LEN);
   return 0;
 }
 

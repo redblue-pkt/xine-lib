@@ -196,7 +196,8 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 
   n = read (this->fh, buf, nlen);
 
-  this->curpos += n;
+  if (n > 0)
+    this->curpos += n;
 
   return n;
 }

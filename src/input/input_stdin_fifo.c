@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.12 2001/09/08 00:44:40 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.13 2001/10/05 17:36:28 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -116,7 +116,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
     num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
 
     if(num_bytes < 0) {
-      this->curpos += num_bytes;
+      this->curpos += total_bytes;
       return num_bytes;
     }
     else if (!num_bytes) {

@@ -17,12 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.4 2001/10/03 15:09:47 jkeil Exp $
+ * $Id: read_cache.c,v 1.5 2001/10/05 17:36:28 jkeil Exp $
  */
 
 #include <sys/types.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include "utils.h"
 
@@ -41,6 +43,7 @@ struct macro_buf_s {
   off_t         adr;
 
   uint8_t      *data;
+  int		size_valid;	/* amount of valid data bytes in 'data' */
   read_cache_t *source;
 };
 
@@ -177,6 +180,7 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
   buf_element_t *buf;
   off_t          madr;
   int            badr;
+  int		 bytes_read;
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
 
@@ -191,7 +195,8 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
 
   /* find or create macroblock that contains this block */
 
-  if ( !this->cur_mbuf || (this->cur_mbuf->adr != madr) ) {
+  if ( !this->cur_mbuf || (this->cur_mbuf->adr != madr) ||
+       (this->cur_mbuf->size_valid <= badr) ) {
 
     if (this->cur_mbuf && (!this->cur_mbuf->ref)) {
 
@@ -210,11 +215,21 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
 
     mbuf->adr = madr;
     mbuf->ref = 0;
+    mbuf->size_valid = 0;
 
-    /* FIXME: error checking */
-    lseek (this->fd, madr, SEEK_SET) ;
-    pthread_testcancel();
-    read ( this->fd, mbuf->data, 2048*16);
+    if (lseek (this->fd, madr, SEEK_SET) < 0) {
+      fprintf(stderr, "read_cache: can't seek to offset %lld (%s)\n",
+	      (long long)madr, strerror (errno));
+    } else {
+      pthread_testcancel();
+      if ((bytes_read = read (this->fd, mbuf->data, 2048*16)) != 2048*16) {
+	  if (bytes_read < 0) /* reading encrypted dvd without authentication? */
+	  fprintf(stderr, "read_cache: read error (%s)\n", strerror (errno));
+	else
+	  fprintf(stderr, "read_cache: short read (%d != %d)\n", bytes_read, 2048*16);
+      }
+      mbuf->size_valid = bytes_read;
+    }
 
     this->cur_mbuf = mbuf;
 
@@ -222,6 +237,9 @@ buf_element_t *read_cache_read_block (read_cache_t *this,
     mbuf = this->cur_mbuf;
   }
 
+  /* check for read errors */
+  if ( badr > mbuf->size_valid )
+    return NULL;
 
   /* create buf */
 

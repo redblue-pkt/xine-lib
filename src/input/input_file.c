@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.23 2001/09/10 00:47:37 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.24 2001/10/05 17:36:28 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -306,12 +306,14 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   while (total_bytes < todo) {
     pthread_testcancel();
     num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
-    total_bytes += num_bytes;
-    if (!num_bytes) {
+    if (num_bytes <= 0) {
+      if (num_bytes < 0) 
+	fprintf (stderr, "input_file: read error (%s)\n", strerror (errno));
       buf->free_buffer (buf);
       buf = NULL;
       break;
     }
+    total_bytes += num_bytes;
   }
 
   if( buf != NULL )
