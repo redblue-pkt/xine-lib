@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.8 2002/06/12 15:09:07 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.9 2002/06/28 16:57:52 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -88,6 +88,10 @@ typedef struct dxr3_decoder_s {
   int              aspect;
   int              frame_rate_code;
   int              repeat_first_field;   /* mpeg stream header data */
+  
+  int              last_width;
+  int              last_height;
+  int              last_aspect;          /* used to detect changes for event sending */
   
   int              sync_every_frame;
   int              sync_retry;
@@ -168,14 +172,10 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   this->scr                             = NULL;
   this->xine                            = xine;
   
-  this->have_header_info                = 0;
-  this->repeat_first_field              = 0;
-  
   this->sync_every_frame                = cfg->register_bool(cfg,
     "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
     _("This is relevant for progressive video only (most PAL films)."),
     dxr3_update_sync_mode, this);
-  this->sync_retry                      = 0;
   this->enhanced_mode                   = cfg->register_bool(cfg,
     "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
     _("Enabling this option will utilise a smoother play mode."),
@@ -226,6 +226,14 @@ static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
   video_out->open(video_out);
   this->video_out = video_out;
   
+  this->have_header_info      = 0;
+  this->repeat_first_field    = 0;
+  
+  this->last_width            = 0;
+  this->last_height           = 0;
+  this->last_aspect           = 0;
+  
+  this->sync_retry            = 0;
   this->resync_window         = 0;
   this->skip_count            = 0;
   
@@ -511,7 +519,7 @@ static int dxr3_present(xine_t *xine)
 #ifdef LOG_VID
     printf("dxr3_decode_video: dxr3 presence test: info = %d\n", info);
 #endif
-    if (info != VO_TYPE_DXR3)
+    if ((info != VO_TYPE_DXR3_TVOUT) && (info != VO_TYPE_DXR3_OVERLAY))
       return 0;
   }
   return 1;
@@ -539,6 +547,23 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
   this->aspect          = buffer[HEADER_OFFSET+3] >> 4;
   
   this->have_header_info = 1;
+  
+  /* when width, height or aspect changes,
+   * we have to send an event for dxr3 spu decoder */
+  if (!this->last_width || !this->last_height || !this->last_aspect ||
+      (this->last_width != this->width) ||
+      (this->last_height != this->height) ||
+      (this->last_aspect != this->aspect)) {
+    xine_frame_change_event_t event;
+    event.event.type = XINE_EVENT_FRAME_CHANGE;
+    event.width = this->width;
+    event.height = this->height;
+    event.aspect = this->aspect;
+    xine_send_event(this->xine, &event.event);
+    this->last_width = this->width;
+    this->last_height = this->height;
+    this->last_aspect = this->aspect;
+  }
 }
 
 static int get_duration(dxr3_decoder_t *this)

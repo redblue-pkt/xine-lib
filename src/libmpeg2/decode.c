@@ -305,6 +305,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
 	    notify_event.width = picture->coded_picture_width;
 	    notify_event.height = picture->coded_picture_height;
+	    notify_event.aspect = picture->aspect_ratio_information;
 	    xine_send_event(mpeg2dec->xine, &notify_event.event);
 
 	    if (picture->forward_reference_frame) 
@@ -649,6 +650,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
 	notify_event.width = picture->coded_picture_width;
 	notify_event.height = picture->coded_picture_height;
+	notify_event.aspect = picture->aspect_ratio_information;
 	xine_send_event(mpeg2dec->xine, &notify_event.event);
       }
     } else if (code == 0xb5) {	/* extension_start_code */

@@ -141,6 +141,7 @@ typedef struct {
   xine_event_t     event;
   int              width;
   int              height;
+  int              aspect;
 } xine_frame_change_event_t;
 
 /*
