@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.2 2002/06/07 04:50:15 tmmm Exp $
+ * $Id: adpcm.c,v 1.3 2002/06/08 19:29:28 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -81,18 +81,9 @@ static int ms_adapt_coeff2[] = {
   ((QT_IMA_ADPCM_BLOCK_SIZE - QT_IMA_ADPCM_PREAMBLE_SIZE) * 2)
 
 #define MS_ADPCM_PREAMBLE_SIZE 7
-#define MS_ADPCM_SAMPLES_PER_BLOCK \
-  ((sh_audio->wf->nBlockAlign - MS_ADPCM_PREAMBLE_SIZE) * 2)
-
+#define MS_IMA_ADPCM_PREAMBLE_SIZE 4
 #define DK4_ADPCM_PREAMBLE_SIZE 4
-#define DK4_ADPCM_SAMPLES_PER_BLOCK \
-  (((sh_audio->wf->nBlockAlign - DK4_ADPCM_PREAMBLE_SIZE) * 2) + 1)
-
-// pretend there's such a thing as mono for this format
-#define DK3_ADPCM_PREAMBLE_SIZE 8
-#define DK3_ADPCM_BLOCK_SIZE 0x400
-// this isn't exact
-#define DK3_ADPCM_SAMPLES_PER_BLOCK 6000
+#define DK3_ADPCM_PREAMBLE_SIZE 16
 
 /* useful macros */
 /* clamp a number between 0 and 88 */
@@ -180,6 +171,175 @@ static void decode_ima_nibbles(unsigned short *output,
   }
 }
 
+#define DK3_GET_NEXT_NIBBLE() \
+    if (decode_top_nibble_next) \
+    { \
+      nibble = (last_byte >> 4) & 0x0F; \
+      decode_top_nibble_next = 0; \
+    } \
+    else \
+    { \
+      last_byte = this->buf[i + j]; \
+      j++; \
+      nibble = last_byte & 0x0F; \
+      decode_top_nibble_next = 1; \
+    }
+
+static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  int i, j;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  int sum_pred;
+  int diff_pred;
+  int sum_index;
+  int diff_index;
+  int diff_channel;
+  int out_ptr = 0;
+
+  unsigned char last_byte = 0;
+  unsigned char nibble;
+  int decode_top_nibble_next = 0;
+
+  // ADPCM work variables
+  int sign;
+  int delta;
+  int step;
+  int diff;
+
+  /* make sure the input size checks out */
+  if ((this->size % this->in_block_size) != 0) {
+    printf ("adpcm: received DK3 ADPCM block that does not line up\n");
+    this->size = 0;
+    return;
+  }
+
+  /* iterate through each block in the in buffer */
+  for (i = 0; i < this->size; i += this->in_block_size) {
+
+    sum_pred = LE_16(&this->buf[i + 10]);
+    diff_pred = LE_16(&this->buf[i + 12]);
+    SE_16BIT(sum_pred);
+    SE_16BIT(diff_pred);
+    diff_channel = diff_pred;
+    sum_index = this->buf[i + 14];
+    diff_index = this->buf[i + 15];
+
+    j = i + DK3_ADPCM_PREAMBLE_SIZE;
+    while (j < this->in_block_size) {
+
+      // process the first predictor of the sum channel
+      DK3_GET_NEXT_NIBBLE();
+
+      step = ima_adpcm_step[sum_index];
+
+      sign = nibble & 8;
+      delta = nibble & 7;
+
+      diff = step >> 3;
+      if (delta & 4) diff += step;
+      if (delta & 2) diff += step >> 1;
+      if (delta & 1) diff += step >> 2;
+
+      if (sign)
+        sum_pred -= diff;
+      else
+        sum_pred += diff;
+
+      CLAMP_S16(sum_pred);
+
+      sum_index += ima_adpcm_index[nibble];
+      CLAMP_0_TO_88(sum_index);
+
+      // process the diff channel predictor
+      DK3_GET_NEXT_NIBBLE();
+
+      step = ima_adpcm_step[diff_index];
+
+      sign = nibble & 8;
+      delta = nibble & 7;
+
+      diff = step >> 3;
+      if (delta & 4) diff += step;
+      if (delta & 2) diff += step >> 1;
+      if (delta & 1) diff += step >> 2;
+
+      if (sign)
+        diff_pred -= diff;
+      else
+        diff_pred += diff;
+
+      CLAMP_S16(diff_pred);
+
+      diff_index += ima_adpcm_index[nibble];
+      CLAMP_0_TO_88(diff_index);
+
+      // output the first pair of stereo PCM samples
+      diff_channel = (diff_channel + diff_pred) / 2;
+      this->decode_buffer[out_ptr++] = sum_pred + diff_channel;
+      this->decode_buffer[out_ptr++] = sum_pred - diff_channel;
+
+      // process the second predictor of the sum channel
+      DK3_GET_NEXT_NIBBLE();
+
+      step = ima_adpcm_step[sum_index];
+
+      sign = nibble & 8;
+      delta = nibble & 7;
+
+      diff = step >> 3;
+      if (delta & 4) diff += step;
+      if (delta & 2) diff += step >> 1;
+      if (delta & 1) diff += step >> 2;
+
+      if (sign)
+        sum_pred -= diff;
+      else
+        sum_pred += diff;
+
+      CLAMP_S16(sum_pred);
+
+      sum_index += ima_adpcm_index[nibble];
+      CLAMP_0_TO_88(sum_index);
+
+      // output the second pair of stereo PCM samples
+      this->decode_buffer[out_ptr++] = sum_pred + diff_channel;
+      this->decode_buffer[out_ptr++] = sum_pred - diff_channel;
+    }
+
+    /* dispatch the decoded audio */
+    j = 0;
+    while (j < out_ptr) {
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      if (audio_buffer->mem_size == 0) {
+        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+        return;
+      }
+
+      /* out_ptr and j are samples counts, mem_size is a byte count */
+      if (((out_ptr - j) * 2) > audio_buffer->mem_size)
+        bytes_to_send = audio_buffer->mem_size;
+      else
+        bytes_to_send = (out_ptr - j) * 2;
+
+      xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+        bytes_to_send);
+      /* byte count / 2 (bytes / sample) / channels */
+      audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
+
+      audio_buffer->vpts = buf->pts;
+      buf->pts = 0;  /* only first buffer gets the real pts */
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+      j += bytes_to_send / 2;  /* 2 bytes per sample */
+    }
+  }
+
+  /* reset buffer */
+  this->size = 0;
+}
+
 static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
   int predictor_l = 0;
@@ -190,6 +350,7 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   int i, j;
   unsigned int out_ptr = 0;
   audio_buffer_t *audio_buffer;
+  int bytes_to_send;
 
   /* make sure the input size checks out */
   if ((this->size % this->in_block_size) != 0) {
@@ -235,29 +396,22 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
         return;
       }
 
-/*
-this is a mess right now...but eventually, this needs to be fixed to that
-it handles the case of the decode buffer being too large to ship out in
-a single audio buffer
-      if ((out_ptr - j) > audio_buffer->mem_size) {
-        xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
-          audio_buffer->mem_size);
-      }
+      /* out_ptr and j are samples counts, mem_size is a byte count */
+      if (((out_ptr - j) * 2) > audio_buffer->mem_size)
+        bytes_to_send = audio_buffer->mem_size;
       else
-        xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
-          out_ptr - j);
-*/
+        bytes_to_send = (out_ptr - j) * 2;
 
-      xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
-        out_ptr * 2);
-      audio_buffer->num_frames = out_ptr / this->channels;
-
+      xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+        bytes_to_send);
+      /* byte count / 2 (bytes / sample) / channels */
+      audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
 
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
       this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
-      j += audio_buffer->mem_size / 2;  /* 2 bytes per sample */
+      j += bytes_to_send / 2;  /* 2 bytes per sample */
     }
   }
 
@@ -265,7 +419,120 @@ a single audio buffer
   this->size = 0;
 }
 
-void qt_ima_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this, 
+  buf_element_t *buf) {
+
+  int predictor_l = 0;
+  int predictor_r = 0;
+  int index_l = 0;
+  int index_r = 0;
+  int channel_counter;
+  int channel_index;
+  int channel_index_l;
+  int channel_index_r;
+
+  int i, j;
+  unsigned int out_ptr = 0;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  /* check the size */
+  if ((this->size % this->in_block_size) != 0) {
+    printf ("adpcm: received MS IMA block that does not line up\n");
+    this->size = 0;
+    return;
+  }
+
+  /* iterate through each block in the in buffer */
+  for (i = 0; i < this->size; i += this->in_block_size) {
+
+    /* initialize algorithm for this block */
+    predictor_l = LE_16(&this->buf[i + 0]);
+    SE_16BIT(predictor_l);
+    index_l = this->buf[i + 2];
+    if (this->channels == 2) {
+      predictor_r = LE_16(&this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE]);
+      SE_16BIT(predictor_r);
+      index_r = this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE + 2];
+    }
+
+    // break apart all of the nibbles in the block
+    if (this->channels == 1) {
+      for (j = 0;
+        j < (this->in_block_size - MS_IMA_ADPCM_PREAMBLE_SIZE) / 2; j++) {
+        this->decode_buffer[j * 2 + 0] =
+          this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE + j] & 0x0F;
+        this->decode_buffer[j * 2 + 1] =
+          this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE + j] >> 4;
+      }
+    } else {
+      // encoded as 8 nibbles (4 bytes) per channel; switch channel every
+      // 4th byte
+      channel_counter = 0;
+      channel_index_l = 0;
+      channel_index_r = 1;
+      channel_index = channel_index_l;
+      for (j = 0;
+        j < (this->in_block_size - MS_IMA_ADPCM_PREAMBLE_SIZE * 2); j++) {
+        this->decode_buffer[channel_index + 0] =
+          this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE * 2 + j] & 0x0F;
+        this->decode_buffer[channel_index + 2] =
+          this->buf[i + MS_IMA_ADPCM_PREAMBLE_SIZE * 2 + j] >> 4;
+        channel_index += 4;
+        channel_counter++;
+        if (channel_counter == 4) {
+          channel_index_l = channel_index;
+          channel_index = channel_index_r;
+        } else if (channel_counter == 8) {
+          channel_index_r = channel_index;
+          channel_index = channel_index_l;
+          channel_counter = 0;
+        }
+      }
+    }
+
+    /* process the nibbles */
+    decode_ima_nibbles(this->decode_buffer,
+      this->out_block_size,
+      this->channels,
+      predictor_l, index_l,
+      predictor_r, index_r);
+
+    /* dispatch the decoded audio */
+    j = 0;
+    while (j < out_ptr) {
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      if (audio_buffer->mem_size == 0) {
+        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+        return;
+      }
+
+      /* out_ptr and j are samples counts, mem_size is a byte count */
+      if (((out_ptr - j) * 2) > audio_buffer->mem_size)
+        bytes_to_send = audio_buffer->mem_size;
+      else
+        bytes_to_send = (out_ptr - j) * 2;
+
+      xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+        bytes_to_send);
+      /* byte count / 2 (bytes / sample) / channels */
+      audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
+
+      audio_buffer->vpts = buf->pts;
+      buf->pts = 0;  /* only first buffer gets the real pts */
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+      j += bytes_to_send / 2;  /* 2 bytes per sample */
+    }
+  }
+
+  /* reset buffer */
+  this->size = 0;
+
+}
+
+static void qt_ima_adpcm_decode_block(adpcm_decoder_t *this, 
+  buf_element_t *buf) {
 
   int initial_predictor_l = 0;
   int initial_predictor_r = 0;
@@ -368,23 +635,157 @@ void qt_ima_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   this->size = 0;
 }
 
-int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
+static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  int i, j;
+  unsigned int out_ptr = 0;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  int current_channel = 0;
+  int idelta[2];
+  int sample1[2];
+  int sample2[2];
+  int coeff1[2];
+  int coeff2[2];
+  int upper_nibble = 1;
+  int nibble;
+  int snibble;  // signed nibble
+  int predictor;
+
+  /* make sure the input size checks out */
+  if ((this->size % this->in_block_size) != 0) {
+    printf ("adpcm: received MS ADPCM block that does not line up\n");
+    this->size = 0;
+    return;
+  }
+
+  /* iterate through each block in the in buffer */
+  for (i = 0; i < this->size; i += this->in_block_size) {
+
+    // fetch the header information, in stereo if both channels are present
+    j = i;
+    if (this->buf[j] > 6)
+      printf(
+        "MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
+        this->buf[j]);
+    coeff1[0] = ms_adapt_coeff1[this->buf[j]];
+    coeff2[0] = ms_adapt_coeff2[this->buf[j]];
+    j++;
+    if (this->channels == 2) {
+      if (this->buf[j] > 6)
+        printf(
+         "MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
+         this->buf[j]);
+      coeff1[1] = ms_adapt_coeff1[this->buf[j]];
+      coeff2[1] = ms_adapt_coeff2[this->buf[j]];
+      j++;
+    }
+
+    idelta[0] = LE_16(&this->buf[j]);
+    j += 2;
+    SE_16BIT(idelta[0]);
+    if (this->channels == 2) {
+      idelta[1] = LE_16(&this->buf[j]);
+      j += 2;
+      SE_16BIT(idelta[1]);
+    }
+
+    sample1[0] = LE_16(&this->buf[j]);
+    j += 2;
+    SE_16BIT(sample1[0]);
+    if (this->channels == 2) {
+      sample1[1] = LE_16(&this->buf[j]);
+      j += 2;
+      SE_16BIT(sample1[1]);
+    }
+
+    sample2[0] = LE_16(&this->buf[j]);
+    j += 2;
+    SE_16BIT(sample2[0]);
+    if (this->channels == 2) {
+      sample2[1] = LE_16(&this->buf[j]);
+      j += 2;
+      SE_16BIT(sample2[1]);
+    }
+
+    j = MS_ADPCM_PREAMBLE_SIZE * this->channels;
+    while (j < this->in_block_size) {
+      // get the next nibble
+      if (upper_nibble)
+        nibble = snibble = this->buf[i + j] >> 4;
+      else
+        nibble = snibble = this->buf[i + j++] & 0x0F;
+      upper_nibble ^= 1;
+      SE_4BIT(snibble);
+
+      predictor = (
+        ((sample1[current_channel] * coeff1[current_channel]) +
+         (sample2[current_channel] * coeff2[current_channel])) / 256) +
+        (snibble * idelta[current_channel]);
+      CLAMP_S16(predictor);
+      sample2[current_channel] = sample1[current_channel];
+      sample1[current_channel] = predictor;
+      this->decode_buffer[out_ptr++] = predictor;
+
+      // compute the next adaptive scale factor (a.k.a. the variable idelta)
+      idelta[current_channel] =
+        (ms_adapt_table[nibble] * idelta[current_channel]) / 256;
+      CLAMP_ABOVE_16(idelta[current_channel]);
+
+      // toggle the channel
+      current_channel ^= this->channels - 1;
+    }
+
+    /* dispatch the decoded audio */
+    j = 0;
+    while (j < out_ptr) {
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      if (audio_buffer->mem_size == 0) {
+        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+        return;
+      }
+
+      /* out_ptr and j are samples counts, mem_size is a byte count */
+      if (((out_ptr - j) * 2) > audio_buffer->mem_size)
+        bytes_to_send = audio_buffer->mem_size;
+      else
+        bytes_to_send = (out_ptr - j) * 2;
+
+      xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+        bytes_to_send);
+      /* byte count / 2 (bytes / sample) / channels */
+      audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
+
+      audio_buffer->vpts = buf->pts;
+      buf->pts = 0;  /* only first buffer gets the real pts */
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+      j += bytes_to_send / 2;  /* 2 bytes per sample */
+    }
+  }
+
+  /* reset buffer */
+  this->size = 0;
+}
+
+static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  return ( /* buf_type == BUF_AUDIO_MSADPCM || */
-           /* buf_type == BUF_AUDIO_IMAADPCM || */
+  return ( buf_type == BUF_AUDIO_MSADPCM ||
+           buf_type == BUF_AUDIO_IMAADPCM ||
            buf_type == BUF_AUDIO_QTIMAADPCM ||
-           /* buf_type == BUF_AUDIO_DK3ADPCM || */
+           buf_type == BUF_AUDIO_DK3ADPCM ||
            buf_type == BUF_AUDIO_DK4ADPCM );
 }
 
-void adpcm_reset (audio_decoder_t *this_gen) {
+static void adpcm_reset (audio_decoder_t *this_gen) {
 
   /* adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen; */
 
 }
 
-void adpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
+static void adpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
   this->audio_out = audio_out;
@@ -396,7 +797,7 @@ void adpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->decode_buffer = NULL;
 }
 
-void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
@@ -418,6 +819,12 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->in_block_size = audio_header->nBlockAlign;
 
       switch(buf->type) {
+        case BUF_AUDIO_MSADPCM:
+          this->out_block_size =
+            (this->in_block_size - 
+            (MS_ADPCM_PREAMBLE_SIZE * this->channels)) * 2;
+          break;
+
         case BUF_AUDIO_DK4ADPCM:
           /* A DK4 ADPCM block has 4 preamble bytes per channel and the
            * initial predictor is also the first output sample (hence
@@ -425,8 +832,25 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           this->out_block_size = 
             (this->in_block_size - (4 * this->channels)) * 2 + 1;
           break;
+
+        case BUF_AUDIO_DK3ADPCM:
+          /* A DK3 ADPCM block as 16 preamble bytes. A set of 3 nibbles,
+           * or 1.5 bytes, decodes to 4 PCM samples, so 6 nibbles, or 3
+           * bytes, decode to 8 PCM samples. */
+          this->out_block_size = 
+            (this->in_block_size - DK3_ADPCM_PREAMBLE_SIZE) * 8 / 3;
+          break;
+
+        case BUF_AUDIO_IMAADPCM:
+          /* a block of IMA ADPCM stored in an MS-type file has 4
+           * preamble bytes per channel. */
+          this->out_block_size =
+            (this->in_block_size - 
+            (MS_IMA_ADPCM_PREAMBLE_SIZE * this->channels)) * 2;
+          break;
       }
 
+      /* allocate 2 bytes per sample */
       this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
     }
 
@@ -461,8 +885,20 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     switch(buf->type) {
 
+      case BUF_AUDIO_MSADPCM:
+        ms_adpcm_decode_block(this, buf);
+        break;
+
+      case BUF_AUDIO_IMAADPCM:
+        ms_ima_adpcm_decode_block(this, buf);
+        break;
+
       case BUF_AUDIO_QTIMAADPCM:
         qt_ima_adpcm_decode_block(this, buf);
+        break;
+
+      case BUF_AUDIO_DK3ADPCM:
+        dk3_adpcm_decode_block(this, buf);
         break;
 
       case BUF_AUDIO_DK4ADPCM:
@@ -473,7 +909,7 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
-void adpcm_close (audio_decoder_t *this_gen) {
+static void adpcm_close (audio_decoder_t *this_gen) {
 
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
