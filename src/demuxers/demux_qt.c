@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.123 2002/12/04 04:07:08 tmmm Exp $
+ * $Id: demux_qt.c,v 1.124 2002/12/06 01:02:23 miguelfreitas Exp $
  *
  */
 
@@ -1119,7 +1119,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         sample_table->time_to_sample_count);
 
       sample_table->time_to_sample_table = (time_to_sample_table_t *)malloc(
-        sample_table->time_to_sample_count * sizeof(time_to_sample_table_t));
+        (sample_table->time_to_sample_count+1) * sizeof(time_to_sample_table_t));
       if (!sample_table->time_to_sample_table) {
         last_error = QT_NO_MEMORY;
         goto free_sample_table;
@@ -1135,6 +1135,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           j, sample_table->time_to_sample_table[j].count,
           sample_table->time_to_sample_table[j].duration);
       }
+      sample_table->time_to_sample_table[j].count = 0; /* terminate with zero */
     }
   }
 
