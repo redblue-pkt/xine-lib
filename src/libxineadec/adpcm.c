@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.19 2002/10/29 02:07:45 komadori Exp $
+ * $Id: adpcm.c,v 1.20 2002/11/02 23:37:33 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -1056,8 +1056,7 @@ static void ea_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     audio_buffer->num_frames = (bytes_to_send / 4);
     audio_buffer->vpts = buf->pts;
     buf->pts = 0;
-    this->stream->audio_out->put_buffer(this->stream->audio_out,
-audio_buffer);
+    this->stream->audio_out->put_buffer(this->stream->audio_out, audio_buffer);
 
     i += bytes_to_send / 2;
   }
@@ -1194,6 +1193,10 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       case BUF_AUDIO_VQA_IMA:
         vqa_adpcm_decode_block(this, buf);
         break;
+
+      case BUF_AUDIO_EA_ADPCM:
+        ea_adpcm_decode_block(this, buf);
+        break;
     }
   }
 }
@@ -1272,7 +1275,8 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
   BUF_AUDIO_QTIMAADPCM, BUF_AUDIO_DK3ADPCM,
   BUF_AUDIO_DK4ADPCM, BUF_AUDIO_SMJPEG_IMA,
-  BUF_AUDIO_VQA_IMA, 0
+  BUF_AUDIO_VQA_IMA, BUF_AUDIO_EA_ADPCM, 
+  0
  };
 
 static decoder_info_t dec_info_audio = {
