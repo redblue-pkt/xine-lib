@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.10 2003/12/19 05:09:16 tmmm Exp $
+ * $Id: group_audio.c,v 1.11 2004/01/12 17:35:15 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,17 +37,17 @@
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 23, "aac", XINE_VERSION_CODE, NULL, demux_aac_init_plugin },
-  { PLUGIN_DEMUX, 23, "ac3", XINE_VERSION_CODE, NULL, demux_ac3_init_plugin },
-  { PLUGIN_DEMUX, 23, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
-  { PLUGIN_DEMUX, 23, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
-  { PLUGIN_DEMUX, 23, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
-  { PLUGIN_DEMUX, 23, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
-  { PLUGIN_DEMUX, 23, "nsf", XINE_VERSION_CODE, NULL, demux_nsf_init_plugin },
-  { PLUGIN_DEMUX, 23, "realaudio", XINE_VERSION_CODE, NULL, demux_realaudio_init_plugin },
-  { PLUGIN_DEMUX, 23, "snd", XINE_VERSION_CODE, NULL, demux_snd_init_plugin },
-  { PLUGIN_DEMUX, 23, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
-  { PLUGIN_DEMUX, 23, "vox", XINE_VERSION_CODE, NULL, demux_vox_init_plugin },
-  { PLUGIN_DEMUX, 23, "wav", XINE_VERSION_CODE, NULL, demux_wav_init_plugin },
+  { PLUGIN_DEMUX, 24, "aac", XINE_VERSION_CODE, NULL, demux_aac_init_plugin },
+  { PLUGIN_DEMUX, 24, "ac3", XINE_VERSION_CODE, NULL, demux_ac3_init_plugin },
+  { PLUGIN_DEMUX, 24, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
+  { PLUGIN_DEMUX, 24, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
+  { PLUGIN_DEMUX, 24, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
+  { PLUGIN_DEMUX, 24, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
+  { PLUGIN_DEMUX, 24, "nsf", XINE_VERSION_CODE, NULL, demux_nsf_init_plugin },
+  { PLUGIN_DEMUX, 24, "realaudio", XINE_VERSION_CODE, NULL, demux_realaudio_init_plugin },
+  { PLUGIN_DEMUX, 24, "snd", XINE_VERSION_CODE, NULL, demux_snd_init_plugin },
+  { PLUGIN_DEMUX, 24, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
+  { PLUGIN_DEMUX, 24, "vox", XINE_VERSION_CODE, NULL, demux_vox_init_plugin },
+  { PLUGIN_DEMUX, 24, "wav", XINE_VERSION_CODE, NULL, demux_wav_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

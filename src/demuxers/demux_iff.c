@@ -32,7 +32,7 @@
  *     (no examples found and description isn't as clear as it should)
  * * 16SV, the same support as 8SVX
  *
- * $Id: demux_iff.c,v 1.3 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_iff.c,v 1.4 2004/01/12 17:35:14 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -930,7 +930,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 23, "iff", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 24, "iff", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

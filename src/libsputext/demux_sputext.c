@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.32 2003/12/24 17:34:49 mroi Exp $
+ * $Id: demux_sputext.c,v 1.33 2004/01/12 17:35:17 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1361,6 +1361,6 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 23, "sputext", XINE_VERSION_CODE, NULL, &init_sputext_demux_class },
+  { PLUGIN_DEMUX, 24, "sputext", XINE_VERSION_CODE, NULL, &init_sputext_demux_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

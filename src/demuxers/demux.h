@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.34 2003/11/15 14:00:37 miguelfreitas Exp $
+ * $Id: demux.h,v 1.35 2004/01/12 17:35:14 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@
 #  include <xine/xine_internal.h>
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    23
+#define DEMUXER_PLUGIN_IFACE_VERSION    24
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1

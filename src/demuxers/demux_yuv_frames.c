@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.13 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: demux_yuv_frames.c,v 1.14 2004/01/12 17:35:15 miguelfreitas Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -259,7 +259,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 23, "yuv_frames", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 24, "yuv_frames", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

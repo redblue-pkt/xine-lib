@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.12 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_image.c,v 1.13 2004/01/12 17:35:14 miguelfreitas Exp $
  *
  * image dummy demultiplexer
  */
@@ -232,6 +232,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 23, "image", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 24, "image", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

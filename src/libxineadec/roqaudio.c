@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.21 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: roqaudio.c,v 1.22 2004/01/12 17:35:18 miguelfreitas Exp $
  *
  */
 
@@ -237,6 +237,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 14, "roqaudio", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 15, "roqaudio", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

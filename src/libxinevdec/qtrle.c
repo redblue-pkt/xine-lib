@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.18 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: qtrle.c,v 1.19 2004/01/12 17:35:19 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1034,6 +1034,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 17, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 18, "qtrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

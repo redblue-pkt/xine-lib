@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.60 2004/01/10 17:56:46 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.61 2004/01/12 17:35:17 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -567,6 +567,6 @@ static decoder_info_t dec_info_real = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 17, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 18, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.137 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.138 2004/01/12 17:35:17 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1681,7 +1681,7 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 17, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
-  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 14, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 18, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
+  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 15, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

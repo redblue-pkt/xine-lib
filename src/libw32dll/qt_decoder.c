@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.31 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.32 2004/01/12 17:35:17 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -1158,8 +1158,8 @@ static decoder_info_t qtv_dec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 17, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
-  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 14, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 18, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
+  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 15, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

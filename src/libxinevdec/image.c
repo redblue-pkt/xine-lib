@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.13 2003/12/24 13:27:47 mroi Exp $
+ * $Id: image.c,v 1.14 2004/01/12 17:35:18 miguelfreitas Exp $
  *
  * a image video decoder
  */
@@ -425,6 +425,6 @@ static decoder_info_t dec_info_image = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 17, "image", XINE_VERSION_CODE, &dec_info_image, init_class },
+  { PLUGIN_VIDEO_DECODER, 18, "image", XINE_VERSION_CODE, &dec_info_image, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

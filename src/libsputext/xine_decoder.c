@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.73 2004/01/02 19:03:46 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.74 2004/01/12 17:35:17 miguelfreitas Exp $
  *
  */
 
@@ -677,7 +677,7 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
   this->use_unscaled  = xine->config->register_bool(xine->config, 
 			      "misc.spu_use_unscaled_osd", 
 			       1,
-			       _("Use unscale OSD if possible"), 
+			       _("Use unscaled OSD if possible"), 
 			       NULL, 0, update_use_unscaled, this);
 
   return &this->class;
