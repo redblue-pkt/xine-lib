@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.91 2001/12/13 22:47:14 miguelfreitas Exp $
+ * $Id: xine.c,v 1.92 2001/12/14 23:54:56 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdarg.h>
 #if defined (__linux__)
 #include <endian.h>
 #elif defined (__FreeBSD__)
