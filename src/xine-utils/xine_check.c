@@ -28,7 +28,7 @@
 * to check the user's system. It is expected that the values for
 * hc->cdrom_dev and hc->dvd_dev will be defined. For example,
 * hc->cdrom_dev = /dev/cdrom and hc->/dev/dvd. If at any point a
-* step fails the entire process returns with a failed status,
+* step fails the function returns with a failed status,
 * XINE_HEALTH_CHECK_FAIL, and an error message contained in hc->msg.
 *
 * Author: Stephen Torri <storri@users.sourceforge.net>
