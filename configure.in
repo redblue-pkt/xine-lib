@@ -226,7 +226,7 @@ AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 dnl
 dnl Checks for Ascii-Art library
 dnl
-AM_PATH_AALIB(1.2,,)
+AM_PATH_AALIB(1.4,,)
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 
