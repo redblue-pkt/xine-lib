@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.17 2002/12/22 00:35:04 komadori Exp $
+ * $Id: mms.c,v 1.18 2003/01/15 01:05:24 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -714,12 +714,20 @@ char* mms_connect_common(int *s, int *port, char *url, char **host, char **path,
   printf ("libmms: extracting host name \n");
 #endif
   hostend = strchr(_host, '/');
+/*
   if ((!hostend) || (strlen(hostend) <= 1)) {
     printf ("libmms: invalid url >%s<, failed to find hostend\n", url);
     return NULL;
   }
-  
-  *hostend++ = '\0';
+*/
+  if (!hostend) {
+#ifdef LOG
+    printf ("libmms: no trailing /\n");
+#endif
+    hostend = _host + strlen(_host);
+  } else {
+    *hostend++ = '\0';
+  }
 
   /* Is port specified ? */
   forport = strchr(_host, ':');

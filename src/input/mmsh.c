@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.5 2003/01/15 00:53:40 tmattern Exp $
+ * $Id: mmsh.c,v 1.6 2003/01/15 01:05:24 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -733,7 +733,9 @@ char* mmsh_connect_common(int *s, int *port, char *url, char **host, char **path
   }
   */
   if (!hostend) {
+#ifdef LOG
     printf ("libmmsh: no trailing /\n");
+#endif
     hostend = _host + strlen(_host);
   } else {
     *hostend++ = '\0';
