@@ -18,7 +18,9 @@ xine-lib (1-xxx)
   * DVB: Will now verify that channels.conf file is in correct (?zap) format.
   * fixed OSS mixer disabling itself after first playlist entry
   * improved overlay blending quality, fixed subtitles with XShm
- 
+  * improved support for transport streams
+  * new plugin for DVB subtitles
+
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
