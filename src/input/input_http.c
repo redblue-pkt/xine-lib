@@ -600,8 +600,6 @@ static off_t http_plugin_get_current_pos (input_plugin_t *this_gen){
 static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
-  /* only realtive forward-seeking is implemented */
-
   if ((origin == SEEK_CUR) && (offset >= 0)) {
 
     for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
@@ -609,6 +607,21 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
     }
 
     http_plugin_read (this_gen, this->seek_buf, offset);
+  }
+
+  if (origin == SEEK_SET) {
+
+    if (offset < this->curpos)
+      printf ("http: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+    else {
+      offset -= this->curpos;
+
+      for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+        http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+      }
+
+      http_plugin_read (this_gen, this->seek_buf, offset);
+    }
   }
 
   return this->curpos;
