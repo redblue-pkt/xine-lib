@@ -16,6 +16,11 @@
 #include <sys/time.h>  /* need struct timeval */
 #include <asm/types.h>
 
+#ifdef __ICC
+  /* __u64 will be undefined for icc, so we handle it here */
+  #define __u64 unsigned long long
+#endif
+
 /*
  *	M I S C E L L A N E O U S
  */

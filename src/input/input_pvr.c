@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.38 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: input_pvr.c,v 1.39 2003/12/13 21:55:52 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -85,8 +85,6 @@
 
 ***************************************************************************/ 
 
-#define USE_V4L2
- 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -103,15 +101,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/ioctl.h>
-#ifdef USE_V4L2
-  #ifdef __ICC
-    /* __u64 will be undefined for icc, so we handle it here */
-    #define __u64 unsigned long long
-  #endif
-  #include "videodev2.h"
-#else
-  #include <linux/videodev.h>
-#endif
+#include "videodev2.h"
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
@@ -126,11 +116,7 @@
 #include "compat.h"
 #include "input_plugin.h"
 
-#ifdef USE_V4L2
 #define PVR_DEVICE        "/dev/video0"
-#else
-#define PVR_DEVICE        "/dev/ivtv0"
-#endif
 
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
 #define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
@@ -142,7 +128,6 @@
 #define SCRLOG 1
 */
 
-#ifdef USE_V4L2
 /* external API borrowed from ivtv.h */
 #define IVTV_IOC_G_CODEC	0xFFEE7703
 #define IVTV_IOC_S_CODEC	0xFFEE7704
@@ -174,7 +159,6 @@ struct ivtv_ioctl_codec {
 	uint32_t pulldown;
 	uint32_t stream_type;
 };
-#endif
 
 typedef struct pvrscr_s pvrscr_t;
 
@@ -184,6 +168,8 @@ typedef struct {
 
   xine_t           *xine;
   config_values_t  *config;
+
+  char             *devname;
   
 } pvr_input_class_t;
 
@@ -1028,11 +1014,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       if( v4l2_data->input != this->input ||
           v4l2_data->channel != this->channel || 
           v4l2_data->frequency != this->frequency ) {
-#ifdef USE_V4L2
         struct v4l2_frequency vf;
-#else
-        struct video_channel v;
-#endif
 
         this->input = v4l2_data->input;
         this->channel = v4l2_data->channel;
@@ -1044,7 +1026,6 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
 		(float)v4l2_data->frequency * 62.5);
   
         pthread_mutex_lock(&this->dev_lock);
-#ifdef USE_V4L2
         if( ioctl(this->dev_fd, VIDIOC_S_INPUT, &this->input) )
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		  "input_pvr: error setting v4l2 input\n");
@@ -1059,22 +1040,12 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
          * after changing inputs. reopening the device fixes it.
          */
         close(this->dev_fd);
-        this->dev_fd = open (PVR_DEVICE, O_RDWR);
+        this->dev_fd = open (this->class->devname, O_RDWR);
         if (this->dev_fd == -1) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		  "input_pvr: error opening device %s\n", PVR_DEVICE );
+		  "input_pvr: error opening device %s\n", this->class->devname );
           return;
         }
-#else
-        v.norm = VIDEO_MODE_NTSC;
-        v.channel = this->input;
-        if( ioctl(this->dev_fd, VIDIOCSCHAN, &v) )
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		  "input_pvr: error setting v4l input\n");
-        if( ioctl(this->dev_fd, VIDIOCSFREQ, &this->frequency) )
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		  "input_pvr: error setting v4l frequency\n");
-#endif
         pthread_mutex_unlock(&this->dev_lock);
         
         /* FIXME: also flush the device */
@@ -1166,17 +1137,16 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       break;
 
     case XINE_EVENT_SET_MPEG_DATA: {
-#ifdef USE_V4L2
        struct ivtv_ioctl_codec codec;
     
        pthread_mutex_lock(&this->dev_lock);
 
        /* how lame. we must close and reopen to change bitrate. */
        close(this->dev_fd);
-       this->dev_fd = open (PVR_DEVICE, O_RDWR);
+       this->dev_fd = open (this->class->devname, O_RDWR);
        if (this->dev_fd == -1) {
          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		 _("input_pvr: error opening device %s\n"), PVR_DEVICE );
+		 _("input_pvr: error opening device %s\n"), this->class->devname );
          return;
        }
        
@@ -1194,10 +1164,6 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
          }
        }
        pthread_mutex_unlock(&this->dev_lock);
-#else
-       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	       _("input_pvr: mpeg2 settings not supported with old api\n"));
-#endif
       }
       break;
         
@@ -1413,9 +1379,7 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   pvr_input_plugin_t  *this = (pvr_input_plugin_t *) this_gen;
   int64_t              time;
   int                  err;
-#ifdef USE_V4L2
   struct ivtv_ioctl_codec codec;
-#endif
     
   this->session = 0;
   this->rec_fd = -1;
@@ -1430,14 +1394,13 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
 
   this->saved_id = 0;
 
-  this->dev_fd = open (PVR_DEVICE, O_RDWR);
+  this->dev_fd = open (this->class->devname, O_RDWR);
   if (this->dev_fd == -1) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-	    _("input_pvr: error opening device %s\n"), PVR_DEVICE );
+	    _("input_pvr: error opening device %s\n"), this->class->devname );
     return 0;
   }
 
-#ifdef USE_V4L2
   if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
 	    _("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n"));
@@ -1452,7 +1415,6 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
 	      _("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n"));
     }
   }
-#endif
     
   /* register our own scr provider */   
   time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
@@ -1580,7 +1542,15 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   this->xine   = xine;
   this->config = xine->config;
-  
+
+  this->devname = this->config->register_string(this->config,
+				    "input.pvr_device",
+				    PVR_DEVICE,
+				    _("device used for WinTV-PVR 250/350 (pvr plugin)"),
+				    NULL,
+				    10, NULL,
+				    NULL);
+
   this->input_class.get_instance       = pvr_class_get_instance;
   this->input_class.get_identifier     = pvr_class_get_identifier;
   this->input_class.get_description    = pvr_class_get_description;
