@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.62 2002/12/27 16:47:11 miguelfreitas Exp $
+ * $Id: input_vcd.c,v 1.63 2003/01/07 22:51:35 f1rmb Exp $
  *
  */
 
@@ -344,7 +344,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = (struct cdrom_msf *)
+    end_msf = (struct cdrom_msf0 *)
       &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
@@ -731,26 +731,31 @@ static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   struct cdrom_msf0       *end_msf, *start_msf;
   off_t len ;
-
-  start_msf = (struct cdrom_msf0 *)
-    &this->cls->tocent[this->cur_track].cdte_addr.msf;
-  end_msf   = (struct cdrom_msf0 *)
-    &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
-
-  len = 75 - start_msf->frame;
-
-  if (start_msf->second<60)
-    len += (59 - start_msf->second) * 75;
-
-  if (end_msf->minute > start_msf->minute) {
-    len += (end_msf->minute - start_msf->minute-1) * 60 * 75;
-
-    len += end_msf->second * 60;
-
-    len += end_msf->frame ;
-  }
   
-  return len * VCDSECTORSIZE;
+  if(this->cls->total_tracks) {
+    
+    start_msf = (struct cdrom_msf0 *)
+      &this->cls->tocent[this->cur_track].cdte_addr.msf;
+    end_msf   = (struct cdrom_msf0 *)
+      &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
+    
+    len = 75 - start_msf->frame;
+    
+    if (start_msf->second<60)
+      len += (59 - start_msf->second) * 75;
+    
+    if (end_msf->minute > start_msf->minute) {
+      len += (end_msf->minute - start_msf->minute-1) * 60 * 75;
+      
+      len += end_msf->second * 60;
+      
+      len += end_msf->frame ;
+    }
+    
+    return len * VCDSECTORSIZE;
+  }
+
+  return (off_t) 0;
 }
 #elif defined (__FreeBSD__)
 static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
@@ -1021,7 +1026,6 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
   fd = -1;
 
   *num_files = this->total_tracks - 1;
-  
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
