@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.129 2004/03/12 16:19:29 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.130 2004/03/18 07:26:24 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -427,7 +427,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 	     _("audio_alsa_out: snd_pcm_open() of %s failed: %s\n"), pcm_device, snd_strerror(err));               
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
-	     _("audio_alsa_out: >>> check if another program don't already use PCM <<<\n"));
+	     _("audio_alsa_out: >>> check if another program already uses PCM <<<\n"));
     return 0;
   }
   /* printf ("audio_alsa_out: snd_pcm_open() opened %s\n", pcm_device); */ 
@@ -1397,7 +1397,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xine_log (this->class->xine, XINE_LOG_MSG,
           _("snd_pcm_open() failed:%d:%s\n"), err, snd_strerror(err)); 
     xine_log (this->class->xine, XINE_LOG_MSG,
-          _(">>> Check if another program don't already use PCM <<<\n")); 
+          _(">>> Check if another program already uses PCM <<<\n")); 
     return NULL; 
   }
 
