@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.56 2001/11/18 15:08:31 guenter Exp $
+ * $Id: load_plugins.c,v 1.57 2001/11/20 14:00:36 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -65,12 +65,8 @@ static char *plugin_name;
 
 #else
 
-#if HAVE_SIGACTION
-struct sigaction old_sig_act;
-#else
 void (*old_segv_handler)(int);
-#endif
- 
+
 static void segv_handler (int hubba) {
   printf ("\nload_plugins: Initialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
   printf ("load_plugins: You probably need to remove the offending file.\n");
@@ -79,24 +75,11 @@ static void segv_handler (int hubba) {
 }
 
 static void install_segv_handler(void){
-#if HAVE_SIGACTION
-  {
-    struct sigaction   sig_act;
-    memset (&sig_act, 0, sizeof(sig_act));
-    sig_act.sa_handler = segv_handler;
-    sigaction (SIGSEGV, &sig_act, &old_sig_act);
-  }
-#else
   old_segv_handler = signal (SIGSEGV, segv_handler);
-#endif
 }
 
 static void remove_segv_handler(void){
-#if HAVE_SIGACTION
-  sigaction (SIGSEGV, &old_sig_act, NULL );
-#else
   signal (SIGSEGV, old_segv_handler );
-#endif
 }
 
 #endif
