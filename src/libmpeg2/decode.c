@@ -175,7 +175,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture = mpeg2dec->picture;
     is_frame_done = mpeg2dec->in_slice && ((!code) || (code >= 0xb0));
 
-    if (is_frame_done) {
+    if (is_frame_done && picture->current_frame != NULL) {
 	mpeg2dec->in_slice = 0;
 
 	if (((picture->picture_structure == FRAME_PICTURE) ||
@@ -402,7 +402,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    }
 	}
 
-	if (!(mpeg2dec->drop_frame)) {
+	if (!mpeg2dec->drop_frame && picture->current_frame != NULL) {
 	  mpeg2_slice (picture, code, buffer);
 	  if( picture->v_offset > picture->limit_y ) 
 	    picture->current_frame->bad_frame = 0;
