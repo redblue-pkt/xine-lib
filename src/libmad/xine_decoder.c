@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/12/21 16:35:46 esnel Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -65,6 +65,10 @@ typedef struct mad_decoder_s {
 static void mad_reset (audio_decoder_t *this_gen) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
+
+  mad_synth_finish (&this->synth);
+  mad_frame_finish (&this->frame);
+  mad_stream_finish(&this->stream);
 
   this->pts = 0;
   this->bytes_in_buffer = 0;

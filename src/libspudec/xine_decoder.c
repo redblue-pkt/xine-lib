@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.90 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.91 2002/12/21 16:35:46 esnel Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -185,6 +185,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
       ovl_instance->free_handle(ovl_instance,
 				this->spudec_stream_state[i].overlay_handle);
     this->spudec_stream_state[i].overlay_handle = -1;
+    free (this->spudec_stream_state[i].ra_seq.buf);
   }
   pthread_mutex_destroy(&this->nav_pci_lock);
 
