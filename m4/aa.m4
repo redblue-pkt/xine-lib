@@ -26,6 +26,8 @@ dnl AM_PATH_AALIB([MINIMUM-VERSION, [ACTION-IF-FOUND [,ACTION-IF-NOT-FOUND ]]])
 dnl Test for AALIB, and define AALIB_CFLAGS and AALIB_LIBS, AALIB_STATIC_LIBS.
 dnl
 dnl ***********************
+dnl 19/08/2001
+dnl   * use aalib-config instead of aainfo now.
 dnl 17/06/2001 
 dnl   * First shot
 dnl
@@ -34,70 +36,54 @@ AC_DEFUN(AM_PATH_AALIB,
 dnl
 AC_ARG_WITH(aalib-prefix,
     [  --with-aalib-prefix=PFX Prefix where AALIB is installed (optional)],
-            aalib_prefix="$withval", aalib_prefix="")
-
+            aalib_config_prefix="$withval", aalib_config_prefix="")
+AC_ARG_WITH(aalib-exec-prefix,
+    [  --with-aalib-exec-prefix=PFX                                                                            Exec prefix where AALIB is installed (optional)],
+            aalib_config_exec_prefix="$withval", aalib_config_exec_prefix="")
 AC_ARG_ENABLE(aalib-test, 
     [  --disable-aalibtest     Do not try to compile and run a test AALIB program],, enable_aalibtest=yes)
 
-  if test x$aalib_prefix != x; then
-     aalib_aainfo="$aalib_prefix/bin/aainfo"
-     AALIB_CFLAGS="-I$aalib_prefix/include"
-     AALIB_LIBS="-L$aalib_prefix/lib -laa"
-  else
-     aalib_aainfo="aainfo"
-     AALIB_LIBS="-laa"
+  if test x$aalib_config_exec_prefix != x ; then
+     aalib_config_args="$aalib_config_args --exec-prefix=$aalib_config_exec_prefix"
+     if test x${AALIB_CONFIG+set} != xset ; then
+        AALIB_CONFIG=$aalib_config_exec_prefix/bin/aalib-config
+     fi
   fi
-
-  AALIB_STATIC_LIBS="$AALIB_LIBS"
+  if test x$aalib_config_prefix != x ; then
+     aalib_config_args="$aalib_config_args --prefix=$aalib_config_prefix"
+     if test x${AALIB_CONFIG+set} != xset ; then
+        AALIB_CONFIG=$aalib_config_prefix/bin/aalib-config
+     fi
+  fi
 
   min_aalib_version=ifelse([$1], ,1.2,$1)
 
   if test x"$enable_aalibtest" != "xyes"; then
     AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
   else
-    if test x"$aalib_prefix" = "x"; then
-      AC_PATH_PROG(aalib_aainfo, aainfo, no)
-    else
-      AC_MSG_CHECKING(for $aalib_aainfo)
-      if test -x $aalib_aainfo; then 
-        AC_MSG_RESULT(yes)
-      else 
-        aalib_aainfo="no"
-        AC_MSG_RESULT(no)
-      fi
-    fi
-
+    AC_PATH_PROG(AALIB_CONFIG, aalib-config, no)
     AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
     no_aalib=""
-
-    if test x"$aalib_aainfo" = "xno"; then
+    if test "$AALIB_CONFIG" = "no" ; then
       no_aalib=yes
     else
-      aalib_drivers="`$aalib_aainfo --help | grep drivers | sed -e 's/available//g;s/drivers//g;s/\://g'`"
-      for drv in $aalib_drivers; do
-        if test $drv = "X11" -a x$x11dep = "x"; then 
-	  AALIB_STATIC_LIBS="$AALIB_STATIC_LIBS -lX11"
-	  AALIB_CFLAGS="$AALIB_CFLAGS `echo $X_CFLAGS|sed -e 's/\-I/\-L/g;s/include/lib/g'`"
-          x11dep="yes"
-        fi
-        if test $drv = "slang" -a x$slangdep = "x"; then 
-          AALIB_STATIC_LIBS="$AALIB_STATIC_LIBS -lslang"
-          slangdep="yes"
-        fi
-        if test $drv = "gpm" -a x$gmpdep = "x"; then 
-          AALIB_STATIC_LIBS="$AALIB_STATIC_LIBS -lgpm"
-          gpmdep="yes"
-        fi
-      done
- 
+      AALIB_CFLAGS=`$AALIB_CONFIG $aalib_config_args --cflags`
+      AALIB_LIBS=`$AALIB_CONFIG $aalib_config_args --libs`
+      aalib_config_major_version=`$AALIB_CONFIG $aalib_config_args --version | \
+             sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
+      aalib_config_minor_version=`$AALIB_CONFIG $aalib_config_args --version | \
+             sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
+      aalib_config_sub_version=`$AALIB_CONFIG $aalib_config_args --version | \
+             sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
+
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"
-      CFLAGS="$AALIB_CFLAGS $CFLAGS"
+      CFLAGS="$CFLAGS $AALIB_CFLAGS"
       LIBS="$AALIB_LIBS $LIBS"
 
 dnl
 dnl Now check if the installed AALIB is sufficiently new. (Also sanity
-dnl checks the results of xine-config to some extent
+dnl checks the results of aalib-config to some extent
 dnl
       AC_LANG_SAVE()
       AC_LANG_C()
@@ -152,8 +138,8 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
        ifelse([$2], , :, [$2])     
     else
       AC_MSG_RESULT(no)
-      if test "$aalib_aainfo" = "no"; then
-        echo "*** The aainfo program installed by AALIB could not be found"
+      if test "$AALIB_CONFIG" = "no"; then
+        echo "*** The aalib-config program installed by AALIB could not be found"
         echo "*** If AALIB was installed in PREFIX, make sure PREFIX/bin is in"
         echo "*** your path, or use --with-aalib-prefix to set the prefix"
 	echo "*** where AALIB is installed."
@@ -194,12 +180,10 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
       fi
     AALIB_CFLAGS=""
     AALIB_LIBS=""
-    AALIB_STATIC_LIBS=""
     ifelse([$3], , :, [$3])
   fi
   AC_SUBST(AALIB_CFLAGS)
   AC_SUBST(AALIB_LIBS)
-  AC_SUBST(AALIB_STATIC_LIBS)
   AC_LANG_RESTORE()
   rm -f conf.xinetest
 ])
