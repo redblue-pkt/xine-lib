@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.5 2002/07/15 22:07:18 esnel Exp $
+ * $Id: svq1.c,v 1.6 2002/07/18 22:58:54 esnel Exp $
  */
 
 #include <stdio.h>
@@ -1335,8 +1335,8 @@ static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitches[3]) {
   for (i=1; i < 3; i++) {
     src = svq1->base[i];
     dst = base[i];
-    cr1 = &dst[pitches[i] * ((svq1->height / 2) - 1)];
-    cr2 = &dst[pitches[i] * ((svq1->height / 2) - 2)];
+    cr1 = &dst[pitches[i] * ((svq1->height / 2) - 2)];
+    cr2 = &dst[pitches[i] * ((svq1->height / 2) - 3)];
 
     /* horizontally upscale first line */
     hscale_chroma_line (cr1, src, (svq1->width / 4));
