@@ -25,7 +25,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.18 2001/08/25 06:48:18 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.19 2001/08/25 15:52:09 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -88,15 +88,11 @@ typedef struct alsa_driver_s {
   int                 open_mode;
 
   int32_t             output_sample_rate, input_sample_rate;
-  int32_t             output_rate_correction;
   double              sample_rate_factor;
   uint32_t            num_channels;
   uint32_t       bits_per_sample;
   uint32_t       bytes_per_frame;
   uint32_t            bytes_in_buffer;      /* number of bytes writen to audio hardware   */
-
-
-  int                audio_started;
 
 } alsa_driver_t;
 
@@ -143,8 +139,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   this->input_sample_rate      = rate;
   this->bits_per_sample        = bits;
   this->bytes_in_buffer        = 0;
-  this->output_rate_correction = 0;
-  this->audio_started          = 0;
   /* FIXME: Can use an ALSA function here */
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   /*
@@ -321,23 +315,14 @@ static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
 
 static int ao_alsa_delay (ao_driver_t *this_gen) 
 {
-  snd_pcm_sframes_t pos ;
   snd_pcm_status_t  *pcm_stat;
   snd_pcm_sframes_t delay;
-  int err;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   snd_pcm_status_alloca(&pcm_stat);
   snd_pcm_status(this->audio_fd, pcm_stat);
   /* Dump ALSA info to stderr */
   /* snd_pcm_status_dump(pcm_stat, jcd_out);  */
-  if (this->audio_started) {
-    err=snd_pcm_delay( this->audio_fd, &delay);
-    if(err < 0) {
-      //Hide error report
-      error("snd_pcm_delay() failed");
-      return 0;
-    }
-  }
+  delay=snd_pcm_status_get_delay( pcm_stat );
   return delay;
 }
 
@@ -447,8 +432,6 @@ static int ao_alsa_set_property (ao_driver_t *this, int property, int value) {
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   alsa_driver_t *this;
-  int              card;
-  int              dev;
   int              err;
   char             *pcm_device;
   char             *ac3_device;
