@@ -20,6 +20,7 @@ xine-lib (1-xxx)
   * improved overlay blending quality, fixed subtitles with XShm
   * improved support for transport streams
   * new plugin for DVB subtitles
+  * suport realplayer codecs on AMD64
 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
