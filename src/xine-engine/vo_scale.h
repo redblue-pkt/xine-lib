@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.3 2002/09/08 16:20:13 mroi Exp $
+ * $Id: vo_scale.h,v 1.4 2002/09/08 16:52:57 mroi Exp $
  * 
  * vo_scale.h
  *
@@ -123,8 +123,8 @@ struct vo_scale_s {
   void (*dest_size_cb) (void *user_data,
 			int video_width, int video_height, 
                         double video_pixel_aspect,
-                        double *dest_pixel_aspect,
-			int *dest_width, int *dest_height);
+			int *dest_width, int *dest_height,
+                        double *dest_pixel_aspect);
 
   /* borders */
   vo_scale_rect_t     border[4];
