@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/12/02 21:53:58 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/12/02 21:59:33 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -89,10 +89,6 @@ typedef struct sputext_decoder_s {
 
   osd_object_t      *osd;
   char              *font;
-
-  /* thread */
-  int                running;
-  pthread_t          spu_thread;
 
 } sputext_decoder_t;
 
@@ -870,15 +866,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 static void spudec_close (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-  void *p;
-
-  printf ("sputext: stopping thread...\n");
-
-  this->running = 0;
-
-  pthread_join (this->spu_thread, &p);
-
-  printf ("sputext: ...thread stopped\n");
 
   if (this->osd) {
     osd_close (this->osd);
