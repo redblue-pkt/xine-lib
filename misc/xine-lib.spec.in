@@ -678,12 +678,14 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %files syncfb -f ../filelist_libxine1_syncfb
 %endif
 
-%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 #%if %BUILD_XVMC
+#%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 #%files xvmc -f ../filelist_libxine1_xvmc
+#%endif
 #%endif
 
 %if %BUILD_W32DLL
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %files w32dll -f ../filelist_libxine1_w32dll
 %endif
 %endif
