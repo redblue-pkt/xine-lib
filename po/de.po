@@ -1,12 +1,12 @@
 # German xine-lib.po file.
-# Copyright (C) 2002 Free Software Foundation, Inc.
+# Copyright (C) 2002,2003 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "POT-Creation-Date: 2003-04-08 19:47+0200\n"
-"PO-Revision-Date: 2003-03-14 08:53+0100\n"
+"PO-Revision-Date: 2003-04-29 10:38+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -383,9 +383,9 @@ msgid "input_http: invalid http answer\n"
 msgstr "input_http: Ungültige http-Antwort\n"
 
 #: src/input/input_http.c:844
-#, fuzzy, c-format
+#, c-format
 msgid "input_http: 3xx redirection: >%d %s<\n"
-msgstr "input_http: 3xx Weiterleitung nicht implementiert: >%d %s<\n"
+msgstr "input_http: 3xx Weiterleitung : >%d %s<\n"
 
 #: src/input/input_http.c:848
 #, c-format
@@ -604,20 +604,20 @@ msgstr ""
 
 #: src/xine-engine/osd.c:758
 msgid "osd: font isn't defined\n"
-msgstr ""
+msgstr "osd: Zeichensatz nicht definiert\n"
 
 #: src/xine-engine/osd.c:773
 msgid "osd: can't find out current locale character set\n"
-msgstr ""
+msgstr "osd: Kann locale-Zeichensatz nicht erkennen\n"
 
 #: src/xine-engine/osd.c:785
 #, c-format
 msgid "osd: unsupported conversion %s -> UCS-2\n"
-msgstr ""
+msgstr "osd: Nichtunterstützte Konvertierung %s -> UCS-2\n"
 
 #: src/xine-engine/osd.c:789
 msgid "osd: iconv_open() failed\n"
-msgstr ""
+msgstr "osd: iconv_open() schlug fehl\n"
 
 #. unknown character or character wider than 16 bits, try skip one byte
 #: src/xine-engine/osd.c:805
@@ -626,6 +626,8 @@ msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
 "skipping\n"
 msgstr ""
+"osd: Unbekannte Sequenz startet mit Byte 0x%02X in Kodierung \"%s\", "
+"überspringe\n"
 
 #: src/xine-engine/osd.c:1167
 msgid "Palette (foreground-border-background) to use on subtitles"
@@ -671,7 +673,7 @@ msgstr ""
 
 #: src/libffmpeg/xine_decoder.c:989
 msgid "ffmpeg mpeg-4 postprocessing quality"
-msgstr ""
+msgstr "Qualität der ffmpeg mpeg-4 Nachbearbeitungsstufe"
 
 #: src/dxr3/video_out_dxr3.c:258
 msgid "swap odd and even lines"
@@ -822,21 +824,18 @@ msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Kopiermethode für große Datenbereiche."
 
 #: src/libsputext/xine_decoder.c:419
-#, fuzzy
 msgid "font for external subtitles"
-msgstr "Zeichensatz für AVI-Untertitel"
+msgstr "Zeichensatz für externe Untertitel"
 
 #: src/libsputext/xine_decoder.c:425
 msgid "subtitle size (relative window size)"
 msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
 
 #: src/libsputext/xine_decoder.c:431
-#, fuzzy
 msgid "subtitle vertical offset (relative window size)"
-msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
+msgstr "Vertikaler Versatz für Untertitel (Relativ zu Fenstergröße)"
 
 #: src/libsputext/xine_decoder.c:477
-#, fuzzy
 msgid "encoding of subtitles"
 msgstr "Zeichenkodierung für Untertitel"
 
