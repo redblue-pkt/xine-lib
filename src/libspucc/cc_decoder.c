@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.21 2003/05/06 14:02:26 tchamp Exp $
+ * $Id: cc_decoder.c,v 1.22 2003/09/18 18:14:50 valtri Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -353,8 +353,6 @@ struct cc_decoder_s {
 
   /* active OSD renderer */
   osd_renderer_t     *renderer;
-  /* caption display object */
-  osd_object_t       *cap_display;
   /* true when caption currently is displayed */
   int displayed;
 
@@ -378,6 +376,7 @@ static void get_font_metrics(osd_renderer_t *renderer,
   *maxh = 0;
 
   renderer->set_font(testc, (char *) fontname, font_size);
+  renderer->set_encoding(testc, NULL);
   for (c = 32; c < 256; c++) {
     int tw, th;
     char buf[2]; 
@@ -652,7 +651,7 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
       /* text is already mapped from EIA-608 into iso-8859-1 */
       osd_renderer->render_text(renderer->cap_display,
 				x + cumulative_seg_width[seg], y, buf,          
-				"iso-8859-1", textcol);
+				textcol);
     }
 
     pos = ccrow_find_next_text_part(this, endpos);
@@ -921,6 +920,7 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
 						     this->height);
   this->osd_renderer->set_palette(this->cap_display, this->cc_palette,
 				  this->cc_trans);
+  this->osd_renderer->set_encoding(this->cap_display, NULL);
 }
 
 

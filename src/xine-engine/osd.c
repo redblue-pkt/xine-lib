@@ -60,8 +60,15 @@
 
 #define BINARY_SEARCH 1
 
-/* unicode value of alias character (it used if conversion fails) */
-#define ALIAS_CHARACTER ' '
+/* unicode value of alias character,
+ * used if conversion fails
+ */
+#define ALIAS_CHARACTER_CONV '#'
+
+/* unicode value of alias character,
+ * used if character isn't in the font
+ */
+#define ALIAS_CHARACTER_FONT '_'
 
 #ifdef MAX
 #undef MAX
@@ -131,7 +138,12 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
   memcpy(osd->trans, textpalettes_trans[0], sizeof(textpalettes_trans[0])); 
 
   osd->handle = -1;
-    
+
+#ifndef _MSC_VER
+  osd->cd       = (iconv_t)-1;
+  osd->encoding = NULL;
+#endif
+  
   pthread_mutex_unlock (&this->osd_mutex);  
 
 #ifdef LOG_DEBUG  
@@ -711,36 +723,141 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
 }
 
 
-#ifdef BINARY_SEARCH
 /*
- * search the character in the sorted array
+ * search the character in the sorted array,
+ *
+ * returns ALIAS_CHARACTER_FONT if character 'code' isn't found,
+ * returns 'n' on error
  */
-static int binsearch(osd_fontchar_t *array, size_t n, uint16_t code) {
+static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
+#ifdef BINARY_SEARCH
   size_t i, left, right;
 
   if (!n) return 0;
 
   left = 0;
   right = n - 1;
-  while (right > left) {
+  while (left < right) {
     i = (left + right) >> 1;
     if (code <= array[i].code) right = i;
     else left = i + 1;
   }
 
-  return array[right].code == code ? right : n;
+  if (array[right].code == code)
+    return right;
+  else 
+    return ALIAS_CHARACTER_FONT < n ? ALIAS_CHARACTER_FONT : n;
+#else
+  size_t i;
+  
+  for( i = 0; i < n; i++ ) {
+    if( font->fontchar[i].code == unicode )
+      break;
+  }
+
+  if (i < n) 
+    return i;
+  else 
+    return ALIAS_CHARACTER_FONT < n ? ALIAS_CHARACTER_FONT : n;
+#endif
+}
+
+
+#ifndef _MSC_VER
+/* 
+ * get next unicode value 
+ */
+static uint16_t osd_iconv_getunicode(iconv_t *cd, const char *encoding, char **inbuf, size_t *inbytesleft) {
+  uint16_t unicode;
+  char *outbuf = (char*)&unicode;
+  size_t outbytesleft = 2;
+  size_t count;
+
+  if (cd != (iconv_t)-1) {
+    /* get unicode value from iconv */
+    count = iconv(cd, inbuf, inbytesleft, &outbuf, &outbytesleft);
+    if (count == (size_t)-1 && errno != E2BIG) {
+      /* unknown character or character wider than 16 bits, try skip one byte */
+      printf(_("osd: unknown sequence starting with byte 0x%02X"
+             " in encoding \"%s\", skipping\n"), (*inbuf)[0] & 0xFF, encoding);
+      if (*inbytesleft) {
+        (*inbytesleft)--;
+        (*inbuf)++;
+      }
+      return ALIAS_CHARACTER_CONV;
+    }
+  } else {
+    /* direct mapping without iconv */
+    unicode = (*inbuf)[0];
+    (*inbuf)++;
+    (*inbytesleft)--;
+  }
+
+  return unicode;
 }
 #endif
 
 
 /*
- * render text on x,y position
+ * free iconv encoding
+ */
+static void osd_free_encoding(osd_object_t *osd) {
+#ifndef _MSC_VER
+  if (osd->cd != (iconv_t)-1) {
+    iconv_close(osd->cd);
+    osd->cd = (iconv_t)-1;
+  }
+  if (osd->encoding) {
+    free(osd->encoding);
+    osd->encoding = NULL;
+  }
+#endif
+}
+
+
+/*
+ * set encoding of text 
+ *
+ * NULL ... no conversion (iso-8859-1)
+ * ""   ... locale encoding
+ */
+static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
+#ifndef _MSC_VER
+  osd_free_encoding(osd);
+
+  if (!encoding) return 1;
+  if (!encoding[0]) {
+#ifdef HAVE_LANGINFO_CODESET
+    if ((encoding = nl_langinfo(CODESET)) == NULL) {
+      printf(_("osd: can't find out current locale character set\n"));
+      return 0;
+    }
+#else
+    return 0;
+#endif
+  }
+
+  /* prepare conversion to UCS-2 */
+  if ((osd->cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
+    printf(_("osd: unsupported conversion %s -> UCS-2, "
+             "no conversion performed\n"), encoding);
+    return 0;
+  }
+
+  osd->encoding = strdup(encoding);  
+  return 1;
+#else
+  return encoding == NULL;
+#endif /* _MSC_VER */
+}
+
+
+/*
+ * render text in current encoding on x,y position
  *  no \n yet
- *  if encoding == NULL current locale encoding is used
  */
 static int osd_render_text (osd_object_t *osd, int x1, int y1,
-                            const char *text, const char *encoding,
-                            int color_base) {
+                            const char *text, int color_base) {
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
@@ -749,10 +866,6 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   const char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
-
-#ifndef _MSC_VER
-  iconv_t cd;
-#endif /* _MSC_VER */
 
 #ifdef LOG_DEBUG  
   printf("osd_render_text %p (%d,%d) \"%s\"\n", osd, x1, y1, text);
@@ -786,53 +899,16 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
   inbuf = text;
   inbytesleft = strlen(text);
-
-  if (!encoding) {
-#ifdef HAVE_LANGINFO_CODESET
-    if ((encoding = nl_langinfo(CODESET)) == NULL) {
-      printf(_("osd: can't find out current locale character set\n"));
-      encoding = "iso-8859-1";
-    }
-#else
-    encoding = "iso-8859-1";
-#endif
-  }
-
-#ifndef _MSC_VER
-  /* prepare conversion to UCS-2 */
-  if ((cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
-    printf(_("osd: unsupported conversion %s -> UCS-2, "
-             "no conversion performed\n"), encoding);
-  }
-#endif /* _MSC_VER */
   
   while( inbytesleft ) {
-    char *outbuf = (char*)&unicode;
-    size_t outbytesleft = 2;
-    size_t count;
-   
 #ifndef _MSC_VER
-    if (cd == (iconv_t)-1) {
-      /* direct mapping without iconv */
-      unicode = inbuf[0];
-      inbuf++;
-      inbytesleft--;
-    } else {
-      /* get unicode value from iconv */
-      /* FIXME: we cast away the const from inbuf; Why is iconv() not const here,
-       * does it change inbuf? */
-      count = iconv(cd, (char **)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
-      if (count == (size_t)-1 && errno != E2BIG) {
-        /* unknown character or character wider than 16 bits, try skip one byte */
-        printf(_("osd: unknown sequence starting with byte 0x%02X"
-               " in encoding \"%s\", skipping\n"), inbuf[0] & 0xFF, encoding);
-        if (!inbytesleft) break;
-        inbytesleft--;
-        inbuf++;
-        unicode = ALIAS_CHARACTER;
-      }
-    }
-#endif /* _MSC_VER */
+    unicode = osd_iconv_getunicode(osd->cd, osd->encoding, 
+                                   (char **)&inbuf, &inbytesleft);
+#else
+    unicode = inbuf[0];
+    inbuf++;
+    inbytesleft--;
+#endif
 
 #ifdef HAVE_FT2
     if (osd->ft2 && osd->ft2->useme) {
@@ -840,14 +916,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     } else {
 #endif
     
-#ifdef BINARY_SEARCH
-    i = binsearch(font->fontchar, font->num_fontchars, unicode);
-#else
-    for( i = 0; i < font->num_fontchars; i++ ) {
-      if( font->fontchar[i].code == unicode )
-        break;
-    }
-#endif
+    i = osd_search(font->fontchar, font->num_fontchars, unicode);
 
 #ifdef LOG_DEBUG  
     printf("font %s [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i, 
@@ -933,12 +1002,6 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
   }
 
-#ifndef _MSC_VER
-  if (cd != (iconv_t)-1) {
-    iconv_close(cd);
-  }
-#endif /* _MSC_VER */
-
   pthread_mutex_unlock (&this->osd_mutex);
 
   return 1;
@@ -951,7 +1014,10 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
-  int i, c;
+  int i;
+  const char *inbuf;
+  uint16_t unicode;
+  size_t inbytesleft;
 
 #ifdef LOG_DEBUG  
   printf("osd_get_text_size %p \"%s\"\n", osd, text);
@@ -959,28 +1025,52 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   
   pthread_mutex_lock (&this->osd_mutex);
 
-  font = osd->font;
-  
+  {
+    int proceed = 0;
+
+    if ((font = osd->font)) proceed = 1;
+#ifdef HAVE_FT2
+    if (osd->ft2 && osd->ft2->useme) proceed = 1;
+#endif
+    
+    if (proceed == 0) {
+      printf(_("osd: font isn't defined\n"));
+      pthread_mutex_unlock(&this->osd_mutex);
+      return 0;
+    }
+  }
+
   *width = 0;
   *height = 0;
 
+  inbuf = text;
+  inbytesleft = strlen(text);
+  
+  while( inbytesleft ) {
+#ifndef _MSC_VER
+    unicode = osd_iconv_getunicode(osd->cd, osd->encoding, 
+                                   (char **)&inbuf, &inbytesleft);
+#else
+    unicode = inbuf[0];
+    inbuf++;
+    inbytesleft--;
+#endif
+
 #ifdef HAVE_FT2
-  if (osd->ft2 && osd->ft2->useme) {
-    int first = 1;
-    FT_GlyphSlot  slot = osd->ft2->face->glyph;
-    
-    while (*text) {
-      
-      i = FT_Get_Char_Index( osd->ft2->face, *text);
-      
+    if (osd->ft2 && osd->ft2->useme) {
+      int first = 1;
+      FT_GlyphSlot  slot = osd->ft2->face->glyph;
+
+      i = FT_Get_Char_Index( osd->ft2->face, unicode);
+
       if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
-	printf("osd: error loading glyph %i\n", i);
-	text++;
-	continue;
+        printf("osd: error loading glyph %i\n", i);
+        text++;
+        continue;
       }
 
       if (slot->format != ft_glyph_format_bitmap) {
-	if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
+        if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
 	  printf("osd: error in rendering\n");
       }
       if (first) *width += slot->bitmap_left;
@@ -989,29 +1079,19 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       /* font height from baseline to top */
       *height = MAX(*height, slot->bitmap_top);
       text++;
-    }
-  } else {
+    } else {
 #endif
- 
-  while( font && *text ) {
-    c = *text & 0xff;
-  
-    for( i = 0; i < font->num_fontchars; i++ ) {
-      if( font->fontchar[i].code == c )
-        break;
-    }
+      i = osd_search(font->fontchar, font->num_fontchars, unicode);
 
-    if ( i != font->num_fontchars ) {
-      if( font->fontchar[i].height > *height )
-        *height = font->fontchar[i].height;
-      *width += font->fontchar[i].width;
-    }
-    text++;
-  }
-
+      if ( i != font->num_fontchars ) {
+        if( font->fontchar[i].height > *height )
+          *height = font->fontchar[i].height;
+        *width += font->fontchar[i].width;
+      }
 #ifdef HAVE_FT2
-  } /* !(osd->ft2 && osd->ft2->useme) */
+    } /* !(osd->ft2 && osd->ft2->useme) */
 #endif
+  }
 
   pthread_mutex_unlock (&this->osd_mutex);
 
@@ -1090,13 +1170,14 @@ static void osd_free_object (osd_object_t *osd_to_close) {
   while( osd ) {
     if ( osd == osd_to_close ) {
       free( osd->area );
+      if( osd->ft2 ) free( osd->ft2 );
+      osd_free_encoding(osd);
       
       if( last )
         last->next = osd->next;
       else
         this->osds = osd->next;
 
-      if( osd->ft2 ) free( osd->ft2 );
       free( osd );
       break;
     }
@@ -1214,6 +1295,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_manager_t *video_overlay, confi
   this->point              = osd_point;
   this->line               = osd_line;
   this->filled_rect        = osd_filled_rect;
+  this->set_encoding       = osd_set_encoding;
   this->render_text        = osd_render_text;
   this->get_text_size      = osd_get_text_size;
   this->close              = osd_renderer_close;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.57 2003/08/26 21:18:32 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.58 2003/09/18 18:14:51 valtri Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -599,6 +599,7 @@ const char *xine_get_meta_info (xine_stream_t *stream, int info) {
 xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int height) {
   xine_osd_t *this = (xine_osd_t *)stream->osd_renderer->new_object(stream->osd_renderer, width, height);
   this->osd.renderer->set_position(&this->osd, x, y);
+  this->osd.renderer->set_encoding(&this->osd, "");
   return this;
 }
   
@@ -622,7 +623,7 @@ void xine_osd_draw_rect(xine_osd_t *this, int x1, int y1, int x2, int y2, int co
 }
 
 void xine_osd_draw_text(xine_osd_t *this, int x1, int y1, const char *text, int color_base) {
-  this->osd.renderer->render_text(&this->osd, x1, y1, text, NULL, color_base);
+  this->osd.renderer->render_text(&this->osd, x1, y1, text, color_base);
 }
 
 void xine_osd_get_text_size(xine_osd_t *this, const char *text, int *width, int *height) {

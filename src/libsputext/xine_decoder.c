@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.61 2003/07/12 17:04:36 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.62 2003/09/18 18:14:50 valtri Exp $
  *
  */
 
@@ -161,7 +161,9 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   
   y = (SUB_MAX_TEXT - this->lines) * this->line_height;
   font_size = this->font_size;
-        
+
+  this->renderer->set_encoding(this->osd, this->class->src_encoding);
+  
   for (line=0; line<this->lines; line++) {
     int w,h,x;
           
@@ -179,8 +181,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
     }
           
     this->renderer->render_text (this->osd, x, y + line*this->line_height,
-                                 this->text[line], this->class->src_encoding,
-                                 OSD_TEXT1);
+                                 this->text[line], OSD_TEXT1);
   }
          
   if( font_size != this->font_size )

@@ -165,7 +165,7 @@ void list_free(item_t *list) {
 uint16_t generate_unicodes_list(item_t **list, char **pages, int number) {
   int page;
   uint16_t codes_count = 0;  /* unicode counter */
-  unsigned char z;           /* index in codepage */
+  int32_t z;                 /* index in the codepage */
   iconv_t cd;                /* iconv conversion descriptor */
 
   *list = NULL;
@@ -180,17 +180,17 @@ uint16_t generate_unicodes_list(item_t **list, char **pages, int number) {
     printf("Used encoding \"%s\"\n", pages[page]);
     
     /* add new unicodes into list */
-    for (z = 32; z < 0xff; z++) {
+    for (z = 32; z < 0xFFFF; z++) {
       uint16_t unicode;
       char *inbuf = (char *)&z;
       char *outbuf = (char *)&unicode;
-      size_t inbytesleft = 1;
+      size_t inbytesleft = z <= 0xFF ? 1 : 2;
       size_t outbytesleft = 2;
       size_t count;
      
       /* get unicode value from index 'z' in this codepage 'pages[i]' */
       count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
-      if (count == (size_t)-1) {
+      if (count == (size_t)-1 || inbytesleft != 0) {
       /* unused index 'z' in this codepage */
         continue;
       }
@@ -510,7 +510,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness,
     printf("\n");
     list_free(error_unicodes);
   }
-  printf ("generated %s (%d)\n", filename, font.num_fontchars);
+  printf ("generated %s (%d characters)\n", filename, font.num_fontchars);
 }  
 
 

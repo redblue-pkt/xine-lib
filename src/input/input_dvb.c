@@ -376,7 +376,6 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
     if ( (channel >= 0) && (channel < this->num_channels) )
       this->stream->osd_renderer->render_text (this->osd, 10, 10+i*35,
 					     this->channels[channel].name,
-					     "iso-8859-1",
 					     OSD_TEXT3);
     channel ++;
   }
@@ -461,7 +460,6 @@ static void do_record (dvb_input_plugin_t *this) {
     this->stream->osd_renderer->filled_rect (this->rec_osd, 0, 0, 300, 40, 0);
 
     this->stream->osd_renderer->render_text (this->rec_osd, 10, 10, filename,
-					     "iso-8859-1",
 					     OSD_TEXT3);
 
     this->stream->osd_renderer->show (this->rec_osd, 0);
@@ -935,6 +933,7 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 						      410, 410);
   this->stream->osd_renderer->set_position (this->osd, 20, 20);
   this->stream->osd_renderer->set_font (this->osd, "cetus", 32);
+  this->stream->osd_renderer->set_encoding(this->osd, NULL);
   this->stream->osd_renderer->set_text_palette (this->osd,
 						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
 						OSD_TEXT3);
@@ -947,6 +946,7 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 	  					          301, 41);
   this->stream->osd_renderer->set_position (this->rec_osd, 10, 10);
   this->stream->osd_renderer->set_font (this->rec_osd, "cetus", 16);
+  this->stream->osd_renderer->set_encoding(this->rec_osd, NULL);
   this->stream->osd_renderer->set_text_palette (this->rec_osd,
 						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
 						OSD_TEXT3);

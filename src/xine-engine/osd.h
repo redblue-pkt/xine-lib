@@ -18,11 +18,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.17 2003/08/15 14:35:09 mroi Exp $
+ * $Id: osd.h,v 1.18 2003/09/18 18:14:51 valtri Exp $
  */
 
 #ifndef HAVE_OSD_H
 #define HAVE_OSD_H
+
+#ifndef _MSC_VER 
+#  include <iconv.h>
+#endif /* _MSC_VER */
 
 #ifdef XINE_COMPILE
 #  include "video_overlay.h"
@@ -54,6 +58,11 @@ struct osd_object_s {
   uint8_t trans[OVL_PALETTE_SIZE];	/* mixer key table */
 
   int32_t handle;
+
+#ifndef _MSC_VER
+  iconv_t cd;                           /* iconv handle of encoding */
+  char *encoding;                       /* name of encoding */
+#endif
   
   osd_font_t *font;
   osd_ft2context_t *ft2;
@@ -147,9 +156,16 @@ struct osd_renderer_s {
 
   int (*set_font) (osd_object_t *osd, const char *fontname, int size);
 
+  /*
+   * set encoding of text
+   *
+   * NULL ... no conversion (iso-8859-1)
+   * ""   ... locale encoding
+   */
+  int (*set_encoding) (osd_object_t *osd, const char *encoding);
 
   /*
-   * render text on x,y position (8 bits version)
+   * render text in current encoding on x,y position
    * no \n yet
    *
    * The text is assigned the colors starting at the index specified by
@@ -158,7 +174,7 @@ struct osd_renderer_s {
    * Use OSD_TEXT1, OSD_TEXT2, ... for some preasssigned color indices.
    */
   int (*render_text) (osd_object_t *osd, int x1, int y1, 
-		      const char *text, const char *encoding, int color_base);
+		      const char *text, int color_base);
 
   /*
    * get width and height of how text will be renderized
