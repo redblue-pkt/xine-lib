@@ -1554,7 +1554,7 @@ echo ""
 dnl post plugins
 echo " * post effect plugins:"
 echo "  * planar video effects:"
-echo "   - invert"
+echo "   - invert          - expand"
 echo "  * SFX:"
 echo "   - goom            - oscope"
 echo "   - fftscope        - mosaico"
