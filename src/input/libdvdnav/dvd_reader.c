@@ -44,6 +44,7 @@
 #include <mntent.h>
 #endif
 
+#include "compat.h"
 #include "dvd_udf.h"
 #include "dvd_input.h"
 #include "dvd_reader.h"
@@ -389,7 +390,7 @@ dvd_reader_t *DVDOpen( const char *ppath )
 	    
 	    if( cdir >= 0 ) {
 		chdir( path_copy );
-		new_path = getcwd( NULL, PATH_MAX );
+		new_path = getcwd( NULL, XINE_PATH_MAX );
 		fchdir( cdir );
 		close( cdir );
 		if( new_path ) {
@@ -569,7 +570,7 @@ static int findDirFile( const char *path, const char *file, char *filename )
 
 static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
 {
-    char video_path[ PATH_MAX + 1 ];
+    char video_path[ XINE_PATH_MAX + 1 ];
     const char *nodirfile;
     int ret;
 
@@ -603,7 +604,7 @@ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
  */
 static dvd_file_t *DVDOpenFilePath( dvd_reader_t *dvd, char *filename )
 {
-    char full_path[ PATH_MAX + 1 ];
+    char full_path[ XINE_PATH_MAX + 1 ];
     dvd_file_t *dvd_file;
     struct stat fileinfo;
     dvd_input_t dev;
@@ -687,7 +688,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *dvd, int title, int menu )
 static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *dvd, int title, int menu )
 {
     char filename[ MAX_UDF_FILE_NAME_LEN ];
-    char full_path[ PATH_MAX + 1 ];
+    char full_path[ XINE_PATH_MAX + 1 ];
     struct stat fileinfo;
     dvd_file_t *dvd_file;
     int i;

@@ -18,7 +18,6 @@ libdvdnav_la_SOURCES = \
 	settings.c \
 	vm.c \
 	vmcmd.c \
-	ifo_print.c \
 	ifo_read.c \
 	md5.c \
 	nav_print.c \
@@ -40,7 +39,6 @@ noinst_HEADERS = \
 	vmcmd.h \
 	read_cache.h \
 	dvd_types.h \
-	ifo_print.h \
 	ifo_read.h \
 	ifo_types.h \
 	md5.h \

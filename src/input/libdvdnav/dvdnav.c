@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.28 2003/05/11 13:44:05 jcdutton Exp $
+ * $Id: dvdnav.c,v 1.29 2003/05/16 09:56:50 mroi Exp $
  *
  */
 
@@ -51,7 +51,7 @@ static dvdnav_status_t dvdnav_clear(dvdnav_t * this) {
 
   memset(&this->pci,0,sizeof(this->pci));
   memset(&this->dsi,0,sizeof(this->dsi));
-  this->last_cmd_nav_lbn = 0;
+  this->last_cmd_nav_lbn = SRI_END_OF_CELL;
 
   /* Set initial values of flags */
   this->position_current.still = 0;
@@ -782,7 +782,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, uint8_t **buf,
     
     /* release NAV menu filter, when we reach the same NAV packet again */
     if (this->last_cmd_nav_lbn == this->pci.pci_gi.nv_pck_lbn)
-      this->last_cmd_nav_lbn = 0;
+      this->last_cmd_nav_lbn = SRI_END_OF_CELL;
     
     /* Successfully got a NAV packet */
     (*event) = DVDNAV_NAV_PACKET;
