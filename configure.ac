@@ -33,6 +33,16 @@ dnl       AGE ++;
 dnl    if (any interfaces have been _removed_ or _incompatibly changed_)
 dnl       AGE = 0;
 dnl }
+dnl 
+dnl If you want to know more about what you are doing, here are some details:
+dnl  * LT_CURRENT is the current API version
+dnl  * LT_REVISION is an internal revision number which is increased when the API
+dnl    itself did not change
+dnl  * LT_AGE is the number of previous API versions still supported by this library
+dnl  * libtool has its own numbering scheme, because local library numbering schemes
+dnl    are platform dependent
+dnl  * in Linux, the library will be named
+dnl    libname.so.(LT_CURRENT - LT_AGE).LT_AGE.LT_REVISION
 
 LT_CURRENT=10
 LT_REVISION=0
@@ -688,6 +698,7 @@ LIBS="$saved_libs"
 fi
 AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
 AC_SUBST(XVMC_LIB)
+
 
 dnl ---------------------------------------------
 dnl Checks for Xinerama extension
