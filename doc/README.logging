@@ -1,0 +1,76 @@
+The xine logging system
+=======================
+
+xine offers a wide range of possibilities to display
+strings. This document should describe when to use
+which way and how to do it right.
+
+
+xine_log
+--------
+Output which is done thru this function will be
+displayed by the frontend. It can not be disabled.
+If xine->verbosity is not 0 the messages will also
+be displayed on the console. Often these strings
+are translated.
+This function is for information which the user should
+read always.
+
+usage: xine_log(xine_t *xine, int buf, const char *format, ...);
+  -buf is either XINE_LOG_MSG for general messages or
+       XINE_LOG_PLUGIN for messages about plugins.
+
+
+xprintf
+-------
+This macro uses the xine->verbosity value to decide
+if the string should be printed to the console. Possible
+values are XINE_VERBOSITY_NONE, XINE_VERBOSITY_LOG or
+XINE_VERBOSITY_DEBUG. By default nothing is printed.
+When you use xine-ui you can enable this output with
+the --verbose=[1,2] options.
+This function should be used for information which the
+user should only read up on request.
+
+usage: xprintf(xine_t *xine, int verbosity, const char *format, ...);
+
+
+lprintf/llprintf
+----------------
+These macros are for debugging purpose only. Under normal
+circumstances it is disabled. And can only be enabled by changing
+a define statement and a recompilation. It has to be enabled for these
+files that are of interest.
+It should only be use for information which is intended for developers.
+
+usage: lprintf(const char *format, ...);
+       llprintf(cat , const char *format, ...);
+  where cat is a flag which enables or disables this logging.
+
+
+-lprintf can be enabled by defining LOG at the top of the source file:
+#define LOG
+
+-llprintf can used for more than one categorie per file by using diffent lables:
+#define LOG_LOAD 1
+#define LOG_SAVE 0
+
+llprintf(LOG_LOAD, "loading was successful\n");
+llprintf(LOG_SAVE, "could not save to file %s\n", filename);
+
+in this case only hte first messages is printed. To enable/disable change the
+defines.
+
+-LOG_MODULE should be used to set the modulename for xprintf/lprintf/llprintf.
+Each output line starts with "modulename: ":
+#define LOG_MODULE "modulename"
+
+-LOG_VERBOSE should be set to enable the logging of functionname and linenumbers:
+#define LOG_VERBOSE
+
+then the output will be:
+modulename: (function_name:42) message
+
+
+
+

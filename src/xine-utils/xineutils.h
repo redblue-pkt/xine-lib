@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2000-2002 the xine project
+/*
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.53 2003/06/13 23:05:35 komadori Exp $
+ * $Id: xineutils.h,v 1.54 2003/06/20 20:57:29 andruil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -881,6 +881,78 @@ void xine_print_trace(void);
 
 #endif
 
+/****** logging with xine **********************************/
+
+#ifndef LOG_MODULE
+  #define LOG_MODULE __FILE__
+#endif /* LOG_MODULE */
+
+#define LOG_MODULE_STRING printf("%s: ", LOG_MODULE );
+
+#ifdef LOG_VERBOSE
+  #define LONG_LOG_MODULE_STRING \
+    printf("%s: (%s:%d) ", LOG_MODULE, __XINE_FUNCTION__, __LINE__ );
+#else
+  #define LONG_LOG_MODULE_STRING  LOG_MODULE_STRING
+#endif /* LOG_VERBOSE */
+
+#ifdef LOG
+  #ifdef __GNUC__
+    #define lprintf(fmt, args...)     \
+      do{                             \
+        LONG_LOG_MODULE_STRING        \
+        printf( fmt, ##args );        \
+      }while(0)
+  #else
+    #define lprintf(fmt, ...)         \
+      do{                             \
+        LONG_LOG_MODULE_STRING        \
+        printf( fmt, __VA_ARGS__ );   \
+      }while(0)
+  #endif /* __GNUC__ */
+#else
+  #ifdef __GNUC__
+    #define lprintf(fmt, args...)     ;
+  #else
+    #define lprintf(fmt, ...)         ;
+  #endif /* __GNUC__ */
+#endif /* LOG */
+
+#ifdef __GNUC__
+  #define llprintf(cat, fmt, args...)    \
+    do{                                  \
+      if(cat){                           \
+        LONG_LOG_MODULE_STRING           \
+        printf( fmt, ##args );           \
+      }                                  \
+    }while(0)
+#else
+  #define llprintf(cat, fmt, ...)        \
+    do{                                  \
+      if(cat){                           \
+        LONG_LOG_MODULE_STRING           \
+        printf( fmt, __VA_ARGS__ );      \
+      }                                  \
+    }while(0)
+#endif /* __GNUC__ */
+
+#ifdef  __GNUC__
+  #define xprintf(xine, verbose, fmt, args...)  \
+    do {                                        \
+      if((xine)->verbosity >= verbose){         \
+        LOG_MODULE_STRING                       \
+        printf(fmt, ##args);                    \
+      }                                         \
+    } while(0)
+#else
+  #define xprintf(xine, verbose, fmt, ...)      \
+    do {                                        \
+      if((xine)->verbosity >= verbose){         \
+        LOG_MODULE_STRING                       \
+        printf(fmt, __VA_ARGS__);               \
+      }                                         \
+    } while(0)
+#endif /* __GNUC__ */
 
 /******** double chained lists with builtin iterator *******/
 

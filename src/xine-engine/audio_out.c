@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,28 +17,30 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.130 2003/06/17 18:53:14 tmattern Exp $
- * 
+ * $Id: audio_out.c,v 1.131 2003/06/20 20:57:28 andruil Exp $
+ *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
- * 
+ */
+ 
+/*
  * General Programming Guidelines: -
  * New concept of an "audio_frame".
- * An audio_frame consists of all the samples required to fill every 
+ * An audio_frame consists of all the samples required to fill every
  * audio channel to a full amount of bits.
- * So, it does not mater how many bits per sample, or how many audio channels 
+ * So, it does not mater how many bits per sample, or how many audio channels
  * are being used, the number of audio_frames is the same.
  * E.g.  16 bit stereo is 4 bytes, but one frame.
  *       16 bit 5.1 surround is 12 bytes, but one frame.
- * The purpose of this is to make the audio_sync code a lot more readable, 
+ * The purpose of this is to make the audio_sync code a lot more readable,
  * rather than having to multiply by the amount of channels all the time
  * when dealing with audio_bytes instead of audio_frames.
  *
- * The number of samples passed to/from the audio driver is also sent 
+ * The number of samples passed to/from the audio driver is also sent
  * in units of audio_frames.
- * 
+ *
  * Currently, James has tested with OSS: Standard stereo out, SPDIF PCM, SPDIF AC3
  *                                 ALSA: Standard stereo out
  * No testing has been done of ALSA SPDIF AC3 or any 4,5,5.1 channel output.
@@ -77,17 +79,19 @@
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
+/********** logging **********/
+#define LOG_MODULE "audio_out"
+/* #define LOG_VERBOSE */
+
+/* #define LOG */
+#define LOG_RESAMPLE_SYNC 0
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "audio_out.h"
 #include "resample.h"
 #include "metronom.h"
 
-/*
-#define LOG
-
-#define LOG_RESAMPLE_SYNC
-*/
 
 #define NUM_AUDIO_BUFFERS       32
 #define AUDIO_BUF_SIZE       32768
@@ -420,10 +424,9 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-
-    printf ("audio_out: inserting %d 0-frames to fill a gap of %" PRId64 " pts\n",
-	    num_frames, pts_len);
+  xprintf (this->xine, XINE_VERBOSITY_LOG,
+           "inserting %d 0-frames to fill a gap of %" PRId64 " pts\n",
+           num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -515,17 +518,12 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
   } else
     f_max = 1.0;
   
-#ifdef LOG
-  printf ("audio_out: max=%d f_max=%f compression_factor=%f\n", 
-	  maxs, f_max, this->compression_factor);
-#endif
-    
+  lprintf ("max=%d f_max=%f compression_factor=%f\n", maxs, f_max, this->compression_factor);
+
   /* apply it */
 
   for (i=0; i<num_frames*num_channels; i++) {
-
     /* 0.98 to avoid overflow */
-
     mem[i] = mem[i] * 0.98 * this->compression_factor * this->amp_factor;
   }
 }
@@ -540,12 +538,11 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
     return;
 
   for (i=0; i<num_frames*num_channels; i++) {
-
     mem[i] = mem[i] * this->amp_factor;
   }
 }
 
-static void audio_filter_equalize (aos_t *this, 
+static void audio_filter_equalize (aos_t *this,
 				   int16_t *data, int num_frames) {
   int       index, band, channel;
   int       halflength, length;
@@ -563,10 +560,10 @@ static void audio_filter_equalize (aos_t *this,
   for (index = 0; index < halflength; index+=2) {
 
     for (channel = 0; channel < num_channels; channel++) {
-      
+
       /* Convert the PCM sample to a fixed fraction */
       scaledpcm[channel] = ((int)data[index+channel]) << (FP_FRBITS-16-1);
-      
+
       out[channel] = 0;
       /*  For each band */
       for (band = 0; band < EQ_BANDS; band++) {
@@ -574,15 +571,15 @@ static void audio_filter_equalize (aos_t *this,
 	this->eq_data_history[band][channel].x[this->eq_i] = scaledpcm[channel];
 	l = (int64_t)iir_cf[band].alpha * (int64_t)(this->eq_data_history[band][channel].x[this->eq_i] - this->eq_data_history[band][channel].x[this->eq_k])
 	  + (int64_t)iir_cf[band].gamma * (int64_t)this->eq_data_history[band][channel].y[this->eq_j]
-	  - (int64_t)iir_cf[band].beta * (int64_t)this->eq_data_history[band][channel].y[this->eq_k]; 
+	  - (int64_t)iir_cf[band].beta * (int64_t)this->eq_data_history[band][channel].y[this->eq_k];
 	this->eq_data_history[band][channel].y[this->eq_i] = (int)(l >> FP_FRBITS);
 	l = (int64_t)this->eq_data_history[band][channel].y[this->eq_i] * (int64_t)this->eq_gain[band];
 	out[channel] +=	(int)(l >> FP_FRBITS);
-      } 
+      }
 
       /*  Volume scaling adjustment by 2^-2 */
       out[channel] += (scaledpcm[channel] >> 2);
-      
+
       /* Adjust the fixed point fraction value to a PCM sample */
       /* Scale back to a 16bit signed int */
       out[channel] >>= (FP_FRBITS-16);
@@ -594,8 +591,8 @@ static void audio_filter_equalize (aos_t *this,
 	data[index+channel] = 32767;
       else
 	data[index+channel] = out[channel];
-    } 
-		
+    }
+
     this->eq_i++; this->eq_j++; this->eq_k++;
     if (this->eq_i == 3) this->eq_i = 0;
     else if (this->eq_j == 3) this->eq_j = 0;
@@ -614,11 +611,11 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
 
   if (this->input.bits == 16) {
 
-    if (this->do_equ) 
+    if (this->do_equ)
       audio_filter_equalize (this, buf->mem, buf->num_frames);
     if (this->do_compress)
       audio_filter_compress (this, buf->mem, buf->num_frames);
-    if (this->do_amp) 
+    if (this->do_amp)
       audio_filter_amp (this, buf->mem, buf->num_frames);
   }
 
@@ -633,20 +630,18 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
 
   /* Truncate to an integer */
   num_output_frames = acc_output_frames;
-    
+
   /* Keep track of the amount truncated */
   this->output_frame_excess = acc_output_frames - (double) num_output_frames;
   if ( this->output_frame_excess != 0 &&
        !this->do_resample && !this->resample_sync_method)
     this->output_frame_excess = 0;
-      
-#ifdef LOG
-  printf ("audio_out: outputting %d frames\n", num_output_frames);
-#endif
+
+  lprintf ("outputting %d frames\n", num_output_frames);
 
   /* convert 8 bit samples as needed */
   if ( this->input.bits == 8 &&
-       (this->resample_sync_method || this->do_resample || 
+       (this->resample_sync_method || this->do_resample ||
         this->output.bits != 8 || this->input.mode != this->output.mode) ) {
     ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
 		       buf->num_frames );
@@ -656,7 +651,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   }
 
   /* check if resampling may be skipped */
-  if ( (this->resample_sync_method || this->do_resample) &&  
+  if ( (this->resample_sync_method || this->do_resample) &&
        buf->num_frames != num_output_frames ) {
     switch (this->input.mode) {
     case AO_CAP_MODE_MONO:
@@ -695,7 +690,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
       break;
     }
   }
-    
+
   /* mode conversion */
   if ( this->input.mode != this->output.mode ) {
     switch (this->input.mode) {
@@ -794,17 +789,14 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
     info->reduce_gap = 1;
     this->resample_sync_factor = (avg_gap < 0) ? 0.995 : 1.005;
 
-#ifdef LOG_RESAMPLE_SYNC
-    printf("audio_out: sample rate adjusted to reduce gap: gap=%" PRId64 "\n", avg_gap);
-#endif
+    llprintf (LOG_RESAMPLE_SYNC,
+              "sample rate adjusted to reduce gap: gap=%" PRId64 "\n", avg_gap);
     return 0;
 
   } else if (info->reduce_gap && abs(avg_gap) < 50) {
     info->reduce_gap = 0;
     info->valid = 0;
-#ifdef LOG_RESAMPLE_SYNC
-    printf("audio_out: gap successfully reduced\n");
-#endif
+    llprintf (LOG_RESAMPLE_SYNC, "gap successfully reduced\n");
     return 0;
 
   } else if (info->reduce_gap) {
@@ -825,7 +817,7 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
     int64_t gap_diff = avg_gap - info->last_avg_gap;
 
     if (gap_diff < RESAMPLE_MAX_GAP_DIFF) {
-#ifdef LOG_RESAMPLE_SYNC
+#if LOG_RESAMPLE_SYNC
       int num_frames;
       
       /* if we are already resampling to a different output rate, consider
@@ -892,15 +884,10 @@ static void *ao_loop (void *this_gen) {
      */
     
     if (!in_buf) {
-
-#ifdef LOG
-      printf ("audio_out:loop: get buf from fifo\n");
-#endif
+      lprintf ("loop: get buf from fifo\n");
       in_buf = fifo_remove (this->out_fifo);
       bufs_since_sync++;
-#ifdef LOG
-      printf ("audio_out: got a buffer\n");
-#endif
+      lprintf ("got a buffer\n");
     }
 
     pthread_mutex_lock(&this->flush_audio_driver_lock);
@@ -931,22 +918,16 @@ static void *ao_loop (void *this_gen) {
 
 	cur_time = this->clock->get_current_time (this->clock);
 	if (in_buf->vpts < cur_time ) {
-#ifdef LOG
-	  printf ("audio_out:loop: next fifo\n");
-#endif
+	  lprintf ("loop: next fifo\n");
 	  fifo_append (this->free_fifo, in_buf);
 	  in_buf = NULL;
 	  continue;
 	}
       }
 
-#ifdef LOG
-      printf ("audio_out:loop:pause: I feel sleepy (%d buffers).\n", this->out_fifo->num_buffers);
-#endif
+      lprintf ("loop:pause: I feel sleepy (%d buffers).\n", this->out_fifo->num_buffers);
       xine_usec_sleep (10000);
-#ifdef LOG
-      printf ("audio_out:loop:pause: I wake up.\n");
-#endif
+      lprintf ("loop:pause: I wake up.\n");
       continue;
     }
 
@@ -983,11 +964,8 @@ static void *ao_loop (void *this_gen) {
      */
 
     hw_vpts = cur_time;
-  
-#ifdef LOG
-    printf ("audio_out: current delay is %" PRId64 ", current time is %" PRId64 "\n",
-	      delay, cur_time);
-#endif
+    lprintf ("current delay is %" PRId64 ", current time is %" PRId64 "\n", delay, cur_time);
+
     /* External A52 decoder delay correction */
     if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
       delay += this->passthrough_offset;
@@ -999,10 +977,8 @@ static void *ao_loop (void *this_gen) {
      * calculate gap:
      */
     gap = in_buf->vpts - hw_vpts;
-#ifdef LOG
-    printf ("audio_out: hw_vpts : %" PRId64 " buffer_vpts : %" PRId64 " gap : %" PRId64 "\n",
-	    hw_vpts, in_buf->vpts, gap);
-#endif
+    lprintf ("hw_vpts : %" PRId64 " buffer_vpts : %" PRId64 " gap : %" PRId64 "\n",
+             hw_vpts, in_buf->vpts, gap);
 
     if (this->resample_sync_method) {
       /* Correct sound card drift via resampling. If gap is too big to
@@ -1023,15 +999,11 @@ static void *ao_loop (void *this_gen) {
     if (gap < (-1 * AO_MAX_GAP) || !in_buf->num_frames ) {
 
       /* drop package */
-#ifdef LOG
-      printf ("audio_out:loop: drop package, next fifo\n");
-#endif
+      lprintf ("loop: drop package, next fifo\n");
       fifo_append (this->free_fifo, in_buf);
 
-#ifdef LOG
-      printf ("audio_out: audio package (vpts = %" PRId64 ", gap = %" PRId64 ") dropped\n", 
-	      in_buf->vpts, gap);
-#endif
+      lprintf ("audio package (vpts = %" PRId64 ", gap = %" PRId64 ") dropped\n",
+               in_buf->vpts, gap);
       in_buf = NULL;
 
       
@@ -1044,9 +1016,7 @@ static void *ao_loop (void *this_gen) {
                 bufs_since_sync >= SYNC_BUF_INTERVAL &&
                 !this->resample_sync_method ) {
 	xine_stream_t *stream;
-#ifdef LOG
-        printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
-#endif
+        lprintf ("audio_loop: ADJ_VPTS\n");
 	pthread_mutex_lock(&this->streams_lock);
 	for (stream = xine_list_first_content(this->streams); stream;
 	     stream = xine_list_next_content(this->streams)) {
@@ -1083,18 +1053,13 @@ static void *ao_loop (void *this_gen) {
       }
 #endif
 
-#ifdef LOG
-      printf ("audio_out: loop: writing %d samples to sound device\n", 
-	      out_buf->num_frames);
-#endif
+      lprintf ("loop: writing %d samples to sound device\n", out_buf->num_frames);
 
       pthread_mutex_lock( &this->driver_lock );
       this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
       pthread_mutex_unlock( &this->driver_lock ); 
 
-#ifdef LOG
-      printf ("audio_out:loop: next buf from fifo\n");
-#endif
+      lprintf ("loop: next buf from fifo\n");
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;
     }
@@ -1118,9 +1083,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   audio_buffer_t *in_buf, *out_buf;
   xine_stream_t  *stream;
 
-#ifdef LOG
-  printf ("audio_audio: get_next_audio_frame\n");
-#endif
+  lprintf ("get_next_audio_frame\n");
 
   do {
     stream = xine_list_first_content(this->streams);
@@ -1208,22 +1171,22 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     if( this->input.bits == 8 && 
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
       bits = 16;
-      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
+      xprintf (this->xine, XINE_VERBOSITY_LOG,
+               "8 bits not supported by driver, converting to 16 bits.\n");
     }
-    
+
     /* provide mono->stereo and stereo->mono conversions */
-    if( this->input.mode == AO_CAP_MODE_MONO && 
+    if( this->input.mode == AO_CAP_MODE_MONO &&
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
       mode = AO_CAP_MODE_STEREO;
-      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("audio_out: mono not supported by driver, converting to stereo.\n");
+      xprintf (this->xine, XINE_VERBOSITY_LOG,
+               "mono not supported by driver, converting to stereo.\n");
     }
-    if( this->input.mode == AO_CAP_MODE_STEREO && 
+    if( this->input.mode == AO_CAP_MODE_STEREO &&
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
       mode = AO_CAP_MODE_MONO;
-      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("audio_out: stereo not supported by driver, converting to mono.\n");
+      xprintf (this->xine, XINE_VERBOSITY_LOG,
+               "stereo not supported by driver, converting to mono.\n");
     }
  
     pthread_mutex_lock( &this->driver_lock );
@@ -1234,13 +1197,11 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     output_sample_rate = this->input.rate;
 
   if ( output_sample_rate == 0) {
-    if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf("audio_out: open failed!\n");
+    xprintf (this->xine, XINE_VERBOSITY_LOG, "open failed!\n");
     return 0;
   }; 
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-    printf("audio_out: output sample rate %d\n", output_sample_rate);
+  xprintf (this->xine, XINE_VERBOSITY_LOG, "output sample rate %d\n", output_sample_rate);
 
   this->last_audio_vpts       = 0;
   this->output.mode           = mode;
@@ -1258,18 +1219,17 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     this->do_resample = this->output.rate != this->input.rate;
   }
 
-  if (this->do_resample && this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    printf("audio_out: will resample audio from %d to %d\n",
-	   this->input.rate, this->output.rate);
+  if (this->do_resample)
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+             "will resample audio from %d to %d\n", this->input.rate, this->output.rate);
 
   this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
-  /* FIXME: If this->frames_per_kpts line goes after this->audio_step line, xine crashes with FPE, when compiled with gcc 3.0.1!!! Why? */ 
+  /* FIXME: If this->frames_per_kpts line goes after this->audio_step line,
+   * xine crashes with FPE, when compiled with gcc 3.0.1!!! Why? */
   this->frames_per_kpts   = (this->output.rate * 1024) / 90000;
   this->audio_step        = ((int64_t)90000 * (int64_t)32768) / (int64_t)this->input.rate;
-#ifdef LOG
-  printf ("audio_out : audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
-#endif
-
+  
+  lprintf ("audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
   return this->output.rate;
 }
 
@@ -1350,7 +1310,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   if( stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] != this->input.bits ||
       stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] != this->input.rate ||
       stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE] != this->input.mode ) {
-    printf("audio_out: audio format have changed\n");
+    lprintf("audio format have changed\n");
     ao_change_settings(this, 
                        stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS],
                        stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE],
@@ -1366,11 +1326,9 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
 						   buf->num_frames);
   buf->extra_info->vpts = buf->vpts;
          
-#ifdef LOG
-  printf ("audio_out: ao_put_buffer, pts=%" PRId64 ", vpts=%" PRId64 ", flushmode=%d\n",
-	  pts, buf->vpts, this->discard_buffers);
-#endif
- 
+  lprintf ("ao_put_buffer, pts=%" PRId64 ", vpts=%" PRId64 ", flushmode=%d\n",
+           pts, buf->vpts, this->discard_buffers);
+
   if (!this->discard_buffers) 
     fifo_append (this->out_fifo, buf);
   else
@@ -1378,9 +1336,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   
   this->last_audio_vpts = buf->vpts;
 
-#ifdef LOG
-  printf ("audio_out: ao_put_buffer done\n");
-#endif
+  lprintf ("ao_put_buffer done\n");
 }
 
 static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
@@ -1388,8 +1344,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   aos_t *this = (aos_t *) this_gen;
   xine_stream_t *cur;
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    printf ("audio_out: ao_close \n");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "ao_close\n");
 
   /* unregister stream */
   pthread_mutex_lock(&this->streams_lock);
@@ -1404,8 +1359,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
   /* close driver if no streams left */
   if (!cur && !this->grab_only) {
-    if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-      printf("audio_out: no streams left, closing driver\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "no streams left, closing driver\n");
 
     if (this->audio_loop_running) {
       /* make sure there are no more buffers on queue */
@@ -1611,7 +1565,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 	  max_gain = this->eq_gain[i];
       }
       
-      printf ("audio_out: eq min_gain=%d, max_gain=%d\n", min_gain, max_gain);
+      lprintf ("eq min_gain=%d, max_gain=%d\n", min_gain, max_gain);
 
       this->do_equ = ((min_gain != EQ_REAL(0.0)) || (max_gain != EQ_REAL(0.0)));
 
@@ -1634,13 +1588,8 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
       pthread_mutex_lock(&this->out_fifo->mutex);
   
       while ((buf = this->out_fifo->first)) {
-  
-#ifdef LOG
-        printf ("audio_out: flushing out frame\n");
-#endif
-  
+        lprintf ("flushing out frame\n");
         buf = fifo_remove_int (this->out_fifo);
-  
         fifo_append (this->free_fifo, buf);
       }
       pthread_mutex_unlock (&this->out_fifo->mutex);
@@ -1688,8 +1637,8 @@ static void ao_flush (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    printf ("audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+           "ao_flush (loop running: %d)\n", this->audio_loop_running);
 
   if( this->audio_loop_running ) {
     pthread_mutex_lock(&this->flush_audio_driver_lock);
@@ -1735,9 +1684,7 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
 static void ao_update_av_sync_method(void *this_gen, xine_cfg_entry_t *entry) {
   aos_t *this = (aos_t *) this_gen;
 
-#ifdef LOG
-  printf ("audio_out: av_sync_method = %d\n", entry->num_value);
-#endif
+  lprintf ("av_sync_method = %d\n", entry->num_value);
 
   this->av_sync_method_conf = entry->num_value;
   
@@ -1922,8 +1869,7 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
       abort();
       
     } else
-      if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-        printf ("audio_out: thread created\n");
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "thread created\n");
   }
 
   return &this->ao;
