@@ -21,6 +21,8 @@
  *
  */
 
+#include "config.h"
+
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
 #ifdef WORDS_BIGENDIAN
