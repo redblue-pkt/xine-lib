@@ -471,9 +471,10 @@ fi
             --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
             --localstatedir=%{_localstatedir} \
             --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
-            --infodir=%{_infodir}
+            --infodir=%{_infodir} \
+            --with-internal-vcdlibs
 
-# Error in libfaad when compiling with mmx enabled
+# Error in libfaad when compiling with mmx or sse enabled, remove it
 mv src/libfaad/Makefile src/libfaad/Makefile_save
 cat src/libfaad/Makefile_save | sed -e "s/-mmmx/-mno-mmx/g" -e "s/-msse/-mno-sse/g" > src/libfaad/Makefile
 
@@ -717,6 +718,8 @@ rm -rf ${RPM_BUILD_ROOT}
 %endif
 
 %changelog
+* Fri Nov 21 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- use internal vcdlibs to keep dependencies low
 * Sun Oct 19 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added separate directfb-package to solve dependendies
 * Tue Oct 07 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
