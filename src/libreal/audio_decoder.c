@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.38 2004/04/26 17:50:07 mroi Exp $
+ * $Id: audio_decoder.c,v 1.39 2004/07/25 17:44:10 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -124,7 +124,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 			 this->stream->xine->config, "codec.real_codecs_path");
   char path[1024];
 
-  sprintf (path, "%s/%s", entry->str_value, codec_name);
+  snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
 
   lprintf ("(audio) opening shared obj '%s'\n", path);
 
@@ -160,7 +160,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
     char path[1024];
 
-    sprintf(path, "DT_Codecs=%s", entry->str_value);
+    snprintf(path, sizeof(path) - 1, "DT_Codecs=%s", entry->str_value);
     if (path[strlen(path)-1]!='/'){
       path[strlen(path)+1]=0;
       path[strlen(path)]='/';

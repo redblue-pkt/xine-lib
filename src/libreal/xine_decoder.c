@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.71 2004/05/23 16:12:04 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.72 2004/07/25 17:44:11 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -113,7 +113,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 			 this->stream->xine->config, "codec.real_codecs_path");
   char path[1024];
 
-  sprintf (path, "%s/%s", entry->str_value, codec_name);
+  snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
 
   lprintf ("opening shared obj '%s'\n", path);
 
