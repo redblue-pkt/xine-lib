@@ -76,7 +76,7 @@ xineplug_dmx_mpeg_ts_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c
-xineplug_dmx_qt_la_LIBADD = $(XINE_LIB)
+xineplug_dmx_qt_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS)
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_asf_la_SOURCES = demux_asf.c
