@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.23 2001/05/28 11:21:49 guenter Exp $
+ * $Id: video_out_xv.c,v 1.24 2001/05/28 12:35:54 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -265,11 +265,18 @@ static void xv_adapt_to_output_area (xv_driver_t *this, int dest_x, int dest_y, 
   } 
 
   /*
-   * clear output area
+   * clear unused output area
    */
 
   XFillRectangle(this->display, this->drawable, this->gc, 
-		 dest_x, dest_y, dest_width, dest_height);
+		 dest_x, dest_y, dest_width, this->output_yoffset - dest_y);
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 dest_x, dest_y, this->output_xoffset-dest_x, dest_height);
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 dest_x, this->output_yoffset, dest_width, dest_height - this->output_yoffset);
+  XFillRectangle(this->display, this->drawable, this->gc, 
+		 this->output_yoffset, dest_y, dest_width - this->output_xoffset, dest_height);
+
 
 }
 

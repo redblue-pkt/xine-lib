@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.1 2001/04/24 20:53:00 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.2 2001/05/28 12:35:54 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -48,76 +48,74 @@
 #include <sys/shm.h>
 #include <sys/time.h>
 
-#include <Imlib.h>
 #include <pthread.h>
 
 #include "xine_internal.h"
 #include "monitor.h"
-#include "libmpeg2/mpeg2.h"
+#include "video_out_x11.h"
 #include "yuv2rgb.h"
-#warning "FIXME"
-#include "../gui/gui_dnd.h"
-#include "../gui/gui_main.h"
 
-extern uint32_t xine_debug;
+uint32_t xine_debug;
 
 extern int XShmGetEventBase(Display *);
 
-extern Display         *gDisplay;
-extern pthread_mutex_t  gXLock;
-extern Window           gVideoWin;
-extern ImlibImage      *gXineLogoImg;
-extern ImlibData       *gImlib_data;
-extern Pixmap           gXineLogo;
-extern int              gXineLogoWidth, gXineLogoHeight;
+typedef struct xshm_property_s {
+  int   value;
+  int   min;
+  int   max;
+  Atom  atom;
+  char *key;
+} xshm_property_t;
 
-typedef struct xshm_image_info_s {
-  vo_image_buffer_t  mImageBuffer;
-  XImage            *mImage;
-  XShmSegmentInfo    mShminfo;
-} xshm_image_buffer_t;
+typedef struct xshm_frame_s {
+  vo_frame_t         vo_frame;
 
-typedef struct _xshm_globals {
-  int             screen;
-  Window          window;
-  XVisualInfo     vinfo;
-  int             depth,bpp;
-  int             bFullscreen;
-  int             bIsFullscreen;
-  GC              gc;
-  uint32_t        image_width;
-  uint32_t        image_height;
-  uint32_t        image_xoff;
-  uint32_t        image_yoff;
-  uint32_t        dest_width;
-  uint32_t        dest_height;
-  uint32_t        ratio;
-  int             user_ratio, user_ratio_changed;
-  int             bYuvInitialized;
-  int             bytes_per_pixel;
-  int             hstride_rgb, hstride_y, hstride_uv;
-  int             anamorphic;
+  int                width, height, ratio_code, format;
 
+  XImage            *image;
+  XShmSegmentInfo    shminfo;
 
-  xshm_image_buffer_t *cur_image;
+} xshm_frame_t;
 
-  /*
-   * misc (read: fun ;))
-   */
-  int             bLogoMode;
+typedef struct xshm_driver_s {
 
-#define           HIDE_CURSOR 0
-#define           SHOW_CURSOR 1
-  Cursor          mcursor[2];
-  int             current_cursor;
+  vo_driver_t      vo_driver;
 
-  int             bFail;
-  int             bUseShm;
-  DND_struct_t   *xdnd;
-} xshm_globals;
+  config_values_t *config;
 
+  /* X11 / Xv related stuff */
+  Display         *display;
+  int              screen;
+  Drawable         drawable;
+  XVisualInfo      vinfo;
+  GC               gc;
+  XColor           black;
 
-xshm_globals gXshm ;
+  xshm_property_t  props[VO_NUM_PROPERTIES];
+  uint32_t         capabilities;
+
+  xshm_frame_t    *cur_frame;
+
+  /* size / aspect ratio calculations */
+  int              delivered_width;      /* everything is set up for these frame dimensions    */
+  int              delivered_height;     /* the dimension as they come from the decoder        */
+  int              delivered_ratio_code;
+  double           ratio_factor; /* output frame must fullfill: height = width * ratio_factor  */
+  int              output_width;         /* frames will appear in this size (pixels) on screen */
+  int              output_height;
+  int              output_xoffset;
+  int              output_yoffset;
+
+  /* display anatomy */
+  double           display_ratio;        /* given by visual parameter from init function */
+
+  /* gui callback */
+
+  void (*request_dest_size) (int video_width, int video_height,
+			     int *dest_x, int *dest_y, 
+			     int *dest_height, int *dest_width);
+
+} xshm_driver_t;
 
 int HandleXError (Display *gDisplay, XErrorEvent *xevent) {
   
@@ -142,33 +140,6 @@ static void x11_DeInstallXErrorHandler ()
 
 static int get_capabilities_xshm () {
   return VO_CAP_COPIES_IMAGE | VO_CAP_YV12;
-}
-
-static unsigned char bm_no_data[] = { 0,0,0,0, 0,0,0,0 };
-
-static void create_cursor_xshm (Colormap colormap) {
-  Pixmap bm_no;
-  XColor black, dummy;
-    
-  /*
-   * create empty cursor
-   */
-  
-  bm_no = XCreateBitmapFromData(gDisplay, gXshm.window,
-				bm_no_data, 8, 8);
-  
-  XAllocNamedColor(gDisplay,colormap,"black",&black,&dummy);
-  gXshm.mcursor[0] = XCreatePixmapCursor(gDisplay, bm_no, bm_no,
-				       &black, &black,
-				       0, 0);
-  gXshm.mcursor[1]= XCreateFontCursor(gDisplay, XC_left_ptr);
-
-}
-
-static void display_cursor_xshm(int state) {
-
-  XDefineCursor(gDisplay, gXshm.window, gXshm.mcursor[state]);
-  gXshm.current_cursor = state;
 }
 
 static void setup_window_xshm () {
@@ -966,3 +937,215 @@ vo_driver_t *init_video_out_xshm () {
 
   return &vo_xshm;
 }
+
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+
+  xshm_driver_t        *this;
+  Display              *display = NULL;
+  unsigned int          adaptor_num, adaptors, i, j, formats;
+  unsigned int          ver,rel,req,ev,err;
+  int                   nattr;
+  x11_visual_t         *visual;
+  XColor                dummy;
+
+  visual = (x11_visual_t *) visual_gen;
+  display = visual->display;
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
+  /*
+   * check for XShm support 
+   */
+
+  if (Success != XvQueryExtension(display,&ver,&rel,&req,&ev,&err)) {
+    printf ("video_out_xv: Xv extension not present.\n");
+    return NULL;
+  }
+
+  /* 
+   * check adaptors, search for one that supports (at least) yuv12
+   */
+
+  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), 
+				 &adaptors,&adaptor_info))  {
+    printf("video_out_xv: XvQueryAdaptors failed.\n");
+    return NULL;
+  }
+
+  xshm_port = 0;
+  adaptor_num = 0;
+
+  while ( (adaptor_num < adaptors) && !xshm_port) {
+    if (adaptor_info[adaptor_num].type & XvImageMask)
+      for (j = 0; j < adaptor_info[adaptor_num].num_ports; j++)
+	if (( !(xshm_check_yv12 (display, adaptor_info[adaptor_num].base_id + j))) 
+	    && (XvGrabPort (display, adaptor_info[adaptor_num].base_id + j, 0) == Success)) {
+	  xshm_port = adaptor_info[adaptor_num].base_id + j;
+	  break; 
+	}
+
+    adaptor_num++;
+  }
+
+
+  if (!xshm_port) {
+    printf ("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n");
+    printf ("              Looks like your graphics hardware driver doesn't support Xv?!\n");
+    XvFreeAdaptorInfo (adaptor_info);
+    return NULL;
+  } else
+    printf ("video_out_xv: using Xv port %d for hardware colorspace conversion and scaling.\n", xshm_port);
+
+  /*
+   * from this point on, nothing should go wrong anymore; so let's start initializing this driver
+   */
+
+  this = malloc (sizeof (xshm_driver_t));
+
+  if (!this) {
+    printf ("video_out_xv: malloc failed\n");
+    return NULL;
+  }
+
+  memset (this, 0, sizeof(xshm_driver_t));
+
+  this->config            = config;
+  this->display           = visual->display;
+  this->screen            = visual->screen;
+  this->display_ratio     = visual->display_ratio;
+  this->request_dest_size = visual->request_dest_size;
+  this->output_xoffset    = 0;
+  this->output_yoffset    = 0;
+  this->output_width      = 0;
+  this->output_height     = 0;
+  this->drawable          = visual->d;
+  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->xshm_port           = xshm_port;
+  this->capabilities      = 0;
+
+  XAllocNamedColor(this->display, 
+		   DefaultColormap(this->display, this->screen), 
+		   "black", &this->black, &dummy);
+
+
+  this->vo_driver.get_capabilities     = xshm_get_capabilities;
+  this->vo_driver.alloc_frame          = xshm_alloc_frame;
+  this->vo_driver.update_frame_format  = xshm_update_frame_format;
+  this->vo_driver.display_frame        = xshm_display_frame;
+  this->vo_driver.get_property         = xshm_get_property;
+  this->vo_driver.set_property         = xshm_set_property;
+  this->vo_driver.get_property_min_max = xshm_get_property_min_max;
+  this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
+  this->vo_driver.exit                 = xshm_exit;
+
+  /*
+   * init properties
+   */
+
+  for (i=0; i<VO_NUM_PROPERTIES; i++) {
+    this->props[i].value = 0;
+    this->props[i].min   = 0;
+    this->props[i].max   = 0;
+    this->props[i].atom  = None;
+    this->props[i].key   = NULL;
+  }
+
+  this->props[VO_PROP_INTERLACED].value     = 0;
+  this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+
+  /* 
+   * check this adaptor's capabilities 
+   */
+
+  attr = XvQueryPortAttributes(display, xshm_port, &nattr);
+  if(attr && nattr) {
+    int k;
+    
+    for(k = 0; k < nattr; k++) {
+      
+      if(attr[k].flags & XvSettable) {
+	if(!strcmp(attr[k].name, "XSHM_HUE")) {
+	  xshm_check_capability (this, VO_CAP_HUE, 
+			       VO_PROP_HUE, attr[k],
+			       adaptor_info[i].base_id, "XSHM_HUE");
+	  printf("XSHM_HUE ");
+	}
+	else if(!strcmp(attr[k].name, "XSHM_SATURATION")) {
+	  xshm_check_capability (this, VO_CAP_SATURATION, 
+			       VO_PROP_SATURATION, attr[k],
+			       adaptor_info[i].base_id, "XSHM_SATURATION");
+	  printf("XSHM_SATURATION ");
+	}
+	else if(!strcmp(attr[k].name, "XSHM_BRIGHTNESS")) {
+	  xshm_check_capability (this, VO_CAP_BRIGHTNESS,
+			       VO_PROP_BRIGHTNESS, attr[k],
+			       adaptor_info[i].base_id, "XSHM_BRIGHTNESS");
+	  printf("XSHM_BRIGHTNESS ");
+	}
+	else if(!strcmp(attr[k].name, "XSHM_CONTRAST")) {
+	  xshm_check_capability (this, VO_CAP_CONTRAST, 
+			       VO_PROP_CONTRAST, attr[k],
+			       adaptor_info[i].base_id, "XSHM_CONTRAST");
+	  printf("XSHM_CONTRAST ");
+	}
+	else if(!strcmp(attr[k].name, "XSHM_COLORKEY")) {
+	  xshm_check_capability (this, VO_CAP_COLORKEY, 
+			       VO_PROP_COLORKEY, attr[k],
+			       adaptor_info[i].base_id, "XSHM_COLORKEY");
+	  printf("XSHM_COLORKEY ");
+	}
+      }
+    }
+    printf("\n");
+    XFree(attr);
+  } else {
+    printf("video_out_xv: no port attributes defined.\n");
+  }
+
+  XvFreeAdaptorInfo (adaptor_info);
+
+  /* 
+   * check supported image formats 
+   */
+
+  fo = XvListImageFormats(display, this->xshm_port, (int*)&formats);
+
+  this->xshm_format_yv12 = 0;
+  this->xshm_format_yuy2 = 0;
+  this->xshm_format_rgb  = 0;
+  
+  for(i = 0; i < formats; i++) {
+    xprintf(VERBOSE|VIDEO, "video_out_xv: Xv image format: 0x%x (%4.4s) %s\n", 
+	    fo[i].id, (char*)&fo[i].id, 
+	    (fo[i].format == XvPacked) ? "packed" : "planar");      
+    if (fo[i].id == IMGFMT_YV12)  {
+      this->xshm_format_yv12 = fo[i].id;
+      this->capabilities |= VO_CAP_YV12;
+      printf ("video_out_xv: this adaptor supports the yv12 format.\n");
+    } else if (fo[i].id == IMGFMT_YUY2) {
+      this->xshm_format_yuy2 = fo[i].id;
+      this->capabilities |= VO_CAP_YUY2;
+      printf ("video_out_xv: this adaptor supports the yuy2 format.\n");
+    } else if (fo[i].id == IMGFMT_RGB) {
+      this->xshm_format_rgb = fo[i].id;
+      this->capabilities |= VO_CAP_RGB;
+      printf ("video_out_xv: this adaptor supports the rgb format.\n");
+    }
+  }
+
+  return &this->vo_driver;
+}
+
+
+
+static vo_info_t vo_info_xv = {
+  VIDEO_OUT_IFACE_VERSION,
+  "XShm",
+  "xine video output plugin using the MIT X shared memory extension",
+  VISUAL_TYPE_X11,
+  5
+};
+
+vo_info_t *get_video_out_plugin_info() {
+  return &vo_info_xv;
+}
+
