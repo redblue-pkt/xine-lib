@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.78 2002/09/13 17:18:42 mroi Exp $
+ * $Id: input_dvd.c,v 1.79 2002/09/14 19:04:07 guenter Exp $
  *
  */
 
@@ -385,7 +385,7 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
-  xine_cfg_entry_t      *region_entry, *lang_entry, *cache_entry;
+  xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
     
   trace_print("Called\n");
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
@@ -506,27 +506,20 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, const char *mrl) {
     }
   }
 
-     
   /* Set region code */
-  region_entry = xine_config_lookup_entry (this->xine,
-					   "input.dvd_region");
-  if(region_entry) {
-    region_changed_cb(this, region_entry);
-  }
+  if (xine_config_lookup_entry (this->xine, "input.dvd_region", 
+				&region_entry)) 
+    region_changed_cb (this, &region_entry);
   
   /* Set languages */
-  lang_entry = xine_config_lookup_entry(this->xine,
-					"input.dvdnav_language");
-  if(lang_entry) {
-    language_changed_cb(this, lang_entry);
-  }
+  if (xine_config_lookup_entry (this->xine, "input.dvdnav_language",
+				&lang_entry)) 
+    language_changed_cb (this, &lang_entry);
   
   /* Set cache usage */
-  cache_entry = xine_config_lookup_entry(this->xine,
-					 "input.dvdnav_use_readahead");
-  if(cache_entry) {
-    read_ahead_cb(this, cache_entry);
-  }
+  if (xine_config_lookup_entry(this->xine, "input.dvdnav_use_readahead",
+			       &cache_entry))
+    read_ahead_cb(this, &cache_entry);
    
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
@@ -1490,6 +1483,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.79  2002/09/14 19:04:07  guenter
+ * latest xine_config api changes as proposed by james
+ *
  * Revision 1.78  2002/09/13 17:18:42  mroi
  * dvd playback should work again
  *

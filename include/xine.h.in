@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.13 2002/09/13 18:25:22 guenter Exp $
+ * $Id: xine.h.in,v 1.14 2002/09/14 19:04:07 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -29,6 +29,8 @@
  *     model
  * (2) as a rule of thumb, never free() or realloc() any pointers
  *     returned by the xine engine (unless stated otherwise)
+ *     or, in other words:
+ *     do not free() stuff you have not malloc()ed
  * (3) xine is multi-threaded, make sure your programming environment 
  *     can handle this.
  *     for x11-related stuff this means that you either have to properly
@@ -702,26 +704,29 @@ int   xine_config_register_bool   (xine_p self,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data);
 
+/* 
+ * the following functions will copy data from the internal xine_config
+ * data database to the xine_cfg_entry_t *entry you provide
+ *
+ * they return 1 on success, 0 on failure
+ */
+
 /*
  * get first config item 
  */
-xine_cfg_entry_t *xine_config_get_first_entry (xine_p self);
+int  xine_config_get_first_entry (xine_p self, xine_cfg_entry_t *entry);
 
 /*
  * get next config item (iterate through the items)
- * this will return NULL when called after returning the last item
- *
- * do not free() or realloc() the pointer returned by this function.
  */     
-xine_cfg_entry_t *xine_config_get_next_entry (xine_p self);
+int  xine_config_get_next_entry (xine_p self, xine_cfg_entry_t *entry);
 
 /*
  * search for a config entry by key 
- *
- * do not free() or realloc() the pointer returned by this function.
  */
 
-xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, const char *key);
+int  xine_config_lookup_entry (xine_p self, const char *key,
+			       xine_cfg_entry_t *entry);
 
 /*
  * update a config entry (which was returned from lookup_entry() )
@@ -729,17 +734,15 @@ xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, const char *key);
  * xine will make a deep copy of the data in the entry into it's internal
  * config database.
  */
-void              xine_config_update_entry (xine_p self,
-					    xine_cfg_entry_t *entry);
+void xine_config_update_entry (xine_p self,
+			       xine_cfg_entry_t *entry);
 
 /*
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
-void              xine_load_config         (xine_p self,
- 			                    const char *cfg_filename);
-void              xine_save_config         (xine_p self,
-					    const char *cfg_filename);
-void              xine_reset_config        (xine_p self);
+void xine_load_config  (xine_p self, const char *cfg_filename);
+void xine_save_config  (xine_p self, const char *cfg_filename);
+void xine_reset_config (xine_p self);
 
 /*
  * xine event mechanism

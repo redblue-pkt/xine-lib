@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.11 2002/09/13 18:25:23 guenter Exp $
+ * $Id: xine_interface.c,v 1.12 2002/09/14 19:04:08 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -159,49 +159,50 @@ int xine_config_register_bool (xine_p self,
 /*
  * helper function:
  *
- * copy current config entry data to public struct
- * and return it
+ * copy current config entry data to user-provided memory
+ * and return status
  */
 
-xine_cfg_entry_t *xine_config_get_current_entry (xine_p this) {
+static int xine_config_get_current_entry (xine_p this, 
+					  xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
   if (!config->cur)
-    return NULL;
+    return 0;
 
-  config->public_entry.key            = config->cur->key;
-  config->public_entry.type           = config->cur->type;
+  entry->key            = config->cur->key;
+  entry->type           = config->cur->type;
 
-  config->public_entry.unknown_value  = config->cur->unknown_value;
-  config->public_entry.str_value      = config->cur->str_value;
-  config->public_entry.str_default    = config->cur->str_default;
-  config->public_entry.str_sticky     = config->cur->str_sticky;
-  config->public_entry.num_value      = config->cur->num_value;
-  config->public_entry.num_default    = config->cur->num_default;
-  config->public_entry.range_min      = config->cur->range_min;
-  config->public_entry.range_max      = config->cur->range_max;
-  config->public_entry.enum_values    = config->cur->enum_values;
+  entry->unknown_value  = config->cur->unknown_value;
+  entry->str_value      = config->cur->str_value;
+  entry->str_default    = config->cur->str_default;
+  entry->str_sticky     = config->cur->str_sticky;
+  entry->num_value      = config->cur->num_value;
+  entry->num_default    = config->cur->num_default;
+  entry->range_min      = config->cur->range_min;
+  entry->range_max      = config->cur->range_max;
+  entry->enum_values    = config->cur->enum_values;
 
-  config->public_entry.description    = config->cur->description;
-  config->public_entry.help           = config->cur->help;
-  config->public_entry.callback       = config->cur->callback;
-  config->public_entry.callback_data  = config->cur->callback_data;
-  config->public_entry.exp_level      = config->cur->exp_level;
+  entry->description    = config->cur->description;
+  entry->help           = config->cur->help;
+  entry->callback       = config->cur->callback;
+  entry->callback_data  = config->cur->callback_data;
+  entry->exp_level      = config->cur->exp_level;
 
-  return &config->public_entry;
+  return 1;
 }
 
 /*
  * get first config item 
  */
-xine_cfg_entry_t *xine_config_get_first_entry (xine_p this) {
+int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
   config->cur = config->first;
 
-  return xine_config_get_current_entry (this);
+  return xine_config_get_current_entry (this, entry);
 }
   
 
@@ -209,13 +210,13 @@ xine_cfg_entry_t *xine_config_get_first_entry (xine_p this) {
  * get next config item (iterate through the items)
  * this will return NULL when called after returning the last item
  */     
-xine_cfg_entry_t *xine_config_get_next_entry (xine_p this) {
+int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
   config->cur = config->cur->next;
 
-  return xine_config_get_current_entry (this);
+  return xine_config_get_current_entry (this, entry);
 } 
   
 
@@ -223,13 +224,14 @@ xine_cfg_entry_t *xine_config_get_next_entry (xine_p this) {
  * search for a config entry by key 
  */
 
-xine_cfg_entry_t *xine_config_lookup_entry (xine_p this, const char *key) {
+int xine_config_lookup_entry (xine_p this, const char *key,
+			      xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
   config->cur = config->lookup_entry (config, key);
   
-  return xine_config_get_current_entry (this);
+  return xine_config_get_current_entry (this, entry);
 }
   
 
