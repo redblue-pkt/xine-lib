@@ -1,7 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 if INSTALL_M4
-m4datadir = @ACLOCAL_DIR@
+m4datadir = $(ACLOCAL_DIR)
 else
 m4datadir = $(datadir)/aclocal
 endif
@@ -38,5 +38,4 @@ EXTRA_DIST = \
 	speex.m4 \
 	theora.m4 \
 	xine.m4 \
-	_xine.m4 \
-	xvid.m4
+	_xine.m4
