@@ -390,7 +390,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 
 	if (!(mpeg2dec->drop_frame)) {
-	    mpeg2_slice (picture, code, buffer);
+	  mpeg2_slice (picture, code, buffer);
+	  if( picture->v_offset > picture->limit_y ) 
 	    picture->current_frame->bad_frame = 0;
 	}
     }
@@ -475,19 +476,15 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
   if (!picture)
     return;
   
-  /* we use drawn = 2 here as a special case: the frame can be flushed
-   * more than once (thus fixing the problem of blasting unfinished
-   * frames). 
-   */
-  if (picture->current_frame && picture->current_frame->drawn != 1
-      && !picture->current_frame->bad_frame) {
+  if (picture->current_frame && !picture->current_frame->drawn &&
+      !picture->current_frame->bad_frame) {
 
     vo_frame_t *img;
     
     printf ("libmpeg2: blasting out current frame %d on flush\n",
 	    picture->current_frame->id);
     
-    picture->current_frame->drawn = 2;
+    picture->current_frame->drawn = 1;
     
     /* output a copy instead of the frame used by decoder */
     img = picture->current_frame->instance->duplicate_frame(picture->current_frame->instance, 
