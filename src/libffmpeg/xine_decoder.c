@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.86 2003/01/08 13:19:05 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.87 2003/01/10 23:33:09 holstsn Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -418,15 +418,18 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
-    
-    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+   
+    if(!(buf->decoder_flags & BUF_FLAG_FRAME_START)) {
+      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
-    this->size += buf->size;
+      this->size += buf->size;
+    }
 
     if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
       this->video_step = buf->decoder_info[0];
 
-    if ( (buf->decoder_flags & BUF_FLAG_FRAME_END) || this->is_continous) {
+    if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END|BUF_FLAG_FRAME_START))
+	  || this->is_continous) {
 
       vo_frame_t *img;
       int         got_picture, len, y;
@@ -606,6 +609,13 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
       }
     }
+
+    if(buf->decoder_flags & BUF_FLAG_FRAME_START) {
+      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+
+      this->size += buf->size;
+    }
+    
   } else {
 #ifdef LOG
     printf ("ffmpeg: data but decoder not initialized (headers missing)\n");
