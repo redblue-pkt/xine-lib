@@ -2,12 +2,12 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\"@w32_path@\" -DNOAVIFILE_HEADERS \
-	-I.. -I../wine
+	-I$(srcdir)/.. -I$(srcdir)/../wine
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\\\"@w32_path@\\\" -DNOAVIFILE_HEADERS \
-	-I.. -I../wine
+	-I$(srcdir)/.. -I$(srcdir)/../wine
 
 if HAVE_W32DLL
 ds_filter_lib = libds_filter.la

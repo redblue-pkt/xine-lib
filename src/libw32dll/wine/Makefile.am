@@ -6,12 +6,12 @@ noinst_LTLIBRARIES = $(wine_lib)
 ##
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
-	-DWIN32_PATH=\"@w32_path@\" -I.. -D__WINE__ \
+	-DWIN32_PATH=\"@w32_path@\" -I$(srcdir)/.. -D__WINE__ \
 	-Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
-	-DWIN32_PATH=\\\"@w32_path@\\\" -I.. -D__WINE__ \
+	-DWIN32_PATH=\\\"@w32_path@\\\" -I$(srcdir)/.. -D__WINE__ \
 	-Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer
 
 
@@ -33,7 +33,7 @@ noinst_HEADERS = avifmt.h      elfdll.h    msacm.h     pshpack1.h   winbase.h \
 		 wineacm.h     winestring.h resource.h ldt_keeper.h com.h
 
 stubs.lo: stubs.s
-	$(CC) -c $(top_srcdir)/src/libw32dll/wine/stubs.s -o stubs.lo
+	$(CC) -c $(srcdir)/stubs.s -o stubs.lo
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
