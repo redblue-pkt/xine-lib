@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.59 2004/04/24 11:28:00 tmattern Exp $
+ * $Id: metronom.h,v 1.60 2004/06/19 19:53:29 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -148,14 +148,6 @@ struct metronom_s {
    *                    applies the necessary vpts offset for the seek in
    *                    metronom, but keeps the vpts difference between
    *                    audio and video, so that metronom doesn't cough
-   *
-   * for DISC_RELATIVE and DISC_ABSOLUTE metronom will enter a
-   * special discontinuity mode which means that it will ignore
-   * pts values for some time (about 1sec) to ignore any held-back
-   * reference frames that are flushed out of decoders containing
-   * pts values that do not mach the new offset. Then it will
-   * just switch to the new disc_offset and resume synced operation.
-   *                    
    */
   void (*handle_audio_discontinuity) (metronom_t *self, int type, int64_t disc_off);
   void (*handle_video_discontinuity) (metronom_t *self, int type, int64_t disc_off);
