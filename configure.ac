@@ -1627,7 +1627,7 @@ case "$host_or_hostalias" in
 
     OBJC=${CC:-gcc}
     AC_SUBST(OBJC)
-    OBJCFLAGS="-D_INTL_REDIRECT_MACROS $OBJCFLAGS"
+    OBJCFLAGS="-D_INTL_REDIRECT_MACROS $CFLAGS $OBJCFLAGS"
     AC_SUBST(OBJCFLAGS)
     OBJCDEPMODE="depmode=gcc3"
     dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
