@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.52 2003/01/13 02:15:07 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.53 2003/01/13 13:49:39 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -51,9 +51,10 @@ extern "C" {
 #include <sys/time.h>
 #include <time.h>
 
-/*
- * xine opaque data types
- */
+
+/*********************************************************************
+ * xine opaque data types                                            *
+ *********************************************************************/
 
 typedef struct xine_s xine_t;
 typedef struct xine_stream_s xine_stream_t;
@@ -63,6 +64,29 @@ typedef struct xine_video_port_s xine_video_port_t;
 /* convenience types: simple player UIs might want to call ports drivers */
 typedef xine_audio_port_t xine_ao_driver_t;
 typedef xine_video_port_t xine_vo_driver_t;
+
+
+/*********************************************************************
+ * global engine handling                                            *
+ *********************************************************************/
+
+/*
+ * version information
+ */
+
+/* dynamic info from actually linked libxine */
+const char *xine_get_version_string (void);
+void xine_get_version (int *major, int *minor, int *sub);
+
+/* compare given version to libxine version,
+   return 1 if compatible, 0 otherwise */
+int  xine_check_version (int major, int minor, int sub) ;
+
+/* static info - which libxine release this header came from */
+#define XINE_MAJOR_VERSION @XINE_MAJOR@
+#define XINE_MINOR_VERSION @XINE_MINOR@
+#define XINE_SUB_VERSION   @XINE_SUB@
+#define XINE_VERSION       "@VERSION@"
 
 /*
  * pre-init the xine engine
@@ -80,13 +104,11 @@ typedef xine_video_port_t xine_vo_driver_t;
  * call xine_exit() - do not try to free() the xine pointer
  * yourself and do not try to access any internal data structures
  */
-
 xine_t *xine_new (void);
 
 /*
  * post_init the xine engine
  */
-
 void xine_init (xine_t *self);
 
 /*
@@ -104,16 +126,33 @@ void xine_init (xine_t *self);
  * use xine_close_audio/video_driver() to close loaded drivers
  * and free resources allocated by them
  */
-
 xine_audio_port_t *xine_open_audio_driver (xine_t *self, const char *id,
 					   void *data);
-
 xine_video_port_t *xine_open_video_driver (xine_t *self, const char *id,
 					   int visual, void *data);
 
 void xine_close_audio_driver (xine_t *self, xine_audio_port_t  *driver);
-
 void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
+
+/* valid visual types */
+#define XINE_VISUAL_TYPE_NONE              0
+#define XINE_VISUAL_TYPE_X11               1
+#define XINE_VISUAL_TYPE_AA                2
+#define XINE_VISUAL_TYPE_FB                3
+#define XINE_VISUAL_TYPE_GTK               4
+#define XINE_VISUAL_TYPE_DFB               5
+#define XINE_VISUAL_TYPE_PM                6 /* used by the OS/2 port */
+
+/*
+ * free all resources, close all plugins, close engine.
+ * self pointer is no longer valid after this call.
+ */
+void xine_exit (xine_t *self);
+
+
+/*********************************************************************
+ * stream handling                                                   *
+ *********************************************************************/
 
 /*
  * create a new stream for media playback/access
@@ -126,9 +165,23 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
  * fields in xine_stream_t, they're all private and subject to change
  * without further notice.
  */
-
 xine_stream_t *xine_stream_new (xine_t *self,
 				xine_audio_port_t *ao, xine_video_port_t *vo);
+
+/*
+ * Make one stream the slave of another.
+ * This establishes a binary master slave relation on streams, where
+ * certain operations (specified by parameter "affection") on the master
+ * stream are also applied to the slave stream
+ */
+xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
+                         int affection);
+
+/* affection is some of the following ORed together: */
+/* playing the master plays the slave */
+#define XINE_MASTER_SLAVE_PLAY     (1<<0)
+/* slave stops on master stop */
+#define XINE_MASTER_SLAVE_STOP     (1<<1)
 
 /*
  * open a stream
@@ -138,7 +191,6 @@ xine_stream_t *xine_stream_new (xine_t *self,
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-
 int xine_open (xine_stream_t *stream, const char *mrl);
 
 /*
@@ -162,15 +214,12 @@ int  xine_play (xine_stream_t *stream, int start_pos, int start_time);
  */
 int  xine_trick_mode (xine_stream_t *stream, int mode, int value);
 
-/*
- * get information about the stream such as
- * video width/height, codecs, audio format, title, author...
- *
- * constants see below
- */
-
-uint32_t    xine_get_stream_info (xine_stream_t *stream, int info);
-const char *xine_get_meta_info   (xine_stream_t *stream, int info);
+/* trick modes */
+#define XINE_TRICK_MODE_OFF                0
+#define XINE_TRICK_MODE_SEEK_TO_POSITION   1
+#define XINE_TRICK_MODE_SEEK_TO_TIME       2
+#define XINE_TRICK_MODE_FAST_FORWARD       3
+#define XINE_TRICK_MODE_FAST_REWIND        4
 
 /*
  * stop stream playback
@@ -194,60 +243,74 @@ int  xine_eject (xine_stream_t *stream);
  * stop playback, dispose all stream-related resources
  * xine_stream_t no longer valid when after this
  */
-
 void xine_dispose (xine_stream_t *stream);
-
-/*
- * free all resources, close all plugins, close engine.
- * self pointer is no longer valid after this call.
- */
-void xine_exit (xine_t *self);
-
-/*
- * error handling / engine status
- */
-
-/* return last error  */
-int  xine_get_error (xine_stream_t *stream);
-
-/* get current xine engine status (constants see below) */
-int  xine_get_status (xine_stream_t *stream);
 
 /*
  * set/get xine engine parameters
  * e.g. playback speed, constants see below
  */
-
 void xine_set_param (xine_stream_t *stream, int param, int value);
 int  xine_get_param (xine_stream_t *stream, int param);
 
 /*
- * try to find out audio/spu language of given channel
- * (use -1 for current channel)
- *
- * returns 1 on success, 0 on failure
+ * xine engine parameters
  */
-int xine_get_audio_lang (xine_stream_t *stream, int channel,
-			 char *lang);
-int xine_get_spu_lang   (xine_stream_t *stream, int channel,
-			 char *lang);
+#define XINE_PARAM_SPEED                   1 /* see below                   */
+#define XINE_PARAM_AV_OFFSET               2 /* unit: 1/90000 sec           */
+#define XINE_PARAM_AUDIO_CHANNEL_LOGICAL   3 /* -1 => auto, -2 => off       */
+#define XINE_PARAM_SPU_CHANNEL             4
+#define XINE_PARAM_VIDEO_CHANNEL           5
+#define XINE_PARAM_AUDIO_VOLUME            6 /* 0..100                      */
+#define XINE_PARAM_AUDIO_MUTE              7 /* 1=>mute, 0=>unmute          */
+#define XINE_PARAM_AUDIO_COMPR_LEVEL       8 /* <100=>off, % compress otherw*/
+#define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
+#define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
+#define XINE_PARAM_VERBOSITY              11 /* control console output      */
 
-/*
- * get position / length information
- *
- * depending of the nature and system layer of the stream,
- * some or all of this information may be unavailable or incorrect
- * (e.g. live network streams may not have a valid length)
- *
- * returns 1 on success, 0 on failure (data was not updated,
- * probably because it's not known yet... try again later)
- */
+/* speed values */
+#define XINE_SPEED_PAUSE                   0
+#define XINE_SPEED_SLOW_4                  1
+#define XINE_SPEED_SLOW_2                  2
+#define XINE_SPEED_NORMAL                  4
+#define XINE_SPEED_FAST_2                  8
+#define XINE_SPEED_FAST_4                  16
 
-int  xine_get_pos_length (xine_stream_t *stream,
-			  int *pos_stream,  /* 0..65535     */
-			  int *pos_time,    /* milliseconds */
-			  int *length_time);/* milliseconds */
+/* video parameters */
+#define XINE_PARAM_VO_DEINTERLACE          0x01000000 /* bool               */
+#define XINE_PARAM_VO_ASPECT_RATIO         0x01000001 /* see below          */
+#define XINE_PARAM_VO_HUE                  0x01000002 /* 0..65535           */
+#define XINE_PARAM_VO_SATURATION           0x01000003 /* 0..65535           */
+#define XINE_PARAM_VO_CONTRAST             0x01000004 /* 0..65535           */
+#define XINE_PARAM_VO_BRIGHTNESS           0x01000005 /* 0..65535           */
+#define XINE_PARAM_VO_ZOOM_X               0x01000008 /* percent            */
+#define XINE_PARAM_VO_ZOOM_Y               0x0100000d /* percent            */
+#define XINE_PARAM_VO_PAN_SCAN             0x01000009 /* bool               */
+#define XINE_PARAM_VO_TVMODE               0x0100000a /* ???                */
 
+#define XINE_VO_ZOOM_STEP                  100
+#define XINE_VO_ZOOM_MAX                   400
+#define XINE_VO_ZOOM_MIN                   -85
+
+/* possible ratios for XINE_PARAM_VO_ASPECT_RATIO */
+#define XINE_VO_ASPECT_AUTO                0
+#define XINE_VO_ASPECT_SQUARE              1 /* 1:1  */
+#define XINE_VO_ASPECT_4_3                 2 /* 4:3  */
+#define XINE_VO_ASPECT_ANAMORPHIC          3 /* 16:9 */
+#define XINE_VO_ASPECT_DVB                 4 /* 1:2  */
+#define XINE_VO_ASPECT_NUM_RATIOS          5
+#define XINE_VO_ASPECT_PAN_SCAN            41
+#define XINE_VO_ASPECT_DONT_TOUCH          42
+
+/* stream format detection strategies */
+
+/* recognize stream type first by content then by extension. */
+#define XINE_DEMUX_DEFAULT_STRATEGY        0
+/* recognize stream type first by extension then by content. */
+#define XINE_DEMUX_REVERT_STRATEGY         1
+/* recognize stream type by content only.                    */
+#define XINE_DEMUX_CONTENT_STRATEGY        2
+/* recognize stream type by extension only.                  */
+#define XINE_DEMUX_EXTENSION_STRATEGY      3
 
 /*
  * snapshot function
@@ -264,9 +327,13 @@ int  xine_get_current_frame (xine_stream_t *stream,
 			     uint8_t *img);
 
 /* xine image formats */
-
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
+
+
+/*********************************************************************
+ * media processing                                                  *
+ *********************************************************************/
 
 #ifdef XINE_ENABLE_EXPERIMENTAL_FEATURES
 
@@ -278,7 +345,6 @@ int  xine_get_current_frame (xine_stream_t *stream,
  * warning: highly experimental
  *
  */
-
 
 xine_video_port_t *xine_new_framegrab_video_port (xine_t *self);
 
@@ -341,6 +407,10 @@ int xine_get_video_frame (xine_stream_t *stream,
 #endif
 
 
+/*********************************************************************
+ * post plugin handling                                              *
+ *********************************************************************/
+
 /*
  * post effect plugin functions
  *
@@ -372,7 +442,6 @@ struct xine_post_s {
   
 };
 
-
 /*
  * initialize a post plugin
  *
@@ -387,7 +456,6 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name,
 			    int inputs,
 			    xine_audio_port_t **audio_target,
 			    xine_video_port_t **video_target);
-
 
 /* get a list of all available post plugins */
 const char *const *xine_list_post_plugins(xine_t *xine);
@@ -446,7 +514,6 @@ struct xine_post_out_s {
 
 };
 
-
 /* get a list of all inputs of a post plugin */
 const char *const *xine_post_list_inputs(xine_post_t *self);
 
@@ -464,7 +531,6 @@ const xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
  * returns 1 on success, 0 on failure
  */
 int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
-
 
 /*
  * wire a video port to a video output
@@ -493,7 +559,6 @@ int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *vo);
  */
 xine_post_out_t * xine_get_video_source(xine_stream_t *stream);
 xine_post_out_t * xine_get_audio_source(xine_stream_t *stream);
-
 
 /*
  * disposes the post plugin
@@ -537,12 +602,15 @@ void xine_post_dispose(xine_t *xine, xine_post_t *self);
 #define XINE_POST_DATA_DOUBLE         4
 
 
+/*********************************************************************
+ * information retrieval                                             *
+ *********************************************************************/
+
 /*
  * xine log functions
  *
  * frontends can display xine log output using these functions
  */
-
 int    xine_get_log_section_count(xine_t *self);
 
 /* return a NULL terminated array of log sections names */
@@ -561,14 +629,11 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 			     void *user_data);
 
 /*
- * xine error codes
+ * error handling / engine status
  */
 
-#define XINE_ERROR_NONE                    0
-#define XINE_ERROR_NO_INPUT_PLUGIN         1
-#define XINE_ERROR_NO_DEMUX_PLUGIN         2
-#define XINE_ERROR_DEMUX_FAILED            3
-#define XINE_ERROR_MALFORMED_MRL           4
+/* return last error  */
+int  xine_get_error (xine_stream_t *stream);
 
 /*
  * xine engine parameters
@@ -601,31 +666,56 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 /*
  * engine status codes
  */
-
 #define XINE_STATUS_IDLE                   0 /* no mrl assigned */
 #define XINE_STATUS_STOP                   1
 #define XINE_STATUS_PLAY                   2
 #define XINE_STATUS_QUIT                   3
 
+/*
+ * xine error codes
+ */
+#define XINE_ERROR_NONE                    0
+#define XINE_ERROR_NO_INPUT_PLUGIN         1
+#define XINE_ERROR_NO_DEMUX_PLUGIN         2
+#define XINE_ERROR_DEMUX_FAILED            3
+#define XINE_ERROR_MALFORMED_MRL           4
 
-/* speed values */
-#define XINE_SPEED_PAUSE                   0
-#define XINE_SPEED_SLOW_4                  1
-#define XINE_SPEED_SLOW_2                  2
-#define XINE_SPEED_NORMAL                  4
-#define XINE_SPEED_FAST_2                  8
-#define XINE_SPEED_FAST_4                  16
+/*
+ * try to find out audio/spu language of given channel
+ * (use -1 for current channel)
+ *
+ * returns 1 on success, 0 on failure
+ */
+int xine_get_audio_lang (xine_stream_t *stream, int channel,
+			 char *lang);
+int xine_get_spu_lang   (xine_stream_t *stream, int channel,
+			 char *lang);
 
-/* trick modes */
+/*
+ * get position / length information
+ *
+ * depending of the nature and system layer of the stream,
+ * some or all of this information may be unavailable or incorrect
+ * (e.g. live network streams may not have a valid length)
+ *
+ * returns 1 on success, 0 on failure (data was not updated,
+ * probably because it's not known yet... try again later)
+ */
+int  xine_get_pos_length (xine_stream_t *stream,
+			  int *pos_stream,  /* 0..65535     */
+			  int *pos_time,    /* milliseconds */
+			  int *length_time);/* milliseconds */
 
-#define XINE_TRICK_MODE_OFF                0
-#define XINE_TRICK_MODE_SEEK_TO_POSITION   1
-#define XINE_TRICK_MODE_SEEK_TO_TIME       2
-#define XINE_TRICK_MODE_FAST_FORWARD       3
-#define XINE_TRICK_MODE_FAST_REWIND        4
+/*
+ * get information about the stream such as
+ * video width/height, codecs, audio format, title, author...
+ *
+ * constants see below
+ */
+uint32_t    xine_get_stream_info (xine_stream_t *stream, int info);
+const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 
 /* xine_get_stream_info */
-
 #define XINE_STREAM_INFO_BITRATE           0
 #define XINE_STREAM_INFO_SEEKABLE          1
 #define XINE_STREAM_INFO_VIDEO_WIDTH       2
@@ -654,7 +744,6 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_STREAM_INFO_MAX_SPU_CHANNEL   25
 
 /* xine_get_meta_info */
-
 #define XINE_META_INFO_TITLE               0
 #define XINE_META_INFO_COMMENT             1
 #define XINE_META_INFO_ARTIST              2
@@ -666,50 +755,12 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_META_INFO_SYSTEMLAYER         8
 #define XINE_META_INFO_INPUT_PLUGIN        9
 
-/*
- * video stuff
- */
 
-/* valid visual types */
-
-#define XINE_VISUAL_TYPE_NONE              0
-#define XINE_VISUAL_TYPE_X11               1
-#define XINE_VISUAL_TYPE_AA                2
-#define XINE_VISUAL_TYPE_FB                3
-#define XINE_VISUAL_TYPE_GTK               4
-#define XINE_VISUAL_TYPE_DFB               5
-#define XINE_VISUAL_TYPE_PM                6 /* used by the OS/2 port */
-
-/* video parameters */
-#define XINE_PARAM_VO_DEINTERLACE          0x01000000 /* bool               */
-#define XINE_PARAM_VO_ASPECT_RATIO         0x01000001 /* see below          */
-#define XINE_PARAM_VO_HUE                  0x01000002 /* 0..65535           */
-#define XINE_PARAM_VO_SATURATION           0x01000003 /* 0..65535           */
-#define XINE_PARAM_VO_CONTRAST             0x01000004 /* 0..65535           */
-#define XINE_PARAM_VO_BRIGHTNESS           0x01000005 /* 0..65535           */
-#define XINE_PARAM_VO_ZOOM_X               0x01000008 /* percent            */
-#define XINE_PARAM_VO_ZOOM_Y               0x0100000d /* percent            */
-#define XINE_PARAM_VO_PAN_SCAN             0x01000009 /* bool               */
-#define XINE_PARAM_VO_TVMODE               0x0100000a /* ???                */
-
-#define XINE_VO_ZOOM_STEP                  100
-#define XINE_VO_ZOOM_MAX                   400
-#define XINE_VO_ZOOM_MIN                   -85
-
-
-/* possible ratios for XINE_PARAM_VO_ASPECT_RATIO */
-#define XINE_VO_ASPECT_AUTO                0
-#define XINE_VO_ASPECT_SQUARE              1 /* 1:1  */
-#define XINE_VO_ASPECT_4_3                 2 /* 4:3  */
-#define XINE_VO_ASPECT_ANAMORPHIC          3 /* 16:9 */
-#define XINE_VO_ASPECT_DVB                 4 /* 1:2  */
-#define XINE_VO_ASPECT_NUM_RATIOS          5
-#define XINE_VO_ASPECT_PAN_SCAN            41
-#define XINE_VO_ASPECT_DONT_TOUCH          42
+/*********************************************************************
+ * plugin management / autoplay / mrl browsing                       *
+ *********************************************************************/
 
 /*
- * plugin management / autoplay / mrl browsing
- *
  * note: the pointers to strings or string arrays returned
  *       by some of these functions are pointers to statically
  *       alloced internal xine memory chunks.
@@ -726,7 +777,6 @@ typedef struct {
 } xine_mrl_t;
 
 /* mrl types */
-
 #define XINE_MRL_TYPE_unknown        (0 << 0)
 #define XINE_MRL_TYPE_dvd            (1 << 0)
 #define XINE_MRL_TYPE_vcd            (1 << 1)
@@ -748,7 +798,6 @@ typedef struct {
 
 /* get a list of browsable input plugin ids */
 const char *const *xine_get_browsable_input_plugin_ids (xine_t *self) ;
-
 
 /*
  * ask input plugin named <plugin_id> to return
@@ -792,9 +841,9 @@ const char *const *xine_list_audio_output_plugins (xine_t *self) ;
 const char *const *xine_list_video_output_plugins (xine_t *self) ;
 
 
-/*
- * visual specific gui <-> xine engine communication
- */
+/*********************************************************************
+ * visual specific gui <-> xine engine communication                 *
+ *********************************************************************/
 
 /* talk to video output driver */
 int    xine_gui_send_vo_data (xine_stream_t *self,
@@ -812,7 +861,6 @@ typedef struct {
  * must supply to the xine_open_video_driver call
  * ("data" parameter)
  */
-
 typedef struct {
 
   /* some information about the display */
@@ -908,9 +956,10 @@ typedef struct {
 /* XVisualInfo **data */
 #define XINE_GUI_SEND_SELECT_VISUAL          8
 
-/*
- * xine health check stuff
- */
+
+/*********************************************************************
+ * xine health check stuff                                           *
+ *********************************************************************/
 
 #define XINE_HEALTH_CHECK_OK            0
 #define XINE_HEALTH_CHECK_FAIL          1
@@ -936,6 +985,11 @@ struct xine_health_check_s {
 
 typedef struct xine_health_check_s xine_health_check_t;
 xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
+
+
+/*********************************************************************
+ * configuration system                                              *
+ *********************************************************************/
 
 /*
  * config entry data types
@@ -1045,20 +1099,13 @@ int   xine_config_register_bool   (xine_t *self,
  * they return 1 on success, 0 on failure
  */
 
-/*
- * get first config item
- */
+/* get first config item */
 int  xine_config_get_first_entry (xine_t *self, xine_cfg_entry_t *entry);
 
-/*
- * get next config item (iterate through the items)
- */
+/* get next config item (iterate through the items) */
 int  xine_config_get_next_entry (xine_t *self, xine_cfg_entry_t *entry);
 
-/*
- * search for a config entry by key
- */
-
+/* search for a config entry by key */
 int  xine_config_lookup_entry (xine_t *self, const char *key,
 			       xine_cfg_entry_t *entry);
 
@@ -1078,9 +1125,12 @@ void xine_config_load  (xine_t *self, const char *cfg_filename);
 void xine_config_save  (xine_t *self, const char *cfg_filename);
 void xine_config_reset (xine_t *self);
 
+
+/*********************************************************************
+ * asynchroneous xine event mechanism                                *
+ *********************************************************************/
+
 /*
- * async xine event mechanism
- *
  * to receive events you have to register an event queue with
  * the xine engine (xine_event_new_queue, see below).
  *
@@ -1095,7 +1145,6 @@ void xine_config_reset (xine_t *self);
  */
 
 /* event types */
-
 #define XINE_EVENT_UI_PLAYBACK_FINISHED   1 /* frontend can e.g. move on to next playlist entry */
 #define XINE_EVENT_UI_CHANNELS_CHANGED    2 /* inform ui that new channel info is available */
 #define XINE_EVENT_UI_SET_TITLE           3 /* request title display change in ui */
@@ -1106,7 +1155,6 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
 
 /* input events coming from frontend */
-
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101
 #define XINE_EVENT_INPUT_MOUSE_MOVE     102
 #define XINE_EVENT_INPUT_MENU1          103
@@ -1164,7 +1212,6 @@ typedef struct {
 /*
  * UI event dynamic data - send information to/from UI.
  */
-
 typedef struct {
   int                 num_buttons;
   int                 str_len;
@@ -1196,7 +1243,6 @@ typedef struct {
   int                 percent;
 } xine_progress_data_t;
 
-
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
 
@@ -1207,7 +1253,6 @@ typedef struct xine_event_queue_s xine_event_queue_t;
  *
  * use xine_event_dispose_queue to unregister and free the queue
  */
-
 xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream);
 void xine_event_dispose_queue (xine_event_queue_t *queue);
 
@@ -1217,7 +1262,6 @@ void xine_event_dispose_queue (xine_event_queue_t *queue);
  * use xine_event_free on the events received from these calls
  * when they're no longer needed
  */
-
 xine_event_t *xine_event_get  (xine_event_queue_t *queue);
 xine_event_t *xine_event_wait (xine_event_queue_t *queue);
 void          xine_event_free (xine_event_t *event);
@@ -1230,13 +1274,11 @@ void          xine_event_free (xine_event_t *event);
  * and will then free the event when your callback returns
  *
  */
-
 typedef void (*xine_event_listener_cb_t) (void *user_data,
 					  const xine_event_t *event);
 void xine_event_create_listener_thread (xine_event_queue_t *queue,
 					xine_event_listener_cb_t callback,
 					void *user_data);
-
 
 /*
  * send an event to all queues
@@ -1247,9 +1289,9 @@ void xine_event_create_listener_thread (xine_event_queue_t *queue,
 void xine_event_send (xine_stream_t *stream, const xine_event_t *event);
 
 
-/*
- * OSD (on screen display)
- */
+/*********************************************************************
+ * OSD (on screen display)                                           *
+ *********************************************************************/
 
 #define XINE_TEXT_PALETTE_SIZE 11
 
@@ -1322,25 +1364,6 @@ void        xine_osd_set_text_palette (xine_osd_t *self,
 void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
 				    uint8_t *trans);
 
-
-/*
- * version information
- */
-
-/* dynamic info from actually linked libxine */
-const char *xine_get_version_string (void);
-void xine_get_version (int *major, int *minor, int *sub);
-
-/* compare given version to libxine version,
-   return 1 if compatible, 0 otherwise */
-int  xine_check_version (int major, int minor, int sub) ;
-
-/* static info - which libxine release this header came from */
-
-#define XINE_MAJOR_VERSION @XINE_MAJOR@
-#define XINE_MINOR_VERSION @XINE_MINOR@
-#define XINE_SUB_VERSION   @XINE_SUB@
-#define XINE_VERSION       "@VERSION@"
 
 #ifdef __cplusplus
 }
