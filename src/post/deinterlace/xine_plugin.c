@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.35 2004/07/17 16:35:16 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.36 2004/09/29 15:10:03 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -119,7 +119,8 @@ struct post_plugin_deinterlace_s {
   int                cheap_mode;
   tvtime_t          *tvtime;
   int                tvtime_changed;
-
+  int                vo_deinterlace_enabled;
+  
   int                framecounter;
   uint8_t            rff_pattern;
 
@@ -437,7 +438,7 @@ static int deinterlace_get_property(xine_video_port_t *port_gen, int property) {
 static int deinterlace_set_property(xine_video_port_t *port_gen, int property, int value) {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
-  if( property == XINE_PARAM_VO_DEINTERLACE && this->cur_method ) {
+  if( property == XINE_PARAM_VO_DEINTERLACE ) {
     pthread_mutex_lock (&this->lock);
 
     if( this->enabled != value )
@@ -447,9 +448,11 @@ static int deinterlace_set_property(xine_video_port_t *port_gen, int property, i
 
     pthread_mutex_unlock (&this->lock);
 
+    this->vo_deinterlace_enabled = this->enabled && (!this->cur_method);
+    
     port->original_port->set_property(port->original_port, 
                                       XINE_PARAM_VO_DEINTERLACE, 
-                                      !this->cur_method);
+                                      this->vo_deinterlace_enabled);
 
     return this->enabled;
   } else
@@ -474,9 +477,10 @@ static void deinterlace_open(xine_video_port_t *port_gen, xine_stream_t *stream)
   _x_post_inc_usage(port);
   port->stream = stream;
   port->original_port->open(port->original_port, stream);
+  this->vo_deinterlace_enabled = !this->cur_method;
   port->original_port->set_property(port->original_port, 
                                     XINE_PARAM_VO_DEINTERLACE, 
-                                    !this->cur_method);
+                                    this->vo_deinterlace_enabled);
 }
 
 static void deinterlace_close(xine_video_port_t *port_gen, xine_stream_t *stream)
@@ -494,6 +498,20 @@ static void deinterlace_close(xine_video_port_t *port_gen, xine_stream_t *stream
 static int deinterlace_intercept_frame(post_video_port_t *port, vo_frame_t *frame)
 {
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
+  int vo_deinterlace_enabled = 0;
+    
+  vo_deinterlace_enabled = ( frame->format != XINE_IMGFMT_YV12 &&
+                             frame->format != XINE_IMGFMT_YUY2 &&
+                             this->enabled );
+  
+  if( this->cur_method &&
+      this->vo_deinterlace_enabled != vo_deinterlace_enabled ) {
+    this->vo_deinterlace_enabled = vo_deinterlace_enabled;
+    port->original_port->set_property(port->original_port, 
+                                      XINE_PARAM_VO_DEINTERLACE, 
+                                      this->vo_deinterlace_enabled);
+  }
+  
   return (this->enabled && this->cur_method &&
       (frame->flags & VO_INTERLACED_FLAG) && 
       (frame->format == XINE_IMGFMT_YV12 || frame->format == XINE_IMGFMT_YUY2) );
