@@ -24,7 +24,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.8 2001/06/05 19:50:56 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.9 2001/06/11 19:37:53 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -119,6 +119,8 @@ typedef struct alsa_functions_s {
 
 } alsa_functions_t;
 
+void write_pause_burst(alsa_functions_t *,int );
+
   static snd_output_t *jcd_out;
 /*
  * open the audio device for writing to
@@ -131,9 +133,18 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
   snd_pcm_sw_params_t *swparams;
   snd_pcm_sframes_t   buffer_time;
   snd_pcm_sframes_t   period_time,tmp;
+  snd_aes_iec958_t    spdif;
+  snd_ctl_elem_value_t *ctl;
+  snd_ctl_t            *ctl_handle;
+  snd_pcm_info_t        *info;
+
+  char                 ctl_name[12];
+  int                  ctl_card;
+
+
   int                 err, step;
-  int                 open_mode=1; //NONBLOCK
-  //int                 open_mode=0; //BLOCK
+ // int                 open_mode=1; //NONBLOCK
+  int                 open_mode=0; //BLOCK
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
   
@@ -166,6 +177,55 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
     error(">>> Check if another program don't already use PCM <<<");     
     return -1;                                                          
   }
+
+       if (mode & AO_CAP_MODE_AC3) {
+
+           snd_pcm_info_alloca(&info);
+
+           if ((err = snd_pcm_info(this->audio_fd, info)) < 0) {
+             fprintf(stderr, "info: %s\n", snd_strerror(err));
+             goto __close;
+           }
+           printf("device: %d, subdevice: %d\n", snd_pcm_info_get_device(info),
+                snd_pcm_info_get_subdevice(info));
+
+
+           spdif.status[0] = IEC958_AES0_NONAUDIO |
+                             IEC958_AES0_CON_EMPHASIS_NONE;
+           spdif.status[1] = IEC958_AES1_CON_ORIGINAL |
+                             IEC958_AES1_CON_PCM_CODER;
+           spdif.status[2] = 0;
+           spdif.status[3] = IEC958_AES3_CON_FS_48000;
+
+           snd_ctl_elem_value_alloca(&ctl);
+           snd_ctl_elem_value_set_interface(ctl, SND_CTL_ELEM_IFACE_PCM);
+           snd_ctl_elem_value_set_device(ctl,snd_pcm_info_get_device(info));
+           snd_ctl_elem_value_set_subdevice(ctl, snd_pcm_info_get_subdevice(info));
+           snd_ctl_elem_value_set_name(ctl, SND_CTL_NAME_IEC958("",PLAYBACK,PCM_STREAM));
+           snd_ctl_elem_value_set_iec958(ctl, &spdif);
+           ctl_card = snd_pcm_info_get_card(info);
+           if (ctl_card < 0) {
+                fprintf(stderr, "Unable to setup the IEC958 (S/PDIF) interface - PCM has no assigned card");
+                   goto __close;
+
+           }
+           sprintf(ctl_name, "hw:%d", ctl_card);
+           printf("hw:%d\n", ctl_card);
+           if ((err = snd_ctl_open(&ctl_handle, ctl_name, 0)) < 0) {
+              fprintf(stderr, "Unable to open the control interface '%s':
+                                            %s", ctl_name, snd_strerror(err));
+              goto __close;
+           }
+           if ((err = snd_ctl_elem_write(ctl_handle, ctl)) < 0) {
+              fprintf(stderr, "Unable to update the IEC958 control: %s", snd_strerror(err));
+
+              goto __close;
+           }
+           snd_ctl_close(ctl_handle);
+        }
+
+
+
   /* We wanted non blocking open but now put it back to normal */
   snd_pcm_nonblock(this->audio_fd, 0);
   /*
@@ -230,7 +290,11 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
                 error("PCM hw_params failed: %s", snd_strerror(err));
                 goto __close;
         }
-this->output_sample_rate = this->input_sample_rate;
+
+
+
+
+  this->output_sample_rate = this->input_sample_rate;
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   this->audio_step         = (double) 90000 * (double) 32768 
                                  / this->input_sample_rate;
@@ -242,10 +306,17 @@ this->output_sample_rate = this->input_sample_rate;
   /* Copy current parameters into swparams */
   snd_pcm_sw_params_current(this->audio_fd, swparams);
   tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 4);
+
   /* Install swparams into current parameters */
   snd_pcm_sw_params(this->audio_fd, swparams);
 
-  //  snd_pcm_dump_setup(this->audio_fd, jcd_out); 
+    snd_pcm_dump_setup(this->audio_fd, jcd_out); 
+    snd_pcm_sw_params_dump(swparams, jcd_out);
+      
+
+  write_pause_burst(this,0);
+
+
   return 1;
 __close:
   snd_pcm_close (this->audio_fd);
@@ -301,6 +372,79 @@ static void ao_fill_gap (alsa_functions_t *this, uint32_t pts_len)
   this->last_vpts += pts_len;
 }
 
+
+
+void xrun(alsa_functions_t *this)
+{
+         snd_pcm_status_t *status;
+         int res;
+
+        snd_pcm_status_alloca(&status);
+        if ((res = snd_pcm_status(this->audio_fd, status))<0) {
+            printf("status error: %s", snd_strerror(res));
+           return;
+         }
+         if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
+            struct timeval now, diff, tstamp;
+            gettimeofday(&now, 0);
+            snd_pcm_status_get_trigger_tstamp(status, &tstamp);
+            timersub(&now, &tstamp, &diff);
+            fprintf(stderr, "xrun!!! (at least %.3f ms long)\n",
+diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+
+ if ((res = snd_pcm_prepare(this->audio_fd))<0) {
+                printf("xrun: prepare error: %s", snd_strerror(res));
+                return;
+            }
+            return;         /* ok, data should be accepted again */
+         }
+}
+
+void write_burst(alsa_functions_t *this,u_char *data, size_t count)
+ {
+    ssize_t r;
+    while(count > 0) {
+      r = snd_pcm_writei(this->audio_fd, data, count);
+      if (r == -EAGAIN || (r >=0 && r < count)) {
+        snd_pcm_wait(this->audio_fd, 1000);
+      } else if (r == -EPIPE) {
+        xrun(this);
+      }
+      if (r > 0) {
+        count -= r;
+        data += r * 4;
+      }
+   }
+}
+
+void write_pause_burst(alsa_functions_t *this,int error)
+{
+#define BURST_SIZE 6144
+
+        unsigned char buf[8192];
+        unsigned short *sbuf = (unsigned short *)&buf[0];
+
+        sbuf[0] = 0xf872;
+        sbuf[1] = 0x4e1f;
+
+        if (error == 0)
+                // Audio ES Channel empty, wait for DD Decoder or pause
+                sbuf[2] = 0x0003;
+        else
+                // user stop, skip or error
+                sbuf[2] = 0x0103;
+
+        sbuf[3] = 0x0020;
+        sbuf[4] = 0x0000;
+        sbuf[5] = 0x0000;
+
+        memset(&sbuf[6], 0, BURST_SIZE - 96);
+
+        write_burst(this,(u_char *)sbuf, BURST_SIZE / 4);
+}
+
+
+
 static void ao_write_audio_data(ao_functions_t *this_gen,
 				int16_t* output_samples, uint32_t num_samples, 
 				uint32_t pts_)
@@ -328,13 +472,13 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
    */
   gap = vpts - this->last_vpts ;
   bDropPackage = 0;
-  
+#if 0  
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
   }
-
+#endif
   /*
    * sync on master clock
    */
@@ -344,10 +488,12 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   /*
    * method 1 : resampling
    */
+
   if (abs(diff)>5000) {
     if (diff>5000) {
       error("Fill Gap");
-      ao_fill_gap (this,diff);
+      if ((this->open_mode & AO_CAP_MODE_AC3) == 0)
+        ao_fill_gap (this,diff);
     } else if (diff<-5000) {
       error("Drop");
       bDropPackage = 1;
@@ -360,6 +506,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
     else if ( this->output_rate_correction > 500)
       this->output_rate_correction = 500;
   }
+
   /*
    * method 2: adjust master clock
    */
@@ -376,6 +523,10 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
       num_output_samples = ((num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate / 4) * 4)+4; 
       audio_out_resample_stereo (output_samples, num_samples,
 			       sample_buffer, num_output_samples);
+      do {
+         res=snd_pcm_avail_update(this->audio_fd);
+         usleep(3200);
+      } while (res<num_output_samples+512);
     } else {
        num_output_samples = num_samples;
        sample_buffer[0] = 0xf872;  //spdif syncword
@@ -385,19 +536,18 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
        sample_buffer[4] = 0x0b77;  // AC3 syncwork
 
        // ac3 seems to be swabbed data
-       swab(output_samples,&sample_buffer[5],  num_samples * 2 );
+       swab(&output_samples[1],&sample_buffer[5],  num_samples * 2 );
     }
 
-    do {
-         res=snd_pcm_avail_update(this->audio_fd);
-         usleep(3200);
-    } while (res<num_output_samples+512);
+
 
     /* Special note, the new ALSA outputs in counts of frames.
      * A Frame is one sample for all channels, so here a Stereo 16 bits frame is 4 bytes.
      */
-    res=snd_pcm_writei(this->audio_fd, sample_buffer, num_output_samples);    
 
+//    res=snd_pcm_writei(this->audio_fd, sample_buffer, num_output_samples);    
+    write_burst(this, sample_buffer, num_output_samples);    
+    res = num_output_samples;
 
     if(res != num_output_samples) error("BUFFER MAYBE FULL!!!!!!!!!!!!");
     if (res < 0)                                                   
@@ -505,12 +655,6 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   /*
    * open that device
    */
-                card = snd_defaults_pcm_card();
-                dev = snd_defaults_pcm_device();
-                if (card < 0 || dev < 0) {
-                        fprintf(stderr, "defaults are not set");
-                        return NULL;
-                }
   
   err=snd_pcm_open(&this->audio_fd, this->audio_dev, SND_PCM_STREAM_PLAYBACK, 0);         
   if(err <0 ) {                                                                       
