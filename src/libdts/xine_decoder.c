@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2003/05/25 15:45:06 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.43 2003/05/27 14:31:24 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -255,6 +255,11 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   float        scale_factor_adjustment_index[8][10];
   uint16_t       audio_header_crc_check_word;
 
+  int32_t        nVQIndex;
+  int32_t        nQSelect;
+  int8_t         subsubframe_count;
+  int8_t         partial_subsubframe_sample_count;
+  int8_t         prediction_mode[8][33];
 
 
   uint32_t       channel_extension_sync_word;
@@ -461,7 +466,6 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     audio_header_crc_check_word = getbits(&state, 16);
   }
 
-#if 0
 
 /* FIXME: ALL CODE BELOW HERE does not compile yet. */
 
@@ -473,12 +477,13 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
 /* Partial Subsubframe Sample Count V PSC 3 bit */
   partial_subsubframe_sample_count = getbits(&state, 3);
 /* Prediction Mode V PMODE 1 bit per subband */
-  for (ch=0; ch<number_of_primary_audio_channels; ch++)
-    for (n=0; n<subband_activity_count[ch]; n++)
+  for (ch=0; ch<number_of_primary_audio_channels; ch++) {
+    for (n=0; n<subband_activity_count[ch]; n++) {
       prediction_mode[ch][n] = getbits(&state, 1);
+    }
+  }
 
 /* Prediction Coefficients VQ Address V PVQ 12 bits per occurrence */
-  int32_t nVQIndex;
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     for (n=0; n<subband_activity_count[ch]; n++) {
       if ( prediction_mode[ch][n]>0 ) { /* Transmitted only when ADPCM active */
@@ -486,15 +491,15 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
         nVQIndex = getbits(&state,12);
         /* Look up the VQ table for prediction coefficients. */
         /* FIXME: How to implement LookUp? */
-        ADPCMCoeffVQ.LookUp(nVQIndex, PVQ[ch][n]); /*  4 coefficients  FIXME: Need to work out what this does. */
+        /* FIXME: We don't have the ADPCMCoeff table. */
+        /* ADPCMCoeffVQ.LookUp(nVQIndex, PVQ[ch][n]);*/ /*  4 coefficients  FIXME: Need to work out what this does. */
       }
     }
   }
 
 
   /* Bit Allocation Index V ABITS variable bits */
-  /* FIXME: No getbits here */
-  int32_t nQSelect;
+  /* FIXME: No getbits here InverseQ does the getbits */
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     /* Bit Allocation Quantizer Select tells which codebook was used */
     nQSelect = bit_allocation_quantizer_select[ch]; 
@@ -502,9 +507,15 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) {
       /* Not for VQ encoded subbands. */
       /* FIXME: What is Inverse Quantization(InverseQ) ? */
-      QABITS.ppQ[nQSelect]->InverseQ(InputFrame, bit_allocation_index[ch][n]);
+      /* This basically selects a huffman table number nQSelect, */
+      /* and uses it to read a variable amount of bits and does a huffman search to find the value. */
+      /* FIXME: Need to implement InverseQ, so we can uncomment this line */
+      /*QABITS.ppQ[nQSelect]->InverseQ(&state, bit_allocation_index[ch][n]); */
     }
   }
+
+#if 0
+/* FIXME: ALL CODE BELOW HERE does not compile yet. */
 
   /* Transition Mode V TMODE variable bits */
 
@@ -761,6 +772,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
       }
       /*
        * Extract bits from the bit stream
+       * This retrieves 8 AUDIO values
        */
       switch ( nQType ) {
         case 0: /* No bits allocated */
@@ -782,6 +794,15 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
           }
           break;
         case 3: /* Block code */
+          /* Block code is just 1 value with 4 samples derived from it.
+           * with each sample a digit from the number (using a base derived from nABITS via a table)
+           * E.g. nABITS = 10, base = 5 (Base value taken from table.)
+           * 1st sample = (value % 5) - (int(5/2); (Values between -2 and +2 )
+           * 2st sample = ((value / 5) % 5) - (int(5/2);
+           * 3rd sample = ((value / 25) % 5) - (int(5/2);
+           * 4th sample = ((value / 125) % 5) - (int(5/2);
+           * 
+           */
           pCBQ = &pCBlockQ[nABITS-1]; /* Select block code book */
           m = 0;
           for (nBlock=0; nBlock<2; nBlock++) {
