@@ -213,6 +213,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.so
 %{prefix}/lib/xine/plugins/xineplug_inp_vcd.la
 %{prefix}/lib/xine/plugins/xineplug_inp_vcd.so
+%{prefix}/lib/xine/plugins/xineplug_inp_cda.la
+%{prefix}/lib/xine/plugins/xineplug_inp_cda.so
 # demuxer plugins
 %{prefix}/lib/xine/plugins/xineplug_dmx_asf.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_asf.so
@@ -232,6 +234,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
 @HAVE_ZLIB_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_qt.la
 @HAVE_ZLIB_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_qt.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_cda.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_cda.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.la
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.so
@@ -327,6 +331,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Thu Dec 6 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- Add cda plugins.
 * Wed Nov 14 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - fixed dxr3 header files inclusion, aalib deps: thanks to Andrew Meredith <andrew@anvil.org>.
 * Mon Oct 29 2001 Matthias Dahl <matthew2k@web.de>

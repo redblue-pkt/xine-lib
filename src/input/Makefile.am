@@ -17,9 +17,10 @@ libdir = $(XINE_PLUGINDIR)
 if HAVE_CDROM_IOCTLS
 in_dvd = xineplug_inp_dvd.la
 in_vcd = xineplug_inp_vcd.la
+in_cda = xineplug_inp_cda.la
 endif
 
-lib_LTLIBRARIES = xineplug_inp_file.la $(in_dvd) $(in_vcd) \
+lib_LTLIBRARIES = xineplug_inp_file.la $(in_dvd) $(in_vcd) $(in_cda) \
 	xineplug_inp_stdin_fifo.la xineplug_inp_net.la \
 	xineplug_inp_rtp.la xineplug_inp_http.la
 
@@ -43,6 +44,9 @@ xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_http_la_SOURCES = input_http.c
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module
+
+xineplug_inp_cda_la_SOURCES = input_cda.c
+xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = dvd_udf.h read_cache.h

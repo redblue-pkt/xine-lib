@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.18 2001/12/01 22:38:31 guenter Exp $
+ * $Id: input_plugin.h,v 1.19 2001/12/06 23:53:20 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -49,17 +49,18 @@ extern void *xmalloc(size_t);
 #define mrl_net            (1 << 2)
 #define mrl_rtp            (1 << 3)
 #define mrl_stdin          (1 << 4)
-#define mrl_file           (1 << 5)
-#define mrl_file_fifo      (1 << 6)
-#define mrl_file_chardev   (1 << 7)
-#define mrl_file_directory (1 << 8)
-#define mrl_file_blockdev  (1 << 9)
-#define mrl_file_normal    (1 << 10)
-#define mrl_file_symlink   (1 << 11)
-#define mrl_file_sock      (1 << 12)
-#define mrl_file_exec      (1 << 13)
-#define mrl_file_backup    (1 << 14)
-#define mrl_file_hidden    (1 << 15)
+#define mrl_cda            (1 << 5)
+#define mrl_file           (1 << 6)
+#define mrl_file_fifo      (1 << 7)
+#define mrl_file_chardev   (1 << 8)
+#define mrl_file_directory (1 << 9)
+#define mrl_file_blockdev  (1 << 10)
+#define mrl_file_normal    (1 << 11)
+#define mrl_file_symlink   (1 << 12)
+#define mrl_file_sock      (1 << 13)
+#define mrl_file_exec      (1 << 14)
+#define mrl_file_backup    (1 << 15)
+#define mrl_file_hidden    (1 << 16)
 
 /*
  * Freeing/zeroing all of entries of given mrl.
