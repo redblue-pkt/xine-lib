@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.92 2002/10/04 13:36:56 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.93 2002/10/13 17:24:29 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -421,6 +421,9 @@ static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
     frame->sc.output_height = ((frame->sc.delivered_height + 15) >> 4);
   if (frame->sc.output_width < 8)
     frame->sc.output_width = 8;
+  if (frame->sc.output_width & 1) /* yuv2rgb_mlib needs an even YUV2 width */
+    frame->sc.output_width++;
+
 
 #ifdef LOG
   printf("video_out_xshm: frame source %d x %d => screen output %d x %d%s\n",
