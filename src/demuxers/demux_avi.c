@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.137 2002/12/11 19:01:37 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.138 2002/12/12 01:40:07 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -815,6 +815,16 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
     for(i=0;i<AVI->n_idx;i++)
       if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
+    
+    /* try again for ##ix */  
+    if (i>=AVI->n_idx) {
+      AVI->video_tag[2] = 'i';
+      AVI->video_tag[3] = 'x';
+    }
+    
+    for(i=0;i<AVI->n_idx;i++)
+      if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
+    
     if (i>=AVI->n_idx) {
       ERR_EXIT(AVI_ERR_NO_VIDS);
     }
