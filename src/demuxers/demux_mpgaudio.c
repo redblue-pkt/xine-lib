@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.6 2001/05/28 01:28:10 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.7 2001/05/28 12:08:20 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -227,10 +227,11 @@ static int mpg123_head_check(unsigned long head) {
 
 static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
 
-  buf_element_t *buf;
-
-  buf = this->input->read_block(this->input, 
-				this->audio_fifo, 2048);
+  buf_element_t *buf = NULL;
+  
+  if(this->audio_fifo)
+    buf = this->input->read_block(this->input, 
+				  this->audio_fifo, 2048);
 
   if (buf == NULL) {
     this->status = DEMUX_FINISHED;
@@ -242,7 +243,8 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
   buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
   buf->type      = BUF_AUDIO_AVI;
 
-  this->audio_fifo->put(this->audio_fifo, buf);
+  if(this->audio_fifo)
+    this->audio_fifo->put(this->audio_fifo, buf);
 
   return (buf->size == 2048);
 }
@@ -266,9 +268,11 @@ static void *demux_mpgaudio_loop (void *this_gen) {
   buf->type    = BUF_CONTROL_END;
   this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->audio_fifo->put (this->audio_fifo, buf);
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 
   pthread_exit(NULL);
 }
@@ -309,10 +313,13 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_START;
-  this->audio_fifo->put (this->audio_fifo, buf);
 
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_START;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  
   /*
    * now start demuxing
    */

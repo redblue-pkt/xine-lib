@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.9 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.10 2001/05/28 12:08:20 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -700,7 +700,7 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
 
 static int demux_avi_next (demux_avi_t *this) {
 
-  buf_element_t *buf;
+  buf_element_t *buf = NULL;
 
   if (this->avi->video_frames <= this->avi->video_posf)
     return 0;
@@ -708,7 +708,8 @@ static int demux_avi_next (demux_avi_t *this) {
   if (this->avi->audio_chunks <= this->avi->audio_posc)
     return 0;
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if(this->audio_fifo)
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
   buf->content = buf->mem;
   buf->DTS  = 0 ; /* FIXME */
@@ -754,7 +755,8 @@ static int demux_avi_next (demux_avi_t *this) {
       break;
     }
 
-    this->audio_fifo->put (this->audio_fifo, buf);
+    if(this->audio_fifo)
+      this->audio_fifo->put (this->audio_fifo, buf);
 
   } else {
     /* read video */
@@ -779,7 +781,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
 static void *demux_avi_loop (void *this_gen) {
 
-  buf_element_t *buf;
+  buf_element_t *buf = NULL;
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
   do {
@@ -791,9 +793,12 @@ static void *demux_avi_loop (void *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_END;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->audio_fifo->put (this->audio_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 
   xprintf (VERBOSE|DEMUX, "demux_avi: demux loop finished.\n");
 
@@ -881,9 +886,11 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_START;
-  this->audio_fifo->put (this->audio_fifo, buf);
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_START;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->content = buf->mem;
@@ -893,13 +900,15 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   buf->type = BUF_VIDEO_AVI; 
   this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->content = buf->mem;
-  memcpy (buf->content, &this->avi->wavex, 
-	  sizeof (this->avi->wavex));
-  buf->size = sizeof (this->avi->wavex);
-  buf->type = BUF_AUDIO_AVI; 
-  this->audio_fifo->put (this->audio_fifo, buf);
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->content = buf->mem;
+    memcpy (buf->content, &this->avi->wavex, 
+	    sizeof (this->avi->wavex));
+    buf->size = sizeof (this->avi->wavex);
+    buf->type = BUF_AUDIO_AVI; 
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 
   pthread_create (&this->thread, NULL, demux_avi_loop, this) ;
 }

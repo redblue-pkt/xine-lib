@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.18 2001/05/28 01:28:11 f1rmb Exp $
+ * $Id: xine.c,v 1.19 2001/05/28 12:08:20 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -211,7 +211,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
     return;
   }
   
-  printf ("xine: using input plugin >%s< for this MRL.\n", this->cur_input_plugin->get_identifier(this->cur_input_plugin));
+  printf ("xine: using input plugin >%s< for this MRL.\n", 
+	  this->cur_input_plugin->get_identifier(this->cur_input_plugin));
 
   /*
    * find demuxer plugin
@@ -224,7 +225,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
     return;
   }
 
-  printf ("xine: using demuxer plugin >%s< for this MRL.\n", this->cur_demuxer_plugin->get_identifier());
+  printf ("xine: using demuxer plugin >%s< for this MRL.\n", 
+	  this->cur_demuxer_plugin->get_identifier());
   
   /*
    * Init SPU decoder with colour lookup table. 
@@ -438,11 +440,8 @@ xine_t *xine_init (vo_driver_t *vo,
   if(ao) {
     this->audio_out = ao;
     this->audio_out->connect (this->audio_out, this->metronom);
-    audio_decoder_init (this);
   }
-  else
-    this->audio_out = NULL; /* Disabling audio output */
-
+  audio_decoder_init (this);
 
   /*
    * init SPU decoder

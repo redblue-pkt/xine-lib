@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.7 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.8 2001/05/28 12:08:20 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -59,7 +59,7 @@ typedef struct demux_mpeg_block_s {
 
 static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
 
-  buf_element_t *buf;
+  buf_element_t *buf = NULL;
   unsigned char *p;
   int            bMpeg1=0;
   uint32_t       nHeaderLen;
@@ -242,7 +242,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->DTS       = nDTS ;
       buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
-      this->audio_fifo->put (this->audio_fifo, buf);
+      if(this->audio_fifo)
+	this->audio_fifo->put (this->audio_fifo, buf);
       
       return ;
     } else if ((p[0]&0xf0) == 0xa0) {
@@ -265,7 +266,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->DTS       = nDTS ;
       buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
-      this->audio_fifo->put (this->audio_fifo, buf);
+      if(this->audio_fifo)
+	this->audio_fifo->put (this->audio_fifo, buf);
       
       return ;
     }
@@ -299,7 +301,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
     buf->DTS       = nDTS;
     buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
       
-    this->audio_fifo->put (this->audio_fifo, buf);
+    if(this->audio_fifo)
+      this->audio_fifo->put (this->audio_fifo, buf);
 
     return ;
 
@@ -315,7 +318,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
 
 static void *demux_mpeg_block_loop (void *this_gen) {
 
-  buf_element_t *buf;
+  buf_element_t *buf = NULL;
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
 
   do {
@@ -333,9 +336,11 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   buf->type    = BUF_CONTROL_END;
   this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->audio_fifo->put (this->audio_fifo, buf);
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_END;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 
   pthread_exit(NULL);
 }
@@ -387,10 +392,12 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type    = BUF_CONTROL_START;
-  this->audio_fifo->put (this->audio_fifo, buf);
 
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type    = BUF_CONTROL_START;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
   /*
    * now start demuxing
    */
