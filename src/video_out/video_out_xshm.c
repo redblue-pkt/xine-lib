@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.114 2003/10/18 20:40:25 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.115 2003/10/18 23:01:21 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -831,6 +831,11 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
 
   switch (data_type) {
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
+  case XINE_GUI_SEND_COMPLETION_EVENT:
+    break;
+#endif
+
   case XINE_GUI_SEND_EXPOSE_EVENT:
     
     lprintf ("video_out_xshm: expose event\n");
