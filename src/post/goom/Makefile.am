@@ -18,7 +18,7 @@ if HAVE_FFMMX
 endif
 endif
 
-xineplug_post_goom_la_SOURCES = xine_goom.c \
+xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 			        goom_core.c \
 			        filters.c \
 			        lines.c \
@@ -29,8 +29,7 @@ xineplug_post_goom_la_SOURCES = xine_goom.c \
 				gfontrle.c \
 				surf3d.c \
 				surface.c \
-				tentacle3d.c \
-				$(extra_files)
+				tentacle3d.c
 
 xineplug_post_goom_la_LIBADD = $(XINE_LIB)
 xineplug_post_goom_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
