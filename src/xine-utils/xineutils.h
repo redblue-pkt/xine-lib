@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.44 2003/03/04 08:31:57 mroi Exp $
+ * $Id: xineutils.h,v 1.45 2003/03/05 17:13:09 esnel Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -43,7 +43,7 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 
-#ifdef __SUNPRO_C
+#if defined(__SUNPRO_C) || !defined(XINE_COMPILE)
 #define inline
 #endif
 
