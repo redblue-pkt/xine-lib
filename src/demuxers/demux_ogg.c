@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.161 2005/02/06 15:26:17 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.162 2005/02/14 05:56:56 conrad Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -114,7 +114,9 @@ typedef struct stream_info_s {
   int64_t               quotient;
   int                   resync;
   char                  *language;
-  /* Annodex-specific stream information */
+  /* CMML, Ogg Skeleton stream information */
+  int                   granuleshift;
+  /* Annodex v2 stream information */
   int                   hide_first_header;
   int                   delivered_bos;
   int                   delivered_eos;
@@ -227,7 +229,13 @@ static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos )
     pframe=granulepos-(iframe<<keyframe_granule_shift);
     return 1+((iframe + pframe)*this->frame_duration);
 #endif
-
+  } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
+    int64_t iframe, pframe;
+    int granuleshift;
+    granuleshift = this->si[stream_num]->granuleshift;
+    iframe = granulepos >> granuleshift;
+    pframe = granulepos - (iframe << granuleshift);
+    return 1+((iframe+pframe) * this->si[stream_num]->factor / this->si[stream_num]->quotient);
   } else if (this->si[stream_num]->quotient)
     return 1+(granulepos * this->si[stream_num]->factor / this->si[stream_num]->quotient);
   else
@@ -698,7 +706,6 @@ static void send_ogg_buf (demux_ogg_t *this,
       }
     }
   } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
-
     buf_element_t *buf;
     uint32_t *val;
     char *str;
@@ -707,8 +714,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     buf->type = this->si[stream_num]->buf_types;
 
-    /* CMML granulepos is (1000 * seconds); pts is (90000 * seconds) */
-    buf->pts = op->granulepos * (90000 / 1000);
+    buf->pts = get_pts (this, stream_num, op->granulepos);
 
     val = (uint32_t * )buf->content;
     str = (char *)val;
@@ -722,7 +728,6 @@ static void send_ogg_buf (demux_ogg_t *this,
              stream_num, op->bytes, buf->pts, str);
 
     this->video_fifo->put (this->video_fifo, buf);
-
   } else if ((this->si[stream_num]->buf_types & 0xFF000000) == BUF_SPU_BASE) {
 
     buf_element_t *buf;
@@ -1241,6 +1246,7 @@ static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_
     unsigned int channel = this->num_spu_streams++;
     this->si[stream_num]->headers = 0;
     this->si[stream_num]->buf_types = BUF_SPU_CMML | channel;
+    this->si[stream_num]->granuleshift = 0;
   } else {
     this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
   }
@@ -1251,6 +1257,10 @@ static void decode_cmml_header (demux_ogg_t *this, const int stream_num, ogg_pac
     unsigned int channel = this->num_spu_streams++;
     this->si[stream_num]->headers = 0;
     this->si[stream_num]->buf_types = BUF_SPU_CMML | channel;
+
+    this->si[stream_num]->factor = 90000 * LE_64(&op->packet[20]);
+    this->si[stream_num]->quotient = LE_64(&op->packet[12]);
+    this->si[stream_num]->granuleshift = (int)op->packet[28];
 }
 
 /*
