@@ -42,7 +42,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 	xineplug_dmx_rawdv.la \
 	xineplug_dmx_pva.la \
 	xineplug_dmx_yuv_frames.la \
-	xineplug_dmx_slave.la
+	xineplug_dmx_slave.la \
+	xineplug_dmx_nsv.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(THEORA_LIBS) $(XINE_LIB)
@@ -131,6 +132,10 @@ xineplug_dmx_slave_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_image_la_SOURCES = demux_image.c
 xineplug_dmx_image_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_image_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_nsv_la_SOURCES = demux_nsv.c
+xineplug_dmx_nsv_la_LIBADD = $(XINE_LIB)
+xineplug_dmx_nsv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h

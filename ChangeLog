@@ -2,6 +2,7 @@
     start master with 'xine --broadcast-port xxxx'
     start slaves with 'xine slave://master_address:xxxx'
   * nvtv updates and fixes
+  * Nullsoft Video (.nsv) file demuxer
   
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
