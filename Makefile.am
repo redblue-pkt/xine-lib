@@ -9,8 +9,9 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = doc m4 intl po misc include src
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
-	debian/copyright debian/overrides.libxine debian/rules \
-	debian/shlibdeps.sh
+	debian/copyright debian/rules debian/shlibdeps.sh
+#	debian/copyright debian/overrides.libxine debian/rules \
+#	debian/shlibdeps.sh
 
 EXTRA_DIST = autogen.sh \
 	     automake.diff \
