@@ -16,6 +16,7 @@ xine-lib (1-rc3)
   * updated win32 port
   * default to menu button 1, if an invalid button is set
     (fixes main menu of "Alice in Wonderland" RC2)
+  * fix yuy2 output on mga_vid vidix driver
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
