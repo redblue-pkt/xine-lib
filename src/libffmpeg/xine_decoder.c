@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/08/10 17:37:50 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/08/10 18:38:05 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -220,57 +220,57 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       if (len<0) {
 	printf ("ffmpeg: error decompressing frame\n");
 	img->bFrameBad = 1;
-      } else
+      } else {
 	img->bFrameBad = 0;
 
-      dy = img->base[0];
-      du = img->base[1];
-      dv = img->base[2];
-      sy = this->av_picture.data[0];
-      su = this->av_picture.data[1];
-      sv = this->av_picture.data[2];
-
-      for (y=0; y<this->bih.biHeight; y++) {
-
-	memcpy (dy, sy, this->bih.biWidth);
-
-	dy += this->bih.biWidth;
-
-	sy += this->av_picture.linesize[0];
-      }
-
-      for (y=0; y<(this->bih.biHeight/2); y++) {
-
-	memcpy (du, su, this->bih.biWidth/2);
-	memcpy (dv, sv, this->bih.biWidth/2);
-
-	du += this->bih.biWidth/2;
-	dv += this->bih.biWidth/2;
-
-	su += this->av_picture.linesize[1];
-	sv += this->av_picture.linesize[2];
-      }
-
-      if (img->copy) {
-
-	int height = abs(this->bih.biHeight);
-	int stride = this->bih.biWidth;
-	uint8_t* src[3];
+	dy = img->base[0];
+	du = img->base[1];
+	dv = img->base[2];
+	sy = this->av_picture.data[0];
+	su = this->av_picture.data[1];
+	sv = this->av_picture.data[2];
+	
+	for (y=0; y<this->bih.biHeight; y++) {
 	  
-	src[0] = img->base[0];
-	src[1] = img->base[1];
-	src[2] = img->base[2];
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * stride;
-	  src[1] +=  4 * stride;
-	  src[2] +=  4 * stride;
+	  memcpy (dy, sy, this->bih.biWidth);
+	  
+	  dy += this->bih.biWidth;
+	  
+	  sy += this->av_picture.linesize[0];
+	}
+	
+	for (y=0; y<(this->bih.biHeight/2); y++) {
+	  
+	  memcpy (du, su, this->bih.biWidth/2);
+	  memcpy (dv, sv, this->bih.biWidth/2);
+	  
+	  du += this->bih.biWidth/2;
+	  dv += this->bih.biWidth/2;
+	  
+	  su += this->av_picture.linesize[1];
+	  sv += this->av_picture.linesize[2];
+	}
+	
+	if (img->copy) {
+	  
+	  int height = abs(this->bih.biHeight);
+	  int stride = this->bih.biWidth;
+	  uint8_t* src[3];
+	  
+	  src[0] = img->base[0];
+	  src[1] = img->base[1];
+	  src[2] = img->base[2];
+	  while ((height -= 16) >= 0) {
+	    img->copy(img, src);
+	    src[0] += 16 * stride;
+	    src[1] +=  4 * stride;
+	    src[2] +=  4 * stride;
+	  }
 	}
       }
-
       img->draw(img);
       img->free(img);
-
+      
       this->size = 0;
     }
   }
