@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.7 2003/01/17 02:53:51 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.8 2003/01/18 14:57:50 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -219,7 +219,7 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     NSF_BITS;
 
-  /* fill in title during send_chunk */
+  this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(this->title);
   this->stream->meta_info[XINE_META_INFO_ARTIST] = strdup(this->artist);
   sprintf(copyright, "(C) %s", this->copyright);
   this->stream->meta_info[XINE_META_INFO_COMMENT] = strdup(copyright);
