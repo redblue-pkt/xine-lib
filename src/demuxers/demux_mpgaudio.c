@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.135 2004/04/22 00:37:52 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.136 2004/05/04 22:26:13 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -922,16 +922,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_EXTENSION: {
     char *mrl = input->get_mrl(input);
+    char *extensions = class_gen->get_extensions (class_gen);
     
     lprintf ("stage by extension %s\n", mrl);
     
-    if (strncmp (mrl, "ice :/", 6)) {
-      char *extensions = class_gen->get_extensions (class_gen);
+    if (!_x_demux_check_extension (mrl, extensions))
+      return NULL;
       
-      if (!_x_demux_check_extension (mrl, extensions))
-  	return NULL;
-      
-    }
   }
   break;
 

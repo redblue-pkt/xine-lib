@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.86 2004/04/15 00:14:57 hadess Exp $
+ * $Id: input_http.c,v 1.87 2004/05/04 22:26:13 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,6 +56,13 @@
 #define BUFSIZE                 1024
 
 #define DEFAULT_HTTP_PORT         80
+
+#define TAG_ICY_NAME       "icy-name:"
+#define TAG_ICY_GENRE      "icy-genre:"
+#define TAG_ICY_NOTICE1    "icy-notice1:"
+#define TAG_ICY_NOTICE2    "icy-notice2:"
+#define TAG_ICY_METAINT    "icy-metaint:"
+#define TAG_CONTENT_TYPE   "Content-Type:"
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -248,9 +255,8 @@ static int http_plugin_basicauth (const char *user, const char *password, char* 
   return 0;
 }
 
-static void http_plugin_read_metainf (input_plugin_t *this_gen) {
+static int http_plugin_read_metainf (http_input_plugin_t *this) {
  
-  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   char metadata_buf[255 * 16];
   unsigned char len = 0;
   char *title_end;
@@ -259,16 +265,15 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
   xine_event_t uevent;
   xine_ui_data_t data;
     
-  /* avoid recursion */
-  this->shoutcast_mode = 0;
-  
   /* get the length of the metadata */
-  this_gen->read(this_gen, &len, 1);
+  if (_x_io_tcp_read (this->stream, this->fh, &len, 1) != 1)
+    return 0;
 
   lprintf ("http_plugin_read_metainf: len=%d\n", len);
   
   if (len > 0) {
-    this_gen->read(this_gen, metadata_buf, len * 16);
+    if (_x_io_tcp_read (this->stream, this->fh, metadata_buf, len * 16) != (len * 16))
+      return 0;
   
     metadata_buf[len * 16] = '\0';
     
@@ -283,7 +288,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
         if ((!this->shoutcast_songtitle ||
              (strcmp(songtitle, this->shoutcast_songtitle))) &&
             (strlen(songtitle) > 0)) {
-	  
+  
           lprintf ("http_plugin_read_metainf: songtitle: %s\n", songtitle);
           
           if (this->shoutcast_songtitle)
@@ -315,82 +320,78 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
       }
     }
   }
+  return 1;
+}
 
-  this->shoutcast_mode = 1;
-  this->shoutcast_pos  = 0;
+/*
+ * Handle shoutcast packets
+ */
+static off_t http_plugin_read_int (http_input_plugin_t *this,
+                                   char *buf, off_t total) {
+  int read_bytes = 0;
+  int nlen;
+  
+  while (total) {
+    nlen = total;
+    if (this->shoutcast_mode &&
+        ((this->shoutcast_pos + nlen) >= this->shoutcast_metaint)) {
+      nlen = this->shoutcast_metaint - this->shoutcast_pos;
+
+      nlen = _x_io_tcp_read (this->stream, this->fh, &buf[read_bytes], nlen);
+      if (nlen < 0)
+        goto error;
+
+      if (!http_plugin_read_metainf(this))
+        goto error;
+      this->shoutcast_pos = 0;
+      
+    } else {
+      nlen = _x_io_tcp_read (this->stream, this->fh, &buf[read_bytes], nlen);
+      if (nlen < 0)
+        goto error;
+
+      this->shoutcast_pos += nlen;
+    }
+    if (nlen == 0)
+      return 0;
+    read_bytes          += nlen;
+    total               -= nlen;
+  }
+  return read_bytes;
+  
+error:
+  if (!_x_action_pending(this->stream)) 
+    _x_message (this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
+  xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
+  return read_bytes;
 }
 
 static off_t http_plugin_read (input_plugin_t *this_gen,
-			       char *buf, off_t nlen) {
+                               char *buf, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   off_t n, num_bytes;
 
   num_bytes = 0;
 
-  if (this->shoutcast_mode && (this->shoutcast_pos == this->shoutcast_metaint)) {
-    http_plugin_read_metainf(this_gen);
-  }
-
   if (this->curpos < this->preview_size) {
 
-    n = this->preview_size - this->curpos;
-    if (n > (nlen - num_bytes))
-      n = nlen - num_bytes;
+    if (nlen > (this->preview_size - this->curpos))
+      n = this->preview_size - this->curpos;
+    else
+      n = nlen;
 
     lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
-
-    if (this->shoutcast_mode) {
-      if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
-        int i = this->shoutcast_metaint - this->shoutcast_pos;
-        memcpy (&buf[num_bytes], &this->preview[this->curpos], i);
-        this->shoutcast_pos += i;
-        num_bytes += i;
-        this->curpos += i;
-        n -= i;
-        http_plugin_read_metainf(this_gen);
-      }
-
-      this->shoutcast_pos += n;
-    }
-
-    memcpy (&buf[num_bytes], &this->preview[this->curpos], n);
+    memcpy (buf, &this->preview[this->curpos], n);
 
     num_bytes += n;
     this->curpos += n;
-  } 
-
-  n = nlen - num_bytes;
-  if( n && this->shoutcast_mode) {
-    if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
-      int i = this->shoutcast_metaint - this->shoutcast_pos;
-      i = _x_io_tcp_read (this->stream, this->fh, &buf[num_bytes], i);
-      if (i < 0) {
-        if (!_x_action_pending(this->stream)) 
-	  _x_message (this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
-        xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
-        return 0;
-      }
-
-      this->shoutcast_pos += i;
-      num_bytes += i;
-      this->curpos += i;
-      n -= i;
-      http_plugin_read_metainf(this_gen);
-    }
-
-    this->shoutcast_pos += n;
   }
 
-  if( n ) {
-    n = _x_io_tcp_read (this->stream, this->fh, &buf[num_bytes], n);
+  n = nlen - num_bytes;
 
-    /* read errors */
-    if (n < 0) {
-      if (!_x_action_pending(this->stream)) 
-	_x_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
-      xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
-      return 0;
-    }
+  if (n) {
+    if (http_plugin_read_int (this, &buf[num_bytes], n) != n)
+      return -1;
 
     num_bytes += n;
     this->curpos += n;
@@ -405,11 +406,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
   done = 0; len = 0; linenum = 0;
   while (!done) {
 
-    /*
-    printf ("input_http: read...\n");
-    */
-
-    if (http_plugin_read ((input_plugin_t*)this, &this->buf[len], 1) == 0) {
+    if (_x_io_tcp_read (this->stream, this->fh, &this->buf[len], 1) != 1) {
       return 1;
     }
 
@@ -427,22 +424,26 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       lprintf ("shoutcast answer: >%s<\n", this->buf);
 
-      if (!strncasecmp(this->buf, "icy-name:", 9)) {
+      if (!strncasecmp(this->buf, TAG_ICY_NAME, sizeof(TAG_ICY_NAME) - 1)) {
         _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM,
-			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
+                         (this->buf + sizeof(TAG_ICY_NAME) - 1 +
+                          (*(this->buf + sizeof(TAG_ICY_NAME)) == ' ')));
         _x_meta_info_set(this->stream, XINE_META_INFO_TITLE,
-			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
+                         (this->buf + sizeof(TAG_ICY_NAME) - 1 +
+                          (*(this->buf + sizeof(TAG_ICY_NAME)) == ' ')));
       }
       
-      if (!strncasecmp(this->buf, "icy-genre:", 10)) {
+      if (!strncasecmp(this->buf, TAG_ICY_GENRE, sizeof(TAG_ICY_GENRE) - 1)) {
         _x_meta_info_set(this->stream, XINE_META_INFO_GENRE,
-			   (this->buf + 10 + (*(this->buf + 10) == ' ')));
+                        (this->buf + sizeof(TAG_ICY_GENRE) - 1 +
+                         (*(this->buf + sizeof(TAG_ICY_GENRE)) == ' ')));
       }
       
       /* icy-notice1 is always the same */
-      if (!strncasecmp(this->buf, "icy-notice2:", 12)) {
+      if (!strncasecmp(this->buf, TAG_ICY_NOTICE2, sizeof(TAG_ICY_NOTICE2) - 1)) {
         _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT,
-			   (this->buf + 12 + (*(this->buf + 12) == ' ')));
+                         (this->buf + sizeof(TAG_ICY_NOTICE2) - 1 +
+                          (*(this->buf + sizeof(TAG_ICY_NOTICE2)) == ' ')));
       }
 
       /* metadata interval (in byte) */
@@ -450,6 +451,16 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
         lprintf("shoutcast_metaint: %d\n", this->shoutcast_metaint);
       }
 
+      /* content type */
+      if (!strncasecmp(this->buf, TAG_CONTENT_TYPE, sizeof(TAG_CONTENT_TYPE) - 1)) {
+        if (!strncasecmp(this->buf + sizeof(TAG_CONTENT_TYPE) - 1, "video/nsv", 9)) {
+          lprintf("shoutcast nsv detected\n");
+          this->shoutcast_mode = 2;
+        } else {
+          lprintf("shoutcast mp3 detected\n");
+        }
+      }
+      
       if (len == -1)
         done = 1;
       else
@@ -458,6 +469,53 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
       len ++;
   }
   
+  this->shoutcast_pos = 0;
+  
+  /* NSV resync */
+  /* FIXME: move that to the demuxer */
+  if (this->shoutcast_mode == 2) {
+    uint8_t c;
+    int pos = 0;
+    int read_bytes = 0;
+  
+    lprintf("resyncing NSV stream\n");
+    while ((pos < 3) && (read_bytes < 500000)) {
+    
+      if (http_plugin_read_int(this, &c, 1) != 1)
+        return 1;
+
+      this->preview[pos] = c;
+      switch (pos) {
+        case 0:
+          if (c == 'N')
+            pos++;
+          break;
+        case 1:
+          if (c == 'S')
+            pos++;
+          else
+            if (c != 'N')
+              pos = 0;
+          break;
+        case 2:
+          if (c == 'V')
+            pos++;
+          else
+            if (c == 'N')
+              pos = 1;
+            else
+              pos = 0;
+          break;
+      }
+      read_bytes++;
+    }
+    if (pos == 3) {
+      lprintf("NSV stream resynced\n");
+    } else {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+        "http: cannot resync NSV stream!\n");
+    }
+  }
   lprintf ("end of the shoutcast header\n");
 
   return 0;
@@ -621,7 +679,6 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   int                  use_proxy;
   int                  proxyport;
   
-  this->shoutcast_pos = 0;
   use_proxy = this_class->proxyhost && strlen(this_class->proxyhost);
   
   if (use_proxy) {
@@ -842,36 +899,42 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
   lprintf ("end of headers\n");
 
-  /*
-   * fill preview buffer
-   */
-
-  this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
-					 MAX_PREVIEW_SIZE);
-
-  this->curpos  = 0;
   
   /* Trivial shoutcast detection */
   this->shoutcast_metaint = 0;
   this->shoutcast_songtitle = NULL;
-  if (shoutcast ||
-      !strncasecmp(this->preview, "ICY", 3)) {
-    this->mrl[0] = 'i';
-    this->mrl[1] = 'c';
-    this->mrl[2] = 'e';
-    this->mrl[3] = ' ';
+  if (shoutcast) {
+    this->shoutcast_mode = 1;
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "can't read shoutcast header\n");
       return 0;
     }
-    this->shoutcast_mode = 1;
-    this->shoutcast_pos = 0;
   } else {
     this->shoutcast_mode = 0;
   }
 
+  /*
+   * fill preview buffer
+   */
+  this->preview_size = MAX_PREVIEW_SIZE;
+  if (this->shoutcast_mode == 2) {
+    /* the first 3 chars are "NSV" */
+    if (http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3) !=
+        (MAX_PREVIEW_SIZE - 3)) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "read error\n");
+      return 0;
+    }
+  } else {
+    if (http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE) !=
+        MAX_PREVIEW_SIZE) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "read error\n");
+      return 0;
+    }
+  }
+  this->curpos = 0;
+  
   return 1;
 }
 
