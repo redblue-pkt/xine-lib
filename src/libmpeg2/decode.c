@@ -214,7 +214,6 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
       = strdup ("MPEG-2");
 
   mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
-  
 }
 
 
