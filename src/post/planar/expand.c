@@ -236,12 +236,12 @@ static int expand_draw(vo_frame_t *frame, xine_stream_t *stream)
   int size, i, skip, new_height, border_height;
 
   /* Calculate height of expanded frame */
-  new_height = (double) frame->width * frame->ratio * 3.0 / 4.0;
+  new_height = (double) frame->height * frame->ratio * 3.0 / 4.0;
   new_height = (new_height + 1) & ~1;
   
   if(new_height > frame->height) {
     expanded_frame = port->original_port->get_frame(port->original_port,
-      frame->width, new_height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+      frame->width, new_height, 4.0 / 3.0, frame->format, frame->flags | VO_BOTH_FIELDS);
     expanded_frame->pts = frame->pts;
     expanded_frame->duration = frame->duration;
     expanded_frame->bad_frame = frame->bad_frame;

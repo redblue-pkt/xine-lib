@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.11 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: invert.c,v 1.12 2003/08/12 13:56:26 mroi Exp $
  */
  
 /*
@@ -236,7 +236,7 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   int size, i, skip;
   
   inverted_frame = port->original_port->get_frame(port->original_port,
-    frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+    frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
   inverted_frame->pts = frame->pts;
   inverted_frame->duration = frame->duration;
   inverted_frame->bad_frame = frame->bad_frame;

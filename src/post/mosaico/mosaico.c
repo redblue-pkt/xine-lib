@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.12 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: mosaico.c,v 1.13 2003/08/12 13:56:25 mroi Exp $
  */
  
 /*
@@ -431,7 +431,7 @@ static int _mosaico_draw_1(vo_frame_t *frame, post_mosaico_out_t *output) {
     pthread_mutex_lock(&output->mut1);
     if(output->saved_frame != NULL) output->saved_frame->free(output->saved_frame);
     output->saved_frame = port->original_port->get_frame(port->original_port,
-						 frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+      frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
     output->saved_frame->pts = frame->pts;
     output->saved_frame->duration = frame->duration;
     output->saved_frame->bad_frame = frame->bad_frame;
@@ -477,7 +477,7 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
     }
   
     output->saved_frame_2[cont] = port->original_port->get_frame(port->original_port,
-						   frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+      frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
     output->saved_frame_2[cont]->pts = frame->pts;
     output->saved_frame_2[cont]->duration = frame->duration;
     output->saved_frame_2[cont]->bad_frame = frame->bad_frame;

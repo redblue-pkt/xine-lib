@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.11 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.12 2003/08/12 13:56:25 mroi Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -558,6 +558,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   int i, skip, progressive = 0;
 
   post_restore_video_frame(frame, port);
+  frame->flags &= ~VO_INTERLACED_FLAG;
 
   /* this should be used to detect any special rff pattern */
   this->rff_pattern = this->rff_pattern << 1;
@@ -576,7 +577,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
     if( frame->format == XINE_IMGFMT_YV12 ) {
 
       yuy2_frame = port->original_port->get_frame(port->original_port,
-        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, frame->flags | VO_BOTH_FIELDS);
   
       yuy2_frame->pts = frame->pts;
       yuy2_frame->duration = frame->duration;
@@ -652,7 +653,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       /* Build the output from the first field. */
       pthread_mutex_unlock (&this->lock);
       deinterlaced_frame = port->original_port->get_frame(port->original_port,
-        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, frame->flags | VO_BOTH_FIELDS);
       pthread_mutex_lock (&this->lock);
   
       extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
@@ -719,7 +720,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
          /* Build the output from the second field. */
         pthread_mutex_unlock (&this->lock);
         deinterlaced_frame = port->original_port->get_frame(port->original_port,
-          frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
+          frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, frame->flags | VO_BOTH_FIELDS);
         pthread_mutex_lock (&this->lock);
   
         extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);

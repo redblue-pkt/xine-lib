@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.4 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: switch.c,v 1.5 2003/08/12 13:56:25 mroi Exp $
  */
  
 /*
@@ -389,7 +389,7 @@ static int switch_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   /* printf("draw_2\n"); */
  
   res_frame = port->original_port->get_frame(port->original_port,
-						  frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+    frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
   res_frame->pts = frame->pts;
   res_frame->duration = frame->duration;
   res_frame->bad_frame = frame->bad_frame;
@@ -428,7 +428,7 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
   /* printf("draw_1\n"); */
 
   res_frame = port->original_port->get_frame(port->original_port,
-						  frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+    frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
   res_frame->pts = frame->pts;
   res_frame->duration = frame->duration;
   res_frame->bad_frame = frame->bad_frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: boxblur.c,v 1.4 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: boxblur.c,v 1.5 2003/08/12 13:56:26 mroi Exp $
  *
  * mplayer's boxblur
  * Copyright (C) 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -416,7 +416,7 @@ static int boxblur_draw(vo_frame_t *frame, xine_stream_t *stream)
     if( frame->format != XINE_IMGFMT_YV12 ) {
 
       yv12_frame = port->original_port->get_frame(port->original_port,
-        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
   
       yv12_frame->pts = frame->pts;
       yv12_frame->duration = frame->duration;
@@ -435,7 +435,7 @@ static int boxblur_draw(vo_frame_t *frame, xine_stream_t *stream)
 
 
     out_frame = port->original_port->get_frame(port->original_port,
-      frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+      frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
 
   
     extra_info_merge(out_frame->extra_info, frame->extra_info);
