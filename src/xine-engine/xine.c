@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.13 2001/05/03 22:20:45 f1rmb Exp $
+ * $Id: xine.c,v 1.14 2001/05/03 23:26:42 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -526,6 +526,10 @@ int xine_get_status(xine_t *this) {
   return this->status;
 }
 
+uint32_t xine_get_window_capabilities(xine_t *this) {
+
+  return (this->video_out->get_capabilities(this->video_out));
+}
 /*
  *
  */

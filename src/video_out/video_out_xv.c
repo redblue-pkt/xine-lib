@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.10 2001/05/03 22:20:45 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.11 2001/05/03 23:26:42 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -679,7 +679,8 @@ static int xv_check_yv12 (Display *display, XvPortID port)
   return 1;
 }
 
-static void xv_check_capability (xv_driver_t *this, uint32_t capability, int property, 
+static void xv_check_capability (xv_driver_t *this, 
+				 uint32_t capability, int property, 
 				 XvAttribute attr, int base_id, char *str_prop) {
 
   int          nDefault;
