@@ -15,26 +15,26 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-#if HAVE_X11
+if HAVE_X11
 #xshm_module = xineplug_vo_out_xshm.la
 #syncfb_module = xineplug_vo_out_syncfb.la
 #if HAVE_VIDIX
 #vidix_module = xineplug_vo_out_vidix.la
 #endif
-#if HAVE_XV
+if HAVE_XV
 xv_module = xineplug_vo_out_xv.la
-#endif
+endif
 #if HAVE_OPENGL
 #opengl_module = xineplug_vo_out_opengl.la
 #endif
 #if HAVE_SUNFB
 #pgx64_module = xineplug_vo_out_pgx64.la
 #endif
-#endif
+endif
 
-#if HAVE_AA
-#aa_module = xineplug_vo_out_aa.la
-#endif
+if HAVE_AA
+aa_module = xineplug_vo_out_aa.la
+endif
 
 #if HAVE_FB
 #fb_module = xineplug_vo_out_fb.la
@@ -57,7 +57,7 @@ xv_module = xineplug_vo_out_xv.la
 
 #lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module)  \
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
-lib_LTLIBRARIES = $(xv_module) 
+lib_LTLIBRARIES = $(xv_module) $(aa_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = \
@@ -84,9 +84,9 @@ xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
 #xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 
-#xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
-#xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
-#xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
+xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
+xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
 #xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_fb.c

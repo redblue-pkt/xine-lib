@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.28 2002/09/18 20:58:29 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.29 2002/10/18 20:04:24 f1rmb Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -63,17 +63,20 @@ typedef struct aa_frame_s {
 } aa_frame_t;
 
 typedef struct {
-
   xine_vo_driver_t   vo_driver;
 
   config_values_t   *config;
-
   int                user_ratio;
-
   aa_context        *context;
 
 } aa_driver_t;
 
+typedef struct {
+
+  video_driver_class_t driver_class;
+  config_values_t     *config;
+
+} aa_class_t;
 
 /*
  * our video driver
@@ -256,52 +259,75 @@ static void aa_get_property_min_max (xine_vo_driver_t *this_gen,
   *max = 0;
 }
 
-static void aa_exit (xine_vo_driver_t *this_gen) {
+static void aa_dispose (xine_vo_driver_t *this_gen) {
 }
 
 static int aa_redraw_needed (xine_vo_driver_t *this_gen) {
   return 0;
 }
 
-static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
+static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  aa_class_t           *class = (aa_class_t *) class_gen;
   aa_driver_t          *this;
 
   this = (aa_driver_t*) malloc (sizeof (aa_driver_t));
   
   this->context = (aa_context*) visual_gen;
   
-  this->config = xine->config;
+  this->config = class->config;
 
   this->vo_driver.get_capabilities     = aa_get_capabilities;
   this->vo_driver.alloc_frame          = aa_alloc_frame ;
   this->vo_driver.update_frame_format  = aa_update_frame_format;
+  this->vo_driver.display_frame        = aa_display_frame;
   this->vo_driver.overlay_begin        = NULL;
   this->vo_driver.overlay_blend        = NULL;
   this->vo_driver.overlay_end          = NULL;
-  this->vo_driver.display_frame        = aa_display_frame;
   this->vo_driver.get_property         = aa_get_property;
   this->vo_driver.set_property         = aa_set_property;
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
   this->vo_driver.gui_data_exchange    = NULL;
-  this->vo_driver.exit                 = aa_exit;
   this->vo_driver.redraw_needed        = aa_redraw_needed;
+  this->vo_driver.dispose              = aa_dispose;
 
   return &this->vo_driver;
 }    
 
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "AA";
+}
+
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the ascii-art library");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+  aa_class_t   *this = (aa_class_t *) this_gen;
+  free(this);
+}
+static void *init_class (xine_t *xine, void *visual_gen) {
+  /* aa_context    *context = (aa_context*) visual_gen; */
+  aa_class_t    *this;
+  
+  this = (aa_class_t *) malloc(sizeof(aa_class_t));
+  
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+  
+  this->config            = xine->config;
+
+  return this;
+}
+
 static vo_info_t vo_info_aa = {
   6,
-  "xine video output plugin using the ascii-art library",
   XINE_VISUAL_TYPE_AA
 };
 
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_aa.description = _("xine video output plugin using the ascii-art library");
-  return &vo_info_aa;
-}
-
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 9, "aa", XINE_VERSION_CODE, &vo_info_aa, init_video_out_plugin },
+  { PLUGIN_VIDEO_OUT, 10, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
