@@ -14,16 +14,13 @@ typedef struct yuv2rgb_factory_s yuv2rgb_factory_t;
  */
 
 /* internal function use to scale yuv data */
-typedef void (*scale_line_func_t) (uint8_t *source, uint8_t *dest,
-				   int width, int step);
+typedef void (*scale_line_func_t) (uint8_t *source, uint8_t *dest, int width, int step);
 
-typedef void (*yuv2rgb_fun_t) (yuv2rgb_t *this, uint8_t * image, uint8_t * py,
-			       uint8_t * pu, uint8_t * pv) ;
+typedef void (*yuv2rgb_fun_t) (yuv2rgb_t *this, uint8_t * image, uint8_t * py, uint8_t * pu, uint8_t * pv) ;
 
 typedef void (*yuy22rgb_fun_t) (yuv2rgb_t *this, uint8_t * image, uint8_t * p);
 
-typedef uint32_t (*yuv2rgb_single_pixel_fun_t) (yuv2rgb_t *this, uint8_t y,
-						uint8_t u, uint8_t v);
+typedef uint32_t (*yuv2rgb_single_pixel_fun_t) (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v);
 
 
 /*
@@ -133,9 +130,9 @@ struct yuv2rgb_factory_s {
   void    *table_bU[256];
 
   /* preselected functions for mode/swap/hardware */
-  yuv2rgb_fun_t               *yuv2rgb_fun;
-  yuy22rgb_fun_t              *yuy22rgb_fun;
-  yuv2rgb_single_pixel_fun_t  *yuv2rgb_single_pixel_fun;
+  yuv2rgb_fun_t               yuv2rgb_fun;
+  yuy22rgb_fun_t              yuy22rgb_fun;
+  yuv2rgb_single_pixel_fun_t  yuv2rgb_single_pixel_fun;
 
 };
 
