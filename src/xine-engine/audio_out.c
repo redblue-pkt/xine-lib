@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.10 2001/09/02 00:30:22 guenter Exp $
+ * $Id: audio_out.c,v 1.11 2001/09/06 13:33:20 jkeil Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -128,7 +128,7 @@ static int ao_open(ao_instance_t *this,
   int output_sample_rate;
   if ((output_sample_rate=this->driver->open(this->driver,bits,rate,mode)) == 0) {
     printf("audio_out: open failed!\n");
-    return -1;
+    return 0;
   }; 
 
   printf("audio_out: output sample rate %d\n", output_sample_rate);
