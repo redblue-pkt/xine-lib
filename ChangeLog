@@ -3,6 +3,7 @@ xine-lib (0.9.13) unstable; urgency=low
   * improved audio resampling for cards limited to 16 bits, stereo or mono
   * native wmv7 decoder using ffmpeg
   * enable ffmpeg's native msmpeg4 v1/v2 decoder
+  * correct highlight placement for anamorphic and pan&scan menus with DXR3
 
 xine-lib (0.9.12) unstable; urgency=low
 
