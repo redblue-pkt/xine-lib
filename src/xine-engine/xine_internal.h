@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.105 2002/10/18 04:04:10 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.106 2002/10/23 21:52:16 guenter Exp $
  *
  */
 
@@ -223,6 +223,11 @@ void video_decoder_shutdown      (xine_stream_t *stream);
 
 void audio_decoder_init          (xine_stream_t *stream);
 void audio_decoder_shutdown      (xine_stream_t *stream);
+
+/* this will just set stream->stream_info accordingly so frontends
+   can find out wheter audio/video is handled or not */
+void xine_report_codec (xine_stream_t *stream, int codec_type, 
+                        uint32_t fourcc, uint32_t buf_type, int handled) ;
 
 /* demuxer helper functions from demux.c */
 
