@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.43 2003/03/03 18:10:30 jkeil Exp $
+ * $Id: xineutils.h,v 1.44 2003/03/04 08:31:57 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -789,6 +789,9 @@ extern int v_r_table[256];
 extern int v_g_table[256];
 extern int v_b_table[256];
 
+
+/* backtrace printout funtion for use in XINE_ASSERT() macro */
+void xine_print_trace(void);
 
 /**
  * Provide assert like feature with better description of failure 
