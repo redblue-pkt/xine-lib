@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.76 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_http.c,v 1.77 2003/12/04 21:19:03 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -247,16 +247,16 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
 
           /* prepares the event */
           radio = _x_meta_info_get(this->stream, XINE_META_INFO_ALBUM);
-          
           if (radio) {
-            strcpy(data.str, radio); /* WARNING: the data.str is char[256] */
-            strcat(data.str, " - ");
-            data.str_len = strlen(radio) + 3 + strlen(songtitle) + 1;
+            int len = strlen(radio);
+            strncpy(data.str, radio, sizeof(data.str));
+            strncat(data.str, " - ", sizeof(data.str) - len);
+            strncat(data.str, songtitle, sizeof(data.str) - len - 3);
           } else {
-            data.str[0] = 0;
-            data.str_len = strlen(songtitle) + 1;
+            strncpy(data.str, songtitle, sizeof(data.str));
           }  
-          strcat(data.str, songtitle);
+          data.str[sizeof(data.str) - 1] = '\0';
+          data.str_len = strlen(data.str) + 1;
 
           /* sends the event */
           uevent.type = XINE_EVENT_UI_SET_TITLE;
@@ -667,10 +667,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     buflen = strlen(this->buf);
   }
   
-  snprintf (this->buf + buflen, BUFSIZE - buflen,
+  snprintf(this->buf + buflen, BUFSIZE - buflen,
            "User-Agent: xine/%s\015\012", VERSION);
   buflen = strlen(this->buf);
-  strncat (this->buf, "Accept: */*\015\012", BUFSIZE - buflen); /* * */
+  strncat (this->buf, "Accept: */*\015\012", BUFSIZE - buflen);
   buflen = strlen(this->buf);
   strncat (this->buf, "Icy-MetaData: 1\015\012", BUFSIZE - buflen);
   buflen = strlen(this->buf);
