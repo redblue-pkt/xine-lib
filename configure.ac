@@ -979,7 +979,12 @@ AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 dnl ---------------------------------------------
 dnl VCDx
 dnl ---------------------------------------------
-AC_ARG_ENABLE(vcdx,[  --disable-vcdx       Do not compile VCDX plugin. Compile old VCD instead], enable_vcdx=no, enable_vcdx=yes)
+dnl
+dnl AC_ARG_ENABLE(vcdx,[  --disable-vcdx       Do not compile VCDX plugin. Compile old VCD instead], enable_vcdx=no, enable_vcdx=yes)
+dnl
+dnl Force build of both vcd plugins, for now.
+enable_vcdx="yes"
+
 AC_ARG_WITH(external-vcdnav,[  --with-external-vcdnav  Use external libcdio/libvcd libraries [[not recommended]]],
             [external_vcdnav="yes"], [no_vcdnav="yes"; external_vcdnav="no"])
 

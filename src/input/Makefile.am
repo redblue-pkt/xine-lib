@@ -18,10 +18,11 @@ libdir = $(XINE_PLUGINDIR)
 
 if HAVE_CDROM_IOCTLS
 in_dvd = xineplug_inp_dvd.la
-if ENABLE_VCDX
-else
+## build both vcd for now
+##if ENABLE_VCDX
+##else
 in_vcd = xineplug_inp_vcd.la
-endif
+##endif
 #in_cda = xineplug_inp_cda.la
 endif
 
