@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2001/10/26 15:10:54 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.30 2001/10/26 15:49:15 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -39,7 +39,7 @@
 #include "xine-engine/bswap.h"
 #include "monitor.h"
 
-void print_overlay( vo_overlay_t *ovl );
+static void spudec_print_overlay( vo_overlay_t *ovl );
 
 #define LOG_DEBUG 1
 
@@ -165,7 +165,7 @@ typedef struct spudec_decoder_s {
 
 } spudec_decoder_t;
 
-int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
+static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
   int type = buf_type & 0xFFFF0000;
   return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT || type == BUF_SPU_SUBP_CONTROL) ;
 }
@@ -227,7 +227,7 @@ static void spudec_reset (spudec_decoder_t *this) {
 }
 
 
-void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
+static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
@@ -244,7 +244,7 @@ void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
 /* allocate a handle from the object pool
  */
-int32_t spu_get_handle(spudec_decoder_t *this) {
+static int32_t spu_get_handle(spudec_decoder_t *this) {
   int n;
   n=0;
   do {
@@ -257,13 +257,13 @@ int32_t spu_get_handle(spudec_decoder_t *this) {
 
 /* allocate a menu handle from the object pool
  */
-int32_t spu_get_menu_handle(spudec_decoder_t *this) {
+static int32_t spu_get_menu_handle(spudec_decoder_t *this) {
   return 1;  /* This might be dynamic later */
 }
 
 /* free a handle from the object pool
  */
-void spu_free_handle(spudec_decoder_t *this, int32_t handle) {
+static void spu_free_handle(spudec_decoder_t *this, int32_t handle) {
   this->spu_objects[handle].handle = -1;
 }
 
@@ -275,7 +275,7 @@ void spu_free_handle(spudec_decoder_t *this, int32_t handle) {
  * One also has a handle, so one can match show and hide events.
  * FIXME: Implement Event queue locking. A different thread calls spu_get_overlay, which removes events from the queue.
  */
-int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
+static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
   int found;
   uint32_t   last_event,this_event,new_event;
   new_event=0;
@@ -332,8 +332,8 @@ int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
   memcpy(this->spu_events[new_event].event->object.overlay, 
     event->object.overlay, sizeof(vo_overlay_t));
   memset(event->object.overlay,0,sizeof(vo_overlay_t));
-//  print_overlay( event->object.overlay );
-//  print_overlay( this->spu_events[new_event].event->object.overlay );  
+//  spudec_print_overlay( event->object.overlay );
+//  spudec_print_overlay( this->spu_events[new_event].event->object.overlay );  
   pthread_mutex_unlock (&this->spu_events_mutex);
    
   return new_event;
@@ -343,11 +343,11 @@ int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
  * release all handles currently allocated.
  * IMPLEMENT ME.
  */
-void spu_free_all_handles(spudec_decoder_t *this) {
+static void spu_free_all_handles(spudec_decoder_t *this) {
 return;
 }
 
-void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
+static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 //  spu_overlay_event_t   *event;
 //  spu_object_t  *object;
 //  vo_overlay_t  *overlay;
@@ -418,7 +418,7 @@ void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 
 }
 
-void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
+static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t stream_id;
   spu_seq_t       *cur_seq;
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
@@ -490,7 +490,7 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
-void spudec_close (spu_decoder_t *this_gen) {
+static void spudec_close (spu_decoder_t *this_gen) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
   
   this->vo_out->unregister_ovl_src(this->vo_out, &this->ovl_src);
@@ -513,7 +513,7 @@ static void spudec_nextseq(spudec_decoder_t* this) {
   }
 }
 
-void print_overlay( vo_overlay_t *ovl ) {
+static void spudec_print_overlay( vo_overlay_t *ovl ) {
   xprintf (VERBOSE|SPU, "OVERLAY to show\n");
   xprintf (VERBOSE|SPU, "\tx = %d y = %d width = %d height = %d\n",
 	   ovl->x, ovl->y, ovl->width, ovl->height );
@@ -527,7 +527,7 @@ void print_overlay( vo_overlay_t *ovl ) {
 } 
 
 /* FIXME:Some optimization needs to happen here. */
-void spu_process_event( spudec_decoder_t *this, int vpts ) {
+static void spu_process_event( spudec_decoder_t *this, int vpts ) {
   int32_t      handle;
   uint32_t  this_event;
 //  uint32_t     vpts;
@@ -589,6 +589,7 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
     case EVENT_HIDE_MENU:
       xprintf (VERBOSE|SPU, "HIDE MENU NOW\n");
       this->spu_showing[1].handle = -1;
+      /* FIXME: maybe free something here */
       /* spu_free_handle( this, handle ); */
       break;
 
@@ -598,9 +599,9 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
         xprintf (VERBOSE|SPU, "event_overlay\n");
-        print_overlay(event_overlay);
+        spudec_print_overlay(event_overlay);
         xprintf (VERBOSE|SPU, "overlay\n");
-        print_overlay(overlay);
+        spudec_print_overlay(overlay);
 
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         /* If rle is not empty, free it first */
@@ -642,7 +643,14 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         }
         this->spu_showing[1].handle = handle;
         xprintf (VERBOSE|SPU, "overlay after\n");
-        print_overlay(overlay);
+        spudec_print_overlay(overlay);
+        xprintf (VERBOSE|SPU, "FREE1: event_overlay %p\n",
+          this->spu_events[this_event].event->object.overlay = NULL);
+        /* The null test was done at the start of this case statement */
+        free (this->spu_events[this_event].event->object.overlay);
+        this->spu_events[this_event].event->object.overlay = NULL;
+        xprintf (VERBOSE|SPU, "FREE2: event_ovlerlay %p\n",
+          this->spu_events[this_event].event->object.overlay);
       }
       break;
 
@@ -652,9 +660,9 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
         xprintf (VERBOSE|SPU, "event_overlay\n");
-        print_overlay(event_overlay);
+        spudec_print_overlay(event_overlay);
         xprintf (VERBOSE|SPU, "overlay\n");
-        print_overlay(overlay);
+        spudec_print_overlay(overlay);
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         overlay->clip_top = event_overlay->clip_top;
         overlay->clip_bottom = event_overlay->clip_bottom;
@@ -683,7 +691,14 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
         }
         this->spu_showing[1].handle = handle;
         xprintf (VERBOSE|SPU, "overlay after\n");
-        print_overlay(overlay);
+        spudec_print_overlay(overlay);
+        xprintf (VERBOSE|SPU, "FREE1: event_overlay %p\n",
+          this->spu_events[this_event].event->object.overlay = NULL);
+        /* The null test was done at the start of this case statement */
+        free (this->spu_events[this_event].event->object.overlay);
+        this->spu_events[this_event].event->object.overlay = NULL;
+        xprintf (VERBOSE|SPU, "FREE2: event_ovlerlay %p\n",
+          this->spu_events[this_event].event->object.overlay);
       }
       break;
 
