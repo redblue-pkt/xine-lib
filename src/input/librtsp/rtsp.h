@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.h,v 1.3 2003/04/13 19:02:07 miguelfreitas Exp $
+ * $Id: rtsp.h,v 1.4 2003/12/09 00:02:31 f1rmb Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.

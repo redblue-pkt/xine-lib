@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.h,v 1.4 2003/04/13 18:49:13 miguelfreitas Exp $
+ * $Id: pnm.h,v 1.5 2003/12/09 00:02:30 f1rmb Exp $
  *
  * pnm util functions header by joschka
  */

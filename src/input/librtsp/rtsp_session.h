@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.h,v 1.5 2003/04/13 19:02:08 miguelfreitas Exp $
+ * $Id: rtsp_session.h,v 1.6 2003/12/09 00:02:31 f1rmb Exp $
  *
  * high level interface to rtsp servers.
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.23 2003/09/16 02:03:16 storri Exp $
+ * $Id: color.c,v 1.24 2003/12/09 00:02:38 f1rmb Exp $
  */
 
 #include "xine_internal.h"

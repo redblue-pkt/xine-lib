@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.18 2003/12/05 15:55:01 f1rmb Exp $
+ * $Id: roqaudio.c,v 1.19 2003/12/09 00:02:34 f1rmb Exp $
  *
  */
 

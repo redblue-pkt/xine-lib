@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.6 2003/12/08 11:49:16 mroi Exp $
+ * $Id: list.c,v 1.7 2003/12/09 00:02:38 f1rmb Exp $
  *
  */
 #ifdef HAVE_CONFIG_H

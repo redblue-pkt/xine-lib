@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * Copyright (C) Christian Vogler 
  *               cvogler@gradient.cis.upenn.edu - December 2001
@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.h,v 1.5 2002/03/31 23:14:48 cvogler Exp $
+ * $Id: cc_decoder.h,v 1.6 2003/12/09 00:02:33 f1rmb Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.15 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: logpcm.c,v 1.16 2003/12/09 00:02:34 f1rmb Exp $
  *
  */
 

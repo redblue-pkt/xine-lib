@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.c,v 1.7 2003/12/07 15:34:31 f1rmb Exp $
+ * $Id: lrb.c,v 1.8 2003/12/09 00:02:36 f1rmb Exp $
  *
  */
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  *
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.5 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: asmrp.c,v 1.6 2003/12/09 00:02:30 f1rmb Exp $
  *
  * a parser for real's asm rules
  *

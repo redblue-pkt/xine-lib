@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.22 2003/11/26 13:33:55 miguelfreitas Exp $
+ * $Id: osd.h,v 1.23 2003/12/09 00:02:36 f1rmb Exp $
  */
 
 #ifndef HAVE_OSD_H
