@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.93 2003/05/04 17:29:36 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.94 2003/05/04 18:01:22 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -479,14 +479,14 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
     } else {
       subtitle = (char *)&op->packet[hdrlen + 1];
-#ifdef LOG
-      printf ("demux_ogg: subtitle %d -> %d :%s\n",start,end,subtitle);
-#endif
+
       if ((strlen(subtitle) > 1) || (*subtitle != ' ')) {
 
 	start = op->granulepos;
 	end = start+lenbytes;
-
+#ifdef LOG
+	printf ("demux_ogg: subtitlestream %d: %d -> %d :%s\n",stream_num,start,end,subtitle);
+#endif
 	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
 	buf->type = this->buf_types[stream_num];
@@ -1098,7 +1098,10 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 
     /*discard granulepos-less packets and to early audiopackets*/
     if (this->resync[stream_num]) {
-      if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) {
+      if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
+	/*never drop subtitles*/
+	this->resync[stream_num]=0;
+      } else if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) {
 	continue;
       } else {
 
