@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.131 2003/01/11 19:06:52 guenter Exp $
+ * $Id: load_plugins.c,v 1.132 2003/01/11 21:22:20 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -473,7 +473,7 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
     
     if( load && !node->plugin_class ) {
 #ifdef LOG
-      printf("load_plugins: load input plugin %s from %s\n",
+      printf("load_plugins: preload plugin %s from %s\n",
 	     node->info->id, node->filename);
 #endif
 
