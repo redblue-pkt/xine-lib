@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.10 2002/12/29 14:04:43 mroi Exp $
+ * $Id: plugin_catalog.h,v 1.11 2003/01/03 22:38:29 miguelfreitas Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -35,7 +35,7 @@
 /* the engine takes this many plugins for one stream type */
 #define PLUGINS_PER_TYPE 10
 
-#define CACHE_CATALOG_VERSION 1
+#define CACHE_CATALOG_VERSION 2
 #define CACHE_CATALOG_FILE    ".xine/catalog.cache"
 #define CACHE_CATALOG_DIR     ".xine"
 

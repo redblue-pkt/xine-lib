@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.15 2003/01/03 21:29:20 tmattern Exp $
+ * $Id: xine_goom.c,v 1.16 2003/01/03 22:38:25 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -93,11 +93,13 @@ static void *goom_init_plugin(xine_t *xine, void *);
 
 
 /* plugin catalog information */
-post_info_t goom_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
+post_info_t goom_special_info = { 
+  XINE_POST_TYPE_AUDIO_VISUALIZATION
+};
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 2, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 2, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -345,7 +347,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->samples_per_frame = rate / this->class->fps;
   this->sample_rate = rate; 
   this->stream = stream;
-  init_yuv_planes(&this->yuv, GOOM_WIDTH, GOOM_HEIGHT);
+  init_yuv_planes(&this->yuv, this->class->width, this->class->height);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }

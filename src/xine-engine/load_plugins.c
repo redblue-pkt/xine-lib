@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.128 2003/01/01 20:39:21 guenter Exp $
+ * $Id: load_plugins.c,v 1.129 2003/01/03 22:38:27 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -177,7 +177,7 @@ static void _insert_plugin (xine_t *this,
   entry->plugin_class = NULL;
   entry->ref          = 0;
 
-  switch (info->type){
+  switch (info->type & PLUGIN_TYPE_MASK){
 
   case PLUGIN_VIDEO_OUT:
     vo_old = info->special_info;
@@ -326,7 +326,7 @@ static void collect_plugins(xine_t *this, char *path){
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("load_plugins: plugin %s found\n"), str);
 
-		switch (info->type){
+		switch (info->type & PLUGIN_TYPE_MASK){
 		case PLUGIN_INPUT:
 		  _insert_plugin (this, this->plugin_catalog->input, str,
 				  &statbuffer, info,
@@ -454,45 +454,48 @@ static void *_load_plugin_class(xine_t *this,
 
 /*
  *  load input+demuxer plugins
+ *  load plugins that asked to be initialized
  */
-static void load_plugins(xine_t *this) {
+static void _load_required_plugins(xine_t *this, xine_list_t *list) {
 
   plugin_node_t *node;
+  int load;
 
-  /*
-   * input plugins
-   */
-
-  node = xine_list_first_content (this->plugin_catalog->input);
+  node = xine_list_first_content (list);
   while (node) {
-
+    
+    if( (node->info->type & PLUGIN_TYPE_MASK) == PLUGIN_INPUT ||
+        (node->info->type & PLUGIN_TYPE_MASK) == PLUGIN_DEMUX ||
+        (node->info->type & PLUGIN_MUST_PRELOAD) )
+      load = 1;
+    else
+      load = 0;
+    
+    if( load && !node->plugin_class ) {
 #ifdef LOG
-    printf("load_plugins: load input plugin %s from %s\n",
-	   node->info->id, node->filename);
+      printf("load_plugins: load input plugin %s from %s\n",
+	     node->info->id, node->filename);
 #endif
 
-    node->plugin_class = _load_plugin_class (this, node->filename, node->info, NULL);
-
-    node = xine_list_next_content (this->plugin_catalog->input);
-  }
-
-  /*
-   * demux plugins
-   */
-
-  node = xine_list_first_content (this->plugin_catalog->demux);
-  while (node) {
-
-#ifdef LOG
-    printf("load_plugins: load demux plugin %s from %s\n",
-	   node->info->id, node->filename);
-#endif
-
-    node->plugin_class = _load_plugin_class (this, node->filename, node->info, NULL);
-
-    node = xine_list_next_content (this->plugin_catalog->demux);
+      node->plugin_class = _load_plugin_class (this, node->filename, node->info, NULL);
+    }
+    
+    node = xine_list_next_content (list);
   }
 }
+
+static void load_required_plugins(xine_t *this) {
+
+  _load_required_plugins (this, this->plugin_catalog->input);
+  _load_required_plugins (this, this->plugin_catalog->demux);
+  _load_required_plugins (this, this->plugin_catalog->spu);
+  _load_required_plugins (this, this->plugin_catalog->audio);
+  _load_required_plugins (this, this->plugin_catalog->video);
+  _load_required_plugins (this, this->plugin_catalog->aout);
+  _load_required_plugins (this, this->plugin_catalog->vout);
+  _load_required_plugins (this, this->plugin_catalog->post);
+}
+
 
 #ifdef USE_CACHED_CATALOG  
 /*
@@ -520,7 +523,7 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
     fprintf(fp, "id=%s\n", node->info->id );
     fprintf(fp, "version=%lu\n", (unsigned long) node->info->version );
   
-    switch (node->info->type){
+    switch (node->info->type & PLUGIN_TYPE_MASK){
     
       case PLUGIN_VIDEO_OUT:
         vo_info = node->info->special_info;
@@ -547,7 +550,7 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
       
       case PLUGIN_POST:
         post_info = node->info->special_info;
-	fprintf(fp, "post_type=%d\n", post_info->type);
+	fprintf(fp, "post_type=%lu\n", (unsigned long)post_info->type);
 	break;
     }        
     
@@ -621,7 +624,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
           sscanf(value," %d",&i);
           node->info->type = i;
           
-          switch (node->info->type){
+          switch (node->info->type & PLUGIN_TYPE_MASK){
           
             case PLUGIN_VIDEO_OUT:
               vo_info = node->info->special_info =
@@ -678,9 +681,9 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
           sscanf(value," %d",&i);
           decoder_info->priority = i;
         } else if( !strcmp("post_type",line) && post_info ) {
-	  sscanf(value," %d",&i);
-	  post_info->type = i;
-	}
+	  sscanf(value," %lu",&lu);
+	  post_info->type = lu;
+        }
       }
     }
   }
@@ -941,7 +944,7 @@ void scan_plugins (xine_t *this) {
   save_catalog (this);
 #endif
     
-  load_plugins (this);
+  load_required_plugins (this);
 
   map_decoders (this);
 }
@@ -1732,6 +1735,9 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
   plugin_catalog_t *catalog = xine->plugin_catalog;
   plugin_node_t    *node;
   
+  if( !name )
+    return NULL;
+  
   pthread_mutex_lock(&catalog->lock);
   
   node = xine_list_first_content(catalog->post);
@@ -1951,7 +1957,7 @@ static void dispose_plugin_list (xine_list_t *list) {
       void *cls = node->plugin_class;
 
       /* dispose of plugin class */
-      switch (node->info->type) {
+      switch (node->info->type & PLUGIN_TYPE_MASK) {
       case PLUGIN_INPUT:
         ((input_class_t *)cls)->dispose ((input_class_t *)cls);
         break;
@@ -1980,7 +1986,7 @@ static void dispose_plugin_list (xine_list_t *list) {
     }
 
     /* free special info */
-    switch (node->info->type) {
+    switch (node->info->type & PLUGIN_TYPE_MASK) {
     case PLUGIN_SPU_DECODER:
     case PLUGIN_AUDIO_DECODER:
     case PLUGIN_VIDEO_DECODER:

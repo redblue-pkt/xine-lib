@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.46 2003/01/03 22:38:30 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -54,6 +54,11 @@ int a52file;
 typedef struct {
   audio_decoder_class_t   decoder_class;
   config_values_t *config;
+  
+  float            a52_level;
+  int              disable_dynrng;
+  int              enable_surround_downmix;
+  
 } a52dec_class_t;
 
 typedef struct a52dec_decoder_s {
@@ -73,7 +78,6 @@ typedef struct a52dec_decoder_s {
   int              a52_flags;
   int              a52_bit_rate;
   int              a52_sample_rate;
-  float            a52_level;
   int              have_lfe;
 
   int              a52_flags_map[11];
@@ -85,8 +89,6 @@ typedef struct a52dec_decoder_s {
   int              output_open;
   int              output_mode;
 
-  int              disable_dynrng;
-  int              enable_surround_downmix;
 } a52dec_decoder_t;
 
 struct frmsize_s
@@ -183,7 +185,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
   if (!this->bypass_mode) {
 
     int              a52_output_flags, i;
-    sample_t         level = this->a52_level;
+    sample_t         level = this->class->a52_level;
     audio_buffer_t  *buf;
     int16_t         *int_samples;
     sample_t        *samples = a52_samples(this->a52_state);
@@ -204,7 +206,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       return;
     }
 
-    if (this->disable_dynrng)
+    if (this->class->disable_dynrng)
       a52_dynrng (this->a52_state, NULL, NULL);
 
     this->have_lfe = a52_output_flags & A52_LFE;
@@ -521,7 +523,6 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   a52dec_decoder_t *this ;
-  config_values_t *cfg;
 #ifdef LOG
   printf ("liba52:open_plugin called\n");
 #endif
@@ -535,18 +536,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.dispose             = a52dec_dispose;
   this->stream                            = stream;
   this->class                             = (a52dec_class_t *) class_gen;
-  cfg = this->class->config;
-
-  this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
-						 0, 200,
-						 _("a/52 volume control"),
-						 NULL, 0, NULL, NULL) / 100.0;
-  this->disable_dynrng = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
-					      _("enable a/52 dynamic range compensation"),
-					      NULL, 0, NULL, NULL);
-  this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
-						      _("enable audio downmixing to 2.0 surround stereo"),
-						      NULL, 0, NULL, NULL);
 
   /* int i; */
 
@@ -570,13 +559,13 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     this->bypass_mode = 0;
 
     this->a52_flags_map[A52_MONO]   = A52_MONO;
-    this->a52_flags_map[A52_STEREO] = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_3F]     = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_2F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_3F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_DOLBY]  = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_STEREO] = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F]     = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_2F1R]   = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F1R]   = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_2F2R]   = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F2R]   = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_DOLBY]  = ((this->class->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
 
     this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
     this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_STEREO;
@@ -669,6 +658,7 @@ static void dispose_class (audio_decoder_class_t *this) {
 static void *init_plugin (xine_t *xine, void *data) {
 
   a52dec_class_t *this;
+  config_values_t *cfg;
 
   this = (a52dec_class_t *) malloc (sizeof (a52dec_class_t));
 
@@ -677,8 +667,20 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  this->config = xine->config;
+  cfg = this->config = xine->config;
 
+  this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
+						 0, 200,
+						 _("a/52 volume control"),
+						 NULL, 0, NULL, NULL) / 100.0;
+  this->disable_dynrng = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
+					      _("enable a/52 dynamic range compensation"),
+					      NULL, 0, NULL, NULL);
+  this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
+						      _("enable audio downmixing to 2.0 surround stereo"),
+						      NULL, 0, NULL, NULL);
+  
+  
 #ifdef LOG
   printf ("liba52:init_plugin called\n");
 #endif
@@ -699,6 +701,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_AUDIO_DECODER, 13, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 13, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

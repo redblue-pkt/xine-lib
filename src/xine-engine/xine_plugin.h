@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.8 2002/12/29 14:04:43 mroi Exp $
+ * $Id: xine_plugin.h,v 1.9 2003/01/03 22:38:29 miguelfreitas Exp $
  *
  * generic plugin definitions
  *
@@ -34,8 +34,14 @@
 #define PLUGIN_SPU_DECODER    5
 #define PLUGIN_AUDIO_OUT      6
 #define PLUGIN_VIDEO_OUT      7
-#define PLUGIN_POST           8
+#define PLUGIN_POST           8   
 
+/* this flag may be or'ed with type in order to force preloading the plugin.
+ * very useful to register config items on xine initialization.
+ */
+#define PLUGIN_MUST_PRELOAD   128 
+
+#define PLUGIN_TYPE_MASK      127
 
 typedef struct {
   uint8_t     type;               /* one of the PLUGIN_* constants above     */
