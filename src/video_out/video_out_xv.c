@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.165 2003/04/30 22:14:59 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.166 2003/05/04 10:09:34 esnel Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -794,12 +794,16 @@ static int xv_set_property (vo_driver_t *this_gen,
     /* value is out of bound */
     if((value < this->props[property].min) || (value > this->props[property].max))
       value = (this->props[property].min + this->props[property].max) >> 1;
-    
+
+    XLockDisplay (this->display);
+
     XvSetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom, value);
     XvGetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom,
 			&this->props[property].value);
+
+    XUnlockDisplay (this->display);
 
     if (this->props[property].entry)
       this->props[property].entry->num_value = this->props[property].value;
