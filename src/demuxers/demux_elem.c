@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.53 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_elem.c,v 1.54 2002/10/26 22:00:51 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -166,7 +166,7 @@ static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
 static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 

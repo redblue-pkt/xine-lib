@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.127 2002/10/23 20:26:32 guenter Exp $
+ * $Id: demux_avi.c,v 1.128 2002/10/26 22:00:50 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1236,7 +1236,7 @@ static void demux_avi_dispose (demux_plugin_t *this_gen) {
 static int demux_avi_get_status (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static void demux_avi_send_headers (demux_plugin_t *this_gen) {

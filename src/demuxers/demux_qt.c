@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.102 2002/10/26 02:32:52 guenter Exp $
+ * $Id: demux_qt.c,v 1.103 2002/10/26 22:00:53 guenter Exp $
  *
  */
 
@@ -1890,7 +1890,7 @@ static void demux_qt_dispose (demux_plugin_t *this_gen) {
 static int demux_qt_get_status (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.37 2002/10/24 22:48:25 guenter Exp $
+ * $Id: demux_film.c,v 1.38 2002/10/26 22:00:51 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -723,7 +723,7 @@ static void demux_film_dispose (demux_plugin_t *this_gen) {
 static int demux_film_get_status (demux_plugin_t *this_gen) {
   demux_film_t *this = (demux_film_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_film_get_stream_length (demux_plugin_t *this_gen) {

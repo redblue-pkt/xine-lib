@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.26 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_cda.c,v 1.27 2002/10/26 22:00:50 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -166,7 +166,7 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
 static int demux_cda_get_status (demux_plugin_t *this_gen) {
   demux_cda_t *this = (demux_cda_t *) this_gen;
   
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 /*

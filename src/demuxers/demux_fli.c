@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.19 2002/10/24 22:48:25 guenter Exp $
+ * $Id: demux_fli.c,v 1.20 2002/10/26 22:00:51 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -351,7 +351,7 @@ static void demux_fli_dispose (demux_plugin_t *this) {
 static int demux_fli_get_status (demux_plugin_t *this_gen) {
   demux_fli_t *this = (demux_fli_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_fli_get_stream_length (demux_plugin_t *this_gen) {

@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.19 2002/10/23 02:29:02 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.20 2002/10/26 22:00:51 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -500,7 +500,7 @@ static void demux_idcin_dispose (demux_plugin_t *this) {
 static int demux_idcin_get_status (demux_plugin_t *this_gen) {
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_idcin_get_stream_length (demux_plugin_t *this_gen) {

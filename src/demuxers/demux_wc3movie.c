@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.18 2002/10/23 01:32:27 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.19 2002/10/26 22:00:55 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -734,7 +734,7 @@ static void demux_mve_dispose (demux_plugin_t *this_gen) {
 static int demux_mve_get_status (demux_plugin_t *this_gen) {
   demux_mve_t *this = (demux_mve_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_mve_get_stream_length (demux_plugin_t *this_gen) {

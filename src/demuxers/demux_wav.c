@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.20 2002/10/23 04:58:16 tmmm Exp $
+ * $Id: demux_wav.c,v 1.21 2002/10/26 22:00:55 guenter Exp $
  *
  */
 
@@ -395,7 +395,7 @@ static void demux_wav_dispose (demux_plugin_t *this_gen) {
 static int demux_wav_get_status (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 /* return the approximate length in seconds */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.57 2002/10/12 17:11:59 jkeil Exp $
+ * $Id: demux_ts.c,v 1.58 2002/10/26 22:00:54 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1408,7 +1408,7 @@ static int demux_ts_get_status(demux_plugin_t *this_gen) {
 
   demux_ts *this = (demux_ts *)this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,

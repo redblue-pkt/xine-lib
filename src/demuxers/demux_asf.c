@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.70 2002/10/23 20:26:32 guenter Exp $
+ * $Id: demux_asf.c,v 1.71 2002/10/26 22:00:49 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -239,9 +239,7 @@ static uint8_t get_byte (demux_asf_t *this) {
   /* printf ("%02x ", buf); */
 
   if (i != 1) {
-#ifdef LOG
     printf ("demux_asf: end of data\n");
-#endif
     this->status = DEMUX_FINISHED;
   }
 
@@ -1215,7 +1213,7 @@ static void demux_asf_dispose (demux_plugin_t *this_gen) {
 static int demux_asf_get_status (demux_plugin_t *this_gen) {
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
-  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
+  return this->status;
 }
 
 static void demux_asf_send_headers (demux_plugin_t *this_gen) {
@@ -1233,11 +1231,6 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  /*
-   * send start buffer
-   */
-  xine_demux_control_start(this->stream);
-  
   /* will get overridden later */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
@@ -1264,9 +1257,17 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 
     printf ("demux_asf: asf_read_header failed.\n");
 
-    this->status = DEMUX_FINISHED;
+    this->status = DEMUX_FINISHED; 
+    pthread_mutex_unlock (&this->mutex);
     return;
   } else {
+
+    /*
+     * send start buffer
+     */
+    xine_demux_control_start(this->stream);
+  
+
     this->header_size = this->input->get_current_pos (this->input);
 
     this->stream->meta_info[XINE_META_INFO_TITLE] =
@@ -1290,7 +1291,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
       
       sum_rate += bitrate;
 
-      printf("demux_asf: stream: %d, bitrate %d bps, ", stream_id, bitrate);
+      printf("demux_asf: stream: %d, bitrate %d bps\n", stream_id, bitrate);
       if ((buf_type == BUF_VIDEO_BASE) &&
 	  (bitrate > max_vrate || this->video_stream_id == 0)) {
 
