@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.45 2001/10/20 02:01:51 guenter Exp $
+ * $Id: load_plugins.c,v 1.46 2001/10/22 17:10:20 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -362,31 +362,33 @@ void load_decoder_plugins (xine_t *this,
 		  str, dlerror());
 
 	} else {
-	  void *(*initplug) (int, config_values_t *);
 	  int plugin_prio;
 
 	  /*
 	   * does this plugin provide an spu decoder plugin?
 	   */
-
-	  if((initplug = dlsym(plugin, "init_spu_decoder_plugin")) != NULL) {
-
-            spu_decoder_t *sdp;
-            int            streamtype;
-
-            sdp = (spu_decoder_t *) initplug(4, this);
-	    if (sdp) {
-	      sdp->metronom = this->metronom;
-
-	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-		if ((plugin_prio =
-		     decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
-		  this->spu_decoder_plugins[streamtype] = sdp;
-		  spu_prio[streamtype] = plugin_prio;
-		}
+	  {
+	    void *(*initplug) (int, xine_t *);
+	    
+	    if((initplug = dlsym(plugin, "init_spu_decoder_plugin")) != NULL) {
 	      
-	      printf("spu decoder plugin found : %s\n",
-		     sdp->get_identifier());
+	      spu_decoder_t *sdp;
+	      int            streamtype;
+	      
+	      sdp = (spu_decoder_t *) initplug(4, this);
+	      if (sdp) {
+		sdp->metronom = this->metronom;
+		
+		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		  if ((plugin_prio =
+		       decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
+		    this->spu_decoder_plugins[streamtype] = sdp;
+		    spu_prio[streamtype] = plugin_prio;
+		  }
+		
+		printf("spu decoder plugin found : %s\n",
+		       sdp->get_identifier());
+	      }
 	    }
 	  }
 
@@ -394,51 +396,54 @@ void load_decoder_plugins (xine_t *this,
 	   * does this plugin provide an video decoder plugin?
 	   */
 
-	  if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
-
-	    video_decoder_t *vdp;
-	    int              streamtype;
+	  {
+	    void *(*initplug) (int, config_values_t *);
+	    if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
 	      
-	    vdp = (video_decoder_t *) initplug(iface_version, config);
-	    if (vdp) {
-	      vdp->metronom = this->metronom;
-
-	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-		if ((plugin_prio =
-		     decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
-		  this->video_decoder_plugins[streamtype] = vdp;
-		  video_prio[streamtype] = plugin_prio;
-		}
-	    
-	      printf("video decoder plugin found : %s\n", 
-		     vdp->get_identifier());
+	      video_decoder_t *vdp;
+	      int              streamtype;
+	      
+	      vdp = (video_decoder_t *) initplug(iface_version, config);
+	      if (vdp) {
+		vdp->metronom = this->metronom;
+		
+		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		  if ((plugin_prio =
+		       decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
+		    this->video_decoder_plugins[streamtype] = vdp;
+		    video_prio[streamtype] = plugin_prio;
+		  }
+		
+		printf("video decoder plugin found : %s\n", 
+		       vdp->get_identifier());
+	      }
 	    }
-	  }
-	  
-	  /*
-	   * does this plugin provide an audio decoder plugin?
-	   */
-
-	  if((initplug = dlsym(plugin, "init_audio_decoder_plugin")) != NULL) {
-
-	    audio_decoder_t *adp;
-	    int              streamtype;
-	      
-	    adp = (audio_decoder_t *) initplug(iface_version, config);
-	    if (adp) {
 	    
-	      for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-		if ((plugin_prio =
-		     decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
-		  this->audio_decoder_plugins[streamtype] = adp; 
-		  audio_prio[streamtype] = plugin_prio;
-		}
+	    /*
+	     * does this plugin provide an audio decoder plugin?
+	     */
+	    
+	    if((initplug = dlsym(plugin, "init_audio_decoder_plugin")) != NULL) {
 	      
-	      printf("audio decoder plugin found : %s\n", 
-		     adp->get_identifier());
+	      audio_decoder_t *adp;
+	      int              streamtype;
+	      
+	      adp = (audio_decoder_t *) initplug(iface_version, config);
+	      if (adp) {
+		
+		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
+		  if ((plugin_prio =
+		       decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
+		    this->audio_decoder_plugins[streamtype] = adp; 
+		    audio_prio[streamtype] = plugin_prio;
+		  }
+		
+		printf("audio decoder plugin found : %s\n", 
+		       adp->get_identifier());
+	      }
 	    }
+	    
 	  }
-	  
 	}
       }
     }

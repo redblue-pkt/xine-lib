@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.49 2001/10/20 18:06:35 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.50 2001/10/22 17:10:20 guenter Exp $
  *
  */
 
@@ -785,6 +785,15 @@ int xine_get_spu_channel (xine_t *self);
  */
 void xine_get_spu_lang (xine_t *self, char *str);
 
+/**
+ * \fn int xine_is_stream_seekable (xine_t *self)
+ * \brief check if the stream is seekable (at the moment) 
+ * \param self current xine engine configuration ( #see xine_init() )
+ *
+ * check if the stream is seekable (at the moment).
+ * this state may change during playback
+ */
+int xine_is_stream_seekable (xine_t *self);
 
 /**
  * \fn void xine_select_spu_channel (xine_t *self, int channel)

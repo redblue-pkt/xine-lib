@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.51 2001/10/20 02:01:51 guenter Exp $
+ * $Id: xine_internal.h,v 1.52 2001/10/22 17:10:21 guenter Exp $
  *
  */
 
@@ -316,6 +316,12 @@ void xine_select_spu_channel (xine_t *this, int channel);
  * try to find out current spu language
  */
 void xine_get_spu_lang (xine_t *this, char *str);
+
+/*
+ * check if the stream is seekable (at the moment)
+ */
+
+int xine_is_stream_seekable (xine_t *this);
 
 /*
  * exit xine
