@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.165 2003/06/02 06:36:32 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.166 2003/06/29 10:57:08 mroi Exp $
  *
  */
 
@@ -866,8 +866,22 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
   int32_t button;
   int32_t show;
 
-  if (!this || !(this->stream) || !(this->stream->spu_decoder_plugin) ) {
+  if (!this || !this->stream || this->stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
     return;
+  
+  if (!this->stream->spu_decoder_plugin ||
+      this->stream->spu_decoder_streamtype != ((BUF_SPU_DVD >> 16) & 0xFF)) {
+    /* the proper SPU decoder has not been initialized yet,
+     * so we send a dummy buffer to trigger this */
+    buf_element_t *buf = this->stream->video_fifo->buffer_pool_alloc(this->stream->video_fifo);
+    
+    buf->size = 0;
+    buf->type = BUF_SPU_DVD;
+    this->stream->video_fifo->insert(this->stream->video_fifo, buf);
+    
+    while (!this->stream->spu_decoder_plugin ||
+	this->stream->spu_decoder_streamtype != ((BUF_SPU_DVD >> 16) & 0xFF))
+      xine_usec_sleep(50000);
   }
 
   dvdnav_get_current_highlight(this->dvdnav, &button);
@@ -1718,6 +1732,14 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.166  2003/06/29 10:57:08  mroi
+ * on some DVDs, the first highlight information (which button to highlight) will
+ * arrive before the first SPU packet, therefore the SPU decoder has not yet been
+ * initialized;
+ * we cannot just drop the highlight information when this happens, but we should
+ * trigger decoder initialization by sending a dummy SPU packet
+ * (this fixes wrong initial button highlight on "Star Trek DS9 Season 1")
+ *
  * Revision 1.165  2003/06/02 06:36:32  f1rmb
  * new event which inform UI when the mouse pointer enter and leave a spu button (DVD navigation)
  *
