@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.74 2002/05/06 00:48:09 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.75 2002/05/18 12:36:45 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1094,8 +1094,9 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   case GUI_DATA_EX_EXPOSE_EVENT:
     
   /* FIXME : take care of completion events */
-
+#ifdef LOG
     printf ("video_out_xshm: expose event\n");
+#endif
 
     if (this->cur_frame) {
       
