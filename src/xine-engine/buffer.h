@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.128 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.129 2004/01/10 01:34:50 tmattern Exp $
  *
  *
  * contents:
@@ -420,23 +420,36 @@ struct buf_element_s {
  * This buffer is pass SPU subtypes from DVDs
  */
 #define BUF_SPECIAL_SPU_DVD_SUBTYPE 8
+
+
 #define SPU_DVD_SUBTYPE_CLUT		1
 #define SPU_DVD_SUBTYPE_PACKAGE		2
 #define SPU_DVD_SUBTYPE_SUBP_CONTROL	3
 #define SPU_DVD_SUBTYPE_NAV		4
 
-
 /* In a BUF_SPECIAL_SPU_DVB_DESCRIPTOR
  * decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR
  * decoder_info[2] = size of spu_dvb_descriptor_t
  * decoder_info_ptr[2] = pointer to spu_dvb_descriptor_t, or NULL
- * decoder_info[3] = 
+ * decoder_info[3] =
  *
  * This buffer is used to tell a DVBSUB decoder when the stream
  * changes.  For more information on how to write a DVBSUB decoder,
  * see the comment at the top of src/demuxers/demux_ts.c
  **/
 #define BUF_SPECIAL_SPU_DVB_DESCRIPTOR 9
+
+/*
+ * In a BUF_SPECIAL_RV_CHUNK_TABLE:
+ * decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE
+ * decoder_info[2] = number of entries in chunk table
+ * decoder_info_ptr[2] = pointer to the chunk table
+ * decoder_info[3] = frame duration
+ *
+ * This buffer transports the chunk table associated to each RealVideo frame.
+ */
+#define BUF_SPECIAL_RV_CHUNK_TABLE 10
+
 typedef struct spu_dvb_descriptor_s spu_dvb_descriptor_t;
 struct spu_dvb_descriptor_s
 {
