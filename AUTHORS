@@ -251,4 +251,7 @@ Contributions
   Dennis Bjorklund <db@zigo.dhs.org>
     configurable size of avi subtitles
       
+  Claire Griffin <claire@comedia.com>
+    demux_ts fixes for ATSC streams
+    
     (let us know if we've forgotten anyone)

@@ -1,5 +1,6 @@
 xine-lib (0.9.12) unstable; urgency=low
 
+  * demux_ts fixes for ATSC streams
   * configurable size of avi subtitles
   * update win32 codec loading code
   * use directshow filter to decode msmpeg4 v1/v2
