@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.33 2001/11/07 10:37:12 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.34 2001/11/07 17:08:17 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -33,6 +33,7 @@
 #include "wine/avifmt.h"
 #include "wine/vfw.h"
 #include "wine/mmreg.h"
+#include "wine/ldt_keeper.h"
 
 #include "video_out.h"
 #include "audio_out.h"
@@ -785,6 +786,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this->prof_rgb2yuv = profiler_allocate_slot ("w32codec rgb2yuv convert");
 
+  /* FIXME: we need a kind of destructor to call Restore_LDT_Keeper() */
+  Setup_LDT_Keeper();
+  
   return (video_decoder_t *) this;
 }
 
