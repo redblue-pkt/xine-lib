@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.1 2003/01/22 01:30:07 tmmm Exp $
+ * $Id: demux_ac3.c,v 1.2 2003/01/23 15:10:55 tmmm Exp $
  *
  */
 
@@ -208,6 +208,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ac3_t   *this;
 
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_ac3.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
+
   this         = xine_xmalloc (sizeof (demux_ac3_t));
   this->stream = stream;
   this->input  = input;
@@ -231,7 +236,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
-printf ("  **** by content...\n");
     if (!open_ac3_file(this)) {
       free (this);
       return NULL;
@@ -242,7 +246,6 @@ printf ("  **** by content...\n");
   case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
 
-printf ("  **** by extension...\n");
     mrl = input->get_mrl (input);
 
     ending = strrchr(mrl, '.');
