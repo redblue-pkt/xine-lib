@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.166 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.167 2003/11/27 13:20:22 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -2003,7 +2003,7 @@ char *xine_get_file_extensions (xine_t *self) {
     demux_class_t *cls = (demux_class_t *)node->plugin_class;
     char          *exts;
 
-    if((exts = cls->get_extensions(cls)) != NULL)
+    if((exts = cls->get_extensions(cls)) && strlen(exts))
       len += strlen(exts) + 1;
 
     node = xine_list_next_content (catalog->demux);
@@ -2018,8 +2018,8 @@ char *xine_get_file_extensions (xine_t *self) {
     demux_class_t *cls = (demux_class_t *)node->plugin_class;
     char          *e;
     int            l;
-
-    if((e = cls->get_extensions (cls)) != NULL) {
+    
+    if((e = cls->get_extensions (cls)) && strlen(e)) {
       l = strlen(e);
       memcpy (&str[pos], e, l);
       
