@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.120 2002/12/27 22:49:38 esnel Exp $
+ * $Id: xine_internal.h,v 1.121 2003/01/08 01:02:33 miguelfreitas Exp $
  *
  */
 
@@ -76,9 +76,6 @@ typedef struct extra_info_s extra_info_t;
 
 #define XINE_MAX_EVENT_LISTENERS         50
 #define XINE_MAX_EVENT_TYPES             100
-
-#define XINE_CODEC_AUDIO   0
-#define XINE_CODEC_VIDEO   1
 
 /* used by plugin loader */
 #define XINE_VERSION_CODE                XINE_MAJOR_VERSION*10000+XINE_MINOR_VERSION*100+XINE_SUB_VERSION
@@ -264,11 +261,6 @@ void video_decoder_shutdown      (xine_stream_t *stream);
 
 void audio_decoder_init          (xine_stream_t *stream);
 void audio_decoder_shutdown      (xine_stream_t *stream);
-
-/* this will just set stream->stream_info accordingly so frontends
-   can find out wheter audio/video is handled or not */
-void xine_report_codec (xine_stream_t *stream, int codec_type, 
-                        uint32_t fourcc, uint32_t buf_type, int handled) ;
 
 /* extra_info operations */
 void extra_info_reset( extra_info_t *extra_info );

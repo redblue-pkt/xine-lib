@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.97 2002/12/27 22:49:38 esnel Exp $
+ * $Id: audio_decoder.c,v 1.98 2003/01/08 01:02:32 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -45,8 +45,8 @@ void *audio_decoder_loop (void *stream_gen) {
   buf_element_t   *buf;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
-  static int	   prof_audio_decode = -1;
-  static uint32_t  buftype_unknown = 0;
+  int              prof_audio_decode = -1;
+  uint32_t         buftype_unknown = 0;
 
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
@@ -96,7 +96,7 @@ void *audio_decoder_loop (void *stream_gen) {
       }
       
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
-      
+      buftype_unknown = 0;
       break;
       
     case BUF_CONTROL_END:
@@ -255,8 +255,9 @@ void *audio_decoder_loop (void *stream_gen) {
 
 	    /* close old decoder of audio type has changed */
         
-            if( stream->audio_decoder_streamtype != streamtype ||
-                !stream->audio_decoder_plugin ) {
+            if( buf->type != buftype_unknown && 
+                (stream->audio_decoder_streamtype != streamtype ||
+                !stream->audio_decoder_plugin) ) {
               
               if (stream->audio_decoder_plugin) {
                 free_audio_decoder (stream, stream->audio_decoder_plugin);
@@ -264,6 +265,10 @@ void *audio_decoder_loop (void *stream_gen) {
               
               stream->audio_decoder_streamtype = streamtype;
               stream->audio_decoder_plugin = get_audio_decoder (stream, streamtype);
+              
+              if (stream->audio_decoder_plugin)
+                stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
+            
             }
 	    
 	    if (audio_type != stream->audio_type) {
@@ -283,17 +288,31 @@ void *audio_decoder_loop (void *stream_gen) {
 	    
 	    if (stream->audio_decoder_plugin) 
 	      stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
-	    else if( buf->type != buftype_unknown ) {
+       
+	    if (buf->type != buftype_unknown && 
+	        (!stream->audio_decoder_plugin || 
+	         !stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED])) {
 	      xine_log (stream->xine, XINE_LOG_MSG, 
 			"audio_decoder: no plugin available to handle '%s'\n",
 		        buf_audio_name( buf->type ) );
+              
+              if( !stream->meta_info[XINE_META_INFO_AUDIOCODEC] )
+                stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+                  = strdup (buf_audio_name( buf->type ));
+                
 	      buftype_unknown = buf->type;
+
+	      /* fatal error - dispose plugin */       
+	      if (stream->audio_decoder_plugin) {
+	        free_audio_decoder (stream, stream->audio_decoder_plugin);
+	        stream->audio_decoder_plugin = NULL;
+	      }
 	    }
 	  }
 	} 
       } else if( buf->type != buftype_unknown ) {
 	  xine_log (stream->xine, XINE_LOG_MSG, 
-		    "audio_decoder: unknown buffer type: %08x\n",
+		    "audio_decoder: error, unknown buffer type: %08x\n",
 		    buf->type );
 	  buftype_unknown = buf->type;
       }

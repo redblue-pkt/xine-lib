@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.15 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: cyuv.c,v 1.16 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -163,7 +163,6 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
     this->video_step = buf->decoder_info[1];
 
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Creative YUV");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   }

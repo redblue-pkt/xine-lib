@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2003/01/03 23:18:13 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.27 2003/01/08 01:02:30 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -309,6 +309,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
     this->decoder_ok = init_codec (this, buf);
+    if( !this->decoder_ok )
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 0;
 
   } else if (this->decoder_ok && this->context) {
 

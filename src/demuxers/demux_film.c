@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.50 2003/01/04 16:40:49 tmmm Exp $
+ * $Id: demux_film.c,v 1.51 2003/01/08 01:02:28 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -185,6 +185,9 @@ static int open_film_file(demux_film_t *film) {
       film->video_codec = *(uint32_t *)&film_header[i + 8];
       film->video_type = fourcc_to_buf_video(*(uint32_t *)&film_header[i + 8]);
 
+      if( !film->video_type )
+        film->video_type = BUF_VIDEO_UNKNOWN;
+      
       /* fetch the audio information if the chunk size checks out */
       if (chunk_size == 32) {
         film->audio_channels = film_header[21];

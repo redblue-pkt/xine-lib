@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.26 2003/01/07 06:26:25 tmmm Exp $
+ * $Id: adpcm.c,v 1.27 2003/01/08 01:02:30 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1211,7 +1211,6 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         break;
 
     }
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     /* if the data was transported in an MS-type file (packet size will be
      * non-0 indicating an audio header), create a decode buffer */

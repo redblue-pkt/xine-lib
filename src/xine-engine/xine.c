@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.206 2002/12/27 19:14:41 mroi Exp $
+ * $Id: xine.c,v 1.207 2003/01/08 01:02:32 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -84,18 +84,6 @@ void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
     event.type        = XINE_EVENT_UI_PLAYBACK_FINISHED;
     
     xine_event_send (stream, &event);
-  }
-}
-
-void xine_report_codec (xine_stream_t *stream, int codec_type, 
-			uint32_t fourcc, uint32_t buf_type, int handled) {
-
-  if (codec_type == XINE_CODEC_VIDEO) {
-    stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC]  = fourcc;
-    stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = handled;
-  } else {
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC]  = fourcc;
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = handled;
   }
 }
 

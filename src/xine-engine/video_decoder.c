@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.120 2002/12/31 11:35:14 mroi Exp $
+ * $Id: video_decoder.c,v 1.121 2003/01/08 01:02:32 miguelfreitas Exp $
  *
  */
 
@@ -60,9 +60,9 @@ void *video_decoder_loop (void *stream_gen) {
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
   int              streamtype;
-  static int	   prof_video_decode = -1;
-  static int	   prof_spu_decode = -1;
-  static uint32_t  buftype_unknown = 0;
+  int              prof_video_decode = -1;
+  int              prof_spu_decode = -1;
+  uint32_t         buftype_unknown = 0;
   
   if (prof_video_decode == -1)
     prof_video_decode = xine_profiler_allocate_slot ("video decoder");
@@ -106,6 +106,7 @@ void *video_decoder_loop (void *stream_gen) {
       
       stream->metronom->handle_video_discontinuity (stream->metronom, 
 						    DISC_STREAMSTART, 0);
+      buftype_unknown = 0;
       break;
 
     case BUF_CONTROL_SPU_CHANNEL:
@@ -255,8 +256,9 @@ void *video_decoder_loop (void *stream_gen) {
 	
 	streamtype = (buf->type>>16) & 0xFF;
  
-        if( stream->video_decoder_streamtype != streamtype ||
-            !stream->video_decoder_plugin ) {
+        if( buf->type != buftype_unknown &&
+            (stream->video_decoder_streamtype != streamtype ||
+            !stream->video_decoder_plugin) ) {
           
           if (stream->video_decoder_plugin) {
             free_video_decoder (stream, stream->video_decoder_plugin);
@@ -264,17 +266,32 @@ void *video_decoder_loop (void *stream_gen) {
           
           stream->video_decoder_streamtype = streamtype;
           stream->video_decoder_plugin = get_video_decoder (stream, streamtype);
+    
+          if( stream->video_decoder_plugin )
+            stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
         }
-	
-	if (stream->video_decoder_plugin) {
 
-	  stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);  
-
-	} else if (buf->type != buftype_unknown) {
-	  xine_log (stream->xine, XINE_LOG_MSG, 
-		    "video_decoder: no plugin available to handle '%s'\n",
-		    buf_video_name( buf->type ) );
-	  buftype_unknown = buf->type;
+        if (stream->video_decoder_plugin)
+          stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);  
+ 
+        if (buf->type != buftype_unknown && 
+            (!stream->video_decoder_plugin || 
+             !stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED])) {
+          xine_log (stream->xine, XINE_LOG_MSG, 
+                    "video_decoder: no plugin available to handle '%s'\n",
+                    buf_video_name( buf->type ) );
+          
+          if( !stream->meta_info[XINE_META_INFO_VIDEOCODEC] )
+            stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+              = strdup (buf_video_name( buf->type ));
+          
+          buftype_unknown = buf->type;
+          
+          /* fatal error - dispose plugin */
+          if (stream->video_decoder_plugin) {
+            free_video_decoder (stream, stream->video_decoder_plugin);
+            stream->video_decoder_plugin = NULL;
+          }
         }
 
         xine_profiler_stop_count (prof_video_decode);
@@ -328,7 +345,7 @@ void *video_decoder_loop (void *stream_gen) {
 
       } else if (buf->type != buftype_unknown) {
 	xine_log (stream->xine, XINE_LOG_MSG, 
-		  "video_decoder: unknown buffer type: %08x\n",
+		  "video_decoder: error, unknown buffer type: %08x\n",
 		  buf->type );
 	buftype_unknown = buf->type;
       }

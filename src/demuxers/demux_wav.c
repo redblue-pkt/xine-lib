@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.30 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.31 2003/01/08 01:02:28 miguelfreitas Exp $
  *
  */
 
@@ -124,8 +124,7 @@ static int open_wav_file(demux_wav_t *this) {
   xine_waveformatex_le2me(this->wave);
   this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
   if(!this->audio_type) {
-    xine_report_codec(this->stream, XINE_CODEC_AUDIO, this->audio_type, 0, 0);
-    return 0;
+    this->audio_type = BUF_AUDIO_UNKNOWN;
   }
 
   /* traverse through the chunks to find the 'data' chunk */

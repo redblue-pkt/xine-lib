@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.13 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: foovideo.c,v 1.14 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -110,7 +110,6 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
 
     /* take this opportunity to load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("foovideo");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     /* do anything else relating to initializing this decoder */
     this->current_yuv_byte = 0;

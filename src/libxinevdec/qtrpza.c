@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.13 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: qtrpza.c,v 1.14 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -320,7 +320,6 @@ static void qtrpza_decode_data (video_decoder_t *this_gen,
 
     /* load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Quicktime Video (RPZA)");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

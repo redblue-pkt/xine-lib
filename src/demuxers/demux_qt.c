@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.138 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.139 2003/01/08 01:02:28 miguelfreitas Exp $
  *
  */
 
@@ -2041,18 +2041,15 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
    */
   if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
     this->qt->video_type = BUF_VIDEO_MPEG4;
-#if 0
+  
   if( !this->qt->video_type && this->qt->video_codec )
-    xine_report_codec( this->stream, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
-#endif
+    this->qt->video_type = BUF_VIDEO_UNKNOWN;
 
   this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
 
-#if 0
   if( !this->qt->audio_type && this->qt->audio_codec )
-    xine_report_codec( this->stream, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
-#endif
-
+    this->qt->audio_type = BUF_AUDIO_UNKNOWN;
+  
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] =
     (this->qt->video_type) ? 1 : 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.143 2003/01/04 14:48:11 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.144 2003/01/08 01:02:27 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1188,7 +1188,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
       printf ("demux_avi: unknown audio type 0x%x\n",
 	      this->avi->audio[i]->wavex->wFormatTag);
       this->no_audio  = 1;
-      this->avi->audio[i]->audio_type     = BUF_CONTROL_NOP;
+      this->avi->audio[i]->audio_type     = BUF_AUDIO_UNKNOWN;
     } else
       printf ("demux_avi: audio type %s (wFormatTag 0x%x)\n",
 	      buf_audio_name(this->avi->audio[i]->audio_type),
@@ -1225,47 +1225,42 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
       printf ("demux_avi: unknown video codec '%.4s'\n",
 	      (char*)&this->avi->bih.biCompression);
-      buf->free_buffer (buf);
-    
-      this->status = DEMUX_FINISHED;
+      this->avi->video_type = BUF_VIDEO_UNKNOWN;
+       
+    }
 
-    } else {
+    buf->type = this->avi->video_type;
+    printf ("demux_avi: video codec is '%s'\n",
+	    buf_video_name(buf->type));
 
-      unsigned char  *sub;
+    this->video_fifo->put (this->video_fifo, buf);
 
+    /* send off the palette, if there is one */
+    if (this->avi->palette_count) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+      buf->decoder_info[2] = this->avi->palette_count;
+      buf->decoder_info_ptr[2] = &this->avi->palette;
+      buf->size = 0;
       buf->type = this->avi->video_type;
-      printf ("demux_avi: video codec is '%s'\n",
-	      buf_video_name(buf->type));
-
       this->video_fifo->put (this->video_fifo, buf);
+    }
 
-      /* send off the palette, if there is one */
-      if (this->avi->palette_count) {
-        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-        buf->decoder_flags = BUF_FLAG_SPECIAL;
-        buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
-        buf->decoder_info[2] = this->avi->palette_count;
-        buf->decoder_info_ptr[2] = &this->avi->palette;
-        buf->size = 0;
-        buf->type = this->avi->video_type;
-        this->video_fifo->put (this->video_fifo, buf);
-      }
+    if (this->audio_fifo) {
+      for (i=0; i<this->avi->n_audio; i++) {
+        avi_audio_t *a = this->avi->audio[i];
 
-      if (this->audio_fifo) {
-        for (i=0; i<this->avi->n_audio; i++) {
-          avi_audio_t *a = this->avi->audio[i];
-
-          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->decoder_flags = BUF_FLAG_HEADER;
-          memcpy (buf->content, a->wavex, a->wavex_len);
-          buf->size = a->wavex_len;
-          buf->type = a->audio_type | i;
-          buf->decoder_info[0] = 0; /* first package, containing wavex */
-          buf->decoder_info[1] = a->wavex->nSamplesPerSec; /* Audio Rate */
-          buf->decoder_info[2] = a->wavex->wBitsPerSample; /* Audio bits */
-          buf->decoder_info[3] = a->wavex->nChannels; /* Audio bits */
-          this->audio_fifo->put (this->audio_fifo, buf);
-        }
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->decoder_flags = BUF_FLAG_HEADER;
+        memcpy (buf->content, a->wavex, a->wavex_len);
+        buf->size = a->wavex_len;
+        buf->type = a->audio_type | i;
+        buf->decoder_info[0] = 0; /* first package, containing wavex */
+        buf->decoder_info[1] = a->wavex->nSamplesPerSec; /* Audio Rate */
+        buf->decoder_info[2] = a->wavex->wBitsPerSample; /* Audio bits */
+        buf->decoder_info[3] = a->wavex->nChannels; /* Audio bits */
+        this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
 

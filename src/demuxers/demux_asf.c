@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.93 2003/01/04 20:19:00 guenter Exp $
+ * $Id: demux_asf.c,v 1.94 2003/01/08 01:02:27 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -290,10 +290,6 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
 #ifdef LOG
   printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
 #endif
-  if ( !this->streams[stream].buf_type ) {
-    printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
-    this->streams[stream].buf_type = BUF_CONTROL_NOP;
-  } 
 
   buf->size = this->wavex_size;
   buf->type = this->streams[stream].buf_type;
@@ -315,14 +311,6 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = bih->biCompression;
-
-  if( !this->streams[stream].buf_type ) {
-    printf ("demux_asf: unknown video format %.4s\n",
-	    (char*)&bih->biCompression);
-
-    this->status = DEMUX_FINISHED;
-    return;
-  }
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags   = BUF_FLAG_HEADER;
@@ -452,6 +440,10 @@ static int asf_read_header (demux_asf_t *this) {
 
             this->streams[this->num_streams].buf_type = 
               formattag_to_buf_audio ( wavex->wFormatTag );
+            if ( !this->streams[this->num_streams].buf_type ) {
+              printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
+              this->streams[this->num_streams].buf_type = BUF_AUDIO_UNKNOWN;
+            } 
 
             this->streams[this->num_streams].fifo        = this->audio_fifo;
             this->streams[this->num_streams].stream_id   = stream_id;
@@ -485,6 +477,12 @@ static int asf_read_header (demux_asf_t *this) {
 
               this->streams[this->num_streams].buf_type = 
                 fourcc_to_buf_video(bih->biCompression);
+              if( !this->streams[this->num_streams].buf_type ) {
+                printf ("demux_asf: unknown video format %.4s\n",
+                        (char*)&bih->biCompression);
+
+                this->streams[this->num_streams].buf_type = BUF_VIDEO_UNKNOWN;
+              }
 
               this->streams[this->num_streams].fifo         = this->video_fifo;
               this->streams[this->num_streams].stream_id    = stream_id;

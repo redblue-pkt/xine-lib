@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.129 2003/01/03 22:38:27 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.130 2003/01/08 01:02:32 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -478,6 +478,12 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
 #endif
 
       node->plugin_class = _load_plugin_class (this, node->filename, node->info, NULL);
+        
+      /* in case of failure remove from list */
+      if( !node->plugin_class ) {
+        xine_list_delete_current(list);
+        node = xine_list_prev_content(list); /* delete advances, so get previous */
+      }
     }
     
     node = xine_list_next_content (list);
@@ -1012,7 +1018,6 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 #ifdef LOG
       printf ("load_plugins: probing demux '%s'\n", node->info->id);
 #endif
-
       if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	if (stream->xine->verbosity)
 	  printf ("load_plugins: using demuxer '%s'\n", node->info->id);

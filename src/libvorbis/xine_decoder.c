@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2003/01/07 16:56:19 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.25 2003/01/08 01:02:30 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -127,7 +127,6 @@ static void get_metadata (vorbis_decoder_t *this) {
   }
 
   this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("vorbis");
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 }
 
 static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {

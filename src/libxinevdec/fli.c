@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.16 2002/12/23 21:15:06 tmmm Exp $
+ * $Id: fli.c,v 1.17 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -447,7 +447,6 @@ static void fli_decode_data (video_decoder_t *this_gen,
 
     /* load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("FLI/FLC Video");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

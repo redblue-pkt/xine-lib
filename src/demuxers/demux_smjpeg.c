@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.32 2003/01/04 16:40:48 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.33 2003/01/08 01:02:28 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -196,13 +196,11 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
   }
 
   if(!this->video_type)
-    xine_report_codec(this->stream, XINE_CODEC_VIDEO,
-      this->bih.biCompression, 0, 0);
-
+    this->video_type = BUF_VIDEO_UNKNOWN;
+  
   if(!this->audio_type && this->audio_codec)
-    xine_report_codec(this->stream, XINE_CODEC_AUDIO, 
-    this->audio_codec, 0, 0);
-
+    this->audio_type = BUF_AUDIO_UNKNOWN;
+  
   return 1;
 }
 

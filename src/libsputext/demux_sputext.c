@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.4 2003/01/04 14:48:13 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.5 2003/01/08 01:02:30 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -49,7 +49,9 @@
 #include "../demuxers/demux.h"
 #include "osd.h"
 
+/*
 #define LOG 1
+*/
 
 #define ERR (void *)-1
 
@@ -897,8 +899,10 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   input_plugin_t        *input = (input_plugin_t *) input_gen;
   demux_sputext_t       *this;
 
+#ifdef LOG
   printf("demux_sputext: open_plugin() called\n");
-
+#endif
+  
   this = xine_xmalloc (sizeof (demux_sputext_t));
   this->stream = stream;
   this->input  = input;
@@ -991,8 +995,10 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
 
   demux_sputext_class_t *this ;
 
+#ifdef LOG
   printf("demux_sputext: initializing\n");
-
+#endif
+  
   this = xine_xmalloc (sizeof (demux_sputext_class_t));
   this->config = xine->config;
 

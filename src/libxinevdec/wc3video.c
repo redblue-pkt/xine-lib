@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.12 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: wc3video.c,v 1.13 2003/01/08 01:02:32 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -386,7 +386,6 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
 
     /* load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Wing Commander III Video");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayvideo.c,v 1.1 2002/12/28 18:27:14 tmmm Exp $
+ * $Id: interplayvideo.c,v 1.2 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1177,7 +1177,6 @@ static void interplay_decode_data (video_decoder_t *this_gen,
     /* take this opportunity to load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = 
       strdup("Interplay MVE Video");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     this->decoder_ok = 1;
 

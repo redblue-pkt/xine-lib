@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.15 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: msrle.c,v 1.16 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -226,7 +226,6 @@ static void msrle_decode_data (video_decoder_t *this_gen,
 
     /* load the stream/meta info */
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] = strdup("Microsoft RLE");
-    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
   } else if (this->decoder_ok) {

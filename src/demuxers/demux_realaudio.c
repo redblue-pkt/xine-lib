@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.9 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.10 2003/01/08 01:02:28 miguelfreitas Exp $
  *
  */
 
@@ -112,6 +112,9 @@ static int open_ra_file(demux_ra_t *this) {
   this->audio_fourcc = *(unsigned int *)&audio_header[0x2E];
   this->audio_type = formattag_to_buf_audio(this->audio_fourcc);
 
+  if( !this->audio_type )
+    this->audio_type = BUF_AUDIO_UNKNOWN;
+  
   return 1;
 }
 

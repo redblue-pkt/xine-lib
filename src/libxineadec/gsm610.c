@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.7 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: gsm610.c,v 1.8 2003/01/08 01:02:31 miguelfreitas Exp $
  *
  */
 
@@ -110,7 +110,6 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     /* stream/meta info */
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup("GSM 6.10");
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     return;
   }

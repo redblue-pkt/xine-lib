@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayaudio.c,v 1.1 2002/12/28 18:25:08 tmmm Exp $
+ * $Id: interplayaudio.c,v 1.2 2003/01/08 01:02:31 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -138,7 +138,6 @@ static void interplay_decode_data (audio_decoder_t *this_gen, buf_element_t *buf
 
     /* take this opportunity to initialize stream/meta information */
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup("Interplay MVE DPCM");
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 1;
 
     return;
   }

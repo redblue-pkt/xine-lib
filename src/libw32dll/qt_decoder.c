@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.7 2003/01/03 23:18:13 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.8 2003/01/08 01:02:30 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -461,8 +461,11 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       if (!this->codec_initialized) {
 	qta_init_driver (this, buf);
       }
+      
+      if (!this->codec_initialized)
+        this->stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 0;
     }
-  } else {
+  } else if( this->codec_initialized ) {
 
     memcpy (&this->data[this->data_len], buf->content, buf->size);
     this->data_len += buf->size;
@@ -1000,8 +1003,10 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       if (!this->codec_initialized) {
 	qtv_init_driver (this, buf);
       }
+      if (!this->codec_initialized)
+        this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 0;
     }
-  } else {
+  } else if (this->codec_initialized) {
 
 #ifdef LOG 
     printf ("qt_video: actual image data\n");

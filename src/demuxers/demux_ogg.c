@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.57 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.58 2003/01/08 01:02:28 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -432,7 +432,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    channel = this->num_video_streams++;
 
-	    this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype) | channel;
+	    this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype);
+	    if( !this->buf_types[stream_num] )
+	      this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
+	    this->buf_types[stream_num] |= channel;
 	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 
 #ifdef LOG
@@ -589,7 +592,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	      printf ("demux_ogg: fourcc %08x\n", fcc);
 
-	      this->buf_types[stream_num] = fourcc_to_buf_video (fcc) | channel;
+	      this->buf_types[stream_num] = fourcc_to_buf_video (fcc);
+	      if( !this->buf_types[stream_num] )
+	        this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
+	      this->buf_types[stream_num] |= channel;
 
 	      bih.biSize          = sizeof(xine_bmiheader);
 	      bih.biWidth         = *(int32_t*)(op.packet+176);
