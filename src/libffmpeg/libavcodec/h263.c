@@ -76,7 +76,7 @@ static void mpeg4_encode_visual_object_header(MpegEncContext * s);
 static void mpeg4_encode_vol_header(MpegEncContext * s, int vo_number, int vol_number);
 #endif //CONFIG_ENCODERS
 static void mpeg4_decode_sprite_trajectory(MpegEncContext * s, GetBitContext *gb);
-static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, uint16_t **dc_val_ptr, int *dir_ptr);
+static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding);
 
 #ifdef CONFIG_ENCODERS
 static uint8_t uni_DCtab_lum_len[512];
@@ -496,6 +496,17 @@ void ff_clean_h263_qscales(MpegEncContext *s){
         if(qscale_table[ s->mb_index2xy[i] ] - qscale_table[ s->mb_index2xy[i+1] ] >2)
             qscale_table[ s->mb_index2xy[i] ]= qscale_table[ s->mb_index2xy[i+1] ]+2;
     }
+
+    if(s->codec_id != CODEC_ID_H263P){
+        for(i=1; i<s->mb_num; i++){
+            int mb_xy= s->mb_index2xy[i];
+        
+            if(qscale_table[mb_xy] != qscale_table[s->mb_index2xy[i-1]] && (s->mb_type[mb_xy]&CANDIDATE_MB_TYPE_INTER4V)){
+                s->mb_type[mb_xy]&= ~CANDIDATE_MB_TYPE_INTER4V;
+                s->mb_type[mb_xy]|= CANDIDATE_MB_TYPE_INTER;
+            }
+        }
+    }
 }
 
 /**
@@ -507,15 +518,6 @@ void ff_clean_mpeg4_qscales(MpegEncContext *s){
 
     ff_clean_h263_qscales(s);
     
-    for(i=1; i<s->mb_num; i++){
-        int mb_xy= s->mb_index2xy[i];
-    
-        if(qscale_table[mb_xy] != qscale_table[s->mb_index2xy[i-1]] && (s->mb_type[mb_xy]&CANDIDATE_MB_TYPE_INTER4V)){
-            s->mb_type[mb_xy]&= ~CANDIDATE_MB_TYPE_INTER4V;
-            s->mb_type[mb_xy]|= CANDIDATE_MB_TYPE_INTER;
-        }
-    }
-
     if(s->pict_type== B_TYPE){
         int odd=0;
         /* ok, come on, this isnt funny anymore, theres more code for handling this mpeg4 mess than
@@ -1071,15 +1073,7 @@ void mpeg4_encode_mb(MpegEncContext * s,
         int i;
 
         for(i=0; i<6; i++){
-            const int level= block[i][0];
-            uint16_t *dc_ptr;
-
-            dc_diff[i]= level - ff_mpeg4_pred_dc(s, i, &dc_ptr, &dir[i]);
-            if (i < 4) {
-                *dc_ptr = level * s->y_dc_scale;
-            } else {
-                *dc_ptr = level * s->c_dc_scale;
-            }
+            dc_diff[i]= ff_mpeg4_pred_dc(s, i, block[i][0], &dir[i], 1);
         }
 
         if(s->flags & CODEC_FLAG_AC_PRED){
@@ -2380,14 +2374,14 @@ void ff_set_qscale(MpegEncContext * s, int qscale)
 
 /**
  * predicts the dc.
+ * encoding quantized level -> quantized diff
+ * decoding quantized diff -> quantized level  
  * @param n block index (0-3 are luma, 4-5 are chroma)
- * @param dc_val_ptr a pointer to the dc_val entry for the current MB will be stored here
  * @param dir_ptr pointer to an integer where the prediction direction will be stored
- * @return the quantized predicted dc
  */
-static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, uint16_t **dc_val_ptr, int *dir_ptr)
+static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding)
 {
-    int a, b, c, wrap, pred, scale;
+    int a, b, c, wrap, pred, scale, ret;
     uint16_t *dc_val;
 
     /* find prediction */
@@ -2429,10 +2423,32 @@ static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, uint16_t **dc_val_
     /* we assume pred is positive */
     pred = FASTDIV((pred + (scale >> 1)), scale);
 
-    /* prepare address for prediction update */
-    *dc_val_ptr = &dc_val[0];
+    if(encoding){
+        ret = level - pred;
+    }else{
+        level += pred;
+        ret= level;
+        if(s->error_resilience>=3){
+            if(level<0){
+                av_log(s->avctx, AV_LOG_ERROR, "dc<0 at %dx%d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+            if(level*scale > 2048 + scale){
+                av_log(s->avctx, AV_LOG_ERROR, "dc overflow at %dx%d\n", s->mb_x, s->mb_y);
+                return -1;
+            }
+        }
+    }
+    level *=scale;
+    if(level&(~2047)){
+        if(level<0) 
+            level=0;
+        else if(!(s->workaround_bugs&FF_BUG_DC_CLIP))
+            level=2047;
+    }
+    dc_val[0]= level;
 
-    return pred;
+    return ret;
 }
 
 /**
@@ -3219,6 +3235,9 @@ static inline int get_amv(MpegEncContext *s, int n){
     int x, y, mb_v, sum, dx, dy, shift;
     int len = 1 << (s->f_code + 4);
     const int a= s->sprite_warping_accuracy;
+    
+    if(s->workaround_bugs & FF_BUG_AMV)
+        len >>= s->quarter_sample;
 
     if(s->real_sprite_warping_points==1){
         if(s->divx_version==500 && s->divx_build==413)
@@ -4433,6 +4452,8 @@ static int h263_decode_block(MpegEncContext * s, DCTELEM * block,
             }
           } else {
                 level = get_bits(&s->gb, 8);
+                if (level == 255)
+                    level = 128;
           }
         }else{
             level = get_bits(&s->gb, 8);
@@ -4530,8 +4551,7 @@ not_coded:
  */
 static inline int mpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr)
 {
-    int level, pred, code;
-    uint16_t *dc_val;
+    int level, code;
 
     if (n < 4) 
         code = get_vlc2(&s->gb, dc_lum.table, DC_VLC_BITS, 1);
@@ -4566,30 +4586,8 @@ static inline int mpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr)
             }
         }
     }
-    pred = ff_mpeg4_pred_dc(s, n, &dc_val, dir_ptr);
-    level += pred;
-    if (level < 0){
-        if(s->error_resilience>=3){
-            av_log(s->avctx, AV_LOG_ERROR, "dc<0 at %dx%d\n", s->mb_x, s->mb_y);
-            return -1;
-        }
-        level = 0;
-    }
-    if (n < 4) {
-        *dc_val = level * s->y_dc_scale;
-    } else {
-        *dc_val = level * s->c_dc_scale;
-    }
-    if(IS_3IV1)
-        *dc_val = level * 8;
-    
-    if(s->error_resilience>=3){
-        if(*dc_val > 2048 + s->y_dc_scale + s->c_dc_scale){
-            av_log(s->avctx, AV_LOG_ERROR, "dc overflow at %dx%d\n", s->mb_x, s->mb_y);
-            return -1;
-        }
-    }
-    return level;
+
+    return ff_mpeg4_pred_dc(s, n, level, dir_ptr, 0);
 }
 
 /**
@@ -4720,6 +4718,8 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
 
             if (cache&0x80000000) {
                 if (cache&0x40000000) {
+                    int ulevel;
+
                     /* third escape */
                     SKIP_CACHE(re, &s->gb, 2);
                     last=  SHOW_UBITS(re, &s->gb, 1); SKIP_CACHE(re, &s->gb, 1);
@@ -4745,10 +4745,16 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                         SKIP_COUNTER(re, &s->gb, 1+12+1);
                     }
  
-                    if(level*s->qscale>1024 || level*s->qscale<-1024){
+                    if(s->mpeg_quant){
+                        if(intra) ulevel= level*s->qscale*s->intra_matrix[scan_table[1]];
+                        else      ulevel= level*s->qscale*s->inter_matrix[scan_table[0]];
+                    }else
+                        ulevel= level*s->qscale*16;
+                    if(ulevel>1030*16 || ulevel<-1030*16){
                         av_log(s->avctx, AV_LOG_ERROR, "|level| overflow in 3. esc, qp=%d\n", s->qscale);
                         return -1;
                     }
+
 #if 0
                     if(s->error_resilience >= FF_ER_COMPLIANT){
                         const int abs_level= ABS(level);
@@ -4827,14 +4833,8 @@ static inline int mpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
  not_coded:
     if (intra) {
         if(s->qscale >= s->intra_dc_threshold){
-            uint16_t *dc_val;
-            block[0] += ff_mpeg4_pred_dc(s, n, &dc_val, &dc_pred_dir);
-            if (n < 4) {
-                *dc_val = block[0] * s->y_dc_scale;
-            } else {
-                *dc_val = block[0] * s->c_dc_scale;
-            }
-
+            block[0] = ff_mpeg4_pred_dc(s, n, block[0], &dc_pred_dir, 0);
+            
             if(i == -1) i=0;
         }
 

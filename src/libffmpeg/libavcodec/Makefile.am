@@ -36,6 +36,7 @@ libavcodec_la_SOURCES = \
 	idcinvideo.c \
 	imgconvert.c \
 	indeo3.c \
+	integer.c \
 	interplayvideo.c \
 	jfdctfst.c \
 	jfdctint.c \
@@ -53,6 +54,7 @@ libavcodec_la_SOURCES = \
 	msrle.c \
 	msvideo1.c \
 	opts.c \
+	parser.c \
 	pcm.c \
 	qtrle.c \
 	ra144.c \
@@ -96,6 +98,7 @@ noinst_HEADERS = \
 	golomb.h \
 	imgconvert_template.h \
 	indeo3data.h \
+	integer.h \
 	h263data.h \
 	h264data.h \
 	mangle.h \
