@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.27 2002/03/19 02:12:50 guenter Exp $
+ * $Id: audio_out.h,v 1.28 2002/03/26 01:47:17 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -273,6 +273,8 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
 #define AO_CTRL_PLAY_RESUME	1
 #define	AO_CTRL_FLUSH_BUFFERS	2
 
+/* above that value audio frames are discarded */
+#define AO_MAX_GAP              15000
 
 typedef struct ao_info_s {
 

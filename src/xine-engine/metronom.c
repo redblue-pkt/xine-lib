@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.75 2002/03/24 14:15:37 guenter Exp $
+ * $Id: metronom.c,v 1.76 2002/03/26 01:47:17 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -471,7 +471,9 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
     else {
       if( this->audio_samples ) {
         /* calculate drift_step to recover vpts errors */
+#ifdef LOG  
         printf("audio diff = %lld ", diff );
+#endif
         diff *= AUDIO_SAMPLE_NUM;
         diff /= this->audio_samples * 4;
         
@@ -483,8 +485,10 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
         
         this->audio_drift_step = diff;
                 
+#ifdef LOG  
         printf("audio_drift = %lld, pts_per_smpls = %lld\n", diff,
                 this->pts_per_smpls );
+#endif
       }
     }
     this->audio_samples = 0;
@@ -515,6 +519,12 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     break;
   case METRONOM_SCR_ADJUSTABLE:
     this->scr_adjustable = value;
+    break;
+  case METRONOM_ADJ_VPTS_OFFSET:
+    this->vpts_offset += value;
+/*#ifdef LOG*/
+    printf ("metronom: adjusting vpts_offset by %lld\n", value );
+/*#endif*/
     break;
   default:
     printf ("metronom: unknown option in set_option: %d\n",

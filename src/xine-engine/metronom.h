@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.25 2002/03/23 18:56:56 guenter Exp $
+ * $Id: metronom.h,v 1.26 2002/03/26 01:47:17 miguelfreitas Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -244,8 +244,9 @@ metronom_t *metronom_init (int have_audio, void *xine);
  * metronom options
  */
 
-#define METRONOM_SCR_ADJUSTABLE 1
-#define METRONOM_AV_OFFSET      2
+#define METRONOM_SCR_ADJUSTABLE   1
+#define METRONOM_AV_OFFSET        2
+#define METRONOM_ADJ_VPTS_OFFSET  3
 
 /*
  * SCR (system clock reference) plugins
