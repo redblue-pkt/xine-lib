@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.117 2002/11/20 01:46:08 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.118 2002/11/20 05:09:55 tmmm Exp $
  *
  */
 
@@ -70,6 +70,7 @@ typedef unsigned int qt_atom;
 #define PNOT_ATOM QT_ATOM('p', 'n', 'o', 't')
 #define SKIP_ATOM QT_ATOM('s', 'k', 'i', 'p')
 #define WIDE_ATOM QT_ATOM('w', 'i', 'd', 'e')
+#define PICT_ATOM QT_ATOM('P', 'I', 'C', 'T')
 
 #define CMOV_ATOM QT_ATOM('c', 'm', 'o', 'v')
 
@@ -439,7 +440,8 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         (atom != MDAT_ATOM) &&
         (atom != PNOT_ATOM) &&
         (atom != SKIP_ATOM) &&
-        (atom != WIDE_ATOM))
+        (atom != WIDE_ATOM) &&
+        (atom != PICT_ATOM))
       break;
 
     /* 64-bit length special case */
