@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.28 2001/09/20 09:33:23 jkeil Exp $
+ * $Id: w32codec.c,v 1.29 2001/09/20 11:02:45 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -406,7 +406,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biWidth, 
 					this->bih.biHeight, 
 					42, 
-					this->outfmt,
+					IMGFMT_YUY2,
 					this->video_step,
 					VO_BOTH_FIELDS);
 
