@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.4 2002/06/07 22:15:47 f1rmb Exp $
+ * $Id: monitor.c,v 1.5 2002/06/09 22:26:01 f1rmb Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -137,21 +137,18 @@ void xine_profiler_print_results () {
 
 #else /* DEBUG */
 
-#define NO_PROFILER_MSG  {printf("%s(): profiler is not enable.\n", __XINE_FUNCTION__);}
+#define NO_PROFILER_MSG  {printf("xine's profiler is unavailable.\n");}
 
 /* Dummies */
 void xine_profiler_init (void) {
   NO_PROFILER_MSG
 }
 int xine_profiler_allocate_slot (char *label) {
-  NO_PROFILER_MSG
   return -1;
 }
 void xine_profiler_start_count (int id) {
-  NO_PROFILER_MSG
 }
 void xine_profiler_stop_count (int id) {
-  NO_PROFILER_MSG
 }
 void xine_profiler_print_results (void) {
   NO_PROFILER_MSG
