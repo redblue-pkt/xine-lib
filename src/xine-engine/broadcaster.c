@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.6 2004/03/03 20:09:16 mroi Exp $
+ * $Id: broadcaster.c,v 1.7 2004/03/14 09:38:03 valtri Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -51,11 +51,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#ifndef _MSC_VER
+#ifndef WIN32
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#endif /* _MSC_VER */
+#endif
 
 #include <dlfcn.h>
 #include <pthread.h>

@@ -18,15 +18,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.24 2004/02/12 18:19:12 mroi Exp $
+ * $Id: osd.h,v 1.25 2004/03/14 09:38:03 valtri Exp $
  */
 
 #ifndef HAVE_OSD_H
 #define HAVE_OSD_H
 
-#ifndef _MSC_VER 
+#ifdef HAVE_ICONV
 #  include <iconv.h>
-#endif /* _MSC_VER */
+#endif
 
 #ifdef XINE_COMPILE
 #  include "video_overlay.h"
@@ -59,7 +59,7 @@ struct osd_object_s {
 
   int32_t handle;
 
-#ifndef _MSC_VER
+#ifdef HAVE_ICONV
   iconv_t cd;                           /* iconv handle of encoding */
   char *encoding;                       /* name of encoding */
 #endif
