@@ -315,7 +315,7 @@ case "$host_or_hostalias" in
 	fi
 	;;
 
- i386-*-freebsd*)
+  i386-*-freebsd*)
 	AC_CHECK_HEADER(/usr/local/include/iconv.h,
 			CFLAGS="$CFLAGS -I/usr/local/include"
 			LDFLAGS="$LDFLAGS -L/usr/local/lib"
@@ -461,16 +461,17 @@ enable_vidix="no"
 AC_MSG_CHECKING(for vidix support)
 if test x"$check_vidix" = "xyes"; then
   case "$host_or_hostalias" in
-    *-linux*)
+    i?86-*-linux* | k?-*-linux* | athlon-*-linux*)
       enable_vidix="yes"
       enable_linux="yes"
       ;;
-    *-freebsd*)
+    i386-*-freebsd*)
       enable_vidix="yes"
       enable_dha_kmod="no"
       ;;
     *)
       enable_dha_kmod="no"
+      enable_vidix="no"
       ;;
   esac
 fi
