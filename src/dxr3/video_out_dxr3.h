@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.1 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: video_out_dxr3.h,v 1.2 2002/06/10 15:02:48 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,9 @@
 /* values for fd_video indicating why it is closed */
 #define CLOSED_FOR_DECODER -1
 #define CLOSED_FOR_ENCODER -2
+
+/* the number of supported encoders */
+#define SUPPORTED_ENCODER_COUNT 2
 
 
 /* plugin structures */

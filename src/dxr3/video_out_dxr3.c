@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.22 2002/06/09 09:25:40 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.23 2002/06/10 15:02:48 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -123,9 +123,11 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 {
   dxr3_driver_t *this;
   char tmpstr[100];
-  char *available_encoders, *default_encoder;
   const char *confstr;
-  int dashpos;
+  int dashpos, encoder, confnum;
+  static char *available_encoders[SUPPORTED_ENCODER_COUNT + 1];
+  static char *videoout_modes[] = { "tv", "overlay", NULL };
+  static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
 
   this = (dxr3_driver_t *)malloc(sizeof(dxr3_driver_t));
   if (!this) return NULL;
@@ -190,39 +192,51 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->fd_video = CLOSED_FOR_DECODER;
 
   /* which encoder to use? Whadda we got? */
-  default_encoder = 0;
-  this->enc = 0;
-  /* memory leak... but config doesn't copy our help string :-( */
-  available_encoders = malloc(256);
-  strcpy(available_encoders, "Mpeg1 encoder. Options: ");
-#ifdef HAVE_LIBFAME
-  default_encoder = "fame";
-  strcat(available_encoders, "\"fame\" (very fast, good quality) ");
-#endif
-#ifdef HAVE_LIBRTE
-  default_encoder = "rte"; 
-  strcat(available_encoders, "\"rte\" (fast, high quality) ");
-#endif
+  encoder = 0;
 #if LOG_VID
-  printf("video_out_dxr3: %s\n", available_encoders);
-#endif
-  if (default_encoder) { 
-    confstr = config->register_string(config, "dxr3.encoder", 
-      default_encoder, available_encoders, NULL, NULL, NULL);
-#ifdef HAVE_LIBRTE
-    if ((strcmp(confstr, "rte") == 0) && !dxr3_rte_init(this))
-      return 0;
+  printf("video_out_dxr3: Supported mpeg encoders: ");
 #endif
 #ifdef HAVE_LIBFAME
-    if ((strcmp(confstr, "fame") == 0) && !dxr3_fame_init(this))
-      return 0;
+  available_encoders[encoder++] = "fame";
+#if LOG_VID
+  printf("fame, ");
 #endif
-    if (this->enc == 0)
-      printf("video_out_dxr3: mpeg encoder \"%s\" not compiled in or not supported.\n"
-             "video_out_dxr3: valid options are %s\n", confstr, available_encoders);
-  }
-  else
-    printf("video_out_dxr3: no mpeg encoder compiled in.\n"
+#endif
+#ifdef HAVE_LIBRTE
+  available_encoders[encoder++] = "rte";
+#if LOG_VID
+  printf("rte, ");
+#endif
+#endif
+  available_encoders[encoder] = "none";
+  available_encoders[encoder + 1] = NULL;
+#if LOG_VID
+  printf("none\n");
+#endif
+  if (encoder) {
+    encoder = config->register_enum(config, "dxr3.encoder", 
+      0, available_encoders, "the encoder for non mpeg content",
+      "Content other than mpeg has to pass an additional reencoding "
+      "stage, because the dxr3 handles mpeg only.", NULL, NULL);
+#ifdef HAVE_LIBRTE
+    if ((strcmp(available_encoders[encoder], "rte") == 0) && !dxr3_rte_init(this)) {
+      printf("video_out_dxr3: Mpeg encoder rte failed to init.\n");
+      return 0;
+    }
+#endif
+#ifdef HAVE_LIBFAME
+    if ((strcmp(available_encoders[encoder], "fame") == 0) && !dxr3_fame_init(this)) {
+      printf("video_out_dxr3: Mpeg encoder fame failed to init.\n");
+      return 0;
+    }
+#endif
+    if (strcmp(available_encoders[encoder], "none") == 0)
+      printf("video_out_dxr3: Mpeg encoding disabled.\n"
+             "video_out_dxr3: that's ok, you don't need it for mpeg video like DVDs, but\n"
+             "video_out_dxr3: you will not be able to play non-mpeg content using this video out\n"
+             "video_out_dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n");
+  } else
+    printf("video_out_dxr3: No mpeg encoder compiled in.\n"
            "video_out_dxr3: that's ok, you don't need it for mpeg video like DVDs, but\n"
            "video_out_dxr3: you will not be able to play non-mpeg content using this video out\n"
            "video_out_dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n");
@@ -239,15 +253,17 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     this->bcs.brightness, 100, 900, "Dxr3: brightness control", NULL, NULL, NULL);
 
   /* overlay or tvout? */
-  confstr = config->register_string(config, "dxr3.videoout_mode", "tv",
+  confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
     "Dxr3: videoout mode (tv or overlay)", NULL, NULL, NULL);
 #if LOG_VID
-  printf("video_out_dxr3: overlaymode = %s\n", confstr);
+  printf("video_out_dxr3: overlaymode = %s\n", videoout_modes[confnum]);
 #endif
-  if (strcasecmp(confstr, "tv") == 0) {
+  switch (confnum) {
+  case 0: /* tv mode */
     this->overlay_enabled = 0;
     this->tv_switchable = 0;  /* don't allow on-the-fly switching */
-  } else if (strcasecmp(confstr, "overlay") == 0) {
+    break;
+  case 1: /* overlay mode */
 #if LOG_VID
     printf("video_out_dxr3: setting up overlay mode\n");
 #endif
@@ -270,24 +286,28 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   }
   
   /* init tvmode */
-  confstr = config->register_string(config, "dxr3.preferred_tvmode", "default",
-    "Dxr3 preferred tv mode - PAL, PAL60, NTSC or default", NULL, NULL, NULL);
-  if (strcasecmp(confstr, "ntsc") == 0) {
+  confnum = config->register_enum(config, "dxr3.preferred_tvmode", 3, tv_modes,
+    "dxr3 preferred tv mode", NULL, NULL, NULL);
+  switch (confnum) {
+  case 0: /* ntsc */
     this->tv_mode = EM8300_VIDEOMODE_NTSC;
 #if LOG_VID
     printf("video_out_dxr3: setting tv_mode to NTSC\n");
 #endif
-  } else if (strcasecmp(confstr, "pal") == 0) {
+    break;
+  case 1: /* pal */
     this->tv_mode = EM8300_VIDEOMODE_PAL;
 #if LOG_VID
     printf("video_out_dxr3: setting tv_mode to PAL 50Hz\n");
 #endif
-  } else if (strcasecmp(confstr, "pal60") == 0) {
+    break;
+  case 2: /* pal60 */
     this->tv_mode = EM8300_VIDEOMODE_PAL60;
 #if LOG_VID
     printf("video_out_dxr3: setting tv_mode to PAL 60Hz\n");
 #endif
-  } else {
+    break;
+  default:
     this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
   }
   if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
@@ -478,15 +498,8 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 
     if (!this->enc) {
       /* no encoder plugin! Let's bug the user! */
-      printf("video_out_dxr3: ********************************************************\n"
-             "video_out_dxr3: *                                                      *\n"
-             "video_out_dxr3: * need an mpeg encoder to play non-mpeg videos on dxr3 *\n"
-             "video_out_dxr3: * read the README.dxr3 for details.                    *\n"
-             "video_out_dxr3: * (if you get this message while trying to play an     *\n"
-             "video_out_dxr3: * mpeg video, there is something wrong with the dxr3   *\n"
-             "video_out_dxr3: * decoder plugin. check if it is set up correctly)     *\n"
-             "video_out_dxr3: *                                                      *\n"
-             "video_out_dxr3: ********************************************************\n");
+      printf("video_out_dxr3: Need an mpeg encoder to play non-mpeg videos on dxr3\n"
+             "video_out_dxr3: Read the README.dxr3 for details.\n");
     }
   }
 
