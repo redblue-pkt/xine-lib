@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.62 2002/10/20 02:20:13 guenter Exp $
+ * $Id: demux_asf.c,v 1.63 2002/10/20 13:50:41 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1410,7 +1410,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   int          len;
 
   switch (stream->content_detection_method) {
-  case XINE_DEMUX_CONTENT_STRATEGY:
+  case METHOD_BY_CONTENT:
 
     /* 
      * try to get a preview of the data
@@ -1422,11 +1422,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     if (memcmp(buf, &asf_header, sizeof(GUID))) 
       return NULL;
 
+#ifdef LOG
     printf ("demux_asf: file starts with an asf header\n");
+#endif
 
     break;
 
-  case XINE_DEMUX_EXTENSION_STRATEGY: {
+  case METHOD_BY_EXTENSION: {
     char *extension;
     char *mrl;
     
@@ -1446,8 +1448,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 	 && strcasecmp((extension + 1), ".wma") ) {
       return NULL;
     }
+#ifdef LOG
+    printf ("demux_asf: extension accepted.\n");
+#endif
   }
   break;
+  default:
+    printf ("demux_asf: warning, unkown method %d\n", stream->content_detection_method);
+    return NULL;
   }
 
   this         = xine_xmalloc (sizeof (demux_asf_t));
