@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.109 2002/11/09 23:22:32 guenter Exp $
+ * $Id: demux_qt.c,v 1.110 2002/11/11 04:02:43 tmmm Exp $
  *
  */
 
@@ -56,9 +56,11 @@
 
 typedef unsigned int qt_atom;
 
-#define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
-        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
-        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
+#define QT_ATOM( ch0, ch1, ch2, ch3 ) \
+        ( (unsigned char)(ch3) | \
+        ( (unsigned char)(ch2) << 8 ) | \
+        ( (unsigned char)(ch1) << 16 ) | \
+        ( (unsigned char)(ch0) << 24 ) )
 
 /* top level atoms */
 #define FREE_ATOM QT_ATOM('f', 'r', 'e', 'e')
@@ -257,8 +259,6 @@ typedef struct {
   qt_error last_error;
 } qt_info;
 
-
-
 typedef struct {
 
   demux_plugin_t       demux_plugin;
@@ -298,6 +298,86 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 } demux_qt_class_t;
+
+/**********************************************************************
+ * lazyqt special debugging functions
+ **********************************************************************/
+
+/* define DEBUG_ATOM_LOAD as 1 to get a verbose parsing of the relevant 
+ * atoms */
+#define DEBUG_ATOM_LOAD 0
+
+/* define DEBUG_EDIT_LIST as 1 to get a detailed look at how the demuxer is
+ * handling edit lists */
+#define DEBUG_EDIT_LIST 0
+
+/* define DEBUG_FRAME_TABLE as 1 to dump the complete frame table that the
+ * demuxer plans to use during file playback */
+#define DEBUG_FRAME_TABLE 0
+
+/* define DEBUG_VIDEO_DEMUX as 1 to see details about the video chunks the
+ * demuxer is sending off to the video decoder */
+#define DEBUG_VIDEO_DEMUX 0
+
+/* define DEBUG_AUDIO_DEMUX as 1 to see details about the audio chunks the
+ * demuxer is sending off to the audio decoder */
+#define DEBUG_AUDIO_DEMUX 0
+
+/* Define DEBUG_DUMP_MOOV as 1 to dump the raw moov atom to disk. This is
+ * particularly useful in debugging a file with a compressed moov (cmov)
+ * atom. The atom will be dumped to the filename specified as 
+ * RAW_MOOV_FILENAME. */
+#define DEBUG_DUMP_MOOV 0
+#define RAW_MOOV_FILENAME "moovatom.raw"
+
+#if DEBUG_ATOM_LOAD
+#define debug_atom_load printf
+#else
+void debug_atom_load(const char *format, ...) { }
+#endif
+
+#if DEBUG_EDIT_LIST
+#define debug_edit_list printf
+#else
+void debug_edit_list(const char *format, ...) { }
+#endif
+
+#if DEBUG_FRAME_TABLE
+#define debug_frame_table printf
+#else
+void debug_frame_table(const char *format, ...) { }
+#endif
+
+#if DEBUG_VIDEO_DEMUX
+#define debug_video_demux printf
+#else
+void debug_video_demux(const char *format, ...) { }
+#endif
+
+#if DEBUG_AUDIO_DEMUX
+#define debug_audio_demux printf
+#else
+void debug_audio_demux(const char *format, ...) { }
+#endif
+
+void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
+#if DEBUG_DUMP_MOOV
+
+  FILE *f;
+
+  f = fopen(RAW_MOOV_FILENAME, "w");
+  if (!f) {
+    perror(RAW_MOOV_FILENAME);
+    return;
+  }
+
+  if (fwrite(moov_atom, moov_atom_size, 1, f) != 1)
+    printf ("  qt debug: could not write moov atom to disk\n");
+
+  fclose(f);
+
+#endif
+}
 
 /**********************************************************************
  * lazyqt functions
@@ -526,6 +606,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
     }
   }
   
+  debug_atom_load("  qt: parsing %s trak atom\n",
+    (sample_table->type == MEDIA_VIDEO) ? "video" :
+      (sample_table->type == MEDIA_AUDIO) ? "audio" : "other");
+
   /* search for the useful atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
     current_atom = BE_32(&trak_atom[i]);
@@ -554,6 +638,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
       sample_table->edit_list_count = BE_32(&trak_atom[i + 8]);
 
+      debug_atom_load("    qt elst atom (edit list atom): %d entries\n",
+        sample_table->edit_list_count);
+
       sample_table->edit_list_table = (edit_list_table_t *)malloc(
         sample_table->edit_list_count * sizeof(edit_list_table_t));
       if (!sample_table->edit_list_table) {
@@ -567,6 +654,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         sample_table->edit_list_table[j].media_time =
           BE_32(&trak_atom[i + 12 + j * 12 + 4]);
+        debug_atom_load("      %d: track duration = %d, media time = %d\n",
+          j,
+          sample_table->edit_list_table[j].track_duration,
+          sample_table->edit_list_table[j].media_time);
       }
 
     } else if (current_atom == MDHD_ATOM)
@@ -671,6 +762,28 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         } else
           sample_table->media_description.video.palette_count = 0;
 
+        debug_atom_load("    video description\n");
+        debug_atom_load("      %dx%d, video fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
+          sample_table->media_description.video.width,
+          sample_table->media_description.video.height,
+          trak_atom[i + 0x10],
+          trak_atom[i + 0x11],
+          trak_atom[i + 0x12],
+          trak_atom[i + 0x13],
+          trak_atom[i + 0x10],
+          trak_atom[i + 0x11],
+          trak_atom[i + 0x12],
+          trak_atom[i + 0x13]);
+        debug_atom_load("      %d RGB colors\n",
+          sample_table->media_description.video.palette_count);
+        for (j = 0; j < sample_table->media_description.video.palette_count;
+             j++)
+          debug_atom_load("        %d: %3d %3d %3d\n",
+            j,
+            sample_table->media_description.video.palette[j].r,
+            sample_table->media_description.video.palette[j].g,
+            sample_table->media_description.video.palette[j].b);
+
       } else if (sample_table->type == MEDIA_AUDIO) {
 
         /* fetch audio parameters */
@@ -728,12 +841,38 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           sample_table->media_description.audio.vbr = 1;
         else
           sample_table->media_description.audio.vbr = 0;
+
+        debug_atom_load("    audio description\n");
+        debug_atom_load("      %d Hz, %d bits, %d channels, %saudio fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
+          sample_table->media_description.audio.sample_rate,
+          sample_table->media_description.audio.bits,
+          sample_table->media_description.audio.channels,
+          (sample_table->media_description.audio.vbr) ? "vbr, " : "",
+          trak_atom[i + 0x10],
+          trak_atom[i + 0x11],
+          trak_atom[i + 0x12],
+          trak_atom[i + 0x13],
+          trak_atom[i + 0x10],
+          trak_atom[i + 0x11],
+          trak_atom[i + 0x12],
+          trak_atom[i + 0x13]);
+        if (BE_32(&trak_atom[i + 0x0C]) > 0x24) {
+          debug_atom_load("      %d samples/packet, %d bytes/packet, %d bytes/frame\n",
+            sample_table->samples_per_packet,
+            sample_table->bytes_per_packet,
+            sample_table->bytes_per_frame);
+          debug_atom_load("      %d bytes/sample (%d samples/frame)\n",
+            sample_table->bytes_per_sample,
+            sample_table->samples_per_frame);
+        }
       }
 
     } else if (current_atom == ESDS_ATOM) {
 
       uint32_t len;
       
+      debug_atom_load("    qt/mpeg-4 esds atom\n");
+
       if ((sample_table->type == MEDIA_VIDEO) || 
           (sample_table->type == MEDIA_AUDIO)) {
         
@@ -748,10 +887,12 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           j += 13;
           if( trak_atom[j++] == 0x05 ) {
             j += mp4_read_descr_len( &trak_atom[j], &len );
+            debug_atom_load("      decoder config is %d (0x%X) bytes long\n",
+              len, len);
             sample_table->decoder_config = malloc(len);
             sample_table->decoder_config_len = len;
             memcpy(sample_table->decoder_config,&trak_atom[j],len);
-          }        
+          }
         }
       }
 
@@ -766,6 +907,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       sample_table->sample_size = BE_32(&trak_atom[i + 8]);
       sample_table->sample_size_count = BE_32(&trak_atom[i + 12]);
 
+      debug_atom_load("    qt stsz atom (sample size atom): sample size = %d, %d entries\n",
+        sample_table->sample_size, sample_table->sample_size_count);
+
       /* allocate space and load table only if sample size is 0 */
       if (sample_table->sample_size == 0) {
         sample_table->sample_size_table = (unsigned int *)malloc(
@@ -775,9 +919,12 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           goto free_sample_table;
         }
         /* load the sample size table */
-        for (j = 0; j < sample_table->sample_size_count; j++)
+        for (j = 0; j < sample_table->sample_size_count; j++) {
           sample_table->sample_size_table[j] =
             BE_32(&trak_atom[i + 16 + j * 4]);
+          debug_atom_load("      sample size %d: %d\n",
+            j, sample_table->sample_size_table[j]);
+        }
       } else
         /* set the pointer to non-NULL to indicate that the atom type has
          * already been seen for this trak atom */
@@ -793,6 +940,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
       sample_table->sync_sample_count = BE_32(&trak_atom[i + 8]);
 
+      debug_atom_load("    qt stss atom (sample sync atom): %d sync samples\n",
+        sample_table->sync_sample_count);
+
       sample_table->sync_sample_table = (unsigned int *)malloc(
         sample_table->sync_sample_count * sizeof(unsigned int));
       if (!sample_table->sync_sample_table) {
@@ -801,9 +951,13 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       }
 
       /* load the sync sample table */
-      for (j = 0; j < sample_table->sync_sample_count; j++)
+      for (j = 0; j < sample_table->sync_sample_count; j++) {
         sample_table->sync_sample_table[j] =
           BE_32(&trak_atom[i + 12 + j * 4]);
+        debug_atom_load("      sync sample %d: sample %d (%d) is a keyframe\n",
+          j, sample_table->sync_sample_table[j],
+          sample_table->sync_sample_table[j] - 1);
+      }
 
     } else if (current_atom == STCO_ATOM) {
 
@@ -815,6 +969,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
       sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
 
+      debug_atom_load("    qt stco atom (32-bit chunk offset atom): %d chunk offsets\n",
+        sample_table->chunk_offset_count);
+
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
       if (!sample_table->chunk_offset_table) {
@@ -823,9 +980,12 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       }
 
       /* load the chunk offset table */
-      for (j = 0; j < sample_table->chunk_offset_count; j++)
+      for (j = 0; j < sample_table->chunk_offset_count; j++) {
         sample_table->chunk_offset_table[j] =
           BE_32(&trak_atom[i + 12 + j * 4]);
+        debug_atom_load("      chunk %d @ 0x%llX\n",
+          j, sample_table->chunk_offset_table[j]);
+      }
 
     } else if (current_atom == CO64_ATOM) {
 
@@ -836,6 +996,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       }
 
       sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
+
+      debug_atom_load("    qt co64 atom (64-bit chunk offset atom): %d chunk offsets\n",
+        sample_table->chunk_offset_count);
 
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
@@ -851,6 +1014,8 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         sample_table->chunk_offset_table[j] <<= 32;
         sample_table->chunk_offset_table[j] |=
           BE_32(&trak_atom[i + 12 + j * 8 + 4]);
+        debug_atom_load("      chunk %d @ 0x%llX\n",
+          j, sample_table->chunk_offset_table[j]);
       }
 
     } else if (current_atom == STSC_ATOM) {
@@ -862,6 +1027,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       }
 
       sample_table->sample_to_chunk_count = BE_32(&trak_atom[i + 8]);
+
+      debug_atom_load("    qt stsc atom (sample-to-chunk atom): %d entries\n",
+        sample_table->sample_to_chunk_count);
 
       sample_table->sample_to_chunk_table = (sample_to_chunk_table_t *)malloc(
         sample_table->sample_to_chunk_count * sizeof(sample_to_chunk_table_t));
@@ -876,6 +1044,10 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         sample_table->sample_to_chunk_table[j].samples_per_chunk =
           BE_32(&trak_atom[i + 12 + j * 12 + 4]);
+        debug_atom_load("      %d: %d samples/chunk starting at chunk %d (%d)\n",
+          j, sample_table->sample_to_chunk_table[j].samples_per_chunk,
+          sample_table->sample_to_chunk_table[j].first_chunk,
+          sample_table->sample_to_chunk_table[j].first_chunk - 1);
       }
 
     } else if (current_atom == STTS_ATOM) {
@@ -887,6 +1059,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       }
 
       sample_table->time_to_sample_count = BE_32(&trak_atom[i + 8]);
+
+      debug_atom_load("    qt stts atom (time-to-sample atom): %d entries\n",
+        sample_table->time_to_sample_count);
 
       sample_table->time_to_sample_table = (time_to_sample_table_t *)malloc(
         sample_table->time_to_sample_count * sizeof(time_to_sample_table_t));
@@ -901,6 +1076,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           BE_32(&trak_atom[i + 12 + j * 8 + 0]);
         sample_table->time_to_sample_table[j].duration =
           BE_32(&trak_atom[i + 12 + j * 8 + 4]);
+        debug_atom_load("      %d: count = %d, duration = %d\n",
+          j, sample_table->time_to_sample_table[j].count,
+          sample_table->time_to_sample_table[j].duration);
       }
     }
   }
@@ -1041,18 +1219,18 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
        * expire (so set it to an absurdly large value) */
       if (edit_list_index == sample_table->edit_list_count)
         edit_list_duration = 0xFFFFFFFFFFFF;
-/*printf ("edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);*/
+      debug_edit_list("  qt: edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
     } else {
       edit_list_media_time = 0;
       edit_list_duration = 0xFFFFFFFFFFFF;
-/*printf ("no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);*/
+      debug_edit_list("  qt: no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
     }
 
     /* fix up pts information w.r.t. the edit list table */
     edit_list_pts_counter = 0;
     for (i = 0; i < sample_table->frame_count; i++) {
 
-/*printf ("%d: (before) pts = %lld...", i, sample_table->frames[i].pts);*/
+      debug_edit_list("    %d: (before) pts = %lld...", i, sample_table->frames[i].pts);
 
       if (sample_table->frames[i].pts < edit_list_media_time) 
         sample_table->frames[i].pts = edit_list_pts_counter;
@@ -1061,19 +1239,19 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
           frame_duration = 
             (sample_table->frames[i + 1].pts - sample_table->frames[i].pts);
 
-/*printf ("frame duration = %lld...", frame_duration);*/
+            debug_edit_list("duration = %lld...", frame_duration);
         sample_table->frames[i].pts = edit_list_pts_counter;
         edit_list_pts_counter += frame_duration;
         edit_list_duration -= frame_duration;
       }
 
-/*printf ("(fixup) pts = %lld...", sample_table->frames[i].pts);*/
+      debug_edit_list("(fixup) pts = %lld...", sample_table->frames[i].pts);
 
       /* reload media time and duration */
       if (edit_list_duration <= 0) {
         if ((sample_table->edit_list_table) &&
             (edit_list_index < sample_table->edit_list_count)) {
-/*printf ("edit list index = %d\n", edit_list_index);*/
+          debug_edit_list("\n  edit list index = %d, ", edit_list_index);
           edit_list_media_time = 
             sample_table->edit_list_table[edit_list_index].media_time;
           edit_list_duration = 
@@ -1088,22 +1266,22 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
            * expire (so set it to an absurdly large value) */
           if (edit_list_index == sample_table->edit_list_count)
             edit_list_duration = 0xFFFFFFFFFFFF;
-/*printf ("edit list table exists: %d, %lld\n", edit_list_media_time, edit_list_duration);*/
+          debug_edit_list("entry: %d, %lld\n      ", edit_list_media_time, edit_list_duration);
         } else {
           edit_list_media_time = 0;
           edit_list_duration = 0xFFFFFFFFFFFF;
-/*printf ("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);*/
+          debug_edit_list("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);
         }
       }
 
-/*printf ("(after) pts = %lld...\n", sample_table->frames[i].pts);*/
+      debug_edit_list("(after) pts = %lld...\n", sample_table->frames[i].pts);
     }
 
     /* compute final pts values */
     for (i = 0; i < sample_table->frame_count; i++) {
       sample_table->frames[i].pts *= 90000;
       sample_table->frames[i].pts /= sample_table->timescale;
-/*printf (" final pts for sample %d = %lld\n", i, sample_table->frames[i].pts);*/
+      debug_edit_list("  final pts for sample %d = %lld\n", i, sample_table->frames[i].pts);
     }
 
   } else {
@@ -1322,6 +1500,18 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
         sample_table_indices[min_offset_table] = info->frame_count;
   }
 
+  debug_frame_table("  qt: final frame table contains %d frames\n",
+    info->frame_count);
+  for (i = 0; i < info->frame_count; i++)
+    debug_frame_table("    %d: %s frame @ offset 0x%llX, 0x%X bytes, pts = %lld%s\n",
+    i,
+    (info->frames[i].type == MEDIA_VIDEO) ? "video" :
+      (info->frames[i].type == MEDIA_AUDIO) ? "audio" : "other",
+    info->frames[i].offset,
+    info->frames[i].size,
+    info->frames[i].pts,
+    (info->frames[i].keyframe) ? ", keyframe" : "");
+
   /* free the temporary tables on the way out */
   for (i = 0; i < sample_table_count; i++) {
     free(sample_tables[i].edit_list_table);
@@ -1416,18 +1606,19 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     moov_atom_size = BE_32(&moov_atom[0]);
   }
 
-  /* take apart the moov atom */
-  parse_moov_atom(info, moov_atom);
-
   if (!moov_atom) {
     info->last_error = QT_NO_MOOV_ATOM;
     return info->last_error;
   }
 
+  /* write moov atom to disk if debugging option is turned on */
+  dump_moov_atom(moov_atom, moov_atom_size);
+
+  /* take apart the moov atom */
+  parse_moov_atom(info, moov_atom);
+
   return QT_OK;
 }
-
-
 
 /**********************************************************************
  * xine demuxer functions
@@ -1501,13 +1692,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       edit_list_compensation = 0;
     }
 
-/*
-printf ("%d) video frame, size %d, pts %lld, duration %d\n",
-i, 
-this->qt->frames[i].size,
-this->qt->frames[i].pts,
-frame_duration);
-*/
+    debug_video_demux("  qt: sending off frame %d (video) %d bytes, %lld pts, duration %d\n",
+      i, 
+      this->qt->frames[i].size,
+      this->qt->frames[i].pts,
+      frame_duration);
 
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -1548,12 +1737,10 @@ frame_duration);
     this->input->seek(this->input, this->qt->frames[i].offset,
       SEEK_SET);
 
-/*
-printf ("%d) audio frame, size %d, pts %lld\n",
-i, 
-this->qt->frames[i].size,
-this->qt->frames[i].pts);
-*/
+    debug_audio_demux("  qt: sending off frame %d (audio) %d bytes, %lld pts\n",
+      i, 
+      this->qt->frames[i].size,
+      this->qt->frames[i].pts);
 
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
