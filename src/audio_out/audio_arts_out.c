@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.25 2004/02/15 19:29:47 mroi Exp $
+ * $Id: audio_arts_out.c,v 1.26 2004/04/09 11:48:13 f1rmb Exp $
  */
 
 #ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
@@ -94,7 +94,8 @@ static void ao_arts_volume(void *buffer, int length, int volume) {
   while (length--) {
     v=(int) ((*(data) * volume) / 100);
     *(data)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
-    *(data++)=LE_16(data);
+    *(data)=LE_16(data);
+    *(data++);
   }
 }
 /* End volume control */
