@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.53 2003/05/26 11:57:45 jstembridge Exp $
+ * $Id: demux_real.c,v 1.54 2003/05/26 12:32:40 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -108,7 +108,8 @@ typedef struct {
   off_t                data_size;
   int                  status;
   unsigned int         duration;
-  int                  packet_count;
+  unsigned int         packet_count;
+  unsigned int         current_packet;
 
   int                  video_stream_num;
   uint32_t             video_buf_type;
@@ -371,6 +372,7 @@ static void real_parse_headers (demux_real_t *this) {
 
   this->data_start = 0;
   this->data_size = 0;
+  this->current_packet = 0;
 
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0) 
     this->input->seek (this->input, 0, SEEK_SET);
@@ -1101,6 +1103,14 @@ discard:
     this->input->seek(this->input, size, SEEK_CUR);
 
   }
+  
+  if(this->packet_count && (this->current_packet == (this->packet_count - 1))) {
+#ifdef LOG
+    printf("demux_real: read all packets\n");
+#endif
+    this->status = DEMUX_FINISHED;
+  } else
+    this->current_packet++;
 
 #if 0
 
@@ -1220,6 +1230,9 @@ static int demux_real_seek (demux_plugin_t *this_gen,
       index = other_index;
     
     this->input->seek(this->input, index[i].offset, SEEK_SET);
+    
+    /* is packet number global or is it local to current data chunk? */
+    this->current_packet = index[i].packetno;
     
     if(this->stream->demux_thread_running) {
       this->buf_flag_seek = 1;
