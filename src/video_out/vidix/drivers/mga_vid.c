@@ -620,9 +620,10 @@ static void mga_vid_write_regs(int restore)
     //writel(C2SPICSTARTADD1, cregs.c2spicstartadd1);
 
     //set Color Lookup Table for Subpicture Layer
-    unsigned char r, g, b, y, cb, cr;
-    int i;
-    for (i = 0; i < 16; i++) {
+    {
+      unsigned char r, g, b, y, cb, cr;
+      int i;
+      for (i = 0; i < 16; i++) {
            
         r = (i & 0x8) ? 0xff : 0x00;
         g = (i & 0x4) ? ((i & 0x2) ? 0xff : 0xaa) : ((i & 0x2) ? 0x55 : 0x00);
@@ -634,6 +635,7 @@ static void mga_vid_write_regs(int restore)
 
         cregs.c2subpiclut = (cr << 24) | (cb << 16) | (y << 8) | i;
         writel(C2SUBPICLUT, cregs.c2subpiclut);
+      }
     }
 
     //writel(C2PRELOAD,   cregs.c2preload);
