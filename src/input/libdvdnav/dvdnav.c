@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.9 2002/10/22 04:39:01 storri Exp $
+ * $Id: dvdnav.c,v 1.10 2002/10/22 17:18:23 jkeil Exp $
  *
  */
 
@@ -1010,8 +1010,11 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.10  2002/10/22 17:18:23  jkeil
+ * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
+ *
  * Revision 1.9  2002/10/22 04:39:01  storri
- * Changed comments to standard /* ... */
+ * Changed comments to standard / * ... * /
  *
  * Revision 1.8  2002/09/20 12:53:53  mroi
  * sync to latest libdvdnav cvs version

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.7 2002/10/22 04:39:30 storri Exp $
+ * $Id: vm.c,v 1.8 2002/10/22 17:18:24 jkeil Exp $
  *
  */
 
@@ -1988,8 +1988,11 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.8  2002/10/22 17:18:24  jkeil
+ * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
+ *
  * Revision 1.7  2002/10/22 04:39:30  storri
- * Changed comments to standard /* ... */
+ * Changed comments to standard / * ... * /
  *
  * Revision 1.6  2002/09/20 12:53:53  mroi
  * sync to latest libdvdnav cvs version
