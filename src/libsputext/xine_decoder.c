@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/06/24 22:10:48 mshopf Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/06/25 11:48:02 mshopf Exp $
  *
  * code based on mplayer module:
  *
@@ -104,8 +104,9 @@ typedef struct sputext_decoder_s {
   char              *src_encoding;
   char              *dst_encoding;
 
-  subtitle_size     subtitle_size;
-  int64_t           last_subtitle_end; /* no new subtitle before this vpts */
+  subtitle_size      subtitle_size;
+  int64_t            last_subtitle_end; /* no new subtitle before this vpts */
+  int                time_offset;       /* offset in 1/100sec to add to vpts */
 } sputext_decoder_t;
 
 #define FORMAT_MICRODVD  0
@@ -656,7 +657,6 @@ static int sub_autodetect (sputext_decoder_t *this) {
 static subtitle_t *sub_read_file (sputext_decoder_t *this) {
 
   int n_max;
-  unsigned long *lastend = NULL;
   subtitle_t *first;
   subtitle_t * (*func[])(sputext_decoder_t *this,subtitle_t *dest)=
   {
@@ -703,10 +703,9 @@ static subtitle_t *sub_read_file (sputext_decoder_t *this) {
       ++this->errs; 
     else {
       int i;
-      if (lastend && *lastend == -1) {
-	*lastend = sub->start;
+      if (this->num > 0 && first[this->num-1].end == -1) {
+	first[this->num-1].end = sub->start;
       }
-      lastend  = &sub->end;
       for(i=0; i<first[this->num].lines; i++)
       { char *tmp;
 	char *in_buff, *out_buff;
@@ -864,11 +863,19 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if (!this->uses_time) {
       int         frame_num;
       int64_t     pts_factor;
+      long        frame_offset;
 
       frame_num = buf->decoder_info[1];
 
+      /* FIXME FIXME FIXME 
+      pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
+      */
+      pts_factor = 3000;
+
+      frame_offset = this->time_offset * 900 / pts_factor;
+
       while ( (this->cur < this->num) 
-	      && (this->subtitles[this->cur].start < frame_num) )
+	      && (this->subtitles[this->cur].start + frame_offset < frame_num) )
 	this->cur++;
 
       if (this->cur >= this->num)
@@ -876,13 +883,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
       subtitle = &this->subtitles[this->cur];
 
-      if (subtitle->start > frame_num)
+      if (subtitle->start + frame_offset > frame_num)
 	return;
-
-      /* FIXME FIXME FIXME 
-      pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
-      */
-      pts_factor = 3000;
 
       sub_start = this->xine->metronom->got_spu_packet(this->xine->metronom, buf->pts);
       sub_end = sub_start + (subtitle->end - subtitle->start) * pts_factor;
@@ -897,7 +899,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
       while ( (this->cur < this->num) 
-	      && (this->subtitles[this->cur].start < start_tenth) )
+	      && (this->subtitles[this->cur].start + this->time_offset < start_tenth) )
 	this->cur++;
 
       if (this->cur >= this->num)
@@ -905,15 +907,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 #ifdef LOG
       printf ("sputext: found >%s<, start %ld, end %ld\n", this->subtitles[this->cur].text[0],
-	      this->subtitles[this->cur].start, this->subtitles[this->cur].end);
+	      this->subtitles[this->cur].start + this->time_offset, this->subtitles[this->cur].end);
 #endif
 
       subtitle = &this->subtitles[this->cur];
 
-      if (subtitle->start > (start_tenth+20))
+      if (subtitle->start + this->time_offset > (start_tenth+20))
 	return;
 
-      sub_start = this->xine->metronom->got_spu_packet(this->xine->metronom, subtitle->start*900);
+      sub_start = this->xine->metronom->got_spu_packet(this->xine->metronom, (subtitle->start+this->time_offset)*900);
       sub_end = sub_start + (subtitle->end - subtitle->start)*900;
     }
 
@@ -1032,6 +1034,15 @@ static void update_subtitle_size(void *this_gen, cfg_entry_t *entry)
   update_font_size (this_gen);
 }
 
+static void update_time_offset(void *this_gen, cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->time_offset = entry->num_value;
+
+  printf("libsputext: time_offset = %d\n", this->time_offset );
+}
+
 static void spudec_dispose (spu_decoder_t *this_gen) {
   free (this_gen);
 }
@@ -1082,6 +1093,11 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"iso-8859-2", 
 									_("target encoding for subtitles (have to match font encoding)"), 
 									NULL, update_osd_dst_encoding, this);
+  this->time_offset                     = xine->config->register_num   (xine->config, 
+								        "codec.spu_time_offset", 
+								        0,
+								        _("subtitle time offset in 1/100 sec"), 
+								        NULL, update_time_offset, this);
 
   return (spu_decoder_t *) this;
 }
