@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.6 2001/11/06 21:46:05 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.7 2001/11/07 18:26:36 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -363,98 +363,10 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   buf_element_t    *buf;
   BITMAPINFOHEADER *bih = (BITMAPINFOHEADER *) this->bih;
 
-
-  switch (str2ulong((void*)&bih->biCompression)) {
-
-  case mmioFOURCC('M', 'P', '4', '3'):
-  case mmioFOURCC('m', 'p', '4', '3'):
-  case mmioFOURCC('D', 'I', 'V', '3'):
-  case mmioFOURCC('d', 'i', 'v', '3'):
-  case mmioFOURCC('D', 'I', 'V', '4'):
-  case mmioFOURCC('d', 'i', 'v', '4'):
-  case mmioFOURCC('D', 'I', 'V', '5'):
-  case mmioFOURCC('d', 'i', 'v', '5'):
-  case mmioFOURCC('D', 'I', 'V', '6'):
-  case mmioFOURCC('d', 'i', 'v', '6'):
-    /* Video in Microsoft MPEG-4 format v3 */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_MSMPEG4_V3;
-    break;
+  this->streams[this->num_streams].buf_type = 
+    fourcc_to_buf_video((void*)&bih->biCompression);
     
-  case mmioFOURCC('M', 'P', 'G', '4'):
-  case mmioFOURCC('m', 'p', 'g', '4'):
-  case mmioFOURCC('M', 'P', '4', '1'):
-  case mmioFOURCC('m', 'p', '4', '1'):
-  case mmioFOURCC('M', 'P', '4', '2'):
-  case mmioFOURCC('m', 'p', '4', '2'):
-  case mmioFOURCC('D', 'I', 'V', '2'):
-  case mmioFOURCC('d', 'i', 'v', '2'):
-    /* Video in Microsoft MPEG-4 format v1/v2 */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_MSMPEG4_V12;
-    break;
-    
-  case mmioFOURCC('D', 'I', 'V', 'X'):
-  case mmioFOURCC('d', 'i', 'v', 'x'):
-  case mmioFOURCC('D', 'i', 'v', 'x'):
-  case mmioFOURCC('D', 'i', 'v', 'X'):
-    /* Video in mpeg4 (opendivx) format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_MPEG4;
-    break;
-    
-  case mmioFOURCC('d', 'm', 'b', '1'):
-  case mmioFOURCC('M', 'J', 'P', 'G'):
-    /* Video in motion jpeg format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_MJPEG;
-    break;
-    
-  case mmioFOURCC('I', 'V', '5', '0'):
-  case mmioFOURCC('i', 'v', '5', '0'):
-    /* Video in Indeo Video 5.0 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_IV50;
-    break;
-    
-  case mmioFOURCC('I', 'V', '4', '1'):
-  case mmioFOURCC('i', 'v', '4', '1'):
-    /* Video in Indeo Video 4.1 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_IV41;
-    break;
-  case mmioFOURCC('I', 'V', '3', '2'):
-  case mmioFOURCC('i', 'v', '3', '2'):
-    /* Video in Indeo Video 3.2 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_IV32;
-    break;
-    
-  case mmioFOURCC('I', 'V', '3', '1'):
-  case mmioFOURCC('i', 'v', '3', '1'):
-    /* Video in Indeo Video 3.1 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_IV31;
-    break;
-    
-  case mmioFOURCC('c', 'v', 'i', 'd'):
-    /* Video in Cinepak format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_CINEPAK;
-    break;
-  case mmioFOURCC('V', 'C', 'R', '1'):
-    /* Video in ATI VCR1 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_ATIVCR1;
-    break;
-  case mmioFOURCC('V', 'C', 'R', '2'):
-    /* Video in ATI VCR2 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_ATIVCR2;
-    break;
-  case mmioFOURCC('I', '2', '6', '3'):
-  case mmioFOURCC('i', '2', '6', '3'):
-    /* Video in I263 format */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_I263;
-    break;
-  case mmioFOURCC('W','M','V','1'):
-    /* Windows Media Video 7 */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_WMV7;
-    break;
-  case mmioFOURCC('W','M','V','2'):
-    /* Windows Media Video 8 */
-    this->streams[this->num_streams].buf_type     = BUF_VIDEO_WMV8;
-    break;
-  default:
+  if( !this->streams[this->num_streams].buf_type ) {
     printf ("demux_asf: unknown video format %.4s\n",
 	    (char*)&bih->biCompression);
     
@@ -467,7 +379,11 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   this->streams[this->num_streams].stream_id    = stream_id;
   this->streams[this->num_streams].frag_offset  = 0;
 
+  /* 
   printf ("demux_asf: video format : %.4s\n", (char*)&bih->biCompression);
+  */
+  printf ("demux_asf: video format : %s\n", 
+           buf_video_name(this->streams[this->num_streams].buf_type));
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->content = buf->mem;

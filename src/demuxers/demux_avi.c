@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.48 2001/10/30 09:42:26 guenter Exp $
+ * $Id: demux_avi.c,v 1.49 2001/11/07 18:26:36 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -984,97 +984,9 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
   buf->size = sizeof (this->avi->bih);
 
-  switch (str2ulong((void*)&this->avi->bih.biCompression)) {
-
-    case mmioFOURCC('M', 'P', '4', '3'):
-    case mmioFOURCC('m', 'p', '4', '3'):
-    case mmioFOURCC('D', 'I', 'V', '3'):
-    case mmioFOURCC('d', 'i', 'v', '3'):
-    case mmioFOURCC('D', 'I', 'V', '4'):
-    case mmioFOURCC('d', 'i', 'v', '4'):
-    case mmioFOURCC('D', 'I', 'V', '5'):
-    case mmioFOURCC('d', 'i', 'v', '5'):
-    case mmioFOURCC('D', 'I', 'V', '6'):
-    case mmioFOURCC('d', 'i', 'v', '6'):
-      /* Video in Microsoft MPEG-4 format v3 */
-      this->avi->video_type     = BUF_VIDEO_MSMPEG4_V3;
-      break;
-
-    case mmioFOURCC('M', 'P', 'G', '4'):
-    case mmioFOURCC('m', 'p', 'g', '4'):
-    case mmioFOURCC('M', 'P', '4', '1'):
-    case mmioFOURCC('m', 'p', '4', '1'):
-    case mmioFOURCC('M', 'P', '4', '2'):
-    case mmioFOURCC('m', 'p', '4', '2'):
-    case mmioFOURCC('D', 'I', 'V', '2'):
-    case mmioFOURCC('d', 'i', 'v', '2'):
-      /* Video in Microsoft MPEG-4 format v1/v2 */
-      this->avi->video_type     = BUF_VIDEO_MSMPEG4_V12;
-      break;
-
-    case mmioFOURCC('D', 'I', 'V', 'X'):
-    case mmioFOURCC('d', 'i', 'v', 'x'):
-    case mmioFOURCC('D', 'i', 'v', 'x'):
-    case mmioFOURCC('D', 'i', 'v', 'X'):
-      /* Video in mpeg4 (opendivx) format */
-      this->avi->video_type     = BUF_VIDEO_MPEG4;
-      break;
-
-    case mmioFOURCC('d', 'm', 'b', '1'):
-    case mmioFOURCC('M', 'J', 'P', 'G'):
-      /* Video in motion jpeg format */
-      this->avi->video_type     = BUF_VIDEO_MJPEG;
-      break;
-
-    case mmioFOURCC('I', 'V', '5', '0'):
-    case mmioFOURCC('i', 'v', '5', '0'):
-      /* Video in Indeo Video 5.0 format */
-      this->avi->video_type     = BUF_VIDEO_IV50;
-      break;
-
-    case mmioFOURCC('I', 'V', '4', '1'):
-    case mmioFOURCC('i', 'v', '4', '1'):
-      /* Video in Indeo Video 4.1 format */
-      this->avi->video_type     = BUF_VIDEO_IV41;
-      break;
-    case mmioFOURCC('I', 'V', '3', '2'):
-    case mmioFOURCC('i', 'v', '3', '2'):
-      /* Video in Indeo Video 3.2 format */
-      this->avi->video_type     = BUF_VIDEO_IV32;
-      break;
-
-    case mmioFOURCC('I', 'V', '3', '1'):
-    case mmioFOURCC('i', 'v', '3', '1'):
-      /* Video in Indeo Video 3.1 format */
-      this->avi->video_type     = BUF_VIDEO_IV31;
-      break;
-
-    case mmioFOURCC('c', 'v', 'i', 'd'):
-      /* Video in Cinepak format */
-      this->avi->video_type     = BUF_VIDEO_CINEPAK;
-      break;
-    case mmioFOURCC('V', 'C', 'R', '1'):
-      /* Video in ATI VCR1 format */
-      this->avi->video_type     = BUF_VIDEO_ATIVCR1;
-      break;
-    case mmioFOURCC('V', 'C', 'R', '2'):
-      /* Video in ATI VCR2 format */
-      this->avi->video_type     = BUF_VIDEO_ATIVCR2;
-      break;
-    case mmioFOURCC('I', '2', '6', '3'):
-    case mmioFOURCC('i', '2', '6', '3'):
-      /* Video in I263 format */
-      this->avi->video_type     = BUF_VIDEO_I263;
-      break;
-    case mmioFOURCC('W','M','V','1'):
-      /* Windows Media Video 7 */
-      this->avi->video_type     = BUF_VIDEO_WMV7;
-      break;
-    case mmioFOURCC('W','M','V','2'):
-      /* Windows Media Video 8 */
-      this->avi->video_type     = BUF_VIDEO_WMV8;
-      break;
-    default:
+  this->avi->video_type = fourcc_to_buf_video((void*)&this->avi->bih.biCompression);
+  
+  if ( !this->avi->video_type ) {
       printf ("demux_avi: unknown avi format %.4s\n",
 	      (char*)&this->avi->bih.biCompression);
 
@@ -1082,6 +994,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       return;
   }
   buf->type = this->avi->video_type;
+  printf ("demux_avi: video codec >%s<\n",buf_video_name(buf->type));
 
   this->video_fifo->put (this->video_fifo, buf);
 

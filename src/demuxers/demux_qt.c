@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.9 2001/10/25 00:47:00 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.10 2001/11/07 18:26:36 miguelfreitas Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -4148,36 +4148,19 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
 
   this->video_step = 90000.0 / quicktime_frame_rate (this->qt, 0);
 
-  if (!strncasecmp (video, "cvid", 4)) {
-    this->video_type = BUF_VIDEO_CINEPAK;
-
+  this->video_type = fourcc_to_buf_video( video );
+  
+  if (this->video_type == BUF_VIDEO_CINEPAK) {
     this->bih.biCompression=mmioFOURCC('c', 'v', 'i', 'd');
-
-  }  else if (!strncasecmp (video, "jpeg", 4))
-    this->video_type = BUF_VIDEO_JPEG;
-  else if (!strncasecmp (video, "3IV1", 4))
-    this->video_type = BUF_VIDEO_MSMPEG4_V3;
-  else if (!strncasecmp (video, "raw ", 4))
-    this->video_type = BUF_VIDEO_RGB;
-  else if (!strncasecmp (video, "yuv2", 4))
-    this->video_type = BUF_VIDEO_YUY2;
-  else if (!strncasecmp (video, "mpeg", 4))
-    this->video_type = BUF_VIDEO_MPEG;
-  else if (!strncasecmp (video, "mjpa", 4))
-    this->video_type = BUF_VIDEO_MJPEG;
-  else if (!strncasecmp (video, "mjpb", 4))
-    this->video_type = BUF_VIDEO_MJPEG;
-  else if (!strncasecmp (video, "svq1", 4))
-    this->video_type = BUF_VIDEO_SORENSON;
-  else if (!strncasecmp (video, "svqi", 4))
-    this->video_type = BUF_VIDEO_SORENSON;
-  else {
-    printf ("demux_qt: unknown video codec >%s<\n",
-	    video);
+  }
+    
+  if (!this->video_type ) {
+    printf ("demux_qt: unknown video codec >%s<\n",video);
     return 0;
   }
-
-
+  
+  printf ("demux_qt: video codec >%s<\n",buf_video_name(this->video_type));
+  
   audio = quicktime_audio_compressor (this->qt, 0);
 
   this->wavex.nChannels       = quicktime_track_channels (this->qt, 0);

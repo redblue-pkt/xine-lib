@@ -8,7 +8,7 @@ CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@
 lib_LTLIBRARIES = libxine.la
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
-	load_plugins.c video_decoder.c \
+	load_plugins.c video_decoder.c buffer_types.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) -lm 
 

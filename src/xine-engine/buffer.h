@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.20 2001/11/06 21:46:05 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.21 2001/11/07 18:26:36 miguelfreitas Exp $
  *
  *
  * contents:
@@ -191,6 +191,11 @@ struct fifo_buffer_s
  */
 
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
+
+
+/* provide BUF_VIDEO_xxx given the fourcc */
+uint32_t fourcc_to_buf_video( void * fourcc );
+char * buf_video_name( uint32_t buf_type );
 
 #ifdef __cplusplus
 }
