@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.36 2002/07/08 16:35:33 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.37 2002/07/08 17:07:18 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -127,7 +127,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   const char *confstr;
   int dashpos, encoder, confnum;
   static char *available_encoders[SUPPORTED_ENCODER_COUNT + 2];
-  static char *videoout_modes[] = { "tv", "overlay", NULL };
+  static char *videoout_modes[] = { "letterboxed tv", "widescreen tv", "overlay", NULL };
   static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
 
   this = (dxr3_driver_t *)malloc(sizeof(dxr3_driver_t));
@@ -262,11 +262,19 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   printf("video_out_dxr3: overlaymode = %s\n", videoout_modes[confnum]);
 #endif
   switch (confnum) {
-  case 0: /* tv mode */
+  case 0: /* letterboxed tv mode */
     this->overlay_enabled = 0;
     this->tv_switchable = 0;  /* don't allow on-the-fly switching */
+    this->widescreen_enabled = 0;
     break;
-  case 1: /* overlay mode */
+  case 1: /* widescreen tv mode */
+    this->overlay_enabled = 0;
+    this->tv_switchable = 0;  /* don't allow on-the-fly switching */
+    /* switch to fullscreen mode for ever, let the tv set do the anamorphic unsqueezing */
+    dxr3_set_property(&this->vo_driver, VO_PROP_ASPECT_RATIO, ASPECT_FULL);
+    this->widescreen_enabled = 1;
+    break;
+  case 2: /* overlay mode */
 #if LOG_VID
     printf("video_out_dxr3: setting up overlay mode\n");
 #endif
@@ -274,6 +282,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
     if (dxr3_overlay_read_state(&this->overlay) == 0) {
       this->overlay_enabled = 1;
       this->tv_switchable = 1;
+      this->widescreen_enabled = 0;
       confstr = config->register_string(config, "dxr3.keycolor", "0x80a040",
         _("Dxr3: overlay colorkey value"), NULL, NULL, NULL);
       sscanf(confstr, "%x", &this->overlay.colorkey);
@@ -285,6 +294,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       printf("video_out_dxr3: please run autocal, overlay disabled\n");
       this->overlay_enabled = 0;
       this->tv_switchable = 0;
+      this->widescreen_enabled = 0;
     }
   }
   
@@ -686,6 +696,11 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     if (value > ASPECT_FULL) value = ASPECT_ANAMORPHIC;
     this->aspect = value;
     if (this->pan_scan) break;
+    if (this->widescreen_enabled) {
+      /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
+       * can switch to 16:9 mode. I don't know if the dxr3 can do this. */
+      break;
+    }
     fullscreen = this->overlay_enabled ? is_fullscreen(this) : 0;
     
     if (value == ASPECT_ANAMORPHIC) {
@@ -719,10 +734,15 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
 #if LOG_VID
         printf("video_out_dxr3: enabling 16:9 zoom\n");
 #endif
-        val = EM8300_ASPECTRATIO_4_3;
-        if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-          printf("video_out_dxr3: failed to set aspect ratio (%s)\n", strerror(errno));
-        dxr3_zoomTV(this);
+        if (!this->widescreen_enabled) {
+          val = EM8300_ASPECTRATIO_4_3;
+          if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
+            printf("video_out_dxr3: failed to set aspect ratio (%s)\n", strerror(errno));
+          dxr3_zoomTV(this);
+        } else {
+          /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
+           * can switch to 16:9 mode. I don't know if the dxr3 can do this. */
+        }
         this->pan_scan = 1;
       } else if (value == -1) {
 #if LOG_VID
