@@ -412,7 +412,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
     return;
   }
 
- event.type = XINE_EVENT_PIDS_CHANGE;
+  event.type = XINE_EVENT_PIDS_CHANGE;
   data.vpid = this->channels[this->channel].vpid;
   data.apid = this->channels[this->channel].apid;
   event.data = &data;
@@ -434,7 +434,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
   event.data_length = sizeof(ui_data);
   xine_event_send(this->stream, &event);
 
-  lprintf ("input_dvb: ui title event sent\n");
+  lprintf ("ui title event sent\n");
   
   this->fd = open (DVR_DEVICE, O_RDONLY);
 
@@ -895,8 +895,9 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   this->channels = channels;
   this->num_channels = num_channels;
 
-  if ( sscanf (this->mrl, "dvb://%d", &this->channel) != 1)
-    this->channel = 0;
+  if ( sscanf (this->mrl, "dvb:/%d", &this->channel) != 1)
+    if ( sscanf (this->mrl, "dvb://%d", &this->channel) != 1)
+      this->channel = 0;
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: tuner_set_channel failed\n"));
