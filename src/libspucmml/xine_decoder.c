@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2004/09/09 06:38:45 athp Exp $
+ * $Id: xine_decoder.c,v 1.3 2004/09/12 09:29:28 f1rmb Exp $
  *
  */
 
@@ -280,22 +280,23 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
         if (title)
         {
+          xine_ui_data_t data;
           /* found a non-empty title */
           lprintf ("found title: \"%s\"\n", title);
-          xine_ui_data_t data;
 
           /* set xine meta-info */
           _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, strdup(title));
-          uevent.type = XINE_EVENT_UI_SET_TITLE;
-          uevent.stream = this->stream;
-          uevent.data = &data;
-          uevent.data_length = sizeof(data);
 
           /* and push out a new event signifying the title update on the event
            * queue */
           title_len = strlen(title) + 1;
           memcpy(data.str, title, title_len);
           data.str_len = title_len;
+
+          uevent.type = XINE_EVENT_UI_SET_TITLE;
+          uevent.stream = this->stream;
+          uevent.data = &data;
+          uevent.data_length = sizeof(data);
           xine_event_send(this->stream, &uevent);
         }
       }
