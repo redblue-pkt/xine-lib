@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.74 2003/04/13 22:18:49 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.75 2003/04/14 00:13:36 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -968,6 +968,10 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	continue;
       }
 
+      if (this->buf_flag_seek)
+        if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) continue;
+	
+
       if (!this->ignore_keyframes && this->keyframe_needed) {
 #ifdef LOG
 	printf ("demux_ogg: keyframe needed... buf_type=%08x\n", this->buf_types[stream_num]); 
@@ -983,16 +987,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	  this->keyframe_needed = 0;
 	} else continue;
       }
-
-      if (!this->buf_flag_seek)
-	send_ogg_buf (this, &op, stream_num, 0);
-      else
-	if ((op.granulepos!=-1) || (this->header_granulepos[stream_num]!=-1))
-	  send_ogg_buf (this, &op, stream_num, 0);
-#ifdef LOG
-	else
-	  printf ("demux_ogg: overreading packets until we will find an granulepos\n");
-#endif
+      send_ogg_buf (this, &op, stream_num, 0);
     }
   }
 }
