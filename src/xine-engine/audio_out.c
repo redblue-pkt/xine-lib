@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.85 2002/11/30 22:09:42 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.86 2002/12/01 01:32:47 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -341,7 +341,8 @@ static void audio_filter_compress (xine_audio_port_t *this, int16_t *mem, int nu
     
     if (this->compression_factor > this->compression_factor_max)
       this->compression_factor = this->compression_factor_max;
-  }
+  } else
+    f_max = 1.0;
   
 #ifdef LOG
   printf ("audio_out: max=%d f_max=%f compression_factor=%f\n", 
@@ -350,8 +351,12 @@ static void audio_filter_compress (xine_audio_port_t *this, int16_t *mem, int nu
     
   /* apply it */
 
-  for (i=0; i<num_frames*num_channels; i++) 
-    mem [i] = mem[i] * this->compression_factor;
+  for (i=0; i<num_frames*num_channels; i++) {
+
+    /* 0.98 to avoid overflow */
+
+    mem[i] = mem[i] * 0.98 * this->compression_factor;
+  }
 }
 
 static audio_buffer_t* prepare_samples( xine_audio_port_t  *this, audio_buffer_t *buf) {
