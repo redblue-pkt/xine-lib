@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.16 2002/01/13 21:21:05 jcdutton Exp $
+ * $Id: configfile.c,v 1.17 2002/01/13 23:08:27 jcdutton Exp $
  *
  * config file management - implementation
  *
@@ -559,7 +559,9 @@ static void config_file_read (config_values_t *this, char *filename){
 
 config_values_t *config_file_init (char *filename) {
 
+#ifdef HAVE_IRIXAL
   volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
+#endif
   config_values_t *this;
 
   if ( (this = xine_xmalloc(sizeof(config_values_t))) ) {
@@ -592,6 +594,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.17  2002/01/13 23:08:27  jcdutton
+ * Fix another compiler warning.
+ *
  * Revision 1.16  2002/01/13 21:21:05  jcdutton
  * Undo last change.
  *
