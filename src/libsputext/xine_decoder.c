@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.27 2002/06/12 12:22:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.28 2002/06/21 18:11:04 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -66,6 +66,14 @@ typedef struct {
 } subtitle_t;
 
 
+typedef enum {
+  SUBTITLE_SIZE_SMALL = 0,
+  SUBTITLE_SIZE_NORMAL,
+  SUBTITLE_SIZE_LARGE,
+
+  SUBTITLE_SIZE_NUM        /* number of values in enum */
+} subtitle_size;
+
 typedef struct sputext_decoder_s {
   spu_decoder_t      spu_decoder;
 
@@ -79,6 +87,7 @@ typedef struct sputext_decoder_s {
   float              mpsub_position;  
 
   int                width;          /* frame width                */
+  int                height;         /* frame height               */
   int                font_size;
   int                line_height;
   int                uses_time;  
@@ -95,6 +104,7 @@ typedef struct sputext_decoder_s {
   char              *src_encoding;
   char              *dst_encoding;
 
+  subtitle_size     subtitle_size;
 } sputext_decoder_t;
 
 #define FORMAT_MICRODVD  0
@@ -768,43 +778,53 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
 }
 
+static void update_font_size (sputext_decoder_t *this) {
+  static int sizes[SUBTITLE_SIZE_NUM][4] = {
+    { 16, 16, 16, 20 }, /* SUBTITLE_SIZE_SMALL  */
+    { 16, 16, 20, 24 }, /* SUBTITLE_SIZE_NORMAL */
+    { 16, 20, 24, 32 }, /* SUBTITLE_SIZE_LARGE  */
+  };
+
+  int *vec = sizes[this->subtitle_size];
+  int y;
+
+  if( this->width >= 512 )
+    this->font_size = vec[3];
+  else if( this->width >= 384 )
+    this->font_size = vec[2];
+  else if( this->width >= 320 )
+    this->font_size = vec[1];
+  else
+    this->font_size = vec[0];
+  
+  this->line_height = this->font_size + 10;
+
+  y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
+  
+  if( this->osd )
+    this->renderer->free_object (this->osd);
+
+  this->osd = this->renderer->new_object (this->renderer, 
+					  this->width,
+					  SUB_MAX_TEXT * this->line_height);
+
+  this->renderer->set_font (this->osd, this->font, this->font_size);
+  this->renderer->set_position (this->osd, 0, y);
+}
+
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
   int64_t current_time;
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    this->width  = buf->decoder_info[1];
+    this->height = buf->decoder_info[2];
 
-    int y;
-
-    this->width = buf->decoder_info[1];
-
-    /* trying to make better sized fonts... 
-       another idea would be changing font size just
-       if we detect the text line wont fit.
-    */
-    this->font_size = 16;
-    if( this->width >= 320 ) 
-      this->font_size = 20;
-    if( this->width >= 384 )
-      this->font_size = 24;
-    if( this->width >= 512 )
-      this->font_size = 32;
-    this->line_height = this->font_size + 10;
-    
     this->renderer = this->xine->osd_renderer;
-    this->osd = this->renderer->new_object (this->renderer, 
-					    this->width,
-					    SUB_MAX_TEXT * this->line_height);
+    this->osd = NULL;
 
-     
-    this->renderer->set_font (this->osd, this->font, this->font_size);
-
-    y = buf->decoder_info[2] - (SUB_MAX_TEXT * this->line_height) - 5;
-
-    this->renderer->set_position (this->osd, 0, y); 
-
-    /*  this->renderer->render_text (this->osd, 0, 0, "sputext decoder", OSD_TEXT1); */
+    update_font_size (this);
     
     current_time = this->xine->metronom->get_current_time (this->xine->metronom);
     this->renderer->show (this->osd, current_time);
@@ -881,7 +901,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 	return;
 
 #ifdef LOG
-      printf ("sputext: found >%s<, start %d, end %d\n", this->subtitles[this->cur].text[0],
+      printf ("sputext: found >%s<, start %ld, end %ld\n", this->subtitles[this->cur].text[0],
 	      this->subtitles[this->cur].start, this->subtitles[this->cur].end);
 #endif
 
@@ -993,6 +1013,15 @@ static void update_osd_dst_encoding(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_dst_encoding = %s\n", this->dst_encoding );
 }
 
+static void update_subtitle_size(void *this_gen, cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->subtitle_size = entry->num_value;
+
+  update_font_size (this_gen);
+}
+
 static void spudec_dispose (spu_decoder_t *this_gen) {
   free (this_gen);
 }
@@ -1000,6 +1029,13 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
+  static char *subtitle_size_strings[SUBTITLE_SIZE_NUM] = { NULL };
+
+  if (!subtitle_size_strings[0]) {
+    subtitle_size_strings[SUBTITLE_SIZE_SMALL]  = _("Small");
+    subtitle_size_strings[SUBTITLE_SIZE_NORMAL] = _("Normal");
+    subtitle_size_strings[SUBTITLE_SIZE_LARGE]  = _("Large");
+  }
 
   if (iface_version != 8) {
     printf(_("libsputext: doesn't support plugin api version %d.\n"
@@ -1026,6 +1062,12 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"sans", 
 									_("font for avi subtitles"), 
 									NULL, update_osd_font, this);
+  this->subtitle_size                    = xine->config->register_enum(xine->config, 
+								       "codec.spu_subtitle_size", 
+								       1,
+								       subtitle_size_strings,
+								       _("subtitle size (relative window size)"), 
+								       NULL, update_subtitle_size, this);
   this->src_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_src_encoding", 
 									"windows-1250", 
