@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.147 2002/08/01 22:30:55 miguelfreitas Exp $
+ * $Id: xine.c,v 1.148 2002/08/29 22:48:00 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -618,7 +618,6 @@ xine_t *xine_init (vo_driver_t *vo,
   
 #ifdef ENABLE_NLS
   bindtextdomain("xine-lib", XINE_LOCALEDIR);
-  textdomain("xine-lib");
 #endif 
   
   printf ("xine: xine_init entered\n");
