@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.276 2003/12/14 12:20:17 f1rmb Exp $
+ * $Id: xine.c,v 1.277 2003/12/14 12:31:27 f1rmb Exp $
  */
 
 /*
@@ -1152,7 +1152,6 @@ void xine_exit (xine_t *this) {
   WSACleanup();
 #endif
   
-  pthread_mutex_destroy (&this->streams_lock);
   pthread_mutex_destroy(&this->streams_lock);
   
   free (this);
