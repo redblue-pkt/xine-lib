@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.114 2003/04/26 20:16:10 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.115 2003/04/27 11:56:13 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -991,6 +991,18 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
        * look for mpeg header
        */
       
+      
+      if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
+	  && (buf[3] == 0xba)) /* if so, take it */
+	break;
+
+      free (this);
+      return NULL;
+    }
+
+    input->seek(input, 0, SEEK_SET);
+    if (input->read(input, buf, 16) == 16) {
+
       if(!buf[0] && !buf[1] && (buf[2] == 0x01)) {
 
 	switch(buf[3]) {
