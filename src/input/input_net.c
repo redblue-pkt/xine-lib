@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.49 2003/05/20 20:49:12 tchamp Exp $
+ * $Id: input_net.c,v 1.50 2003/06/19 14:48:23 guenter Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -61,23 +61,6 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-
-#ifdef __GNUC__
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                   \
-    printf(message, ##args);                                         \
-  }
-#elif defined (WIN32)
-#define LOG_MSG(xine, message, args) {                               \
-    xine_log(xine, XINE_LOG_MSG, message, #args);                    \
-    printf(message, #args);                                          \
-  }
-#else
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                       \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 /*
 #define LOG
@@ -128,7 +111,8 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 
   s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s==-1) {
-    LOG_MSG(xine, _("input_net: socket(): %s\n"), strerror(errno));
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: socket(): %s\n"), strerror(errno));
     return -1;
   }
 
@@ -142,7 +126,8 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif
   {
-    LOG_MSG (xine, _("input_net: connect(): %s\n"), strerror(errno));
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: connect(): %s\n"), strerror(errno));
     close(s);
     return -1;
   }	
@@ -157,7 +142,8 @@ static int host_connect(const char *host, int port, xine_t *xine) {
 	
   h = gethostbyname(host);
   if (h==NULL) {
-    LOG_MSG (xine, _("input_net: unable to resolve '%s'.\n"), host);
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: unable to resolve '%s'.\n"), host);
     return -1;
   }
 	
@@ -169,7 +155,8 @@ static int host_connect(const char *host, int port, xine_t *xine) {
       return s;
   }
 
-  LOG_MSG (xine, _("input_net: unable to connect to '%s'.\n"), host);
+  xine_log (xine, XINE_LOG_MSG,
+	    _("input_net: unable to connect to '%s'.\n"), host);
   return -1;
 }
 
@@ -209,7 +196,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 #endif
   
     if (n < 0) {
-      xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+      xine_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
       return 0;
     }
 
