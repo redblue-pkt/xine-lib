@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.63 2002/11/22 18:06:09 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.64 2002/12/06 01:33:01 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -75,7 +75,7 @@ static vo_info_t   vo_info_dxr3 = {
 
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 12, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
+  { PLUGIN_VIDEO_OUT, 13, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -463,6 +463,8 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
   dxr3_driver_t *this = (dxr3_driver_t *)frame_gen->driver;
   
+  frame_gen->copy_called = 1;
+
   if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_frame_copy)
     this->enc->on_frame_copy(this, frame, src);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.18 2002/11/20 11:57:48 mroi Exp $
+ * $Id: video_out_fb.c,v 1.19 2002/12/06 01:33:01 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -127,6 +127,8 @@ static uint32_t fb_get_capabilities (vo_driver_t *this_gen) {
 
 static void fb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
+  
+  vo_img->copy_called = 1;
 
   if (frame->format == XINE_IMGFMT_YV12) {
     frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,

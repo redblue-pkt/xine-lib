@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.15 2002/11/22 18:06:22 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.16 2002/12/06 01:33:01 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -796,6 +796,6 @@ static vo_info_t vo_info_vidix = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 12, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
+  { PLUGIN_VIDEO_OUT, 13, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
