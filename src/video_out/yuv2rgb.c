@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.12 2001/08/18 23:30:51 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.13 2001/08/23 11:27:35 jkeil Exp $
  */
 
 #include "config.h"
@@ -898,7 +898,7 @@ static int div_round (int dividend, int divisor)
     return -((-dividend + (divisor>>1)) / divisor);
 }
 
-static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode) 
+static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped) 
 {
   int i;
   uint8_t table_Y[1024];
@@ -907,6 +907,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode)
   uint8_t * table_8 = 0;
   int entry_size = 0;
   void *table_r = 0, *table_g = 0, *table_b = 0;
+  int shift_r = 0, shift_g = 0, shift_b = 0;
 
   int crv = Inverse_Table_6_9[this->matrix_coefficients][0];
   int cbu = Inverse_Table_6_9[this->matrix_coefficients][1];
@@ -931,14 +932,24 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode)
     table_b = table_32 + 197 + 685;
     table_g = table_32 + 197 + 2*682;
 
+    if (swapped) {
+      switch (mode) {
+      case MODE_32_RGB: shift_r =  8; shift_g = 16; shift_b = 24; break;
+      case MODE_32_BGR:	shift_r = 24; shift_g = 16; shift_b =  8; break;
+      }
+    } else {
+      switch (mode) {
+      case MODE_32_RGB:	shift_r = 16; shift_g =  8; shift_b =  0; break;
+      case MODE_32_BGR:	shift_r =  0; shift_g =  8; shift_b = 16; break;
+      }
+    }
+
     for (i = -197; i < 256+197; i++)
-      ((uint32_t *) table_r)[i] =
-	table_Y[i+384] << ((mode==MODE_32_RGB) ? 16 : 0);
+      ((uint32_t *) table_r)[i] = table_Y[i+384] << shift_r;
     for (i = -132; i < 256+132; i++)
-      ((uint32_t *) table_g)[i] = table_Y[i+384] << 8;
+      ((uint32_t *) table_g)[i] = table_Y[i+384] << shift_g;
     for (i = -232; i < 256+232; i++)
-      ((uint32_t *) table_b)[i] =
-	table_Y[i+384] << ((mode==MODE_32_RGB) ? 0 : 16);
+      ((uint32_t *) table_b)[i] = table_Y[i+384] << shift_b;
     break;
 
   case MODE_24_RGB:
@@ -963,31 +974,35 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode)
     table_b = table_16 + 197 + 685;
     table_g = table_16 + 197 + 2*682;
 
-    for (i = -197; i < 256+197; i++) {
-      int j = table_Y[i+384] >> 3;
-
-      if (mode == MODE_16_RGB)
-	j <<= 11; 
-      else if (mode == MODE_15_RGB) 
-	j <<= 10;
-
-      ((uint16_t *)table_r)[i] = j;
+    if (swapped) {
+      switch (mode) {
+      case MODE_15_BGR: shift_r =  8; shift_g =  5; shift_b = 2; break;
+      case MODE_16_BGR:	shift_r =  8; shift_g =  5; shift_b = 3; break;
+      case MODE_15_RGB:	shift_r =  2; shift_g =  5; shift_b = 8; break;
+      case MODE_16_RGB:	shift_r =  3; shift_g =  5; shift_b = 8; break;
+      }
+    } else {
+      switch (mode) {
+      case MODE_15_BGR:	shift_r =  0; shift_g =  5; shift_b = 10; break;
+      case MODE_16_BGR:	shift_r =  0; shift_g =  5; shift_b = 11; break;
+      case MODE_15_RGB:	shift_r = 10; shift_g =  5; shift_b =  0; break;
+      case MODE_16_RGB:	shift_r = 11; shift_g =  5; shift_b =  0; break;
+      }
     }
+
+    for (i = -197; i < 256+197; i++)
+      ((uint16_t *)table_r)[i] = (table_Y[i+384] >> 3) << shift_r;
+
     for (i = -132; i < 256+132; i++) {
       int j = table_Y[i+384] >> (((mode==MODE_16_RGB) || (mode==MODE_16_BGR)) ? 2 : 3);
-
-      ((uint16_t *)table_g)[i] = j << 5;
+      if (swapped)
+	((uint16_t *)table_g)[i] = (j&7) << 13 | (j>>3);
+      else
+	((uint16_t *)table_g)[i] = j << 5;
     }
-    for (i = -232; i < 256+232; i++) {
-      int j = table_Y[i+384] >> 3;
+    for (i = -232; i < 256+232; i++)
+      ((uint16_t *)table_b)[i] = (table_Y[i+384] >> 3) << shift_b;
 
-      if (mode == MODE_16_BGR)
-	j <<= 11;
-      if (mode == MODE_15_BGR)
-	j <<= 10;
-
-      ((uint16_t *)table_b)[i] = j;
-    }
     break;
 
   case MODE_PALETTE:
@@ -1012,7 +1027,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode)
   }
 }
 
-static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
+static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
 {  
   switch (mode) {
   case MODE_32_RGB:
@@ -1022,7 +1037,10 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuv2rgb_c_24_rgb : yuv2rgb_c_24_bgr;
+    this->yuv2rgb_fun =
+	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped) 
+	    ? yuv2rgb_c_24_rgb
+	    : yuv2rgb_c_24_bgr;
     break;
 
   case MODE_15_BGR:
@@ -1345,7 +1363,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
   }
 }
 
-static void yuy22rgb_c_init (yuv2rgb_t *this, int mode)
+static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
 {  
   switch (mode) {
   case MODE_32_RGB:
@@ -1355,7 +1373,10 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode)
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    this->yuy22rgb_fun = (mode==MODE_24_RGB) ? yuy22rgb_c_24_rgb : yuy22rgb_c_24_bgr;
+    this->yuy22rgb_fun =
+	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
+	    ? yuy22rgb_c_24_rgb 
+	    : yuy22rgb_c_24_bgr;
     break;
   case MODE_15_BGR:
   case MODE_16_BGR:
@@ -1369,7 +1390,7 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode)
   }
 }
 
-yuv2rgb_t *yuv2rgb_init (int mode) {
+yuv2rgb_t *yuv2rgb_init (int mode, int swapped) {
 
 #ifdef ARCH_X86
   uint32_t mm = mm_accel();
@@ -1383,7 +1404,7 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
   this->u_chunk = this->u_buffer = NULL;
   this->v_chunk = this->v_buffer = NULL;
 
-  yuv2rgb_setup_tables(this, mode);
+  yuv2rgb_setup_tables(this, mode, swapped);
 
   /*
    * auto-probe for the best yuv2rgb function
@@ -1392,26 +1413,26 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
   this->yuv2rgb_fun = NULL;
 #ifdef ARCH_X86
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
-    yuv2rgb_init_mmxext (this, mode);
+    yuv2rgb_init_mmxext (this, mode, swapped);
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using MMXEXT for colorspace transform\n");
   }
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
-    yuv2rgb_init_mmx (this, mode);
+    yuv2rgb_init_mmx (this, mode, swapped);
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using MMX for colorspace transform\n"); 
   }
 #endif
 #if HAVE_MLIB
   if (this->yuv2rgb_fun == NULL) {
-    yuv2rgb_init_mlib (this, mode);
+    yuv2rgb_init_mlib (this, mode, swapped);
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using medialib for colorspace transform\n"); 
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {
     printf ("yuv2rgb: no accelerated colorspace conversion found\n");
-    yuv2rgb_c_init (this, mode);
+    yuv2rgb_c_init (this, mode, swapped);
   }
 
   /*
@@ -1419,7 +1440,7 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
    */
 
   /* FIXME: implement mmx/mlib functions */
-  yuy22rgb_c_init (this, mode);
+  yuy22rgb_c_init (this, mode, swapped);
 
   return this;
 }

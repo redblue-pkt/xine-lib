@@ -57,7 +57,7 @@ struct yuv2rgb_s {
 
 
 /* call once on startup */
-yuv2rgb_t *yuv2rgb_init (int mode);
+yuv2rgb_t *yuv2rgb_init (int mode, int swapped);
 
 /*
  * set up yuv2rgb function, determine scaling parameters if necessary
@@ -73,9 +73,9 @@ int yuv2rgb_setup (yuv2rgb_t *this,
  * internal stuff below this line
  */
 
-void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode);
-void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode);
-void yuv2rgb_init_mlib (yuv2rgb_t *this, int mode);
+void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode, int swapped);
+void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode, int swapped);
+void yuv2rgb_init_mlib (yuv2rgb_t *this, int mode, int swapped);
 
 /*
 void Color565DitherYV12MMX1X(unsigned char *lum, unsigned char *cr,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.26 2001/08/18 23:30:51 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.27 2001/08/23 11:27:35 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -92,7 +92,7 @@ typedef struct xshm_driver_s {
   XColor           black;
   int              use_shm;
   int              zoom_mpeg1;
-  int              depth, bpp, bytes_per_pixel;
+  int              depth, bpp, bytes_per_pixel, byte_order;
   int              expecting_event;
 
   yuv2rgb_t       *yuv2rgb;
@@ -220,6 +220,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
   
     this->bpp = myimage->bits_per_pixel;
     this->bytes_per_pixel = this->bpp / 8;
+    this->byte_order = myimage->byte_order;
     
     shminfo->shmid=shmget(IPC_PRIVATE, 
 			  myimage->bytes_per_line * myimage->height, 
@@ -291,6 +292,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 
     this->bpp = myimage->bits_per_pixel;
     this->bytes_per_pixel = this->bpp / 8;
+    this->byte_order = myimage->byte_order;
 
     myimage->data = xmalloc (width * this->bytes_per_pixel * height);
   }
@@ -913,6 +915,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XImage               *myimage;
   XShmSegmentInfo       myshminfo;
   int                   mode;
+  int			swapped;
+  int			cpu_byte_order;
 
   visual = (x11_visual_t *) visual_gen;
   display = visual->display;
@@ -1029,9 +1033,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   mode = 0;
 
-  printf ("video_out_xshm: video mode is %d depth (%d bpp), red: %08lx, green: %08lx, blue: %08lx\n",
-	  this->depth, this->bpp, this->vinfo.red_mask, this->vinfo.green_mask,
-	  this->vinfo.blue_mask);
+  cpu_byte_order = htonl(1) == 1 ? MSBFirst : LSBFirst;
+  swapped = cpu_byte_order != this->byte_order;
+
+  printf ("video_out_xshm: video mode is %d depth (%d bpp), %sswapped, red: %08lx, green: %08lx, blue: %08lx\n",
+	  this->depth, this->bpp,
+	  swapped ? "" : "not ",
+	  this->vinfo.red_mask, this->vinfo.green_mask, this->vinfo.blue_mask);
 
   switch (this->depth) {
   case 24:
@@ -1070,7 +1078,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     return NULL;
   }
 
-  this->yuv2rgb = yuv2rgb_init (mode); 
+  this->yuv2rgb = yuv2rgb_init (mode, swapped); 
 
   return &this->vo_driver;
 }

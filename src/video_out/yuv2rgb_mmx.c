@@ -984,8 +984,10 @@ static void mmx_abgr32 (yuv2rgb_t *this, uint8_t * image,
     emms();	/* re-initialize x86 FPU after MMX use */
 }
 
-void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
+void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode, int swapped)
 {
+  if (swapped) return; /*no swapped pixel output upto now*/
+
   switch (mode) {
   case MODE_15_RGB:
     this->yuv2rgb_fun = mmxext_rgb15;
@@ -1005,8 +1007,10 @@ void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
   }
 }
 
-void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode)
+void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode, int swapped)
 {
+  if (swapped) return; /*no swapped pixel output upto now*/
+
   switch (mode) {
   case MODE_15_RGB:
     this->yuv2rgb_fun = mmx_rgb15;
