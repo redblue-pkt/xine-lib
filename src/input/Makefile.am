@@ -22,7 +22,7 @@ endif
 
 lib_LTLIBRARIES = xineplug_inp_file.la $(in_dvd) $(in_vcd) $(in_cda) \
 	xineplug_inp_stdin_fifo.la xineplug_inp_net.la \
-	xineplug_inp_rtp.la xineplug_inp_http.la
+	xineplug_inp_rtp.la xineplug_inp_http.la xineplug_inp_mms.la
 
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
@@ -32,6 +32,9 @@ xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_net_la_SOURCES = input_net.c strict_scr.c
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module
+
+xineplug_inp_mms_la_SOURCES = input_mms.c strict_scr.c mms.c asxparser.c
+xineplug_inp_mms_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_vcd_la_SOURCES = input_vcd.c
 xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
@@ -49,7 +52,7 @@ xineplug_inp_cda_la_SOURCES = input_cda.c
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = dvd_udf.h read_cache.h strict_scr.h
+noinst_HEADERS = dvd_udf.h read_cache.h strict_scr.h mms.h
 
 EXTRA_DIST = input_dvd.c dvd_udf.c input_vcd.c read_cache.c
 
