@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: dvdnav.h,v 1.2 2002/08/08 21:55:54 richwareham Exp $
  *
  */
 
@@ -40,7 +40,7 @@ extern "C" {
 /* Various useful types */
 #include "dvd_types.h"
 
-#include <dvdread/dvd_reader.h>
+#include <dvd_reader.h>
 
 /**
  * Opaque data-type can be viewed as a 'DVD handle'. You should get

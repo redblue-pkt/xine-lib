@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: vm.c,v 1.2 2002/08/08 21:55:54 richwareham Exp $
  *
  */
 
@@ -34,8 +34,8 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include <dvdread/ifo_types.h>
-#include <dvdread/ifo_read.h>
+#include <ifo_types.h>
+#include <ifo_read.h>
 
 #include "decoder.h"
 #include "vmcmd.h"
@@ -1798,6 +1798,9 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.2  2002/08/08 21:55:54  richwareham
+ * Changed loads of #include <dvdread/...> to #include <...>
+ *
  * Revision 1.1  2002/08/08 17:49:21  richwareham
  * First stage of DVD plugin -> dvdnav conversion
  *

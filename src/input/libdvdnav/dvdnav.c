@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: dvdnav.c,v 1.2 2002/08/08 21:55:54 richwareham Exp $
  *
  */
 
@@ -34,7 +34,7 @@
 #include "dvdnav_internal.h"
 #include "read_cache.h"
 
-#include <dvdread/nav_read.h>
+#include <nav_read.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -995,6 +995,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.2  2002/08/08 21:55:54  richwareham
+ * Changed loads of #include <dvdread/...> to #include <...>
+ *
  * Revision 1.1  2002/08/08 17:49:21  richwareham
  * First stage of DVD plugin -> dvdnav conversion
  *

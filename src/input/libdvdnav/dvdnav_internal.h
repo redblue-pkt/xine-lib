@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: dvdnav_internal.h,v 1.2 2002/08/08 21:55:54 richwareham Exp $
  *
  */
 
@@ -41,9 +41,9 @@
 
 #undef WORDS_BIGENDIAN
 
-#include <dvdread/dvd_reader.h>
-#include <dvdread/ifo_read.h>
-#include <dvdread/ifo_types.h>
+#include <dvd_reader.h>
+#include <ifo_read.h>
+#include <ifo_types.h>
 
 
 /* Maximum length of an error string */

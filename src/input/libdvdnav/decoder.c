@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: decoder.c,v 1.2 2002/08/08 21:55:54 richwareham Exp $
  *
  */
 
@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>  /* For memset */
-#include <dvdread/ifo_types.h> /* vm_cmd_t */
+#include <ifo_types.h> /* vm_cmd_t */
 #include <assert.h>
 #include "vmcmd.h"
 #include "decoder.h"
