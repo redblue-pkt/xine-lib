@@ -5,8 +5,28 @@
 
      a free video player
 
+---------------
+Build from CVS
+---------------
 
+  1). Run autogen.sh: ./autogen.sh (this will configure xine-lib to install
+      to /usr/local/lib). You can change this location and other flags.
+      Look at ./configure --help for more options.
 
-this directory contains technical documentation and stuff of interest
-for developers. please see the directory "doc/" in the package
-xine-ui for end-user documentation.
+  2). Configure xine-lib running "./configure <configure flags>" if
+      necessary.
+
+  3). Run "make" to start building an optimized version.
+  
+      OR
+  
+      Run "make debug" to start building a debug version.
+
+  4) Run "make install" to install xine-lib to the desired directory.
+     If nothing was done this directory should be /usr/local/lib.
+
+  5) Ensure that the desired directory path, e.g. /usr/local/lib, is
+     in ld.so.conf. If not enter it and re-run ldconfig:
+
+     ldconfig -v
+
