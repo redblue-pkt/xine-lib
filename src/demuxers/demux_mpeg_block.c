@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.169 2003/04/08 18:10:45 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.170 2003/04/23 02:28:01 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -970,10 +970,13 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
       
       if (this->last_cell_time) {
         start_pos = start_time - (this->last_cell_time + this->last_begin_time)/1000;
-        start_pos *= this->rate * 50;
+        start_pos *= this->rate;
+        start_pos *= 50;
         start_pos += this->last_cell_pos;
       } else {
-        start_pos = start_time * this->rate * 50;
+        start_pos = start_time;
+        start_pos *= this->rate;
+        start_pos *= 50;
       }
       start_pos /= (off_t) this->blocksize;
       start_pos *= (off_t) this->blocksize;
