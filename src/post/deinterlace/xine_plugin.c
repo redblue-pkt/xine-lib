@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.12 2003/08/12 13:56:25 mroi Exp $
+ * $Id: xine_plugin.c,v 1.13 2003/08/15 14:43:29 mroi Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -320,9 +320,10 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   post_class_deinterlace_t  *class = (post_class_deinterlace_t *)class_gen;
   post_video_port_t *port;
   
-  if (!this || !input || !output || !video_target || !video_target[0]) {
+  if (!this || !input || !input_api || !output || !video_target || !video_target[0]) {
     free(this);
     free(input);
+    free(input_api);
     free(output);
     return NULL;
   }
@@ -407,6 +408,7 @@ static void deinterlace_dispose(post_plugin_t *this_gen)
   free(this->post.xine_post.audio_input);
   free(this->post.xine_post.video_input);
   free(xine_list_first_content(this->post.input));
+  free(xine_list_next_content(this->post.input));
   free(xine_list_first_content(this->post.output));
   xine_list_free(this->post.input);
   xine_list_free(this->post.output);

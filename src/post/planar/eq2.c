@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.5 2003/08/12 13:56:26 mroi Exp $
+ * $Id: eq2.c,v 1.6 2003/08/15 14:43:30 mroi Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -435,9 +435,10 @@ static post_plugin_t *eq2_open_plugin(post_class_t *class_gen, int inputs,
   vf_eq2_t *eq2;
   int i;
   
-  if (!this || !input || !output || !video_target || !video_target[0]) {
+  if (!this || !input || !input_api || !output || !video_target || !video_target[0]) {
     free(this);
     free(input);
+    free(input_api);
     free(output);
     return NULL;
   }
@@ -537,6 +538,7 @@ static void eq2_dispose(post_plugin_t *this_gen)
   free(this->post.xine_post.audio_input);
   free(this->post.xine_post.video_input);
   free(xine_list_first_content(this->post.input));
+  free(xine_list_next_content(this->post.input));
   free(xine_list_first_content(this->post.output));
   xine_list_free(this->post.input);
   xine_list_free(this->post.output);
