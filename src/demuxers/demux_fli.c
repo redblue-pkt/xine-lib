@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.37 2003/01/23 16:12:02 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.38 2003/02/08 15:49:26 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,10 +42,13 @@
 #include "bswap.h"
 
 #define FLI_HEADER_SIZE 128
+#define FLI_HEADER_SIZE_MC 12  /* header size for Magic Carpet game FLIs */
 #define FLI_FILE_MAGIC_1 0xAF11
 #define FLI_FILE_MAGIC_2 0xAF12
+#define FLI_FILE_MAGIC_3 0xAF13  /* for internal use only */
 #define FLI_CHUNK_MAGIC_1 0xF1FA
 #define FLI_CHUNK_MAGIC_2 0xF5FA
+#define FLI_MC_PTS_INC 6000  /* pts increment for Magic Carpet game FLIs */
 
 typedef struct {
 
@@ -73,6 +76,7 @@ typedef struct {
   unsigned int         speed;
   unsigned int         frame_pts_inc;
   unsigned int         frame_count;
+  int64_t              pts_counter;
 
   char                 last_mrl[1024];
 
@@ -104,11 +108,19 @@ static int open_fli_file(demux_fli_t *this) {
       (this->magic_number != FLI_FILE_MAGIC_2))
     return 0;
 
+  /* check if this is a special FLI file from Magic Carpet game */
+  if (LE_16(&this->fli_header[16]) == FLI_CHUNK_MAGIC_1) {
+    /* use a contrived internal FLI type, 0xAF13 */
+    this->magic_number = FLI_FILE_MAGIC_3;
+    this->fli_header[4] = 0x13;  /* make sure to communicate this to decoder */
+  }
+
   this->frame_count = LE_16(&this->fli_header[6]);
   this->width = LE_16(&this->fli_header[8]);
   this->height = LE_16(&this->fli_header[10]);
+
   this->speed = LE_32(&this->fli_header[16]);
-  if (this->magic_number == 0xAF11) {
+  if (this->magic_number == FLI_FILE_MAGIC_1) {
     /* 
      * in this case, the speed (n) is number of 1/70s ticks between frames:
      *
@@ -119,7 +131,7 @@ static int open_fli_file(demux_fli_t *this) {
      *  therefore, the frame pts increment = n * 1285.7
      */
      this->frame_pts_inc = this->speed * 1285.7;
-  } else {
+  } else if (this->magic_number == FLI_FILE_MAGIC_2) {
     /* 
      * in this case, the speed (n) is number of milliseconds between frames:
      *
@@ -130,6 +142,9 @@ static int open_fli_file(demux_fli_t *this) {
      *  therefore, the frame pts increment = n * 90
      */
      this->frame_pts_inc = this->speed * 90;
+  } else {
+    /* special case for Magic Carpet FLIs which don't carry speed info */
+    this->frame_pts_inc = FLI_MC_PTS_INC;
   }
 
   /* sanity check: the FLI file must have non-zero values for width, height,
@@ -147,7 +162,6 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   unsigned char fli_buf[6];
   unsigned int chunk_size;
   unsigned int chunk_magic;
-  int64_t pts_counter = 0;
   off_t current_file_pos;
 
   current_file_pos = this->input->get_current_pos(this->input);
@@ -169,9 +183,9 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLI;
       buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_time = pts_counter / 90;
+      buf->extra_info->input_time = this->pts_counter / 90;
       buf->extra_info->input_length = this->stream_len;
-      buf->pts = pts_counter;
+      buf->pts = this->pts_counter;
   
       if (chunk_size > buf->max_size)
         buf->size = buf->max_size;
@@ -190,7 +204,7 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
       this->video_fifo->put(this->video_fifo, buf);
     }
-    pts_counter += this->frame_pts_inc;
+    this->pts_counter += this->frame_pts_inc;
   } else
     this->input->seek(this->input, chunk_size, SEEK_CUR);
   
@@ -212,6 +226,8 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = 
+    this->frame_pts_inc;
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
@@ -242,8 +258,13 @@ static int demux_fli_seek (demux_plugin_t *this_gen,
     this->status = DEMUX_OK;
   
     /* make sure to start just after the header */
-    this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
+    if (this->magic_number == FLI_FILE_MAGIC_3)
+      this->input->seek(this->input, FLI_HEADER_SIZE_MC, SEEK_SET);
+    else
+      this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
     this->stream_len = this->input->get_length(this->input);
+
+    this->pts_counter = 0;
   }
   
   return this->status;
