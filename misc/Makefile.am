@@ -10,6 +10,7 @@ EXTRA_DIST = autogen.sh \
 	xine-lib.spec \
 	xine_logo.mpv
 
+datadir = $(XINE_DATADIR)
 data_DATA = xine_logo.mpv
 
 bin_SCRIPTS = xine-config

@@ -70,7 +70,7 @@ AC_ARG_ENABLE(xinetest,
              sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
       xine_config_sub_version=`$XINE_CONFIG $xine_config_args --version | \
              sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
-      xine_skin_dir=`$XINE_CONFIG $xine_config_args --skindir`
+      xine_data_dir=`$XINE_CONFIG $xine_config_args --datadir`
       xine_logo_mrl=`$XINE_CONFIG $xine_config_args --logomrl`
       xine_script_dir=`$XINE_CONFIG $xine_config_args --scriptdir`
       xine_desktop_dir=`$XINE_CONFIG $xine_config_args --desktopdir`

@@ -17,7 +17,7 @@ Options:
         [--libs]
 	[--cflags]
 	[--plugindir]
-	[--skindir]
+	[--datadir]
 	[--logomrl]
 	[--scriptdir]
 	[--desktopdir]
@@ -65,8 +65,8 @@ while test $# -gt 0; do
     --plugindir)
       echo_plugindir=yes
       ;;
-    --skindir)
-      echo_skindir=yes
+    --datadir)
+      echo_datadir=yes
       ;;
     --logomrl)
       echo_logomrl=yes
@@ -105,11 +105,11 @@ fi
 if test "$echo_plugindir" = "yes"; then
       echo "@XINE_PLUGINPATH@"
 fi      
-if test "$echo_skindir" = "yes"; then
-      echo "@XINE_SKINPATH@"
+if test "$echo_datadir" = "yes"; then
+      echo "@XINE_DATADIR@"
 fi      
 if test "$echo_logomrl" = "yes"; then
-      echo "file://@XINE_SKINPATH@/xine_logo.mpv"
+      echo "file://@XINE_DATADIR@/xine_logo.mpv"
 fi      
 if test "$echo_scriptdir" = "yes"; then
       echo "@XINE_SCRIPTPATH@"
