@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.2 2005/01/14 15:36:04 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.3 2005/01/29 18:33:53 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -48,6 +48,8 @@
 #define MPC_DECODER_MEMSIZE  65536
 #define MPC_DECODER_MEMSIZE2 (MPC_DECODER_MEMSIZE/2)
 
+#define INIT_BUFSIZE (MPC_DECODER_MEMSIZE*2)
+
 typedef struct {
   audio_decoder_class_t   decoder_class;
 } mpc_class_t;
@@ -63,7 +65,7 @@ typedef struct mpc_decoder_s {
 
   int              output_open;       /* flag to indicate audio is ready */
 
-  unsigned char    buf[MPC_DECODER_MEMSIZE*2];  /* data accumulation buffer */
+  unsigned char   *buf;              /* data accumulation buffer */
   unsigned int     buf_max;          /* maximum size of buf */
   unsigned int     read;             /* size of accum. data already read */
   unsigned int     size;             /* size of accumulated data in buf */
@@ -209,6 +211,12 @@ static void mpc_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     /* File size is in decoder_info[0] */
     this->file_size = buf->decoder_info[0];
     
+    /* Initialise the data accumulation buffer */
+    this->buf     = xine_xmalloc(INIT_BUFSIZE);
+    this->buf_max = INIT_BUFSIZE;
+    this->read    = 0;
+    this->size    = 0;
+    
     /* Initialise the reader */
     this->reader.read     = mpc_reader_read;
     this->reader.seek     = mpc_reader_seek;
@@ -275,20 +283,20 @@ static void mpc_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     
   /* If we run out of space in our internal buffer we discard what's
    * already been read */
-  if ((this->size + buf->size) > this->buf_max) {
-    lprintf("moving\n");
-    this->size = this->size - this->read;
+  if (((this->size + buf->size) > this->buf_max) && this->read) {
+    lprintf("discarding read data\n");
+    this->size -= this->read;
     memmove(this->buf, &this->buf[this->read], this->size);
     this->read = 0;
   }
   
-  /* If there still isn't space (shouldn't happen) give up */
+  /* If there still isn't space we have to increase the size of the
+   * internal buffer */
   if ((this->size + buf->size) > this->buf_max) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            _("libmusepack: internal buffer exhausted\n"));
-    
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
-    return;
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "libmusepack: increasing internal buffer size\n");
+    this->buf_max += 2*buf->size;
+    this->buf = realloc(this->buf, this->buf_max);
   }
   
   /* Copy data */
@@ -376,6 +384,9 @@ static void mpc_dispose (audio_decoder_t *this_gen) {
   this->output_open = 0;
 
   /* free anything that was allocated during operation */
+  if (this->buf)
+    free(this->buf);
+  
   free(this);
 }
 
@@ -396,16 +407,14 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   /* audio output is not open at the start */
   this->output_open = 0;
+  
+  /* no buffer yet */
+  this->buf = NULL;
 
   /* initialize the basic audio parameters */
   this->channels = 0;
   this->sample_rate = 0;
   this->bits_per_sample = 0;
-
-  /* initialize the data accumulation buffer */
-  this->buf_max = MPC_DECODER_MEMSIZE*2;
-  this->read    = 0;
-  this->size    = 0;
 
   /* return the newly-initialized audio decoder */
   return &this->audio_decoder;
@@ -416,7 +425,7 @@ static char *get_identifier (audio_decoder_class_t *this) {
 }
 
 static char *get_description (audio_decoder_class_t *this) {
-  return "mpc: reference xine audio decoder plugin";
+  return "mpc: musepack audio decoder plugin";
 }
 
 static void dispose_class (audio_decoder_class_t *this_gen) {
