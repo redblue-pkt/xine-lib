@@ -161,7 +161,7 @@ Contributions
     zooming feature for Xv video-out plugin
 
   Matthias Dahl <matthew2k@web.de>
-    rpm .spec file maintainer, syncfb and other patches
+    syncfb video-out plugin, XF86VidMode support, FAQ/README overhaul, bugfixes
 
   Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>
     w32dll audio and xine-ui bugfixes
