@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.22 2004/07/18 00:50:02 tmattern Exp $
+ * $Id: video_decoder.c,v 1.23 2004/07/20 21:38:34 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1049,7 +1049,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       
         img->pts      = this->pts;
         this->pts     = 0;
-        img->duration = this->video_step;
+        
+        if (!this->av_frame->repeat_pict)
+          img->duration = this->video_step;
+        else
+          img->duration = this->video_step * 3 / 2;
 
         this->skipframes = img->draw(img, this->stream);
         if( this->skipframes < 0 )
