@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.6 2001/04/24 15:47:32 guenter Exp $
+ * $Id: xine.c,v 1.7 2001/04/24 21:10:42 guenter Exp $
  *
  * top-level xine functions
  *
@@ -54,17 +54,19 @@
 #include "metronom.h"
 #include "configfile.h"
 #include "monitor.h"
-#include "audio_decoder.h"
+#include "utils.h"
 
 /* debugging purposes only */
 uint32_t   xine_debug;
 
 void xine_notify_stream_finished (xine_t *this) {
-  printf ("xine_notify_stream_finished\n");
+  printf ("xine.c: FIXME xine_notify_stream_finished not implemented\n");
 
+  /*
   xine_stop (this);
 
   this->status_callback (this->status);
+  */
 }
 
 /*
@@ -77,28 +79,27 @@ void xine_stop (xine_t *this) {
   if (!this->cur_input_plugin) 
     return;
   
-  this->mnStatus = XINE_STOP;
+  this->status = XINE_STOP;
   
   if(this->cur_demuxer_plugin) {
-    this->cur_demuxer_plugin->demux_stop ();
+    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
-  // FIXME
-  this->fifo_funcs->fifo_buffer_clear(this->mBufVideo);
-  this->fifo_funcs->fifo_buffer_clear(this->mBufAudio);
-  this->fifo_funcs->fifo_buffer_clear(this->spu_fifo);
+  if(this->cur_input_plugin) {
+    this->cur_input_plugin->close(this->cur_input_plugin);
+    this->cur_input_plugin = NULL;
+  }
 
-  if (gAudioOut)
-    gAudioOut->close ();
+  this->video_fifo->clear(this->video_fifo);
+  this->audio_fifo->clear(this->audio_fifo);
+  this->spu_fifo->clear(this->spu_fifo);
 
-  metronom_reset();
-  metronom_stop_clock ();
+  if (this->audio_out)
+    this->audio_out->close ();
 
-  vo_reset();
-
-  this->cur_input_plugin->close();
-  this->cur_input_plugin = NULL;
+  this->metronom->reset(this->metronom);
+  this->metronom->stop_clock (this->metronom);
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -122,10 +123,11 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 
   while(stages[s] != -1) {
     for(i = 0; i < this->num_demuxer_plugins; i++) {
-      if(this->demuxer_plugins[i].open(this->cur_input_plugin, 
-				       MRL, stages[s]) == DEMUX_CAN_HANDLE) {
+      if(this->demuxer_plugins[i]->open(this->demuxer_plugins[i], 
+					this->cur_input_plugin, 
+					stages[s]) == DEMUX_CAN_HANDLE) {
 	
-	this->cur_demuxer_plugin = &this->demux_plugins[i];
+	this->cur_demuxer_plugin = this->demuxer_plugins[i];
 	
 	xprintf(VERBOSE|DEMUX,"demuxer '%s' handle in stage '%s'.\n", 
 		this->demux_plugins[i].get_identifier(),
@@ -195,12 +197,12 @@ static void xine_play_internal (xine_t *this, char *MRL,
   xprintf (VERBOSE|LOOP, "xine open %s, start pos = %d\n",MRL, spos);
 
   if (this->status == XINE_PAUSE) {
-    xine_pause();
+    xine_pause(this);
     return;
   }
 
   if (this->status != XINE_STOP) {
-    xine_stop ();
+    xine_stop (this);
   }
 
   /*
@@ -210,8 +212,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
   this->cur_input_plugin = NULL;
 
   for (i = 0; i < this->num_input_plugins; i++) {
-    if (this->input_plugins[i].open(MRL)) {
-      this->cur_input_plugin = &this->input_plugins[i];
+    if (this->input_plugins[i]->open(this->input_plugins[i], MRL)) {
+      this->cur_input_plugin = this->input_plugins[i];
       break;
     }
   }
@@ -231,54 +233,46 @@ static void xine_play_internal (xine_t *this, char *MRL,
     return;
   }
   
-  vo_set_logo_mode (0);
-
   /*
    * Init SPU decoder with colour lookup table. 
    */
 
+  /* FIXME
   if(this->cur_input_plugin->get_clut) 
     spudec_init(this->cur_input_plugin->get_clut());
   else 
     spudec_init(NULL);
+  */
 
   /*
    * metronom
    */
 
-  metronom_reset();
+  this->metronom->reset(this->metronom);
 
   /*
    * start demuxer
    */
   
   if (spos) {
-    len = this->cur_input_plugin->get_length ();
+    len = this->cur_input_plugin->get_length (this->cur_input_plugin);
     share = (double) spos / 65535;
     pos = (off_t) (share * len) ;
   }
 
-  this->cur_demuxer_plugin->demux_select_audio_channel (this->audio_channel);
-  this->cur_demuxer_plugin->demux_select_spu_channel (this->spu_channel);
-  this->cur_demuxer_plugin->demux_start (this->cur_input_plugin,
-					 this->mBufVideo, //FIXME
-					 this->mBufAudio, 
-					 this->spu_fifo, pos);
+  this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
+				   this->video_fifo,
+				   this->audio_fifo, 
+				   this->spu_fifo, pos);
   
   this->status = XINE_PLAY;
   this->cur_input_pos = pos;
 
   /*
-   * remember MRL
-   */
-
-  strncpy (this->cur_mrl, MRL, 1024);
-
-  /*
    * start clock
    */
 
-  metronom_start_clock (0);
+  this->metronom->start_clock (this->metronom, 0);
 }
 
 /*
@@ -297,28 +291,19 @@ void xine_play (xine_t *this, char *MRL, int spos) {
 /*
  *
  */
-static int xine_eject (xine_t *this, char *MRL) {
-  int i;
+int xine_eject (xine_t *this) {
+  
+  if(this->cur_input_plugin == NULL) 
+    return 0;
   
   pthread_mutex_lock (&this->xine_lock);
 
-  if(this->cur_input_plugin == NULL) {
-    
-    for (i = 0; i < this->num_input_plugins; i++) {
-      if (this->input_pluginss[i].open(MRL)) {
-	this->cur_input_plugin = &this->input_plugins[i];
-	this->cur_input_plugin->close();
-	break;
-      }
-    }
-  }
-  
-  if (this->status == XINE_STOP
+  if ((this->status == XINE_STOP)
       && this->cur_input_plugin && this->cur_input_plugin->eject_media) {
 
     pthread_mutex_unlock (&this->xine_lock);
 
-    return this->cur_input_plugin->eject_media ();
+    return this->cur_input_plugin->eject_media (this->cur_input_plugin);
   }
 
   pthread_mutex_unlock (&this->xine_lock);
@@ -330,13 +315,17 @@ static int xine_eject (xine_t *this, char *MRL) {
  */
 void xine_exit (xine_t *this) {
 
+  /*
   void *p;
-  buf_element_t *pBuf;
-
+  buf_element_t *buf;
+  */
   /*
    * stop decoder threads
    */
 
+  printf ("xine.c : xine_exit FIXME - not implemented\n");
+
+  /*
   if (this->cur_input_plugin)
     this->cur_input_plugin->demux_stop ();
 
@@ -348,12 +337,13 @@ void xine_exit (xine_t *this) {
   this->status = XINE_QUIT;
 
   config_file_save ();
+  */
 }
 
 /*
  *
  */
-static void xine_pause (xine_t *this) {
+void xine_pause (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
 
@@ -376,23 +366,17 @@ static void xine_pause (xine_t *this) {
 
     this->status = XINE_PAUSE;
 
-    this->cur_demuxer_plugin->demux_stop ();
+    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
 
-    //FIXME    
-    this->fifo_funcs->fifo_buffer_clear(this->mBufVideo);
-    this->fifo_funcs->fifo_buffer_clear(this->mBufAudio);
-    this->fifo_funcs->fifo_buffer_clear(this->spu_fifo);
+    this->video_fifo->clear(this->video_fifo);
+    this->audio_fifo->clear(this->audio_fifo);
+    this->spu_fifo->clear(this->spu_fifo);
     
-    if (gAudioOut)
-      gAudioOut->close ();
+    this->metronom->reset(this->metronom);
+    this->metronom->stop_clock (this->metronom);
 
-    metronom_reset();
-    metronom_stop_clock ();
-
-    vo_reset ();
-
-    this->cur_input_plugin->close();
+    this->cur_input_plugin->close(this->cur_input_plugin);
   }
 
   pthread_mutex_unlock (&this->xine_lock);
@@ -407,7 +391,6 @@ xine_t *xine_init (vo_driver_t *vo,
 		   config_values_t *config) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
-  int err;
 
   this->status_callback = gui_status_callback;
   this->config          = config;
@@ -422,12 +405,6 @@ xine_t *xine_init (vo_driver_t *vo,
    */
 
   pthread_mutex_init (&this->xine_lock, NULL);
-
-  /*
-   * Init buffers
-   */
-
-  buffer_pool_init (2000, 4096);
 
   /*
    * create a metronom
@@ -467,8 +444,9 @@ xine_t *xine_init (vo_driver_t *vo,
    * init SPU decoder
    */
 
-  this->spu_fifo   = fifo_buffer_new ();
-  spudec_init(NULL); 
+  
+  this->spu_fifo   = fifo_buffer_new (1000, 4096);
+  /* FIXME spudec_init(NULL);  */
 
   return this;
 }
@@ -484,15 +462,11 @@ int xine_get_audio_channel (xine_t *this) {
 /*
  *
  */
-void xine_select_audio_channel (xine_t *this, int nChannel) {
+void xine_select_audio_channel (xine_t *this, int channel) {
 
   pthread_mutex_lock (&this->xine_lock);
 
-  this->audio_channel = nChannel;
-
-  if (this->cur_demuxer_plugin) {
-    this->cur_demuxer_plugin->demux_select_audio_channel (this->audio_channel);
-  }
+  this->audio_channel = channel;
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -508,14 +482,11 @@ int xine_get_spu_channel (xine_t *this) {
 /*
  *
  */
-void xine_select_spu_channel (xine_t *this, int nChannel) {
+void xine_select_spu_channel (xine_t *this, int channel) {
 
   pthread_mutex_lock (&this->xine_lock);
 
-  this->spu_channel = (nChannel >= -1 ? nChannel : -1);
-
-  if (this->cur_demuxer_plugin) 
-    this->cur_demuxer_plugin->demux_select_spu_channel (this->spu_channel);
+  this->spu_channel = (channel >= -1 ? channel : -1);
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -537,7 +508,7 @@ int xine_get_current_position (xine_t *this) {
   }
   
   /* pos = this->mCurInput->seek (0, SEEK_CUR); */
-  len = this->cur_input_plugin->get_length ();
+  len = this->cur_input_plugin->get_length (this->cur_input_plugin);
 
   share = (double) this->cur_input_pos / (double) len * 65535;
 

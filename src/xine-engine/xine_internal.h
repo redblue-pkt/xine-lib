@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.9 2001/04/24 15:47:32 guenter Exp $
+ * $Id: xine_internal.h,v 1.10 2001/04/24 21:10:42 guenter Exp $
  *
  */
 
@@ -124,7 +124,7 @@ typedef struct xine_s {
   demux_plugin_t            *demuxer_plugins[DEMUXER_PLUGIN_MAX];
   int                        num_demuxer_plugins;
   demux_plugin_t            *cur_demuxer_plugin;
-  int                        demux_stragegy;
+  int                        demux_strategy;
 
   int                        status;
   off_t                      cur_input_pos;
@@ -151,21 +151,12 @@ typedef struct xine_s {
   audio_decoder_t           *cur_audio_decoder_plugin;
   int                        audio_finished;
 
-  gui_status_callback_func_t gui_status_callback;
+  gui_status_callback_func_t status_callback;
 
   /* Lock for xine player functions */
   pthread_mutex_t            xine_lock;
 
 } xine_t;
-
-/*
- * player status constants:
- */
-
-#define XINE_STOP      0 
-#define XINE_PLAY      1 
-#define XINE_PAUSE     2 
-#define XINE_QUIT      3
 
 /*
  * read config file and init a config object

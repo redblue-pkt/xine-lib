@@ -7,8 +7,7 @@ CFLAGS = @GLOBAL_CFLAGS@
 lib_LTLIBRARIES = libxine.la
 
 ##libxine_la_SOURCES = xine.c buffer.c metronom.c configfile.c \
-##	monitor.c utils.c audio_decoder.c video_decoder.c load_plugins.c \
-##      audio_out.c 
+##	monitor.c utils.c audio_decoder.c video_decoder.c load_plugins.c
 libxine_la_SOURCES = metronom.c configfile.c buffer.c monitor.c utils.c \
 	cpu_accel.c load_plugins.c video_decoder.c audio_decoder.c \
 	video_out.c
@@ -23,11 +22,9 @@ libxine_la_LIBADD = \
 	-lm
 libxine_la_LDFLAGS =  -version-info 5:0:5
 
-#include_HEADERS  = buffer.h metronom.h configfile.h \
-#	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
-noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
-	monitor.h cpu_accel.h attributes.h utils.h
-include_HEADERS = audio_out.h video_out.h
+include_HEADERS  = buffer.h metronom.h configfile.h \
+	monitor.h cpu_accel.h attributes.h utils.h \
+        audio_out.h video_out.h
 
 ###
 # Hardcoded rule: 
