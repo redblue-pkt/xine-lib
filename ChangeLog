@@ -1,3 +1,7 @@
+xine (0.9.next) unstable; urgency=low
+
+  * add support for quicktime streams without audio
+
 xine (0.9.5) unstable; urgency=low
 
   * improved responsiveness (pause, stop, resume, seek)
