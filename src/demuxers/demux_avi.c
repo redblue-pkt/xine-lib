@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.35 2001/09/05 17:08:18 guenter Exp $
+ * $Id: demux_avi.c,v 1.36 2001/09/05 17:49:20 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -125,6 +125,8 @@ typedef struct demux_avi_s {
   uint32_t             AVI_errno; 
 
   int                  send_end_buffers;
+
+  char                 last_mrl[1024];
 } demux_avi_t ;
 
 #define AVI_ERR_SIZELIM      1     /* The write of the data would exceed
@@ -821,8 +823,10 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   pthread_cancel (this->thread);
   pthread_join (this->thread, &p);
 
+  /*
   AVI_close (this->avi);
   this->avi = NULL;
+  */
 
   this->video_fifo->clear(this->video_fifo);
   if (this->audio_fifo)
@@ -1069,11 +1073,17 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     
     this->input = input;
 
-    this->avi = AVI_init (this);
+    if (strncmp(this->last_mrl, input->get_mrl (input), 1024)) {
+      if (this->avi)
+	AVI_close (this->avi);
+      this->avi = AVI_init (this);
+    }
 
     if (this->avi) {
 
       printf ("demux_avi: %ld frames\n", this->avi->video_frames);
+
+      strncpy(this->last_mrl, input->get_mrl (input), 1024);
 
       return DEMUX_CAN_HANDLE;
     } else 
@@ -1095,10 +1105,17 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     if(ending) {
       if(!strcasecmp(ending, ".avi")) {
 	this->input = input;
-	this->avi = AVI_init (this);
-	if (this->avi)
+
+	if (strncmp(this->last_mrl, input->get_mrl (input), 1024)) {
+	  if (this->avi)
+	    AVI_close (this->avi);
+	  this->avi = AVI_init (this);
+	}
+
+	if (this->avi) {
+	  strncpy(this->last_mrl, input->get_mrl (input), 1024);
 	  return DEMUX_CAN_HANDLE;
-	else {
+	} else {
 	  printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",this->AVI_errno);
 	  return DEMUX_CANNOT_HANDLE;
 	}
