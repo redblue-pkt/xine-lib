@@ -1245,6 +1245,13 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
     }
 
 card_found:
+#ifdef CRTC2
+    if(!is_g400)
+    {
+	printf(MGA_MSG" G200 second head not supported\n");
+	return(ENXIO);
+    }
+#endif
     probed = 1;
     memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
 
