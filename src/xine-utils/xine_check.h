@@ -40,10 +40,8 @@ xine_health_check_t* xine_health_check_os(void);
 /* Get Kernel information */
 xine_health_check_t* xine_health_check_kernel(xine_health_check_t*);
 
-#if ARCH_X86
 /* health_check MTRR */
 xine_health_check_t* xine_health_check_mtrr(xine_health_check_t*);
-#endif /* ARCH_X86 */
 
 /* health_check CDROM */
 xine_health_check_t* xine_health_check_cdrom(xine_health_check_t*);

@@ -35,6 +35,9 @@
 */
 #include "xine_check.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #if defined(__linux__)
 #include <linux/major.h>
@@ -75,7 +78,7 @@ xine_health_check (xine_health_check_t* hc) {
     return hc;
   }
 
-#if ARCH_X86
+#ifdef ARCH_X86
   hc = xine_health_check_mtrr (hc);
   if (hc->status == XINE_HEALTH_CHECK_FAIL) {
     return hc;
@@ -130,6 +133,7 @@ xine_health_check_kernel (xine_health_check_t* hc) {
   return hc;
 }
 
+#ifdef ARCH_X86
 xine_health_check_t*
 xine_health_check_mtrr (xine_health_check_t* hc) {
   char *file = "/proc/mtrr";
@@ -146,6 +150,16 @@ xine_health_check_mtrr (xine_health_check_t* hc) {
   }
   return hc;
 }
+#else
+xine_health_check_t*
+xine_health_check_mtrr (xine_health_check_t* hc) {
+
+  hc->msg = "FAILED: mtrr does not apply on this hw platform.";
+  hc->status = XINE_HEALTH_CHECK_OK;
+
+  return hc;
+}
+#endif
 
 xine_health_check_t*
 xine_health_check_cdrom (xine_health_check_t* hc) {
@@ -290,7 +304,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
   unsigned int ver, rev, eventB, reqB, errorB;
   char * disname = NULL;
   void * dl_handle;
-  int (*xvquery_extension)(int);
+  int (*xvquery_extension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
   char * err = NULL;
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
@@ -338,9 +352,9 @@ xine_health_check_xv (xine_health_check_t* hc) {
   dlclose(dl_handle);
   return hc;
 #else
-  hc->msg = (char*) malloc (sizeof (char) * 20);
-  sprintf(hc->msg, "No X-Video Extension");
-  hc->status = XINE_HEALTH_CHECK_FAIL;
+  hc->msg = (char*) malloc (sizeof (char) * 20);
+  sprintf(hc->msg, "No X-Video Extension");
+  hc->status = XINE_HEALTH_CHECK_FAIL;
   return hc;
 #endif /* ! HAVE_HV */
 #else
