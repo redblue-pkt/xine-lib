@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.35 2002/08/23 23:59:58 guenter Exp $
+ * $Id: demux_ogg.c,v 1.36 2002/08/24 01:23:45 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -219,11 +219,6 @@ static void send_ogg_buf (demux_ogg_t *this,
       ogg_packet *og_ghost;
       op_size += (4 - (op_size % 4));
 
-#ifdef LOG
-      printf ("demux_ogg: special treatment for vorbis package\n");
-      hex_dump (op->packet, op->bytes);
-#endif
-      
       /* nasty hack to pack op as well as (vorbis) content
 	 in one xine buffer */
       memcpy (buf->content + op_size, op->packet, op->bytes);
@@ -237,10 +232,6 @@ static void send_ogg_buf (demux_ogg_t *this,
 
       hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
       hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
-
-#ifdef LOG
-      printf ("demux_ogg: headerlen %d\n",hdrlen);
-#endif
 
       memcpy (buf->content, op->packet+1+hdrlen, op->bytes-1-hdrlen);
       buf->size   = op->bytes-1-hdrlen;
@@ -281,10 +272,6 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
     hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
-
-#ifdef LOG
-    printf ("demux_ogg: headerlen %d\n",hdrlen);
-#endif
 
     todo = op->bytes;
     done = 1+hdrlen; 
@@ -339,7 +326,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   char      *buffer;
   long       bytes;
 
-  int        num_preview_buffers = 50;
+  int        num_preview_buffers = 10;
 
   ogg_packet op;
   
@@ -491,67 +478,69 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	  } else if (!strncmp (&op.packet[1], "audio", 5)) {
 
-	    dsogg_header_t   *oggh;
-	    buf_element_t    *buf;
-	    int               codec;
-	    char              str[5];
-	    int               channel;
-	    
-	    printf ("demux_ogg: direct show filter created audio stream detected, hexdump:\n");
-	    hex_dump (op.packet, op.bytes);
-	    
-	    oggh = (dsogg_header_t *) &op.packet[1];
-	    
-	    memcpy(str, &oggh->subtype, 4);
-	    str[4] = 0;
-	    codec = atoi(str);
-	    
-	    channel= this->num_audio_streams++;
-
-	    switch (codec) {
-	    case 0x01:
-	      this->buf_types[stream_num] = BUF_AUDIO_LPCM_LE | channel;
-	      break;
-	    case 55:
-	    case 0x55:
-	      this->buf_types[stream_num] = BUF_AUDIO_MPEG | channel;
-	      break;
-	    case 0x2000:
-	      this->buf_types[stream_num] = BUF_AUDIO_A52 | channel;
-	      break;
-	    default:
-	      printf ("demux_ogg: unknown audio codec type 0x%x\n",
-		      codec);
-	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
-	      break;
-	    }
-	    
+	    if (this->audio_fifo) {
+	      dsogg_header_t   *oggh;
+	      buf_element_t    *buf;
+	      int               codec;
+	      char              str[5];
+	      int               channel;
+	      
+	      printf ("demux_ogg: direct show filter created audio stream detected, hexdump:\n");
+	      hex_dump (op.packet, op.bytes);
+	      
+	      oggh = (dsogg_header_t *) &op.packet[1];
+	      
+	      memcpy(str, &oggh->subtype, 4);
+	      str[4] = 0;
+	      codec = atoi(str);
+	      
+	      channel= this->num_audio_streams++;
+	      
+	      switch (codec) {
+	      case 0x01:
+		this->buf_types[stream_num] = BUF_AUDIO_LPCM_LE | channel;
+		break;
+	      case 55:
+	      case 0x55:
+		this->buf_types[stream_num] = BUF_AUDIO_MPEG | channel;
+		break;
+	      case 0x2000:
+		this->buf_types[stream_num] = BUF_AUDIO_A52 | channel;
+		break;
+	      default:
+		printf ("demux_ogg: unknown audio codec type 0x%x\n",
+			codec);
+		this->buf_types[stream_num] = BUF_CONTROL_NOP;
+		break;
+	      }
+	      
 #ifdef LOG
-	    printf ("demux_ogg: subtype          0x%x\n", codec);
-	    printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
-	    printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
-	    printf ("demux_ogg: default_len      %d\n", oggh->default_len); 
-	    printf ("demux_ogg: buffersize       %d\n", oggh->buffersize); 
-	    printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
-	    printf ("demux_ogg: channels         %d\n", oggh->hubba.audio.channels); 
-	    printf ("demux_ogg: blockalign       %d\n", oggh->hubba.audio.blockalign); 
-	    printf ("demux_ogg: avgbytespersec   %d\n", oggh->hubba.audio.avgbytespersec); 
-	    printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
+	      printf ("demux_ogg: subtype          0x%x\n", codec);
+	      printf ("demux_ogg: time_unit        %lld\n", oggh->time_unit);
+	      printf ("demux_ogg: samples_per_unit %lld\n", oggh->samples_per_unit);
+	      printf ("demux_ogg: default_len      %d\n", oggh->default_len); 
+	      printf ("demux_ogg: buffersize       %d\n", oggh->buffersize); 
+	      printf ("demux_ogg: bits_per_sample  %d\n", oggh->bits_per_sample); 
+	      printf ("demux_ogg: channels         %d\n", oggh->hubba.audio.channels); 
+	      printf ("demux_ogg: blockalign       %d\n", oggh->hubba.audio.blockalign); 
+	      printf ("demux_ogg: avgbytespersec   %d\n", oggh->hubba.audio.avgbytespersec); 
+	      printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
 #endif
 	    
-	    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	    buf->type = this->buf_types[stream_num];
-	    buf->decoder_flags = BUF_FLAG_HEADER;
-	    buf->decoder_info[0] = 0;
-	    buf->decoder_info[1] = oggh->samples_per_unit;
-	    buf->decoder_info[2] = oggh->bits_per_sample;
-	    buf->decoder_info[3] = oggh->hubba.audio.channels;
-	    this->audio_fifo->put (this->audio_fifo, buf);
+	      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+	      buf->type = this->buf_types[stream_num];
+	      buf->decoder_flags = BUF_FLAG_HEADER;
+	      buf->decoder_info[0] = 0;
+	      buf->decoder_info[1] = oggh->samples_per_unit;
+	      buf->decoder_info[2] = oggh->bits_per_sample;
+	      buf->decoder_info[3] = oggh->hubba.audio.channels;
+	      this->audio_fifo->put (this->audio_fifo, buf);
+	      
+	      this->samplerate[stream_num] = oggh->samples_per_unit;
 	    
-	    this->samplerate[stream_num] = oggh->samples_per_unit;
-	    
-	    this->avg_bitrate += oggh->hubba.audio.avgbytespersec*8;
-
+	      this->avg_bitrate += oggh->hubba.audio.avgbytespersec*8;
+	    } else /* no audio_fifo there */
+	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 
 	  } else if (op.bytes >= 142 
 		     && !strncmp (&op.packet[1], "Direct Show Samples embedded in Ogg", 35) ) {
@@ -787,8 +776,9 @@ static void *demux_ogg_loop (void *this_gen) {
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
-          this->status != DEMUX_OK){
+    while (this->send_end_buffers 
+	   && (this->audio_fifo && this->audio_fifo->size(this->audio_fifo)) 
+	   && (this->status != DEMUX_OK) ) {
       pthread_mutex_unlock( &this->mutex );
       xine_usec_sleep(100000);
       pthread_mutex_lock( &this->mutex );
@@ -896,8 +886,8 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
 
     if ( (!start_pos) && (start_time)) {
       start_pos = start_time * this->avg_bitrate/8;
-#if LOG
-      printf ("demux_ogg: seeking to %lld seconds => %lld bytes\n",
+#ifdef LOG
+      printf ("demux_ogg: seeking to %lld seconds => %d bytes\n",
 	      start_time, start_pos);
 #endif
     }
