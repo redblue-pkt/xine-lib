@@ -430,11 +430,12 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       }
 	  
       if (mpeg2dec->is_sequence_needed) {
-
 	mpeg2dec->is_sequence_needed = 0;
 	picture->frame_width  = picture->coded_picture_width;
 	picture->frame_height = picture->coded_picture_height;
-	    
+
+	printf ("mpeg2dec: frame size %d x %d\n",
+		picture->frame_width, picture->frame_height);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (header_process_extension (picture, mpeg2dec->chunk_buffer)) {
