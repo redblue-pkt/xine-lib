@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.157 2003/04/26 20:16:21 guenter Exp $
+ * $Id: demux_qt.c,v 1.158 2003/05/07 01:19:03 tmmm Exp $
  *
  */
 
@@ -501,16 +501,9 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
     atom_size = BE_32(&atom_preamble[0]);
     atom = BE_32(&atom_preamble[4]);
 
-    /* if the moov atom is found, log the position and break from the loop */
-    if (atom == MOOV_ATOM) {
-      *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
-      *moov_size = atom_size;
-      break;
-    }
-
-    /* special case alert: 'free' atoms are known to contain 'cmov' atoms.
-     * If this is a free atom, check for cmov immediately following.
-     * QT Player can handle it, so xine should too. */
+    /* Special case alert: 'free' atoms are sometimes masquerade as 'moov'
+     * atoms. If this is a free atom, check for 'cmov' or 'mvhd' immediately 
+     * following. QT Player can handle it, so xine should too. */
     if (atom == FREE_ATOM) {
 
       /* get the next atom preamble */
@@ -519,7 +512,8 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         break;
 
       /* if there is a cmov, qualify this free atom as the moov atom */
-      if (BE_32(&atom_preamble[4]) == CMOV_ATOM) {
+      if ((BE_32(&atom_preamble[4]) == CMOV_ATOM) ||
+          (BE_32(&atom_preamble[4]) == MVHD_ATOM)) {
         /* pos = current pos minus 2 atom preambles */
         *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE * 2;
         *moov_size = atom_size;
@@ -528,6 +522,13 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         /* otherwise, rewind the stream */
         input->seek(input, -ATOM_PREAMBLE_SIZE, SEEK_CUR);
       }
+    }
+
+    /* if the moov atom is found, log the position and break from the loop */
+    if (atom == MOOV_ATOM) {
+      *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
+      *moov_size = atom_size;
+      break;
     }
 
     /* if this atom is not the moov atom, make sure that it is at least one
@@ -682,6 +683,9 @@ static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
   info->timescale = BE_32(&mvhd_atom[0x14]);
   info->duration = BE_32(&mvhd_atom[0x18]);
 
+  debug_atom_load("  qt: timescale = %d, duration = %d (%d seconds)\n",
+    info->timescale, info->duration,
+    info->duration / info->timescale);
 }
 
 /* helper function from mplayer's parse_mp4.c */
@@ -1738,8 +1742,10 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   unsigned int max_video_frames = 0;
   unsigned int max_audio_frames = 0;
 
-  /* make sure this is actually a moov atom */
-  if (BE_32(&moov_atom[4]) != MOOV_ATOM) {
+  /* make sure this is actually a moov atom (will also accept 'free' as
+   * a special case) */
+  if ((BE_32(&moov_atom[4]) != MOOV_ATOM) &&
+      (BE_32(&moov_atom[4]) != FREE_ATOM)) {
     info->last_error = QT_NO_MOOV_ATOM;
     return;
   }
