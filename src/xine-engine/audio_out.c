@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.164 2004/03/03 20:09:16 mroi Exp $
+ * $Id: audio_out.c,v 1.165 2004/03/08 18:33:54 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -540,6 +540,7 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
   int    i;
   int    num_channels;
   double amp_factor;
+  int32_t test;
 
   num_channels = _x_ao_mode2channels (this->input.mode);
   if (!num_channels)
@@ -549,7 +550,18 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
   if (this->amp_mute) amp_factor=0.0;
  
   for (i=0; i<num_frames*num_channels; i++) {
-    mem[i] = mem[i] * amp_factor;
+    test = mem[i] * amp_factor;
+/* Force limit on amp_factor to prevent clipping */
+    if (test < INT16_MIN) {
+      this->amp_factor = amp_factor = amp_factor * INT16_MIN / test;
+      test=INT16_MIN; 
+    }
+    if (test > INT16_MAX) {
+      this->amp_factor = amp_factor = amp_factor * INT16_MIN / test;
+      test=INT16_MAX; 
+    }
+    mem[i] = test;
+    
   }
 }
 
