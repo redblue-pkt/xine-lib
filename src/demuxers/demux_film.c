@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.39 2002/10/27 15:51:53 tmmm Exp $
+ * $Id: demux_film.c,v 1.40 2002/10/27 18:48:40 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -198,10 +198,18 @@ static int open_film_file(demux_film_t *film) {
         film->audio_bits = film_header[22];
         film->sample_rate = BE_16(&film_header[24]);
       } else {
-        /* otherwise, make a few assumptions about the audio parms */
-        film->audio_channels = 1;
-        film->audio_bits = 8;
-        film->sample_rate = 22050;
+        /* If the FDSC chunk is not 32 bytes long, this is an early FILM
+         * file. Make a few assumptions about the audio parms based on the
+         * video codec used in the file. */
+        if (film->video_type == BUF_VIDEO_CINEPAK) {
+          film->audio_channels = 1;
+          film->audio_bits = 8;
+          film->sample_rate = 22050;
+        } else if (film->video_type == BUF_VIDEO_SEGA) {
+          film->audio_channels = 1;
+          film->audio_bits = 8;
+          film->sample_rate = 16000;
+        }
       }
       if (film->sample_rate)
         film->audio_type = BUF_AUDIO_LPCM_BE;
@@ -481,10 +489,19 @@ static void *demux_film_loop (void *this_gen) {
             break;
           }
 
-          /* convert 8-bit data from signed -> unsigned */
-          if (this->audio_bits == 8)
+          if (this->video_type == BUF_VIDEO_SEGA) {
+            /* if the file uses the SEGA video codec, assume this is
+             * sign/magnitude audio */
+            for (j = 0; j < buf->size; j++)
+              if (buf->content[j] < 0x80)
+                buf->content[j] += 0x80;
+              else
+                buf->content[j] = -(buf->content[j] & 0x7F) + 0x80;
+          } else if (this->audio_bits == 8) {
+            /* convert 8-bit data from signed -> unsigned */
             for (j = 0; j < buf->size; j++)
               buf->content[j] += 0x80;
+          }
 
           if (!remaining_sample_bytes)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
