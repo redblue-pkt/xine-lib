@@ -20,8 +20,17 @@
  * Raw RGB "Decoder" by Mike Melanson (melanson@pcisys.net)
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
+ *
+ * This decoder deals with raw RGB data from Microsoft and Quicktime files.
+ * Data from a MS file can be 32-, 24-, 16-, or 8-bit. The latter can also
+ * be grayscale, depending on whether a palette is present. Data from a QT
+ * file can be 32-, 24-, 16-, 8-, 4-, 2-, or 1-bit. Any resolutions <= 8
+ * can also be greyscale depending on what the QT file specifies.
+ *
+ * One more catch: Raw RGB from a Microsoft is upside down. This is indicated
+ * by a negative height parameter.
  * 
- * $Id: rgb.c,v 1.26 2004/02/09 22:04:11 jstembridge Exp $
+ * $Id: rgb.c,v 1.27 2004/05/29 22:34:43 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -61,6 +70,8 @@ typedef struct rgb_decoder_s {
   int               height;      /* the height of a video frame */
   double            ratio;       /* the width to height ratio */
   int               bytes_per_pixel;
+  int               bit_depth;
+  int               upside_down;
 
   unsigned char     yuv_palette[256 * 4];
   yuv_planes_t      yuv_planes;
@@ -79,6 +90,8 @@ static void rgb_decode_data (video_decoder_t *this_gen,
   int buf_ptr;
   unsigned int packed_pixel;
   unsigned char r, g, b;
+  int pixels_left;
+  unsigned char pixel_byte = 0;
 
   vo_frame_t *img; /* video out frame */
 
@@ -87,7 +100,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     return;
 
   if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-      (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
+    (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
     palette = (palette_entry_t *)buf->decoder_info_ptr[2];
     for (i = 0; i < buf->decoder_info[2]; i++) {
       this->yuv_palette[i * 4 + 0] =
@@ -113,10 +126,16 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
+    if (this->height < 0) {
+      this->upside_down = 1;
+      this->height = -this->height;
+    } else
+      this->upside_down = 0;
     this->ratio = (double)this->width/(double)this->height;
 
     /* round this number up in case of 15 */
-    this->bytes_per_pixel = (bih->biBitCount + 1) / 8;
+    this->bit_depth = bih->biBitCount & 0x1F;
+    this->bytes_per_pixel = (this->bit_depth + 1) / 8;
 
     if (this->buf)
       free (this->buf);
@@ -158,48 +177,165 @@ static void rgb_decode_data (video_decoder_t *this_gen,
       /* iterate through each row */
       buf_ptr = 0;
 
-      for (row_ptr = 0; row_ptr < this->yuv_planes.row_width * this->yuv_planes.row_count; row_ptr += this->yuv_planes.row_width) {
-        for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
+      if (this->upside_down) {
+        for (row_ptr = this->yuv_planes.row_width * (this->yuv_planes.row_count - 1);
+          row_ptr >= 0; row_ptr -= this->yuv_planes.row_width) {
+          for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
 
-          if (this->bytes_per_pixel == 1) {
+            if (this->bytes_per_pixel == 1) {
 
-            palette_index = this->buf[buf_ptr++];
+              palette_index = this->buf[buf_ptr++];
 
-            this->yuv_planes.y[row_ptr + pixel_ptr] = 
-              this->yuv_palette[palette_index * 4 + 0];
-            this->yuv_planes.u[row_ptr + pixel_ptr] = 
-              this->yuv_palette[palette_index * 4 + 1];
-            this->yuv_planes.v[row_ptr + pixel_ptr] = 
-              this->yuv_palette[palette_index * 4 + 2];
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 0];
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 1];
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 2];
 
-          } else if (this->bytes_per_pixel == 2) {
+            } else if (this->bytes_per_pixel == 2) {
 
-            packed_pixel = LE_16(&this->buf[buf_ptr]);
-            buf_ptr += 2;
-            UNPACK_BGR15(packed_pixel, r, g, b);
+              /* ABGR1555 format, little-endian order */
+              packed_pixel = LE_16(&this->buf[buf_ptr]);
+              buf_ptr += 2;
+              UNPACK_BGR15(packed_pixel, r, g, b);
 
-            this->yuv_planes.y[row_ptr + pixel_ptr] = 
-              COMPUTE_Y(r, g, b);
-            this->yuv_planes.u[row_ptr + pixel_ptr] = 
-              COMPUTE_U(r, g, b);
-            this->yuv_planes.v[row_ptr + pixel_ptr] = 
-              COMPUTE_V(r, g, b);
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                COMPUTE_Y(r, g, b);
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                COMPUTE_U(r, g, b);
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                COMPUTE_V(r, g, b);
 
-          } else {
+            } else {
 
-            b = this->buf[buf_ptr++];
-            g = this->buf[buf_ptr++];
-            r = this->buf[buf_ptr++];
+              /* BGR24 or BGRA32 */
+              b = this->buf[buf_ptr++];
+              g = this->buf[buf_ptr++];
+              r = this->buf[buf_ptr++];
 
-            buf_ptr += this->bytes_per_pixel - 3;
+              /* the next line takes care of 'A' in the 32-bit case */
+              buf_ptr += this->bytes_per_pixel - 3;
 
-            this->yuv_planes.y[row_ptr + pixel_ptr] = 
-              COMPUTE_Y(r, g, b);
-            this->yuv_planes.u[row_ptr + pixel_ptr] = 
-              COMPUTE_U(r, g, b);
-            this->yuv_planes.v[row_ptr + pixel_ptr] = 
-              COMPUTE_V(r, g, b);
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                COMPUTE_Y(r, g, b);
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                COMPUTE_U(r, g, b);
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                COMPUTE_V(r, g, b);
 
+            }
+          }
+        }
+      } else {
+        for (row_ptr = 0; row_ptr < this->yuv_planes.row_width * this->yuv_planes.row_count; row_ptr += this->yuv_planes.row_width) {
+          pixels_left = 0;
+          for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
+
+            if (this->bit_depth == 1) {
+
+              if (pixels_left == 0) {
+                pixels_left = 8;
+                pixel_byte = *this->buf++;
+              }
+
+              if (pixel_byte & 0x80) {
+                this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[1 * 4 + 0];
+                this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[1 * 4 + 1];
+                this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[1 * 4 + 2];
+              } else {
+                this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[0 * 4 + 0];
+                this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[0 * 4 + 1];
+                this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                  this->yuv_palette[0 * 4 + 2];
+              }
+              pixels_left--;
+              pixel_byte <<= 1;
+
+            } else if (this->bit_depth == 2) {
+
+              if (pixels_left == 0) {
+                pixels_left = 4;
+                pixel_byte = *this->buf++;
+              }
+
+              palette_index = (pixel_byte & 0xC0) >> 6;
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 0];
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 1];
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 2];
+
+              pixels_left--;
+              pixel_byte <<= 2;
+
+            } else if (this->bit_depth == 4) {
+
+              if (pixels_left == 0) {
+                pixels_left = 2;
+                pixel_byte = *this->buf++;
+              }
+
+              palette_index = (pixel_byte & 0xF0) >> 4;
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 0];
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 1];
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 2];
+
+              pixels_left--;
+              pixel_byte <<= 4;
+
+            } else if (this->bytes_per_pixel == 1) {
+
+              palette_index = this->buf[buf_ptr++];
+
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 0];
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 1];
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                this->yuv_palette[palette_index * 4 + 2];
+
+            } else if (this->bytes_per_pixel == 2) {
+
+              /* ARGB1555 format, big-endian order */
+              packed_pixel = BE_16(&this->buf[buf_ptr]);
+              buf_ptr += 2;
+              UNPACK_RGB15(packed_pixel, r, g, b);
+
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                COMPUTE_Y(r, g, b);
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                COMPUTE_U(r, g, b);
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                COMPUTE_V(r, g, b);
+
+            } else {
+
+              /* RGB24 or ARGB32; the next line takes care of 'A' in the 
+               * 32-bit case */
+              buf_ptr += this->bytes_per_pixel - 3;
+
+              r = this->buf[buf_ptr++];
+              g = this->buf[buf_ptr++];
+              b = this->buf[buf_ptr++];
+
+              this->yuv_planes.y[row_ptr + pixel_ptr] = 
+                COMPUTE_Y(r, g, b);
+              this->yuv_planes.u[row_ptr + pixel_ptr] = 
+                COMPUTE_U(r, g, b);
+              this->yuv_planes.v[row_ptr + pixel_ptr] = 
+                COMPUTE_V(r, g, b);
+
+            }
           }
         }
       }
