@@ -151,8 +151,8 @@ Contributions
   Stefan Reinauer <stepan@suse.de>
     ia64, s/390 patches
 
-  ForeveR <forever@klub.chip.pl>
-    README.dxr3 polish translation.
+  Bartlomiej Muryn <forever@klub.chip.pl>
+    README.dxr3 and xine-ui polish translations.
 
   Damien Clermonte <damien.clermonte@free.fr>
     http input plugin patches
