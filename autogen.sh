@@ -75,12 +75,18 @@ detect_automake() {
   #   automake is /usr/local/bin/automake
   #
   set -- `type automake-1.6 2>/dev/null`
-  if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+  RETVAL=$?
+  NUM_RESULT=$#
+  RESULT_FILE=$3
+  if [ $RETVAL -eq 0 -a $NUM_RESULT -eq 3 -a -f "$RESULT_FILE" ]; then
     automake_1_6x=yes
     automake=automake-1.6
   else
     set -- `type automake 2>/dev/null`
-    if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+    RETVAL=$?
+    NUM_RESULT=$#
+    RESULT_FILE=$3
+    if [ $RETVAL -eq 0 -a $NUM_RESULT -eq 3 -a -f "$RESULT_FILE" ]; then
       automake=automake
       AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AM -lt 100 ; then
@@ -118,12 +124,18 @@ detect_aclocal() {
 
   # if no automake, don't bother testing for aclocal
   set -- `type aclocal-1.6 2>/dev/null`
-  if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+  RETVAL=$?
+  NUM_RESULT=$#
+  RESULT_FILE=$3
+  if [ $RETVAL -eq 0 -a $NUM_RESULT -eq 3 -a -f "$RESULT_FILE" ]; then
     aclocal_1_6x=yes
     aclocal=aclocal-1.6
   else
     set -- `type aclocal 2>/dev/null`
-    if [ $? -eq 0 -a $# -eq 3 -a -f "$3" ]; then
+    RETVAL=$?
+    NUM_RESULT=$#
+    RESULT_FILE=$3
+    if [ $RETVAL -eq 0 -a $NUM_RESULT -eq 3 -a -f "$RESULT_FILE" ]; then
       aclocal=aclocal
       AC="`aclocal --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AC -lt 100 ; then
