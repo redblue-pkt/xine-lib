@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.19 2003/05/06 16:43:53 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.20 2003/05/06 20:31:42 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -95,7 +95,7 @@ void free_cdrom_toc(cdrom_toc *toc) {
 
 #include <linux/cdrom.h>
 
-static void read_cdrom_toc(int fd, cdrom_toc *toc) {
+static int read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   struct cdrom_tochdr tochdr;
   struct cdrom_tocentry tocentry;
@@ -104,7 +104,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   /* fetch the table of contents */
   if (ioctl(fd, CDROMREADTOCHDR, &tochdr) == -1) {
     perror("CDROMREADTOCHDR");
-    return;
+    return -1;
   }
 
   toc->first_track = tochdr.cdth_trk0;
@@ -116,7 +116,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
   if (!toc->toc_entries) {
     perror("malloc");
-    return;
+    return -1;
   }
 
   /* fetch each toc entry */
@@ -128,7 +128,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     tocentry.cdte_format = CDROM_MSF;
     if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
       perror("CDROMREADTOCENTRY");
-      return;
+      return -1;
     }
 
     toc->toc_entries[i-1].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
@@ -148,7 +148,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   tocentry.cdte_format = CDROM_MSF;
   if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
     perror("CDROMREADTOCENTRY");
-    return;
+    return -1;
   }
 
   toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
@@ -159,6 +159,8 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.cdte_addr.msf.frame;
+
+  return 0;
 }
 
 static int read_cdrom_frames(int fd, int frame, int num_frames,
@@ -197,7 +199,7 @@ static int read_cdrom_frames(int fd, int frame, int num_frames,
 
 #include <sys/cdio.h>
 
-static void read_cdrom_toc(int fd, cdrom_toc *toc) {
+static int read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   struct cdrom_tochdr tochdr;
   struct cdrom_tocentry tocentry;
@@ -206,7 +208,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   /* fetch the table of contents */
   if (ioctl(fd, CDROMREADTOCHDR, &tochdr) == -1) {
     perror("CDROMREADTOCHDR");
-    return;
+    return -1;
   }
 
   toc->first_track = tochdr.cdth_trk0;
@@ -218,7 +220,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
   if (!toc->toc_entries) {
     perror("malloc");
-    return;
+    return -1;
   }
 
   /* fetch each toc entry */
@@ -230,7 +232,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     tocentry.cdte_format = CDROM_MSF;
     if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
       perror("CDROMREADTOCENTRY");
-      return;
+      return -1;
     }
 
     toc->toc_entries[i-1].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
@@ -250,7 +252,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   tocentry.cdte_format = CDROM_MSF;
   if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
     perror("CDROMREADTOCENTRY");
-    return;
+    return -1;
   }
 
   toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
@@ -261,6 +263,8 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.cdte_addr.msf.frame;
+
+  return 0;
 }
 
 static int read_cdrom_frames(int fd, int frame, int num_frames,
@@ -291,7 +295,7 @@ static int read_cdrom_frames(int fd, int frame, int num_frames,
 
 #include <sys/cdio.h>
 
-static void read_cdrom_toc(int fd, cdrom_toc *toc) {
+static int read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   struct ioc_toc_header tochdr;
   struct ioc_read_toc_single_entry tocentry;
@@ -300,7 +304,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   /* fetch the table of contents */
   if (ioctl(fd, CDIOREADTOCHEADER, &tochdr) == -1) {
     perror("CDIOREADTOCHEADER");
-    return;
+    return -1;
   }
 
   toc->first_track = tochdr.starting_track;
@@ -312,7 +316,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
   if (!toc->toc_entries) {
     perror("malloc");
-    return;
+    return -1;
   }
 
   /* fetch each toc entry */
@@ -324,7 +328,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     tocentry.address_format = CD_MSF_FORMAT;
     if (ioctl(fd, CDIOREADTOCENTRY, &tocentry) == -1) {
       perror("CDIOREADTOCENTRY");
-      return;
+      return -1;
     }
 
     toc->toc_entries[i-1].track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
@@ -344,7 +348,7 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
   tocentry.address_format = CD_MSF_FORMAT;
   if (ioctl(fd, CDIOREADTOCENTRY, &tocentry) == -1) {
     perror("CDIOREADTOCENTRY");
-    return;
+    return -1;
   }
 
   toc->leadout_track.track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
@@ -355,6 +359,8 @@ static void read_cdrom_toc(int fd, cdrom_toc *toc) {
     (tocentry.entry.addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.entry.addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.entry.addr.msf.frame;
+
+  return 0;
 }
 
 static int read_cdrom_frames(int fd, int frame, int num_frames,
@@ -387,14 +393,14 @@ static int read_cdrom_frames(int fd, int frame, int num_frames,
 
 
 
-static void read_cdrom_toc(int fd, cdrom_toc *toc) {
-
+static int read_cdrom_toc(int fd, cdrom_toc *toc) {
+  return -1;
 }
 
 
 static int read_cdrom_frames(int fd, int frame, int num_frames,
   unsigned char *data) {
-
+  return -1;
 }
 
 #endif
@@ -710,7 +716,7 @@ static int network_connect( char *url )
   return fd;
 }
                    
-static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
+static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
 
   char buf[_BUFSIZ];
   int i;
@@ -718,7 +724,7 @@ static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
   /* fetch the table of contents */
   if( network_command( fd, buf, "cdda_tochdr" ) == -1) {
     printf("input_cdda: network CDROMREADTOCHDR error\n");
-    return;
+    return -1;
   }
 
   sscanf(buf,"%*s %*s %d %d", &toc->first_track, &toc->last_track);
@@ -729,7 +735,7 @@ static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
     (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
   if (!toc->toc_entries) {
     perror("malloc");
-    return;
+    return -1;
   }
 
   /* fetch each toc entry */
@@ -738,7 +744,7 @@ static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
     /* fetch the table of contents */
     if( network_command( fd, buf, "cdda_tocentry %d", i ) == -1) {
       printf("input_cdda: network CDROMREADTOCENTRY error\n");
-      return;
+      return -1;
     }
 
     sscanf(buf,"%*s %*s %d %d %d %d", &toc->toc_entries[i-1].track_mode,
@@ -755,7 +761,7 @@ static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
   /* fetch the leadout as well */
   if( network_command( fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
     printf("input_cdda: network CDROMREADTOCENTRY error\n");
-    return;
+    return -1;
   }
 
   sscanf(buf,"%*s %*s %d %d %d %d", &toc->leadout_track.track_mode,
@@ -767,15 +773,14 @@ static void network_read_cdrom_toc(int fd, cdrom_toc *toc) {
     (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (toc->leadout_track.first_frame_second * CD_FRAMES_PER_SECOND) +
      toc->leadout_track.first_frame_frame;
+
+  return 0;
 }
 
-static void network_read_cdrom_frames(int fd, int first_frame, int num_frames,
+static int network_read_cdrom_frames(int fd, int first_frame, int num_frames,
   unsigned char data[CD_RAW_FRAME_SIZE]) {
 
-  if( network_command( fd, data, "cdda_read %d %d", first_frame, num_frames ) == -1) {
-    printf("input_netcd: read error");
-    return;
-  }
+  return network_command( fd, data, "cdda_read %d %d", first_frame, num_frames );
 }
 
 
@@ -1563,6 +1568,7 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
   buf_element_t *buf;
   unsigned char frame_data[CD_RAW_FRAME_SIZE];
+  int err = 0;
 
   if (nlen != CD_RAW_FRAME_SIZE)
     return NULL;
@@ -1581,14 +1587,17 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
       this->cache_last = this->last_frame;
     
     if( this->fd != -1 )
-      read_cdrom_frames(this->fd, this->cache_first,
-                        this->cache_last - this->cache_first + 1,
-                        this->cache[0]);
+      err = read_cdrom_frames(this->fd, this->cache_first,
+                             this->cache_last - this->cache_first + 1,
+                             this->cache[0]);
     else if ( this->net_fd != -1 )
-      network_read_cdrom_frames(this->net_fd, this->cache_first,
-                                this->cache_last - this->cache_first + 1,
-                                this->cache[0]);
+      err = network_read_cdrom_frames(this->net_fd, this->cache_first,
+                                      this->cache_last - this->cache_first + 1,
+                                      this->cache[0]);
   }
+
+  if( err < 0 )
+    return NULL;
     
   memcpy(frame_data, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
   this->current_frame++;
@@ -1674,6 +1683,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
   cdrom_toc            toc;
   int                  fd;
   char                *cdda_device;
+  int                  err = -1;
     
 #ifdef LOG
   printf("cdda_plugin_open\n");
@@ -1692,7 +1702,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     if( fd != -1 ) {
       this->net_fd = fd;
 
-      network_read_cdrom_toc(this->net_fd, &toc);
+      err = network_read_cdrom_toc(this->net_fd, &toc);
     }
   }
 
@@ -1704,11 +1714,11 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     }
     this->fd = fd;
     
-    read_cdrom_toc(this->fd, &toc);
+    err = read_cdrom_toc(this->fd, &toc);
   }
 
   
-  if ((toc.first_track > (this->track + 1)) || 
+  if ( (err < 0) || (toc.first_track > (this->track + 1)) || 
       (toc.last_track < (this->track + 1))) {
 
     if( this->fd != -1 )
@@ -1805,7 +1815,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   cdda_input_class_t *this = (cdda_input_class_t *) this_gen;
   cdrom_toc toc;
   char trackmrl[20];
-  int fd, i;
+  int fd, i, err = -1;
 
   /* free old playlist */
   for( i = 0; this->autoplaylist[i]; i++ ) {
@@ -1820,7 +1830,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   if( strchr(this->cdda_device,':') ) {
     fd = network_connect(this->cdda_device);
     if( fd != -1 ) {
-      network_read_cdrom_toc(fd, &toc);
+      err = network_read_cdrom_toc(fd, &toc);
     }
   }
 
@@ -1830,10 +1840,13 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
       return NULL;
     }
 
-    read_cdrom_toc(fd, &toc);
+    err = read_cdrom_toc(fd, &toc);
   }
   
   close(fd);
+  
+  if( err < 0 )
+    return NULL;
   
   for( i = 0; i <= toc.last_track - toc.first_track; i++ ) {
     sprintf(trackmrl,"cdda:/%d",i+toc.first_track);
