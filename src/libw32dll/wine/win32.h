@@ -1,15 +1,16 @@
-#ifndef win_win32_h
-#define win_win32_h
+#ifndef loader_win32_h
+#define loader_win32_h
 
 #include <time.h>
 
 #include "windef.h"
 #include "winbase.h"
+#include "com.h"
 
 extern void* my_mreq(int size, int to_zero);
 extern int my_release(void* memory);
-extern int my_size(char* memory);
-extern int my_garbagecollection(void);
+extern void* my_realloc(void *memory,int size);
+extern void my_garbagecollection(void);
 
 
 typedef struct {
@@ -30,8 +31,8 @@ extern int WINAPI ext_unknown(void);
 extern int WINAPI expIsBadWritePtr(void* ptr, unsigned int count);
 extern int WINAPI expIsBadReadPtr(void* ptr, unsigned int count);
 extern int WINAPI expDisableThreadLibraryCalls(int module);
-extern void* WINAPI expGetDriverModuleHandle(DRVR* pdrv);
-extern void* WINAPI expGetModuleHandleA(const char* name);
+extern HMODULE WINAPI expGetDriverModuleHandle(DRVR* pdrv);
+extern HMODULE WINAPI expGetModuleHandleA(const char* name);
 extern void* WINAPI expCreateThread(void* pSecAttr, long dwStackSize, void* lpStartAddress,
 				    void* lpParameter, long dwFlags, long* dwThreadId);
 extern void* WINAPI expCreateEventA(void* pSecAttr, char bManualReset,
@@ -47,6 +48,7 @@ extern HANDLE WINAPI expHeapCreate(long flags, long init_size, long max_size);
 extern void* WINAPI expHeapAlloc(HANDLE heap, int flags, int size);
 extern long WINAPI expHeapDestroy(void* heap);
 extern long WINAPI expHeapFree(int arg1, int arg2, void* ptr);
+extern void* WINAPI expHeapReAlloc(HANDLE heap,int flags,void* lpMem,int size);
 extern long WINAPI expHeapSize(int heap, int flags, void* pointer);
 extern long WINAPI expGetProcessHeap(void);
 extern void* WINAPI expVirtualAlloc(void* v1, long v2, long v3, long v4);
@@ -62,6 +64,7 @@ extern int WINAPI expTlsSetValue(tls_t* index, void* value);
 extern void* WINAPI expTlsGetValue(tls_t* index);
 extern int WINAPI expTlsFree(tls_t* index);
 extern void* WINAPI expLocalAlloc(int flags, int size);
+extern void* WINAPI expLocalReAlloc(int handle,int size,int flags);
 extern void* WINAPI expLocalLock(void* z);
 extern void* WINAPI expGlobalAlloc(int flags, int size);
 extern void* WINAPI expGlobalLock(void* z);
@@ -134,9 +137,7 @@ extern int WINAPI expSizeofResource(int v1, int v2);
 extern int WINAPI expGetLastError(void);
 extern void WINAPI expSetLastError(int error);
 extern long WINAPI exptimeGetTime(void);
-/*
 extern int WINAPI expStringFromGUID2(GUID* guid, char* str, int cbMax);
-*/
 extern int WINAPI expGetFileVersionInfoSizeA(const char* name, int* lpHandle);
 extern int WINAPI expIsBadStringPtrW(const short* string, int nchars);
 extern int WINAPI expIsBadStringPtrA(const char* string, int nchars);
@@ -148,6 +149,15 @@ extern int WINAPI expGetDesktopWindow(void);
 extern int WINAPI expReleaseDC(int hwnd, int hdc);
 extern int WINAPI expLoadCursorA(int handle,LPCSTR name);
 extern int WINAPI expSetCursor(void *cursor);
+extern int WINAPI expGetCursorPos(void *cursor);
+extern int WINAPI expRegisterWindowMessageA(char *message);
+extern int WINAPI expGetProcessVersion(int pid);
+extern int WINAPI expGetCurrentThread(void);
+extern int WINAPI expGetOEMCP(void);
+extern int WINAPI expGetCPInfo(int cp,void *info);
+extern int WINAPI expGetSysColor(int pid);
+extern int WINAPI expGetSysColorBrush(int pid);
+extern int WINAPI expGetSystemMetrics(int index);
 extern int WINAPI expGetSystemPaletteEntries(int hdc, int iStartIndex, int nEntries, void* lppe);
 extern int WINAPI expGetTimeZoneInformation(LPTIME_ZONE_INFORMATION lpTimeZoneInformation);
 extern void WINAPI expGetLocalTime(SYSTEMTIME* systime);
@@ -155,10 +165,8 @@ extern int WINAPI expGetSystemTime(SYSTEMTIME* systime);
 extern int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int size);
 extern void* WINAPI expCoTaskMemAlloc(ULONG cb);
 extern void WINAPI expCoTaskMemFree(void* cb);
-/*
 extern long WINAPI expCoCreateInstance(GUID* rclsid, struct IUnknown* pUnkOuter,
 				       long dwClsContext, GUID* riid, void** ppv);
-*/
 extern int WINAPI expIsRectEmpty(CONST RECT *lprc);
 extern unsigned int WINAPI expGetTempPathA(unsigned int len, char* path);
 extern HANDLE WINAPI expFindFirstFileA(LPCSTR s, LPWIN32_FIND_DATAA lpfd);
@@ -188,7 +196,11 @@ extern INT WINAPI expMulDiv(int nNumber,int nNumerator,int nDenominator);
 extern LONG WINAPI explstrcmpiA(const char* str1, const char* str2);
 extern LONG WINAPI explstrlenA(const char* str1);
 extern LONG WINAPI explstrcpyA(char* str1, const char* str2);
+extern LONG WINAPI explstrcpynA(char* str1, const char* str2,int len);
+extern LONG WINAPI explstrcatA(char* str1, const char* str2);
 extern LONG WINAPI expInterlockedExchange(long *dest, long l);
+void WINAPI expInitCommonControls(void);
+
 
 extern void* CDECL expmalloc(int size);
 extern void CDECL expfree(void* mem);
@@ -208,7 +220,21 @@ extern int expmemmove(void* dest, void* src, int n);
 extern int expmemcmp(void* dest, void* src, int n);
 extern void *expmemcpy(void* dest, void* src, int n) ;
 extern time_t exptime(time_t* t);
+extern int exprand(void);
+extern void expsrand(int seed);
+extern int exp_ftol(float f);
+extern int expsprintf(char* str, const char* format, ...);
+extern double explog10(double x);
+extern double expcos(double x);
+extern double exppow(double x, double y);
+extern int expsscanf(const char* str, const char* format, ...);
+extern void* expfopen(const char* path, const char* mode);
+extern int expfprintf(void* stream, const char* format, ...);
+extern int expprintf(const char* format, ...);
+extern void* expwcscpy(WCHAR* dst, const WCHAR* src);
+
 extern void* LookupExternal(const char* library, int ordinal);
 extern void* LookupExternalByName(const char* library, const char* name);
+
 
 #endif

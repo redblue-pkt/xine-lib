@@ -5,6 +5,8 @@
 #ifndef __WINE_MSACM_H
 #define __WINE_MSACM_H
 
+#define D_MSACM 1
+
 #include "windef.h"
 #include "driver.h"
 #include "mmreg.h"
@@ -21,7 +23,7 @@ typedef UINT16	MCIDEVICEID16;
 typedef UINT	MCIDEVICEID;
 typedef	UINT16	MMRESULT16;
 typedef	UINT	MMRESULT;
-typedef DWORD   FOURCC;           /* a four character code */
+typedef DWORD           FOURCC;         /* a four character code */
 
 
 
@@ -931,7 +933,6 @@ MMRESULT WINAPI acmStreamSize(
 MMRESULT WINAPI acmStreamUnprepareHeader(
   HACMSTREAM has, PACMSTREAMHEADER pash, DWORD fdwUnprepare
 );
-void MSACM_RegisterAllDrivers(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

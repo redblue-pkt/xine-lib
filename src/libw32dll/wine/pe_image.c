@@ -175,7 +175,7 @@ FARPROC PE_FindExportedFunction(
                 ename = RVA(name[i]);
                 if (!strcmp( ename, funcName ))
                 {
-                    ERR( "%s.%s required a linear search\n", wm->modname, funcName );
+		    ERR( "%s.%s required a linear search\n", wm->modname, funcName );
                     ordinal = ordinals[i];
                     goto found;
                 }
@@ -280,7 +280,7 @@ static DWORD fixup_imports( WINE_MODREF *wm )
      */
  
     for (i = 0, pe_imp = pem->pe_import; pe_imp->Name ; pe_imp++) {
-      //    	WINE_MODREF		*wmImp;
+    	WINE_MODREF		*wmImp;
 	IMAGE_IMPORT_BY_NAME	*pe_name;
 	PIMAGE_THUNK_DATA	import_list,thunk_list;
  	char			*name = (char *) RVA(pe_imp->Name);
@@ -302,13 +302,11 @@ static DWORD fixup_imports( WINE_MODREF *wm )
 
 //		    TRACE("--- Ordinal %s,%d\n", name, ordinal);
 		    
-		    thunk_list->u1.Function=LookupExternal(
-		      name, ordinal);
+		    thunk_list->u1.Function=LookupExternal(name, ordinal);
 		} else {		
 		    pe_name = (PIMAGE_IMPORT_BY_NAME)RVA(import_list->u1.AddressOfData);
 //		    TRACE("--- %s %s.%d\n", pe_name->Name, name, pe_name->Hint);
-		    thunk_list->u1.Function=LookupExternalByName(
-		      name, pe_name->Name);
+		    thunk_list->u1.Function=LookupExternalByName(name, pe_name->Name);
 		}
 		import_list++;
 		thunk_list++;
@@ -334,8 +332,6 @@ static DWORD fixup_imports( WINE_MODREF *wm )
 		thunk_list++;
 	    }
 	}
-
-
     }
     return 0;
 }
@@ -381,7 +377,7 @@ static void do_relocations( unsigned int load_addr, IMAGE_BASE_RELOCATION *r )
 		char *page = (char*) RVA(r->VirtualAddress);
 		int count = (r->SizeOfBlock - 8)/2;
 		int i;
-		TRACE_(fixup,"%x relocations for page %lx\n",
+		TRACE_(fixup)("%x relocations for page %lx\n",
 			count, r->VirtualAddress);
 		
 		for(i=0;i<count;i++)
@@ -439,7 +435,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
     IMAGE_NT_HEADERS *nt;
     IMAGE_SECTION_HEADER *pe_sec;
     IMAGE_DATA_DIRECTORY *dir;
-    //    BY_HANDLE_FILE_INFORMATION bhfi;
+    BY_HANDLE_FILE_INFORMATION bhfi;
     int	i, rawsize, lowest_va, vma_size, file_size = 0;
     DWORD load_addr = 0, aoep, reloc = 0;
 //    struct get_read_fd_request *req = get_req_buffer();
@@ -596,15 +592,15 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
 					 MEM_RESERVE | MEM_COMMIT,
 					 PAGE_EXECUTE_READWRITE );
 	if (!load_addr) {
-	  FIXME_(win32,
-		 "FATAL: Couldn't load module %s (out of memory, %d needed)!\n", filename, vma_size);
+            FIXME_(win32)(
+                   "FATAL: Couldn't load module %s (out of memory, %d needed)!\n", filename, vma_size);
             goto error;
 	}
     }
 
     TRACE("Load addr is %lx (base %lx), range %x\n",
           load_addr, nt->OptionalHeader.ImageBase, vma_size );
-    TRACE_(segment,"Loading %s at %lx, range %x\n",
+    TRACE_(segment)("Loading %s at %lx, range %x\n",
                     filename, load_addr, vma_size );
 
 #if 0
@@ -622,7 +618,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
                      0, 0, PROT_EXEC | PROT_WRITE | PROT_READ,
                      MAP_PRIVATE | MAP_FIXED ) != (void*)load_addr)
     {
-        ERR_(win32, "Critical Error: failed to map PE header to necessary address.\n");	
+        ERR_(win32)( "Critical Error: failed to map PE header to necessary address.\n");	
         goto error;
     }
 
@@ -640,7 +636,7 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
                          MAP_PRIVATE | MAP_FIXED ) != (void*)RVA(pe_sec->VirtualAddress))
         {
             
-            ERR_(win32, "Critical Error: failed to map PE section to necessary address.\n");
+            ERR_(win32)( "Critical Error: failed to map PE section to necessary address.\n");
             goto error;
         }
         if ((pe_sec->SizeOfRawData < pe_sec->Misc.VirtualSize) &&
@@ -670,7 +666,8 @@ HMODULE PE_LoadImage( int handle, LPCSTR filename, WORD *version )
 
 error:
     if (unix_handle != -1) close( unix_handle );
-    if (load_addr) VirtualFree( (LPVOID)load_addr, 0, MEM_RELEASE );
+    if (load_addr) 
+    VirtualFree( (LPVOID)load_addr, 0, MEM_RELEASE );
     UnmapViewOfFile( (LPVOID)hModule );
     return 0;
 }
@@ -698,7 +695,10 @@ WINE_MODREF *PE_CreateModule( HMODULE hModule,
     IMAGE_EXPORT_DIRECTORY *pe_export = NULL;
     IMAGE_RESOURCE_DIRECTORY *pe_resource = NULL;
     WINE_MODREF *wm;
-    //    int	result;
+    int	result;
+
+
+    
 
     dir = nt->OptionalHeader.DataDirectory+IMAGE_DIRECTORY_ENTRY_EXPORT;
     if (dir->Size)
@@ -852,6 +852,7 @@ WINE_MODREF *PE_LoadLibraryExA (LPCSTR name, DWORD flags)
 		return NULL;
 	}
 	close(hFile);
+	//printf("^^^^^^^^^^^^^^^^Alloc VM1  %p\n", wm);
 	return wm;
 }
 
@@ -865,9 +866,14 @@ void PE_UnloadLibrary(WINE_MODREF *wm)
 {
     TRACE(" unloading %s\n", wm->filename);
 
-    HeapFree( GetProcessHeap(), 0, wm->filename );
-    HeapFree( GetProcessHeap(), 0, wm->short_filename );
+    if (wm->filename)
+	free(wm->filename);
+    if (wm->short_filename)
+	free(wm->short_filename);
+    HeapFree( GetProcessHeap(), 0, wm->deps );
+    VirtualFree( (LPVOID)wm->module, 0, MEM_RELEASE );
     HeapFree( GetProcessHeap(), 0, wm );
+    //printf("^^^^^^^^^^^^^^^^Free VM1  %p\n", wm);
 }
 
 /*****************************************************************************
@@ -875,6 +881,27 @@ void PE_UnloadLibrary(WINE_MODREF *wm)
  * FIXME: this function should use PE_LoadLibraryExA, but currently can't
  * due to the PROCESS_Create stuff.
  */
+
+
+/*
+ * This is a dirty hack.
+ * The win32 DLLs contain an alloca routine, that first probes the soon
+ * to be allocated new memory *below* the current stack pointer in 4KByte
+ * increments.  After the mem probing below the current %esp,  the stack
+ * pointer is finally decremented to make room for the "alloca"ed memory.
+ * Maybe the probing code is intended to extend the stack on a windows box.
+ * Anyway, the linux kernel does *not* extend the stack by simply accessing
+ * memory below %esp;  it segfaults.
+ * The extend_stack_for_dll_alloca() routine just preallocates a big chunk
+ * of memory on the stack, for use by the DLLs alloca routine.
+ */
+static void extend_stack_for_dll_alloca(void)
+{
+#ifndef __FreeBSD__
+    void* mem=alloca(0x20000);
+    *(int*)mem=0x1234;
+#endif
+}
 
 /* Called if the library is loaded or freed.
  * NOTE: if a thread attaches a DLL, the current thread will only do
@@ -895,25 +922,28 @@ WIN_BOOL PE_InitDLL( WINE_MODREF *wm, DWORD type, LPVOID lpReserved )
 	if(entry==NULL)
 	    entry = (void*)RVA_PTR( wm->module,OptionalHeader.AddressOfEntryPoint );
         
-	TRACE_(relay,"CallTo32(entryproc=%p,module=%08x,type=%ld,res=%p)\n",
+	TRACE_(relay)("CallTo32(entryproc=%p,module=%08x,type=%ld,res=%p)\n",
                        entry, wm->module, type, lpReserved );
-	printf("Entering DllMain(");
+	
+	
+	TRACE("Entering DllMain(");
 	switch(type)
 	{
 	    case DLL_PROCESS_DETACH:
-	        printf("DLL_PROCESS_DETACH) ");
+	        TRACE("DLL_PROCESS_DETACH) ");
 		break;
 	    case DLL_PROCESS_ATTACH:
-	        printf("DLL_PROCESS_ATTACH) ");
+	        TRACE("DLL_PROCESS_ATTACH) ");
 		break;
 	    case DLL_THREAD_DETACH:
-	        printf("DLL_THREAD_DETACH) ");
+	        TRACE("DLL_THREAD_DETACH) ");
 		break;
 	    case DLL_THREAD_ATTACH:
-	        printf("DLL_THREAD_ATTACH) ");
+	        TRACE("DLL_THREAD_ATTACH) ");
 		break;
 	}	
-	printf("for %s\n", wm->filename);
+	TRACE("for %s\n", wm->filename);
+	extend_stack_for_dll_alloca();
         retv = entry( wm->module, type, lpReserved );
     }
 

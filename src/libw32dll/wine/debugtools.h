@@ -2,6 +2,8 @@
 #ifndef __WINE_DEBUGTOOLS_H
 #define __WINE_DEBUGTOOLS_H
 
+//#ifdef __WINE__  /* Debugging interface is internal to Wine */
+
 #include <stdarg.h>
 #include "config.h"
 #include "windef.h"
@@ -9,7 +11,7 @@
 struct _GUID;
 
 #define TRACE __vprintf
-#define dbg_printf __vprintf 
+#define dbg_printf __vprintf
 
 /* Internal definitions (do not use these directly) */
 
@@ -70,27 +72,13 @@ extern int dbg_printf(const char *format, ...) __attribute__((format (printf,1,2
 extern int dbg_printf(const char *format, ...);
 #endif
 
-#ifdef  __GNUC__
-#define TRACE_(X, Y...) 
-#define WARN_(X, Y...)
-#define WARN(X,Y...) 
-#define ERR(X,Y...) 
-#define FIXME(X,Y...)
-#define DPRINTF(X,Y...)
-#define MESSAGE(X,Y...)
-#define ERR_(X,Y...) 
-#define FIXME_(X,Y...) 
-#else
-#define WARN_(...) 
-#define WARN(...)
-#define TRACE_(...) 
-#define ERR(...) 
-#define FIXME(...)
-#define DPRINTF(...)
-#define MESSAGE(...)
-#define ERR_(...) 
-#define FIXME_(...) 
-#endif
+#define TRACE_(X) TRACE
+#define WARN_(X) TRACE
+#define WARN TRACE
+#define ERR_(X) printf
+#define ERR printf
+#define FIXME_(X) TRACE
+#define FIXME TRACE
 
 #define TRACE_ON(X) 1
 #define ERR_ON(X) 1
@@ -100,5 +88,9 @@ extern int dbg_printf(const char *format, ...);
 #define DEFAULT_DEBUG_CHANNEL(ch) \
     extern char dbch_##ch[]; static char * const __dbch_default = dbch_##ch;
 
+#define DPRINTF dbg_printf
+#define MESSAGE dbg_printf
+
+//#endif  /* __WINE__ */
 
 #endif  /* __WINE_DEBUGTOOLS_H */

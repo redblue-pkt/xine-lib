@@ -1,5 +1,6 @@
 #ifndef __WINE_VFW_H
 #define __WINE_VFW_H
+#define D_VFW 1
 //#include "pshpack1.h"
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +16,8 @@ typedef struct
     long   bfOffBits;
 } BITMAPFILEHEADER;
 
+#ifndef _BITMAPINFOHEADER_
+#define _BITMAPINFOHEADER_
 typedef struct
 {
     long 	biSize;
@@ -33,6 +36,8 @@ typedef struct {
 	BITMAPINFOHEADER bmiHeader;
 	int	bmiColors[1];
 } BITMAPINFO, *LPBITMAPINFO;
+#endif
+
 #endif
 #define VFWAPI	
 #define VFWAPIV	
@@ -425,7 +430,7 @@ LRESULT VFWAPI ICClose(HIC hic);
 LRESULT	VFWAPI ICSendMessage(HIC hic, unsigned int msg, long dw1, long dw2);
 HIC	VFWAPI ICLocate(long fccType, long fccHandler, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut, short wFlags);
 
-int VFWAPI ICDoSomething();
+int VFWAPI ICDoSomething(void);
 
 long	VFWAPIV	ICDrawBegin(
         HIC			hic,

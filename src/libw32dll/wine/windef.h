@@ -105,7 +105,7 @@ extern "C" {
 
 /* Calling conventions definitions */
 
-#if defined(__i386__) && !defined(WINE_TYPEDEFS_ONLY)
+#ifdef __i386__
 # if defined(__GNUC__) && ((__GNUC__ > 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)))
 #  ifndef _EGCS_ 
 #define __stdcall __attribute__((__stdcall__))
@@ -113,7 +113,7 @@ extern "C" {
 #  define __RESTORE_ES  __asm__ __volatile__("pushl %ds\n\tpopl %es")
 #  endif
 # else
-#  error You need gcc >= 2.7 to build Wine on a 386
+// #  error You need gcc >= 2.7 to build Wine on a 386
 # endif
 #else 
 # define __stdcall
@@ -166,8 +166,8 @@ typedef unsigned short  WCHAR;
 typedef int             WIN_BOOL;
 typedef double          DATE;
 typedef double          DOUBLE;
-typedef double          LONGLONG;
-typedef double          ULONGLONG;
+typedef long long       LONGLONG;
+typedef unsigned long long   ULONGLONG;
 
 /* FIXME: Wine does not compile with strict on, therefore strict
  * handles are presently only usable on machines where sizeof(UINT) ==

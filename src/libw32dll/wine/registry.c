@@ -1,9 +1,9 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <pwd.h>
 #include <sys/types.h>
 
@@ -13,7 +13,11 @@
 #include "winerror.h"
 #include "debugtools.h"
 
-#include "registry.h"
+#include <ext.h>
+#include <registry.h>
+
+//#undef TRACE
+//#define TRACE printf
 
 struct reg_value
 {
@@ -23,9 +27,11 @@ struct reg_value
 	char* value;
 };
 
-static int reg_size=0;
+// ...can be set before init_registry() call
+char* regpathname = 0;
 
-static struct reg_value* regs=0;
+static int reg_size=0;
+static struct reg_value* regs = 0;
 
 struct reg_handle_s;
 typedef struct reg_handle_s
@@ -43,6 +49,7 @@ static reg_handle_t* head=0;
 static void create_registry(void);
 static void open_registry(void);
 static void save_registry(void);
+static void init_registry(void);
 
 
 
@@ -69,21 +76,14 @@ static void open_registry(void)
 {
 	int fd;
 	int i;
-	int len;
-         struct passwd* pwent;
-         char* pathname;
+	unsigned int len;
 	if(regs)
 	{
 		printf("Multiple open_registry(>\n");
 		return;
 	}
-        pwent=getpwuid(getuid());
-        pathname=(char*)malloc(strlen(pwent->pw_dir)+20);
-	strcpy(pathname, pwent->pw_dir);
-        strcat(pathname, "/.registry");
-	fd=open(pathname, O_RDONLY);
-        free(pathname);
-	if(fd==-1)
+	fd = open(regpathname, O_RDONLY);
+	if (fd == -1)
 	{
 	    printf("Creating new registry\n");
 	    create_registry();
@@ -121,25 +121,21 @@ error:
 
 static void save_registry(void)
 {
-	int fd, i, len;
-         struct passwd* pwent;
-         char* pathname;
-        pwent=getpwuid(getuid());
-        pathname=(char*)malloc(strlen(pwent->pw_dir)+20);
-	strcpy(pathname, pwent->pw_dir);
-        strcat(pathname, "/.registry");
-	fd=open(pathname, O_WRONLY | O_CREAT, 00777);
-        free(pathname);
-	if(fd==-1)
+	int fd, i;
+	if (!regs)
+		init_registry();
+	fd = open(regpathname, O_WRONLY | O_CREAT, 00666);
+	if (fd == -1)
 	{
-		printf("Failed to open registry file for writing.\n");
-		return;
+	    printf("Failed to open registry file '%s' for writing.\n",
+		   regpathname);
+	    return;
 	}
 	write(fd, &reg_size, 4);
 	for(i=0; i<reg_size; i++)
 	{
+	        unsigned len=strlen(regs[i].name);
 		write(fd, &regs[i].type, 4);
-		len=strlen(regs[i].name);
 		write(fd, &len, 4);
 		write(fd, regs[i].name, len);
 		write(fd, &regs[i].len, 4);
@@ -147,7 +143,6 @@ static void save_registry(void)
 	}
 	close(fd);
 }
-#if 0
 static reg_handle_t* find_handle_by_name(const char* name)
 {
 	reg_handle_t* t;
@@ -160,7 +155,6 @@ static reg_handle_t* find_handle_by_name(const char* name)
 	}
 	return 0;
 }
-#endif
 static struct reg_value* find_value_by_name(const char* name)
 {
 	int i;
@@ -229,7 +223,7 @@ static char* build_keyname(long key, const char* subkey)
 }
 static struct reg_value* insert_reg_value(int handle, const char* name, int type, const void* value, int len)
 {
-  /* reg_handle_t* t; */
+	reg_handle_t* t;
 	struct reg_value* v;
 	char* fullname;
 	if((fullname=build_keyname(handle, name))==NULL)
@@ -263,14 +257,26 @@ static struct reg_value* insert_reg_value(int handle, const char* name, int type
 	return v;
 }
 
-static void init_registry()
+static void init_registry(void)
 {
-	printf("Initializing registry\n");
+	struct passwd* pwent;
+	TRACE("Initializing registry\n");
+	pwent = getpwuid(geteuid());
+	// can't be free-ed - it's static and probably thread
+	// unsafe structure which is stored in glibc
+
+	if (regpathname == 0)
+	{
+	    regpathname = (char*)malloc(strlen(pwent->pw_dir)+20);
+	    strcpy(regpathname, pwent->pw_dir);
+	    strcat(regpathname, "/.registry");
+	}
+
 	open_registry();
 	insert_handle(HKEY_LOCAL_MACHINE, "HKLM");
 	insert_handle(HKEY_CURRENT_USER, "HKCU");
 }
-#if 0
+
 static reg_handle_t* find_handle_2(long key, const char* subkey)
 {
 	char* full_name;
@@ -290,7 +296,7 @@ static reg_handle_t* find_handle_2(long key, const char* subkey)
 	free(full_name);
 	return t;
 }
-#endif
+
 long RegOpenKeyExA(long key, const char* subkey, long reserved, long access, int* newkey)
 {
     char* full_name;
@@ -308,10 +314,11 @@ long RegOpenKeyExA(long key, const char* subkey, long reserved, long access, int
 
 	if(t==(reg_handle_t*)-1)
 		return -1;
-
-*/    full_name=build_keyname(key, subkey);
+*/
+    full_name=build_keyname(key, subkey);
     if(!full_name)
         return -1;
+    TRACE("Opening key Fullname %s\n", full_name);
     v=find_value_by_name(full_name);    
 
     t=insert_handle(generate_handle(), full_name);
@@ -377,8 +384,8 @@ long RegQueryValueExA(long key, const char* value, int* reserved, int* type, int
     return 0;
 }  
 long RegCreateKeyExA(long key, const char* name, long reserved,
-							   void* classs, long options, long security,
-							   void* sec_attr, int* newkey, int* status) 
+		     void* classs, long options, long security,
+		     void* sec_attr, int* newkey, int* status)
 {
 	reg_handle_t* t;
 	char* fullname;
@@ -401,7 +408,10 @@ long RegCreateKeyExA(long key, const char* name, long reserved,
 	}
 	else
 	{
-		if (status) *status=REG_OPENED_EXISTING_KEY;
+            // this is a hack as I don't know how RegEnumValueA works
+	    if (strstr(fullname, "zlib") || strstr(fullname, "mszh"))
+                return 1;
+	    if (status) *status=REG_OPENED_EXISTING_KEY;
 	}
 
 	t=insert_handle(generate_handle(), fullname);
@@ -409,9 +419,34 @@ long RegCreateKeyExA(long key, const char* name, long reserved,
 	free(fullname);
 	return 0;
 }
+
+long RegEnumValueA(HKEY hkey, DWORD index, LPSTR value, LPDWORD val_count,
+		   LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD count)
+{
+    // have no idea how this should work
+    //printf("Reg Enum 0x%x %d  %p %d   data: %p %d  %d >%s<\n", hkey, index, value, *val_count, data, *count, reg_size, data);
+    {
+	reg_handle_t* t = find_handle(hkey);
+	if (t)
+	{
+	    struct reg_value* v=find_value_by_name(t->name);
+            *count = v->len;
+	    memcpy(data, v->value, *count);
+            *val_count = v->len;
+	    memcpy(value, v->value, *val_count);
+            if (type)
+		*type = v->type;
+	    //printf("Found handle  %s\n", v->name);
+            return 0;
+	}
+    }
+
+    return -1;
+}
+
 long RegSetValueExA(long key, const char* name, long v1, long v2, const void* data, long size)
 {
-  /* struct reg_value* t; */
+    struct reg_value* t;
     char* c;
     TRACE("Request to set value %s\n", name);
     if(!regs)

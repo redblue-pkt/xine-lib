@@ -1,23 +1,23 @@
 /********************************************************
 
 	Win32 binary loader interface
-	Copyright 2000 Eugene Smith (divx@euro.ru)
+	Copyright 2000 Eugene Kuznetsov (divx@euro.ru)
 	Shamelessly stolen from Wine project
 
 *********************************************************/
 
 #ifndef _LOADER_H
 #define _LOADER_H
-#include <windef.h>
-#include <driver.h>
-#include <mmreg.h>
-#include <vfw.h>
-#include <msacm.h>
+#include "windef.h"
+#include "driver.h"
+#include "mmreg.h"
+#include "vfw.h"
+#include "msacm.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void SetCodecPath(const char* path);
 unsigned int _GetPrivateProfileIntA(const char* appname, const char* keyname, int default_value, const char* filename);
 int _GetPrivateProfileStringA(const char* appname, const char* keyname,
 	const char* def_val, char* dest, unsigned int len, const char* filename);
@@ -30,7 +30,7 @@ int _WritePrivateProfileStringA(const char* appname, const char* keyname,
     MS VFW ( Video For Windows ) interface
 	    
 **********************************************/	    
-
+#if D_VFW
 long VFWAPIV ICCompress(
 	HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiOutput,void* lpData,
 	LPBITMAPINFOHEADER lpbiInput,void* lpBits,long* lpckid,
@@ -40,7 +40,7 @@ long VFWAPIV ICCompress(
 
 long VFWAPIV ICDecompress(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER lpbi,void* lpBits);
 
-WIN_BOOL	VFWAPI	ICInfo(long fccType, long fccHandler, ICINFO * lpicinfo);
+WIN_BOOL VFWAPI	ICInfo(long fccType, long fccHandler, ICINFO * lpicinfo);
 LRESULT	VFWAPI	ICGetInfo(HIC hic,ICINFO *picinfo, long cb);
 HIC	VFWAPI	ICOpen(long fccType, long fccHandler, UINT wMode);
 HIC	VFWAPI	ICOpenFunction(long fccType, long fccHandler, unsigned int wMode, void* lpfnHandler);
@@ -49,8 +49,8 @@ LRESULT VFWAPI ICClose(HIC hic);
 LRESULT	VFWAPI ICSendMessage(HIC hic, unsigned int msg, long dw1, long dw2);
 HIC	VFWAPI ICLocate(long fccType, long fccHandler, LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut, short wFlags);
 
-int VFWAPI ICDoSomething(void);
-
+int VFWAPI ICDoSomething();
+#endif // D_VFW
 #define ICCompressGetFormat(hic, lpbiInput, lpbiOutput) 		\
 	ICSendMessage(							\
 	    hic,ICM_COMPRESS_GET_FORMAT,(long)(void*)(lpbiInput),	\
@@ -137,7 +137,7 @@ int VFWAPI ICDoSomething(void);
 	    
 ******************************************************/	    
 
-
+#ifdef D_MSACM
 MMRESULT WINAPI acmDriverAddA(
   PHACMDRIVERID phadid, HINSTANCE hinstModule,
   LPARAM lParam, DWORD dwPriority, DWORD fdwAdd
@@ -277,10 +277,12 @@ MMRESULT WINAPI acmStreamSize(
 MMRESULT WINAPI acmStreamUnprepareHeader(
   HACMSTREAM has, PACMSTREAMHEADER pash, DWORD fdwUnprepare
 );
-void MSACM_RegisterAllDrivers(void);
+#endif // D_MSACM
+
+INT WINAPI LoadStringA( HINSTANCE instance, UINT resource_id,
+                            LPSTR buffer, INT buflen );
 
 #ifdef __cplusplus
 }
 #endif
 #endif /* __LOADER_H */
-

@@ -7,22 +7,19 @@
 
 #ifdef HAVE_LIBDL
 
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
-
-#include "wine/config.h"
-#include "wine/windef.h"
-//#include "wine/global.h"
-//#include "wine/process.h"
-#include "wine/module.h"
-#include "wine/heap.h"
-#include "wine/elfdll.h"
-#include "wine/debugtools.h"
-#include "wine/winerror.h"
+#include "windef.h"
+#include "module.h"
+#include "heap.h"
+#include "elfdll.h"
+#include "debugtools.h"
+#include "winerror.h"
 
 //DEFAULT_DEBUG_CHANNEL(elfdll)
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include <dlfcn.h>
 
 struct modref_list_t;
@@ -39,6 +36,11 @@ modref_list;
 //WINE_MODREF *local_wm=NULL;
 extern modref_list* local_wm;
 
+
+/*------------------ HACKS -----------------*/
+extern DWORD fixup_imports(WINE_MODREF *wm);
+extern void dump_exports(HMODULE hModule);
+/*---------------- END HACKS ---------------*/
 
 //char *extra_ld_library_path = "/usr/lib/win32";
 extern char* def_path;
