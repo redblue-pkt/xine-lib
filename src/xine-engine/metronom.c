@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.61 2002/03/08 00:24:40 jcdutton Exp $
+ * $Id: metronom.c,v 1.62 2002/03/08 16:56:03 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -504,8 +504,9 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   int64_t vpts;
 
 #ifdef LOG  
-  printf ("metronom: got %d samples, pts is %lld, last_pts is %lld, diff = %lld\n",
+  printf ("metronom: got %d audio samples, pts is %lld, last_pts is %lld, diff = %lld\n",
 	  nsamples, pts, this->last_audio_pts, pts - this->last_audio_pts);
+  printf ("metronom: audio wrap offset is %lld\n", this->audio_wrap_offset);
 #endif
 
   pthread_mutex_lock (&this->lock);
@@ -555,7 +556,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
        * for too long
        */
       
-      if ( this->video_wrap_offset != this->audio_wrap_offset       
+      if ( ( this->video_wrap_offset != this->audio_wrap_offset )
 	   && !this->video_discontinuity && !this->audio_discontinuity ) {
 	this->wrap_diff_counter++;
 	
