@@ -284,8 +284,12 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
      *   - high_water_mark is reached by all fifos
      * do not restart if has_video and has_audio are false to avoid
      * a yoyo effect at the beginning of the stream when these values
-     * are not yet known. */
-    if ((fifo->buffer_pool_num_free <= 1) ||
+     * are not yet known.
+     * 
+     * be sure that the next buffer_pool_alloc() call will not deadlock,
+     * we need at least 2 buffers (see buffer.c)
+     */
+    if ((fifo->buffer_pool_num_free <= 2) ||
         (((!has_video) || (this->video_fifo_length > this->high_water_mark)) &&
          ((!has_audio) || (this->audio_fifo_length > this->high_water_mark)) &&
          (has_video || has_audio))) {
@@ -362,7 +366,7 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
 
       /* Don't pause if the other fifo is full because the next
          put() will restart the engine */
-      if (other_fifo_free > 1) {
+      if (other_fifo_free > 2) {
         this->buffering = 1;
         this->progress  = 0;
         report_progress (this->stream, 0);
