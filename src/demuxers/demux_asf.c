@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.106 2003/02/15 11:21:01 tmattern Exp $
+ * $Id: demux_asf.c,v 1.107 2003/02/15 12:42:52 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -45,9 +45,9 @@
 #include "asfheader.h"
 #include "xmlparser.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define CODEC_TYPE_AUDIO       0
 #define CODEC_TYPE_VIDEO       1
@@ -238,7 +238,7 @@ static uint64_t get_le64 (demux_asf_t *this) {
 static int get_guid (demux_asf_t *this) {
   int i;
   GUID g;
-  
+
   g.v1 = get_le32(this);
   g.v2 = get_le16(this);
   g.v3 = get_le16(this);
@@ -1779,7 +1779,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "asf asx wmv wma";
+  return "asf asx wmv wma wvx";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
@@ -1787,7 +1787,8 @@ static char *get_mimetypes (demux_class_t *this_gen) {
          "video/x-ms-wmv: wmv: WMV video;"
          "application/vnd.ms-asf: asf: ASF video;"
          "application/x-mplayer2: asf,asx,asp: mplayer2;"
-         "video/x-ms-asf-plugin: asf,asx,asp: mms animation;";
+         "video/x-ms-asf-plugin: asf,asx,asp: mms animation;"
+         "video/x-ms-wvx: wvx: ;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
