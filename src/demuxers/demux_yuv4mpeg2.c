@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.36 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.37 2004/02/14 20:20:43 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -166,7 +166,7 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
         break;
       case 'A':
         /* read aspect ratio - stored as a ratio(!) 
-         * numberator */
+         * numerator */
         this->aspect_n = strtol(header_ptr + 1, &header_endptr, 10);
         if ((header_endptr == header_ptr + 1) || (*header_endptr != ':'))
           return 0;
@@ -316,13 +316,16 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
                        BUF_FLAG_FRAME_END;
   buf->decoder_info[0] = this->frame_pts_inc;  /* initial video step */
-  buf->decoder_info[1] = this->progressive;
-  buf->decoder_info[2] = this->top_field_first;
-  if(this->aspect_n && this->aspect_d)
-    buf->decoder_info[3] = this->bih.biWidth*this->aspect_n/this->aspect_d;
-  else
-    buf->decoder_info[3] = this->bih.biWidth;
-  buf->decoder_info[4] = this->bih.biHeight;
+  
+  if(this->aspect_n && this->aspect_d) {
+    buf->decoder_flags  |= BUF_FLAG_ASPECT;
+    buf->decoder_info[1] = this->bih.biWidth * this->aspect_n;
+    buf->decoder_info[2] = this->bih.biHeight * this->aspect_d;
+  }
+    
+  buf->decoder_info[3] = this->progressive;
+  buf->decoder_info[4] = this->top_field_first;
+
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_I420;
