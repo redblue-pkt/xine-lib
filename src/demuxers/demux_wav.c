@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.36 2003/01/23 16:12:15 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.37 2003/02/22 13:20:30 esnel Exp $
  *
  */
 
@@ -119,8 +119,10 @@ static int open_wav_file(demux_wav_t *this) {
   this->wave = (xine_waveformatex *) malloc( this->wave_size );
     
   if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
-    this->wave_size)
+    this->wave_size) {
+    free (this->wave);
     return 0;
+  }
   xine_waveformatex_le2me(this->wave);
   this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
   if(!this->audio_type) {
@@ -131,8 +133,10 @@ static int open_wav_file(demux_wav_t *this) {
   this->data_start = this->data_size = 0;
   while (this->data_start == 0) {
 
-    if (this->input->read(this->input, chunk_preamble, 8) != 8)
+    if (this->input->read(this->input, chunk_preamble, 8) != 8) {
+      free (this->wave);
       return 0;
+    }
     chunk_tag = LE_32(&chunk_preamble[0]);      
     chunk_size = LE_32(&chunk_preamble[4]);
 
@@ -281,6 +285,7 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
 static void demux_wav_dispose (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
+  free(this->wave);
   free(this);
 }
 
