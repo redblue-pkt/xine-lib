@@ -195,6 +195,8 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
   
     memcpy(this->event.object.overlay->clip_color, osd->color, sizeof(osd->color)); 
     memcpy(this->event.object.overlay->clip_trans, osd->trans, sizeof(osd->trans)); 
+    memcpy(this->event.object.overlay->color, osd->color, sizeof(osd->color)); 
+    memcpy(this->event.object.overlay->trans, osd->trans, sizeof(osd->trans)); 
   
     this->event.event_type = OVERLAY_EVENT_SHOW;
     this->event.vpts = vpts;
