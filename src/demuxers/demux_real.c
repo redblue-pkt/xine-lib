@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.91 2004/02/03 21:20:04 jstembridge Exp $
+ * $Id: demux_real.c,v 1.92 2004/02/05 00:04:23 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1055,7 +1055,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
           buf->decoder_info[2] = this->fragment_count - 1;
           buf->decoder_info_ptr[2] = buf->content;
           buf->decoder_info[3] = 0;
-          buf->size = this->fragment_count*8;
+          buf->size = 0;
           buf->type = this->video_stream->buf_type;
 
           xine_fast_memcpy(buf->decoder_info_ptr[2], this->fragment_tab, buf->size);
