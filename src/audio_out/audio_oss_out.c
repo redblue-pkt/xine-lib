@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.76 2002/10/19 23:38:15 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.77 2002/10/20 00:52:06 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -616,8 +616,10 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 #ifdef LOG
     printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
 #endif
+    pthread_mutex_lock (&this->lock);
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+    pthread_mutex_unlock (&this->lock);
     /*  Uncomment the following lines if RESET causes problems
      *  ao_oss_close(this_gen);
      *  ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
