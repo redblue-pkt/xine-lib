@@ -46,7 +46,7 @@ const int16_t ocos_4_16[4] = {
 };
 
 static const mmx_t fdct_one_corr = {0x0001000100010001LL};
-static const mmx_t fdct_r_row = { d:{RND_FRW_ROW, RND_FRW_ROW} };
+static volatile mmx_t fdct_r_row = { d:{RND_FRW_ROW, RND_FRW_ROW} };
 
 const int16_t tab_frw_01234567[] ATTR_ALIGN(8) = {  // forward_dct coeff table
     //row0
