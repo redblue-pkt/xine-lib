@@ -78,6 +78,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
                       screen: aScreen];
 
     xineView = [[XineOpenGLView alloc] initWithFrame:rect];
+    [xineView setResizeViewToVideoSizeOnLoad:YES];
 
     /* receive notifications about window resizing from the xine view */
     [xineView setDelegate:self];
@@ -146,6 +147,26 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 @implementation XineOpenGLView
 
+- (void) setKeepsVideoAspectRatio:(BOOL)flag
+{
+    keepsVideoAspectRatio = flag;
+}
+
+- (BOOL) keepsVideoAspectRatio
+{
+    return keepsVideoAspectRatio;
+}
+
+- (void) setResizeViewToVideoSizeOnLoad:(BOOL)flag
+{
+    resizeViewToVideoSizeOnLoad = flag;
+}
+
+- (BOOL) resizeViewToVideoSizeOnLoad
+{
+    return resizeViewToVideoSizeOnLoad;
+}
+
 - (BOOL)mouseDownCanMoveWindow {
     return YES;
 }
@@ -187,11 +208,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     currentContext = [self openGLContext];
     [currentContext makeCurrentContext];
+    [mutex lock];
     [currentContext update];
+    [mutex unlock];
 
-    /* Black background */
-    glClearColor (0.0, 0.0, 0.0, 0.0);
-    
     i_texture      = 0;
     initDone       = NO;
     isFullScreen   = NO;
@@ -202,6 +222,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     [self initTextures];
 
+    /* Black background */
+    glClearColor (0.0, 0.0, 0.0, 0.0);
+    
     return self;
 }
 
@@ -210,11 +233,20 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [super initWithCoder:coder];
 
     self = [self initWithFrame:[self frame]];
+
+    keepsVideoAspectRatio = [coder decodeBoolForKey:@"keepsVideoAspectRatio"];
+    resizeViewToVideoSizeOnLoad = [coder decodeBoolForKey:
+        @"resizeViewToVideoSizeOnLoad"];
+
     return self;
 }
 
 - (void) encodeWithCoder:(NSCoder *)coder
 {
+    [coder encodeBool:keepsVideoAspectRatio forKey:@"keepsVideoAspectRatio"];
+    [coder encodeBool:resizeViewToVideoSizeOnLoad
+               forKey:@"resizeViewToVideoSizeOnLoad"];
+
     [super encodeWithCoder:coder];
 }
 
@@ -224,16 +256,20 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     if (fullScreenContext) {
         [NSOpenGLContext clearCurrentContext];
+        [mutex lock];
         [fullScreenContext clearDrawable];
         [fullScreenContext release];
+        [mutex unlock];
         if (currentContext == fullScreenContext) currentContext = nil;
         fullScreenContext = nil;
     }
 
     if (currentContext) {
         [NSOpenGLContext clearCurrentContext];
+        [mutex lock];
         [currentContext clearDrawable];
         [currentContext release];
+        [mutex unlock];
         currentContext = nil;
     }
 
@@ -358,13 +394,12 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 }
 
 - (void) reloadTexture {
-    [mutex lock];
-
     if (!initDone) {
-        [mutex unlock];
         return;
     }
     
+    [mutex lock];
+
     [currentContext makeCurrentContext];
 
     glBindTexture (GL_TEXTURE_RECTANGLE_EXT, i_texture);
@@ -420,7 +455,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     printf ("MacOSX fullscreen mode: %dx%d => %dx%d @ %d,%d\n",
             video_width, video_height, w, h, x, y);
 
+    [mutex lock];
     glViewport (x, y, w, h);
+    [mutex unlock];
 }
 
 - (void) goFullScreen: (XineVideoWindowFullScreenMode) mode {
@@ -483,7 +520,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     
     /* Free current OpenGL context */
     [NSOpenGLContext clearCurrentContext];
+    [mutex lock];
     [fullScreenContext clearDrawable];
+    [mutex unlock];
     [fullScreenContext release];
     fullScreenContext = nil;
     CGReleaseAllDisplays();
@@ -520,10 +559,11 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 - (void) drawRect: (NSRect) rect {
     [currentContext makeCurrentContext];
     
-    if (!initDone || ![mutex tryLock]) {
-        [currentContext flushBuffer];
+    if (!initDone) {
         return;
     }
+
+    [mutex lock];
 
     /* Swap buffers only during the vertical retrace of the monitor.
        http://developer.apple.com/documentation/GraphicsImaging/Conceptual/OpenGL/chap5/chapter_5_section_44.html */
@@ -565,11 +605,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     NSValue *sizeWrapper = [NSValue valueWithBytes:&size
                                           objCType:@encode(NSSize)];
     
-    [mutex lock];
     [self performSelectorOnMainThread:@selector(setViewSize:)
                            withObject:sizeWrapper
                            waitUntilDone:NO];
-    [mutex unlock];
 
     [pool release];
 }
@@ -609,7 +647,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     if (isFullScreen)
         [self calcFullScreenAspect];
 
-    [self initTextures];    
+    [self initTextures];
 }
 
 - (BOOL) isFullScreen {
