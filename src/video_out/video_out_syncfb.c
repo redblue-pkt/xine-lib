@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.30 2001/11/05 15:57:14 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.31 2001/11/05 17:31:20 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -97,6 +97,7 @@ typedef struct {
   int               overlay_state;   // 0 = off, 1 = on
   uint8_t*          video_mem;       // mmapped video memory
   int               default_repeat;  // how many times a frame will be repeatedly displayed
+  uint32_t          supported_capabilities;
 
   syncfb_config_t      syncfb_config;
   syncfb_capability_t  capabilities;
@@ -553,8 +554,9 @@ static void x11_DeInstallXErrorHandler(syncfb_driver_t* this)
 static uint32_t syncfb_get_capabilities(vo_driver_t* this_gen) {
   // FIXME: VO_CAP_CONTRAST and VO_CAP_BRIGHTNESS unsupported at the moment,
   //        because they seem to be disabled in the syncfb module anyway. :(
-  // FIXME: currently we only support YV12
-  return VO_CAP_YV12; // | VO_CAP_YUY2;
+  syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
+  
+  return this->supported_capabilities;
 }
 
 static void syncfb_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -842,19 +844,37 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 
    // mmap whole video memory
    this->video_mem = (char *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
-  
-   // check palette support
+     
+   // check for formats we need...
+   this->supported_capabilities = 0;
+   
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
-      this->palette = VIDEO_PALETTE_YUV420P3;
-      printf("video_out_syncfb: using palette yuv420p3.\n");
-   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
-      this->palette = VIDEO_PALETTE_YUV420P2;
-      printf("video_out_syncfb: using palette yuv420p2.\n");
-   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {
-      this->palette = VIDEO_PALETTE_YUV422;
-      printf("video_out_syncfb: using palette yuv422.\n");
+      this->supported_capabilities |= VO_CAP_YV12;
+      printf("video_out_syncfb: SyncFB module supports YV12.\n");
    } else {
-      printf("video_out_syncfb: aborting. (no supported palette found)\n");
+      //
+      // FIXME: this "else" will be removed as soon as we add support
+      //        for YUY2 and RGB
+      // 
+      printf("video_out_syncfb: aborting. (YUV420P3 support not available)\n");      
+      
+      close(this->fd);
+      free(this);
+      
+      return NULL;
+   }
+   // FIXME: not sure but is YUYV the same as YUY2?
+   if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUYV)) {
+      this->supported_capabilities |= VO_CAP_YUY2;
+      printf("video_out_syncfb: SyncFB module supports YUY2.\n");
+   }
+   if(this->capabilities.palettes & (1<<VIDEO_PALETTE_RGB565)) {
+      this->supported_capabilities |= VO_CAP_RGB;
+      printf("video_out_syncfb: SyncFB module supports RGB565.\n");
+   }
+   
+   if(!this->supported_capabilities) {
+      printf("video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor RGB565)\n");
       
       close(this->fd);
       free(this);
@@ -862,6 +882,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       return NULL;
    }
 
+  // little hack to hard code to YV12 until rest is supported.
+  this->palette                = VIDEO_PALETTE_YUV420P3;
+  this->supported_capabilities = VO_CAP_YV12;
+   
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);  
    
   this->bufinfo.id            = -1;   
