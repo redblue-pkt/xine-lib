@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.31 2001/12/01 22:38:31 guenter Exp $
+ * $Id: input_file.c,v 1.32 2001/12/14 14:49:08 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -77,6 +77,7 @@ typedef struct {
   input_plugin_t    input_plugin;
   
   int               fh;
+  int               show_hidden_files;
   FILE             *sub;
   char             *mrl;
   config_values_t  *config;
@@ -90,6 +91,15 @@ typedef struct {
 /* ***************************************************************************
  *                            PRIVATES FUNCTIONS
  */
+
+/*
+ * Callback for config changes.
+ */
+static void hidden_bool_cb(void *data, cfg_entry_t *cfg) {
+  file_input_plugin_t *this = (file_input_plugin_t *) data;
+  
+  this->show_hidden_files = cfg->num_value;
+}
 
 /*
  * Sorting function, it comes from GNU fileutils package.
@@ -448,72 +458,87 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     sprintf(fullfilename, "%s/%s", current_dir, pdirent->d_name);
     
     if(is_a_dir(fullfilename)) {
-
-      dir_files[num_dir_files].mrl    = (char *) 
-	xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
-
-      dir_files[num_dir_files].origin = strdup(current_dir);
-      sprintf(dir_files[num_dir_files].mrl, "%s%s", 
-	      current_dir_slashed, pdirent->d_name);
-      dir_files[num_dir_files].link   = NULL;
-      dir_files[num_dir_files].type   = get_file_type(fullfilename, current_dir);
-      dir_files[num_dir_files].size   = get_file_size(fullfilename, current_dir);
       
-      /* The file is a link, follow it */
-      if(dir_files[num_dir_files].type & mrl_file_symlink) {
-	char linkbuf[PATH_MAX + NAME_MAX + 1];
-	int linksize;
-	
-	memset(linkbuf, 0, sizeof(linkbuf));
-	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
-	
-	if(linksize < 0) {
-	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __XINE_FUNCTION__, __LINE__, strerror(errno));
-	}
-	else {
-	  dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
-	  strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
-	  dir_files[num_dir_files].type |= get_file_type(dir_files[num_dir_files].link, current_dir);
-	}
+      /* if user don't want to see hidden files, ignore them */
+      if(this->show_hidden_files == 0 && 
+	 ((strlen(pdirent->d_name) > 1)
+	  && (pdirent->d_name[0] == '.' &&  pdirent->d_name[1] != '.'))) {
+	;
       }
-      
-      num_dir_files++;
+      else {
+	
+	dir_files[num_dir_files].mrl    = (char *) 
+	  xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
+	
+	dir_files[num_dir_files].origin = strdup(current_dir);
+	sprintf(dir_files[num_dir_files].mrl, "%s%s", 
+		current_dir_slashed, pdirent->d_name);
+	dir_files[num_dir_files].link   = NULL;
+	dir_files[num_dir_files].type   = get_file_type(fullfilename, current_dir);
+	dir_files[num_dir_files].size   = get_file_size(fullfilename, current_dir);
+
+	/* The file is a link, follow it */
+	if(dir_files[num_dir_files].type & mrl_file_symlink) {
+	  char linkbuf[PATH_MAX + NAME_MAX + 1];
+	  int linksize;
+	  
+	  memset(linkbuf, 0, sizeof(linkbuf));
+	  linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	  
+	  if(linksize < 0) {
+	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
+		    __XINE_FUNCTION__, __LINE__, strerror(errno));
+	  }
+	  else {
+	    dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
+	    strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
+	    dir_files[num_dir_files].type |= get_file_type(dir_files[num_dir_files].link, current_dir);
+	  }
+	}
+	
+	num_dir_files++;
+      }
+
     } /* Hmmmm, an hidden file ? */
     else if((strlen(pdirent->d_name) > 1)
 	    && (pdirent->d_name[0] == '.' &&  pdirent->d_name[1] != '.')) {
 
-      hide_files[num_hide_files].mrl    = (char *) 
-	xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
+      /* if user don't want to see hidden files, ignore them */
+      if(this->show_hidden_files) {
 
-      hide_files[num_hide_files].origin = strdup(current_dir);
-      sprintf(hide_files[num_hide_files].mrl, "%s%s", 
-	      current_dir_slashed, pdirent->d_name);
-      hide_files[num_hide_files].link   = NULL;
-      hide_files[num_hide_files].type   = get_file_type(fullfilename, current_dir);
-      hide_files[num_hide_files].size   = get_file_size(fullfilename, current_dir);
-      
-      /* The file is a link, follow it */
-      if(hide_files[num_hide_files].type & mrl_file_symlink) {
-	char linkbuf[PATH_MAX + NAME_MAX + 1];
-	int linksize;
+	hide_files[num_hide_files].mrl    = (char *) 
+	  xine_xmalloc(strlen(current_dir_slashed) + 1 + strlen(pdirent->d_name) + 1);
 	
-	memset(linkbuf, 0, sizeof(linkbuf));
-	linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	hide_files[num_hide_files].origin = strdup(current_dir);
+	sprintf(hide_files[num_hide_files].mrl, "%s%s", 
+		current_dir_slashed, pdirent->d_name);
+	hide_files[num_hide_files].link   = NULL;
+	hide_files[num_hide_files].type   = get_file_type(fullfilename, current_dir);
+	hide_files[num_hide_files].size   = get_file_size(fullfilename, current_dir);
 	
-	if(linksize < 0) {
-	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __XINE_FUNCTION__, __LINE__, strerror(errno));
+	/* The file is a link, follow it */
+	if(hide_files[num_hide_files].type & mrl_file_symlink) {
+	  char linkbuf[PATH_MAX + NAME_MAX + 1];
+	  int linksize;
+	  
+	  memset(linkbuf, 0, sizeof(linkbuf));
+	  linksize = readlink(fullfilename, linkbuf, PATH_MAX + NAME_MAX);
+	  
+	  if(linksize < 0) {
+	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
+		    __XINE_FUNCTION__, __LINE__, strerror(errno));
+	  }
+	  else {
+	    hide_files[num_hide_files].link = (char *) 
+	      xine_xmalloc(linksize + 1);
+	    strncpy(hide_files[num_hide_files].link, linkbuf, linksize);
+	    hide_files[num_hide_files].type |= get_file_type(hide_files[num_hide_files].link, current_dir);
+	  }
 	}
-	else {
-	  hide_files[num_hide_files].link = (char *) 
-	    xine_xmalloc(linksize + 1);
-	  strncpy(hide_files[num_hide_files].link, linkbuf, linksize);
-	  hide_files[num_hide_files].type |= get_file_type(hide_files[num_hide_files].link, current_dir);
-	}
+	
+	num_hide_files++;
       }
-      
-      num_hide_files++;
+
     } /* So a *normal* one. */
     else {
 
@@ -742,7 +767,7 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
   
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  printf ("input_file: get optional data, type %08x, sub %d\n",
+  printf ("input_file: get optional data, type %08x, sub %p\n",
 	  data_type, this->sub);
 
 
@@ -809,6 +834,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
+
+  this->show_hidden_files = this->config->register_bool(this->config, "input.hidden_files", 1,
+							"hidden files displaying.",
+							NULL, hidden_bool_cb, (void *) this);
   
   return (input_plugin_t *) this;
 }
