@@ -63,10 +63,7 @@
 
 #include <dlfcn.h>
 
-
-
-xine_health_check_t*
-xine_health_check (xine_health_check_t* hc, int check_num) {
+xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
 
   switch(check_num) {
     case CHECK_KERNEL:
@@ -97,8 +94,7 @@ xine_health_check (xine_health_check_t* hc, int check_num) {
   return hc;
 }
 
-xine_health_check_t*
-xine_health_check_kernel (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
   struct utsname kernel;
 
   if (uname (&kernel) == 0) {
@@ -108,22 +104,19 @@ xine_health_check_kernel (xine_health_check_t* hc) {
     hc->status = XINE_HEALTH_CHECK_OK;
   }
   else {
-    hc->status = XINE_HEALTH_CHECK_FAIL;
-    hc->msg =  "FAILED - Could not get kernel information.";
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - Could not get kernel information.");
   }
   return hc;
 }
 
 #ifdef ARCH_X86
-xine_health_check_t*
-xine_health_check_mtrr (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
   char *file = "/proc/mtrr";
   FILE *fd;
 
   fd = fopen(file, "r");
   if (fd < 0) {
-    hc->msg = "FAILED: mtrr is not enabled.";
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED: mtrr is not enabled.");
   }
   else {
     hc->status = XINE_HEALTH_CHECK_OK;
@@ -132,38 +125,30 @@ xine_health_check_mtrr (xine_health_check_t* hc) {
   return hc;
 }
 #else
-xine_health_check_t*
-xine_health_check_mtrr (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
 
-  hc->msg = "FAILED: mtrr does not apply on this hw platform.";
-  hc->status = XINE_HEALTH_CHECK_OK;
+  set_hc_result (hc, XINE_HEALTH_CHECK_OK, "FAILED: mtrr does not apply on this hw platform.");
 
   return hc;
 }
 #endif
 
-xine_health_check_t*
-xine_health_check_cdrom (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_cdrom (xine_health_check_t* hc) {
   struct stat cdrom_st;
 
   if (stat (hc->cdrom_dev,&cdrom_st) < 0) {
-    hc->msg = (char*) malloc(sizeof(char)*(30-2) + strlen(hc->cdrom_dev + 1));
-    sprintf (hc->msg, "FAILED - could not cdrom: %s\n", hc->cdrom_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not cdrom: %s\n", hc->cdrom_dev);
+    return hc;
   }
   else {
     if ((cdrom_st.st_mode & S_IFMT) != S_IFBLK) {
-      hc->msg = (char*) malloc(sizeof(char)*(36-2) + strlen(hc->cdrom_dev) + 1);
-      sprintf(hc->msg, "FAILED - %s is not a block device.\n", hc->cdrom_dev);
-      hc->status = XINE_HEALTH_CHECK_FAIL;
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s is not a block device.\n", hc->cdrom_dev);
       return hc;
     }
 
     if ((cdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
         (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
-      hc->msg = (char*) malloc(sizeof(char)*(43-2) + strlen(hc->cdrom_dev) + 1);
-      sprintf(hc->msg, "FAILED - %s permissions are not 'rwxrwxrx'\n.", hc->cdrom_dev);
-      hc->status = XINE_HEALTH_CHECK_FAIL;
+      set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'\n.", hc->cdrom_dev);
       return hc;
     }
     hc->status = XINE_HEALTH_CHECK_OK;
@@ -171,30 +156,23 @@ xine_health_check_cdrom (xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t*
-xine_health_check_dvdrom(xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
 
   struct stat dvdrom_st;
 
   if (stat (hc->dvd_dev,&dvdrom_st) < 0) {
-    hc->msg = (char*) malloc(sizeof(char)*(30-2) + strlen(hc->dvd_dev + 1));
-    sprintf(hc->msg, "FAILED - could not dvdrom: %s\n", hc->dvd_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not dvdrom: %s\n", hc->dvd_dev);
     return hc;
   }
 
   if ((dvdrom_st.st_mode & S_IFMT) != S_IFBLK) {
-    hc->msg = (char*) malloc(sizeof(char)*(36-2) + strlen(hc->dvd_dev) + 1);
-    sprintf (hc->msg, "FAILED - %s is not a block device.\n", hc->dvd_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s is not a block device.\n", hc->dvd_dev);
     return hc;
   }
 
   if ((dvdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
       (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
-    hc->msg = (char*) malloc(sizeof(char)*(43-2) + strlen(hc->cdrom_dev) + 1);
-    sprintf(hc->msg, "FAILED - %s permissions are not 'rwxrwxrx'.\n", hc->dvd_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'.\n", hc->dvd_dev);
     return hc;
   }
 
@@ -202,8 +180,7 @@ xine_health_check_dvdrom(xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t*
-xine_health_check_dma (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
 
   int is_scsi_dev = 0;
   int fd = 0;
@@ -213,35 +190,28 @@ xine_health_check_dma (xine_health_check_t* hc) {
   /* If /dev/dvd points to /dev/scd0 but the drive is IDE (e.g. /dev/hdc)
    * and not scsi how do we detect the correct one */
   if (stat (hc->dvd_dev, &st)) {
-    hc->msg = (char*) malloc (sizeof (char) * (39-2) + strlen(hc->dvd_dev) + 1);
-    sprintf(hc->msg, "FAILED - Could not read stats for %s.\n", hc->dvd_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - Could not read stats for %s.\n", hc->dvd_dev);
     return hc;
   }
 
   if (major (st.st_rdev) == LVM_BLK_MAJOR) {
     is_scsi_dev = 1;
-    hc->msg = "SKIPPED - Operation not supported on SCSI drives or drives that use the ide-scsi module.";
-    hc->status = XINE_HEALTH_CHECK_OK;
+    set_hc_result(hc, XINE_HEALTH_CHECK_OK, "SKIPPED - Operation not supported on SCSI drives or drives that use the ide-scsi module.");
     return hc;
   }
 
   fd = open (hc->dvd_dev, O_RDONLY | O_NONBLOCK);
   if (fd < 0) {
-    hc->msg = (char*) malloc (sizeof (char) * 80);
-    sprintf(hc->msg, "FAILED - Could not open %s.\n", hc->dvd_dev);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - Could not open %s.\n", hc->dvd_dev);
     return hc;
   }
 
   if (!is_scsi_dev) {
 
     if(ioctl (fd, HDIO_GET_DMA, &param)) {
-      hc->msg = (char*) malloc (sizeof (char) * (71-2) + strlen(hc->dvd_dev) + 1);
-      sprintf(hc->msg,
+      set_hc_result(hc, XINE_HEALTH_CHECK_FAIL,
           "FAILED -  HDIO_GET_DMA failed. Ensure the permissions for %s are 0664.\n",
           hc->dvd_dev);
-      hc->status = XINE_HEALTH_CHECK_FAIL;
       return hc;
     }
 
@@ -249,10 +219,10 @@ xine_health_check_dma (xine_health_check_t* hc) {
       char* instructions = "If you are using the ide-cd module ensure \
         that you have the following entry in /etc/modules.conf:\n \
         options ide-cd dma=1\n Reload ide-cd module.";
-      hc->msg = (char*) malloc (sizeof (char) * (39-2) +
-          strlen(hc->dvd_dev) + strlen(instructions) + 1);
-      sprintf(hc->msg, "FAILED - DMA not turned on for %s.\n%s\n", hc->dvd_dev, instructions);
-      hc->status = XINE_HEALTH_CHECK_FAIL;
+      set_hc_result(hc, XINE_HEALTH_CHECK_FAIL,
+          "FAILED - DMA not turned on for %s.\n%s\n",
+          hc->dvd_dev,
+          instructions);
       return hc;
     }
   }
@@ -262,13 +232,11 @@ xine_health_check_dma (xine_health_check_t* hc) {
 }
 
 
-xine_health_check_t*
-xine_health_check_x (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_x (xine_health_check_t* hc) {
   char* env_display = getenv("DISPLAY");
 
   if (strlen (env_display) == 0) {
-    hc->msg = "FAILED - DISPLAY environment variable not set.";
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - DISPLAY environment variable not set.");
   }
   else {
     hc->status = XINE_HEALTH_CHECK_OK;
@@ -276,8 +244,7 @@ xine_health_check_x (xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t*
-xine_health_check_xv (xine_health_check_t* hc) {
+xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 
 #ifdef HAVE_X11
 #ifdef HAVE_XV
@@ -285,9 +252,8 @@ xine_health_check_xv (xine_health_check_t* hc) {
   unsigned int          ver, rev, eventB, reqB, errorB;
   char                  *disname = NULL;
   void                  *dl_handle;
-  Display               *(*xopendisplay)(Display*);
+  Display               *(*xopendisplay)(char*);
   char                  *(*xdisplayname)(char*);
-  char                  *display_name = "";
   char                  *err = NULL;
   int                   formats, adaptors, i;
   XvImageFormatValues   *img_formats;
@@ -331,12 +297,11 @@ xine_health_check_xv (xine_health_check_t* hc) {
   dlclose(dl_handle);
 
   if(!(dpy = (*xopendisplay)(disname))) {
+
     if (!disname) {
       disname = (*xdisplayname)(NULL);
     }
-    hc->msg = (char*) malloc (sizeof (char) * (28-2) + strlen(disname) + 1);
-    sprintf(hc->msg, "Unable to open display: %s\n", disname);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n", disname);
     return hc;
   }
 
@@ -344,14 +309,11 @@ xine_health_check_xv (xine_health_check_t* hc) {
     if (!disname) {
       disname = xdisplayname(NULL);
     }
-    hc->msg = (char*) malloc (sizeof (char) * (26-2) + strlen(disname) + 1);
-    sprintf(hc->msg, "No X-Video Extension on %s", disname);
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n",disname);
     return hc;
   }
   else {
-    hc->msg = (char*) malloc (sizeof (char) * (33-4) + sizeof(unsigned int) * 2 + 1);
-    sprintf(hc->msg, "X-Video Extension version %d.%d\n", ver , rev);
+    printf("X-Video Extension version %d.%d\n", ver, rev);
   }
 
   /*
@@ -360,8 +322,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
 
   if (Success != XvQueryAdaptors(dpy,DefaultRootWindow(dpy),
 				 &adaptors,&adaptor_info))  {
-    hc->msg = "video_out_xv: XvQueryAdaptors failed.\n";
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: XvQueryAdaptors failed.\n");
     return hc;
   }
 
@@ -375,54 +336,52 @@ xine_health_check_xv (xine_health_check_t* hc) {
 
     if (img_formats[i].id == XINE_IMGFMT_YV12)  {
       printf("video_out_xv: this adaptor supports the yv12 format.\n");
-      hc->msg = "video_out_xv: this adaptor supports the yv12 format.\n";
-      hc->status = XINE_HEALTH_CHECK_OK;
+      set_hc_result (hc, XINE_HEALTH_CHECK_OK, "video_out_xv: this adaptor supports the yv12 format.\n");
     } else if (img_formats[i].id == XINE_IMGFMT_YUY2) {
       printf("video_out_xv: this adaptor supports the yuy2 format.\n");
-      hc->msg = "video_out_xv: this adaptor supports the yuy2 format.\n";
-      hc->status = XINE_HEALTH_CHECK_OK;
+      set_hc_result (hc, XINE_HEALTH_CHECK_OK, "video_out_xv: this adaptor supports the yuy2 format.\n");
     }
   }
 
   return hc;
 #else
-  hc->msg = (char*) malloc (sizeof (char) * 20);
-  sprintf(hc->msg, "No X-Video Extension");
-  hc->status = XINE_HEALTH_CHECK_FAIL;
+  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X-Video Extension");
   return hc;
 #endif /* ! HAVE_HV */
 #else
-  hc->msg = (char*) malloc (sizeof (char) * 23);
-  sprintf(hc->msg, "No X11 windowing system");
-  hc->status = XINE_HEALTH_CHECK_FAIL;
+  set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X11 windowing system");
   return hc;
 #endif /* ! HAVE_X11 */
 }
 
 #else	/* !__linux__ */
-xine_health_check_t*
-xine_health_check (xine_health_check_t* hc, int check_num)
-{
-  hc->status = XINE_HEALTH_CHECK_UNSUPPORTED;
-  hc->msg = "Xine health check not supported on the OS.\n";
+xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
+  set_hc_result(hc, XINE_HEALTH_CHECK_UNSUPPORTED, "Xine health check not supported on the OS.\n");
   return hc;
 }
 #endif	/* !__linux__ */
 
-char *get_string(char *format, ...) {
+static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
 
   va_list   args;
   char     *buf = NULL;
   int       n, size;
 
+  if (!hc) {
+    printf("%s() GASP, hc is NULL\n", __XINE_FUNCTION__);
+    abort();
+  }
+
   if (!format) {
-    return NULL;
+    printf("%s() GASP, format is NULL\n", __XINE_FUNCTION__);
+    abort();
   }
 
   size = strlen(format) + 1;
 
   if((buf = malloc(size)) == NULL) {
-    return NULL;
+    printf("%s() GASP, malloc() failed\n", __XINE_FUNCTION__);
+    abort();
   }
 
   while(1) {
@@ -432,7 +391,7 @@ char *get_string(char *format, ...) {
 
     if(n > -1 && n < size) {
       break;
-    }
+      }
 
     if(n > -1) {
       size = n + 1;
@@ -442,9 +401,11 @@ char *get_string(char *format, ...) {
     }
 
     if((buf = realloc(buf, size)) == NULL) {
-      return NULL;
+      printf("%s() GASP, realloc() failed\n", __XINE_FUNCTION__);
+      abort();
     }
   }
 
-  return buf;
+  hc->msg = buf;
+  hc->status = state;
 }
