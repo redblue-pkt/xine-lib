@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.2 2001/07/30 16:00:21 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.3 2001/08/01 19:09:42 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,10 @@
  *
  * Date        Author
  * ----        ------
+ *  1-Aug-2001 James Courtier-Dutton <jcdutton>
+ *                              Reviewed by: n/a
+ *                              TS Streams with zero PES lenght should now work.
+ *
  * 30-Jul-2001 shaheedhaque     Reviewed by: n/a
  *                              PATs and PMTs seem to work.
  *
@@ -84,6 +88,7 @@ typedef struct {
     buf_element_t *buf;
     int pes_buf_next;
     int pes_len;
+    int pes_len_zero;
     unsigned int counter;
 } demux_ts_media;
 
@@ -107,8 +112,6 @@ typedef struct {
 
     int blockSize;
     demux_ts_media media[MAX_PIDS];
-    int mSeqHdrSeen;
-
     /*
      * Stuff to do with the transport header. As well as the video
      * and audio PIDs, we keep the index of the corresponding entry
@@ -198,7 +201,6 @@ static void *demux_ts_loop(
      */
 this->input->seek(this->input, 0, SEEK_SET);
 fprintf (stderr, "demux %u demux_ts_loop seeking back to start of file! \n", __LINE__);
-    this->mSeqHdrSeen = 0;
 
     do {
         demux_ts_parse_ts(this);
@@ -328,7 +330,6 @@ static void demux_ts_pes_buffer(
     unsigned int len)
 {
     demux_ts_media *m = &this->media[mediaIndex];
-
     /*
      * By checking the CC here, we avoid the need to check for the no-payload
      * case (i.e. adaptation field only) when it does not get bumped.
@@ -346,62 +347,66 @@ static void demux_ts_pes_buffer(
             fprintf(stderr, "PUS set but no PES header (corrupt stream?)\n");
             m->buf->free_buffer(m->buf);
             m->buf = 0;
+	    m->pes_len_zero=0;
             return;
         }
         if (m->buf) {
-            fprintf(stderr, "PUS set but last PES not complete (corrupt stream?) %d %d\n",
-                    m->pes_buf_next, m->pes_len);
+            fprintf(stderr, "PUS set but last PES not complete (corrupt stream?) %d %d %d\n",
+                    m->pes_buf_next, m->pes_len, m->pes_len_zero);
+            if(m->pes_len_zero) {
+/*
+	            fprintf(stderr,"Queuing ZERO PES %02X %02X %02X %02X %02X\n",  m->buf->mem[3], m->buf->mem[4], m->buf->mem[5], 
+			(m->pes_buf_next-6)  & 0xff,
+			(m->pes_buf_next-6)  >> 8 );
+ */
+		    m->buf->mem[5]=(m->pes_buf_next - 6 ) & 0xff;
+        	    m->buf->mem[4]=(m->pes_buf_next - 6 ) >> 8;
+		    demux_ts_queue_pes(this, m->buf);
+          	    m->buf = 0;
+		    m->pes_len_zero=0;
+	    } else {
+/*
+            fprintf(stderr, "PUS2 set but last PES not complete (corrupt stream?) %d %d %d\n",
+                    m->pes_buf_next, m->pes_len, m->pes_len_zero);
+ */
             m->buf->free_buffer(m->buf);
             m->buf = 0;
-            return;
+            /* return; */
+	    }
 
         }
 
-        m->pes_len = ((ts[4] << 8) | ts[5]) + 6;
-        // printf("starting new pes, len = %d\n", m->pes_len);
+        m->pes_len = ((ts[4] << 8) | ts[5]) ;
+        if (m->pes_len) {
+		m->pes_len+=6;
+		m->pes_len_zero=1;
+	} else {
+		m->pes_len_zero=1;
+        }
+/*
+	fprintf(stderr,"starting new pes, len = %d %d %02X\n", m->pes_len, m->pes_len_zero,ts[3]);
+ */
         m->buf = m->fifo->buffer_pool_alloc(m->fifo);
         memcpy(m->buf->mem, ts, len);
         m->pes_buf_next = len;
+	return;
     } else if (m->buf) {
         memcpy(m->buf->mem+m->pes_buf_next, ts, len);
         m->pes_buf_next += len;
-        if (m->pes_buf_next == m->pes_len) {
-            if (!this->mSeqHdrSeen) {
-                /* Wait until we have seen a sequence header as
-                   we may have started to listen to a stream in mid-play*/
-
-                unsigned char *p = m->buf->mem + 4;
-
-                if (p[-1] != 0xe0) {
-                    m->buf->free_buffer(m->buf);
-                    m->buf = 0;
-                    return;
-                }
-
-                while (p - m->buf->mem < m->pes_len) {
-                    if (p[0] == 0 && p[1] == 0 && p[2] == 1 && p[3] == 0xb3)
-                        break;
-                    else
-                        ++p;
-                }
-                if (p - m->buf->mem >= m->pes_len) {
-                    m->buf->free_buffer(m->buf);
-                    m->buf = 0;
-                    return;
-                }
-                this->mSeqHdrSeen = 1;
-                fprintf(stderr, "found sequence header\n");
-                // TBD: metronom_start_clock(0);
+        if( !m->pes_len_zero) {
+	    if (m->pes_buf_next == m->pes_len ) {
+/*
+                fprintf(stderr,"Queuing PES - len = %d\n",  m->pes_len);
+	        fprintf(stderr,"Queuing PES %02X\n",  m->buf->mem[3]);
+ */
+                demux_ts_queue_pes(this, m->buf);
+                m->buf = 0;
+            } else if (m->pes_buf_next > m->pes_len) {
+                fprintf(stderr, "too much data read for PES (corrupt stream?)\n");
+                m->buf->free_buffer(m->buf);
+                m->buf = 0;
             }
-
-            // printf("Queuing PES - len = %d\n",  m->pes_len);
-            demux_ts_queue_pes(this, m->buf);
-            m->buf = 0;
-        } else if (m->pes_buf_next > m->pes_len) {
-            fprintf(stderr, "too much data read for PES (corrupt stream?)\n");
-            m->buf->free_buffer(m->buf);
-            m->buf = 0;
-        }
+	}
     } else {
         fprintf(stderr, "nowhere to buffer input (corrupt stream?)\n");
     }
@@ -595,6 +600,7 @@ static void demux_ts_parse_ts(
     unsigned int data_len;
 	int n;
 
+
     /*
      * TBD: implement some sync checking WITH recovery.
      */
@@ -622,7 +628,7 @@ static void demux_ts_parse_ts(
         fprintf (stderr, "demux error! transport error\n");
         return;
     }
-   /*
+/*
     for(n=0;n<4;n++) {fprintf(stderr,"%02X ",originalPkt[n]);}
     fprintf(stderr," sync:%02X TE:%02X PUS:%02X TP:%02X PID:%04X TSC:%02X AFC:%02X CC:%02X\n",
 	sync_byte,
@@ -633,7 +639,8 @@ static void demux_ts_parse_ts(
 	transport_scrambling_control,
 	adaption_field_control, 
 	continuity_counter ); 
-   */
+ */
+    
     data_offset=4;
     if (adaption_field_control & 0x1) {
         /*
