@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.c,v 1.5 2001/07/08 18:15:54 guenter Exp $
+ * $Id: spu_decoder.c,v 1.6 2001/07/13 23:43:13 jcdutton Exp $
  *
  
  * functions that implement spu decoding
@@ -127,6 +127,8 @@ void *spu_decoder_loop (void *this_gen) {
 
 void spu_decoder_init (xine_t *this) {
 
+/* FIXME: Tempory disable to test SPU in VIDEO Thread */
+  return;
   this->spu_fifo = fifo_buffer_new (1500, 4096);
 	  printf ("spu_decoder_init: thread starting %p\n",this->video_out);
 
@@ -139,7 +141,9 @@ void spu_decoder_shutdown (xine_t *this) {
   void          *p;
 
   /* this->spu_fifo->clear(this->spu_fifo); */
-
+/* FIXME: Tempory disable to test SPU in VIDEO Thread */  
+  return;
+  
   buf = this->spu_fifo->buffer_pool_alloc (this->spu_fifo);
   buf->type = BUF_CONTROL_QUIT;
   this->spu_fifo->put (this->spu_fifo, buf);

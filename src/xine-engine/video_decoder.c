@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.29 2001/07/11 22:42:47 guenter Exp $
+ * $Id: video_decoder.c,v 1.30 2001/07/13 23:43:13 jcdutton Exp $
  *
  */
 
@@ -32,6 +32,7 @@ void *video_decoder_loop (void *this_gen) {
   buf_element_t   *buf;
   xine_t          *this = (xine_t *) this_gen;
   int              running = 1;
+  int              i;
   int              streamtype;
   video_decoder_t *decoder;
 
@@ -45,7 +46,7 @@ void *video_decoder_loop (void *this_gen) {
 
     /* printf ("video_decoder: got buffer %d\n", buf->type);   */
 
-    switch (buf->type) {
+    switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_START:
 
       if (this->cur_video_decoder_plugin) {
@@ -53,13 +54,48 @@ void *video_decoder_loop (void *this_gen) {
 	this->cur_video_decoder_plugin = NULL;
       }
 
+      if (this->cur_spu_decoder_plugin) {
+        this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
+        this->cur_spu_decoder_plugin = NULL;
+      }
+
       pthread_mutex_lock (&this->xine_lock);
       this->video_finished = 0;
+      this->spu_finished = 0;
+/* FIXME: I don't think we need spu_track_map. */
+      for (i=0 ; i<50; i++)
+        this->spu_track_map[0] = 0;
+
+      this->spu_track_map_entries = 0;
+
       pthread_mutex_unlock (&this->xine_lock);
 
       this->metronom->video_stream_start (this->metronom);
 
       break;
+
+    case BUF_SPU_PACKAGE:
+        /* now, decode this buffer if it's the right track */
+
+        if ( (buf->type  & 0xFFFF)== this->spu_channel) {
+
+          int streamtype = (buf->type>>16) & 0xFF;
+          decoder = this->spu_decoder_plugins [streamtype];
+          if (decoder) {
+            if (this->cur_spu_decoder_plugin != decoder) {
+
+              if (this->cur_spu_decoder_plugin)
+                this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
+
+              this->cur_spu_decoder_plugin = decoder;
+
+              this->cur_spu_decoder_plugin->init (this->cur_spu_decoder_plugin, this->video_out);
+            }
+
+            decoder->decode_data (decoder, buf);
+          }
+        }
+
 
     case BUF_VIDEO_MPEG:
     case BUF_VIDEO_AVI:
@@ -98,7 +134,11 @@ void *video_decoder_loop (void *this_gen) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
 	this->cur_video_decoder_plugin = NULL;
       }
-
+      if (this->cur_spu_decoder_plugin) {
+        this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
+        this->cur_spu_decoder_plugin = NULL;
+      }
+      this->spu_finished = 1;
       pthread_mutex_lock (&this->xine_lock);
       
       if (!this->video_finished && (buf->decoder_info[0]==0)) {
@@ -120,6 +160,11 @@ void *video_decoder_loop (void *this_gen) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
 	this->cur_video_decoder_plugin = NULL;
       }
+      if (this->cur_spu_decoder_plugin) {
+        this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
+        this->cur_spu_decoder_plugin = NULL;
+      }
+      
       running = 0;
       break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.3 2001/06/07 20:23:54 guenter Exp $
+ * $Id: buffer.h,v 1.4 2001/07/13 23:43:13 jcdutton Exp $
  *
  *
  * contents:
@@ -58,8 +58,8 @@
 
 #define BUF_CONTROL_BASE     0x01000000
 #define BUF_CONTROL_START    0x01000000
-#define BUF_CONTROL_END      0x01000001
-#define BUF_CONTROL_QUIT     0x01000002
+#define BUF_CONTROL_END      0x01010000
+#define BUF_CONTROL_QUIT     0x01020000
 
 /* video buffer types:  */
 
