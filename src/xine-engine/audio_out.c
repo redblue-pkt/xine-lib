@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.126 2003/05/24 10:49:06 jstembridge Exp $
+ * $Id: audio_out.c,v 1.127 2003/05/24 10:53:47 jstembridge Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -400,17 +400,10 @@ static void write_pause_burst(aos_t *this, uint32_t num_frames) {
 
   memset(&sbuf[6], 0, 6144 - 96);
   while (num_frames > 1536) {
-    if(num_frames > 1536) {
-      pthread_mutex_lock( &this->driver_lock );
-      this->driver->write(this->driver, sbuf, 1536);
-      pthread_mutex_unlock( &this->driver_lock );
-      num_frames -= 1536;
-    } else {
-      pthread_mutex_lock( &this->driver_lock );
-      this->driver->write(this->driver, sbuf, num_frames);
-      pthread_mutex_unlock( &this->driver_lock );
-      num_frames = 0;
-    }
+    pthread_mutex_lock( &this->driver_lock );
+    this->driver->write(this->driver, sbuf, 1536);
+    pthread_mutex_unlock( &this->driver_lock );
+    num_frames -= 1536;
   }
 
 }
