@@ -1,3 +1,4 @@
+  * closed caption decoding
   * ffmpeg updated to cvs version
   * metronom bugfixes
   * better looking OSD fonts
