@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: boxblur.c,v 1.12 2004/01/07 19:52:42 mroi Exp $
+ * $Id: boxblur.c,v 1.13 2004/04/17 19:54:32 mroi Exp $
  *
  * mplayer's boxblur
  * Copyright (C) 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -322,7 +322,7 @@ static int boxblur_draw(vo_frame_t *frame, xine_stream_t *stream)
       yv12_frame = port->original_port->get_frame(port->original_port,
         frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
 
-      _x_post_frame_copy_up(frame, yv12_frame);
+      _x_post_frame_copy_down(frame, yv12_frame);
 
       yuy2_to_yv12(frame->base[0], frame->pitches[0],
                    yv12_frame->base[0], yv12_frame->pitches[0],
@@ -339,7 +339,7 @@ static int boxblur_draw(vo_frame_t *frame, xine_stream_t *stream)
     out_frame = port->original_port->get_frame(port->original_port,
       frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
 
-    _x_post_frame_copy_up(frame, out_frame);
+    _x_post_frame_copy_down(frame, out_frame);
 
     pthread_mutex_lock (&this->lock);
 
@@ -368,15 +368,15 @@ static int boxblur_draw(vo_frame_t *frame, xine_stream_t *stream)
 
     skip = out_frame->draw(out_frame, stream);
 
-    _x_post_frame_copy_down(frame, out_frame);
+    _x_post_frame_copy_up(frame, out_frame);
 
     out_frame->free(out_frame);
     yv12_frame->free(yv12_frame);
 
   } else {
-    _x_post_frame_copy_up(frame, frame->next);
-    skip = frame->next->draw(frame->next, stream);
     _x_post_frame_copy_down(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_up(frame, frame->next);
   }
 
   return skip;

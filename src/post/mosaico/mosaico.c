@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.22 2004/02/18 16:03:55 mroi Exp $
+ * $Id: mosaico.c,v 1.23 2004/04/17 19:54:31 mroi Exp $
  */
  
 /*
@@ -43,7 +43,7 @@ post_info_t mosaico_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 8, "mosaico", XINE_VERSION_CODE, &mosaico_special_info, &mosaico_init_plugin },
+  { PLUGIN_POST, 9, "mosaico", XINE_VERSION_CODE, &mosaico_special_info, &mosaico_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -412,9 +412,9 @@ static int mosaico_draw_background(vo_frame_t *frame, xine_stream_t *stream)
   pthread_mutex_lock(&this->mutex);
   
   if (frame->bad_frame) {
-    _x_post_frame_copy_up(frame, frame->next);
-    skip = frame->next->draw(frame->next, stream);
     _x_post_frame_copy_down(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_up(frame, frame->next);
     
     this->vpts_limit = frame->vpts + frame->duration;
     if (skip) {
@@ -431,14 +431,14 @@ static int mosaico_draw_background(vo_frame_t *frame, xine_stream_t *stream)
   
   background = port->original_port->get_frame(port->original_port,
     frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
-  _x_post_frame_copy_up(frame, background);
+  _x_post_frame_copy_down(frame, background);
   frame_copy_content(background, frame);
   
   for (pip_num = 0; pip_num < this->pip_count; pip_num++)
     frame_paste(this, background, pip_num);
   
   skip = background->draw(background, stream);
-  _x_post_frame_copy_down(frame, background);
+  _x_post_frame_copy_up(frame, background);
   this->vpts_limit = background->vpts + background->duration;
   background->free(background);
   

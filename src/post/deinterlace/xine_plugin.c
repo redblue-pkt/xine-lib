@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.30 2004/04/09 02:57:05 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.31 2004/04/17 19:54:31 mroi Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -44,7 +44,7 @@ post_info_t deinterlace_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 8, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 9, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -525,7 +525,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   int i, skip, progressive = 0;
 
   orig_frame = frame;
-  _x_post_frame_copy_up(frame, frame->next);
+  _x_post_frame_copy_down(frame, frame->next);
   frame = frame->next;
   
   /* update tvtime context and method */
@@ -567,7 +567,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
 
       yuy2_frame = port->original_port->get_frame(port->original_port,
         frame->width, frame->height, frame->ratio, XINE_IMGFMT_YUY2, frame->flags | VO_BOTH_FIELDS);
-      _x_post_frame_copy_up(frame, yuy2_frame);
+      _x_post_frame_copy_down(frame, yuy2_frame);
   
       /* the logic for deciding upsampling to use comes from:
        * http://www.hometheaterhifi.com/volume_8_2/dvd-benchmark-special-report-chroma-bug-4-2001.html
@@ -610,7 +610,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       pthread_mutex_unlock (&this->lock);
       skip = yuy2_frame->draw(yuy2_frame, stream);
       pthread_mutex_lock (&this->lock);
-      _x_post_frame_copy_down(frame, yuy2_frame);
+      _x_post_frame_copy_up(frame, yuy2_frame);
 
     } else {
       int force24fps;
@@ -758,7 +758,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
         skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
       }
   
-      _x_post_frame_copy_down(frame, deinterlaced_frame);
+      _x_post_frame_copy_up(frame, deinterlaced_frame);
       deinterlaced_frame->free(deinterlaced_frame);
       pthread_mutex_lock (&this->lock);
 
@@ -865,7 +865,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
           skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
         }
   
-        _x_post_frame_copy_down(frame, deinterlaced_frame);
+        _x_post_frame_copy_up(frame, deinterlaced_frame);
         deinterlaced_frame->free(deinterlaced_frame);
         pthread_mutex_lock (&this->lock);
       }
@@ -896,7 +896,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
     skip = frame->draw(frame, stream);
   }
   
-  _x_post_frame_copy_down(orig_frame, frame);
+  _x_post_frame_copy_up(orig_frame, frame);
   
   return skip;
 }

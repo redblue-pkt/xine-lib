@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.19 2004/01/07 19:52:42 mroi Exp $
+ * $Id: invert.c,v 1.20 2004/04/17 19:54:32 mroi Exp $
  */
  
 /*
@@ -129,15 +129,15 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   int size, i, skip;
   
   if (frame->bad_frame) {
-    _x_post_frame_copy_up(frame, frame->next);
-    skip = frame->next->draw(frame->next, stream);
     _x_post_frame_copy_down(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_up(frame, frame->next);
     return skip;
   }
   
   inverted_frame = port->original_port->get_frame(port->original_port,
     frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
-  _x_post_frame_copy_up(frame, inverted_frame);
+  _x_post_frame_copy_down(frame, inverted_frame);
     
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YUY2:
@@ -161,7 +161,7 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     break;
   } 
   skip = inverted_frame->draw(inverted_frame, stream);
-  _x_post_frame_copy_down(frame, inverted_frame);
+  _x_post_frame_copy_up(frame, inverted_frame);
   inverted_frame->free(inverted_frame);
   
   return skip;

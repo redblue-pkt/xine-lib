@@ -49,7 +49,7 @@
  *  - this frame is given to the decoder, which paints its image inside
  *  - when the decoder draws the frame, the post plugin architecture
  *    will automatically restore the old pointers
- * This way, the decoder (or any other post plugin down the tree) will only
+ * This way, the decoder (or any other post plugin up the tree) will only
  * see the frame area between the black bars and by that modify the
  * enlarged version directly. No need for later copying.
  */ 

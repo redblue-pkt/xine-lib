@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.7 2004/01/07 19:52:42 mroi Exp $
+ * $Id: planar.c,v 1.8 2004/04/17 19:54:32 mroi Exp $
  *
  * catalog for planar post plugins
  */
@@ -52,13 +52,13 @@ post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 8, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
-  { PLUGIN_POST, 8, "invert", XINE_VERSION_CODE, &invert_special_info, &invert_init_plugin },
-  { PLUGIN_POST, 8, "eq", XINE_VERSION_CODE, &eq_special_info, &eq_init_plugin },
-  { PLUGIN_POST, 8, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
-  { PLUGIN_POST, 8, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
-  { PLUGIN_POST, 8, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
-  { PLUGIN_POST, 8, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
-  { PLUGIN_POST, 8, "pp", XINE_VERSION_CODE, &pp_special_info, &pp_init_plugin },
+  { PLUGIN_POST, 9, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
+  { PLUGIN_POST, 9, "invert", XINE_VERSION_CODE, &invert_special_info, &invert_init_plugin },
+  { PLUGIN_POST, 9, "eq", XINE_VERSION_CODE, &eq_special_info, &eq_init_plugin },
+  { PLUGIN_POST, 9, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
+  { PLUGIN_POST, 9, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
+  { PLUGIN_POST, 9, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
+  { PLUGIN_POST, 9, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
+  { PLUGIN_POST, 9, "pp", XINE_VERSION_CODE, &pp_special_info, &pp_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.18 2004/02/12 18:19:12 mroi Exp $
+ * $Id: post.h,v 1.19 2004/04/17 19:54:31 mroi Exp $
  *
  * post plugin definitions
  *
@@ -40,7 +40,7 @@
 #  include <xine/xineutils.h>
 #endif
 
-#define POST_PLUGIN_IFACE_VERSION 8
+#define POST_PLUGIN_IFACE_VERSION 9
 
 #define POST_NULL_STREAM    (xine_stream_t *)-1
 
@@ -251,16 +251,16 @@ vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *po
  * you need to propagate potential changes up and down the pipe, so the usual
  * procedure for this situation would be:
  *
- *   _x_post_frame_copy_up(frame, frame->next);
- *   frame->next->function(frame->next);
  *   _x_post_frame_copy_down(frame, frame->next);
+ *   frame->next->function(frame->next);
+ *   _x_post_frame_copy_up(frame, frame->next);
  */
-void _x_post_frame_copy_up(vo_frame_t *from, vo_frame_t *to);
-void _x_post_frame_copy_down(vo_frame_t *to, vo_frame_t *from);
+void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to);
+void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from);
 
 /* when you shortcut a frames usual draw() travel so that it will never reach
  * the draw() function of the original issuer, you still have to do some
- * housekeeping on the frame, before returning control down the pipe */
+ * housekeeping on the frame, before returning control up the pipe */
 void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream);
 
 /* use this to create a new, trivially decorated overlay manager in which

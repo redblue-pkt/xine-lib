@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.12 2004/01/07 19:52:42 mroi Exp $
+ * $Id: switch.c,v 1.13 2004/04/17 19:54:31 mroi Exp $
  */
  
 /*
@@ -43,7 +43,7 @@ post_info_t switch_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 8, "switch", XINE_VERSION_CODE, &switch_special_info, &switch_init_plugin },
+  { PLUGIN_POST, 9, "switch", XINE_VERSION_CODE, &switch_special_info, &switch_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -252,9 +252,9 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
     /* we are too early */
     pthread_cond_wait(&this->display_condition_changed, &this->mutex);
   if (this->selected_source == source_num) {
-    _x_post_frame_copy_up(frame, frame->next);
-    skip = frame->next->draw(frame->next, NULL);
     _x_post_frame_copy_down(frame, frame->next);
+    skip = frame->next->draw(frame->next, NULL);
+    _x_post_frame_copy_up(frame, frame->next);
     this->vpts_limit = frame->vpts + frame->duration;
     if (skip) {
       this->skip      = skip;

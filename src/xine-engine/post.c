@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.22 2004/02/12 18:19:12 mroi Exp $
+ * $Id: post.c,v 1.23 2004/04/17 19:54:31 mroi Exp $
  */
  
 /*
@@ -274,9 +274,9 @@ static void post_frame_free(vo_frame_t *vo_img) {
     _x_post_dec_usage(port);
   } else {
     /* this frame is still in use */
-    _x_post_frame_copy_up(vo_img, vo_img->next);
-    vo_img->next->free(vo_img->next);
     _x_post_frame_copy_down(vo_img, vo_img->next);
+    vo_img->next->free(vo_img->next);
+    _x_post_frame_copy_up(vo_img, vo_img->next);
     if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
   }
 }
@@ -285,9 +285,9 @@ static void post_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src) {
   post_video_port_t *port = _x_post_video_frame_to_port(vo_img);
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(vo_img, vo_img->next);
-  vo_img->next->proc_slice(vo_img->next, src);
   _x_post_frame_copy_down(vo_img, vo_img->next);
+  vo_img->next->proc_slice(vo_img->next, src);
+  _x_post_frame_copy_up(vo_img, vo_img->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
 }
 
@@ -295,9 +295,9 @@ static void post_frame_proc_frame(vo_frame_t *vo_img) {
   post_video_port_t *port = _x_post_video_frame_to_port(vo_img);
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(vo_img, vo_img->next);
-  vo_img->next->proc_frame(vo_img->next);
   _x_post_frame_copy_down(vo_img, vo_img->next);
+  vo_img->next->proc_frame(vo_img->next);
+  _x_post_frame_copy_up(vo_img, vo_img->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
 }
 
@@ -305,9 +305,9 @@ static void post_frame_field(vo_frame_t *vo_img, int which_field) {
   post_video_port_t *port = _x_post_video_frame_to_port(vo_img);
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(vo_img, vo_img->next);
-  vo_img->next->field(vo_img->next, which_field);
   _x_post_frame_copy_down(vo_img, vo_img->next);
+  vo_img->next->field(vo_img->next, which_field);
+  _x_post_frame_copy_up(vo_img, vo_img->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
 }
 
@@ -316,9 +316,9 @@ static int post_frame_draw(vo_frame_t *vo_img, xine_stream_t *stream) {
   int skip;
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(vo_img, vo_img->next);
-  skip = vo_img->next->draw(vo_img->next, stream);
   _x_post_frame_copy_down(vo_img, vo_img->next);
+  skip = vo_img->next->draw(vo_img->next, stream);
+  _x_post_frame_copy_up(vo_img, vo_img->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
   return skip;
 }
@@ -327,10 +327,10 @@ static void post_frame_lock(vo_frame_t *vo_img) {
   post_video_port_t *port = _x_post_video_frame_to_port(vo_img);
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(vo_img, vo_img->next);
+  _x_post_frame_copy_down(vo_img, vo_img->next);
   vo_img->lock_counter++;
   vo_img->next->lock(vo_img->next);
-  _x_post_frame_copy_down(vo_img, vo_img->next);
+  _x_post_frame_copy_up(vo_img, vo_img->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
 }
 
@@ -362,13 +362,13 @@ static void post_frame_proc_macro_block(int x,
   post_video_port_t *port = _x_post_video_frame_to_port(current_frame);
   
   if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_up(current_frame, current_frame->next);
+  _x_post_frame_copy_down(current_frame, current_frame->next);
   current_frame->next->proc_macro_block(x, y, mb_type, motion_type, mv_field_sel,
                                         dmvector, cbp, dct_type, current_frame->next,
                                         forward_ref_frame, backward_ref_frame,
                                         picture_structure, second_field, 
                                         f_mot_pmv, b_mot_pmv);
-  _x_post_frame_copy_down(current_frame, current_frame->next);
+  _x_post_frame_copy_up(current_frame, current_frame->next);
   if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
 }
 
@@ -428,7 +428,7 @@ vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *po
   vo_frame_t *original = frame->next;
   
   /* propagate any changes */
-  _x_post_frame_copy_up(frame, original);
+  _x_post_frame_copy_down(frame, original);
   
   /* put the now free slot into the free frames list */
   pthread_mutex_lock(&port->free_frames_lock);
@@ -439,8 +439,8 @@ vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *po
   return original;
 }
 
-void _x_post_frame_copy_up(vo_frame_t *from, vo_frame_t *to) {
-  /* propagate changes upwards (from decoders to video out) */
+void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
+  /* propagate changes downwards (from decoders to video out) */
   to->pts                 = from->pts;
   to->bad_frame           = from->bad_frame;
   to->duration            = from->duration;
@@ -456,8 +456,8 @@ void _x_post_frame_copy_up(vo_frame_t *from, vo_frame_t *to) {
     _x_extra_info_merge(to->extra_info, from->extra_info);
 }
 
-void _x_post_frame_copy_down(vo_frame_t *to, vo_frame_t *from) {
-  /* propagate changes downwards (from video out to decoders) */
+void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) {
+  /* propagate changes upwards (from video out to decoders) */
   to->vpts     = from->vpts;
   to->duration = from->duration;
   to->stream   = from->stream;
