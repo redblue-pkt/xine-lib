@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.91 2003/04/17 17:04:12 siggi Exp $
+ * $Id: audio_alsa_out.c,v 1.92 2003/04/23 10:39:33 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -885,7 +885,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   for (elem = snd_mixer_first_elem(this->mixer.handle); elem; elem = snd_mixer_elem_next(elem)) {
     sid = (snd_mixer_selem_id_t *)(((char *)mixer_sid) + snd_mixer_selem_id_sizeof() * mixer_n_selems);
     
-    if (!snd_mixer_selem_is_active(elem))
+    if ((snd_mixer_elem_get_type(elem) != SND_MIXER_ELEM_SIMPLE) ||
+        !snd_mixer_selem_is_active(elem))
       continue;
     
     snd_mixer_selem_get_id(elem, sid);
