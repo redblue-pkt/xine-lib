@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.25 2003/04/26 13:26:28 tmattern Exp $
+ * $Id: mms.c,v 1.26 2003/04/26 16:36:42 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -384,6 +384,7 @@ static void print_answer (char *data, int len) {
 
 /*
  * TODO: error messages (READ ERROR)
+ *       support xine_read_abort() return codes
  */
 static int get_answer (mms_t *this) {
  
@@ -775,7 +776,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 /*
  * TODO: error messages
- *       check mms response code !
+ *       network timing request
  */
 mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   mms_t *this;
@@ -793,6 +794,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   int    min_bw_left  = 0;
   int    stream_id;
   int    bandwitdh_left;
+  int    res;
  
   if (!url_)
     return NULL;
@@ -838,54 +840,83 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
    * let the negotiations begin...
    */
 
-  /* cmd1 */
+  /* command 0x1 */
   mms_gen_guid(this->guid);
   sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
     this->guid, this->host);
   string_utf16 (this->scmd_body, this->str, strlen(this->str) + 2);
 
-  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8))
+  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8)) {
+    printf("libmms: failed to send command 0x01\n");
     goto fail;
+  }
   
-#ifdef LOG
-  printf("libmms: before read \n");
-#endif
-
-  if (!get_answer (this)) 
+  if ((res = get_answer (this)) != 0x01) {
+    printf("libmms: unexpected response: %d (0x01)\n", res);
     goto fail;
-
+  }
+  
   report_progress (stream, 20);
 
-  /* cmd2 */
+  /* TODO: insert network timing rquest here */
+  /* command 0x2 */
   string_utf16 (&this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
   memset (this->scmd_body, 0, 8);
-  send_command (this, 2, 0, 0, 28 * 2 + 8);
-
-  if (!get_answer (this)) 
+  if (!send_command (this, 2, 0, 0, 28 * 2 + 8)) {
+    printf("libmms: failed to send command 0x02\n");
     goto fail;
+  }
+
+  switch (res = get_answer (this)) {
+    case 0x02:
+      /* protocol accepted */
+      break;
+    case 0x03:
+      printf("libmms: protocol failed\n");
+      goto fail;
+      break;
+    default:
+      printf("libmms: unexpected response: %d (0x02 or 0x03)\n", res);
+      goto fail;
+  }
 
   report_progress (stream, 30);
 
-  /* 0x5 */
+  /* command 0x5 */
   string_utf16 (&this->scmd_body[8], path, strlen(path));
   memset (this->scmd_body, 0, 8);
   if (!send_command (this, 5, 0, 0, strlen(path) * 2 + 12))
     goto fail;
 
-  if (!get_answer (this))
-    goto fail;
+  switch (res = get_answer (this)) {
+    case 0x06:
+      /* no authentication required */
+      break;
+    case 0x1A:
+      /* authentication request, not yet supported */
+      printf("libmms: authentication request, not yet supported\n");
+      goto fail;
+      break;
+    default:
+      printf("libmms: unexpected response: %d (0x06 or 0x1A)\n", res);
+      goto fail;
+  }
 
   report_progress (stream, 40);
 
-  /* 0x15 */
+  /* command 0x15 */
   memset (this->scmd_body, 0, 40);
   this->scmd_body[32] = 2;
 
-  if (!send_command (this, 0x15, 1, 0, 40))
+  if (!send_command (this, 0x15, 1, 0, 40)) {
+    printf("libmms: failed to send command 0x15\n");
     goto fail;
+  }
 
-  if (!get_answer (this))
+  if ((res = get_answer (this)) != 0x11) {
+    printf("libmms: unexpected response: %d (0x11)\n", res);
     goto fail;
+  }
 
   this->num_stream_ids = 0;
 
@@ -896,7 +927,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   report_progress (stream, 50);
 
-  /* 0x33 */
+  /* command 0x33 */
   /* choose the best quality for the audio stream */
   /* i've never seen more than one audio stream */
   for (i = 0; i < this->num_stream_ids; i++) {
@@ -982,16 +1013,21 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   }
 
   if (!send_command (this, 0x33, this->num_stream_ids, 
-		     0xFFFF | this->stream_ids[0] << 16, 
-		     this->num_stream_ids * 6 + 2))
+                     0xFFFF | this->stream_ids[0] << 16, 
+                     this->num_stream_ids * 6 + 2)) {
+    printf("libmms: failed to send command 0x33\n");
     goto fail;
+  }
 
-  if (!get_answer (this))
+  if ((res = get_answer (this)) != 0x21) {
+    printf("libmms: unexpected response: %d (0x21)\n", res);
     goto fail;
+  }
+
 
   report_progress (stream, 75);
 
-  /* 0x07 */
+  /* command 0x07 */
   memset (this->scmd_body, 0, 40);
 
   for (i = 8; i < 16; i++)
@@ -1001,8 +1037,10 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   if (!send_command (this, 0x07, 1, 
 		     0xFFFF | this->stream_ids[0] << 16, 
-		     24))
+		     24)) {
+    printf("libmms: failed to send command 0x07\n");
     goto fail;
+  }
 
   report_progress (stream, 100);
 
