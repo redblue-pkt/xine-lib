@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2003/11/02 13:50:09 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.60 2003/11/04 00:45:24 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -428,6 +428,33 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     current = buf->content;
     end = buf->content + buf->size;
   }
+
+  /* A52 packs come from the DVD in blocks of about 2048 bytes.
+   * Only 1 PTS values can be assigned to each block.
+   * An A52 frame is about 1700 bytes long.
+   * So, a single A52 packs can contain 2 A52 frames (or the beginning of an A52 frame at least).
+   * If we have a PTS value, which A52 frame does it apply to? The A52 pack tells us that.
+   * So, the info about which A52 frame the PTS applies to is contained in decoder_info sent from the demuxer.
+   *
+   * The PTS value from the A52 pack (DVD sector) can only be applied at the start of an A52 frame.
+   * We call the start of an A52 frame a frame header.
+   * So, if a A52 pack has 2 "Number of frame headers" is means that the A52 pack contains 2 A52 frame headers.
+   * The "First access unit" then tells us which A52 frame the PTS value applies to.
+   * 
+   * Take the following example: -
+   * PACK1: PTS = 10. Contains the entire A52 frame1, followed by the beginning of the frame2. PTS applies to frame1.
+   * PACK2: PTS = 1000, Contains the rest of frame2, and the whole of frame3. and the start of frame4. PTS applies to frame4.
+   * PACK3: PTS = 0 (none), Contains the rest of frame4.
+   *
+   * Output should be: -
+   * frame1, PTS=10
+   * frame2, PTS=0
+   * frame3, PTS=0
+   * frame4, PTS=1000
+   *
+   * So, we have to keep track of PTS values from previous A52 packs here, otherwise they get put on the wrong frame.
+   */
+
 
   if (buf->pts) {
     int32_t info;
