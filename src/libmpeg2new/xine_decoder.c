@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2003/06/09 23:08:11 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.2 2003/06/10 16:30:15 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <mpeg2dec/mpeg2.h>
+#include <assert.h>
 
 #include "xine_internal.h"
 #include "video_out.h"
@@ -45,19 +46,86 @@ typedef struct {
 } mpeg2_class_t;
 
 
-typedef struct mpeg2dec_decoder_s {
+typedef struct mpeg2_video_decoder_s {
   video_decoder_t  video_decoder;
-  void            *mpeg2dec;
+  mpeg2dec_t      *mpeg2dec;
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
-} mpeg2dec_decoder_t;
+} mpeg2_video_decoder_t;
 
-static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
-
+static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *buf_element) {
+  mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
+  uint8_t * current = buf_element->content;
+  uint8_t * end = buf_element->content + buf_element->size;
+  const mpeg2_info_t * info;
+  mpeg2_state_t state;
+  vo_frame_t * img;
+//  vo_setup_result_t setup_result;
 #ifdef LOG
-  printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
+  printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf_element->decoder_flags);
 #endif
+
+  mpeg2_buffer (this->mpeg2dec, current, end);
+
+  info = mpeg2_info (this->mpeg2dec);
+  while ((state = mpeg2_parse (this->mpeg2dec)) != STATE_BUFFER) {
+    switch (state) {
+      case STATE_SEQUENCE:
+        /* might set nb fbuf, convert format, stride */
+        /* might set fbufs */
+        mpeg2_custom_fbuf (this->mpeg2dec, 1);  /* <- Force libmpeg2 to use xine frame buffers. */
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                              info->sequence->picture_width,
+                                              info->sequence->picture_height,
+                                              //picture->aspect_ratio_information,
+                                              1,
+                                              XINE_IMGFMT_YV12,
+                                              //picture->picture_structure);
+                                              0);
+        mpeg2_set_buf (this->mpeg2dec, img->base, img);
+
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                              info->sequence->picture_width,
+                                              info->sequence->picture_height,
+                                              //picture->aspect_ratio_information,
+                                              1,
+                                              XINE_IMGFMT_YV12,
+                                              //picture->picture_structure);
+                                              0);
+        mpeg2_set_buf (this->mpeg2dec, img->base, img);
+        break;
+      case STATE_PICTURE:
+        /* might skip */
+        /* might set fbuf */
+
+        img = this->stream->video_out->get_frame (this->stream->video_out,
+                                              info->sequence->picture_width,
+                                              info->sequence->picture_height,
+                                              //picture->aspect_ratio_information,
+                                              1,
+                                              XINE_IMGFMT_YV12,
+                                              //picture->picture_structure);
+                                              0);
+        mpeg2_set_buf (this->mpeg2dec, img->base, img);
+        break;
+      case STATE_SLICE:
+      case STATE_END:
+        /* draw current picture */
+        /* might free frame buffer */
+        if (info->display_fbuf) {
+          img = (vo_frame_t *) info->display_fbuf->id; 
+          img->draw (img, this->stream);
+        }
+        if (info->discard_fbuf) {
+          img = (vo_frame_t *) info->discard_fbuf->id; 
+          img->free(img);
+        }
+        break;
+      default:
+        break;
+   }
+
+ }
 
 
 #ifdef LOG
@@ -65,8 +133,8 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 #endif
 }
 
-static void mpeg2dec_flush (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+static void mpeg2_video_flush (video_decoder_t *this_gen) {
+  mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
 #ifdef LOG
   printf ("libmpeg2: flush\n");
@@ -75,21 +143,21 @@ static void mpeg2dec_flush (video_decoder_t *this_gen) {
 //  mpeg2_flush (&this->mpeg2);
 }
 
-static void mpeg2dec_reset (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+static void mpeg2_video_reset (video_decoder_t *this_gen) {
+  mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
-//  mpeg2_reset (&this->mpeg2);
+//  mpeg2_reset (&this->mpeg2dec);
 }
 
-static void mpeg2dec_discontinuity (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+static void mpeg2_video_discontinuity (video_decoder_t *this_gen) {
+  mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
-//  mpeg2_discontinuity (&this->mpeg2);
+//  mpeg2_discontinuity (&this->mpeg2dec);
 }
 
-static void mpeg2dec_dispose (video_decoder_t *this_gen) {
+static void mpeg2_video_dispose (video_decoder_t *this_gen) {
 
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
 #ifdef LOG
   printf ("libmpeg2: close\n");
@@ -103,16 +171,16 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 }
 
 static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
-  mpeg2dec_decoder_t *this ;
+  mpeg2_video_decoder_t *this ;
 
-  this = (mpeg2dec_decoder_t *) malloc (sizeof (mpeg2dec_decoder_t));
-  memset(this, 0, sizeof (mpeg2dec_decoder_t));
+  this = (mpeg2_video_decoder_t *) malloc (sizeof (mpeg2_video_decoder_t));
+  memset(this, 0, sizeof (mpeg2_video_decoder_t));
 
-  this->video_decoder.decode_data         = mpeg2dec_decode_data;
-  this->video_decoder.flush               = mpeg2dec_flush;
-  this->video_decoder.reset               = mpeg2dec_reset;
-  this->video_decoder.discontinuity       = mpeg2dec_discontinuity;
-  this->video_decoder.dispose             = mpeg2dec_dispose;
+  this->video_decoder.decode_data         = mpeg2_video_decode_data;
+  this->video_decoder.flush               = mpeg2_video_flush;
+  this->video_decoder.reset               = mpeg2_video_reset;
+  this->video_decoder.discontinuity       = mpeg2_video_discontinuity;
+  this->video_decoder.dispose             = mpeg2_video_dispose;
   this->stream                            = stream;
   this->class                             = (mpeg2_class_t *) class_gen;
 
