@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2002/11/26 00:37:29 guenter Exp $
+ * $Id: xine_decoder.c,v 1.9 2002/11/26 02:25:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -323,19 +323,33 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 #endif
 	
 	result = this->rvyuv_transform (this->chunk_buffer, 
-				       this->frame_buffer, 
-				       transform_in,
-				       transform_out, 
-				       this->context);
+					this->frame_buffer, 
+					transform_in,
+					transform_out, 
+					this->context);
 
 	xine_fast_memcpy (img->base[0], this->frame_buffer, this->frame_size);
 	xine_fast_memcpy (img->base[1], this->frame_buffer+this->frame_size, 
 			  this->frame_size/4);
-	xine_fast_memcpy (img->base[2], this->frame_buffer+this->frame_size*5/4, 
+	xine_fast_memcpy (img->base[2], 
+			  this->frame_buffer+this->frame_size*5/4, 
 			  this->frame_size/4);
 	
-	/* FIXME: call copy on slices */
-
+	if (img->copy) {
+	  int height = img->height;
+	  uint8_t *src[3];
+	  
+	  src[0] = img->base[0];
+	  src[1] = img->base[1];
+	  src[2] = img->base[2];
+	  
+	  while ((height -= 16) >= 0) {
+	    img->copy(img, src);
+	    src[0] += 16 * img->pitches[0];
+	    src[1] +=  8 * img->pitches[1];
+	    src[2] +=  8 * img->pitches[2];
+	  }
+	}
 	img->draw(img, this->stream);
 	img->free(img);
 	
