@@ -671,7 +671,12 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
     if (!(field = strsep(&tmp, ":")))
         return -1;
     channel->service_id = strtoul(field, NULL, 0);
-  
+
+    /* some channel.conf files are generated with the service ID 1 to the right
+       this needs investigation */
+    if ((field = strsep(&tmp, ":")))
+      if(strtoul(field,NULL,0)>0)  
+        channel->service_id = strtoul(field, NULL, 0);
         
 	return 0;
 }
