@@ -94,8 +94,20 @@ static void mem_blend32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
 #define	SCALED_TO_INT(sc) ((sc) >> SCALE_SHIFT)
 
 
+static rle_elem_t *
+rle_img_advance_line(rle_elem_t *rle, rle_elem_t *rle_limit, int w)
+{
+  int x;
+
+  for (x = 0; x < w && rle < rle_limit; ) {
+    x += rle->len;
+    rle++;
+  }
+  return rle;
+}
+
+
 /* TODO: RGB color clut, only b/w now */
-/* TODO: RGB image shrinking (dy_step > 1.0) */
 void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
@@ -125,7 +137,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   }
   my_trans = img_overl->trans;
 
-  for (y = dy = 0; y < src_height;) {
+  for (y = dy = 0; y < src_height && rle < rle_limit;) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
     rle_elem_t *rle_start = rle;
 
@@ -150,13 +162,17 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       rle++;
       if (rle >= rle_limit) break;
     }
-    if (rle >= rle_limit) break;
 
     img_pix += img_width;
     dy += dy_step;
     if (dy >= INT_TO_SCALED(1)) {
       dy -= INT_TO_SCALED(1);
       ++y;
+      while (dy >= INT_TO_SCALED(1)) {
+	rle = rle_img_advance_line(rle, rle_limit, src_width);
+	dy -= INT_TO_SCALED(1);
+	++y;
+      }
     } else {
       rle = rle_start;		/* y-scaling, reuse the last rle encoded line */
     }
@@ -164,7 +180,6 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 }
 
 /* TODO: RGB color clut, only b/w now */
-/* TODO: RGB image shrinking (dy_step > 1.0) */
 void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
@@ -188,7 +203,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
   my_clut = (clut_t*) img_overl->color;
   my_trans = img_overl->trans;
 
-  for (dy = y = 0; y < src_height; ) {
+  for (dy = y = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
     rle_elem_t *rle_start = rle;
 
@@ -214,13 +229,17 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
       rle++;
       if (rle >= rle_limit) break;
     }
-    if (rle >= rle_limit) break;
 
     img_pix += img_width * 3;
     dy += dy_step;
     if (dy >= INT_TO_SCALED(1)) {
       dy -= INT_TO_SCALED(1);
       ++y;
+      while (dy >= INT_TO_SCALED(1)) {
+	rle = rle_img_advance_line(rle, rle_limit, src_width);
+	dy -= INT_TO_SCALED(1);
+	++y;
+      }
     } else {
       rle = rle_start;		/* y-scaling, reuse the last rle encoded line */
     }
@@ -228,7 +247,6 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 }
 
 /* TODO: RGB color clut, only b/w now */
-/* TODO: RGB image shrinking (dy_step > 1.0) */
 void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, 
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
@@ -252,7 +270,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
   my_clut = (clut_t*) img_overl->color;
   my_trans = img_overl->trans;
 
-  for (y = dy = 0; y < src_height; ) {
+  for (y = dy = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
     rle_elem_t *rle_start = rle;
 
@@ -278,13 +296,17 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
       rle++;
       if (rle >= rle_limit) break;
     }
-    if (rle >= rle_limit) break;
 
     img_pix += img_width * 4;
     dy += dy_step;
     if (dy >= INT_TO_SCALED(1)) {
       dy -= INT_TO_SCALED(1);
       ++y;
+      while (dy >= INT_TO_SCALED(1)) {
+	rle = rle_img_advance_line(rle, rle_limit, src_width);
+	dy -= INT_TO_SCALED(1);
+	++y;
+      }
     } else {
       rle = rle_start;		/* y-scaling, reuse the last rle encoded line */
     }
