@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.4 2002/12/16 18:59:56 miguelfreitas Exp $
+** $Id: common.h,v 1.5 2002/12/17 16:44:10 jkeil Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -26,7 +26,13 @@
 extern "C" {
 #endif
 
+#if	__STDC_VERSION__+0 >= 199901L
+#define INLINE inline
+#elif	defined(__GNUC__)
 #define INLINE __inline
+#else
+#define INLINE 
+#endif
 
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
