@@ -31,6 +31,7 @@ xine-lib (1-rc3)
   * text subtitles improvements and bugfixes
   * unified handling of external subtitles and ogg subtitles
   * detect end of real rtsp streams
+  * fix tvtime segfaults
   
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
