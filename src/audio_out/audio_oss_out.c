@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.25 2001/08/05 12:19:54 ehasenle Exp $
+ * $Id: audio_oss_out.c,v 1.26 2001/08/05 19:04:34 ehasenle Exp $
  */
 
 /* required for swab() */
@@ -73,6 +73,9 @@
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
+
+/* bufsize must be a multiple of 3 and 5 for 5.0 and 5.1 channel playback! */
+#define ZERO_BUF_SIZE        15360
 
 #define GAP_TOLERANCE         5000
 #define MAX_GAP              90000
@@ -301,10 +304,10 @@ static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
   
   this->bytes_in_buffer += num_bytes;
   
-  while (num_bytes>0) {
-    if (num_bytes>8192) {
-      write(this->audio_fd, this->zero_space, 8192);
-      num_bytes -= 8192;
+  while (num_bytes > 0) {
+    if (num_bytes > ZERO_BUF_SIZE) {
+      write(this->audio_fd, this->zero_space, ZERO_BUF_SIZE);
+      num_bytes -= ZERO_BUF_SIZE;
     } else {
       write(this->audio_fd, this->zero_space, num_bytes);
       num_bytes = 0;
@@ -690,8 +693,8 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   this->sample_buffer = malloc (40000);
   memset (this->sample_buffer, 0, 40000);
-  this->zero_space = malloc (8192);
-  memset (this->zero_space, 0, 8192);
+  this->zero_space = malloc (ZERO_BUF_SIZE);
+  memset (this->zero_space, 0, ZERO_BUF_SIZE);
 
   this->ao_functions.get_capabilities    = ao_get_capabilities;
   this->ao_functions.get_property        = ao_get_property;
