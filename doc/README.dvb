@@ -106,7 +106,10 @@ buttons in your gui.
 
 An OSD menu is available too. Press NumPad-8 / NumPad-2 to scroll 
 through the channels, then press NumPad-Enter to switch to the channel
-you have selected.
+you have selected.  As of 06-12-2004, the channel list can be brought up and scrolled 
+through via the wheel on many mouses.  Use the left mouse button to switch to
+the channel you've selected.  The side buttons (6 & 7) can be used to rapidly switch
+to previous/next channels, if they are available on your mouse.
 
 You can use MENU3 (F2 in xine) to zoom into the centre of a videostream.
 This will allow you to view 4:3 content that has been embedded into a 
