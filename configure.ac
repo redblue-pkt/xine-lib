@@ -784,9 +784,9 @@ AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
 dnl ---------------------------------------------
 dnl XviD libs.
 dnl ---------------------------------------------
-
-AM_PATH_XVID([], AC_MSG_RESULT([*** All XviD dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
+dnl abandonware
+dnl AM_PATH_XVID([], AC_MSG_RESULT([*** All XviD dependent parts will be disabled ***]))
+dnl AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
 
 
 dnl ---------------------------------------------
@@ -1981,9 +1981,9 @@ echo "   - roqvideo        - svq1"
 echo "   - idcin           - smc"
 echo "   - rpza            - wc3video"
 echo "   - qtrle           - interplayvideo"
-if test x"$no_xvid" = "xno"; then
-  echo "   - xvid"
-fi
+dnl if test x"$no_xvid" = "xno"; then
+dnl  echo "   - xvid"
+dnl fi
 if test x"$have_dxr3" = "xyes"; then
   echo "   - dxr3_video"
 fi
