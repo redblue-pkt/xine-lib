@@ -207,5 +207,8 @@ Contributions
 
   Jirka Novak <j.novak@netsystem.cz>
     font encoding support for avi subtitles
+
+  Michael Jochum <e9725005@stud3.tuwien.ac.at>
+    avi multiple audio stream support
 	
     (let us know if we've forgotten anyone)
