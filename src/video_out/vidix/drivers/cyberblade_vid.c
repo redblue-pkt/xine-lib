@@ -2,6 +2,8 @@
     Driver for CyberBlade/i1 - Version 0.1.4
 
     Copyright (C) 2002 by Alastair M. Robinson.
+    Official homepage: http://www.blackfiveservices.co.uk/EPIAVidix.shtml
+
     Based on Permedia 3 driver by Måns Rullgård
 
     Thanks to Gilles Frattini for bugfixes
@@ -19,6 +21,14 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Changes:
+    18/01/03
+      MMIO is no longer used, sidestepping cache issues on EPIA-800
+      TV-Out modes are now better supported - this should be the end
+        of the magenta stripes :)
+      Brightness/Contrast controls disabled for the time being - they were
+        seriously degrading picture quality, especially with TV-Out.
 
     To Do:
     Implement Hue/Saturation controls
@@ -42,10 +52,6 @@
 
 #include "cyberblade_regs.h"
 
-#define CYBERBLADE_MSG "cyberblade_vid:"
-
-#define VIDIX_STATIC cyberblade_
-
 pciinfo_t pci_info;
 
 char save_colourkey[6];
@@ -58,7 +64,7 @@ FILE *logfile=0;
 #define LOGWRITE(x)
 #endif
 
-/* Helper functions for reading registers. */
+/* Helper functions for reading registers. */    
 
 #if 0 /* unused */
 static int CRINW(int reg)
@@ -136,7 +142,7 @@ static vidix_capability_t cyberblade_cap =
 };
 
 
-unsigned int VIDIX_NAME(vixGetVersion)(void)
+unsigned int vixGetVersion(void)
 {
 	return(VIDIX_VERSION);
 }
@@ -144,7 +150,12 @@ unsigned int VIDIX_NAME(vixGetVersion)(void)
 
 static unsigned short cyberblade_card_ids[] =
 {
-	DEVICE_TRIDENT_CYBERBLADE_I1
+	DEVICE_TRIDENT_CYBERBLADE_I7,
+	DEVICE_TRIDENT_CYBERBLADE_I7D,
+	DEVICE_TRIDENT_CYBERBLADE_I1,
+	DEVICE_TRIDENT_CYBERBLADE_I12,
+	DEVICE_TRIDENT_CYBERBLADE_I13,
+	DEVICE_TRIDENT_CYBERBLADE_XPAI1
 };
 
 
@@ -158,7 +169,7 @@ static int find_chip(unsigned chip_id)
   return -1;
 }
 
-int VIDIX_NAME(vixProbe)(int verbose, int force)
+int vixProbe(int verbose, int force)
 {
 	pciinfo_t lst[MAX_PCI_DEVICES];
 	unsigned i,num_pci;
@@ -166,7 +177,7 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 	err = pci_scan(lst,&num_pci);
 	if(err)
 	{
-		printf(CYBERBLADE_MSG" Error occured during pci scan: %s\n",strerror(err));
+		printf("[cyberblade] Error occurred during pci scan: %s\n",strerror(err));
 		return err;
 	}
 	else
@@ -183,7 +194,7 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 					continue;
 				dname = pci_device_name(VENDOR_TRIDENT, lst[i].device);
 				dname = dname ? dname : "Unknown chip";
-				printf(CYBERBLADE_MSG" Found chip: %s\n", dname);
+				printf("[cyberblade] Found chip: %s\n", dname);
 				cyberblade_cap.device_id = lst[i].device;
 				err = 0;
 				memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
@@ -192,14 +203,14 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 		}
 	}
 
-	if(err && verbose) printf(CYBERBLADE_MSG" Can't find chip\n");
+	if(err && verbose) printf("[cyberblade] Can't find chip\n");
 		return err;
 }
 
 
-int VIDIX_NAME(vixInit)(const char *args)
+int vixInit(const char *args)
 {
-	cyberblade_mem = map_phys_mem(pci_info.base0, 0x800000);
+	cyberblade_mem = map_phys_mem(pci_info.base0, 0x800000); 
 	enable_app_io();
 	save_colourkey[0]=SRINB(0x50);
 	save_colourkey[1]=SRINB(0x51);
@@ -213,7 +224,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 	return 0;
 }
 
-void VIDIX_NAME(vixDestroy)(void)
+void vixDestroy(void)
 {
 	int protect;
 #ifdef DEBUG_LOGFILE
@@ -231,10 +242,11 @@ void VIDIX_NAME(vixDestroy)(void)
 	SROUTB(0x56,save_colourkey[5]);
 	SROUTB(0x11, protect);
 	disable_app_io();
+	unmap_phys_mem(cyberblade_mem, 0x800000); 
 }
 
 
-int VIDIX_NAME(vixGetCapability)(vidix_capability_t *to)
+int vixGetCapability(vidix_capability_t *to)
 {
 	memcpy(to, &cyberblade_cap, sizeof(vidix_capability_t));
 	return 0;
@@ -247,6 +259,7 @@ static int is_supported_fourcc(uint32_t fourcc)
 	{
 		case IMGFMT_YUY2:
 		case IMGFMT_YV12:
+		case IMGFMT_I420:
 		case IMGFMT_YVU9:
 		case IMGFMT_BGR16:
 			return 1;
@@ -277,17 +290,17 @@ static int frames[VID_PLAY_MAXFRAMES];
 
 static vidix_grkey_t cyberblade_grkey;
 
-int VIDIX_NAME(vixGetGrKeys)(vidix_grkey_t *grkey)
+int vixGetGrKeys(vidix_grkey_t *grkey)
 {
 	memcpy(grkey, &cyberblade_grkey, sizeof(vidix_grkey_t));
 	return(0);
 }
 
-int VIDIX_NAME(vixSetGrKeys)(const vidix_grkey_t *grkey)
+int vixSetGrKeys(const vidix_grkey_t *grkey)
 {
 	int pixfmt=CRINB(0x38);
 	int protect;
-		memcpy(&cyberblade_grkey, grkey, sizeof(vidix_grkey_t));
+	memcpy(&cyberblade_grkey, grkey, sizeof(vidix_grkey_t));
 
 	protect=SRINB(0x11);
 	SROUTB(0x11, 0x92);
@@ -324,13 +337,13 @@ vidix_video_eq_t equal =
 	300, 100, 0, 0, 0, 0, 0, 0
 };
 
-int VIDIX_NAME(vixPlaybackGetEq)( vidix_video_eq_t * eq)
+int vixPlaybackGetEq( vidix_video_eq_t * eq)
 {
   memcpy(eq,&equal,sizeof(vidix_video_eq_t));
   return 0;
 }
 
-int VIDIX_NAME(vixPlaybackSetEq)( const vidix_video_eq_t * eq)
+int vixPlaybackSetEq( const vidix_video_eq_t * eq)
 {
 	int br,sat,cr,protect;
 	if(eq->cap & VEQ_CAP_BRIGHTNESS) equal.brightness = eq->brightness;
@@ -370,7 +383,7 @@ int VIDIX_NAME(vixPlaybackSetEq)( const vidix_video_eq_t * eq)
 
 static int YOffs,UOffs,VOffs;
 
-int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
+int vixConfigPlayback(vidix_playback_t *info)
 {
 	int src_w, drw_w;
 	int src_h, drw_h;
@@ -401,6 +414,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 			layout=0x0; /* packed */
 			break;
 		case IMGFMT_YV12:
+		case IMGFMT_I420:
 			y_pitch = (src_w+15) & ~15;
 			uv_pitch = ((src_w/2)+7) & ~7;
 			YOffs=info->offset.y = 0;
@@ -452,7 +466,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 	SROUTB(0x21, 0x34); /* Signature control */
 	SROUTB(0x37, 0x30); /* Video key mode */
 
-	vixSetGrKeys(&cyberblade_grkey);
+        vixSetGrKeys(&cyberblade_grkey);
 
 	/* compute_scale_factor(&src_w, &drw_w, &shrink, &zoom); */
 	{
@@ -460,18 +474,18 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 		int HWinStart,VWinStart;
 		int tx1,ty1,tx2,ty2;
 
-			HTotal=CRINB(0x00);
-			HSync=CRINB(0x04);
-			VTotal=CRINB(0x06);
-			VSync=CRINB(0x10);
-			Overflow=CRINB(0x07);
-			HTotal <<=3;
-			HSync <<=3;
-			VTotal |= (Overflow & 1) <<8;
-			VTotal |= (Overflow & 0x20) <<4;
-			VTotal +=4;
-			VSync |= (Overflow & 4) <<6;
-			VSync |= (Overflow & 0x80) <<2;
+		HTotal=CRINB(0x00);
+		HSync=CRINB(0x04);
+		VTotal=CRINB(0x06);
+		VSync=CRINB(0x10);
+		Overflow=CRINB(0x07);
+		HTotal <<=3;
+		HSync <<=3;
+		VTotal |= (Overflow & 1) <<8;
+		VTotal |= (Overflow & 0x20) <<4;
+		VTotal +=4;
+		VSync |= (Overflow & 4) <<6;
+		VSync |= (Overflow & 0x80) <<2;
 
 		if(CRINB(0xd1)&0x80)
 		{
@@ -499,18 +513,15 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 			HWinStart=(TVHTotal-HDisp)&15;
 			HWinStart|=(HTotal-HDisp)&15;
 			HWinStart+=(TVHTotal-TVHSyncStart)-49;
- 
-			VWinStart=(TVVTotal-VDisp)/2-1;
-			VWinStart-=(1-((TVVTotal-VDisp)&1))+4;
 		}
 		else
 		{
 			LOGWRITE("[cyberblade] Using Standard CRTC\n");
 			HWinStart=(HTotal-HSync)+15;
-			VWinStart=(VTotal-VSync)-8;
 		}
+                VWinStart=(VTotal-VSync)-8;
 
-		printf(CYBERBLADE_MSG" HTotal: 0x%x, HSStart: 0x%x\n",HTotal,HSync); 
+		printf("[cyberblade] HTotal: 0x%x, HSStart: 0x%x\n",HTotal,HSync); 
 		printf("  VTotal: 0x%x, VStart: 0x%x\n",VTotal,VSync);
 		tx1=HWinStart+info->dest.x;
 		ty1=VWinStart+info->dest.y;
@@ -596,7 +607,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
 }
 
 
-int VIDIX_NAME(vixPlaybackOn)(void)
+int vixPlaybackOn(void)
 {
 	LOGWRITE("Enable overlay\n");
 	CROUTB(0x8E, 0xd4); /* VDE Flags*/
@@ -605,7 +616,7 @@ int VIDIX_NAME(vixPlaybackOn)(void)
 }
 
 
-int VIDIX_NAME(vixPlaybackOff)(void)
+int vixPlaybackOff(void)
 {
         LOGWRITE("Disable overlay\n"); 
 	CROUTB(0x8E, 0xc4); /* VDE Flags*/
@@ -614,7 +625,7 @@ int VIDIX_NAME(vixPlaybackOff)(void)
 }
 
 
-int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
+int vixPlaybackFrameSelect(unsigned int frame)
 {
 	int protect;
         LOGWRITE("Frame select\n"); 
@@ -633,5 +644,6 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 	SROUTB(0x11, protect);
 	return 0;
 }
+
 
 

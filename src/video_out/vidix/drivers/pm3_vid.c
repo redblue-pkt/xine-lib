@@ -34,8 +34,6 @@
 
 #include "pm3_regs.h"
 
-#define PM3_MSG "pm3_vid:"
-
 #define VIDIX_STATIC pm3_
 
 /* MBytes of video memory to use */
@@ -109,7 +107,7 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
     err = pci_scan(lst,&num_pci);
     if(err)
     {
-	printf(PM3_MSG" Error occured during pci scan: %s\n",strerror(err));
+	printf("[pm3] Error occured during pci scan: %s\n",strerror(err));
 	return err;
     }
     else
@@ -126,7 +124,7 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 		    continue;
 		dname = pci_device_name(VENDOR_3DLABS, lst[i].device);
 		dname = dname ? dname : "Unknown chip";
-		printf(PM3_MSG" Found chip: %s with IRQ %i\n",
+		printf("[pm3] Found chip: %s with IRQ %i\n",
 		       dname, lst[i].irq);
 		pm3_cap.device_id = lst[i].device;
 		err = 0;
@@ -135,14 +133,14 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 	    }
 	}
     }
-    if(err && verbose) printf(PM3_MSG" Can't find chip\n");
+    if(err && verbose) printf("[pm3] Can't find chip\n");
     return err;
 }
 
 #define PRINT_REG(reg)							\
 {									\
     long _foo = READ_REG(reg);						\
-    printf(PM3_MSG" " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
+    printf("[pm3] " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
 }
 
 int VIDIX_NAME(vixInit)(const char *args)
@@ -173,7 +171,7 @@ int VIDIX_NAME(vixInit)(const char *args)
     pm3_mem = map_phys_mem(pci_info.base1, 0x2000000);
 
     if(bm_open() == 0){
-	fprintf(stderr, PM3_MSG" DMA available.\n");
+	fprintf(stderr, "[pm3] DMA available.\n");
 	pm3_cap.flags |= FLAG_DMA | FLAG_SYNC_DMA;
 	page_size = sysconf(_SC_PAGESIZE);
 	hwirq_install(pci_info.bus, pci_info.card, pci_info.func,

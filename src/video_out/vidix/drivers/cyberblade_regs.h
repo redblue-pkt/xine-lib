@@ -133,3 +133,5 @@
 #define SROUTB(reg,val) (OUTPORT8(0x3c4,reg), OUTPORT8(0x3c5,val))
 
 /* --- */
+
+

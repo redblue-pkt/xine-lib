@@ -16,7 +16,8 @@ vidix_drivers = \
 	cyberblade_vid.la \
 	unichrome_vid.la \
 	nvidia_vid.la \
-	sis_vid.la
+	sis_vid.la \
+	savage_vid.la 
 endif
 
 lib_LTLIBRARIES = $(vidix_drivers)
@@ -59,8 +60,12 @@ nvidia_vid_la_LDFLAGS = -avoid-version -module
 sis_vid_la_SOURCES = sis_vid.c sis_bridge.c
 sis_vid_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = mach64.h nvidia.h glint_regs.h pm3_regs.h radeon.h \
-	cyberblade_regs.h unichrome_regs.h nvidia.h sis_defs.h sis_regs.h
+savage_vid_la_SOURCES = savage_vid.c
+savage_vid_la_LIBADD = -lm
+savage_vid_la_LDFLAGS = -avoid-version -module
+
+noinst_HEADERS = mach64.h glint_regs.h pm3_regs.h radeon.h savage_regs.h \
+	cyberblade_regs.h unichrome_regs.h sis_defs.h sis_regs.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/libdha \

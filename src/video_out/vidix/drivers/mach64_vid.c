@@ -32,8 +32,6 @@
 
 #define UNUSED(x) ((void)(x)) /**< Removes warning about unused arguments */
 
-#define MACH64_MSG "mach64_vid:"
-
 #define VIDIX_STATIC mach64_
 
 #ifdef MACH64_ENABLE_BM
@@ -333,7 +331,7 @@ static int mach64_get_vert_stretch(void)
     int yres= mach64_get_yres();
 
     if(!supports_lcd_v_stretch){
-        if(__verbose>0) printf(MACH64_MSG" vertical stretching not supported\n");
+        if(__verbose>0) printf("[mach64] vertical stretching not supported\n");
         return 1<<16;
     }
 
@@ -356,7 +354,7 @@ static int mach64_get_vert_stretch(void)
     
     OUTREG(LCD_INDEX, lcd_index);
     
-    if(__verbose>0) printf(MACH64_MSG" vertical stretching factor= %d\n", ret);
+    if(__verbose>0) printf("[mach64] vertical stretching factor= %d\n", ret);
     
     return ret;
 }
@@ -379,20 +377,20 @@ static void mach64_vid_make_default()
 static void mach64_vid_dump_regs( void )
 {
   size_t i;
-  printf(MACH64_MSG" *** Begin of DRIVER variables dump ***\n");
-  printf(MACH64_MSG" mach64_mmio_base=%p\n",mach64_mmio_base);
-  printf(MACH64_MSG" mach64_mem_base=%p\n",mach64_mem_base);
-  printf(MACH64_MSG" mach64_overlay_off=%08X\n",mach64_overlay_offset);
-  printf(MACH64_MSG" mach64_ram_size=%08X\n",mach64_ram_size);
-  printf(MACH64_MSG" video mode: %ux%u@%u\n",mach64_get_xres(),mach64_get_yres(),mach64_vid_get_dbpp());
-  printf(MACH64_MSG" *** Begin of OV0 registers dump ***\n");
+  printf("[mach64] *** Begin of DRIVER variables dump ***\n");
+  printf("[mach64] mach64_mmio_base=%p\n",mach64_mmio_base);
+  printf("[mach64] mach64_mem_base=%p\n",mach64_mem_base);
+  printf("[mach64] mach64_overlay_off=%08X\n",mach64_overlay_offset);
+  printf("[mach64] mach64_ram_size=%08X\n",mach64_ram_size);
+  printf("[mach64] video mode: %ux%u@%u\n",mach64_get_xres(),mach64_get_yres(),mach64_vid_get_dbpp());
+  printf("[mach64] *** Begin of OV0 registers dump ***\n");
   for(i=0;i<sizeof(vregs)/sizeof(video_registers_t);i++)
   {
 	mach64_wait_for_idle();
 	mach64_fifo_wait(2);
-	printf(MACH64_MSG" %s = %08X\n",vregs[i].sname,INREG(vregs[i].name));
+	printf("[mach64] %s = %08X\n",vregs[i].sname,INREG(vregs[i].name));
   }
-  printf(MACH64_MSG" *** End of OV0 registers dump ***\n");
+  printf("[mach64] *** End of OV0 registers dump ***\n");
 }
 
 
@@ -470,7 +468,7 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
   err = pci_scan(lst,&num_pci);
   if(err)
   {
-    printf(MACH64_MSG" Error occured during pci scan: %s\n",strerror(err));
+    printf("[mach64] Error occured during pci scan: %s\n",strerror(err));
     return err;
   }
   else
@@ -486,12 +484,12 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
 	if(idx == -1 && force == PROBE_NORMAL) continue;
 	dname = pci_device_name(VENDOR_ATI,lst[i].device);
 	dname = dname ? dname : "Unknown chip";
-	printf(MACH64_MSG" Found chip: %s\n",dname);
+	printf("[mach64] Found chip: %s\n",dname);
 	if(force > PROBE_NORMAL)
 	{
-	    printf(MACH64_MSG" Driver was forced. Was found %sknown chip\n",idx == -1 ? "un" : "");
+	    printf("[mach64] Driver was forced. Was found %sknown chip\n",idx == -1 ? "un" : "");
 	    if(idx == -1)
-		printf(MACH64_MSG" Assuming it as Mach64\n");
+		printf("[mach64] Assuming it as Mach64\n");
 	}
 	if(idx != -1) is_agp = ati_card_ids[idx].is_agp;
 	mach64_cap.device_id = lst[i].device;
@@ -502,7 +500,7 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
       }
     }
   }
-  if(err && verbose) printf(MACH64_MSG" Can't find chip\n");
+  if(err && verbose) printf("[mach64] Can't find chip\n");
   return err;
 }
 
@@ -563,11 +561,11 @@ static void init_irq(void)
 			 2,CRTC_INT_CNTL,CRTC_BUSMASTER_EOL_INT) == 0)
 	{
 	    can_use_irq=1;
-	    if(__verbose) printf(MACH64_MSG" Will use %u irq line\n",pci_info.irq);
+	    if(__verbose) printf("[mach64] Will use %u irq line\n",pci_info.irq);
 	}
 	else 
-	    if(__verbose) printf(MACH64_MSG" Can't initialize irq handling: %s\n"
-				 MACH64_MSG"irq_param: line=%u pin=%u gnt=%u lat=%u\n"
+	    if(__verbose) printf("[mach64] Can't initialize irq handling: %s\n"
+				 "[mach64]irq_param: line=%u pin=%u gnt=%u lat=%u\n"
 				 ,strerror(errno)
 				 ,pci_info.irq,pci_info.ipin,pci_info.gnt,pci_info.lat);
 }
@@ -581,15 +579,15 @@ int VIDIX_NAME(vixInit)(const char *args)
 #endif
   if(!probed)
   {
-    printf(MACH64_MSG" Driver was not probed but is being initializing\n");
+    printf("[mach64] Driver was not probed but is being initializing\n");
     return EINTR;
   }
-  if(__verbose>0) printf(MACH64_MSG" version %d args='%s'\n", VIDIX_VERSION,args);
+  if(__verbose>0) printf("[mach64] version %d args='%s'\n", VIDIX_VERSION,args);
   if(args)
   if(strncmp(args,"irq=",4) == 0) 
   {
     forced_irq=atoi(&args[4]);
-    if(__verbose>0) printf(MACH64_MSG" forcing IRQ to %u\n",forced_irq);     
+    if(__verbose>0) printf("[mach64] forcing IRQ to %u\n",forced_irq);     
   }
 
   if((mach64_mmio_base = map_phys_mem(pci_info.base2,0x4000))==(void *)-1) return ENOMEM;
@@ -601,9 +599,9 @@ int VIDIX_NAME(vixInit)(const char *args)
   mach64_ram_size *= 0x400; /* KB -> bytes */
   if((mach64_mem_base = map_phys_mem(pci_info.base0,mach64_ram_size))==(void *)-1) return ENOMEM;
   memset(&besr,0,sizeof(bes_registers_t));
-  printf(MACH64_MSG" Video memory = %uMb\n",mach64_ram_size/0x100000);
+  printf("[mach64] Video memory = %uMb\n",mach64_ram_size/0x100000);
   err = mtrr_set_type(pci_info.base0,mach64_ram_size,MTRR_TYPE_WRCOMB);
-  if(!err) printf(MACH64_MSG" Set write-combining type of video memory\n");
+  if(!err) printf("[mach64] Set write-combining type of video memory\n");
   
   save_regs();
   /* check if planar formats are supported */
@@ -621,7 +619,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 
 	if(INREG(SCALER_BUF0_OFFSET_U)) 	supports_planar=1;
   }
-  printf(MACH64_MSG" Planar YUV formats are %s supported\n",supports_planar?"":"not");
+  printf("[mach64] Planar YUV formats are %s supported\n",supports_planar?"":"not");
   supports_colour_adj=0;
   OUTREG(SCALER_COLOUR_CNTL,-1);
   if(INREG(SCALER_COLOUR_CNTL)) supports_colour_adj=1;
@@ -629,12 +627,12 @@ int VIDIX_NAME(vixInit)(const char *args)
   OUTREG(IDCT_CONTROL,-1);
   if(INREG(IDCT_CONTROL)) supports_idct=1;
   OUTREG(IDCT_CONTROL,0);
-  printf(MACH64_MSG" IDCT is %s supported\n",supports_idct?"":"not");
+  printf("[mach64] IDCT is %s supported\n",supports_idct?"":"not");
   supports_subpic=0;
   OUTREG(SUBPIC_CNTL,-1);
   if(INREG(SUBPIC_CNTL)) supports_subpic=1;
   OUTREG(SUBPIC_CNTL,0);
-  printf(MACH64_MSG" subpictures are %s supported\n",supports_subpic?"":"not");
+  printf("[mach64] subpictures are %s supported\n",supports_subpic?"":"not");
   if(   mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_P_M
      || mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_P_M2
      || mach64_cap.device_id==DEVICE_ATI_RAGE_MOBILITY_L
@@ -655,7 +653,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 	if((dma_phys_addrs = malloc(mach64_ram_size*sizeof(unsigned long)/4096)) == 0)
 	{
 	    out_mem:
-	    printf(MACH64_MSG" Can't allocate temporary buffer for DMA\n");
+	    printf("[mach64] Can't allocate temporary buffer for DMA\n");
 	    mach64_cap.flags &= ~FLAG_DMA & ~FLAG_EQ_DMA;
 	    return 0;
 	}
@@ -678,7 +676,7 @@ int VIDIX_NAME(vixInit)(const char *args)
 #endif
   }
   else
-    if(__verbose) printf(MACH64_MSG" Can't initialize busmastering: %s\n",strerror(errno));
+    if(__verbose) printf("[mach64] Can't initialize busmastering: %s\n",strerror(errno));
 #endif
   return 0;
 }
@@ -946,7 +944,7 @@ for(i=0; i<32; i++){
 }
 }
 #endif
-    if(__verbose>0) printf(MACH64_MSG" ecp: %d\n", ecp);
+    if(__verbose>0) printf("[mach64] ecp: %d\n", ecp);
     v_inc = src_h * mach64_get_vert_stretch();
     
     if(mach64_is_interlace()) v_inc<<=1;
@@ -1076,7 +1074,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
   if(!is_supported_fourcc(info->fourcc)) return ENOSYS;
   if(info->src.h > 720 || info->src.w > 720)
   {
-    printf(MACH64_MSG" Can't apply width or height > 720\n");
+    printf("[mach64] Can't apply width or height > 720\n");
     return EINVAL;
   }
   if(info->num_frames>VID_PLAY_MAXFRAMES) info->num_frames=VID_PLAY_MAXFRAMES;
@@ -1121,8 +1119,8 @@ int VIDIX_NAME(vixPlaybackOn)(void)
   err = INREG(SCALER_BUF_PITCH) == besr.vid_buf_pitch ? 0 : EINTR;
   if(err)
   {
-    printf(MACH64_MSG" *** Internal fatal error ***: Detected pitch corruption\n"
-	   MACH64_MSG" Try decrease number of buffers\n");
+    printf("[mach64] *** Internal fatal error ***: Detected pitch corruption\n"
+	   "[mach64] Try decrease number of buffers\n");
   }
   return err;
 }
@@ -1148,7 +1146,7 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
     	off[i]  = mach64_buffer_base[frame][i];
     	off[i+3]= mach64_buffer_base[last_frame][i];
     }
-    if(__verbose > VERBOSE_LEVEL) printf(MACH64_MSG" flip_page = %u\n",frame);
+    if(__verbose > VERBOSE_LEVEL) printf("mach64_vid: flip_page = %u\n",frame);
 
 #if 0 // delay routine so the individual frames can be ssen better
 {

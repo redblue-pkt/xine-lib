@@ -34,8 +34,6 @@
 
 #include "glint_regs.h"
 
-#define PM2_MSG "pm2_vid:"
-
 #define VIDIX_STATIC pm2_
 
 /* MBytes of video memory to use */
@@ -109,7 +107,7 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
     err = pci_scan(lst,&num_pci);
     if(err)
     {
-	printf(PM2_MSG" Error occured during pci scan: %s\n",strerror(err));
+	printf("[pm2] Error occured during pci scan: %s\n",strerror(err));
 	return err;
     }
     else
@@ -124,21 +122,21 @@ int VIDIX_NAME(vixProbe)(int verbose, int force)
 		continue;
 	    dname = pci_device_name(lst[i].vendor, lst[i].device);
 	    dname = dname ? dname : "Unknown chip";
-	    printf(PM2_MSG" Found chip: %s\n", dname);
+	    printf("[pm2] Found chip: %s\n", dname);
 	    pm2_cap.device_id = lst[i].device;
 	    err = 0;
 	    memcpy(&pci_info, &lst[i], sizeof(pciinfo_t));
 	    break;
 	}
     }
-    if(err && verbose) printf(PM2_MSG" Can't find chip.\n");
+    if(err && verbose) printf("[pm2] Can't find chip.\n");
     return err;
 }
 
 #define PRINT_REG(reg)							\
 {									\
     long _foo = READ_REG(reg);						\
-    printf(PM2_MSG" " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
+    printf("[pm2] " #reg " (%x) = %#lx (%li)\n", reg, _foo, _foo);	\
 }
 
 int VIDIX_NAME(vixInit)(const char *args)

@@ -76,10 +76,10 @@
 
 #ifdef CRTC2
 #define VIDIX_STATIC mga_crtc2_
-#define MGA_MSG "mga_crtc2_vid:"
+#define MGA_MSG "[mga_crtc2]"
 #else
 #define VIDIX_STATIC mga_
-#define MGA_MSG "mga_vid:"
+#define MGA_MSG "[mga]"
 #endif
 
 /* from radeon_vid */
