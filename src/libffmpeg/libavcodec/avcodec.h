@@ -9,7 +9,7 @@
 #define LIBAVCODEC_BUILD_STR   "4623"
 
 enum CodecID {
-    CODEC_ID_NONE, 
+    CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
     CODEC_ID_H263,
     CODEC_ID_RV10,
@@ -86,7 +86,7 @@ enum Motion_Est_ID {
 typedef struct RcOverride{
     int start_frame;
     int end_frame;
-    int qscale; // if this is 0 then quality_factor will be used instead
+    int qscale; /* if this is 0 then quality_factor will be used instead */
     float quality_factor;
 } RcOverride;
 
@@ -94,7 +94,7 @@ typedef struct RcOverride{
 extern int motion_estimation_method;
 
 /* ME algos sorted by quality */
-static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG, 
+static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG,
                                        ME_X1, ME_EPZS, ME_FULL };
 
 
@@ -110,7 +110,7 @@ static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG,
 #define CODEC_FLAG_GMC    0x0020 /* use GMC */
 #define CODEC_FLAG_TYPE   0x0040 /* fixed I/P frame type, from avctx->key_frame */
 #define CODEC_FLAG_PART   0x0080 /* use data partitioning */
-/* parent program gurantees that the input for b-frame containing streams is not written to 
+/* parent program gurantees that the input for b-frame containing streams is not written to
    for at least s->max_b_frames+1 frames, if this is not set than the input will be copied */
 #define CODEC_FLAG_INPUT_PRESERVED 0x0100
 #define CODEC_FLAG_PASS1 0x0200  /* use internal 2pass ratecontrol in first  pass mode */
@@ -137,15 +137,15 @@ typedef struct AVCodecContext {
     int flags;
     int sub_id;    /* some codecs needs additionnal format info. It is
                       stored there */
-    
+
     int me_method; /* ME algorithm used for video coding */
-    
+
     /* extra data from parent application to codec, e.g. huffman table
        for mjpeg */
     /* the parent should allocate and free this buffer */
     void *extradata;
     int extradata_size;
-    
+
     /* video only */
     int frame_rate; /* frames per sec multiplied by FRAME_RATE_BASE */
     int width, height;
@@ -179,24 +179,24 @@ typedef struct AVCodecContext {
     int frame_number;   /* audio or video frame number */
     int real_pict_num;  /* returns the real picture number of
                            previous encoded frame */
-    int key_frame;      /* true if the previous compressed frame was 
+    int key_frame;      /* true if the previous compressed frame was
                            a key frame (intra, or seekable) */
-    int pict_type;      /* picture type of the previous 
+    int pict_type;      /* picture type of the previous
                            en/decoded frame */
 /* FIXME: these should have FF_ */
-#define I_TYPE 1 // Intra
-#define P_TYPE 2 // Predicted
-#define B_TYPE 3 // Bi-dir predicted
-#define S_TYPE 4 // S(GMC)-VOP MPEG4
+#define I_TYPE 1 /* Intra */
+#define P_TYPE 2 /* Predicted */
+#define B_TYPE 3 /* Bi-dir predicted */
+#define S_TYPE 4 /* S(GMC)-VOP MPEG4 */
 
-    int delay;          /* number of frames the decoded output 
+    int delay;          /* number of frames the decoded output
                            will be delayed relative to the encoded input */
-    uint8_t *mbskip_table; /* =1 if MB didnt change, is only valid for I/P frames 
+    uint8_t *mbskip_table; /* =1 if MB didnt change, is only valid for I/P frames
                               stride= mb_width = (width+15)>>4 */
-    
+
     /* encoding parameters */
-    int quality;      /* quality of the previous encoded frame 
-                         (between 1 (good) and 31 (bad)) 
+    int quality;      /* quality of the previous encoded frame
+                         (between 1 (good) and 31 (bad))
                          this is allso used to set the quality in vbr mode
                          and the per frame quality in CODEC_FLAG_TYPE (second pass mode) */
     float qcompress;  /* amount of qscale change between easy & hard scenes (0.0-1.0)*/
@@ -211,7 +211,7 @@ typedef struct AVCodecContext {
 
     int hurry_up;     /* when set to 1 during decoding, b frames will be skiped
                          when set to 2 idct/dequant will be skipped too */
-    
+
     struct AVCodec *codec;
     void *priv_data;
 
@@ -220,7 +220,7 @@ typedef struct AVCodecContext {
     int rtp_mode;   /* 1 for activate RTP friendly-mode           */
                     /* highers numbers represent more error-prone */
                     /* enviroments, by now just "1" exist         */
-    
+
     int rtp_payload_size;   /* The size of the RTP payload, the coder will  */
                             /* do it's best to deliver a chunk with size    */
                             /* below rtp_payload_size, the chunk will start */
@@ -228,12 +228,12 @@ typedef struct AVCodecContext {
                             /* This doesn't take account of any particular  */
                             /* headers inside the transmited RTP payload    */
 
-    
+
     /* The RTP callcack: This function is called  */
     /* every time the encoder as a packet to send */
     /* Depends on the encoder if the data starts  */
     /* with a Start Code (it should) H.263 does   */
-    void (*rtp_callback)(void *data, int size, int packet_number); 
+    void (*rtp_callback)(void *data, int size, int packet_number);
 
     /* These are for PSNR calculation, if you set get_psnr to 1 */
     /* after encoding you will have the PSNR on psnr_y/cb/cr    */
@@ -241,7 +241,7 @@ typedef struct AVCodecContext {
     float psnr_y;
     float psnr_cb;
     float psnr_cr;
-    
+
     /* statistics, used for 2-pass encoding */
     int mv_bits;
     int header_bits;
@@ -250,28 +250,28 @@ typedef struct AVCodecContext {
     int i_count;
     int p_count;
     int skip_count;
-    int misc_bits; // cbp, mb_type
+    int misc_bits; /* cbp, mb_type */
     int frame_bits;
-                 
+
     /* the following fields are ignored */
     void *opaque;   /* can be used to carry app specific stuff */
     char codec_name[32];
     enum CodecType codec_type; /* see CODEC_TYPE_xxx */
     enum CodecID codec_id; /* see CODEC_ID_xxx */
     unsigned int codec_tag;  /* codec tag, only used if unknown codec */
-    
+
     int workaround_bugs;       /* workaround bugs in encoders which cannot be detected automatically */
     int luma_elim_threshold;
     int chroma_elim_threshold;
     int strict_std_compliance; /* strictly follow the std (MPEG4, ...) */
     float b_quant_offset;/* qscale offset between ips and b frames, not implemented yet */
     int error_resilience;
-    
+
 #ifndef MBC
 #define MBC 128
 #define MBR 96
 #endif
-#define QP_TYPE int //FIXME note xxx this might be changed to int8_t
+#define QP_TYPE int /* FIXME note xxx this might be changed to int8_t */
 
     QP_TYPE *quant_store; /* field for communicating with external postprocessing */
 
@@ -281,17 +281,17 @@ typedef struct AVCodecContext {
     void *dr_opaque_frame;
     void (*get_buffer_callback)(struct AVCodecContext *c, int width, int height, int pict_type);
 
-    int has_b_frames; // is 1 if the decoded stream contains b frames
+    int has_b_frames; /* is 1 if the decoded stream contains b frames */
     int dr_uvstride;
     int dr_ip_buffer_count;
     int block_align; /* currently only for adpcm codec in wav/avi */
-    
+
     int parse_only; /* decoding only: if true, only parsing is done
                        (function avcodec_parse_frame()). The frame
                        data is returned. Only MPEG codecs support this now. */
-    
+
     int mpeg_quant; /* 0-> h263 quant 1-> mpeg quant */
-    
+
     char *stats_out; /* encoding statistics output buffer */
     char *stats_in;  /* encoding statistics input buffer (concatenated stuff from stats_out of pass1 should be placed here)*/
     float rc_qsquish;
@@ -321,10 +321,10 @@ typedef struct AVCodecContext {
     long long int pts; /* timestamp in micro seconds
                           for decoding: the timestamp from the stream or 0
                           for encoding: the timestamp which will be stored in the stream
-                                        if 0 then the frame_rate will be used */   
+                                        if 0 then the frame_rate will be used */
 
-    //FIXME this should be reordered after kabis API is finished ...
-    //TODO kill kabi
+    /* FIXME this should be reordered after kabis API is finished ... */
+    /* TODO kill kabi */
     /*
 	Note: Below are located reserved fields for further usage
 	It requires for ABI !!!
@@ -458,7 +458,7 @@ struct ReSampleContext;
 
 typedef struct ReSampleContext ReSampleContext;
 
-ReSampleContext *audio_resample_init(int output_channels, int input_channels, 
+ReSampleContext *audio_resample_init(int output_channels, int input_channels,
                                      int output_rate, int input_rate);
 int audio_resample(ReSampleContext *s, short *output, short *input, int nb_samples);
 void audio_resample_close(ReSampleContext *s);
@@ -477,7 +477,7 @@ ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
                                       int topBand, int bottomBand,
                                       int leftBand, int rightBand);
 
-void img_resample(ImgReSampleContext *s, 
+void img_resample(ImgReSampleContext *s,
                   AVPicture *output, AVPicture *input);
 
 void img_resample_close(ImgReSampleContext *s);
@@ -488,7 +488,7 @@ int avpicture_get_size(int pix_fmt, int width, int height);
 
 /* convert among pixel formats */
 int img_convert(AVPicture *dst, int dst_pix_fmt,
-                AVPicture *src, int pix_fmt, 
+                AVPicture *src, int pix_fmt,
                 int width, int height);
 
 /* deinterlace a picture */
@@ -515,18 +515,18 @@ AVCodec *avcodec_find_decoder_by_name(const char *name);
 void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode);
 
 int avcodec_open(AVCodecContext *avctx, AVCodec *codec);
-int avcodec_decode_audio(AVCodecContext *avctx, INT16 *samples, 
+int avcodec_decode_audio(AVCodecContext *avctx, INT16 *samples,
                          int *frame_size_ptr,
                          UINT8 *buf, int buf_size);
-int avcodec_decode_video(AVCodecContext *avctx, AVPicture *picture, 
+int avcodec_decode_video(AVCodecContext *avctx, AVPicture *picture,
                          int *got_picture_ptr,
                          UINT8 *buf, int buf_size);
-int avcodec_parse_frame(AVCodecContext *avctx, UINT8 **pdata, 
+int avcodec_parse_frame(AVCodecContext *avctx, UINT8 **pdata,
                         int *data_size_ptr,
                         UINT8 *buf, int buf_size);
-int avcodec_encode_audio(AVCodecContext *avctx, UINT8 *buf, int buf_size, 
+int avcodec_encode_audio(AVCodecContext *avctx, UINT8 *buf, int buf_size,
                          const short *samples);
-int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size, 
+int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size,
                          const AVPicture *pict);
 
 int avcodec_close(AVCodecContext *avctx);
@@ -536,7 +536,7 @@ void avcodec_register_all(void);
 void avcodec_flush_buffers(AVCodecContext *avctx);
 
 #ifdef FF_POSTPROCESS
-extern int quant_store[MBR+1][MBC+1]; // [Review]
+extern int quant_store[MBR+1][MBC+1]; /* [Review] */
 #endif
 
 
@@ -547,9 +547,9 @@ extern int quant_store[MBR+1][MBC+1]; // [Review]
  */
 
 typedef struct {
-    // compressed size used from given memory buffer
+    /*  compressed size used from given memory buffer */
     int size;
-    /// I/P/B frame type
+    /* I/P/B frame type */
     int frame_type;
 } avc_enc_result_t;
 
@@ -558,46 +558,46 @@ typedef struct {
  * order can't be changed - once it was defined
  */
 typedef enum {
-    // general commands
+    /*  general commands */
     AVC_OPEN_BY_NAME = 0xACA000,
     AVC_OPEN_BY_CODEC_ID,
     AVC_OPEN_BY_FOURCC,
     AVC_CLOSE,
 
     AVC_FLUSH,
-    // pin - struct { uint8_t* src, uint_t src_size }
-    // pout - struct { AVPicture* img, consumed_bytes,
+    /*  pin - struct { uint8_t* src, uint_t src_size } */
+    /*  pout - struct { AVPicture* img, consumed_bytes, */
     AVC_DECODE,
-    // pin - struct { AVPicture* img, uint8_t* dest, uint_t dest_size }
-    // pout - uint_t used_from_dest_size
-    AVC_ENCODE, 
+    /*  pin - struct { AVPicture* img, uint8_t* dest, uint_t dest_size } */
+    /*  pout - uint_t used_from_dest_size */
+    AVC_ENCODE,
 
-    // query/get video commands
+    /*  query/get video commands */
     AVC_GET_VERSION = 0xACB000,
     AVC_GET_WIDTH,
     AVC_GET_HEIGHT,
     AVC_GET_DELAY,
     AVC_GET_QUANT_TABLE,
-    // ...
+    /* ... */
 
-    // query/get audio commands
+    /*  query/get audio commands */
     AVC_GET_FRAME_SIZE = 0xABC000,
 
-    // maybe define some simple structure which
-    // might be passed to the user - but they can't
-    // contain any codec specific parts and these
-    // calls are usualy necessary only few times
+    /*  maybe define some simple structure which */
+    /*  might be passed to the user - but they can't */
+    /*  contain any codec specific parts and these */
+    /*  calls are usualy necessary only few times */
 
-    // set video commands
+    /*  set video commands */
     AVC_SET_WIDTH = 0xACD000,
     AVC_SET_HEIGHT,
 
-    // set video encoding commands
+    /*  set video encoding commands */
     AVC_SET_FRAME_RATE = 0xACD800,
     AVC_SET_QUALITY,
     AVC_SET_HURRY_UP,
 
-    // set audio commands
+    /*  set audio commands */
     AVC_SET_SAMPLE_RATE = 0xACE000,
     AVC_SET_CHANNELS,
 
