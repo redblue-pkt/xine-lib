@@ -243,15 +243,19 @@ typedef struct vidix_slice_s
 
 typedef struct vidix_dma_s
 {
-	void *	src;			/* app -> driver */
-	unsigned dest_frame;		/* app -> driver */
+	void *		src;		/* app -> driver. Virtual address of source */
+	unsigned 	dest_offset;	/* app -> driver. Destinition offset within of video memory */
+	unsigned 	size;		/* app -> driver. Size of transaction */
 #define BM_DMA_ASYNC		0
 #define BM_DMA_SYNC		1	/* means: wait dma transfer completion */
+#define BM_DMA_FIXED_BUFFS	2	/* app -> driver: app uses buffers which are fixed in memory  */
 	unsigned	flags;		/* app -> driver */
+	unsigned 	idx;		/* app -> driver: idx of src buffer */
+	void *		internal[VID_PLAY_MAXFRAMES];	/* for internal use by driver */
 }vidix_dma_t;
 
 			/* Returns 0 if ok else errno */
-extern int 	vixPlaybackCopyFrame( const vidix_dma_t * );
+extern int 	vixPlaybackCopyFrame( vidix_dma_t * );
 
 			/* Returns 0 if DMA is available else errno (EBUSY) */
 extern int	vixQueryDMAStatus( void );

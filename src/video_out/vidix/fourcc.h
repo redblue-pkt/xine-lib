@@ -36,6 +36,7 @@
 #define IMGFMT_IYUV    vid_fourcc('I','Y','U','V') /* 12  YUV 4:2:0 */
 #define IMGFMT_CLPL    vid_fourcc('C','L','P','L') /* 12            */
 #define IMGFMT_Y800    vid_fourcc('Y','8','0','0') /* 8   Y   Grayscale */
+#define IMGFMT_NV12    vid_fourcc('N','V','1','2') /* 8   Y   Grayscale */
 #define IMGFMT_Y8      vid_fourcc('Y','8',' ',' ') /* 8   Y   Grayscale */
 
 /* Packed YUV Formats */

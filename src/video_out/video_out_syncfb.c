@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.75 2002/08/15 03:12:24 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.76 2002/08/16 22:51:39 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -58,6 +58,7 @@
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "xineutils.h"
+#include "vo_scale.h"
 
 /*#define DEBUG_OUTPUT*/
 
@@ -89,10 +90,9 @@ struct syncfb_driver_s {
   GC                 gc;
   XColor             black;
 
-  /* display anatomy */
-  double             display_ratio;        /* given by visual parameter
-					      from init function */
- 
+
+  vo_scale_t         sc;
+
   int                virtual_screen_width;
   int                virtual_screen_height;
   int                screen_depth;
@@ -115,70 +115,8 @@ struct syncfb_driver_s {
   syncfb_buffer_info_t bufinfo;
   syncfb_param_t       params;
 
-  /* size / aspect ratio calculations */
-
-  /* 
-   * "delivered" size:
-   * frame dimension / aspect as delivered by the decoder
-   * used (among other things) to detect frame size changes
-   */
-  int                delivered_width;   
-  int                delivered_height;     
-  int                delivered_ratio_code;
-
-  /* 
-   * displayed part of delivered images,
-   * taking zoom into account
-   */
-
-  int                displayed_xoffset;
-  int                displayed_yoffset;
-  int                displayed_width;
-  int                displayed_height;
-
-  /* 
-   * "ideal" size :
-   * displayed width/height corrected by aspect ratio
-   */
-
-  int                ideal_width, ideal_height;
-  double             ratio_factor;         /* output frame must fullfill:
-					      height = width * ratio_factor */
-
-  /*
-   * "gui" size / offset:
-   * what gui told us about where to display the video
-   */
-  
-  int                gui_x, gui_y;
-  int                gui_width, gui_height;
-  int                gui_win_x, gui_win_y;
-
-  /*
-   * "output" size:
-   *
-   * this is finally the ideal size "fitted" into the
-   * gui size while maintaining the aspect ratio
-   * 
-   */
-
-  /* Window */
-  int                output_width;
-  int                output_height;
-  int                output_xoffset;
-  int                output_yoffset;
-
   int                video_win_visibility;
 
-  void              *user_data;
-
-  /* gui callback */
-
-  void (*frame_output_cb) (void *user_data,
-			   int video_width, int video_height,
-			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width,
-			   int *win_x, int *win_y);
 };
 
 /*
@@ -396,117 +334,26 @@ static void syncfb_clean_output_area(syncfb_driver_t* this)
   XSetForeground (this->display, this->gc, this->black.pixel);
 
   XFillRectangle(this->display, this->drawable, this->gc,
-		 this->gui_x, this->gui_y, this->gui_width, this->gui_height);
+		 this->sc.gui_x, this->sc.gui_y, this->sc.gui_width, this->sc.gui_height);
 
   XUnlockDisplay (this->display);
 }
 
-/*
- * convert delivered height/width to ideal width/height
- * taking into account aspect ratio and zoom factor
- */
 
 static void syncfb_compute_ideal_size (syncfb_driver_t *this)
 {
-  double zoom_factor;
-  double image_ratio, desired_ratio, corr_factor;
-  
-  /*
-   * zoom
-   */
-  zoom_factor = (double)this->props[VO_PROP_ZOOM_X].value / (double)VO_ZOOM_STEP;
-   
-  this->displayed_width   = this->delivered_width  / zoom_factor;
-  this->displayed_height  = this->delivered_height / zoom_factor;
-  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
-  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
-
-  /* 
-   * aspect ratio
-   */
-  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
-  
-  switch (this->props[VO_PROP_ASPECT_RATIO].value) {
-  case ASPECT_AUTO:
-    switch (this->delivered_ratio_code) {
-    case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-    case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
-      desired_ratio = 16.0 /9.0;
-      break;
-    case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
-      desired_ratio = 2.11/1.0;
-      break;
-    case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-    case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-      desired_ratio = image_ratio;
-      break;
-    case 0:                             /* forbidden -> 4:3 */
-      printf("video_out_syncfb: error. (invalid ratio, using 4:3)\n");
-    default:
-      printf("video_out_syncfb: error. (unknown aspect ratio (%d) in stream: using 4:3)\n",
-	      this->delivered_ratio_code);
-    case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
-      desired_ratio = 4.0 / 3.0;
-      break;
-    }
-    break;
-  case ASPECT_ANAMORPHIC:
-    desired_ratio = 16.0 / 9.0;
-    break;
-  case ASPECT_DVB:
-    desired_ratio = 2.0 / 1.0;
-    break;
-  case ASPECT_SQUARE:
-    desired_ratio = image_ratio;
-    break;
-  case ASPECT_FULL:
-  default:
-    desired_ratio = 4.0 / 3.0;
-  }
-
-  this->ratio_factor = this->display_ratio * desired_ratio;
-
-  corr_factor = this->ratio_factor / image_ratio ;
-
-  if (fabs(corr_factor - 1.0) < 0.005) {
-    this->ideal_width  = this->delivered_width;
-    this->ideal_height = this->delivered_height;
-
-  } else {
-
-    if (corr_factor >= 1.0) {
-      this->ideal_width  = this->delivered_width * corr_factor + 0.5;
-      this->ideal_height = this->delivered_height;
-    } else {
-      this->ideal_width  = this->delivered_width;
-      this->ideal_height = this->delivered_height / corr_factor + 0.5;
-    }
-  }
+  vo_scale_compute_ideal_size( &this->sc );
 }
 
 /* make ideal width/height "fit" into the gui */
 static void syncfb_compute_output_size(syncfb_driver_t *this)
 {
-  double x_factor, y_factor;
-
-  x_factor = (double) this->gui_width  / (double) this->ideal_width;
-  y_factor = (double) this->gui_height / (double) this->ideal_height;
-  
-  if(x_factor < y_factor) {
-    this->output_width   = (double) this->gui_width;
-    this->output_height  = (double) this->ideal_height * x_factor;
-  } else {
-    this->output_width   = (double) this->ideal_width  * y_factor;
-    this->output_height  = (double) this->gui_height;
-  }
-
-  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
-  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
+  vo_scale_compute_output_size( &this->sc );
 
 #ifdef DEBUG_OUTPUT
   printf("video_out_syncfb: debug. (frame source %d x %d, screen output %d x %d)\n",
-	 this->delivered_width, this->delivered_height,
-	 this->output_width, this->output_height);
+	 this->sc.delivered_width, this->sc.delivered_height,
+	 this->sc.output_width, this->sc.output_height);
 #endif
 
    /*
@@ -517,9 +364,9 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
    /* sanity checking - certain situations *may* crash the SyncFB module, so
     * take care that we always have valid numbers.
     */
-   if(this->output_xoffset >= 0 && this->output_yoffset >= 0 && 
+   if(this->sc.output_xoffset >= 0 && this->sc.output_yoffset >= 0 && 
       this->cur_frame->width > 0 && this->cur_frame->height > 0 && 
-      this->output_width > 0 && this->output_height > 0 && 
+      this->sc.output_width > 0 && this->sc.output_height > 0 && 
       this->cur_frame->format > 0 && this->video_win_visibility) {
 	
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
@@ -547,16 +394,16 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       this->syncfb_config.src_width      = this->cur_frame->width;
       this->syncfb_config.src_height     = this->cur_frame->height;
 	
-      this->syncfb_config.image_width    = this->output_width;
-      this->syncfb_config.image_height   = this->output_height;
+      this->syncfb_config.image_width    = this->sc.output_width;
+      this->syncfb_config.image_height   = this->sc.output_height;
 	
-      this->syncfb_config.image_xorg     = this->output_xoffset + this->gui_win_x;
-      this->syncfb_config.image_yorg     = this->output_yoffset + this->gui_win_y;
+      this->syncfb_config.image_xorg     = this->sc.output_xoffset + this->sc.gui_win_x;
+      this->syncfb_config.image_yorg     = this->sc.output_yoffset + this->sc.gui_win_y;
 	
-      this->syncfb_config.src_crop_top   = this->displayed_yoffset;
-      this->syncfb_config.src_crop_bot   = (this->props[VO_PROP_INTERLACED].value && this->displayed_yoffset == 0) ? 1 : this->displayed_yoffset;
-      this->syncfb_config.src_crop_left  = this->displayed_xoffset;
-      this->syncfb_config.src_crop_right = this->displayed_xoffset;
+      this->syncfb_config.src_crop_top   = this->sc.displayed_yoffset;
+      this->syncfb_config.src_crop_bot   = (this->props[VO_PROP_INTERLACED].value && this->sc.displayed_yoffset == 0) ? 1 : this->sc.displayed_yoffset;
+      this->syncfb_config.src_crop_left  = this->sc.displayed_xoffset;
+      this->syncfb_config.src_crop_right = this->sc.displayed_xoffset;
 	
       this->syncfb_config.default_repeat  = (this->props[VO_PROP_INTERLACED].value) ? 1 : this->default_repeat;
 	
@@ -577,25 +424,10 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
 
-  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
   
-  this->frame_output_cb(this->user_data,
-			this->ideal_width, this->ideal_height, 
-			&gui_x, &gui_y, &gui_width, &gui_height,
-			&gui_win_x, &gui_win_y);
+  if( vo_scale_redraw_needed( &this->sc ) ) {
 
-  if((gui_x != this->gui_x) || (gui_y != this->gui_y)
-     || (gui_width != this->gui_width) || (gui_height != this->gui_height)
-     || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y)) {
-     
-    this->gui_x      = gui_x;
-    this->gui_y      = gui_y;
-    this->gui_width  = gui_width;
-    this->gui_height = gui_height;
-    this->gui_win_x  = gui_win_x;
-    this->gui_win_y  = gui_win_y;
-   
     syncfb_compute_output_size (this);
 
     syncfb_clean_output_area (this);
@@ -662,7 +494,7 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
 				       int ratio_code, int format, int flags)
 {
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
-   uint32_t frame_size   = width*height;
+   /* uint32_t frame_size   = width*height; */
    
    if((frame->width != width)
       || (frame->height != height)
@@ -737,20 +569,20 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
     * let's see if this frame is different in size / aspect
     * ratio from the previous one
     */
-   if((frame->width != this->delivered_width)
-      || (frame->height != this->delivered_height)
-      || (frame->ratio_code != this->delivered_ratio_code)) {
+   if((frame->width != this->sc.delivered_width)
+      || (frame->height != this->sc.delivered_height)
+      || (frame->ratio_code != this->sc.delivered_ratio_code)) {
 #ifdef DEBUG_OUTPUT
       printf("video_out_syncfb: debug. (frame format changed)\n");
 #endif
 
-      this->delivered_width      = frame->width;
-      this->delivered_height     = frame->height;
-      this->delivered_ratio_code = frame->ratio_code;
+      this->sc.delivered_width      = frame->width;
+      this->sc.delivered_height     = frame->height;
+      this->sc.delivered_ratio_code = frame->ratio_code;
 
       syncfb_compute_ideal_size(this);
       
-      this->gui_width = 0; /* trigger re-calc of output size */
+      this->sc.force_redraw = 1;
    }
 
    /* 
@@ -829,6 +661,7 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
 	value = ASPECT_AUTO;
 
       this->props[property].value = value;
+      this->sc.user_ratio = value;
 
 #ifdef DEBUG_OUTPUT
       printf("video_out_syncfb: debug. (VO_PROP_ASPECT_RATIO(%d))\n",
@@ -841,21 +674,32 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       break;
      
     case VO_PROP_ZOOM_X:
-#ifdef DEBUG_OUTPUT
-      printf("video_out_syncfb: debug. (VO_PROP_ZOOM %d <=? %d <=? %d)\n",
-	      VO_ZOOM_MIN, value, VO_ZOOM_MAX);
-#endif
-
-/*
       if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf ("video_out_syncfb: VO_PROP_ZOOM = %d\n",
-		this->props[property].value);
+	this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
 	           
 	syncfb_compute_ideal_size (this);
+      
+	this->sc.force_redraw = 1;
+      }
+/*
+      printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)\n");
 */
-     printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)\n");
-     break;
+      break;
+
+    case VO_PROP_ZOOM_Y:
+      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+        this->props[property].value = value;
+	this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
+	           
+	syncfb_compute_ideal_size (this);
+      
+	this->sc.force_redraw = 1;
+      }
+/*
+      printf("video_out_syncfb: info. (the zooming feature is not supported at the moment because of a bug with the SyncFB kernel driver, please refer to README.syncfb)\n");
+*/
+      break;
      
     case VO_PROP_CONTRAST:
       this->props[property].value = value;
@@ -910,34 +754,6 @@ static void syncfb_get_property_min_max(vo_driver_t *this_gen,
   *max = this->props[property].max;
 }
 
-/* taken from the Xv video-out plugin */
-static void syncfb_translate_gui2video(syncfb_driver_t *this, int x, int y,
-				       int *vid_x, int *vid_y)
-{
-  if (this->output_width > 0 && this->output_height > 0) {
-    /*
-     * 1.
-     * the xv driver may center a small output area inside a larger
-     * gui area.  This is the case in fullscreen mode, where we often
-     * have black borders on the top/bottom/left/right side.
-     */
-    x -= this->output_xoffset;
-    y -= this->output_yoffset;
-
-    /*
-     * 2.
-     * the xv driver scales the delivered area into an output area.
-     * translate output area coordianates into the delivered area
-     * coordiantes.
-     */
-    x = x * this->delivered_width  / this->output_width;
-    y = y * this->delivered_height / this->output_height;
-  }
-
-  *vid_x = x;
-  *vid_y = y;
-}
-
 static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
 				    void *data)
 {
@@ -948,19 +764,21 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
      this->drawable = (Drawable) data;
      this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
      break;
-   case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO: {
-     int x1, y1, x2, y2;
-     x11_rectangle_t *rect = data;
+  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+    {
+      int x1, y1, x2, y2;
+      x11_rectangle_t *rect = data;
 
-     syncfb_translate_gui2video(this, rect->x, rect->y, &x1, &y1);
-     syncfb_translate_gui2video(this, rect->x + rect->w, rect->y + rect->h, 
-				&x2, &y2);
-     rect->x = x1;
-     rect->y = y1;
-     rect->w = x2-x1;
-     rect->h = y2-y1;
-   }
-     break;
+      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+			     &x1, &y1);
+      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+			     &x2, &y2);
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2-x1;
+      rect->h = y2-y1;
+    }
+    break;
    case GUI_DATA_EX_VIDEOWIN_VISIBLE:
      this->video_win_visibility = (int)(int *)data;
      syncfb_compute_output_size(this);
@@ -1042,9 +860,10 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       this->props[i].max   = 0;
    }
 
-   this->props[VO_PROP_INTERLACED].value   = 0;
-   this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
-   this->props[VO_PROP_ZOOM_X].value  = 100;
+   this->props[VO_PROP_INTERLACED].value     = 0;
+   this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+   this->props[VO_PROP_ZOOM_X].value    = 100;
+   this->props[VO_PROP_ZOOM_Y].value    = 100;
 
    /* check for formats we need... */
    this->supported_capabilities = 0;
@@ -1123,25 +942,15 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->default_repeat       = 0;
  
   this->display              = visual->display;
-  this->display_ratio        = visual->display_ratio;
-  this->displayed_height     = 0;
-  this->displayed_width      = 0;
-  this->displayed_xoffset    = 0;
-  this->displayed_yoffset    = 0;
   this->drawable             = visual->d;
-  this->frame_output_cb      = visual->frame_output_cb;
   this->gc                   = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->gui_height           = 0;
-  this->gui_width            = 0;
-  this->gui_x                = 0;
-  this->gui_y                = 0;
-  this->output_xoffset       = 0;
-  this->output_yoffset       = 0;
-  this->output_height        = 0;
-  this->output_width         = 0;
+
+  vo_scale_init( &this->sc, visual->display_ratio, 1, 0 );
+  this->sc.frame_output_cb   = visual->frame_output_cb;
+  this->sc.user_data         = visual->user_data;
+
   this->overlay              = NULL;
   this->screen               = visual->screen;   
-  this->user_data            = visual->user_data;
   this->video_win_visibility = 1;
    
   XAllocNamedColor(this->display,

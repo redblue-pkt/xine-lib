@@ -142,6 +142,99 @@ vixPlaybackOff
 
 All other functions are optionaly.
 
+BUSMASTERING
+************
+
+Busmastering is technique to implement data transfer through DMA.
+This technique is intended to free CPU for other useful work to
+speedup movie playback. The speedup will be different on different
+CPUs OSes and videocards. Only thing which SHOULD be implemented
+it's the fact that frame should be transfered faster than 1/fps.
+(I.e. faster than 33ms for 30 fps or faster than 40ms for 25 fps)
+VIDIX implementation of BM (busmastering) is slightly specific.
+During driver development you should keep in mind the next rules:
+1. BM is implemented as parallel process which should work
+   simultaneously with frame decoding.
+2. To have possibility to use busmastering by non-ROOT users
+   driver should rather call functions from libdha than from libc.
+   (Example: driver should call bm_lock_mem instead of mlock)
+3. To speedup data transfer player will pass pointer to the DMA buffer
+   which will have the same structure (planes and strides) as video memory
+   (In this connexion driver should allocate frames in video memory
+   same as if BM would not be implemented).
+
+Interface:
+~~~~~~~~~~
+
+The interface of BM is implemented through 2 functions:
+  vixPlaybackCopyFrame
+  vixQueryDMAStatus
+
+
+vixPlaybackCopyFrame 
+
+should prepare engine to copy frame from
+system memory into video framebuffer. After that driver should
+send command into engine to start data transfer and return
+control immediatedly.
+
+The structure vidix_dma_s in details:
+
+typedef struct vidix_dma_s
+{
+	/* 
+	app -> driver. 
+	Virtual address of source.
+	Note: source buffer is allocated by using malloc
+	or memalign();
+	*/
+	void *		src;
+	/* 
+	app -> driver. 
+	Destinition offset within of video memory.
+	It will point offset within of YUV memory where
+	destinition data should be stored.
+	*/
+	unsigned 	dest_offset;
+	/* app -> driver. Size of data to be transfered in bytes. */
+	unsigned 	size;
+	/*
+	can accept ORed values of BM_DMA* definitions
+	BM_DMA_ASYNC -	default value which indicates that transactiion
+			should work asynchronously.
+	BM_DMA_SYNC - 	may be ignored due speedup reasons
+	BM_DMA_FIXED_BUFFS - indicates that player was started by ROOT
+			and source DMA buffers were already locked in memory
+			through mlock().
+	/* app -> driver: idx of src buffer.
+		    if BM_DMA_FIXED_BUFFS flags is set then this field
+		    indicates which from buffers currently is passed
+		    into driver. This field maybe ignored by driver but
+		    it would be better to use that for minor speedup
+		    of engine preparing. */
+	unsigned 	idx;
+	/* for internal use by driver.
+	   Driver may use them on its opinion  */
+	void *		internal[VID_PLAY_MAXFRAMES];
+}vidix_dma_t;
+
+
+vixQueryDMAStatus
+
+should check out DMA status and return 1 if BM is busy
+and 0 otherwise. Note: this function shouldn't wait any
+changes in DMA state.
+
+A few words about of non-linux systems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Well, there is only one problem which stops us to use BM on
+nono-linux systems: it's lacking of possibility to perform
+convertion from virtual to physical address in user-space.
+This problem is sloved by so-called dhahelper driver for
+linux. What about of other OSes then this driver requires
+to be ported first. (Of course, except of DOS and DOS32
+where these convertions are unnecessary).
+
 Useful links:
 ~~~~~~~~~~~~~
 Guide to DTV		http://www.digitaltelevision.com/dtvbook/toc.shtml

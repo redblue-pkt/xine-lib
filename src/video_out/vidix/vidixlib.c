@@ -291,7 +291,7 @@ int  vdlPlaybackSetEq(VDL_HANDLE handle, const vidix_video_eq_t * e)
   return t_vdl(handle)->set_eq ? t_vdl(handle)->set_eq(e) : ENOSYS;
 }
 
-int  vdlPlaybackCopyFrame(VDL_HANDLE handle, const vidix_dma_t * f)
+int  vdlPlaybackCopyFrame(VDL_HANDLE handle, vidix_dma_t * f)
 {
   return t_vdl(handle)->copy_frame ? t_vdl(handle)->copy_frame(f) : ENOSYS;
 }
