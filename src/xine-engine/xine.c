@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.215 2003/01/13 02:15:07 miguelfreitas Exp $
+ * $Id: xine.c,v 1.216 2003/01/13 03:02:15 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -901,6 +901,10 @@ void xine_dispose (xine_stream_t *stream) {
   stream->status = XINE_STATUS_QUIT;
 
   xine_close(stream);
+  
+  if( stream->master != stream ) {
+    stream->master->slave = NULL;  
+  }
 
   printf ("xine_exit: shutdown audio\n");
 
