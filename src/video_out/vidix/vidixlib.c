@@ -138,8 +138,9 @@ static int vdl_probe_driver(VDL_HANDLE stream,const char *path,const char *name,
   unsigned (*_ver)(void);
   int      (*_probe)(int,int);
   int      (*_cap)(vidix_capability_t*);
-  strcpy(drv_name,path);
-  strcat(drv_name,name);
+  strncpy(drv_name,path,sizeof(drv_name));
+  drv_name[sizeof(drv_name) - 1] = '\0';
+  strncat(drv_name,name,sizeof(drv_name) - strlen(drv_name) - 1);
   if(verbose) printf("vidixlib: PROBING: %s\n",drv_name);
 
   {
@@ -226,8 +227,9 @@ VDL_HANDLE vdlOpen(const char *path,const char *name,unsigned cap,int verbose)
     unsigned char *arg_sep;
     arg_sep = strchr(name,':');
     if(arg_sep) { *arg_sep='\0'; drv_args = &arg_sep[1]; }
-    strcpy(drv_name,path);
-    strcat(drv_name,name);
+    strncpy(drv_name,path,sizeof(drv_name));
+    drv_name[sizeof(drv_name) - 1] = '\0';
+    strncat(drv_name,name,sizeof(drv_name) - strlen(drv_name) - 1);
     {
       const char* slash = strrchr(drv_name, '/');
       if (slash) {
