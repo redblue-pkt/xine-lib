@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.150 2003/02/21 04:51:22 tmmm Exp $
+ * $Id: demux_qt.c,v 1.151 2003/02/21 05:24:36 tmmm Exp $
  *
  */
 
@@ -1695,7 +1695,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->references = (reference_t *)realloc(info->references,
         info->reference_count * sizeof(reference_t));
 
-printf (" parsing ref #%d\n", info->reference_count);
       parse_reference_atom(&info->references[info->reference_count - 1],
         &moov_atom[i - 4], info->base_mrl);
 
