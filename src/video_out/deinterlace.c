@@ -674,6 +674,13 @@ static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     }
   }
 
+  /* copy last 2 lines */
+  xine_fast_memcpy(pdst + Line * LineLength, 
+                   psrc[0] + Line * LineLength, LineLength);
+  Line++;
+  xine_fast_memcpy(pdst + Line * LineLength, 
+                   psrc[0] + Line * LineLength, LineLength);
+                   
   /* clear out the MMX registers ready for doing floating point
    * again
    */
