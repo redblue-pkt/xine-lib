@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.107 2003/02/15 12:42:52 tmattern Exp $
+ * $Id: demux_asf.c,v 1.108 2003/02/22 02:28:12 hadess Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1688,7 +1688,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       buf[len] = '\0';
       if( !strstr(buf,"asx") &&
           !strstr(buf,"ASX") &&
-          strncmp(buf,"[Reference]", 11) )
+          strncmp(buf,"[Reference]", 11) &&
+	  ((buf[0] != 0x30)
+	   || (buf[1] != 0x26)
+	   || (buf[2] != 0xb2)
+	   || (buf[3] != 0x75)))
         return NULL;
     }
 
