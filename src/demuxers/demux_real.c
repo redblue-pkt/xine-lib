@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.89 2004/01/29 23:00:05 jstembridge Exp $
+ * $Id: demux_real.c,v 1.90 2004/01/30 17:17:03 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1050,7 +1050,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         
           buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
 
-          buf->decoder_flags = BUF_FLAG_SPECIAL;
+          buf->decoder_flags = BUF_FLAG_SPECIAL | BUF_FLAG_FRAME_END;
           buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
           buf->decoder_info[2] = this->fragment_count - 1;
           buf->decoder_info_ptr[2] = buf->content;
