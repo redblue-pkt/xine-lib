@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.12 2002/09/22 16:01:06 mroi Exp $
+ * $Id: msvc.c,v 1.13 2002/10/20 18:07:23 tmmm Exp $
  */
 
 #include <stdlib.h>
@@ -41,10 +41,16 @@ typedef struct {
   uint16_t yv;
 } yuy2_t;
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} msvc_class_t;
+
 typedef struct msvc_decoder_s {
   video_decoder_t   video_decoder;
 
-  vo_instance_t	   *video_out;
+  msvc_class_t     *class;
+  xine_stream_t    *stream;
+
   int64_t           video_step;
   int		    decoder_ok;
 
@@ -189,13 +195,6 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
   }
 }
 
-static void msvc_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
-  msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
-
-  this->video_out  = video_out;
-  this->decoder_ok = 0;
-}
-
 static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
 
@@ -241,7 +240,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
   } else if (this->decoder_ok) {
@@ -265,7 +264,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       cram_decode_frame (this, this->buf, this->size);
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
 					this->biWidth, this->biHeight,
 					XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
@@ -317,7 +316,7 @@ static void msvc_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
-static void msvc_close (video_decoder_t *this_gen) {
+static void msvc_dispose (video_decoder_t *this_gen) {
 
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
 
@@ -333,32 +332,55 @@ static void msvc_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {  
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-static char *msvc_get_id(void) {
-  return "msvc";
-}
-
-static void msvc_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  msvc_decoder_t *this ;
+  msvc_decoder_t  *this ;
 
-  this = (msvc_decoder_t *) malloc (sizeof (msvc_decoder_t));
-  memset(this, 0, sizeof (msvc_decoder_t));
+  this = (msvc_decoder_t *) xine_xmalloc (sizeof (msvc_decoder_t));
 
-  this->video_decoder.init                = msvc_init;
   this->video_decoder.decode_data         = msvc_decode_data;
   this->video_decoder.flush               = msvc_flush;
   this->video_decoder.reset               = msvc_reset;
-  this->video_decoder.close               = msvc_close;
-  this->video_decoder.get_identifier      = msvc_get_id;
   this->video_decoder.dispose             = msvc_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (msvc_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "MSVC";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Microsoft Video-1 video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  msvc_class_t *this;
+
+  this = (msvc_class_t *) xine_xmalloc (sizeof (msvc_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -379,6 +401,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "msvc", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "msvc", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
