@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.5 2001/11/30 19:31:55 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.6 2001/12/01 23:13:12 guenter Exp $
  *
  */
 
@@ -36,7 +36,9 @@
 #include "xineutils.h"
 #include "video_overlay.h"
 
+/*
 #define LOG_DEBUG 1
+*/
 
 typedef struct video_overlay_events_s {
   video_overlay_event_t  *event;
