@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.40 2004/12/14 20:45:24 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -101,6 +101,7 @@ static struct {
   {"GENRE=", XINE_META_INFO_GENRE},
   {"DESCRIPTION=", XINE_META_INFO_COMMENT},
   {"DATE=", XINE_META_INFO_YEAR},
+  {"TRACKNUMBER=", XINE_META_INFO_TRACK_NUMBER},
   {NULL, 0}
 };
 

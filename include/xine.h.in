@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.135 2004/12/10 09:52:23 mroi Exp $
+ * $Id: xine.h.in,v 1.136 2004/12/14 20:45:22 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -908,6 +908,7 @@ const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 #define XINE_META_INFO_SYSTEMLAYER         8
 #define XINE_META_INFO_INPUT_PLUGIN        9
 #define XINE_META_INFO_CDINDEX_DISCID      10
+#define XINE_META_INFO_TRACK_NUMBER        11
 
 
 /*********************************************************************

@@ -32,7 +32,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.6 2003/12/09 00:55:10 tmattern Exp $
+ * $Id: id3.c,v 1.7 2004/12/14 20:45:24 miguelfreitas Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -79,10 +79,18 @@ static const char* const id3_genre[] =
    "Duet", "Punk Rock", "Drum Solo", "A capella", "Euro-House",
    "Dance Hall" };
 
+#define ID3_ENCODING_COUNT 4
+static const char* const id3_encoding[] = {
+   "ISO-8859-1",   /* 0x00 */
+   "UTF-16",       /* 0x01 */
+   "UTF-16BE",     /* 0x02 */
+   "UTF-8"};       /* 0x03 */
+   
 int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) {
 
   off_t len;
   id3v1_tag_t tag;
+  char track[4];
 
   /* id3v1 */
   len = input->read (input, (char *)&tag, 128);
@@ -96,7 +104,13 @@ int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) {
       _x_meta_info_n_set(stream, XINE_META_INFO_ARTIST, tag.artist, 30);
       _x_meta_info_n_set(stream, XINE_META_INFO_ALBUM, tag.album, 30);
       _x_meta_info_n_set(stream, XINE_META_INFO_COMMENT, tag.comment, 30);
-      
+
+      /* check for a track number: ID3v1.1, which is a clever hack on ID3v1 */
+      if (tag.comment[28] == 0 && tag.comment[29] != 0) {
+        snprintf(track, 4, "%d", (unsigned char)tag.comment[29]);
+        _x_meta_info_set(stream, XINE_META_INFO_TRACK_NUMBER, track);
+      }
+
       if (tag.genre < ID3_GENRE_COUNT) {
         _x_meta_info_set(stream, XINE_META_INFO_GENRE, id3_genre[tag.genre]);
       }
@@ -266,6 +280,7 @@ static int id3v22_interp_frame(input_plugin_t *input,
    * FIXME: supports unicode
    */
   char buf[4096];
+  int enc;
 
   if (frame_header->size >= 4096) {
     lprintf("too long\n");
@@ -274,6 +289,9 @@ static int id3v22_interp_frame(input_plugin_t *input,
 
   if (input->read (input, buf, frame_header->size) == frame_header->size) {
     buf[frame_header->size] = 0;
+    enc = buf[0];
+    if( enc >= ID3_ENCODING_COUNT )
+      enc = 0;
 
     switch (frame_header->id) {
       case ( FOURCC_TAG(0, 'T', 'C', 'O') ):
@@ -287,23 +305,27 @@ static int id3v22_interp_frame(input_plugin_t *input,
         break;
 
       case ( FOURCC_TAG(0, 'T', 'T', '2') ):
-        _x_meta_info_set(stream, XINE_META_INFO_TITLE, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_TITLE, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG(0, 'T', 'P', '1') ):
-        _x_meta_info_set(stream, XINE_META_INFO_ARTIST, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_ARTIST, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG(0, 'T', 'A', 'L') ):
-        _x_meta_info_set(stream, XINE_META_INFO_ALBUM, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_ALBUM, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG(0, 'T', 'Y', 'E') ):
-        _x_meta_info_set(stream, XINE_META_INFO_YEAR, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_YEAR, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG(0, 'C', 'O', 'M') ):
-        _x_meta_info_set(stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_COMMENT, buf + 1 + 3, id3_encoding[enc]);
+        break;
+
+      case ( FOURCC_TAG(0, 'T', 'R', 'K') ):
+        _x_meta_info_set(stream, XINE_META_INFO_TRACK_NUMBER, buf + 1);
         break;
 
       default:
@@ -455,7 +477,8 @@ static int id3v23_interp_frame(input_plugin_t *input,
    * FIXME: supports unicode
    */
   char buf[4096];
-
+  int enc;
+  
   if (frame_header->size >= 4096) {
     lprintf("too long\n");
     return 1;
@@ -463,6 +486,9 @@ static int id3v23_interp_frame(input_plugin_t *input,
 
   if (input->read (input, buf, frame_header->size) == frame_header->size) {
     buf[frame_header->size] = 0;
+    enc = buf[0];
+    if( enc >= ID3_ENCODING_COUNT )
+      enc = 0;
 
     switch (frame_header->id) {
       case ( FOURCC_TAG('T', 'C', 'O', 'N') ):
@@ -476,23 +502,27 @@ static int id3v23_interp_frame(input_plugin_t *input,
         break;
 
       case ( FOURCC_TAG('T', 'I', 'T', '2') ):
-        _x_meta_info_set(stream, XINE_META_INFO_TITLE, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_TITLE, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG('T', 'P', 'E', '1') ):
-        _x_meta_info_set(stream, XINE_META_INFO_ARTIST, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_ARTIST, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG('T', 'A', 'L', 'B') ):
-        _x_meta_info_set(stream, XINE_META_INFO_ALBUM, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_ALBUM, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG('T', 'Y', 'E', 'R') ):
-        _x_meta_info_set(stream, XINE_META_INFO_YEAR, buf + 1);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_YEAR, buf + 1, id3_encoding[enc]);
         break;
 
       case ( FOURCC_TAG('C', 'O', 'M', 'M') ):
-        _x_meta_info_set(stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
+        _x_meta_info_set_generic(stream, XINE_META_INFO_COMMENT, buf + 1 + 3, id3_encoding[enc]);
+        break;
+
+      case ( FOURCC_TAG('T', 'R', 'C', 'K') ):
+        _x_meta_info_set(stream, XINE_META_INFO_TRACK_NUMBER, buf + 1);
         break;
 
       default:
