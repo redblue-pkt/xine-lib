@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.32 2001/09/01 14:33:00 guenter Exp $
+ * $Id: audio_decoder.c,v 1.33 2001/09/06 13:37:46 jkeil Exp $
  *
  *
  * functions that implement audio decoding
@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "xine_internal.h"
+#include "utils.h"
 #include "monitor.h"
 
 void *audio_decoder_loop (void *this_gen) {
@@ -40,8 +41,6 @@ void *audio_decoder_loop (void *this_gen) {
   int              running = 1;
   int              i,j;
   audio_decoder_t *decoder;
-
-  profiler_start_count (1);
 
   while (running) {
 
@@ -125,11 +124,13 @@ void *audio_decoder_loop (void *this_gen) {
     default:
 
       while (this->audio_mute==2) {
-	usleep (50000);
+	xine_usec_sleep (50000);
       }
 
       if (this->audio_mute)
 	break;
+
+      profiler_start_count (1);
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
@@ -193,12 +194,13 @@ void *audio_decoder_loop (void *this_gen) {
 	}
       } else
 	printf ("audio_decoder: unknown buffer type: %08x\n", buf->type);
+
+      profiler_stop_count (1);
     }
     
     buf->free_buffer (buf);
   }
 
-  profiler_stop_count (1);
   pthread_exit(NULL);
 }
 
