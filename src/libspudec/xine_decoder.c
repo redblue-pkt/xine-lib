@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2001/10/23 21:51:11 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.25 2001/10/24 21:50:51 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -201,7 +201,8 @@ static void spudec_reset (spudec_decoder_t *this) {
   this->spu_objects[1].object_type=1;
   this->spu_objects[1].pts=0;
   this->spu_objects[1].overlay = malloc (sizeof(vo_overlay_t));
-
+  memset(this->spu_objects[1].overlay,0,sizeof(vo_overlay_t));
+  
   pthread_mutex_init (&this->spu_events_mutex,NULL);
   pthread_mutex_init (&this->spu_objects_mutex,NULL);
   pthread_mutex_init (&this->spu_showing_mutex,NULL);
