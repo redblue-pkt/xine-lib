@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.91 2003/10/06 15:27:10 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.92 2003/10/19 13:40:32 tmattern Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -486,7 +486,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
   printf ("audio_oss_out: ao_oss_write done\n");
 #endif
 
-  return n;
+  return (n >= 0 ? n : 0);
 }
 
 static void ao_oss_close(ao_driver_t *this_gen) {
