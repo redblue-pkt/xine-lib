@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.85 2004/01/25 18:08:56 jstembridge Exp $
+ * $Id: demux_real.c,v 1.86 2004/01/25 21:19:20 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -712,33 +712,62 @@ unknown:
   
     /* Send headers */
     if(this->audio_fifo) {
+      mdpr_t        *mdpr = this->audio_stream->mdpr;
       buf_element_t *buf;
 
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 
       buf->type           = this->audio_stream->buf_type;
-      buf->decoder_flags  = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
+      buf->decoder_flags  = BUF_FLAG_FRAME_END;
       
+      /* For AAC we send two header buffers, the first is a standard audio
+       * header giving bits per sample, sample rate and number of channels.
+       * The second is the codec initialisation data found at the end of
+       * the type specific data for the audio stream */
       if(buf->type == BUF_AUDIO_AAC) {
-        buf->decoder_info[1] = BE_16(this->audio_stream->mdpr->type_specific_data + 54);
-        buf->decoder_info[2] = BE_16(this->audio_stream->mdpr->type_specific_data + 58);
-        buf->decoder_info[3] = BE_16(this->audio_stream->mdpr->type_specific_data + 60);
-
-        buf->decoder_flags |= BUF_FLAG_STDHEADER;
+        int version = BE_16(mdpr->type_specific_data + 4);
+        int offset;
         
-        buf->content = NULL;
-        buf->size    = 0;      
+        /* Does AAC with type specific data version 4 even exist? */
+        if(version == 4) {
+          buf->decoder_info[1] = BE_16(mdpr->type_specific_data + 48);
+          buf->decoder_info[2] = BE_16(mdpr->type_specific_data + 52);
+          buf->decoder_info[3] = BE_16(mdpr->type_specific_data + 54);
+       
+          offset = 67;
+        } else {
+          buf->decoder_info[1] = BE_16(mdpr->type_specific_data + 54);
+          buf->decoder_info[2] = BE_16(mdpr->type_specific_data + 58);
+          buf->decoder_info[3] = BE_16(mdpr->type_specific_data + 60);
+
+          offset = 74;        
+        }
+        
+        buf->decoder_flags |= BUF_FLAG_STDHEADER;
+        buf->content        = NULL;
+        buf->size           = 0;
+                
+        this->audio_fifo->put (this->audio_fifo, buf);
+        
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        
+        buf->type                = this->audio_stream->buf_type;
+        buf->decoder_flags       = BUF_FLAG_FRAME_END | BUF_FLAG_SPECIAL;
+        buf->decoder_info[1]     = BUF_SPECIAL_DECODER_CONFIG;
+        buf->decoder_info[2]     = BE_32(mdpr->type_specific_data + offset) - 1;
+        buf->decoder_info_ptr[2] = buf->content;
+        buf->size                = 0;
+                        
+        memcpy(buf->content, mdpr->type_specific_data + offset + 5,
+               buf->decoder_info[2]);
+
       } else {
-        memcpy(buf->content,
-               this->audio_stream->mdpr->type_specific_data + 4,
-               this->audio_stream->mdpr->type_specific_len - 4);
+        memcpy(buf->content, mdpr->type_specific_data + 4,
+               mdpr->type_specific_len - 4);
 
-        buf->content = buf->mem;
-        buf->size    = this->audio_stream->mdpr->type_specific_len - 4;
+        buf->decoder_flags |= BUF_FLAG_HEADER;
+        buf->size           = mdpr->type_specific_len - 4;
       }
-
-      buf->extra_info->input_pos  = 0;
-      buf->extra_info->input_time = 0;
 
       this->audio_fifo->put (this->audio_fifo, buf);
     }
@@ -1178,32 +1207,48 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     check_newpts (this, pts, PTS_AUDIO, 0);
     
     /* Each packet of AAC is made up of several AAC frames preceded by a
-     * header defining the size of the frames - just skip over the header
-     * and pass the concatenated AAC frames to the decoder together */
+     * header defining the size of the frames */
     if(this->audio_stream->buf_type == BUF_AUDIO_AAC) {
-      int frames;
+      int i, frames, *sizes;
       
       /* Upper 4 bits of second byte is frame count */
       frames = (stream_read_word(this) & 0xf0) >> 4;
       
       /* 2 bytes per frame size */
-      this->input->seek(this->input, 2*frames, SEEK_CUR);
-      
-      size -= 2 + 2*frames;
-    }
+      sizes = xine_xmalloc(frames*sizeof(int));
+      for(i = 0; i < frames; i++)
+        sizes[i] = stream_read_word(this);
         
-    if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
-         this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
-         input_length, input_time, this->duration, 0) < 0) {
+      for(i = 0; i < frames; i++) {
+        if(_x_demux_read_send_data(this->audio_fifo, this->input, sizes[i], pts, 
+             this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
+             input_length, input_time, this->duration, 0) < 0) {
 
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
 
-      this->status = DEMUX_FINISHED;
-      return this->status;
+          free(sizes);
+          this->status = DEMUX_FINISHED;
+          return this->status;
+        }
+        
+        pts = 0; /* Only set pts on first frame */
+      }
+        
+      free(sizes);
+    } else {
+      if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
+           this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
+           input_length, input_time, this->duration, 0) < 0) {
+
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
+
+        this->status = DEMUX_FINISHED;
+        return this->status;
+      }
+      
+      /* FIXME: dp->flags = (flags & 0x2) ? 0x10 : 0; */
     }
-
-    /* FIXME: dp->flags = (flags & 0x2) ? 0x10 : 0; */
-
+  
   } else {
 
     /* discard */
