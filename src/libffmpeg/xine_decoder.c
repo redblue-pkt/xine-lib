@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.109 2003/04/16 18:25:58 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.110 2003/04/16 21:02:22 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -144,9 +144,20 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
+  int disable = 0;
 
   if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
     printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
+    disable = 1;
+  }
+  
+  if( this->bih.biWidth != context->width || 
+      this->bih.biHeight != context->height ) {
+    printf("ffmpeg: decoded and output frame size are not equal, DR1 disabled.\n");
+    disable = 1;
+  }
+
+  if (disable) {
     this->context->get_buffer = avcodec_default_get_buffer;
     this->context->release_buffer = avcodec_default_release_buffer;
     return avcodec_default_get_buffer(context, av_frame);
