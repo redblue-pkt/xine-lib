@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.152 2004/01/29 21:32:54 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.153 2004/01/30 17:39:44 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -41,6 +41,7 @@
 #define LOG
 */
 
+#include "bswap.h"
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
@@ -238,9 +239,6 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
    */ 
   this->bih.biWidth = (this->bih.biWidth + 1) & (~1);
 
-  this->av_frame = avcodec_alloc_frame();
-  this->context = avcodec_alloc_context();
-  this->context->opaque = this;
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
   this->context->stream_codec_tag = this->context->codec_tag = 
@@ -264,11 +262,6 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   if(bih)
     this->context->bits_per_sample = bih->biBitCount;
     
-  if(this->codec->id == CODEC_ID_RV10) {
-    this->context->sub_id = this->bih.biCompression;
-    this->context->slice_offset = malloc(sizeof(int) * RV10_CHUNK_TAB_SIZE);
-  }
-  
   /* Some codecs (eg rv10) copy flags in init so it's necessary to set
    * this flag here in case we are going to use direct rendering */
   if(this->codec->capabilities & CODEC_CAP_DR1)
@@ -768,7 +761,6 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
   {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
-  {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
   {BUF_VIDEO_IV31,        CODEC_ID_INDEO3,    "Indeo Video 3.1 (ffmpeg)"},
   {BUF_VIDEO_IV32,        CODEC_ID_INDEO3,    "Indeo Video 3.2 (ffmpeg)"},
   {BUF_VIDEO_SORENSON_V1, CODEC_ID_SVQ1,      "Sorenson Video 1 (ffmpeg)"},
@@ -809,15 +801,13 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
-    lprintf ("header\n");
+    lprintf ("standard header\n");
 
     /* init package containing bih */
-
     memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->video_step = buf->decoder_info[1];
 
     /* init codec */
-
     this->codec = NULL;
 
     for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
@@ -838,6 +828,42 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     init_video_codec (this, (xine_bmiheader *)buf->content );
     init_postprocess (this);
 
+  } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  
+    lprintf("header\n");
+    
+    switch(codec_type) {
+      case BUF_VIDEO_RV10:
+        this->codec = avcodec_find_decoder(CODEC_ID_RV10);
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
+                         "Real Video 1.0 (ffmpeg)");
+
+        this->bih.biWidth  = BE_16(&buf->content[12]);
+        this->bih.biHeight = BE_16(&buf->content[14]);
+        
+        this->video_step =  
+          90000.0 / ((double) BE_16(&buf->content[22]) + 
+                     ((double) BE_16(&buf->content[24]) / 65536.0));
+
+        this->context->sub_id = BE_32(&buf->content[30]);
+        this->context->slice_offset = xine_xmalloc(sizeof(int)*RV10_CHUNK_TAB_SIZE);
+        break;
+      default:
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "unknown header for buf type 0x%X\n", codec_type);
+        return;
+    }
+    
+    if(!this->codec) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              _("couldn't open ffmpeg decoder for buf type 0x%X\n"),
+              codec_type);
+      return;
+    }
+
+    init_video_codec(this, NULL);
+    init_postprocess(this);
+    
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
 
     /* take care of all the various types of special buffers */
@@ -851,7 +877,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     } else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
 
-      int i;
       palette_entry_t *demuxer_palette;
       AVPaletteControl *decoder_palette;
 
@@ -865,32 +890,37 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
           (demuxer_palette[i].b <<  0);
       }
       decoder_palette->palette_changed = 1;
+
+    } else if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
+    
+      /* FIXME: Check bounds of this->context->slice_offset */
+      this->context->slice_count = buf->decoder_info[2]+1;
+      for(i = 0; i < this->context->slice_count; i++)
+        this->context->slice_offset[i] = 
+          ((uint32_t *) buf->decoder_info_ptr[2])[(2*i)+1];
+    
     }
 
-  } else if (this->decoder_ok) {
-
+  } else {
+  
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 	      _("ffmpeg: increasing source buffer to %d to avoid overflow.\n"), this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
-   
-    if(!(buf->decoder_flags & BUF_FLAG_FRAME_START)) {
-      if(codec_type == BUF_VIDEO_RV10) {
-        this->context->slice_offset[this->context->slice_count] = this->size;
-        this->context->slice_count++;     
-      }
-    }
 
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
     this->size += buf->size;
 
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
+  }
+   
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+    this->video_step = buf->decoder_info[0];
+  
+  if (this->decoder_ok && this->size) {
 
-    if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END))
-	  || this->is_continous) {
+    if ( (buf->decoder_flags & BUF_FLAG_FRAME_END) || this->is_continous ) {
 
       vo_frame_t *img;
       int         free_img;
@@ -1018,15 +1048,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
     }
 
-    if(buf->decoder_flags & BUF_FLAG_FRAME_START) {
-      if(codec_type == BUF_VIDEO_RV10) {
-        this->context->slice_offset[0] = this->size;
-        this->context->slice_count = 1;
-      }
-    }
-    
-  } else {
-    lprintf ("data but decoder not initialized (headers missing)\n");
   }
 }
 
@@ -1175,6 +1196,10 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->class                             = (ff_video_class_t *) class_gen;
   this->class->ip                         = this;
 
+  this->av_frame        = avcodec_alloc_frame();
+  this->context         = avcodec_alloc_context();
+  this->context->opaque = this;
+  
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
 
   this->decoder_ok    = 0;
