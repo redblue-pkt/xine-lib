@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.142 2004/05/23 16:20:57 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.143 2004/06/03 13:40:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1274,7 +1274,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 				       "of the mixer settings on the fly."),
 				     10, NULL, NULL);
 
-  if (send_events == 1)
+  if (send_events == 1 && found)
   {
     pthread_attr_t       pth_attrs;
     struct sched_param   pth_params;
@@ -1356,7 +1356,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_front_device",
-				       "front",
+				       "plug:front:0",
 				       _("device used for stereo output"),
 				       _("xine will use this alsa device to output "
 				         "stereo sound.\nSee the alsa documentation "
@@ -1365,7 +1365,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround40_device",
-				       "surround40",
+				       "plug:surround40:0",
 				       _("device used for 4-channel output"),
 				       _("xine will use this alsa device to output "
 				         "4 channel (4.0) surround sound.\nSee the "
@@ -1375,7 +1375,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround51_device",
-				       "surround51",
+				       "plug:surround51:0",
 				       _("device used for 5.1-channel output"),
 				       _("xine will use this alsa device to output "
 				         "5 channel plus LFE (5.1) surround sound.\n"
