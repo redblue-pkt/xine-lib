@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.18 2002/10/26 16:14:28 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.19 2002/11/10 13:12:47 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -188,7 +188,6 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   dxr3_decoder_class_t *class = (dxr3_decoder_class_t *)class_gen;
   config_values_t *cfg;
   char tmpstr[128];
-  int64_t cur_offset;
   
   if (class->instance) return NULL;
   if (!dxr3_present(stream)) return NULL;
@@ -253,11 +252,9 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
     _("Enable this for streams with wrong frame durations."), 10,
     dxr3_update_correct_durations, this);
   
-  if (!this->dxr3_vo->overlay_enabled) {
+  if (!this->dxr3_vo->overlay_enabled)
     /* set a/v offset to compensate dxr3 internal delay */
-    cur_offset = this->stream->metronom->get_option(this->stream->metronom, METRONOM_AV_OFFSET);
-    this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
-  }
+    this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, -21600);
   
   stream->video_out->open(stream->video_out);
   
