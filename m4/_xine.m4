@@ -263,10 +263,10 @@ AC_DEFUN([AC_CHECK_IP_MREQN],
 ])
 
 
-# AC_PROG_GMSGFMT_PLURAL
-# ----------------------
-# Validate the GMSGFMT program found by gettext.m4; reject old versions
-# of GNU msgfmt that do not support the "msgid_plural" extension.
+dnl AC_PROG_GMSGFMT_PLURAL
+dnl ----------------------
+dnl Validate the GMSGFMT program found by gettext.m4; reject old versions
+dnl of GNU msgfmt that do not support the "msgid_plural" extension.
 AC_DEFUN([AC_PROG_GMSGFMT_PLURAL],
  [dnl AC_REQUIRE(AM_GNU_GETTEXT)
   
@@ -296,7 +296,7 @@ _ACEOF
     fi
     rm -f conftest.po
   fi
-])# AC_PROG_GMSGFMT_PLURAL
+])dnl AC_PROG_GMSGFMT_PLURAL
 
 
 # AC_PROG_LIBTOOL_SANITYCHECK
