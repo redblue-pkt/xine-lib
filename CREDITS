@@ -19,7 +19,7 @@ liba52				0.7.4
 libcdio				0.68
 libdts				0.0.2
 libdvdnav			0.1.10			Michael Roitzsch
-libfaad				2.0 RC3 cvs		Miguel Freitas
+libfaad				2.0			Miguel Freitas
 libmad				0.15.1b			Miguel Freitas
 libmpeg2			0.2.1 [*]
 libvcd				0.7.20
