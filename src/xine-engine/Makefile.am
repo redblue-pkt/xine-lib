@@ -12,7 +12,7 @@ libxine_la_SOURCES = metronom.c configfile.c monitor.c utils.c cpu_accel.c \
 	load_plugins.c video_decoder.c audio_decoder.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
-	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
+#	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
 	$(top_srcdir)/src/libac3/libac3.la       \
 	$(top_srcdir)/src/libmpg123/libmpg123.la \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
