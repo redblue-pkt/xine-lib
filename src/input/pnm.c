@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.9 2003/01/10 20:57:11 holstsn Exp $
+ * $Id: pnm.c,v 1.10 2003/01/22 16:33:24 holstsn Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -39,6 +39,8 @@
 
 #include "pnm.h"
 #include "libreal/rmff.h"
+#include "bswap.h"
+#include "xineutils.h"
 
 /*
 #define LOG
@@ -56,7 +58,8 @@ struct pnm_s {
   char         *path;
   char         *url;
 
-  char          buffer[BUF_SIZE]; /* scratch buffer */
+  /* scratch buffer */
+  char          buffer[BUF_SIZE];
 
   /* receive buffer */
   uint8_t       recv[BUF_SIZE];
@@ -73,23 +76,14 @@ struct pnm_s {
   unsigned int  packet;         /* number of last recieved packet */
 };
 
-/*
- * utility macros
- */
-
-#define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
-#define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
-                   (((uint8_t*)(x))[1] << 16) | \
-                   (((uint8_t*)(x))[2] << 8) | \
-                    ((uint8_t*)(x))[3])
-
-/* D means direct (no pointer) */
-#define BE_16D(x) ((x & 0xff00) >> 8)|((x & 0x00ff) << 8)
 
 /* sizes */
 #define PREAMBLE_SIZE 8
 #define CHECKSUM_SIZE 3
 
+/*
+ * data to construct header for real demuxer
+ */
 
 /* header of rm files */
 #define RM_HEADER_SIZE 0x12
@@ -109,6 +103,11 @@ const unsigned char pnm_data_header[]={
          0,0,           /* object version   */
          0,0,0,0,       /* num packets      */
          0,0,0,0};      /* next data header */
+
+
+/*
+ * data to be transmitted during stream request
+ */
 
 /* pnm request chunk ids */
 
@@ -178,10 +177,14 @@ unsigned char after_chunks[]={
     0x1f, 0x3a  /* varies on each request (checksum ?)*/
     };
 
+
+
 static void hexdump (char *buf, int length);
 
 /*
  * network utilities
+ * nothing really sophisticated here, only tools
+ * to connect to a host, send and receive data over this connection
  */
  
 static int host_connect_attempt(struct in_addr ia, int port) {
@@ -288,7 +291,7 @@ static ssize_t rm_read(int fd, void *buf, size_t count) {
 }
 
 /*
- * debugging utilities
+ * a simple hexdump tool for debugging purposes
  */
  
 static void hexdump (char *buf, int length) {
@@ -324,7 +327,17 @@ static void hexdump (char *buf, int length) {
 
 /*
  * pnm_get_chunk gets a chunk from stream
- * and returns number of bytes read 
+ * and returns number of bytes read, chunk_type, data and
+ * a flag indicating whether the server want a response.
+ *
+ * following chunk format is expected (all in big endian!):
+ * uint32_t chunk_type  |
+ * uint32_t chunk_size  | <- preamble
+ * uint8_t data[chunk_size-PREAMBLE_SIZE]
+ *
+ * a few exceptions have to be handeled:
+ * if we read 0x72 as the first byte, we ignore CHECKSUM_SIZE bytes.
+ * if we have an PNA_TAG, we need a different parsing; see below.
  */
 
 static unsigned int pnm_get_chunk(pnm_t *p, 
@@ -343,8 +356,8 @@ static unsigned int pnm_get_chunk(pnm_t *p,
   else
     rm_read (p->s, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
   
-  *chunk_type = BE_32(data);
-  chunk_size = BE_32(data+4);
+  *chunk_type = be2me_32(*((uint32_t *)data));
+  chunk_size = be2me_32(*((uint32_t *)(data+4)));
 
   switch (*chunk_type) {
     case PNA_TAG:
@@ -353,14 +366,26 @@ static unsigned int pnm_get_chunk(pnm_t *p,
       rm_read (p->s, ptr++, 1);
 
       while(1) {
-	/* expecting following chunk format: 0x4f <chunk size> <data...> */
+	/* The pna chunk is devided into subchunks.
+	 * expecting following chunk format (in big endian): 
+	 * 0x4f 
+	 * uint8_t chunk_size 
+	 * uint8_t data[chunk_size] 
+	 *
+	 * if first byte is 'X', we got a message from server
+	 * if first byte is 'F', we got an error
+	 */
 
         rm_read (p->s, ptr, 2);
 	if (*ptr == 'X') /* checking for server message */
 	{
 	  printf("input_pnm: got a message from server:\n");
 	  rm_read (p->s, ptr+2, 1);
-	  n=BE_16(ptr+1);
+
+	  /* two bytes of message length*/
+	  n=be2me_16(*(uint16_t*)(ptr+1));
+
+	  /* message itself */
 	  rm_read (p->s, ptr+3, n);
 	  ptr[3+n]=0;
 	  printf("%s\n",ptr+3);
@@ -369,10 +394,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	
 	if (*ptr == 'F') /* checking for server error */
 	{
+	  /* some error codes after 'F' were ignored */
 	  printf("input_pnm: server error.\n");
 	  return -1;
 	}
-	if (*ptr == 'i')
+	if (*ptr == 'i') /* the server want a response from us. it will be sent after these headers */
 	{
 	  ptr+=2;
 	  *need_response=1;
@@ -395,6 +421,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case CONT_TAG:
       if (chunk_size > max) {
         printf("error: max chunk size exeeded (max was 0x%04x)\n", max);
+	/* reading some bytes for debugging */
         n=rm_read (p->s, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
         hexdump(data,n+PREAMBLE_SIZE);
         return -1;
@@ -412,16 +439,23 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 
 /*
  * writes a chunk to a buffer, returns number of bytes written
+ * chunk format (big endian):
+ * uint16_t chunk_id
+ * uint16_t length
+ * uint8_t data[length]
  */
 
 static int pnm_write_chunk(uint16_t chunk_id, uint16_t length, 
     const char *chunk, char *data) {
 
-  data[0]=(chunk_id>>8)%0xff;
-  data[1]=chunk_id%0xff;
-  data[2]=(length>>8)%0xff;
-  data[3]=length%0xff;
-  memcpy(&data[4],chunk,length);
+  uint16_t be_id, be_len;
+
+  be_id=be2me_16(chunk_id);
+  be_len=be2me_16(length);
+
+  memcpy(data  , &be_id , 2);
+  memcpy(data+2, &be_len, 2);
+  memcpy(data+4, chunk  , length);
   
   return length+4;
 }
@@ -467,7 +501,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
 
   /* client id string */
   p->buffer[c]=PNA_CLIENT_STRING;
-  i16=BE_16D((strlen(client_string)-1)); /* dont know why do we have -1 here */
+  i16=be2me_16(strlen(client_string)-1); /* dont know why do we have -1 here */
   memcpy(&p->buffer[c+1],&i16,2);
   memcpy(&p->buffer[c+3],client_string,strlen(client_string)+1);
   c=c+3+strlen(client_string)+1;
@@ -475,7 +509,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
   /* file path */
   p->buffer[c]=0;
   p->buffer[c+1]=PNA_PATH_REQUEST;
-  i16=BE_16D(strlen(p->path));
+  i16=be2me_16(strlen(p->path));
   memcpy(&p->buffer[c+2],&i16,2);
   memcpy(&p->buffer[c+4],p->path,strlen(p->path));
   c=c+4+strlen(p->path);
@@ -555,13 +589,13 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
   }
   
   /* set data offset */
-  size--;
-  prop_hdr[42]=(size>>24)%0xff;
-  prop_hdr[43]=(size>>16)%0xff;
-  prop_hdr[44]=(size>>8)%0xff;
-  prop_hdr[45]=(size)%0xff;
-  size++;
+  {
+    uint32_t be_size;
 
+    be_size = be2me_32(size-1);
+    memcpy(prop_hdr+42, &be_size, 4);
+  }
+  
   /* read challenge */
   memcpy (p->buffer, ptr, PREAMBLE_SIZE);
   rm_read (p->s, &p->buffer[PREAMBLE_SIZE], 64);
@@ -582,11 +616,16 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
 
 /* 
  * determine correct stream number by looking at indices
+ * FIXME: this doesn't work with all streams! There must be
+ * another way to determine correct stream numbers!
  */
 
 static int pnm_calc_stream(pnm_t *p) {
 
-  char str0=0,str1=0;
+  uint8_t str0, str1;
+
+  str0=0;
+  str1=0;
 
   /* looking at the first index to
    * find possible stream types
@@ -665,7 +704,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 
   /* data chunks begin with: 'Z' <o> <o> <i1> 'Z' <i2>
    * where <o> is the offset to next stream chunk,
-   * <i1> is a 16 bit index
+   * <i1> is a 16 bit index (big endian)
    * <i2> is a 8 bit index which counts from 0x10 to somewhere
    */
   
@@ -685,7 +724,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   /* a server message */
   if (p->buffer[0] == 'X')
   {
-    int size=BE_16(&p->buffer[1]);
+    int size=be2me_16(*(uint16_t*)(&p->buffer[1]));
 
     rm_read (p->s, &p->buffer[8], size-5);
     p->buffer[size+3]=0;
@@ -725,8 +764,8 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   }
 
   /* check offsets */
-  fof1=BE_16(&p->buffer[1]);
-  fof2=BE_16(&p->buffer[3]);
+  fof1=be2me_16(*(uint16_t*)(&p->buffer[1]));
+  fof2=be2me_16(*(uint16_t*)(&p->buffer[3]));
   if (fof1 != fof2)
   {
     printf("input_pnm: frame offsets are different: 0x%04x 0x%04x\n",fof1,fof2);
@@ -734,7 +773,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   }
 
   /* get first index */
-  p->seq_current[0]=BE_16(&p->buffer[5]);
+  p->seq_current[0]=be2me_16(*(uint16_t*)(&p->buffer[5]));
   
   /* now read the rest of stream chunk */
   n = rm_read (p->s, &p->recv[5], fof1-5);
@@ -744,7 +783,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   p->seq_current[1]=p->recv[5];
 
   /* get timestamp */
-  p->ts_current=BE_32(&p->recv[6]);
+  p->ts_current=be2me_32(*(uint32_t*)(&p->recv[6]));
   
   /* get stream number */
   stream=pnm_calc_stream(p);
@@ -757,7 +796,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   p->recv[0]=0;        /* object version */
   p->recv[1]=0;
 
-  fof2=BE_16(&fof2);
+  fof2=be2me_16(fof2);
   memcpy(&p->recv[2], &fof2, 2);
   /*p->recv[2]=(fof2>>8)%0xff;*/   /* length */
   /*p->recv[3]=(fof2)%0xff;*/
@@ -779,7 +818,7 @@ pnm_t *pnm_connect(const char *mrl) {
   char *mrl_ptr=strdup(mrl);
   char *slash, *colon;
   int pathbegin, hostend;
-  pnm_t *p=malloc(sizeof(pnm_t));
+  pnm_t *p=xine_xmalloc(sizeof(pnm_t));
   int fd;
   int need_response=0;
   
@@ -792,6 +831,7 @@ pnm_t *pnm_connect(const char *mrl) {
 
   p->port=7070;
   p->url=strdup(mrl);
+  p->packet=0;
 
   slash=strchr(mrl_ptr,'/');
   colon=strchr(mrl_ptr,':');

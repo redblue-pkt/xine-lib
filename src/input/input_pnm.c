@@ -47,7 +47,7 @@
 #define LOG
 */
 
-#define BUFSIZE 1025
+#define BUFSIZE 4096
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
