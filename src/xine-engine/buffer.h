@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.88 2002/12/27 02:03:06 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.89 2002/12/28 18:18:18 tmmm Exp $
  *
  *
  * contents:
@@ -137,6 +137,7 @@ extern "C" {
 #define BUF_VIDEO_MVI2		0x02350000
 #define BUF_VIDEO_UCOD		0x02360000
 #define BUF_VIDEO_WMV9		0x02370000
+#define BUF_VIDEO_INTERPLAY	0x02380000
 
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
@@ -181,6 +182,7 @@ extern "C" {
 #define BUF_AUDIO_28_8 		0x03240000
 #define BUF_AUDIO_SIPRO		0x03250000
 #define BUF_AUDIO_WMAV3		0x03260000
+#define BUF_AUDIO_INTERPLAY	0x03270000
 
 /* spu buffer types:    */
  
