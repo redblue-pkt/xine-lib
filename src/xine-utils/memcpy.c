@@ -387,6 +387,22 @@ static unsigned long long int rdtsc()
 }
 #endif
 
+static void update_fast_memcpy(void *this_gen, cfg_entry_t *entry)
+{
+  static int config_flags = -1;
+    
+  config_flags = xine_mm_accel();
+  
+  if( entry->num_value != 0 && 
+     (config_flags & memcpy_method[entry->num_value].cpu_require) == 
+      memcpy_method[entry->num_value].cpu_require ) {
+    printf("xine: using %s\n", memcpy_method[entry->num_value].name );
+    xine_fast_memcpy = memcpy_method[entry->num_value].function;
+    return;
+  } else {
+    printf("xine: will probe memcpy on startup\n" );
+  }
+}
 
 #define BUFSIZE 1024*1024
 void xine_probe_fast_memcpy(config_values_t *config)
@@ -394,23 +410,19 @@ void xine_probe_fast_memcpy(config_values_t *config)
   unsigned long long t;
   char *buf1, *buf2;
   int i, j, best;
-  static int config_flags = -1;
+  int config_flags = -1;
   static char *memcpy_methods[] = {"probe", "glibc",
 #ifdef ARCH_X86
      "kernel", "mmx", "mmxext", "sse", 
 #endif
      NULL};
   
-#ifdef ARCH_X86
   config_flags = xine_mm_accel();
-#else
-  config_flags = 0;
-#endif
 
   best = config->register_enum (config, "misc.memcpy_method", 0,
 				memcpy_methods, 
 				"Memcopy method to use in xine for large data chunks.",
-				NULL, NULL, NULL);
+				NULL, update_fast_memcpy, NULL);
 
   /* check if function is configured and valid for this machine */
   if( best != 0 && 
@@ -457,9 +469,6 @@ void xine_probe_fast_memcpy(config_values_t *config)
     if( best == 0 || t < memcpy_method[best].time )
       best = i;
   }
-
-  printf("memcpy: using %s\n", memcpy_method[best].name );
-  xine_fast_memcpy = memcpy_method[best].function;
 
   config->update_num (config, "misc.memcpy_method", best);
 
