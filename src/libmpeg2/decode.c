@@ -158,13 +158,14 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
   mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
 
   switch (picture->aspect_ratio_information) {
-  case 3:  /* anamorphic     */
+  case XINE_VO_ASPECT_PAN_SCAN:
+  case XINE_VO_ASPECT_ANAMORPHIC:
     mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
     break;
-  case 4:         /* 2.11:1 */
+  case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
     mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
     break;
-  case 1:      /* square pels */
+  case XINE_VO_ASPECT_SQUARE:      /* square pels */
     mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
     break;
   default:
