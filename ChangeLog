@@ -40,6 +40,9 @@ xine-lib (1-rc4)
   * new "file" (wave) audio out plugin
     example: XINE_WAVE_OUTPUT=/tmp/file.wav xine -A file music.mp3
   * autoscan devices /dev/dsp* and /dev/sound/dsp* in OSS audio plugin
+  * fix jittering problem with the xshm output plugin
+  * fix a playback problem with some mp3 with id3v2 tags
+  * asf demuxer fixes
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
