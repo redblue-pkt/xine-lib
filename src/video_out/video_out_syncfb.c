@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.42 2001/11/07 23:01:03 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.43 2001/11/09 14:10:15 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -365,6 +365,8 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
      this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
      this->output_yoffset  = dest_y;
    }
+   this->output_width  = (this->output_width + 1) & 0xfffe;   /* Round to even */
+   this->output_height = (this->output_height + 1) & 0xfffe;   /* Round to even */
 
    // try to minimize our config ioctls by checking if anything really has
    // changed, otherwise leave things untouched because every config ioctl
@@ -427,7 +429,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	    break;
 	 }
 	 
-	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8);
+	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8) * 2;
 	 this->syncfb_config.src_width      = this->frame_width;
 	 this->syncfb_config.src_height     = this->frame_height;
 
@@ -469,7 +471,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 		 this->output_xoffset+this->output_width, dest_y, 
 		 dest_width - this->output_xoffset - this->output_width,
 		 dest_height);
-   
+
   XUnlockDisplay (this->display);
 }
 
@@ -558,7 +560,6 @@ static void syncfb_calc_format(syncfb_driver_t* this,
     ideal_width  *=2;
     ideal_height *=2;
   }
-
   /*
    * ask gui to adapt to this size
    */
