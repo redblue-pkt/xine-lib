@@ -52,6 +52,7 @@ noinst_HEADERS = \
 	avcodec.h \
 	common.h \
 	dsputil.h \
+	dvdata.h \
 	h263data.h \
 	mangle.h \
 	mpeg4data.h \

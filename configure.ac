@@ -41,7 +41,7 @@ dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="-alpha0"
+  XINE_PRE="alpha0"
 fi
 
 AC_SUBST(XINE_MAJOR)
@@ -58,10 +58,10 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-#TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
-#SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
-TAR_NAME="xine-lib-"$XINE_MAJOR$XINE_PRE
-SPEC_VERSION=$XINE_MAJOR$XINE_PRE
+dnl TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+dnl SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+TAR_NAME="xine-lib-"$XINE_MAJOR-$XINE_PRE
+SPEC_VERSION=${XINE_MAJOR}_$XINE_PRE
 
 AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
@@ -1102,10 +1102,7 @@ src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
 src/input/libdvdread/Makefile
-src/libfaad/Makefile
-src/libfaad/codebook/Makefile
 src/liba52/Makefile
-src/libdivx4/Makefile
 src/libdts/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
@@ -1116,9 +1113,7 @@ src/libffmpeg/libavcodec/alpha/Makefile
 src/liblpcm/Makefile
 src/libmad/Makefile
 src/libmpeg2/Makefile
-src/libspucc/Makefile
 src/libspudec/Makefile
-src/libsputext/Makefile
 src/libvorbis/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
@@ -1126,7 +1121,6 @@ src/libw32dll/DirectShow/Makefile
 src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/libxineadec/gsm610/Makefile
-src/libxvid/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
