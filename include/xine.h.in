@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.54 2003/01/13 14:03:13 mroi Exp $
+ * $Id: xine.h.in,v 1.55 2003/01/13 14:35:45 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -278,6 +278,7 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 #define XINE_PARAM_VERBOSITY              11 /* control console output      */
+#define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
 
 /* speed values */
 #define XINE_SPEED_PAUSE                   0
@@ -646,34 +647,6 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 
 /* return last error  */
 int  xine_get_error (xine_stream_t *stream);
-
-/*
- * xine engine parameters
- */
-
-#define XINE_PARAM_SPEED                   1 /* see below                   */
-#define XINE_PARAM_AV_OFFSET               2 /* unit: 1/90000 sec           */
-#define XINE_PARAM_AUDIO_CHANNEL_LOGICAL   3 /* -1 => auto, -2 => off       */
-#define XINE_PARAM_SPU_CHANNEL             4
-#define XINE_PARAM_VIDEO_CHANNEL           5
-#define XINE_PARAM_AUDIO_VOLUME            6 /* 0..100                      */
-#define XINE_PARAM_AUDIO_MUTE              7 /* 1=>mute, 0=>unmute          */
-#define XINE_PARAM_AUDIO_COMPR_LEVEL       8 /* <100=>off, % compress otherw*/
-#define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
-#define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
-#define XINE_PARAM_VERBOSITY              11 /* control console output      */
-#define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
-
-/* stream format detection strategies */
-
-/* recognize stream type first by content then by extension. */
-#define XINE_DEMUX_DEFAULT_STRATEGY        0
-/* recognize stream type first by extension then by content. */
-#define XINE_DEMUX_REVERT_STRATEGY         1
-/* recognize stream type by content only.                    */
-#define XINE_DEMUX_CONTENT_STRATEGY        2
-/* recognize stream type by extension only.                  */
-#define XINE_DEMUX_EXTENSION_STRATEGY      3
 
 /*
  * engine status codes
