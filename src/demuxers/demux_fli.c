@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.4 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_fli.c,v 1.5 2002/07/15 00:54:12 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -308,6 +308,10 @@ static int demux_fli_start (demux_plugin_t *this_gen,
     xine_log (this->xine, XINE_LOG_FORMAT,
       _("demux_fli: %d frames, %dx%d\n"), 
       this->frame_count, this->width, this->height);
+    xine_log (this->xine, XINE_LOG_FORMAT,
+      _("demux_fli: running time: %d min, %d sec\n"), 
+      this->frame_count * this->frame_pts_inc / 90000 / 60,
+      this->frame_count * this->frame_pts_inc / 90000 % 60);
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
@@ -339,7 +343,7 @@ static int demux_fli_start (demux_plugin_t *this_gen,
 
   pthread_mutex_unlock(&this->mutex);
 
-  return this->status;
+  return DEMUX_OK;
 }
 
 static int demux_fli_seek (demux_plugin_t *this_gen,
