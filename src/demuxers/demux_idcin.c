@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.36 2003/01/20 05:58:04 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.37 2003/01/25 03:04:15 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -112,6 +112,7 @@ typedef struct {
 
   int                  audio_chunk_size1;
   int                  audio_chunk_size2;
+  int                  current_audio_chunk;
 
   unsigned char        huffman_table[HUFFMAN_TABLE_SIZE];
   uint64_t             pts_counter;
@@ -149,7 +150,6 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   palette_entry_t palette[PALETTE_SIZE];
   int i;
   unsigned int remaining_sample_bytes;
-  int current_audio_chunk = 1;
   int scale_bits;
 
   /* figure out what the next data is */
@@ -248,12 +248,12 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   /* load the audio frame */
   if (this->audio_fifo && this->audio_sample_rate) {
 
-    if (current_audio_chunk == 1) {
+    if (this->current_audio_chunk == 1) {
       remaining_sample_bytes = this->audio_chunk_size1;
-      current_audio_chunk = 2;
+      this->current_audio_chunk = 2;
     } else {
       remaining_sample_bytes = this->audio_chunk_size2;
-      current_audio_chunk = 1;
+      this->current_audio_chunk = 1;
     }
 
     debug_idcin("  demux_idcin: dispatching %d audio bytes\n",
@@ -346,8 +346,9 @@ static int open_idcin_file(demux_idcin_t *this) {
    * and continue loading */
   debug_idcin("  demux_idcin: %dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
     this->video_width, this->video_height,
-    this->audio_sample_rate, this->audio_bytes_per_sample * 8, 
-    this->audio_channels);
+    this->audio_sample_rate, 
+    this->audio_channels,
+    this->audio_bytes_per_sample * 8);
 
   /* read the Huffman table */
   if (this->input->read(this->input, this->huffman_table,
@@ -454,6 +455,7 @@ static int demux_idcin_seek (demux_plugin_t *this_gen,
     this->input->seek(this->input, 0x14 + 0x10000, SEEK_SET);
 
     this->pts_counter = 0;
+    this->current_audio_chunk = 1;
   }
 
   return this->status;
