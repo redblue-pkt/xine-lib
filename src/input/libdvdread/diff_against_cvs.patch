@@ -754,3 +754,27 @@
  
  
  #undef ATTRIBUTE_PACKED
+--- bswap.h
++++ bswap.h
+@@ -65,7 +65,7 @@
+  * functionality! 
+  */
+ 
+-#elif defined(__FreeBSD__) || defined(__sun) || defined(__bsdi__)
++#elif defined(__FreeBSD__) || defined(__sun) || defined(__bsdi__) || defined(_MSC_VER)
+ #define B2N_16(x) \
+  x = ((((x) & 0xff00) >> 8) | \
+       (((x) & 0x00ff) << 8))
+--- dvd_reader.h
++++ dvd_reader.h
+@@ -21,6 +21,10 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
++#if defined(_MSC_VER)
++typedef long ssize_t;
++#endif /* _MSC_VER */
++
+ #include <sys/types.h>
+ 
+ /**

@@ -42,8 +42,20 @@
    this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
 --- src/input/libdvdnav/dvdnav.h	Thu Jul 25 17:26:00 2002
 +++ src/input/libdvdnav/dvdnav.h	Fri Aug  9 22:01:19 2002
-@@ -41,8 +41,8 @@
+@@ -34,8 +34,13 @@
+ #endif
+ 
+ #ifdef HAVE_DVDNAV
++#ifndef _MSC_VER
+ #  include <dvdnav/dvdnav_events.h>
  #  include <dvdnav/dvd_types.h>
++#else
++#  include "dvdnav_events.h"
++#  include "dvd_types.h"
++#endif /* _MSC_VER */
+ #else
+ #  include "dvdnav_events.h"
+ #  include "dvd_types.h"
  #endif
  
 -#include <dvdread/dvd_reader.h>

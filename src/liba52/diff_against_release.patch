@@ -54,3 +54,15 @@
 +    free (state->samples_base);
      free (state);
  }
+--- src/liba52/bitstream.h
++++ src/liba52/bitstream.h
+@@ -21,6 +21,10 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
++#ifdef WIN32
++#include <unistd.h>
++#endif
++
+ /* (stolen from the kernel) */
+ #ifdef WORDS_BIGENDIAN
