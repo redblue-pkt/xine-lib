@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdplayer.c,v 1.4 2004/03/11 08:08:48 rockyb Exp $
+  $Id: vcdplayer.c,v 1.5 2004/03/31 10:13:00 rockyb Exp $
  
-  Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -795,7 +795,15 @@ vcdplayer_pbc_nav (vcdplayer_input_t *this, uint8_t *buf)
           unsigned int bsn=vcdinf_get_bsn(this->pxd.psd);
           int rand_selection=bsn +
             (int) ((num_selections+0.0)*rand()/(RAND_MAX+1.0));
+
+#if defined(LIBVCD_VERSION)
+          /* version 0.7.21 or greater */
+          lid_t rand_lid=vcdinfo_selection_get_lid(this->vcd, this->cur_lid, 
+                                                   rand_selection);
+#else 
           lid_t rand_lid=vcdplayer_selection2lid (this, rand_selection);
+#endif /* LIBVCD_VERSION */
+
           itemid.num = rand_lid;
           itemid.type = VCDINFO_ITEM_TYPE_LID;
           dbg_print(INPUT_DBG_PBC, "random selection %d, lid: %d\n", 
@@ -935,7 +943,6 @@ vcdplayer_read (vcdplayer_input_t *this, uint8_t *buf, const off_t nlen)
       uint8_t subheader	[8];
       uint8_t data	[M2F2_SECTOR_SIZE];
       uint8_t spare     [4];
-      
     } vcdsector_t;
     vcdsector_t vcd_sector;
 
@@ -978,6 +985,9 @@ vcdplayer_send_button_update(vcdplayer_input_t *this, const int mode)
   return;
 }
 
+#ifndef LIBVCD_VERSION
+/* Older version of vcdimager. You really should consider using 0.7.21
+   or later as that has bug and memory leak fixes. */
 lid_t
 vcdplayer_selection2lid (vcdplayer_input_t *this, int entry_num) 
 {
@@ -1032,6 +1042,7 @@ vcdplayer_selection2lid (vcdplayer_input_t *this, int entry_num)
     return VCDINFO_INVALID_LID;
   }
 }
+#endif /* LIBVCD_VERSION */
 
 /* 
  * Local variables:
