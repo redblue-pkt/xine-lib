@@ -30,8 +30,9 @@
  *     (I do understand what to do, but I hate the work behind it ;-) )
  *   - the optional data chunks ATAK and RLSE are not supported at the moment
  *     (no examples found and description isn't as clear as it should)
+ * * 16SV, the same support as 8SVX
  *
- * $Id: demux_iff.c,v 1.1 2004/01/03 19:59:00 manfredtremmel Exp $
+ * $Id: demux_iff.c,v 1.2 2004/01/04 00:41:33 manfredtremmel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,6 +52,7 @@
 #include "bswap.h"
 
 #define FOURCC_CHUNK BE_FOURCC
+#define IFF_16SV_CHUNK FOURCC_CHUNK('1', '6', 'S', 'V')
 #define IFF_8SVX_CHUNK FOURCC_CHUNK('8', 'S', 'V', 'X')
 #define IFF_ANFI_CHUNK FOURCC_CHUNK('A', 'N', 'F', 'I')
 #define IFF_ANHD_CHUNK FOURCC_CHUNK('A', 'N', 'H', 'D')
@@ -77,15 +79,21 @@
 #define IFF_FVER_CHUNK FOURCC_CHUNK('F', 'V', 'E', 'R')
 #define IFF_GRAB_CHUNK FOURCC_CHUNK('G', 'R', 'A', 'B')
 #define IFF_ILBM_CHUNK FOURCC_CHUNK('I', 'L', 'B', 'M')
+#define IFF_INS1_CHUNK FOURCC_CHUNK('I', 'N', 'S', '1')
 #define IFF_IMRT_CHUNK FOURCC_CHUNK('I', 'M', 'R', 'T')
 #define IFF_JUNK_CHUNK FOURCC_CHUNK('J', 'U', 'N', 'K')
 #define IFF_LIST_CHUNK FOURCC_CHUNK('L', 'I', 'S', 'T')
+#define IFF_MHDR_CHUNK FOURCC_CHUNK('M', 'H', 'D', 'R')
 #define IFF_NAME_CHUNK FOURCC_CHUNK('N', 'A', 'M', 'E')
 #define IFF_PAN_CHUNK  FOURCC_CHUNK('P', 'A', 'N', ' ')
 #define IFF_PROP_CHUNK FOURCC_CHUNK('P', 'R', 'O', 'P')
 #define IFF_RLSE_CHUNK FOURCC_CHUNK('R', 'L', 'S', 'E')
+#define IFF_SAMP_CHUNK FOURCC_CHUNK('S', 'A', 'M', 'P')
 #define IFF_SEQN_CHUNK FOURCC_CHUNK('S', 'E', 'Q', 'N')
+#define IFF_SHDR_CHUNK FOURCC_CHUNK('S', 'H', 'D', 'R')
+#define IFF_SMUS_CHUNK FOURCC_CHUNK('S', 'M', 'U', 'S')
 #define IFF_TINY_CHUNK FOURCC_CHUNK('T', 'I', 'N', 'Y')
+#define IFF_TRAK_CHUNK FOURCC_CHUNK('T', 'R', 'A', 'K')
 #define IFF_VHDR_CHUNK FOURCC_CHUNK('V', 'H', 'D', 'R')
 
 #define MONO      0L
@@ -214,26 +222,6 @@ static int open_iff_file(demux_iff_t *this) {
   if (_x_demux_read_header(this->input, signature, IFF_SIGNATURE_SIZE) != IFF_SIGNATURE_SIZE)
     return 0;
 
-  /* check the signature */
-  if (BE_32(&signature[0]) == IFF_FORM_CHUNK)
-  {
-    switch( BE_32(&signature[8]) )
-    {
-      case IFF_8SVX_CHUNK:
-/*      case IFF_ANIM_CHUNK:*/
-/*      case IFF_ILBM_CHUNK:*/
-        this->iff_type = BE_32(&signature[8]);
-        break;
-      default:
-        return 0;
-        break;
-    }
-  } else
-    return 0;
-
-  /* file is qualified; skip over the header bytes in the stream */
-  this->input->seek(this->input, IFF_SIGNATURE_SIZE, SEEK_SET);
-
   this->title                           = 0;
   this->copyright                       = 0;
   this->author                          = 0;
@@ -268,6 +256,32 @@ static int open_iff_file(demux_iff_t *this) {
   this->atak_eg_point                   = 0;
   this->rlse_eg_point                   = 0;
 
+  this->iff_type                        = BE_32(&signature[8]);
+
+  /* check the signature */
+  if (BE_32(&signature[0]) == IFF_FORM_CHUNK)
+  {
+    switch( this->iff_type )
+    {
+      case IFF_8SVX_CHUNK:
+        this->audio_bits                = 8;
+        break;
+      case IFF_16SV_CHUNK:
+        this->audio_bits                = 16;
+        break;
+/*      case IFF_ANIM_CHUNK:*/
+/*      case IFF_ILBM_CHUNK:*/
+      default:
+        return 0;
+        break;
+    }
+  } else
+    return 0;
+
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, IFF_SIGNATURE_SIZE, SEEK_SET);
+
+
   while ( keep_on_reading == 1 ) {
     if (this->input->read(this->input, signature, IFF_JUNK_SIZE) == IFF_JUNK_SIZE) {
       junk_size = BE_32(&signature[4]);
@@ -287,16 +301,15 @@ static int open_iff_file(demux_iff_t *this) {
           this->audio_channels          = 1;
           this->chan_settings           = MONO;
           switch( this->vhdr_sCompression ) {
-            case 0:  /* 8 Bits */
+            case 0:  /* uncompressed */
             case 1:  /* Fibonacci */
             case 2:  /* Exponential*/
-              this->audio_bits          = 8;
               this->audio_block_align   = PCM_BLOCK_ALIGN;
               this->audio_type          = BUF_AUDIO_LPCM_BE;
               break;
             default: /* unknown codec */
               xine_log(this->stream->xine, XINE_LOG_MSG,
-                       _("iff-8svx: unknown compression: %d\n"),
+                       _("iff-8svx/16sv: unknown compression: %d\n"),
                        this->vhdr_sCompression);
               return 0;
               break;
@@ -321,10 +334,10 @@ static int open_iff_file(demux_iff_t *this) {
           this->version                 = strndup( (const char *)buffer, (size_t)junk_size);
            break;
         case IFF_ATAK_CHUNK:
-          /* not implemented yet */
+          /* not yet implemented */
           break;
         case IFF_RLSE_CHUNK:
-          /* not implemented yet */
+          /* not yet implemented */
           break;
         case IFF_CHAN_CHUNK:
           this->chan_settings           = BE_32(&buffer[0]);
@@ -431,6 +444,9 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
   buf_element_t *buf                    = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
+  int16_t *pointer16_from;
+  int16_t *pointer16_to;
+  int16_t zw_16;
   int32_t input_length;
   int64_t zw_pts;
   int64_t zw_rescale;
@@ -552,41 +568,65 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
       remaining_sample_bytes           -= buf->size / this->audio_channels;
       zw_pts                           += buf->size;
 
+      /* 16 bit sound */
       if (this->audio_bits == 16) {
+
+        pointer16_from                  = (int16_t *)this->audio_interleave_buffer;
+        pointer16_to                    = (int16_t *)buf->content;
+
         if (this->chan_settings == STEREO ||
             this->chan_settings == LEFT   ||
             this->chan_settings == PAN    ||
             this->chan_settings == MONO) {
-          for (j = 0, k = interleave_index; j < buf->size; j += 4, k += 2) {
-            buf->content[j]             = this->audio_interleave_buffer[k];
-            buf->content[j + 1]         = this->audio_interleave_buffer[k + 1];
+          if( this->audio_volume_left == max_volume ) {
+            for (j = 0, k = (interleave_index / 2); j < (buf->size / 2); j += this->audio_channels) {
+              pointer16_to[j]           = pointer16_from[k++];
+            }
+          } else {
+            for (j = 0, k = (interleave_index / 2); j < (buf->size / 2); j += this->audio_channels) {
+              zw_16                     = BE_16(&pointer16_from[k++]);
+              zw_rescale                = zw_16;
+              zw_rescale               *= this->audio_volume_left;
+              zw_rescale               /= max_volume;
+              zw_16                     = (zw_rescale>32767) ? 32767 : ((zw_rescale<-32768) ? -32768 : zw_rescale);
+              pointer16_to[j]           = BE_16(&zw_16);
+            }
           }
         } else {
-          for (j = 0; j < buf->size; j += 4) {
-            buf->content[j]             = 0;
-            buf->content[j + 1]         = 0;
+          for (j = 0; j < (buf->size / 2); j += this->audio_channels) {
+            pointer16_to[j]             = 0;
           }
         }
 
         if (this->chan_settings == STEREO ||
-            this->chan_settings == RIGHT) {
+            this->chan_settings == RIGHT  ||
+            this->chan_settings == PAN) {
           if (this->chan_settings == STEREO)
-            k                           = interleave_index +
-                                          (this->data_size *
-                                           this->audio_compression_factor / 2);
+            k                           = (interleave_index +
+                                           (this->data_size *
+                                            this->audio_compression_factor / 2)) / 2;
           else
-            k                           = interleave_index *
-                                          this->audio_compression_factor;
-          for (j = 2; j < buf->size; j += 4, k += 2) {
-            buf->content[j]             = this->audio_interleave_buffer[k];
-            buf->content[j + 1]         = this->audio_interleave_buffer[k + 1];
+            k                           = interleave_index / 2;
+          if( this->audio_volume_right == max_volume ) {
+            for (j = 1; j < (buf->size / 2); j += this->audio_channels) {
+              pointer16_to[j]           = pointer16_from[k++];
+            }
+          } else {
+            for (j = 1; j < (buf->size / 2); j += this->audio_channels) {
+              zw_16                     = BE_16(&pointer16_from[k++]);
+              zw_rescale                = zw_16;
+              zw_rescale               *= this->audio_volume_left;
+              zw_rescale               /= max_volume;
+              zw_16                     = (zw_rescale>32767) ? 32767 : ((zw_rescale<-32768) ? -32768 : zw_rescale);
+              pointer16_to[j]           = BE_16(&zw_16);
+            }
           }
-        } else {
-          for (j = 2; j < buf->size; j += 4) {
-            buf->content[j]             = 0;
-            buf->content[j + 1]         = 0;
+        } else if (this->chan_settings == LEFT) {
+          for (j = 1; j < (buf->size / 2); j += this->audio_channels) {
+            pointer16_to[j]             = 0;
           }
         }
+      /* 8 bit sound */
       } else {
         if (this->chan_settings == STEREO ||
             this->chan_settings == LEFT   ||
@@ -597,7 +637,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
               buf->content[j]           = this->audio_interleave_buffer[k++] + 0x80;
             }
           } else {
-            for (j = 0, k = interleave_index; j < buf->size; j += 2) {
+            for (j = 0, k = interleave_index; j < buf->size; j += this->audio_channels) {
               zw_rescale                = this->audio_interleave_buffer[k++];
               zw_rescale               *= this->audio_volume_left;
               zw_rescale               /= max_volume;
@@ -620,17 +660,21 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
           else
             k                           = interleave_index;
           if( this->audio_volume_right == max_volume ) {
-            for (j = 1; j < buf->size; j += 2) {
+            for (j = 1; j < buf->size; j += this->audio_channels) {
               buf->content[j]           = this->audio_interleave_buffer[k++] + 0x80;
             }
           } else {
-            for (j = 1; j < buf->size; j += 2) {
+            for (j = 1; j < buf->size; j += this->audio_channels) {
               zw_rescale                = this->audio_interleave_buffer[k++];
               zw_rescale               *= this->audio_volume_right;
               zw_rescale               /= max_volume;
               zw_rescale               += 0x80;
               buf->content[j]           = (zw_rescale>255) ? 255 : ((zw_rescale<0) ? 0 : zw_rescale);
             }
+          }
+        } else if (this->chan_settings == LEFT) {
+          for (j = 1; j < buf->size; j += this->audio_channels) {
+            buf->content[j]             = 0;
           }
         }
       }
@@ -644,8 +688,6 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
                buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
     }
-    if (buf)
-      buf->free_buffer(buf);
     this->status                        = DEMUX_FINISHED;
   }
 
@@ -746,14 +788,23 @@ static void demux_iff_dispose (demux_plugin_t *this_gen) {
   if( this->version )
     free (this->version);
 
-  if( this->audio_interleave_buffer )
+  if( this->audio_interleave_buffer ) {
     free (this->audio_interleave_buffer);
-  if( this->audio_read_buffer )
+    this->audio_interleave_buffer       = 0;
+  }
+  if( this->audio_read_buffer ) {
     free (this->audio_read_buffer);
+    this->audio_read_buffer             = 0;
+  }
   if( this->atak_eg_point )
+  {
     free( this->atak_eg_point );
-  if( this->rlse_eg_point )
+    this->atak_eg_point                 = 0;
+  }
+  if( this->rlse_eg_point ) {
     free( this->rlse_eg_point );
+    this->rlse_eg_point                 = 0;
+  }
   this->audio_buffer_filled             = 0;
 
   free(this);
