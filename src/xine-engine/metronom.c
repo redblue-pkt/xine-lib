@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.133 2003/12/29 16:26:57 mroi Exp $
+ * $Id: metronom.c,v 1.134 2004/01/18 18:18:31 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,6 @@
 #include "xine_internal.h"
 #include "metronom.h"
 #include "xineutils.h"
-#include "video_out.h"
 
 #define MAX_AUDIO_DELTA        1600
 #define AUDIO_SAMPLE_NUM      32768
