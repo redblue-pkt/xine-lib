@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.69 2003/04/06 01:17:11 guenter Exp $
+ * $Id: demux_ogg.c,v 1.70 2003/04/10 18:39:55 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -274,7 +274,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
       
       buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
-      buf->extra_info->input_time = 0;
+      buf->extra_info->input_time = buf->pts / 90 ;
       buf->type       = this->buf_types[stream_num] ;
 	
       done += buf->size;
