@@ -45,7 +45,8 @@
 #define XIO_POLLING_INTERVAL  50000  /* usec */
 
 
-int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
+#ifndef ENABLE_IPV6
+static int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
 
   struct hostent *h;
   int             i, s;
@@ -106,6 +107,7 @@ int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
   }
   return -1;
 }
+#endif
 
 int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 
