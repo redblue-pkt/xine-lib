@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.2 2003/06/13 12:30:10 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.3 2003/06/15 15:25:35 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -291,7 +291,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   this->enabled = 1;
   this->framerate_mode = 0;
   this->judder_correction = 1;
-  this->use_progressive_frame_flag = 0;
+  this->use_progressive_frame_flag = 1;
   this->framecounter = 0;
   memset( &this->recent_frame, 0, sizeof(this->recent_frame) );
 
@@ -562,8 +562,11 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
 
     /* using frame->progressive_frame may help displaying still menus.
      * however, it is known that some rare material set it wrong.
+     * 
+     * we assume that repeat_first_field is progressive (it doesn't make
+     * much sense to display interlaced fields out of order)
      */
-    if( progressive || 
+    if( progressive || frame->repeat_first_field ||
         (this->use_progressive_frame_flag && frame->progressive_frame) ) {
 
       pthread_mutex_unlock (&this->lock);
@@ -576,8 +579,13 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       int fields[2];
 
       if( this->framerate_mode == FRAMERATE_FULL ) {
-        fields[0] = 0;
-        fields[1] = 1;
+        if ( frame->top_field_first ) {
+          fields[0] = 0;
+          fields[1] = 1;
+        } else {
+          fields[0] = 1;
+          fields[1] = 0;
+        }
       } else if ( this->framerate_mode == FRAMERATE_HALF_TFF ) {
         fields[0] = 0;
       } else if ( this->framerate_mode == FRAMERATE_HALF_BFF ) {
