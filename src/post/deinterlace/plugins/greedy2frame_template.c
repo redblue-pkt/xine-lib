@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: greedy2frame_template.c,v 1.2 2004/01/02 20:47:03 miguelfreitas Exp $
+// $Id: greedy2frame_template.c,v 1.3 2004/01/02 20:53:43 miguelfreitas Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 // port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,9 @@
 // CVS Log
 //
 // $Log: greedy2frame_template.c,v $
+// Revision 1.3  2004/01/02 20:53:43  miguelfreitas
+// better MANGLE from ffmpeg
+//
 // Revision 1.2  2004/01/02 20:47:03  miguelfreitas
 // my small contribution to the cygwin port ;-)
 //
@@ -72,11 +75,12 @@
 #endif
 
 #if !defined(MANGLE)
-  #if defined(__CYGWIN__)
-  #define MANGLE(a) "_" #a
-  #else
-  #define MANGLE(a) #a
-  #endif
+#    if defined(__MINGW32__) || defined(__CYGWIN__) || \
+        defined(__OS2__) || (defined (__OpenBSD__) && !defined(__ELF__))
+#        define MANGLE(a) "_" #a
+#    else
+#        define MANGLE(a) #a
+#    endif
 #endif
 
 #if defined(IS_SSE)
