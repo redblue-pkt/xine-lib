@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.32 2002/12/23 23:03:00 tmmm Exp $
+ * $Id: demux_fli.c,v 1.33 2002/12/28 19:00:30 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -131,6 +131,11 @@ static int open_fli_file(demux_fli_t *this) {
      */
      this->frame_pts_inc = this->speed * 90;
   }
+
+  /* sanity check: the FLI file must have non-zero values for width, height,
+   * and frame count */
+  if ((!this->width) || (!this->height) || (!this->frame_count))
+    return 0;
 
   return 1;
 }
