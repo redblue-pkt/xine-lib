@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.54 2002/08/18 22:44:50 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.55 2002/08/24 19:10:34 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -122,8 +122,8 @@ static int mpg123_head_check(unsigned long head) {
   return 1;
 }
 
-static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
-{
+static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead) {
+
   int lsf, mpeg25;
   int lay, bitrate_index;
   char * ver;
@@ -163,8 +163,8 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
   this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1000 / 8));
 }
 
-static void check_newpts( demux_mpgaudio_t *this, int64_t pts )
-{
+static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
+
   int64_t diff;
 
   diff = pts - this->last_pts;
@@ -197,21 +197,21 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
     return 0;
   }
 
-  if( this->stream_length == 0 )
-  {
+  if (this->bitrate == 0) {
     int i;
-    for( i = 0; i < buf->size-4; i++ )
-    {
+    for( i = 0; i < buf->size-4; i++ ) {
       head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
              (buf->mem[i+2] << 8) + buf->mem[i+3];
 
-      if (mpg123_head_check(head))
-      {
+      if (mpg123_head_check(head)) {
          mpg123_decode_header(this,head);
          break;
       }
     }
-  } else {
+  } 
+
+
+  if (this->bitrate) {
     pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
     check_newpts(this, pts);
   }
@@ -223,7 +223,7 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
     if (len>0)
       buf->input_time = buf->input_pos * this->stream_length / len;
     else 
-      buf->input_time = 0;
+      buf->input_time = pts / 90000;
   }
   buf->pts             = pts;
   buf->type            = BUF_AUDIO_MPEG;
@@ -363,6 +363,7 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
     this->audio_fifo  = audio_fifo;
   
     this->stream_length = 0;
+    this->bitrate       = 0;
     this->last_pts      = 0;
 
     if( !audio_fifo ) {
@@ -558,11 +559,10 @@ static void demux_mpgaudio_close (demux_plugin_t *this) {
 static int demux_mpgaudio_get_stream_length (demux_plugin_t *this_gen) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  if( this->stream_length > 0 ) {
+  if (this->stream_length > 0) {
     return this->stream_length;
-  }
-  else
-  return 0;
+  } else
+    return 0;
 }
 
 
