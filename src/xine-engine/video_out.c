@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.10 2001/05/27 23:48:12 guenter Exp $
+ * $Id: video_out.c,v 1.11 2001/05/28 01:28:11 f1rmb Exp $
  *
  */
 
@@ -115,12 +115,6 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   return img;
 }
 
-static void video_timer_handler (int hubba) {
-
-  signal (SIGALRM, video_timer_handler);
-
-}
-
 static void vo_set_timer (uint32_t video_step) {
   struct itimerval tval;
 
@@ -143,17 +137,21 @@ static void *video_out_loop (void *this_gen) {
   vo_frame_t *img;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
-  
+  sigset_t           vo_mask;
+  int                dummysignum;
+
   /* printf ("%d video_out start\n", getpid());  */
 
-  signal (SIGALRM, video_timer_handler);
+  sigemptyset(&vo_mask);
+  sigaddset(&vo_mask, SIGALRM);
+  pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
 
   video_step = this->metronom->get_video_rate (this->metronom);
   vo_set_timer (video_step);
 
   while (this->video_loop_running) {
 
-    pause (); /* wait for next timer tick */
+    sigwait(&vo_mask, &dummysignum); /* wait for next timer tick */
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/05/27 23:48:12 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/05/28 01:28:11 f1rmb Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -105,8 +105,8 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t     *current = buf->content;
   uint8_t     *end = buf->content + buf->size;
   ac3_frame_t *ac3_frame;
-  int          sampling_rate;
-  int          output_mode;
+/*    int          sampling_rate; */
+  int          output_mode = AO_CAP_MODE_STEREO;
 
   uint8_t byte;
   
@@ -215,13 +215,13 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	this->output_open = (this->audio_out->open (this->audio_out, 16, 
 						    ac3_sampling_rate(this->frame_buffer),
 						    AO_CAP_MODE_AC3) == 1);
-	this->output_mode - AO_CAP_MODE_AC3;
+	this->output_mode = AO_CAP_MODE_AC3;
       }
 
 
       if (this->output_open) {
 	this->audio_out->write_audio_data (this->audio_out,
-					   this->frame_buffer,
+					   (int16_t*)this->frame_buffer,
 					   this->frame_length,
 					   this->pts);
 	this->pts = 0;

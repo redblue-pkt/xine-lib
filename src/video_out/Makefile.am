@@ -36,7 +36,7 @@ noinst_HEADERS = yuv2rgb.h video_out_syncfb.h
 include_HEADERS = video_out_x11.h
 
 debug:
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.6 2001/05/24 23:15:40 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.7 2001/05/28 01:28:10 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -71,15 +71,13 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this) {
     return 0;
   }
 
-  buf->content   = buf->mem;
   buf->DTS       = 0;
   buf->PTS       = 0;
-  buf->size      = this->input->read(this->input, buf->mem, this->blocksize);
   buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
   buf->type      = BUF_VIDEO_MPEG;
 
   this->video_fifo->put(this->video_fifo, buf);
-
+  
   return (buf->size == this->blocksize);
 }
 
@@ -159,6 +157,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
+
   buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->audio_fifo->put (this->audio_fifo, buf);
