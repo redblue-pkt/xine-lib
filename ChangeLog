@@ -34,6 +34,7 @@ xine-lib (1-rc4)
   * work around freezing with arts on BSD
   * documentation about xine fonts
   * make the protocol in MMS configurable - TCP, HTTP or autoprobe
+  * added video output plugin for Sun PGX32 framebuffers
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

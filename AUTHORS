@@ -54,9 +54,9 @@ Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
   IRIX port, video out interface, opengl video output
 
 Robin KAY <komadori [at] gekkou [dot] co [dot] uk>
-  pgx64 video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
-  decoder, Solaris port improvements and bugfixes, various video_out,
-  misc bugfixes
+  pgx64 and pgx32 video output plugins, WVE demuxer, MNG demuxer, EA ADPCM
+  decoder, Solaris port improvements and bugfixes, various video_out, misc
+  bugfixes
 
 Stephen Torri <storri@users.sourceforge.net>
   Automake, autoconf, libtool development, and build fixes,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.51 2004/02/16 23:17:07 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.52 2004/02/17 19:44:02 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -144,7 +144,7 @@ typedef struct {
   vo_frame_t vo_frame;
 
   int lengths[3], stripe_lengths[3], stripe_offsets[3], buffers[3];
-  int width, height, pitch, format, native_format, planes;
+  int width, height, format, pitch, native_format, planes;
   double ratio;
   uint8_t *buffer_ptrs[3];
 } pgx64_frame_t;
@@ -183,7 +183,7 @@ typedef struct {
 #define BUF_MODE_DOUBLE    3
 
 /*
- * Dispose of any free_mark key data within a pgx64_frame_t
+ * Dispose of any allocated image data within a pgx64_frame_t
  */
 
 static void dispose_frame_internals(pgx64_frame_t *frame)
@@ -227,7 +227,7 @@ static void repaint_output_area(pgx64_driver_t *this)
 
   XLockDisplay(this->display);
   XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-  for (i=0; i<4; i++) {
+  for (i=0;i<4;i++) {
     XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.border[i].x, this->vo_scale.border[i].y, this->vo_scale.border[i].w, this->vo_scale.border[i].h);
   }
 
@@ -247,13 +247,13 @@ static void repaint_output_area(pgx64_driver_t *this)
  * Reset video memory allocator and release detained frames
  */
 
-static void vbase_reset(pgx64_driver_t* this)
+static void vbase_reset(pgx64_driver_t * this)
 {
   int i;
 
   this->free_mark = this->free_top;
 
-  for (i=0; i<this->detained_frames; i++) {
+  for (i=0;i<this->detained_frames;i++) {
     this->detained[i]->vo_frame.free(&this->detained[i]->vo_frame);
   }
   this->detained_frames = 0;
@@ -263,7 +263,7 @@ static void vbase_reset(pgx64_driver_t* this)
  * Allocate a portion of video memory
  */
 
-static int vbase_alloc(pgx64_driver_t* this, int size)
+static int vbase_alloc(pgx64_driver_t * this, int size)
 {
   if (this->free_mark - size < this->free_bottom) {
     return -1;
@@ -285,7 +285,7 @@ static void pgx64_frame_proc_frame(vo_frame_t *frame_gen)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0; i<frame->planes; i++) {
+  for (i=0;i<frame->planes;i++) {
     memcpy(frame->buffer_ptrs[i], frame->vo_frame.base[i], frame->lengths[i]);
   }
 }
@@ -297,7 +297,7 @@ static void pgx64_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
 
   frame->vo_frame.proc_called = 1;
 
-  for (i=0; i<frame->planes; i++) {
+  for (i=0;i<frame->planes;i++) {
     len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
     memcpy(frame->buffer_ptrs[i]+frame->stripe_offsets[i], src[i], len);
     frame->stripe_offsets[i] += len;
@@ -325,7 +325,7 @@ static uint32_t pgx64_get_capabilities(vo_driver_t *this_gen)
          VO_CAP_YUY2;
 }
 
-static vo_frame_t* pgx64_alloc_frame(vo_driver_t *this_gen)
+static vo_frame_t *pgx64_alloc_frame(vo_driver_t *this_gen)
 {
   /*pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;*/
   pgx64_frame_t *frame;
@@ -364,8 +364,8 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
     frame->format = format;
     frame->pitch = ((width + 7) / 8) * 8;
 
-    frame->vo_frame.proc_frame = NULL; 
-    frame->vo_frame.proc_slice = NULL; 
+    frame->vo_frame.proc_frame = NULL;
+    frame->vo_frame.proc_slice = NULL;
 
     switch (format) {
       case XINE_IMGFMT_YUY2:
@@ -395,7 +395,7 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
       break;
     }
 
-    for (i=0; i<frame->planes; i++) {
+    for (i=0;i<frame->planes;i++) {
       if (!frame->vo_frame.base[i]) {
         xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: frame plane malloc failed\n");
         abort();
@@ -455,7 +455,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     vregs[OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
 
     vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
-    vregs[SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch*2 : frame->pitch);
+    vregs[SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch *2 : frame->pitch);
     vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
     vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width - 1) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
     vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
@@ -479,7 +479,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     int i;
 
     if (frame->vo_frame.proc_slice != pgx64_frame_proc_slice) {
-      for (i=0; i<frame->planes; i++) {
+      for (i=0;i<frame->planes;i++) {
         if ((frame->buffers[i] = vbase_alloc(this, frame->lengths[i])) < 0) {
           if (this->detained_frames < MAX_DETAINED_FRAMES) {
             this->detained[this->detained_frames++] = frame;
@@ -502,7 +502,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       frame->vo_frame.proc_slice = pgx64_frame_proc_slice;
     }
 
-    for (i=0; i<frame->planes; i++) {
+    for (i=0;i<frame->planes;i++) {
       vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(frame->buffers[i]);
     }
   }
@@ -511,7 +511,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     int i, j;
 
     if (this->buf_mode == BUF_MODE_NOT_MULTI) {
-      for (i=0; i<frame->planes; i++) {
+      for (i=0;i<frame->planes;i++) {
         if ((this->buffers[0][i] = vbase_alloc(this, frame->lengths[i])) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: insuffucient video memory\n"));
           return;
@@ -522,7 +522,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       this->buf_mode = BUF_MODE_DOUBLE;
-      for (i=0; i<frame->planes; i++) {
+      for (i=0;i<frame->planes;i++) {
         if ((this->buffers[1][i] = vbase_alloc(this, frame->lengths[i])) < 0) {
            this->buf_mode = BUF_MODE_SINGLE;
         }
@@ -533,20 +533,20 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
       if (this->buf_mode == BUF_MODE_SINGLE) {
         xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, double-buffering disabled\n"));
-        for (i=0; i<frame->planes; i++) {
+        for (i=0;i<frame->planes;i++) {
           this->buffers[1][i] = this->buffers[0][i];
           this->buffer_ptrs[1][i] = this->vbase + this->buffers[1][i];
         }
       }
 
-      for (i=0; i<2; i++) {
-        for (j=0; j<frame->planes; j++) {
+      for (i=0;i<2;i++) {
+        for (j=0;j<frame->planes;j++) {
           vregs[scaler_regs_table[i][j]] = le2me_32(this->buffers[i][j]);
         }
       }
     }
 
-    for (i=0; i<frame->planes; i++) {
+    for (i=0;i<frame->planes;i++) {
       memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
     }
 
@@ -625,7 +625,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
 
   XLockDisplay(this->display);
   ovl->p = XCreatePixmap(this->display, this->drawable, ovl->width, ovl->height, this->depth);
-  for (i=0, x=0, y=0; i<overlay->num_rle; i++) {
+  for (i=0, x=0, y=0;i<overlay->num_rle;i++) {
     len = overlay->rle[i].len;
 
      while (len > 0) {
@@ -667,7 +667,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
           src_trans = (uint8_t *)&overlay->trans;
         }
 
-        for (j=max_palette_colour[use_clip_palette]+1; j<=overlay->rle[i].color; j++) {
+        for (j=max_palette_colour[use_clip_palette]+1;j<=overlay->rle[i].color;j++) {
           if (src_trans[j]) {
             XColor col;
             int y, u, v, r, g, b;
@@ -719,8 +719,8 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
   XUnlockDisplay(this->display);
 
   ovl_ptr = &this->first_overlay;
-  while (*ovl_ptr != NULL) {
-    ovl_ptr = &(*ovl_ptr)->next;
+  while ( *ovl_ptr != NULL) {
+    ovl_ptr = &( *ovl_ptr)->next;
   }
   *ovl_ptr = ovl;
 }
@@ -826,7 +826,7 @@ static int pgx64_set_property(vo_driver_t *this_gen, int property, int value)
       }
       this->vo_scale.user_ratio = value;
       this->vo_scale.force_redraw = 1;
-      _x_vo_scale_compute_ideal_size(&this->vo_scale);     
+      _x_vo_scale_compute_ideal_size(&this->vo_scale);
     }
     break;
 
@@ -1000,14 +1000,14 @@ static vo_info_t vo_info_pgx64 = {
   XINE_VISUAL_TYPE_X11
 };
 
-static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const void *visual_gen)
+static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const void *visual_gen)
 {
   pgx64_driver_class_t *class = (pgx64_driver_class_t *)(void *)class_gen;
   char *devname;
   int fbfd;
+  struct fbgattr attr;
   uint8_t *vbase;
   pgx64_driver_t *this;
-  struct fbgattr attr;
   XWindowAttributes win_attrs;
 
   pthread_mutex_lock(&class->mutex);
@@ -1042,7 +1042,7 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
     return NULL;
   }
 
-  this = (pgx64_driver_t*)xine_xmalloc(sizeof(pgx64_driver_t));
+  this = (pgx64_driver_t *)xine_xmalloc(sizeof(pgx64_driver_t));
   if (!this) {
     return NULL;
   }
@@ -1063,9 +1063,9 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   _x_vo_scale_init(&this->vo_scale, 0, 0, class->config);
   this->vo_scale.user_ratio      = XINE_VO_ASPECT_AUTO;
-  this->vo_scale.user_data       = ((x11_visual_t*)visual_gen)->user_data;
-  this->vo_scale.frame_output_cb = ((x11_visual_t*)visual_gen)->frame_output_cb;
-  this->vo_scale.dest_size_cb    = ((x11_visual_t*)visual_gen)->dest_size_cb;
+  this->vo_scale.user_data       = ((x11_visual_t *)visual_gen)->user_data;
+  this->vo_scale.frame_output_cb = ((x11_visual_t *)visual_gen)->frame_output_cb;
+  this->vo_scale.dest_size_cb    = ((x11_visual_t *)visual_gen)->dest_size_cb;
 
   this->class = class;
 
@@ -1077,9 +1077,9 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
   this->vbase       = vbase;
 
-  this->display  = ((x11_visual_t*)visual_gen)->display;
-  this->screen   = ((x11_visual_t*)visual_gen)->screen;
-  this->drawable = ((x11_visual_t*)visual_gen)->d;
+  this->display  = ((x11_visual_t *)visual_gen)->display;
+  this->screen   = ((x11_visual_t *)visual_gen)->screen;
+  this->drawable = ((x11_visual_t *)visual_gen)->d;
   this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
 
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
@@ -1091,7 +1091,7 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, pgx64_config_changed, this);
   this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, pgx64_config_changed, this);
   this->saturation  = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, pgx64_config_changed, this);
-  this->ovl_mode    = class->config->register_enum(this->class->config, "video.pgx64_overlay_mode", 0, (char**)overlay_modes, "video overlay mode", NULL, 10, pgx64_config_changed, this);
+  this->ovl_mode    = class->config->register_enum(this->class->config, "video.pgx64_overlay_mode", 0, (char **)overlay_modes, "video overlay mode", NULL, 10, pgx64_config_changed, this);
   this->multibuf_en = class->config->register_bool(this->class->config, "video.pgx64_multibuf_en", 1, "enable multi-buffering", NULL, 10, pgx64_config_changed, this);
 
   pthread_mutex_init(&this->ovl_mutex, NULL);
@@ -1099,21 +1099,21 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   return (vo_driver_t *)this;
 }
 
-static char* pgx64_get_identifier(video_driver_class_t *class_gen)
+static char *pgx64_get_identifier(video_driver_class_t *class_gen)
 {
   return "pgx64";
 }
 
-static char* pgx64_get_description(video_driver_class_t *class_gen)
+static char *pgx64_get_description(video_driver_class_t *class_gen)
 {
   return "xine video output plugin for Sun PGX64/PGX24 framebuffers";
 }
 
-static void* pgx64_init_class(xine_t *xine, void *visual_gen)
+static void *pgx64_init_class(xine_t *xine, void *visual_gen)
 {
   pgx64_driver_class_t *class;
 
-  class = (pgx64_driver_class_t*)xine_xmalloc(sizeof(pgx64_driver_class_t));
+  class = (pgx64_driver_class_t *)xine_xmalloc(sizeof(pgx64_driver_class_t));
   if (!class) {
     return NULL;
   }

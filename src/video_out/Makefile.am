@@ -32,6 +32,7 @@ syncfb_module = xineplug_vo_out_syncfb.la
 endif
 if HAVE_SUNFB
 pgx64_module = xineplug_vo_out_pgx64.la
+pgx32_module = xineplug_vo_out_pgx32.la
 endif
 endif
 
@@ -71,7 +72,7 @@ endif
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(opengl_module) \
                   $(syncfb_module) \
-                  $(pgx64_module)\
+                  $(pgx64_module) $(pgx32_module)\
 	          $(vidix_module) \
 	          $(aa_module) \
 	          $(fb_module) $(directfb_module) \
@@ -106,6 +107,10 @@ xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS
 xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
 xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_vo_out_pgx32_la_SOURCES = alphablend.c video_out_pgx32.c
+xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS)
+xineplug_vo_out_pgx32_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c $(X11OSD)
 xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
