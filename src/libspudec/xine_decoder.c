@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.109 2004/08/19 10:35:32 mroi Exp $
+ * $Id: xine_decoder.c,v 1.110 2004/12/20 21:22:20 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -50,7 +50,7 @@
 #define LOG_BUTTON 1
 */
 
-static clut_t __default_clut[] = {
+static clut_t default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
   CLUT_Y_CR_CB_INIT(0xbf, 0x80, 0x80),
   CLUT_Y_CR_CB_INIT(0x10, 0x80, 0x80),
@@ -341,7 +341,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   }
 
 /* FIXME:Do we really need a default clut? */
-  xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
+  xine_fast_memcpy(this->state.clut, default_clut, sizeof(this->state.clut));
   this->state.need_clut = 1;
   this->state.vobsub = 0;
 

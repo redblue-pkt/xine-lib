@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.149 2004/12/12 22:01:01 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.150 2004/12/20 21:22:18 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -133,7 +133,7 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
 }
 
 /* Stolen from alsa-lib */
-static int __snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
+static int snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
   struct pollfd  spfds[16];
   struct pollfd *pfds = spfds;
   int            err, count;
@@ -170,7 +170,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
   this->mixer.running = 1;
   do {
 
-    if(__snd_mixer_wait(this->mixer.handle, 333) > 0) {
+    if(snd_mixer_wait(this->mixer.handle, 333) > 0) {
       int err, mute = 0, swl = 0, swr = 0;
       long right_vol, left_vol;
       int old_mute;
@@ -404,7 +404,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 	     _("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n"),
 	     snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* set interleaved access */
   if (this->mmap != 0) {
@@ -429,7 +429,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: access type not available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* set the sample format ([SU]{8,16,24,FLOAT}) */
   /* ALSA automatically appends _LE or _BE depending on the CPU */
@@ -460,7 +460,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* set the number of channels */
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
@@ -468,7 +468,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n", 
 	     this->num_channels, err, snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* set the stream rate [Hz] */
   dir=0;
@@ -476,7 +476,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: rate not available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   this->output_sample_rate = (uint32_t)rate;
   if (this->input_sample_rate != this->output_sample_rate) {
@@ -514,7 +514,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: unable to set any periods: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
@@ -522,7 +522,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
 #endif
 #if 1
@@ -532,7 +532,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: period time not available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
 #endif
   dir=0;
@@ -543,7 +543,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
 #ifdef ALSA_LOG_BUFFERS
@@ -553,7 +553,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (2*period_size > this->buffer_size) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: buffer to small, could not use\n");
-    goto __close;
+    goto close;
   }
   
   /* write the parameters to device */
@@ -561,7 +561,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* Check for pause/resume support */
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
@@ -578,28 +578,28 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* align all transfers to 1 sample */
   err = snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 1);
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* allow the transfer when at least period_size samples can be processed */
   err = snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, period_size);
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
   /* start the transfer when the buffer contains at least period_size samples */
   err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
 
   /* never stop the transfer, even on xruns */
@@ -607,7 +607,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
 
   /* Install swparams into current parameters */
@@ -615,7 +615,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
-    goto __close;
+    goto close;
   }
 #ifdef ALSA_LOG
   snd_pcm_dump_setup(this->audio_fd, jcd_out); 
@@ -624,7 +624,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   
   return this->output_sample_rate;
 
-__close:
+close:
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
   return 0;
@@ -889,17 +889,17 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
 						    &this->mixer.left_vol)) < 0) {
 	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-	goto __done;
+	goto done;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
 	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
-	goto __done;
+	goto done;
       }
       
-    __done:
+    done:
       vol = (((ao_alsa_get_percent_from_volume(this->mixer.left_vol, this->mixer.min, this->mixer.max)) +
 	      (ao_alsa_get_percent_from_volume(this->mixer.right_vol, this->mixer.min, this->mixer.max))) /2);
       pthread_mutex_unlock(&this->mixer.mutex);
@@ -1154,7 +1154,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     return;
   }
   
- __again:
+ again:
 
   found = 0;
   mixer_n_selems = 0;
@@ -1218,12 +1218,12 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
       found++;
 
-      goto __mixer_found;
+      goto mixer_found;
     }
   }
   
   if(loop)
-    goto __mixer_found; /* Yes, untrue but... ;-) */
+    goto mixer_found; /* Yes, untrue but... ;-) */
   
   if(!strcmp(this->mixer.name, "PCM")) {
     config->update_string(config, "audio.device.alsa_mixer_name", "Master");
@@ -1235,9 +1235,9 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   
   this->mixer.name = config->lookup_entry(config, "audio.device.alsa_mixer_name")->str_value;
   
-  goto __again;
+  goto again;
 
- __mixer_found:
+ mixer_found:
   
   /* 
    * Ugly: yes[*]  no[ ]

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.21 2004/05/29 14:45:25 mroi Exp $
+ * $Id: post.h,v 1.22 2004/12/20 21:22:21 mroi Exp $
  *
  * post plugin definitions
  *
@@ -375,19 +375,19 @@ do {                                                               \
 /* macros to create parameter descriptors */ 
 
 #define START_PARAM_DESCR( param_t ) \
-static param_t __temp_s; \
-static xine_post_api_parameter_t __temp_p[] = {
+static param_t temp_s; \
+static xine_post_api_parameter_t temp_p[] = {
 
 #define PARAM_ITEM( param_type, var, enumv, min, max, readonly, descr ) \
-{ param_type, #var, sizeof(__temp_s.var), \
-  (char *)&__temp_s.var-(char *)&__temp_s, enumv, min, max, readonly, descr },
+{ param_type, #var, sizeof(temp_s.var), \
+  (char *)&temp_s.var-(char *)&temp_s, enumv, min, max, readonly, descr },
 
 #define END_PARAM_DESCR( name ) \
   { POST_PARAM_TYPE_LAST, NULL, 0, 0, NULL, 0, 0, 1, NULL } \
 }; \
 static xine_post_api_descr_t name = { \
-  sizeof( __temp_s ), \
-  __temp_p \
+  sizeof( temp_s ), \
+  temp_p \
 };
 
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.97 2004/12/12 22:01:06 mroi Exp $
+ * $Id: input_file.c,v 1.98 2004/12/20 21:22:20 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -551,7 +551,7 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
   }
 
   /* Store new origin path */
- __try_again_from_home:
+ try_again_from_home:
   
   this->config->update_string(this->config, "media.files.origin_path", current_dir);
 
@@ -569,7 +569,7 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
       /* Try one more time with user homedir */
       snprintf(current_dir, XINE_PATH_MAX, "%s", xine_get_homedir());
       already_tried++;
-      goto __try_again_from_home;
+      goto try_again_from_home;
     }
 
     return NULL;

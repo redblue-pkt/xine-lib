@@ -133,7 +133,7 @@ __asm__ __volatile__(\
 }
 
 /* linux kernel __memcpy (from: /include/asm/string.h) */
-static __inline__ void * __memcpy (
+static __inline__ void * linux_kernel_memcpy_impl (
 			       void * to,
 			       const void * from,
 			       size_t n)
@@ -253,7 +253,7 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
   /*
    *	Now do the tail of the block
    */
-  if(len) __memcpy(to, from, len);
+  if(len) linux_kernel_memcpy_impl(to, from, len);
   return retval;
 }
 
@@ -304,7 +304,7 @@ static void * mmx_memcpy(void * to, const void * from, size_t len)
   /*
    *	Now do the tail of the block
    */
-  if(len) __memcpy(to, from, len);
+  if(len) linux_kernel_memcpy_impl(to, from, len);
   return retval;
 }
 
@@ -374,12 +374,12 @@ static void * mmx2_memcpy(void * to, const void * from, size_t len)
   /*
    *	Now do the tail of the block
    */
-  if(len) __memcpy(to, from, len);
+  if(len) linux_kernel_memcpy_impl(to, from, len);
   return retval;
 }
 
 static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
-  return __memcpy(to,from,len);
+  return linux_kernel_memcpy_impl(to,from,len);
 }
 #endif /* _MSC_VER */
 #endif /* ARCH_X86 */

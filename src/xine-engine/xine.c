@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.305 2004/12/16 13:59:06 mroi Exp $
+ * $Id: xine.c,v 1.306 2004/12/20 21:22:21 mroi Exp $
  */
 
 /*
@@ -236,7 +236,7 @@ static xine_ticket_t *ticket_init(void) {
   return port_ticket;
 }
 
-static void __set_speed_internal (xine_stream_t *stream, int speed) {
+static void set_speed_internal (xine_stream_t *stream, int speed) {
   xine_t *xine = stream->xine;
 
   if (xine->clock->speed != XINE_SPEED_PAUSE && speed == XINE_SPEED_PAUSE)
@@ -269,7 +269,7 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
 
 
 /* stream->ignore_speed_change must be set, when entering this function */
-static void __stop_internal (xine_stream_t *stream) {
+static void stop_internal (xine_stream_t *stream) {
 
   lprintf ("status before = %d\n", stream->status);
 
@@ -280,7 +280,7 @@ static void __stop_internal (xine_stream_t *stream) {
   }
 
   /* make sure we're not in "paused" state */
-  __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
+  set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
   if (stream->status != XINE_STATUS_QUIT)
@@ -310,7 +310,7 @@ void xine_stop (xine_stream_t *stream) {
   if (stream->video_out)
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
 
-  __stop_internal (stream);
+  stop_internal (stream);
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_STOP))
     xine_stop(stream->slave);
@@ -327,7 +327,7 @@ void xine_stop (xine_stream_t *stream) {
 }
 
 
-static void __close_internal (xine_stream_t *stream) {
+static void close_internal (xine_stream_t *stream) {
 
   int i ;
 
@@ -348,7 +348,7 @@ static void __close_internal (xine_stream_t *stream) {
   if (stream->video_out)
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
 
-  __stop_internal( stream );
+  stop_internal( stream );
   
   if (stream->video_out)
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);  
@@ -389,12 +389,12 @@ void xine_close (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  __close_internal (stream);
+  close_internal (stream);
 
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
-static int __stream_rewire_audio(xine_post_out_t *output, void *data)
+static int stream_rewire_audio(xine_post_out_t *output, void *data)
 {
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_audio_port_t *new_port = (xine_audio_port_t *)data;
@@ -418,7 +418,7 @@ static int __stream_rewire_audio(xine_post_out_t *output, void *data)
   return 1;
 }
 
-static int __stream_rewire_video(xine_post_out_t *output, void *data)
+static int stream_rewire_video(xine_post_out_t *output, void *data)
 {
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_video_port_t *new_port = (xine_video_port_t *)data;
@@ -442,7 +442,7 @@ static int __stream_rewire_video(xine_post_out_t *output, void *data)
   return 1;
 }
 
-void __xine_dispose_internal (xine_stream_t *stream);
+void xine_dispose_internal (xine_stream_t *stream);
 
 xine_stream_t *xine_stream_new (xine_t *this,
 				xine_audio_port_t *ao, xine_video_port_t *vo) {
@@ -562,7 +562,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   /*
    * create a reference counter
    */
-  stream->refcounter = _x_new_refcounter(stream, (refcounter_destructor)__xine_dispose_internal);
+  stream->refcounter = _x_new_refcounter(stream, (refcounter_destructor)xine_dispose_internal);
   
   /*
    * register stream
@@ -575,17 +575,17 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->video_source.name   = "video source";
   stream->video_source.type   = XINE_POST_DATA_VIDEO;
   stream->video_source.data   = stream;
-  stream->video_source.rewire = __stream_rewire_video;
+  stream->video_source.rewire = stream_rewire_video;
   
   stream->audio_source.name   = "audio source";
   stream->audio_source.type   = XINE_POST_DATA_AUDIO;
   stream->audio_source.data   = stream;
-  stream->audio_source.rewire = __stream_rewire_audio;
+  stream->audio_source.rewire = stream_rewire_audio;
   
   return stream;
 }
 
-static void __mrl_unescape(char *mrl) {
+static void mrl_unescape(char *mrl) {
   int i, len = strlen(mrl);
 
   for (i = 0; i < len; i++) {
@@ -625,7 +625,7 @@ void _x_flush_events_queues (xine_stream_t *stream) {
   pthread_mutex_unlock (&stream->event_queues_lock);
 }
 
-static int __open_internal (xine_stream_t *stream, const char *mrl) {
+static int open_internal (xine_stream_t *stream, const char *mrl) {
 
   const char *stream_setup;
   int no_cache = 0;
@@ -643,7 +643,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
    * stop engine if necessary
    */
 
-  __close_internal (stream);
+  close_internal (stream);
 
   lprintf ("engine should be stopped now\n");
 
@@ -714,7 +714,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(demux_name, tmp, strlen(tmp));
 	    demux_name[strlen(tmp)] = '\0';
 	  }
-	  __mrl_unescape(demux_name);
+	  mrl_unescape(demux_name);
 	  if (!(stream->demux_plugin = _x_find_demux_plugin_by_name(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG, _("xine: specified demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
@@ -786,7 +786,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(demux_name, tmp, strlen(tmp));
 	    demux_name[strlen(tmp)] = '\0';
 	  }
-	  __mrl_unescape(demux_name);
+	  mrl_unescape(demux_name);
 	  if (!(stream->demux_plugin = _x_find_demux_plugin_last_probe(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG, _("xine: last_probed demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
@@ -873,7 +873,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(volume, tmp, strlen(tmp));
 	    volume[strlen(tmp)] = '\0';
 	  }
-	  __mrl_unescape(volume);
+	  mrl_unescape(volume);
 	  xine_set_param(stream, XINE_PARAM_AUDIO_VOLUME, atoi(volume));
 	  free(volume);
 	} else {
@@ -898,7 +898,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(compression, tmp, strlen(tmp));
 	    compression[strlen(tmp)] = '\0';
 	  }
-	  __mrl_unescape(compression);
+	  mrl_unescape(compression);
 	  xine_set_param(stream, XINE_PARAM_AUDIO_COMPR_LEVEL, atoi(compression));
 	  free(compression);
 	} else {
@@ -923,7 +923,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(subtitle_mrl, tmp, strlen(tmp));
 	    subtitle_mrl[strlen(tmp)] = '\0';
 	  }
-	  __mrl_unescape(subtitle_mrl);
+	  mrl_unescape(subtitle_mrl);
 	  stream->slave = xine_stream_new (stream->xine, NULL, stream->video_out );
 	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY | XINE_MASTER_SLAVE_STOP;
 	  if( xine_open( stream->slave, subtitle_mrl ) ) {
@@ -958,7 +958,7 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	  memcpy(config_entry, tmp, strlen(tmp));
 	  config_entry[strlen(tmp)] = '\0';
 	}
-	__mrl_unescape(config_entry);
+	mrl_unescape(config_entry);
 	retval = _x_config_change_opt(stream->xine->config, config_entry);
 	if (retval <= 0) {
 	  if (retval == 0) {
@@ -1057,14 +1057,14 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 
   lprintf ("open MRL:%s\n", mrl);
 
-  ret = __open_internal (stream, mrl);
+  ret = open_internal (stream, mrl);
 
   pthread_mutex_unlock (&stream->frontend_lock);
 
   return ret;
 }
 
-static void __wait_first_frame (xine_stream_t *stream) {
+static void wait_first_frame (xine_stream_t *stream) {
   if (stream->video_decoder_plugin) {
     pthread_mutex_lock (&stream->first_frame_lock);
     if (stream->first_frame_flag > 0) {
@@ -1079,7 +1079,7 @@ static void __wait_first_frame (xine_stream_t *stream) {
   }
 }
 
-static int __play_internal (xine_stream_t *stream, int start_pos, int start_time) {
+static int play_internal (xine_stream_t *stream, int start_pos, int start_time) {
 
   int        demux_status;
   int        demux_thread_running;
@@ -1098,7 +1098,7 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
 
   /* set normal speed */
   if (_x_get_speed(stream) != XINE_SPEED_NORMAL)
-    __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
+    set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
   
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
@@ -1120,7 +1120,7 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
    * the engine is not paused.
    */
   if (_x_get_speed(stream) != XINE_SPEED_NORMAL)
-    __set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
+    set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
   
   /*
    * start/seek demux
@@ -1174,9 +1174,9 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   /* Wait until the first frame produced is displayed
    * see video_out.c
    */
-  __wait_first_frame (stream);
+  wait_first_frame (stream);
   
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "__play_internal ...done\n");
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal ...done\n");
 
   return 1;
 }
@@ -1187,7 +1187,7 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  ret = __play_internal (stream, start_pos, start_time);
+  ret = play_internal (stream, start_pos, start_time);
   if( stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_PLAY) )
     xine_play (stream->slave, start_pos, start_time);
 
@@ -1218,7 +1218,7 @@ int xine_eject (xine_stream_t *stream) {
   return status;
 }
 
-void __xine_dispose_internal (xine_stream_t *stream) {
+void xine_dispose_internal (xine_stream_t *stream) {
 
   xine_stream_t *s;
 
@@ -1256,7 +1256,7 @@ void __xine_dispose_internal (xine_stream_t *stream) {
 
 void xine_dispose (xine_stream_t *stream) {
   /* decrease the reference counter
-   * if there is no more reference on this stream, the __xine_dispose_internal
+   * if there is no more reference on this stream, the xine_dispose_internal
    * function is called
    */
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_dispose\n");
@@ -1408,13 +1408,13 @@ int xine_engine_get_param(xine_t *this, int param) {
   return -1;
 }
 
-static void __config_demux_strategy_cb (void *this_gen, xine_cfg_entry_t *entry) {
+static void config_demux_strategy_cb (void *this_gen, xine_cfg_entry_t *entry) {
   xine_t *this = (xine_t *)this_gen;
 
   this->demux_strategy = entry->num_value;
 }
 
-static void __config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
+static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
   xine_t *this = (xine_t *)this_gen;
   char *homedir_trail_slash;
 
@@ -1476,7 +1476,7 @@ void xine_init (xine_t *this) {
 	"Detect by content only.\n\n"
 	"extension\n"
 	"Detect by file name extension only.\n"),
-      20, __config_demux_strategy_cb, this);
+      20, config_demux_strategy_cb, this);
 
   /*
    * save directory
@@ -1489,7 +1489,7 @@ void xine_init (xine_t *this) {
 	"This setting is security critical, because when changed to a different directory, xine "
 	"can be used to fill files in it with arbitrary content. So you should be careful that "
 	"the directory you specify is robust against any content in any file."),
-      XINE_CONFIG_SECURITY, __config_save_cb, this);
+      XINE_CONFIG_SECURITY, config_save_cb, this);
   
   /*
    * implicit configuration changes
@@ -1560,7 +1560,7 @@ void _x_select_spu_channel (xine_stream_t *stream, int channel) {
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
-static int __get_current_position (xine_stream_t *stream) {
+static int get_current_position (xine_stream_t *stream) {
 
   int pos;
 
@@ -1618,10 +1618,10 @@ void _x_set_fine_speed (xine_stream_t *stream, int speed) {
     speed = XINE_SPEED_PAUSE;
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
-  __set_speed_internal (stream, speed);
+  set_speed_internal (stream, speed);
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
-    __set_speed_internal (stream->slave, speed);
+    set_speed_internal (stream->slave, speed);
 }
 
 int _x_get_fine_speed (xine_stream_t *stream) {
@@ -1663,7 +1663,7 @@ int _x_get_speed (xine_stream_t *stream) {
  * time measurement / seek
  */
 
-static int __get_stream_length (xine_stream_t *stream) {
+static int get_stream_length (xine_stream_t *stream) {
 
   /* pthread_mutex_lock( &stream->demux_lock ); */
 
@@ -1682,7 +1682,7 @@ static int __get_stream_length (xine_stream_t *stream) {
 int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
 			 int *pos_time, int *length_time) {
 
-  int pos = __get_current_position (stream); /* force updating extra_info */
+  int pos = get_current_position (stream); /* force updating extra_info */
 
   if (pos == -1)
     return 0;
@@ -1695,7 +1695,7 @@ int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
     pthread_mutex_unlock( &stream->current_extra_info_lock );
   }
   if (length_time)
-    *length_time = __get_stream_length (stream);
+    *length_time = get_stream_length (stream);
 
   return 1;
 }

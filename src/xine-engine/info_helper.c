@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.13 2004/12/19 19:28:58 miguelfreitas Exp $ 
+ * $Id: info_helper.c,v 1.14 2004/12/20 21:22:21 mroi Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,7 @@
  * Compare stream_info, private and public values, 
  * return 1 if it's identical, otherwirse 0.
  */
-static int __stream_info_is_identical(xine_stream_t *stream, int info) {
+static int stream_info_is_identical(xine_stream_t *stream, int info) {
 
   if(stream->stream_info_public[info] == stream->stream_info[info])
     return 1;
@@ -56,7 +56,7 @@ static int __stream_info_is_identical(xine_stream_t *stream, int info) {
 /*
  * Check if 'info' is in bounds.
  */
-static int __info_valid(int info) {
+static int info_valid(int info) {
   if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
     return 1;
   else {
@@ -65,8 +65,8 @@ static int __info_valid(int info) {
   }
 }
 
-static void __stream_info_set_unlocked(xine_stream_t *stream, int info, int value) {
-  if(__info_valid(info))
+static void stream_info_set_unlocked(xine_stream_t *stream, int info, int value) {
+  if(info_valid(info))
     stream->stream_info[info] = value;
 }
 
@@ -75,7 +75,7 @@ static void __stream_info_set_unlocked(xine_stream_t *stream, int info, int valu
  */
 void _x_stream_info_reset(xine_stream_t *stream, int info) {
   pthread_mutex_lock(&stream->info_mutex);
-  __stream_info_set_unlocked(stream, info, 0);
+  stream_info_set_unlocked(stream, info, 0);
   pthread_mutex_unlock(&stream->info_mutex);
 }
 
@@ -84,7 +84,7 @@ void _x_stream_info_reset(xine_stream_t *stream, int info) {
  */
 void _x_stream_info_public_reset(xine_stream_t *stream, int info) {
   pthread_mutex_lock(&stream->info_mutex);
-  if(__info_valid(info))
+  if(info_valid(info))
     stream->stream_info_public[info] = 0;
   pthread_mutex_unlock(&stream->info_mutex);
 }
@@ -94,7 +94,7 @@ void _x_stream_info_public_reset(xine_stream_t *stream, int info) {
  */
 void _x_stream_info_set(xine_stream_t *stream, int info, int value) {
   pthread_mutex_lock(&stream->info_mutex);
-  __stream_info_set_unlocked(stream, info, value);
+  stream_info_set_unlocked(stream, info, value);
   pthread_mutex_unlock(&stream->info_mutex);
 }
 
@@ -119,7 +119,7 @@ uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info) {
 
   pthread_mutex_lock(&stream->info_mutex);
   stream_info = stream->stream_info_public[info];
-  if(__info_valid(info) && (!__stream_info_is_identical(stream, info)))
+  if(info_valid(info) && (!stream_info_is_identical(stream, info)))
     stream_info = stream->stream_info_public[info] = stream->stream_info[info];
   pthread_mutex_unlock(&stream->info_mutex);
   
@@ -132,7 +132,7 @@ uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info) {
  * Remove trailing separator chars (\n,\r,\t, space,...)
  * at the end of the string
  */
-static void __chomp(char *str) {
+static void meta_info_chomp(char *str) {
   int i, len;
 
   len = strlen(str);
@@ -150,7 +150,7 @@ static void __chomp(char *str) {
  * Compare stream_info, public and private values, 
  * return 1 if it's identical, otherwise 0.
  */
-static int __meta_info_is_identical(xine_stream_t *stream, int info) {
+static int meta_info_is_identical(xine_stream_t *stream, int info) {
   
   if((!(stream->meta_info_public[info] && stream->meta_info[info])) ||
      ((stream->meta_info_public[info] && stream->meta_info[info]) && 
@@ -163,7 +163,7 @@ static int __meta_info_is_identical(xine_stream_t *stream, int info) {
 /*
  * Check if 'info' is in bounds.
  */
-static int __meta_valid(int info) {
+static int meta_valid(int info) {
   if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
     return 1;
   else {
@@ -175,8 +175,8 @@ static int __meta_valid(int info) {
 /*
  * Set private meta info to utf-8 string value (can be NULL).
  */
-static void __meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const char *value) {
-  if(__meta_valid(info)) {
+static void meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const char *value) {
+  if(meta_valid(info)) {
     
     if(stream->meta_info[info])
       free(stream->meta_info[info]);
@@ -184,7 +184,7 @@ static void __meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const
     stream->meta_info[info] = (value) ? strdup(value) : NULL;
 
     if(stream->meta_info[info] && strlen(stream->meta_info[info]))
-      __chomp(stream->meta_info[info]);
+      meta_info_chomp(stream->meta_info[info]);
   }
 }
 
@@ -192,7 +192,7 @@ static void __meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const
  * Set private meta info to value (can be NULL) with a given encoding.
  * if encoding is NULL assume locale.
  */
-static void __meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, const char *value, const char *enc) {
+static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, const char *value, const char *enc) {
 #ifdef HAVE_ICONV
   iconv_t cd;
   char *system_enc = NULL;
@@ -227,7 +227,7 @@ static void __meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, c
         iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
         *outbuf = '\0';
 
-        __meta_info_set_unlocked_utf8(stream, info, utf8_value);
+        meta_info_set_unlocked_utf8(stream, info, utf8_value);
 
         free(utf8_value);
         iconv_close(cd);
@@ -237,15 +237,15 @@ static void __meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, c
   }
 #endif
   
-  __meta_info_set_unlocked_utf8(stream, info, value);
+  meta_info_set_unlocked_utf8(stream, info, value);
 }
 
 /*
  * Set private meta info to value (can be NULL)
  * value string must be provided with current locale encoding.
  */
-static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
-  __meta_info_set_unlocked_encoding(stream, info, value, NULL);
+static void meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
+  meta_info_set_unlocked_encoding(stream, info, value, NULL);
 }
 
 /*
@@ -253,15 +253,15 @@ static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char
  */
 void _x_meta_info_reset(xine_stream_t *stream, int info) {
   pthread_mutex_lock(&stream->meta_mutex);
-  __meta_info_set_unlocked_utf8(stream, info, NULL);
+  meta_info_set_unlocked_utf8(stream, info, NULL);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
 /*
  * Reset (nullify) public info value.
  */
-static void __meta_info_public_reset_unlocked(xine_stream_t *stream, int info) {
-  if(__meta_valid(info)) {
+static void meta_info_public_reset_unlocked(xine_stream_t *stream, int info) {
+  if(meta_valid(info)) {
     if(stream->meta_info_public[info])
       free(stream->meta_info_public[info]);
     stream->meta_info_public[info] = NULL;
@@ -269,7 +269,7 @@ static void __meta_info_public_reset_unlocked(xine_stream_t *stream, int info) {
 }
 void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
   pthread_mutex_lock(&stream->meta_mutex);
-  __meta_info_public_reset_unlocked(stream, info);
+  meta_info_public_reset_unlocked(stream, info);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
@@ -279,7 +279,7 @@ void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
 void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
-    __meta_info_set_unlocked(stream, info, str);
+    meta_info_set_unlocked(stream, info, str);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
@@ -289,7 +289,7 @@ void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
 void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc) {
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
-    __meta_info_set_unlocked_encoding(stream, info, str, enc);
+    meta_info_set_unlocked_encoding(stream, info, str, enc);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
@@ -299,7 +299,7 @@ void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, 
 void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) {
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
-    __meta_info_set_unlocked_utf8(stream, info, str);
+    meta_info_set_unlocked_utf8(stream, info, str);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
@@ -308,11 +308,11 @@ void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) {
  */
 void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len) {
   pthread_mutex_lock(&stream->meta_mutex);
-  if(__meta_valid(info) && len) {
+  if(meta_valid(info) && len) {
     char *str = xine_xmalloc(len + 1);
     
     snprintf(str, len + 1 , "%s", buf);
-    __meta_info_set_unlocked(stream, info, (const char *) &str[0]);
+    meta_info_set_unlocked(stream, info, (const char *) &str[0]);
 	free(str);
   }
   pthread_mutex_unlock(&stream->meta_mutex);
@@ -324,7 +324,7 @@ void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int le
 void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
 
   pthread_mutex_lock(&stream->meta_mutex);
-  if(__meta_valid(info)) {
+  if(meta_valid(info)) {
     va_list   ap;
     char     *args[1024];
     char     *buf;
@@ -362,7 +362,7 @@ void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
       stream->meta_info[info] = p;
       
       if(stream->meta_info[info] && strlen(stream->meta_info[info]))
-	__chomp(stream->meta_info[info]);
+	  meta_info_chomp(stream->meta_info[info]);
     }
     
   }
@@ -390,8 +390,8 @@ const char *_x_meta_info_get_public(xine_stream_t *stream, int info) {
 
   pthread_mutex_lock(&stream->meta_mutex);
   meta_info = stream->meta_info_public[info];
-  if(__meta_valid(info) && (!__meta_info_is_identical(stream, info))) {
-    __meta_info_public_reset_unlocked(stream, info);
+  if(meta_valid(info) && (!meta_info_is_identical(stream, info))) {
+    meta_info_public_reset_unlocked(stream, info);
     
     if(stream->meta_info[info])
       stream->meta_info_public[info] = strdup(stream->meta_info[info]);

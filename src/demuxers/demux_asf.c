@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.165 2004/12/17 21:56:16 tmattern Exp $
+ * $Id: demux_asf.c,v 1.166 2004/12/20 21:22:19 mroi Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1503,10 +1503,10 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
       if (*ptr == '\r') ptr ++;
       if (*ptr == '\n') ptr ++;
       href = strchr(ptr, '=');
-      if (!href) goto __failure;
+      if (!href) goto failure;
       href++;
       end = strchr(href, '\r');
-      if (!end) goto __failure;
+      if (!end) goto failure;
       *end = '\0';
     }
     
@@ -1530,7 +1530,7 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
       free(href);
   }
 
-__failure:
+failure:
   free (buf);
   this->status = DEMUX_FINISHED;
   return this->status;
@@ -1636,7 +1636,7 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
 
   xml_parser_init(buf, buf_used, XML_PARSER_CASE_INSENSITIVE);
   if((result = xml_parser_build_tree(&xml_tree)) != XML_PARSER_OK)
-    goto __failure;
+    goto failure;
 
   if(!strcasecmp(xml_tree->name, "ASX")) {
 
@@ -1719,7 +1719,7 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
 	    "demux_asf: Unsupported XML type: '%s'.\n", xml_tree->name);
 
   xml_parser_free_tree(xml_tree);
-__failure:
+failure:
   free(buf);
 
   this->status = DEMUX_FINISHED;

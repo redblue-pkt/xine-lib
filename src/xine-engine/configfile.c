@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.72 2004/12/13 11:11:27 mlampard Exp $
+ * $Id: configfile.c,v 1.73 2004/12/20 21:22:21 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -322,7 +322,7 @@ static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
     this->first = new_entry;
 }
 
-static cfg_entry_t *__config_add (config_values_t *this, const char *key, int exp_level) {
+static cfg_entry_t *config_add (config_values_t *this, const char *key, int exp_level) {
 
   cfg_entry_t *entry;
 
@@ -341,7 +341,7 @@ static cfg_entry_t *__config_add (config_values_t *this, const char *key, int ex
   return entry;
 }
 
-static const char *__config_translate_key (const char *key) {
+static const char *config_translate_key (const char *key) {
   /* Returns translated key or, if no translation found, NULL.
    * Translated key may be in a static buffer allocated within this function.
    * NOT re-entrant; assumes that config_lock is held.
@@ -369,7 +369,7 @@ static const char *__config_translate_key (const char *key) {
   return NULL;
 }
 
-static void __config_lookup_entry_int (config_values_t *this, const char *key,
+static void config_lookup_entry_int (config_values_t *this, const char *key,
 				       cfg_entry_t **entry, cfg_entry_t **prev) {
 
   int trans;
@@ -389,7 +389,7 @@ static void __config_lookup_entry_int (config_values_t *this, const char *key,
 
     /* we did not find a match, maybe this is an old config entry name
      * trying to translate */
-    key = __config_translate_key(key);
+    key = config_translate_key(key);
     if (!key)
       return;
   }
@@ -400,17 +400,17 @@ static void __config_lookup_entry_int (config_values_t *this, const char *key,
  * external interface
  */
 
-static cfg_entry_t *__config_lookup_entry(config_values_t *this, const char *key) {
+static cfg_entry_t *config_lookup_entry(config_values_t *this, const char *key) {
   cfg_entry_t *entry, *prev;
   
   pthread_mutex_lock(&this->config_lock);
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
   pthread_mutex_unlock(&this->config_lock);
   
   return entry;
 }
 
-static char *__config_register_string (config_values_t *this,
+static char *config_register_string (config_values_t *this,
 				       const char *key,
 				       const char *def_value,
 				       const char *description,
@@ -429,10 +429,10 @@ static char *__config_register_string (config_values_t *this,
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
-    entry = __config_add (this, key, exp_level);
+    entry = config_add (this, key, exp_level);
     entry->unknown_value = strdup(def_value);
   } else {
     if (!entry->next)
@@ -475,7 +475,7 @@ static char *__config_register_string (config_values_t *this,
   return entry->str_value;
 }
 
-static int __config_register_num (config_values_t *this,
+static int config_register_num (config_values_t *this,
 				  const char *key, int def_value,
 				  const char *description,
 				  const char *help,
@@ -491,10 +491,10 @@ static int __config_register_num (config_values_t *this,
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
-    entry = __config_add (this, key, exp_level);
+    entry = config_add (this, key, exp_level);
     entry->unknown_value = NULL;
   } else {
     if (!entry->next)
@@ -539,7 +539,7 @@ static int __config_register_num (config_values_t *this,
   return entry->num_value;
 }
 
-static int __config_register_bool (config_values_t *this,
+static int config_register_bool (config_values_t *this,
 				   const char *key,
 				   int def_value,
 				   const char *description,
@@ -556,10 +556,10 @@ static int __config_register_bool (config_values_t *this,
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
-    entry = __config_add (this, key, exp_level);
+    entry = config_add (this, key, exp_level);
     entry->unknown_value = NULL;
   } else {
     if (!entry->next)
@@ -604,7 +604,7 @@ static int __config_register_bool (config_values_t *this,
   return entry->num_value;
 }
 
-static int __config_register_range (config_values_t *this,
+static int config_register_range (config_values_t *this,
 				    const char *key,
 				    int def_value,
 				    int min, int max,
@@ -622,10 +622,10 @@ static int __config_register_range (config_values_t *this,
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
-    entry = __config_add (this, key, exp_level);
+    entry = config_add (this, key, exp_level);
     entry->unknown_value = NULL;
   } else {
     if (!entry->next)
@@ -671,7 +671,7 @@ static int __config_register_range (config_values_t *this,
   return entry->num_value;
 }
 
-static int __config_parse_enum (const char *str, char **values) {
+static int config_parse_enum (const char *str, char **values) {
 
   char **value;
   int    i;
@@ -696,7 +696,7 @@ static int __config_parse_enum (const char *str, char **values) {
   return 0;
 }
 
-static int __config_register_enum (config_values_t *this,
+static int config_register_enum (config_values_t *this,
 				   const char *key,
 				   int def_value,
 				   char **values,
@@ -715,10 +715,10 @@ static int __config_register_enum (config_values_t *this,
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
 
-  __config_lookup_entry_int(this, key, &entry, &prev);
+  config_lookup_entry_int(this, key, &entry, &prev);
 
   if (!entry) {
-    entry = __config_add (this, key, exp_level);
+    entry = config_add (this, key, exp_level);
     entry->unknown_value = NULL;
   } else {
     if (!entry->next)
@@ -744,7 +744,7 @@ static int __config_register_enum (config_values_t *this,
     entry->type      = XINE_CONFIG_TYPE_ENUM;
 
     if (entry->unknown_value)
-      entry->num_value = __config_parse_enum (entry->unknown_value, values);
+      entry->num_value = config_parse_enum (entry->unknown_value, values);
     else
       entry->num_value = def_value;
 
@@ -764,7 +764,7 @@ static int __config_register_enum (config_values_t *this,
   return entry->num_value;
 }
 
-static void __config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
+static void config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
 {
   dest->key           = src->key;
   dest->type          = src->type;
@@ -783,7 +783,7 @@ static void __config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
   dest->callback_data = src->callback_data;
 }
 
-static void __config_update_num (config_values_t *this,
+static void config_update_num (config_values_t *this,
 				 const char *key, int value) {
   
   cfg_entry_t *entry;
@@ -812,7 +812,7 @@ static void __config_update_num (config_values_t *this,
 
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
-    __config_shallow_copy(&cb_entry, entry);
+    config_shallow_copy(&cb_entry, entry);
     /* do not enter the callback from within a locked context */
     pthread_mutex_unlock(&this->config_lock);
     entry->callback (entry->callback_data, &cb_entry);
@@ -820,7 +820,7 @@ static void __config_update_num (config_values_t *this,
     pthread_mutex_unlock(&this->config_lock);
 }
 
-static void __config_update_string (config_values_t *this,
+static void config_update_string (config_values_t *this,
 				       const char *key,
 				       const char *value) {
 
@@ -842,7 +842,7 @@ static void __config_update_string (config_values_t *this,
   /* if an enum is updated with a string, we convert the string to
    * its index and use update number */
   if (entry->type == XINE_CONFIG_TYPE_ENUM) {
-    __config_update_num(this, key, __config_parse_enum(value, entry->enum_values));
+    config_update_num(this, key, config_parse_enum(value, entry->enum_values));
     return;
   }
 
@@ -860,7 +860,7 @@ static void __config_update_string (config_values_t *this,
 
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
-    __config_shallow_copy(&cb_entry, entry);
+    config_shallow_copy(&cb_entry, entry);
     /* FIXME: find a solution which does not enter the callback with the lock acquired,
      * but does also handle the char* leak- and race-free without unnecessary string copying */
     entry->callback (entry->callback_data, &cb_entry);
@@ -910,16 +910,16 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	*value = (char) 0;
 	value++;
 
-	if (!(entry = __config_lookup_entry(this, line))) {
+	if (!(entry = config_lookup_entry(this, line))) {
 	  const char *key = line;
 	  pthread_mutex_lock(&this->config_lock);
 	  if (this->current_version < CONFIG_FILE_VERSION) {
 	    /* old config file -> let's see if we have to rename this one */
-	    key = __config_translate_key(key);
+	    key = config_translate_key(key);
 	    if (!key)
 	      key = line; /* no translation? fall back on untranslated key */
 	  }
-	  entry = __config_add (this, key, 50);
+	  entry = config_add (this, key, 50);
 	  entry->unknown_value = strdup(value);
 	  pthread_mutex_unlock(&this->config_lock);
 	} else {
@@ -927,11 +927,11 @@ void xine_config_load (xine_t *xine, const char *filename) {
           case XINE_CONFIG_TYPE_RANGE:
           case XINE_CONFIG_TYPE_NUM:
           case XINE_CONFIG_TYPE_BOOL:
-            __config_update_num (this, entry->key, atoi(value));
+            config_update_num (this, entry->key, atoi(value));
             break;
           case XINE_CONFIG_TYPE_ENUM:
           case XINE_CONFIG_TYPE_STRING:
-            __config_update_string (this, entry->key, value);
+            config_update_string (this, entry->key, value);
             break;
           case XINE_CONFIG_TYPE_UNKNOWN:
 	    pthread_mutex_lock(&this->config_lock);
@@ -1117,7 +1117,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
     unlink(temp);
 }
 
-static void __config_dispose (config_values_t *this) {
+static void config_dispose (config_values_t *this) {
 
   cfg_entry_t *entry, *last;
 
@@ -1149,14 +1149,14 @@ static void __config_dispose (config_values_t *this) {
 }
 
 
-static void __config_unregister_cb (config_values_t *this, const char *key) {
+static void config_unregister_cb (config_values_t *this, const char *key) {
 
   cfg_entry_t *entry;
 
   _x_assert(key);
   _x_assert(this);
 
-  entry = __config_lookup_entry (this, key);
+  entry = config_lookup_entry (this, key);
   if (entry) {
     pthread_mutex_lock(&this->config_lock);
     entry->callback = NULL;
@@ -1185,17 +1185,17 @@ config_values_t *_x_config_init (void) {
 
   pthread_mutex_init(&this->config_lock, NULL);
 
-  this->register_string     = __config_register_string;
-  this->register_range      = __config_register_range;
-  this->register_enum       = __config_register_enum;
-  this->register_num        = __config_register_num;
-  this->register_bool       = __config_register_bool;
-  this->update_num          = __config_update_num;
-  this->update_string       = __config_update_string;
-  this->parse_enum          = __config_parse_enum;
-  this->lookup_entry        = __config_lookup_entry;
-  this->unregister_callback = __config_unregister_cb;
-  this->dispose             = __config_dispose;
+  this->register_string     = config_register_string;
+  this->register_range      = config_register_range;
+  this->register_enum       = config_register_enum;
+  this->register_num        = config_register_num;
+  this->register_bool       = config_register_bool;
+  this->update_num          = config_update_num;
+  this->update_string       = config_update_string;
+  this->parse_enum          = config_parse_enum;
+  this->lookup_entry        = config_lookup_entry;
+  this->unregister_callback = config_unregister_cb;
+  this->dispose             = config_dispose;
 
   return this;
 }
