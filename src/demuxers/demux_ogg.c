@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.87 2003/04/30 09:38:21 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.88 2003/05/01 19:04:32 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -96,6 +96,9 @@ typedef struct demux_ogg_s {
   int64_t               header_granulepos[MAX_STREAMS];
   int64_t               factor[MAX_STREAMS];
   int64_t               quotient[MAX_STREAMS];
+  int                   resync[MAX_STREAMS];
+
+  int64_t               start_pts;
 
   int                   num_streams;
 
@@ -145,12 +148,13 @@ static int get_stream (demux_ogg_t *this, int serno)
   return -1;
 }
 
-static int get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos ) {
+static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos ) {
   /*calculates an pts from an granulepos*/
   if (granulepos<0) {
-    if ( this->header_granulepos[stream_num]>=0 )
-      return get_pts (this, stream_num, this->header_granulepos[stream_num]);
-    else
+    if ( this->header_granulepos[stream_num]>=0 ) {
+      /*return the smallest valid pts*/
+      return 1;
+    } else
       return 0;
 
 #ifdef HAVE_THEORA
@@ -160,11 +164,11 @@ static int get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos ) {
     keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
     iframe=granulepos>>keyframe_granule_shift;
     pframe=granulepos-(iframe<<keyframe_granule_shift);
-    return ((iframe + pframe)*this->frame_duration);
+    return 1+((iframe + pframe)*this->frame_duration);
 #endif
 
   } else if (this->quotient[stream_num])
-    return (granulepos*this->factor[stream_num]/this->quotient[stream_num]);
+    return 1+(granulepos*this->factor[stream_num]/this->quotient[stream_num]);
   else
     return 0;
 }
@@ -175,10 +179,10 @@ static int read_ogg_packet (demux_ogg_t *this) {
   while (ogg_sync_pageout(&this->oy,&this->og)!=1) {
     buffer = ogg_sync_buffer(&this->oy, CHUNKSIZE);
     bytes  = this->input->read(this->input, buffer, CHUNKSIZE);
+    ogg_sync_wrote(&this->oy, bytes);
     if (bytes < CHUNKSIZE) {
       return 0;
     }
-    ogg_sync_wrote(&this->oy, bytes);
   }
   return 1;
 }
@@ -211,7 +215,7 @@ static void send_ogg_packet (demux_ogg_t *this,
   int done=0,todo=op->bytes;
   int op_size = sizeof(ogg_packet);
 
-  /* nasty hack to pack op as well as (vorbis) content
+  /* nasty hack to pack op as well as (vorbis/theora) content
      in one xine buffer */
 
   buf = fifo->buffer_pool_alloc (fifo);
@@ -346,28 +350,27 @@ static void send_ogg_buf (demux_ogg_t *this,
 #ifdef LOG
     printf ("demux_ogg: audio buf_size %d\n", buf->size);
 #endif
-	
-    if (op->granulepos!=-1) {
-      buf->pts = get_pts(this, stream_num, op->granulepos );
-      check_newpts( this, buf->pts, PTS_AUDIO, decoder_flags );
 
-    } else if (this->header_granulepos[stream_num]!=-1) {
-      buf->pts = get_pts(this, stream_num, this->header_granulepos[stream_num]);
-      this->header_granulepos[stream_num]=-1;
+
+    if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+      buf->pts = get_pts(this, stream_num, op->granulepos );
       check_newpts( this, buf->pts, PTS_AUDIO, decoder_flags );
     } else
       buf->pts = 0; 
 
 #ifdef LOG
-    printf ("demux_ogg: audio granulepos %lld => pts %lld => time %lld\n",
-	    op->granulepos, buf->pts,buf->pts/90);
+    printf ("demuxogg: audiostream %d op-gpos %lld hdr-gpos %lld pts %lld \n"
+	    ,stream_num
+	    ,op->granulepos
+	    ,this->header_granulepos[stream_num]
+	    ,buf->pts);
 #endif
 
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
     buf->extra_info->input_time    = buf->pts / 90;
     buf->type          = this->buf_types[stream_num] ;
     buf->decoder_flags = decoder_flags;
-    
+
     this->audio_fifo->put (this->audio_fifo, buf);
     
 #ifdef HAVE_THEORA
@@ -384,15 +387,20 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
     }
 
-    if (op->granulepos!=-1) {
-      pts  = get_pts (this, stream_num, op->granulepos);
-      check_newpts( this, pts, PTS_VIDEO, decoder_flags );
-    } else if (this->header_granulepos[stream_num]!=-1) {
-      pts  = get_pts (this, stream_num, this->header_granulepos[stream_num]);
-      this->header_granulepos[stream_num]=-1;
+    if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+      pts = get_pts(this, stream_num, op->granulepos );
       check_newpts( this, pts, PTS_VIDEO, decoder_flags );
     } else
-      pts=0;    
+      pts = 0; 
+
+#ifdef LOG
+    printf ("demuxogg: theorastream %d op-gpos %lld hdr-gpos %lld pts %lld \n"
+	    ,stream_num
+	    ,op->granulepos
+	    ,this->header_granulepos[stream_num]
+	    ,pts);
+#endif
+
     send_ogg_packet (this, this->video_fifo, op, pts, decoder_flags, stream_num);
 #endif
 
@@ -424,28 +432,26 @@ static void send_ogg_buf (demux_ogg_t *this,
       */
       memcpy (buf->content, op->packet+done, buf->size);
 
-      if (op->granulepos!=-1) {
-	buf->pts  = get_pts (this, stream_num, op->granulepos);
+      if ((op->granulepos!=-1) || (this->header_granulepos[stream_num]!=-1)) {
+	buf->pts = get_pts(this, stream_num, op->granulepos );
 	check_newpts( this, buf->pts, PTS_VIDEO, decoder_flags );
-
-      } else if (this->header_granulepos[stream_num]!=-1) {
-	buf->pts  = get_pts (this, stream_num, this->header_granulepos[stream_num]);
-	this->header_granulepos[stream_num]=-1;
-	check_newpts( this, buf->pts, PTS_VIDEO, decoder_flags );
-
       } else
-	buf->pts  = 0;
+	buf->pts = 0; 
 
-#ifdef LOG
-      printf ("demux_ogg: video granulepos %lld, pts %lld, time %lld\n", op->granulepos, buf->pts, buf->pts / 90);
-#endif
-      
       buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
       buf->extra_info->input_time = buf->pts / 90 ;
       buf->type       = this->buf_types[stream_num] ;
 	
       done += buf->size;
-      
+
+#ifdef LOG
+      printf ("demuxogg: videostream %d op-gpos %lld hdr-gpos %lld pts %lld \n"
+	    ,stream_num
+	    ,op->granulepos
+	    ,this->header_granulepos[stream_num]
+	    ,buf->pts);
+#endif
+
       this->video_fifo->put (this->video_fifo, buf);
       
     }
@@ -911,7 +917,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 #ifdef HAVE_THEORA
 	} else if (!strncmp (&op.packet[1], "theora", 4)) {
-	  int channel;
+
 	  printf ("demux_ogg: Theorastreamsupport is highly alpha at the moment\n");
 
 	  if (theora_decode_header(&this->t_info, &op)>=0) {
@@ -1060,7 +1066,12 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
     while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) ;
     return;
   }
-            
+
+  /*while keyframeseeking only process videostream*/
+    if (!this->ignore_keyframes && this->keyframe_needed
+      && ((this->buf_types[stream_num] & 0xFF000000) != BUF_VIDEO_BASE))
+    return;
+  
   while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) {
     /* printf("demux_ogg: packet: %.8s\n", op.packet); */
     /* printf("demux_ogg:   got a packet\n"); */
@@ -1079,9 +1090,19 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
       continue;
     }
 
-    if ((this->buf_flag_seek) && (this->buf_types[stream_num]!=BUF_VIDEO_THEORA))
-      if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) continue;
-	
+    /*discard granulepos-less packets and to early audiopackets*/
+    if (this->resync[stream_num]) {
+      if ((op.granulepos==-1) && (this->header_granulepos[stream_num]==-1)) {
+	continue;
+      } else {
+
+	/*dump too early packets*/
+	if ((get_pts(this,stream_num,op.granulepos)-this->start_pts) > -90000)
+	  this->resync[stream_num]=0;
+	else
+	  continue;
+      }
+    }
 
     if (!this->ignore_keyframes && this->keyframe_needed) {
 #ifdef LOG
@@ -1095,33 +1116,39 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 
 	keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
 
-	/*replace the 1 with 0 and you will deactivate keyframeseeking*/
-	if (1) {
-	  if(op.granulepos>=0){
-	    iframe=op.granulepos>>keyframe_granule_shift;
-	    pframe=op.granulepos-(iframe<<keyframe_granule_shift);
-	    printf ("seeking keyframe i %lld p %lld\n",iframe,pframe);
-	    if (pframe!=0)
-	      continue;
-	  } else
+	if(op.granulepos>=0){
+	  iframe=op.granulepos>>keyframe_granule_shift;
+	  pframe=op.granulepos-(iframe<<keyframe_granule_shift);
+	  printf ("seeking keyframe i %lld p %lld\n",iframe,pframe);
+	  if (pframe!=0)
 	    continue;
-	  this->keyframe_needed = 0;
 	} else
-	  this->keyframe_needed = 0;
-
-#endif
-      } else if (((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) &&
-	  (*op.packet == PACKET_IS_SYNCPOINT)) {
-	/*
-	  printf("keyframe: l%ld b%ld e%ld g%ld p%ld str%d\n", 
-	  op.bytes,op.b_o_s,op.e_o_s,(long) op.granulepos,
-	  (long) op.packetno,stream_num);
-	  hex_dump (op.packet, op.bytes);
-	*/
+	  continue;
 	this->keyframe_needed = 0;
-      } else continue;
+	this->start_pts=get_pts(this,stream_num,op.granulepos);
+#endif
+      } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
+
+	/*calculate the current pts*/
+	if (op.granulepos!=-1) {
+	  this->start_pts=get_pts(this, stream_num, op.granulepos);
+	} else if (this->start_pts!=-1)
+	  this->start_pts=this->start_pts+this->frame_duration;
+
+	/*seek the keyframe*/
+	if ((*op.packet == PACKET_IS_SYNCPOINT) && (this->start_pts!=-1))
+	  this->keyframe_needed = 0;
+	else
+	  continue;
+
+      } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) continue;
     }
     send_ogg_buf (this, &op, stream_num, 0);
+
+    /*delete used header_granulepos*/
+    if (op.granulepos==-1)
+      this->header_granulepos[stream_num]=-1;
+
   }
 }
 
@@ -1196,13 +1223,11 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
 			   off_t start_pos, int start_time) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  
+  int i;
   /*
    * seek to start position
    */
-#ifdef LOG
-  printf ("demux_ogg: seek called\n");
-#endif
+
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
     this->keyframe_needed = (this->num_video_streams>0);
@@ -1220,14 +1245,23 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     }
 
     ogg_sync_reset(&this->oy);
+
+    for (i=0; i<this->num_streams; i++) {
+      this->header_granulepos[i]=-1;
+    } 
 	 
     /*some strange streams have no syncpoint flag set at the beginning*/	 
     if (start_pos == 0)	 
       this->keyframe_needed = 0;	 
- 
-    this->input->seek (this->input, start_pos, SEEK_SET);
-  }
 
+#ifdef LOF
+    printf ("demux_ogg: seek to %lld called\n",start_pos);
+#endif
+
+    this->input->seek (this->input, start_pos, SEEK_SET);
+
+  }
+  
   this->send_newpts     = 1;
 
   if( !this->stream->demux_thread_running ) {
@@ -1236,7 +1270,17 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek     = 0;
 
   } else {
-    this->buf_flag_seek = 1;
+    if (start_pos!=0) {
+      this->buf_flag_seek = 1;
+      /*each stream has to continue with a packet that has an
+       granulepos*/
+      for (i=0; i<this->num_streams; i++) {
+	this->resync[i]=1;
+      }
+
+      this->start_pts=-1;
+    }
+
     xine_demux_flush_engine(this->stream);
   }
   
