@@ -17,6 +17,9 @@ optional
 
 - fix streaming of small files (e.g. http) 
 - implement timeout in input_http, implement it correctly using select()
+- input_rtp
+- rtsp support (currently only real's rtsp derivate is implemented)
+- theora support
 - mmsh support (thibaut)
 - detect broken savage drivers in health check, disable Xv in that case
 - id3v2 (guenter)
@@ -31,7 +34,7 @@ optional
 - xvid decoder plugin 
 - opengl video output plugin (matthias)
 - irix audio output plugin (matthias)
-- input_net (guenter)
+- update DVB plugin (latest API, DVB-C support) (guenter)
 
 Open Tasks
 ==========
