@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.151 2004/10/14 23:25:24 tmattern Exp $
+ * $Id: video_decoder.c,v 1.152 2004/10/27 16:41:35 miguelfreitas Exp $
  *
  */
 
@@ -181,6 +181,14 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_END:
+        
+      /* flush decoder frames if stream finished naturally (non-user stop) */
+      if( buf->decoder_flags ) {
+        running_ticket->acquire(running_ticket, 0);
+        if (stream->video_decoder_plugin)
+          stream->video_decoder_plugin->flush (stream->video_decoder_plugin);
+        running_ticket->release(running_ticket, 0);
+      }
       
       /*
        * wait the output fifos to run dry before sending the notification event
