@@ -1,4 +1,4 @@
-.TH "xine.h" 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "xine.h" 3 "15 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -29,10 +29,10 @@ xine.h \-
 .RI "#define \fBXINE_BUILD_CC\fP   'gcc version 2.95.3 20010315 (release)'"
 .br
 .ti -1c
-.RI "#define \fBXINE_BUILD_OS\fP   'Linux 2.4.9-ac7 i686'"
+.RI "#define \fBXINE_BUILD_OS\fP   'Linux 2.4.9 i686'"
 .br
 .ti -1c
-.RI "#define \fBXINE_BUILD_DATE\fP   'Fri 05 Oct 2001 14:06:23'"
+.RI "#define \fBXINE_BUILD_DATE\fP   'Mon 15 Oct 2001 00:22:19'"
 .br
 .ti -1c
 .RI "#define \fBXINE_STOP\fP   0"
@@ -50,7 +50,7 @@ xine.h \-
 .RI "#define \fBXINE_MINOR_VERSION\fP   9"
 .br
 .ti -1c
-.RI "#define \fBXINE_SUB_VERSION\fP   1"
+.RI "#define \fBXINE_SUB_VERSION\fP   2"
 .br
 .ti -1c
 .RI "#define \fBVO_CAP_HUE\fP   0x00000010"
@@ -259,6 +259,27 @@ xine.h \-
 .ti -1c
 .RI "#define \fBVISUAL_TYPE_GTK\fP   4"
 .br
+.ti -1c
+.RI "#define \fBXINE_IMGFMT_YV12\fP   0x32315659"
+.br
+.ti -1c
+.RI "#define \fBXINE_IMGFMT_YUY2\fP   (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_SQUARE\fP   1"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_4_3\fP   2"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_ANAMORPHIC\fP   3"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_211_1\fP   4"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_DONT_TOUCH\fP   42"
+.br
 .in -1c
 .SS "Typedefs"
 
@@ -451,6 +472,10 @@ xine.h \-
 .RI "void \fBxine_send_event\fP (\fBxine_t\fP *self, \fBevent_t\fP *event, void *data)"
 .br
 .RI "\fIsends an event to all listeners.\fP"
+.ti -1c
+.RI "int \fBxine_get_current_frame\fP (\fBxine_t\fP *self, int *width, int *height, int *ratio_code, int *format, uint8_t **y, uint8_t **u, uint8_t **v)"
+.br
+.RI "\fISnapshot function.\fP"
 .in -1c
 .SH "DETAILED DESCRIPTION"
 .PP 

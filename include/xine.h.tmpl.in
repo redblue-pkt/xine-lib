@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.46 2001/10/07 17:08:23 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.47 2001/10/14 23:19:59 f1rmb Exp $
  *
  */
 
@@ -1372,15 +1372,20 @@ void xine_send_event(xine_t *self, event_t *event, void *data);
           /** @} end of event_group */
 
 /**
- * snapshot function
+ * \fn int xine_get_current_frame (xine_t *self, int *width, int *height, int *ratio_code, int *format, uint8_t **y, uint8_t **u, uint8_t **v)
  *
- * width, height : size of image (be aware that u,v may be subsampled)
- * ratio_code    : aspect ratio of the frame
- * format        : subsampling format YUV 4:2:0 or 4:2:2
- * y             : lumiance information
- * u,v           : subsample color information
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param width Width of image (be aware that u,v may be subsampled)
+ * \param height Height of image (be aware that u,v may be subsampled)
+ * \param ratio_code Aspect ratio of the frame
+ * \param format Subsampling format YUV 4:2:0 or 4:2:2
+ * \param y Lumiance information
+ * \param u Subsample color information
+ * \param v Subsample color information
+ * \brief Snapshot function.
+ * \return 1 on success, 0 failure.
  *
- * return value: 1 => succ, 0=> fail
+ *
  */
 int xine_get_current_frame (xine_t *self, int *width, int *height,
 			    int *ratio_code, int *format,
@@ -1388,13 +1393,49 @@ int xine_get_current_frame (xine_t *self, int *width, int *height,
 			    uint8_t **v);
 
 
+
+/**
+ * \def XINE_IMGFMT_YV12
+ * image format.
+ * \sa xine_get_current_frame
+*/
 #define XINE_IMGFMT_YV12 0x32315659
+/**
+ * \def XINE_IMGFMT_YUY2
+ * image format.
+ * \sa xine_get_current_frame
+*/
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
 
+/**
+ * \def XINE_ASPECT_RATIO_SQUARE
+ * aspect ratio.
+ * \sa xine_get_current_frame
+*/
 #define XINE_ASPECT_RATIO_SQUARE      1
+/**
+ * \def XINE_ASPECT_RATIO_4_3
+ * aspect ratio.
+ * \sa xine_get_current_frame
+*/
 #define XINE_ASPECT_RATIO_4_3         2
+/**
+ * \def XINE_ASPECT_RATIO_ANAMORPHIC
+ * aspect ratio.
+ * \sa xine_get_current_frame
+*/
 #define XINE_ASPECT_RATIO_ANAMORPHIC  3
+/**
+ * \def XINE_ASPECT_RATIO_211_1
+ * aspect ratio.
+ * \sa xine_get_current_frame
+*/
 #define XINE_ASPECT_RATIO_211_1       4
+/**
+ * \def XINE_ASPECT_RATIO_DONT_TOUCH
+ * aspect ratio.
+ * \sa xine_get_current_frame
+*/
 #define XINE_ASPECT_RATIO_DONT_TOUCH 42
 
      /** @} end of xine_api */

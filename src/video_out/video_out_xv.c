@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.67 2001/10/14 20:34:40 guenter Exp $
+ * $Id: video_out_xv.c,v 1.68 2001/10/14 23:19:59 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -543,22 +543,22 @@ static void xv_calc_format (xv_driver_t *this,
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO:
     switch (ratio_code) {
-    case 3:  /* anamorphic     */
+    case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
       desired_ratio = 16.0 /9.0;
       break;
-    case 4:  /* 2.11:1 */
+    case XINE_ASPECT_RATIO_211_1:        /* 2.11:1 */
       desired_ratio = 2.11/1.0;
       break;
-    case 1: /* "square" source pels */
-    case 42: /* probably non-mpeg stream => don't touch aspect ratio */
+    case XINE_ASPECT_RATIO_SQUARE:       /* "square" source pels */
+    case XINE_ASPECT_RATIO_DONT_TOUCH:   /* probably non-mpeg stream => don't touch aspect ratio */
       desired_ratio = image_ratio;
       break;
-    case 0: /* forbidden       */
+    case 0:                              /* forbidden       */
       fprintf (stderr, "invalid ratio, using 4:3\n");
     default:
       xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
 	       ratio_code);
-    case 2: /* 4:3             */
+    case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
     }

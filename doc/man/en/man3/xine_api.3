@@ -1,4 +1,4 @@
-.TH "API functions" 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "API functions" 3 "15 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -40,3 +40,150 @@ API functions \-
 .RI "\fBPlayer status constants\fP"
 .br
 .in -1c
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBXINE_IMGFMT_YV12\fP   0x32315659"
+.br
+.ti -1c
+.RI "#define \fBXINE_IMGFMT_YUY2\fP   (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_SQUARE\fP   1"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_4_3\fP   2"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_ANAMORPHIC\fP   3"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_211_1\fP   4"
+.br
+.ti -1c
+.RI "#define \fBXINE_ASPECT_RATIO_DONT_TOUCH\fP   42"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBxine_get_current_frame\fP (\fBxine_t\fP *self, int *width, int *height, int *ratio_code, int *format, uint8_t **y, uint8_t **u, uint8_t **v)"
+.br
+.RI "\fISnapshot function.\fP"
+.in -1c
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define XINE_ASPECT_RATIO_211_1   4"
+.PP
+aspect ratio. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_ASPECT_RATIO_4_3   2"
+.PP
+aspect ratio. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_ASPECT_RATIO_ANAMORPHIC   3"
+.PP
+aspect ratio. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_ASPECT_RATIO_DONT_TOUCH   42"
+.PP
+aspect ratio. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_ASPECT_RATIO_SQUARE   1"
+.PP
+aspect ratio. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_IMGFMT_YUY2   (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')"
+.PP
+image format. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SS "#define XINE_IMGFMT_YV12   0x32315659"
+.PP
+image format. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_current_frame\fP 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "int xine_get_current_frame (\fBxine_t\fP * self, int * width, int * height, int * ratio_code, int * format, uint8_t ** y, uint8_t ** u, uint8_t ** v)"
+.PP
+Snapshot function.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIwidth\fP\fP
+Width of image (be aware that u,v may be subsampled) 
+.TP
+\fB\fIheight\fP\fP
+Height of image (be aware that u,v may be subsampled) 
+.TP
+\fB\fIratio_code\fP\fP
+Aspect ratio of the frame 
+.TP
+\fB\fIformat\fP\fP
+Subsampling format YUV 4:2:0 or 4:2:2 
+.TP
+\fB\fIy\fP\fP
+Lumiance information 
+.TP
+\fB\fIu\fP\fP
+Subsample color information 
+.TP
+\fB\fIv\fP\fP
+Subsample color information 
+.PP
+\fBReturns: \fP
+.in +1c
+1 on success, 0 failure. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIwidth\fP\fP
+ 
+.TP
+\fB\fIheight\fP\fP
+ 
+.TP
+\fB\fIratio_code\fP\fP
+ 
+.TP
+\fB\fIformat\fP\fP
+ 
+.TP
+\fB\fIy\fP\fP
+ 
+.TP
+\fB\fIu\fP\fP
+ 
+.TP
+\fB\fIv\fP\fP
+ 

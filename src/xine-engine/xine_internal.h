@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.48 2001/10/07 17:08:23 guenter Exp $
+ * $Id: xine_internal.h,v 1.49 2001/10/14 23:19:59 f1rmb Exp $
  *
  */
 
@@ -522,6 +522,12 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
 			    int *ratio_code, int *format,
 			    uint8_t **y, uint8_t **u,
 			    uint8_t **v);
+
+#define XINE_ASPECT_RATIO_SQUARE      1
+#define XINE_ASPECT_RATIO_4_3         2
+#define XINE_ASPECT_RATIO_ANAMORPHIC  3
+#define XINE_ASPECT_RATIO_211_1       4
+#define XINE_ASPECT_RATIO_DONT_TOUCH 42
 
 #ifdef __cplusplus
 }

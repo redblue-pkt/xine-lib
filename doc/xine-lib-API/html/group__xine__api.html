@@ -21,8 +21,335 @@
 <tr><td nowrap align=right valign=top><a class="el" href="group__xine__version.html">Version functions</a></td></tr>
 <tr><td nowrap align=right valign=top><a class="el" href="group__version__group.html">Version constants</a></td></tr>
 <tr><td nowrap align=right valign=top><a class="el" href="group__status__group.html">Player status constants</a></td></tr>
+<tr><td colspan=2><br><h2>Defines</h2></td></tr>
+<tr><td nowrap align=right valign=top><a name="a1" doxytag="xine_api::XINE_IMGFMT_YV12"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a1">XINE_IMGFMT_YV12</a>&nbsp;&nbsp;&nbsp;0x32315659</td></tr>
+<tr><td nowrap align=right valign=top><a name="a2" doxytag="xine_api::XINE_IMGFMT_YUY2"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a2">XINE_IMGFMT_YUY2</a>&nbsp;&nbsp;&nbsp;(('2'&lt;&lt;24)|('Y'&lt;&lt;16)|('U'&lt;&lt;8)|'Y')</td></tr>
+<tr><td nowrap align=right valign=top><a name="a3" doxytag="xine_api::XINE_ASPECT_RATIO_SQUARE"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a3">XINE_ASPECT_RATIO_SQUARE</a>&nbsp;&nbsp;&nbsp;1</td></tr>
+<tr><td nowrap align=right valign=top><a name="a4" doxytag="xine_api::XINE_ASPECT_RATIO_4_3"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a4">XINE_ASPECT_RATIO_4_3</a>&nbsp;&nbsp;&nbsp;2</td></tr>
+<tr><td nowrap align=right valign=top><a name="a5" doxytag="xine_api::XINE_ASPECT_RATIO_ANAMORPHIC"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a5">XINE_ASPECT_RATIO_ANAMORPHIC</a>&nbsp;&nbsp;&nbsp;3</td></tr>
+<tr><td nowrap align=right valign=top><a name="a6" doxytag="xine_api::XINE_ASPECT_RATIO_211_1"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a6">XINE_ASPECT_RATIO_211_1</a>&nbsp;&nbsp;&nbsp;4</td></tr>
+<tr><td nowrap align=right valign=top><a name="a7" doxytag="xine_api::XINE_ASPECT_RATIO_DONT_TOUCH"></a>
+#define&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a7">XINE_ASPECT_RATIO_DONT_TOUCH</a>&nbsp;&nbsp;&nbsp;42</td></tr>
+<tr><td colspan=2><br><h2>Functions</h2></td></tr>
+<tr><td nowrap align=right valign=top><a name="a0" doxytag="xine_api::xine_get_current_frame"></a>
+int&nbsp;</td><td valign=bottom><a class="el" href="group__xine__api.html#a0">xine_get_current_frame</a> (<a class="el" href="structxine__t.html">xine_t</a> *self, int *width, int *height, int *ratio_code, int *format, uint8_t **y, uint8_t **u, uint8_t **v)</td></tr>
+<tr><td>&nbsp;</td><td><font size=-1><em>Snapshot function.</em></font><br><br></td></tr>
 </table>
-<hr><address><small>Generated at Fri Oct 5 14:17:32 2001 for XINE, A Free Video Player Project - API reference by
+<hr><h2>Define Documentation</h2>
+<a name="a6" doxytag="xine.h::XINE_ASPECT_RATIO_211_1"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_ASPECT_RATIO_211_1&nbsp;&nbsp;&nbsp;4
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+aspect ratio. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a4" doxytag="xine.h::XINE_ASPECT_RATIO_4_3"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_ASPECT_RATIO_4_3&nbsp;&nbsp;&nbsp;2
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+aspect ratio. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a5" doxytag="xine.h::XINE_ASPECT_RATIO_ANAMORPHIC"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_ASPECT_RATIO_ANAMORPHIC&nbsp;&nbsp;&nbsp;3
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+aspect ratio. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a7" doxytag="xine.h::XINE_ASPECT_RATIO_DONT_TOUCH"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_ASPECT_RATIO_DONT_TOUCH&nbsp;&nbsp;&nbsp;42
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+aspect ratio. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a3" doxytag="xine.h::XINE_ASPECT_RATIO_SQUARE"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_ASPECT_RATIO_SQUARE&nbsp;&nbsp;&nbsp;1
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+aspect ratio. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a2" doxytag="xine.h::XINE_IMGFMT_YUY2"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_IMGFMT_YUY2&nbsp;&nbsp;&nbsp;(('2'&lt;&lt;24)|('Y'&lt;&lt;16)|('U'&lt;&lt;8)|'Y')
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+image format. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<a name="a1" doxytag="xine.h::XINE_IMGFMT_YV12"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+#define XINE_IMGFMT_YV12&nbsp;&nbsp;&nbsp;0x32315659
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+image format. <dl compact><dt>
+<b>See also: </b><dd>
+<a class="el" href="xine_8h.html#a0">xine_get_current_frame</a> </dl>    </td>
+  </tr>
+</table>
+<hr><h2>Function Documentation</h2>
+<a name="a0" doxytag="xine.h::xine_get_current_frame"></a><p>
+<table width="100%" cellpadding="2" cellspacing="0" border="0">
+  <tr>
+    <td class="md">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td nowrap valign="top"><b> 
+int xine_get_current_frame (
+          </b></td>
+          <td valign="bottom"><b>
+<a class="el" href="structxine__t.html">xine_t</a> * <em>self</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int * <em>width</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int * <em>height</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int * <em>ratio_code</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+int * <em>format</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+uint8_t ** <em>y</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+uint8_t ** <em>u</em>, 
+          </b></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><b>
+uint8_t ** <em>v</em>&nbsp;)
+          </b></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Snapshot function.
+<p>
+<dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+Current xine engine configuration ( see <a class="el" href="xine_8h.html#a1">xine_init</a>() ) </td></tr>
+<tr><td valign=top><em>width</em>
+&nbsp;</td><td>
+Width of image (be aware that u,v may be subsampled) </td></tr>
+<tr><td valign=top><em>height</em>
+&nbsp;</td><td>
+Height of image (be aware that u,v may be subsampled) </td></tr>
+<tr><td valign=top><em>ratio_code</em>
+&nbsp;</td><td>
+Aspect ratio of the frame </td></tr>
+<tr><td valign=top><em>format</em>
+&nbsp;</td><td>
+Subsampling format YUV 4:2:0 or 4:2:2 </td></tr>
+<tr><td valign=top><em>y</em>
+&nbsp;</td><td>
+Lumiance information </td></tr>
+<tr><td valign=top><em>u</em>
+&nbsp;</td><td>
+Subsample color information </td></tr>
+<tr><td valign=top><em>v</em>
+&nbsp;</td><td>
+Subsample color information </td></tr>
+</table>
+</dl><dl compact><dt>
+<b>Returns: </b><dd>
+1 on success, 0 failure. </dl><dl compact><dt>
+<b>Parameters: </b><dd>
+<table border=0 cellspacing=2 cellpadding=0>
+<tr><td valign=top><em>self</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>width</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>height</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>ratio_code</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>format</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>y</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>u</em>
+&nbsp;</td><td>
+ </td></tr>
+<tr><td valign=top><em>v</em>
+&nbsp;</td><td>
+ </td></tr>
+</table>
+</dl>    </td>
+  </tr>
+</table>
+<hr><address><small>Generated at Mon Oct 15 01:18:07 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

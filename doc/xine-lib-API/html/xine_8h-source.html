@@ -10,7 +10,7 @@
 <a class="qindex" href="index.html">Main Page</a> &nbsp; <a class="qindex" href="modules.html">Modules</a> &nbsp; <a class="qindex" href="annotated.html">Data Structures</a> &nbsp; <a class="qindex" href="files.html">File List</a> &nbsp; <a class="qindex" href="functions.html">Data Fields</a> &nbsp; <a class="qindex" href="globals.html">Globals</a> &nbsp; </center>
 <hr><h1>xine.h</h1><a href="xine_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre>00001 <font class="comment">/* !! DO NO EDIT THIS FILE, it is automatically generated */</font>
 00031 <font class="comment">/*</font>
-00032 <font class="comment"> * $Id: xine_8h-source.html,v 1.3 2001/10/05 13:41:53 f1rmb Exp $</font>
+00032 <font class="comment"> * $Id: xine_8h-source.html,v 1.4 2001/10/14 23:19:59 f1rmb Exp $</font>
 00033 <font class="comment"> *</font>
 00034 <font class="comment"> */</font>
 00035 
@@ -37,9 +37,9 @@
 00060 <font class="preprocessor"></font>
 00070 <font class="preprocessor">#define XINE_BUILD_CC      "gcc version 2.95.3 20010315 (release)"</font>
 00071 <font class="preprocessor"></font>
-00074 <font class="preprocessor">#define XINE_BUILD_OS      "Linux 2.4.9-ac7 i686"</font>
+00074 <font class="preprocessor">#define XINE_BUILD_OS      "Linux 2.4.9 i686"</font>
 00075 <font class="preprocessor"></font>
-00078 <font class="preprocessor">#define XINE_BUILD_DATE    "Fri 05 Oct 2001 14:06:23"</font>
+00078 <font class="preprocessor">#define XINE_BUILD_DATE    "Mon 15 Oct 2001 00:22:19"</font>
 00079 <font class="preprocessor"></font>
 00097 <font class="preprocessor">#define XINE_STOP      0</font>
 00098 <font class="preprocessor"></font>
@@ -51,7 +51,7 @@
 00123 <font class="preprocessor"></font>
 00127 <font class="preprocessor">#define XINE_MINOR_VERSION 9</font>
 00128 <font class="preprocessor"></font>
-00132 <font class="preprocessor">#define XINE_SUB_VERSION   1</font>
+00132 <font class="preprocessor">#define XINE_SUB_VERSION   2</font>
 00133 <font class="preprocessor"></font>
 00148 <font class="keywordtype">char</font> *<a class="code" href="xine_8h.html#a0">xine_get_str_version</a>(<font class="keywordtype">void</font>);
 00149 
@@ -400,12 +400,33 @@
 01362 
 01371 <font class="keywordtype">void</font> <a class="code" href="group__event__group.html#a4">xine_send_event</a>(xine_t *self, event_t *event, <font class="keywordtype">void</font> *data);
 01372 
-01377 <font class="preprocessor">#ifdef __cplusplus</font>
-01378 <font class="preprocessor"></font>}
-01379 <font class="preprocessor">#endif</font>
-01380 <font class="preprocessor"></font>
-01381 <font class="preprocessor">#endif</font>
-</font></pre></div><hr><address><small>Generated at Fri Oct 5 14:17:32 2001 for XINE, A Free Video Player Project - API reference by
+01391 <font class="keywordtype">int</font> <a class="code" href="xine_8h.html#a0">xine_get_current_frame</a> (xine_t *self, <font class="keywordtype">int</font> *width, <font class="keywordtype">int</font> *height,
+01392                             <font class="keywordtype">int</font> *ratio_code, <font class="keywordtype">int</font> *format,
+01393                             uint8_t **y, uint8_t **u,
+01394                             uint8_t **v);
+01395 
+01396 
+01397 
+01403 <font class="preprocessor">#define XINE_IMGFMT_YV12 0x32315659</font>
+01404 <font class="preprocessor"></font>
+01409 <font class="preprocessor">#define XINE_IMGFMT_YUY2 (('2'&lt;&lt;24)|('Y'&lt;&lt;16)|('U'&lt;&lt;8)|'Y')</font>
+01410 <font class="preprocessor"></font>
+01416 <font class="preprocessor">#define XINE_ASPECT_RATIO_SQUARE      1</font>
+01417 <font class="preprocessor"></font>
+01422 <font class="preprocessor">#define XINE_ASPECT_RATIO_4_3         2</font>
+01423 <font class="preprocessor"></font>
+01428 <font class="preprocessor">#define XINE_ASPECT_RATIO_ANAMORPHIC  3</font>
+01429 <font class="preprocessor"></font>
+01434 <font class="preprocessor">#define XINE_ASPECT_RATIO_211_1       4</font>
+01435 <font class="preprocessor"></font>
+01440 <font class="preprocessor">#define XINE_ASPECT_RATIO_DONT_TOUCH 42</font>
+01441 <font class="preprocessor"></font>
+01444 <font class="preprocessor">#ifdef __cplusplus</font>
+01445 <font class="preprocessor"></font>}
+01446 <font class="preprocessor">#endif</font>
+01447 <font class="preprocessor"></font>
+01448 <font class="preprocessor">#endif</font>
+</font></pre></div><hr><address><small>Generated at Mon Oct 15 01:18:06 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

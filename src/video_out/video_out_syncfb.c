@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.14 2001/10/10 10:06:52 jkeil Exp $
+ * $Id: video_out_syncfb.c,v 1.15 2001/10/14 23:19:59 f1rmb Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -415,16 +415,16 @@ printf("new frame format width %d height %d ratio %d format %x\n",width,height,r
       fprintf (stderr, "invalid ratio\n");
       exit (1);
       break;
-    case 2:
+    case XINE_ASPECT_RATIO_4_3:
       aspect_ratio = 4.0 / 3.0;
       break;
-    case 3:
+    case XINE_ASPECT_RATIO_ANAMORPHIC:
       aspect_ratio = 16.0 / 9.0;
       break;
-    case 4:
+    case XINE_ASPECT_RATIO_211_1:
       aspect_ratio = 2.11/1.0;
       break;
-    case 42: /* some stupid stream => don't touch aspect ratio */
+    case XINE_ASPECT_RATIO_DONT_TOUCH: /* some stupid stream => don't touch aspect ratio */
     default:
       xprintf (VIDEO, "unknown aspect ratio (%d) in stream. untouched.\n", _mga_priv.ratio);
     case 1: /* "square" source pels */
