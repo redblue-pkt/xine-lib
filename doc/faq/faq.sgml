@@ -982,7 +982,7 @@
       binary named <command>aaxine</command> should get built and installed. You can then use
       something like:      
       <programlisting>
-        aacine foo.mpg
+        aaxine foo.mpg
       </programlisting>
       to use aalib video output.
     </para>
@@ -990,7 +990,7 @@
 
   <sect1>
 
-    <title>What do all these ~/.xine/config entries mean?</title>
+    <title>What do all these <filename>~/.xine/config</filename> entries mean?</title>
     
     <para>
       You can find information about them in <filename>xine-ui/doc/README.config_en</filename>.
@@ -1450,9 +1450,13 @@
           still under heavy development (nice excuse, isn't it? *grin*).
 	</para>
 	<para>
-	  Please take a look at our bug report form which is located in the xine-lib
-          package (doc/bug_report_form). Fill it out accordingly and sent it to our
-          user mailing list: <email>xine-user@lists.sourceforge.net</email>
+	  If you write to the xine user mailing list 
+	  <email>xine-user@lists.sourceforge.net</email>
+	  make sure you include a the above information (when applicable)
+	  and also some information about your machine (operating system, cpu type and
+	  speed, gfx card, sound card, ...) and please use a meaningfull subject
+	  line ("xine bug" is bad, "xine fails to play this quicktime trailer in fullscreen mode"
+	  ist much better).
 	</para>
 	<para>
           Thanks for taking the time to help improve xine.
