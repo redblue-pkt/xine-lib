@@ -2,7 +2,11 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
+if HAVE_DVDNAV
+SUBDIRS = libdvdread
+else
 SUBDIRS = libdvdread libdvdnav
+endif
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -21,9 +25,15 @@ in_cda = xineplug_inp_cda.la
 endif
 
 # For DVD
+if HAVE_DVDNAV
+DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
+  $(DVDNAV_CFLAGS) \
+  -Ilibdvdread/
+else
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
   -Ilibdvdnav/ \
   -Ilibdvdread/
+endif
 
 CFLAGS = @CFLAGS@ $(DVD_CFLAGS) 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) 
@@ -37,9 +47,15 @@ xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_dvd_la_SOURCES = input_dvd.c 
+if HAVE_DVDNAV
+xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la \
+  libdvdread/libdvdread.la $(DVDNAV_LIBS)
+xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+else
 xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la \
   libdvdnav/libdvdnav.la libdvdread/libdvdread.la
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+endif
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 xineplug_inp_net_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
@@ -70,9 +86,9 @@ xineplug_inp_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = dvd_udf.h read_cache.h net_buf_ctrl.h mms.h
+noinst_HEADERS = read_cache.h net_buf_ctrl.h mms.h
 
-EXTRA_DIST = input_dvd.c dvd_udf.c input_vcd.c read_cache.c
+EXTRA_DIST = input_dvd.c input_vcd.c read_cache.c
 
 ##
 ## Install header files (default=$includedir/xine)
