@@ -362,7 +362,6 @@ static struct {
   uint32_t cpu_require;
 } memcpy_method[] = 
 {
-  { NULL, NULL, 0, 0 },
   { "glibc memcpy()", memcpy, 0, 0 },
 #ifdef ARCH_X86
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
@@ -408,8 +407,6 @@ void xine_probe_fast_memcpy(config_values_t *config)
   char *buf1, *buf2;
   int i, j, best;
   static int config_flags = -1;
-  static char *memcpy_methods[] = {"probe", "glibc", "kernel",
-				   "mmx", "mmxext", "sse", NULL};
   
 #ifdef ARCH_X86
   config_flags = xine_mm_accel();
@@ -417,13 +414,9 @@ void xine_probe_fast_memcpy(config_values_t *config)
   config_flags = 0;
 #endif
 
-  best = config->register_enum (config, "misc.memcpy_method", 0,
-				memcpy_methods, 
-				"Memcopy method to use in xine for large data chunks.",
-				NULL, NULL, NULL);
-
+  best = config->lookup_int (config, "fast_memcpy", -1);
   /* check if function is configured and valid for this machine */
-  if( best != 0 && 
+  if( best != -1 && 
      (config_flags & memcpy_method[best].cpu_require) == 
       memcpy_method[best].cpu_require ) {
     printf("xine: using %s\n", memcpy_method[best].name );
@@ -431,7 +424,7 @@ void xine_probe_fast_memcpy(config_values_t *config)
     return;
   }
 
-  best = 0;
+  best = -1;
   
   xine_fast_memcpy = memcpy;
   
@@ -447,7 +440,7 @@ void xine_probe_fast_memcpy(config_values_t *config)
   /* make sure buffers are present on physical memory */
   memcpy(buf1,buf2,BUFSIZE);
 
-  for(i=1; memcpy_method[i].name; i++)
+  for(i=0; memcpy_method[i].name; i++)
   {
     if( (config_flags & memcpy_method[i].cpu_require) != 
          memcpy_method[i].cpu_require )
@@ -471,18 +464,13 @@ void xine_probe_fast_memcpy(config_values_t *config)
     
     printf("\t%s : %lld\n",memcpy_method[i].name, t);
     
-    if( best == 0 || t < memcpy_method[best].time )
+    if( best == -1 || t < memcpy_method[best].time )
       best = i;
   }
-
-  printf("memcpy: using %s\n", memcpy_method[best].name );
+  printf("xine: using %s\n", memcpy_method[best].name );
   xine_fast_memcpy = memcpy_method[best].function;
-
-  {
-    cfg_entry_t *cfg_entry = config->lookup_entry (config, "fast_memcpy");
-    cfg_entry->enum_value = best;
-  }  
-
+  config->set_int (config, "fast_memcpy", best );
+  
   free(buf1);
   free(buf2);
 }
