@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.2 2003/01/05 15:05:55 miguelfreitas Exp $
+ * $Id: oscope.c,v 1.3 2003/01/14 21:00:42 miguelfreitas Exp $
  *
  */
 
@@ -48,7 +48,8 @@ struct post_plugin_oscope_s {
 
   int data_idx;
   short data [2][NUMSAMPLES];
-  
+  audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
+ 
   int bits;
   int mode;
   int channels;
@@ -268,7 +269,24 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
   int samples_used = 0;
   uint64_t vpts = buf->vpts;
   int i, j;
-
+  
+  /* make a copy of buf data for private use */
+  if( this->buf.mem_size < buf->mem_size ) {
+    this->buf.mem = realloc(this->buf.mem, buf->mem_size);
+    this->buf.mem_size = buf->mem_size;
+  }
+  memcpy(this->buf.mem, buf->mem, 
+         buf->num_frames*this->channels*((this->bits == 8)?1:2));
+  this->buf.num_frames = buf->num_frames;
+  
+  /* pass data to original port */
+  port->original_port->put_buffer(port->original_port, buf, stream );  
+  
+  /* we must not use original data anymore, it should have already being moved
+   * to the fifo of free audio buffers. just use our private copy instead.
+   */
+  buf = &this->buf; 
+  
   this->sample_counter += buf->num_frames;
   
   j = (this->channels >= 2) ? 1 : 0;
@@ -318,7 +336,6 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
 
     }
   } while( this->sample_counter >= this->samples_per_frame );
-  port->original_port->put_buffer(port->original_port, buf, stream );  
 }
 
 static void oscope_dispose(post_plugin_t *this_gen)
@@ -336,6 +353,8 @@ static void oscope_dispose(post_plugin_t *this_gen)
   free(xine_list_first_content(this->post.output));
   xine_list_free(this->post.input);
   xine_list_free(this->post.output);
+  if(this->buf.mem)
+    free(this->buf.mem);
   free(this);
 }
 
@@ -362,6 +381,8 @@ static post_plugin_t *oscope_open_plugin(post_class_t *class_gen, int inputs,
   this->sample_counter = 0;
   this->stream  = NULL;
   this->vo_port = video_target[0];
+  this->buf.mem = NULL;
+  this->buf.mem_size = 0;  
 
   port = post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = oscope_port_open;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.20 2003/01/06 22:18:24 tmattern Exp $
+ * $Id: xine_goom.c,v 1.21 2003/01/14 21:00:23 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -73,6 +73,7 @@ struct post_plugin_goom_s {
   
   int data_idx;
   gint16 data [2][512];
+  audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
   
   int bits;
   int mode;
@@ -206,6 +207,8 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->sample_counter = 0;
   this->stream  = NULL;
   this->vo_port = video_target[0];
+  this->buf.mem = NULL;
+  this->buf.mem_size = 0;  
 
   port = post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = goom_port_open;
@@ -279,6 +282,8 @@ static void goom_dispose(post_plugin_t *this_gen)
   free(xine_list_first_content(this->post.output));
   xine_list_free(this->post.input);
   xine_list_free(this->post.output);
+  if(this->buf.mem)
+    free(this->buf.mem);
   free(this);
 }
 
@@ -381,6 +386,23 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   uint64_t vpts = buf->vpts;
   int i, j;
   uint8_t *dest_ptr;
+  
+  /* make a copy of buf data for private use */
+  if( this->buf.mem_size < buf->mem_size ) {
+    this->buf.mem = realloc(this->buf.mem, buf->mem_size);
+    this->buf.mem_size = buf->mem_size;
+  }
+  memcpy(this->buf.mem, buf->mem, 
+         buf->num_frames*this->channels*((this->bits == 8)?1:2));
+  this->buf.num_frames = buf->num_frames;
+  
+  /* pass data to original port */
+  port->original_port->put_buffer(port->original_port, buf, stream );  
+  
+  /* we must not use original data anymore, it should have already being moved
+   * to the fifo of free audio buffers. just use our private copy instead.
+   */
+  buf = &this->buf; 
 
   this->sample_counter += buf->num_frames;
   
@@ -488,5 +510,4 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       frame->free(frame);
     }
   } while( this->sample_counter >= this->samples_per_frame );
-  port->original_port->put_buffer(port->original_port, buf, stream );  
 }
