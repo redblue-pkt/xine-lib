@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.49 2001/11/18 13:44:53 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.50 2001/11/18 22:58:30 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1088,10 +1088,11 @@ static void w32a_close (audio_decoder_t *this_gen) {
 
   Restore_LDT_Keeper(this->ldt_fs);
   
-  if (!this->output_open) {
+  if (this->output_open) {
     this->audio_out->close (this->audio_out);
     this->output_open = 0;
   }
+  
   if( this->buf ) {
     free(this->buf);
     this->buf = NULL;
