@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.23 2003/10/13 06:57:28 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.24 2003/11/03 23:58:18 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -42,6 +42,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -139,16 +140,22 @@ static char *read_line_from_input(demux_sputext_t *this, char *line, off_t len) 
   off_t nread = 0;
   char *s;
   int linelen;
-
-  if ((len - this->buflen) >512)
-    nread = this->input->read(this->input, &this->buf[this->buflen], len - this->buflen);
-
+  
+  if ((len - this->buflen) > 512) {
+    if((nread = this->input->read(this->input, 
+				  &this->buf[this->buflen], len - this->buflen)) == -1) {
+      lprintf("read failed: %s\n", strerror(errno));
+      return NULL;
+    }
+  }
+  
   this->buflen += nread;
   this->buf[this->buflen] = '\0';
 
-  s = strstr(this->buf, "\n");
-  if (line && (s || this->buflen)) {
+  s = strchr(this->buf, '\n');
 
+  if (line && (s || this->buflen)) {
+    
     linelen = s ? (s - this->buf) + 1 : this->buflen;
     
     memcpy(line, this->buf, linelen);
@@ -282,7 +289,7 @@ static subtitle_t *sub_read_line_microdvd(demux_sputext_t *this, subtitle_t *cur
     if (current->text[i]==ERR) return ERR;
     i++;
     if (i>=SUB_MAX_TEXT) { 
-      printf ("Too many lines in a subtitle\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
       current->lines=i;
       return current;
     }
@@ -403,7 +410,7 @@ static subtitle_t *sub_read_line_vplayer(demux_sputext_t *this,subtitle_t *curre
         return ERR;
       i++;
       if (i>=SUB_MAX_TEXT) { 
-        printf ("Too many lines in a subtitle\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
         current->lines=i;
         return current;
       }
@@ -453,7 +460,7 @@ static subtitle_t *sub_read_line_rt(demux_sputext_t *this,subtitle_t *current) {
 	return ERR;
       i++;
       if (i>=SUB_MAX_TEXT) { 
-	printf ("Too many lines in a subtitle\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
 	current->lines=i;
 	return current;
       }
@@ -573,7 +580,7 @@ static subtitle_t *sub_read_line_mpsub (demux_sputext_t *this, subtitle_t *curre
     *q='\0';
     if (strlen(p)) {
       current->text[num]=strdup(p);
-      printf (">%s<\n",p);
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, ">%s<\n",p);
       current->lines = ++num;
     } else {
       if (num) 
@@ -640,30 +647,30 @@ static int sub_autodetect (demux_sputext_t *this) {
     if ((sscanf (line, "{%d}{}", &i)==1) ||
         (sscanf (line, "{%d}{%d}", &i, &i)==2)) {
       this->uses_time=0;
-      printf ("demux_sputext: microdvd subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "microdvd subtitle format detected\n");
       return FORMAT_MICRODVD;
     }
 
     if (sscanf (line, "%d:%d:%d,%d --> %d:%d:%d,%d", &i, &i, &i, &i, &i, &i, &i, &i)==8) {
       this->uses_time=1;
-      printf ("demux_sputext: subrip subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subrip subtitle format detected\n");
       return FORMAT_SUBRIP;
     }
 
     if (sscanf (line, "%d:%d:%d.%d,%d:%d:%d.%d",     &i, &i, &i, &i, &i, &i, &i, &i)==8){
       this->uses_time=1;
-      printf ("demux_sputext: subviewer subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subviewer subtitle format detected\n");
       return FORMAT_SUBVIEWER;
     }
 
     if (strstr (line, "<SAMI>")) {
       this->uses_time=1; 
-      printf ("demux_sputext: sami subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "sami subtitle format detected\n");
       return FORMAT_SAMI;
     }
     if (sscanf (line, "%d:%d:%d:",     &i, &i, &i )==3) {
       this->uses_time=1;
-      printf ("demux_sputext: vplayer subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "vplayer subtitle format detected\n");
       return FORMAT_VPLAYER;
     }
     /*
@@ -672,32 +679,32 @@ static int sub_autodetect (demux_sputext_t *this) {
      */
     if ( !strcasecmp(line, "<window") ) {
       this->uses_time=1;
-      printf ("demux_sputext: rt subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "rt subtitle format detected\n");
       return FORMAT_RT;
     }
     if ((!memcmp(line, "Dialogue: Marked", 16)) || (!memcmp(line, "Dialogue: ", 10))) {
       this->uses_time=1; 
-      printf ("demux_sputext: ssa subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ssa subtitle format detected\n");
       return FORMAT_SSA;
     }
     if (sscanf (line, "%d,%d,\"%c", &i, &i, (char *) &i) == 3) {
       this->uses_time=0;
-      printf ("demux_sputext: (dunno) subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "(dunno) subtitle format detected\n");
       return FORMAT_DUNNO;
     }
     if (sscanf (line, "FORMAT=%d", &i) == 1) {
       this->uses_time=0; 
-      printf ("demux_sputext: mpsub subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "mpsub subtitle format detected\n");
       return FORMAT_MPSUB;
     }
     if (sscanf (line, "FORMAT=TIM%c", &p)==1 && p=='E') {
       this->uses_time=1; 
-      printf ("demux_sputext: mpsub subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "mpsub subtitle format detected\n");
       return FORMAT_MPSUB;
     }
     if (strstr (line, "-->>")) {
       this->uses_time=0; 
-      printf ("demux_sputext: aqtitle subtitle format detected\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "aqtitle subtitle format detected\n");
       return FORMAT_AQTITLE;
     }
   }
@@ -730,11 +737,11 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
 
   this->format=sub_autodetect (this);
   if (this->format==-1) {
-    printf ("demux_sputext: Could not determine file format\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Could not determine file format\n");
     return NULL;
   }
 
-  printf ("demux_sputext: Detected subtitle file format: %d\n",this->format);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Detected subtitle file format: %d\n",this->format);
     
   /* Rewind */
   this->input->seek(this->input, 0, SEEK_SET);
@@ -767,11 +774,18 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     }
   }
 
-  printf ("demux_sputext: Read %i subtitles", this->num);
-  if (this->errs) 
-    printf (", %i bad line(s).\n", this->errs);
-  else 	  
-    printf (".\n");
+  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+    char buffer[1024];
+
+    sprintf(buffer, "Read %i subtitles", this->num);
+
+    if(this->errs) 
+      sprintf(buffer, "%s, %i bad line(s).\n", buffer, this->errs);
+    else
+      sprintf(buffer, "%s%c", buffer, '\n');
+    
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, buffer);
+  }
   
   return first;
 }
@@ -852,9 +866,8 @@ static int demux_sputext_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
 
-#ifdef LOG
-  printf("demux_sputext: seek() called\n");
-#endif
+  lprintf("demux_sputext: seek() called\n");
+
   /* simple seeking approach: just go back to start. 
    * decoder will discard subtitles until the desired position.
    */
@@ -871,9 +884,8 @@ static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
   buf_element_t *buf;
   
-#ifdef LOG
-  printf("demux_sputext: send_headers() called\n");
-#endif
+
+  lprintf("demux_sputext: send_headers() called\n");
   
   xine_demux_control_start(this->stream);
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
@@ -913,9 +925,7 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   input_plugin_t        *input = (input_plugin_t *) input_gen;
   demux_sputext_t       *this;
 
-#ifdef LOG
-  printf("demux_sputext: open_plugin() called\n");
-#endif
+  lprintf("demux_sputext: open_plugin() called\n");
   
   this = xine_xmalloc (sizeof (demux_sputext_t));
   this->stream = stream;
@@ -972,8 +982,10 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
       this->cur = 0;
 
       if (this->subtitles) {
-        printf ("demux_sputext: subtitle format %s time.\n", this->uses_time?"uses":"doesn't use");
-        printf ("demux_sputext: read %i subtitles, %i errors.\n", this->num, this->errs);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subtitle format %s time.\n", 
+		 this->uses_time ? "uses" : "doesn't use");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "read %i subtitles, %i errors.\n", this->num, this->errs);
         return &this->demux_plugin;
       }
     }
@@ -993,7 +1005,7 @@ static char *get_demux_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_demux_extensions (demux_class_t *this_gen) {
-  return "asc txt sub srt";
+  return "asc txt sub srt smi ssa";
 }
 
 static char *get_demux_mimetypes (demux_class_t *this_gen) {
@@ -1013,9 +1025,7 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
 
   demux_sputext_class_t *this ;
 
-#ifdef LOG
-  printf("demux_sputext: initializing\n");
-#endif
+  lprintf("demux_sputext: initializing\n");
   
   this = xine_xmalloc (sizeof (demux_sputext_class_t));
 
