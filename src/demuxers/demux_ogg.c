@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.125 2003/12/10 01:18:36 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.126 2003/12/20 19:51:48 manfredtremmel Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -61,6 +61,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+#include "bswap.h"
 
 #define CHUNKSIZE                8500
 #define PACKET_TYPE_HEADER       0x01
@@ -840,13 +841,21 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	  memcpy(&locsubtype, &op.packet[9], 4);
 	  memcpy(&locsize, &op.packet[13], 4);
+	  locsize = LE_32(&locsize);
 	  memcpy(&loctime_unit, &op.packet[17], 8);
+	  loctime_unit = LE_64(&loctime_unit);
 	  memcpy(&locsamples_per_unit, &op.packet[25], 8);
+	  locsamples_per_unit = LE_64(&locsamples_per_unit);
 	  memcpy(&locdefault_len, &op.packet[33], 4);
+	  locdefault_len = LE_32(&locdefault_len);
 	  memcpy(&locbuffersize, &op.packet[37], 4);
+	  locbuffersize = LE_32(&locbuffersize);
 	  memcpy(&locbits_per_sample, &op.packet[41], 2);
+	  locbits_per_sample = LE_16(&locbits_per_sample);
 	  memcpy(&locwidth, &op.packet[45], 4);
+	  locwidth = LE_32(&locwidth);
 	  memcpy(&locheight, &op.packet[49], 4);
+	  locheight = LE_32(&locheight);
 
           lprintf ("direct show filter created stream detected, hexdump:\n");
 #ifdef LOG

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.23 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_arts_out.c,v 1.24 2003/12/20 19:51:48 manfredtremmel Exp $
  */
 
 #ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
@@ -42,6 +42,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "audio_out.h"
+#include "bswap.h"
 
 #define AO_OUT_ARTS_IFACE_VERSION 8
 
@@ -92,7 +93,8 @@ static void ao_arts_volume(void *buffer, int length, int volume) {
   
   while (length--) {
     v=(int) ((*(data) * volume) / 100);
-    *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+    *(data)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+    *(data++)=LE_16(data);
   }
 }
 /* End volume control */
