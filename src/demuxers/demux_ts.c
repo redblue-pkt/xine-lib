@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.24 2001/11/11 17:09:33 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.25 2001/11/11 19:14:06 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -131,6 +131,7 @@ typedef struct {
   demux_ts_media   media[MAX_PIDS];
   uint32_t	   program_number[MAX_PMTS];
   uint32_t	   pmt_pid[MAX_PMTS];
+  uint32_t         crc32_table[256];
   /*
    * Stuff to do with the transport header. As well as the video
    * and audio PIDs, we keep the index of the corresponding entry
@@ -148,6 +149,28 @@ typedef struct {
 
 static uint32_t xine_debug;
 
+static void demux_ts_build_crc32_table(demux_ts *this) {
+  uint32_t  i, j, k;
+
+  for( i = 0 ; i < 256 ; i++ )
+  {
+    k = 0;
+    for (j = (i << 24) | 0x800000 ; j != 0x80000000 ; j <<= 1) {
+      k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+    }
+    this->crc32_table[i] = k;
+  }
+}
+
+static uint32_t demux_ts_compute_crc32(demux_ts *this, uint8_t *data, uint32_t length, uint32_t crc32) {
+  uint32_t i;
+
+  for(i = 0; i < length; i++) {
+    crc32 = (crc32 << 8) ^ this->crc32_table[(crc32 >> 24) ^ data[i]];
+  }
+  return crc32;
+} 
+
 
 /*
  * demux_ts_parse_pat
@@ -161,7 +184,6 @@ static uint32_t xine_debug;
  */
 static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
 				unsigned char *pkt, unsigned int pus) {
-
   uint32_t	 table_id;
   uint32_t	 section_syntax_indicator;
   uint32_t	 section_length;
@@ -170,6 +192,8 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   uint32_t	 current_next_indicator;
   uint32_t	 section_number;
   uint32_t	 last_section_number;
+  uint32_t	 crc32;
+  uint32_t	 calc_crc32;
 
   unsigned char *program;
   unsigned int   program_number;
@@ -201,6 +225,10 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   current_next_indicator = ((uint32_t)pkt[10] & 0x01);
   section_number = (uint32_t)pkt[11];
   last_section_number = (uint32_t)pkt[12];
+  crc32 = (uint32_t)pkt[4+section_length] << 24;
+  crc32 |= (uint32_t)pkt[5+section_length] << 16;
+  crc32 |= (uint32_t)pkt[6+section_length] << 8;
+  crc32 |= (uint32_t)pkt[7+section_length] ;
 
   xprintf (VERBOSE|DEMUX,"PAT table_id=%d\n",
            table_id);
@@ -218,7 +246,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
            section_number);
   xprintf (VERBOSE|DEMUX,"\tlast_section_number=%d\n",
            last_section_number);
-
+  
   if (!(current_next_indicator)) {
     /*
      * Not current!
@@ -236,10 +264,15 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   }
   
   /*
-   * TBD: at this point, we should check the CRC. Its not that expensive, and
-   * the consequences of getting it wrong are dire!
+   * Check CRC.
    */
-  
+  calc_crc32 = demux_ts_compute_crc32(this, pkt+5, section_length+3-4, 0xffffffff);
+  if (crc32 != calc_crc32) {
+    printf("demux_ts: demux error! PAT with invalid CRC32: packet_crc32=0x%08x calc_crc32=0x%08x\n",
+               crc32,calc_crc32); 
+    return;
+  }
+ 
   /*
    * Process all programs in the program loop.
    */
@@ -533,7 +566,9 @@ static void demux_ts_parse_pmt(demux_ts *this,
   uint32_t	 current_next_indicator;
   uint32_t	 section_number;
   uint32_t	 last_section_number;
-  //unsigned int length;
+  uint32_t	 crc32;
+  uint32_t	 calc_crc32;
+
   unsigned int programInfoLength;
   unsigned int codedLength;
   unsigned int mediaIndex;
@@ -565,6 +600,10 @@ static void demux_ts_parse_pmt(demux_ts *this,
   current_next_indicator = ((uint32_t)pkt[10] & 0x01);
   section_number = (uint32_t)pkt[11];
   last_section_number = (uint32_t)pkt[12];
+  crc32 = (uint32_t)pkt[4+section_length] << 24;
+  crc32 |= (uint32_t)pkt[5+section_length] << 16;
+  crc32 |= (uint32_t)pkt[6+section_length] << 8;
+  crc32 |= (uint32_t)pkt[7+section_length] ;
 
   xprintf (VERBOSE|DEMUX,"PMT table_id=%d\n",
            table_id);
@@ -600,10 +639,14 @@ static void demux_ts_parse_pmt(demux_ts *this,
   }
   
   /*
-   * TBD: at this point, we should check the CRC. Its not that expensive, and
-   * the consequences of getting it wrong are dire!
+   * Check CRC.
    */
-  
+  calc_crc32 = demux_ts_compute_crc32(this, pkt+5, section_length+3-4, 0xffffffff);
+  if (crc32 != calc_crc32) {
+    printf("demux_ts: demux error! PMT with invalid CRC32: packet_crc32=0x%08x calc_crc32=0x%08x\n",
+               crc32,calc_crc32); 
+    return;
+  }
   /*
    * ES definitions start here...we are going to learn upto one video
    * PID and one audio PID.
@@ -750,18 +793,18 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
   transport_private_data_flag = ((data[0] >> 1) & 0x01);
   adaptation_field_extension_flag = (data[0] & 0x01);
   
-  printf("ADAPTATION FIELD length=%d\n", 
+  xprintf(VERBOSE|DEMUX, "ADAPTATION FIELD length=%d\n", 
     adaptation_field_length);
   if(discontinuity_indicator) {
-    printf("\tDiscontinuity indicator=%d\n",
+    xprintf(VERBOSE|DEMUX, "\tDiscontinuity indicator=%d\n",
       discontinuity_indicator);
   }
   if(random_access_indicator) {
-    printf("\tRandom_access indicator=%d\n",
+    xprintf(VERBOSE|DEMUX, "\tRandom_access indicator=%d\n",
       random_access_indicator);
   }
   if(elementary_stream_priority_indicator) {
-    printf("\tElementary_stream_priority_indicator=%d\n",
+    xprintf(VERBOSE|DEMUX, "\tElementary_stream_priority_indicator=%d\n",
       elementary_stream_priority_indicator);
   }
   if(PCR_flag) {
@@ -771,7 +814,7 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
     PCR |= data[offset+3] << 1;
     PCR |= (data[offset+4] >> 7) & 0x01;
     EPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
-    printf("\tPCR=%u, EPCR=%u\n",
+    xprintf(VERBOSE|DEMUX, "\tPCR=%u, EPCR=%u\n",
        PCR,EPCR);
     offset+=6;
   }
@@ -782,20 +825,20 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
     OPCR |= data[offset+3] << 1;
     OPCR |= (data[offset+4] >> 7) & 0x01;
     EOPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
-    printf("\tOPCR=%u,EOPCR=%u\n",
+    xprintf(VERBOSE|DEMUX, "\tOPCR=%u,EOPCR=%u\n",
        OPCR,EOPCR);
     offset+=6;
   }
   if(slicing_point_flag) {
-    printf("\tslicing_point_flag=%d\n",
+    xprintf(VERBOSE|DEMUX, "\tslicing_point_flag=%d\n",
       slicing_point_flag);
   }
   if(transport_private_data_flag) {
-    printf("\ttransport_private_data_flag=%d\n",
+    xprintf(VERBOSE|DEMUX, "\ttransport_private_data_flag=%d\n",
       transport_private_data_flag);
   }
   if(adaptation_field_extension_flag) {
-    printf("\tadaptation_field_extension_flag=%d\n",
+    xprintf(VERBOSE|DEMUX, "\tadaptation_field_extension_flag=%d\n",
       adaptation_field_extension_flag);
   }
 }
@@ -1031,6 +1074,7 @@ static void demux_ts_start(demux_plugin_t *this_gen,
     this->input->seek (this->input, start_pos, SEEK_SET);
 
   } 
+  demux_ts_build_crc32_table(this);
 
   /*
    * Now start demuxing.
