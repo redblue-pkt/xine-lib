@@ -54,6 +54,28 @@ AC_DEFUN([AC_CHECK_LIRC],
 ])
 
 
+dnl AC_LINUX_PATH(DEFAULT PATH)
+AC_DEFUN(AC_LINUX_PATH,
+  [AC_ARG_WITH(linux-path,
+    [  --with-linux-path=PATH  Where the linux sources are located],
+            linux_path="$withval", linux_path="$1")
+  LINUX_INCLUDE="-I$linux_path/include"
+])
+
+dnl AC_CHECK_DXR3()
+AC_DEFUN(AC_CHECK_DXR3,
+  [
+  AC_ARG_ENABLE(dxr3,
+   [  --enable-dxr3           Turn on DXR3/HW+ decoder support],
+   enable_dxr3=yes, enable_dxr3=no)
+
+  if test x$enable_dxr3 = xyes; then
+    AC_CHECK_HEADER($linux_path/include/linux/em8300.h, have_dxr3=yes,
+		AC_MSG_ERROR(DXR3 headers not found))
+  fi
+])
+
+
 dnl AC_C_ATTRIBUTE_ALIGNED
 dnl define ATTRIBUTE_ALIGNED_MAX to the maximum alignment if this is supported
 AC_DEFUN([AC_C_ATTRIBUTE_ALIGNED],
