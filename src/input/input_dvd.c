@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.147 2003/04/06 23:44:59 guenter Exp $
+ * $Id: input_dvd.c,v 1.148 2003/04/07 16:51:29 mroi Exp $
  *
  */
 
@@ -327,12 +327,12 @@ void update_title_display(dvd_input_plugin_t *this) {
 	       "Title %i, Chapter %i",
 	       tt,pr);
     }
-  } else if (tt == 0) {
+  } else if (tt == 0 && dvdnav_menu_table[pr]) {
     snprintf(this->ui_title, MAX_STR_LEN,
              "DVD %s Menu",
              dvdnav_menu_table[pr]);
   } else {
-    strcpy(this->ui_title, "DVD Navigator: Menu");
+    strcpy(this->ui_title, "DVD Menu");
   }
   ui_str_length = strlen(this->ui_title);
   
@@ -1576,6 +1576,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.148  2003/04/07 16:51:29  mroi
+ * output beautification
+ *
  * Revision 1.147  2003/04/06 23:44:59  guenter
  * some more dvd error reporting
  *
