@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.103 2003/03/16 15:54:00 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.104 2003/03/19 22:22:42 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -567,7 +567,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	this->size -= len;
 	offset += len;
 
-	if (!got_picture) {
+	if (!got_picture || !this->av_frame->data[0]) {
 	  printf ("ffmpeg: didn't get a picture, got %d bytes left\n",
 		  this->size);
 
