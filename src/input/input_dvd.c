@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.28 2001/10/05 17:36:28 jkeil Exp $
+ * $Id: input_dvd.c,v 1.29 2001/10/06 13:46:07 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -133,6 +133,86 @@ static void closeDrive (dvd_input_plugin_t *this) {
 
 }
 
+#ifdef __sun
+#include <sys/scsi/generic/commands.h>
+#include <sys/scsi/impl/uscsi.h>
+
+/* SCSI mmc3 DVD Commands */
+#define GPCMD_READ_DVD_STRUCTURE        0xad
+#define GPCMD_SEND_DVD_STRUCTURE        0xad
+#define GPCMD_REPORT_KEY                0xa4
+#define GPCMD_SEND_KEY                  0xa3
+
+/* DVD struct types */
+#define DVD_STRUCT_PHYSICAL             0x00
+#define DVD_STRUCT_COPYRIGHT            0x01
+#define DVD_STRUCT_DISCKEY              0x02
+#define DVD_STRUCT_BCA                  0x03
+#define DVD_STRUCT_MANUFACT             0x04
+
+struct dvd_copyright {
+  uint8_t type;
+
+  uint8_t layer_num;
+  uint8_t cpst;
+  uint8_t rmi;
+};
+
+typedef union {
+  uint8_t		type;
+
+/*
+  struct dvd_physical   physical;
+*/
+  struct dvd_copyright  copyright;
+/*
+  struct dvd_disckey    disckey;
+  struct dvd_bca        bca;
+  struct dvd_manufact   manufact;
+*/
+} dvd_struct;
+
+
+static int
+dvd_read_copyright(int fd, dvd_struct *s)
+{
+  struct uscsi_cmd sc;
+  union scsi_cdb rs_cdb;
+  uint8_t buf[8];
+
+  memset(&rs_cdb, 0, sizeof(rs_cdb));
+  rs_cdb.scc_cmd = GPCMD_READ_DVD_STRUCTURE;
+  rs_cdb.cdb_opaque[6] = s->copyright.layer_num;
+  rs_cdb.cdb_opaque[7] = s->type;
+  rs_cdb.cdb_opaque[8] = (sizeof(buf) >> 8) & 0xff;
+  rs_cdb.cdb_opaque[9] =  sizeof(buf)       & 0xff;
+
+  memset(&sc, 0, sizeof(sc));
+  sc.uscsi_cdb = (caddr_t)&rs_cdb;
+  sc.uscsi_cdblen = 12;
+  sc.uscsi_bufaddr = buf;
+  sc.uscsi_buflen = sizeof(buf);
+  sc.uscsi_flags = USCSI_ISOLATE|USCSI_READ;
+  sc.uscsi_timeout = 15;
+  
+  memset(buf, 0, sizeof(buf));
+
+  if (ioctl(fd, USCSICMD, &sc)) {
+    perror("USCSICMD dvd_read_copyright");
+    return -1;
+  }
+  if (sc.uscsi_status) {
+    fprintf(stderr, "bad status: READ DVD STRUCTURE (copyright)\n");
+    return -1;
+  }
+
+  s->copyright.cpst = buf[4];
+  s->copyright.rmi = buf[5];
+
+  return 0;
+}
+#endif
+
 /*
  * try to open dvd and prepare to read >filename<
  *
@@ -143,11 +223,6 @@ static int openDVDFile (dvd_input_plugin_t *this,
   char  str[256];
   int   lbnum;
   int   encrypted=0;
-#if defined HAVE_LINUX_CDROM_H
-  dvd_struct         dvd;
-#elif defined __FreeBSD__
-   struct dvd_struct         dvd;
-#endif
 
   xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n", filename);
 
@@ -157,25 +232,44 @@ static int openDVDFile (dvd_input_plugin_t *this,
   }
 
 #if defined HAVE_LINUX_CDROM_H
-  dvd.copyright.type = DVD_STRUCT_COPYRIGHT;
-  dvd.copyright.layer_num=0;
-  if (ioctl (this->dvd_fd, DVD_READ_STRUCT, &dvd) < 0) {
-    printf ("input_dvd: Could not read Copyright Structure\n");
-    return 0;
-  }
-  encrypted = (dvd.copyright.cpst != 0) ;
+  {
+    dvd_struct         dvd;
 
+    dvd.copyright.type      = DVD_STRUCT_COPYRIGHT;
+    dvd.copyright.layer_num = 0;
+    if (ioctl (this->dvd_fd, DVD_READ_STRUCT, &dvd) < 0) {
+      printf ("input_dvd: Could not read Copyright Structure\n");
+      return 0;
+    }
+    encrypted = (dvd.copyright.cpst != 0) ;
+  }
 #elif defined __FreeBSD__
+  {
+    struct dvd_struct         dvd;
 
-  dvd.format    = DVD_STRUCT_COPYRIGHT;
-  dvd.layer_num = 0;
+    dvd.format    = DVD_STRUCT_COPYRIGHT;
+    dvd.layer_num = 0;
 
-  if (ioctl(this->dvd_fd, DVDIOCREADSTRUCTURE, &dvd) < 0) {
-    printf ("input_dvd: Could not read Copyright Structure\n");
-    return 0;
+    if (ioctl(this->dvd_fd, DVDIOCREADSTRUCTURE, &dvd) < 0) {
+      printf ("input_dvd: Could not read Copyright Structure\n");
+      return 0;
+    }
+
+    encrypted = (dvd.cpst != 0);
   }
+#elif defined __sun
+  {
+    dvd_struct         dvd;
 
-  encrypted = (dvd.cpst != 0);
+    dvd.copyright.type      = DVD_STRUCT_COPYRIGHT;
+    dvd.copyright.layer_num = 0;
+    if (dvd_read_copyright(this->raw_fd, &dvd) < 0) {
+      printf ("input_dvd: Could not read Copyright Structure\n");
+      return 0;
+    }
+
+    encrypted = (dvd.copyright.cpst != 0) ;      
+  }
 #endif
 
   if( encrypted ) {
