@@ -1,3 +1,4 @@
+  * bugfix: lot skipped frames and low cpu
   * reworked spu/menu decoder
   * new deinterlace method using Xv scaling for slower systems
   * mmx/mmxext/sse optimized memcpy functions
