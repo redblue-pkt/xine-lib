@@ -1181,10 +1181,11 @@ static void do_eit(dvb_input_plugin_t *this)
           case 0x4D: { /* simple program info descriptor */
               int name_len;
               int desc_len;
+              xine_cfg_entry_t language;
               desc_len = getbits(eit, 0, 8);
 
 	      /* Let's get the EPG data only in the wanted language. */
-	      xine_cfg_entry_t language;
+	      
 	      xine_config_lookup_entry(this->stream->xine, "input.dvd_language", &language);
 
 	      if (language.str_value && *language.str_value && 
@@ -1342,10 +1343,10 @@ static void show_eit(dvb_input_plugin_t *this) {
       }
       /*Content Type and Rating if any*/
       if(strlen(this->channels[this->channel].eit[0].content)>3){
-
+        int prog_rating;
 	snprintf(line, 94, "%s", this->channels[this->channel].eit[0].content);
 
-	const int prog_rating = this->channels[this->channel].eit[0].rating;
+	prog_rating = this->channels[this->channel].eit[0].rating;
 	if (prog_rating > 0) {
 	    snprintf(line + strlen(line), 7, " (%i+)", prog_rating);
 	}
@@ -1394,10 +1395,10 @@ static void show_eit(dvb_input_plugin_t *this) {
       }
       /*Content Type and Rating if any*/
       if(strlen(this->channels[this->channel].eit[1].content)>3){
-
+        int prog_rating;
 	snprintf(line, 94, "%s", this->channels[this->channel].eit[1].content);
 
-	const int prog_rating = this->channels[this->channel].eit[1].rating;
+	prog_rating = this->channels[this->channel].eit[1].rating;
 	if (prog_rating > 0) {
 	    snprintf(line + strlen(line), 7, " (%i+)", prog_rating);
 	}
