@@ -3,7 +3,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 if HAVE_GICONV
-sputext_decoder = xineplug_decode_sputext.la xineplug_dmx_sputext.la
+sputext_decoder = xineplug_decode_sputext.la xineplug_decode_spuogm.la xineplug_dmx_sputext.la
 endif
 
 lib_LTLIBRARIES = $(sputext_decoder)
