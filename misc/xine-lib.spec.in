@@ -264,8 +264,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/hackersguide/*.sgml doc/hackersguide/*.fig doc/hackersguide/README
 %{_libdir}/libxine*.so
 %{_libdir}/libxine*.la
-%{_includedir}/xine.h
-%{_includedir}/xine/*.h
+%{_includedir}/*
 %{_datadir}/aclocal/xine.m4
 #%ifos linux
 #@BUILD_DHA_KMOD_TRUE@/lib/modules/%(sh -c 'uname -r')/misc/dhahelper.o
@@ -278,6 +277,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed May 14 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Update for > 1-beta13
 * Sat Mar 08 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added missing doc-files
 * Wed Jan 15 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
