@@ -13,7 +13,7 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c \
 	video_overlay.c osd.c scratch.c locale.c demux.c vo_scale.c \
-	xine_interface.c post.c tvmode.c broadcaster.c
+	xine_interface.c post.c tvmode.c broadcaster.c io_helper.c
 
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
