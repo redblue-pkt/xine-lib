@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.3 2001/04/22 00:31:44 guenter Exp $
  *
  */
 
@@ -26,154 +26,118 @@
 #endif
 
 #include "xine_internal.h"
-#include "video_out/video_out.h"
-#include "video_decoder.h"
 
-#define MAX_NUM_DECODERS 10
+void *video_decoder_loop (void *this_gen) {
 
-typedef struct vd_globals_s {
+  buf_element_t   *buf;
+  xine_t          *this = (xine_t *) this_gen;
+  int              running = 1;
+  video_decoder_t *decoder;
 
-  pthread_t                  mVideoThread;
+  while (running) {
 
-  fifo_buffer_t             *mBufVideo;
+    buf = this->video_fifo->get (this->video_fifo);
 
-  video_decoder_t           *mDecoders[MAX_NUM_DECODERS];
-  video_decoder_t           *mCurDecoder;
+    /* gVD.mnCurInputPos = pBuf->nInputPos; */
 
-  uint32_t                   mnCurInputPos;
-
-  vo_instance_t             *mVideoOut;
-
-  gui_status_callback_func_t gui_status_callback;
-
-  int                        mbStreamFinished;
-
-  pthread_mutex_t            mXineLock;
-
-} vd_globals_t;
-
-static vd_globals_t gVD;
-
-void *video_decoder_loop () {
-
-  buf_element_t *pBuf;
-  int bRunning = 1;
-
-  while (bRunning) {
-
-    pBuf = gVD.mBufVideo->fifo_buffer_get (gVD.mBufVideo);
-
-    gVD.mnCurInputPos = pBuf->nInputPos;
-
-    switch (pBuf->nType) {
-    case BUF_STREAMSTART:
-      if (gVD.mCurDecoder) {
-	gVD.mCurDecoder->close ();
-	gVD.mCurDecoder = NULL;
+    switch (buf->type) {
+    case BUF_CONTROL_START:
+      if (this->video_cur_decoder) {
+	this->video_cur_decoder->close ();
+	this->video_cur_decoder = NULL;
       }
 
-      pthread_mutex_lock (&gVD.mXineLock);
-      gVD.mbStreamFinished = 0;
-      pthread_mutex_unlock (&gVD.mXineLock);
+      pthread_mutex_lock (&this->xine_lock);
+      this->video_finished = 0;
+      pthread_mutex_unlock (&this->xine_lock);
 
       break;
 
-    case BUF_MPEGVIDEO:
-    case BUF_AVIVIDEO:
+    case BUF_VIDEO_MPEG:
+    case BUF_VIDEO_AVI:
       
-      decoder = gVD.mDecoders [pBuf->nType];
+      decoder = this->video_decoders [(buf->type>>16) & 0xFF];
 
       if (decoder) {
-	if (gVD.mCurDecoder != decoder) {
+	if (this->video_cur_decoder != decoder) {
 
-	  if (gVD.mCurDecoder) 
-	    gVD.mCurDecoder->close ();
+	  if (this->video_cur_decoder) 
+	    this->video_cur_decoder->close ();
 
-	  gVD.mCurDecoder = decoder;
-	  gVD.mCurDecoder->init (gVD.mVideoOut);
+	  this->video_cur_decoder = decoder;
+	  this->video_cur_decoder->init (this->video_out);
 
 	}
 	
-	decoder->decode_data (pBuf);
+	decoder->decode_data (buf);
       }
 
       break;
 
-    case BUF_STREAMEND:
-      if (gVD.mCurDecoder) {
-	gVD.mCurDecoder->close ();
-	gVD.mCurDecoder = NULL;
+    case BUF_CONTROL_END:
+      if (this->video_cur_decoder) {
+	this->video_cur_decoder->close ();
+	this->video_cur_decoder = NULL;
       }
 
-      gVD.mbStreamFinished = 1;
+      pthread_mutex_lock (&this->xine_lock);
 
-      pthread_mutex_lock (&gVD.mXineLock);
-
-      gVD.mbVideoFinished = 1;
+      this->video_finished = 1;
       
-      if (audio_decoder_is_stream_finished ()) {
-	pthread_mutex_unlock (&gVD.mXineLock);
-	xine_notify_stream_finished ();
+      if (this->audio_finished) {
+	pthread_mutex_unlock (&this->xine_lock);
+	xine_notify_stream_finished (this);
       } else
-	pthread_mutex_unlock (&gVD.mXineLock);
+	pthread_mutex_unlock (&this->xine_lock);
 
       break;
 
-    case BUF_QUIT:
-      if (gVD.mCurDecoder) {
-	gVD.mCurDecoder->close ();
-	gVD.mCurDecoder = NULL;
+    case BUF_CONTROL_QUIT:
+      if (this->video_cur_decoder) {
+	this->video_cur_decoder->close ();
+	this->video_cur_decoder = NULL;
       }
-      bRunning = 0;
+      running = 0;
       break;
 
     }
 
-    pBuf->free_buffer (pBuf);
+    buf->free_buffer (buf);
   }
 
   return NULL;
 }
 
-int video_decoder_is_stream_finished () {
-  return gVD.mbStreamFinished ;
-}
+void video_decoder_init (xine_t *this) {
 
-uint32_t video_decoder_get_pos () {
-  return gVD.mnCurPos;
-}
+  int i;
+  
+  this->video_cur_decoder = NULL;
+  for (i=0; i<DECODER_PLUGIN_MAX; i++)
+    this->video_decoders[i] = NULL;
 
-fifo_buffer_t *video_decoder_init (vo_instance_t *video_out,
-				   pthread_mutex_t xine_lock) {
+  /* FIXME: load video decoder plugins
+  this->video_decoders[0x00] = init_video_decoder_mpeg2dec ();
+  this->video_decoders[0x03] = init_video_decoder_avi ();
+  */
 
-  gVD.mVideoOut = video_out;
-  gVD.mXineLock = xine_lock;
+  this->video_fifo = fifo_buffer_new ();
 
-  gVD.mCurDecoder = NULL;
-  for (i=0; i<MAX_NUM_DECODERS; i++)
-    gVD.mDecoders[i] = NULL;
-
-  gVD.mDecoders[BUF_MPEGVIDEO] = init_video_decoder_mpeg2dec ();
-  gVD.mDecoders[BUF_AVIVIDEO]  = init_video_decoder_avi ();
-
-  gVD.mBufVideo = fifo_buffer_new ();
-
-  pthread_create (&gVD.mVideoThread, NULL, video_decoder_loop, NULL) ;
+  pthread_create (&this->video_thread, NULL, video_decoder_loop, this) ;
 
   printf ("video_decoder_init: video thread created\n");
-
-  return gVD.mBufVideo;
 }
 
-void video_decoder_shutdown () {
+void video_decoder_shutdown (xine_t *this) {
 
-  buf_element_t *pBuf;
+  buf_element_t *buf;
+  void          *p;
 
-  gVD.mBufVideo->fifo_buffer_clear(gVD.mBufVideo);
+  this->video_fifo->clear(this->video_fifo);
 
-  pBuf = gVD.mBufVideo->buffer_pool_alloc ();
-  pBuf->nType = BUF_QUIT;
-  gVD.mBufVideo->fifo_buffer_put (gVD.mBufVideo, pBuf);
+  buf = this->video_fifo->buffer_pool_alloc ();
+  buf->type = BUF_CONTROL_QUIT;
+  this->video_fifo->put (this->video_fifo, buf);
 
-  pthread_join (gVD.mVideoThread, &p);
+  pthread_join (this->video_thread, &p);
 }

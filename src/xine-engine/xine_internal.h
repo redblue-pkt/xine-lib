@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.4 2001/04/21 00:14:41 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.5 2001/04/22 00:31:44 guenter Exp $
  *
  */
 
@@ -33,14 +33,62 @@
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
+#define DECODER_PLUGIN_MAX     50
 #define CODEC_PLUGIN_IFACE_VERSION      1
 #define CODEC_PLUGIN_MAX       50
 #define AUDIO_OUT_PLUGIN_IFACE_VERSION  1
 #define AUDIO_OUT_PLUGIN_MAX   50
-#define VIDEO_OUT_PLUGIN_IFACE_VERSIO  1
+#define VIDEO_OUT_PLUGIN_IFACE_VERSION 1
 #define VIDEO_OUT_PLUGIN_MAX   50
 
-/* nStatus : current xine status */
+
+/*
+ * generic xine video decoder plugin interface
+ */
+
+typedef struct video_decoder_s video_decoder_t;
+
+struct video_decoder_s {
+
+  int interface_version;
+
+  int (*can_handle) (video_decoder_t *this, int buf_type);
+
+  void (*init) (video_decoder_t *this, vo_instance_t *video_out);
+
+  void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
+
+  void (*release_img_buffers) (video_decoder_t *this);
+
+  void (*close) (void);
+
+};
+
+/*
+ * generic xine audio decoder plugin interface
+ */
+
+typedef struct audio_decoder_s audio_decoder_t;
+
+struct audio_decoder_s {
+
+  int interface_version;
+
+  int (*can_handle) (audio_decoder_t *this, int buf_type);
+
+  void (*init) (audio_decoder_t *this, ao_functions_t *audio_out);
+
+  void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
+
+  void (*close) (audio_decoder_t *this);
+
+};
+
+/*
+ * gui callback function - called by xine engine on stream end
+ *
+ * nStatus : current xine status 
+ */
 typedef void (*gui_status_callback_func_t)(int nStatus);
 
 /*
@@ -76,7 +124,16 @@ typedef struct xine_s {
   int                        audio_channel;
   int                        spu_channel;
 
-  gui_status_callback_func_t status_callback;
+  vo_instance_t             *video_out;
+  fifo_buffer_t             *video_fifo;
+  pthread_t                  video_thread;
+  video_decoder_t           *video_decoders[DECODER_PLUGIN_MAX];
+  video_decoder_t           *video_cur_decoder;
+  int                        video_finished;
+
+  int                        audio_finished;
+
+  gui_status_callback_func_t gui_status_callback;
 
   /* Lock for xine player functions */
   pthread_mutex_t            xine_lock;
@@ -208,6 +265,42 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
  */
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 
+/*
+ * internal use only
+ */
+
+void xine_notify_stream_finished (xine_t *this);
+
+/*
+ * video decoder stuff
+ */
+
+/*
+ * init video decoders, allocate video fifo,
+ * start video decoder thread
+ */
+
+void video_decoder_init (xine_t *this);
+
+/*
+ * quit video thread
+ */
+
+void video_decoder_shutdown (xine_t *this);
+
+/*
+ * init audio decoders, allocate audio fifo,
+ * start audio decoder thread
+ */
+
+void audio_decoder_init (xine_t *this);
+
+/*
+ * quit audio thread
+ */
+
+void audio_decoder_shutdown (xine_t *this);
+
 
 /* 
  * Load input/demux/audio_out/video_out plugins
@@ -225,8 +318,11 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
 #define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME        "xineplug_ao_out_"
 #define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
 
-#define XINE_CODEC_PLUGIN_PREFIXNAME            "xineplug_codec_"
-#define XINE_CODEC_PLUGIN_PREFIXNAME_LENGTH     15
+#define XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME         "xineplug_ao_dec_"
+#define XINE_AUDIO_DECODER_PLUGIN_PREFIXNAME_LENGTH  16
+
+#define XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME         "xineplug_vo_dec_"
+#define XINE_VIDEO_DECODER_PLUGIN_PREFIXNAME_LENGTH  16
 
 /* prototypes of load_plugins.c functions. */
 void load_demux_plugins (xine_t *this, 

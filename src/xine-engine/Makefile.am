@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libxine.la
 ##libxine_la_SOURCES = xine.c buffer.c metronom.c configfile.c \
 ##	monitor.c utils.c audio_decoder.c video_decoder.c load_plugins.c
 libxine_la_SOURCES = metronom.c configfile.c monitor.c utils.c cpu_accel.c \
-	load_plugins.c
+	load_plugins.c video_decoder.c audio_decoder.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
 	$(top_srcdir)/src/libmpeg2/libmpeg2.la   \
@@ -18,16 +18,17 @@ libxine_la_LIBADD = \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
 	$(DYNAMIC_LD_LIBS)
-	-lXext -lm
+	-lm
 libxine_la_LDFLAGS =  -version-info 5:0:5
 
-include_HEADERS  = buffer.h metronom.h configfile.h \
-	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h \
-	video_decoder.h
-noinst_HEADERS = xine_internal.h
+#include_HEADERS  = buffer.h metronom.h configfile.h \
+#	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
 
-cpu_accel.lo:
-	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
+noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
+	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
+
+#cpu_accel.lo:
+#	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
 #	echo timestamp > $(basename $@).o
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.3 2001/04/21 00:14:41 f1rmb Exp $
+ * $Id: xine.c,v 1.4 2001/04/22 00:31:44 guenter Exp $
  *
  * top-level xine functions
  *
@@ -54,7 +54,6 @@
 #include "metronom.h"
 #include "configfile.h"
 #include "monitor.h"
-#include "video_decoder.h"
 #include "audio_decoder.h"
 
 /* debugging purposes only */
@@ -77,35 +76,6 @@ void xine_notify_stream_finished (xine_t *this) {
   xine_stop (this);
 
   this->status_callback (this->status);
-}
-
-/*
- *
- */
-void *xine_spu_loop (xine_t *this, void *dummy) {
-
-  buf_element_t *pBuf;
-  int bRunning = 1;
-
-  while (bRunning) {
-    
-    pBuf = this->fifo_funcs->fifo_buffer_get (this->spu_fifo);
-    
-    switch (pBuf->nType) {
-    case BUF_QUIT:
-      bRunning = 0;
-      break;
-    case BUF_RESET:
-      spudec_reset ();
-      break;
-    case BUF_SPU:
-      spudec_decode(pBuf->pContent, pBuf->nSize, pBuf->nPTS);
-      break;        
-    }
-    this->fifo_funcs->buffer_pool_free (pBuf);
-  }
-
-  return NULL;
 }
 
 /*
@@ -468,8 +438,7 @@ xine_t *xine_init (vo_instance_t *vo,
    * Init buffers
    */
 
-  this->fifo_funcs = buffer_pool_init (2000, 4096);
-  this->spu_fifo   = this->fifo_funcs->fifo_buffer_new ();
+  buffer_pool_init (2000, 4096);
 
   /*
    * init demuxer
@@ -487,24 +456,16 @@ xine_t *xine_init (vo_instance_t *vo,
    * init and start decoder threads
    */
 
-  this->mBufVideo = video_decoder_init (vo);
-
+  video_decoder_init (this);
   this->mBufAudio = audio_decoder_init (ao);
 
   /*
-   * init SPU decoder, start SPU thread
+   * init SPU decoder
    */
 
+  this->spu_fifo   = fifo_buffer_new ();
   spudec_init(NULL); 
 
-  if((err = pthread_create (&this->spu_thread, NULL, 
-			    xine_spu_loop, NULL)) != 0) {
-    fprintf(stderr, "pthread_create failed: return code %d.\n", err);
-    exit(1);
-  }
-  else
-    printf ("xine_init: SPU thread created\n");
-  
   /*
    * load input plugins
    */

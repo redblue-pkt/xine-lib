@@ -28,9 +28,7 @@
 
 /*  Xine specific */
 #include "buffer.h"
-#include "video_decoder.h"
-/* */ 
-
+#include "xine_internal.h"
 
 #include "video_out.h"
 #include "mpeg2.h"
