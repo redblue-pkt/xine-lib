@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.63 2001/12/09 18:03:26 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.64 2001/12/09 20:45:07 f1rmb Exp $
  *
  */
 
@@ -1152,71 +1152,77 @@ char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
  */
 #define mrl_stdin          (1 << 4)
 /**
+ * \def mrl_cda
+ * CD Audio mrl type.
+ * \sa mrl_t
+ */
+#define mrl_cda            (1 << 5)
+/**
  * \def mrl_file
  * File mrl type.
  * \sa mrl_t
  */
-#define mrl_file           (1 << 5)
+#define mrl_file           (1 << 6)
 /**
  * \def mrl_file_fifo
  * Fifo file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_fifo      (1 << 6)
+#define mrl_file_fifo      (1 << 7)
 /**
  * \def mrl_file_chardev
  * Char device file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_chardev   (1 << 7)
+#define mrl_file_chardev   (1 << 8)
 /**
  * \def mrl_file_directory
  * Directory file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_directory (1 << 8)
+#define mrl_file_directory (1 << 9)
 /**
  * \def mrl_file_blockdev
  * Block device file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_blockdev  (1 << 9)
+#define mrl_file_blockdev  (1 << 10)
 /**
  * \def mrl_file_normal
  * Normal file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_normal    (1 << 10)
+#define mrl_file_normal    (1 << 11)
 /**
  * \def mrl_file_symlink
  * Soft link file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_symlink   (1 << 11)
+#define mrl_file_symlink   (1 << 12)
 /**
  * \def mrl_file_sock
  * Socket file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_sock      (1 << 12)
+#define mrl_file_sock      (1 << 13)
 /**
  * \def mrl_file_exec
  * Executable file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_exec      (1 << 13)
+#define mrl_file_exec      (1 << 14)
 /**
  * \def mrl_file_backup
  * Backup file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_backup    (1 << 14)
+#define mrl_file_backup    (1 << 15)
 /**
  * \def mrl_file_hidden
  * Hidden file mrl type.
  * \sa mrl_t
  */
-#define mrl_file_hidden    (1 << 15)
+#define mrl_file_hidden    (1 << 16)
 
                /** @} end of mrl_types */
 
