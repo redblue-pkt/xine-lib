@@ -403,7 +403,7 @@ Matthew Grooms
   msvc win32 port
 
 Conrad Parker <conrad@metadecks.org>
-  speex and Annodex support
+  speex, Annodex and CMML support
 
 Marcel Janssen <korgull@home.nl>
   libavcodec MPEG encoder for DXR3
@@ -493,6 +493,7 @@ Daniel Mack <xine@zonque.org>
 
 André Pang <ozone@algorithm.com.au>
   Mac OS X fixes and framework/frontend work
+  Annodex and CMML support
 
 Stefan Kristiansson <stefan@langante.mine.nu>
   moved Xv initialization from class to plugin context
