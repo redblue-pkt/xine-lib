@@ -2094,8 +2094,8 @@ msgstr ""
 #: src/video_out/video_out_xv.c:300
 #, c-format
 msgid ""
-"video_out_xv: shared memory error in shmget: %svideo_out_xv: => not using "
-"MIT Shared Memory extension.\n"
+"video_out_xv: shared memory error in shmget: %s\n"
+"video_out_xv: => not using MIT Shared Memory extension.\n"
 msgstr ""
 
 #: src/video_out/video_out_xv.c:332

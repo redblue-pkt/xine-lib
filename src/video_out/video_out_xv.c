@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.193 2004/03/23 09:46:11 esnel Exp $
+ * $Id: video_out_xv.c,v 1.194 2004/04/07 19:35:42 pmhahn Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -297,7 +297,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     if (shminfo->shmid < 0 ) {
       xprintf(this->xine, XINE_VERBOSITY_LOG,
-	      _("video_out_xv: shared memory error in shmget: %s"
+	      _("video_out_xv: shared memory error in shmget: %s\n"
 		"video_out_xv: => not using MIT Shared Memory extension.\n"), strerror(errno));
       this->use_shm = 0;
       goto finishShmTesting;
