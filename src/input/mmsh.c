@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.27 2004/01/23 00:01:15 valtri Exp $
+ * $Id: mmsh.c,v 1.28 2004/04/06 00:25:29 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -53,7 +53,6 @@
 /*
 #define LOG
 */
-
 #include "xine_internal.h"
 #include "xineutils.h"
 
@@ -113,8 +112,6 @@ static const char* mmsh_LiveRequest =
     "Pragma: stream-switch-entry=%s\r\n"
     "Connection: Close\r\n\r\n";
 
-
-#if 0
 /* Unused requests */
 static const char* mmsh_PostRequest =
     "POST %s HTTP/1.0\r\n"
@@ -122,7 +119,8 @@ static const char* mmsh_PostRequest =
     USERAGENT
     "Host: %s\r\n"
     "Pragma: client-id=%u\r\n"
-/*    "Pragma: log-line=no-cache,rate=1.000000,stream-time=%u,stream-offset=%u:%u,request-context=2,max-duration=%u\r\n" */
+/*    "Pragma: log-line=no-cache,rate=1.000000,stream-time=%u,stream-offset=%u:%u,request-context=2,max-duration=%u\r\n"
+ */
     "Pragma: Content-Length: 0\r\n"
     CLIENTGUID
     "\r\n";
@@ -135,7 +133,6 @@ static const char* mmsh_RangeRequest =
     "Range: bytes=%Lu-\r\n"
     CLIENTGUID
     "Connection: Close\r\n\r\n";
-#endif
 
 
 
@@ -169,7 +166,6 @@ struct mmsh_s {
   uint16_t      chunk_type;
   uint16_t      chunk_length;
   uint16_t      chunk_seq_number;
-  int           chunk_eos;
   uint8_t       buf[CHUNK_SIZE];
 
   int           buf_size;
@@ -190,6 +186,9 @@ struct mmsh_s {
 
   int           has_audio;
   int           has_video;
+  
+  off_t         current_pos;
+  int           user_bandwitdh;
 };
 
 static int get_guid (unsigned char *buffer, int offset) {
@@ -345,22 +344,25 @@ static int get_chunk_header (mmsh_t *this) {
   this->chunk_type       = LE_16 (chunk_header);
   this->chunk_length     = LE_16 (chunk_header + 2) - 8;
   this->chunk_seq_number = LE_32 (chunk_header + 4);
-
+ 
+   
   /* display debug infos */
 #ifdef LOG
   switch (this->chunk_type) {
     case CHUNK_TYPE_DATA:
       printf ("libmmsh: chunk type:       CHUNK_TYPE_DATA\n");
+      printf ("libmmsh: chunk length:     %d\n", this->chunk_length);
+      printf ("libmmsh: chunk seq:        %d\n", this->chunk_seq_number);
       break;
     case CHUNK_TYPE_END:
       printf ("libmmsh: chunk type:       CHUNK_TYPE_END\n");
+      printf ("libmmsh: continue: %d\n", this->chunk_seq_number);
       break;
     case CHUNK_TYPE_ASF_HEADER:
       printf ("libmmsh: chunk type:       CHUNK_TYPE_ASF_HEADER\n");
+      printf ("libmmsh: chunk length:     %d\n", this->chunk_length);
       break;
   }
-  printf ("libmmsh: chunk length:     %d\n", this->chunk_length);
-  printf ("libmmsh: chunk seq_number: %d\n", this->chunk_seq_number);
 #endif
 
   return 1;
@@ -372,7 +374,8 @@ static int get_header (mmsh_t *this) {
   lprintf("get_header\n");
 
   this->asf_header_len = 0;
-
+  this->asf_header_read = 0;
+  
   /* read chunk */
   while (1) {
     if (get_chunk_header(this)) {
@@ -411,7 +414,7 @@ static void interp_header (mmsh_t *this) {
 
   int i;
 
-  lprintf ("interp_header\n");
+  lprintf ("interp_header, header_len=%d\n", this->asf_header_len);
 
   this->packet_length = 0;
 
@@ -585,8 +588,8 @@ static int mmsh_tcp_connect(mmsh_t *this) {
   return 0;
 }
 
-mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
-  mmsh_t *this;
+
+static int mmsh_connect_int(mmsh_t *this, int bandwidth) {
   int    i;
   int    video_stream = -1;
   int    audio_stream = -1;
@@ -597,49 +600,11 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   int    bandwitdh_left;
   char   stream_selection[10 * ASF_MAX_NUM_STREAMS]; /* 10 chars per stream */
   int    offset;
- 
-  if (!url)
-    return NULL;
-
-  report_progress (stream, 0);
-
-  this = (mmsh_t*) xine_xmalloc (sizeof (mmsh_t));
-
-  this->stream          = stream;
-  this->url             = strdup(url);
-  this->s               = -1;
-  this->asf_header_len  = 0;
-  this->asf_header_read = 0;
-  this->num_stream_ids  = 0;
-  this->packet_length   = 0;
-  this->buf_size        = 0;
-  this->buf_read        = 0;
-  this->has_audio       = 0;
-  this->has_video       = 0;
-  this->chunk_eos       = 0;
-
-  report_progress (stream, 0);
-  
-  if (!_x_parse_url (this->url, &this->proto, &this->host, &this->port,
-                     &this->user, &this->password, &this->uri)) {
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("invalid url\n"));
-    goto fail;
-  }
-  
-  if (!mmsh_valid_proto(this->proto)) {
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("unsupported protocol\n"));
-    goto fail;
-  }
-  
-  if (mmsh_tcp_connect(this)) {
-    goto fail;
-  }
-  report_progress (stream, 30);
-
   /*
    * let the negotiations begin...
    */
-
+  this->num_stream_ids = 0;
+   
   /* first request */
   lprintf("first http request\n");
   
@@ -657,7 +622,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   interp_header(this);
   
   close(this->s);
-  report_progress (stream, 20);
+  report_progress (this->stream, 20);
 
   
   /* choose the best quality for the audio stream */
@@ -769,7 +734,8 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   if (!get_answer (this))
     goto fail;
 
-  get_header(this);
+  if (!get_header(this))
+    goto fail;
   interp_header(this);
   
   for (i = 0; i < this->num_stream_ids; i++) {
@@ -784,9 +750,59 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
       this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
     }
   }
+  return 1;
+  
+fail:
+  return 0;
+}
+
+mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
+  mmsh_t *this;
+ 
+  if (!url)
+    return NULL;
+
+  report_progress (stream, 0);
+
+  this = (mmsh_t*) xine_xmalloc (sizeof (mmsh_t));
+
+  this->stream          = stream;
+  this->url             = strdup(url);
+  this->s               = -1;
+  this->asf_header_len  = 0;
+  this->asf_header_read = 0;
+  this->num_stream_ids  = 0;
+  this->packet_length   = 0;
+  this->buf_size        = 0;
+  this->buf_read        = 0;
+  this->has_audio       = 0;
+  this->has_video       = 0;
+  this->current_pos     = 0;
+  this->user_bandwitdh  = bandwidth;
+
+  report_progress (stream, 0);
+  
+  if (!_x_parse_url (this->url, &this->proto, &this->host, &this->port,
+                     &this->user, &this->password, &this->uri)) {
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("invalid url\n"));
+    goto fail;
+  }
+  
+  if (!mmsh_valid_proto(this->proto)) {
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("unsupported protocol\n"));
+    goto fail;
+  }
+  
+  if (mmsh_tcp_connect(this))
+    goto fail;
+  
+  report_progress (stream, 30);
+
+  if (!mmsh_connect_int(this, this->user_bandwitdh))
+    goto fail;
 
   report_progress (stream, 100);
-
+  
   lprintf("mmsh_connect: passed\n" );
 
   return this;
@@ -820,11 +836,31 @@ static int get_media_packet (mmsh_t *this) {
 
   lprintf("get_media_packet: this->packet_length: %d\n", this->packet_length);
 
-  if (!this->chunk_eos && get_chunk_header(this)) {
+  if (get_chunk_header(this)) {
     switch (this->chunk_type) {
       case CHUNK_TYPE_END:
-        this->chunk_eos = 1;
+        /* this->chunk_seq_number:
+         *     0: stop
+         *     1: a new stream follows
+         */
+        if (this->chunk_seq_number == 0) {
+          return 0;
+        } else {
+          close(this->s);
+
+          if (mmsh_tcp_connect(this))
+            return 0;
+
+          if (!mmsh_connect_int(this, this->user_bandwitdh))
+            return 0;
+    
+          this->current_pos = 0;
+          this->buf_size = 0;
+          return 1;
+        }
+        break;
       case CHUNK_TYPE_DATA:
+        this->current_pos = this->asf_header_len + this->chunk_seq_number * this->packet_length;
         break;
       default:
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
@@ -884,6 +920,7 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
 
       this->asf_header_read += n;
       total += n;
+      this->current_pos += n;
     } else {
 
       int n, bytes_left ;
@@ -891,24 +928,25 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
       bytes_left = this->buf_size - this->buf_read;
 
       if (bytes_left == 0) {
-	this->buf_read = 0;
-	if (!get_media_packet (this)) {
+        this->buf_read = 0;
+        if (!get_media_packet (this)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-	           "libmmsh: get_media_packet failed\n");
-	  return total;
-	}
-	bytes_left = this->buf_size;
+                   "libmmsh: get_media_packet failed\n");
+          return total;
+        }
+        bytes_left = this->buf_size;
       }
 
-      if ((len-total) < bytes_left)
-	n = len-total;
+      if ((len - total) < bytes_left)
+        n = len - total;
       else
-	n = bytes_left;
+        n = bytes_left;
 
       xine_fast_memcpy (&data[total], &this->buf[this->buf_read], n);
 
       this->buf_read += n;
       total += n;
+      this->current_pos += n;
     }
   }
   return total;
@@ -940,4 +978,8 @@ void mmsh_close (mmsh_t *this) {
 
 uint32_t mmsh_get_length (mmsh_t *this) {
   return this->file_length;
+}
+
+off_t mmsh_get_current_pos (mmsh_t *this) {
+  return this->current_pos;
 }

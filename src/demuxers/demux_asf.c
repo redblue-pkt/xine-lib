@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.154 2004/04/02 06:52:39 tmattern Exp $
+ * $Id: demux_asf.c,v 1.155 2004/04/06 00:25:29 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -106,8 +106,9 @@ typedef struct demux_asf_s {
   
   int               seqno;
   uint32_t          packet_size;
-  uint8_t           packet_flags;
+  uint8_t           packet_len_flags;
   uint32_t          data_size;
+  uint64_t          packet_count;
   
   asf_stream_t      streams[MAX_NUM_STREAMS];
   uint32_t          bitrates[MAX_NUM_STREAMS];
@@ -131,8 +132,8 @@ typedef struct demux_asf_s {
   char              copyright[512];
   char              comment[512];
 
-  uint32_t          length;
-  uint32_t					rate;
+  uint64_t          length;
+  uint32_t          rate;
   uint64_t          preroll;
 
   /* packet filling */
@@ -149,7 +150,7 @@ typedef struct demux_asf_s {
   uint32_t          packet_padsize;
   int               nb_frames;
   uint8_t           frame_flag;
-  uint8_t           segtype;
+  uint8_t           packet_prop_flags;
   int               frame;
 
   int               status;
@@ -376,14 +377,14 @@ static int asf_read_header (demux_asf_t *this) {
           file_size = get_le64(this); /* file size */
 
           get_le64(this); /* creation time */
-          get_le64(this); /* nb packets */
-
+          this->packet_count = get_le64(this); /* nb packets */
+  
           this->length =  get_le64(this) / 10000; /* duration */
           send_time = get_le64(this); /* send time */
 
           this->preroll = get_le64(this); /* preroll in 1/1000 s */
           this->length -= this->preroll;
-          
+ 
           flags = get_le32(this); /* flags */
           get_le32(this); /* min packet size */
           this->packet_size = get_le32(this); /* max packet size */
@@ -981,20 +982,53 @@ static int asf_parse_packet_align(demux_asf_t *this) {
 
   uint64_t  current_pos, packet_pos;
   uint32_t  mod;
+  uint64_t packet_num;
 
+  
+  /* skip padding */
+  current_pos = this->input->seek (this->input, this->packet_size_left, SEEK_CUR);
+    
   /* seek to the beginning of the next packet */
-  current_pos = this->input->get_current_pos (this->input);
   mod = (current_pos - this->first_packet_pos) % this->packet_size;
   this->packet_size_left = mod ? this->packet_size - mod : 0;
   packet_pos = current_pos + this->packet_size_left;
   if (this->packet_size_left) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: last packet is not finished\n");
     current_pos = this->input->seek (this->input, packet_pos, SEEK_SET);
     if (current_pos != packet_pos) {
-      this->status = DEMUX_FINISHED;
       return 1;
     }
   }
   this->packet_size_left = 0;
+  
+  /* check packet_count */
+  packet_num = (current_pos - this->first_packet_pos) / this->packet_size;
+  if (packet_num == this->packet_count) {
+    /* end of payload data */
+    current_pos = this->input->get_current_pos (this->input);
+    lprintf("demux_asf: end of payload data, current_pos=%lld\n", current_pos);
+    {
+      /* check new asf header */
+      GUID g;
+      int i;
+      
+      g.Data1 = (get_byte(this)) + (get_byte(this) << 8) +
+                (get_byte(this) << 16) + (get_byte(this) << 24);
+      g.Data2 = get_le16(this);
+      g.Data3 = get_le16(this);
+      for(i = 0; i < 8; i++) {
+        g.Data4[i] = get_byte(this);
+      }
+      if (get_guid_id(this, g) == GUID_ASF_HEADER) {
+        lprintf("demux_asf: new asf header detected\n");
+        if (demux_asf_send_headers_common(this, 0))
+          return 1;
+      } else {
+        /* not an ASF stream */
+        return 1;
+      }
+    }
+  }
   
   return 0;
 }
@@ -1005,48 +1039,38 @@ static int asf_parse_packet_ecd(demux_asf_t *this, uint32_t  *p_hdr_size) {
   uint8_t   ecd_flags;
   uint8_t   buf[16];
   int       invalid_packet;
-  uint32_t  rsize;
 
   do {
     ecd_flags = get_byte(this); *p_hdr_size = 1;
     if (this->status == DEMUX_FINISHED)
       return 1;
     invalid_packet = 0;
+    {
+      int ecd_len;
+      int ecd_opaque;
+      int ecd_len_type;
+      int ecd_present;
 
-    /* check new asf header */
-    if (ecd_flags == 0x30) {
-      GUID g;
-      int i;
+      ecd_len      = ecd_flags & 0xF;
+      ecd_opaque   = (ecd_flags >> 4) & 0x1;
+      ecd_len_type = (ecd_flags >> 5) & 0x3;
+      ecd_present  = (ecd_flags >> 7) & 0x1;
       
-      g.Data1 = (ecd_flags) + (get_byte(this) << 8) +
-                (get_byte(this) << 16) + (get_byte(this) << 24);
-      g.Data2 = get_le16(this);
-      g.Data3 = get_le16(this);
-      for(i = 0; i < 8; i++) {
-        g.Data4[i] = get_byte(this);
-      }
-      if (get_guid_id(this, g) == GUID_ASF_HEADER) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: new asf header detected\n");
-        if (demux_asf_send_headers_common(this, 0))
-          return 1;
-        invalid_packet = 1;
-      }
-    } else {
-
       /* skip ecd */
-      if (ecd_flags & 0x80) {
-        rsize = this->input->read (this->input, buf, ecd_flags & 0x0F);
-        if (rsize != (ecd_flags & 0x0F)) {
+      if (ecd_present && !ecd_opaque && !ecd_len_type) {
+        int read_size;
+
+        read_size = this->input->read (this->input, buf, ecd_len);
+        if (read_size != ecd_len) {
           this->status = DEMUX_FINISHED;
           return 1;
         }
-        *p_hdr_size += rsize;
-      }
+        *p_hdr_size += read_size;
 
-      if (ecd_flags & 0x70) {
+      } else {
+
         /* skip invalid packet */
-        lprintf("skip invalid packet: %d\n", ecd_flags);
-
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: skip invalid packet: %2X\n", ecd_flags);
         this->input->seek (this->input, this->packet_size - *p_hdr_size, SEEK_CUR);
         invalid_packet = 1;
       }
@@ -1062,11 +1086,11 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
   int64_t   timestamp;
   int64_t   duration;
 
-  this->packet_flags = get_byte(this);  p_hdr_size += 1;
-  this->segtype = get_byte(this);  p_hdr_size += 1;
+  this->packet_len_flags = get_byte(this);  p_hdr_size += 1;
+  this->packet_prop_flags = get_byte(this);  p_hdr_size += 1;
 
   /* packet size */
-  switch((this->packet_flags >> 5) & 3) {
+  switch((this->packet_len_flags >> 5) & 3) {
     case 1:
       this->data_size = get_byte(this); p_hdr_size += 1; break;
     case 2:
@@ -1078,7 +1102,7 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
   }
 
   /* sequence */
-  switch ((this->packet_flags >> 1) & 3) {
+  switch ((this->packet_len_flags >> 1) & 3) {
     case 1:
       get_byte(this); p_hdr_size += 1; break;
     case 2:
@@ -1088,7 +1112,7 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
   }
 
   /* padding size */
-  switch ((this->packet_flags >> 3) & 3){
+  switch ((this->packet_len_flags >> 3) & 3){
     case 1:
       this->packet_padsize = get_byte(this); p_hdr_size += 1; break;
     case 2:
@@ -1104,7 +1128,7 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
 
   lprintf ("timestamp=%lld, duration=%lld\n", timestamp, duration);
 
-  if ((this->packet_flags >> 5) & 3) {
+  if ((this->packet_len_flags >> 5) & 3) {
     /* absolute data size */
     lprintf ("absolute data size\n");
 
@@ -1123,7 +1147,7 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
   }
   
   /* Multiple frames */
-  if (this->packet_flags & 0x01) {
+  if (this->packet_len_flags & 0x01) {
     this->frame_flag = get_byte(this); p_hdr_size += 1;
     this->nb_frames = (this->frame_flag & 0x3F);
 
@@ -1136,7 +1160,7 @@ static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_siz
   /* this->packet_size_left = this->packet_size - p_hdr_size; */
   this->packet_size_left = this->data_size - p_hdr_size;
   lprintf ("new packet, size = %d, size_left = %d, flags = 0x%02x, padsize = %d, this->packet_size = %d\n",
-	   this->data_size, this->packet_size_left, this->packet_flags, this->packet_padsize, this->packet_size);
+	   this->data_size, this->packet_size_left, this->packet_len_flags, this->packet_padsize, this->packet_size);
 
   return 0;
 }
@@ -1157,11 +1181,12 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
   stream_id  = raw_id & 0x7f;
   *stream    = NULL;
 
-  lprintf ("got raw_id=%d\n", raw_id);
+  lprintf ("got raw_id=%d, stream_id=%d\n", raw_id, stream_id);
   
   for (i = 0; i < this->num_streams; i++) {
-    if (this->streams[i].stream_id == stream_id &&
-        (stream_id == this->audio_stream_id || stream_id == this->video_stream_id)) {
+  lprintf ("this->streams[i].stream_id=%d\n", this->streams[i].stream_id);
+    if ((this->streams[i].stream_id == stream_id) &&
+        ((stream_id == this->audio_stream_id) || (stream_id == this->video_stream_id))) {
       *stream = &this->streams[i];
       break;
     }
@@ -1177,10 +1202,8 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
     return 1;
   }
 #endif
-  if (*stream == NULL)
-    return 1;
   
-  switch ((this->segtype >> 4) & 3){
+  switch ((this->packet_prop_flags >> 4) & 3){
   case 1:
     *seq = get_byte(this); s_hdr_size += 1;
     if (*stream)
@@ -1202,7 +1225,6 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
   }
 
   /* check seq number */
-
   if (*stream) {
     lprintf ("stream_id = %d, seq = %d\n", (*stream)->stream_id, *seq);
     if ((*stream)->first_seq || (*stream)->skip) {
@@ -1233,7 +1255,7 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
     }
   }
 
-  switch ((this->segtype >> 2) & 3) {
+  switch ((this->packet_prop_flags >> 2) & 3) {
     case 1:
       *frag_offset = get_byte(this); s_hdr_size += 1; break;
     case 2:
@@ -1245,7 +1267,7 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
       *frag_offset = 0;
   }
 
-  switch (this->segtype & 3) {
+  switch (this->packet_prop_flags & 3) {
     case 1:
       *rlen = get_byte(this); s_hdr_size += 1; break;
     case 2:
@@ -1287,7 +1309,7 @@ static int asf_parse_packet_compressed_payload(demux_asf_t *this,
   frag_offset = 0;
   get_byte (this); s_hdr_size += 1;
 
-  if (this->packet_flags & 0x01) {
+  if (this->packet_len_flags & 0x01) {
     /* multiple frames */
     switch ((this->frame_flag >> 6) & 3) {
       case 1:
@@ -1390,7 +1412,7 @@ static int asf_parse_packet_payload(demux_asf_t *this,
     s_hdr_size += rlen;
   }
 
-  if (this->packet_flags & 0x01) {
+  if (this->packet_len_flags & 0x01) {
     switch ((this->frame_flag >> 6) & 3) {
       case 1:
         frag_len = get_byte(this); s_hdr_size += 1; break;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.46 2004/02/17 13:40:57 valtri Exp $
+ * $Id: input_mms.c,v 1.47 2004/04/06 00:25:29 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -82,8 +82,6 @@ typedef struct {
 
   char            *mrl;
 
-  off_t            curpos;
-
   nbc_t           *nbc; 
 
   char             scratch[1025];
@@ -110,8 +108,6 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 
   lprintf ("mms_plugin_read: %lld bytes ...\n", len);
 
-  nbc_check_buffers (this->nbc);
-
   switch (this->protocol) {
     case PROTOCOL_MMST:
       n = mms_read (this->mms, buf, len);
@@ -120,8 +116,6 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
       n = mmsh_read (this->mmsh, buf, len);
       break;
   }
-              
-  this->curpos += n;
 
   return n;
 }
@@ -151,37 +145,45 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
 
 static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
-  off_t                 dest = this->curpos;
+  off_t                 dest = 0;
+  off_t                 curpos = 0;
 
   lprintf ("mms_plugin_seek: %lld offset, %d origin...\n", offset, origin);
 
+
+  switch (this->protocol) {
+    case PROTOCOL_MMST:
+      curpos = mms_get_current_pos (this->mms);
+      break;
+    case PROTOCOL_MMSH:
+      curpos = mmsh_get_current_pos (this->mmsh);
+      break;
+  }
+  
   switch (origin) {
   case SEEK_SET:
     dest = offset;
     break;
   case SEEK_CUR:
-    dest = this->curpos + offset;
+    dest = curpos + offset;
     break;
-  case SEEK_END:
-    printf ("input_mms: SEEK_END not implemented!\n");
-    return this->curpos;
   default:
     printf ("input_mms: unknown origin in seek!\n");
-    return this->curpos;
+    return curpos;
   }
 
-  if (this->curpos > dest) {
+  if (curpos > dest) {
     printf ("input_mms: cannot seek back!\n");
-    return this->curpos;
+    return curpos;
   }
-
-  while (this->curpos<dest) {
+    
+  while (curpos < dest) {
     int n = 0;
     int diff;
 
-    diff = dest - this->curpos;
+    diff = dest - curpos;
 
-    if (diff>1024)
+    if (diff > 1024)
       diff = 1024;
 
     switch (this->protocol) {
@@ -193,14 +195,14 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
         break;
     }
     
-    this->curpos += n;
+    curpos += n;
 
     if (n < diff)
-      return this->curpos;
+      return curpos;
 
   }
 
-  return this->curpos;
+  return curpos;
 }
 
 static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
@@ -235,12 +237,21 @@ static uint32_t mms_plugin_get_blocksize (input_plugin_t *this_gen) {
 
 static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-
+  off_t curpos;
+  
   /*
   printf ("current pos is %lld\n", this->curpos);
   */
+  switch (this->protocol) {
+    case PROTOCOL_MMST:
+      curpos = mms_get_current_pos(this->mms);
+      break;
+    case PROTOCOL_MMSH:
+      curpos = mmsh_get_current_pos(this->mmsh);
+      break;
+  }
 
-  return this->curpos;
+  return curpos;
 }
 
 static void mms_plugin_dispose (input_plugin_t *this_gen) {
@@ -351,7 +362,6 @@ static int mms_plugin_open (input_plugin_t *this_gen) {
   
   this->mms      = mms;
   this->mmsh     = mmsh;
-  this->curpos   = 0;
   
   return 1;
 }
@@ -385,7 +395,6 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   this->mmsh     = NULL;
   this->protocol = protocol;
   this->mrl      = mrl; 
-  this->curpos   = 0;
   this->nbc      = nbc_init (this->stream);
 
   if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth", 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.43 2004/04/04 12:19:06 tmattern Exp $
+ * $Id: mms.c,v 1.44 2004/04/06 00:25:29 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -25,7 +25,7 @@
  *
  * TODO:
  *   general cleanup, error messages
- *   allways check packet size
+ *   always check packet size
  *   enable seeking !
  */
 
@@ -126,6 +126,7 @@ struct mms_s {
   int           has_audio;
   int           has_video;
   int           live_flag;
+  off_t         current_pos;
 };
 
 
@@ -487,6 +488,7 @@ static void interp_header (mms_t *this) {
   /*
    * parse header
    */
+   
   i = 30;
   while (i < this->asf_header_len) {
     
@@ -804,6 +806,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   this->has_audio       = 0;
   this->has_video       = 0;
   this->bandwidth       = bandwidth;
+  this->current_pos     = 0;
 
   report_progress (stream, 0);
   
@@ -963,6 +966,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
 #endif
 
   lprintf("mms_connect: passed\n" );
+ 
   return this;
 
 fail:
@@ -1007,10 +1011,16 @@ static int get_media_packet (mms_t *this) {
 
   if (pre_header[4] == 0x04) {
 
-    uint32_t packet_len;
+    uint32_t packet_len, sequence;
 
-    packet_len = (pre_header[7] << 8 | pre_header[6]) - 8;
+    packet_len = LE_16(&pre_header[6]) - 8;
 
+    sequence = LE_32(&pre_header[0]);
+    lprintf ("sequence=%d\n", sequence);
+    
+    /* simulate a seek */
+    this->current_pos = this->asf_header_len +  sequence * this->packet_length;
+    
     lprintf ("asf media packet detected, len=%d\n", packet_len);
     if (packet_len > (BUF_SIZE)) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
@@ -1109,6 +1119,7 @@ static int get_media_packet (mms_t *this) {
                  "failed to send command 0x07\n");
         return 0;
       }
+      this->current_pos = 0;
 
     } else if (command != 0x05) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
@@ -1157,6 +1168,7 @@ int mms_read (mms_t *this, char *data, int len) {
 
       this->asf_header_read += n;
       total += n;
+      this->current_pos += n;
     } else {
 
       int n, bytes_left ;
@@ -1181,6 +1193,7 @@ int mms_read (mms_t *this, char *data, int len) {
 
       this->buf_read += n;
       total += n;
+      this->current_pos += n;
     }
   }
   return total;
@@ -1209,4 +1222,8 @@ void mms_close (mms_t *this) {
 
 uint32_t mms_get_length (mms_t *this) {
   return this->file_length;
+}
+
+off_t mms_get_current_pos (mms_t *this) {
+  return this->current_pos;
 }
