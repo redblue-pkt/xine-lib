@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.11 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_nsv.c,v 1.12 2004/01/04 11:59:33 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -86,6 +86,8 @@ static int open_nsv_file(demux_nsv_t *this) {
   unsigned char preview[28];
   unsigned int  video_fourcc;
   unsigned int  audio_fourcc;
+  int           is_ultravox = 0;
+  unsigned int  offset = 0;
 
   if (_x_demux_read_header(this->input, preview, 4) != 4)
     return 0;
@@ -94,14 +96,42 @@ static int open_nsv_file(demux_nsv_t *this) {
   if ((preview[0] != 'N') ||
       (preview[1] != 'S') ||
       (preview[2] != 'V'))
-    return 0;
+  {
+    if ((preview[0] != 'Z') ||
+        (preview[1] != 0) ||
+	(preview[2] != '9') ||
+	(preview[3] != 1))
+          return 0;
+
+    is_ultravox = 1;
+  }
 
   lprintf("NSV file detected\n");
 
-  /* file is qualified, proceed to load; jump over the first 4 bytes */
-  this->input->seek(this->input, 4, SEEK_SET);
-
   this->data_size = this->input->get_length(this->input);
+
+  if (is_ultravox == 1) {
+    int i;
+    unsigned char buffer[512];
+
+    if (_x_demux_read_header(this->input, buffer, 512) != 512)
+      return 0;
+
+    for (i = 0; i < 512 - 3; i++)
+    {
+      if ((buffer[i] == 'N') &&
+          (buffer[i+1] == 'S') &&
+	  (buffer[i+2] == 'V')) {
+          /* Fill the preview buffer with our nice new NSV tag */
+          memcpy (preview, buffer + i, 4);
+          offset = i;
+	  break;
+      }
+    }
+  }
+
+  /* file is qualified, proceed to load; jump over the first 4 bytes */
+  this->input->seek(this->input, 4 + offset, SEEK_SET);
 
   if (BE_32(&preview[0]) == NSVf_TAG) {
 
