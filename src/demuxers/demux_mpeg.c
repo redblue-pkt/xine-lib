@@ -16,13 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_mpeg.c,v 1.120 2003/06/18 13:03:44 mroi Exp $
+ */
+
+/*
+ * $Id: demux_mpeg.c,v 1.121 2003/07/16 14:14:17 andruil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
- *
- *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,7 +34,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <unistd.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_mpeg"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "demux.h"
@@ -48,39 +52,30 @@
 #define PTS_VIDEO 1
 
 typedef struct demux_mpeg_s {
-
   demux_plugin_t       demux_plugin;
 
+  xine_stream_t	      *stream;
   fifo_buffer_t       *audio_fifo;
   fifo_buffer_t       *video_fifo;
-
-  xine_stream_t	      *stream;
   input_plugin_t      *input;
+  int                  status;
 
   unsigned char        dummy_space[100000];
-
-  int                  status;
   int                  preview_mode;
-
   int                  rate;
 
   int64_t              last_pts[2];
   int                  send_newpts;
   int                  buf_flag_seek;
   int                  has_pts;
-
 } demux_mpeg_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_mpeg_class_t;
 
+#if 0
+    /* code never reached, is it still usefull ?? */
 /*
  * borrow a little knowledge from the Quicktime demuxer
  */
@@ -183,6 +178,7 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
     input->seek(input, atom_size, SEEK_CUR);
   }
 }
+#endif
 
 static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
 
@@ -213,7 +209,7 @@ static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
     res = (buf[2]<<8) | buf[3] | (buf[1]<<16) | (buf[0] << 24);
     break;
   default:
-    printf ("demux_mpeg: how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
+    lprintf ("how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
     abort();
   }
 
@@ -224,8 +220,7 @@ static uint32_t read_bytes (demux_mpeg_t *this, uint32_t n) {
    i guess llabs may not be available everywhere */
 #define abs(x) ( ((x)<0) ? -(x) : (x) )
 
-static void check_newpts( demux_mpeg_t *this, int64_t pts, int video )
-{
+static void check_newpts( demux_mpeg_t *this, int64_t pts, int video ) {
   int64_t diff;
 
   diff = pts - this->last_pts[video];
@@ -297,9 +292,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
       buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
       buf->pts       = pts;
-      
-      this->video_fifo->put (this->video_fifo, buf);    
-     
+
+      this->video_fifo->put (this->video_fifo, buf);
+
       return;
     }
 
@@ -575,21 +570,17 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
       /*
       if (w != 0x0f)
-        xprintf (VERBOSE|DEMUX, " ERROR w (%02x) != 0x0F ",w);
+        lprintf("ERROR w (%02x) != 0x0F ",w);
       */
     }
 
   }
 
   if (pts && !this->has_pts) {
-#ifdef LOG
-    printf("demux_mpeg: this stream has pts\n");
-#endif
+    lprintf("this stream has pts\n");
     this->has_pts = 1;
   } else if (scr && !this->has_pts) {
-#ifdef LOG
-    printf("demux_mpeg: use scr\n");
-#endif
+    lprintf("use scr\n");
     pts = scr;
   }
   
@@ -738,7 +729,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
        buf = read_bytes (this,1);
        this->rate |= (buf >> 1);
 
-       /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
+       lprintf ("mux_rate = %d\n",this->rate);
 
      } else
        buf = read_bytes (this, 3) ;
@@ -748,7 +739,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
   buf = read_bytes (this, 4) ;
 
-  /* printf ("  code = %08x\n",buf);*/
+  /* lprintf("code = %08x\n",buf);*/
 
   if (buf == 0x000001bb) {
     buf = read_bytes (this, 2);
@@ -758,7 +749,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
     buf = read_bytes (this, 4) ;
   }
 
-  /* printf ("  code = %08x\n",buf); */
+  /* lprintf("code = %08x\n",buf); */
 
   while ( ((buf & 0xFFFFFF00) == 0x00000100)
           && ((buf & 0xff) != 0xba) ) {
@@ -779,8 +770,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
 }
 
-static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
-{
+static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers) {
   uint32_t buf ;
   int mpeg_version;
 
@@ -814,7 +804,7 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
       buf = read_bytes (this,1);
       this->rate |= (buf >> 1);
     }
-    /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
+    /* lprintf("mux_rate = %d\n",this->rate); */
 
   } else
     buf = read_bytes (this, 3) ;
@@ -858,7 +848,6 @@ static void demux_mpeg_resync (demux_mpeg_t *this, uint32_t buf) {
 }
 
 static int demux_mpeg_send_chunk (demux_plugin_t *this_gen) {
-
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
 
   uint32_t w=0;
@@ -925,7 +914,7 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
 
   demux_mpeg_t   *this = (demux_mpeg_t *) this_gen;
 
-  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
+  if (INPUT_IS_SEEKABLE(this->input)) {
 
     if ( (!start_pos) && (start_time)) {
       start_pos = start_time;
@@ -947,8 +936,7 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
   if( !this->stream->demux_thread_running ) {
     this->preview_mode = 0;
     this->buf_flag_seek = 0;
-  }
-  else {
+  } else {
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
   }
@@ -962,11 +950,10 @@ static void demux_mpeg_dispose (demux_plugin_t *this_gen) {
 }
 
 static int demux_mpeg_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
 
   if (this->rate)
-    return (int)((int64_t) 1000 * this->input->get_length (this->input) / 
+    return (int)((int64_t) 1000 * this->input->get_length (this->input) /
                  (this->rate * 50));
   else
     return 0;
@@ -1008,12 +995,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
+#if 0
     uint8_t buf[MAX_PREVIEW_SIZE];
     off_t mdat_atom_offset = -1;
     int64_t mdat_atom_size = -1;
     unsigned int fourcc_tag;
     int i, j;
     int ok = 0;
+#endif
+    uint8_t buf[4];
 
     /* use demux_mpeg_block for block devices */
     if (input->get_capabilities(input) & INPUT_CAP_BLOCK ) {
@@ -1021,49 +1011,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0) {
- 
-      /* try preview */
+    /* look for mpeg header */
+    if (xine_demux_read_header(input, buf, 4) == 4) {
+      lprintf ("%02x %02x %02x %02x\n", buf[0], buf[1], buf[2], buf[3]);
+      if (!buf[0] && !buf[1] && (buf[2] == 0x01)
+          && (buf[3] == 0xba)) /* if so, take it */
+        break;
+     }
+    free (this);
+    return NULL;
 
-      if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) == 0) {
-	free (this);
-	return NULL;
-      }
 
-      input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-
-#ifdef LOG
-      printf ("demux_mpeg: %02x %02x %02x %02x\n",
-	      buf[0], buf[1], buf[2], buf[3]);
-#endif      
-
-      /*
-       * look for mpeg header
-       */
-      
-      
-      if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
-	  && (buf[3] == 0xba)) /* if so, take it */
-	break;
-
-      free (this);
-      return NULL;
-    }
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, buf, 16) == 16) {
-
-      /*
-       * look for mpeg header
-       */
-      
-      if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
-	  && (buf[3] == 0xba)) /* if so, take it */
-	break;
-
-      free (this);
-      return NULL;
-    }
+#if 0
+    /* code never reached, is it still usefull ?? */
 
     /* special case for MPEG streams hidden inside QT files; check
      * is there is an mdat atom  */
@@ -1121,27 +1081,21 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
     free (this);
     return NULL;
+#endif
   }
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
+    char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
 
-    ending = strrchr(mrl, '.');
-    
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp(ending, ".MPEG", 5)
-	&& strncasecmp (ending, ".mpg", 4)) {
+    if (!xine_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }
   }
-    break;
+  break;
 
   case METHOD_EXPLICIT:
     break;
@@ -1172,19 +1126,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_mpeg_class_t *this = (demux_mpeg_class_t *) this_gen;
 
   free (this);
  }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_mpeg_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_mpeg_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_mpeg_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

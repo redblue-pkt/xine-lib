@@ -356,8 +356,6 @@ int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t 
   if (input->get_capabilities(input) & INPUT_CAP_SEEKABLE) {
     input->seek(input, 0, SEEK_SET);
     read_size = input->read(input, buffer, size);
-    if (read_size != size)
-      return 0;
     input->seek(input, 0, SEEK_SET);
   } else if (input->get_capabilities(input) & INPUT_CAP_PREVIEW) {
     buf = xine_xmalloc(MAX_PREVIEW_SIZE);

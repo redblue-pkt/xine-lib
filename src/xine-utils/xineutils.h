@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.56 2003/07/12 12:31:13 mroi Exp $
+ * $Id: xineutils.h,v 1.57 2003/07/16 14:14:17 andruil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -825,6 +825,8 @@ extern int v_r_table[256];
 extern int v_g_table[256];
 extern int v_b_table[256];
 
+/* print a hexdump of the given data */
+void xine_hexdump (char *buf, int length);
 
 /* backtrace printout funtion for use in XINE_ASSERT() macro */
 void xine_print_trace(void);

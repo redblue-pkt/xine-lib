@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_mng.c,v 1.10 2003/07/16 14:14:17 andruil Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -79,7 +79,7 @@ mng_bool mymng_open_stream(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   if (this->input->get_current_pos(this->input) != 0) {
-    if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    if (!INPUT_IS_SEEKABLE(this->input)) {
       return MNG_FALSE;
     }
     this->input->seek(this->input, 0, SEEK_SET);
