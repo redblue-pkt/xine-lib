@@ -9,6 +9,9 @@ xine-lib (1-rc3)
   * fix pts handling bug that caused long freezing in some animated dvd menus
   * configfile beautification (values set to default are now commented out)
   * fix some more problems with jumpy non-MPEG NTSC streams on the DXR3
+  * handle comments in rpm playlist files
+  * realaudio demuxer improvements including support for 14.4 codec and reading
+    meta info
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
