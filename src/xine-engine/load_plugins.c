@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.40 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: load_plugins.c,v 1.41 2001/09/17 11:43:43 jkeil Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -228,7 +228,7 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
     ip = this->input_plugins[i];
 
     if(ip->get_capabilities(ip) & feature) {
-      plugin_ids[n] = (char *) malloc (strlen(ip->get_identifier(ip)+1));
+      plugin_ids[n] = (char *) malloc (strlen(ip->get_identifier(ip)) + 1 );
       strcpy (plugin_ids[n], ip->get_identifier(ip));
       /* printf("%s(%d): %s is featured\n",  */
       /*        __FUNCTION__, feature, ip->get_identifier(ip)); */
