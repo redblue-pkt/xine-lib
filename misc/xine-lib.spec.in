@@ -74,9 +74,20 @@ complies to the GPL.
 
 %build
 if [ ! -f configure ]; then
-   ./cvscompile.sh
+   NO_CONFIGURE=1 ./cvscompile.sh
 fi
-%configure
+
+#
+# currently we do not use %%configure as it seems to cause trouble with
+# certain automake produced configure scripts - depending on automake version.
+#
+./configure --prefix=%{_prefix} --exec-prefix=%{_exec_prefix} \
+	    --bindir=%{_bindir} --sbindir=%{_sbindir} \
+	    --sysconfdir=%{_sysconfdir} --datadir=%{_datadir} \
+	    --includedir=%{_includedir} --libdir=%{_libdir} \
+	    --libexecdir=%{_libexecdir} --localstatedir=%{_localstatedir} \
+	    --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
+	    --infodir=%{_infodir}
 make
 
 %install
@@ -113,6 +124,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Thu May 16 2002 Matthias Dahl <matthew2k@web.de>
+- replaced %configure because it was causing trouble on certain configurations
 * Sat May 11 2002 Matthias Dahl <matthew2k@web.de>
 - reworked/revamped spec file, still needs some tuning (BuildPreReq, ...)
 * Thu May 2 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
