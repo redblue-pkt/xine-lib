@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.68 2003/11/12 19:54:56 f1rmb Exp $
+ * $Id: input_http.c,v 1.69 2003/11/12 19:58:19 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -131,7 +131,7 @@ static void proxy_host_change_cb(void *data, xine_cfg_entry_t *cfg) {
 
   this->proxyhost = cfg->str_value;
 
-  if(this->proxyhost && (!strlen(this->proxyhost))) {
+  if(this->proxyhost && (!strlen(this->proxyhost)) && this->proxyhost_env) {
     this->proxyhost = this->proxyhost_env;
     this->proxyport = this->proxyport_env;
   }
