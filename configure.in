@@ -875,6 +875,13 @@ dnl Check for doxygen (dynamic documentation generator)
 dnl
 AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)
 
+dnl
+dnl It seems automake 1.5 don't take care about this script
+dnl
+if test ! -z $am_depcomp; then
+	DEPCOMP="depcomp"
+fi
+AC_SUBST(DEPCOMP)
 
 dnl
 dnl Output configuration files
