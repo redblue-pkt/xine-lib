@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.113 2003/04/18 20:45:30 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.114 2003/04/23 18:42:39 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -167,6 +167,12 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 					    this->output_format,
 					    VO_BOTH_FIELDS);
 
+  /* use drawn as a decoder flag.
+   * if true: free this frame on release_buffer.
+   * if false: free this frame after drawing it.
+   */
+  img->drawn = av_frame->reference;
+
   av_frame->opaque = img;
 
   av_frame->data[0]= img->base[0];
@@ -197,7 +203,8 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
   av_frame->data[1]= NULL;
   av_frame->data[2]= NULL;
   
-  img->free(img);
+  if(img->drawn)
+    img->free(img);
 
   av_frame->opaque = NULL;
 }
@@ -783,8 +790,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	offset += len;
 
 	if (!got_picture || !this->av_frame->data[0]) {
-	  printf ("ffmpeg: didn't get a picture, got %d bytes left\n",
-		  this->size);
+	  if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+	    printf ("ffmpeg: didn't get a picture, got %d bytes left\n",
+		    this->size);
 
 	  if (this->size>0)
 	    memmove (this->buf, &this->buf[offset], this->size);
@@ -835,7 +843,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
 	  img = (vo_frame_t*)this->av_frame->opaque;
-	  free_img = 0;
+	  free_img = !img->drawn;
 	} else {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
 						    this->context->width,
@@ -857,6 +865,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  if(this->pp_available && this->pp_quality) {
 
 	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
+	      if(free_img)
+	        img->free(img);
+
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        this->context->width,
 						        this->context->height,
