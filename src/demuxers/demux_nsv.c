@@ -21,7 +21,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.1 2003/05/19 21:59:46 tmmm Exp $
+ * $Id: demux_nsv.c,v 1.2 2003/05/27 03:39:52 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -140,6 +140,8 @@ static int open_nsv_file(demux_nsv_t *this) {
     this->input->seek(this->input, 4, SEEK_SET);
   }
 
+  this->data_size = this->input->get_length(this->input);
+
   if (BE_32(&preview[0]) == NSVf_TAG) {
 
     /* if there is a NSVs tag, load 24 more header bytes; load starting at
@@ -153,17 +155,18 @@ static int open_nsv_file(demux_nsv_t *this) {
     /* skip the rest of the data */
     this->input->seek(this->input, LE_32(&preview[4]) - 28, SEEK_CUR);
 
+    /* get the first 4 bytes of the next chunk */
+    if (this->input->read(this->input, preview, 4) != 4)
+      return 0;
   } 
-
-  this->data_size = this->input->get_length(this->input);
-
-  /* fetch the 16 header bytes of the first chunk to get the relevant
-   * information */
-  if (this->input->read(this->input, preview, 16) != 16)
-    return 0;
 
   /* make sure it is a 'NSVs' chunk */
   if (preview[3] != 's')
+    return 0;
+
+  /* fetch the remaining 12 header bytes of the first chunk to get the 
+   * relevant information */
+  if (this->input->read(this->input, &preview[4], 12) != 12)
     return 0;
 
   this->video_fourcc = ME_32(&preview[4]);
@@ -266,6 +269,11 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
       case 1:
         /* 29.97 fps */
         this->frame_pts_inc = 3003;
+        break;
+ 
+      case 3:
+        /* 23.976 fps */
+        this->frame_pts_inc = 3753;
         break;
  
       case 5:
