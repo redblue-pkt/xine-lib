@@ -392,11 +392,11 @@ static unsigned long long int rdtsc()
 #define BUFSIZE 1024*1024
 void probe_fast_memcpy(config_values_t *config)
 {
-unsigned long long t;
-char *buf1, *buf2;
-int i, j, best;
-static int config_flags = -1;
-
+  unsigned long long t;
+  char *buf1, *buf2;
+  int i, j, best;
+  static int config_flags = -1;
+  
 #ifdef ARCH_X86
   config_flags = mm_accel();
 #else
@@ -412,6 +412,8 @@ static int config_flags = -1;
     fast_memcpy = memcpy_method[best].function;
     return;
   }
+
+  best = -1;
   
   fast_memcpy = memcpy;
   
@@ -453,3 +455,4 @@ static int config_flags = -1;
   free(buf1);
   free(buf2);
 }
+
