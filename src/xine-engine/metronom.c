@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.39 2001/11/28 23:46:08 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.40 2001/12/09 17:08:06 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -396,7 +396,11 @@ static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
 }
 
 static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts,
-					 uint32_t duration, uint32_t scr) {
+					 uint32_t duration, uint32_t scr ) {
+  uint32_t vpts;
+  
+  pthread_mutex_lock (&this->lock);
+  
   if (pts) {
     this->spu_vpts=pts;
   } else {
@@ -404,13 +408,23 @@ static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts,
     this->spu_vpts=this->spu_vpts;
   }
 
-  /* it happens with the dxr3 that got_spu_packet is called before  *
-   * got_video_frame. Since video_wrap_offset is zero until then,   *
-   * the return value would be wrong. In this case zero is returned */
-  if (this->video_stream_starting)
-    return 0;
-    
-  return pts + this->video_wrap_offset;
+  /* 
+     It happens with the dxr3 that got_spu_packet is called before  
+     got_video_frame. Since video_wrap_offset is zero until then,   
+     the return value would be wrong. In this case zero is returned.
+     
+     Also this->video_discontinuity means that scr discontinuity was
+     detected but this->video_wrap_offset not updated (would give
+     wrong values too).
+  */
+  if (this->video_stream_starting || this->video_discontinuity) {
+    vpts = 0;
+  } else {  
+    vpts = pts + this->video_wrap_offset;
+  }
+  
+  pthread_mutex_unlock (&this->lock);
+  return vpts;
 }
 
 static void metronom_expect_video_discontinuity (metronom_t *this) {
@@ -450,14 +464,35 @@ static void metronom_expect_video_discontinuity (metronom_t *this) {
 
 static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32_t scr) {
 
+  uint32_t vpts;
+  int pts_discontinuity = 0;
+  
   pthread_mutex_lock (&this->lock);
 
+  /* check for pts discontinuities against the predicted pts value */
+  if( pts && this->last_video_pts ) {
+    vpts = this->last_video_pts + 
+          (this->num_video_vpts_guessed+1) * this->avg_frame_duration;
+    if( ( pts > vpts && (pts - vpts) > 60000 ) ||
+        ( pts < vpts && (vpts - pts) > 60000 ) ) {
+      pts_discontinuity = 1;
+      
+      /* 
+         ignore discontinuities created by frame reordering around
+         the REAL discontinuity. :)
+      */
+      if( !this->video_discontinuity && !this->video_stream_starting )
+        pts = 0;
+    }
+  }
+  
   if (pts) {
-
     /*
-     * discontinuity ?
+     * check if there was any pending SCR discontinuity (video_discontinuity
+     * is set from the decoder loop) together with pts discont.
      */
-    if ( this->video_discontinuity || this->video_stream_starting ) {
+    if ( (this->video_discontinuity && pts_discontinuity) ||
+          this->video_stream_starting ) {
       this->video_discontinuity = 0;
       this->video_stream_starting = 0;
 
@@ -578,9 +613,11 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
   printf ("metronom: video vpts for %10d : %10d\n", pts, this->video_vpts);
 #endif
 
+  vpts = this->video_vpts + this->av_offset;
+  
   pthread_mutex_unlock (&this->lock);
 
-  return this->video_vpts + this->av_offset;
+  return vpts;
 }
 
 static void metronom_expect_audio_discontinuity (metronom_t *this) {
