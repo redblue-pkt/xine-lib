@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.30 2001/06/23 19:45:47 guenter Exp $
+ * $Id: xine.c,v 1.31 2001/07/03 21:25:04 guenter Exp $
  *
  * top-level xine functions
  *
@@ -75,17 +75,21 @@ void xine_stop (xine_t *this) {
   printf ("xine_stop\n");
 
   if (this->status == XINE_STOP) {
+    printf ("xine_stop ignored\n");
     pthread_mutex_unlock (&this->xine_lock);
     return;
   }
 
   this->status = XINE_STOP;
+  printf ("xine_stop: stopping demuxer\n");
   
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
+  printf ("xine_stop: closing input\n");
+  
   if(this->cur_input_plugin) {
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
@@ -93,6 +97,8 @@ void xine_stop (xine_t *this) {
 
   this->spu_fifo->clear(this->spu_fifo);
 
+  printf ("xine_stop: done\n");
+  
   pthread_mutex_unlock (&this->xine_lock);
 }
 

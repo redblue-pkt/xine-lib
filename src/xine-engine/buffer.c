@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.4 2001/05/24 15:31:31 guenter Exp $
+ * $Id: buffer.c,v 1.5 2001/07/03 21:25:04 guenter Exp $
  *
  *
  * contents:
@@ -130,10 +130,35 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
  */
 static void fifo_buffer_clear (fifo_buffer_t *fifo) {
   
-  buf_element_t *buf;
+  buf_element_t *buf, *next, *prev;
 
   pthread_mutex_lock (&fifo->mutex);
 
+  buf = fifo->first;
+  prev = NULL;
+
+  while (buf != NULL) {
+
+    next = buf->next;
+
+    if ((buf->type & BUF_MAJOR_MASK) !=  BUF_CONTROL_BASE) {
+      /* remove this buffer */
+
+      if (prev)
+	prev->next = next;
+      else
+	fifo->first = next;
+      
+      if (!next)
+	fifo->last = prev;
+      
+      buf->free_buffer(buf);
+    } else
+      prev = buf;
+    
+    buf = next;
+  }
+  /*
   while (fifo->first != NULL) {
 
     buf = fifo->first;
@@ -144,6 +169,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
 
     buf->free_buffer(buf);
   }
+  */
 
   pthread_mutex_unlock (&fifo->mutex);
 }

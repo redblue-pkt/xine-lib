@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.22 2001/06/17 23:37:59 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.23 2001/07/03 21:25:03 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -63,6 +63,7 @@ typedef struct demux_mpeg_s {
   int                  preview_mode;
 
   int                  send_end_buffers;
+
 } demux_mpeg_t ;
 
 static uint32_t read_bytes (demux_mpeg_t *this, int n) {
@@ -77,7 +78,9 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
   i = this->input->read (this->input, buf, n);
 
   if (i != n) {
+    
     this->status = DEMUX_FINISHED;
+
     xprintf (VERBOSE|DEMUX, "Unexpected end of stream\n");
   }
   
@@ -512,9 +515,6 @@ static void *demux_mpeg_loop (void *this_gen) {
   buf_element_t *buf;
   uint32_t w;
 
-  this->status     = DEMUX_OK;
-  this->send_end_buffers = 1;
-
   do {
     w = parse_pack (this);
 
@@ -551,6 +551,13 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
   buf_element_t *buf;
 
+  printf ("demux_mpeg: stop...\n");
+
+  if (this->status != DEMUX_OK) {
+    printf ("demux_mpeg: stop...ignored\n");
+    return;
+  }
+
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
@@ -571,6 +578,7 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
     buf->decoder_info[0] = 1; /* forced */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
+
 }
 
 static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
@@ -629,6 +637,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
     read_bytes(this, 4);
 
   this->preview_mode = 0;
+  this->send_end_buffers = 1;
+  this->status = DEMUX_OK ;
 
   pthread_create (&this->thread, NULL, demux_mpeg_loop, this) ;
 }
@@ -764,7 +774,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     this->demux_plugin.close             = demux_mpeg_close;
     this->demux_plugin.get_status        = demux_mpeg_get_status;
     this->demux_plugin.get_identifier    = demux_mpeg_get_id;
-    
+
     return (demux_plugin_t *) this;
     break;
 

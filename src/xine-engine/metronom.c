@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.12 2001/06/30 22:53:50 guenter Exp $
+ * $Id: metronom.c,v 1.13 2001/07/03 21:25:04 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -132,7 +132,13 @@ static void metronom_video_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
 
-  printf ("video stream start...\n");
+  printf ("metronom: video stream start...\n");
+
+  if (this->video_stream_running) {
+    printf ("metronom: video stream start ignored\n");
+    pthread_mutex_unlock (&this->lock);
+    return;
+  }
 
   this->pts_per_frame             = 3000;
 
@@ -151,7 +157,7 @@ static void metronom_video_stream_start (metronom_t *this) {
 
   if (this->have_audio) {
     while (!this->audio_stream_running) {
-      printf ("waiting for audio to start...\n");
+      printf ("metronom: waiting for audio to start...\n");
       pthread_cond_wait (&this->audio_started, &this->lock);
     }
   }
@@ -159,7 +165,7 @@ static void metronom_video_stream_start (metronom_t *this) {
 
   pthread_mutex_unlock (&this->lock);
 
-  printf ("video stream start...done\n");
+  printf ("metronom: video stream start...done\n");
 
   metronom_start_clock (this, 0);
 }
@@ -168,11 +174,20 @@ static void metronom_video_stream_start (metronom_t *this) {
 static void metronom_video_stream_end (metronom_t *this) {
   
   pthread_mutex_lock (&this->lock);
+
+  printf ("metronom: video stream end\n");
+
+  if (!this->video_stream_running) {
+    printf ("metronom: video stream end ignored\n");
+    pthread_mutex_unlock (&this->lock);
+    return;
+  }
+
   this->video_stream_running = 0;
 
   if (this->have_audio) {
     while (this->audio_stream_running) {
-      printf ("waiting for audio to end...\n");
+      printf ("metronom: waiting for audio to end...\n");
       pthread_cond_wait (&this->audio_ended, &this->lock);
     }
   }
@@ -186,7 +201,13 @@ static void metronom_audio_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
 
-  printf ("audio stream start...\n");
+  printf ("metronom: audio stream start...\n");
+
+  if (this->audio_stream_running) {
+    printf ("metronom: audio stream start ignored\n");
+    pthread_mutex_unlock (&this->lock);
+    return;
+  }
 
   this->audio_vpts                = 0;
 
@@ -202,7 +223,7 @@ static void metronom_audio_stream_start (metronom_t *this) {
   this->audio_stream_starting     = 1;
 
   while (!this->video_stream_running) {
-    printf ("waiting for video to start...\n");
+    printf ("metronom: waiting for video to start...\n");
     pthread_cond_wait (&this->video_started, &this->lock);
   }
 
@@ -210,7 +231,7 @@ static void metronom_audio_stream_start (metronom_t *this) {
 
   pthread_mutex_unlock (&this->lock);
 
-  printf ("audio stream start...done\n");
+  printf ("metronom: audio stream start...done\n");
 
   metronom_start_clock (this, 0);
 }
@@ -218,6 +239,14 @@ static void metronom_audio_stream_start (metronom_t *this) {
 static void metronom_audio_stream_end (metronom_t *this) {
   
   pthread_mutex_lock (&this->lock);
+
+  printf ("metronom: audio stream end\n");
+  if (!this->audio_stream_running) {
+    printf ("metronom: audio stream end ignored\n");
+    pthread_mutex_unlock (&this->lock);
+    return;
+  }
+
   this->audio_stream_running = 0;
   while (this->video_stream_running) {
     
