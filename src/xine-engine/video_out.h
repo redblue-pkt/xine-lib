@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.35 2002/01/09 22:33:04 jcdutton Exp $
+ * $Id: video_out.h,v 1.36 2002/01/10 12:20:17 jcdutton Exp $
  *
  *
  * xine version of video_out.h 
@@ -65,6 +65,7 @@ struct vo_frame_s {
   struct vo_frame_s         *next;
 
   uint32_t                   PTS;
+  uint32_t                   pts_corrector; /* Repeat first field tricks */
   uint32_t                   SCR;
   int                        bad_frame; /* e.g. frame skipped or based on skipped frame */
   int                        drawn;
@@ -73,7 +74,16 @@ struct vo_frame_s {
 
   /* additional information to be able to duplicate frames: */
   int                        width, height;
-  int                        ratio, format, duration;
+  int                        ratio, format; 
+  int duration;
+  int aspect_ratio;
+  int frame_rate_code; 
+  int progressive_sequence;
+  int top_field_first;
+  int repeat_first_field;
+  int progressive_frame;
+  int picture_coding_type;
+  int bitrate;
 
   int                        display_locked, decoder_locked, driver_locked;
   pthread_mutex_t            mutex; /* so the various locks will be serialized */

@@ -242,15 +242,53 @@ static int header_process_picture_coding_extension (picture_t * picture, uint8_t
 int header_process_extension (picture_t * picture, uint8_t * buffer)
 {
     switch (buffer[0] & 0xf0) {
+    case 0x00:	/* reserved */
+        return 0;
+
     case 0x10:	/* sequence extension */
 	return header_process_sequence_extension (picture, buffer);
+
+    case 0x20:	/* sequence display extension for Pan & Scan */
+        return 0;
 
     case 0x30:	/* quant matrix extension */
 	return header_process_quant_matrix_extension (picture, buffer);
 
+    case 0x40:	/* copyright extension */
+        return 0;
+
+    case 0x50:	/* sequence scalable extension */
+        return 0;
+
+    case 0x60:	/* reserved */
+        return 0;
+
+    case 0x70:	/* picture display extension for Pan & Scan */
+        return 0;
+
     case 0x80:	/* picture coding extension */
 	return header_process_picture_coding_extension (picture, buffer);
     }
+    case 0x90:	/* picture spacial scalable extension */
+        return 0;
+
+    case 0xA0:	/* picture temporal scalable extension */
+        return 0;
+
+    case 0xB0:	/* camera parameters extension */
+        return 0;
+
+    case 0xC0:	/* ITU-T extension */
+        return 0;
+
+    case 0xD0:	/* reserved */
+        return 0;
+
+    case 0xE0:	/* reserved */
+        return 0;
+
+    case 0xF0:	/* reserved */
+        return 0;
 
     return 0;
 }
