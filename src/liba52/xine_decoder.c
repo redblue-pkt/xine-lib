@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.50 2003/02/17 22:15:22 guenter Exp $
+ * $Id: xine_decoder.c,v 1.51 2003/05/10 00:50:50 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include "xine_internal.h"
 #include "audio_out.h"
@@ -70,7 +71,7 @@ typedef struct a52dec_decoder_s {
 
   uint8_t          frame_buffer[3840];
   uint8_t         *frame_ptr;
-  int              sync_todo;
+  int              sync_state;
   int              frame_length, frame_todo;
   uint16_t         syncword;
 
@@ -144,7 +145,7 @@ void a52dec_reset (audio_decoder_t *this_gen) {
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
   this->syncword      = 0;
-  this->sync_todo     = 7;
+  this->sync_state    = 0;
   this->pts           = 0;
 }
 
@@ -356,6 +357,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t          *current = buf->content;
   uint8_t          *end = buf->content + buf->size;
   uint8_t           byte;
+  int32_t	n;
 
 #ifdef LOG
   printf ("liba52: decode data %d bytes of type %08x, pts=%lld\n",
@@ -385,56 +387,33 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->pts)
     this->pts = buf->pts;
+#if 0
+  for(n=0;n < buf->size;n++) {
+    if ((n % 32) == 0) printf("\n");
+    printf("%x ", current[n]);
+  }
+  printf("\n");
+#endif
 
+#ifdef LOG
+    printf ("liba52: processing...state %d\n", this->sync_state);
+#endif
   while (current != end) {
-
-#ifdef LOG
-    printf ("liba52: processing...\n");
-#endif
-
-    if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
-
-#ifdef LOG
-      printf ("liba52: decode frame\n");
-#endif
-
-#ifdef DEBUG_A52
-      write (a52file, this->frame_buffer, this->frame_length);
-#endif
-      this->pts = 0;
-      this->sync_todo = 7;
-      this->syncword  = 0;
-    }
-
-    while (1) {
-      byte = *current++;
-
-      if (this->sync_todo>0) {
-
-#ifdef LOG
-	printf ("liba52: looking for syncword %04x\n", this->syncword);
-#endif
-
-
-	/* search and collect syncinfo */
-
-	if (this->syncword != 0x0b77) {
-	  this->syncword = (this->syncword << 8) | byte;
-
+    switch (this->sync_state) {
+    case 0:  /* Looking for sync header */
+	  this->syncword = (this->syncword << 8) | *current++;
 	  if (this->syncword == 0x0b77) {
 
 	    this->frame_buffer[0] = 0x0b;
 	    this->frame_buffer[1] = 0x77;
 
-	    this->sync_todo = 5;
+	    this->sync_state = 1;
 	    this->frame_ptr = this->frame_buffer+2;
-	  }
-	} else {
-	  *this->frame_ptr++ = byte;
-	  this->sync_todo--;
-
-	  if (this->sync_todo==0) {
+	  } else break;
+          /* Fall through */
+    case 1:  /* Looking for enough bytes for sync_info. */
+	  *this->frame_ptr++ = *current++;
+          if ((this->frame_ptr - this->frame_buffer) > 16) {
 	    int a52_flags_old       = this->a52_flags;
 	    int a52_sample_rate_old = this->a52_sample_rate;
 	    int a52_bit_rate_old    = this->a52_bit_rate;
@@ -444,62 +423,59 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->a52_sample_rate,
 					       &this->a52_bit_rate);
 #ifdef LOG
-	    printf ("liba52: syncinfo frame_length=%d\n", this->frame_length);
+            printf("Frame length = %d\n",this->frame_length);
 #endif
+	    this->frame_todo = this->frame_length - 17;
+	    this->sync_state = 2;
+	    if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] ||
+	        a52_flags_old       != this->a52_flags ||
+                a52_sample_rate_old != this->a52_sample_rate ||
+		a52_bit_rate_old    != this->a52_bit_rate) {
 
-	    if (this->frame_length) {
-	      this->frame_todo = this->frame_length - 7;
+              if (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) && (this->a52_flags & A52_LFE))
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.1");
+              else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) ||
+                       ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R))
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.0");
+              else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F1R) ||
+                       ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F))
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 3.0");
+              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_STEREO)
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (stereo)");
+              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_DOLBY)
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (dolby)");
+              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_MONO)
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 1.0");
+              else
+                this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52");
 
-	      if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] ||
-	          a52_flags_old       != this->a52_flags ||
-		  a52_sample_rate_old != this->a52_sample_rate ||
-		  a52_bit_rate_old    != this->a52_bit_rate) {
-
-		if (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) && (this->a52_flags & A52_LFE))
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 5.1");
-		else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) ||
-			((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R))
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 4.0");
-		else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F1R) ||
-			((this->a52_flags & A52_CHANNEL_MASK) == A52_3F))
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 3.0");
-		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_STEREO)
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (stereo)");
-		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_DOLBY)
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 2.0 (dolby)");
-		else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_MONO)
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52 1.0");
-		else
-		  this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup ("A/52");
-
-		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->a52_bit_rate;
-		this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->a52_sample_rate;
-	      }
-	    } else {
-	      this->sync_todo = 7;
-	      this->syncword  = 0;
-	      printf ("liba52: skip frame of zero length\n");
-	    }
-
-	  }
-
-	}
-      } else {
-
-	*this->frame_ptr++ = byte;
-	this->frame_todo--;
-
-	if (this->frame_todo == 0) {
-	  if (current == end)
-	    return ;
-	  break;
-	}
-      }
-
-      if (current == end)
-	return ;
+              this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->a52_bit_rate;
+              this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->a52_sample_rate;
+            }
+          } else break;
+            
+    case 2:  /* Filling frame_buffer with sync_info bytes */
+	  *this->frame_ptr++ = *current++;
+          this->frame_todo--;
+          if (this->frame_todo < 1) {
+	    this->sync_state = 3;
+          } else break;
+      
+    case 3:  /* Ready for decode */
+          a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
+    case 4:  /* Clear up ready for next frame */
+          this->pts = 0;
+	  this->syncword = 0;
+	  this->sync_state = 0;
+          break;
+    default: /* No come here */ 
+          break;
     }
   }
+
+#ifdef DEBUG_A52
+      write (a52file, this->frame_buffer, this->frame_length);
+#endif
 }
 
 static void a52dec_dispose (audio_decoder_t *this_gen) {
@@ -541,7 +517,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_caps    = stream->audio_out->get_capabilities(stream->audio_out);
   this->syncword      = 0;
-  this->sync_todo     = 7;
+  this->sync_state    = 0;
   this->output_open   = 0;
   this->pts           = 0;
 
