@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.62 2002/04/20 17:12:12 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.63 2002/04/28 16:16:18 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -302,17 +302,14 @@ static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
       dst8 += bespitch;
    }
 
-   dst8 = this->video_mem + this->bufinfo.offset_p2;
+   dst8 = this->video_mem;
    for(h = 0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy(dst8, cb, (frame->width / 2));
+      xine_fast_memcpy((dst8 + this->bufinfo.offset_p2), cb, (frame->width / 2));
+      xine_fast_memcpy((dst8 + this->bufinfo.offset_p3), cr, (frame->width / 2));
+      
       cb   += (frame->width / 2);
-      dst8 += (bespitch / 2);
-   }
-
-   dst8 = this->video_mem + this->bufinfo.offset_p3;
-   for(h=0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy(dst8, cr, (frame->width / 2));
       cr   += (frame->width / 2);
+      
       dst8 += (bespitch / 2);
    }
 }
@@ -392,11 +389,11 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
   
   frame = (syncfb_frame_t *) malloc(sizeof(syncfb_frame_t));
 
-  if(frame==NULL) {
-    printf ("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
+  if(frame == NULL) {
+    printf("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
   } else {
-    memset (frame, 0, sizeof(syncfb_frame_t));
-    pthread_mutex_init (&frame->vo_frame.mutex, NULL);
+    memset(frame, 0, sizeof(syncfb_frame_t));
+    pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
     /*
      * supply required functions
@@ -453,7 +450,7 @@ static void syncfb_update_frame_format (vo_driver_t *this_gen,
   
       if(frame->vo_frame.base[0] == (void *) -1) {
 	 printf("video_out_syncfb: failed. (shared memory error => address error)\n");
-	 exit (1);
+	 exit(1);
       }
       
       shmctl(frame->id, IPC_RMID, 0);
@@ -603,7 +600,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
-      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_CROP;
+      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
 	
       if(this->deinterlace_enabled)
 	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
@@ -995,7 +992,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
    }
 
    /* mmap whole video memory */
-   this->video_mem = (char *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
+   this->video_mem = (uint8_t *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
      
    /* check for formats we need... */
    this->supported_capabilities = 0;
