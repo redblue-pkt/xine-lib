@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/06/22 12:19:45 mroi Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/06/23 22:33:00 f1rmb Exp $
  *
  * code based on mplayer module:
  *
@@ -105,7 +105,6 @@ typedef struct sputext_decoder_s {
   char              *dst_encoding;
 
   subtitle_size     subtitle_size;
-  int64_t           last_subtitle_end; /* no new subtitle before this vpts */
 } sputext_decoder_t;
 
 #define FORMAT_MICRODVD  0
@@ -801,16 +800,18 @@ static void update_font_size (sputext_decoder_t *this) {
   this->line_height = this->font_size + 10;
 
   y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
-  
+
   if( this->osd )
     this->renderer->free_object (this->osd);
-
-  this->osd = this->renderer->new_object (this->renderer, 
-					  this->width,
-					  SUB_MAX_TEXT * this->line_height);
-
-  this->renderer->set_font (this->osd, this->font, this->font_size);
-  this->renderer->set_position (this->osd, 0, y);
+  
+  if(this->renderer) {
+    this->osd = this->renderer->new_object (this->renderer, 
+					    this->width,
+					    SUB_MAX_TEXT * this->line_height);
+    
+    this->renderer->set_font (this->osd, this->font, this->font_size);
+    this->renderer->set_position (this->osd, 0, y);
+  }
 }
 
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
@@ -842,7 +843,9 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   } else {
 
-    int64_t     sub_start, sub_end;
+    int64_t     pts, pts_end;
+    int64_t     pts_factor;
+    int         frame_num;
     subtitle_t *subtitle;
 
     /* don't want to see subtitle */
@@ -850,16 +853,16 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       return;
 
     subtitle = NULL;
+      
+    pts       = buf->pts;
+    pts_end   = pts;
+    frame_num = buf->decoder_info[1];
     
     /* 
      * find out which subtitle to display 
      */
 
     if (!this->uses_time) {
-      int         frame_num;
-      int64_t     pts_factor;
-
-      frame_num = buf->decoder_info[1];
 
       while ( (this->cur < this->num) 
 	      && (this->subtitles[this->cur].start < frame_num) )
@@ -878,13 +881,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       */
       pts_factor = 3000;
 
-      sub_start = this->xine->metronom->got_spu_packet(this->xine->metronom, buf->pts);
-      sub_end = sub_start + (subtitle->end - subtitle->start) * pts_factor;
+      pts += this->xine->metronom->vpts_offset;
+
+      pts_end = pts + (subtitle->end - subtitle->start) * pts_factor;
 
     } else {
+
       uint32_t start_tenth;
 
-      start_tenth = buf->pts/900;
+      start_tenth = pts/900;
 
 #ifdef LOG
       printf ("sputext: searching for spu for %d\n", start_tenth);
@@ -907,12 +912,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       if (subtitle->start > (start_tenth+20))
 	return;
 
-      sub_start = this->xine->metronom->got_spu_packet(this->xine->metronom, subtitle->start*900);
-      sub_end = sub_start + (subtitle->end - subtitle->start)*900;
-    }
+      pts += this->xine->metronom->vpts_offset;
 
-    if( !sub_start )
-      return;
+      pts_end = pts + (subtitle->end - subtitle->start)*900;
+    }
 
     if (subtitle) {
       int line, y;
@@ -944,15 +947,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
        
       if( font_size != this->font_size )
         this->renderer->set_font (this->osd, this->font, this->font_size);
-
-      if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
-	sub_start = this->last_subtitle_end;
-      }
-      this->last_subtitle_end = sub_end;
         
       this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
-      this->renderer->show (this->osd, sub_start);
-      this->renderer->hide (this->osd, sub_end);
+      this->renderer->show (this->osd, pts );
+      this->renderer->hide (this->osd, pts_end);
 
 #ifdef LOG
       printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
