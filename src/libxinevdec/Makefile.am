@@ -14,7 +14,6 @@ lib_LTLIBRARIES = \
 	xineplug_decode_qtsmc.la \
 	xineplug_decode_roqvideo.la \
 	xineplug_decode_rgb.la \
-	xineplug_decode_svq1.la \
 	xineplug_decode_yuv.la \
 	xineplug_decode_qtrpza.la \
 	xineplug_decode_wc3video.la \
@@ -33,9 +32,6 @@ xineplug_decode_msvc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_roqvideo_la_SOURCES = roqvideo.c
 xineplug_decode_roqvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-xineplug_decode_svq1_la_SOURCES = svq1.c svq1_codebooks.h
-xineplug_decode_svq1_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_fli_la_SOURCES = fli.c
 xineplug_decode_fli_la_LIBADD = $(XINE_LIB)
