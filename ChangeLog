@@ -5,7 +5,8 @@
   * new deinterlace method using Xv scaling for slower systems
   * mmx/mmxext/sse optimized memcpy functions
   * oss softsync fixes
-  * EXPERIMENTAL mpeg1 encoding driver for displaying non-mpeg streams on dxr3
+  * EXPERIMENTAL dxr3enc video driver for displaying non-mpeg streams on dxr3
+    (read xine-ui/doc/README.dxr3 for details on compilation and usage)
   * version checking of external libdivxdecore.so in divx4 decoder plugin
   * dxr3 still-menu/audio sync fixes / menu buttons now auto-display
   * dxr3 now keeps BCS values in .xinerc / Aspect ratio autodetection
