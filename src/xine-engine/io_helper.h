@@ -113,7 +113,9 @@ off_t _x_io_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
 off_t _x_io_file_write (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 /*
- * read a string from socket, return size length
+ * read a string from socket, return string length (same as strlen)
+ * the string is always '\0' terminated but given buffer size is never exceeded
+ * that is, _x_io_tcp_read_line(,,,X) <= (X-1) ; X > 0
  */
 int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size);
 
