@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.1 2003/06/13 01:48:10 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.2 2003/06/13 12:30:10 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -233,18 +233,16 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
 
   setup_speedy_calls(0);
 
-  greedy_plugin_init();
-
-  linearblend_plugin_init();
-
   linear_plugin_init();
+  linearblend_plugin_init();
+  greedy_plugin_init();
+  greedy2frame_plugin_init();
   weave_plugin_init();
   double_plugin_init();
   vfir_plugin_init();
 
   /* scalerbob_plugin_init(); -- not supported properly, use onefieldxv */
 
-  greedy2frame_plugin_init();
   /*
   dscaler_greedyh_plugin_init();
   dscaler_twoframe_plugin_init();
@@ -288,7 +286,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   }
 
   this->stream = NULL;
-  this->cur_method = 7;
+  this->cur_method = 1;
   this->pulldown = 1;
   this->enabled = 1;
   this->framerate_mode = 0;
