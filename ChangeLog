@@ -17,6 +17,7 @@ xine-lib (1-rc4)
   * raw AAC fixes and support for 5.1 AAC streams
   * AVI demuxer OpenDML (AVI2.0) support
   * fix unscaled OSD for Kaffeine
+  * Sierra VMD file demuxer
   * new ffmpeg decoders activated:
     * Sierra VMD audio and video
     * Duck TrueMotion v1 (DUCK)
@@ -25,7 +26,8 @@ xine-lib (1-rc4)
     * ASV v1/v2
     * ATI VCR1
     * Real Video 2.0
-  
+    * Sierra VMD
+
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
   * auto hiding of the subtitles
