@@ -22,7 +22,13 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.8 2004/03/03 20:00:38 mroi Exp $
+ * Supported formats:
+ * - uncompressed and byterun1 compressed ILBM data
+ * - IFF ANIM compression methods OPT 5, 7 (long and short) and
+ *   8 (long and short)
+ * - untested (found no testfiles) IFF-ANIM OPT 3, 4 and 6
+ *
+ * $Id: bitplane.c,v 1.9 2004/03/07 12:48:15 manfredtremmel Exp $
  */
 
 #include <stdio.h>
@@ -209,7 +215,8 @@ typedef struct bitplane_decoder_s {
   /* these are traditional variables in a video decoder object    */
   uint64_t          video_step;  /* frame duration in pts units   */
   int               decoder_ok;  /* current decoder status        */
-  int               skipframes;
+  int               skipframes;  /* 0 = draw picture, 1 = skip it */
+  int               framenumber;
 
   unsigned char    *buf;         /* the accumulated buffer data   */
   int               bufsize;     /* the maximum size of buf       */
@@ -241,14 +248,14 @@ typedef struct bitplane_decoder_s {
 static uint8_t *bitplane_decode_byterun1 (uint8_t *compressed,
   int size_compressed,
   int size_uncompressed) {
-  
+
   /* BytRun1 decompression */
   int pixel_ptr                         = 0;
   int i                                 = 0;
   int j                                 = 0;
-  
+
   uint8_t *uncompressed                 = xine_xmalloc( size_uncompressed );
-  
+
   while ( i < size_compressed &&
           pixel_ptr < size_uncompressed ) {
     if( compressed[i] <= 127 ) {
@@ -278,7 +285,7 @@ static void bitplane_decode_bitplane (uint8_t *bitplane_buffer,
   int height,
   int num_bitplanes,
   int bytes_per_pixel ) {
-  
+
   int rowsize                           = width / 8;
   int pixel_ptr                         = 0;
   int row_ptr                           = 0;
@@ -294,7 +301,7 @@ static void bitplane_decode_bitplane (uint8_t *bitplane_buffer,
   int bytes_per_pixel_8                 = bytes_per_pixel * 8;
   int rowsize_num_bitplanes             = rowsize * num_bitplanes;
   int width_bytes_per_pixel             = width * bytes_per_pixel;
-  
+
   for (i = 0; i < (height * width_bytes_per_pixel); index_buf[i++] = 0);
 
   /* decode Bitplanes to RGB/Index Numbers */
@@ -316,7 +323,7 @@ static void bitplane_decode_bitplane (uint8_t *bitplane_buffer,
         j                               = row_j + palette_index_rowsize + pixel_ptr;
 
         data                            = bitplane_buffer[j];
-        
+
         index_buf[i]                   += ((data & 0x80) ? color : 0);
         i                              += bytes_per_pixel;
         index_buf[i]                   += ((data & 0x40) ? color : 0);
@@ -361,7 +368,7 @@ static void bitplane_decode_ham (uint8_t *ham_buffer,
         /* the other bits contain the real data, dreate a mask out of it */
   int maskbits                          = 8 - hambits;
   int mask                              = ( 1 << hambits ) - 1;
-  
+
   for(; ham_buffer_work < ham_buffer_end; j = *ham_buffer_work++) {
     i                                   = (j & mask);
     switch ( j >> hambits ) {
@@ -395,70 +402,212 @@ static void bitplane_decode_ham (uint8_t *ham_buffer,
   }
 }
 
-/* this function is currently unused */
-#if 0
-/* decoding method 4 */
-static void bitplane_set_dlta_short (uint8_t *current_buffer,
-  uint8_t *index_buf,
-  /* uint8_t *delta_buffer,*/
-  uint8_t *delta,
-  /*int delta_buf_size,*/
-  int dsize,
-  int width,
-  int height,
-  int num_bitplanes ) {
-  
-  uint32_t rowsize                      = width / 8;
-  
+/* decoding method 3 */
+static void bitplane_sdelta_opt_3 (bitplane_decoder_t *this) {
+
+  uint32_t rowsize                      = this->width / 16;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
+
   uint32_t palette_index                = 0;
-  uint32_t *deltadata                   = (uint32_t *)delta;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
   uint16_t *ptr                         = NULL;
   uint16_t *planeptr                    = NULL;
+  uint16_t *picture_end                 = (uint16_t *)(&this->buf_uk[(rowsize_all_planes * 2 * this->height)]);
   uint16_t *data                        = NULL;
-  uint16_t *dest                        = NULL;
-  int32_t s                             = 0;
-  int32_t size                          = 0;
-  int32_t nw                            = rowsize >> 1;
+  uint16_t *data_end                    = (uint16_t *)(&this->buf[this->size]);
+  uint16_t *rowworkptr                  = NULL;
+  int16_t s                             = 0;
+  int16_t size                          = 0;
+  uint32_t pixel_ptr_bit                = 0;
+  uint32_t row_ptr                      = 0;
+  uint32_t yuv_index                    = 0;
 
   /* Repeat for each plane */
-  for(palette_index = 0; palette_index < num_bitplanes; palette_index++) {
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
 
-    planeptr                            = (uint16_t *)(&current_buffer[(palette_index * rowsize)]);
+    planeptr                            = (uint16_t *)(&this->buf_uk[(palette_index * rowsize * 2)]);
     /* data starts at beginn of delta-Buffer + offset of the first */
     /* 32 Bit long word in the buffer. The buffer starts with 8    */
     /* of this Offset, for every bitplane (max 8) one              */
-    data                                = (uint16_t *)(delta + BE_32(&deltadata[palette_index]));
-    /* This 8 Pointers are followd by another 8                    */
-    ptr                                 = (uint16_t *)(delta + BE_32(&deltadata[(palette_index+8)]));
-
-    /* in this case, I think big/little endian is not important ;-) */
-    while( *ptr !=  0xFFFF) {
-      dest                              = planeptr + BE_16(ptr);
-      ptr++;
-      size                              = BE_16(ptr);
-      ptr++;
-      if (size < 0) {
-        for (s = size; s < 0; s++) {
-          *dest                         = *data;
-          dest                         += nw;
-        }
+    data                                = (uint16_t *)(&this->buf[BE_32(&deltadata[palette_index])]);
+    if( data != (uint16_t *)this->buf ) {
+      /* This 8 Pointers are followd by another 8                    */
+/*      ptr                               = (uint16_t *)(&this->buf[BE_32(&deltadata[(palette_index+8)])]);
+*/
+      /* in this case, I think big/little endian is not important ;-) */
+      while( *data !=  0xFFFF) {
+        row_ptr                         = 0;
+        size                            = BE_16(data);
         data++;
-      }
-      else {
-        for (s = 0; s < size; s++) {
-          *dest = *data++;
-          dest += nw;
+        if( size >= 0 ) {
+          rowworkptr                    = planeptr + size;
+          pixel_ptr_bit                 = size * 16;
+          if( this->is_ham ) {
+            IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[pixel_ptr_bit],
+                               rowworkptr, data, bitplainoffeset[palette_index] );
+          } else {
+            IFF_REPLACE_SHORT( &this->index_buf[pixel_ptr_bit],
+                               &this->yuv_planes.y[pixel_ptr_bit], &this->yuv_planes.u[pixel_ptr_bit],
+                               &this->yuv_planes.v[pixel_ptr_bit], this->yuv_palette,
+                               rowworkptr, data, bitplainoffeset[palette_index] );
+          }
+          data++;
+        } else {
+          size                          = 0 - size + 2;
+          rowworkptr                    = planeptr + size;
+          pixel_ptr_bit                 = size * 16;
+          s                             = BE_16(data);
+          data++;
+          while( s--) {
+            if( this->is_ham ) {
+              IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[pixel_ptr_bit],
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            } else {
+              IFF_REPLACE_SHORT( &this->index_buf[pixel_ptr_bit],
+                                 &this->yuv_planes.y[pixel_ptr_bit], &this->yuv_planes.u[pixel_ptr_bit],
+                                 &this->yuv_planes.v[pixel_ptr_bit], this->yuv_palette,
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            }
+            rowworkptr++;
+            data++;
+          }
+        }
+
+
+
+
+        size                            = BE_16(ptr);
+        ptr++;
+        if (size < 0) {
+          for (s = size; s < 0; s++) {
+            if (data > data_end || rowworkptr > picture_end)
+              return;
+            yuv_index                   = ((row_ptr * this->width) + pixel_ptr_bit);
+            if( this->is_ham ) {
+              IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            } else {
+              IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                 &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                 &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            }
+            rowworkptr                 += rowsize_all_planes;
+            row_ptr++;
+          }
+          data++;
+        }
+        else {
+          for (s = 0; s < size; s++) {
+            if (data > data_end || rowworkptr > picture_end)
+              return;
+            yuv_index                   = ((row_ptr * this->width) + pixel_ptr_bit);
+            if( this->is_ham ) {
+              IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            } else {
+              IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                 &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                 &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            }
+            data++;
+            rowworkptr                 += rowsize_all_planes;
+            row_ptr++;
+          }
         }
       }
     }
   }
-  bitplane_decode_bitplane(current_buffer, index_buf, width, height, num_bitplanes, 1);
 }
-#endif
+
+/* decoding method 4 */
+static void bitplane_set_dlta_short (bitplane_decoder_t *this) {
+
+  uint32_t rowsize                      = this->width / 16;
+  uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
+
+  uint32_t palette_index                = 0;
+  uint32_t *deltadata                   = (uint32_t *)this->buf;
+  uint16_t *ptr                         = NULL;
+  uint16_t *planeptr                    = NULL;
+  uint16_t *picture_end                 = (uint16_t *)(&this->buf_uk[(rowsize_all_planes * 2 * this->height)]);
+  uint16_t *data                        = NULL;
+  uint16_t *data_end                    = (uint16_t *)(&this->buf[this->size]);
+  uint16_t *rowworkptr                  = NULL;
+  int16_t s                             = 0;
+  int16_t size                          = 0;
+  uint16_t pixel_ptr                    = 0;
+  uint32_t pixel_ptr_bit                = 0;
+  uint32_t row_ptr                      = 0;
+  uint32_t yuv_index                    = 0;
+
+  /* Repeat for each plane */
+  for(palette_index = 0; palette_index < this->num_bitplanes; palette_index++) {
+
+    planeptr                            = (uint16_t *)(&this->buf_uk[(palette_index * rowsize * 2)]);
+    /* data starts at beginn of delta-Buffer + offset of the first */
+    /* 32 Bit long word in the buffer. The buffer starts with 8    */
+    /* of this Offset, for every bitplane (max 8) one              */
+    data                                = (uint16_t *)(&this->buf[BE_32(&deltadata[palette_index])]);
+    if( data != (uint16_t *)this->buf ) {
+      /* This 8 Pointers are followd by another 8                    */
+      ptr                               = (uint16_t *)(&this->buf[BE_32(&deltadata[(palette_index+8)])]);
+
+      /* in this case, I think big/little endian is not important ;-) */
+      while( *ptr !=  0xFFFF) {
+        pixel_ptr                       = BE_16(ptr);
+        pixel_ptr_bit                   = pixel_ptr * 16;
+        row_ptr                         = 0;
+        rowworkptr                      = planeptr + pixel_ptr;
+        ptr++;
+        size                            = BE_16(ptr);
+        ptr++;
+        if (size < 0) {
+          for (s = size; s < 0; s++) {
+            if (data > data_end || rowworkptr > picture_end)
+              return;
+            yuv_index                   = ((row_ptr * this->width) + pixel_ptr_bit);
+            if( this->is_ham ) {
+              IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            } else {
+              IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                 &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                 &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            }
+            rowworkptr                 += rowsize_all_planes;
+            row_ptr++;
+          }
+          data++;
+        } else {
+          for (s = 0; s < size; s++) {
+            if (data > data_end || rowworkptr > picture_end)
+              return;
+            yuv_index                   = ((row_ptr * this->width) + pixel_ptr_bit);
+            if( this->is_ham ) {
+              IFF_REPLACE_SHORT_SIMPLE(&this->index_buf[yuv_index],
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            } else {
+              IFF_REPLACE_SHORT( &this->index_buf[yuv_index],
+                                 &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                 &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                 rowworkptr, data, bitplainoffeset[palette_index] );
+            }
+            data++;
+            rowworkptr                   += rowsize_all_planes;
+            row_ptr++;
+          }
+        }
+      }
+    }
+  }
+}
 
 /* decoding method 5 */
 static void bitplane_dlta_5 (bitplane_decoder_t *this) {
-  
+
   uint32_t rowsize                      = this->width / 8;
   uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
 
@@ -643,10 +792,10 @@ static void bitplane_dlta_7_short (bitplane_decoder_t *this) {
     }
   }
 }
-              
+
 /* decoding method 7 (long version) */
 static void bitplane_dlta_7_long  (bitplane_decoder_t *this) {
-  
+
   uint32_t rowsize                      = this->width / 32;
   uint32_t rowsize_all_planes           = rowsize * this->num_bitplanes;
 
@@ -1016,7 +1165,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     /* New Buffer for indexes (palette based formats) */
     this->index_buf                     = xine_xmalloc( this->num_pixel * this->bytes_per_pixel );
     this->index_buf_hist                = xine_xmalloc( this->num_pixel * this->bytes_per_pixel );
-    
+
     this->num_bitplanes                 = bih->biPlanes;
     this->camg_mode                     = bih->biCompression;
     if( this->camg_mode & CAMG_HAM )
@@ -1047,6 +1196,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     this->bufsize                       = VIDEOBUFSIZE;
     this->buf                           = xine_xmalloc(this->bufsize);
     this->size                          = 0;
+    this->framenumber                   = 0;
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
     init_yuv_planes(&this->yuv_planes_hist, this->width, this->height);
@@ -1070,6 +1220,8 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     return;
   } else if (this->decoder_ok) {
 
+    this->skipframes                    = 0;
+    this->framenumber++;
     if (this->size + buf->size > this->bufsize) {
       this->bufsize                     = this->size + 2 * buf->size;
       this->buf                         = realloc (this->buf, this->bufsize);
@@ -1097,11 +1249,11 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
       if( (this->buf_uk    == NULL) ||
           (anhd            == NULL) ||
           (anhd->operation == IFF_ANHD_ILBM) ) {
-       
+
         /* iterate through each row */
         buf_ptr                         = 0;
         this->size_uk                   = (((this->num_pixel) / 8) * this->num_bitplanes);
-      
+
         if( this->buf_uk_hist != NULL )
           xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
         switch( buf->type ) {
@@ -1131,7 +1283,7 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
         }
         bitplane_decode_bitplane(     this->buf_uk,              /* bitplane buffer         */
                                       this->index_buf,           /* index buffer            */
-                                      this->width,        /* width                   */
+                                      this->width,               /* width                   */
                                       this->height,              /* hight                   */
                                       this->num_bitplanes,       /* number bitplanes        */
                                       this->bytes_per_pixel);    /* used Bytes per pixel    */
@@ -1192,34 +1344,28 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
             break;
           /* also known as IFF-ANIM OPT3 */
           case IFF_ANHD_SDELTA:
-            xine_log(this->stream->xine, XINE_LOG_MSG,
-                     _("bitplane: Anim Opt 3 is not supported at the moment\n"));
-            _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
+            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT3");
+            bitplane_sdelta_opt_3 ( this );
             return;
             break;
           /* also known as IFF-ANIM OPT4 (never seen in real world) */
           case IFF_ANHD_SLDELTA:
-            xine_log(this->stream->xine, XINE_LOG_MSG,
-                     _("bitplane: Anim Opt 4 is not supported at the moment\n"));
-            _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
-/*            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
-            bitplane_set_dlta_short ( this->buf_uk_hist,
-                                      this->index_buf_hist,
-                                      this->buf,
-                                      this->size,
-                                      this->width,
-                                      this->height,
-                                      this->num_bitplanes);*/
+            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
+            bitplane_set_dlta_short ( this );
             break;
           /* also known as IFF-ANIM OPT5 */
           case IFF_ANHD_BVDELTA:
             _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT5 (BVDELTA)");
             bitplane_dlta_5(this);
             break;
+          /* IFF-ANIM OPT6 is exactly the same as OPT5, but for stereo-displays */
+          /* first picture is on the left display, second on the right, third on */
+          /* the left, forth on right, ... Only display left picture on mono display*/
           case IFF_ANHD_STEREOO5:
-            xine_log(this->stream->xine, XINE_LOG_MSG,
-                     _("bitplane: Anim Opt 6 is not supported at the moment\n"));
-            _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
+            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT6 (BVDELTA STEREO)");
+            bitplane_dlta_5(this);
+            if( this->framenumber % 2   == 0 )
+              this->skipframes          = 1;
             return;
             break;
           case IFF_ANHD_OPT7:
@@ -1273,39 +1419,41 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
         this->yuv_planes_hist.v         = buf_exchange;
       }
 
-      switch (this->bytes_per_pixel) {
-        case 1:
-          /* HAM-pictrues need special handling */
-          if( this->is_ham ) {
-            /* Decode HAM-Pictures to YUV */
-            bitplane_decode_ham( this->index_buf,            /* HAM-bitplane buffer     */
-                                 &(this->yuv_planes),        /* YUV buffer              */
-                                 this->width,                /* width                   */
-                                 this->height,               /* hight                   */
-                                 this->num_bitplanes,        /* number bitplanes        */
-                                 this->bytes_per_pixel,      /* used Bytes per pixel    */
-                                 this->rgb_palette);         /* Palette (RGB)           */
-          }
-          break;
-        case 3:
-          buf_exchange                  = this->index_buf;
-          for (i = 0; i < (this->height * this->width); i++) {
-            r                           = *buf_exchange++;
-            g                           = *buf_exchange++;
-            b                           = *buf_exchange++;
+      if( this->skipframes == 0 ) {
+        switch (this->bytes_per_pixel) {
+          case 1:
+            /* HAM-pictrues need special handling */
+            if( this->is_ham ) {
+              /* Decode HAM-Pictures to YUV */
+              bitplane_decode_ham( this->index_buf,          /* HAM-bitplane buffer     */
+                                   &(this->yuv_planes),      /* YUV buffer              */
+                                   this->width,              /* width                   */
+                                   this->height,             /* hight                   */
+                                   this->num_bitplanes,      /* number bitplanes        */
+                                   this->bytes_per_pixel,    /* used Bytes per pixel    */
+                                   this->rgb_palette);       /* Palette (RGB)           */
+            }
+            break;
+          case 3:
+            buf_exchange                = this->index_buf;
+            for (i = 0; i < (this->height * this->width); i++) {
+              r                         = *buf_exchange++;
+              g                         = *buf_exchange++;
+              b                         = *buf_exchange++;
 
-            this->yuv_planes.y[i]       = COMPUTE_Y(r, g, b);
-            this->yuv_planes.u[i]       = COMPUTE_U(r, g, b);
-            this->yuv_planes.v[i]       = COMPUTE_V(r, g, b);
-          }
-          break;
-        default:
-          break;
+              this->yuv_planes.y[i]     = COMPUTE_Y(r, g, b);
+              this->yuv_planes.u[i]     = COMPUTE_U(r, g, b);
+              this->yuv_planes.v[i]     = COMPUTE_V(r, g, b);
+            }
+            break;
+          default:
+            break;
+        }
+
+        yuv444_to_yuy2(&this->yuv_planes, img->base[0], img->pitches[0]);
+
+        img->draw(img, this->stream);
       }
-
-      yuv444_to_yuy2(&this->yuv_planes, img->base[0], img->pitches[0]);
-
-      img->draw(img, this->stream);
       img->free(img);
 
       this->size                        = 0;
