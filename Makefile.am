@@ -40,8 +40,7 @@ docs:
 	@cd doc && $(MAKE) $@
 
 distcheck-lax:
-	@$(MAKE) docs
-	@$(MAKE) distcheck SGMLTOOLS=: FIG2DEV=:
+	@$(MAKE) distcheck_lax=true distcheck
 
 pass1:
 	@$(MAKE) MULTIPASS_CFLAGS='$(PASS1_CFLAGS)'
