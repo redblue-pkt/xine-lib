@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.88 2003/03/27 11:39:23 siggi Exp $
+ * $Id: audio_oss_out.c,v 1.89 2003/06/01 22:48:26 jcdutton Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -309,10 +309,18 @@ static int ao_oss_open(ao_driver_t *this_gen,
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
+    tmp = bits;
+    ioctl(this->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
+
+    tmp = this->input_sample_rate;
+    ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp);
+    tmp = 2;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
-      printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
-      return 0;
+      printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d. Using alternative.\n",tmp);
+      tmp = AFMT_S16_LE;
+      ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp);
     }
     break;
   }
@@ -923,9 +931,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   }
 
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
-  if (caps & AFMT_AC3) {
+
+  if ((caps & AFMT_AC3) || config->register_bool (config, "audio.oss_pass_through_bug", 0,
+			       _("used to inform xine about what the sound card can do"),
+			       NULL, 0, NULL, NULL)) {
     if (config->register_bool (config, "audio.a52_pass_through", 0,
-			       _("Enable A52 / AC5 digital audio output via spdif"),
+			       _("used to inform xine about what the sound card can do"),
 			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_A52;
       this->capabilities |= AO_CAP_MODE_AC5;
