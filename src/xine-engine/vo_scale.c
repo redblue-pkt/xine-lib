@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.1 2002/08/15 03:12:27 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.2 2002/08/16 21:10:02 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -285,10 +285,9 @@ void vo_scale_translate_gui2video(vo_scale_t *this,
      * translate output area coordianates into the delivered area
      * coordiantes.
      */
-    x = x * this->delivered_width  / this->output_width;
-    y = y * this->delivered_height / this->output_height;
-  
-    /* FIXME: not that trivial, must take zoom into account */
+    
+    x = x * this->displayed_width  / this->output_width  + this->displayed_xoffset;
+    y = y * this->displayed_height / this->output_height + this->displayed_yoffset;
   }
 
   *vid_x = x;
@@ -332,5 +331,6 @@ void vo_scale_init(vo_scale_t *this, double display_ratio,
   this->force_redraw = 1;
   this->zoom_factor_x = 1.0;
   this->zoom_factor_y = 1.0;
+  this->user_ratio = ASPECT_AUTO;
 }                  
 
