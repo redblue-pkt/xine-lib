@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.18 2001/05/26 22:04:38 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.19 2001/05/28 21:47:43 f1rmb Exp $
  *
  */
 
@@ -213,6 +213,63 @@ typedef void (*gui_status_callback_func_t)(int nStatus);
  * @defgroup xine_api API functions
  * @{
  */
+
+/**
+ * @defgroup xine_version API functions
+ * @ingroup xine_api
+ * @{
+ */
+/**
+ * \fn *xine_get_str_version(void);
+ * \brief return string version, like "0.5.0"
+ * \param None.
+ * \return string version
+ *
+ */
+char *xine_get_str_version(void);
+
+/**
+ * \fn int xine_get_major_version(void);
+ * \brief return version information
+ * \param None.
+ * \return major version.
+ *
+ */
+int xine_get_major_version(void);
+
+/**
+ * \fn int xine_get_minor_version(void);
+ * \brief return version information
+ * \param None.
+ * \return minor version.
+ *
+ */
+int xine_get_minor_version(void);
+
+/**
+ * \fn int xine_get_sub_version(void);
+ * \brief return version information
+ * \param None.
+ * \return sub version.
+ *
+ */
+int xine_get_sub_version(void);
+
+/**
+ * \fn int xine_check_version(int major, int minor, int sub);
+ * \brief check minimal version.
+ * \param major major version wanted.
+ * \param minorr minor version wanted.
+ * \param sub sub version wanted.
+ * \return 1 if installed version is >= to desired, otherwise 0
+ *
+ * Compare version numbers with xine installed version.
+ */
+int xine_check_version(int major, int minor, int sub);
+
+/** @} end of xine_version */
+
+
 /** @defgroup xine_init_api Init functions
  * @ingroup xine_api
  * @{

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.19 2001/05/28 12:08:20 f1rmb Exp $
+ * $Id: xine.c,v 1.20 2001/05/28 21:47:43 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -528,3 +528,47 @@ int xine_get_status(xine_t *this) {
   return this->status;
 }
 
+/* ***
+ * Version information/check
+ */
+
+/*
+ * Return version in string, like "0.5.0"
+ */
+char *xine_get_str_version(void) {
+  return VERSION;
+}
+
+/*
+ * Return major version
+ */
+int xine_get_major_version(void) {
+  return XINE_MAJOR;
+}
+
+/*
+ * Return minor version
+ */
+int xine_get_minor_version(void) {
+  return XINE_MINOR;
+}
+
+/*
+ * Return sub version
+ */
+int xine_get_sub_version(void) {
+  return XINE_SUB;
+}
+
+/*
+ * Check if xine version is <= to specifier version.
+ */
+int xine_check_version(int major, int minor, int sub) {
+  
+  if((XINE_MAJOR > major) || 
+     ((XINE_MAJOR == major) && (XINE_MINOR > minor)) || 
+     ((XINE_MAJOR == major) && (XINE_MINOR == minor) && (XINE_SUB >= sub)))
+    return 1;
+  
+  return 0;
+}

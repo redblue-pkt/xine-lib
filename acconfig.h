@@ -1,3 +1,7 @@
+#undef XINE_MAJOR
+#undef XINE_MINOR
+#undef XINE_SUB
+
 /* Define this if you're running x86 architecture */
 #undef __i386__
 
