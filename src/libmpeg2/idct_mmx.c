@@ -654,6 +654,25 @@ static void block_add (int16_t * block, uint8_t * dest, int stride)
     movq_r2m (mm3, *(dest+stride));
 }
 
+static inline void block_zero (int16_t * block)   {       
+  pxor_r2r (mm0, mm0);
+  movq_r2m (mm0, *(block+0*4));
+  movq_r2m (mm0, *(block+1*4));       
+  movq_r2m (mm0, *(block+2*4));       
+  movq_r2m (mm0, *(block+3*4));       
+  movq_r2m (mm0, *(block+4*4));       
+  movq_r2m (mm0, *(block+5*4));       
+  movq_r2m (mm0, *(block+6*4));       
+  movq_r2m (mm0, *(block+7*4));       
+  movq_r2m (mm0, *(block+8*4));       
+  movq_r2m (mm0, *(block+9*4));       
+  movq_r2m (mm0, *(block+10*4));       
+  movq_r2m (mm0, *(block+11*4));       
+  movq_r2m (mm0, *(block+12*4));       
+  movq_r2m (mm0, *(block+13*4));       
+  movq_r2m (mm0, *(block+14*4));       
+  movq_r2m (mm0, *(block+15*4));   
+}
 
 declare_idct (mmxext_idct, mmxext_table,
 	      mmxext_row_head, mmxext_row, mmxext_row_tail, mmxext_row_mid)
@@ -662,12 +681,14 @@ void mpeg2_idct_copy_mmxext (int16_t * block, uint8_t * dest, int stride)
 {
     mmxext_idct (block);
     block_copy (block, dest, stride);
+    block_zero (block);
 }
 
 void mpeg2_idct_add_mmxext (int16_t * block, uint8_t * dest, int stride)
 {
     mmxext_idct (block);
     block_add (block, dest, stride);
+    block_zero (block);
 }
 
 
@@ -678,12 +699,14 @@ void mpeg2_idct_copy_mmx (int16_t * block, uint8_t * dest, int stride)
 {
     mmx_idct (block);
     block_copy (block, dest, stride);
+    block_zero (block);
 }
 
 void mpeg2_idct_add_mmx (int16_t * block, uint8_t * dest, int stride)
 {
     mmx_idct (block);
     block_add (block, dest, stride);
+    block_zero (block);
 }
 
 void mpeg2_idct_mmx_init (void)

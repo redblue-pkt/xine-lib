@@ -148,7 +148,7 @@ AC_C_BIGENDIAN
 dnl AC_C_BIGENDIAN triggers an AC_TRY_RUN warning; we can't cross compile
 dnl xine (oh, well)
 AC_C_CONST
-AC_C_INLINE
+AC_C_ALWAYS_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AM_TYPE_PTRDIFF_T

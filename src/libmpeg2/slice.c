@@ -23,7 +23,6 @@
 
 #include "config.h"
 
-#include <string.h>
 #include <inttypes.h>
 
 #include "video_out.h"
@@ -966,7 +965,6 @@ static inline void slice_intra_DCT (picture_t * picture, int cc,
 	picture->dc_dct_pred[cc] += get_chroma_dc_dct_diff (picture);
     picture->DCTblock[0] =
 	picture->dc_dct_pred[cc] << (3 - picture->intra_dc_precision);
-    memset (picture->DCTblock + 1, 0, 63 * sizeof (int16_t));
 
     if (picture->mpeg1) {
 	if (picture->picture_coding_type != D_TYPE)
@@ -984,7 +982,6 @@ static inline void slice_intra_DCT (picture_t * picture, int cc,
 static inline void slice_non_intra_DCT (picture_t * picture, uint8_t * dest,
 					int stride)
 {
-    memset (picture->DCTblock, 0, 64 * sizeof (int16_t));
     if (picture->mpeg1)
 	get_mpeg1_non_intra_block (picture);
     else
