@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.106 2004/09/02 14:27:56 hadess Exp $
+ * $Id: demux_ts.c,v 1.107 2004/10/18 19:08:05 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1166,10 +1166,19 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     case ISO_13818_PES_PRIVATE:
       for (i = 5; i < coded_length; i += stream[i+1] + 2) {
         if ((stream[i] == 0x6a) && (this->audioPid == INVALID_PID)) {
+          uint32_t format_identifier=0;
 #ifdef TS_PMT_LOG
           printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
 #endif
-          demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
+          demux_ts_get_reg_desc(this, &format_identifier,
+                                stream + 5, stream_info_length);
+          if (format_identifier == 0x41432d33) /* AC-3 */
+            demux_ts_pes_new(this, this->media_num, pid,
+                             this->audio_fifo, 0x81);
+          else
+            demux_ts_pes_new(this, this->media_num, pid,
+                             this->audio_fifo,stream[0]);
+
           this->audioPid = pid;
           this->audioMedia = this->media_num;
 	  demux_ts_get_lang_desc(this, this->audioLang,
