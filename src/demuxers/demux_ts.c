@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.102 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_ts.c,v 1.103 2004/06/10 20:16:59 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1220,7 +1220,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
         uint32_t format_identifier=0;
         demux_ts_get_reg_desc(this, &format_identifier,
 			       stream + 5, stream_info_length);
-        if (format_identifier == 0x41432d33) {
+        /* If no format identifier, assume A52 */
+        if ((format_identifier == 0x41432d33) || (format_identifier == 0)) {
 	  demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
           this->audioPid = pid;
           this->audioMedia = this->media_num;
