@@ -247,5 +247,8 @@ Contributions
 
   Carsten Weinhold <cw.news@gmx.net>
     patch to improve quality of linearblend filter
-  
+
+  Dennis Bjorklund <db@zigo.dhs.org>
+    configurable size of avi subtitles
+      
     (let us know if we've forgotten anyone)
