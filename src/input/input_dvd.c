@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.60 2002/08/13 16:04:27 jkeil Exp $
+ * $Id: input_dvd.c,v 1.61 2002/08/19 17:27:11 mroi Exp $
  *
  */
 
@@ -47,6 +47,7 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <dlfcn.h>
 
 #include <sys/mount.h>
 #include <sys/wait.h>
@@ -99,8 +100,10 @@
 /* The default DVD device on Solaris is not /dev/dvd */
 #if defined(__sun)
 #define DVD_PATH "/vol/dev/aliases/cdrom0"
+#define RDVD_PATH NULL
 #else
 #define DVD_PATH "/dev/dvd"
+#define RDVD_PATH "/dev/rdvd"
 #endif 
 
 /* Some misc. defines */
@@ -1306,6 +1309,7 @@ check_solaris_vold_device(dvdnav_input_plugin_t *this)
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   dvdnav_input_plugin_t *this;
   config_values_t *config = xine->config;
+  void *dvdcss;
 
   trace_print("Called\n");
 
@@ -1356,6 +1360,25 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 					       device_change_cb, (void *)this);
     this->current_dvd_device = this->dvd_device;
 
+    if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
+      /* we have found libdvdcss, enable the specific config options */
+      char *raw_device;
+      static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+      int mode;
+     
+      raw_device = config->register_string(config, "input.dvd_raw_device",
+                           RDVD_PATH, "raw device set up for dvd access",
+                           NULL, NULL, NULL);
+      if (raw_device) setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+      
+      mode = config->register_enum(config, "input.css_decryption_method", 0,
+                           decrypt_modes, "the css decryption method libdvdcss should use",
+                           NULL, NULL, NULL);
+      setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
+      
+      dlclose(dvdcss);
+    }
+
     config->register_num(config, "input.dvd_region",
 		      	 1,
 			 "Region that DVD player claims "
@@ -1399,6 +1422,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.61  2002/08/19 17:27:11  mroi
+ * add config entries for raw device and css decryption method
+ *
  * Revision 1.60  2002/08/13 16:04:27  jkeil
  * Solaris uses <sys/cdio.h> for CDROM/DVD-ROM ioctl, too.  Try to use autoconf
  * HAVE_headerfile macros...  (The xxxBSD part nees a bit work)
