@@ -68,7 +68,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 void nbc_check_buffers (nbc_t *this) {
 
-  int video_fifo_fill, audio_fifo_fill;                   /* number of buffers */
+  int fifo_fill, video_fifo_fill, audio_fifo_fill;                   /* number of buffers */
   int video_fifo_free, audio_fifo_free;                   /* number of free buffers */
   int data_length, video_data_length, audio_data_length;  /* fifo length in second */
   uint32_t video_data_size, audio_data_size;              /* fifo size in bytes */
@@ -82,8 +82,10 @@ void nbc_check_buffers (nbc_t *this) {
   else
     audio_fifo_fill = 0;
 
+  fifo_fill = video_fifo_fill + audio_fifo_fill;
+
   /* start buffering if fifos are empty */
-  if ((audio_fifo_fill == 0) || (video_fifo_fill == 0)) {
+  if (fifo_fill == 0) {
     if (!this->buffering) {
 
       /* increase/decrease marks to adapt to stream/network needs */
