@@ -2,17 +2,17 @@
 # Copyright (C) 2002 Free Software Foundation, Inc.
 # Bart³omiej Muryn <_4ever_@irc.pl>, 2002.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-05-02 16:47+0100\n"
-"PO-Revision-Date: 2002-04-27 09:26+0200\n"
-"Last-Translator: Bartlomiej Muryn <forever@klub.chip.pl>\n"
+"POT-Creation-Date: 2002-05-02 16:47+0200\n"
+"PO-Revision-Date: 2002-05-31 20:46+0200\n"
+"Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 0.9.6\n"
 
 #: src/demuxers/demux_ts.c:316
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
@@ -21,8 +21,7 @@ msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT zrzuca wiele pakietów TS\n"
 #: src/demuxers/demux_ts.c:322
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-msgstr ""
-"demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
+msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
 
 #: src/demuxers/demux_ts.c:332
 #, c-format
@@ -30,28 +29,27 @@ msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 msgstr ""
-"demux_ts: blad demultiplexera! PAT z blednym CRC32: crc32 pakietu: %.8x "
+"demux_ts: b³±d demultiplexera! PAT z b³êdnym CRC32: crc32 pakietu: %.8x "
 "wyliczone crc32: %.8x\n"
 
 #: src/demuxers/demux_ts.c:396
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
-msgstr "demux_ts: blad %02x %02x %02x (powinno byc 0x000001)\n"
+msgstr "demux_ts: b³±d %02x %02x %02x (powinno byæ 0x000001)\n"
 
 #: src/demuxers/demux_ts.c:533
 #, c-format
 msgid "fifo unavailable (%d)\n"
-msgstr "nie dostepne fifo (%d)\n"
+msgstr "nie dostêpne fifo (%d)\n"
 
 #: src/demuxers/demux_ts.c:545
 #, c-format
 msgid "demux_ts: dropped input packet cc: %d expected: %d\n"
-msgstr "demux_ts: opuszczony pakiet wejscia cc: %d oczekiwany %d\n"
+msgstr "demux_ts: opuszczony pakiet wej¶cia cc: %d oczekiwany %d\n"
 
 #: src/demuxers/demux_ts.c:559
 msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-msgstr ""
-"demux_ts: PUSI ustawione ale brak naglowka PES (uszkodzony strumien?)\n"
+msgstr "demux_ts: PUSI ustawione ale brak nag³ówka PES (uszkodzony strumieñ?)\n"
 
 #: src/demuxers/demux_ts.c:567
 msgid "demux_ts: broken pes encountered\n"
@@ -59,7 +57,7 @@ msgstr "demux_ts: napotkano uszkodzony PES\n"
 
 #: src/demuxers/demux_ts.c:670
 msgid "demux error! PMT with invalid pointer\n"
-msgstr "blad demultiplexera! PMT z blednym kursorem\n"
+msgstr "b³±d demultiplexera! PMT z b³êdnym kursorem\n"
 
 #: src/demuxers/demux_ts.c:775
 #, c-format
@@ -67,34 +65,34 @@ msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 msgstr ""
-"demux_ts: blad demultipleksera! PMT z blednym CRC32: crc32 pakietu %#.8x "
+"demux_ts: b³±d demultipleksera! PMT z b³êdnym CRC32: crc32 pakietu %#.8x "
 "wyliczone crc32: %#.8x\n"
 
 #: src/demuxers/demux_ts.c:790
 msgid "demux error! PMT with inconsistent progInfo length\n"
-msgstr "blad demultiplexera! PMT z niespojna dlugoscia progInfo\n"
+msgstr "b³±d demultiplexera! PMT z niespójn± d³ugo¶ci± progInfo\n"
 
 #: src/demuxers/demux_ts.c:807
 msgid "demux error! PMT with inconsistent streamInfo length\n"
-msgstr "blad demultiplexera! PMT z niespojna dlugoscia streamInfo\n"
+msgstr "b³±d demultiplexera! PMT z niespójn± d³ugo¶ci± streamInfo\n"
 
 #: src/demuxers/demux_ts.c:926
 msgid "RE-Sync failed\n"
-msgstr "resynchronizacja zawiodla\n"
+msgstr "resynchronizacja zawiod³a\n"
 
 #: src/demuxers/demux_ts.c:1074
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
-msgstr "blad demultiplexera! bledny bajt symchronizacji ts %.2x\n"
+msgstr "b³±d demultiplexera! b³êdny bajt synchronizacji ts %.2x\n"
 
 #: src/demuxers/demux_ts.c:1079
 msgid "demux error! transport error\n"
-msgstr "blad demultiplexera! blad transportu\n"
+msgstr "b³±d demultiplexera! b³±d transportu\n"
 
 #: src/demuxers/demux_ts.c:1127
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
-msgstr "demux_ts: blad demultiplexera! Bledny rozmiar payload %d\n"
+msgstr "demux_ts: b³±d demultiplexera! B³êdny rozmiar payload %d\n"
 
 #: src/demuxers/demux_ts.c:1300
 #, c-format
@@ -104,7 +102,7 @@ msgstr "demux %u ts_open!\n"
 #: src/demuxers/demux_ts.c:1402
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
-msgstr "demux_ts: nie moge utworzyc nowego watku (%s)\n"
+msgstr "demux_ts: nie moge utworzyæ nowego w±tku (%s)\n"
 
 #: src/demuxers/demux_ts.c:1470
 #, c-format
@@ -115,18 +113,18 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 "demux_ts: wtyczka nie wspiera API w wersji %d.\n"
-"\t   to oznacza ze jest niezgodnosc wersji miedzy xine i           wtyczka "
+"\t   to oznacza ¿e jest niezgodno¶æ wersji miêdzy xine i           wtyczk± "
 "demultiplexera.\n"
-"Instalacja aktualnej wtyczki wejscia powinna pomoc.\n"
+"Instalacja aktualnej wtyczki wej¶cia powinna pomóc.\n"
 
 #: src/demuxers/demux_avi.c:369
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index pliku avi uszkodzony\n"
 
 #: src/demuxers/demux_avi.c:1011
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: video format = %s\n"
-msgstr "demux_asf: format obrazu = %s\n"
+msgstr "demux_avi: format obrazu = %s\n"
 
 #: src/demuxers/demux_avi.c:1013
 #, c-format
@@ -134,29 +132,29 @@ msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: rozmiar ramki wideo %ld x %ld\n"
 
 #: src/demuxers/demux_avi.c:1016
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
-msgstr "demux_avi: format dzwieku [%d] = 0x%lx\n"
+msgstr "demux_avi: format d¼wiêku [%d] = 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:1024
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
-msgstr "demux_avi: nieznany typ dzwieku 0x%lx\n"
+msgstr "demux_avi: nieznany typ d¼wiêku 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:1030
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
-msgstr "demux_avi: typ dzwieku %s (wFormatTag 0x%x)\n"
+msgstr "demux_avi: typ dzwiêku %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_avi.c:1142
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: nieznany kodek wideo '%.4s'\n"
 
 #: src/demuxers/demux_avi.c:1150
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: video codec is '%s'\n"
-msgstr "demux_avi: kodek video to '%s'\n"
+msgstr "demux_avi: kodek wideo to '%s'\n"
 
 #: src/demuxers/demux_avi.c:1336
 #, c-format
@@ -167,20 +165,20 @@ msgid ""
 "Installing current demuxer plugins should help.\n"
 msgstr ""
 "demux_avi: ta wtyczka nie wspiera API w wersji %d.\n"
-"demux_avi: oznacza to niezgodnosc miedzy xine demux_avi: a ta wtyczka "
+"demux_avi: oznacza to niezgodno¶æ miêdzy xine demux_avi: a t± wtyczka "
 "demultiplexera.\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/demuxers/demux_mpeg.c:937
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr "demux_mpeg: prosze podac typ strumienia mpeg(mpeg1/mpeg2).\n"
+msgstr "demux_mpeg: proszê podaæ typ strumienia mpeg(mpeg1/mpeg2).\n"
 
 #: src/demuxers/demux_mpeg_block.c:287
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
-"demux_mpeg_block: zbyt wiele bledow, zatrzymuje odtwarzanie.Moze strumien "
+"demux_mpeg_block: zbyt wiele b³êdów, zatrzymanie odtwarzania. Mo¿e strumieñ "
 "jest zaszyfrowany?\n"
 
 #: src/demuxers/demux_mpeg_block.c:446
@@ -189,7 +187,7 @@ msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
-"demux_mpeg_block: uwaga: naglowek pes wskazuje na to ze strumien moze byc "
+"demux_mpeg_block: uwaga: nag³ówek pes wskazuje na to ze strumieñ mo¿e byæ "
 "zaszyfrowany (tryb szyfrowania %d)\n"
 
 #: src/demuxers/demux_mpgaudio.c:158
@@ -205,12 +203,11 @@ msgstr "demux_qt: nieznany kodek wideo '%s'\n"
 #: src/demuxers/demux_qt.c:4221
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
-msgstr ""
-"demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
+msgstr "demux_qt: kodek wideo  %s (%f fps), kodek audio  %s (%ld Hz, %d bits)\n"
 
 #: src/demuxers/demux_ogg.c:223
 msgid "ogg: vorbis audio stream detected\n"
-msgstr "ogg: znaleziono strumien dzwieku typu vorbis\n"
+msgstr "ogg: znaleziono strumieñ d¼wiêku typu vorbis\n"
 
 #: src/demuxers/demux_ogg.c:279
 #, c-format
@@ -226,14 +223,14 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 "demux_ogg: ta wtyczka nie wspiera API w wersji %d.\n"
-"demux_ogg: oznacza to niezgodnosc miedzy xine demux_ogg: a ta wtyczka "
+"demux_ogg: oznacza to niezgodno¶æ miêdzy xine demux_ogg: a t± wtyczk± "
 "demultiplexera.\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/demuxers/demux_asf.c:339
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
-msgstr "demux_asf: format dzwieku : %s (wFormatTag 0x%x)\n"
+msgstr "demux_asf: format d¼wiêku : %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_asf.c:402
 #, c-format
@@ -243,7 +240,7 @@ msgstr "demux_asf: format obrazu : %s\n"
 #: src/demuxers/demux_asf.c:460
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
-msgstr "demux_asf: dlugosc strumienia jest %d sec, rate jest %d bajtow/sek\n"
+msgstr "demux_asf: d³ugo¶æ strumienia jest %d sec, rate jest %d bajtow/sek\n"
 
 #: src/demuxers/demux_asf.c:1283
 #, c-format
@@ -263,7 +260,7 @@ msgstr "demux_asf: copyright    : %s\n"
 #: src/demuxers/demux_asf.c:1289
 #, c-format
 msgid "demux_asf: comment      : %s\n"
-msgstr "demux_asf: comentarz      : %s\n"
+msgstr "demux_asf: komentarz      : %s\n"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -278,16 +275,16 @@ msgstr "input_net: connect(): %s\n"
 #: src/input/input_net.c:126
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
-msgstr "input_net: nie moge znalezc IP dla '%s'.\n"
+msgstr "input_net: nie mogê znale¼æ IP dla '%s'.\n"
 
 #: src/input/input_net.c:138
 #, c-format
 msgid "input_net: unable to connect to '%s'.\n"
-msgstr "input_net: nie moge podlaczyc sie do '%s'.\n"
+msgstr "input_net: nie mogê pod³±czyæ siê do '%s'.\n"
 
 #: src/input/input_net.c:300
 msgid "net input plugin as shipped with xine"
-msgstr "wtyczka wejscia net dostarczana z xine"
+msgstr "wtyczka wej¶cia net dostarczana z xine"
 
 #: src/input/input_net.c:342
 #, c-format
@@ -297,10 +294,10 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia net nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia net nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_rtp.c:157
 #, c-format
@@ -315,26 +312,26 @@ msgstr "bind(): %s.\n"
 #: src/input/input_rtp.c:185
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
-msgstr "setsockopt(IP_ADD_MEMBERSHIP) zawiodlo (multicast kernel?): %s.\n"
+msgstr "setsockopt(IP_ADD_MEMBERSHIP) zawiod³o (multicast kernel?): %s.\n"
 
 #: src/input/input_rtp.c:205
 #, c-format
 msgid "unable to resolve '%s'.\n"
-msgstr "nie moge znalezc IP dla '%s'.\n"
+msgstr "nie mogê znale¼æ IP dla '%s'.\n"
 
 #: src/input/input_rtp.c:218
 #, c-format
 msgid "unable to connect to '%s'.\n"
-msgstr "nie moge sie podlaczyc do '%s'.\n"
+msgstr "nie mogê siê pod³±czyæ do '%s'.\n"
 
 #: src/input/input_rtp.c:241
 msgid "OUCH - ran out of buffers\n"
-msgstr "OCH - bufory przepelnione\n"
+msgstr "OCH - bufory przepe³nione\n"
 
 #: src/input/input_rtp.c:271
 #, c-format
 msgid "OUCH - dropped input packet %d %d\n"
-msgstr "OCH - opuszczony pakiet wejscia %d %d\n"
+msgstr "OCH - porzucony pakiet wej¶cia %d %d\n"
 
 #: src/input/input_rtp.c:311
 #, c-format
@@ -344,11 +341,11 @@ msgstr "Otwieram >%s<\n"
 #: src/input/input_rtp.c:339
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
-msgstr "input_rtp: nie moge utworzyc nowego watku (%s)\n"
+msgstr "input_rtp: nie mogê utworzyæ nowego w±tku (%s)\n"
 
 #: src/input/input_rtp.c:450
 msgid "rtp input plugin as shipped with xine"
-msgstr "Wtyczka wejscia rtp dostarczana z xine"
+msgstr "Wtyczka wej¶cia rtp dostarczana z xine"
 
 #: src/input/input_rtp.c:514
 #, c-format
@@ -358,10 +355,10 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia rtp nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia rtp nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczka wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_rtp.c:530 src/input/input_rtp.c:535
 msgid "unable to allocate input buffer.\n"
@@ -369,7 +366,7 @@ msgstr "nie moge umiejscowic bufora wejscia.\n"
 
 #: src/input/input_stdin_fifo.c:321
 msgid "stdin/fifo input plugin as shipped with xine"
-msgstr "Wtyczka wejscia stdin/fifo dostarczana z xine"
+msgstr "Wtyczka wej¶cia stdin/fifo dostarczana z xine"
 
 #: src/input/input_stdin_fifo.c:356
 #, c-format
@@ -379,16 +376,16 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia stdin/fifo nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia stdin/fifo nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_dvd.c:145 src/input/input_dvd.c:692
 #: src/input/input_dvd.c:752
 #, c-format
 msgid "input_dvd: unable to open dvd drive (%s): %s\n"
-msgstr "input_dvd: nie moge otworzyc napedu dvd (%s): %s\n"
+msgstr "input_dvd: nie mogê otworzyæ napêdu dvd (%s): %s\n"
 
 #: src/input/input_dvd.c:242
 #, c-format
@@ -397,24 +394,24 @@ msgstr "USCSICMD dvd_read_copyright: %s"
 
 #: src/input/input_dvd.c:246
 msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-msgstr "bad status: READ DVD STRUCTURE (copyright)\n"
+msgstr "z³y status: READ DVD STRUCTURE (copyright)\n"
 
 #: src/input/input_dvd.c:300
 #, c-format
 msgid "input_dvd: cannot open dvd drive >%s<\n"
-msgstr "input_dvd: nie moge otworzyc napedu dvd >%s<\n"
+msgstr "input_dvd: nie mogê otworzyæ napêdu dvd >%s<\n"
 
 #: src/input/input_dvd.c:311 src/input/input_dvd.c:324
 msgid "input_dvd: Could not read Copyright Structure\n"
-msgstr "input_dvd: nie moge odczytac Copyright Structure\n"
+msgstr "input_dvd: nie mogê odczytaæ Copyright Structure\n"
 
 #: src/input/input_dvd.c:337
 msgid ""
 "input_dvd: Could not read Copyright Structure.\n"
 "           Assuming disk is not encrypted.\n"
 msgstr ""
-"input_dvd: Nie moge odczytac Copyright Structure.\n"
-"           Przyjmuje ze dysk nie jest zaszyfrowany.\n"
+"input_dvd: Nie mogê odczytaæ Copyright Structure.\n"
+"           Przyjmujê ¿e dysk nie jest zaszyfrowany.\n"
 
 #: src/input/input_dvd.c:346
 msgid ""
@@ -426,18 +423,18 @@ msgstr ""
 "\n"
 "input_dvd: Przykro mi, xine nie odtwarza zaszyfrowanych DVD. Status prawny "
 "szyfrowania CSS\n"
-"           jest niejasny wiec nie dostarczamy takiego kodu.\n"
+"           jest niejasny wiêc nie dostarczamy takiego kodu.\n"
 "\n"
 
 #: src/input/input_dvd.c:354
 #, c-format
 msgid "input_dvd: cannot open file >%s<\n"
-msgstr "input_dvd: nie moge otworzyc pliku >%s<\n"
+msgstr "input_dvd: nie mogê otworzyæ pliku >%s<\n"
 
 #: src/input/input_dvd.c:399
 #, c-format
 msgid "input_dvd: Unable to find >%s< on dvd.\n"
-msgstr "input_dvd: Nie moge znalezc >%s< na dvd.\n"
+msgstr "input_dvd: Nie mogê znale¼æ >%s< na dvd.\n"
 
 #: src/input/input_dvd.c:434
 #, c-format
@@ -447,42 +444,41 @@ msgstr "input_dvd: error read: %Ld bajtow to nie sektor!\n"
 #: src/input/input_dvd.c:451
 #, c-format
 msgid "input_dvd: read error in input_dvd plugin (%s)\n"
-msgstr "input_dvd: blad odczytu we wtyczce input_dvd (%s)\n"
+msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd (%s)\n"
 
 #: src/input/input_dvd.c:455
 #, c-format
 msgid "input_dvd: short read in input_dvd (%d != %d)\n"
-msgstr "input_dvd: krotki odczyt we wtyczce input_dvd (%d != %d)\n"
+msgstr "input_dvd: krótki odczyt we wtyczce input_dvd (%d != %d)\n"
 
 #: src/input/input_dvd.c:474
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr ""
-"input_dvd: blad w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
+msgstr "input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
 
 #: src/input/input_dvd.c:486
 msgid "input_dvd: read error in input_dvd plugin\n"
-msgstr "input_dvd: blad odczytu we wtyczce input_dvd\n"
+msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd\n"
 
 #: src/input/input_dvd.c:519
 #, c-format
 msgid "input_dvd: seek: %d is an unknown origin\n"
-msgstr "input_dvd: seek: %d jest nie znanego pochodzenia\n"
+msgstr "input_dvd: seek: %d jest nieznanego pochodzenia\n"
 
 #: src/input/input_dvd.c:560
 #, c-format
 msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
-msgstr "input_dvd: CDROMCLOSETRAY zawiodlo: %s\n"
+msgstr "input_dvd: CDROMCLOSETRAY zawiod³o: %s\n"
 
 #: src/input/input_dvd.c:566 src/input/input_dvd.c:583
 #, c-format
 msgid "input_dvd: CDROMEJECT failed: %s\n"
-msgstr "input_dvd: CDROMEJECT zawiodlo: %s\n"
+msgstr "input_dvd: CDROMEJECT zawiod³o: %s\n"
 
 #: src/input/input_dvd.c:572
 #, c-format
 msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr "input_dvd: CDROM_DRIVE_STATUS zawiodlo: %s\n"
+msgstr "input_dvd: CDROM_DRIVE_STATUS zawiod³o: %s\n"
 
 #: src/input/input_dvd.c:588
 #, c-format
@@ -496,7 +492,7 @@ msgstr "ioctl(cdromeject): %s"
 
 #: src/input/input_dvd.c:618
 msgid "dvd device input plugin as shipped with xine"
-msgstr "wtyczka wejscia DVD dostarczana z xine"
+msgstr "wtyczka wej¶cia DVD dostarczana z xine"
 
 #: src/input/input_dvd.c:813
 #, c-format
@@ -506,25 +502,25 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia dvd nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia dvd nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miedzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_file.c:209
 #, c-format
 msgid "lstat failed for %s{%s}\n"
-msgstr "lstat zawiodl dla %s{%s}\n"
+msgstr "lstat zawiód³ dla %s{%s}\n"
 
 #: src/input/input_file.c:295
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
-msgstr "input_file: probuje otworzyc plik z napisami '%s'\n"
+msgstr "input_file: próbuje otworzyæ plik z napisami '%s'\n"
 
 #: src/input/input_file.c:353
 #, c-format
 msgid "input_file: read error (%s)\n"
-msgstr "input_file: blad odczytu (%s)\n"
+msgstr "input_file: b³±d odczytu (%s)\n"
 
 #: src/input/input_file.c:527 src/input/input_file.c:566
 #: src/input/input_file.c:602
@@ -534,12 +530,12 @@ msgstr "%s(%d): readlink() failed: %s\n"
 
 #: src/input/input_file.c:790
 msgid "plain file input plugin as shipped with xine"
-msgstr "wtyczka wejscia pliku dostarczane z xine"
+msgstr "wtyczka wej¶cia pliku dostarczane z xine"
 
 #: src/input/input_file.c:808
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
-msgstr "input_file: pobieram dodatkowe dane, typ %08x, sub %p\n"
+msgstr "input_file: pobieranie dodatkowych danych, typ %08x, sub %p\n"
 
 #: src/input/input_file.c:859
 #, c-format
@@ -549,65 +545,64 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia file nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia file nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczka wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
-msgstr "input_vcd : blad w ioctl CDROMREADTOCHDR\n"
+msgstr "input_vcd : b³±d w ioctl CDROMREADTOCHDR\n"
 
 #: src/input/input_vcd.c:167
-#, fuzzy, c-format
+#, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr ""
-"input_vcd: blad w kontroli wejscie/wyjscie CDROMREADTOCENTRY dla scie¿ki %d\n"
+msgstr "input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
 
 #: src/input/input_vcd.c:178
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n"
-msgstr "input_vcd: blad w ioctl CDROMREADTOCENTRY dla lead-out\n"
+msgstr "input_vcd: b³±d w ioctl CDROMREADTOCENTRY dla lead-out\n"
 
 #: src/input/input_vcd.c:209
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY\n"
-msgstr "input_vcd: blad w ioctl CDROMREADTOCENTRY\n"
+msgstr "input_vcd: b³±d w ioctl CDROMREADTOCENTRY\n"
 
 #: src/input/input_vcd.c:327
 #, c-format
 msgid "scsi command failed with status %d\n"
-msgstr "komenda scsi zawiodla ze statusem %d\n"
+msgstr "komenda scsi zawiod³a ze statusem %d\n"
 
 #: src/input/input_vcd.c:368
 msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-msgstr "input_vcd: zle sformuowany MRL. Uzyj vcd://<track #>\n"
+msgstr "input_vcd: ¼le sformu³owany MRL. U¿yj vcd://<¶cie¿ka #>\n"
 
 #: src/input/input_vcd.c:375
 #, c-format
 msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
-msgstr "input_vcd: bledna sciezka %d (poprawny zakres: 0 .. %d)\n"
+msgstr "input_vcd: b³êdna ¶cie¿ka %d (poprawny zakres: 0 .. %d)\n"
 
 #: src/input/input_vcd.c:390
 #, c-format
 msgid "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"
-msgstr "input_vcd: blad w CDRIOCSETBLOCKSIZE %d\n"
+msgstr "input_vcd: b³±d w CDRIOCSETBLOCKSIZE %d\n"
 
 #: src/input/input_vcd.c:440 src/input/input_vcd.c:577
 msgid "input_vcd: error in CDROMREADRAW\n"
-msgstr "input_vcd: blad w CDROMREADRAW\n"
+msgstr "input_vcd: b³±d w CDROMREADRAW\n"
 
 #: src/input/input_vcd.c:475 src/input/input_vcd.c:617
 #, c-format
 msgid "input_vcd: seek error %d\n"
-msgstr "input_vcd: blad wyszukiwania %d\n"
+msgstr "input_vcd: b³±d wyszukiwania %d\n"
 
 #: src/input/input_vcd.c:479 src/input/input_vcd.c:621
 #, c-format
 msgid "input_vcd: read error %d\n"
-msgstr "input_vcd: blad odczytu %d\n"
+msgstr "input_vcd: b³±d odczytu %d\n"
 
 #: src/input/input_vcd.c:516 src/input/input_vcd.c:663
 msgid "input_vcd: read data failed\n"
-msgstr "input_vcd: odczyt danych zawiodl\n"
+msgstr "input_vcd: odczyt danych zawiód³\n"
 
 #: src/input/input_vcd.c:734 src/input/input_vcd.c:785
 msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
@@ -616,40 +611,40 @@ msgstr "input_vcd: SEEK_CUR nie zaimplementowane dla offset != 0\n"
 #: src/input/input_vcd.c:752 src/input/input_vcd.c:793
 #, c-format
 msgid "input_vcd: error seek to origin %d not implemented!\n"
-msgstr "input_vcd: blad wyszukiwania do origin %d nie zaimplementowany!\n"
+msgstr "input_vcd: b³±d wyszukiwania do pocz±tku %d nie zaimplementowany!\n"
 
 #: src/input/input_vcd.c:886
 #, c-format
 msgid "input_vcd: CDROMCLOSETRAY failed: %s\n"
-msgstr "input_vcd: CDROMCLOSETRAY zawiodlo: %s\n"
+msgstr "input_vcd: CDROMCLOSETRAY zawiód³: %s\n"
 
 #: src/input/input_vcd.c:891 src/input/input_vcd.c:933
 #, c-format
 msgid "input_vcd: CDROMEJECT failed: %s\n"
-msgstr "input_vcd: CDROMEJECT zawiodlo %s\n"
+msgstr "input_vcd: CDROMEJECT zawiód³ %s\n"
 
 #: src/input/input_vcd.c:897
 #, c-format
 msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
-msgstr "input_vcd: CDROM_DRIVE_STATUS zawiodlo: %s\n"
+msgstr "input_vcd: CDROM_DRIVE_STATUS zawiód³: %s\n"
 
 #: src/input/input_vcd.c:963
 msgid "vcd device input plugin as shipped with xine"
-msgstr "wtyczka wejscia VCD dostarczana z xine"
+msgstr "wtyczka wej¶cia VCD dostarczana z xine"
 
 #: src/input/input_vcd.c:991
 #, c-format
 msgid "unable to open %s: %s.\n"
-msgstr "nie moge otworzyc %s: %s.\n"
+msgstr "nie mogê otworzyæ %s: %s.\n"
 
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
-msgstr "vcd_read_toc zawiodlo\n"
+msgstr "vcd_read_toc zawiod³o\n"
 
 #: src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s."
-msgstr "nie moge otworzyc %s: %s."
+msgstr "nie mogê otworzyæ %s: %s."
 
 #: src/input/input_vcd.c:1146
 #, c-format
@@ -659,33 +654,33 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia VCD nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia VCD nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_http.c:98
 msgid "input_http: failed to open socket\n"
-msgstr "input_http: otwarcie gniazda zawiodlo\n"
+msgstr "input_http: otwarcie gniazda zawiod³o\n"
 
 #: src/input/input_http.c:107
 msgid "input_http: cannot connect to host\n"
-msgstr "input_http: nie moge podlaczyc sie do hosta\n"
+msgstr "input_http: nie mogê pod³±czyæ siê do hosta\n"
 
 #: src/input/input_http.c:122
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
-msgstr "input_http: nie moge rozwiazac adresu >%s<\n"
+msgstr "input_http: nie mogê rozwi±zaæ adresu >%s<\n"
 
 #: src/input/input_http.c:134
 #, c-format
 msgid "http: unable to connect to >%s<\n"
-msgstr "http: nie moge sie podlaczyc do >%s<\n"
+msgstr "http: nie mogê siê pod³±czyæ do >%s<\n"
 
 #: src/input/input_http.c:334
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
-msgstr "input_http: otwieram >/%s< na hoscie >%s<"
+msgstr "input_http: otwieram >/%s< na ho¶cie >%s<"
 
 #: src/input/input_http.c:337
 #, c-format
@@ -698,11 +693,11 @@ msgstr "input_http: EAGAIN\n"
 
 #: src/input/input_http.c:416 src/input/input_http.c:537
 msgid "input_http: read error\n"
-msgstr "input_http: blad odczytu\n"
+msgstr "input_http: b³±d odczytu\n"
 
 #: src/input/input_http.c:445
 msgid "input_http: invalid http answer\n"
-msgstr "input_http: bledna odpowiedz http\n"
+msgstr "input_http: b³êdna odpowied¼ http\n"
 
 #: src/input/input_http.c:450
 #, c-format
@@ -717,7 +712,7 @@ msgstr "input_http: status http nie jest 2xx: >%d %s<\n"
 #: src/input/input_http.c:464
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
-msgstr "input_http: dlugosc zawartosci = %Ld bytes\n"
+msgstr "input_http: d³ugo¶æ zawarto¶ci = %Ld bytes\n"
 
 #: src/input/input_http.c:471
 msgid "input_http: Location redirection not implemented\n"
@@ -725,7 +720,7 @@ msgstr "input_http: przekierowanie miejsca nie zaimplementowane\n"
 
 #: src/input/input_http.c:632
 msgid "http network stream input plugin"
-msgstr "wtyczka wejscia strumienia sieciowego http"
+msgstr "wtyczka wej¶cia strumienia sieciowego http"
 
 #: src/input/input_http.c:673
 #, c-format
@@ -735,124 +730,124 @@ msgid ""
 "This means there's a version mismatch between xine and this inputplugin.\n"
 "Installing current input plugins should help.\n"
 msgstr ""
-"Wtyczka wejscia http nie wspiera API w wersji %d.\n"
-"WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"Wtyczka wej¶cia http nie wspiera API w wersji %d.\n"
+"WTYCZKA WY£¡CZONA.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/input/input_cda.c:438 src/input/input_cda.c:496
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
-msgstr "input_cda: fopen(%s) zawiodlo: %s\n"
+msgstr "input_cda: fopen(%s) zawiód³: %s\n"
 
 #: src/input/input_cda.c:585
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
-msgstr "input_cda: serwer '%s:%d' podlaczony.\n"
+msgstr "input_cda: serwer '%s:%d' pod³±czony.\n"
 
 #: src/input/input_cda.c:590
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
-msgstr "input_cda: otwarcie serwera '%s:%d' zawiodlo: %s\n"
+msgstr "input_cda: otwarcie serwera '%s:%d' zawiod³o: %s\n"
 
 #: src/input/input_cda.c:758
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROM_MEDIA_CHANGED) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDROM_MEDIA_CHANGED) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:825
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMSUBCHNL) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDROMSUBCHNL) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:960
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOCSTART) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDIOCSTART) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:966
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMSTART) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDROMSTART) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:972
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOCPLAYMSF) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDIOCPLAYMSF) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:978
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMPLAYMSF) zawiodlo: %s.\n"
+msgstr "input_cda: ioctl(CDROMPLAYMSF) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:999
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
-msgstr "input_cda: Brak uprawnien do otwarcia %s.\n"
+msgstr "input_cda: Brak uprawnieñ do otwarcia %s.\n"
 
 #: src/input/input_cda.c:1002
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
-msgstr "input_cda: open(%s) zawiodl: %s.\n"
+msgstr "input_cda: open(%s) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:1096
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMCLOSETRAY) zawiodl: %s\n"
+msgstr "input_cda: ioctl(CDROMCLOSETRAY) zawiód³: %s\n"
 
 #: src/input/input_cda.c:1101 src/input/input_cda.c:1117
 #: src/input/input_cda.c:1122
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMEJECT) zawiodl: %s\n"
+msgstr "input_cda: ioctl(CDROMEJECT) zawiód³: %s\n"
 
 #: src/input/input_cda.c:1107
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
-msgstr "input_cda: ioctl(CDROM_DRIVE_STATUS) zawiodl: %s\n"
+msgstr "input_cda: ioctl(CDROM_DRIVE_STATUS) zawiód³: %s\n"
 
 #: src/input/input_cda.c:1113
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
-msgstr "input_cda: ioctl(CDROMALLOW) zawiodl: %s\n"
+msgstr "input_cda: ioctl(CDROMALLOW) zawiód³: %s\n"
 
 #: src/input/input_cda.c:1153
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOREADTOCHEADER) zawiodl: %s.\n"
+msgstr "input_cda: ioctl(CDIOREADTOCHEADER) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:1161
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMREADTOCHDR) zawiodl: %s.\n"
+msgstr "input_cda: ioctl(CDROMREADTOCHDR) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:1198
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
-msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) zawiodl: %s.\n"
+msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:1221
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMREADTOCENTRY) zawiodl: %s.\n"
+msgstr "input_cda: ioctl(CDROMREADTOCENTRY) zawiód³: %s.\n"
 
 #: src/input/input_cda.c:1404
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
-msgstr "input_cda: zle zformuowane MRL. Uzyj cda://<track #>\n"
+msgstr "input_cda: ¼le sformu³owane MRL. U¿yj cda://<track #>\n"
 
 #: src/input/input_cda.c:1410
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-msgstr "input_cda: bledna sciezka %d (poprawny zakres: 1 .. %d)\n"
+msgstr "input_cda: b³êdna ¶cie¿ka %d (poprawny zakres: 1 .. %d)\n"
 
 #: src/input/input_cda.c:1493
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
-msgstr "input_cda: blad wyszukiwania do poczatku %d nie zaimplementowany!\n"
+msgstr "input_cda: b³±d wyszukiwania do pocz±tku %d nie zaimplementowany!\n"
 
 #: src/input/input_cda.c:1609
 msgid "cd audio plugin as shipped with xine"
-msgstr "wtyczka wejscia CD audio dostarczana z xine"
+msgstr "wtyczka wej¶cia CD audio dostarczana z xine"
 
 #: src/input/input_cda.c:1797
 #, c-format
@@ -864,13 +859,13 @@ msgid ""
 msgstr ""
 "Wtyczka wejscia cda nie wspiera API w wersji %d.\n"
 "WTYCZKA WYLACZONA.\n"
-"oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
-"Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
+"oznacza to niezgodno¶æ miêdzy xine a t± wtyczk± wej¶cia\n"
+"Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
 
 #: src/xine-engine/video_out.c:310
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr "%d ramek dostarczonych, %d ramek pominiêtych, %d ramek poniechanych\n"
+msgstr "%d ramek dostarczonych, %d ramek pominiêtych, %d ramek porzuconych\n"
 
 #: src/xine-engine/video_out.c:348
 #, c-format
@@ -882,38 +877,38 @@ msgstr "video_out: odrzucam obraz o pts %lld bo jest za stary (diff : %lld).\n"
 #: src/xine-engine/video_out.c:880
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
-msgstr "video_out: nie moge utworzyc watku (%s)\n"
+msgstr "video_out: nie mogê utworzyæ w±tku (%s)\n"
 
 #. FIXME: how does this happen ?
 #: src/xine-engine/video_out.c:883
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
-"video_out: przykro mi, to nie powinno sie zdarzyc.\n"
-"Prosze zrestartowac xine.\n"
+"video_out: przykro mi, to nie powinno sie zdarzyæ.\n"
+"Proszê ponownie uruchomiæ xine.\n"
 
 #: src/xine-engine/xine.c:122
 #, c-format
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-msgstr "xine_notify_stream_finished: nie moge utworzyc nowego watku (%s)\n"
+msgstr "xine_notify_stream_finished: nie mogê utworzyæ nowego w±tku (%s)\n"
 
 #: src/xine-engine/xine.c:287
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
-msgstr "%s(%d) bledny pierwszy etap = %d !!\n"
+msgstr "%s(%d) b³êdny pierwszy etap = %d !!\n"
 
 #: src/xine-engine/xine.c:396
 msgid "xine: cannot find input plugin for this MRL\n"
-msgstr "xine: nie moge znalezc wtyczki wejscia dla tego MRL\n"
+msgstr "xine: nie mogê znale¼æ wtyczki wej¶cia dla tego MRL\n"
 
 #: src/xine-engine/xine.c:408
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
-msgstr "uzywam wtyczki wejscia '%s' dla MRL '%s'\n"
+msgstr "u¿ywam wtyczki wej¶cia '%s' dla MRL '%s'\n"
 
 #: src/xine-engine/xine.c:418
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
-msgstr "xine: nie moge znalezc demultiplexera dla >%s<\n"
+msgstr "xine: nie mogê znale¼æ demultiplexera dla >%s<\n"
 
 #: src/xine-engine/xine.c:426
 #, c-format
@@ -922,7 +917,7 @@ msgstr "format warstwy systemowej '%s' wykryty.\n"
 
 #: src/xine-engine/xine.c:454
 msgid "xine_play: demuxer failed to start\n"
-msgstr "xine_play: zawiodl start demultiplexera\n"
+msgstr "xine_play: zawiód³ start demultiplexera\n"
 
 #: src/xine-engine/xine.c:984
 msgid "stream format"
@@ -930,7 +925,7 @@ msgstr "format strumienia"
 
 #: src/xine-engine/xine.c:985
 msgid "messages"
-msgstr "wiadomosci"
+msgstr "wiadomo¶ci"
 
 #: src/xine-engine/xine.c:986
 msgid "plugin"
@@ -939,7 +934,7 @@ msgstr "wtyczka"
 #: src/xine-engine/load_plugins.c:100 src/xine-engine/load_plugins.c:455
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
-msgstr "%s(%s@%d): parametr nie powinien byc pusty.\n"
+msgstr "%s(%s@%d): parametr nie powinien byæ pusty.\n"
 
 #: src/xine-engine/load_plugins.c:138
 #, c-format
@@ -947,7 +942,7 @@ msgid ""
 "load_plugins: cannot open demux plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nie moge otworzyc wtyczki demultiplexera %s:\n"
+"load_plugins: nie mogê otworzyæ wtyczki demultiplexera %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:153
@@ -957,8 +952,7 @@ msgstr "load_plugins: wtyczka demultipleksera znaleziona : %s\n"
 
 #: src/xine-engine/load_plugins.c:161
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr ""
-"load_plugins: zbyt wiele wtyczek demultipleksera zainstalowanych. koncze.\n"
+msgstr "load_plugins: zbyt wiele wtyczek demultipleksera zainstalowanych, zakañczanie.\n"
 
 #: src/xine-engine/load_plugins.c:300
 #, c-format
@@ -966,13 +960,13 @@ msgid ""
 "load_plugins: cannot open input plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nie moge otworzyc wtyczki wejscia %s:\n"
+"load_plugins: nie mogê otworzyæ wtyczki wej¶cia %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:313
 #, c-format
 msgid "load_plugins: input plugin found : %s\n"
-msgstr "load_plugins: wtyczka wejscia znaleziona : %s\n"
+msgstr "load_plugins: wtyczka wej¶cia znaleziona : %s\n"
 
 #: src/xine-engine/load_plugins.c:321
 #, c-format
@@ -980,13 +974,13 @@ msgid ""
 "load_plugins: %s is no valid input plugin (lacks init_input_plugin() "
 "function)\n"
 msgstr ""
-"load_plugins: %s nie jest poprawna wtyczka wejscia (brak funkcji "
+"load_plugins: %s nie jest poprawna wtyczka wej¶cia (brak funkcji "
 "init_input_plugin())\n"
 
 #: src/xine-engine/load_plugins.c:325
 #, c-format
 msgid "%s(%d): too many input plugins installed, exiting.\n"
-msgstr "%s(%d): znaleziono zbyt wiele wtyczek wejscia, koncze.\n"
+msgstr "%s(%d): znaleziono zbyt wiele wtyczek wejscia, zakañczanie.\n"
 
 #: src/xine-engine/load_plugins.c:338
 #, c-format
@@ -994,7 +988,7 @@ msgid ""
 "load_plugins: no input plugins found in %s! - Did you install xine "
 "correctly??\n"
 msgstr ""
-"load_plugins: nie znaleziono zadnych wtyczek wejscia w %s! - Zainstalowales "
+"load_plugins: nie znaleziono ¿adnych wtyczek wej¶cia w %s! - Zainstalowa³e¶ "
 "xine poprawnie??\n"
 
 #: src/xine-engine/load_plugins.c:520
@@ -1003,86 +997,21 @@ msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nie udalo sie zaladowac wtyczki %s:\n"
+"load_plugins: nie uda³o siê za³adowaæ wtyczki %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:553
 #, c-format
 msgid "spu decoder plugin found : %s\n"
-msgstr "znaleziono wtyczke dekodera spu : %s\n"
+msgstr "znaleziono wtyczkê dekodera spu : %s\n"
 
 #: src/xine-engine/load_plugins.c:586
 #, c-format
 msgid "video decoder plugin found : %s\n"
-msgstr "znaleziono wtyczke dekodera obrazu : %s\n"
+msgstr "znaleziono wtyczkê dekodera obrazu : %s\n"
 
 #: src/xine-engine/load_plugins.c:616
 #, c-format
 msgid "audio decoder plugin found : %s\n"
-msgstr "znaleziono wtyczke dekodera dzwieku : %s\n"
+msgstr "znaleziono wtyczkê dekodera d¼wiêku : %s\n"
 
-#~ msgid "demux_ts: stop...\n"
-#~ msgstr "demux_ts: stop...\n"
-
-#~ msgid "demux_avi: reconstructing index"
-#~ msgstr "demux_avi: odbudowuje index"
-
-#~ msgid "done\n"
-#~ msgstr "zrobione\n"
-
-#~ msgid "demux_avi: video seek to start failed\n"
-#~ msgstr "demux_avi: przewiniecie wideo do startu zawiodlo\n"
-
-#~ msgid "demux_avi: audio seek to start failed\n"
-#~ msgstr "demux_avi: przewijanie dzwieku do pozycji startowej zawiodlo\n"
-
-#~ msgid "demux_avi: unknown avi format %.4s\n"
-#~ msgstr "demux_avi: niznany format pliku avi %.4s\n"
-
-#~ msgid "demux_avi: text subtitle file available\n"
-#~ msgstr "demux_avi: dostepny jest plik tekstowy z napisami\n"
-
-#~ msgid "demux_avi: can't create new thread (%s)\n"
-#~ msgstr "demux_avi: nie moge utworzyc nowego watku (%s)\n"
-
-#~ msgid "input_vcd: error in ioctl CDROMREADTOCENTRY dla sciezki %d\n"
-#~ msgstr "input_vcd: blad w ioctl CDROMREADTOCENTRY dla sciezki %d\n"
-
-#~ msgid "input_http: answer: >%s<\n"
-#~ msgstr "input_http: odpowiedz: >%s<\n"
-
-#~ msgid "input_http: end of headers\n"
-#~ msgstr "input_http: koniec naglowka\n"
-
-#~ msgid "input_http: read error (%s)\n"
-#~ msgstr "input_http: blad odczytu (%s)\n"
-
-#~ msgid "video_out: thread created\n"
-#~ msgstr "video_out: watek utworzony\n"
-
-#~ msgid "xine_stop\n"
-#~ msgstr "xine_stop\n"
-
-#~ msgid "xine_stop ignored\n"
-#~ msgstr "xine_stop zignorowane\n"
-
-#~ msgid "xine_stop: stopping demuxer\n"
-#~ msgstr "xine_stop: zatrzymuje demultiplexer\n"
-
-#~ msgid "xine_stop: done\n"
-#~ msgstr "xine_stop: zrobione\n"
-
-#~ msgid "xine_exit: shutdown audio\n"
-#~ msgstr "xine_exit: zatrzymywanie dzwieku\n"
-
-#~ msgid "xine_exit: shutdown video\n"
-#~ msgstr "xine_exit: zatrzymywanie obrazu\n"
-
-#~ msgid "xine_exit: bye!\n"
-#~ msgstr "xine_exit: pa!\n"
-
-#~ msgid "xine: xine_get_current_position: no input source\n"
-#~ msgstr "xine: xine_get_current_position: brak zrodla wejscia\n"
-
-#~ msgid "xine: set_speed %d\n"
-#~ msgstr "xine: ustaw predkosc %d\n"
