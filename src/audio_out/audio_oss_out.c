@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.23 2001/07/22 14:18:22 ehasenle Exp $
+ * $Id: audio_oss_out.c,v 1.24 2001/07/26 19:12:21 guenter Exp $
  */
 
 /* required for swab() */
@@ -83,6 +83,8 @@
 #define DSP_TEMPLATE "/dev/dsp%d"
 #endif
 
+static int checked_getoptr = 0;
+
 typedef struct oss_functions_s {
 
   ao_functions_t ao_functions;
@@ -107,6 +109,7 @@ typedef struct oss_functions_s {
   int16_t       *zero_space;
   
   int            audio_started;
+  int            audio_has_realtime;   /* OSS driver supports real-time              */
   uint32_t       last_audio_vpts;
   int            resample_conf;
   int            do_resample;
@@ -169,6 +172,10 @@ static int ao_open(ao_functions_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 
   tmp = this->input_sample_rate;
+#ifdef FORCE_44K_MAX
+  if(tmp > 44100)
+     tmp = 44100;
+#endif
   ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp);
   this->output_sample_rate = tmp;
 
@@ -245,6 +252,23 @@ static int ao_open(ao_functions_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
+  /*
+   * Final check of realtime capability, make sure GETOPTR
+   * doesn't return an error.
+   */
+  if ( this->audio_has_realtime && !checked_getoptr ) {
+    count_info info;
+    int ret = ioctl(this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    if ( ret == -1 && errno == EINVAL ) {
+      this->audio_has_realtime = 0;
+      printf("audio_oss_out: Audio driver SNDCTL_DSP_GETOPTR reports %s,"
+		" disabling realtime sync...\n", strerror(errno) );
+      printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
+      printf("audio_oss_out: ...There may be audio/video synchronization issues\n");
+    }
+    checked_getoptr = 1;
+  }
+
   switch (this->resample_conf) {
   case 1: /* force off */
     this->do_resample = 0;
@@ -252,6 +276,9 @@ static int ao_open(ao_functions_t *this_gen,
     this->do_resample = 1;
   default: /* AUTO */
     this->do_resample = this->output_sample_rate != this->input_sample_rate;
+    if (this->do_resample)
+      printf("audio_oss_out: will resample audio from %d to %d\n",
+		this->input_sample_rate, this->output_sample_rate);
   }
 
   return 1;
@@ -312,6 +339,10 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   this->last_audio_vpts = vpts;
 
+  bDropPackage = 0;
+
+  if ( this->audio_has_realtime || !this->audio_started ) {
+
   /*
    * where, in the timeline is the "end" of the audio buffer at the moment?
    */
@@ -337,8 +368,6 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   xprintf (VERBOSE|AUDIO, "audio_oss_out: buff=%d pos=%d buf_vpts=%d gap=%d\n",
 	   this->bytes_in_buffer, pos,buffer_vpts,gap);
 
-  bDropPackage = 0;
-  
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
 
@@ -349,7 +378,11 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
+    xprintf (VERBOSE|AUDIO, "audio_oss_out: audio package (vpts = %d %d)"
+	     "dropped\n", vpts, gap);
   }
+
+  } /* has realtime */
 
   /*
    * resample and output samples
@@ -412,9 +445,6 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
     
     this->bytes_in_buffer += num_output_samples * 2 * this->num_channels;
     this->audio_started    = 1;
-  } else {
-    xprintf (VERBOSE|AUDIO, "audio_oss_out: audio package (vpts = %d %d)"
-	     "dropped\n", vpts, gap);
   }
 
   return 1;
@@ -574,8 +604,16 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   if ((caps & DSP_CAP_REALTIME) > 0) {
     xprintf (VERBOSE|AUDIO, "audio_oss_out : realtime check: passed :-)\n");
+    this->audio_has_realtime = 1;
   } else {
-    xprintf (VERBOSE|AUDIO, "audio_oss_out : realtime check: *FAILED* :-(((((\n\n");
+    printf ("audio_oss_out : realtime check: *FAILED* :-(((((\n");
+    this->audio_has_realtime = 0;
+  }
+
+  if( !this->audio_has_realtime ) {
+    printf("audio_oss_out: Audio driver realtime sync disabled...\n");
+    printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
+    printf("audio_oss_out: ...There may be audio/video synchronization issues\n");
   }
 
   this->capabilities = 0;

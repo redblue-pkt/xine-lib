@@ -430,6 +430,7 @@ case $host in
     ppc-*-linux-* | powerpc-*) 
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
        	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	FORCE_44K_MAX=yes
         ;;
     sparc64-*-linux-* | sparc-*)
 	dnl hard code cpu target as sparcv8, hopefully no one wants to watch
@@ -505,6 +506,18 @@ dnl
 AC_ARG_WITH(w32-path,[  --with-w32-path=path    Location of WIN32 libraries],
             w32_path="$withval", w32_path="/usr/lib/win32")
 AC_SUBST(w32_path)
+
+
+dnl
+dnl Force 44.1K maximum audio sample rate for drivers/devices that don't
+dnl correctly handle 48K rates, e.g. PowerMac dmasound through at least
+dnl early 2.4.*. Will need dynamic test once fix makes it into source
+dnl trees.
+dnl
+if test x$FORCE_44K_MAX = xyes; then
+  echo "including FORCE_44K_MAX capping"
+  AC_DEFINE(FORCE_44K_MAX,1,[Cap audio sample rate at 44.1K, some drivers (dmasound) don't handle 48K request correctly])
+fi
 
 
 dnl

@@ -78,3 +78,6 @@
 /* Define this if you have ip_mreqn in netinet/in.h */
 #undef HAVE_IP_MREQN
 
+/* Define this to cap audio sample rate at 44.1K, some drivers (dmasound) don't handle 48K request correctly */
+#undef FORCE_44K_MAX
+
