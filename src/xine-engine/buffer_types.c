@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.41 2002/09/01 21:14:12 tmmm Exp $
+ * $Id: buffer_types.c,v 1.42 2002/10/04 02:27:00 tmmm Exp $
  *
  *
  * contents:
@@ -480,7 +480,9 @@ static audio_db_t audio_db[] = {
 {
   {
     0x50, 0x55,
-    meFOURCC('.','m','p','3'), 0
+    meFOURCC('.','m','p','3'),
+    meFOURCC('m', 's', 0, 0x55),
+    0
   },
   BUF_AUDIO_MPEG,
   "MPEG layer 2/3"
@@ -497,6 +499,7 @@ static audio_db_t audio_db[] = {
   {
     0x01,
     meFOURCC('r','a','w',' '),
+    meFOURCC('s','o','w','t'),
     0
   },
   BUF_AUDIO_LPCM_LE,
@@ -518,14 +521,18 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0x02, 0
+    0x02, 
+    meFOURCC('m', 's', 0, 0x02),
+    0
   },
   BUF_AUDIO_MSADPCM,
   "MS ADPCM"
 },
 {
   {
-    0x11, 0
+    0x11,
+    meFOURCC('m', 's', 0, 0x11),
+    0
   },
   BUF_AUDIO_MSIMAADPCM,
   "MS IMA ADPCM"
@@ -543,6 +550,7 @@ static audio_db_t audio_db[] = {
        supported by NanDub, a variant of VirtualDub. */
     0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771,
     meFOURCC('O','g','g','S'),
+    meFOURCC('O','g','g','V'),
     0
   },
   BUF_AUDIO_VORBIS,
