@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.86 2002/07/05 21:34:39 uid45177 Exp $
+ * $Id: w32codec.c,v 1.87 2002/07/10 05:44:09 pmhahn Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1394,7 +1394,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   if (iface_version != 10) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
-	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
+	    "w32codec: decoder plugin.\nInstalling current decoder plugins should help.\n",
 	    iface_version);
     
     return NULL;
@@ -1442,7 +1442,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   if (iface_version != 9) {
     printf(_("w32codec: plugin doesn't support plugin API version %d.\n"
 	     "w32codec: this means there's a version mismatch between xine and this "
-	     "w32codec: decoder plugin.\nInstalling current input plugins should help.\n"),
+	     "w32codec: decoder plugin.\nInstalling current decoder plugins should help.\n"),
 	   iface_version);
 
     return NULL;
