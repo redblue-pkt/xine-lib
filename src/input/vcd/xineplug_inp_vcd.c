@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.20 2004/07/18 14:52:50 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.21 2004/07/18 21:42:26 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -48,7 +48,7 @@
 #define SHORT_PLUGIN_NAME "VCD"
 #define MRL_PREFIX "vcd://"
 #define MRL_PREFIX_LEN strlen(MRL_PREFIX)
-#define MRL_MAX_LEN 1024
+#define DEVICE_MAX_LEN 1024
 
 #define xine_config_entry_t xine_cfg_entry_t
 
@@ -499,7 +499,7 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
     {
       /* No device/file given, so use the default device and try again. */
       if (NULL == default_vcd_device) return false;
-      strncpy(device_str, default_vcd_device, MRL_MAX_LEN);
+      strncpy(device_str, default_vcd_device, DEVICE_MAX_LEN);
       if (p[0] == '@') p++;
       count = sscanf (p, "%1[EePpSsTt]%u", type_str, &num);
       type_str[0] = toupper(type_str[0]);
@@ -791,7 +791,7 @@ static xine_mrl_t **
 vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
                     int *num_files) {
 
-  char             intended_vcd_device[MRL_MAX_LEN+1]= { '\0', };
+  char             intended_vcd_device[DEVICE_MAX_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
 
   vcd_input_class_t *class = (vcd_input_class_t *) this_gen;
@@ -1453,7 +1453,7 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 {
   vcd_input_class_t  *class = (vcd_input_class_t *) class_gen;
 
-  char intended_vcd_device[MRL_MAX_LEN+1]= { '\0', };
+  char intended_vcd_device[DEVICE_MAX_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
   char *check_mrl=NULL;
   bool used_default;
