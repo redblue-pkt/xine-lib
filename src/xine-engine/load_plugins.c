@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.200 2005/02/13 21:21:06 tmattern Exp $
+ * $Id: load_plugins.c,v 1.201 2005/03/06 13:03:33 jstembridge Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -751,9 +751,12 @@ static int _load_plugin_class(xine_t *this,
 	    && info->API == target->API
 	    && !strcasecmp(info->id, target->id)
 	    && info->version == target->version){
-	  inc_file_ref(node->file);
-	  node->plugin_class = info->init(this, data);
-	  return 1;
+	  if ((node->plugin_class = info->init(this, data))) {
+	    inc_file_ref(node->file);
+	    return 1;
+	  } else {
+	    return 0;
+	  }
 	}
 	info++;
       }
