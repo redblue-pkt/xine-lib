@@ -749,7 +749,6 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
-  int def_charset_flag = 0;
 
 #ifndef _MSC_VER
   iconv_t cd;
@@ -793,26 +792,17 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     if ((encoding = nl_langinfo(CODESET)) == NULL) {
       printf(_("osd: can't find out current locale character set\n"));
       encoding = "iso-8859-1";
-      def_charset_flag = 1;
     }
 #else
     encoding = "iso-8859-1";
-    def_charset_flag = 1;
 #endif
   }
 
 #ifndef _MSC_VER
   /* prepare conversion to UCS-2 */
   if ((cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
-    printf(_("osd: unsupported conversion %s -> UCS-2\n"), encoding);
-    if (!def_charset_flag) {
-      printf(_("osd: trying iso-8859-1 -> UCS-2\n"));
-      if ((cd = iconv_open("UCS-2", "iso-8859-1")) == (iconv_t)-1) {
-        printf(_("osd: iconv_open() failed\n"));
-        pthread_mutex_unlock(&this->osd_mutex);
-        return 0;
-      }
-    }
+    printf(_("osd: unsupported conversion %s -> UCS-2, "
+             "no conversion performed\n"), encoding);
   }
 #endif /* _MSC_VER */
   
@@ -822,16 +812,23 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     size_t count;
    
 #ifndef _MSC_VER
-    /* get unicode value */
-    count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
-    if (count == (size_t)-1 && errno != E2BIG) {
-      /* unknown character or character wider than 16 bits, try skip one byte */
-      printf(_("osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", skipping\n"), 
-             inbuf[0] & 0xFF, encoding);
-      if (!inbytesleft) break;
-      inbytesleft--;
+    if (cd == (iconv_t)-1) {
+      /* direct mapping without iconv */
+      unicode = inbuf[0];
       inbuf++;
-      unicode = ALIAS_CHARACTER;
+      inbytesleft--;
+    } else {
+      /* get unicode value from iconv */
+      count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+      if (count == (size_t)-1 && errno != E2BIG) {
+        /* unknown character or character wider than 16 bits, try skip one byte */
+        printf(_("osd: unknown sequence starting with byte 0x%02X"
+               " in encoding \"%s\", skipping\n"), inbuf[0] & 0xFF, encoding);
+        if (!inbytesleft) break;
+        inbytesleft--;
+        inbuf++;
+        unicode = ALIAS_CHARACTER;
+      }
     }
 #endif /* _MSC_VER */
 
