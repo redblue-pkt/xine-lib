@@ -784,7 +784,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   if( x1 < osd->x1 ) osd->x1 = x1;
   if( y1 < osd->y1 ) osd->y1 = y1;
 
-  inbuf = (char *)text;
+  inbuf = text;
   inbytesleft = strlen(text);
 
   if (!encoding) {
@@ -819,7 +819,9 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       inbytesleft--;
     } else {
       /* get unicode value from iconv */
-      count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+      /* FIXME: we cast away the const from inbuf; Why is iconv() not const here,
+       * does it change inbuf? */
+      count = iconv(cd, (char **)&inbuf, &inbytesleft, &outbuf, &outbytesleft);
       if (count == (size_t)-1 && errno != E2BIG) {
         /* unknown character or character wider than 16 bits, try skip one byte */
         printf(_("osd: unknown sequence starting with byte 0x%02X"
