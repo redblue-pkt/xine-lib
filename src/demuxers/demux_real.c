@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.80 2004/01/12 23:43:39 jstembridge Exp $
+ * $Id: demux_real.c,v 1.81 2004/01/13 20:29:21 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -68,7 +68,7 @@
 #define VIDO_TAG  FOURCC_TAG('V', 'I', 'D', 'O')
 
 #define PREAMBLE_SIZE 8
-#define REAL_SIGNATURE_SIZE 4
+#define REAL_SIGNATURE_SIZE 8
 #define DATA_CHUNK_HEADER_SIZE 10
 #define DATA_PACKET_HEADER_SIZE 12
 #define INDEX_CHUNK_HEADER_SIZE 20
@@ -345,9 +345,9 @@ static void real_parse_headers (demux_real_t *this) {
     return;
   }
 
-  /* skip to the start of the first chunk (the first chunk is 0x12 bytes
-   * long) and start traversing */
-  this->input->seek(this->input, 14, SEEK_CUR);
+  /* skip to the start of the first chunk and start traversing */
+  chunk_size = BE_32(&signature[4]);
+  this->input->seek(this->input, chunk_size-8, SEEK_CUR);
 
   /* iterate through chunks and gather information until the first DATA
    * chunk is located */
