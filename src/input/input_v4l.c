@@ -104,7 +104,9 @@ static buf_element_t *alloc_frame (v4l_input_plugin_t *this) {
 #endif
 	
   while (!this->frames) {
+#ifdef LOG
     printf ("input_v4l: no frame available...\n");
+#endif
     pthread_cond_wait (&this->frame_freed, &this->frames_lock);
   }
   
@@ -200,7 +202,10 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
 
   xine_fast_memcpy (buf->content, ptr, this->frame_size); 
 
+#ifdef LOG
   printf("input_v4l: read block done\n");
+#endif
+
   return buf;
 }
 
