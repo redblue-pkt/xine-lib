@@ -41,7 +41,7 @@ typedef enum {
     NSOpenGLContext               *currentContext;
     NSLock                        *mutex;
     BOOL                           keepsVideoAspectRatio;
-    BOOL                           resizeViewToVideoSizeOnLoad;
+    BOOL                           resizeViewOnVideoSizeChange;
 }
 
 - (void) displayTexture;
@@ -62,8 +62,8 @@ typedef enum {
 - (NSSize) videoSize;
 - (void) setKeepsVideoAspectRatio:(BOOL)flag;
 - (BOOL) keepsVideoAspectRatio;
-- (void) setResizeViewToVideoSizeOnLoad:(BOOL)flag;
-- (BOOL) resizeViewToVideoSizeOnLoad;
+- (void) setResizeViewOnVideoSizeChange:(BOOL)flag;
+- (BOOL) resizeViewOnVideoSizeChange;
 
 /* Delegate methods */
 - (id) delegate;

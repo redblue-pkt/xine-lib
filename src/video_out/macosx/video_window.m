@@ -78,7 +78,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
                       screen: aScreen];
 
     xineView = [[XineOpenGLView alloc] initWithFrame:rect];
-    [xineView setResizeViewToVideoSizeOnLoad:YES];
+    [xineView setResizeViewOnVideoSizeChange:YES];
 
     /* receive notifications about window resizing from the xine view */
     [xineView setDelegate:self];
@@ -157,14 +157,14 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return keepsVideoAspectRatio;
 }
 
-- (void) setResizeViewToVideoSizeOnLoad:(BOOL)flag
+- (void) setResizeViewOnVideoSizeChange:(BOOL)flag
 {
-    resizeViewToVideoSizeOnLoad = flag;
+    resizeViewOnVideoSizeChange = flag;
 }
 
-- (BOOL) resizeViewToVideoSizeOnLoad
+- (BOOL) resizeViewOnVideoSizeChange
 {
-    return resizeViewToVideoSizeOnLoad;
+    return resizeViewOnVideoSizeChange;
 }
 
 - (BOOL)mouseDownCanMoveWindow {
@@ -235,8 +235,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     self = [self initWithFrame:[self frame]];
 
     keepsVideoAspectRatio = [coder decodeBoolForKey:@"keepsVideoAspectRatio"];
-    resizeViewToVideoSizeOnLoad = [coder decodeBoolForKey:
-        @"resizeViewToVideoSizeOnLoad"];
+    resizeViewOnVideoSizeChange = [coder decodeBoolForKey:
+        @"resizeViewOnVideoSizeChange"];
 
     return self;
 }
@@ -244,8 +244,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 - (void) encodeWithCoder:(NSCoder *)coder
 {
     [coder encodeBool:keepsVideoAspectRatio forKey:@"keepsVideoAspectRatio"];
-    [coder encodeBool:resizeViewToVideoSizeOnLoad
-               forKey:@"resizeViewToVideoSizeOnLoad"];
+    [coder encodeBool:resizeViewOnVideoSizeChange
+               forKey:@"resizeViewOnVideoSizeChange"];
 
     [super encodeWithCoder:coder];
 }
@@ -592,6 +592,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 {
     video_width = size.width;
     video_height = size.height;
+
+    if (resizeViewOnVideoSizeChange)
+	[self setViewSizeInMainThread:size];
 
     [self initTextures];
 }
