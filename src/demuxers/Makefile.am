@@ -34,7 +34,7 @@ lib_LTLIBRARIES = $(ogg_module) $(qt_modules) $(asf_module) xineplug_dmx_avi.la 
 	xineplug_dmx_aiff.la xineplug_dmx_snd.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
-xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) \
+xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
 	$(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module
 
