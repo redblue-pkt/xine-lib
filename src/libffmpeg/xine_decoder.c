@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/05/25 19:19:18 siggi Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/06/03 13:31:12 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -46,20 +46,6 @@
 #define LOG
 */
 
-/* now this is ripped of wine's vfw.h */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
 #ifndef mmioFOURCC
 #define mmioFOURCC( ch0, ch1, ch2, ch3 )                                         \
         ( (long)(unsigned char)(ch0) | ( (long)(unsigned char)(ch1) << 8 ) |     \
@@ -73,7 +59,7 @@ typedef struct ff_decoder_s {
   int               video_step;
   int               decoder_ok;
 
-  BITMAPINFOHEADER  bih;
+  xine_bmiheader    bih;
   long		    biWidth;
   long		    biHeight;
   unsigned char     *buf;
@@ -151,7 +137,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     /* init package containing bih */
 
-    memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
+    memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->biWidth = str2ulong(&this->bih.biWidth);
     this->biHeight = str2ulong(&this->bih.biHeight);
     this->video_step = buf->decoder_info[1];

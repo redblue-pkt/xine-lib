@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.90 2002/05/25 19:19:16 siggi Exp $
+ * $Id: demux_avi.c,v 1.91 2002/06/03 13:31:13 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -160,7 +160,7 @@ typedef struct
   long                   max_idx;  /* number of index entries actually allocated */
   unsigned char        (*idx)[16]; /* index entries (AVI idx1 tag) */
   video_index_t          video_idx;
-  BITMAPINFOHEADER       bih;
+  xine_bmiheader         bih;
   off_t                  movi_start;
 } avi_t;
 

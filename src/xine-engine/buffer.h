@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.45 2002/06/02 16:32:46 tmmm Exp $
+ * $Id: buffer.h,v 1.46 2002/06/03 13:31:12 miguelfreitas Exp $
  *
  *
  * contents:
@@ -257,6 +257,23 @@ uint32_t formattag_to_buf_audio( uint32_t formattag );
 
 /* return codec name given BUF_VIDEO_xxx */
 char * buf_audio_name( uint32_t buf_type );
+
+
+/* this version of BITMAPINFOHEADER should be safe to compile on 64bits machines */
+typedef struct {
+    int32_t        biSize;
+    int32_t        biWidth;
+    int32_t        biHeight;
+    int16_t        biPlanes;
+    int16_t        biBitCount;
+    int32_t        biCompression;
+    int32_t        biSizeImage;
+    int32_t        biXPelsPerMeter;
+    int32_t        biYPelsPerMeter;
+    int32_t        biClrUsed;
+    int32_t        biClrImportant;
+} xine_bmiheader;
+
 
 #ifdef __cplusplus
 }

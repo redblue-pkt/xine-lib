@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.36 2002/06/03 12:43:22 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.37 2002/06/03 13:31:13 miguelfreitas Exp $
  *
  */
 
@@ -94,21 +94,6 @@ typedef unsigned int qt_atom;
 #define ATOM_PREAMBLE_SIZE 8
 
 #define VALID_ENDS   "mov,mp4,qt"
-
-/* still needed, though it shouldn't be... */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
 
 /* these are things that can go wrong */
 typedef enum {
@@ -252,7 +237,7 @@ typedef struct {
   int                  status;
 
   qt_info             *qt;
-  BITMAPINFOHEADER     bih;
+  xine_bmiheader       bih;
   unsigned int         current_frame;
   unsigned int         last_frame;
 

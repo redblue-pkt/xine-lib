@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.3 2002/05/25 19:19:19 siggi Exp $
+ * $Id: msvc.c,v 1.4 2002/06/03 13:31:12 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -35,21 +35,6 @@
 #include "xine_internal.h"
 
 #define VIDEOBUFSIZE	128 * 1024
-
-/* now this is ripped of wine's vfw.h */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
 
 typedef struct {
   uint16_t yu;
@@ -222,9 +207,9 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    BITMAPINFOHEADER *bih;
+    xine_bmiheader *bih;
 
-    bih = (BITMAPINFOHEADER *) buf->content;
+    bih = (xine_bmiheader *) buf->content;
     this->biWidth = (le2me_32 (bih->biWidth) + 3) & ~0x03;
     this->biHeight = (le2me_32 (bih->biHeight) + 3) & ~0x03;
     this->biBitCount = le2me_32 (bih->biBitCount);

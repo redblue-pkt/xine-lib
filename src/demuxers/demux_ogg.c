@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.26 2002/05/25 19:19:17 siggi Exp $
+ * $Id: demux_ogg.c,v 1.27 2002/06/03 13:31:13 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -35,11 +35,6 @@
 #include <stdlib.h>
 
 #include <ogg/ogg.h>
-
-#define	WINE_TYPEDEFS_ONLY
-#include "libw32dll/wine/avifmt.h"
-#include "libw32dll/wine/windef.h"
-#include "libw32dll/wine/vfw.h"
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -228,7 +223,7 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 
 	  dsogg_header_t   *oggh;
 	  buf_element_t    *buf;
-	  BITMAPINFOHEADER  bih;
+	  xine_bmiheader    bih;
 
 #ifdef LOG
 	  printf ("demux_ogg: direct show filter created stream detected, hexdump:\n");
@@ -251,7 +246,7 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	  printf ("demux_ogg: buf_type         %08x\n",this->buf_types[stream_num]);  
 #endif
 
-	  bih.biSize=sizeof(BITMAPINFOHEADER);
+	  bih.biSize=sizeof(xine_bmiheader);
 	  bih.biWidth = oggh->hubba.video.width;
 	  bih.biHeight= oggh->hubba.video.height;
 	  bih.biPlanes= 0;
@@ -268,8 +263,8 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	  buf->decoder_flags = BUF_FLAG_HEADER;
 	  this->frame_duration = oggh->time_unit * 9 / 1000;
 	  buf->decoder_info[1] = this->frame_duration;
-	  memcpy (buf->content, &bih, sizeof (BITMAPINFOHEADER));
-	  buf->size = sizeof (BITMAPINFOHEADER);	  
+	  memcpy (buf->content, &bih, sizeof (xine_bmiheader));
+	  buf->size = sizeof (xine_bmiheader);	  
 	  buf->type = this->buf_types[stream_num];
 	  this->video_fifo->put (this->video_fifo, buf);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.40 2002/05/25 19:19:16 siggi Exp $
+ * $Id: demux_asf.c,v 1.41 2002/06/03 13:31:13 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -380,7 +380,7 @@ static unsigned long str2ulong(unsigned char *str) {
 static void asf_send_video_header (demux_asf_t *this, int stream_id) {
 
   buf_element_t    *buf;
-  BITMAPINFOHEADER *bih = (BITMAPINFOHEADER *) this->bih;
+  xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
   this->streams[this->num_streams].buf_type = 
     fourcc_to_buf_video((void*)&bih->biCompression);

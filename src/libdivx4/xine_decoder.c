@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2002/05/25 19:19:18 siggi Exp $
+ * $Id: xine_decoder.c,v 1.35 2002/06/03 13:31:12 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -79,21 +79,6 @@ void catch_sigsegv(int sig)
 }
 #endif
 
-/* now this is ripped of wine's vfw.h */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
-
 typedef struct divx4_decoder_s {
   video_decoder_t   video_decoder;
 
@@ -101,7 +86,7 @@ typedef struct divx4_decoder_s {
   int               video_step;
   int               decoder_ok;
 
-  BITMAPINFOHEADER  bih;
+  xine_bmiheader    bih;
   long		    biWidth;
   long		    biHeight;
   unsigned char     *buf;
@@ -246,7 +231,7 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
   printf ("divx4: init_decoder\n");
 #endif
 
-  memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
+  memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
   this->biWidth = str2ulong(&this->bih.biWidth);
   this->biHeight = str2ulong(&this->bih.biHeight);
   this->video_step = buf->decoder_info[1];

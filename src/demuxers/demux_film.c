@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.6 2002/05/28 17:50:15 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.7 2002/06/03 13:31:13 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -54,22 +54,6 @@
 #define CVID_TAG FOURCC_TAG('c', 'v', 'i', 'd')
 
 #define VALID_ENDS   "cpk,cak,film"
-
-/* TODO: lobby the xine team to revise the API so that it's no longer
-   necessary to ship around this inane Win32-specific structure */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
 
 typedef struct {
   off_t sample_offset;
@@ -105,7 +89,7 @@ typedef struct {
   /* video information */
   unsigned int         video_codec;
   unsigned int         video_type;
-  BITMAPINFOHEADER     bih;
+  xine_bmiheader       bih;
 
   /* audio information */
   unsigned int         audio_type;

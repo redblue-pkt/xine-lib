@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.5 2002/05/25 19:19:19 siggi Exp $
+ * $Id: cinepak.c,v 1.6 2002/06/03 13:31:12 miguelfreitas Exp $
  */
 
 #include <stdlib.h>
@@ -37,20 +37,6 @@
 #define MAX_STRIPS	32
 #define VIDEOBUFSIZE	128 * 1024
 
-/* now this is ripped of wine's vfw.h */
-typedef struct {
-    long        biSize;
-    long        biWidth;
-    long        biHeight;
-    short       biPlanes;
-    short       biBitCount;
-    long        biCompression;
-    long        biSizeImage;
-    long        biXPelsPerMeter;
-    long        biYPelsPerMeter;
-    long        biClrUsed;
-    long        biClrImportant;
-} BITMAPINFOHEADER;
 
 typedef struct {
   uint8_t  y0, y1, y2, y3;
@@ -323,9 +309,9 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    BITMAPINFOHEADER *bih;
+    xine_bmiheader *bih;
 
-    bih = (BITMAPINFOHEADER *) buf->content;
+    bih = (xine_bmiheader *) buf->content;
     this->biWidth = (le2me_32 (bih->biWidth) + 3) & ~0x03;
     this->biHeight = (le2me_32 (bih->biHeight) + 3) & ~0x03;
     this->video_step = buf->decoder_info[1];

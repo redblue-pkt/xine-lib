@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.18 2002/06/02 16:32:46 tmmm Exp $
+ * $Id: buffer_types.c,v 1.19 2002/06/03 13:31:13 miguelfreitas Exp $
  *
  *
  * contents:
@@ -37,11 +37,13 @@
 #include <inttypes.h>
 #include "buffer.h"
 
-#define	WINE_TYPEDEFS_ONLY
-#include "libw32dll/wine/avifmt.h"
-#include "libw32dll/wine/windef.h"
-#include "libw32dll/wine/vfw.h"
-#include "libw32dll/wine/mmreg.h"
+
+#ifndef mmioFOURCC
+#define mmioFOURCC( ch0, ch1, ch2, ch3 )                                         \
+        ( (long)(unsigned char)(ch0) | ( (long)(unsigned char)(ch1) << 8 ) |     \
+        ( (long)(unsigned char)(ch2) << 16 ) | ( (long)(unsigned char)(ch3) << 24 ) )
+#endif
+
 
 typedef struct video_db_s {
    uint32_t fourcc[20];

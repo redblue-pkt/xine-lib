@@ -44,20 +44,6 @@
 #define LOG
 */
 
-/* word is that this is lifted from wine's vfw.h */
-typedef struct {
-    long		biSize;
-    long		biWidth;
-    long		biHeight;
-    short		biPlanes;
-    short		biBitCount;
-    long		biCompression;
-    long		biSizeImage;
-    long		biXPelsPerMeter;
-    long		biYPelsPerMeter;
-    long		biClrUsed;
-    long		biClrImportant;
-} BITMAPINFOHEADER;
 
 typedef struct xvid_decoder_s {
     video_decoder_t	video_decoder;
@@ -108,11 +94,11 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
     
     if (buf->decoder_flags & BUF_FLAG_HEADER) {
-	BITMAPINFOHEADER *bih;
+	xine_bmiheader *bih;
 	XVID_DEC_PARAM xparam;
     
 	/* initialize data describing video stream */
-	bih = (BITMAPINFOHEADER *) buf->content;
+	bih = (xine_bmiheader *) buf->content;
 	this->frame_duration = buf->decoder_info[1];
 	/* FIXME: is BITMAPINFOHEADER always little-endian? ffmpeg plugin uses */
 	/* weird way to ensure correct endianess */
