@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.17 2001/07/27 22:00:27 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.18 2001/07/28 13:23:24 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,7 +38,6 @@
 # include <sys/cdio.h>
 #endif
 #ifdef HAVE_LINUX_CDROM_H
-# include <linux/config.h> /* Check for DEVFS */
 # include <linux/cdrom.h>
 #endif
 #if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO_H)
@@ -56,13 +55,8 @@ static uint32_t xine_debug;
 #define RDVD    "/vol/dev/aliases/cdrom0"
 #define DVD     RDVD
 #else
-#if defined(CONFIG_DEVFS_FS)
-#define DVD     "/dev/cdroms/dvd"
-#define RDVD    "/dev/cdroms/rdvd"
-#else
 #define DVD     "/dev/dvd"
 #define RDVD    "/dev/rdvd"
-#endif
 #endif
 
 typedef struct {
@@ -81,6 +75,9 @@ typedef struct {
   int               gVTSMinor;
   int               gVTSMajor;
   
+  const char       *device;
+  const char       *raw_device;
+
   /*
    * udf dir function 
    */
@@ -101,15 +98,15 @@ typedef struct {
 /* ***************************************************************** */
 static int openDrive (dvd_input_plugin_t *this) {
   
-  this->dvd_fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ );
+  this->dvd_fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ );
 
   if (this->dvd_fd < 0) {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
-	    strerror(errno));
+    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+            this->device, strerror(errno));
     return -1;
   }
 
-  this->raw_fd = open(RDVD, O_RDONLY /* | O_NONBLOCK */ );
+  this->raw_fd = open(this->raw_device, O_RDONLY /* | O_NONBLOCK */ );
   if (this->raw_fd < 0) {
     this->raw_fd = this->dvd_fd;
   }
@@ -141,7 +138,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
   xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n", filename);
 
   if (openDrive(this) < 0) {
-    printf ("input_dvd: cannot open dvd drive >%s<\n", DVD);
+    printf ("input_dvd: cannot open dvd drive >%s<\n", this->device);
     return 0;
   }
 
@@ -345,10 +342,11 @@ static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
  *
  */
 static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int   ret, status;
   int   fd;
 
-  if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
+  if((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
 
 #if defined (HAVE_LINUX_CDROM_H)
     if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
@@ -436,7 +434,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   if (filename)
     return NULL;
   
-  if((fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
+  if((fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
     int nFiles, nFiles2;
 	
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles);
@@ -491,8 +489,8 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 
   }
   else {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
-	    strerror(errno));
+    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+            this->device, strerror(errno));
     return NULL;
   }
   /*
@@ -523,7 +521,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
   
-  if((fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
+  if((fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
     int    nFiles3, nFiles2;
 
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles3);
@@ -552,8 +550,8 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
     close (fd);
 
   } else {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
-	    strerror(errno));
+    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+            this->device, strerror(errno));
     *nFiles = 0;
     return NULL;
   }
@@ -637,6 +635,9 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
   this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
+
+  this->device = config->lookup_str(config, "dvd_device", DVD);
+  this->raw_device = config->lookup_str(config, "dvd_raw_device", RDVD);
 
   this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
   this->mrls_allocated_entries = 0;

@@ -11,6 +11,7 @@ xine (0.5.0) unstable; urgency=low
   * artsd support
   * dxr3/h+ support now finally in the official tree
   * 4/5/5.1 audio channel output (OSS/ ALSA?)
+  * a new default skin by Jérôme Villette
 		
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  22 Jul 2001 13:10:52 +0200
 
