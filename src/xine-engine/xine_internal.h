@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.46 2001/10/05 01:56:57 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.47 2001/10/07 16:57:02 guenter Exp $
  *
  */
 
@@ -483,36 +483,45 @@ char **xine_list_audio_output_plugins ();
 
 ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
 
-/**
- * @defgroup eventgroup Sending events
- * Event dispatcher mechanism
- * @{
+/*
+ * sending events
+ * event dispatcher mechanism
  */
 
-/**
- * \fn xine_register_event_listener(xine_t *this, event_listener_t listener)
- * \brief registers an event listener callback.
- * \return 0 if the listener was registerd, non-zero if it could not.
+/*
+ * register an event listener callback.
+ * returns 0 if the listener was registerd, non-zero if it could not.
  */
 
 int xine_register_event_listener(xine_t *this, event_listener_t listener);
 
-/**
- * \fn xine_remove_event_listener(event_listener_t listener)
- * \brief Attempts to remove a registered event listener.
- * \return 0 if the listener was removes, non-zero if it wasn't (e.g. not found).
+/*
+ * attempt to remove a registered event listener.
+ * returns 0 if the listener was removed, non-zero if not (e.g. not found).
  */
 
 int xine_remove_event_listener(xine_t *this, event_listener_t listener);
 
-/**
- * \fn xine_send_event(event_t *event)
- * \brief sends an event to all listeners.
+/*
+ * send an event to all listeners.
  */
 
 void xine_send_event(xine_t *this, event_t *event, void *data);
 
-/** @} end of eventgroup */
+/*
+ * snapshot function
+ *
+ * returns:
+ * width, height : size of image (be aware that u,v may be subsampled)
+ * ratio_code    : aspect ratio of the frame
+ * format        : subsampling format YUV 4:2:0 or 4:2:2
+ * y             : lumiance information
+ * u,v           : subsample color information
+ */
+void xine_get_current_frame (xine_t *this, int *width, int *height,
+			     int *ratio_code, int *format,
+			     uint8_t **y, uint8_t **u,
+			     uint8_t **v);
 
 #ifdef __cplusplus
 }
