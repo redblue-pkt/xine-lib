@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.40 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_elem.c,v 1.41 2002/05/15 21:37:00 tmattern Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -47,26 +47,27 @@
 
 typedef struct {  
 
-  demux_plugin_t   demux_plugin;
+  demux_plugin_t      demux_plugin;
 
-  xine_t          *xine;
+  xine_t              *xine;
 
-  config_values_t *config;
+  config_values_t     *config;
 
-  fifo_buffer_t   *video_fifo;
-  fifo_buffer_t   *audio_fifo;
+  fifo_buffer_t       *video_fifo;
+  fifo_buffer_t       *audio_fifo;
 
-  input_plugin_t  *input;
+  input_plugin_t      *input;
 
-  pthread_t        thread;
-  pthread_mutex_t  mutex;
+  pthread_t            thread;
+  int                  thread_running;
+  pthread_mutex_t      mutex;
 
-  int              blocksize;
-  int              status;
+  int                  blocksize;
+  int                  status;
   
-  int              send_end_buffers;
+  int                  send_end_buffers;
 
-  uint8_t          scratch[4096];
+  uint8_t              scratch[4096];
 } demux_mpeg_elem_t ;
 
 
@@ -106,21 +107,30 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
-  this->send_end_buffers = 1;
+  pthread_mutex_lock( &this->mutex );
+  /* do-while needed to seek after demux finished */
+  do {
 
-  while(1) {
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
-    
-    if (!demux_mpeg_elem_next(this, 0))
-      this->status = DEMUX_FINISHED;
-    
-    pthread_mutex_unlock( &this->mutex );
-  
-  }
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
+
+      if (!demux_mpeg_elem_next(this, 0))
+        this->status = DEMUX_FINISHED;
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
 
   this->status = DEMUX_FINISHED;
 
@@ -137,6 +147,10 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
+
+  printf ("demux_elem: demux loop finished.\n");
+
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
 
   pthread_exit(NULL);
@@ -153,6 +167,12 @@ static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
   
   pthread_mutex_lock( &this->mutex );
 
+  if (!this->thread_running) {
+    printf ("demux_elem: stop...ignored\n");
+    pthread_mutex_unlock( &this->mutex );
+    return;
+  }
+
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
@@ -164,7 +184,6 @@ static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
   buf->decoder_flags   = BUF_FLAG_END_USER; 
-
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
@@ -181,7 +200,7 @@ static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
 static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 /*
@@ -195,14 +214,12 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
   buf_element_t *buf;
   int err;
-  int starting;
 
   pthread_mutex_lock( &this->mutex );
   
-  starting = (this->status != DEMUX_OK);
   this->status = DEMUX_OK;
 
-  if( starting ) {
+  if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
     
@@ -231,8 +248,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
         num_buffers--;
       }
     }
-  }
-  else {
+  } else {
     xine_flush_engine(this->xine);
   }
   
@@ -248,7 +264,9 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
    */
   this->status = DEMUX_OK;
 
-  if( starting ) {
+  if( !this->thread_running ) {
+    this->send_end_buffers = 1;
+    this->thread_running = 1;
     if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_elem_loop, this)) != 0) {
       printf ("demux_elem: can't create new thread (%s)\n",
