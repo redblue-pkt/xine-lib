@@ -303,7 +303,7 @@ void mpeg2_idct_init (uint32_t mm_accel)
 	mpeg2_idct_mmx_init ();
     } else
 #endif
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
     if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
 #ifdef LOG
 	fprintf (stderr, "Using altivec for IDCT transform\n");

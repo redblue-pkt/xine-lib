@@ -39,7 +39,7 @@ static void state_restore_mmx (cpu_state_t * state)
 }
 #endif
 
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
 static void state_save_altivec (cpu_state_t * state)
 {
     asm ("						\n"
@@ -106,7 +106,7 @@ void mpeg2_cpu_state_init (uint32_t mm_accel)
 	mpeg2_cpu_state_restore = state_restore_mmx;
     }
 #endif
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
     if (mm_accel & MM_ACCEL_PPC_ALTIVEC) {
 	mpeg2_cpu_state_save = state_save_altivec;
 	mpeg2_cpu_state_restore = state_restore_altivec;

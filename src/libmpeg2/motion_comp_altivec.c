@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
 
 #include <inttypes.h>
 
