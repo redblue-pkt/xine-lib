@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.134 2003/03/13 22:09:51 mroi Exp $
+ * $Id: input_dvd.c,v 1.135 2003/03/25 13:20:31 mroi Exp $
  *
  */
 
@@ -186,6 +186,7 @@ typedef struct {
   dvd_input_plugin_t *ip;
 
   int32_t             read_ahead_flag;
+  int32_t             seek_mode;
   int32_t             language;
   int32_t             region;
 
@@ -228,6 +229,21 @@ void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
     dvd_input_plugin_t *this = class->ip;
 
     dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
+  }
+}
+ 
+void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+
+  if(!class)
+   return;
+
+  class->seek_mode = entry->num_value;
+
+  if(class->ip) {
+    dvd_input_plugin_t *this = class->ip;
+
+    dvdnav_set_PGC_positioning_flag(this->dvdnav, ~entry->num_value);
   }
 }
  
@@ -1287,6 +1303,11 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 			       &cache_entry))
     read_ahead_cb(class, &cache_entry);
   
+  /* Set seek mode */
+  if (xine_config_lookup_entry(this->stream->xine, "input.dvd_seek_behaviour",
+			       &cache_entry))
+    seek_mode_cb(class, &cache_entry);
+  
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
     int titles;
@@ -1458,6 +1479,7 @@ static void *init_class (xine_t *xine, void *data) {
   config_values_t     *config = xine->config;
   void                *dvdcss;
   static char         *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
+  static char         *seek_modes[] = {"seek in program chain", "seek in program", NULL};
 
   trace_print("Called\n");
 #ifdef INPUT_DEBUG
@@ -1554,6 +1576,10 @@ static void *init_class (xine_t *xine, void *data) {
 			skip_modes,
 			"Skipping will work on this basis.",
 			NULL, 10, NULL, NULL);
+  config->register_enum(config, "input.dvd_seek_behaviour", 0,
+			seek_modes,
+			"Seeking will work on this basis.",
+			NULL, 10, seek_mode_cb, NULL);
 
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1567,6 +1593,13 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.135  2003/03/25 13:20:31  mroi
+ * new config option to switch between PG ("per chapter") and PGC ("per movie")
+ * based seeking,
+ * although this differs from the behaviour up to now, PGC based seeking is now the
+ * default, since this is what people usually expect, what hardware players do and it
+ * is needed for separate subtitles to work with DVDs.
+ *
  * Revision 1.134  2003/03/13 22:09:51  mroi
  * turn these around so that dvd_get_current_position is defined before used
  *
