@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.73 2004/01/12 23:43:39 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.74 2004/01/25 18:02:23 jstembridge Exp $
  *
  *
  * contents:
@@ -797,6 +797,7 @@ static audio_db_t audio_db[] = {
     meFOURCC('m', 'p', '4', 'a'),
     meFOURCC('M', 'P', '4', 'A'),
     meFOURCC('r', 'a', 'a', 'c'),
+    meFOURCC('r', 'a', 'c', 'p'),
     0
   },
   BUF_AUDIO_AAC,
