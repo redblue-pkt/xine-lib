@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.122 2003/07/02 23:10:21 jcdutton Exp $
+ * $Id: w32codec.c,v 1.123 2003/07/04 14:23:37 jcdutton Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1225,7 +1225,9 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   HRESULT hr = 0;
   int size_read, size_written;
   /* DWORD srcsize=0; */
-    
+  
+  this->pts=pts;
+  
   if( this->size + size > this->max_audio_src_size ) {
     this->max_audio_src_size = this->size + 2 * size;
     printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
