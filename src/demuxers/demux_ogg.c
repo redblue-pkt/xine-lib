@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.98 2003/05/12 19:19:01 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.99 2003/05/12 19:37:49 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -348,9 +348,6 @@ static void send_ogg_buf (demux_ogg_t *this,
 	  comment=*ptr;
 	  if ( !strncasecmp ("LANGUAGE=", comment,8) ) {
 	    this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
-	    
-	    printf ("demux_ogg: audiostream %d is %s\n",stream_num,this->language[stream_num]);
-
 	  }
 	  ++ptr;
 	}
@@ -570,6 +567,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   int        filelength,position;
  
   ogg_packet op;
+
+  xine_event_t ui_event;
 
 #ifdef LOG
   printf ("demux_ogg: detecting stream types...\n");
@@ -1048,6 +1047,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     }
   }
 
+  ui_event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+  ui_event.data_length = 0;
+  xine_event_send(this->stream, &ui_event);
 
   this->time_length=-1;
 
