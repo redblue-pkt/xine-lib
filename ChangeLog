@@ -1,5 +1,6 @@
 xine (0.9.5) unstable; urgency=low
 
+  * some new win32 codecs supported
   * libwin32dll bugfixes (no directshow yet)
   * demux_asf bugfixes
   * input_http bugfixes, proxy, auth and proxy-auth support
