@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/10/03 08:54:59 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/10/31 07:27:55 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -44,16 +44,20 @@
 
 #define LOG_DEBUG
 
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} dts_class_t;
 
 typedef struct dts_decoder_s {
   audio_decoder_t  audio_decoder;
 
+  xine_stream_t    *stream;
+  audio_decoder_class_t *class;
+
   uint32_t         rate;
   uint32_t         bits_per_sample; 
   uint32_t         number_of_channels; 
-  uint32_t	   audio_caps; 
    
-  ao_instance_t   *audio_out;
   int              output_open;
 } dts_decoder_t;
 
@@ -62,19 +66,6 @@ void dts_reset (audio_decoder_t *this_gen) {
 
   /* dts_decoder_t *this = (dts_decoder_t *) this_gen; */
 
-}
-
-
-void dts_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  dts_decoder_t *this = (dts_decoder_t *) this_gen;
-
-  this->audio_out     = audio_out;
-  this->output_open   = 0;
-  this->rate          = 48000;
-  this->bits_per_sample=16; 
-  this->number_of_channels=2; 
-  this->audio_caps    = audio_out->get_capabilities(audio_out); 
 }
 
 
@@ -91,12 +82,13 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
   int n, i ;
+  printf("DTS decode_data called.\n");
 
-  if ((this->audio_caps & AO_CAP_MODE_AC5) == 0) {
+  if ((this->stream->audio_out->get_capabilities(this->stream->audio_out) & AO_CAP_MODE_AC5) == 0) {
     return;
   }
   if (!this->output_open) {      
-    this->output_open = (this->audio_out->open (this->audio_out, this->bits_per_sample, 
+    this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->bits_per_sample, 
                                                 this->rate,
                                                 AO_CAP_MODE_AC5));
   }
@@ -127,7 +119,7 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       return;
     }
     
-    audio_buffer = this->audio_out->get_buffer (this->audio_out);
+    audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
     audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
     audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
 
@@ -212,39 +204,62 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if( ac5_pcm_length )
       swab(data_in, &data_out[8], ac5_length );
       
-    this->audio_out->put_buffer (this->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
   }
 }
 
-void dts_close (audio_decoder_t *this_gen) {
-
+static void dts_dispose (audio_decoder_t *this_gen) {
   dts_decoder_t *this = (dts_decoder_t *) this_gen; 
   if (this->output_open) 
-    this->audio_out->close (this->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
+  free (this);
 }
 
-static char *dts_get_id(void) {
-  return "dts";
-}
-
-static void dts_dispose (audio_decoder_t *this_gen) {
-  free (this_gen);
-}
-
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
-
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t
+*stream) {
   dts_decoder_t *this ;
+  printf("DTS open_plugin called.\n");
 
   this = (dts_decoder_t *) malloc (sizeof (dts_decoder_t));
 
-  this->audio_decoder.init                = dts_init;
   this->audio_decoder.decode_data         = dts_decode_data;
   this->audio_decoder.reset               = dts_reset;
-  this->audio_decoder.close               = dts_close;
-  this->audio_decoder.get_identifier      = dts_get_id;
   this->audio_decoder.dispose             = dts_dispose;
-    
+
+  this->stream        = stream;
+  this->class         = class_gen;
+  this->output_open   = 0;
+  this->rate          = 48000;
+  this->bits_per_sample=16;
+  this->number_of_channels=2;
+  return &this->audio_decoder;
+}
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  return "DTS";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  return "DTS passthru audio format decoder plugin";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  printf("DTS class dispose called.\n");
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  dts_class_t *this ;
+  printf("DTS class init_plugin called.\n");
+  this = (dts_class_t *) malloc (sizeof (dts_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
   return this;
 }
 
@@ -259,6 +274,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "dts", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "dts", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
