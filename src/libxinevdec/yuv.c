@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.7 2002/09/13 03:03:42 tmmm Exp $
+ * $Id: yuv.c,v 1.8 2002/10/04 04:55:44 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -135,7 +135,21 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      if (buf->type == BUF_VIDEO_YVU9) {
+      if (buf->type == BUF_VIDEO_YV12) {
+
+        img = this->video_out->get_frame (this->video_out,
+                                          this->width, this->height,
+                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+
+        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
+        xine_fast_memcpy(img->base[1], this->buf + this->width * this->height,
+          (this->width * this->height) / 4);
+        xine_fast_memcpy(img->base[2], 
+          this->buf + (this->width * this->height) +
+          ((this->width * this->height) / 4),
+          (this->width * this->height) / 4);
+
+      } else if (buf->type == BUF_VIDEO_YVU9) {
 
         img = this->video_out->get_frame (this->video_out,
                                           this->width, this->height,
@@ -303,6 +317,7 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
  */
 
 static uint32_t video_types[] = { 
+  BUF_VIDEO_YV12,
   BUF_VIDEO_YVU9,
   BUF_VIDEO_GREY,
   0
