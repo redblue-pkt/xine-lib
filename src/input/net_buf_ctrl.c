@@ -32,12 +32,10 @@
 
 #define DEFAULT_LOW_WATER_MARK     1
 #define DEFAULT_HIGH_WATER_MARK 5000 /* in millisecond */
-#define VIDEO_FIFO_BUFS          498 /* 500 - 2 */
-#define AUDIO_FIFO_BUFS          228 /* 230 - 2 */
 
-/*
+
 #define LOG
-*/
+
 
 struct nbc_s {
 
@@ -71,6 +69,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 void nbc_check_buffers (nbc_t *this) {
 
   int fifo_fill, video_fifo_fill, audio_fifo_fill;        /* number of buffers */
+  int video_fifo_free, audio_fifo_free;                   /* number of free buffers */
   int data_length, video_data_length, audio_data_length;  /* fifo length in second */
   uint32_t video_data_size, audio_data_size;              /* fifo size in bytes */
   int video_bitrate, audio_bitrate;
@@ -121,6 +120,7 @@ void nbc_check_buffers (nbc_t *this) {
       } else {
         video_data_length = 0;
       }
+      video_fifo_free = this->stream->video_fifo->num_free(this->stream->video_fifo);
 
       if (this->stream->audio_fifo) {
         if (audio_bitrate) {
@@ -129,21 +129,27 @@ void nbc_check_buffers (nbc_t *this) {
         } else {
           audio_data_length = 0;
         }
+        audio_fifo_free = this->stream->audio_fifo->num_free(this->stream->audio_fifo);
       } else {
         audio_data_length = 0;
+        audio_fifo_free = 0;
       }
 
       data_length = (video_data_length > audio_data_length) ? video_data_length : audio_data_length;
 
 #ifdef LOG
-      printf("net_buf_ctrl: vff=%d, aff=%d, vdl=%d, adl=%d, dl=%d\n",
+      printf("net_buf_ctrl: vb=%d, ab=%d, vf=%d, af=%d, vdl=%d, adl=%d, dl=%d\n",
              video_fifo_fill, audio_fifo_fill,
+             video_fifo_free, audio_fifo_free,
              video_data_length, audio_data_length, data_length);
 #endif
-      /* stop buffering if fifos are filled enough */
+      /* stop buffering because:
+       *    - fifos are filled enough
+       *    - fifos are full (1 buffer is keeped for emergency stuffs)
+       */
       if ((data_length >= this->high_water_mark) ||
-          (video_fifo_fill >= VIDEO_FIFO_BUFS) ||      /* there is 512 video buffers */
-          (audio_fifo_fill >= AUDIO_FIFO_BUFS) ) {     /* there is 230 audio buffers */
+          (video_fifo_free == 1) ||
+          (audio_fifo_free == 1) ) {
         /* unpause */
 
         this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
@@ -159,8 +165,14 @@ void nbc_check_buffers (nbc_t *this) {
 
         if (!progress) {
           /* bitrate is not known */
-          video_fifo_progress = (100 * video_fifo_fill) / VIDEO_FIFO_BUFS;
-          audio_fifo_progress = (100 * audio_fifo_fill) / AUDIO_FIFO_BUFS;
+          if ((video_fifo_fill + video_fifo_free) > 0)
+            video_fifo_progress = (100 * video_fifo_fill) / (video_fifo_fill + video_fifo_free);
+          else
+            video_fifo_progress = 0;
+          if ((audio_fifo_fill + audio_fifo_free) > 0)
+            audio_fifo_progress = (100 * audio_fifo_fill) / (audio_fifo_fill + audio_fifo_free);
+          else
+            audio_fifo_progress = 0;
           progress = (video_fifo_progress > audio_fifo_progress)?
             video_fifo_progress : audio_fifo_progress;
         }
@@ -179,6 +191,9 @@ void nbc_check_buffers (nbc_t *this) {
 }
 
 void nbc_close (nbc_t *this) {
+#ifdef LOG
+  printf("net_buf_ctrl: nbc_close\n");
+#endif
   this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
   free (this);
 }
