@@ -60,12 +60,12 @@ extern int errno;
 
 #ifdef __GNUC__
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif

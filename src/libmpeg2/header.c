@@ -184,7 +184,7 @@ static int header_process_sequence_extension (picture_t * picture,
 	picture->coded_picture_height =
 	    (picture->coded_picture_height + 31) & ~31;
 
-    printf ("libmpeg2: low_delay : %d\n", picture->low_delay);
+    /* printf ("libmpeg2: low_delay : %d\n", picture->low_delay); */
 
 /*
     printf ("libmpeg2: sequence extension+5 : %08x (%d)\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.103 2002/02/09 07:13:24 guenter Exp $
+ * $Id: xine.c,v 1.104 2002/02/17 17:32:51 guenter Exp $
  *
  * top-level xine functions
  *
@@ -269,13 +269,13 @@ static int find_demuxer(xine_t *this, const char *MRL) {
 }
 
 int xine_play (xine_t *this, char *mrl, 
-		int start_pos, int start_time) {
+	       int start_pos, int start_time) {
 
   double     share ;
   off_t      pos, len;
   int        i;
 
-  LOG_MSG(this, _("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n"), 
+  printf ("xine_play: xine open %s, start pos = %d, start time = %d (sec)\n", 
 	  mrl, start_pos, start_time);
 
   pthread_mutex_lock (&this->xine_lock);
@@ -323,8 +323,13 @@ int xine_play (xine_t *this, char *mrl,
     return 0;
   }
   
-  LOG_MSG(this, _("xine: using input plugin >%s< for this MRL (%s).\n"), 
+  printf ("xine: using input plugin >%s< for this MRL (%s).\n", 
 	  this->cur_input_plugin->get_identifier(this->cur_input_plugin), mrl);
+
+  xine_log (this, XINE_LOG_FORMAT,
+	    _("using input plugin '%s' for MRL '%s'\n"),
+	    this->cur_input_plugin->get_identifier(this->cur_input_plugin), 
+	    mrl);
 
   /*
    * find demuxer plugin
@@ -337,8 +342,12 @@ int xine_play (xine_t *this, char *mrl,
     return 0;
   }
 
-  LOG_MSG(this, _("xine: using demuxer plugin >%s< for this MRL.\n"),
+  printf ("xine: using demuxer plugin >%s< for this MRL.\n",
 	  this->cur_demuxer_plugin->get_identifier());
+  
+  xine_log (this, XINE_LOG_FORMAT,
+	    _("system layer format '%s' detected.\n"),
+	    this->cur_demuxer_plugin->get_identifier());
   
   /*
    * start demuxer
@@ -511,7 +520,7 @@ xine_t *xine_init (vo_driver_t *vo,
                                             update_osd_display, this );
   
   if(ao) 
-    this->audio_out = ao_new_instance (ao, this->metronom, config);
+    this->audio_out = ao_new_instance (ao, this);
 
   audio_decoder_init (this);
 
@@ -854,13 +863,9 @@ unsigned int xine_get_log_section_count(void) {
 const char **xine_get_log_names(void) {
   static const char *log_sections[XINE_LOG_NUM + 1];
 
-  log_sections[XINE_LOG_MSG]      = _("messages");  /* XINE_LOG_MSG      */
-  log_sections[XINE_LOG_INPUT]    = _("inputs");    /* XINE_LOG_INPUT    */
-  log_sections[XINE_LOG_DEMUX]    = _("demuxers");  /* XINE_LOG_DEMUX    */
-  log_sections[XINE_LOG_CODEC]    = _("codecs");    /* XINE_LOG_CODEC    */
-  log_sections[XINE_LOG_VIDEO]    = _("video");     /* XINE_LOG_VIDEO    */
-  log_sections[XINE_LOG_METRONOM] = _("metronom");  /* XINE_LOG_METRONOM */
-  log_sections[XINE_LOG_PLUGIN]   = _("plugin");    /* XINE_LOG_PLUGIN   */
+  log_sections[XINE_LOG_MSG]      = _("messages");  
+  log_sections[XINE_LOG_FORMAT]   = _("stream format");
+  log_sections[XINE_LOG_PLUGIN]   = _("plugin");
   log_sections[XINE_LOG_NUM]      = NULL;
   
   return log_sections;

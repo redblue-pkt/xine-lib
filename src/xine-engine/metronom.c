@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.55 2002/02/17 15:53:28 guenter Exp $
+ * $Id: metronom.c,v 1.56 2002/02/17 17:32:50 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,7 +50,7 @@
 #define METRONOM_REPORT
 
 /*
-#define METRONOM_LOG
+#define LOG
 */
 
 /*
@@ -239,7 +239,7 @@ static void metronom_set_audio_rate (metronom_t *this, int64_t pts_per_smpls) {
 
   pthread_mutex_unlock (&this->lock);
 
-#ifdef METRONOM_LOG
+#ifdef LOG
   printf ("metronom: %lld pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
 #endif
 
@@ -331,7 +331,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
     diff = pts - predicted_pts;
 
-#ifdef METRONOM_LOG
+#ifdef LOG
     printf ("metronom: got video pts %lld, predicted %lld (= %lld + %lld) => diff %lld\n",
 	    pts, predicted_pts, this->last_video_pts, duration, diff);
 #endif
@@ -340,7 +340,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
       pts_discontinuity = 1;
       
-#ifdef METRONOM_LOG
+#ifdef LOG
       printf ("metronom: this is a video discontinuity\n");
 #endif
 
@@ -350,7 +350,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
        */
       if( !this->video_discontinuity ) {
         pts = 0;
-#ifdef METRONOM_LOG
+#ifdef LOG
 	printf ("metronom: not expecting a video discontinuity => ignored\n");
 #endif
       }
@@ -413,7 +413,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
       diff = this->video_vpts - vpts;
 
-#ifdef METRONOM_LOG
+#ifdef LOG
       printf ("metronom: video diff is %lld (predicted %lld, given %lld)\n",
 	      diff, this->video_vpts, vpts);
 #endif
@@ -424,7 +424,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	/* following line is useless (wrap_offset=wrap_offset)  */
 	/* this->video_wrap_offset = vpts - pts; */
 
-#ifdef METRONOM_LOG
+#ifdef LOG
 	printf ("metronom: video jump, wrap offset is now %lld\n",
 		this->video_wrap_offset);
 #endif
@@ -435,7 +435,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	/* make wrap_offset consistent with the drift correction */
 	this->video_wrap_offset = this->video_vpts - pts;
 
-#ifdef METRONOM_LOG
+#ifdef LOG
 	printf ("metronom: video drift, wrap offset is now %lld\n",
 		this->video_wrap_offset);
 #endif
@@ -448,7 +448,7 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   img->vpts = this->video_vpts + this->av_offset;
 
-#ifdef METRONOM_LOG
+#ifdef LOG
   printf ("metronom: video vpts for %10lld : %10lld\n", 
 	  pts, this->video_vpts);
 #endif
@@ -495,7 +495,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 
   int64_t vpts;
 
-#ifdef METRONOM_LOG  
+#ifdef LOG  
   printf ("metronom: got %d samples, pts is %lld, last_pts is %lld, diff = %lld\n",
 	  nsamples, pts, this->last_audio_pts, pts - this->last_audio_pts);
 #endif
@@ -594,7 +594,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   this->audio_vpts += nsamples * (this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM;
   this->num_audio_samples_guessed += nsamples;
 
-#ifdef METRONOM_LOG
+#ifdef LOG
   printf ("metronom: audio vpts for %10lld : %10lld\n", pts, vpts);
 #endif
 

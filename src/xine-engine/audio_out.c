@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.40 2002/02/09 07:13:24 guenter Exp $
+ * $Id: audio_out.c,v 1.41 2002/02/17 17:32:50 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -389,6 +389,10 @@ static int ao_open(ao_instance_t *this,
  
   int output_sample_rate, err;
 
+  xine_log (this->xine, XINE_LOG_FORMAT,
+	    "stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
+	    rate, bits, mode);
+
   if ((output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode)) == 0) {
     printf("audio_out: open failed!\n");
     return 0;
@@ -531,17 +535,18 @@ static int ao_set_property (ao_instance_t *this, int property, int value) {
   return(this->driver->set_property(this->driver, property, value));
 }
 
-ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, 
-				config_values_t *config) {
-
-  ao_instance_t *this;
-  int            i;
-  static         char *resample_modes[] = {"auto", "off", "on", NULL};
+ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
+ 
+  config_values_t *config = xine->config;
+  ao_instance_t   *this;
+  int              i;
+  static     char *resample_modes[] = {"auto", "off", "on", NULL};
 
   this = xine_xmalloc (sizeof (ao_instance_t)) ;
 
   this->driver                = driver;
-  this->metronom              = metronom;
+  this->metronom              = xine->metronom;
+  this->xine                  = xine;
 
   this->open                  = ao_open;
   this->get_buffer            = ao_get_buffer;

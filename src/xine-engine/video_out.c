@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.74 2002/02/17 15:53:28 guenter Exp $
+ * $Id: video_out.c,v 1.75 2002/02/17 17:32:51 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -42,27 +42,27 @@
 
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_VIDEO, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
     fprintf(stderr, message, ##args);                                \
   }
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_VIDEO, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_VIDEO, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_VIDEO, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif
 
-
+/*
 #define LOG
-
+*/
 
 #define NUM_FRAME_BUFFERS     15
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.72 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_decoder.c,v 1.73 2002/02/17 17:32:51 guenter Exp $
  *
  */
 
@@ -232,6 +232,9 @@ void *video_decoder_loop (void *this_gen) {
 	    
 	    printf ("video_decoder: using decoder >%s< \n",
 		    decoder->get_identifier());
+
+	    xine_log (this, XINE_LOG_FORMAT, "using video decoder plugin '%s'\n",
+		      decoder->get_identifier());
 	    
 	  }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.34 2002/02/09 07:13:23 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.35 2002/02/17 17:32:50 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -42,26 +42,6 @@
 #define DEMUX_MPGAUDIO_IFACE_VERSION 3
 
 #define VALID_ENDS                   "mp3,mp2,mpa,mpega"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 typedef struct {
 
@@ -173,7 +153,8 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
   tpf /= freqs[sampling_frequency] << lsf;
 
   bitrate = (double) framesize / tpf;
-  LOG_MSG(this->xine, _("mpgaudio: bitrate = %.2fkbps\n"), bitrate/1024.0*8.0 );
+  xine_log (this->xine, XINE_LOG_FORMAT, 
+	    _("mpgaudio: bitrate = %.2fkbps\n"), bitrate/1024.0*8.0 );
   this->stream_length = (int)(this->input->get_length(this->input) / bitrate);
 }
 
@@ -262,7 +243,7 @@ static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    LOG_MSG(this->xine, _("demux_mpgaudio_block: stop...ignored\n"));
+    printf ("demux_mpgaudio_block: stop...ignored\n");
     return;
   }
 
@@ -366,8 +347,8 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpgaudio_loop, this)) != 0) {
-    LOG_MSG_STDERR(this->xine, _("demux_mpgaudio: can't create new thread (%s)\n"),
-		   strerror(err));
+    printf ("demux_mpgaudio: can't create new thread (%s)\n",
+	    strerror(err));
     exit (1);
   }
 }
@@ -464,10 +445,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpgaudio_t *this;
 
   if (iface != 6) {
-    LOG_MSG(xine,
-	    _("demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	      "            this means there's a version mismatch between xine and this "
-	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
+    printf ("demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	    "            this means there's a version mismatch between xine and this "
+	    "            demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }

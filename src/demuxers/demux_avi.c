@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.63 2002/02/09 07:13:22 guenter Exp $
+ * $Id: demux_avi.c,v 1.64 2002/02/17 17:32:49 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -50,20 +50,20 @@
 
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    xine_log(xine, XINE_LOG_FORMAT, message, ##args);                 \
     fprintf(stderr, message, ##args);                                \
   }
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    xine_log(xine, XINE_LOG_FORMAT, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_FORMAT, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_FORMAT, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif
@@ -849,7 +849,7 @@ static void *demux_avi_loop (void *this_gen) {
     }
   }
 
-  LOG_MSG(this->xine, _("demux_avi: demux loop finished.\n"));
+  printf ("demux_avi: demux loop finished.\n");
 
   pthread_exit(NULL);
 
@@ -863,7 +863,7 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    LOG_MSG(this->xine, _("demux_avi: stop...ignored\n"));
+    printf ("demux_avi: stop...ignored\n");
     return;
   }
 
@@ -1100,13 +1100,13 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
     if (this->avi) {
 
-      LOG_MSG(this->xine, _("demux_avi: %ld frames\n"), this->avi->video_frames);
+      printf ("demux_avi: %ld frames\n", this->avi->video_frames);
 
       strncpy(this->last_mrl, input->get_mrl (input), 1024);
 
       return DEMUX_CAN_HANDLE;
     } else 
-      LOG_MSG(this->xine, _("demux_avi: AVI_init failed (AVI_errno: %d)\n"), this->AVI_errno);
+      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n", this->AVI_errno);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -1143,7 +1143,7 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 	    strncpy(this->last_mrl, input->get_mrl (input), 1024);
 	    return DEMUX_CAN_HANDLE;
 	  } else {
-	    LOG_MSG(this->xine, _("demux_avi: AVI_init failed (AVI_errno: %d)\n"), 
+	    printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n", 
 		    this->AVI_errno);
 	    return DEMUX_CANNOT_HANDLE;
 	  }

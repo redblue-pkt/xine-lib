@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.20 2002/02/09 07:13:23 guenter Exp $
+ * $Id: demux_qt.c,v 1.21 2002/02/17 17:32:50 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -55,26 +55,6 @@
 #include "libw32dll/wine/mmreg.h"
 
 #define VALID_ENDS   "mov"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 /* OpenQuicktime Codec Parameter Types */
 #define QUICKTIME_UNKNOWN_PARAMETER         -1
@@ -3195,8 +3175,8 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	quicktime_read_char32(file, (char *)&zlibfourcc);
 	zlibfourcc = quicktime_atom_read_size((char *)&zlibfourcc);
 	
-	if(zlibfourcc != QT_zlib)
-	  LOG_MSG(xine, _("Header not compressed with zlib\n"));
+	if (zlibfourcc != QT_zlib)
+	  printf ("demux_qt: header not compressed with zlib\n");
 	
 	if(compressed_atom.size - 4 > 0) {
 	  offset = file->ftell_position + compressed_atom.size - 4;
@@ -3217,7 +3197,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	/* Allocate buffer for compressed header */
 	cmov_buf = (unsigned char *)malloc( cmov_sz );
 	if (cmov_buf == 0) {
-	  LOG_MSG_STDERR(xine, _("QT cmov: malloc err 0"));
+	  printf ("demux_qt: QT cmov: malloc err 0");
 	  exit(1);
 	}
 	/* Read in  compressed header */
@@ -3225,7 +3205,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	tlen = file->quicktime_read_data(file, (char*)cmov_buf, cmov_sz);
 	
 	if (tlen != 1) { 
-	  LOG_MSG_STDERR(xine, _("QT cmov: read err tlen %llu\n"), tlen);
+	  printf ("demux_qt: QT cmov: read err tlen %llu\n", tlen);
 	  free(cmov_buf);
 	  return 0;
 	}
@@ -3234,7 +3214,7 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	moov_sz += 16; /* slop?? */
 	moov_buf = (unsigned char *)malloc( moov_sz );
 	if (moov_buf == 0) {
-	  LOG_MSG_STDERR(xine, _("QT cmov: malloc err moov_sz %u\n"), moov_sz);
+	  printf ("demux_qt: QT cmov: malloc err moov_sz %u\n", moov_sz);
 	  exit(1);
 	}
 	
@@ -3248,12 +3228,12 @@ static int quicktime_read_moov(quicktime_t *file, quicktime_moov_t *moov,
 	
 	zret = inflateInit(&zstrm);
 	if (zret != Z_OK) { 
-	  LOG_MSG_STDERR(xine, _("QT cmov: inflateInit err %d\n"), zret);
+	  printf ("demux_qt: QT cmov: inflateInit err %d\n", zret);
 	  break;
 	}
 	zret = inflate(&zstrm, Z_NO_FLUSH);
 	if ((zret != Z_OK) && (zret != Z_STREAM_END)) {
-	  LOG_MSG_STDERR(xine, _("QT cmov inflate: ERR %d\n"), zret);
+	  printf ("demux_qt: QT cmov inflate: ERR %d\n", zret);
 	  break;
 	} else {
 	  FILE *DecOut;
@@ -3962,7 +3942,7 @@ static quicktime_t* quicktime_open(input_plugin_t *input, xine_t *xine)
   
   if(quicktime_read_info(new_file, xine)) {
     quicktime_close(new_file);
-    LOG_MSG(xine, _("demux_qt: quicktime_open: error in header\n"));
+    printf ("demux_qt: quicktime_open: error in header\n");
     new_file = 0;
   }
 
@@ -4131,7 +4111,7 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    LOG_MSG(this->xine, _("demux_qt: stop...ignored\n"));
+    printf ("demux_qt: stop...ignored\n");
     return;
   }
 
@@ -4192,13 +4172,13 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
     this->bih.biCompression=mmioFOURCC('c', 'v', 'i', 'd');
   }
     
-  if (!this->video_type ) {
-    LOG_MSG(this->xine, _("demux_qt: unknown video codec >%s<\n"), video);
+  if (!this->video_type) {
+    xine_log (this->xine, XINE_LOG_FORMAT,
+	      _("demux_qt: unknown video codec '%s'\n"), video);
     return 0;
   }
   
-  LOG_MSG(this->xine, _("demux_qt: video codec >%s<\n"), buf_video_name(this->video_type));
-  
+  printf ("demux_qt: video codec is '%s'\n", video);
 
   this->wavex.nChannels       = quicktime_track_channels (this->qt, 0);
   this->wavex.nSamplesPerSec  = quicktime_sample_rate (this->qt, 0);
@@ -4212,13 +4192,16 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   this->has_audio = quicktime_has_audio (this->qt);
 
   audio = quicktime_audio_compressor (this->qt, 0);
+
+  printf ("demux_qt: audio codec is '%s'\n", audio);
+
   if (!strncasecmp (audio, "raw ", 4)) {
     this->audio_type = BUF_AUDIO_LPCM_LE;
     this->wavex.wFormatTag = WAVE_FORMAT_ADPCM;
   } else if (!strncasecmp (audio, ".mp3", 4)) {
     this->audio_type = BUF_AUDIO_MPEG;
   } else {
-    LOG_MSG(this->xine, _("demux_qt: unknown audio codec >%s<\n"),
+    printf ("demux_qt: unknown audio codec >%s<\n",
 	    audio);
     this->audio_type = BUF_CONTROL_NOP;
   }
@@ -4250,12 +4233,13 @@ static void demux_qt_start (demux_plugin_t *this_gen,
     return;
   }
 
-  LOG_MSG(this->xine, _("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"),
-	  quicktime_video_compressor (this->qt,0),
-	  quicktime_frame_rate (this->qt,0),
-	  quicktime_audio_compressor (this->qt,0),
-	  quicktime_sample_rate (this->qt,0),
-	  quicktime_audio_bits (this->qt,0));
+  xine_log (this->xine, XINE_LOG_FORMAT,
+	    _("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"),
+	    quicktime_video_compressor (this->qt,0),
+	    quicktime_frame_rate (this->qt,0),
+	    quicktime_audio_compressor (this->qt,0),
+	    quicktime_sample_rate (this->qt,0),
+	    quicktime_audio_bits (this->qt,0));
 
   if (!demux_qt_detect_compressors (this)) {
     this->status = DEMUX_FINISHED;
@@ -4329,7 +4313,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
   this->status = DEMUX_OK ;
 
   if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
-    LOG_MSG_STDERR(this->xine, _("demux_qt: can't create new thread (%s)\n"), strerror(err));
+    printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
     exit (1);
   }
 }
@@ -4417,10 +4401,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_qt_t      *this;
 
   if (iface != 6) {
-    LOG_MSG(xine,
-	    _("demux_qt: plugin doesn't support plugin API version %d.\n"
-	      "          this means there's a version mismatch between xine and this "
-	      "          demuxer plugin.\nInstalling current demux plugins should help.\n"),
+    printf ("demux_qt: plugin doesn't support plugin API version %d.\n"
+	    "          this means there's a version mismatch between xine and this "
+	    "          demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }

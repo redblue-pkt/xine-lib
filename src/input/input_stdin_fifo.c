@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.19 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: input_stdin_fifo.c,v 1.20 2002/02/17 17:32:50 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,20 +44,20 @@ extern int errno;
 
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
     fprintf(stderr, message, ##args);                                \
   }
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif

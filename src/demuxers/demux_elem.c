@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.33 2002/02/09 07:13:22 guenter Exp $
+ * $Id: demux_elem.c,v 1.34 2002/02/17 17:32:50 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -44,26 +44,6 @@
 #define DEMUX_MPEG_ELEM_IFACE_VERSION 1
 
 #define VALID_ENDS  ".mpv"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 typedef struct {  
 
@@ -247,8 +227,8 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_elem_loop, this)) != 0) {
-    LOG_MSG_STDERR(this->xine, _("demux_elem: can't create new thread (%s)\n"),
-		   strerror(err));
+    printf ("demux_elem: can't create new thread (%s)\n",
+	    strerror(err));
     exit (1);
   }
 }
@@ -359,10 +339,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_elem_t *this;
 
   if (iface != 6) {
-    LOG_MSG(xine,
-	    _("demux_elem: plugin doesn't support plugin API version %d.\n"
-	      "            this means there's a version mismatch between xine and this "
-	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
+    printf ("demux_elem: plugin doesn't support plugin API version %d.\n"
+	    "            this means there's a version mismatch between xine and this "
+	    "            demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }

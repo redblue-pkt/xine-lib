@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2002/02/11 01:55:20 guenter Exp $
+ * $Id: xine_decoder.c,v 1.23 2002/02/17 17:32:50 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -36,8 +36,9 @@
 #include "buffer.h"
 #include "xine_internal.h"
 
+/*
 #define LOG
-
+*/
 
 typedef struct mpeg2dec_decoder_s {
   video_decoder_t  video_decoder;
@@ -54,7 +55,9 @@ static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) 
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+#ifdef LOG
   printf ("libmpeg2: init... \n");
+#endif
 
   pthread_mutex_lock (&this->lock);
 
@@ -64,13 +67,17 @@ static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) 
 
   pthread_mutex_unlock (&this->lock);
 
+#ifdef LOG
   printf ("libmpeg2: init...done\n");
+#endif
 }
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+#ifdef LOG
   printf ("libmpeg2: decode_data...\n");
+#endif
 
   pthread_mutex_lock (&this->lock);
 
@@ -84,7 +91,9 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
   pthread_mutex_unlock (&this->lock);
 
+#ifdef LOG
   printf ("libmpeg2: decode_data...done\n");
+#endif
 }
 
 static void mpeg2dec_flush (video_decoder_t *this_gen) {
@@ -102,7 +111,9 @@ static void mpeg2dec_close (video_decoder_t *this_gen) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+#ifdef LOG
   printf ("libmpeg2: close\n");
+#endif
 
   pthread_mutex_lock (&this->lock);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.23 2002/02/09 07:13:24 guenter Exp $
+ * $Id: audio_out.h,v 1.24 2002/02/17 17:32:50 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -184,6 +184,7 @@ struct ao_instance_s {
 
   ao_driver_t    *driver;
   metronom_t     *metronom;
+  xine_t         *xine;
 
   int             audio_loop_running;
   int             audio_paused;
@@ -210,7 +211,7 @@ struct ao_instance_s {
 /* This initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom, config_values_t *config) ;
+ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
 /*
  * to build a dynamic audio output plugin,
  * you have to implement these driver:

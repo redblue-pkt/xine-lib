@@ -40,7 +40,9 @@
 #define LOG_PAN_SCAN
 */
 
+/*
 #define LOG
+*/
 
 #define BUFFER_SIZE (224 * 1024)
 
@@ -253,6 +255,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
             xine_frame_change_event_t notify_event;
+
+	    xine_log (mpeg2dec->xine, XINE_LOG_FORMAT,
+		      "libmpeg2: frame size is %d x %d, ratio is %d\n",
+		      picture->frame_width, picture->frame_height,
+		      picture->frame_rate_code);
             
 	    printf ("libmpeg2: frame size has changed to from %d x %d to %d x %d\n",
 		    picture->frame_width, picture->frame_height,
@@ -565,7 +572,11 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	picture->frame_width  = picture->coded_picture_width;
 	picture->frame_height = picture->coded_picture_height;
 
-	printf ("mpeg2dec: frame size %d x %d\n",
+	xine_log (mpeg2dec->xine, XINE_LOG_FORMAT,
+		  "libmpeg2: frame size is %d x %d\n",
+		  picture->frame_width, picture->frame_height);
+            
+	printf ("libmpeg2: frame size %d x %d\n",
 		picture->frame_width, picture->frame_height);
             
 	notify_event.event.type = XINE_EVENT_FRAME_CHANGE;

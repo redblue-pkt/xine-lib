@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.49 2002/02/09 07:13:22 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.50 2002/02/17 17:32:50 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -44,26 +44,6 @@
 
 #define VALID_MRLS          "stdin,fifo"
 #define VALID_ENDS          "mpg,mpeg,mpe"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 #define NUM_PREVIEW_BUFFERS 150
 
@@ -126,8 +106,7 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
     res = (buf[2]<<8) | buf[3] | (buf[1]<<16) | (buf[0] << 24);
     break;
   default:
-    LOG_MSG_STDERR(this->xine,
-		   _("How how - something wrong in wonderland demux:read_bytes (%d)\n"), n);
+    printf ("demux_mpeg: how how - something wrong in wonderland demux:read_bytes (%d)\n", n);
     exit (1);
   }
 
@@ -664,7 +643,7 @@ static void *demux_mpeg_loop (void *this_gen) {
     }
   }
 
-  LOG_MSG(this->xine, _("demux loop finished (status: %d, buf:%x)\n"),
+  printf ("demux_mpeg: demux loop finished (status: %d, buf:%x)\n",
 	  this->status, w);
 
   pthread_exit(NULL);
@@ -678,7 +657,7 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   buf_element_t *buf;
   void *p;
 
-  LOG_MSG(this->xine, _("demux_mpeg: stop...\n"));
+  printf ("demux_mpeg: stop...\n");
 
   if (this->status != DEMUX_OK) {
 
@@ -781,8 +760,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_loop, this)) != 0) {
-    LOG_MSG_STDERR(this->xine, _("demux_mpeg: can't create new thread (%s)\n"),
-		   strerror(err));
+    printf ("demux_mpeg: can't create new thread (%s)\n",
+	    strerror(err));
     exit (1);
   }
 }
@@ -870,7 +849,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 	    return DEMUX_CANNOT_HANDLE;
 	  }
 	  
-	  LOG_MSG_STDERR(this->xine, _("You should specify mpeg(mpeg1/mpeg2) stream type.\n"));
+	  xine_log (this->xine, XINE_LOG_MSG, _("demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"));
 	  return DEMUX_CANNOT_HANDLE;
 	}
       }
@@ -934,10 +913,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_t    *this;
 
   if (iface != 6) {
-    LOG_MSG(xine,
-	    _("demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	      "            this means there's a version mismatch between xine and this "
-	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
+    printf ("demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	    "            this means there's a version mismatch between xine and this "
+	    "            demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }

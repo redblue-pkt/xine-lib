@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.71 2002/02/06 10:57:15 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.72 2002/02/17 17:32:51 guenter Exp $
  *
  */
 
@@ -138,14 +138,10 @@ struct audio_decoder_s {
 /*
  * log output
  */
-#define XINE_LOG_MSG       0
-#define XINE_LOG_INPUT     1
-#define XINE_LOG_DEMUX     2
-#define XINE_LOG_CODEC     3
-#define XINE_LOG_VIDEO     4
-#define XINE_LOG_METRONOM  5
-#define XINE_LOG_PLUGIN    6
-#define XINE_LOG_NUM       7 /* # of log buffers defined */
+#define XINE_LOG_MSG       0 /* warnings, errors, ... */
+#define XINE_LOG_FORMAT    1 /* stream format, decoders, video size... */
+#define XINE_LOG_PLUGIN    2
+#define XINE_LOG_NUM       3 /* # of log buffers defined */
 
 typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.76 2002/02/09 07:13:23 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.77 2002/02/17 17:32:50 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -44,26 +44,6 @@
 
 #define VALID_MRLS          "dvd,stdin,fifo"
 #define VALID_ENDS          "vob"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 #define NUM_PREVIEW_BUFFERS   250
 #define DISC_TRESHOLD       90000
@@ -114,7 +94,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   if (buf==NULL) {
     xine_next_mrl_event_t event;
 
-    LOG_MSG(this->xine, _("demux_mpeg_block: read_block failed\n"));
+    printf ("demux_mpeg_block: read_block failed\n");
 
     /*
      * check if seamless branching is possible
@@ -128,12 +108,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
       char *next_mrl = event.mrl;
       
-      LOG_MSG(this->xine, _("demux_mpeg_block: checking if we can branch to %s\n"), next_mrl);
+      printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
 
       if (next_mrl && this->input->is_branch_possible 
 	  && this->input->is_branch_possible (this->input, next_mrl)) {
 
-        LOG_MSG(this->xine, _("demux_mpeg_block: branching\n"));
+        printf ("demux_mpeg_block: branching\n");
 
 	this->input->close (this->input);
         this->input->open (this->input, next_mrl);
@@ -263,13 +243,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   /* we should now have a PES packet here */
 
   if (p[0] || p[1] || (p[2] != 1)) {
-    LOG_MSG(this->xine, _("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n"),
+    printf ("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001)\n",
 	    p[0], p[1], p[2]);
     buf->free_buffer (buf);
 
     this->warned++;
     if (this->warned > 5) {
-      LOG_MSG(this->xine, _("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
+      xine_log (this->xine, XINE_LOG_MSG,
+		_("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
       this->status = DEMUX_FINISHED;
     }
 
@@ -374,7 +355,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   } else { /* mpeg 2 */
     /* check PES scrambling_control */
     if (((p[6] & 0x30) != 0) && !this->warned) {
-      LOG_MSG(this->xine, _("demux_mpeg_block: warning: pes header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
+
+      xine_log (this->xine, XINE_LOG_MSG,
+		_("demux_mpeg_block: warning: pes header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
 
       this->warned = 1;
     }
@@ -488,7 +471,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       switch ((p[5]>>6) & 3) {
       case 3: /* illegal, use 16-bits? */
       default:
-	LOG_MSG(this->xine, _("illegal lpcm sample format (%d), assume 16-bit samples\n"),
+	printf ("illegal lpcm sample format (%d), assume 16-bit samples\n",
 		(p[5]>>6) & 3 );
       case 0: bits_per_sample = 16; break;
       case 1: bits_per_sample = 20; break;
@@ -648,7 +631,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     /* we should now have a PES packet here */
 
     if (p[0] || p[1] || (p[2] != 1)) {
-      LOG_MSG(this->xine, _("demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n"),
+      printf ("demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n",
 	      p[0], p[1], p[2]);
       buf->free_buffer (buf);
       return rate;
@@ -749,7 +732,7 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    LOG_MSG(this->xine, _("demux_mpeg_block: stop...ignored\n"));
+    printf ("demux_mpeg_block: stop...ignored\n");
     return;
   }
 
@@ -869,8 +852,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_block_loop, this)) != 0) {
-    LOG_MSG_STDERR(this->xine, _("demux_mpeg_block: can't create new thread (%s)\n"),
-		   strerror(err));
+    printf ("demux_mpeg_block: can't create new thread (%s)\n",
+	    strerror(err));
     exit (1);
   }
 }
@@ -886,11 +869,11 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 
     strncpy (this->cur_mrl, input->get_mrl(input), 256);
 
-    LOG_MSG(this->xine, _("demux_mpeg_block: mrl %s is new, will estimated bitrate\n"),
+    printf ("demux_mpeg_block: mrl %s is new, will estimated bitrate\n",
 	    this->cur_mrl);
 
   } else
-    LOG_MSG(this->xine, _("demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n"),
+    printf ("demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n",
 	    this->cur_mrl, this->rate * 50 * 8);
 }
 
@@ -1046,12 +1029,11 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_block_t *this;
 
   if (iface != 6) {
-    LOG_MSG(xine,
-	    _("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
-	      "                  this means there's a version mismatch between xine and this "
-	      "                  demuxer plugin.\nInstalling current demux plugins should help.\n"),
+    printf ("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
+	    "                  this means there's a version mismatch between xine and this "
+	    "                  demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
-    return NULL;
+  return NULL;
   }
 
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));

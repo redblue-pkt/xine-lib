@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.36 2002/02/09 07:13:23 guenter Exp $
+ * $Id: demux_ts.c,v 1.37 2002/02/17 17:32:50 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -76,20 +76,20 @@
 
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    xine_log(xine, XINE_LOG_FORMAT, message, ##args);                 \
     fprintf(stderr, message, ##args);                                \
   }
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    xine_log(xine, XINE_LOG_FORMAT, message, ##args);                 \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_FORMAT, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_DEMUX, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_FORMAT, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif
@@ -242,8 +242,8 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
    * indicator set.
    */
   if (!pusi) {
-    LOG_MSG (this->xine, _("demux_ts: demux error! PAT without payload unit "
-                           "start indicator\n"));
+    printf ("demux_ts: demux error! PAT without payload unit "
+	    "start indicator\n");
     return;
   }
 
@@ -252,7 +252,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
    */
   pkt += pkt[4];
   if (pkt - original_pkt > PKT_SIZE) {
-    LOG_MSG (this->xine, _("demux_ts: demux error! PAT with invalid pointer\n"));
+    printf ("demux_ts: demux error! PAT with invalid pointer\n");
     return;
   }
   table_id = (unsigned int)pkt[5] ;
