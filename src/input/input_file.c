@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.44 2002/04/23 13:30:43 esnel Exp $
+ * $Id: input_file.c,v 1.45 2002/04/23 14:02:41 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -280,7 +280,7 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if (this->mrl)
     free (this->mrl);
 
-  this->mrl = strdup(mrl); /* FIXME: small memory leak */ 
+  this->mrl = strdup(mrl);
 
   if (!strncasecmp (this->mrl, "file:",5))
     filename = &this->mrl[5];
