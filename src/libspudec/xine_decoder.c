@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2001/10/22 14:56:29 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.22 2001/10/23 00:50:47 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -368,13 +368,10 @@ void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       if ((this->state.modified) ) { 
         spu_draw_picture(&this->state, this->cur_seq, &this->overlay);
       }
-/* spu_discover_clut probably goes here */
-/* Not sure where to put clut discovery */
-/*      if (this->state.need_clut)
-          spu_discover_clut(&this->state, &this->overlay);
-          return ;
-        }
- */
+      
+      if (this->state.need_clut)
+        spu_discover_clut(&this->state, &this->overlay);
+      
       if (this->state.menu == 0) {
         /* Subtitle */
         this->event.object.handle = handle;
@@ -737,6 +734,8 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
    * This event is for GUI -> NAVDVD plugin
    * SPUDEC will have to use a different EVENT
    * if it needs this for CLUT auto detect.
+   * ->that was a patch to redetect clut on spu channel change.
+   *   not very important, i will take a look when i have time. [MF]
    */
   /* FIXME
   case XINE_UI_GET_SPU_LANG:

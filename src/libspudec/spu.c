@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.17 2001/10/21 15:04:13 jcdutton Exp $
+ * $Id: spu.c,v 1.18 2001/10/23 00:50:47 miguelfreitas Exp $
  *
  */
 
@@ -171,11 +171,11 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_PALETTE: {	/* CLUT */
       spu_clut_t *clut = (spu_clut_t *) (buf+1);
       
-/*      state->cur_colors[3] = clut->entry0;
+      state->cur_colors[3] = clut->entry0;
       state->cur_colors[2] = clut->entry1;
       state->cur_colors[1] = clut->entry2;
       state->cur_colors[0] = clut->entry3;
- */
+ 
 /* This is a bit out of context for now */
       ovl->color[3] = state->clut[clut->entry0]; 
       ovl->color[2] = state->clut[clut->entry1];
@@ -380,7 +380,7 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
    border1-border2-fg-border2-border1.
    MINFOUND is the number of ocurrences threshold.
 */
-#define MINFOUND 25
+#define MINFOUND 20
 void spu_discover_clut(spu_state_t *state, vo_overlay_t *ovl)
 {
   int bg,c;
