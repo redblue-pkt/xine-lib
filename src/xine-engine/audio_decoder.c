@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.130 2004/10/14 23:25:24 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.131 2004/12/11 23:18:02 valtri Exp $
  *
  *
  * functions that implement audio decoding
@@ -467,7 +467,7 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
 						      _("The number of audio buffers (each is 8k in size) "
 						        "xine uses in its internal queue. Higher values "
 							"mean smoother playback for unreliable inputs, but "
-							"also increased latency and memory comsumption."),
+							"also increased latency and memory consumption."),
                                                       20, NULL, NULL);
   
     stream->audio_fifo = _x_fifo_buffer_new (num_buffers, 8192);

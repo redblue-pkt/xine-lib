@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.152 2004/10/27 16:41:35 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.153 2004/12/11 23:18:03 valtri Exp $
  *
  */
 
@@ -484,7 +484,7 @@ void _x_video_decoder_init (xine_stream_t *stream) {
 						      _("The number of video buffers (each is 8k in size) "
 						        "xine uses in its internal queue. Higher values "
 							"mean smoother playback for unreliable inputs, but "
-							"also increased latency and memory comsumption."),
+							"also increased latency and memory consumption."),
                                                       20, NULL, NULL);
   
     stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
