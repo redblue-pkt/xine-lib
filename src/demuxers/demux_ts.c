@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.110 2004/12/01 07:59:53 mlampard Exp $
+ * $Id: demux_ts.c,v 1.111 2004/12/09 07:07:40 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -99,15 +99,15 @@
  * BUF_SPU_DVBSUB packets without the flag BUF_FLAG_SPECIAL contain
  * the payload of the PES packets carrying DVBSUB data.  Since the
  * payload can be broken up over several buf_element_t and the DVBSUB
- * is PES oriented, the CCCC field (low 16 bits) is used to convey the
+ * is PES oriented, the decoder_info[2] field (low 16 bits) is used to convey the
  * packet boundaries to the decoder:
  *
  * + For the first buffer of a packet, buf->content points to the
- *   first byte of the PES payload.  CCCC is set to the length of the
+ *   first byte of the PES payload.  decoder_info[2] is set to the length of the
  *   payload.  The decoder can use this value to determine when a
  *   complete PES packet has been collected.
  *
- * + For the following buffers of the PES packet, CCCC is 0.
+ * + For the following buffers of the PES packet, decoder_info[2] is 0.
  *
  * The decoder can either use this information to reconstruct the PES
  * payload, or ignore it and implement a parser that handles the
@@ -786,6 +786,12 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       }
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
+      
+      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVB ) {
+        m->buf->decoder_info[2] = m->buf->type & 0xffff;
+        m->buf->type = BUF_SPU_DVB;
+      }
+
       if( this->input->get_length (this->input) )
         m->buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
                                          65535 / this->input->get_length (this->input) );
@@ -827,6 +833,16 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       if (this->rate)
         m->buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                          * 1000 / (this->rate * 50));
+
+      /* DVBSUB: reset PES packet length field in buffer type, to
+       * indicate that the next buffer is in the middle of a PES
+       * packet. Put the PES packet size into decoder_info[2] */
+      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVB ) {
+        m->buf->decoder_info[2] = m->buf->type & 0xffff;
+        m->buf->type = BUF_SPU_DVB;
+        m->type = BUF_SPU_DVB;
+      }
+
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
@@ -835,13 +851,6 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       printf ("demux_ts: produced buffer, pts=%lld\n", m->pts);
 #endif
 
-      /* DVBSUB: reset PES packet length field in buffer type, to
-       * indicate that the next buffer is in the middle of a PES
-       * packet.
-       **/
-      if ((m->type & 0xffff0000) == BUF_SPU_DVB) {
-	m->type = BUF_SPU_DVB;
-      }
     }
     memcpy(m->buf->mem + m->buffered_bytes, ts, len);
     m->buffered_bytes += len;
