@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.22 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.23 2003/01/29 15:34:26 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -984,7 +984,7 @@ static void *opengl_init_class (xine_t *xine, void *visual_gen) {
 
 
 static vo_info_t vo_info_opengl = {
-  6,                    /* priority    */
+  3,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 

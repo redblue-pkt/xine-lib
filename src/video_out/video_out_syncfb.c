@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.83 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.84 2003/01/29 15:34:28 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -1047,7 +1047,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 }
 
 static vo_info_t vo_info_syncfb = {
-  6,                    /* priority    */
+  7,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 

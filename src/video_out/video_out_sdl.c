@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.20 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.21 2003/01/29 15:34:28 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -576,7 +576,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 }
 
 static vo_info_t vo_info_sdl = {
-  6,                    /* priority */
+  4,                    /* priority */
   XINE_VISUAL_TYPE_X11, /* visual type supported by this plugin */
 };
 
