@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.268 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: xine.c,v 1.269 2003/11/22 21:19:09 f1rmb Exp $
  */
 
 /*
@@ -1435,6 +1435,9 @@ void _x_set_speed (xine_stream_t *stream, int speed) {
 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
   __set_speed_internal (stream, speed);
+  
+  if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
+    __set_speed_internal (stream->slave, speed);
 
   pthread_mutex_unlock (&stream->frontend_lock);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.104 2003/11/06 22:25:54 f1rmb Exp $
+ * $Id: xine.h.in,v 1.105 2003/11/22 21:19:09 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -211,6 +211,8 @@ int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
 #define XINE_MASTER_SLAVE_PLAY     (1<<0)
 /* slave stops on master stop */
 #define XINE_MASTER_SLAVE_STOP     (1<<1)
+/* slave is synced to master's speed */
+#define XINE_MASTER_SLAVE_SPEED    (1<<2)
 
 /*
  * open a stream
