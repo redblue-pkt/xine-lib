@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.14 2004/04/26 18:03:01 mroi Exp $
+ * $Id: xine_encoder.c,v 1.15 2004/04/26 19:33:47 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -160,7 +160,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   use_quantizer = drv->class->xine->config->register_bool(drv->class->xine->config,
     "dxr3.lavc_quantizer", 1,
     _("constant quality mode"),
-    _("When enabled, libavcodec will use a constant quality mode by danymically "
+    _("When enabled, libavcodec will use a constant quality mode by dynamically "
       "compressing the images based on their complexity. When disabled, libavcodec "
       "will use constant bitrate mode."), 10, NULL, NULL);
 
