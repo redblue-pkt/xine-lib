@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.11 2002/10/29 17:08:54 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.12 2002/11/02 04:31:06 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -701,7 +701,7 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
   write_reg(this, OVERLAY_KEY_CNTL, 0x00000050);
   write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-  write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0x00ffffff);
+  write_reg(this, OVERLAY_GRAPHICS_KEY_MSK, 0xffffffff >> (32 - attr.fbtype.fb_depth));
 
   return this;
 }

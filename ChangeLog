@@ -34,6 +34,7 @@ xine-lib (next version) [someone fill in stability and urgency]
     versions of libxine installed in parallel
   * file:// mrl use an uri-like syntax now, %xx-encoded chars are handled,
     '#' is used to separate subtitle files
+  * incorporated pgx64[fb] plugin
 	
 xine-lib (0.9.13) unstable; urgency=low
 

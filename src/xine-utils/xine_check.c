@@ -36,7 +36,6 @@
 #include "xine_check.h"
 #include "xineutils.h"
 #include <X11/Xlib.h>
-#include <X11/extensions/Xvlib.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
@@ -47,6 +46,7 @@
 #if defined(__linux__)
 #include <linux/major.h>
 #include <linux/hdreg.h>
+#include <X11/extensions/Xvlib.h>
 
 xine_health_check_t*
 xine_health_check (xine_health_check_t* hc) {
