@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.10 2003/01/11 05:26:55 guenter Exp $
+ * $Id: qt_decoder.c,v 1.11 2003/01/11 13:10:13 guenter Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -1098,9 +1098,9 @@ static void qtv_dispose (video_decoder_t *this_gen) {
 
   qtv_decoder_t *this = (qtv_decoder_t *) this_gen;
 
-  if (this->decoder_ok) {
+  if (this->codec_initialized) {
     this->stream->video_out->close(this->stream->video_out, this->stream);
-    this->decoder_ok = 0;
+    this->codec_initialized = 0;
   }
 
 #ifdef LOG
