@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.89 2002/09/08 22:10:29 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.90 2002/09/16 11:35:25 jcdutton Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -626,7 +626,8 @@ static void xshm_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_ge
 		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        default:
-	/* it should never get here */
+        printf("xine-lib:video_out_xshm:xshm_overlay_blend: Cannot blend bpp:%i\n", this->bpp);
+	/* it should never get here, unless a user tries to play in bpp:8 */
 	break;
      }        
    }
