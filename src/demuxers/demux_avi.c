@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.21 2001/07/03 21:30:38 guenter Exp $
+ * $Id: demux_avi.c,v 1.22 2001/07/04 14:13:47 uid56437 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -188,11 +188,11 @@ static void AVI_close(avi_t *AVI)
   free(AVI);
 }
 
-#define ERR_EXIT(x) \
-{ \
+#define ERR_EXIT(x)	\
+do {			\
    this->AVI_errno = x; \
-   return 0; \
-}
+   return 0;		\
+} while(0)
 
 #define PAD_EVEN(x) ( ((x)+1) & ~1 )
 
@@ -281,14 +281,14 @@ static avi_t *AVI_init(demux_avi_t *this)
     
     if(strncasecmp(data,"LIST",4) == 0)
       {
-	if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ)
-						    n -= 4;
+	if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ);
+	n -= 4;
 	if(strncasecmp(data,"hdrl",4) == 0)
 	  {
 	    hdrl_len = n;
 	    hdrl_data = (unsigned char *) xmalloc(n);
-	    if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM)
-			       if( this->input->read(this->input, hdrl_data,n) != n ) ERR_EXIT(AVI_ERR_READ)
+	    if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM);
+	    if( this->input->read(this->input, hdrl_data,n) != n ) ERR_EXIT(AVI_ERR_READ);
 										}
 	else if(strncasecmp(data,"movi",4) == 0)
 	  {
@@ -305,8 +305,8 @@ static avi_t *AVI_init(demux_avi_t *this)
 	
 	AVI->n_idx = AVI->max_idx = n/16;
 	AVI->idx = (unsigned  char((*)[16]) ) xmalloc(n);
-	if(AVI->idx==0) ERR_EXIT(AVI_ERR_NO_MEM)
-			  if( this->input->read(this->input, (char *)AVI->idx, n) != n ) ERR_EXIT(AVI_ERR_READ)
+	if(AVI->idx==0) ERR_EXIT(AVI_ERR_NO_MEM);
+	if( this->input->read(this->input, (char *)AVI->idx, n) != n ) ERR_EXIT(AVI_ERR_READ);
 										  }
     else
       this->input->seek(this->input, n, SEEK_CUR);
@@ -403,9 +403,9 @@ static avi_t *AVI_init(demux_avi_t *this)
   
   free(hdrl_data);
   
-  if(!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) ERR_EXIT(AVI_ERR_NO_VIDS)
-
-								   AVI->video_tag[0] = AVI->video_strn/10 + '0';
+  if(!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) ERR_EXIT(AVI_ERR_NO_VIDS);
+  
+  AVI->video_tag[0] = AVI->video_strn/10 + '0';
   AVI->video_tag[1] = AVI->video_strn%10 + '0';
   AVI->video_tag[2] = 'd';
   AVI->video_tag[3] = 'b';
@@ -434,9 +434,9 @@ static avi_t *AVI_init(demux_avi_t *this)
 
       for(i=0;i<AVI->n_idx;i++)
 	if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
-      if(i>=AVI->n_idx) ERR_EXIT(AVI_ERR_NO_VIDS)
+      if(i>=AVI->n_idx) ERR_EXIT(AVI_ERR_NO_VIDS);
 
-			  pos = str2ulong(AVI->idx[i]+ 8);
+      pos = str2ulong(AVI->idx[i]+ 8);
       len = str2ulong(AVI->idx[i]+12);
 
       this->input->seek(this->input, pos, SEEK_SET);
