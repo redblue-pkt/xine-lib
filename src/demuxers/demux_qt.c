@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.160 2003/05/13 03:13:00 tmmm Exp $
+ * $Id: demux_qt.c,v 1.161 2003/06/16 02:44:46 tmmm Exp $
  *
  */
 
@@ -104,6 +104,7 @@ typedef unsigned int qt_atom;
 #define RAW_FOURCC  QT_ATOM('r', 'a', 'w', ' ')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
+#define NAM_ATOM QT_ATOM(0xA9, 'n', 'a', 'm')
 #define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
 #define DES_ATOM QT_ATOM(0xA9, 'd', 'e', 's')
 #define CMT_ATOM QT_ATOM(0xA9, 'c', 'm', 't')
@@ -303,6 +304,7 @@ typedef struct {
   int               audio_trak;
   int seek_flag;  /* this is set to indicate that a seek has just occurred */
 
+  char              *name;
   char              *copyright;
   char              *description;
   char              *comment;
@@ -590,6 +592,7 @@ qt_info *create_qt_info(void) {
   info->video_trak = -1;
   info->audio_trak = -1;
 
+  info->name = NULL;
   info->copyright = NULL;
   info->description = NULL;
   info->comment = NULL;
@@ -635,6 +638,7 @@ void free_qt_info(qt_info *info) {
       free(info->references);
     }
     free(info->base_mrl);
+    free(info->name);
     free(info->copyright);
     free(info->description);
     free(info->comment);
@@ -1783,6 +1787,13 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       }
       i += BE_32(&moov_atom[i - 4]) - 4;
 
+    } else if (current_atom == NAM_ATOM) {
+
+      string_size = BE_16(&moov_atom[i + 4]) + 1;
+      info->name = realloc (info->name, string_size);
+      strncpy(info->name, &moov_atom[i + 8], string_size - 1);
+      info->name[string_size - 1] = 0;
+
     } else if (current_atom == CPY_ATOM) {
 
       string_size = BE_16(&moov_atom[i + 4]) + 1;
@@ -2419,7 +2430,10 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   if (this->qt->copyright)
     this->stream->meta_info[XINE_META_INFO_ARTIST] =
       strdup(this->qt->copyright);
-  if (this->qt->description)
+  if (this->qt->name)
+    this->stream->meta_info[XINE_META_INFO_TITLE] =
+      strdup(this->qt->name);
+  else if (this->qt->description)
     this->stream->meta_info[XINE_META_INFO_TITLE] =
       strdup(this->qt->description);
   if (this->qt->comment)
