@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.63 2002/10/17 17:43:43 mroi Exp $
+ * $Id: input_file.c,v 1.64 2002/10/18 04:04:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -174,7 +174,7 @@ static int is_a_dir(char *filepathname) {
   return (S_ISDIR(pstat.st_mode));
 }
 
-static int file_plugin_eject_media (input_plugin_t *this_gen) {
+static int file_plugin_eject_media (input_class_t *this_gen) {
   return 1; /* doesn't make sense */
 }
 
@@ -287,6 +287,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input_plugin.get_mrl            = file_plugin_get_mrl;
   this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
   this->input_plugin.dispose            = file_plugin_dispose;
+  this->input_plugin.input_class        = cls_gen;
 
   return &this->input_plugin;
 }
@@ -473,6 +474,10 @@ static off_t get_file_size(char *filepathname, char *origin) {
 
 static char *file_class_get_description (input_class_t *this_gen) {
   return _("file input plugin");
+}
+
+static char *file_class_get_identifier (input_class_t *this_gen) {
+  return "file";
 }
 
 static xine_mrl_t **file_class_get_dir (input_class_t *this_gen, 
@@ -809,10 +814,12 @@ static void *init_plugin (xine_t *xine, void *data) {
   config       = xine->config;
 
   this->input_class.open_plugin        = open_plugin;
-  this->input_class.get_dir            = file_class_get_dir;
+  this->input_class.get_identifier     = file_class_get_identifier;
   this->input_class.get_description    = file_class_get_description;
+  this->input_class.get_dir            = file_class_get_dir;
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = file_class_dispose;
+  this->input_class.eject_media        = file_plugin_eject_media;
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.100 2002/10/14 15:47:40 guenter Exp $
+ * $Id: video_decoder.c,v 1.101 2002/10/18 04:04:10 miguelfreitas Exp $
  *
  */
 
@@ -40,19 +40,23 @@
 static spu_decoder_t* update_spu_decoder (xine_stream_t *this, int type) {
 
   int streamtype = (type>>16) & 0xFF;
-  spu_decoder_t *spu_decoder = get_spu_decoder (this, streamtype);
-
-  if (spu_decoder && this->spu_decoder_plugin != spu_decoder) {
-
+  
+  if( this->spu_decoder_streamtype != streamtype ||
+      !this->spu_decoder_plugin ) {
+    
     if (this->spu_decoder_plugin)
       this->spu_decoder_plugin->close (this->spu_decoder_plugin);
+          
+    this->spu_decoder_streamtype = streamtype;
+    this->spu_decoder_plugin = get_spu_decoder (this, streamtype);
 
-    this->spu_decoder_plugin = spu_decoder;
-
-    this->spu_decoder_plugin->init (this->spu_decoder_plugin,
+    /* obsolete?
+    if (this->spu_decoder_plugin )
+      this->spu_decoder_plugin->init (this->spu_decoder_plugin,
                                         this->video_out);
+    */                                       
   }
-  return spu_decoder;
+  return this->spu_decoder_plugin;
 }
 
 void *video_decoder_loop (void *stream_gen) {
@@ -61,7 +65,6 @@ void *video_decoder_loop (void *stream_gen) {
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
   int              streamtype;
-  video_decoder_t *decoder;
   spu_decoder_t   *spu_decoder;
   static int	   prof_video_decode = -1;
   static int	   prof_spu_decode = -1;
@@ -263,21 +266,21 @@ void *video_decoder_loop (void *stream_gen) {
 	*/      
 	
 	streamtype = (buf->type>>16) & 0xFF;
+ 
+        if( stream->video_decoder_streamtype != streamtype ||
+            !stream->video_decoder_plugin ) {
+          
+          if (stream->video_decoder_plugin) {
+            free_video_decoder (stream, stream->video_decoder_plugin);
+          }
+          
+          stream->video_decoder_streamtype = streamtype;
+          stream->video_decoder_plugin = get_video_decoder (stream, streamtype);
+        }
 	
-	decoder = get_video_decoder (stream, streamtype);
-	
-	if (decoder) {
+	if (stream->video_decoder_plugin) {
 
-	  if (stream->video_decoder_plugin != decoder) {
-	    
-	    if (stream->video_decoder_plugin) {
-	      free_video_decoder (stream, stream->video_decoder_plugin);
-	    }
-	    
-	    stream->video_decoder_plugin = decoder;
-	  }
-
-	  decoder->decode_data (stream->video_decoder_plugin, buf);  
+	  stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);  
 
 	} else if (buf->type != buftype_unknown) {
 	  xine_log (stream->xine, XINE_LOG_MSG, 

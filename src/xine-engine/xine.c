@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.168 2002/10/16 21:23:59 guenter Exp $
+ * $Id: xine.c,v 1.169 2002/10/18 04:04:10 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -62,7 +62,8 @@ void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
   if (stream->status == XINE_STATUS_QUIT)
     return;
-
+  stream->status = XINE_STATUS_STOP;
+    
   if (non_user) {
     /* frontends will not be interested in receiving this event
      * if they have called xine_stop explicitly, so only send
@@ -226,8 +227,11 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->input_time             = 0;
   stream->spu_out                = NULL;
   stream->spu_decoder_plugin     = NULL;
+  stream->spu_decoder_streamtype = -1;
   stream->audio_channel_user     = -1;
   stream->audio_channel_auto     = 0;
+  stream->audio_decoder_plugin   = NULL;
+  stream->audio_decoder_streamtype = -1;
   stream->spu_channel_auto       = -1;
   stream->spu_channel_letterbox  = -1;
   stream->spu_channel_pan_scan   = -1;
@@ -236,6 +240,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->video_driver           = vo;
   stream->video_in_discontinuity = 0;
   stream->video_channel          = 0;
+  stream->video_decoder_plugin   = NULL;
+  stream->video_decoder_streamtype = -1;
   stream->header_count_audio     = 0; 
   stream->header_count_video     = 0; 
   stream->finished_count_audio   = 0; 
@@ -316,7 +322,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   /*
    * find a demux plugin
    */
-  if (!find_demux_plugin (stream, stream->input_plugin)) {
+  if (!(stream->demux_plugin=find_demux_plugin (stream, stream->input_plugin))) {
     xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine: couldn't find demux for >%s<\n"), mrl);
     stream->input_plugin->dispose (stream->input_plugin);
@@ -404,6 +410,14 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   } else
     pos = 0;
   
+  if (!stream->demux_plugin) {
+    xine_log (stream->xine, XINE_LOG_MSG, 
+	      _("xine_play: no demux available\n"));
+    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+    
+    return 0;
+  }    
+  
   if (stream->status == XINE_STATUS_STOP) {
 
     demux_status = stream->demux_plugin->start (stream->demux_plugin,
@@ -422,7 +436,6 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     if (stream->status == XINE_STATUS_STOP)   
       stream->input_plugin->dispose(stream->input_plugin);
   
-    pthread_mutex_unlock (&stream->frontend_lock);
     return 0;
     
   } else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.104 2002/10/14 15:47:45 guenter Exp $
+ * $Id: xine_internal.h,v 1.105 2002/10/18 04:04:10 miguelfreitas Exp $
  *
  */
 
@@ -148,6 +148,7 @@ struct xine_stream_s {
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugin;
+  int                        video_decoder_streamtype;
   int                        video_in_discontinuity;
   int                        video_channel;
   
@@ -156,6 +157,7 @@ struct xine_stream_s {
   lrb_t                     *audio_temp;
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugin;
+  int                        audio_decoder_streamtype;
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   uint32_t                   audio_type;
@@ -169,6 +171,7 @@ struct xine_stream_s {
   spu_functions_t           *spu_out;
   pthread_t                  spu_thread;
   spu_decoder_t             *spu_decoder_plugin;
+  int                        spu_decoder_streamtype;
   int                        spu_channel_user;
   int                        spu_channel_auto;
   int                        spu_channel_letterbox;

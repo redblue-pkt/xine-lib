@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.116 2002/10/17 17:43:42 mroi Exp $
+ * $Id: demux_avi.c,v 1.117 2002/10/18 04:04:10 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1210,6 +1210,8 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
 static void demux_avi_dispose (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
+  demux_avi_stop(this_gen);
+
   if (this->avi)
     AVI_close (this->avi);
 
@@ -1530,6 +1532,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_avi_dispose;
   this->demux_plugin.get_status        = demux_avi_get_status;
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
   pthread_mutex_init (&this->mutex, NULL);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.85 2002/10/14 15:47:23 guenter Exp $
+ * $Id: audio_decoder.c,v 1.86 2002/10/18 04:04:10 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -45,7 +45,6 @@ void *audio_decoder_loop (void *stream_gen) {
   buf_element_t   *buf;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
-  audio_decoder_t *decoder;
   static int	   prof_audio_decode = -1;
   static uint32_t  buftype_unknown = 0;
 
@@ -237,23 +236,25 @@ void *audio_decoder_loop (void *stream_gen) {
 	  if (buf->type == audio_type) {
 	    
 	    int streamtype = (buf->type>>16) & 0xFF;
-	    
-	    decoder = get_audio_decoder (stream, streamtype);
-	    
+
 	    /* close old decoder of audio type has changed */
+        
+            if( stream->audio_decoder_streamtype != streamtype ||
+                !stream->audio_decoder_plugin ) {
+              
+              if (stream->audio_decoder_plugin) {
+                free_audio_decoder (stream, stream->audio_decoder_plugin);
+              }
+              
+              stream->audio_decoder_streamtype = streamtype;
+              stream->audio_decoder_plugin = get_audio_decoder (stream, streamtype);
+            }
 	    
 	    if (audio_type != stream->audio_type) {
 	      
 	      if (stream->audio_decoder_plugin) {
-		free_audio_decoder (stream, stream->audio_decoder_plugin);
-		stream->audio_decoder_plugin = NULL;
-	      }
-	      
-	      if (decoder) {
 		xine_event_t event;
 
-		stream->audio_decoder_plugin = decoder;
-		
 		stream->audio_type = audio_type;
 
 		event.type         = XINE_EVENT_UI_CHANNELS_CHANGED;
@@ -264,8 +265,8 @@ void *audio_decoder_loop (void *stream_gen) {
 	    
 	    /* finally - decode data */
 	    
-	    if (decoder) 
-	      decoder->decode_data (decoder, buf);
+	    if (stream->audio_decoder_plugin) 
+	      stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
 	    else if( buf->type != buftype_unknown ) {
 	      xine_log (stream->xine, XINE_LOG_MSG, 
 			"audio_decoder: no plugin available to handle '%s'\n",
