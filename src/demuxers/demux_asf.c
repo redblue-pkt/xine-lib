@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.65 2002/10/20 23:54:20 guenter Exp $
+ * $Id: demux_asf.c,v 1.66 2002/10/21 20:18:31 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1424,12 +1424,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
      * try to get a preview of the data
      */
     len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (len == INPUT_OPTIONAL_UNSUPPORTED)
+    if (len == INPUT_OPTIONAL_UNSUPPORTED) {
+      free (this);
       return NULL;
-
-    if (memcmp(buf, &asf_header, sizeof(GUID))) 
+    }
+      
+    if (memcmp(buf, &asf_header, sizeof(GUID))) {
+      free (this);
       return NULL;
-
+    }
+      
 #ifdef LOG
     printf ("demux_asf: file starts with an asf header\n");
 #endif
@@ -1437,8 +1441,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-    char *extension;
-    char *mrl;
+    char *ending, *mrl;
     
     mrl = input->get_mrl (input);
     
@@ -1446,14 +1449,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
      * check extension
      */
     
-    extension = strrchr (mrl, '.');
+    ending = strrchr (mrl, '.');
     
-    if (!extension)
+    if (!ending) {
+      free (this);
       return NULL;
-
-    if ( strcasecmp((extension + 1), ".asf")
-	 && strcasecmp((extension + 1), ".wmv")
-	 && strcasecmp((extension + 1), ".wma") ) {
+    }
+      
+    if (strncasecmp(ending, ".asf", 4) &&
+        strncasecmp(ending, ".wmv", 4) &&
+        strncasecmp(ending, ".wma", 4) ) {
+      free (this);
       return NULL;
     }
 #ifdef LOG
@@ -1463,6 +1469,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   break;
   default:
     printf ("demux_asf: warning, unkown method %d\n", stream->content_detection_method);
+    free (this);
     return NULL;
   }
 
@@ -1494,7 +1501,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "avi wmv wma";
+  return "asf wmv wma";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
