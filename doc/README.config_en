@@ -36,6 +36,9 @@ audio.alsa_surround51_device    Device name used for 6-channel.
 audio.alsa_a52_device           Device name used for a/52 passthrough.
                                 (e.g. iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2)
 
+audio.alsa_mmap_enable          Enable mmap mode. 0 = Old mode, 1 = mmap mode.
+                                Should use less cpu in mmap mode.
+
 audio.driver                    audio driver to use, same as command line
                                 option -A
                                 (e.g. alsa05, alsa09, arts, esd, sun)
@@ -278,4 +281,4 @@ video.num_buffers               Number of video buffers (8k each) xine
 
 --- 
 version of this file:
- $Id: README.config_en,v 1.2 2003/02/21 16:54:43 guenter Exp $
+ $Id: README.config_en,v 1.3 2003/06/06 14:05:31 jcdutton Exp $
