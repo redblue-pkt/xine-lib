@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.143 2003/03/12 14:44:08 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.144 2003/03/14 21:37:53 jstembridge Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -382,7 +382,8 @@ static void collect_plugins(xine_t *this, char *path){
 	  break;
 	case S_IFDIR:
 
-	  if (*pEntry->d_name != '.'){ /* unless ".", ".." or ".hidden" dirs */
+	  /* unless ".", "..", ".hidden" or vidix driver dirs */
+	  if (*pEntry->d_name != '.' && strcmp(pEntry->d_name, "vidix")) {
 	    collect_plugins(this, str);
 	  }
 	} /* switch */
