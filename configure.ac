@@ -199,6 +199,11 @@ case "$host" in
 
     ;;
 
+  *darwin*)
+    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
+
+    ;;
+
   *)
     AC_CHECK_LIB(pthread, pthread_create,
   	     [THREAD_LIBS="-lpthread"],

@@ -14,7 +14,7 @@
 
 #include "../../config.h"
 
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)
 
 //#warning Be forewarned - using PowerPC assembly
 

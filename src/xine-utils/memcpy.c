@@ -33,7 +33,7 @@
 #include "config.h"
 #endif
 
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)
 #include "ppcasm_string.h"
 #endif
 
@@ -401,10 +401,10 @@ static struct {
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
   { "SSE optimized memcpy()", sse_memcpy, 0, MM_MMXEXT|MM_SSE },
 #endif /* ARCH_X86 */
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)
   { "ppcasm_memcpy()", ppcasm_memcpy, 0, 0 },
   { "ppcasm_cacheable_memcpy()", ppcasm_cacheable_memcpy, 0, MM_ACCEL_PPC_CACHE32 },
-#endif /* ARCH_PPC */
+#endif /* ARCH_PPC && !HOST_OS_DARWIN */
   { NULL, NULL, 0, 0 }
 };
 
@@ -428,7 +428,8 @@ static uint64_t rdtsc(int config_flags)
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
 #ifndef _MSC_VER
-  return times(NULL);
+  struct tms tp;
+  return times(&tp);
 #else
 	return ((uint64_t)0);
 #endif /* _MSC_VER */
@@ -467,7 +468,7 @@ void xine_probe_fast_memcpy(xine_t *xine)
 #if defined(ARCH_X86) && !defined(_MSC_VER)
     "kernel", "mmx", "mmxext", "sse",
 #endif
-#ifdef ARCH_PPC
+#if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)
     "ppcasm_memcpy", "ppcasm_cacheable_memcpy",
 #endif
     NULL
