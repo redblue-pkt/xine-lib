@@ -201,5 +201,8 @@ Contributions
  
   Daniel Bena <Daniel.Bena@dm-drogeriemarkt.sk>
     slovak internationalization files (xine ui).
+
+  Scott Smith <ssmith@akamai.com>
+    yuv2rgb optimizations and downscaling support
 	
     (let us know if we've forgotten anyone)

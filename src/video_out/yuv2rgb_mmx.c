@@ -428,7 +428,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      for (height = 0;; height++) {
+      for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -460,23 +460,26 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	if (dst_height <= 0)
 	  break;
 
-	dy -= 32768;
+        do {
+            dy -= 32768;
 
-	py += y_stride;
+            py += y_stride;
 
-	scale_line (py, this->y_buffer, 
-		    this->dest_width, this->step_dx);
+            scale_line (py, this->y_buffer, 
+                        this->dest_width, this->step_dx);
 
-	if (height & 1) {
-	  pu += uv_stride;
-	  pv += uv_stride;
+            if (height & 1) {
+                pu += uv_stride;
+                pv += uv_stride;
 	  
-	  scale_line (pu, this->u_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	  scale_line (pv, this->v_buffer,
-		      this->dest_width >> 1, this->step_dx);
+                scale_line (pu, this->u_buffer,
+                            this->dest_width >> 1, this->step_dx);
+                scale_line (pv, this->v_buffer,
+                            this->dest_width >> 1, this->step_dx);
 	  
-	}
+            }
+            height++;
+        } while( dy>=32768);
       }
     } 
 }
@@ -536,7 +539,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      for (height = 0;; height++) {
+      for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -568,22 +571,25 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	if (dst_height <= 0)
 	  break;
 
-	dy -= 32768;
-	py += y_stride;
+        do {
+            dy -= 32768;
+            py += y_stride;
 
-	scale_line (py, this->y_buffer, 
-		    this->dest_width, this->step_dx);
+            scale_line (py, this->y_buffer, 
+                        this->dest_width, this->step_dx);
 
-	if (height & 1) {
-	  pu += uv_stride;
-	  pv += uv_stride;
+            if (height & 1) {
+                pu += uv_stride;
+                pv += uv_stride;
 	  
-	  scale_line (pu, this->u_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	  scale_line (pv, this->v_buffer,
-		      this->dest_width >> 1, this->step_dx);
+                scale_line (pu, this->u_buffer,
+                            this->dest_width >> 1, this->step_dx);
+                scale_line (pv, this->v_buffer,
+                            this->dest_width >> 1, this->step_dx);
 	  
-	}
+            }
+            height++;
+        } while( dy>=32768 );
       }
     } 
 }
@@ -642,7 +648,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (height = 0;; height++) {
+      for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -675,21 +681,24 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	if (dst_height <= 0)
 	  break;
 
-	dy -= 32768;
-	py += y_stride;
+        do {
+            dy -= 32768;
+            py += y_stride;
 	
-	scale_line (py, this->y_buffer, 
-		    this->dest_width, this->step_dx);
+            scale_line (py, this->y_buffer, 
+                        this->dest_width, this->step_dx);
 
-	if (height & 1) {
-	  pu += uv_stride;
-	  pv += uv_stride;
+            if (height & 1) {
+                pu += uv_stride;
+                pv += uv_stride;
 	  
-	  scale_line (pu, this->u_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	  scale_line (pv, this->v_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	}
+                scale_line (pu, this->u_buffer,
+                            this->dest_width >> 1, this->step_dx);
+                scale_line (pv, this->v_buffer,
+                            this->dest_width >> 1, this->step_dx);
+            }
+            height++;
+        } while( dy>=32768 );
 
       }
       
@@ -750,7 +759,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (height = 0;; height++) {
+      for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -783,22 +792,24 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	if (dst_height <= 0)
 	  break;
 
-	dy -= 32768;
-	py += y_stride;
+        do {
+            dy -= 32768;
+            py += y_stride;
 	
-	scale_line (py, this->y_buffer, 
-		    this->dest_width, this->step_dx);
+            scale_line (py, this->y_buffer, 
+                        this->dest_width, this->step_dx);
 
-	if (height & 1) {
-	  pu += uv_stride;
-	  pv += uv_stride;
+            if (height & 1) {
+                pu += uv_stride;
+                pv += uv_stride;
 	  
-	  scale_line (pu, this->u_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	  scale_line (pv, this->v_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	}
-
+                scale_line (pu, this->u_buffer,
+                            this->dest_width >> 1, this->step_dx);
+                scale_line (pv, this->v_buffer,
+                            this->dest_width >> 1, this->step_dx);
+            }
+            height++;
+        } while( dy>=32768 );
       }
       
     }
@@ -858,7 +869,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (height = 0;; height++) {
+      for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -891,21 +902,24 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	if (dst_height <= 0)
 	  break;
 
-	dy -= 32768;
-	py += y_stride;
+        do {
+            dy -= 32768;
+            py += y_stride;
 	
-	scale_line (py, this->y_buffer, 
-		    this->dest_width, this->step_dx);
+            scale_line (py, this->y_buffer, 
+                        this->dest_width, this->step_dx);
 
-	if (height & 1) {
-	  pu += uv_stride;
-	  pv += uv_stride;
+            if (height & 1) {
+                pu += uv_stride;
+                pv += uv_stride;
 	  
-	  scale_line (pu, this->u_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	  scale_line (pv, this->v_buffer,
-		      this->dest_width >> 1, this->step_dx);
-	}
+                scale_line (pu, this->u_buffer,
+                            this->dest_width >> 1, this->step_dx);
+                scale_line (pv, this->v_buffer,
+                            this->dest_width >> 1, this->step_dx);
+            }
+            height++;
+        } while( dy>=32768 );
 
       }
       
