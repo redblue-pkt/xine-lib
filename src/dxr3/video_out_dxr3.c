@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.97 2004/01/04 22:26:29 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.98 2004/02/20 18:16:52 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -291,7 +291,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   }
   
   snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", class->devname, class->devnum);
-  if ((this->fd_video = open (tmpstr, O_WRONLY | O_FSYNC )) < 0) {
+  if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
     xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
 	    _("video_out_dxr3: Failed to open video device %s (%s)\n"), tmpstr, strerror(errno));
     return 0;
