@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.100 2003/10/24 09:34:01 mroi Exp $
+ * $Id: xine.h.in,v 1.101 2003/10/28 16:59:03 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -589,10 +589,10 @@ const char *const *xine_post_list_inputs(xine_post_t *self);
 const char *const *xine_post_list_outputs(xine_post_t *self);
 
 /* retrieve one specific input of a post plugin */
-const xine_post_in_t *xine_post_input(xine_post_t *self, char *name);
+xine_post_in_t *xine_post_input(xine_post_t *self, char *name);
 
 /* retrieve one specific output of a post plugin */
-const xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
+xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
 
 /*
  * wire an input to an output
