@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.19 2002/09/06 18:13:11 mroi Exp $
+ * $Id: input_mms.c,v 1.20 2002/10/20 01:15:53 guenter Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -53,11 +53,15 @@ extern int errno;
 #endif
 
 typedef struct {
+
+  input_class_t     input_class;
+
+  xine_t           *xine;
+} mms_input_class_t;
+
+typedef struct {
   input_plugin_t   input_plugin;
 
-  xine_t          *xine;
-  config_values_t *config;
-  
   mms_t           *mms;
 
   char            *mrl;
@@ -70,27 +74,6 @@ typedef struct {
 
 } mms_input_plugin_t;
 
-
-static int mms_plugin_open (input_plugin_t *this_gen, const char *mrl) {
-  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-
-#ifdef LOG
-  printf ("input_mms: trying to open '%s'\n", mrl);
-#endif
-
-  this->mms = mms_connect (mrl);
-
-  if (!this->mms)
-    return 0;
-  
-  if (this->mrl)
-    free (this->mrl);
-  
-  this->mrl    = strdup(mrl); /* free(this->mrl) is in mms_plugin_dispose */
-  this->curpos = 0;
-  this->nbc    = nbc_init (this->xine);
-  return 1;
-}
 
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
                               char *buf, off_t len) {
@@ -219,12 +202,7 @@ static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
   return this->curpos;
 }
 
-static int mms_plugin_eject_media (input_plugin_t *this_gen) {
-  return 1;
-}
-
-
-static void mms_plugin_close (input_plugin_t *this_gen) {
+static void mms_plugin_dispose (input_plugin_t *this_gen) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
   if (this->mms) {
@@ -236,18 +214,11 @@ static void mms_plugin_close (input_plugin_t *this_gen) {
     nbc_close (this->nbc);
     this->nbc = NULL;
   }
-}
-
-static void mms_plugin_stop (input_plugin_t *this_gen) {
-  mms_plugin_close(this_gen);
-}
-
-static char *mms_plugin_get_description (input_plugin_t *this_gen) {
-  return "mms input plugin";
-}
-
-static char *mms_plugin_get_identifier (input_plugin_t *this_gen) {
-  return "MMS";
+  
+  if(this->mrl)
+    free(this->mrl);
+  
+  free (this);
 }
 
 static char* mms_plugin_get_mrl (input_plugin_t *this_gen) {
@@ -275,49 +246,85 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static void mms_plugin_dispose (input_plugin_t *this_gen ) {
-  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-  
-  if(this->mrl)
-    free(this->mrl);
-  
-  free (this);
-}
+static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
 
-static void *init_input_plugin (xine_t *xine, void *data) {
-
+  /* mms_input_class_t  *cls = (mms_input_class_t *) cls_gen; */
   mms_input_plugin_t *this;
-  config_values_t    *config;
-  
-  this       = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
-  config     = xine->config;
-  this->xine = xine;
+  mms_t              *mms;
+  char               *mrl = strdup(data);
+
+#ifdef LOG
+  printf ("input_mms: trying to open '%s'\n", mrl);
+#endif
+
+  mms = mms_connect (mrl);
+
+  if (!mms) {
+    free (mrl);
+    return NULL;
+  }
+
+  this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
+
+  this->mms    = mms;
+  this->mrl    = mrl; 
+  this->curpos = 0;
+  this->nbc    = nbc_init (stream);
 
   this->input_plugin.get_capabilities  = mms_plugin_get_capabilities;
-  this->input_plugin.open              = mms_plugin_open;
   this->input_plugin.read              = mms_plugin_read;
   this->input_plugin.read_block        = mms_plugin_read_block;
   this->input_plugin.seek              = mms_plugin_seek;
   this->input_plugin.get_current_pos   = mms_plugin_get_current_pos;
   this->input_plugin.get_length        = mms_plugin_get_length;
   this->input_plugin.get_blocksize     = mms_plugin_get_blocksize;
-  this->input_plugin.get_dir           = NULL;
-  this->input_plugin.eject_media       = mms_plugin_eject_media;
   this->input_plugin.get_mrl           = mms_plugin_get_mrl;
-  this->input_plugin.close             = mms_plugin_close;
-  this->input_plugin.stop              = mms_plugin_stop;
-  this->input_plugin.get_description   = mms_plugin_get_description;
-  this->input_plugin.get_identifier    = mms_plugin_get_identifier;
-  this->input_plugin.get_autoplay_list = NULL;
-  this->input_plugin.get_optional_data = mms_plugin_get_optional_data;
   this->input_plugin.dispose           = mms_plugin_dispose;
-  this->input_plugin.is_branch_possible= NULL;
-
-  this->mrl             = NULL;
-  this->config          = config;
-  this->curpos          = 0;
-  this->nbc             = NULL;
+  this->input_plugin.get_optional_data = mms_plugin_get_optional_data;
+  this->input_plugin.input_class       = cls_gen;
   
+  return &this->input_plugin;
+}
+
+/*
+ * mms input plugin class stuff
+ */
+
+static char *mms_class_get_description (input_class_t *this_gen) {
+  return _("mms streaming input plugin");
+}
+
+static char *mms_class_get_identifier (input_class_t *this_gen) {
+  return "mms";
+}
+
+static void mms_class_dispose (input_class_t *this_gen) {
+  mms_input_class_t  *this = (mms_input_class_t *) this_gen;
+
+  free (this);
+}
+
+static int mms_class_eject_media (input_class_t *this_gen) {
+  return 1;
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  mms_input_class_t  *this;
+
+  this = (mms_input_class_t *) xine_xmalloc (sizeof (mms_input_class_t));
+
+  this->xine   = xine;
+
+  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_identifier     = mms_class_get_identifier;
+  this->input_class.get_description    = mms_class_get_description;
+  this->input_class.get_dir            = NULL;
+  this->input_class.get_autoplay_list  = NULL;
+  this->input_class.dispose            = mms_class_dispose;
+  this->input_class.eject_media        = mms_class_eject_media;
+
   return this;
 }
 
@@ -327,7 +334,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 8, "mms", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_INPUT, 9, "mms", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -37,7 +37,7 @@
 
 struct nbc_s {
 
-  xine_t          *xine;
+  xine_stream_t   *stream;
 
   int              buffering;
   int              low_water_mark;
@@ -49,9 +49,9 @@ void nbc_check_buffers (nbc_t *this) {
 
   int fifo_fill;
 
-  fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
-  if (this->xine->audio_fifo) {
-    fifo_fill += 8*this->xine->audio_fifo->size(this->xine->audio_fifo);
+  fifo_fill = this->stream->video_fifo->size(this->stream->video_fifo);
+  if (this->stream->audio_fifo) {
+    fifo_fill += 8*this->stream->audio_fifo->size(this->stream->audio_fifo);
   }
 #ifdef LOG
   if (this->buffering) {
@@ -63,12 +63,10 @@ void nbc_check_buffers (nbc_t *this) {
     
     if (!this->buffering) {
 
-      this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
-      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, _("buffering..."), OSD_TEXT1);
-      this->xine->osd_renderer->show (this->xine->osd, 0);
-
-      /* give video_out time to display osd before pause */
-      sleep (1);
+      /* FIXME: send progress events about buffering
+      xine_event_t             event;
+      xine_idx_progress_data_t idx;
+       */
 
       if (this->high_water_mark<150) {
 
@@ -79,34 +77,32 @@ void nbc_check_buffers (nbc_t *this) {
       }
     }
 
-    this->xine->metronom->set_speed (this->xine->metronom, XINE_SPEED_PAUSE);
-    this->xine->metronom->set_option (this->xine->metronom, METRONOM_SCR_ADJUSTABLE, 0);
-    if (this->xine->audio_out)
-      this->xine->audio_out->audio_paused = 2;
+    this->stream->metronom->set_speed (this->stream->metronom, XINE_SPEED_PAUSE);
+    this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 0);
+    if (this->stream->audio_out)
+      this->stream->audio_out->audio_paused = 2;
     this->buffering = 1;
 
   } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
-    this->xine->metronom->set_speed (this->xine->metronom, XINE_SPEED_NORMAL);
-    this->xine->metronom->set_option (this->xine->metronom, METRONOM_SCR_ADJUSTABLE, 1);
-    if (this->xine->audio_out)
-      this->xine->audio_out->audio_paused = 0;
+    this->stream->metronom->set_speed (this->stream->metronom, XINE_SPEED_NORMAL);
+    this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 1);
+    if (this->stream->audio_out)
+      this->stream->audio_out->audio_paused = 0;
     this->buffering = 0;
 
-    this->xine->osd_renderer->hide (this->xine->osd, 0);
   }
-
 }
 
 void nbc_close (nbc_t *this) {
-  this->xine->metronom->set_option (this->xine->metronom, METRONOM_SCR_ADJUSTABLE, 1);
+  this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 1);
   free (this);
 }
 
-nbc_t *nbc_init (xine_t *xine) {
+nbc_t *nbc_init (xine_stream_t *stream) {
 
   nbc_t *this = (nbc_t *) malloc (sizeof (nbc_t));
 
-  this->xine            = xine;
+  this->stream          = stream;
   this->buffering       = 0;
   this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
   this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
