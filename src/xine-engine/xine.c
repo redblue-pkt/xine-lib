@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.187 2002/11/02 10:51:01 mroi Exp $
+ * $Id: xine.c,v 1.188 2002/11/02 11:34:12 mroi Exp $
  *
  * top-level xine functions
  *
@@ -491,6 +491,54 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  return 0;
 	}
 	printf("xine: ignoring subpicture\n");
+	continue;
+      }
+      if (strncasecmp(stream_setup, "volume", 6) == 0) {
+        if (*(stream_setup += 6) == ':') {
+	  char *tmp = ++stream_setup;
+	  char *volume;
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    volume = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(volume, tmp, stream_setup - tmp);
+	    volume[stream_setup - tmp] = '\0';
+	  } else {
+	    volume = (char *)malloc(strlen(tmp));
+	    memcpy(volume, tmp, strlen(tmp));
+	    volume[strlen(tmp)] = '\0';
+	  }
+	  xine_set_param(stream, XINE_PARAM_AUDIO_VOLUME, atoi(volume));
+	  free(volume);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	continue;
+      }
+      if (strncasecmp(stream_setup, "compression", 11) == 0) {
+        if (*(stream_setup += 11) == ':') {
+	  char *tmp = ++stream_setup;
+	  char *compression;
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    compression = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(compression, tmp, stream_setup - tmp);
+	    compression[stream_setup - tmp] = '\0';
+	  } else {
+	    compression = (char *)malloc(strlen(tmp));
+	    memcpy(compression, tmp, strlen(tmp));
+	    compression[strlen(tmp)] = '\0';
+	  }
+	  xine_set_param(stream, XINE_PARAM_AUDIO_COMPR_LEVEL, atoi(compression));
+	  free(compression);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
 	continue;
       }
       {
