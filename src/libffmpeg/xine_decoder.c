@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/08/07 12:41:46 guenter Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/08/07 13:14:09 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -28,9 +28,9 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include <xine/video_out.h>
-#include <xine/buffer.h>
-#include <xine/metronom.h>
+#include "video_out.h"
+#include "buffer.h"
+#include "metronom.h"
 
 #include "libavcodec/avcodec.h"
 
@@ -83,8 +83,10 @@ typedef struct ff_decoder_s {
 } ff_decoder_t;
 
 
+/*
 #define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
 #define IMGFMT_YV12  mmioFOURCC('Y','V','1','2')
+*/
 
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_VIDEO_AVI) ;
