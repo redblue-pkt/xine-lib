@@ -1,5 +1,6 @@
 EXTRA_DIST = asm.h dsputil_alpha.c mpegvideo_alpha.c pixops.h
 
+all:
 debug:
 install-debug:
 
