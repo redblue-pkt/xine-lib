@@ -25,9 +25,9 @@ radeon_vid_la_LDFLAGS = -avoid-version -module
 
 rage128_vid.c:
 	@echo "$(LN_S) -f $(top_srcdir)/src/video_out/vidix/drivers/radeon_vid.c \
-	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c"; \
+	  $(top_builddir)/src/video_out/vidix/drivers/$*.c"; \
 	$(LN_S) -f $(top_srcdir)/src/video_out/vidix/drivers/radeon_vid.c \
-	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c
+	  $(top_builddir)/src/video_out/vidix/drivers/$*.c
 
 rage128_vid.lo: $(rage128_vid_la_SOURCES)
 	source='$*.c' object='$@' libtool=yes \
@@ -59,9 +59,9 @@ mga_vid_la_LDFLAGS = -avoid-version -module
 
 mga_crtc2_vid.c:
 	@echo "$(LN_S) -f $(top_srcdir)/src/video_out/vidix/drivers/mga_vid.c \
-	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c"; \
+	  $(top_builddir)/src/video_out/vidix/drivers/$*.c"; \
 	$(LN_S) -f $(top_srcdir)/src/video_out/vidix/drivers/mga_vid.c \
-	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c
+	  $(top_builddir)/src/video_out/vidix/drivers/$*.c
 
 mga_crtc2_vid.lo: $(mga_crtc2_vid_la_SOURCES)
 	source='$*.c' object='$@' libtool=yes \
