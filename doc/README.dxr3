@@ -107,97 +107,16 @@ Here's an overview what happens when you play an AVI this way
 -> image appears on screen
 
 
-XINE run-time configuration
-===========================
+XINE configuration
+==================
 
-XINE has several configuration options in $HOME/.xine/config
-(see also doc/README.config_en)
+The dxr3 video driver can be forced using the "-V dxr3"
+command line option. Only the tvmode value has to be edited
+if the default driver setting is not correct. Of course you can also
+use xine-ui's setup dialog to edit your configuration. Have a look
+at the DXR3 section of the configuration.
 
-dxr3.devicename:
-	/dev/em8300-0 The absolute path to the dxr3 control device.
-
-dxr3.preferred_tvmode:
-	default Keep the current driver setting
-	ntsc    NTSC 60Hz
-	pal     PAL 50Hz
-	pal60   PAL 60Hz
-
-dxr3.videoout_mode:
-	letterboxed overlay
-		Overlay Video output on the VGA screen
-		with the option of switching on-the-fly
-		to tvout (see 'VGA Overlay Feature' below).
-		The overlay will be displayed with black borders
-		if it is anamorphic. This is only useful in
-		the rare case of a DVD subtitle that would
-		only display properly in letterbox mode.
-		A good example for that are the animated
-		commentator's silhouettes on "Ghostbusters".
-	widescreen overlay
-		Overlay Video output on the VGA screen
-		with the option of switching on-the-fly
-		to tvout (see 'VGA Overlay Feature' below).
-		The more common variant of dxr3 overlay.
-	letterboxed tv
-		Send video to the tv out connector only.
-		This is the mode used for the standard 4:3
-		television set. Anamorphic aspects will be displayed
-		letterboxed, pan&scan material will have the image
-		cropped.
-	widescreen tv
-		Send video to the tv out connector only.
-		This mode is intended for 16:9 widescreen tv sets.
-		Anamorphic and pan&scan content will fill the
-		entire screen, but you have to set the tv's aspect
-		manually.
-	
-dxr3.keycolor: (overlay only)
-	0x80a040 Hexadecimal RGB value of the key color. Should
-		not need to be changed.
-
-dxr3.color_interval: (overlay only)
-	50.0	Tolerance for keycolor. A higher value allows higher
-		range of keycolors. Intended for compensation of
-		color errors on VGA output. Smaller value is better
-		for not using the "wrong" colors as overlay.
-		Meaningful range: 20.0 - 200.0
-
-dxr3.scr_priority:
-	10	Priority of the dxr3 scr plugin. <5 means that the
-		unix system timer will be used. >5 forces to use
-		dxr3 as sync source. If you don't understand this
-		keep the default value.
-
-dxr3.decoder_priority:
-	10	Priority of the dxr3 video decoder plugin. <5 means
-		that hardware decoding by the card will be disabled
-		and libmpeg2 will be used instead. Therefore all video
-		material including mpeg will pass the software
-		decoding and mpeg re-encoding stages.
-		(see also above explanation of the encoding mode)
-
-dxr3.contrast:
-dxr3.brightness:
-dxr3.saturation:
-	500	Should not need to be changed manually.  Use xine
-		to adjust these as necessary.  Range: 100 - 900
-
-dxr3.alt_play_mode:
-	1	Enables or disables an 'enhanced' buffer mode available
-		on at least some cards.  Noticable improvements have been
-		seen with 'glitchy' streams with intermittant pauses. 
-
-dxr3.sync_every_frame:
-	0	Tries to set a synchronization timestamp for every frame.
-		Normally this is not necessary, because sync is sufficent
-		even when the timestamp is set only every now and then.
-
-dxr3.correct_durations:
-	0	Enables a small logic that corrects the frame durations of
-		some mpeg streams with wrong framerate codes. Currently a
-		correction for ntsc streams erroneously labeled as pal
-		stream is implemented. Enable only, when you encounter
-		such streams.
+Here are some additional settings interesting for the DXR3:
 
 video.driver:
 	dxr3	The dxr3 video driver does all the necessary card setup
@@ -210,58 +129,19 @@ audio.driver:
 		set to oss. Can also be specified using "-A oss"
 		on the command line.
 
-audio.oss_device_num:
-	0-16	Machines with a dxr3 installed often have an usual
+audio.oss_device_number:
+	0-16	Machines with a dxr3 installed often have a usual
 		soundcard too. If audio playback occurs on the
 		wrong device, the demanded device can be set using
 		this option.
 
-The following settings only concern the mpeg encoding part:
-
-dxr3.enc_alt_play_mode: 
-	1	See dxr3.alt_play_mode. The difference is that it's
-		used for the encoding mode.
-
-dxr3.enc_swap_fields:
-	0	Swaps the even and odd field of the image. Enable this
-		option for material which produces a vertical jitter on
-		screen.
-
-dxr3.enc_add_bars:
-	1	Add black bars when the image has an aspect ratio
-		unhandled by the card. This is needed to maintain proper
-		proportions.
-
-dxr3.encoder:
-		Mpeg encoder backend to use.
-		Depending on what's compiled in, can be "fame" or "rte"
-		or "libavcodec". The "libavcodec" encoder makes use
-		of the ffmpeg plugin that already ships with xine-lib,
-		so you do not need to install any additional library
-		for that. Even better is that libdavcodec also provides
-		high quality with low CPU usage. Using "libavcodec" is
-		therefore strongly suggested. "fame" and "rte" are
-		still there, but the code has not been updated, so
-		current versions of both libs might fail to work.
-
-dxr3.fame_quality: (libfame encoder only)
-	0-100	The quality setting of the fame mpeg1 encoding. Lower
-		is faster but gives noticeable artefacts. Higher is
-		better but slower. Values between 0 and 100, 90
-		is a good initial value.
-
-dxr3.rte_bitrate: (librte encoder only)
-	1000-20000 The bitrate in kbit/s of the librte mpeg1 encoder
-		output. Lower is faster, but it the difference is not as
-		big as with libfame's quality setting. If you get dropped
-		frames, it's better to use the libfame encoder.
-
-It is recommented to run XINE one time before editing the config,
-since all options get written in .xine/config and have their default
-values. The dxr3 video driver can be forced using the "-V dxr3"
-command line option. Only the tvmode value has to be edited
-if the default driver setting is not correct. Of course you can also
-use xine-ui's setup dialog to edit your configuration.
+dxr3.decoder_priority:
+	10	Priority of the dxr3 video decoder plugin. <5 means
+		that hardware decoding by the card will be disabled
+		and libmpeg2 will be used instead. Therefore all video
+		material including mpeg will pass the software
+		decoding and mpeg re-encoding stages.
+		(see also above explanation of the encoding mode)
 
 
 Zooming Feature (TVout Only)
@@ -307,4 +187,4 @@ and dxr3.color_interval too.
 
 --- 
 version of this file:
- $Id: README.dxr3,v 1.9 2003/07/20 11:00:21 mroi Exp $
+ $Id: README.dxr3,v 1.10 2004/05/14 13:29:13 mroi Exp $
