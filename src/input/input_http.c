@@ -607,6 +607,14 @@ static off_t http_plugin_get_current_pos (input_plugin_t *this_gen){
   return this->curpos;
 }
 
+static off_t http_plugin_seek(input_plugin_t *this_gen,
+			      off_t offset, int origin) {
+
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+  /* dummy implementation: don't seek, just return current position */
+  return this->curpos;
+}
+
 static int http_plugin_eject_media (input_plugin_t *this_gen) {
   return 1;
 }
@@ -687,7 +695,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.open              = http_plugin_open;
   this->input_plugin.read              = http_plugin_read;
   this->input_plugin.read_block        = http_plugin_read_block;
-  this->input_plugin.seek              = NULL;
+  this->input_plugin.seek              = http_plugin_seek;
   this->input_plugin.get_current_pos   = http_plugin_get_current_pos;
   this->input_plugin.get_length        = http_plugin_get_length;
   this->input_plugin.get_blocksize     = http_plugin_get_blocksize;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.95 2002/06/12 12:22:32 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.96 2002/06/20 00:21:52 siggi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1449,6 +1449,12 @@ static int demux_avi_open(demux_plugin_t *this_gen,
                           input_plugin_t *input, int stage) {
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
+  printf ("demux_avi: input capabilities = %d\n",
+	  input->get_capabilities(input));
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf("demux_avi.c: not seekable, can't handle!\n");
+    return DEMUX_CANNOT_HANDLE;
+  }
 
   switch(stage) {
 
