@@ -128,7 +128,7 @@ xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)
 xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = net_buf_ctrl.h mms.h pnm.h
+noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h
 
 EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c
 
