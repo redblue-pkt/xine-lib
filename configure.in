@@ -1036,10 +1036,11 @@ doc/hackersguide/Makefile
 misc/xine-lib.spec
 misc/SlackBuild
 misc/build_rpms.sh
+misc/relchk.sh
 misc/fonts/Makefile
 intl/Makefile
 po/Makefile.in],
-[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
+[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl
 dnl Hack the libtool script (if required).

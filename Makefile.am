@@ -36,6 +36,12 @@ prune-cache:
 	-rm -f config.cache
 
 
+release-check: misc/relchk.sh
+	@mv -f .cvsversion .cvsversion.tmp
+	@./configure && $(SHELL) misc/relchk.sh
+	@mv -f .cvsversion.tmp .cvsversion
+
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 
 	-rm -f $(PACKAGE)_$(VERSION).tar.gz
