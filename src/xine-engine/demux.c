@@ -350,8 +350,8 @@ int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t 
       return 0;
     input->seek(input, 0, SEEK_SET);
   } else if (input->get_capabilities(input) & INPUT_CAP_PREVIEW) {
-    buf = xine_xmalloc(MAX_PREVIEW_SIZE);
-    read_size = input->get_optional_data(input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    buf = xine_xmalloc(size);
+    read_size = input->get_optional_data(input, buf, size);
     memcpy(buffer, buf, size);
     free(buf);
   } else {
