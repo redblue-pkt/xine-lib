@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.16 2003/01/03 22:38:25 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.17 2003/01/03 23:40:46 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -70,6 +70,7 @@ struct post_plugin_goom_s {
   
   post_class_goom_t *class;  
   
+  int data_idx;
   gint16 data [2][512];
   
   int bits;
@@ -347,6 +348,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->samples_per_frame = rate / this->class->fps;
   this->sample_rate = rate; 
   this->stream = stream;
+  this->data_idx = 0;
   init_yuv_planes(&this->yuv, this->class->width, this->class->height);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
@@ -379,24 +381,31 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
 
   this->sample_counter += buf->num_frames;
   
-  if( this->sample_counter >= this->samples_per_frame &&
-      buf->num_frames >= 512 ) {
-    
-    data = buf->mem;
-    data8 = (int8_t *)buf->mem;
-    j = (this->channels >= 2) ? 1 : 0;
+  j = (this->channels >= 2) ? 1 : 0;
         
-    if( this->bits == 8 ) {        
-      for( i = 0; i < 512; i++, data8 += this->channels ) {
-        this->data[0][i] = (int16_t)data8[0] << 8;
-        this->data[1][i] = (int16_t)data8[j] << 8;
-      }
-    } else {
-      for( i = 0; i < 512; i++, data += this->channels ) {
-        this->data[0][i] = data[0];
-        this->data[1][i] = data[j];
-      }
+  if( this->bits == 8 ) {        
+    data8 = (int8_t *)buf->mem;
+    
+    for( i = 0; i < buf->num_frames && this->data_idx < 512; 
+         i++, this->data_idx++, data8 += this->channels ) {
+      this->data[0][this->data_idx] = (int16_t)data8[0] << 8;
+      this->data[1][this->data_idx] = (int16_t)data8[j] << 8;
     }
+  } else {
+    data = buf->mem;
+    
+    for( i = 0; i < buf->num_frames && this->data_idx < 512; 
+         i++, this->data_idx++, data += this->channels ) {
+      this->data[0][this->data_idx] = data[0];
+      this->data[1][this->data_idx] = data[j];
+    }
+  }
+  
+  
+  if( this->sample_counter >= this->samples_per_frame &&
+      this->data_idx == 512 ) {
+    
+    this->data_idx = 0;
         
     goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
 
