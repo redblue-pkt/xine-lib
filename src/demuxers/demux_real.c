@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.30 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.31 2003/01/08 14:42:46 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -406,7 +406,14 @@ static void real_parse_headers (demux_real_t *this) {
 		} else {
 		  printf ("demux_real: error, unknown audio data header version %d\n",
 			  version);
-		  abort();
+
+		  free (mdpr->stream_name);
+		  free (mdpr->mime_type);
+		  free (mdpr->type_specific_data);
+		  free (mdpr);
+
+		  this->status = DEMUX_FINISHED;
+		  return;
 		}
 	      
 		if (!strncmp (fourcc, "dnet", 4)) 
@@ -515,6 +522,9 @@ static void real_parse_headers (demux_real_t *this) {
 
 	}
 
+	free (mdpr->stream_name);
+	free (mdpr->mime_type);
+	free (mdpr->type_specific_data);
 	free (mdpr);
 
       } else if (chunk_type == CONT_TAG) {
