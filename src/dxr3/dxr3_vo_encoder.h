@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.h,v 1.3 2001/11/12 23:56:31 hrm Exp $
+ * $Id: dxr3_vo_encoder.h,v 1.4 2001/12/01 19:32:44 hrm Exp $
  *
  */
 
@@ -27,16 +27,20 @@
 
 /* 1: enable to buffer the mpeg1 stream; 
  * 0: write to mpeg device immediately;
- * with 1 sync is better, but playback still not smooth (but see below) */
+ * with 1 sync is better, but playback still not smooth (but see below) 
+ * (not supported with mp1e; will disable automatically) */
 #define USE_MPEG_BUFFER 1
 
 /* 1: write 6 to MV_COMMAND register. This seems to fix playback problems!
  * 0: don't write to register */
 #define USE_MAGIC_REGISTER 1
 
-/* 1: use libfame for encoding
- * 0: use libavcodec from ffmpeg for encoding */
+/* select one mpeg encoder out of the three below */
 #define USE_LIBFAME 1
+
+#define USE_FFMPEG 0
+
+#define USE_MP1E 0
 
 /************************************************************************* 
  * Dxr3 Encoding private stuff below - You shouldn't need to change this *
@@ -46,10 +50,8 @@
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
 #define DEFAULT_BUFFER_SIZE 512*1024
 
-#if USE_LIBFAME
-	# define USE_FFMPEG 0
-#else
-	# define USE_FFMPEG 1
+#if (USE_LIBFAME && USE_FFMPEG) || (USE_LIBFAME && USE_MP1E) || (USE_LIBFFMPEG && USE_MP1E)
+#  error "Configure only one mpeg encoder"
 #endif
 
 #if USE_LIBFAME
@@ -69,5 +71,14 @@
 	AVCodec *avcodec;
 #endif
 
+#if USE_MP1E
+	#include <stdio.h>
+	FILE* mp1e;
+	char* mp1e_command;
+#  undef USE_MPEG_BUFFER
+#  define USE_MPEG_BUFFER 0 
+#endif
+
 /* mpeg1 buffer, used by both encoders */
 unsigned char *buffer;
+

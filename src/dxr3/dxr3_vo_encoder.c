@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.7 2001/11/21 20:40:47 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.8 2001/12/01 19:32:44 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -367,7 +367,48 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     }
   }
 #endif
+#if USE_MP1E
+  if (! mp1e) {
+    int frame_rate_num, frame_rate_den;
+    char cmd[256], line[128];
 
+    /* start guessing the framerate */
+    fps = 90000.0/frame->vo_frame.duration;
+    if (fabs(fps - 25) < 0.01) { /* PAL */
+      printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
+      frame_rate_num = 25; frame_rate_den = 1; 
+    }  
+    else if (fabs(fps - 24) < 0.01) { /* FILM */
+      printf("dxr3enc: setting mpeg output framerate to FILM (24 Hz))\n");
+      frame_rate_num = 24; frame_rate_den = 1; 
+    }
+    else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
+      printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
+      frame_rate_num = 24000; frame_rate_den = 1001; 
+    }
+    else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
+      printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
+      frame_rate_num = 30000; frame_rate_den = 1001;
+    }
+    else { /* try 1/fps, if not legal, libfame will go to PAL */
+      frame_rate_num = (int)(fps + 0.5); frame_rate_den = 1;
+      printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
+             frame_rate_num);
+    }
+    sprintf(line, "-s %dx%d -c raw:yuv420-%d-%d-%d-%d", width, oheight, 
+	width, oheight, frame_rate_num, frame_rate_den);
+    //sprintf(line, "-c raw:yuv420-%d-%d-%d-%d",  
+//	width, oheight, frame_rate_num, frame_rate_den);
+    sprintf(cmd, mp1e_command, line);
+    printf("dxr3enc: running command \"%s\"\n", cmd);
+    mp1e = popen(cmd, "w");	
+    if (! mp1e) {
+	printf("dxr3enc: could not start '%s'\n", cmd);
+	perror("dxr3enc:");
+	exit(1);
+    }
+  }
+#endif
   if(this->aspectratio!=aspect)
     dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
 
@@ -469,7 +510,19 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     size = avcodec_encode_video(avc, buffer, DEFAULT_BUFFER_SIZE, &avp);
 # endif    
 #endif
-#if ! USE_MPEG_BUFFER
+#if USE_MP1E
+   size = frame->width*this->oheight;
+   {
+	static x = 0;
+	if (!x)
+	printf("dxr3enc: writing %d x %d = %d bytes\n", frame->width, this->oheight, size);
+	x = 1;
+   }
+   fwrite(y, size, 1, mp1e);
+   fwrite(u, size/4, 1, mp1e);
+   fwrite(v, size/4, 1, mp1e);
+#endif
+#if ! (USE_MPEG_BUFFER || USE_MP1E)
     /* write to device now */
     if (write(this->fd_video, buffer, size) < 0)
       perror("dxr3enc: writing to video device");
@@ -507,7 +560,7 @@ static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
 	/* dxr3_driver_t *this = (dxr3_driver_t *) this_gen; */
-	fprintf(stderr, "dxr3_vo: dummy function dxr3_overlay_blend called!\n");
+	/*fprintf(stderr, "dxr3_vo: dummy function dxr3_overlay_blend called!\n");*/
 }
 
 void dxr3_exit (vo_driver_t *this_gen)
@@ -578,7 +631,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 				tmpstr, strerror(errno));
 			return 0;
 		}
-#if USE_MPEG_BUFFER
+#if USE_MPEG_BUFFER || USE_MP1E
 	        /* we have to close now and open the first time we get 
 		 * to display_frame. weird... */
 	        close(this->fd_video);
@@ -614,6 +667,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
         	printf("dxr3enc: can't find mpeg1 encoder! libavcodec is rotten!\n");
 		return 0;
 	}
+#endif
+#if USE_MP1E
+	mp1e = 0;
+	mp1e_command = config->register_string(config, "dxr3enc.mp1e", 
+		"mp1e -v -m 1 -g I -b 5 %s > /dev/em8300_mv", 
+		"Dxr3enc: mp1e command line (must contain %s)",NULL,NULL,NULL);
 #endif
 	return &this->vo_driver;
 }
