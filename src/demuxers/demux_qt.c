@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.106 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.107 2002/10/29 00:37:26 tmmm Exp $
  *
  */
 
@@ -335,11 +335,22 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
     atom_size = BE_32(&atom_preamble[0]);
     atom = BE_32(&atom_preamble[4]);
 
+    /* if the moov atom is found, log the position and break from the loop */
     if (atom == MOOV_ATOM) {
       *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
       *moov_size = atom_size;
       break;
     }
+
+    /* if this atom is not the moov atom, make sure that it is at least one
+     * of the other top-level QT atom */
+    if ((atom != FREE_ATOM) &&
+        (atom != JUNK_ATOM) &&
+        (atom != MDAT_ATOM) &&
+        (atom != PNOT_ATOM) &&
+        (atom != SKIP_ATOM) &&
+        (atom != WIDE_ATOM))
+      break;
 
     /* 64-bit length special case */
     if (atom_size == 1) {
@@ -1586,8 +1597,6 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf;
-
-printf ("sending qt headers\n");
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
