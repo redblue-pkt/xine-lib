@@ -24,7 +24,7 @@ docs:
 install-data-local:
 	@documentations='$(docs_DOCS)'; \
 	for doc in $$documentations; do \
-	destdir=$(docdir); \
+	destdir=$(DESTDIR)$(docdir); \
 	name=`echo $$doc` \
 	dir=$$destdir; \
 	$(mkinstalldirs) $$dir; \
@@ -35,7 +35,7 @@ install-data-local:
 uninstall-local:
 	@documentations='$(docs_DOCS)'; \
 	for doc in $$documentations; do \
-	destdir=$(docdir); \
+	destdir=$(DESTDIR)$(docdir); \
 	name=`echo $$doc` \
 	dir=$$destdir; \
 	rm -f $$dir/$$name; \

@@ -1,4 +1,4 @@
-.TH "Possible ratios for the VO_PROP_ASPECT_RATIO call" 3 "17 Sep 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "Possible ratios for the VO_PROP_ASPECT_RATIO call" 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -17,6 +17,12 @@ Possible ratios for the VO_PROP_ASPECT_RATIO call \-
 .br
 .ti -1c
 .RI "#define \fBASPECT_DVB\fP   3"
+.br
+.ti -1c
+.RI "#define \fBASPECT_SQUARE\fP   4"
+.br
+.ti -1c
+.RI "#define \fBNUM_ASPECT_RATIOS\fP   5"
 .br
 .in -1c
 .SH "DETAILED DESCRIPTION"
@@ -50,6 +56,20 @@ Set aspect ration to 1:2.
 .SS "#define ASPECT_FULL   2"
 .PP
 Set aspect ration to 4:3. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBVO_PROP_ASPECT_RATIO\fP 
+.SS "#define ASPECT_SQUARE   4"
+.PP
+Set aspect ration to square pels. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBVO_PROP_ASPECT_RATIO\fP 
+.SS "#define NUM_ASPECT_RATIOS   5"
+.PP
+Number of aspect ratios supported for VO_PROP_ASPECT_RATIO property. 
 .PP
 \fBSee also: \fP
 .in +1c

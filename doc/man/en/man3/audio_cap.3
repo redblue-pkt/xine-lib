@@ -1,0 +1,152 @@
+.TH "audio driver capabilities" 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+audio driver capabilities \- 
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBAO_CAP_NOCAP\fP   0x00000000"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_A52\fP   0x00000001"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_AC5\fP   0x00000002"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_MONO\fP   0x00000004"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_STEREO\fP   0x00000008"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_4CHANNEL\fP   0x00000010"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_5CHANNEL\fP   0x00000020"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_5_1CHANNEL\fP   0x00000040"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MIXER_VOL\fP   0x00000080"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_PCM_VOL\fP   0x00000100"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MUTE_VOL\fP   0x00000200"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBxine_get_audio_capabilities\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet audio driver capabilities.\fP"
+.in -1c
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define AO_CAP_MIXER_VOL   0x00000080"
+.PP
+Driver supports mixer control. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_4CHANNEL   0x00000010"
+.PP
+Driver supports 4 channels. 1 sample == 8 bytes (L,R,LR,RR) 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_5CHANNEL   0x00000020"
+.PP
+Driver supports 5 channels. 1 sample == 10 bytes (L,R,LR,RR,C) 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_5_1CHANNEL   0x00000040"
+.PP
+Driver supports 5.1 channels. 1 sample == 12 bytes (L,R,LR,RR,C,LFE) 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_A52   0x00000001"
+.PP
+Driver supports A/52 output. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_AC5   0x00000002"
+.PP
+Driver supports AC5 output. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_MONO   0x00000004"
+.PP
+Driver supports mono output. 1 sample == 2 bytes (C) 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MODE_STEREO   0x00000008"
+.PP
+Driver supports stereo output. 1 sample == 4 bytes (L,R) 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_MUTE_VOL   0x00000200"
+.PP
+Driver can mute volume. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_NOCAP   0x00000000"
+.PP
+Driver has no capabilities. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SS "#define AO_CAP_PCM_VOL   0x00000100"
+.PP
+Driver supports pcm control. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_capabilities\fP() 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "int xine_get_audio_capabilities (\fBxine_t\fP * self)"
+.PP
+Get audio driver capabilities.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.PP
+\fBReturns: \fP
+.in +1c
+Audio capabilities.
+.PP
+Get audio driver capabilities, returned value can be AND/ORed with AO_CAP_* constant to get relevant informations. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 

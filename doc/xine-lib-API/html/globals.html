@@ -9,11 +9,26 @@
 <center>
 <a class="qindex" href="index.html">Main Page</a> &nbsp; <a class="qindex" href="modules.html">Modules</a> &nbsp; <a class="qindex" href="annotated.html">Data Structures</a> &nbsp; <a class="qindex" href="files.html">File List</a> &nbsp; <a class="qindex" href="functions.html">Data Fields</a> &nbsp; <a class="qindex" href="globals.html">Globals</a> &nbsp; </center>
 <hr><h1>XINE, A Free Video Player Project - API reference Globals</h1>Here is a list of all documented functions, variables, defines, enums, and typedefs with links to the documentation:<ul>
-<li>ASPECT_ANAMORPHIC
+<li>AO_CAP_MIXER_VOL
+: <a class="el" href="xine_8h.html#a9">xine.h</a><li>AO_CAP_MODE_4CHANNEL
+: <a class="el" href="xine_8h.html#a6">xine.h</a><li>AO_CAP_MODE_5_1CHANNEL
+: <a class="el" href="xine_8h.html#a8">xine.h</a><li>AO_CAP_MODE_5CHANNEL
+: <a class="el" href="xine_8h.html#a7">xine.h</a><li>AO_CAP_MODE_A52
+: <a class="el" href="xine_8h.html#a2">xine.h</a><li>AO_CAP_MODE_AC5
+: <a class="el" href="xine_8h.html#a3">xine.h</a><li>AO_CAP_MODE_MONO
+: <a class="el" href="xine_8h.html#a4">xine.h</a><li>AO_CAP_MODE_STEREO
+: <a class="el" href="xine_8h.html#a5">xine.h</a><li>AO_CAP_MUTE_VOL
+: <a class="el" href="xine_8h.html#a11">xine.h</a><li>AO_CAP_NOCAP
+: <a class="el" href="xine_8h.html#a1">xine.h</a><li>AO_CAP_PCM_VOL
+: <a class="el" href="xine_8h.html#a10">xine.h</a><li>AO_PROP_MIXER_VOL
+: <a class="el" href="xine_8h.html#a2">xine.h</a><li>AO_PROP_MUTE_VOL
+: <a class="el" href="xine_8h.html#a4">xine.h</a><li>AO_PROP_PCM_VOL
+: <a class="el" href="xine_8h.html#a3">xine.h</a><li>ASPECT_ANAMORPHIC
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>ASPECT_AUTO
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>ASPECT_DVB
 : <a class="el" href="xine_8h.html#a3">xine.h</a><li>ASPECT_FULL
-: <a class="el" href="xine_8h.html#a2">xine.h</a><li>config_file_init()
+: <a class="el" href="xine_8h.html#a2">xine.h</a><li>ASPECT_SQUARE
+: <a class="el" href="xine_8h.html#a4">xine.h</a><li>config_file_init()
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>DEMUX_CONTENT_STRATEGY
 : <a class="el" href="xine_8h.html#a2">xine.h</a><li>DEMUX_DEFAULT_STRATEGY
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>DEMUX_EXTENSION_STRATEGY
@@ -43,7 +58,8 @@
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>mrl_vcd
 : <a class="el" href="xine_8h.html#a2">xine.h</a><li>MRL_ZERO
 : <a class="el" href="xine_8h.html#a2">xine.h</a><li>MRLS_DUPLICATE
-: <a class="el" href="xine_8h.html#a4">xine.h</a><li>SPEED_FAST_2
+: <a class="el" href="xine_8h.html#a4">xine.h</a><li>NUM_ASPECT_RATIOS
+: <a class="el" href="xine_8h.html#a5">xine.h</a><li>SPEED_FAST_2
 : <a class="el" href="xine_8h.html#a19">xine.h</a><li>SPEED_FAST_4
 : <a class="el" href="xine_8h.html#a20">xine.h</a><li>SPEED_NORMAL
 : <a class="el" href="xine_8h.html#a18">xine.h</a><li>SPEED_PAUSE
@@ -73,8 +89,10 @@
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>xine_check_version()
 : <a class="el" href="xine_8h.html#a4">xine.h</a><li>xine_eject()
 : <a class="el" href="xine_8h.html#a6">xine.h</a><li>xine_exit()
-: <a class="el" href="xine_8h.html#a2">xine.h</a><li>xine_get_audio_channel()
-: <a class="el" href="xine_8h.html#a11">xine.h</a><li>xine_get_autoplay_input_plugin_ids()
+: <a class="el" href="xine_8h.html#a2">xine.h</a><li>xine_get_audio_capabilities()
+: <a class="el" href="xine_8h.html#a0">xine.h</a><li>xine_get_audio_channel()
+: <a class="el" href="xine_8h.html#a11">xine.h</a><li>xine_get_audio_property()
+: <a class="el" href="xine_8h.html#a0">xine.h</a><li>xine_get_autoplay_input_plugin_ids()
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>xine_get_autoplay_mrls()
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>xine_get_av_offset()
 : <a class="el" href="xine_8h.html#a4">xine.h</a><li>xine_get_browsable_input_plugin_ids()
@@ -96,23 +114,24 @@
 : <a class="el" href="xine_8h.html#a3">xine.h</a><li>xine_load_video_output_plugin()
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>XINE_MAJOR_VERSION
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>XINE_MINOR_VERSION
-: <a class="el" href="xine_8h.html#a1">xine.h</a><li>XINE_PLAY
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>xine_play()
-: <a class="el" href="xine_8h.html#a0">xine.h</a><li>XINE_PLUGINDIR
+: <a class="el" href="xine_8h.html#a0">xine.h</a><li>XINE_PLAY
+: <a class="el" href="xine_8h.html#a1">xine.h</a><li>XINE_PLUGINDIR
 : <a class="el" href="xine_8h.html#a4">xine.h</a><li>XINE_QUIT
 : <a class="el" href="xine_8h.html#a2">xine.h</a><li>xine_register_event_listener()
 : <a class="el" href="xine_8h.html#a2">xine.h</a><li>xine_remove_event_listener()
 : <a class="el" href="xine_8h.html#a3">xine.h</a><li>xine_select_audio_channel()
 : <a class="el" href="xine_8h.html#a12">xine.h</a><li>xine_select_spu_channel()
 : <a class="el" href="xine_8h.html#a14">xine.h</a><li>xine_send_event()
-: <a class="el" href="xine_8h.html#a4">xine.h</a><li>xine_set_av_offset()
+: <a class="el" href="xine_8h.html#a4">xine.h</a><li>xine_set_audio_property()
+: <a class="el" href="xine_8h.html#a1">xine.h</a><li>xine_set_av_offset()
 : <a class="el" href="xine_8h.html#a3">xine.h</a><li>xine_set_speed()
 : <a class="el" href="xine_8h.html#a1">xine.h</a><li>XINE_SKINDIR
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>xine_stop()
 : <a class="el" href="xine_8h.html#a5">xine.h</a><li>XINE_STOP
 : <a class="el" href="xine_8h.html#a0">xine.h</a><li>XINE_SUB_VERSION
 : <a class="el" href="xine_8h.html#a2">xine.h</a></ul>
-<hr><address><small>Generated at Mon Sep 17 01:05:55 2001 for XINE, A Free Video Player Project - API reference by
+<hr><address><small>Generated at Fri Oct 5 14:17:33 2001 for XINE, A Free Video Player Project - API reference by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.gif" alt="doxygen" align="middle" border=0 
 width=110 height=53></a>1.2.8 written by <a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>,

@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.43 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.44 2001/10/05 13:41:53 f1rmb Exp $
  *
  */
 
@@ -809,36 +809,150 @@ void xine_select_spu_channel (xine_t *self, int channel);
 
          /** @} end of xine_management */
 
-          /** 
-	   * \defgroup audio_group Audio.
-	   * @{
-	   */
-#warning ADD COMMENTS
-#define AO_CAP_NOCAP            0x00000000 /* driver has no capabilities    */
-#define AO_CAP_MODE_A52         0x00000001 /* driver supports A/52 output   */
-#define AO_CAP_MODE_AC5         0x00000002 /* driver supports AC5 output    */
-/* 1 sample ==  2 bytes (C)               */
-#define AO_CAP_MODE_MONO        0x00000004 /* driver supports mono output   */
-/* 1 sample ==  4 bytes (L,R)             */
-#define AO_CAP_MODE_STEREO      0x00000008 /* driver supports stereo output */
-/* 1 sample ==  8 bytes (L,R,LR,RR)       */
-#define AO_CAP_MODE_4CHANNEL    0x00000010 /* driver supports 4 channels    */
-/* 1 sample == 10 bytes (L,R,LR,RR,C)     */
-#define AO_CAP_MODE_5CHANNEL    0x00000020 /* driver supports 5 channels    */
-/* 1 sample == 12 bytes (L,R,LR,RR,C,LFE) */
-#define AO_CAP_MODE_5_1CHANNEL  0x00000040 /* driver supports 5.1 channels  */
-#define AO_CAP_MIXER_VOL        0x00000080 /* driver supports mixer control */
-#define AO_CAP_PCM_VOL          0x00000100 /* driver supports pcm control   */
-#define AO_CAP_MUTE_VOL         0x00000200 /* driver can mute volume        */
+         /** 
+	  * \defgroup audio_group Audio.
+	  * @{
+	  */
 
-/* properties supported by get/set_property() */
+                /**
+		 * 
+		 * \defgroup audio_cap audio driver capabilities
+		 * @{
+		 */
+/**
+ * \def AO_CAP_NOCAP
+ * Driver has no capabilities.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_NOCAP            0x00000000
+/**
+ * \def AO_CAP_MODE_A52
+ * Driver supports A/52 output.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_A52         0x00000001
+/**
+ * \def AO_CAP_MODE_AC5
+ * Driver supports AC5 output.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_AC5         0x00000002
+/**
+ * \def AO_CAP_MODE_MONO
+ * Driver supports mono output.
+ * 1 sample ==  2 bytes (C)
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_MONO        0x00000004
+/**
+ * \def AO_CAP_MODE_STEREO
+ * Driver supports stereo output.
+ * 1 sample ==  4 bytes (L,R)
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_STEREO      0x00000008
+/**
+ * \def AO_CAP_MODE_4CHANNEL
+ * Driver supports 4 channels.
+ * 1 sample ==  8 bytes (L,R,LR,RR)
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_4CHANNEL    0x00000010
+/**
+ * \def AO_CAP_MODE_5CHANNEL
+ * Driver supports 5 channels.
+ * 1 sample == 10 bytes (L,R,LR,RR,C)
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_5CHANNEL    0x00000020
+/**
+ * \def AO_CAP_MODE_5_1CHANNEL
+ * Driver supports 5.1 channels.
+ * 1 sample == 12 bytes (L,R,LR,RR,C,LFE)
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MODE_5_1CHANNEL  0x00000040
+/**
+ * \def AO_CAP_MIXER_VOL
+ * Driver supports mixer control.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MIXER_VOL        0x00000080
+/**
+ * \def AO_CAP_PCM_VOL
+ * Driver supports pcm control.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_PCM_VOL          0x00000100
+/**
+ * \def AO_CAP_MUTE_VOL
+ * Driver can mute volume.
+ * \sa xine_get_audio_capabilities()
+ */
+#define AO_CAP_MUTE_VOL         0x00000200
+
+/**
+ * \fn int xine_get_audio_capabilities(xine_t *self)
+ * \brief Get audio driver capabilities.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return Audio capabilities.
+ *
+ * Get audio driver capabilities, returned value can be AND/ORed with AO_CAP_* constant
+ * to get relevant informations.
+ */
+int xine_get_audio_capabilities(xine_t *self);
+
+               /** @} end of audio_cap */
+
+               /**
+		* 
+		* \defgroup audio_prop Constants for the get/set properties functions.
+		* @{
+		*/
+/**
+ * \def AO_PROP_MIXER_VOL
+ * Mixer volume property.
+ * \sa xine_get_audio_property(), xine_set_audio_property()
+ */
 #define AO_PROP_MIXER_VOL       0
+/**
+ * \def AO_PROP_PCM_VOL
+ * Pcm volume property.
+ * \sa xine_get_audio_property(), xine_set_audio_property()
+ */
 #define AO_PROP_PCM_VOL         1
+/**
+ * \def AO_PROP_MUTE_VOL
+ * Pcm volume property.
+ * \sa xine_get_audio_property(), xine_set_audio_property()
+ */
 #define AO_PROP_MUTE_VOL        2
 
-int xine_get_audio_capabilities(xine_t *self);
+/**
+ * \fn int xine_get_audio_property(xine_t *self, int property)
+ * \brief Get audio driver property.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param property ( see AO_PROP_* )
+ * \return value of property.
+ *
+ * Get audio property ( AO_PROP_* ) value .
+ */
 int xine_get_audio_property(xine_t *self, int property);
+/**
+ * \fn int xine_set_audio_property(xine_t *self, int property, int value)
+ * \brief Set audio driver property value.
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \param property ( see AO_PROP_* )
+ * \param value of property
+ * \return value on success, otherwise ~value.
+ *
+ * Set audio property value ( AO_PROP_* ). It will return value if
+ * operation is successfuly completed, and ~value on failure.
+ */
 int xine_set_audio_property(xine_t *self, int property, int value);
+
+               /** @} end of audio_prop */
+
           /** @} end of audio_group */
 
          /**

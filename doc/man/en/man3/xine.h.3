@@ -1,4 +1,4 @@
-.TH "xine.h" 3 "17 Sep 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.TH "xine.h" 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -29,10 +29,10 @@ xine.h \-
 .RI "#define \fBXINE_BUILD_CC\fP   'gcc version 2.95.3 20010315 (release)'"
 .br
 .ti -1c
-.RI "#define \fBXINE_BUILD_OS\fP   'Linux 2.4.8 i686'"
+.RI "#define \fBXINE_BUILD_OS\fP   'Linux 2.4.9-ac7 i686'"
 .br
 .ti -1c
-.RI "#define \fBXINE_BUILD_DATE\fP   'Mon 17 Sep 2001 00:59:15'"
+.RI "#define \fBXINE_BUILD_DATE\fP   'Fri 05 Oct 2001 14:06:23'"
 .br
 .ti -1c
 .RI "#define \fBXINE_STOP\fP   0"
@@ -107,6 +107,12 @@ xine.h \-
 .RI "#define \fBASPECT_DVB\fP   3"
 .br
 .ti -1c
+.RI "#define \fBASPECT_SQUARE\fP   4"
+.br
+.ti -1c
+.RI "#define \fBNUM_ASPECT_RATIOS\fP   5"
+.br
+.ti -1c
 .RI "#define \fBDEMUX_DEFAULT_STRATEGY\fP   0"
 .br
 .ti -1c
@@ -135,6 +141,48 @@ xine.h \-
 .br
 .ti -1c
 .RI "#define \fBSPEED_FAST_4\fP   16"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_NOCAP\fP   0x00000000"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_A52\fP   0x00000001"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_AC5\fP   0x00000002"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_MONO\fP   0x00000004"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_STEREO\fP   0x00000008"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_4CHANNEL\fP   0x00000010"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_5CHANNEL\fP   0x00000020"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MODE_5_1CHANNEL\fP   0x00000040"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MIXER_VOL\fP   0x00000080"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_PCM_VOL\fP   0x00000100"
+.br
+.ti -1c
+.RI "#define \fBAO_CAP_MUTE_VOL\fP   0x00000200"
+.br
+.ti -1c
+.RI "#define \fBAO_PROP_MIXER_VOL\fP   0"
+.br
+.ti -1c
+.RI "#define \fBAO_PROP_PCM_VOL\fP   1"
+.br
+.ti -1c
+.RI "#define \fBAO_PROP_MUTE_VOL\fP   2"
 .br
 .ti -1c
 .RI "#define \fBmrl_unknown\fP   (0 << 0)"
@@ -347,6 +395,18 @@ xine.h \-
 .RI "void \fBxine_select_spu_channel\fP (\fBxine_t\fP *self, int channel)"
 .br
 .RI "\fISet sub-title channel.\fP"
+.ti -1c
+.RI "int \fBxine_get_audio_capabilities\fP (\fBxine_t\fP *self)"
+.br
+.RI "\fIGet audio driver capabilities.\fP"
+.ti -1c
+.RI "int \fBxine_get_audio_property\fP (\fBxine_t\fP *self, int property)"
+.br
+.RI "\fIGet audio driver property.\fP"
+.ti -1c
+.RI "int \fBxine_set_audio_property\fP (\fBxine_t\fP *self, int property, int value)"
+.br
+.RI "\fISet audio driver property value.\fP"
 .ti -1c
 .RI "char** \fBxine_get_browsable_input_plugin_ids\fP (\fBxine_t\fP *self)"
 .br

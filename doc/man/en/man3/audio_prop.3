@@ -1,0 +1,115 @@
+.TH "Constants for the get/set properties functions." 3 "5 Oct 2001" "XINE, A Free Video Player Project - API reference" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Constants for the get/set properties functions. \- 
+.SS "Defines"
+
+.in +1c
+.ti -1c
+.RI "#define \fBAO_PROP_MIXER_VOL\fP   0"
+.br
+.ti -1c
+.RI "#define \fBAO_PROP_PCM_VOL\fP   1"
+.br
+.ti -1c
+.RI "#define \fBAO_PROP_MUTE_VOL\fP   2"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBxine_get_audio_property\fP (\fBxine_t\fP *self, int property)"
+.br
+.RI "\fIGet audio driver property.\fP"
+.ti -1c
+.RI "int \fBxine_set_audio_property\fP (\fBxine_t\fP *self, int property, int value)"
+.br
+.RI "\fISet audio driver property value.\fP"
+.in -1c
+.SH "DEFINE DOCUMENTATION"
+.PP 
+.SS "#define AO_PROP_MIXER_VOL   0"
+.PP
+Mixer volume property. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_property\fP(), \fBxine_set_audio_property\fP() 
+.SS "#define AO_PROP_MUTE_VOL   2"
+.PP
+Pcm volume property. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_property\fP(), \fBxine_set_audio_property\fP() 
+.SS "#define AO_PROP_PCM_VOL   1"
+.PP
+Pcm volume property. 
+.PP
+\fBSee also: \fP
+.in +1c
+\fBxine_get_audio_property\fP(), \fBxine_set_audio_property\fP() 
+.SH "FUNCTION DOCUMENTATION"
+.PP 
+.SS "int xine_get_audio_property (\fBxine_t\fP * self, int property)"
+.PP
+Get audio driver property.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIproperty\fP\fP
+( see AO_PROP_* ) 
+.PP
+\fBReturns: \fP
+.in +1c
+value of property.
+.PP
+Get audio property ( AO_PROP_* ) value . 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIproperty\fP\fP
+ 
+.SS "int xine_set_audio_property (\fBxine_t\fP * self, int property, int value)"
+.PP
+Set audio driver property value.
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+Current xine engine configuration ( see \fBxine_init\fP() ) 
+.TP
+\fB\fIproperty\fP\fP
+( see AO_PROP_* ) 
+.TP
+\fB\fIvalue\fP\fP
+of property 
+.PP
+\fBReturns: \fP
+.in +1c
+value on success, otherwise ~value.
+.PP
+Set audio property value ( AO_PROP_* ). It will return value if operation is successfuly completed, and ~value on failure. 
+.PP
+\fBParameters: \fP
+.in +1c
+.TP
+\fB\fIself\fP\fP
+ 
+.TP
+\fB\fIproperty\fP\fP
+ 
+.TP
+\fB\fIvalue\fP\fP
+ 
