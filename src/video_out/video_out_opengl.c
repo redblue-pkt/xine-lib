@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.37 2004/04/26 17:50:09 mroi Exp $
+ * $Id: video_out_opengl.c,v 1.38 2004/04/30 22:12:15 jcdutton Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -785,7 +785,7 @@ static int opengl_set_property (vo_driver_t *this_gen,
     case VO_PROP_BRIGHTNESS:
 	this->yuv2rgb_brightness = value;
 	this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory, value, 128, 128);
-	xrintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: brightness changed to %d\n",value);
+	xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: brightness changed to %d\n",value);
 	break;
     default:
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -959,7 +959,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->vo_driver.redraw_needed        = opengl_redraw_needed;
 
     this->yuv2rgb_brightness =
-      config->register_range(this->config, "video.opengl_gamma", 0,
+      this->config->register_range(this->config, "video.opengl_gamma", 0,
 			     -100, 100,
 			     _("brightness correction"),
 			     _("The brightness correction can be used to lighten or darken the image. "
