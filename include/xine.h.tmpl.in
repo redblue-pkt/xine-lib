@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.53 2001/11/10 06:20:39 mlampard Exp $
+ * $Id: xine.h.tmpl.in,v 1.54 2001/11/10 06:26:01 mlampard Exp $
  *
  */
 
@@ -291,7 +291,7 @@ int xine_check_version(int major, int minor, int sub);
  */
 #define VO_PROP_OFFSET_Y          10 
 /**
- * \def VO_PROP_OFFSET_Y
+ * \def VO_PROP_TVMODE
  * Change TVmode property.
  * \sa vo_driver_t
  */
