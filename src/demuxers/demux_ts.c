@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.15 2001/09/17 14:32:05 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.16 2001/09/17 14:35:19 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -857,7 +857,9 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
     ending = strrchr(mrl, '.');
     if (ending) {
       xprintf(VERBOSE|DEMUX, "demux_ts_open: ending %s of %s\n", ending, mrl);
-      if ((!strcasecmp(ending, ".m2t")) || (!strcasecmp(ending, ".ts"))) {
+      if ((!strcasecmp(ending, ".m2t")) ||
+          (!strcasecmp(ending, ".ts"))  ||
+          (!strcasecmp(ending, ".trp")) ) {
 	break;
       }
     }
