@@ -1,3 +1,4 @@
+xine-lib (1-beta3)
   * PSX STR file demuxer
   * Westwood Studios AUD demuxer
   * PVA file demuxer
@@ -18,6 +19,8 @@
     "test.mpg#subtitle:file.sub" or the frontend option.
   * updated VIDIX driver (image controls supported)
   * "mms over http" streaming protocol support
+  * FLAC support (demuxer/decoder)
+  * fixed yuy2 overlays on big-endian systems
 	
 xine-lib (1-beta2)
   * what a GOOM! post plugin
