@@ -33,12 +33,14 @@ dnl  $have_alsa09 is set to "yes" if installed alsa version is >= 0.9
 dnl
 AC_DEFUN([AM_PATH_ALSA],
  [  
-  AC_ARG_ENABLE(alsa, [  --disable-alsa          Do not build ALSA support],,)
-  AC_ARG_WITH(alsa-prefix,[  --with-alsa-prefix=pfx  Prefix where alsa is installed (optional)],
+  AC_ARG_ENABLE(alsa, AC_HELP_STRING([--disable-alsa], [do not build ALSA support]),
+            enable_alsa=$enableval, enable_alsa=yes)
+  AC_ARG_WITH(alsa-prefix, AC_HELP_STRING([--with-alsa-prefix=DIR], [prefix where alsa is installed (optional)]),
             alsa_prefix="$withval", alsa_prefix="")
-  AC_ARG_WITH(alsa-exec-prefix,[  --with-alsa-exec-prefix=pfx                                                                             Exec prefix where alsa is installed (optional)],
+  AC_ARG_WITH(alsa-exec-prefix, AC_HELP_STRING([--with-alsa-exec-prefix=DIR], [exec prefix where alsa is installed (optional)]),
             alsa_exec_prefix="$withval", alsa_exec_prefix="")
-  AC_ARG_ENABLE(alsatest, [  --disable-alsatest      Do not try to compile and run a test alsa program],, enable_alsatest=yes)
+  AC_ARG_ENABLE(alsatest, AC_HELP_STRING([--disable-alsatest], [do not try to compile and run a test alsa program]),
+            enable_alsatest=$enableval, enable_alsatest=yes)
 
   no_alsa="yes"
   have_alsa05="no"

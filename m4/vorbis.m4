@@ -9,8 +9,8 @@ AC_DEFUN([AM_PATH_VORBIS],
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(vorbis-prefix,[  --with-vorbis-prefix=PFX   Prefix where libvorbis is installed (optional)], vorbis_prefix="$withval", vorbis_prefix="")
-AC_ARG_ENABLE(vorbistest, [  --disable-vorbistest       Do not try to compile and run a test Vorbis program],, enable_vorbistest=yes)
+AC_ARG_WITH(vorbis-prefix, AC_HELP_STRING([--with-vorbis-prefix=DIR], [prefix where libvorbis is installed (optional)]), vorbis_prefix="$withval", vorbis_prefix="")
+AC_ARG_ENABLE(vorbistest, AC_HELP_STRING([--disable-vorbistest], [do not try to compile and run a test Vorbis program]), enable_vorbistest=$enableval, enable_vorbistest=yes)
 
   if test x$vorbis_prefix != x ; then
     vorbis_args="$vorbis_args --prefix=$vorbis_prefix"

@@ -271,22 +271,22 @@ AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' funct
 AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -DEMULATE_FAST_INT"])
 
 AC_ARG_ENABLE(altivec,
-	AC_HELP_STRING([--disable-altivec], [Do not use assembly codes for Motorola 74xx CPUs]),
+	AC_HELP_STRING([--disable-altivec], [do not use assembly codes for Motorola 74xx CPUs]),
 		enable_altivec=$enableval,
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis,
-	AC_HELP_STRING([--disable-vis], [Do not use assembly codes for Sun UltraSPARC CPUs]),
+	AC_HELP_STRING([--disable-vis], [do not use assembly codes for Sun UltraSPARC CPUs]),
          	enable_vis=$enableval,
 		enable_vis=yes)
 
 AC_ARG_ENABLE(mlib,
-	AC_HELP_STRING([--disable-mlib], [Do not build Sun mediaLib support]),
+	AC_HELP_STRING([--disable-mlib], [do not build Sun mediaLib support]),
 		enable_mlib=$enableval,
 		enable_mlib=yes)
 
 AC_ARG_ENABLE(mlib-lazyload,
-	AC_HELP_STRING([--enable-mlib-lazyload], [Check for Sun mediaLib at runtime]),
+	AC_HELP_STRING([--enable-mlib-lazyload], [check for Sun mediaLib at runtime]),
 		enable_mlib_lazyload=$enableval,
 		enable_mlib_lazyload=no)
 
@@ -353,7 +353,7 @@ dnl IPv6
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE(ipv6,
-	AC_HELP_STRING([--enable-ipv6], [Enable use of IPv6]),
+	AC_HELP_STRING([--enable-ipv6], [enable use of IPv6]),
 		enable_ipv6=$enableval,
 		enable_ipv6=no)
 
@@ -497,7 +497,7 @@ esac
 AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 
 
-AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [Where $xv_lib is installed]),
+AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
             xv_path="$withval", xv_path="/usr/X11R6/$XINE_LIBNAME")
 
 AC_CHECK_LIB(Xv, XvShmCreateImage, 
@@ -535,7 +535,7 @@ AC_SUBST(XV_LIB)
 AC_SUBST(EXTRA_X_LIBS)
 AC_SUBST(EXTRA_X_CFLAGS)
 
-AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [Where $xvmc_lib is installed]),
+AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC is installed]),
             xvmc_path="$withval", xvmc_path="/usr/X11R6/lib")
 
 AC_CHECK_LIB(XvMC, XvMCQueryExtension, 
@@ -618,7 +618,7 @@ dnl ---------------------------------------------
 AC_CHECK_HEADER(linux/fb.h,
                 [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support])
                  have_fb=yes],)
-AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [Do not build linux framebuffer support]),
+AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer support]),
 	      have_fb=$enableval)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
@@ -638,7 +638,7 @@ dnl ---------------------------------------------
 dnl Check for DirectFB
 dnl ---------------------------------------------
 AC_ARG_ENABLE(directfb,
-	AC_HELP_STRING([--enable-directfb], [Enable use of DirectFB]),
+	AC_HELP_STRING([--enable-directfb], [enable use of DirectFB]),
 		enable_directfb=$enableval,
 		enable_directfb=no)
 
@@ -775,9 +775,9 @@ dnl ---------------------------------------------
 AC_LINUX_PATH(/usr/src/linux)
 AC_SUBST([LINUX_INCLUDE])
 
-AC_ARG_ENABLE(vidix, AC_HELP_STRING([--disable-vidix], [Do not build vidix support]),
+AC_ARG_ENABLE(vidix, AC_HELP_STRING([--disable-vidix], [do not build vidix support]),
 	      check_vidix=$enableval, check_vidix=yes)
-AC_ARG_ENABLE(dha-kmod, AC_HELP_STRING([--enable-dha-kmod], [Build DHA kernel module]),
+AC_ARG_ENABLE(dha-kmod, AC_HELP_STRING([--enable-dha-kmod], [build DHA kernel module]),
 	      enable_dha_kmod=$enableval,enable_dha_kmod=no)
 
 enable_vidix="no"
@@ -1060,7 +1060,7 @@ dnl ---------------------------------------------
 dnl check for a usable version of libdvdnav
 dnl ---------------------------------------------
 
-AC_ARG_WITH(external-dvdnav, AC_HELP_STRING([--with-external-dvdnav], [Use external dvdnav library (not recommended)]),
+AC_ARG_WITH(external-dvdnav, AC_HELP_STRING([--with-external-dvdnav], [use external dvdnav library (not recommended)]),
             [external_dvdnav="$withval"], [no_dvdnav="yes"; external_dvdnav="no"])
 
 if test x"$external_dvdnav" = "xyes"; then
@@ -1078,16 +1078,16 @@ dnl ---------------------------------------------
 dnl Video CD
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(vcd, AC_HELP_STRING([--disable-vcd], [Do not compile VCD plugin]),
+AC_ARG_ENABLE(vcd, AC_HELP_STRING([--disable-vcd], [do not compile VCD plugin]),
               enable_vcd=$enableval, enable_vcd=yes)
 
 dnl Force build of both vcd plugins, for now.
-dnl AC_ARG_ENABLE(vcdo, AC_HELP_STRING([--disable-vcdo], [Do not compile old VCD plugin]),
+dnl AC_ARG_ENABLE(vcdo, AC_HELP_STRING([--disable-vcdo], [do not compile old VCD plugin]),
 dnl               enable_vcdo=$enableval, enable_vcdo=yes)
 dnl
 enable_vcdo="yes"
 
-AC_ARG_WITH(internal-vcdlibs, AC_HELP_STRING([--with-internal-vcdlibs], [Force using internal libcdio/libvcd/libvcdinfo]),
+AC_ARG_WITH(internal-vcdlibs, AC_HELP_STRING([--with-internal-vcdlibs], [force using internal libcdio/libvcd/libvcdinfo]),
             [internal_vcdnav="$withval"], [internal_vcdnav="no"])
 
 if test x"$enable_vcd" = "xyes"; then
@@ -1300,7 +1300,7 @@ dnl ---------------------------------------------
 dnl ASF build can be optional
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(asf, AC_HELP_STRING([--disable-asf], [Do not build ASF demuxer]),
+AC_ARG_ENABLE(asf, AC_HELP_STRING([--disable-asf], [do not build ASF demuxer]),
 	      enable_asf=$enableval, enable_asf=yes)
 AM_CONDITIONAL(BUILD_ASF, test x"$enable_asf" = "xyes")
 
@@ -1309,7 +1309,7 @@ dnl ---------------------------------------------
 dnl FAAD build can be optional
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(faad, AC_HELP_STRING([--disable-faad], [Do not build FAAD decoder]),
+AC_ARG_ENABLE(faad, AC_HELP_STRING([--disable-faad], [do not build FAAD decoder]),
 	      enable_faad=$enableval, enable_faad=yes)
 AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
 
@@ -1350,7 +1350,7 @@ dnl ---------------------------------------------
 dnl Using or not using -fPIC (override default behavior - system dependent)
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(fpic, AC_HELP_STRING([--disable-fpic], [Disable -fPIC on shared libs (default on x86)]),
+AC_ARG_ENABLE(fpic, AC_HELP_STRING([--disable-fpic], [disable -fPIC on shared libs (default on x86)]),
    enable_fpic=$enableval)
 
 
@@ -1361,7 +1361,7 @@ dnl feature on the target platform)
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE(min-symtab,
-   AC_HELP_STRING([--disable-min-symtab], [Export all global symbols from xine plugins]),
+   AC_HELP_STRING([--disable-min-symtab], [export all global symbols from xine plugins]),
    [
      if test "x$enableval" = "xno" ; then
        XINE_PLUGIN_MIN_SYMS=""
@@ -1836,7 +1836,7 @@ dnl ---------------------------------------------
 dnl For win32 libraries location, needed by libw32dll.
 dnl ---------------------------------------------
 
-AC_ARG_WITH(w32-path, AC_HELP_STRING([--with-w32-path=path], [Location of WIN32 libraries]),
+AC_ARG_WITH(w32-path, AC_HELP_STRING([--with-w32-path=path], [location of WIN32 libraries]),
             w32_path="$withval", w32_path="/usr/lib/win32")
 AC_SUBST(w32_path)
 

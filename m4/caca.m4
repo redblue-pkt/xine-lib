@@ -14,13 +14,14 @@ AC_DEFUN([AM_PATH_CACA],
 [dnl 
 dnl
 AC_ARG_WITH(caca-prefix,
-    [  --with-caca-prefix=PFX  Prefix where CACA is installed (optional)],
+    AC_HELP_STRING([--with-caca-prefix=DIR], [prefix where CACA is installed (optional)]),
             caca_config_prefix="$withval", caca_config_prefix="")
 AC_ARG_WITH(caca-exec-prefix,
-    [  --with-caca-exec-prefix=PFX                                                                             Exec prefix where CACA is installed (optional)],
+    AC_HELP_STRING([--with-caca-exec-prefix=DIR], [exec prefix where CACA is installed (optional)]),
             caca_config_exec_prefix="$withval", caca_config_exec_prefix="")
 AC_ARG_ENABLE(cacatest, 
-    [  --disable-cacatest      Do not try to compile and run a test CACA program],, enable_cacatest=yes)
+    AC_HELP_STRING([--disable-cacatest], [do not try to compile and run a test CACA program]),
+            enable_cacatest=$enableval, enable_cacatest=yes)
 
   if test x$caca_config_exec_prefix != x ; then
      caca_config_args="$caca_config_args --exec-prefix=$caca_config_exec_prefix"

@@ -9,10 +9,10 @@ AC_DEFUN([AM_PATH_ARTS],
 [dnl 
 dnl Get the cflags and libraries from the artsc-config script
 dnl
-AC_ARG_WITH(arts-prefix,[  --with-arts-prefix=PFX  Prefix where ARTS is installed (optional)],
+AC_ARG_WITH(arts-prefix, AC_HELP_STRING([--with-arts-prefix=DIR], [prefix where ARTS is installed (optional)]),
             arts_prefix="$withval", arts_prefix="")
-AC_ARG_ENABLE(artstest, [  --disable-artstest      Do not try to compile and run a test ARTS program],
-		    , enable_artstest=yes)
+AC_ARG_ENABLE(artstest, AC_HELP_STRING([--disable-artstest], [do not try to compile and run a test ARTS program]),
+            enable_artstest=$enableval, enable_artstest=yes)
 
   if test x$arts_prefix != x ; then
      arts_args="$arts_args --arts-prefix=$arts_prefix"

@@ -9,8 +9,8 @@ AC_DEFUN([AM_PATH_XVID],
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(xvid-prefix,[  --with-xvid-prefix=PFX   Prefix where XviD is installed (optional)], xvid_prefix="$withval", xvid_prefix="")
-AC_ARG_ENABLE(xvidtest, [  --disable-xvidtest       Do not try to compile and run a test XviD program],, enable_xvidtest=yes)
+AC_ARG_WITH(xvid-prefix, AC_HELP_STRING([--with-xvid-prefix=DIR], [prefix where XviD is installed (optional)]), xvid_prefix="$withval", xvid_prefix="")
+AC_ARG_ENABLE(xvidtest, AC_HELP_STRING([--disable-xvidtest], [do not try to compile and run a test XviD program]), enable_xvidtest=$enableval, enable_xvidtest=yes)
 
   if test x$xvid_prefix != x ; then
     xvid_args="$xvid_args --prefix=$xvid_prefix"

@@ -39,13 +39,14 @@ AC_DEFUN([AM_PATH_AALIB],
 [dnl 
 dnl
 AC_ARG_WITH(aalib-prefix,
-    [  --with-aalib-prefix=PFX Prefix where AALIB is installed (optional)],
+    AC_HELP_STRING([--with-aalib-prefix=DIR], [prefix where AALIB is installed (optional)]),
             aalib_config_prefix="$withval", aalib_config_prefix="")
 AC_ARG_WITH(aalib-exec-prefix,
-    [  --with-aalib-exec-prefix=PFX                                                                            Exec prefix where AALIB is installed (optional)],
+    AC_HELP_STRING([--with-aalib-exec-prefix=DIR], [exec prefix where AALIB is installed (optional)]),
             aalib_config_exec_prefix="$withval", aalib_config_exec_prefix="")
 AC_ARG_ENABLE(aalibtest, 
-    [  --disable-aalibtest     Do not try to compile and run a test AALIB program],, enable_aalibtest=yes)
+    AC_HELP_STRING([--disable-aalibtest], [do not try to compile and run a test AALIB program]),
+            enable_aalibtest=$enableval, enable_aalibtest=yes)
 
   if test x$aalib_config_exec_prefix != x ; then
      aalib_config_args="$aalib_config_args --exec-prefix=$aalib_config_exec_prefix"

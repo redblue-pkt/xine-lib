@@ -10,8 +10,8 @@ AC_DEFUN([AM_PATH_THEORA],
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(theora-prefix,[  --with-theora-prefix=PFX   Prefix where libtheora is installed (optional)], theora_prefix="$withval", theora_prefix="")
-AC_ARG_ENABLE(theoratest, [  --disable-theoratest       Do not try to compile and run a test Vorbis program],, enable_theoratest=yes)
+AC_ARG_WITH(theora-prefix, AC_HELP_STRING([--with-theora-prefix=DIR], [prefix where libtheora is installed (optional)]), theora_prefix="$withval", theora_prefix="")
+AC_ARG_ENABLE(theoratest, AC_HELP_STRING([--disable-theoratest], [do not try to compile and run a test Vorbis program]), enable_theoratest=$enableval, enable_theoratest=yes)
 
   if test x$theora_prefix != x ; then
     theora_args="$theora_args --prefix=$theora_prefix"

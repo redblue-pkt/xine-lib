@@ -9,8 +9,8 @@ AC_DEFUN([AM_PATH_SPEEX],
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(speex-prefix,[  --with-speex-prefix=PFX   Prefix where libspeex is installed (optional)], speex_prefix="$withval", speex_prefix="")
-AC_ARG_ENABLE(speextest, [  --disable-speextest       Do not try to compile and run a test Speex program],, enable_speextest=yes)
+AC_ARG_WITH(speex-prefix, AC_HELP_STRING([--with-speex-prefix=DIR], [prefix where libspeex is installed (optional)]), speex_prefix="$withval", speex_prefix="")
+AC_ARG_ENABLE(speextest, AC_HELP_STRING([--disable-speextest], [do not try to compile and run a test Speex program]), enable_speextest=$enableval, enable_speextest=yes)
 
   if test x$speex_prefix != x ; then
     speex_args="$speex_args --prefix=$speex_prefix"

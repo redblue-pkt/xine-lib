@@ -9,8 +9,8 @@ AC_DEFUN([AM_PATH_OGG],
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(ogg-prefix,[  --with-ogg-prefix=PFX   Prefix where libogg is installed (optional)], ogg_prefix="$withval", ogg_prefix="")
-AC_ARG_ENABLE(oggtest, [  --disable-oggtest       Do not try to compile and run a test Ogg program],, enable_oggtest=yes)
+AC_ARG_WITH(ogg-prefix, AC_HELP_STRING([--with-ogg-prefix=DIR], [prefix where libogg is installed (optional)]), ogg_prefix="$withval", ogg_prefix="")
+AC_ARG_ENABLE(oggtest, AC_HELP_STRING([--disable-oggtest], [do not try to compile and run a test Ogg program]), enable_oggtest=$enableval, enable_oggtest=yes)
 
   if test x$ogg_prefix != x ; then
     ogg_args="$ogg_args --prefix=$ogg_prefix"
