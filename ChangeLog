@@ -2,8 +2,8 @@ xine-lib (1-rc4)
   * fix SDL plugin that was broken in rc3
   * updated libfaad 2.0 RC3 cvs (fix some raw aac problems, HE support)
   * Win32 Cygwin updates, using DirectX
-  * new demuxer for Interchange File Format (IFF) for IFF-8SVX, IFF-16SV
-    and IFF-ILBM
+  * new demuxer for Interchange File Format (IFF) for IFF-8SVX, IFF-16SV,
+    IFF-ILBM, and IFF-ANIM (limited to anim opt5 at the moment)
   * fixed problem with jumpy visualization especially on ogg files
   * dxr3: fix situation, where the initial menu on some DVDs would have
     the wrong aspect
