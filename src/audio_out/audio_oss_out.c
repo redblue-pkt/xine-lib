@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.10 2001/06/05 04:40:53 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.11 2001/06/11 10:40:09 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -193,6 +193,7 @@ static int ao_open(ao_functions_t *this_gen,
     tmp = AFMT_AC3;
     ioctl(this->audio_fd,SNDCTL_DSP_SETFMT,&tmp);
     this->num_channels = 2; /* FIXME: is this correct ? */
+    printf ("audio_oss_out : AO_CAP_MODE_AC3\n");
     break;
   }
 
@@ -234,9 +235,8 @@ static int ao_open(ao_functions_t *this_gen,
 static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
 
   int num_bytes = pts_len * this->bytes_per_kpts / 1024;
-  
   num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
-
+  if(this->mode == AO_CAP_MODE_AC3) return;
   printf ("audio_oss_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
   
   this->bytes_in_buffer += num_bytes;
@@ -312,6 +312,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   /*
    * resample and output samples
    */
+  if(this->mode == AO_CAP_MODE_AC3) bDropPackage=0;
 
   if (!bDropPackage) {
     int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
@@ -338,10 +339,18 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
       write(this->audio_fd, sample_buffer, num_output_samples * 10);
       break;
     case AO_CAP_MODE_AC3:
+      num_output_samples = num_samples+8;
+      sample_buffer[0] = 0xf872;  //spdif syncword
+      sample_buffer[1] = 0x4e1f;  // .............
+      sample_buffer[2] = 0x0001;  // AC3 data
+      sample_buffer[3] = num_samples * 8;
+//      sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
 
-      write(this->audio_fd, sample_buffer, num_output_samples * 2);
-      num_output_samples = num_samples;
-
+      // ac3 seems to be swabbed data
+      swab(output_samples,sample_buffer+4,  num_samples  );
+      write(this->audio_fd, sample_buffer, num_output_samples);
+      write(this->audio_fd, this->zero_space, 6144-num_output_samples);
+      num_output_samples=num_output_samples/4;
       break;
     }
 
