@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.82 2003/10/13 11:14:46 mroi Exp $
+ * $Id: input_file.c,v 1.83 2003/10/15 09:20:58 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -274,7 +274,7 @@ static input_plugin_t *file_class_get_instance (input_class_t *cls_gen, xine_str
   printf("file_class_get_instance\n");
   #endif
 
-  if ((strncasecmp (mrl, "file:", 5)) && (strstr (mrl, ":/"))) {
+  if ((strncasecmp (mrl, "file:", 5)) && (strstr (mrl, ":/") < strchr(mrl, '/'))) {
     free (mrl);
     return NULL;
   }
