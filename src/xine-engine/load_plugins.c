@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.111 2002/11/03 20:44:37 guenter Exp $
+ * $Id: load_plugins.c,v 1.112 2002/11/12 00:13:14 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -322,6 +322,7 @@ static void collect_plugins(xine_t *this, char *path){
       } /* if (stat(...)) */
       free(str);
     } /* while */
+    closedir (dir);
   } /* if (dir) */
 } /* collect_plugins */
 
