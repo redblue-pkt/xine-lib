@@ -16,6 +16,10 @@ xine.h: xine.h.tmpl
 
 debug:
 
+
+install-debug: install
+
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 
 

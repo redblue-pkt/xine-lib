@@ -20,6 +20,10 @@ debug:
 	  (cd $$subdir && $(MAKE) $@) \
 	done;
 
+install-debug: debug
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) \
+	done;
 
 prune-cache:
 	-rm -f config.cache

@@ -362,6 +362,15 @@ AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_DEMUXDIR)
 AC_SUBST(XINE_SKINDIR)
 
+dnl
+dnl Some informations about xine-lib compilation
+dnl
+XINE_BUILD_CC="`$CC -v 2>&1 | tail -1`"
+XINE_BUILD_OS="`uname -s -r -m`"
+XINE_BUILD_DATE="`date`"
+AC_SUBST(XINE_BUILD_CC)
+AC_SUBST(XINE_BUILD_OS)
+AC_SUBST(XINE_BUILD_DATE)
 
 dnl
 dnl For win32 libraries location, needed by libw32dll.

@@ -10,6 +10,8 @@ data_DATA = xine_logo.png
 
 debug:
 
+install-debug: install
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 
 

@@ -39,6 +39,9 @@ stubs.lo: stubs.s
 debug:
 	$(MAKE) CFLAGS="$(CFLAGS) -g -DSTATIC_WIN32_PATH"
 
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 

@@ -43,9 +43,12 @@ cpu_accel.lo: cpu_accel.c
 debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
 
 libsdeps:
-	@cd $(top_builddir)/src/libmpg123 && $(MAKE) libmpg123.la
+	@cd $(top_builddir)/src/libmpg123 && $(MAKE) CFLAGS="$(CFLAGS)" libmpg123.la
 ##	@cd $(top_builddir)/src/libspudec && $(MAKE) libspudec.la
 
 

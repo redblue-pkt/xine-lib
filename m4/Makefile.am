@@ -8,6 +8,7 @@ EXTRA_DIST = _xine.m4 alsa.m4 esd.m4 $(m4data_DATA)
 
 debug:
 
+install-debug: install
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

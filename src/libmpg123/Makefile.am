@@ -14,6 +14,9 @@ noinst_HEADERS = huffman.h mpg123.h mpglib.h l2tables.h
 debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 

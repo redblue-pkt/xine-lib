@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.17 2001/05/22 13:26:06 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.18 2001/05/26 22:04:38 f1rmb Exp $
  *
  */
 
@@ -49,6 +49,10 @@
 /** \brief Sub version constant */
 #define XINE_SUB_VERSION   @XINE_SUB@
 /** @} end of versgroup */
+
+#define XINE_BUILD_CC "@XINE_BUILD_CC@"
+#define XINE_BUILD_OS "@XINE_BUILD_OS@"
+#define XINE_BUILD_DATE "@XINE_BUILD_DATE@"
 
 #ifndef DOC_HIDDEN
 typedef void ao_functions_t;

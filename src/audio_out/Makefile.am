@@ -45,6 +45,10 @@ debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 

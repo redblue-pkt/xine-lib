@@ -20,6 +20,9 @@ noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h
 debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 
