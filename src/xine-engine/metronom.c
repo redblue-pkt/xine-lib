@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.69 2002/03/12 22:00:07 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.70 2002/03/12 22:23:14 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -282,8 +282,8 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int is_stream
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
-  printf ("metronom: video discontinuity #%d\n",
-	  this->video_discontinuity_count);
+  printf ("metronom: video discontinuity #%d, disc_off is %lld\n",
+	  this->video_discontinuity_count, disc_off);
   
   if (this->have_audio) {
     while (this->audio_discontinuity_count <
@@ -306,6 +306,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int is_stream
 
   if (is_stream_start) {
     this->vpts_offset = this->video_vpts;
+    this->in_discontinuity = 0;
   } else {
     this->next_vpts_offset = this->vpts_offset - disc_off;
     this->in_discontinuity = 30;
@@ -398,15 +399,16 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   pthread_mutex_unlock (&this->lock);
 }
 
-static void metronom_expect_audio_discontinuity (metronom_t *this, int64_t disc_off) {
+static void metronom_expect_audio_discontinuity (metronom_t *this, 
+						 int64_t disc_off) {
 
   pthread_mutex_lock (&this->lock);
     
   this->audio_discontinuity_count++;
   pthread_cond_signal (&this->audio_discontinuity_reached);
   
-  printf ("metronom: audio discontinuity #%d\n",
-	  this->audio_discontinuity_count);
+  printf ("metronom: audio discontinuity #%d, disc_off %lld\n",
+	  this->audio_discontinuity_count, disc_off);
   
   while ( this->audio_discontinuity_count >
 	  this->video_discontinuity_count ) {
