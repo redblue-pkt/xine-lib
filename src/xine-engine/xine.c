@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.288 2004/04/08 16:20:14 f1rmb Exp $
+ * $Id: xine.c,v 1.289 2004/04/09 11:26:10 f1rmb Exp $
  */
 
 /*
@@ -221,6 +221,25 @@ static void ticket_dispose(xine_ticket_t *this) {
   pthread_cond_destroy(&this->revoked);
   
   free(this);
+}
+
+static xine_ticket_t *ticket_init(void) {
+  xine_ticket_t *port_ticket;
+  
+  port_ticket = (xine_ticket_t *) xine_xmalloc(sizeof(xine_ticket_t));
+  
+  port_ticket->acquire = ticket_acquire;
+  port_ticket->release = ticket_release;
+  port_ticket->renew   = ticket_renew;
+  port_ticket->issue   = ticket_issue;
+  port_ticket->revoke  = ticket_revoke;
+  port_ticket->dispose = ticket_dispose;
+  
+  pthread_mutex_init(&port_ticket->lock, NULL);
+  pthread_mutex_init(&port_ticket->revoke_lock, NULL);
+  pthread_cond_init(&port_ticket->issued, NULL);
+  
+  return port_ticket;
 }
 
 static void __set_speed_internal (xine_stream_t *stream, int speed) {
@@ -1248,8 +1267,10 @@ void xine_exit (xine_t *this) {
 
   _x_dispose_plugins (this);
 
-  if(this->streams)
+  if(this->streams) {
     xine_list_free(this->streams);
+    pthread_mutex_destroy(&this->streams_lock);
+  }
 
   if(this->clock)
     this->clock->exit (this->clock);
@@ -1257,14 +1278,12 @@ void xine_exit (xine_t *this) {
   if(this->config)
     this->config->dispose(this->config);
 
-  if(this->port_ticket && this->port_ticket->dispose)
+  if(this->port_ticket)
     this->port_ticket->dispose(this->port_ticket);
-
+  
 #if defined(WIN32)
   WSACleanup();
 #endif
-  
-  pthread_mutex_destroy(&this->streams_lock);
   
   free (this);
 }
@@ -1286,6 +1305,7 @@ xine_t *xine_new (void) {
   this->save_path      = NULL;
   this->streams        = NULL;
   this->clock          = NULL;
+  this->port_ticket    = NULL;
 
 #ifdef ENABLE_NLS
   /*
@@ -1320,23 +1340,8 @@ xine_t *xine_new (void) {
 
 #endif /* WIN32 */
 
-  /*
-   * streams lock
-   */
-
-  pthread_mutex_init (&this->streams_lock, NULL);
-
   this->verbosity = XINE_VERBOSITY_NONE;
   
-  /*
-   * tickets
-   */
-  
-  this->port_ticket = xine_xmalloc(sizeof(xine_ticket_t));
-  pthread_mutex_init(&this->port_ticket->lock, NULL);
-  pthread_mutex_init(&this->port_ticket->revoke_lock, NULL);
-  pthread_cond_init(&this->port_ticket->issued, NULL);
-
   return this;
 }
 
@@ -1417,7 +1422,6 @@ void xine_init (xine_t *this) {
   /*
    * plugins
    */
-
   _x_scan_plugins(this);
 
 #ifdef HAVE_SETLOCALE
@@ -1463,9 +1467,13 @@ void xine_init (xine_t *this) {
   /*
    * keep track of all opened streams
    */
-
   this->streams = xine_list_new();
 
+  /*
+   * streams lock
+   */
+  pthread_mutex_init (&this->streams_lock, NULL);
+  
   /*
    * start metronom clock
    */
@@ -1477,13 +1485,7 @@ void xine_init (xine_t *this) {
   /*
    * tickets
    */
-  this->port_ticket->acquire = ticket_acquire;
-  this->port_ticket->release = ticket_release;
-  this->port_ticket->renew   = ticket_renew;
-  this->port_ticket->issue   = ticket_issue;
-  this->port_ticket->revoke  = ticket_revoke;
-  this->port_ticket->dispose = ticket_dispose;
-  
+  this->port_ticket = ticket_init();
 }
 
 void _x_select_spu_channel (xine_stream_t *stream, int channel) {
