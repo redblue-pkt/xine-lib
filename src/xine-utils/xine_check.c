@@ -450,7 +450,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) {
   hc->title       = "xine health check not supported on this platform";
   hc->explanation = "contact the xine-devel mailing list if you'd like to\n"
-                    "contribute code for your platform."
+                    "contribute code for your platform.";
   set_hc_result(hc, XINE_HEALTH_CHECK_UNSUPPORTED, "xine health check not supported on the OS.\n");
   return hc;
 }
