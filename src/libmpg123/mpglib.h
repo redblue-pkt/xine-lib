@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: mpglib.h,v 1.3 2001/05/06 16:56:01 guenter Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
@@ -44,6 +44,7 @@ typedef struct mpstr {
   int             synth_bo;
 
   int             is_output_initialized;
+  int             sample_rate_device;
   ao_functions_t *ao_output;
   unsigned char   osspace[8192];
 } mpgaudio_t;

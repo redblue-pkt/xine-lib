@@ -146,10 +146,15 @@ void do_layer1(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
     }
   }
   
-  if (!mp->is_output_initialized) {
-    mp->ao_output->open (metronom, 16, fr->sample_rate, 
+  if ((!mp->is_output_initialized) || (mp->sample_rate_device != fr->sample_rate)) {
+
+    if (mp->is_output_initialized) 
+      mp->ao_output->close();
+
+    mp->ao_output->open (16, fr->sample_rate, 
 			 stereo-1 ? AO_MODE_STEREO: AO_MODE_MONO);
     mp->is_output_initialized = 1;
+    mp->sample_rate_device = fr->sample_rate;
 
     printf ("layer1\n");
   }

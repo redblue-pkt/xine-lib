@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: interface.c,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: interface.c,v 1.3 2001/05/06 16:56:01 guenter Exp $
  */
 
 #include <stdlib.h>
@@ -36,6 +36,7 @@ void mpg_audio_reset (mpgaudio_t *mp) {
   mp->bsnum                 =  0;
   mp->synth_bo              =  1;
   mp->is_output_initialized =  0;
+  mp->sample_rate_device    =  0;
   mp->header                =  0;
 }
 
