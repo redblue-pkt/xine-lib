@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.37 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.38 2004/10/09 06:45:48 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -998,14 +998,6 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
     this->sc.user_data       = visual->user_data;
   }
 
-  this->sc.scaling_disabled =
-    config->register_bool(config, "video.disable_scaling", 0,
-			  _("disable all video scaling"),
-			  _("You can disable video scaling globally. The image will then no longer "
-			    "adapt to the size of the video window, which can dramatically "
-			    "reduce CPU usage."),
-			  10, NULL, NULL);
-  
   setup_buffers(this, &this->fb_var);
 
   if(this->depth > 16)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.40 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.41 2004/10/09 06:45:48 mroi Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -937,7 +937,6 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->sc.dest_size_cb           = visual->dest_size_cb;
     this->sc.user_data              = visual->user_data;
     this->sc.user_ratio             = XINE_VO_ASPECT_AUTO;
-    this->sc.scaling_disabled       = 0;
 
     /* We will not be able to use the current drawable... */
     this->drawable	            = None;
