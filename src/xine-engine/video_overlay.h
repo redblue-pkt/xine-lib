@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.12 2002/11/19 00:45:42 miguelfreitas Exp $
+ * $Id: video_overlay.h,v 1.13 2002/11/20 13:51:36 mroi Exp $
  *
  */
 
@@ -53,6 +53,9 @@ typedef struct vo_buttons_s {
                                      1:Button Valid, no auto_action,
                                      2:Button Valid, auto_action.
                                   */
+
+  /* The following clipping coordinates are relative to the left upper corner
+   * of the OVERLAY, not of the target FRAME. Please do not mix them up! */
   int32_t           clip_top;
   int32_t           clip_bottom;
   int32_t           clip_left;
