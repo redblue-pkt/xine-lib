@@ -35,7 +35,7 @@ else
         lines.c lines.h \
         ifs_display.c ifs.c ifs.h \
         graphic.c graphic.h \
-        drawmethods.h \
+        drawmethods.h
 #        ppc_zoom_ultimate.s
 endif
 
