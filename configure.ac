@@ -1985,10 +1985,10 @@ dnl Check for documentation formatting tool
 dnl ---------------------------------------------
 
 AC_CHECK_PROG(SGMLTOOLS, sgmltools, sgmltools, no)
-AM_CONDITIONAL([HAVE_SGMLTOOLS], [test "$sgmltools" != "no"])
+AM_CONDITIONAL([HAVE_SGMLTOOLS], [test "$SGMLTOOLS" != "no"])
 
 AC_CHECK_PROG(FIG2DEV, fig2dev, fig2dev, no)
-AM_CONDITIONAL([HAVE_FIG2DEV], [test "$fig2dev" != "no"])
+AM_CONDITIONAL([HAVE_FIG2DEV], [test "$FIG2DEV" != "no"])
 
 dnl ---------------------------------------------
 dnl Newest automake workaround
