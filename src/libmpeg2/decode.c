@@ -395,6 +395,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    data.width = picture->coded_picture_width;
 	    data.height = picture->coded_picture_height;
 	    data.aspect = picture->aspect_ratio_information;
+	    data.pan_scan = mpeg2dec->force_pan_scan;
 	    xine_event_send(mpeg2dec->stream, &event);
 
             mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
@@ -453,6 +454,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      else
 		mpeg2dec->drop_frame = 1;		
 	    } else {
+		int flags = VO_INTERLACED_FLAG | picture->picture_structure;
+		if (mpeg2dec->force_pan_scan) flags |= VO_PAN_SCAN_FLAG;
+		
 		if ( picture->current_frame && 
 		     picture->current_frame != picture->backward_reference_frame &&
 		     picture->current_frame != picture->forward_reference_frame ) {
@@ -482,7 +486,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     ratio,
 						     XINE_IMGFMT_YV12,
-						     VO_INTERLACED_FLAG | picture->picture_structure);
+						     flags);
 		else {
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
@@ -490,7 +494,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     ratio,
 						     XINE_IMGFMT_YV12,
-						     (VO_INTERLACED_FLAG | VO_PREDICTION_FLAG | picture->picture_structure));
+						     flags);
 		    if (picture->forward_reference_frame &&
 		        picture->forward_reference_frame != picture->backward_reference_frame)
 		      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -804,6 +808,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	data.width = picture->coded_picture_width;
 	data.height = picture->coded_picture_height;
 	data.aspect = picture->aspect_ratio_information;
+	data.pan_scan = mpeg2dec->force_pan_scan;
 	xine_event_send(mpeg2dec->stream, &event);
 
 	mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
@@ -852,6 +857,7 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       data.width = mpeg2dec->picture->coded_picture_width;
       data.height = mpeg2dec->picture->coded_picture_height;
       data.aspect = mpeg2dec->picture->aspect_ratio_information;
+      data.pan_scan = mpeg2dec->force_pan_scan;
       xine_event_send(mpeg2dec->stream, &event);
 
       mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
