@@ -21,16 +21,13 @@ major=`ls src/xine-engine/.libs/libxine*.so.* | \
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	# Add here commands to configure the package.
 	./configure --prefix=/usr --mandir=\$${prefix}/share/man
-
 	touch configure-stamp
 
 build: configure-stamp build-stamp
 build-stamp:
 	dh_testdir
 
-	# Add here commands to compile the package.
 	$(MAKE)
 
 	touch build-stamp
@@ -39,10 +36,7 @@ clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-
-	# Add here commands to clean up after the build process.
-	-$(MAKE) distclean
-
+	test -f Makefile && $(MAKE) distclean
 	dh_clean
 
 install: build
@@ -51,17 +45,15 @@ install: build
 	dh_clean -k
 	dh_installdirs
 
-	# Add here commands to install the package into debian/xine-lib.
 	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr
 	mkdir -p $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides
 	cp $(CURDIR)/debian/overrides.libxine \
            $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides/libxine$(major)
 
-# Build architecture-independent files here.
 binary-indep: build install
-# We have nothing to do by default.
+# We have nothing architecture-independant to do.
 
-# Build architecture-dependent files here.
+
 binary-arch: build install
 	dh_testversion 2
 	dh_testdir
@@ -86,7 +78,8 @@ binary-arch: build install
 	dh_fixperms
 	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps
+#	dh_shlibdeps
+	debian/shlibdeps.sh libxine${major}
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
