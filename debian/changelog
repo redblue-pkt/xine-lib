@@ -1,3 +1,13 @@
+xine-lib (1-rc4a-1) unstable; urgency=high
+
+  * new upstream version
+    - fixes display errors with popular (Matrox, ATI) graphics cards
+
+  This version, as 1-rc4 before, contains a security fix for the RTSP
+  vulnerability (XSA-2004-3, Bug#247353)
+
+ -- Siggi Langauf <siggi@debian.org>  Thu, 13 May 2004 07:04:14 +0200
+
 xine-lib (1-rc4-1) unstable; urgency=low
 
   * New upstream release
