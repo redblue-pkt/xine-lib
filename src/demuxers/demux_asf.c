@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.88 2002/12/12 23:30:18 tmattern Exp $
+ * $Id: demux_asf.c,v 1.89 2002/12/13 21:13:17 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -758,16 +758,11 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     buf = stream->fifo->buffer_pool_alloc (stream->fifo);
     this->input->read (this->input, buf->content, bufsize);
 
-    if (stream->fifo == this->video_fifo) {
-      buf->input_pos  = this->input->get_current_pos (this->input);
-      if (this->rate)
-	buf->input_time = buf->input_pos / this->rate;
-      else
-	buf->input_time = 0;
-    } else {
-      buf->input_pos  = 0 ;
-      buf->input_time = 0 ;
-    }
+    buf->input_pos  = this->input->get_current_pos (this->input);
+    if (this->rate)
+      buf->input_time = buf->input_pos / this->rate;
+    else
+      buf->input_time = 0;
 
 #ifdef LOG
     printf ("demux_asf: input pos is %lld, input time is %d\n",
@@ -862,16 +857,11 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	    buf = stream->fifo->buffer_pool_alloc (stream->fifo);
 	    xine_fast_memcpy (buf->content, p, bufsize);
 
-	    if (stream->fifo == this->video_fifo) {
-	      buf->input_pos  = this->input->get_current_pos (this->input);
-	      if (this->rate)
-		buf->input_time = buf->input_pos / this->rate;
-	      else
-		buf->input_time = 0;
-	    } else {
-	      buf->input_pos  = 0 ;
-	      buf->input_time = 0 ;
-	    }
+	    buf->input_pos  = this->input->get_current_pos (this->input);
+	    if (this->rate)
+	      buf->input_time = buf->input_pos / this->rate;
+	    else
+	      buf->input_time = 0;
           
 	    buf->pts = stream->timestamp * 90 + stream->ts_per_kbyte * 
 	      (p-stream->buffer) / 1024; 

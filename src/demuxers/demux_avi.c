@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.138 2002/12/12 01:40:07 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.139 2002/12/13 21:13:18 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1089,8 +1089,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
         return 0;
       }
 
-      buf->input_pos  = 0;
-      buf->input_time = 0;
+      buf->input_time = audio_pts / 90000;
+      buf->input_pos  = this->input->get_current_pos(this->input);
 
       buf->type = audio->audio_type | i;
 

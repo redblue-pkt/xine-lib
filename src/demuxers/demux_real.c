@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.23 2002/12/12 22:08:11 holstsn Exp $
+ * $Id: demux_real.c,v 1.24 2002/12/13 21:13:19 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -804,6 +804,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf->content       = buf->mem;
       buf->pts           = timestamp;
       buf->input_pos     = this->input->get_current_pos (this->input);
+
       buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
       buf->type          = this->video_buf_type;
       
