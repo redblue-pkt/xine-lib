@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.161 2003/03/06 16:49:32 guenter Exp $
+ * $Id: video_out_xv.c,v 1.162 2003/03/18 23:41:48 hadess Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1011,8 +1011,10 @@ static void xv_dispose (vo_driver_t *this_gen) {
   int i;
 
   if (this->deinterlace_frame.image) {
+    XLockDisplay (this->display);
     dispose_ximage (this, &this->deinterlace_frame.shminfo,
 		    this->deinterlace_frame.image);
+    XUnlockDisplay (this->display);
     this->deinterlace_frame.image = NULL;
   }
 
@@ -1195,7 +1197,9 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->sc.user_data         = visual->user_data;
 
   this->drawable                = visual->d;
+  XLockDisplay (this->display);
   this->gc                      = XCreateGC (this->display, this->drawable, 0, NULL);
+  XUnlockDisplay (this->display);
   this->capabilities            = 0;
   this->expecting_event         = 0;
   this->use_shm                 = 1;
@@ -1206,9 +1210,11 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->x11_old_error_handler   = NULL;
   this->xine                    = class->xine;
 
+  XLockDisplay (this->display);
   XAllocNamedColor (this->display,
 		    DefaultColormap(this->display, this->screen),
 		    "black", &this->black, &dummy);
+  XUnlockDisplay (this->display);
 
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
@@ -1246,6 +1252,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    * check this adaptor's capabilities
    */
 
+  XLockDisplay (this->display);
   attr = XvQueryPortAttributes(display, xv_port, &nattr);
   if(attr && nattr) {
     int k;
@@ -1317,6 +1324,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    */
 
   fo = XvListImageFormats(display, this->xv_port, (int*)&formats);
+  XUnlockDisplay (this->display);
 
   this->xv_format_yv12 = 0;
   this->xv_format_yuy2 = 0;
@@ -1344,6 +1352,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    * try to create a shared image
    * to find out if MIT shm really works, using supported format
    */
+  XLockDisplay (this->display);
   myimage = create_ximage (this, &myshminfo, 100, 100,
 			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
   dispose_ximage (this, &myshminfo, myimage);
@@ -1352,6 +1361,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     this->completion_event = XShmGetEventBase(display) + ShmCompletion;
   else
     this->completion_event = -1;
+
+  XUnlockDisplay (this->display);
 
   this->use_pitch_alignment = config->register_bool (config, "video.xv_pitch_alignment", 0,
 						    _("workaround for some (buggy) XVideo drivers"),
