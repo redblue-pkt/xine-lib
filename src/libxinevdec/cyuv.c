@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.8 2002/09/05 22:19:02 mroi Exp $
+ * $Id: cyuv.c,v 1.9 2002/10/20 17:34:11 tmmm Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -57,10 +57,16 @@
 
 #define VIDEOBUFSIZE 128*1024
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} cyuv_class_t;
+
 typedef struct cyuv_decoder_s {
   video_decoder_t   video_decoder;
 
-  vo_instance_t    *video_out;
+  xine_stream_t    *stream;
+  cyuv_class_t     *class;
+
   int               video_step;
   int               skipframes;
   unsigned char    *buf;
@@ -69,13 +75,6 @@ typedef struct cyuv_decoder_s {
   int               width;
   int               height;
 } cyuv_decoder_t;
-
-static void cyuv_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
-  cyuv_decoder_t *this = (cyuv_decoder_t *) this_gen;
-
-  this->video_out = video_out;
-  this->buf = NULL;
-}
 
 /* ------------------------------------------------------------------------
  * This function decodes a buffer containing a CYUV encoded frame.
@@ -150,7 +149,7 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -180,8 +179,8 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
     this->video_step = buf->decoder_info[0];
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
-    img = this->video_out->get_frame (this->video_out, this->width,
-      this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
+    img = this->stream->video_out->get_frame (this->stream->video_out, 
+      this->width, this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
       VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -217,34 +216,57 @@ static void cyuv_flush (video_decoder_t *this_gen) {
 static void cyuv_reset (video_decoder_t *this_gen) {
 }
 
-static void cyuv_close (video_decoder_t *this_gen) {
+static void cyuv_dispose (video_decoder_t *this_gen) {
 
   cyuv_decoder_t *this = (cyuv_decoder_t *) this_gen;
 
-  this->video_out->close(this->video_out);
-}
+  this->stream->video_out->close(this->stream->video_out);
 
-static char *cyuv_get_id(void) {
-  return "CYUV";
-}
-
-static void cyuv_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  cyuv_decoder_t *this ;
+  cyuv_decoder_t  *this ;
 
   this = (cyuv_decoder_t *) malloc (sizeof (cyuv_decoder_t));
 
-  this->video_decoder.init                = cyuv_init;
   this->video_decoder.decode_data         = cyuv_decode_data;
   this->video_decoder.flush               = cyuv_flush;
   this->video_decoder.reset               = cyuv_reset;
-  this->video_decoder.close               = cyuv_close;
-  this->video_decoder.get_identifier      = cyuv_get_id;
   this->video_decoder.dispose             = cyuv_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (cyuv_class_t *) class_gen;
+
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "CYUV";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Creative YUV (CYUV) video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  cyuv_class_t *this;
+
+  this = (cyuv_class_t *) malloc (sizeof (cyuv_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -265,6 +287,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "cyuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
