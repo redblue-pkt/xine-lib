@@ -17,12 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.65 2004/05/25 23:26:41 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.66 2004/06/01 18:11:52 komadori Exp $
  *
- * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
+ * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
  * written and currently maintained by
  *   Robin Kay <komadori [at] gekkou [dot] co [dot] uk>
+ *
+ * Sun XVR-100 framebuffer graciously donated by Jake Goerzen.
  *
  */
 
@@ -36,6 +38,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/fbio.h>
+#include <sys/visual_io.h>
 #include <sys/mman.h>
 
 #include <X11/Xlib.h>
@@ -60,60 +63,131 @@
  */
 #define MAX_DETAINED_FRAMES 10
 
-/* mach64 register defines */
+/* m64 register defines */
 
 #define M64_MMAPLEN 0x00800000
-#define M64_REGSBASE 0x007ff800
 
-#define BUS_CNTL 0x128
-#define BUS_EXT_REG_EN 0x08000000
+#define M64_BUS_CNTL 0x128
+#define M64_BUS_EXT_REG_EN 0x08000000
 
-#define SCALER_H_COEFF0 0x055
-#define SCALER_H_COEFF0_DEFAULT 0x00002000
-#define SCALER_H_COEFF1 0x056
-#define SCALER_H_COEFF1_DEFAULT 0x0D06200D
-#define SCALER_H_COEFF2 0x057
-#define SCALER_H_COEFF2_DEFAULT 0x0D0A1C0D
-#define SCALER_H_COEFF3 0x058
-#define SCALER_H_COEFF3_DEFAULT 0x0C0E1A0C
-#define SCALER_H_COEFF4 0x059
-#define SCALER_H_COEFF4_DEFAULT 0x0C14140C
+#define M64_OVERLAY_X_Y_START 0x000
+#define M64_OVERLAY_X_Y_END 0x001
+#define M64_OVERLAY_X_Y_LOCK 0x80000000
+#define M64_OVERLAY_GRAPHICS_KEY_CLR 0x004
+#define M64_OVERLAY_GRAPHICS_KEY_MSK 0x005
+#define M64_OVERLAY_KEY_CNTL 0x006
+#define M64_OVERLAY_KEY_EN 0x00000050
+#define M64_OVERLAY_SCALE_INC 0x008
+#define M64_OVERLAY_EXCLUSIVE_HORZ 0x016
+#define M64_OVERLAY_EXCLUSIVE_VERT 0x017
+#define M64_OVERLAY_EXCLUSIVE_EN 0x80000000
+#define M64_OVERLAY_SCALE_CNTL 0x009
+#define M64_OVERLAY_SCALE_EN 0xC0000000
 
-#define OVERLAY_GRAPHICS_KEY_CLR 0x004
-#define OVERLAY_GRAPHICS_KEY_MSK 0x005
-#define OVERLAY_KEY_CNTL 0x006
-#define OVERLAY_KEY_EN 0x00000050
-#define SCALER_COLOUR_CNTL 0x054
+#define M64_SCALER_HEIGHT_WIDTH 0x00A
+#define M64_SCALER_COLOUR_CNTL 0x054
+#define M64_SCALER_H_COEFF0 0x055
+#define M64_SCALER_H_COEFF0_DEFAULT 0x00002000
+#define M64_SCALER_H_COEFF1 0x056
+#define M64_SCALER_H_COEFF1_DEFAULT 0x0D06200D
+#define M64_SCALER_H_COEFF2 0x057
+#define M64_SCALER_H_COEFF2_DEFAULT 0x0D0A1C0D
+#define M64_SCALER_H_COEFF3 0x058
+#define M64_SCALER_H_COEFF3_DEFAULT 0x0C0E1A0C
+#define M64_SCALER_H_COEFF4 0x059
+#define M64_SCALER_H_COEFF4_DEFAULT 0x0C14140C
+#define M64_SCALER_BUF0_OFFSET 0x00D
+#define M64_SCALER_BUF0_OFFSET_U 0x075
+#define M64_SCALER_BUF0_OFFSET_V 0x076
+#define M64_SCALER_BUF1_OFFSET 0x00E
+#define M64_SCALER_BUF1_OFFSET_U 0x077
+#define M64_SCALER_BUF1_OFFSET_V 0x078
+#define M64_SCALER_BUF_PITCH 0x00F
 
-#define SCALER_BUF0_OFFSET 0x00D
-#define SCALER_BUF0_OFFSET_U 0x075
-#define SCALER_BUF0_OFFSET_V 0x076
-#define SCALER_BUF1_OFFSET 0x00E
-#define SCALER_BUF1_OFFSET_U 0x077
-#define SCALER_BUF1_OFFSET_V 0x078
-#define SCALER_BUF_PITCH 0x00F
-#define VIDEO_FORMAT 0x012
-#define VIDEO_FORMAT_YUV12 0x000A0000
-#define VIDEO_FORMAT_YUY2 0x000B0000
-#define CAPTURE_CONFIG 0x014
-#define CAPTURE_CONFIG_BUF0 0x00000000
-#define CAPTURE_CONFIG_BUF1 0x20000000
+#define M64_VIDEO_FORMAT 0x012
+#define M64_VIDEO_FORMAT_YUV12 0x000A0000
+#define M64_VIDEO_FORMAT_VYUY422 0x000B0000
+#define M64_CAPTURE_CONFIG 0x014
+#define M64_CAPTURE_CONFIG_BUF0 0x00000000
+#define M64_CAPTURE_CONFIG_BUF1 0x20000000
 
-#define OVERLAY_X_Y_START 0x000
-#define OVERLAY_X_Y_END 0x001
-#define OVERLAY_X_Y_LOCK 0x80000000
-#define OVERLAY_SCALE_INC 0x008
-#define SCALER_HEIGHT_WIDTH 0x00A
-#define OVERLAY_EXCLUSIVE_HORZ 0x016
-#define OVERLAY_EXCLUSIVE_VERT 0x017
-#define OVERLAY_EXCLUSIVE_EN 0x80000000
-#define OVERLAY_SCALE_CNTL 0x009
-#define OVERLAY_SCALE_EN 0xC0000000
-
-static const int scaler_regs_table[2][3] = {
-  {SCALER_BUF0_OFFSET, SCALER_BUF0_OFFSET_U, SCALER_BUF0_OFFSET_V},
-  {SCALER_BUF1_OFFSET, SCALER_BUF1_OFFSET_U, SCALER_BUF1_OFFSET_V}
+static const int m64_bufaddr_regs_tbl[2][3] = {
+  {M64_SCALER_BUF0_OFFSET, M64_SCALER_BUF0_OFFSET_U, M64_SCALER_BUF0_OFFSET_V},
+  {M64_SCALER_BUF1_OFFSET, M64_SCALER_BUF1_OFFSET_U, M64_SCALER_BUF1_OFFSET_V}
 };
+
+/* pfb register defines */
+
+#define PFB_VRAM_MMAPLEN 0x02000000
+#define PFB_REGS_MMAPLEN 0x00040000
+
+#define PFB_CLOCK_CNTL_INDEX 0x002
+#define PFB_CLOCK_CNTL_DATA 0x003
+
+#define PFB_MC_FB_LOCATION 0x052
+
+#define PFB_OV0_Y_X_START 0x100
+#define PFB_OV0_Y_X_END 0x101
+#define PFB_OV0_REG_LOAD_CNTL 0x104
+#define PFB_OV0_REG_LOAD_LOCK 0x00000001
+#define PFB_OV0_REG_LOAD_LOCK_READBACK 0x00000008
+#define PFB_OV0_SCALE_CNTL 0x108
+#define PFB_OV0_SCALE_EN 0x417f0000
+#define PFB_OV0_SCALE_YUV12 0x00000A00
+#define PFB_OV0_SCALE_VYUY422 0x00000B00
+#define PFB_OV0_V_INC 0x109
+#define PFB_OV0_P1_V_ACCUM_INIT 0x10A
+#define PFB_OV0_P23_V_ACCUM_INIT 0x10B
+#define PFB_OV0_P1_BLANK_LINES_AT_TOP 0x10C
+#define PFB_OV0_P23_BLANK_LINES_AT_TOP 0x10D
+#define PFB_OV0_BASE_ADDR 0x10F
+#define PFB_OV0_BUF0_BASE_ADRS 0x110
+#define PFB_OV0_BUF1_BASE_ADRS 0x111
+#define PFB_OV0_BUF2_BASE_ADRS 0x112
+#define PFB_OV0_BUF3_BASE_ADRS 0x113
+#define PFB_OV0_BUF4_BASE_ADRS 0x114
+#define PFB_OV0_BUF5_BASE_ADRS 0x115
+#define PFB_OV0_VID_BUF_PITCH0_VALUE 0x118
+#define PFB_OV0_VID_BUF_PITCH1_VALUE 0x119
+#define PFB_OV0_AUTO_FLIP_CNTL 0x11C
+#define PFB_OV0_AUTO_FLIP_BUF0 0x00000200
+#define PFB_OV0_AUTO_FLIP_BUF3 0x00000243
+#define PFB_OV0_DEINTERLACE_PATTERN 0x11D
+#define PFB_OV0_H_INC 0x120
+#define PFB_OV0_STEP_BY 0x121
+#define PFB_OV0_P1_H_ACCUM_INIT 0x122
+#define PFB_OV0_P23_H_ACCUM_INIT 0x123
+#define PFB_OV0_P1_X_START_END 0x125
+#define PFB_OV0_P2_X_START_END 0x126
+#define PFB_OV0_P3_X_START_END 0x127
+#define PFB_OV0_FILTER_CNTL 0x128
+#define PFB_OV0_FILTER_EN 0x0000000f
+#define PFB_OV0_GRPH_KEY_CLR_LOW 0x13B
+#define PFB_OV0_GRPH_KEY_CLR_HIGH 0x13C
+#define PFB_OV0_KEY_CNTL 0x13D
+#define PFB_OV0_KEY_EN 0x00000121
+
+#define PFB_DISP_MERGE_CNTL 0x358
+#define PFB_DISP_MERGE_EN 0xffff0000
+
+static const int pfb_bufaddr_regs_tbl[2][3] = {
+  {PFB_OV0_BUF0_BASE_ADRS, PFB_OV0_BUF1_BASE_ADRS, PFB_OV0_BUF2_BASE_ADRS},
+  {PFB_OV0_BUF3_BASE_ADRS, PFB_OV0_BUF4_BASE_ADRS, PFB_OV0_BUF5_BASE_ADRS},
+};
+
+/* Enumerations */
+
+typedef enum {
+  FB_TYPE_M64,
+  FB_TYPE_PFB
+} fb_type_t;
+
+typedef enum {
+  BUF_MODE_MULTI,
+  BUF_MODE_NOT_MULTI,
+  BUF_MODE_SINGLE,
+  BUF_MODE_DOUBLE
+} buf_mode_t;
 
 /* Structures */
 
@@ -154,9 +228,13 @@ typedef struct {
   Visual *visual;
   Colormap cmap;
 
-  int devfd, fb_width, fb_height, fb_depth;
-  uint32_t free_top, free_bottom, free_mark, buffers[2][3];
+  fb_type_t fb_type;
+  int devfd, fb_width, fb_depth, free_top, free_bottom, free_mark;
+  uint32_t yuv12_native_format, yuv12_align;
+  uint32_t vyuy422_native_format, vyuy422_align;
+  uint32_t buffers[2][3];
   uint8_t *vbase, *buffer_ptrs[2][3];
+  volatile uint32_t *vregs;
 
   pgx64_frame_t *current;
   pgx64_frame_t *multibuf[MAX_MULTIBUF_FRAMES];
@@ -167,14 +245,10 @@ typedef struct {
   pthread_mutex_t chromakey_mutex;
   pgx64_overlay_t *first_overlay;
 
-  int multibuf_en, buf_mode, dblbuf_select, delivered_format;
-  int colour_key, brightness, saturation, deinterlace_en;
+  buf_mode_t buf_mode;
+  int multibuf_en, dblbuf_select, delivered_format;
+  int colour_key, colour_key_rgb, brightness, saturation, deinterlace_en;
 } pgx64_driver_t;
-
-#define BUF_MODE_MULTI     0
-#define BUF_MODE_NOT_MULTI 1
-#define BUF_MODE_SINGLE    2
-#define BUF_MODE_DOUBLE    3
 
 /*
  * Setup X11/DGA
@@ -202,7 +276,7 @@ static int setup_dga(pgx64_driver_t *this)
    */
   if (!this->vbase) {
     char *devname;
-    struct fbgattr attr;
+    struct vis_identifier ident;
 
     DGA_DRAW_LOCK(this->dgadraw, -1);
     devname = dga_draw_devname(this->dgadraw);
@@ -215,38 +289,36 @@ static int setup_dga(pgx64_driver_t *this)
       return 0;
     }
 
-    if (ioctl(this->devfd, FBIOGATTR, &attr) < 0) {
-      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed, bad device (%s)\n"), devname);
-      close(this->devfd);
+    if (ioctl(this->devfd, VIS_GETIDENTIFIER, &ident) < 0) {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed (VIS_GETIDENTIFIER), bad device (%s)\n"), devname);
       XDgaUnGrabDrawable(this->dgadraw);
       XUnlockDisplay(this->display);
       return 0;
     }
 
-    if (attr.real_type != 22) {
-      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: '%s' is not a pgx64/pgx24 framebuffer device\n"), devname);
-      close(this->devfd);
+    if (strcmp("SUNWm64", ident.name) == 0) {
+      this->fb_type = FB_TYPE_M64;
+    }
+    else if (strcmp("SUNWpfb", ident.name) == 0) {
+      this->fb_type = FB_TYPE_PFB;
+    }
+    else {
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: '%s' is not a xvr100/pgx64/pgx24 framebuffer device\n"), devname);
       XDgaUnGrabDrawable(this->dgadraw);
       XUnlockDisplay(this->display);
       return 0;
     }
-
-    this->fb_width    = attr.fbtype.fb_width;
-    this->fb_height   = attr.fbtype.fb_height;
-    this->fb_depth    = attr.fbtype.fb_depth;
-    this->free_top    = attr.sattr.dev_specific[0];
-    this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
   }
 
   VIDEO_OVERLAY_WINDOW = XInternAtom(this->display, "VIDEO_OVERLAY_WINDOW", False);
   VIDEO_OVERLAY_IN_USE = XInternAtom(this->display, "VIDEO_OVERLAY_IN_USE", False);
 
   XGrabServer(this->display);
-  if (XGetWindowProperty(this->display, RootWindow(this->display, this->screen), VIDEO_OVERLAY_WINDOW, 0, 1, False, XA_WINDOW, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
-    Window wins = *(Window *)(void *)prop_return;
 
-    XFree(prop_return);
+  if (XGetWindowProperty(this->display, RootWindow(this->display, this->screen), VIDEO_OVERLAY_WINDOW, 0, 1, False, XA_WINDOW, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
     if ((type_return == XA_WINDOW) && (format_return == 32) && (nitems_return == 1)) {
+      Window wins = *(Window *)(void *)prop_return;
+
       if (XGetWindowProperty(this->display, wins, VIDEO_OVERLAY_IN_USE, 0, 0, False, AnyPropertyType, &type_return, &format_return, &nitems_return, &bytes_after_return, &prop_return) == Success) {
         XFree(prop_return);
         if (type_return != None) {
@@ -271,7 +343,7 @@ static int setup_dga(pgx64_driver_t *this)
     return 0;
   }
   XUngrabServer(this->display);
-  
+
   this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
   this->depth  = win_attrs.depth;
@@ -299,6 +371,17 @@ static void cleanup_dga(pgx64_driver_t *this)
 }
 
 /*
+ * Round up the size of an address range to the nearest page
+ */
+
+static size_t round_up_to_page(size_t len)
+{
+  long page_size = sysconf(_SC_PAGE_SIZE);
+
+  return ((len + page_size - 1) / page_size) * page_size;
+}
+
+/*
  * Dispose of any allocated image data within a pgx64_frame_t
  */
 
@@ -316,6 +399,19 @@ static void dispose_frame_internals(pgx64_frame_t *frame)
     free(frame->vo_frame.base[2]);
     frame->vo_frame.base[2] = NULL;
   }
+}
+
+/*
+ * Update colour_key_rgb using the colour_key index
+ */
+
+static void update_colour_key_rgb(pgx64_driver_t *this)
+{
+  XColor colour;
+
+  colour.pixel = this->colour_key;
+  XQueryColor(this->display, this->cmap, &colour);
+  this->colour_key_rgb = ((colour.red & 0xff00) << 8) | (colour.green & 0xff00) | ((colour.blue & 0xff00) >> 8);
 }
 
 /*
@@ -363,7 +459,7 @@ static void repaint_output_area(pgx64_driver_t *this)
  * Reset video memory allocator and release detained frames
  */
 
-static void vram_reset(pgx64_driver_t * this)
+static void vram_reset(pgx64_driver_t *this)
 {
   int i;
 
@@ -385,7 +481,7 @@ static void vram_reset(pgx64_driver_t * this)
  * Allocate a portion of video memory
  */
 
-static int vram_alloc(pgx64_driver_t * this, int size)
+static int vram_alloc(pgx64_driver_t *this, int size)
 {
   if (this->free_mark - size < this->free_bottom) {
     return -1;
@@ -484,27 +580,28 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
     frame->height = height;
     frame->ratio = ratio;
     frame->format = format;
-    frame->pitch = ((width + 7) / 8) * 8;
 
     frame->vo_frame.proc_frame = NULL;
     frame->vo_frame.proc_slice = NULL;
 
     switch (format) {
       case XINE_IMGFMT_YUY2:
-        frame->native_format = VIDEO_FORMAT_YUY2;
+        frame->native_format = this->vyuy422_native_format;
+        frame->pitch = ((width + this->vyuy422_align - 1) / this->vyuy422_align) * this->vyuy422_align;
         frame->planes = 1;
         frame->vo_frame.pitches[0] = frame->pitch * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->stripe_lengths[0] = frame->vo_frame.pitches[0] * 16;
         frame->vo_frame.base[0] = memalign(8, frame->lengths[0]);
-      break;
+        break;
 
       case XINE_IMGFMT_YV12:
-        frame->native_format = VIDEO_FORMAT_YUV12;
+        frame->native_format = this->yuv12_native_format;
+        frame->pitch = ((width + this->yuv12_align - 1) / this->yuv12_align) * this->yuv12_align;
         frame->planes = 3;
         frame->vo_frame.pitches[0] = frame->pitch;
-        frame->vo_frame.pitches[1] = ((width + 15) / 16) * 8;
-        frame->vo_frame.pitches[2] = ((width + 15) / 16) * 8;
+        frame->vo_frame.pitches[1] = ((((width + 1) / 2) + this->yuv12_align - 1) / this->yuv12_align) * this->yuv12_align;
+        frame->vo_frame.pitches[2] = ((((width + 1) / 2) + this->yuv12_align - 1) / this->yuv12_align) * this->yuv12_align;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->lengths[1] = frame->vo_frame.pitches[1] * ((height + 1) / 2);
         frame->lengths[2] = frame->vo_frame.pitches[2] * ((height + 1) / 2);
@@ -514,7 +611,7 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
         frame->vo_frame.base[0] = memalign(8, frame->lengths[0]);
         frame->vo_frame.base[1] = memalign(8, frame->lengths[1]);
         frame->vo_frame.base[2] = memalign(8, frame->lengths[2]);
-      break;
+        break;
     }
 
     for (i=0; i<frame->planes; i++) {
@@ -534,7 +631,6 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;
-  volatile uint32_t *vregs = (void *)(this->vbase+M64_REGSBASE);
 
   if ((frame->width != this->vo_scale.delivered_width) ||
       (frame->height != this->vo_scale.delivered_height) ||
@@ -598,41 +694,91 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     DGA_DRAW_UNLOCK(this->dgadraw);
     XUnlockDisplay(this->display);
 
-    vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
-    vregs[SCALER_H_COEFF0] = le2me_32(SCALER_H_COEFF0_DEFAULT);
-    vregs[SCALER_H_COEFF1] = le2me_32(SCALER_H_COEFF1_DEFAULT);
-    vregs[SCALER_H_COEFF2] = le2me_32(SCALER_H_COEFF2_DEFAULT);
-    vregs[SCALER_H_COEFF3] = le2me_32(SCALER_H_COEFF3_DEFAULT);
-    vregs[SCALER_H_COEFF4] = le2me_32(SCALER_H_COEFF4_DEFAULT);
-    vregs[CAPTURE_CONFIG] = le2me_32(CAPTURE_CONFIG_BUF0);
-    vregs[SCALER_COLOUR_CNTL] = le2me_32((this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
-    vregs[OVERLAY_KEY_CNTL] = le2me_32(OVERLAY_KEY_EN);
-    vregs[OVERLAY_GRAPHICS_KEY_CLR] = le2me_32(this->colour_key);
-    vregs[OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
+    switch (this->fb_type) {
+      case FB_TYPE_M64:
+        this->vregs[M64_BUS_CNTL] |= le2me_32(M64_BUS_EXT_REG_EN);
 
-    vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
-    vregs[SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch *2 : frame->pitch);
-    vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
-    vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width - 1) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
-    vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
-    vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
+        if (dgavis == DGA_VIS_FULLY_OBSCURED) {
+          this->vregs[M64_OVERLAY_SCALE_CNTL] = 0;
+        }
+        else {
+          this->vregs[M64_OVERLAY_X_Y_START] = le2me_32((wx0 << 16) | wy0 | M64_OVERLAY_X_Y_LOCK);
+          this->vregs[M64_OVERLAY_X_Y_END] = le2me_32(((wx1 - 1) << 16) | (wy1 - 1));
+          this->vregs[M64_OVERLAY_GRAPHICS_KEY_CLR] = le2me_32(this->colour_key);
+          this->vregs[M64_OVERLAY_GRAPHICS_KEY_MSK] = le2me_32(0xffffffff >> (32 - this->fb_depth));
+          this->vregs[M64_OVERLAY_KEY_CNTL] = le2me_32(M64_OVERLAY_KEY_EN);
+          this->vregs[M64_OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
 
-    if ((dgavis == DGA_VIS_UNOBSCURED) && !this->chromakey_en) {
-      int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
-      int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
+          this->vregs[M64_SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
+          this->vregs[M64_SCALER_COLOUR_CNTL] = le2me_32((this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
+          this->vregs[M64_SCALER_H_COEFF0] = le2me_32(M64_SCALER_H_COEFF0_DEFAULT);
+          this->vregs[M64_SCALER_H_COEFF1] = le2me_32(M64_SCALER_H_COEFF1_DEFAULT);
+          this->vregs[M64_SCALER_H_COEFF2] = le2me_32(M64_SCALER_H_COEFF2_DEFAULT);
+          this->vregs[M64_SCALER_H_COEFF3] = le2me_32(M64_SCALER_H_COEFF3_DEFAULT);
+          this->vregs[M64_SCALER_H_COEFF4] = le2me_32(M64_SCALER_H_COEFF4_DEFAULT);
+          this->vregs[M64_SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch*2 : frame->pitch);
 
-      vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
-      vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
-    }
-    else {
-      vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
-    }
+          this->vregs[M64_VIDEO_FORMAT] = le2me_32(frame->native_format);
+          this->vregs[M64_OVERLAY_SCALE_CNTL] = le2me_32(M64_OVERLAY_SCALE_EN);
+        }
 
-    if (dgavis != DGA_VIS_FULLY_OBSCURED) {
-      vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
-    }
-    else {
-      vregs[OVERLAY_SCALE_CNTL] = 0;
+        if ((dgavis == DGA_VIS_UNOBSCURED) && !this->chromakey_en) {
+          this->vregs[M64_OVERLAY_EXCLUSIVE_VERT] = le2me_32((wy0 - 1) | ((wy1 - 1) << 16));
+          this->vregs[M64_OVERLAY_EXCLUSIVE_HORZ] = le2me_32(((wx0 + 7) / 8) | ((wx1 / 8) << 8) | (((this->fb_width / 8) - (wx1 / 8)) << 16) | M64_OVERLAY_EXCLUSIVE_EN);
+        }
+        else {
+          this->vregs[M64_OVERLAY_EXCLUSIVE_HORZ] = 0;
+        }
+        break;
+
+      case FB_TYPE_PFB:
+        if (dgavis == DGA_VIS_FULLY_OBSCURED) {
+          this->vregs[PFB_OV0_SCALE_CNTL] = 0;
+        }
+        else {
+          int h_inc, h_step, ecp_div;
+
+          this->vregs[PFB_CLOCK_CNTL_INDEX] = (this->vregs[PFB_CLOCK_CNTL_INDEX] & ~0x0000003f) | 0x00000008;
+          ecp_div = (this->vregs[PFB_CLOCK_CNTL_DATA] >> 8) & 0x3;
+          h_inc = (frame->width << (12 + ecp_div)) / this->vo_scale.output_width;
+          h_step = 1;
+
+          while (h_inc > 0x1fff) {
+            h_inc >>= 1;
+            h_step++;
+          }
+
+          this->vregs[PFB_OV0_REG_LOAD_CNTL] = PFB_OV0_REG_LOAD_LOCK;
+          while (!(this->vregs[PFB_OV0_REG_LOAD_CNTL] & PFB_OV0_REG_LOAD_LOCK_READBACK)) {}
+
+          this->vregs[PFB_DISP_MERGE_CNTL] = PFB_DISP_MERGE_EN;
+          this->vregs[PFB_OV0_Y_X_START] = (wy0 << 16) | wx0;
+          this->vregs[PFB_OV0_Y_X_END] = ((wy1 - 1) << 16) | (wx1 - 1);
+          this->vregs[PFB_OV0_V_INC] = ((this->deinterlace_en ? frame->height/2 : frame->height) << 20) / this->vo_scale.output_height;
+          this->vregs[PFB_OV0_P1_V_ACCUM_INIT] = 0x00180001;
+          this->vregs[PFB_OV0_P23_V_ACCUM_INIT] = 0x00180001;
+          this->vregs[PFB_OV0_P1_BLANK_LINES_AT_TOP] = (((this->deinterlace_en ? frame->height/2 : frame->height) - 1) << 16) | 0xfff;
+          this->vregs[PFB_OV0_P23_BLANK_LINES_AT_TOP] = (((this->deinterlace_en ? frame->height/2 : frame->height) / 2 - 1) << 16) | 0x7ff;
+          this->vregs[PFB_OV0_BASE_ADDR] = (this->vregs[PFB_MC_FB_LOCATION] & 0xffff) << 16;
+          this->vregs[PFB_OV0_VID_BUF_PITCH0_VALUE] = this->deinterlace_en ? frame->vo_frame.pitches[0]*2 : frame->vo_frame.pitches[0];
+          this->vregs[PFB_OV0_VID_BUF_PITCH1_VALUE] = this->deinterlace_en ? frame->vo_frame.pitches[1]*2 : frame->vo_frame.pitches[1];
+          this->vregs[PFB_OV0_DEINTERLACE_PATTERN] = 0x000aaaaa;
+          this->vregs[PFB_OV0_H_INC] = ((h_inc / 2) << 16) | h_inc;
+          this->vregs[PFB_OV0_STEP_BY] = (h_step << 8) | h_step;
+          this->vregs[PFB_OV0_P1_H_ACCUM_INIT] = (((0x00005000 + h_inc) << 7) & 0x000f8000) | (((0x00005000 + h_inc) << 15) & 0xf0000000);
+          this->vregs[PFB_OV0_P23_H_ACCUM_INIT] = (((0x0000A000 + h_inc) << 6) & 0x000f8000) | (((0x0000A000 + h_inc) << 14) & 0x70000000);
+          this->vregs[PFB_OV0_P1_X_START_END] = frame->width - 1;
+          this->vregs[PFB_OV0_P2_X_START_END] = (frame->width / 2) - 1;
+          this->vregs[PFB_OV0_P3_X_START_END] = (frame->width / 2) - 1;
+          this->vregs[PFB_OV0_FILTER_CNTL] = PFB_OV0_FILTER_EN;
+          this->vregs[PFB_OV0_GRPH_KEY_CLR_LOW] = this->colour_key_rgb;
+          this->vregs[PFB_OV0_GRPH_KEY_CLR_HIGH] = this->colour_key_rgb | 0xff000000;
+          this->vregs[PFB_OV0_KEY_CNTL] = PFB_OV0_KEY_EN;
+          this->vregs[PFB_OV0_SCALE_CNTL] = PFB_OV0_SCALE_EN | frame->native_format;
+
+          this->vregs[PFB_OV0_REG_LOAD_CNTL] = 0;
+        }
+        break;
     }
   }
 
@@ -666,12 +812,12 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
 
     for (i=0; i<frame->planes; i++) {
-      vregs[scaler_regs_table[this->dblbuf_select][i]] = le2me_32(frame->buffers[i]);
+      this->buffers[this->dblbuf_select][i] = frame->buffers[i];
     }
   }
 
   if (this->buf_mode != BUF_MODE_MULTI) {
-    int i, j;
+    int i;
 
     if (this->buf_mode == BUF_MODE_NOT_MULTI) {
       for (i=0; i<frame->planes; i++) {
@@ -702,12 +848,6 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
           this->buffer_ptrs[1][i] = this->vbase + this->buffers[1][i];
         }
       }
-
-      for (i=0; i<2; i++) {
-        for (j=0; j<frame->planes; j++) {
-          vregs[scaler_regs_table[i][j]] = le2me_32(this->buffers[i][j]);
-        }
-      }
     }
 
     for (i=0; i<frame->planes; i++) {
@@ -715,9 +855,27 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
   }
 
-  vregs[CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
+  switch (this->fb_type) {
+    case FB_TYPE_M64:
+      this->vregs[m64_bufaddr_regs_tbl[this->dblbuf_select][0]] = le2me_32(this->buffers[this->dblbuf_select][0]);
+      this->vregs[m64_bufaddr_regs_tbl[this->dblbuf_select][1]] = le2me_32(this->buffers[this->dblbuf_select][1]);
+      this->vregs[m64_bufaddr_regs_tbl[this->dblbuf_select][2]] = le2me_32(this->buffers[this->dblbuf_select][2]);
+      this->vregs[M64_CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(M64_CAPTURE_CONFIG_BUF1) : le2me_32(M64_CAPTURE_CONFIG_BUF0);
+      ioctl(this->devfd, FBIOVERTICAL);
+      break;
+
+    case FB_TYPE_PFB:
+      this->vregs[pfb_bufaddr_regs_tbl[this->dblbuf_select][0]] = this->buffers[this->dblbuf_select][0];
+      this->vregs[pfb_bufaddr_regs_tbl[this->dblbuf_select][1]] = this->buffers[this->dblbuf_select][1] | 0x00000001;
+      this->vregs[pfb_bufaddr_regs_tbl[this->dblbuf_select][2]] = this->buffers[this->dblbuf_select][2] | 0x00000001;
+      this->vregs[PFB_OV0_AUTO_FLIP_CNTL] = this->dblbuf_select ? PFB_OV0_AUTO_FLIP_BUF3 : PFB_OV0_AUTO_FLIP_BUF0;
+      ioctl(this->devfd, FBIOVERTICAL); /* Two vertical retraces are required for the new buffer to become active */
+      ioctl(this->devfd, FBIOVERTICAL);
+      break;
+  }
+
   this->dblbuf_select = 1 - this->dblbuf_select;
-  ioctl(this->devfd, FBIOVERTICAL);
+
 
   if (this->current != NULL) {
     this->current->vo_frame.free(&this->current->vo_frame);
@@ -1104,14 +1262,23 @@ static int pgx64_redraw_needed(vo_driver_t *this_gen)
 static void pgx64_dispose(vo_driver_t *this_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
-  volatile uint32_t *vregs = (void *)(this->vbase+M64_REGSBASE);
-
-  vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
-  vregs[OVERLAY_SCALE_CNTL] = 0;
 
   cleanup_dga(this);
 
-  munmap(this->vbase, M64_MMAPLEN);
+  switch (this->fb_type) {
+    case FB_TYPE_M64:
+      this->vregs[M64_OVERLAY_EXCLUSIVE_HORZ] = 0;
+      this->vregs[M64_OVERLAY_SCALE_CNTL] = 0;
+      munmap(this->vbase, M64_MMAPLEN);
+      break;
+
+    case FB_TYPE_PFB:
+      this->vregs[PFB_OV0_SCALE_CNTL] = 0;
+      munmap(this->vbase, PFB_VRAM_MMAPLEN);
+      munmap((void *)this->vregs, PFB_REGS_MMAPLEN);
+      break;
+  }
+
   close(this->devfd);
   free(this);
 }
@@ -1123,6 +1290,7 @@ static void pgx64_config_changed(void *user_data, xine_cfg_entry_t *entry)
 
   if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
     pgx64_set_property(this_gen, VO_PROP_COLORKEY, entry->num_value);
+    update_colour_key_rgb(this);
   } 
   else if (strcmp(entry->key, "video.pgx64_brightness") == 0) {
     pgx64_set_property(this_gen, VO_PROP_BRIGHTNESS, entry->num_value);
@@ -1158,6 +1326,7 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
 {
   pgx64_driver_class_t *class = (pgx64_driver_class_t *)(void *)class_gen;
   pgx64_driver_t *this;
+  struct fbgattr attr;
 
   this = (pgx64_driver_t *)xine_xmalloc(sizeof(pgx64_driver_t));
   if (!this) {
@@ -1195,12 +1364,69 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
     return NULL;
   }
 
-  if ((this->vbase = mmap(0, M64_MMAPLEN, PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0)) == MAP_FAILED) {
-    xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
+  if (ioctl(this->devfd, FBIOGATTR, &attr) < 0) {
+    xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Error: ioctl failed (FBIOGATTR)\n"));
     cleanup_dga(this);
     close(this->devfd);
     free(this);
     return NULL;
+  }
+
+  switch (this->fb_type) {
+    case FB_TYPE_M64:
+      if ((this->vbase = mmap(NULL, round_up_to_page(M64_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0)) == MAP_FAILED) {
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
+        cleanup_dga(this);
+        close(this->devfd);
+        free(this);
+        return NULL;
+      }
+
+      /* Using the endian swapped register page at 0x00800000 causes the
+       * X server to behave abnormally so we use the one at the end of the
+       * memory aperture and perform the swap ourselves.
+       */
+      this->vregs = (uint32_t *)(void *)(this->vbase + 0x007ff800);
+
+      this->fb_width    = attr.fbtype.fb_width;
+      this->fb_depth    = attr.fbtype.fb_depth;
+      this->free_top    = attr.sattr.dev_specific[0];
+      this->free_bottom = attr.sattr.dev_specific[5] + attr.fbtype.fb_size;
+
+      this->yuv12_native_format   = M64_VIDEO_FORMAT_YUV12;
+      this->yuv12_align           = 8;
+      this->vyuy422_native_format = M64_VIDEO_FORMAT_VYUY422;
+      this->vyuy422_align         = 8;
+      break;
+
+    case FB_TYPE_PFB:
+      if ((this->vbase = mmap(NULL, round_up_to_page(PFB_VRAM_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x08000000)) == MAP_FAILED) {
+        xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
+        cleanup_dga(this);
+        close(this->devfd);
+        free(this);
+        return NULL;
+      }
+
+      if ((this->vregs = (uint32_t *)(void *)mmap(NULL, round_up_to_page(PFB_REGS_MMAPLEN), PROT_READ | PROT_WRITE, MAP_SHARED, this->devfd, 0x10000000)) == MAP_FAILED) {
+        xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: unable to memory map framebuffer\n");
+        munmap(this->vbase, PFB_VRAM_MMAPLEN);
+        cleanup_dga(this);
+        close(this->devfd);
+        free(this);
+        return NULL;
+      }
+
+      this->fb_width    = attr.fbtype.fb_width;
+      this->fb_depth    = attr.fbtype.fb_depth;
+      this->free_top    = attr.fbtype.fb_size - 0x2000;
+      this->free_bottom = ((attr.fbtype.fb_width + 255) / 256) * 256 * attr.fbtype.fb_height * (attr.fbtype.fb_depth / 8);
+
+      this->yuv12_native_format   = PFB_OV0_SCALE_YUV12;
+      this->yuv12_align           = 16;
+      this->vyuy422_native_format = PFB_OV0_SCALE_VYUY422;
+      this->vyuy422_align         = 8;
+      break;
   }
 
   this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1,
@@ -1208,6 +1434,7 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
     _("The colour key is used to tell the graphics card where it can overlay the video image. "
       "Try using different values if you see the video showing through other windows."),
     20, pgx64_config_changed, this);
+  update_colour_key_rgb(this);
   this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63,
     _("video brightness"),
     _("The brightness of the video image."),
@@ -1237,7 +1464,7 @@ static char *pgx64_get_identifier(video_driver_class_t *class_gen)
 
 static char *pgx64_get_description(video_driver_class_t *class_gen)
 {
-  return "xine video output plugin for Sun PGX64/PGX24 framebuffers";
+  return "xine video output plugin for Sun XVR100/PGX64/PGX24 framebuffers";
 }
 
 static void *pgx64_init_class(xine_t *xine, void *visual_gen)
