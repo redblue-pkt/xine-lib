@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.11 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: video_out_fb.c,v 1.12 2002/07/10 14:04:41 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -255,6 +255,7 @@ static void fb_compute_ideal_size (fb_driver_t *this, fb_frame_t *frame) {
     case ASPECT_AUTO:
       switch (frame->ratio_code) {
       case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
+      case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
 	desired_ratio = 16.0 /9.0;
 	break;
       case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */

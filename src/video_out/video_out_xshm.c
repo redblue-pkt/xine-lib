@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.77 2002/06/20 17:47:13 siggi Exp $
+ * $Id: video_out_xshm.c,v 1.78 2002/07/10 14:04:42 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -476,6 +476,7 @@ static void xshm_compute_ideal_size (xshm_driver_t *this, xshm_frame_t *frame) {
     case ASPECT_AUTO:
       switch (frame->ratio_code) {
       case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
+      case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
 	desired_ratio = 16.0 /9.0;
 	break;
       case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */

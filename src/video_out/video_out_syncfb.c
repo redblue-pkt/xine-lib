@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.71 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.72 2002/07/10 14:04:41 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -430,6 +430,7 @@ static void syncfb_compute_ideal_size (syncfb_driver_t *this)
   case ASPECT_AUTO:
     switch (this->delivered_ratio_code) {
     case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
+    case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
       desired_ratio = 16.0 /9.0;
       break;
     case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
