@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.139 2002/10/16 21:20:19 guenter Exp $
+ * $Id: video_out_xv.c,v 1.140 2002/10/16 22:54:47 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -135,10 +135,12 @@ struct xv_driver_s {
 };
 
 typedef struct {
-  config_values_t   *config;
-  XvPortID           xv_port;
-  XvAdaptorInfo     *adaptor_info;
-  unsigned int       adaptor_num;
+  video_driver_class_t driver_class;
+
+  config_values_t     *config;
+  XvPortID             xv_port;
+  XvAdaptorInfo       *adaptor_info;
+  unsigned int         adaptor_num;
 } xv_class_t;
 
 int gX11Fail;
@@ -940,7 +942,7 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
   return 0;
 }
 
-static void xv_exit (xine_vo_driver_t *this_gen) {
+static void xv_dispose (xine_vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
   int i;
@@ -1138,7 +1140,7 @@ static void *open_plugin (void *class_gen, xine_stream_t *stream,
   this->vo_driver.set_property         = xv_set_property;
   this->vo_driver.get_property_min_max = xv_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xv_gui_data_exchange;
-  this->vo_driver.exit                 = xv_exit;
+  this->vo_driver.dispose              = xv_dispose;
   this->vo_driver.redraw_needed        = xv_redraw_needed;
 
   /*
@@ -1230,11 +1232,6 @@ static void *open_plugin (void *class_gen, xine_stream_t *stream,
   }
 
   /*
-   * FIXME: move to class dispose
-   * XvFreeAdaptorInfo (class->adaptor_info); 
-   */
-
-  /*
    * check supported image formats
    */
 
@@ -1275,6 +1272,27 @@ static void *open_plugin (void *class_gen, xine_stream_t *stream,
   this->deinterlace_enabled = 0;
 
   return &this->vo_driver;
+}
+
+/*
+ * class functions
+ */
+
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "Xv";
+}
+
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the MIT X video extension");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+
+  xv_class_t        *this = (xv_class_t *) this_gen;
+
+  XvFreeAdaptorInfo (this->adaptor_info); 
+
+  free (this);
 }
 
 static void *init_class (xine_t *xine, void *visual_gen) {
@@ -1347,6 +1365,10 @@ static void *init_class (xine_t *xine, void *visual_gen) {
    */
   this = (xv_class_t *) malloc (sizeof (xv_class_t));
 
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
   this->config            = xine->config;
   this->xv_port           = xv_port;
   this->adaptor_info      = adaptor_info;
@@ -1357,14 +1379,8 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
 static vo_info_t vo_info_xv = {
   9,                    /* priority    */
-  "xine video output plugin using the MIT X video extension", /* description */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
-
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_xv.description = _("xine video output plugin using the MIT X video extension");
-  return &vo_info_xv;
-}
 
 /*
  * exported plugin catalog entry

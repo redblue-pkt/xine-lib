@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.73 2002/09/05 20:44:38 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.74 2002/10/16 22:54:47 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -83,7 +83,7 @@
 #       define AFMT_AC3         0x00000400  
 #endif
 
-#define AO_OUT_OSS_IFACE_VERSION 4
+#define AO_OUT_OSS_IFACE_VERSION 5
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
@@ -137,6 +137,12 @@ typedef struct oss_driver_s {
 
   struct timeval   start_time;
 } oss_driver_t;
+
+typedef struct {
+  audio_driver_class_t driver_class;
+
+  config_values_t *config;
+} oss_class_t;
 
 /*
  * open the audio device for writing to
@@ -611,9 +617,11 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static void *init_audio_out_plugin (xine_t *xine, void *data) {
+static void *open_plugin (void *class_gen, xine_stream_t *stream, 
+			  const void *data) {
 
-  config_values_t *config = xine->config;
+  oss_class_t     *class = (oss_class_t *) class_gen;
+  config_values_t *config = class->config;
   oss_driver_t    *this;
   int              caps;
 #ifdef CONFIG_DEVFS_FS
@@ -914,15 +922,43 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+/*
+ * class functions
+ */
+
+static char* get_identifier (audio_driver_class_t *this_gen) {
+  return "oss";
+}
+
+static char* get_description (audio_driver_class_t *this_gen) {
+  return _("xine audio output plugin using oss-compliant audio devices/drivers");
+}
+
+static void dispose_class (audio_driver_class_t *this_gen) {
+
+  oss_class_t *this = (oss_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  oss_class_t        *this;
+
+  this = (oss_class_t *) malloc (sizeof (oss_class_t));
+
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  this->config = xine->config;
+
+  return this;
+}
+
 static ao_info_t ao_info_oss = {
-  "xine audio output plugin using oss-compliant audio devices/drivers",
   10
 };
-
-ao_info_t *get_audio_out_plugin_info() {
-  ao_info_oss.description = _("xine audio output plugin using oss-compliant audio devices/drivers");
-  return &ao_info_oss;
-}
 
 /*
  * exported plugin catalog entry
@@ -930,6 +966,7 @@ ao_info_t *get_audio_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, init_audio_out_plugin },
+  { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, 
+    init_class, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

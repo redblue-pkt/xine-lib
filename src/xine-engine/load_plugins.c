@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.100 2002/10/16 21:10:56 guenter Exp $
+ * $Id: load_plugins.c,v 1.101 2002/10/16 22:54:48 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -149,7 +149,6 @@ static void _insert_plugin (xine_t *this,
     vo_old = info->special_info;
     vo_new = xine_xmalloc(sizeof(vo_info_t));
     priority = vo_new->priority = vo_old->priority;
-    vo_new->description = _strclone(vo_old->description);
     vo_new->visual_type = vo_old->visual_type;
     entry->info->special_info = vo_new;
     break;
@@ -158,7 +157,6 @@ static void _insert_plugin (xine_t *this,
     ao_old = info->special_info;
     ao_new = xine_xmalloc(sizeof(ao_info_t));
     priority = ao_new->priority = ao_old->priority;
-    ao_new->description = _strclone(ao_old->description);
     entry->info->special_info = ao_new;
     break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.4 2002/10/14 15:47:46 guenter Exp $
+ * $Id: xine_plugin.h,v 1.5 2002/10/16 22:54:48 guenter Exp $
  *
  * generic plugin definitions
  *
@@ -50,13 +50,11 @@ typedef struct {
 /* special_info for a video output plugin */
 typedef struct {
   int    priority;          /* priority of this plugin for auto-probing  */
-  char  *description;       /* human-readable description of this plugin */
   int    visual_type;       /* visual type supported by this plugin      */
 } vo_info_t;
 
 /* special info for a audio output plugin */
 typedef struct {
-  char   *description;
   int     priority;
 } ao_info_t ;
 

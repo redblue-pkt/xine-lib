@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.105 2002/10/14 15:47:41 guenter Exp $
+ * $Id: video_out.c,v 1.106 2002/10/16 22:54:48 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -851,7 +851,7 @@ static void vo_exit (vo_instance_t *this_gen) {
 
   vo_free_img_buffers (this_gen);
 
-  this->driver->exit (this->driver);
+  this->driver->dispose (this->driver);
 
 #ifdef LOG
   printf ("video_out: vo_exit... done\n");

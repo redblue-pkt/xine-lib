@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.36 2002/10/16 14:19:43 guenter Exp $
+ * $Id: audio_out.h,v 1.37 2002/10/16 22:54:48 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -232,6 +232,28 @@ struct ao_instance_s {
   int16_t        *zero_space;
 
   int64_t         passthrough_offset;
+};
+
+typedef struct audio_driver_class_s audio_driver_class_t;
+
+struct audio_driver_class_s {
+
+  /*
+   * return short, human readable identifier for this plugin class
+   */
+  char* (*get_identifier) (audio_driver_class_t *this);
+
+  /*
+   * return human readable (verbose = 1 line) description for 
+   * this plugin class
+   */
+  char* (*get_description) (audio_driver_class_t *this);
+
+  /*
+   * free all class-related resources
+   */
+
+  void (*dispose) (audio_driver_class_t *this);
 };
 
 /* 

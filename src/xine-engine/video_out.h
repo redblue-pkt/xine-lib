@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.65 2002/10/16 14:19:44 guenter Exp $
+ * $Id: video_out.h,v 1.66 2002/10/16 22:54:48 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -295,17 +295,43 @@ struct xine_vo_driver_s {
   int (*gui_data_exchange) (xine_vo_driver_t *this, int data_type,
 			    void *data);
 
-  void (*exit) (xine_vo_driver_t *this);
-  
   /* check if a redraw is needed (due to resize)
    * this is only used for still frames, normal video playback 
    * must call that inside display_frame() function.
    */
   int (*redraw_needed) (xine_vo_driver_t *this);
 
-  void *node; /* needed by plugin_loader */
+  /*
+   * free all resources, close driver
+   */
 
+  void (*dispose) (xine_vo_driver_t *this);
+  
+  void *node; /* needed by plugin_loader */
 };
+
+typedef struct video_driver_class_s video_driver_class_t;
+
+struct video_driver_class_s {
+
+  /*
+   * return short, human readable identifier for this plugin class
+   */
+  char* (*get_identifier) (video_driver_class_t *this);
+
+  /*
+   * return human readable (verbose = 1 line) description for 
+   * this plugin class
+   */
+  char* (*get_description) (video_driver_class_t *this);
+
+  /*
+   * free all class-related resources
+   */
+
+  void (*dispose) (video_driver_class_t *this);
+};
+
 
 typedef struct rle_elem_s {
   uint16_t len;
