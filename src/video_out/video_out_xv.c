@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.35 2001/06/04 17:13:36 guenter Exp $
+ * $Id: video_out_xv.c,v 1.36 2001/06/09 17:07:21 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -133,6 +133,8 @@ typedef struct {
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  printf ("video_out_xv: get capabilities\n");
 
   return this->capabilities;
 }

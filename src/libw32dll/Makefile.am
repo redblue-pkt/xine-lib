@@ -1,10 +1,14 @@
 
 EXTRA_DIST = stubs.s
 
-# CFLAGS = @BUILD_LIB_STATIC@ -I wine -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer
-# CFLAGS = -I wine -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer @X_CFLAGS@
-CFLAGS = -DXINE_COMPILE -I wine -fno-omit-frame-pointer \
-	-DWIN32_PATH=\"@w32_path@\" -pipe
+#CFLAGS = -DXINE_COMPILE -I wine -fno-omit-frame-pointer \
+#	-DWIN32_PATH=\"@w32_path@\" -pipe
+
+#CFLAGS = @GLOBAL_CFLAGS@ -DWIN32_PATH=\"@w32_path@\" -I wine -fno-omit-frame-pointer\
+#	 -fno-inline -D__WINE__ -Ddbg_printf=__vprintf -DTRACE=__vprintf
+
+CFLAGS = -DWIN32_PATH=\"@w32_path@\" -I wine -fno-omit-frame-pointer\
+	 -DXINE_COMPILE -D__WINE__ -pipe
 
 SUBDIRS = wine
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.19 2001/06/04 17:13:36 guenter Exp $
+ * $Id: video_decoder.c,v 1.20 2001/06/09 17:07:22 guenter Exp $
  *
  */
 
@@ -67,6 +67,11 @@ void *video_decoder_loop (void *this_gen) {
 
     case BUF_VIDEO_MPEG:
     case BUF_VIDEO_AVI:
+
+      /*
+      printf ("video_decoder: got package %d, decoder_info[0]:%d\n", 
+	      buf, buf->decoder_info[0]);
+	      */
 
       streamtype = (buf->type>>16) & 0xFF;
 

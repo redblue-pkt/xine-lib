@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2001/05/31 22:54:39 guenter Exp $
+ * $Id: xine_decoder.c,v 1.10 2001/06/09 17:07:21 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -120,6 +120,9 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   uint8_t byte;
   
+  if (buf->decoder_info[0] == 0)
+    return;
+
   this->pts = buf->PTS;
   
   while (current != end) {

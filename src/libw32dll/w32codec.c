@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.2 2001/06/07 20:23:54 guenter Exp $
+ * $Id: w32codec.c,v 1.3 2001/06/09 17:07:21 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -173,6 +173,8 @@ static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   this->video_out  = video_out;
   this->decoder_ok = 0;
+
+  printf ("w32codec: init - video_out: %d \n",this->video_out );
 }
 
 
@@ -190,12 +192,16 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   if(!this->hic){
     printf ("ICOpen failed! unknown codec / wrong parameters?\n");
     this->decoder_ok = 0;
+    return;
   }
+
+  printf ("w32codec: w32v_init_codec...\n");
 
   ret = ICDecompressGetFormat(this->hic, &this->bih, &this->o_bih);
   if(ret){
     printf("ICDecompressGetFormat failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
+    return;
   }
 
   if(outfmt==IMGFMT_YUY2)
@@ -219,12 +225,14 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   if(ret){
     printf("ICDecompressQuery failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
+    return;
   }
   
   ret = ICDecompressBegin(this->hic, &this->bih, &this->o_bih);
   if(ret){
     printf("ICDecompressBegin failed: Error %ld\n", (long)ret);
     this->decoder_ok = 0;
+    return;
   }
 
   if (this->yuv_hack_needed) {
@@ -233,10 +241,14 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   
   this->size = 0;
 
-  if (!(this->video_out->get_capabilities (this->video_out) && VO_CAP_YUY2)) {
+  
+  if (!( (this->video_out->get_capabilities (this->video_out)) & VO_CAP_YUY2)) {
     printf ("video output driver doesn't support YUY2 !!");
     this->decoder_ok = 0;
   }
+  
+
+  printf ("w32codec: w32v_init_codec o_bih.biSizeImage : %d\n",this->o_bih.biSizeImage );
 
   this->our_out_buffer = malloc (this->o_bih.biSizeImage);
 
@@ -248,9 +260,13 @@ static void w32v_init_codec (w32v_decoder_t *this) {
 static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
+  /*
+  printf ("w32codec: processing packet type = %08x, buf : %d, buf->decoder_info[0]=%d\n", 
+	  buf->type, buf, buf->decoder_info[0]);
+	  */
 
   if (buf->decoder_info[0] == 0) {
-   /* init package containing bih */
+    /* init package containing bih */
 
     memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
     this->video_step = buf->decoder_info[1];
@@ -258,6 +274,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     w32v_init_codec (this);
     
   } else if (this->decoder_ok) {
+
+    /* printf ("w32codec: processing packet ...\n"); */
 
     memcpy (&this->buf[this->size], buf->content, buf->size);
 
@@ -296,6 +314,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->size = 0;
     }
 
+    /* printf ("w32codec: processing packet done\n"); */
   }
 }
 
@@ -315,6 +334,7 @@ static char *w32v_get_id(void) {
  */
 
 static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
+
   return ((buf_type & 0xFFFF0000) == BUF_AUDIO_AVI) ;
 }
 
@@ -494,7 +514,6 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     /* init package containing bih */
 
     this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content);
-
   } else if (this->decoder_ok) {
 
     w32a_decode_audio (this, buf->content, buf->size,

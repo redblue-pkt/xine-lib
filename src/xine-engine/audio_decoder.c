@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.14 2001/06/04 17:01:47 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.15 2001/06/09 17:07:22 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -103,7 +103,7 @@ void *audio_decoder_loop (void *this_gen) {
       default:
 	if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
       
-	  /* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type); */
+	  /* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type);  */
 
 	  /* update track map */
 	  
@@ -127,8 +127,7 @@ void *audio_decoder_loop (void *this_gen) {
 	    this->audio_track_map_entries++;
 	    
 	    if (i<=this->audio_channel) {
-	      /* printf ("audio_decoder: resetting audio decoder because of new channel\n"); */
-	      
+	      /* close old audio decoder */
 	      if (this->cur_audio_decoder_plugin) {
 		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 		this->cur_audio_decoder_plugin = NULL;
@@ -142,9 +141,6 @@ void *audio_decoder_loop (void *this_gen) {
 	  if (buf->type == this->audio_track_map[this->audio_channel]) {
 	    
 	    int streamtype = (buf->type>>16) & 0xFF;
-	    
-	    /* printf ("audio_decoder_c: buffer is from the right track => decode it\n"); */
-	    
 	    
 	    decoder = this->audio_decoder_plugins [streamtype];
 	    

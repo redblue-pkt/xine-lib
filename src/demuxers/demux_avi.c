@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.15 2001/06/07 20:23:54 guenter Exp $
+ * $Id: demux_avi.c,v 1.16 2001/06/09 17:07:21 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -656,7 +656,10 @@ static long AVI_read_audio(demux_avi_t *this, avi_t *AVI, char *audbuf,
     }
 
   left = AVI->audio_index[AVI->audio_posc].len - AVI->audio_posb;
-  *bFrameDone = (left==0)+1;
+  if (left==0)
+    *bFrameDone = 2;
+  else
+    *bFrameDone = 1;
 
   return nr;
 }
@@ -703,7 +706,10 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
     }
 
   left = AVI->video_index[AVI->video_posf].len - AVI->video_posb;
-  *bFrameDone = (left==0)+1;
+  if (left==0)
+    *bFrameDone = 2;
+  else
+    *bFrameDone = 1;
 	 
   return nr;
 }
@@ -783,6 +789,12 @@ static int demux_avi_next (demux_avi_t *this) {
       return 0;
     }
 
+    /*
+    printf ("demux_avi: adding buf %d to video fifo, decoder_info[0]: %d\n", 
+	    buf, buf->decoder_info[0]);
+	    */
+
+    
     this->video_fifo->put (this->video_fifo, buf);
   }
 
@@ -913,7 +925,26 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     memcpy (buf->content, &this->avi->wavex, 
 	    sizeof (this->avi->wavex));
     buf->size = sizeof (this->avi->wavex);
-    buf->type = BUF_AUDIO_AVI; 
+    switch (this->avi->a_fmt) {
+    case 0x01:
+      buf->type     = BUF_AUDIO_LPCM;
+      break;
+    case 0x2000:
+      buf->type     = BUF_AUDIO_AC3;
+      break;
+    case 0x50:
+    case 0x55:
+      buf->type     = BUF_AUDIO_MPEG;
+      break;
+    case 0x161:
+      buf->type     = BUF_AUDIO_AVI;
+      break;
+    default:
+      printf ("demux_avi: unknown audio type 0x%lx =>exit\n", this->avi->a_fmt);
+      this->status  = DEMUX_FINISHED;
+      buf->type     = BUF_AUDIO_MPEG;
+      break;
+    }
     buf->decoder_info[0] = 0; /* first package, containing wavex */
     this->audio_fifo->put (this->audio_fifo, buf);
   }

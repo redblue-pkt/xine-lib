@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.20 2001/06/07 20:23:54 guenter Exp $
+ * $Id: load_plugins.c,v 1.21 2001/06/09 17:07:22 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -406,11 +406,11 @@ void load_decoder_plugins (xine_t *this,
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n", 
-		  __FILE__, __LINE__, str, dlerror());
-	  exit(1);
-	}
-	else {
+
+	  printf ("load_plugins: failed to load plugin %s:\n%s\n",
+		  str, dlerror());
+
+	} else {
 	  void *(*initplug) (int, config_values_t *);
 	  
 	  /*
@@ -459,7 +459,7 @@ void load_decoder_plugins (xine_t *this,
       }
     }
   }
-  
+
   this->cur_video_decoder_plugin = NULL;
   this->cur_audio_decoder_plugin = NULL;
 }
