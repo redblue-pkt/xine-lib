@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: group_audio.h,v 1.2 2003/10/06 15:46:20 mroi Exp $
+ * $Id: group_audio.h,v 1.3 2003/12/19 05:09:16 tmmm Exp $
  */
 
 #ifndef HAVE_GROUP_AUDIO_H
@@ -25,6 +25,7 @@
 
 #include "xine_internal.h"
 
+void *demux_aac_init_plugin (xine_t *xine, void *data);
 void *demux_ac3_init_plugin (xine_t *xine, void *data);
 void *demux_aud_init_plugin (xine_t *xine, void *data);
 void *demux_aiff_init_plugin (xine_t *xine, void *data);
