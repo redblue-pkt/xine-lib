@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.13 2002/09/17 10:32:45 mroi Exp $
+ * $Id: vo_scale.c,v 1.14 2002/09/29 01:01:58 tmmm Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -44,7 +44,8 @@
 void vo_scale_compute_ideal_size (vo_scale_t *this) {
 
   double image_ratio, desired_ratio;
-  
+  static int warning_issued = 0;
+
   if (this->scaling_disabled) {
 
     this->video_pixel_aspect = this->gui_pixel_aspect;
@@ -74,8 +75,11 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
       case 0:                             /* forbidden -> 4:3 */
         printf ("vo_scale: invalid ratio, using 4:3\n");
       default:
-        printf ("vo_scale: unknown aspect ratio (%d) in stream => using 4:3\n",
-  	      this->delivered_ratio_code);
+        if (!warning_issued) {
+          printf ("vo_scale: unknown aspect ratio (%d) in stream => using 4:3\n",
+    	      this->delivered_ratio_code);
+          warning_issued = 1;
+        }
       case XINE_VO_ASPECT_4_3:         /* 4:3             */
         desired_ratio = 4.0 / 3.0;
         break;
