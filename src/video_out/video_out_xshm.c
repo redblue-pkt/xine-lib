@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.105 2003/02/03 00:24:13 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.106 2003/02/03 17:24:47 esnel Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1265,6 +1265,8 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 						     -128, 127,
 						     _("gamma correction for XShm driver"),
 						     NULL, 0, NULL, NULL);
+  this->yuv2rgb_contrast = 128;
+  this->yuv2rgb_saturation = 128;
 
   this->yuv2rgb_factory = yuv2rgb_factory_init (mode, swapped, 
 						this->yuv2rgb_cmap);
