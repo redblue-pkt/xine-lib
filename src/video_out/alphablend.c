@@ -64,7 +64,7 @@ static void mem_blend24(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
   }
 }
 
-static void mem_blend32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
+static void mem_blend24_32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
  uint8_t o, int len) {
   uint8_t *limit = mem + len*4;
   while (mem < limit) {
@@ -74,6 +74,20 @@ static void mem_blend32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
     mem++;
     *mem = BLEND_BYTE(*mem, b, o);
     mem += 2;
+  }
+}
+
+static void mem_blend32(uint8_t *mem, uint8_t *src, uint8_t o, int len) {
+  uint8_t *limit = mem + len*4;
+  while (mem < limit) {
+    *mem = BLEND_BYTE(*mem, src[0], o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, src[1], o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, src[2], o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, src[3], o);
+    mem++;
   }
 }
 
@@ -278,7 +292,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 
       x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
       if (o && mask) {
-        mem_blend32(img_pix + x1_scaled*4, clut[clr].cb,
+        mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
                     clut[clr].cr, clut[clr].y,
                     o, x2_scaled-x1_scaled);
       }
@@ -384,6 +398,10 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
   }
 }
 
+
+/* why this function is needed?? only syncfb uses it and it is 
+   almost the same as blend_yuv!
+*/
 void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl)
 {
   clut_t *my_clut;
@@ -449,5 +467,89 @@ void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl)
       dst_cr += (dst_img->width + 1) / 2;
       dst_cb += (dst_img->width + 1) / 2;
     }
+  }
+}
+
+
+void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
+                int dst_width, int dst_height)
+{
+  clut_t *my_clut;
+  uint8_t *my_trans;
+
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int mask;
+  int x, y;
+  int l;
+  uint32_t yuy2;
+  
+  uint8_t *dst_y = dst_img + 2 * (dst_width * y_off + x_off);
+  uint8_t *dst;
+
+  my_clut = (clut_t*) img_overl->color;
+  my_trans = img_overl->trans;
+
+  for (y = 0; y < src_height; y++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    dst = dst_y;
+    for (x = 0; x < src_width;) {
+      uint8_t clr;
+      uint16_t o;
+
+      clr = rle->color;
+      o   = my_trans[clr];
+
+      /* These three lines assume that menu buttons are "clean" separated
+       * and do not overlap with the button clip borders */
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x)
+		   o = 0;
+
+      if (o && mask) {
+        l = rle->len>>1;
+        if( !(x & 1) ) {
+          yuy2 =  my_clut[clr].y + (my_clut[clr].cb << 8) +
+                 (my_clut[clr].y << 16) + (my_clut[clr].cr << 24);
+        } else {
+          yuy2 =  my_clut[clr].y + (my_clut[clr].cr << 8) +
+                 (my_clut[clr].y << 16) + (my_clut[clr].cb << 24);
+        }
+        
+	if (o >= 15) {
+	  while(l--) {
+	    *((uint32_t *)dst)++ = yuy2;
+	  }
+	  if(rle->len & 1)
+	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
+	} else {
+	  if( l ) {
+	    mem_blend32(dst, (uint8_t *)&yuy2, o, l);
+	    dst += 4*l;
+	  }
+	  
+	  if(rle->len & 1) {
+	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2), o);
+	    dst++;
+	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2+1), o);
+	    dst++;
+	  }
+	}
+      } else {
+        dst += rle->len*2;
+      }
+
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+
+    dst_y += dst_width*2;
   }
 }

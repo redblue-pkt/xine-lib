@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.81 2001/11/28 22:19:12 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.82 2001/11/30 12:32:01 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -784,7 +784,10 @@ static void xv_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_o
    */
 
   if (overlay->rle) {
-    blend_yuv( frame->image->data, overlay, frame->width, frame->height);
+    if( frame->format == IMGFMT_YV12 )
+      blend_yuv( frame->image->data, overlay, frame->width, frame->height);
+    else
+      blend_yuy2( frame->image->data, overlay, frame->width, frame->height);
   }
 }
 
@@ -840,11 +843,6 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 printf("debug: change frame format\n");
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
-
-    /* Alpha Blend here
-       if (this->overlay) {
-       blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
-       } */
 
     if (this->deinterlace_enabled && this->deinterlace_method)
       xv_deinterlace_frame (this);
