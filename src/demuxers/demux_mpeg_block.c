@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.48 2001/10/03 17:15:43 jkeil Exp $
+ * $Id: demux_mpeg_block.c,v 1.49 2001/10/05 17:19:31 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -502,6 +502,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   rate     = 0;
   step     = this->input->get_length (this->input) / 10;
   step     = (step / this->blocksize) * this->blocksize;
+  if (step <= 0) step = this->blocksize; /* avoid endless loop for tiny files */
   count    = 0;
   
   this->input->seek (this->input, 0, SEEK_SET);
