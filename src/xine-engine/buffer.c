@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.16 2002/03/24 14:15:37 guenter Exp $
+ * $Id: buffer.c,v 1.17 2002/07/14 22:27:24 miguelfreitas Exp $
  *
  *
  * contents:
@@ -103,6 +103,12 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   /* needed because cancellation points defined by POSIX
      (eg. 'read') would leak allocated buffers */
   pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+  
+  /* set sane values to the newly allocated buffer */
+  buf->content = buf->mem; /* 99% of demuxers will want this */
+  buf->pts = 0;
+  buf->input_pos = buf->input_length = buf->input_time = 0;
+  buf->decoder_flags = 0;
 
   return buf;
 }

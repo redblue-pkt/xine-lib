@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.17 2002/07/10 02:54:43 tmmm Exp $
+ * $Id: demux_film.c,v 1.18 2002/07/14 22:27:25 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -335,13 +335,11 @@ static void *demux_film_loop (void *this_gen) {
 
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->input_length = this->data_end;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
-          buf->decoder_flags = 0;
 
           if (last_frame_pts) {
             buf->decoder_flags |= BUF_FLAG_FRAMERATE;
@@ -402,13 +400,11 @@ static void *demux_film_loop (void *this_gen) {
 
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->input_length = this->data_end;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
-          buf->decoder_flags = 0;
 
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -436,13 +432,11 @@ static void *demux_film_loop (void *this_gen) {
 
         while (remaining_sample_bytes) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->content = buf->mem;
           buf->type = this->audio_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->input_length = this->data_end;
           buf->input_time = this->sample_table[i].pts / 90000;
           buf->pts = this->sample_table[i].pts;
-          buf->decoder_flags = 0;
 
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -625,7 +619,6 @@ static int demux_film_start (demux_plugin_t *this_gen,
     /* send init info to decoders */
     if (this->video_fifo && this->video_type) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->content = buf->mem;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
       buf->decoder_info[1] = 3000;  /* initial video_step */
@@ -640,7 +633,6 @@ static int demux_film_start (demux_plugin_t *this_gen,
 
     if (this->audio_fifo && this->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = BUF_AUDIO_LPCM_BE;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;

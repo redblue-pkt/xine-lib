@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.3 2002/07/10 06:28:19 pmhahn Exp $
+ * $Id: demux_wav.c,v 1.4 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  */
 
@@ -118,13 +118,11 @@ static void *demux_wav_loop (void *this_gen) {
 
       while (remaining_sample_bytes) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->content = buf->mem;
         buf->type = this->audio_type;
         buf->input_pos = current_file_pos;
         buf->input_length = this->data_end;
         buf->input_time = current_pts / 90000;
         buf->pts = current_pts;
-        buf->decoder_flags = 0;
 
         if (remaining_sample_bytes > buf->max_size)
           buf->size = buf->max_size;

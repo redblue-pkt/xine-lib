@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.30 2002/07/05 17:32:00 mroi Exp $
+ * $Id: demux_ogg.c,v 1.31 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -259,7 +259,6 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	  bih.biClrImportant=0;
 
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-	  buf->content = buf->mem;
 	  buf->decoder_flags = BUF_FLAG_HEADER;
 	  this->frame_duration = oggh->time_unit * 9 / 1000;
 	  buf->decoder_info[1] = this->frame_duration;
@@ -288,8 +287,6 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
 	
-	buf->content = buf->mem;
-	
 	{
 	  int op_size = sizeof(op);
 	  ogg_packet *og_ghost;
@@ -307,8 +304,6 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	buf->pts    = 0; /* FIXME */
 	buf->size   = op.bytes;
 	
-	buf->decoder_flags = 0;
-
 	buf->input_pos  = this->input->get_current_pos (this->input);
 	buf->input_time = 0;
 	
@@ -329,11 +324,8 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	
-	  buf->content = buf->mem;
-
 	  if ( (todo-done)>(buf->max_size-1)) {
 	    buf->size  = buf->max_size-1;
-	    buf->decoder_flags = 0;
 	  } else {
 	    buf->size = todo-done;
 	    buf->decoder_flags = BUF_FLAG_FRAME_END;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.49 2002/07/05 20:54:37 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.50 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -349,7 +349,6 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
     this->streams[this->num_streams].defrag = 0;
   
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->content = buf->mem;
   memcpy (buf->content, this->wavex, this->wavex_size);
 
 #ifdef LOG
@@ -401,7 +400,6 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
 	    buf_video_name(this->streams[this->num_streams].buf_type));
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->content = buf->mem;
   buf->decoder_flags   = BUF_FLAG_HEADER;
   buf->decoder_info[1] = 3000; /* FIXME ? */
   memcpy (buf->content, &this->bih, this->bih_size);
@@ -717,7 +715,6 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
       bufsize = stream->fifo->buffer_pool_buf_size;
   
     buf = stream->fifo->buffer_pool_alloc (stream->fifo);
-    buf->content = buf->mem;
     this->input->read (this->input, buf->content, bufsize);
 
     if (stream->fifo == this->video_fifo) {
@@ -774,8 +771,7 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
       stream->frag_offset = 0;
 
-    } else 
-      buf->decoder_flags   = 0;
+    }
 
     if( !this->keyframe_found )
       buf->decoder_flags   |= BUF_FLAG_PREVIEW;
@@ -822,7 +818,6 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	      bufsize = stream->fifo->buffer_pool_buf_size;
 
 	    buf = stream->fifo->buffer_pool_alloc (stream->fifo);
-	    buf->content = buf->mem;
 	    xine_fast_memcpy (buf->content, p, bufsize);
 
 	    if (stream->fifo == this->video_fifo) {
@@ -851,9 +846,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 
 	    /* test if whole packet read */
 	    if ( !stream->frag_offset )
-	      buf->decoder_flags   = BUF_FLAG_FRAME_END;
-	    else 
-	      buf->decoder_flags = 0;
+	      buf->decoder_flags   |= BUF_FLAG_FRAME_END;
 	  
 	    if( !this->keyframe_found )
 	      buf->decoder_flags   |= BUF_FLAG_PREVIEW;

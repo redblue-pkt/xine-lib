@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.106 2002/07/05 17:32:00 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.107 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -249,8 +249,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   p = buf->content; /* len = this->mnBlocksize; */
   if (preview_mode)
     buf->decoder_flags = BUF_FLAG_PREVIEW;
-  else
-    buf->decoder_flags = 0;
 
   buf->input_pos = this->input->get_current_pos (this->input);
   buf->input_length = this->input->get_length (this->input);
@@ -974,7 +972,6 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
         ((this->input->get_optional_data(this->input, buf->mem, INPUT_OPTIONAL_DATA_CLUT)
          == INPUT_OPTIONAL_SUCCESS))) {
       buf->type = BUF_SPU_CLUT;
-      buf->content = buf->mem;
      
       this->video_fifo->put(this->video_fifo, buf);
     } else {

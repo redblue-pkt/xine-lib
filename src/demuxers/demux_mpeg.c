@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.66 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_mpeg.c,v 1.67 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -199,8 +199,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
-    else
-      buf->decoder_flags = 0;
 
     buf->input_pos = this->input->get_current_pos (this->input);
 
@@ -251,8 +249,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
-    else
-      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
@@ -297,8 +294,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
-    else
-      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -410,8 +406,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
-    else
-      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
       buf->input_time = buf->input_pos / (this->rate * 50);
@@ -433,8 +428,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if (this->preview_mode)
       buf->decoder_flags = BUF_FLAG_PREVIEW;
-    else
-      buf->decoder_flags = 0;
+    
     buf->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
       buf->input_time = buf->input_pos / (this->rate * 50);

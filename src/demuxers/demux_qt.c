@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.63 2002/07/10 05:38:18 pmhahn Exp $
+ * $Id: demux_qt.c,v 1.64 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  */
 
@@ -91,6 +91,8 @@ typedef unsigned int qt_atom;
 #define STTS_ATOM QT_ATOM('s', 't', 't', 's')
 #define STSS_ATOM QT_ATOM('s', 't', 's', 's')
 #define CO64_ATOM QT_ATOM('c', 'o', '6', '4')
+
+#define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
 
 /* placeholder for cutting and pasting */
 #define _ATOM QT_ATOM('', '', '', '')
@@ -432,6 +434,11 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
         sample_table->media_description.audio.bits = trak_atom[i + 0x27];
 
+        /* test stuff - will be removed
+        if( BE_32(&trak_atom[i + 0x34]) == ESDS_ATOM ) {
+          int atom_len = BE_32(&trak_atom[i + 0x30]) - 8;
+          printf("esds atom! size=%d\n", atom_len);
+        }*/
       }
 
     } else if (current_atom == STSZ_ATOM) {
@@ -1138,13 +1145,11 @@ static void *demux_qt_loop (void *this_gen) {
 
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->content = buf->mem;
           buf->type = this->qt->video_type;
           buf->input_pos = this->qt->frames[i].offset;
           buf->input_length = this->qt->input_length;
           buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
-          buf->decoder_flags = 0;
 
           if (last_frame_pts) {
             buf->decoder_flags |= BUF_FLAG_FRAMERATE;
@@ -1181,13 +1186,11 @@ static void *demux_qt_loop (void *this_gen) {
 
         while (remaining_sample_bytes) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->content = buf->mem;
           buf->type = this->qt->audio_type;
           buf->input_pos = this->qt->frames[i].offset;
           buf->input_length = this->qt->input_length;
           buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
-          buf->decoder_flags = 0;
 
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -1371,7 +1374,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = 3000;  /* initial video_step */
@@ -1382,7 +1384,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     if (this->audio_fifo && this->qt->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = this->qt->audio_type;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
@@ -1390,9 +1391,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       buf->decoder_info[2] = this->qt->audio_bits;
       buf->decoder_info[3] = this->qt->audio_channels;
       this->audio_fifo->put (this->audio_fifo, buf);
-    } else
-      buf->free_buffer(buf);
-
+    }
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;

@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.2 2002/07/10 06:28:19 pmhahn Exp $
+ * $Id: demux_smjpeg.c,v 1.3 2002/07/14 22:27:25 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -164,12 +164,10 @@ static void *demux_smjpeg_loop (void *this_gen) {
             buf->type = this->video_type;
           }
 
-          buf->content = buf->mem;
           buf->input_pos = current_file_pos;
           buf->input_length = this->input_length;
           buf->input_time = pts / 90000;
           buf->pts = pts;
-          buf->decoder_flags = 0;
 
           if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -424,7 +422,6 @@ this->video_type = BUF_VIDEO_JPEG;
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = 3000;  /* initial video_step */
@@ -435,7 +432,6 @@ this->video_type = BUF_VIDEO_JPEG;
 
     if (this->audio_fifo && this->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = this->audio_type;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;

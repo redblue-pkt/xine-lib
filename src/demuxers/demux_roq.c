@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.8 2002/07/07 00:41:24 tmmm Exp $
+ * $Id: demux_roq.c,v 1.9 2002/07/14 22:27:25 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -139,10 +139,8 @@ static void *demux_roq_loop (void *this_gen) {
           /* packetize the audio */
           while (chunk_size) {
             buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-            buf->content = buf->mem;
             buf->type = BUF_AUDIO_ROQ;
             buf->input_pos = current_file_pos;
-            buf->decoder_flags = 0;
             buf->pts = audio_pts;
 
             if (chunk_size > buf->max_size)
@@ -196,10 +194,8 @@ static void *demux_roq_loop (void *this_gen) {
 //printf ("total video chunk size = %X\n", chunk_size);
         while (chunk_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->content = buf->mem;
           buf->type = BUF_VIDEO_ROQ;
           buf->input_pos = current_file_pos;
-          buf->decoder_flags = 0;
           buf->pts = video_pts_counter;
 
           if (chunk_size > buf->max_size)
@@ -432,7 +428,6 @@ static int demux_roq_start (demux_plugin_t *this_gen,
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
@@ -448,7 +443,6 @@ static int demux_roq_start (demux_plugin_t *this_gen,
 
     if (this->audio_fifo && this->audio_channels) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = BUF_AUDIO_ROQ;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.100 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_avi.c,v 1.101 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1053,7 +1053,6 @@ static int demux_avi_next (demux_avi_t *this) {
       get_audio_pts (this, i, audio->audio_posc, aie->tot, audio->audio_posb);
     if (!this->no_audio && (audio_pts < video_pts)) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->content = buf->mem;
 
       /* read audio */
 
@@ -1085,7 +1084,6 @@ static int demux_avi_next (demux_avi_t *this) {
   if (do_read_video) {
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
 
     /* read video */
 
@@ -1369,7 +1367,6 @@ static int demux_avi_start (demux_plugin_t *this_gen,
 
   if( !this->thread_running && (this->status == DEMUX_OK) ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[1] = this->video_step;
     memcpy (buf->content, &this->avi->bih, sizeof (this->avi->bih));
@@ -1398,7 +1395,6 @@ static int demux_avi_start (demux_plugin_t *this_gen,
       /* send off the palette, if there is one */
       if (this->avi->palette_count) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-        buf->content = buf->mem;
         buf->decoder_flags = BUF_FLAG_SPECIAL;
         buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
         buf->decoder_info[2] = this->avi->palette_count;
@@ -1413,7 +1409,6 @@ static int demux_avi_start (demux_plugin_t *this_gen,
           avi_audio_t *a = this->avi->audio[i];
 
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->content = buf->mem;
           buf->decoder_flags = BUF_FLAG_HEADER;
           memcpy (buf->content, a->wavex, a->wavex_len);
           buf->size = a->wavex_len;

@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.3 2002/07/13 19:49:00 tmmm Exp $
+ * $Id: demux_fli.c,v 1.4 2002/07/14 22:27:25 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -129,13 +129,11 @@ static void *demux_fli_loop (void *this_gen) {
           (chunk_magic == FLI_CHUNK_MAGIC_2)) {
         while (chunk_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->content = buf->mem;
           buf->type = BUF_VIDEO_FLI;
           buf->input_pos = current_file_pos;
           buf->input_time = pts_counter / 90000;
           buf->input_length = stream_len;
           buf->pts = pts_counter;
-          buf->decoder_flags = 0;
 
           if (chunk_size > buf->max_size)
             buf->size = buf->max_size;
@@ -319,7 +317,6 @@ static int demux_fli_start (demux_plugin_t *this_gen,
 
     /* send init info to FLI decoder */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */

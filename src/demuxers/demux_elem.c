@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.48 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_elem.c,v 1.49 2002/07/14 22:27:25 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -87,8 +87,6 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
 
   if (preview_mode)
     buf->decoder_flags = BUF_FLAG_PREVIEW;
-  else
-    buf->decoder_flags = 0;
 
   buf->pts             = 0;
   /*buf->scr             = 0;*/

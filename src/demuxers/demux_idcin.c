@@ -21,7 +21,7 @@
  * For more information regarding the Id CIN file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_idcin.c,v 1.1 2002/07/07 01:24:40 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.2 2002/07/14 22:27:25 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -289,7 +289,6 @@ return DEMUX_FINISHED;
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
@@ -305,7 +304,6 @@ return DEMUX_FINISHED;
 
     /* send the Huffman table */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->content = buf->mem;
     buf->decoder_flags = BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE;
     buf->decoder_info[2] = (unsigned int)&this->huffman_table;
@@ -315,7 +313,6 @@ return DEMUX_FINISHED;
 
     if (this->audio_fifo && this->audio_channels) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = BUF_AUDIO_LPCM_LE;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
