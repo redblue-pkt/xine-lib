@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.98 2003/10/12 19:15:41 mroi Exp $
+ * $Id: xine.h.in,v 1.99 2003/10/22 16:49:26 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1150,7 +1150,11 @@ struct xine_cfg_entry_s {
   /* type string */
   char            *str_value;
   char            *str_default;
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
   char            *str_sticky;
+#else
+  void            *dummy;
+#endif
 
   /* common to range, enum, num, bool: */
   int              num_value;
