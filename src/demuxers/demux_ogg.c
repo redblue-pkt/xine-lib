@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.6 2001/10/25 00:46:59 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.7 2001/11/06 21:47:30 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -382,7 +382,7 @@ static char *demux_ogg_get_id(void) {
 }
 
 static char *demux_ogg_get_mimetypes(void) {
-  return "";
+  return "audio/x-ogg: ogg: OggVorbis Audio;";
 }
 
 static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
