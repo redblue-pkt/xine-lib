@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.1 2001/04/18 22:36:01 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.2 2001/04/22 02:42:49 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -27,168 +27,128 @@
 #include "config.h"
 #endif
 
-#include "audio_decoder.h"
+#include "xine_internal.h"
 
-#define MAX_NUM_DECODERS 10
+void *audio_decoder_loop (void *this_gen) {
 
-typedef struct ad_globals_s {
+  buf_element_t   *buf;
+  xine_t          *this = (xine_t *) this_gen;
+  int              running = 1;
+  audio_decoder_t *decoder;
 
-  pthread_t                  mAudioThread;
+  while (running) {
 
-  fifo_buffer_t             *mBufAudio;
+    buf = this->audio_fifo->get (this->audio_fifo);
 
-  audio_decoder_t           *mDecoders[MAX_NUM_DECODERS];
-  audio_decoder_t           *mCurDecoder;
+    if (this->audio_out) {
 
-  uint32_t                   mnCurPos;
+      /* FIXME gAD.mnCurPos = pBuf->nInputPos; */
 
-  ao_instance_t             *mAudioOut
+      switch (buf->type) {
 
-  gui_status_callback_func_t gui_status_callback;
-
-  int                        mbStreamFinished;
-
-  pthread_mutex_t            mXineLock;
-
-} ad_globals_t;
-
-static ad_globals_t gAD;
-
-
-void *audio_decoder_loop (void *dummy) {
-
-  buf_element_t *pBuf;
-  int bRunning = 1;
-
-  while (bRunning) {
-
-    pBuf = gAD.mBufAudio->fifo_buffer_get (gAD.mBufAudio);
-
-    if (gAD.mAudioOut) {
-
-      gAD.mnCurPos = pBuf->nInputPos;
-
-      /*
-      if (gXine.mnStatus == XINE_PLAY)
-	gXine.mStatusCallback (gXine.mnStatus);
-	*/
-
-      switch (pBuf->nType) {
-
-      case BUF_STREAMSTART:
-	if (gAD.mCurDecoder) {
-	  gAD.mCurDecoder->close ();
-	  gAD.mCurDecoder = NULL;
+      case BUF_CONTROL_START:
+	if (this->audio_cur_decoder) {
+	  this->audio_cur_decoder->close (this->audio_cur_decoder);
+	  this->audio_cur_decoder = NULL;
 	}
 
-	pthread_mutex_lock (&gAD.mXineLock);
-	gAD.mbStreamFinished = 0;
-	pthread_mutex_unlock (&gAD.mXineLock);
+	pthread_mutex_lock (&this->xine_lock);
+	this->audio_finished = 0;
+	pthread_mutex_unlock (&this->xine_lock);
 
       break;
 
-      case BUF_AC3AUDIO:
-      case BUF_MPEGAUDIO:
-      case BUF_MSAUDIO:
-      case BUF_LINEARPCM:
+      case BUF_AUDIO_AC3:
+      case BUF_AUDIO_MPEG:
+      case BUF_AUDIO_LPCM:
+      case BUF_AUDIO_AVI:
       
-	decoder = gAD.mDecoders [pBuf->nType];
+	decoder = this->audio_decoders [(buf->type>>16) & 0xFF];
 
 	if (decoder) {
-	  if (gAD.mCurDecoder != decoder) {
+	  if (this->audio_cur_decoder != decoder) {
 
-	    if (gAD.mCurDecoder) 
-	      gAD.mCurDecoder->close ();
+	    if (this->audio_cur_decoder) 
+	      this->audio_cur_decoder->close (this->audio_cur_decoder);
 
-	    gAD.mCurDecoder = decoder;
-	    gAD.mCurDecoder->init (gAD.mVideoOut);
+	    this->audio_cur_decoder = decoder;
+	    this->audio_cur_decoder->init (this->audio_cur_decoder, this->audio_out);
 
 	  }
 	
-	  decoder->decode_data (pBuf);
+	  decoder->decode_data (decoder, buf);
 	}
 
 	break;
 
-      case BUF_STREAMEND:
-	if (gAD.mCurDecoder) {
-	  gAD.mCurDecoder->close ();
-	  gAD.mCurDecoder = NULL;
+      case BUF_CONTROL_END:
+	if (this->audio_cur_decoder) {
+	  this->audio_cur_decoder->close (this->audio_cur_decoder);
+	  this->audio_cur_decoder = NULL;
 	}
 
-	gAD.mbStreamFinished = 1;
+	pthread_mutex_lock (&this->xine_lock);
 
-	pthread_mutex_lock (&gAD.mXineLock);
-
-	gVD.mbStreamFinished = 1;
+	this->audio_finished = 1;
       
-	if (video_decoder_is_stream_finished ()) {
-	  pthread_mutex_unlock (&gAD.mXineLock);
-	  xine_notify_stream_finished ();
+	if (this->video_finished) {
+	  pthread_mutex_unlock (&this->xine_lock);
+	  xine_notify_stream_finished (this);
 	} else
-	  pthread_mutex_unlock (&gAD.mXineLock);
+	  pthread_mutex_unlock (&this->xine_lock);
 
 	break;
 
-      case BUF_QUIT:
-	if (gAD.mCurDecoder) {
-	  gAD.mCurDecoder->close ();
-	  gAD.mCurDecoder = NULL;
+      case BUF_CONTROL_QUIT:
+	if (this->audio_cur_decoder) {
+	  this->audio_cur_decoder->close (this->audio_cur_decoder);
+	  this->audio_cur_decoder = NULL;
 	}
-	bRunning = 0;
+	running = 0;
 	break;
 
       }
     }
-    pBuf->free_buffer (pBuf);
+    buf->free_buffer (buf);
   }
 
   return NULL;
 }
 
-int audio_decoder_is_stream_finished () {
-  return gAD.mbStreamFinished ;
-}
+void audio_decoder_init (xine_t *this) {
 
-uint32_t audio_decoder_get_pos () {
-  return gAD.mnCurPos;
-}
+  int i;
 
-fifo_buffer_t *audio_decoder_init (ao_instance_t *audio_out,
-				   pthread_mutex_t xine_lock) {
+  this->audio_cur_decoder = NULL;
+  for (i=0; i<AUDIO_OUT_PLUGIN_MAX; i++)
+    this->audio_decoders[i] = NULL;
 
-  gAD.mAudioOut = audio_out;
-  gAD.mXineLock = xine_lock;
+  /* FIXME: dynamically load these
+  this->audio_decoders[BUF_AC3AUDIO]  = init_audio_decoder_ac3dec ();
+  this->audio_decoders[BUF_MPEGAUDIO] = init_audio_decoder_mpg123 ();
+  this->audio_decoders[BUF_MSAUDIO]   = init_audio_decoder_msaudio ();
+  this->audio_decoders[BUF_LINEARPCM] = init_audio_decoder_linearpcm ();
+  */
 
-  gAD.mCurDecoder = NULL;
-  for (i=0; i<MAX_NUM_DECODERS; i++)
-    gAD.mDecoders[i] = NULL;
+  this->audio_fifo = fifo_buffer_new ();
 
-  gAD.mDecoders[BUF_AC3AUDIO]  = init_audio_decoder_ac3dec ();
-  gAD.mDecoders[BUF_MPEGAUDIO] = init_audio_decoder_mpg123 ();
-  gAD.mDecoders[BUF_MSAUDIO]   = init_audio_decoder_msaudio ();
-  gAD.mDecoders[BUF_LINEARPCM] = init_audio_decoder_linearpcm ();
-
-  gAD.mBufAudio = fifo_buffer_new ();
-
-  pthread_create (&gAD.mAudioThread, NULL, audio_decoder_loop, NULL) ;
+  pthread_create (&this->audio_thread, NULL, audio_decoder_loop, this) ;
 
   printf ("audio_decoder_init: audio thread created\n");
-
-  return gAD.mBufAudio;
 }
 
-void audio_decoder_shutdown () {
+void audio_decoder_shutdown (xine_t *this) {
 
-  buf_element_t *pBuf;
+  buf_element_t *buf;
+  void          *p;
 
-  gAD.mBufAudio->fifo_buffer_clear(gAD.mBufAudio);
+  this->audio_fifo->clear(this->audio_fifo);
 
-  pBuf = gAD.mBufAudio->buffer_pool_alloc ();
-  pBuf->nType = BUF_QUIT;
-  gAD.mBufAudio->fifo_buffer_put (gAD.mBufAudio, pBuf);
+  buf = this->audio_fifo->buffer_pool_alloc ();
+  buf->type = BUF_CONTROL_QUIT;
+  this->audio_fifo->put (this->audio_fifo, buf);
 
-  pthread_join (gAD.mAudioThread, &p);
+  pthread_join (this->audio_thread, &p);
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.5 2001/04/22 00:31:44 guenter Exp $
+ * $Id: xine_internal.h,v 1.6 2001/04/22 02:42:49 guenter Exp $
  *
  */
 
@@ -131,6 +131,11 @@ typedef struct xine_s {
   video_decoder_t           *video_cur_decoder;
   int                        video_finished;
 
+  ao_functions_t            *audio_out;
+  fifo_buffer_t             *audio_fifo;
+  pthread_t                  audio_thread;
+  audio_decoder_t           *audio_decoders[DECODER_PLUGIN_MAX];
+  audio_decoder_t           *audio_cur_decoder;
   int                        audio_finished;
 
   gui_status_callback_func_t gui_status_callback;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.3 2001/04/22 00:31:44 guenter Exp $
+ * $Id: video_decoder.c,v 1.4 2001/04/22 02:42:49 guenter Exp $
  *
  */
 
@@ -65,11 +65,11 @@ void *video_decoder_loop (void *this_gen) {
 	    this->video_cur_decoder->close ();
 
 	  this->video_cur_decoder = decoder;
-	  this->video_cur_decoder->init (this->video_out);
+	  this->video_cur_decoder->init (this->video_cur_decoder, this->video_out);
 
 	}
 	
-	decoder->decode_data (buf);
+	decoder->decode_data (this->video_cur_decoder, buf);
       }
 
       break;

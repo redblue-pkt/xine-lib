@@ -25,7 +25,7 @@ libxine_la_LDFLAGS =  -version-info 5:0:5
 #	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
 
 noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
-	monitor.h cpu_accel.h attributes.h utils.h audio_decoder.h 
+	monitor.h cpu_accel.h attributes.h utils.h
 
 #cpu_accel.lo:
 #	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
