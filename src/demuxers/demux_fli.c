@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.13 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_fli.c,v 1.14 2002/10/06 02:35:08 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H

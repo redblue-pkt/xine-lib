@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.17 2002/10/05 21:09:18 komadori Exp $
+ * $Id: demux_roq.c,v 1.18 2002/10/06 02:35:08 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
