@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.87 2002/09/19 11:23:40 mroi Exp $
+ * $Id: input_dvd.c,v 1.88 2002/09/20 13:24:53 mroi Exp $
  *
  */
 
@@ -1312,7 +1312,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
     if(this && this->xine && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
-	sprintf(data, "%s", "none");
+	sprintf(data, "%s", "menu");
 	goto __spu_success;
       }
 
@@ -1547,9 +1547,8 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
- * Revision 1.87  2002/09/19 11:23:40  mroi
- * - memset not needed any more
- * - tweak language output
+ * Revision 1.88  2002/09/20 13:24:53  mroi
+ * another bit of language display tweaking
  *
  * Revision 1.86  2002/09/18 10:03:07  jcdutton
  * Fix a seg fault.
