@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.127 2002/08/15 18:24:14 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.128 2002/08/19 13:06:37 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -902,6 +902,15 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
       rect->y = y1;
       rect->w = x2-x1;
       rect->h = y2-y1;
+
+      /* onefield_xv divide by 2 the number of lines */
+      if (this->deinterlace_enabled
+          && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
+          && (this->cur_frame->format == IMGFMT_YV12)) {
+        rect->y = rect->y * 2;
+        rect->h = rect->h * 2;
+      }			
+      
     }
     break;
 
