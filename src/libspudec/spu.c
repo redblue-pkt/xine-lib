@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.46 2002/09/18 04:20:09 jcdutton Exp $
+ * $Id: spu.c,v 1.47 2002/09/18 15:42:56 mroi Exp $
  *
  */
 
@@ -340,7 +340,6 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
           spu_button.buttonN  = this->buttonN;
           /* The BUTTON_FORCE event cannot call "get_nav_pci",
              so the nav_pci info has to be passed in the event instead. */
-          /* FIXME: the dxr3 code will have to be updated. */
           memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t) );
           xine_send_event(this->xine, &spu_event.event);
         }
