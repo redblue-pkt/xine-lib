@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.81 2002/11/20 11:57:40 mroi Exp $
+ * $Id: demux_asf.c,v 1.82 2002/11/20 20:22:52 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -526,7 +526,7 @@ static int asf_read_header (demux_asf_t *this) {
 #endif
         this->num_audio_streams++;
       }
-      else if (type == CODEC_TYPE_AUDIO) {
+      else if (type == CODEC_TYPE_VIDEO) {
 
         int i;
 
