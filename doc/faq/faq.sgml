@@ -1822,6 +1822,106 @@
     </para>
    </sect2>
 
+   <sect2 id="supportedfonts">
+     <title>Which kinds of subtitle fonts xine uses and how to use them?</title>
+     <para>
+     xine can use two kinds of the fonts:
+     <itemizedlist>
+       <listitem>
+       <para>
+       TTF fonts
+       </para>
+       <para>
+       If xine is compiled with freetype library xine recognises and uses TTF
+       fonts directly.
+       </para>
+       </listitem>
+       <listitem>
+       <para>
+       xine fonts
+       </para>
+       <para>
+         This is the xine native format. It's better because in the font
+	 generator utility is implemented more features than in the
+	 "on the fly" TTF renderer.
+       </para>
+       </listitem>
+     </itemizedlist>
+     </para>
+     <para>
+     Font for external subtitles is selected via config option
+     'misc.spu_font'. You can specify xine font name ('sans', 'serif', ...)
+     or file name of TTF font. The fonts are searched in the directories
+     <filename>$prefix/share/xine/libxine1/fonts</filename> and
+     <filename>~/.xine/fonts</filename>. TTF fonts are searched also in the
+     current directory.
+     </para>
+   </sect2>
+
+   <sect2 id="generatefonts">
+     <title>How to create own xine subtitle fonts?</title>
+     <para>
+     xine native subtitle fonts can be generated from TTF fonts with the
+     utility xine-fontconv. It isn't compiled and installed by default but
+     you can make it manually. You'll need freetype and zlib packages and
+     their versions for development:
+     <itemizedlist>
+       <listitem>
+         <para>
+         Get the source of xine-fontconv utility from xine-lib sources.
+	 </para>
+       </listitem>
+       <listitem>
+         <para>
+         Compile it:
+         <screen><command>gcc xine-fontconv.c -o xine-fontconv `freetype-config --cflags --libs` -lz </command></screen>
+         </para>
+       </listitem>
+     </itemizedlist>
+     You'll need some TTF font for generating. Characters in this font should
+     cover all codepages you want support else you'll have missing characters.
+     </para>
+     <para>
+     Syntax is:
+     <screen><command>./xine-fontconf font.ttf font_name [encoding1 [encoding2 [...]]]</command></screen>
+     </para>
+     <para>
+     For example default font <filename>sans</filename> was generated with
+     following command:
+     <screen><command>./xine-fontconv Aril_Bold.ttf sans iso-8859-1 iso-8859-2 iso-8859-5 \
+                                   iso-8859-9 iso-8859-15 cp1250 cp1251</command></screen>
+     </para>
+     <para>
+     There are displayed messages about missing characters on the screen
+     during generating. It's OK if the missing characters are U+007f..U+009F.
+     These characters come from iso-8859-1 and they aren't displayable.
+     </para>
+   </sect2>
+
+   <sect2 id="subencoding">
+     <title>Encoding of external subtitles is bad. What is wrong?</title>
+     <para>
+     Default expected encoding of the external subtitles is iso-8859-1. You
+     need set appropriate encoding in the config option
+     'misc.spu_src_encoding'. Note you need also the font which contains all
+     characters from given encoding.
+     </para>
+     <para>
+     Default font <filename>sans</filename> and fonts
+     <filename>serif</filename> and <filename>mono</filename> cover
+     encodings:
+     <itemizedlist>
+       <listitem><para>iso-8859-1</para></listitem>
+       <listitem><para>iso-8859-2</para></listitem>
+       <listitem><para>iso-8859-5</para></listitem>
+       <listitem><para>iso-8859-9</para></listitem>
+       <listitem><para>iso-8859-15</para></listitem>
+       <listitem><para>windows-1250</para></listitem>
+       <listitem><para>windows-1251</para></listitem>
+     </itemizedlist>
+     </para>
+   </sect2>
+
   </sect1>
 
   <sect1 id="errors">

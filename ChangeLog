@@ -32,6 +32,7 @@ xine-lib (1-rc4)
   * new, safer method for on-the-fly rewiring of post plugins
   * add iso-8859-9 and iso-8859-15 codepages into xine fonts
   * work around freezing with arts on BSD
+  * documentation about xine fonts
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
