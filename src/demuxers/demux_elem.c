@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.14 2001/07/14 12:50:34 guenter Exp $
+ * $Id: demux_elem.c,v 1.15 2001/08/12 15:12:54 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -134,14 +134,13 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
 static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
-  void              *p;
   buf_element_t     *buf = NULL;
 
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
-  pthread_join (this->thread, &p);
+  pthread_cancel (this->thread);
 
   this->video_fifo->clear(this->video_fifo);
   if (this->audio_fifo)

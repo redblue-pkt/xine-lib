@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.28 2001/08/05 00:59:50 ehasenle Exp $
+ * $Id: demux_mpeg_block.c,v 1.29 2001/08/12 15:12:54 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -415,7 +415,6 @@ static void *demux_mpeg_block_loop (void *this_gen) {
 static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  void *p;
   buf_element_t *buf;
 
   if (this->status != DEMUX_OK) {
@@ -426,7 +425,7 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
-  pthread_join (this->thread, &p);
+  pthread_cancel (this->thread);
 
   this->video_fifo->clear(this->video_fifo);
   if (this->audio_fifo)

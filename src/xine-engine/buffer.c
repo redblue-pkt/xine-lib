@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.5 2001/07/03 21:25:04 guenter Exp $
+ * $Id: buffer.c,v 1.6 2001/08/12 15:12:54 guenter Exp $
  *
  *
  * contents:
@@ -59,12 +59,30 @@ static void buffer_pool_free (buf_element_t *element) {
   pthread_mutex_unlock (&this->buffer_pool_mutex);
 }
 
-/*
- * check if there are no more free elements
+/* 
+ * helper function to release buffer pool lock
+ * in case demux thread is cancelled
  */
+
+void pool_release_lock (void *arg) {
+   
+  pthread_mutex_t *mutex = (pthread_mutex_t *) arg;
+
+  /* printf ("pool release lock\n"); */
+
+  pthread_mutex_unlock (mutex);
+
+}
+
+/*
+ * allocate a buffer from buffer pool
+ */
+
 static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   
   buf_element_t *buf;
+
+  pthread_cleanup_push( pool_release_lock, &this->buffer_pool_mutex);
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
 
@@ -75,6 +93,8 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   buf = this->buffer_pool_top;
   this->buffer_pool_top = this->buffer_pool_top->next;
   this->buffer_pool_num_free--;
+
+  pthread_cleanup_pop (0); 
 
   pthread_mutex_unlock (&this->buffer_pool_mutex);
 

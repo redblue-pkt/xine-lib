@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.2 2001/08/10 19:49:57 guenter Exp $
+ * $Id: demux_pes.c,v 1.3 2001/08/12 15:12:54 guenter Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -371,7 +371,7 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
-  pthread_join (this->thread, &p);
+  pthread_cancel (this->thread);
 
   this->video_fifo->clear(this->video_fifo);
   if(this->audio_fifo) 

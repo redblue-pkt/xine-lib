@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  *
  * This file is part of xine, a unix video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.4 2001/08/02 20:38:42 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.5 2001/08/12 15:12:54 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -605,7 +605,6 @@ static void demux_ts_parse_ts(
     unsigned int continuity_counter;
     unsigned int data_offset;
     unsigned int data_len;
-	int n;
 
 
     /*
@@ -1010,7 +1009,6 @@ static void demux_ts_stop(
     demux_plugin_t *this_gen)
 {
   demux_ts *this = (demux_ts *)this_gen;
-  void *p;
   buf_element_t *buf;
 
   printf ("demux_ts: stop...\n");
@@ -1025,7 +1023,7 @@ static void demux_ts_stop(
 
   this->status = DEMUX_FINISHED;
 
-  pthread_join (this->thread, &p);
+  pthread_cancel (this->thread);
 
   this->fifoVideo->clear(this->fifoVideo);
   if(this->fifoAudio)

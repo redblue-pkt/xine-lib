@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.38 2001/07/27 21:46:59 f1rmb Exp $
+ * $Id: xine.c,v 1.39 2001/08/12 15:12:54 guenter Exp $
  *
  * top-level xine functions
  *
@@ -205,7 +205,6 @@ static void xine_play_internal (xine_t *this, char *mrl,
   if (!this->cur_input_plugin) {
     perror ("open input source");
     this->cur_demuxer_plugin = NULL;
-    this->status = XINE_STOP;
     return;
   }
   
@@ -224,7 +223,6 @@ static void xine_play_internal (xine_t *this, char *mrl,
 
   if(!find_demuxer(this, mrl)) {
     printf ("xine: couldn't find demuxer for >%s<\n", mrl);
-    this->status = XINE_STOP;
     return;
   }
 
@@ -251,6 +249,8 @@ static void xine_play_internal (xine_t *this, char *mrl,
   this->status = XINE_PLAY;
   strncpy (this->cur_mrl, mrl, 1024);
 
+  printf ("xine: demuxer started\n");
+  
 }
 
 void xine_play (xine_t *this, char *MRL, int spos) {
