@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.96 2003/05/04 22:09:35 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.97 2003/05/05 17:22:40 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -476,15 +476,15 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
     } else if (op->packet[0] == PACKET_TYPE_COMMENT ) {
 
-      char *comment;
+      char           *comment;
+      vorbis_comment vc;
+      vorbis_info    vi;
 
 #ifdef LOG
       printf ("demux_ogg: Textstream-comment-packet\n");
 #endif
 
-      vorbis_comment vc;
       vorbis_comment_init(&vc);
-      vorbis_info       vi;
       vorbis_info_init(&vi);
 
       /*make libvorbis think, this vi is initialized*/
