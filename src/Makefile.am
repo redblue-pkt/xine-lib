@@ -29,4 +29,5 @@ SUBDIRS = \
 	libreal \
 	libfaad \
 	libflac \
+        libmusepack \
 	post
