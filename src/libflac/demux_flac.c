@@ -288,9 +288,14 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
         current_pts /= (this->data_size - this->data_start);
 
     if (this->seek_flag) {
-        _x_demux_control_newpts (this->stream, current_pts, 0);
+#ifdef USE_ESTIMATED_PTS
+        _x_demux_control_newpts (this->stream, current_pts, BUF_FLAG_SEEK);
+#else
+        _x_demux_control_newpts (this->stream, 0, BUF_FLAG_SEEK);
+#endif
         this->seek_flag = 0;
     }
+
 
     while (remaining_sample_bytes)
     {
@@ -304,7 +309,11 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
         buf->extra_info->input_pos    = current_file_pos;
         buf->extra_info->input_length = this->data_size - this->data_start;
         buf->extra_info->input_time   = current_pts / 90;
-        //buf->pts = current_pts;
+#ifdef USE_ESTIMATED_PTS
+        buf->pts = current_pts;
+#else
+        buf->pts = 0;
+#endif
 
         if (remaining_sample_bytes > buf->max_size)
             buf->size = buf->max_size;
@@ -404,14 +413,14 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int 
     } else {
       
         double distance = (double)start_time;
-        uint64_t target_sample = (uint64_t)(distance * this->total_samples);
+        uint64_t target_sample;
         FLAC__bool s = false;
 
         if (this->length_in_msec != 0)
         {
             distance /= (double)this->length_in_msec;
         }
-
+        target_sample = (uint64_t)(distance * this->total_samples);
 
         s = FLAC__seekable_stream_decoder_seek_absolute (this->flac_decoder,
                                                          target_sample);
@@ -423,6 +432,7 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int 
     }
 
     _x_demux_flush_engine (this->stream);
+    this->seek_flag = 1;
 
     return this->status;
 }
