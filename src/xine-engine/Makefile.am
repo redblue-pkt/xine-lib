@@ -21,7 +21,9 @@ libxine_la_LDFLAGS =  -version-info 5:0:5
 include_HEADERS  = buffer.h metronom.h configfile.h \
 	monitor.h cpu_accel.h attributes.h utils.h \
         audio_out.h video_out.h xine_internal.h spu_decoder.h \
-	events.h
+	events.h 
+
+noinst_HEADERS = bswap.h
 
 ###
 # Hardcoded rule: 
