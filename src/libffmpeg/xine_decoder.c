@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.93 2003/02/19 21:37:16 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.94 2003/02/19 22:15:43 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -141,6 +141,9 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
             (uint8_t *)bih + sizeof(xine_bmiheader),
             this->context->extradata_size ); 
   }
+  
+  if(bih)
+    this->context->bits_per_sample = bih->biBitCount;
 
   if (avcodec_open (this->context, this->codec) < 0) {
     printf ("ffmpeg: couldn't open decoder\n");
