@@ -32,6 +32,8 @@ xine-lib (1-beta13)
   * improve seeking in asf and avi files
   * fix seeking to near the end of avi files
   * fix handling of exotic a/v RIFF chunks (00iv, 0031, ...) in avi files
+  * libdvdnav: fix LinkNextC assertion failure
+    (fixes LotR-SEE bonus disc image gallery)
 
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
