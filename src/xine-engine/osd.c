@@ -1337,11 +1337,11 @@ static uint32_t osd_get_capabilities (osd_object_t *osd) {
   capabilities |= XINE_OSD_CAP_FREETYPE2;
 #endif
 
-  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 0);
+  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
   if( this->stream->video_out->get_capabilities(this->stream->video_out) &
       VO_CAP_UNSCALED_OVERLAY)
     capabilities |= XINE_OSD_CAP_UNSCALED;
-  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 0);
+  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
  
   return capabilities; 
 }
