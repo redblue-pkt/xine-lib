@@ -64,10 +64,10 @@ static inline int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
 static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr);
 static int msmpeg4_decode_motion(MpegEncContext * s, 
                                  int *mx_ptr, int *my_ptr);
-static void msmpeg4v2_encode_motion(MpegEncContext * s, int val);
 static void init_h263_dc_for_msmpeg4(void);
 static inline void msmpeg4_memsetw(short *tab, int val, int n);
 #ifdef CONFIG_ENCODERS
+static void msmpeg4v2_encode_motion(MpegEncContext * s, int val);
 static int get_size_of_code(MpegEncContext * s, RLTable *rl, int last, int run, int level, int intra);
 #endif //CONFIG_ENCODERS
 static int msmpeg4v12_decode_mb(MpegEncContext *s, DCTELEM block[6][64]);
@@ -655,6 +655,7 @@ void msmpeg4_encode_mb(MpegEncContext * s,
 
 #endif //CONFIG_ENCODERS
 
+#if 0
 /* old ffmpeg msmpeg4v3 mode */
 static void ff_old_msmpeg4_dc_scale(MpegEncContext * s)
 {
@@ -669,6 +670,7 @@ static void ff_old_msmpeg4_dc_scale(MpegEncContext * s)
         s->c_dc_scale = (s->qscale + 13)>>1;
     }
 }
+#endif
 
 static inline int msmpeg4v1_pred_dc(MpegEncContext * s, int n, 
                                     int32_t **dc_val_ptr)
@@ -1427,6 +1429,7 @@ static inline void msmpeg4_memsetw(short *tab, int val, int n)
         tab[i] = val;
 }
 
+#ifdef CONFIG_ENCODERS
 static void msmpeg4v2_encode_motion(MpegEncContext * s, int val)
 {
     int range, bit_size, sign, code, bits;
@@ -1459,6 +1462,7 @@ static void msmpeg4v2_encode_motion(MpegEncContext * s, int val)
         }
     }
 }
+#endif
 
 /* this is identical to h263 except that its range is multiplied by 2 */
 static int msmpeg4v2_decode_motion(MpegEncContext * s, int pred, int f_code)

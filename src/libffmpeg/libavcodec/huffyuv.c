@@ -227,6 +227,7 @@ static int generate_bits_table(uint32_t *dst, uint8_t *len_table){
     return 0;
 }
 
+#ifdef CONFIG_ENCODERS
 static void generate_len_table(uint8_t *dst, uint64_t *stats, int size){
     uint64_t counts[2*size];
     int up[2*size];
@@ -282,6 +283,7 @@ static void generate_len_table(uint8_t *dst, uint64_t *stats, int size){
         if(i==size) break;
     }
 }
+#endif
 
 static int read_huffman_tables(HYuvContext *s, uint8_t *src, int length){
     GetBitContext gb;
@@ -433,6 +435,8 @@ s->bgr32=1;
     return 0;
 }
 
+#ifdef CONFIG_ENCODERS
+
 static void store_table(HYuvContext *s, uint8_t *len){
     int i;
     int index= s->avctx->extradata_size;
@@ -553,6 +557,8 @@ static int encode_init(AVCodecContext *avctx)
     return 0;
 }
 
+#endif
+
 static void decode_422_bitstream(HYuvContext *s, int count){
     int i;
 
@@ -576,6 +582,8 @@ static void decode_gray_bitstream(HYuvContext *s, int count){
         s->temp[0][2*i+1]= get_vlc2(&s->gb, s->vlc[0].table, VLC_BITS, 3); 
     }
 }
+
+#ifdef CONFIG_ENCODERS
 
 static void encode_422_bitstream(HYuvContext *s, int count){
     int i;
@@ -614,6 +622,8 @@ static void encode_gray_bitstream(HYuvContext *s, int count){
         }
     }
 }
+
+#endif
 
 static void decode_bgr_bitstream(HYuvContext *s, int count){
     int i;
@@ -926,6 +936,8 @@ static int decode_end(AVCodecContext *avctx)
     return 0;
 }
 
+#ifdef CONFIG_ENCODERS
+
 static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
     HYuvContext *s = avctx->priv_data;
     AVFrame *pict = data;
@@ -1086,6 +1098,8 @@ static int encode_end(AVCodecContext *avctx)
     
     return 0;
 }
+
+#endif
 
 static const AVOption huffyuv_options[] =
 {

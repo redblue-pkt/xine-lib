@@ -158,12 +158,14 @@ static int decode_init(AVCodecContext *avctx){
     return 0;
 }
 
+#ifdef CONFIG_ENCODERS
 static int encode_init(AVCodecContext *avctx){
  
     common_init(avctx);
     
     return 0;
 }
+#endif
 
 static int decode_end(AVCodecContext *avctx){
 

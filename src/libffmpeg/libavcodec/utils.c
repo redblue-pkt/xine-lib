@@ -491,6 +491,7 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
     return NULL;
 }
 
+#if 0
 static AVCodec *avcodec_find(enum CodecID id)
 {
     AVCodec *p;
@@ -502,6 +503,7 @@ static AVCodec *avcodec_find(enum CodecID id)
     }
     return NULL;
 }
+#endif
 
 void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
 {

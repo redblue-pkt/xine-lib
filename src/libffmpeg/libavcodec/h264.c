@@ -1001,6 +1001,8 @@ static uint8_t *decode_nal(H264Context *h, uint8_t *src, int *dst_length, int *c
     return dst;
 }
 
+#ifdef CONFIG_ENCODERS
+
 /**
  * @param src the data which should be escaped
  * @param dst the target buffer, dst+1 == src is allowed as a special case
@@ -1074,6 +1076,8 @@ static void encode_rbsp_trailing(PutBitContext *pb){
     if(length) put_bits(pb, length, 0);
 }
 
+#endif
+
 /**
  * identifies the exact end of the bitstream
  * @return the length of the trailing, or 0 if damaged
@@ -1132,6 +1136,7 @@ static void h264_luma_dc_dequant_idct_c(DCTELEM *block, int qp){
     }
 }
 
+#if 0
 /**
  * dct tranforms the 16 dc values.
  * @param qp quantization parameter ??? FIXME
@@ -1169,6 +1174,8 @@ static void h264_luma_dc_dct_c(DCTELEM *block/*, int qp*/){
         block[stride*10+offset]= (z0 - z3)>>1;
     }
 }
+#endif
+
 #undef xStride
 #undef stride
 
@@ -1194,6 +1201,7 @@ static void chroma_dc_dequant_idct_c(DCTELEM *block, int qp){
     block[stride*1 + xStride*1]= ((e-b)*qmul + 0)>>1;
 }
 
+#if 0
 static void chroma_dc_dct_c(DCTELEM *block){
     const int stride= 16*2;
     const int xStride= 16;
@@ -1214,6 +1222,7 @@ static void chroma_dc_dct_c(DCTELEM *block){
     block[stride*1 + xStride*0]= (a-c);
     block[stride*1 + xStride*1]= (e-b);
 }
+#endif
 
 /**
  * gets the chroma qp.
@@ -1283,6 +1292,7 @@ static void h264_add_idct_c(uint8_t *dst, DCTELEM *block, int stride){
 #endif
 }
 
+#if 0
 static void h264_diff_dct_c(DCTELEM *block, uint8_t *src1, uint8_t *src2, int stride){
     int i;
     //FIXME try int temp instead of block
@@ -1315,6 +1325,7 @@ static void h264_diff_dct_c(DCTELEM *block, uint8_t *src1, uint8_t *src2, int st
         block[3*4 + i]=   z3 - 2*z2;
     }
 }
+#endif
 
 //FIXME need to check that this doesnt overflow signed 32 bit for low qp, iam not sure, its very close
 //FIXME check that gcc inlines this (and optimizes intra & seperate_dc stuff away)
@@ -2332,9 +2343,11 @@ static void hl_decode_mb(H264Context *h){
     }
 }
 
+#if 0
 static void decode_mb_cabac(H264Context *h){
 //    MpegEncContext * const s = &h->s;
 }
+#endif
 
 /**
  * fills the default_ref_list.
