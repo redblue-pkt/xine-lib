@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.73 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.74 2002/11/01 01:47:51 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -288,13 +288,12 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
     }
   } 
 
-
   if (this->bitrate) {
     pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
     check_newpts(this, pts);
   }
 
-  /*buf->pts             = 0;*/
+  buf->pts             = 0;
   buf->input_pos       = this->input->get_current_pos(this->input);
   {
     int len = this->input->get_length(this->input);
@@ -303,7 +302,9 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
     else 
       buf->input_time = pts / 90000;
   }
+#if 0
   buf->pts             = pts;
+#endif
   buf->type            = BUF_AUDIO_MPEG;
   buf->decoder_info[0] = 1;
   buf->decoder_flags   = decoder_flags;
