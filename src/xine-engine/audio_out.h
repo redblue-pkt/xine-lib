@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.41 2002/11/20 11:57:49 mroi Exp $
+ * $Id: audio_out.h,v 1.42 2002/11/20 13:42:41 esnel Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -35,7 +35,7 @@ extern "C" {
 #else
 #include <xine/metronom.h>
 #include <xine/configfile.h>
-#inlcude <xine/xineutils.h>
+#include <xine/xineutils.h>
 #endif
 
 
