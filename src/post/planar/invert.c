@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.4 2002/12/06 14:53:18 mroi Exp $
+ * $Id: invert.c,v 1.5 2002/12/25 15:05:06 mroi Exp $
  */
  
 /*
@@ -40,6 +40,14 @@ plugin_info_t xine_plugin_info[] = {
 };
 
 
+/* plugin structure */
+typedef struct post_invert_out_s post_invert_out_t;
+struct post_invert_out_s {
+  xine_post_out_t  xine_out;
+  /* keep the stream for open/close when rewiring */
+  xine_stream_t   *stream;
+};
+
 /* plugin class functions */
 static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
@@ -55,9 +63,11 @@ static void           invert_dispose(post_plugin_t *this_gen);
 static int            invert_rewire(xine_post_out_t *output, void *data);
 
 /* replaced video_port functions */
+static void           invert_open(xine_video_port_t *port_gen, xine_stream_t *stream);
 static vo_frame_t    *invert_get_frame(xine_video_port_t *port_gen, uint32_t width, 
 				       uint32_t height, int ratio_code, 
 				       int format, int flags);
+static void           invert_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
 /* replaced vo_frame functions */
 static int            invert_draw(vo_frame_t *frame, xine_stream_t *stream);
@@ -85,7 +95,7 @@ static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
 {
   post_plugin_t     *this   = (post_plugin_t *)malloc(sizeof(post_plugin_t));
   xine_post_in_t    *input  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  xine_post_out_t   *output = (xine_post_out_t *)malloc(sizeof(xine_post_out_t));
+  post_invert_out_t *output = (post_invert_out_t *)malloc(sizeof(post_invert_out_t));
   post_video_port_t *port;
   
   if (!this || !input || !output || !video_target || !video_target[0]) {
@@ -95,18 +105,21 @@ static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
-  port = post_intercept_video_port(video_target[0]);
+  port = post_intercept_video_port(this, video_target[0]);
   /* replace with our own get_frame function */
+  port->port.open      = invert_open;
   port->port.get_frame = invert_get_frame;
+  port->port.close     = invert_close;
   
   input->name = "video";
   input->type = XINE_POST_DATA_VIDEO;
   input->data = (xine_video_port_t *)&port->port;
 
-  output->name   = "inverted video";
-  output->type   = XINE_POST_DATA_VIDEO;
-  output->data   = (xine_video_port_t **)&port->original_port;
-  output->rewire = invert_rewire;
+  output->xine_out.name   = "inverted video";
+  output->xine_out.type   = XINE_POST_DATA_VIDEO;
+  output->xine_out.data   = (xine_video_port_t **)&port->original_port;
+  output->xine_out.rewire = invert_rewire;
+  output->stream          = NULL;
   
   this->xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *));
   this->xine_post.audio_input[0] = NULL;
@@ -153,14 +166,32 @@ static void invert_dispose(post_plugin_t *this)
 }
 
 
-static int invert_rewire(xine_post_out_t *output, void *data)
+static int invert_rewire(xine_post_out_t *output_gen, void *data)
 {
+  post_invert_out_t *output = (post_invert_out_t *)output_gen;
+  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
+  xine_video_port_t *new_port = (xine_video_port_t *)data;
+  
   if (!data)
     return 0;
-  *(xine_video_port_t **)output->data = (xine_video_port_t *)data;
+  if (output->stream) {
+    /* register our stream at the new output port */
+    old_port->close(old_port, output->stream);
+    new_port->open(new_port, output->stream);
+  }
+  /* reconnect ourselves */
+  *(xine_video_port_t **)output_gen->data = new_port;
   return 1;
 }
 
+
+static void invert_open(xine_video_port_t *port_gen, xine_stream_t *stream)
+{
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(port->post->output);
+  output->stream = stream;
+  port->original_port->open(port->original_port, stream);
+}
 
 static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width, 
 				    uint32_t height, int ratio_code, 
@@ -177,6 +208,14 @@ static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width,
   /* decoders should not copy the frames, since they won't be displayed */
   frame->copy = NULL;
   return frame;
+}
+
+static void invert_close(xine_video_port_t *port_gen, xine_stream_t *stream)
+{
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(port->post->output);
+  output->stream = NULL;
+  port->original_port->close(port->original_port, stream);
 }
 
 

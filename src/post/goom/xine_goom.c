@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.1 2002/12/25 04:59:14 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.2 2002/12/25 15:05:06 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -46,14 +46,22 @@ struct post_plugin_goom_s {
 
   /* private data */
   xine_video_port_t *vo_port;
+  xine_stream_t     *stream;
   
   gint16 data [2][512];
   
   int bits;
+  int mode;
   int channels;
   int sample_rate;
   int sample_counter;
   int samples_per_frame;
+};
+
+typedef struct post_goom_out_s post_goom_out_t;
+struct post_goom_out_s {
+  xine_post_out_t     out;
+  post_plugin_goom_t *post;
 };
 
 /* plugin class initialization function */
@@ -80,7 +88,8 @@ static void           goom_class_dispose(post_class_t *class_gen);
 static void           goom_dispose(post_plugin_t *this_gen);
 
 /* rewire function */
-static int            goom_rewire(xine_post_out_t *output, void *data);
+static int            goom_rewire_audio(xine_post_out_t *output, void *data);
+static int            goom_rewire_video(xine_post_out_t *output, void *data);
 
 static int goom_port_open(xine_audio_port_t *this, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode);
@@ -111,8 +120,8 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
 {
   post_plugin_goom_t *this   = (post_plugin_goom_t *)malloc(sizeof(post_plugin_goom_t));
   xine_post_in_t     *input  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  xine_post_out_t    *output = (xine_post_out_t *)malloc(sizeof(xine_post_out_t));
-  xine_post_out_t    *outputv = (xine_post_out_t *)malloc(sizeof(xine_post_out_t));
+  post_goom_out_t    *output = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
+  post_goom_out_t    *outputv = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
   post_audio_port_t  *port;
   
   if (!this || !input || !output || !outputv || !video_target || !video_target[0] ||
@@ -126,10 +135,10 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   
   goom_init (GOOM_WIDTH, GOOM_HEIGHT, 0);
   this->sample_counter = 0;
+  this->stream  = NULL;
   this->vo_port = video_target[0];
   
-  port = post_intercept_audio_port(audio_target[0]);
-  port->post = &this->post.xine_post;
+  port = post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = goom_port_open;
   port->port.close = goom_port_close;
   port->port.put_buffer = goom_port_put_buffer;
@@ -138,15 +147,15 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   input->type = XINE_POST_DATA_AUDIO;
   input->data = (xine_audio_port_t *)&port->port;
 
-  output->name   = "audio out";
-  output->type   = XINE_POST_DATA_AUDIO;
-  output->data   = (xine_audio_port_t **)&port->original_port;
-  output->rewire = goom_rewire;
+  output->out.name   = "audio out";
+  output->out.type   = XINE_POST_DATA_AUDIO;
+  output->out.data   = (xine_audio_port_t **)&port->original_port;
+  output->out.rewire = goom_rewire_audio;
   
-  outputv->name   = "generated video";
-  outputv->type   = XINE_POST_DATA_VIDEO;
-  outputv->data   = (xine_video_port_t **)&this->vo_port;
-  outputv->rewire = NULL;
+  outputv->out.name   = "generated video";
+  outputv->out.type   = XINE_POST_DATA_VIDEO;
+  outputv->out.data   = (xine_video_port_t **)&this->vo_port;
+  outputv->out.rewire = goom_rewire_video;
   
   this->post.xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *) * 2);
   this->post.xine_post.audio_input[0] = &port->port;
@@ -196,11 +205,41 @@ static void goom_dispose(post_plugin_t *this)
 }
 
 
-static int goom_rewire(xine_post_out_t *output, void *data)
+static int goom_rewire_audio(xine_post_out_t *output_gen, void *data)
 {
+  post_goom_out_t *output = (post_goom_out_t *)output_gen;
+  xine_audio_port_t *old_port = *(xine_audio_port_t **)output_gen->data;
+  xine_audio_port_t *new_port = (xine_audio_port_t *)data;
+  post_plugin_goom_t *this = (post_plugin_goom_t *)output->post;
+  
   if (!data)
     return 0;
-  *(xine_audio_port_t **)output->data = (xine_audio_port_t *)data;
+  if (this->stream) {
+    /* register our stream at the new output port */
+    old_port->close(old_port, this->stream);
+    new_port->open(new_port, this->stream, this->bits, this->sample_rate, this->mode);
+  }
+  /* reconnect ourselves */
+  *(xine_audio_port_t **)output_gen->data = new_port;
+  return 1;
+}
+
+static int goom_rewire_video(xine_post_out_t *output_gen, void *data)
+{
+  post_goom_out_t *output = (post_goom_out_t *)output_gen;
+  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
+  xine_video_port_t *new_port = (xine_video_port_t *)data;
+  post_plugin_goom_t *this = (post_plugin_goom_t *)output->post;
+  
+  if (!data)
+    return 0;
+  if (this->stream) {
+    /* register our stream at the new output port */
+    old_port->close(old_port, this->stream);
+    new_port->open(new_port, this->stream);
+  }
+  /* reconnect ourselves */
+  *(xine_video_port_t **)output_gen->data = new_port;
   return 1;
 }
 
@@ -229,9 +268,12 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->vo_port->open( this->vo_port, stream );
   
   this->bits = bits;
+  this->mode = mode;
   this->channels = mode_channels(mode);
   this->samples_per_frame = rate / FPS;
   this->sample_rate = rate; 
+  this->stream = stream;
+  
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
 
@@ -241,6 +283,8 @@ static void goom_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream )
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
 
   this->vo_port->close( this->vo_port, stream );
+  
+  this->stream = NULL;
  
   port->original_port->close(port->original_port, stream );
 }
