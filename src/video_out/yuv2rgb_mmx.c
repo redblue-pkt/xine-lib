@@ -377,6 +377,9 @@ static inline void mmx_unpack_32bgr (uint8_t * image, int cpu)
 
 static inline void mmx_unpack_24rgb (uint8_t * image, int cpu)
 {
+    static mmx_t mmx_hirgb = {0x00ffffff00000000ULL};
+    static mmx_t mmx_lorgb = {0x0000000000ffffffULL};
+
     /*
      * convert RGB plane to RGB packed format,
      * mm0 -> B, mm1 -> R, mm2 -> G, mm3 -> 0,
@@ -384,28 +387,67 @@ static inline void mmx_unpack_24rgb (uint8_t * image, int cpu)
      * mm6 -> GB, mm7 -> AR pixel 0-3
      */
 
-    pxor_r2r (mm3, mm3);
     movq_r2r (mm0, mm6);
-
     punpcklbw_r2r (mm2, mm6);
-    movq_r2r (mm1, mm7);
 
-    punpcklbw_r2r (mm3, mm7);
-    movq_r2r (mm0, mm4);
+    movq_r2r (mm1, mm7);
+    punpcklbw_r2r (mm7, mm7);
 
     punpcklwd_r2r (mm7, mm6);
-    movq_r2r (mm1, mm5);
-
-    /* scheduling: this is hopeless */
-    movntq (mm6, *image);
+    movq_r2r (mm6, mm5);
+    pand_m2r (mmx_hirgb, mm5);
+    pand_m2r (mmx_lorgb, mm6);
+    psrlq_i2r (8, mm5);
+    por_r2r(mm6, mm5); /* mm5 = 0x0000R1G1B1R0G0B0 */
+    
     movq_r2r (mm0, mm6);
     punpcklbw_r2r (mm2, mm6);
-    punpckhwd_r2r (mm7, mm6);
-    movntq (mm6, *(image+8));
+    punpckhwd_r2r (mm7, mm6); /* mm6 = 0x??R3G3B3??R2G2B2 */
+
+    movq_r2r (mm6, mm4);
+    psllq_i2r (48, mm4);
+    por_r2r(mm4, mm5);  /* mm5 = 0xG2B2R1G1B1R0G0B0 */
+    movntq (mm5, *image);
+
+    movq_r2r (mm6, mm3);
+    pand_m2r (mmx_hirgb, mm3);
+    pand_m2r (mmx_lorgb, mm6);
+    psrlq_i2r (8, mm3);
+    por_r2r(mm6, mm3); /* mm3 = 0x0000R3G3B3R2G2B2 */
+    psrlq_i2r (16, mm3); /* mm3 = 0x00000000R3G3B3R2 */
+
+    movq_r2r (mm0, mm4);
     punpckhbw_r2r (mm2, mm4);
+    movq_r2r (mm1, mm5);
     punpckhbw_r2r (mm3, mm5);
     punpcklwd_r2r (mm5, mm4);
-    movntq (mm4, *(image+16));
+
+    movq_r2r (mm4, mm6);
+    pand_m2r (mmx_hirgb, mm6);
+    pand_m2r (mmx_lorgb, mm4);
+    psrlq_i2r (8, mm6);
+    por_r2r(mm4, mm6); /* mm6 = 0x0000R5G5B5R4G4B4 */
+
+    movq_r2r (mm6, mm4);
+    psllq_i2r (32, mm4); /* mm4 = 0xB5R4G4B400000000 */
+    por_r2r(mm4, mm3);   /* mm4 = 0xB5R4G4B4R3G3B3R2 */
+    movntq (mm3, *(image+8));
+
+    psrlq_i2r (32, mm6); /* mm6 = 0x000000000000R5G5 */
+
+    movq_r2r (mm0, mm4);
+    punpckhbw_r2r (mm2, mm4);
+    punpckhwd_r2r (mm5, mm4);
+
+    movq_r2r (mm4, mm3);
+    pand_m2r (mmx_hirgb, mm3);
+    pand_m2r (mmx_lorgb, mm4);
+    psrlq_i2r (8, mm3);
+    por_r2r (mm4, mm3);  /* mm3 = 0x0000R7G7B7R6G6B6 */
+    psllq_i2r (16, mm3); /* mm3 = 0xR7G7B7R6G6B60000 */
+    por_r2r (mm3, mm6);  /* mm6 = 0xR7G7B7R6G6B6R5G5 */
+
+    movntq (mm6, *(image+16));
 }
 
 static inline void yuv420_rgb16 (yuv2rgb_t *this,
