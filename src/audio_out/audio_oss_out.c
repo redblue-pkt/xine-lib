@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.109 2004/06/03 12:56:25 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.110 2004/10/08 20:32:03 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -130,6 +130,7 @@ typedef struct oss_driver_s {
 
   struct {
     char          *name;
+    int            fd;
     int            prop;
     int            volume;
     int            mute;
@@ -479,6 +480,8 @@ static void ao_oss_close(ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
+  close(this->mixer.fd);
+  this->mixer.fd = -1;
   close(this->audio_fd);
   this->audio_fd = -1;
 }
@@ -494,6 +497,8 @@ static void ao_oss_exit(ao_driver_t *this_gen) {
 
   oss_driver_t    *this   = (oss_driver_t *) this_gen;
 
+  if (this->mixer.fd != -1)
+    close(this->mixer.fd);
   if (this->audio_fd != -1)
     close(this->audio_fd);
 
@@ -504,36 +509,30 @@ static void ao_oss_exit(ao_driver_t *this_gen) {
 static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
-  int           mixer_fd;
   int           audio_devs;
 
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
     if(!this->mixer.mute) {
-      mixer_fd = open(this->mixer.name, O_RDONLY);
-      if(mixer_fd != -1) {
+      
+      if(this->mixer.fd != -1) {
 	int cmd = 0;
 	int v;
 	
-	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
 	
 	if(audio_devs & SOUND_MASK_PCM)
 	  cmd = SOUND_MIXER_READ_PCM;
 	else if(audio_devs & SOUND_MASK_VOLUME)
 	  cmd = SOUND_MIXER_READ_VOLUME;
-	else {
-	  close(mixer_fd);
-	  return 0;
-	}
-	ioctl(mixer_fd, cmd, &v);
+	else
+	  return -1;
+	
+	ioctl(this->mixer.fd, cmd, &v);
 	this->mixer.volume = (((v & 0xFF00) >> 8) + (v & 0x00FF)) / 2;
-	close(mixer_fd);
-      } else {
-	xprintf(this->xine, XINE_VERBOSITY_LOG,
-		_("audio_oss_out: open() %s failed: %s\n"), this->mixer.name, strerror(errno));
+      } else
 	return -1;
-      }
     }
     return this->mixer.volume;
     break;
@@ -549,42 +548,32 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
 static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
-  int           mixer_fd;
   int           audio_devs;
 
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
     if(!this->mixer.mute) {
-      mixer_fd = open(this->mixer.name, O_RDONLY);
-
-      if(mixer_fd != -1) {
+      
+      if(this->mixer.fd != -1) {
 	int cmd = 0;
 	int v;
 	
-	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
 	
 	if(audio_devs & SOUND_MASK_PCM)
 	  cmd = SOUND_MIXER_WRITE_PCM;
 	else if(audio_devs & SOUND_MASK_VOLUME)
 	  cmd = SOUND_MIXER_WRITE_VOLUME;
-	else {
-	  close(mixer_fd);
-	  return ~value;
-	}
+	else
+	  return -1;
+	
 	v = (value << 8) | value;
-	ioctl(mixer_fd, cmd, &v);
-	close(mixer_fd);
-	
-	if(!this->mixer.mute)
-	  this->mixer.volume = value;
-	
-      }
-      else
-	xprintf(this->xine, XINE_VERBOSITY_LOG, 
-		_("audio_oss_out: open() %s failed: %s\n"), this->mixer.name, strerror(errno));
-    }
-    else
+	ioctl(this->mixer.fd, cmd, &v);
+	this->mixer.volume = value;
+      } else
+	return -1;
+    } else
       this->mixer.volume = value;
 
     return this->mixer.volume;
@@ -594,40 +583,31 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
     this->mixer.mute = (value) ? 1 : 0;
 
     if(this->mixer.mute) {
-
-      mixer_fd = open(this->mixer.name, O_RDONLY);
-
-      if(mixer_fd != -1) {
+      
+      if(this->mixer.fd != -1) {
 	int cmd = 0;
 	int v = 0;
 	
-	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
 	
 	if(audio_devs & SOUND_MASK_PCM)
 	  cmd = SOUND_MIXER_WRITE_PCM;
 	else if(audio_devs & SOUND_MASK_VOLUME)
 	  cmd = SOUND_MIXER_WRITE_VOLUME;
-	else {
-	  close(mixer_fd);
-	  return ~value;
-	}
-
-	ioctl(mixer_fd, cmd, &v);
-	close(mixer_fd);
+	else
+	  return -1;
 	
-      }
-      else
-	xprintf(this->xine, XINE_VERBOSITY_LOG, 
-		_("audio_oss_out: open() %s failed: %s\n"), this->mixer.name, strerror(errno));
-    }
-    else
+	ioctl(this->mixer.fd, cmd, &v);
+      } else
+	return -1;
+    } else
       (void) ao_oss_set_property(&this->ao_driver, this->mixer.prop, this->mixer.volume);
     
     return value;
     break;
   }
 
-  return ~value;
+  return -1;
 }
 
 static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
@@ -1031,7 +1011,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   {
     char mixer_name[32];
     int mixer_num;
-    int mixer_fd;
     int audio_devs;
     char *parse;
     
@@ -1066,11 +1045,11 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     }
     _x_assert(this->mixer.name[0] != '\0');
     
-    mixer_fd = open(this->mixer.name, O_RDONLY);
+    this->mixer.fd = open(this->mixer.name, O_RDONLY);
 
-    if(mixer_fd != -1) {
+    if(this->mixer.fd != -1) {
 
-      ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+      ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
       
       if(audio_devs & SOUND_MASK_PCM) {
 	this->capabilities |= AO_CAP_PCM_VOL;
@@ -1092,8 +1071,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
       */
       this->capabilities |= AO_CAP_MUTE_VOL;
       
-      close(mixer_fd);
-
     } else 
       xprintf (class->xine, XINE_VERBOSITY_LOG,
 	       _("audio_oss_out: open() mixer %s failed: %s\n"), this->mixer.name, strerror(errno));
