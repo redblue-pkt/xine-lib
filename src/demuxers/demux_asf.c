@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.61 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_asf.c,v 1.62 2002/10/20 02:20:13 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -55,8 +55,6 @@
 
 #define DEFRAG_BUFSIZE    65536
 
-#define VALID_ENDS    "asf,wmv,wma"
-
 typedef struct {
   int               num;
   int               seq;
@@ -76,9 +74,7 @@ typedef struct {
 typedef struct demux_asf_s {
   demux_plugin_t    demux_plugin;
 
-  xine_t           *xine;
-
-  config_values_t  *config;
+  xine_stream_t    *stream;
 
   fifo_buffer_t    *audio_fifo;
   fifo_buffer_t    *video_fifo;
@@ -147,6 +143,15 @@ typedef struct demux_asf_s {
   int               buf_flag_seek;
 } demux_asf_t ;
 
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_asf_class_t;
 
 typedef struct {
   uint32_t v1;
@@ -343,12 +348,15 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   memcpy (buf->content, this->wavex, this->wavex_size);
 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = wavex->wFormatTag;
+  
+
 #ifdef LOG
   printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
 #endif
   if ( !this->streams[stream].buf_type ) {
     printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
-    xine_report_codec( this->xine, XINE_CODEC_AUDIO, wavex->wFormatTag, 0, 0);
     this->streams[stream].buf_type = BUF_CONTROL_NOP;
   } 
 
@@ -371,10 +379,12 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   buf_element_t    *buf;
   xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = bih->biCompression;
+
   if( !this->streams[stream].buf_type ) {
     printf ("demux_asf: unknown video format %.4s\n",
 	    (char*)&bih->biCompression);
-    xine_report_codec( this->xine, XINE_CODEC_VIDEO, bih->biCompression, 0, 0);
 
     this->status = DEMUX_FINISHED;
     return;
@@ -431,7 +441,7 @@ static int asf_read_header (demux_asf_t *this) {
       else
         this->rate = 0;
 
-      this->xine->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*8;
+      this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*8;
 
       start_time = get_le32(this); /* start timestamp in 1/1000 s*/
 
@@ -699,11 +709,11 @@ static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 #endif
 
   if (this->buf_flag_seek) {
-    xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
-    xine_demux_flush_engine(this->xine);
+    xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+    xine_demux_flush_engine(this->stream);
     this->buf_flag_seek = 0;
   } else {
-    xine_demux_control_newpts(this->xine, pts, 0);
+    xine_demux_control_newpts(this->stream, pts, 0);
   }
 }
 
@@ -1152,7 +1162,7 @@ static void *demux_asf_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -1190,9 +1200,9 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 
   for (i=0; i<this->num_streams; i++) {
     if( this->streams[i].buffer ) {
@@ -1208,24 +1218,29 @@ static int demux_asf_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static int demux_asf_send_headers (demux_asf_t *this) {
+static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 
+  demux_asf_t *this = (demux_asf_t *) this_gen;
   int      i;
   int      stream_id;
   uint32_t buf_type, bitrate, max_vrate, max_arate;
 
   pthread_mutex_lock (&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
   /*
    * send start buffer
    */
-  xine_demux_control_start(this->xine);
+  xine_demux_control_start(this->stream);
   
+  /* will get overridden later by send_audio/video_header */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
+
   /*
    * initialize asf engine
    */
@@ -1245,15 +1260,19 @@ static int demux_asf_send_headers (demux_asf_t *this) {
     this->input->seek (this->input, 0, SEEK_SET);
 
   if (!asf_read_header (this)) {
-    return DEMUX_CANNOT_HANDLE;
+
+    printf ("demux_asf: asf_read_header failed.\n");
+
+    this->status = DEMUX_FINISHED;
+    return;
   } else {
     this->header_size = this->input->get_current_pos (this->input);
 
-    this->xine->meta_info[XINE_META_INFO_TITLE] =
+    this->stream->meta_info[XINE_META_INFO_TITLE] =
       strdup (this->title);
-    this->xine->meta_info[XINE_META_INFO_ARTIST] =
+    this->stream->meta_info[XINE_META_INFO_ARTIST] =
       strdup (this->author);
-    this->xine->meta_info[XINE_META_INFO_COMMENT] =
+    this->stream->meta_info[XINE_META_INFO_COMMENT] =
       strdup (this->comment);
 
 
@@ -1271,7 +1290,7 @@ static int demux_asf_send_headers (demux_asf_t *this) {
       if ((buf_type == BUF_VIDEO_BASE) &&
 	  (bitrate > max_vrate || this->video_stream_id == 0)) {
 
-	this->xine->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
+	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
 
 	max_vrate = bitrate;
 	this->video_stream    = i;
@@ -1279,7 +1298,7 @@ static int demux_asf_send_headers (demux_asf_t *this) {
       } else if ((buf_type == BUF_AUDIO_BASE) &&
 		 (bitrate > max_arate || this->audio_stream_id == 0)) {
 
-	this->xine->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
+	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
 
 	max_arate = bitrate;
 	this->audio_stream    = i;
@@ -1293,11 +1312,9 @@ static int demux_asf_send_headers (demux_asf_t *this) {
     asf_send_video_header(this, this->video_stream);
   }
 
-  xine_demux_control_headers_done (this->xine);
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
 }
 
 static int demux_asf_start (demux_plugin_t *this_gen,
@@ -1312,7 +1329,7 @@ static int demux_asf_start (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
 
   if (!this->thread_running) {
-    xine_demux_flush_engine(this->xine);
+    xine_demux_flush_engine(this->stream);
   }
 
   if( this->status == DEMUX_OK ) {
@@ -1377,76 +1394,6 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 }
 
 
-static int demux_asf_open(demux_plugin_t *this_gen,
-			  input_plugin_t *input, int stage) {
-
-  demux_asf_t *this = (demux_asf_t *) this_gen;
-  uint8_t      buf[8192];
-  int          len;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT:
-
-    /* 
-     * try to get a preview of the data
-     */
-    len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (len == INPUT_OPTIONAL_UNSUPPORTED)
-      return DEMUX_CANNOT_HANDLE;
-
-    if (!memcmp(buf, &asf_header, sizeof(GUID))) {
-      printf ("demux_asf: file starts with an asf header\n");
-      this->input = input;
-      return demux_asf_send_headers (this);
-    }
-
-    return DEMUX_CANNOT_HANDLE;
-
-  case STAGE_BY_EXTENSION: {
-    char *ending;
-    char *MRL;
-    char *m, *valid_ends;
-    
-    MRL = input->get_mrl (input);
-    
-    /*
-     * check ending
-     */
-    
-    ending = strrchr(MRL, '.');
-    
-    if(!ending)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-							    "mrl.ends_asf", VALID_ENDS,
-							    _("valid mrls ending for asf demuxer"),
-							    NULL, 20, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
-      
-      while(*m == ' ' || *m == '\t') m++;
-      
-      if(!strcasecmp((ending + 1), m)) {
-	this->input = input;
-	return demux_asf_send_headers (this);
-      }
-    }
-  }
-  break;
-  }
-
-  return DEMUX_CANNOT_HANDLE;
-}
-
-static char *demux_asf_get_id(void) {
-  return "ASF";
-}
-
-static char *demux_asf_get_mimetypes(void) {
-  return "video/x-ms-asf: asf: ASF animation;"
-         "video/x-ms-wmv: wmv: WMV animation;";
-}
-
 static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
@@ -1454,32 +1401,113 @@ static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
   return this->length;
 }
 
-static void *init_demuxer_plugin (xine_t *xine, void *data) {
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, 
+				    xine_stream_t *stream, 
+				    input_plugin_t *input) {
+  
+  demux_asf_t *this;
+  uint8_t      buf[8192];
+  int          len;
 
-  demux_asf_t     *this;
+  switch (stream->content_detection_method) {
+  case XINE_DEMUX_CONTENT_STRATEGY:
+
+    /* 
+     * try to get a preview of the data
+     */
+    len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    if (len == INPUT_OPTIONAL_UNSUPPORTED)
+      return NULL;
+
+    if (memcmp(buf, &asf_header, sizeof(GUID))) 
+      return NULL;
+
+    printf ("demux_asf: file starts with an asf header\n");
+
+    break;
+
+  case XINE_DEMUX_EXTENSION_STRATEGY: {
+    char *extension;
+    char *mrl;
+    
+    mrl = input->get_mrl (input);
+    
+    /*
+     * check extension
+     */
+    
+    extension = strrchr (mrl, '.');
+    
+    if (!extension)
+      return NULL;
+
+    if ( strcasecmp((extension + 1), ".asf")
+	 && strcasecmp((extension + 1), ".wmv")
+	 && strcasecmp((extension + 1), ".wma") ) {
+      return NULL;
+    }
+  }
+  break;
+  }
 
   this         = xine_xmalloc (sizeof (demux_asf_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-					"mrl.ends_asf", VALID_ENDS,
-					_("valid mrls ending for asf demuxer"),
-					NULL, 20, NULL, NULL);
-  
-  this->demux_plugin.open              = demux_asf_open;
+  this->demux_plugin.send_headers      = demux_asf_send_headers;
   this->demux_plugin.start             = demux_asf_start;
   this->demux_plugin.seek              = demux_asf_seek;
   this->demux_plugin.stop              = demux_asf_stop;
   this->demux_plugin.dispose           = demux_asf_dispose;
   this->demux_plugin.get_status        = demux_asf_get_status;
-  this->demux_plugin.get_identifier    = demux_asf_get_id;
   this->demux_plugin.get_stream_length = demux_asf_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_asf_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
   
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
   
+  return &this->demux_plugin;
+}
+ 
+ static char *get_description (demux_class_t *this_gen) {
+   return "ASF demux plugin";
+ }
+ 
+static char *get_identifier (demux_class_t *this_gen) {
+  return "ASF";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "avi wmv wma";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "video/x-ms-asf: asf: ASF animation;"
+         "video/x-ms-wmv: wmv: WMV animation;";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_asf_class_t *this = (demux_asf_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+  
+  demux_asf_class_t     *this;
+  
+  this         = xine_xmalloc (sizeof (demux_asf_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
   return this;
 }
 
@@ -1490,6 +1518,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "asf", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "asf", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

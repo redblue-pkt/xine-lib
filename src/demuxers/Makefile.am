@@ -14,9 +14,9 @@ libdir = $(XINE_PLUGINDIR)
 #qt_modules = xineplug_dmx_qt.la
 #endif
 
-#if BUILD_ASF
-#asf_module = xineplug_dmx_asf.la 
-#endif
+if BUILD_ASF
+asf_module = xineplug_dmx_asf.la 
+endif
 
 ##
 # IMPORTANT:
@@ -35,7 +35,7 @@ libdir = $(XINE_PLUGINDIR)
 #	xineplug_dmx_yuv4mpeg2.la xineplug_dmx_real.la
 #	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la
 
-lib_LTLIBRARIES = xineplug_dmx_avi.la\
+lib_LTLIBRARIES = $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la
 
 #xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
@@ -74,9 +74,9 @@ xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module
 #xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
 #xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_asf_la_SOURCES = demux_asf.c
-#xineplug_dmx_asf_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_asf_la_SOURCES = demux_asf.c
+xineplug_dmx_asf_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module
 
 #xineplug_dmx_cda_la_SOURCES = demux_cda.c
 #xineplug_dmx_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
