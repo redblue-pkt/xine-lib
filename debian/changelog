@@ -1,3 +1,12 @@
+xine-lib (1-rc0a-1) unstable; urgency=low
+
+  * new upstream release
+    * includes missing DXR3 support file (source only)
+    * keeps xine from aborting on broken MPEG streams
+  * added speex support
+
+ -- Siggi Langauf <siggi@debian.org>  Sat,  2 Aug 2003 15:40:13 +0200
+
 xine-lib (1-rc0-1) unstable; urgency=low
 
   * new upstream release
