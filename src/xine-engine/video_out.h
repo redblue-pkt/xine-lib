@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.16 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: video_out.h,v 1.17 2001/08/17 15:54:31 ehasenle Exp $
  *
  *
  * xine version of video_out.h 
@@ -263,9 +263,16 @@ struct vo_driver_s {
 
 };
 
+typedef struct rle_elem_s {
+  uint16_t len;
+  uint16_t color;
+} rle_elem_t;
+
 struct vo_overlay_s {
-  uint8_t          *data;          /* 7-4: mixer key, 3-0: color index */
+
+  rle_elem_t       *rle;           /* rle code buffer                  */
   int               data_size;     /* useful for deciding realloc      */
+  int               num_rle;       /* number of active rle codes       */
   int               x;             /* x start of subpicture area       */
   int               y;             /* y start of subpicture area       */
   int               width;         /* width of subpicture area         */

@@ -38,184 +38,202 @@
 
 #define BLEND_COLOR(dst, src, mask, o) ((((src&mask)*o + ((dst&mask)*(0x0f-o)))/0xf) & mask)
 
-static inline uint16_t blendpixel_rgb16 (uint16_t dst, uint16_t src,
-					 uint8_t o)
-{
-	return BLEND_COLOR (dst, src, 0xf800, o) |
-	    BLEND_COLOR (dst, src, 0x07e0, o) |
-	    BLEND_COLOR (dst, src, 0x001f, o);
+#define BLEND_BYTE(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
+
+static void mem_blend16(uint16_t *mem, uint16_t clr, uint8_t o, int len) {
+  uint16_t *limit = mem + len;
+  while (mem < limit) {
+    *mem =
+     BLEND_COLOR(*mem, clr, 0xf800, o) |
+     BLEND_COLOR(*mem, clr, 0x07e0, o) |
+     BLEND_COLOR(*mem, clr, 0x001f, o);
+    mem++;
+  }
 }
 
-static inline uint32_t blendpixel_rgb24 (uint32_t dst, uint32_t src,
-					 uint8_t o)
-{
-	return BLEND_COLOR (dst, src, 0xff0000, o) |
-	    BLEND_COLOR (dst, src, 0x00ff00, o) |
-	    BLEND_COLOR (dst, src, 0x0000ff, o);
+static void mem_blend24(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
+ uint8_t o, int len) {
+  uint8_t *limit = mem + len*3;
+  while (mem < limit) {
+    *mem = BLEND_BYTE(*mem, r, o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, g, o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, b, o);
+    mem++;
+  }
 }
 
-static inline uint32_t blendpixel_rgb32 (uint32_t dst, uint32_t src,
-					 uint8_t o)
-{
-	return BLEND_COLOR (dst, src, 0xff0000, o) |
-	    BLEND_COLOR (dst, src, 0x00ff00, o) |
-	    BLEND_COLOR (dst, src, 0x0000ff, o);
-}
-/*
-void blend_tux_rgb16 (uint8_t * img, int dst_width, int dst_height)
-{
-	int src_width = bg_width;
-	int src_height = bg_height;
-	uint8_t *src = (uint8_t *) bg_img_data;
-	static int x_off;
-	static int y_off;
-	static int x_dir = 1;
-	static int y_dir = 1;
-	static int o = 5;
-	static int o_dir = 1;
-
-// align right bottom
-	x_off += x_dir;
-	if (x_off > (dst_width - src_width))
-		x_dir = -x_dir;
-	if (x_off <= 0)
-		x_dir = -x_dir;
-
-	y_off += y_dir;
-	if (y_off > (dst_height - src_height))
-		y_dir = -y_dir;
-	if (y_off <= 0)
-		y_dir = -y_dir;
-
-// cycle parameters
-	o += o_dir;
-	if (o >= 0xf)
-		o_dir = -o_dir;
-	if (o <= 1)
-		o_dir = -o_dir;
-//
-	{
-		uint16_t *dst = (uint16_t *) img;
-		int x,
-		 y;
-
-		dst += y_off * dst_width;
-		for (y = 0; y < src_height; y++) {
-			dst += x_off;
-			for (x = 0; x < src_width; x++) {
-				if ((*src) - bg_start_index)
-					*dst = blendpixel_rgb16 (bg_palette_to_rgb [(*src) - bg_start_index], *dst, o);
-				src++;
-				dst++;
-			}
-			dst += dst_width - x - x_off;
-		}
-	}
-}
-*/
-// convenience
-
-#define uint24_t uint32_t
-
-#define BLEND(bpp, img, img_overl, dst_width, dst_height)\
-{									\
-	static int o=5;							\
-	uint8_t *src = (uint8_t *) img_overl->data;			\
-        uint##bpp##_t *dst = (uint##bpp##_t *) img;			\
-        int x, y;							\
-									\
-	dst += img_overl->y*dst_width;					\
-        for (y=0; y<img_overl->height; y++) {				\
-		dst += img_overl->x;					\
-                for (x=0; x<img_overl->width; x++) {			\
-			o = img_overl->trans[*src];		\
-									\
-			if (o)		/* if alpha is != 0 */		\
-				*dst = blendpixel_rgb##bpp (*dst, myclut[*src], o);   \
-			src++;						\
-			dst++;						\
-                }							\
-		dst += dst_width - x - img_overl->x;			\
-        }								\
+static void mem_blend32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
+ uint8_t o, int len) {
+  uint8_t *limit = mem + len*4;
+  while (mem < limit) {
+    *mem = BLEND_BYTE(*mem, r, o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, g, o);
+    mem++;
+    *mem = BLEND_BYTE(*mem, b, o);
+    mem += 2;
+  }
 }
 
+/* TODO: RGB color clut, only b/w now */
 void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		int dst_height)
 {
-	u_int myclut[] = {
-		0x0000,
-		0x20e2,
-		0x83ac,
-		0x4227,
-		0xa381,
-		0xad13,
-		0xbdf8,
-		0xd657,
-		0xee67,
-		0x6a40,
-		0xd4c1,
-		0xf602,
-		0xf664,
-		0xe561,
-		0xad13,
-		0xffdf,
-	};
+  uint8_t *my_trans;
+  uint16_t my_clut[4];
+  clut_t* clut = (clut_t*) img_overl->color;
 
-	BLEND (16, img, img_overl, dst_width, dst_height);
-	//blend_tux_rgb16 (img, dst_width, dst_height);
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int mask;
+  int x, y;
+
+  uint16_t *dst_pix = (uint16_t *) img;
+  dst_pix += dst_width * y_off + x_off;
+
+  for (x = 0; x < 4; x++) {
+    uint16_t clr = clut[x].y >> 2;
+    my_clut[x] = (clr & 0xfe) << 10 | clr << 5 | (clr >> 1);
+  }
+  my_trans = img_overl->trans;
+
+  for (y = 0; y < src_height; y++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    for (x = 0; x < src_width;) {
+      uint8_t clr;
+      uint16_t o;
+
+      clr = rle->color;
+      o   = my_trans[clr];
+
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x)
+		   o = 0;
+
+      if (o && mask) {
+	mem_blend16(dst_pix+x, my_clut[clr], o, rle->len);
+      }
+
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+    dst_pix += dst_width;
+  }
 }
 
+/* TODO: RGB color clut, only b/w now */
 void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		  int dst_height)
 {
-//FIXME CLUT
-	u_int myclut[] = {
-		0x0000,
-		0x20e2,
-		0x83ac,
-		0x4227,
-		0xa381,
-		0xad13,
-		0xbdf8,
-		0xd657,
-		0xee67,
-		0x6a40,
-		0xd4c1,
-		0xf602,
-		0xf664,
-		0xe561,
-		0xad13,
-		0xffdf,
-	};
-	BLEND (24, img, img_overl, dst_width, dst_height);
+  clut_t *my_clut;
+  uint8_t *my_trans;
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int mask;
+  int x, y;
+
+  uint8_t *dst_pix = img + (dst_width * y_off + x_off) * 3;
+
+  my_clut = (clut_t*) img_overl->color;
+  my_trans = img_overl->trans;
+
+  for (y = 0; y < src_height; y++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    for (x = 0; x < src_width;) {
+      uint8_t clr;
+      uint16_t o;
+
+      clr = rle->color;
+      o   = my_trans[clr];
+
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x)
+		   o = 0;
+
+      if (o && mask) {
+        uint8_t v = my_clut[clr].y;
+	mem_blend24(dst_pix + x*3, v, v, v, o, rle->len);
+      }
+
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+    dst_pix += dst_width * 3;
+  }
 }
 
+/* TODO: RGB color clut, only b/w now */
 void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		  int dst_height)
 {
-//FIXME CLUT
-	u_int myclut[] = {
-		0x0000,
-		0x20e2,
-		0x83ac,
-		0x4227,
-		0xa381,
-		0xad13,
-		0xbdf8,
-		0xd657,
-		0xee67,
-		0x6a40,
-		0xd4c1,
-		0xf602,
-		0xf664,
-		0xe561,
-		0xad13,
-		0xffdf,
-	};
-	BLEND (32, img, img_overl, dst_width, dst_height);
+  clut_t *my_clut;
+  uint8_t *my_trans;
+  int src_width = img_overl->width;
+  int src_height = img_overl->height;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int mask;
+  int x, y;
+
+  uint8_t *dst_pix = img + (dst_width * y_off + x_off) * 4;
+
+  my_clut = (clut_t*) img_overl->color;
+  my_trans = img_overl->trans;
+
+  for (y = 0; y < src_height; y++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    for (x = 0; x < src_width;) {
+      uint8_t clr;
+      uint16_t o;
+
+      clr = rle->color;
+      o   = my_trans[clr];
+
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x)
+		   o = 0;
+
+      if (o && mask) {
+        uint8_t v = my_clut[clr].y;
+	mem_blend32(dst_pix + x*4, v, v, v, o, rle->len);
+      }
+
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+    dst_pix += dst_width * 4;
+  }
 }
 
-#define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
+static void mem_blend8(uint8_t *mem, uint8_t val, uint8_t o, size_t sz)
+{
+  uint8_t *limit = mem + sz;
+  while (mem < limit) {
+    *mem = BLEND_BYTE(*mem, val, o);
+    mem++;
+  }
+}
 
 void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height)
@@ -225,100 +243,64 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
-  uint8_t *src_data = img_overl->data;
-  int step=dst_width - src_width;
+  rle_elem_t *rle = img_overl->rle;
+  rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x_off = img_overl->x;
   int y_off = img_overl->y;
+  int mask;
+  int x, y;
 
   uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
   uint8_t *dst_cr = dst_img + dst_width * dst_height +
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
-  uint8_t *dst_cb = dst_img + (dst_width * dst_height * 5) / 4 +
-    (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
-
-  int x, y;
+  uint8_t *dst_cb = dst_cr + (dst_width * dst_height) / 4;
 
   my_clut = (clut_t*) img_overl->color;
   my_trans = img_overl->trans;
 
   for (y = 0; y < src_height; y++) {
-    for (x = 0; x < src_width; x++) {
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+
+    for (x = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
 
-      clr = *src_data & 3;
+      clr = rle->color;
       o   = my_trans[clr];
 
-      /* OK, this looks time consuming.
-       * But it gets only evaluated if (o != 0) */
+      /* These three lines assume that menu buttons are "clean" separated
+       * and do not overlap with the button clip borders */
       if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x ||
-		 img_overl->clip_top    > y ||
-		 img_overl->clip_bottom < y)
+		 img_overl->clip_right  < x)
 		   o = 0;
 
-     if (o) 
-        *dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
-      dst_y++;
-
-      if (y & x & 1) {
-	if(o) {
-	  *dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
-	  *dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o);
+      if (o && mask) {
+	if (o >= 15) {
+	  memset(dst_y + x, my_clut[clr].y, rle->len);
+	  if (y & 1) {
+	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rle->len >> 1);
+	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rle->len >> 1);
+	  }
+	} else {
+	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle->len);
+	  if (y & 1) {
+	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rle->len >> 1);
+	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rle->len >> 1);
+	  }
 	}
-        dst_cr++;
-        dst_cb++;
       }
-      src_data++;
-    }
 
-    dst_y += step;
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }
+    if (rle >= rle_limit) break;
+
+    dst_y += dst_width;
 
     if (y & 1) {
-      dst_cr += (step + 1) / 2;
-      dst_cb += (step + 1) / 2;
+      dst_cr += (dst_width + 1) / 2;
+      dst_cb += (dst_width + 1) / 2;
     }
   }
-}
-
-inline int is_blank (uint8_t * ptr, int width)
-{
-	int x;
-
-	for (x = 0; x < width; x++) {
-		if ((*ptr & 0x0f) && (*ptr >> 4))
-			return 0;	// color != 0 && alpha != 0
-		ptr++;
-	}
-
-	return 1;		// blank line
-}
-
-void crop_overlay (vo_overlay_t * overlay)
-{
-	uint8_t *data = overlay->data;
-	int height = overlay->height;
-	int width = overlay->width;
-	int y;
-
-	/*
-	 * Shrink from bottom 
-	 */
-
-	for (y=height - 1;y >= 0 && is_blank (&data[y * width], width); y--);
-	height = y + 1;
-
-	/*
-	 * Shrink from top 
-	 */
-	for (y=0; y < height && is_blank (&data[y * width], width); y++);
-	height -= y;
-
-	/*
-	 * Shift data 
-	 */
-	overlay->y -= y;
-	overlay->height = height;
-
-	memcpy (data, &data[y * width], height * width);
 }

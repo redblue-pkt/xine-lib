@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.9 2001/08/17 07:26:14 richwareham Exp $
+* $Id: spu.c,v 1.10 2001/08/17 15:54:31 ehasenle Exp $
 *
 *****/
 
@@ -120,7 +120,7 @@ int spuNextEvent(spu_state_t *state, spu_seq_t* seq, int pts)
   uint8_t *buf = state->cmd_ptr;
 
   if (state->next_pts == -1) { /* timestamp valid? */
-    state->next_pts = seq->PTS + ((buf[0] << 8) + buf[1]) * 1100;
+    state->next_pts = seq->PTS + ((buf[0] << 8) + buf[1]) * 1024;
     buf += 2;
     state->cmd_ptr = buf;
   }
@@ -180,7 +180,6 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
       spu_clut_t *trans = (spu_clut_t *) (buf+1);
       
-      /* TODO: bswap32? */
       ovl->trans[3] = trans->entry0;
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
@@ -262,12 +261,6 @@ static u_int get_bits (u_int bits)
   return ret;	
 }
 
-static inline void spu_put_pixel (vo_overlay_t *spu, int len, uint8_t colorid)
-{
-  memset (spu->data + put_x + put_y * spu->width, colorid, len);
-  put_x += len;
-}
-
 static int spu_next_line (vo_overlay_t *spu)
 {
   get_bits (0); // byte align rle data
@@ -285,6 +278,8 @@ static int spu_next_line (vo_overlay_t *spu)
 
 void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 {
+  rle_elem_t *rle;
+
   field = 0;
   bit_ptr[0] = seq->buf + state->field_offs[0];
   bit_ptr[1] = seq->buf + state->field_offs[1];
@@ -303,18 +298,20 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 
   spuUpdateMenu(state, ovl);
 
-  if (ovl->width * ovl->height > ovl->data_size) {
-    if (ovl->data)
-      free(ovl->data);
-    ovl->data_size = ovl->width * ovl->height;
-    ovl->data = malloc(ovl->data_size);
+  /* buffer is believed to be sufficiently large
+   * with cmd_offs * 2 * sizeof(rle_elem_t), is that true? */
+  if (seq->cmd_offs * 2 * sizeof(rle_elem_t) > ovl->data_size) {
+    if (ovl->rle)
+      free(ovl->rle);
+    ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
+    ovl->rle = malloc(ovl->data_size);
   }
 
   state->modified = 0; /* mark as already processed */
+  rle = ovl->rle;
 
   while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
     u_int len;
-    u_int color;
     u_int vlc;
     
     vlc = get_bits (4);
@@ -328,25 +325,24 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       }
     }
     
-    color = vlc & 0x03;
     len   = vlc >> 2;
     
     /* if len == 0 -> end sequence - fill to end of line */
     if (len == 0)
       len = ovl->width - put_x;
     
-    spu_put_pixel (ovl, len, color);
+    rle->len = len;
+    rle->color = vlc & 0x03;
+    rle++;
+    put_x += len;
     
     if (put_x >= ovl->width) {
       if (spu_next_line (ovl) < 0)
-	return;
+        break;
     }
   }
   
-  /* Like the eof-line escape, fill the rest of the sp. with background */
-  do {
-    spu_put_pixel (ovl, ovl->width, 0);
-  } while (!spu_next_line (ovl));
+  ovl->num_rle = rle - ovl->rle;
 }
 
 void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl) {
