@@ -27,7 +27,13 @@
 #ifdef __KERNEL__
 #include <linux/types.h>
 #else
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#if HAVE_STDINT_H
 #include <stdint.h>
+#endif
+#endif
 #endif
 
 #define DMX_FILTER_SIZE 16

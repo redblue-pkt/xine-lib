@@ -36,6 +36,9 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#ifdef __sun
+#include <sys/ioccom.h>
+#endif
 #include <sys/poll.h>
 
 /* These will eventually be #include <linux/dvb/...> */
