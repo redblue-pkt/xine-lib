@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.84 2002/03/21 22:08:59 guenter Exp $
+ * $Id: video_out.c,v 1.85 2002/03/22 13:33:22 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -397,6 +397,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 	   without it decoder may try to free our backup.  */
 	this->img_backup = img;
 	this->backup_is_logo = 0;
+	this->redraw_needed = 1;
       } else {
 	pthread_mutex_lock (&img->mutex);
 	  
