@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.59 2002/06/17 16:59:43 tmattern Exp $
+ * $Id: audio_alsa_out.c,v 1.60 2002/07/01 11:27:04 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -58,15 +58,6 @@
 #include "xineutils.h"
 #include "compat.h"
 #include "audio_out.h"
-
-#ifndef AFMT_S16_NE
-# if defined(sparc) || defined(__sparc__) || defined(PPC)
-/* Big endian machines */
-#  define AFMT_S16_NE AFMT_S16_BE
-# else
-#  define AFMT_S16_NE AFMT_S16_LE
-# endif
-#endif
 
 #define AO_OUT_ALSA_IFACE_VERSION 4
 
@@ -164,14 +155,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size,tmp;
-  /*
-  snd_aes_iec958_t      spdif;
-  snd_ctl_elem_value_t *ctl;
-  snd_ctl_t            *ctl_handle;
-  snd_pcm_info_t       *info;
-  char                  ctl_name[12];
-  int                   ctl_card;
-  */
   int                   err, step;
  // int                 open_mode=1; //NONBLOCK
   int                   open_mode=0; //BLOCK
@@ -264,63 +247,12 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /*
    * open audio device
    */
-
   err=snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
   if(err <0 ) {                                                           
     printf ("audio_alsa_out: snd_pcm_open() failed: %s\n", snd_strerror(err));               
     printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
     return 0;
   }
-/*
- * This is all not needed in the new ALSA API
- * Beginning of old alsa section.
- * 
-  if ((mode & AO_CAP_MODE_A52) || (mode & AO_CAP_MODE_AC5)) {
-    snd_pcm_info_alloca(&info);
-
-    if ((err = snd_pcm_info(this->audio_fd, info)) < 0) {
-      fprintf(stderr, "info: %s\n", snd_strerror(err));
-      goto __close;
-    }
-    printf ("audio_alsa_out: device: %d, subdevice: %d\n", 
-	    snd_pcm_info_get_device(info),
-	    snd_pcm_info_get_subdevice(info));
-
-    spdif.status[0] = IEC958_AES0_NONAUDIO |
-                      IEC958_AES0_CON_EMPHASIS_NONE;
-    spdif.status[1] = IEC958_AES1_CON_ORIGINAL |
-                      IEC958_AES1_CON_PCM_CODER;
-    spdif.status[2] = 0;
-    spdif.status[3] = IEC958_AES3_CON_FS_48000;
-
-    snd_ctl_elem_value_alloca(&ctl);
-    snd_ctl_elem_value_set_interface(ctl, SND_CTL_ELEM_IFACE_PCM);
-    snd_ctl_elem_value_set_device(ctl,snd_pcm_info_get_device(info));
-    snd_ctl_elem_value_set_subdevice(ctl, snd_pcm_info_get_subdevice(info));
-    snd_ctl_elem_value_set_name(ctl, SND_CTL_NAME_IEC958("",PLAYBACK,PCM_STREAM));
-    snd_ctl_elem_value_set_iec958(ctl, &spdif);
-    ctl_card = snd_pcm_info_get_card(info);
-    if (ctl_card < 0) {
-      printf ("audio_alsa_out: unable to setup the IEC958 (S/PDIF) interface - PCM has no assigned card");
-      goto __close;
-    }
-    sprintf(ctl_name, "hw:%d", ctl_card);
-    printf("hw:%d\n", ctl_card);
-    if ((err = snd_ctl_open(&ctl_handle, ctl_name, 0)) < 0) {
-      printf ("audio_alsa_out: unable to open the control interface '%s':%s", 
-	      ctl_name, snd_strerror(err));
-      goto __close;
-    }
-    if ((err = snd_ctl_elem_write(ctl_handle, ctl)) < 0) {
-      printf ("audio_alsa_out: unable to update the IEC958 control: %s", 
-	      snd_strerror(err));
-      goto __close;
-    }
-    snd_ctl_close(ctl_handle);
-  }
- *
- * End of old alsa section.
- */
   /* We wanted non blocking open but now put it back to normal */
   snd_pcm_nonblock(this->audio_fd, 0);
   /*
@@ -955,7 +887,6 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   /*
    * open that device
    */
-  
   err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 0);
   if(err <0 ) {
     xlerror("snd_pcm_open() failed: %d", err); 
