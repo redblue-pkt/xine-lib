@@ -737,13 +737,7 @@ static void osd_load_fonts (osd_renderer_t *this, char *path) {
       }
     }
 
-    /*
-     * for a reason that is still unknown this closedir breaks
-     * ac3 passthrough (at least for oss).
-     * Needs to be investigted further...
-     * -- Heiko
-     */
-    /* closedir (dir); */
+    closedir (dir);
 
   }
 }
