@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2002/12/08 15:50:35 mroi Exp $
+ * $Id: xine_decoder.c,v 1.21 2002/12/09 21:24:36 cvogler Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -281,25 +281,29 @@ void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
 }
 
 
+/* event listener for frame changes */
+static void spucc_event_listener(void *this_gen, const xine_event_t *event)
+{
+  spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
+
+  switch (event->type) {
+  case XINE_EVENT_FRAME_FORMAT_CHANGE:
+    {
+      xine_format_change_data_t *frame_change = 
+	(xine_format_change_data_t *)event->data;
+      
+      spucc_notify_frame_change(this, frame_change->width,
+				frame_change->height);
+    }
+    break;
+  }
+}
+
+
 /*------------------- implementation of spudec interface -------------------*/
 
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
-  xine_event_t *event;
-  
-  if ((event = xine_event_get(this->queue))) {
-    switch (event->type) {
-    case XINE_EVENT_FRAME_FORMAT_CHANGE:
-      {
-        xine_format_change_data_t *frame_change = 
-          (xine_format_change_data_t *)event->data;
-        
-        spucc_notify_frame_change(this, frame_change->width,
-				  frame_change->height);
-      }
-      break;
-    }
-  }
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
   } else {
@@ -361,7 +365,10 @@ static spu_decoder_t *spudec_open_plugin (spu_decoder_class_t *class, xine_strea
   pthread_mutex_lock(&this->cc_mutex);
   spucc_do_init(this, stream->video_out);
   pthread_mutex_unlock(&this->cc_mutex);
-  
+
+  xine_event_create_listener_thread (this->queue, spucc_event_listener,
+				     (void *) this);
+
   return &this->spu_decoder;
 }
 

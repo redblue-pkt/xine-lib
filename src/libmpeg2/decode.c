@@ -779,17 +779,15 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       mpeg2dec->cc_dec = get_spu_decoder(mpeg2dec->stream, (BUF_SPU_CC >> 16) & 0xff);
     
     if (mpeg2dec->cc_dec) {
-      buf_element_t *buf;
+      buf_element_t buf;
       
-      buf = mpeg2dec->stream->video_fifo->buffer_pool_alloc (mpeg2dec->stream->video_fifo);
-      buf->type = BUF_SPU_CC;
-      buf->content = &buffer[2];
-      buf->pts = mpeg2dec->pts;
-      buf->size = find_end(buffer) - &buffer[2];
+      buf.type = BUF_SPU_CC;
+      buf.content = &buffer[2];
+      buf.pts = mpeg2dec->pts;
+      buf.size = find_end(buffer) - &buffer[2];
+      buf.decoder_flags = 0;
       
-      mpeg2dec->cc_dec->decode_data(mpeg2dec->cc_dec, buf);
-      
-      buf->free_buffer(buf);
+      mpeg2dec->cc_dec->decode_data(mpeg2dec->cc_dec, &buf);
     }
   }
 }
