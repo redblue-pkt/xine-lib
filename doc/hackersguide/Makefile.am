@@ -8,7 +8,7 @@ hackersguide_sgml = hackersguide.sgml \
 		    stream.sgml \
 		    output.sgml
 
-docs_DATA = $(srcdir)/hackersguide.html \
+docs_DATA = hackersguide.html \
             architecture.png library.png overlays.png post_frame.png
 
 EXTRA_DIST = README $(hackersguide_sgml) \
@@ -16,20 +16,28 @@ EXTRA_DIST = README $(hackersguide_sgml) \
 
 docsdir = $(prefix)/share/doc/xine/hackersguide
 
-docs: $(docs_DATA)
+docs: docs-prepare $(docs_DATA)
+
+docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
+	for file in $(hackersguide_sgml); do \
+	  test -f $$file || cp $(srcdir)/$$file .; \
+	done
 
 dist-hook:
 	@touch $(addprefix $(srcdir)/, $(EXTRA_DIST))
 	@make fail_if_missing=yes docs
 	cp $(docs_DATA) $(distdir)
 
-hackersguide.html: $(addprefix $(srcdir)/, $(hackersguide_sgml))
+$(hackersguide_sgml): $(addprefix $(srcdir)/,$(hackersguide_sgml))
+	cp $^ .
+
+hackersguide.html: $(hackersguide_sgml)
 	@if test "$(SGMLTOOLS)" != "no"; then \
-	  $(SGMLTOOLS) -b onehtml $(srcdir)/hackersguide.sgml; \
+	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
-	  else touch hackersguide.html; \
+	  else touch $@; \
 	  fi; \
 	fi
 
