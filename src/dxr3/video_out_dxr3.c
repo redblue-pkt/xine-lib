@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.61 2002/11/20 11:57:42 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.62 2002/11/22 16:20:33 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -818,6 +818,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     dxr3_set_property(this_gen, VO_PROP_ZOOM_X, -1);
   }
   
+#ifdef HAVE_X11
   if (this->overlay_enabled) {
     if (this->scale.force_redraw                             ||
 	this->scale.delivered_width      != frame_gen->width ||
@@ -837,6 +838,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       dxr3_overlay_update(this);
     }
   }
+#endif
   
   if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_display_frame) {
     if (this->need_update) {
@@ -856,9 +858,11 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 static int dxr3_redraw_needed(vo_driver_t *this_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
-  
+
+#ifdef HAVE_X11  
   if (this->overlay_enabled)
     dxr3_overlay_update(this);
+#endif
   
   return 0;
 }
