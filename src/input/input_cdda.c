@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.28 2003/06/09 01:26:25 tchamp Exp $
+ * $Id: input_cdda.c,v 1.29 2003/06/09 01:54:11 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1927,7 +1927,7 @@ static void _cdda_free_cddb_info(cdda_input_plugin_t *this) {
  */
 
 static int cdda_open(cdda_input_plugin_t *this_gen,
-					 char *cdda_device, cdrom_toc *toc) {
+					 char *cdda_device, cdrom_toc *toc, int *fdd) {
 
   int fd = -1;
 
@@ -1935,6 +1935,8 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 
 #ifndef WIN32
  
+  *fdd = -1;
+
   if (this_gen)
     this_gen->fd = -1;
 
@@ -1946,7 +1948,11 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   if (this_gen)
     this_gen->fd = fd;
 
+  *fdd = fd;
+
 #else /* WIN32 */
+
+  *fdd = -1;
 
   if (this_gen) {
     this_gen->fd = -1;
@@ -2293,7 +2299,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 
   if( this->net_fd == -1 ) {
 
-    if (cdda_open(this, cdda_device, &toc) == -1) {
+    if (cdda_open(this, cdda_device, &toc, &fd) == -1) {
       free_cdrom_toc(&toc);
       return 0;
     }
@@ -2446,7 +2452,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 #endif
 
   if (fd == -1) {
-    if (cdda_open(ip, this->cdda_device, &toc) == -1) {
+    if (cdda_open(ip, this->cdda_device, &toc, &fd) == -1) {
       return NULL;
     }
   }
