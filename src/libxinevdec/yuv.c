@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.15 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.16 2002/12/18 21:35:42 esnel Exp $
  */
 
 #include <stdio.h>
@@ -120,7 +120,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
-  } else if (this->decoder_ok) {
+  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if (this->size + buf->size > this->bufsize) {
       this->bufsize = this->size + 2 * buf->size;

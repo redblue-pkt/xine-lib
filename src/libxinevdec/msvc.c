@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.19 2002/12/18 19:48:51 esnel Exp $
+ * $Id: msvc.c,v 1.20 2002/12/18 21:35:42 esnel Exp $
  */
 
 #include <stdlib.h>

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.13 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: cyuv.c,v 1.14 2002/12/18 21:35:41 esnel Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -145,7 +145,7 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
   cyuv_decoder_t *this = (cyuv_decoder_t *) this_gen;
   vo_frame_t *img; /* video out frame */
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+  if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL))
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */

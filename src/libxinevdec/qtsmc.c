@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.10 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: qtsmc.c,v 1.11 2002/12/18 21:35:42 esnel Exp $
  */
 
 #include <stdio.h>
@@ -555,7 +555,7 @@ static void qtsmc_decode_data (video_decoder_t *this_gen,
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 1;
 
     return;
-  } else if (this->decoder_ok) {
+  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if (this->size + buf->size > this->bufsize) {
       this->bufsize = this->size + 2 * buf->size;
