@@ -103,20 +103,36 @@ void dsputil_init_mmx(void);
 
 #elif defined(ARCH_ARMV4L)
 
-#define emms_c()
-
 /* This is to use 4 bytes read to the IDCT pointers for some 'zero'
    line ptimizations */
 #define __align8 __attribute__ ((aligned (4)))
 
 void dsputil_init_armv4l(void);   
 
-#else
+#endif
 
-#define emms_c()
 
-#define __align8
 
+#if defined(HAVE_MLIB)
+
+/* SPARC/VIS IDCT needs 8-byte aligned DCT blocks */
+#define __align8 __attribute__ ((aligned (8)))
+
+void dsputil_init_mlib(void);
+
+#endif	/* HAVE_MLIB */
+
+
+/*
+ * provide empty defaults, if the target specific accelerated dsputils did
+ * not define these:
+ */
+#ifndef	__align8
+#define	__align8
+#endif
+
+#ifndef	emms_c
+#define	emms_c()
 #endif
 
 #endif

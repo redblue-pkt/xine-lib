@@ -4,7 +4,7 @@
 
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
-CFLAGS = @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+CFLAGS = @GLOBAL_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -15,11 +15,15 @@ mmx_modules = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c idct_mmx.c
 #mmx_modules = mpegvideo_mmx.c sad_mmx.s
 endif
 
+if HAVE_MLIB
+mlib_modules = dsputil_mlib.c idct_mlib.c
+endif
+
 libavcodec_la_SOURCES = dsputil.c   fdctref.c   jfdctfst.c  mpeg12.c   \
 		        utils.c     rv10.c      h263.c      jrevdct.c  \
 		        common.c    h263dec.c   msmpeg4.c   \
 			mpegvideo.c mjpeg.c     motion_est.c \
-			$(mmx_modules)
+			$(mmx_modules) $(mlib_modules)
 
 
 noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
@@ -27,7 +31,7 @@ noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
 		 mpeg12data.h
 
 debug:
-	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
