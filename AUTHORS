@@ -395,6 +395,6 @@ Marcel Janssen <korgull@home.nl>
 
 Dirk Meyer <dmeyer@tzi.de
   stdctl patches for xine-ui and fbxine.
-  audio viz post support for fbxine.
+  post filter support for fbxine.
 
 (let us know if we've forgotten anyone)
