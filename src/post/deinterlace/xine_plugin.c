@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.23 2003/12/05 15:55:02 f1rmb Exp $
+ * $Id: xine_plugin.c,v 1.24 2003/12/06 15:50:11 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -116,6 +116,7 @@ struct post_plugin_deinterlace_s {
   int                chroma_filter;
   int                cheap_mode;
   tvtime_t          *tvtime;
+  int                tvtime_changed;
 
   int                framecounter;
   uint8_t            rff_pattern;
@@ -141,7 +142,7 @@ static void _flush_frames(post_plugin_deinterlace_t *this)
       this->recent_frame[i] = NULL;
     }
   }
-  tvtime_reset_context(this->tvtime);
+  this->tvtime_changed++;
 }
 
 static int set_parameters (xine_post_t *this_gen, void *param_gen) {
@@ -165,7 +166,7 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen) {
   this->chroma_filter = param->chroma_filter;
   this->cheap_mode = param->cheap_mode;
 
-  this->tvtime->curmethod = get_deinterlace_method( this->cur_method-1 );
+  this->tvtime_changed++;
 
   pthread_mutex_unlock (&this->lock);
 
@@ -415,6 +416,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   memset( &this->recent_frame, 0, sizeof(this->recent_frame) );
 
   this->tvtime = tvtime_new_context();
+  this->tvtime_changed++;
 
   pthread_mutex_init (&this->lock, NULL);
 
@@ -541,7 +543,9 @@ static int deinterlace_set_property(xine_video_port_t *port_gen, int property, i
 
     pthread_mutex_unlock (&this->lock);
 
-    port->original_port->set_property(port->original_port, XINE_PARAM_VO_DEINTERLACE, 0);
+    port->original_port->set_property(port->original_port, 
+                                      XINE_PARAM_VO_DEINTERLACE, 
+                                      !this->cur_method);
 
     return this->enabled;
   } else
@@ -563,7 +567,9 @@ static void deinterlace_open(xine_video_port_t *port_gen, xine_stream_t *stream)
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
   this->stream = stream;
   port->original_port->open(port->original_port, stream);
-  port->original_port->set_property(port->original_port, XINE_PARAM_VO_DEINTERLACE, 0);
+  port->original_port->set_property(port->original_port, 
+                                    XINE_PARAM_VO_DEINTERLACE, 
+                                    !this->cur_method);
 }
 
 static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t width, 
@@ -640,7 +646,24 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   int i, skip, progressive = 0;
 
   _x_post_restore_video_frame(frame, port);
-  frame->flags &= ~VO_INTERLACED_FLAG;
+
+  /* update tvtime context and method */
+  pthread_mutex_lock (&this->lock);
+  if( this->tvtime_changed ) {
+    tvtime_reset_context(this->tvtime);
+
+    if( this->cur_method )
+      this->tvtime->curmethod = get_deinterlace_method( this->cur_method-1 );
+    else
+      this->tvtime->curmethod = NULL;
+
+    port->original_port->set_property(port->original_port, 
+                                XINE_PARAM_VO_DEINTERLACE, 
+                                !this->cur_method);
+
+    this->tvtime_changed = 0;
+  }
+  pthread_mutex_unlock (&this->lock);
 
   /* this should be used to detect any special rff pattern */
   this->rff_pattern = this->rff_pattern << 1;
@@ -652,8 +675,11 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
     progressive = 1;
   }
 
-  if( !frame->bad_frame ) {
+  if( !frame->bad_frame && 
+      (frame->flags & VO_INTERLACED_FLAG) &&
+      this->tvtime->curmethod ) {
 
+    frame->flags &= ~VO_INTERLACED_FLAG;
 
     /* convert to YUY2 if needed */
     if( frame->format == XINE_IMGFMT_YV12 && !this->cheap_mode ) {
