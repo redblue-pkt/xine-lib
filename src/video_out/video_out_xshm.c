@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.37 2001/09/23 15:14:01 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.38 2001/09/24 09:09:43 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1019,7 +1019,8 @@ ImlibPaletteLUTGet(xshm_driver_t *this)
       j = 1 + num_colors*4;
       this->fast_rgb = malloc(sizeof(uint8_t) * 32 * 32 * 32);	  
       for (i = 0; i < 32 * 32 * 32 && j < num_ret; i++)
-	this->fast_rgb[i] = retval[j++];
+	this->fast_rgb[i] = retval[1+4*retval[j++]+3];
+
       XFree(retval);
       return 1;
     } else
@@ -1220,6 +1221,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     break;
 
   case PseudoColor:
+  case GrayScale:
     if (this->depth <= 8 && ImlibPaletteLUTGet(this))
       mode = MODE_PALETTE;
     break;
