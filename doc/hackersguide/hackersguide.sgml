@@ -708,7 +708,7 @@ struct input_plugin_s
     </listitem>
      <listitem>
       <para>
-      INPUT_CAP_VARIABLE_BITRATE -- Xine may not experimentally read from the
+      INPUT_CAP_VARIABLE_BITRATE -- xine may not experimentally read from the
       plugin in order to guestimate bit-rate.
       </para>
     </listitem>
@@ -843,7 +843,7 @@ struct input_plugin_s
       you may wish to look at an existing plugin's source-code to check.
     </para>
     <para>
-      The <varname>visual_type</varname> field is used by the Xine UI to
+      The <varname>visual_type</varname> field is used by the xine UI to
       determine if it is supported by the UI (e.g. X11 output plugins require
       the GUI to be running under the X Windowing system) and also to 
       determine the information passed to the 
