@@ -1,0 +1,139 @@
+--- src/input/libdvdnav/decoder.c	Wed Apr 24 23:15:25 2002
++++ src/input/libdvdnav/decoder.c	Fri Aug  9 21:59:56 2002
+@@ -30,7 +30,7 @@
+ #include <stdlib.h>
+ #include <inttypes.h>
+ #include <string.h>  /* For memset */
+-#include <dvdread/ifo_types.h> /* vm_cmd_t */
++#include "ifo_types.h" /* vm_cmd_t */
+ #include <assert.h>
+ #include "vmcmd.h"
+ #include "decoder.h"
+--- src/input/libdvdnav/decoder.h	Fri Jul 12 17:49:16 2002
++++ src/input/libdvdnav/decoder.h	Fri Aug  9 22:00:14 2002
+@@ -28,7 +28,7 @@
+ #include <inttypes.h>
+ #include <sys/time.h>
+ 
+-#include <dvdread/ifo_types.h> /*  vm_cmd_t */
++#include "ifo_types.h" /*  vm_cmd_t */
+ 
+ /* Uncomment for tracing */
+ /* #define TRACE  */
+--- src/input/libdvdnav/dvdnav.c	Fri Aug  9 22:05:04 2002
++++ src/input/libdvdnav/dvdnav.c	Fri Aug  9 22:00:50 2002
+@@ -30,11 +30,11 @@
+ */
+ 
+ #include <pthread.h>
+-#include <dvdnav.h>
++#include "dvdnav.h"
+ #include "dvdnav_internal.h"
+ #include "read_cache.h"
+ 
+-#include <dvdread/nav_read.h>
++#include "nav_read.h"
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
+--- src/input/libdvdnav/dvdnav.h	Thu Jul 25 17:26:00 2002
++++ src/input/libdvdnav/dvdnav.h	Fri Aug  9 22:01:19 2002
+@@ -40,7 +40,7 @@
+ /* Various useful types */
+ #include "dvd_types.h"
+ 
+-#include <dvdread/dvd_reader.h>
++#include "dvd_reader.h"
+ 
+ /**
+  * Opaque data-type can be viewed as a 'DVD handle'. You should get
+--- src/input/libdvdnav/dvdnav_events.h	Fri Jul  5 16:55:04 2002
++++ src/input/libdvdnav/dvdnav_events.h	Fri Aug  9 22:01:50 2002
+@@ -24,9 +24,9 @@
+ #ifndef DVDNAV_EVENTS_H_INCLUDED
+ #define DVDNAV_EVENTS_H_INCLUDED
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/nav_types.h>
+-#include <dvdread/dvd_reader.h>
++#include "ifo_types.h"
++#include "nav_types.h"
++#include "dvd_reader.h"
+ 
+ /**
+  * \file dvdnav_events.h
+--- src/input/libdvdnav/dvdnav_internal.h	Fri Aug  2 15:01:39 2002
++++ src/input/libdvdnav/dvdnav_internal.h	Fri Aug  9 22:02:18 2002
+@@ -1,3 +1,4 @@
++/* !! DO NO EDIT THIS FILE, it is automatically generated */
+ /* 
+  * Copyright (C) 2001 Rich Wareham <richwareham@users.sourceforge.net>
+  * 
+@@ -40,9 +41,9 @@
+ 
+ #undef WORDS_BIGENDIAN
+ 
+-#include <dvdread/dvd_reader.h>
+-#include <dvdread/ifo_read.h>
+-#include <dvdread/ifo_types.h>
++#include "dvd_reader.h"
++#include "ifo_read.h"
++#include "ifo_types.h"
+ 
+ 
+ /* Maximum length of an error string */
+--- src/input/libdvdnav/highlight.c	Fri Jul 26 12:58:10 2002
++++ src/input/libdvdnav/highlight.c	Fri Aug  9 22:02:46 2002
+@@ -35,10 +35,10 @@
+ 
+ #include "vm.h"
+ #
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ #ifdef BUTTON_TESTING
+-#include <dvdread/nav_print.h>
++#include "nav_print.h"
+ #endif
+ 
+ /* Highlighting API calls */
+--- src/input/libdvdnav/searching.c	Fri Jul 26 12:58:10 2002
++++ src/input/libdvdnav/searching.c	Fri Aug  9 22:03:20 2002
+@@ -25,11 +25,11 @@
+ #include "config.h"
+ #endif
+ 
+-#include <dvdnav.h>
++#include "dvdnav.h"
+ #include "dvdnav_internal.h"
+ 
+ #include "vm.h"
+-#include <dvdread/nav_types.h>
++#include "nav_types.h"
+ 
+ /* Searching API calls */
+ 
+--- src/input/libdvdnav/vm.c	Sat Jul  6 18:12:09 2002
++++ src/input/libdvdnav/vm.c	Fri Aug  9 22:03:48 2002
+@@ -34,8 +34,8 @@
+ #include <inttypes.h>
+ #include <assert.h>
+ 
+-#include <dvdread/ifo_types.h>
+-#include <dvdread/ifo_read.h>
++#include "ifo_types.h"
++#include "ifo_read.h"
+ 
+ #include "decoder.h"
+ #include "vmcmd.h"
+--- src/input/libdvdnav/vmcmd.h	Sat Jun  1 14:40:50 2002
++++ src/input/libdvdnav/vmcmd.h	Fri Aug  9 22:04:13 2002
+@@ -26,7 +26,7 @@
+ #define VMCMD_H_INCLUDED
+ 
+ #include <inttypes.h>
+-#include <dvdread/ifo_types.h> /*  Only for vm_cmd_t  */
++#include "ifo_types.h" /*  Only for vm_cmd_t  */
+ #include "decoder.h"
+ 
+ void vmPrint_mnemonic(vm_cmd_t *command);
