@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.9 2001/07/24 12:57:30 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.10 2001/07/24 16:10:14 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -62,6 +62,7 @@
 #include "video_out_x11.h"
 #include "video_out_syncfb.h"
 #include "xine_internal.h"
+#include "alphablend.h"
 
 #include "monitor.h"
 #include "configfile.h"
@@ -457,6 +458,8 @@ static void mga_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
                                     int format, int flags) {
 
   mga_frame_t   *frame = (mga_frame_t *) frame_gen;
+
+// printf("MGA update frame format width %d height %d format %d\n",width,height,format);
   
   frame->ratio_code = ratio_code;
   if (frame->width == width && frame->height == height && frame->format == format)
@@ -503,6 +506,24 @@ static void mga_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
   return;
 }
 
+static void mga_frame_field (vo_frame_t *vo_img, int which_field) {
+  /* not needed for MGA */
+}
+
+static void mga_frame_dispose (vo_frame_t *vo_img) {
+
+  mga_frame_t  *frame = (mga_frame_t *) vo_img ;
+
+  if (frame->vo_frame.base[0]) {
+    shmdt(frame->vo_frame.base[0]);
+    shmctl(frame->id,IPC_RMID,NULL);
+    frame->vo_frame.base[0] = NULL;
+  }
+
+  free (frame);
+}
+
+
 static vo_frame_t *mga_alloc_frame (vo_driver_t *this_gen) {
 
   mga_frame_t     *frame ;
@@ -516,13 +537,41 @@ static vo_frame_t *mga_alloc_frame (vo_driver_t *this_gen) {
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
+
+  /*
+   * supply required functions
+   */
+
+  frame->vo_frame.copy    = NULL;
+  frame->vo_frame.field   = mga_frame_field;
+  frame->vo_frame.dispose = mga_frame_dispose;
+
+
   return (vo_frame_t *) frame;
+}
+
+/*
+ *
+ */
+static void mga_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+#if 0
+  xv_frame_t   *frame = (xv_frame_t *) frame_gen;
+
+  /* Alpha Blend here
+   * As XV drivers improve to support Hardware overlay, we will change this function.
+   */
+
+   if (overlay->data) {
+        blend_yuv( frame->image->data, overlay, frame->width, frame->height);
+   }
+#endif
 }
 
 static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame_gen) {
 
   mga_frame_t *frame = (mga_frame_t *) frame_gen;
-   
+  
+ 
   if (frame->width != _mga_priv.image_width ||
       frame->height != _mga_priv.image_height ||
       frame->format != _mga_priv.fourcc_format ||
@@ -733,6 +782,8 @@ static int mga_get_property (vo_driver_t *this, int property) {
         return _mga_priv.cont_current;
   case VO_PROP_BRIGHTNESS:
         return _mga_priv.bright_current;
+  case VO_PROP_ASPECT_RATIO:
+        return _mga_priv.user_ratio;
   default:
         return 0;
   }
@@ -752,6 +803,13 @@ printf("gui_data \n");
     area = (x11_rectangle_t *) data;
 printf("move to %d %d with %d %d\n",area->x,area->y,area->w,area->h);
 //    xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
+      if (area->w == 1024)
+         _mga_priv.bFullscreen = 1;
+      else
+         _mga_priv.bFullscreen = 0;
+      if (_mga_priv.fourcc_format)
+        setup_window_mga();
+
 
     break;
   case GUI_DATA_EX_COMPLETION_EVENT:
@@ -770,6 +828,7 @@ static vo_driver_t vo_mga = {
   mga_alloc_frame,
   mga_update_frame_format,
   mga_display_frame,
+  mga_overlay_blend,
   mga_get_property,
   mga_set_property,
   mga_get_property_min_max,
@@ -866,11 +925,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
 
 
 static vo_info_t vo_info_mga = {
-  1,
+  2,
   "Syncfb",
   "xine video output plugin using MGA Teletux (syncfb) video extension",
   VISUAL_TYPE_X11,
-  20
+  10
 };
 
 vo_info_t *get_video_out_plugin_info() {
