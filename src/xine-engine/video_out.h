@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.81 2003/02/01 19:22:31 guenter Exp $
+ * $Id: video_out.h,v 1.82 2003/02/06 00:09:20 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -172,8 +172,14 @@ struct xine_video_port_s {
 
   /* flush video_out fifo */
   void (*flush) (xine_video_port_t *this);
-  void (*set_flush_mode) (xine_video_port_t *this, int flush_mode);
 
+  /*   * Get/Set video property
+   *
+   * See VO_PROP_* bellow
+   */
+  int (*get_property) (xine_video_port_t *this, int property);
+  int (*set_property) (xine_video_port_t *this, int property, int value);
+  
   /* return true if port is opened for this stream */
   int (*status) (xine_video_port_t *this, xine_stream_t *stream, 
                  int *width, int *height, int64_t *img_duration);
@@ -198,7 +204,8 @@ struct xine_video_port_s {
 #define VO_PROP_TVMODE		      10 
 #define VO_PROP_MAX_NUM_FRAMES        11
 #define VO_PROP_ZOOM_Y                13
-#define VO_NUM_PROPERTIES             14
+#define VO_PROP_DISCARD_FRAMES        14 /* not used by drivers */
+#define VO_NUM_PROPERTIES             15
 
 /* zoom specific constants FIXME: generate this from xine.tmpl.in */
 #define VO_ZOOM_STEP        100

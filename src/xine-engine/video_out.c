@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.139 2003/02/01 19:22:31 guenter Exp $
+ * $Id: video_out.c,v 1.140 2003/02/06 00:09:20 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -54,6 +54,7 @@ typedef struct {
   xine_video_port_t         vo; /* public part */
 
   vo_driver_t              *driver;
+  pthread_mutex_t           driver_lock;
   xine_t                   *xine;
   metronom_clock_t         *clock;
   xine_list_t              *streams;
@@ -65,7 +66,7 @@ typedef struct {
   vo_frame_t               *last_frame;
   vo_frame_t               *img_backup;
   int                       redraw_needed;
-  int                       flush_frames;
+  int                       discard_frames;
   
   int                       video_loop_running;
   int                       video_opened;
@@ -84,7 +85,6 @@ typedef struct {
 
   /* do we true real-time output or is this a grab only instance ? */
   int                       grab_only;
-  int                       flush_mode;
 
   extra_info_t             *extra_info_base; /* used to free mem chunk */
 
@@ -343,7 +343,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   } else {
     frames_to_skip = 0;
 
-    if (this->flush_mode) {
+    if (this->discard_frames) {
 #ifdef LOG
       printf ("video_out: i'm in flush mode, not appending this frame to queue\n");
 #endif
@@ -503,13 +503,13 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 
   diff = 1000000; /* always enter the while-loop */
 
-  while (img && (diff > img->duration || this->flush_frames)) {
+  while (img && (diff > img->duration || this->discard_frames)) {
     pts = img->vpts;
     diff = cur_vpts - pts;
       
-    if (diff > img->duration || this->flush_frames) {
+    if (diff > img->duration || this->discard_frames) {
   
-      if( !this->flush_frames ) {
+      if( !this->discard_frames ) {
         xine_log(this->xine, XINE_LOG_MSG,
 	         _("video_out: throwing away image with pts %lld because "
 		   "it's too old (diff : %lld).\n"), pts, diff);
@@ -524,7 +524,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       pthread_mutex_unlock( &img->stream->current_extra_info_lock );
 
       /* when flushing frames, keep the first one as backup */
-      if( this->flush_frames ) {
+      if( this->discard_frames ) {
         
         if (!this->img_backup) {
 	  this->img_backup = img;
@@ -564,7 +564,6 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       img = this->display_img_buf_queue->first;
     }
   }
-  this->flush_frames = 0;
   
   pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 }
@@ -1049,7 +1048,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   printf("video_out: vo_open\n");
 #endif
   this->video_opened = 1;
-  this->flush_frames = 0;
+  this->discard_frames = 0;
   this->last_delivery_pts = 0;
   if (!this->overlay_enabled && stream->spu_channel_user > -2)
     /* enable overlays if our new stream might want to show some */
@@ -1080,6 +1079,73 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
     }
   pthread_mutex_unlock(&this->streams_lock);
 }
+
+
+static int vo_get_property (xine_video_port_t *this_gen, int property) {
+  vos_t *this = (vos_t *) this_gen;
+  int ret;
+
+  switch (property) {
+  case VO_PROP_DISCARD_FRAMES:
+    ret = this->discard_frames;
+    break;
+
+  default:
+    pthread_mutex_lock( &this->driver_lock );
+    ret = this->driver->get_property(this->driver, property);
+    pthread_mutex_unlock( &this->driver_lock );
+  }
+  return ret;
+}
+
+static int vo_set_property (xine_video_port_t *this_gen, int property, int value) {
+  vos_t *this = (vos_t *) this_gen;
+  int ret;
+
+  switch (property) {
+  
+  case VO_PROP_DISCARD_FRAMES:
+    /* recursive discard frames setting */
+    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+    if(value)
+      this->discard_frames++;
+    else
+      this->discard_frames--;
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+    ret = this->discard_frames;
+    
+    /* discard buffers here because we have no output thread */
+    if (this->grab_only && this->discard_frames) {
+      vo_frame_t *img;
+      
+      pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+  
+      while ((img = this->display_img_buf_queue->first)) {
+  
+#ifdef LOG
+        printf ("video_out: flushing out frame\n");
+#endif
+  
+        img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
+  
+        vo_frame_dec_lock (img);
+      }
+      pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+    }
+    break;
+
+  default:
+    if (!this->grab_only) {
+      pthread_mutex_lock( &this->driver_lock );
+      ret =  this->driver->set_property(this->driver, property, value);
+      pthread_mutex_unlock( &this->driver_lock );
+    } else
+      ret = 0;
+  }
+
+  return ret;
+}
+
 
 static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
                       int *width, int *height, int64_t *img_duration) {
@@ -1199,47 +1265,28 @@ static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled)
  */
 static void vo_flush (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
+  vo_frame_t *img;
 
   if( this->video_loop_running ) {
     pthread_mutex_lock(&this->display_img_buf_queue->mutex);
-    this->flush_frames = 1;
+    this->discard_frames++;
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
    
     /* do not try this in paused mode */
-    while(this->flush_frames)
+    while(1) {
+      pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+      img = this->display_img_buf_queue->first;
+      pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+      if(!img)
+        break;
       xine_usec_sleep (20000); /* pthread_cond_t could be used here */
-  }
-}
-
-/*
- * set video_out fifo to flush mode (grab mode only)
- */
-static void vo_set_flush_mode (xine_video_port_t *this_gen, int flush_mode) {
-  vos_t      *this = (vos_t *) this_gen;
-  vo_frame_t *img;
-
-  if (!this->grab_only)
-    return;
-
-  this->flush_mode = flush_mode;
-
-  if (flush_mode) {
-    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
-
-    while ((img = this->display_img_buf_queue->first)) {
-
-#ifdef LOG
-      printf ("video_out: flushing out frame\n");
-#endif
-
-      img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
-
-      vo_frame_dec_lock (img);
     }
+        
+    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+    this->discard_frames--;
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
   }
 }
-
 
 xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
 				int grabonly) {
@@ -1259,6 +1306,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->streams               = xine_list_new();
   
   pthread_mutex_init(&this->streams_lock, NULL);
+  pthread_mutex_init(&this->driver_lock, NULL );
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
@@ -1269,7 +1317,8 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->vo.enable_ovl            = vo_enable_overlay;
   this->vo.get_overlay_instance  = vo_get_overlay_instance;
   this->vo.flush                 = vo_flush;
-  this->vo.set_flush_mode        = vo_set_flush_mode;
+  this->vo.get_property          = vo_get_property;
+  this->vo.set_property          = vo_set_property;
   this->vo.status                = vo_status;
   this->vo.driver                = driver;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.10 2003/01/11 12:51:17 miguelfreitas Exp $
+ * $Id: post.c,v 1.11 2003/02/06 00:09:20 miguelfreitas Exp $
  */
  
 /*
@@ -81,6 +81,17 @@ static int post_video_status(xine_video_port_t *port_gen, xine_stream_t *stream,
   return port->original_port->status(port->original_port, stream, width, height, img_duration);
 }
 
+static int post_video_get_property(xine_video_port_t *port_gen, int property) {
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  return port->original_port->get_property(port->original_port, property);
+}
+
+static int post_video_set_property(xine_video_port_t *port_gen, int property, int value) {
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  return port->original_port->set_property(port->original_port, property, value);
+}
+
+
 post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
   post_video_port_t *post_port = (post_video_port_t *)malloc(sizeof(post_video_port_t));
   
@@ -97,6 +108,8 @@ post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_por
   post_port->port.get_overlay_instance   = post_video_get_overlay_instance;
   post_port->port.flush                  = post_video_flush;
   post_port->port.status                 = post_video_status;
+  post_port->port.get_property           = post_video_get_property;
+  post_port->port.set_property           = post_video_set_property;
   post_port->port.driver                 = original->driver;
   
   post_port->original_port               = original;

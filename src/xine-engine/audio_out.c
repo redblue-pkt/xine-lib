@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.103 2003/02/02 12:33:23 hadess Exp $
+ * $Id: audio_out.c,v 1.104 2003/02/06 00:09:19 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -148,7 +148,6 @@ typedef struct {
 
   int             audio_loop_running;
   int             grab_only; /* => do not start thread, frontend will consume samples */
-  int             flush_mode;
   int             audio_paused;
   pthread_t       audio_thread;
 
@@ -1175,10 +1174,10 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
          
 #ifdef LOG
   printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld, flushmode=%d\n",
-	  pts, buf->vpts, this->flush_mode);
+	  pts, buf->vpts, this->discard_buffers);
 #endif
 
-  if (!this->flush_mode) 
+  if (!this->discard_buffers) 
     fifo_append (this->out_fifo, buf);
   else
     fifo_append (this->free_fifo, buf);
@@ -1189,37 +1188,6 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   printf ("audio_out: ao_put_buffer done\n");
 #endif
 }
-
-/*
- * set audio_out fifo to flush mode (grab mode only)
- */
-static void ao_set_flush_mode (xine_audio_port_t *this_gen, int flush_mode) {
-  aos_t          *this = (aos_t *) this_gen;
-  audio_buffer_t *buf;
-
-  if (!this->grab_only)
-    return;
-
-  this->flush_mode = flush_mode;
-
-  if (flush_mode) {
-    pthread_mutex_lock(&this->out_fifo->mutex);
-
-    while ((buf = this->out_fifo->first)) {
-
-#ifdef LOG
-      printf ("audio_out: flushing out frame\n");
-#endif
-
-      buf = fifo_remove_int (this->out_fifo);
-
-      fifo_append (this->free_fifo, buf);
-    }
-    pthread_mutex_unlock (&this->out_fifo->mutex);
-  }
-}
-
-
 
 static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
@@ -1380,8 +1348,31 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
   
   case AO_PROP_DISCARD_BUFFERS:
-    this->discard_buffers = value;
+    /* recursive discard buffers setting */
+    if(value)
+      this->discard_buffers++;
+    else
+      this->discard_buffers--;
     ret = this->discard_buffers;
+    
+    /* discard buffers here because we have no output thread */
+    if (this->grab_only && this->discard_buffers) {
+      audio_buffer_t *buf;
+      
+      pthread_mutex_lock(&this->out_fifo->mutex);
+  
+      while ((buf = this->out_fifo->first)) {
+  
+#ifdef LOG
+        printf ("audio_out: flushing out frame\n");
+#endif
+  
+        buf = fifo_remove_int (this->out_fifo);
+  
+        fifo_append (this->free_fifo, buf);
+      }
+      pthread_mutex_unlock (&this->out_fifo->mutex);
+    }
     break;
 
   case AO_PROP_PAUSED:
@@ -1426,7 +1417,7 @@ static void ao_flush (xine_audio_port_t *this_gen) {
   audio_buffer_t *buf;
 
   if( this->audio_loop_running ) {
-    this->discard_buffers    = 1;
+    this->discard_buffers++;
     this->flush_audio_driver = 1;
     
     buf = fifo_remove (this->free_fifo);
@@ -1436,7 +1427,7 @@ static void ao_flush (xine_audio_port_t *this_gen) {
     /* do not try this in paused mode */
     while( this->flush_audio_driver )
       xine_usec_sleep (20000); /* pthread_cond_t could be used here */
-    this->discard_buffers    = 0;
+    this->discard_buffers--;
   }
 }
 
@@ -1491,10 +1482,8 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->ao.control                = ao_control;
   this->ao.flush                  = ao_flush;
   this->ao.status                 = ao_status;
-  this->ao.set_flush_mode         = ao_set_flush_mode;
   
   this->audio_loop_running     = 0;
-  this->flush_mode             = 0;
   this->grab_only              = grab_only;
   this->audio_paused           = 0;
   this->flush_audio_driver     = 0;

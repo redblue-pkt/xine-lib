@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.227 2003/02/04 21:24:52 f1rmb Exp $
+ * $Id: xine.c,v 1.228 2003/02/06 00:09:20 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -213,31 +213,30 @@ void xine_stop (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
-  if (stream->audio_out && stream->audio_out->set_flush_mode)
-    stream->audio_out->set_flush_mode (stream->audio_out, 1);
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
 
-  if (stream->video_out && stream->video_out->set_flush_mode)
-    stream->video_out->set_flush_mode (stream->video_out, 1);
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
 
   xine_stop_internal (stream);
   
-  /*
-   * stream will make output threads discard about everything
-   */
+/* redundant? (xine_stop_internal calls xine_demux_flush_engine)
   if (stream->audio_out)
     stream->audio_out->flush(stream->audio_out);
     
   if (stream->video_out)
     stream->video_out->flush(stream->video_out);
+*/
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_STOP))
     xine_stop(stream->slave);
 
-  if (stream->video_out && stream->video_out->set_flush_mode)
-    stream->video_out->set_flush_mode (stream->video_out, 0);
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
   
-  if (stream->audio_out && stream->audio_out->set_flush_mode)
-    stream->audio_out->set_flush_mode (stream->audio_out, 0);
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   
   pthread_mutex_unlock (&stream->frontend_lock);
 }
