@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.4 2002/12/16 21:50:55 holstsn Exp $
+ * $Id: rtsp_session.c,v 1.5 2002/12/16 23:17:34 holstsn Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -41,8 +41,8 @@
 #define LOG
 */
 
-#define BUF_SIZE 1024
-#define HEADER_SIZE 1024
+#define BUF_SIZE 4096
+#define HEADER_SIZE 4096
 
 struct rtsp_session_s {
 
@@ -128,26 +128,26 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
   char *dest=data;
   char *source=this->recv + this->recv_read;
   int fill=this->recv_size - this->recv_read;
-  
+
   if (len < 0) return 0;
   while (to_copy > fill) {
     
     memcpy(dest, source, fill);
     to_copy -= fill;
     dest += fill;
-    this->recv_read=0;
+    this->recv_read = 0;
+    source = this->recv;
+    this->recv_size = real_get_rdt_chunk (this->s, source);
+    fill = this->recv_size;
 
-    this->recv_size=real_get_rdt_chunk (this->s, this->recv);
     if (this->recv_size == 0) {
 #ifdef LOG
       printf ("librtsp: %d of %d bytes provided\n", len-to_copy, len);
 #endif
       return len-to_copy;
     }
-    source = this->recv;
-    fill = this->recv_size - this->recv_read;
   }
-
+  
   memcpy(dest, source, to_copy);
   this->recv_read += to_copy;
 
