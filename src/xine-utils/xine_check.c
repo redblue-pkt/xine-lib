@@ -214,8 +214,11 @@ xine_health_check_t* xine_health_check_cdrom (xine_health_check_t* hc) {
       return hc;
     }
 
+    if ( (access (hc->cdrom_dev, R_OK & W_OK & X_OK)) < 0) {
+/*
     if ((cdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
         (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
+*/
       set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'\n.", hc->cdrom_dev);
       return hc;
     }
@@ -243,8 +246,11 @@ xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
     return hc;
   }
 
+  if ( (access (hc->dvd_dev, R_OK & W_OK & X_OK)) < 0) {
+/*
   if ((dvdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) !=
       (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH)) {
+*/
     set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s permissions are not 'rwxrwxrx'.\n", hc->dvd_dev);
     return hc;
   }
