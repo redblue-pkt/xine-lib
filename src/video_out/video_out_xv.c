@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.188 2003/12/14 22:13:26 siggi Exp $
+ * $Id: video_out_xv.c,v 1.189 2003/12/30 02:14:07 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -792,8 +792,7 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
       break;
   }
 
-  xprintf(this->xine, XINE_VERBOSITY_LOG,
-	  "video_out_xv: property #%d = %d\n", property, this->props[property].value);
+  lprintf("video_out_xv: property #%d = %d\n", property, this->props[property].value);
 
   return this->props[property].value;
 }
