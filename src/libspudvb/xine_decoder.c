@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2004/12/13 11:43:45 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.14 2004/12/18 17:04:31 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -27,11 +27,16 @@
  * - Implement support for teletext based subtitles
  * - Use transmitted CLUT rather than default
  */
-
+#include "pthread.h"
 #include "xine_internal.h"
 #include "osd.h"
 #include "video_out/alphablend.h"
-#define MAX_REGIONS 5
+#define MAX_REGIONS 7
+
+/* check every DVBSUB_TIMER_DELAY seconds */
+#define DVBSUB_TIMER_DELAY 1
+/* hide subs after n counts of the delay */
+#define SUB_TIMEOUT 6
 
 typedef struct {
   int 			x, y;
@@ -84,8 +89,6 @@ typedef struct dvb_spu_decoder_s {
   dvb_spu_class_t      *class;
   xine_stream_t        *stream;
 
-  xine_event_queue_t   *event_queue;
-
   spu_dvb_descriptor_t *spu_descriptor;
 
   osd_object_t 	       *osd;
@@ -98,7 +101,12 @@ typedef struct dvb_spu_decoder_s {
   uint64_t 		pts;
   uint64_t 		vpts;
   uint64_t		end_vpts;
-  
+
+  pthread_mutex_t     	dvbsub_timer_mutex;
+  /* This is set to non-zero if the timer thread is wanted to stop. */
+  int                	dvbsub_timer_stop;
+  pthread_t           	dvbsub_timer_thread;
+  unsigned int		dvbsub_timer_tcount;  
   dvbsub_func_t        *dvbsub;
   int 			show;
 } dvb_spu_decoder_t;
@@ -116,6 +124,7 @@ void process_region_composition_segment (dvb_spu_decoder_t * this);
 void process_CLUT_definition_segment (dvb_spu_decoder_t * this);
 void process_object_data_segment (dvb_spu_decoder_t * this);
 void draw_subtitles (dvb_spu_decoder_t * this);
+static void spudec_dispose (spu_decoder_t * this_gen);
 
 void create_region (dvb_spu_decoder_t * this, int region_id, int region_width, int region_height, int region_depth)
 {
@@ -443,7 +452,7 @@ void process_region_composition_segment (dvb_spu_decoder_t * this)
   region_2_bit_pixel_code = (dvbsub->buf[dvbsub->i] & 0x0c) >> 2;
   dvbsub->i++;
 
-  if(region_id>MAX_REGIONS)
+  if(region_id>=MAX_REGIONS)
     return;
     
   if (dvbsub->regions[region_id].win < 0) {
@@ -457,6 +466,8 @@ void process_region_composition_segment (dvb_spu_decoder_t * this)
 
   if (region_fill_flag == 1) {
     memset (dvbsub->regions[region_id].img, region_4_bit_pixel_code, sizeof (dvbsub->regions[region_id].img));
+  }else{
+      memset (this->dvbsub->regions[region_id].img, 15, sizeof (this->dvbsub->regions[region_id].img));
   }
 
   dvbsub->regions[region_id].objects_start = dvbsub->i;
@@ -483,6 +494,7 @@ void process_region_composition_segment (dvb_spu_decoder_t * this)
       background_pixel_code = dvbsub->buf[dvbsub->i++];
     }
   }
+
 }
 
 void process_object_data_segment (dvb_spu_decoder_t * this)
@@ -513,6 +525,7 @@ void process_object_data_segment (dvb_spu_decoder_t * this)
 
   old_i = dvbsub->i;
   for (r = 0; r < MAX_REGIONS; r++) {
+
     /* If this object is in this region... */
     if (dvbsub->regions[r].win >= 0) {
       if (dvbsub->regions[r].object_pos[object_id] != 0xffffffff) {
@@ -532,6 +545,45 @@ void process_object_data_segment (dvb_spu_decoder_t * this)
   }
 }
 
+
+/* Sleep routine for pthread */
+static void dvbsub_pthread_sleep(int seconds) {    
+    pthread_mutex_t dummy_mutex;
+    pthread_cond_t dummy_cond;
+    struct timespec timeout;
+
+    /* Create a dummy mutex which doesn't unlock for sure while waiting. */
+    pthread_mutex_init(&dummy_mutex, NULL);
+    pthread_mutex_lock(&dummy_mutex);
+
+    /* Create a dummy condition variable. */
+    pthread_cond_init(&dummy_cond, NULL);
+
+    timeout.tv_sec = time(NULL) + seconds;
+    timeout.tv_nsec = 0;
+
+    pthread_cond_timedwait(&dummy_cond, &dummy_mutex, &timeout);
+
+    pthread_cond_destroy(&dummy_cond);
+    pthread_mutex_unlock(&dummy_mutex);
+    pthread_mutex_destroy(&dummy_mutex);
+}
+
+
+/* Thread routine that checks for subtitle timeout periodically. */
+static void* dvbsub_timer_func(void *this_gen) {
+    dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
+
+    while (!this->dvbsub_timer_stop) {
+	pthread_mutex_lock(&this->dvbsub_timer_mutex);      
+	if(this->dvbsub_timer_tcount++ > SUB_TIMEOUT)
+          this->stream->osd_renderer->hide (this->osd, 0);
+	pthread_mutex_unlock(&this->dvbsub_timer_mutex);
+	dvbsub_pthread_sleep(DVBSUB_TIMER_DELAY);
+    }
+    return NULL;
+}
+
 void draw_subtitles (dvb_spu_decoder_t * this)
 {
   int r;
@@ -543,13 +595,13 @@ void draw_subtitles (dvb_spu_decoder_t * this)
   /* FIXME: we ought to have an osd per region, to allow for multiple CLUTs */
   out_y = 0;
   for (r = 0; r < MAX_REGIONS; r++) {
-    if (this->dvbsub->regions[r].win >= 0) {
+    if (this->dvbsub->regions[r].win >= 0) { 
       if (this->dvbsub->page.regions[r].is_visible) {
 
 	out_y = this->dvbsub->page.regions[r].y * 720;
 	for (y = 0; y < this->dvbsub->regions[r].height; y++) {
 	  for (x = 0; x < this->dvbsub->regions[r].width; x++) {
-	    this->bitmap[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];//+(16*this->dvbsub->regions[r].CLUT_id);
+	    this->bitmap[out_y + x + this->dvbsub->page.regions[r].x] = this->dvbsub->regions[r].img[(y * this->dvbsub->regions[r].width) + x];
 	    if (this->bitmap[out_y + x + this->dvbsub->page.regions[r].x])
 	    {
 	      display=1;
@@ -565,11 +617,12 @@ void draw_subtitles (dvb_spu_decoder_t * this)
     /* display immediately at requested PTS*/
     this->stream->osd_renderer->set_palette(this->osd,(uint32_t *)this->dvbsub->colours,this->dvbsub->trans);
     this->stream->osd_renderer->draw_bitmap (this->osd,this->bitmap, 1,1,720,576,NULL);
-    /* end_vpts is updated only once the whole page is drawn */
-    if(this->vpts<this->end_vpts)
-      this->vpts=this->end_vpts;
- 
+    
+    pthread_mutex_lock(&this->dvbsub_timer_mutex);      
     this->stream->osd_renderer->show (this->osd, this->vpts);
+    /* reset the timer thread */
+    this->dvbsub_timer_tcount=0;
+    pthread_mutex_unlock(&this->dvbsub_timer_mutex);
   }
 }
 
@@ -582,19 +635,17 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       int segment_length, segment_type;
       int PES_header_data_length;
       int PES_packet_length;
-
+      int r;
+      
   if((buf->type & 0xffff0000)!=BUF_SPU_DVB)
     return;  
-  
+
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
 	this->stream->osd_renderer->hide (this->osd, 0);
       }
       else {
-	if (this->spu_descriptor)
-	  free (this->spu_descriptor);
-	this->spu_descriptor = malloc (buf->decoder_info[2]);
 	xine_fast_memcpy (this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
       }
     }
@@ -611,7 +662,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       this->pes_pkt_wrptr += buf->size;
     }
     else {
-      if (this->pes_pkt) {
+      if (this->pes_pkt && (this->pes_pkt_wrptr != this->pes_pkt)) {
 	xine_fast_memcpy (this->pes_pkt_wrptr, buf->content, buf->size);
 	this->pes_pkt_wrptr += buf->size;
       }
@@ -635,11 +686,11 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       data_identifier = this->dvbsub->buf[this->dvbsub->i++];
       subtitle_stream_id = this->dvbsub->buf[this->dvbsub->i++];
 
-      while (this->dvbsub->i < (PES_packet_length)) {
+      while (this->dvbsub->i <= (PES_packet_length)) {
 	/* SUBTITLING SEGMENT */
 	this->dvbsub->i++;
 	segment_type = this->dvbsub->buf[this->dvbsub->i++];
-
+  
 	this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
 	segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
 	new_i = this->dvbsub->i + segment_length + 4;
@@ -664,10 +715,14 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
               process_object_data_segment (this);
               break;
             case 0x80:		/* Page is now completely rendered */
-              this->end_vpts = 90000 + this->vpts; /* 1 second display keeps sync almost correct */
-              this->stream->osd_renderer->hide (this->osd, this->end_vpts);
+    	      for (r=0;r<MAX_REGIONS;r++){
+                memset (this->dvbsub->regions[r].img, 15, sizeof (this->dvbsub->regions[r].img));
+                this->dvbsub->page.regions[r].is_visible=0;
+                this->dvbsub->regions[r].win = -1;
+              }
               break;
             default:
+              return;  
               break;
           }
           draw_subtitles(this);
@@ -695,6 +750,15 @@ static void spudec_discontinuity (spu_decoder_t * this_gen)
 static void spudec_dispose (spu_decoder_t * this_gen)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
+
+  if(!this->dvbsub_timer_stop){
+    this->dvbsub_timer_stop=1;
+  }
+
+  if(this->spu_descriptor){
+    free(this->spu_descriptor);
+    this->spu_descriptor=NULL;
+  }
 
   if (this->osd) {
     this->stream->osd_renderer->free_object (this->osd);
@@ -732,11 +796,11 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->class = class;
   this->stream = stream;
 
-  this->event_queue = xine_event_new_queue(stream);
-  this->pes_pkt = malloc (1024*65);
-  this->bitmap = malloc (720*576);
+  this->pes_pkt = xine_xmalloc (1024*65);
+  this->bitmap = xine_xmalloc (720*576);
+  this->spu_descriptor = xine_xmalloc(sizeof(spu_dvb_descriptor_t));
   
-  this->dvbsub = malloc (sizeof (dvbsub_func_t));
+  this->dvbsub = xine_xmalloc (sizeof (dvbsub_func_t));
 
   for (i = 0; i < MAX_REGIONS; i++) {
     this->dvbsub->page.regions[i].is_visible = 0;
@@ -748,6 +812,16 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->stream->osd_renderer->set_font (this->osd, "cetus", 26);
   this->stream->osd_renderer->set_encoding (this->osd, NULL);
   this->stream->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_YELLOW_BLACK_TRANSPARENT, OSD_TEXT1);
+
+
+  /* Start the subtitle timer thread. */
+  this->dvbsub_timer_stop = 0;
+  if (pthread_create(&this->dvbsub_timer_thread, NULL,
+    dvbsub_timer_func, this) != 0) {
+               xprintf(this->class->xine, XINE_VERBOSITY_LOG,
+                _("dvbsub: cannot create timer thread\n"));
+     return 0;
+  }
 
   return (spu_decoder_t *) this;
 }
