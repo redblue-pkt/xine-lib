@@ -357,7 +357,7 @@ int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size) {
     i++;
   }
 
-  if (r != -1)
+  if (r != -1 && c == '\r')
     r = xio_rw_abort(stream, sock, XIO_TCP_READ, &c, 1);
 
   str[i] = '\0';
