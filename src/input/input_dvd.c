@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.111 2002/11/02 03:13:44 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.112 2002/11/02 15:13:01 mroi Exp $
  *
  */
 
@@ -258,6 +258,7 @@ void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
  
 void update_title_display(dvd_input_plugin_t *this) {
   xine_event_t uevent;
+  xine_ui_data_t data;
   int tt=-1, pr=-1;
   size_t ui_str_length=0;
 
@@ -297,8 +298,10 @@ void update_title_display(dvd_input_plugin_t *this) {
 #endif
   uevent.type = XINE_EVENT_UI_SET_TITLE;
   uevent.stream = this->stream;
-  uevent.data = this->ui_title;
-  uevent.data_length = strlen(this->ui_title);
+  uevent.data = &data;
+  uevent.data_length = sizeof(data);;
+  memcpy(data.str, this->ui_title, strlen(this->ui_title) + 1);
+  data.str_len = strlen(this->ui_title) + 1;
   xine_event_send(this->stream, &uevent);
 }
 
@@ -1673,6 +1676,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.112  2002/11/02 15:13:01  mroi
+ * don't display crap in UI panel, xine-ui expects a xine_ui_data_t and
+ * I think this is right, so we provide one
+ *
  * Revision 1.111  2002/11/02 03:13:44  f1rmb
  * Less verbosity.
  *
