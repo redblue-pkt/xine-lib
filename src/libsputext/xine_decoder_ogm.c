@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder_ogm.c,v 1.1 2003/04/16 23:06:38 heinchen Exp $
+ * $Id: xine_decoder_ogm.c,v 1.2 2003/04/26 13:46:48 heinchen Exp $
  *
  */
 
@@ -293,23 +293,23 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   this->lines=0;
 
-
   i=0;
+
   while (i<strlen(str)+1) {
-    switch (str[i]) {
-    case 13:
-      str=&str[i+1];
+    if(str[i]=='\r' || str[i]=='\n') {
+      if(str[i+1]=='\n' && str[i]=='\r') str=str+i+2;
+      else str=str+i+1;
       this->text[ this->lines ][i]=0;
       this->lines=this->lines+1;
       i=0;
-      break;
-    default:
+      if(this->lines>=SUB_MAX_TEXT) break;
+    } else {
       this->text[ this->lines ][i]=str[i];
       if (i<SUB_BUFSIZE-1)
 	i++;
     }
   }
-
+  
 #ifdef LOG
   printf("libspuogm: decoder data [%s]\n", this->text[0]);
   printf("libspuogm: timing %d->%d\n", start, end);
