@@ -15,19 +15,6 @@ EXTRA_DIST = autogen.sh \
 	     config.guess \
 	     config.sub \
 	     COPYING \
-             debian/README.Debian \
-	     debian/changelog \
-	     debian/control \
-	     debian/copyright \
-	     debian/dirs \
-	     debian/docs \
-	     debian/libxine0.postinst \
-             debian/postrm \
-	     debian/preinst \
-	     debian/prerm \
-	     debian/rules \
-             debian/overrides.libxine \
-	     debian/shlibdeps.sh \
 	     INSTALL \
 	     install-sh \
 	     libtool \
