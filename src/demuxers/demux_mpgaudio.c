@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.77 2002/11/07 03:04:31 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.78 2002/11/09 13:52:32 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -40,9 +40,9 @@
 #include "demux.h"
 #include "bswap.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define NUM_PREVIEW_BUFFERS  10
 
