@@ -44,6 +44,7 @@ $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)
 
 noinst_HEADERS = \
+	em8300.h \
 	alphablend.h \
 	bswap.h \
 	dxr3.h \
