@@ -12,7 +12,7 @@ DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
 	debian/shlibdeps.sh debian/libxine-dev.install debian/libxine1.install
 
-EXTRA_DIST = autogen.sh \
+EXTRA_DIST = @MKINSTALLDIRS@ autogen.sh \
 	     automake.diff \
 	     $(DEBFILES) \
 	     ChangeLog \
@@ -25,7 +25,6 @@ EXTRA_DIST = autogen.sh \
 	     libtool \
 	     ltmain.sh \
 	     missing \
-	     mkinstalldirs \
 	     NEWS \
 	     README \
 	     TODO \

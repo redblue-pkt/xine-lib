@@ -1915,6 +1915,10 @@ dnl --------------------------
 dnl Newest automake workaround
 dnl --------------------------
 AC_SUBST(mkdir_p)
+if test x"$mkdir_p" = "x"; then
+  MKINSTALLDIRS="mkinstalldirs"
+fi
+AC_SUBST(MKINSTALLDIRS)
 
 
 dnl ---------------------------------------------
