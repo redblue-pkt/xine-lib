@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.15 2002/12/03 23:30:39 tmattern Exp $
+ * $Id: mms.c,v 1.16 2002/12/12 23:48:03 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -46,6 +46,7 @@
 
 #include "bswap.h"
 #include "mms.h"
+#include "../demuxers/asfheader.h"
 
 /*
 #define LOG
@@ -61,6 +62,7 @@
 
 #define CMD_HEADER_LEN   48
 #define CMD_BODY_LEN   1024
+
 
 struct mms_s {
 
@@ -84,14 +86,20 @@ struct mms_s {
   int           buf_read;
 
   uint8_t       asf_header[8192];
-  int           asf_header_len;
-  int           asf_header_read;
+  uint32_t      asf_header_len;
+  uint32_t      asf_header_read;
   int           seq_num;
   int           num_stream_ids;
-  int           stream_ids[20];
+  int           stream_ids[ASF_MAX_NUM_STREAMS];
+  int           stream_types[ASF_MAX_NUM_STREAMS];
   int           packet_length;
   uint32_t      file_length;
   char          guid[37];
+  uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
+  uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
+
+  int           has_audio;
+  int           has_video;
 };
 
 /* network/socket utility functions */
@@ -187,15 +195,77 @@ static int host_connect(const char *host, int port) {
 
 static void put_32 (mms_t *this, uint32_t value) {
 
-  this->scmd[this->scmd_len  ] = value % 256;
-  value = value >> 8;
-  this->scmd[this->scmd_len+1] = value % 256 ;
-  value = value >> 8;
-  this->scmd[this->scmd_len+2] = value % 256 ;
-  value = value >> 8;
-  this->scmd[this->scmd_len+3] = value % 256 ;
+  this->scmd[this->scmd_len    ] = value & 0xff;
+  this->scmd[this->scmd_len + 1] = (value  >> 8) & 0xff;
+  this->scmd[this->scmd_len + 2] = (value  >> 16) & 0xff;
+  this->scmd[this->scmd_len + 3] = (value  >> 24) & 0xff;
 
   this->scmd_len += 4;
+}
+
+static uint32_t get_64 (uint8_t *buffer, int offset) {
+
+  uint64_t ret;
+
+  ret = ((uint64_t)buffer[offset]) |
+        ((uint64_t)buffer[offset + 1] << 8) |
+        ((uint64_t)buffer[offset + 2] << 16) |
+        ((uint64_t)buffer[offset + 2] << 24) |
+        ((uint64_t)buffer[offset + 2] << 32) |
+        ((uint64_t)buffer[offset + 2] << 40) |
+        ((uint64_t)buffer[offset + 2] << 48) |
+        ((uint64_t)buffer[offset + 2] << 56);
+
+  return ret;
+}
+
+static uint32_t get_32 (uint8_t *buffer, int offset) {
+
+  uint32_t ret;
+
+  ret = buffer[offset] |
+        buffer[offset + 1] << 8 |
+        buffer[offset + 2] << 16 |
+        buffer[offset + 3] << 24 ;
+
+  return ret;
+}
+
+static uint16_t get_16 (unsigned char *buffer, int offset) {
+
+  uint16_t ret;
+
+  ret = buffer[offset] |
+        buffer[offset + 1] << 8;
+
+  return ret;
+}
+
+static int get_guid (unsigned char *buffer, int offset) {
+  int i;
+  GUID g;
+  
+  g.v1 = get_32(buffer, offset);
+  g.v2 = get_16(buffer, offset + 4);
+  g.v3 = get_16(buffer, offset + 6);
+  for(i = 0; i < 8; i++) {
+    g.v4[i] = buffer[offset + 8 + i];
+  }
+  
+  for (i = 1; i < GUID_END; i++) {
+    if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
+#ifdef LOG
+      printf ("libmms: GUID: %s\n", guids[i].name);
+#endif
+      return i;
+    }
+  }
+  
+  printf ("libmms: unknown GUID: 0x%x, 0x%x, 0x%x, "
+          "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
+          g.v1, g.v2, g.v3,
+          g.v4[0], g.v4[1], g.v4[2], g.v4[3], g.v4[4], g.v4[5], g.v4[6], g.v4[7]);
+  return GUID_ERROR;
 }
 
 static int send_data (int s, char *buf, int len) {
@@ -221,18 +291,6 @@ static int send_data (int s, char *buf, int len) {
     }
   }
   return total;
-}
-
-static uint32_t get_32 (unsigned char *cmd, int offset) {
-
-  uint32_t ret;
-
-  ret = cmd[offset] ;
-  ret |= cmd[offset+1] << 8 ;
-  ret |= cmd[offset+2] << 16 ;
-  ret |= cmd[offset+3] << 24 ;
-
-  return ret;
 }
 
 static int send_command (mms_t *this, int command, uint32_t switches, 
@@ -511,71 +569,104 @@ static void interp_header (mms_t *this) {
   i = 30;
   while (i < this->asf_header_len) {
     
-    uint64_t  guid_1, guid_2, length;
+    int guid;
+    uint64_t length;
 
-    guid_2 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
+    guid = get_guid(this->asf_header, i);
+    i += 16;
+        
+    length = get_64(this->asf_header, i);
     i += 8;
 
-    guid_1 = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
-    i += 8;
+    switch (guid) {
     
+      case GUID_ASF_FILE_PROPERTIES:
+
+        this->packet_length = get_32(this->asf_header, i + 92 - 24);
+        this->file_length   = get_32(this->asf_header, i + 40 - 24);
 #ifdef LOG    
-    printf ("guid found: %016llx%016llx\n", guid_1, guid_2);
+        printf ("libmms: file object, packet length = %d (%d)\n",
+                this->packet_length, get_32(this->asf_header, i + 96 - 24));
 #endif
+        break;
 
-    length = (uint64_t)this->asf_header[i] | ((uint64_t)this->asf_header[i+1] << 8) 
-      | ((uint64_t)this->asf_header[i+2]<<16) | ((uint64_t)this->asf_header[i+3] << 24)
-      | ((uint64_t)this->asf_header[i+4]<<32) | ((uint64_t)this->asf_header[i+5] << 40)
-      | ((uint64_t)this->asf_header[i+6]<<48) | ((uint64_t)this->asf_header[i+7] << 56);
+      case GUID_ASF_STREAM_PROPERTIES:
+        {
+          uint16_t stream_id;
+          int      type;  
 
-    i += 8;
+          guid = get_guid(this->asf_header, i);
+          switch (guid) {
+            case GUID_ASF_AUDIO_MEDIA:
+              type = ASF_STREAM_TYPE_AUDIO;
+              this->has_audio = 1;
+              break;
+    
+            case GUID_ASF_VIDEO_MEDIA:
+              type = ASF_STREAM_TYPE_VIDEO;
+              this->has_video = 1;
+              break;
+          
+            case GUID_ASF_COMMAND_MEDIA:
+              type = ASF_STREAM_TYPE_CONTROL;
+              break;
+        
+            default:
+              type = ASF_STREAM_TYPE_UNKNOWN;
+          }
 
-    if ( (guid_1 == 0x6cce6200aa00d9a6) && (guid_2 == 0x11cf668e75b22630) ) {
-      printf ("header object\n");
-    } else if ((guid_1 == 0x6cce6200aa00d9a6) && (guid_2 == 0x11cf668e75b22636)) {
-      printf ("data object\n");
-    } else if ((guid_1 == 0x6553200cc000e48e) && (guid_2 == 0x11cfa9478cabdca1)) {
+          stream_id = get_16(this->asf_header, i + 48);
 
-      this->packet_length = get_32(this->asf_header, i + 92 - 24);
-      this->file_length   = get_32(this->asf_header, i + 40 - 24);
 #ifdef LOG    
-      printf ("file object, packet length = %d (%d)\n",
-	      this->packet_length, get_32(this->asf_header, i + 96 - 24));
+          printf ("libmms: stream object, stream id: %d\n", stream_id);
 #endif
-
-
-    } else if ((guid_1 == 0x6553200cc000e68e) && (guid_2 == 0x11cfa9b7b7dc0791)) {
-
-      int stream_id = this->asf_header[i + 48] | this->asf_header[i + 49] << 8;
-
-#ifdef LOG    
-      printf ("stream object, stream id: %d\n", stream_id);
-#endif
-
-      this->stream_ids[this->num_stream_ids] = stream_id;
-      this->num_stream_ids++;
+          this->stream_types[stream_id] = type;
+          this->stream_ids[this->num_stream_ids] = stream_id;
+          this->num_stream_ids++;
       
+        }
+        break;
 
-      /*
-	} else if ((guid_1 == 0x) && (guid_2 == 0x)) {
-	printf ("??? object\n");
-      */
-    } else {
-      printf ("unknown object\n");
+      case GUID_ASF_STREAM_BITRATE_PROPERTIES:
+        {
+          uint16_t streams = get_16(this->asf_header, i);
+          uint16_t stream_id;
+          int j;
+
+#ifdef LOG    
+          printf ("libmms: stream bitrate properties\n");
+#endif
+
+#ifdef LOG    
+          printf ("libmms: streams %d\n", streams); 
+#endif
+          for(j = 0; j < streams; j++) {
+            stream_id = get_16(this->asf_header, i + 2 + j * 6);
+#ifdef LOG    
+            printf ("libmms: stream id %d\n", stream_id); 
+#endif
+            this->bitrates[stream_id] = get_32(this->asf_header, i + 4 + j * 6);
+            this->bitrates_pos[stream_id] = i + 4 + j * 6;
+            printf ("libmms: stream id %d, bitrate %d\n", stream_id, 
+                    this->bitrates[stream_id]);
+          }
+        }
+        break;
+    
+      default:
+#ifdef LOG    
+        printf ("libmms: unknown object\n");
+#endif
+        break;
     }
 
 #ifdef LOG    
-    printf ("length    : %lld\n", length);
+    printf ("libmms: length    : %lld\n", length);
 #endif
 
-    i += length - 24;
-
+    if (length > 24) {
+      i += length - 24;
+    }
   }
 }
 
@@ -693,7 +784,7 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_event_send (stream, &event);
 }
 
-mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
+mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   mms_t *this;
   char  *url     = NULL;
   char  *url1    = NULL;
@@ -702,6 +793,13 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   char  *host    = NULL;
   int    port;
   int    i, s;
+  int    video_stream = 0;
+  int    audio_stream = 0;
+  int    max_arate    = 0;
+  int    min_vrate    = 0;
+  int    min_bw_left  = 0;
+  int    stream_id;
+  int    bandwitdh_left;
  
   if (!url_)
     return NULL;
@@ -734,7 +832,9 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   this->packet_length   = 0;
   this->buf_size        = 0;
   this->buf_read        = 0;
-
+  this->has_audio       = 0;
+  this->has_video       = 0;
+  
 #ifdef LOG
   printf ("libmms: url=%s\nlibmms:   host=%s\nlibmms:   "
           "path=%s\nlibmms:   file=%s\n", url, host, path, file);
@@ -807,19 +907,93 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   report_progress (stream, 50);
 
   /* 0x33 */
+  /* choose the best quality for the audio stream */
+  /* i've never seen more than one audio stream */
+  for (i = 0; i < this->num_stream_ids; i++) {
+    stream_id = this->stream_ids[i];
+    switch (this->stream_types[stream_id]) {
+      case ASF_STREAM_TYPE_AUDIO:
+        if (this->bitrates[stream_id] > max_arate) {
+          audio_stream = stream_id;
+          max_arate = this->bitrates[stream_id];
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  
+  /* choose a video stream adapted to the user bandwidth */
+  bandwitdh_left = bandwidth - max_arate;
+  if (bandwitdh_left < 0) {
+    bandwitdh_left = 0;
+  }
+#ifdef LOG
+  printf("libmms: bandwitdh %d, left %d\n", bandwidth, bandwitdh_left);
+#endif
 
+  min_bw_left = bandwitdh_left;
+  for (i = 0; i < this->num_stream_ids; i++) {
+    stream_id = this->stream_ids[i];
+    switch (this->stream_types[stream_id]) {
+      case ASF_STREAM_TYPE_VIDEO:
+        if (((bandwitdh_left - this->bitrates[stream_id]) < min_bw_left) &&
+            (bandwitdh_left >= this->bitrates[stream_id])) {
+          video_stream = stream_id;
+          min_bw_left = bandwitdh_left - this->bitrates[stream_id];
+        }
+        break;
+      default:
+        break;
+    }
+  }  
+
+  /* choose the lower bitrate of */
+  if (!video_stream && this->has_video) {
+    for (i = 0; i < this->num_stream_ids; i++) {
+      stream_id = this->stream_ids[i];
+      switch (this->stream_types[stream_id]) {
+        case ASF_STREAM_TYPE_VIDEO:
+          if ((this->bitrates[stream_id] < min_vrate) ||
+              (!min_vrate)) {
+            video_stream = stream_id;
+            min_vrate = this->bitrates[stream_id];
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+    
+  printf("libmms: audio stream %d, video stream %d\n", audio_stream, video_stream);
+  
   memset (this->scmd_body, 0, 40);
-
   for (i = 1; i < this->num_stream_ids; i++) {
     this->scmd_body [ (i - 1) * 6 + 2 ] = 0xFF;
     this->scmd_body [ (i - 1) * 6 + 3 ] = 0xFF;
-    this->scmd_body [ (i - 1) * 6 + 4 ] = this->stream_ids[i];
-    this->scmd_body [ (i - 1) * 6 + 5 ] = 0x00;
+    this->scmd_body [ (i - 1) * 6 + 4 ] = this->stream_ids[i] ;
+    this->scmd_body [ (i - 1) * 6 + 5 ] = this->stream_ids[i] >> 8;
+    if ((this->stream_ids[i] == audio_stream) ||
+        (this->stream_ids[i] == video_stream)) {
+      this->scmd_body [ (i - 1) * 6 + 6 ] = 0x00;
+      this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
+    } else {
+      printf("libmms: disabling stream %d\n", this->stream_ids[i]);
+      this->scmd_body [ (i - 1) * 6 + 6 ] = 0x02;
+      this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
+      
+      /* forces the asf demuxer to not choose this stream */
+      this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
+      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
+      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
+      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
+    }
   }
 
   if (!send_command (this, 0x33, this->num_stream_ids, 
 		     0xFFFF | this->stream_ids[0] << 16, 
-		     (this->num_stream_ids-1)*6+2))
+		     this->num_stream_ids * 6 + 2))
     goto fail;
 
   if (!get_answer (this))

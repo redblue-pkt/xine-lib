@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.26 2002/11/20 11:57:43 mroi Exp $
+ * $Id: input_mms.c,v 1.27 2002/12/12 23:48:02 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -55,12 +55,13 @@ extern int errno;
 #define FNDELAY O_NDELAY
 #endif
 
-typedef struct {
+/* network bandwidth */
+const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,
+                                  115200,262200,393216,524300,1544000,10485800};
 
-  input_class_t     input_class;
-
-  xine_t           *xine;
-} mms_input_class_t;
+const char * mms_bandwidth_strs[]={"14.4 Kbps", "19.2 Kbps", "28.8 Kbps", "33.6 Kbps",
+                           "34.4 Kbps", "57.6 Kbps", "115.2 Kbps","262.2 Kbps",
+                           "393.2 Kbps","524.3 Kbps", "1.5 Mbps", "10.5 Mbps", NULL};
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -75,8 +76,18 @@ typedef struct {
 
   char             scratch[1025];
 
+  int              bandwidth;
+
 } mms_input_plugin_t;
 
+typedef struct {
+
+  input_class_t       input_class;
+  
+  mms_input_plugin_t *ip;
+
+  xine_t             *xine;
+} mms_input_class_t;
 
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
                               char *buf, off_t len) {
@@ -249,14 +260,31 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  mms_input_class_t *class = (mms_input_class_t*) this_gen;
+
+#ifdef LOG
+  printf ("input_mms: bandwidth_changed_cb %d\n", entry->num_value);
+#endif
+  if(!class)
+   return;
+
+  if(class->ip && ((entry->num_value >= 0) && (entry->num_value <= 11))) {
+    mms_input_plugin_t *this = class->ip;
+
+    this->bandwidth = mms_bandwidths[entry->num_value];
+  }
+}
+
 static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
-  /* mms_input_class_t  *cls = (mms_input_class_t *) cls_gen; */
+  mms_input_class_t  *cls = (mms_input_class_t *) cls_gen;
   mms_input_plugin_t *this;
   mms_t              *mms;
   char               *mrl = strdup(data);
-
+  xine_cfg_entry_t    bandwidth_entry;
+  
 #ifdef LOG
   printf ("input_mms: trying to open '%s'\n", mrl);
 #endif
@@ -266,15 +294,23 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     return NULL;
   }
 
-  mms = mms_connect (stream, mrl);
+  this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
+  cls->ip = this;
+
+  if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth", 
+                                &bandwidth_entry)) {
+    bandwidth_changed_cb(cls, &bandwidth_entry);
+  }
+  mms = mms_connect (stream, mrl, this->bandwidth);
 
   if (!mms) {
     free (mrl);
     return NULL;
   }
 
-  this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
-
+ 
+  
+  
   this->mms    = mms;
   this->mrl    = mrl; 
   this->curpos = 0;
@@ -291,6 +327,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input_plugin.dispose           = mms_plugin_dispose;
   this->input_plugin.get_optional_data = mms_plugin_get_optional_data;
   this->input_plugin.input_class       = cls_gen;
+
   
   return &this->input_plugin;
 }
@@ -320,6 +357,7 @@ static void *init_class (xine_t *xine, void *data) {
   this = (mms_input_class_t *) xine_xmalloc (sizeof (mms_input_class_t));
 
   this->xine   = xine;
+  this->ip                             = NULL;
 
   this->input_class.open_plugin        = open_plugin;
   this->input_class.get_identifier     = mms_class_get_identifier;
@@ -329,6 +367,11 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = mms_class_dispose;
   this->input_class.eject_media        = NULL;
 
+  xine->config->register_enum(xine->config, "input.mms_network_bandwidth", 10,
+                        mms_bandwidth_strs,
+                        "Network bandwidth",
+                        NULL, 0, bandwidth_changed_cb, (void*) this);
+  
   return this;
 }
 
