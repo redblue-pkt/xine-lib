@@ -85,7 +85,6 @@ install: build
 	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr \
 			LIBRARY_PATH=$(CURDIR)/debian/libxine-dev/usr/lib
 	mkdir -p $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides
-	echo "MAJOR= >>$(major)<<"
 	cp $(CURDIR)/debian/overrides.libxine \
            $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides/libxine$(major)
 
@@ -116,7 +115,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1-beta2)'
+	dh_makeshlibs -V 'libxine1 (>= 1-beta3)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh

@@ -1,3 +1,15 @@
+xine-lib (1-beta4-1) unstable; urgency=low
+
+  * new upstream release (fixes compilation on mmx capable ix86 machines)
+
+ -- Siggi Langauf <siggi@debian.org>  Wed, 29 Jan 2003 19:37:15 +0100
+
+xine-lib (1-beta3-1) unstable; urgency=low
+
+  * new upstream release
+
+ -- Siggi Langauf <siggi@debian.org>  Tue, 28 Jan 2003 21:41:05 +0100
+
 xine-lib (1-beta2-4) unstable; urgency=low
 
   * removed HPPA compiler hacks (3.2 is now default, and it choked anyway...)
