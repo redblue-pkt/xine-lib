@@ -56,11 +56,10 @@
 #include <linux/hdreg.h>
 
 #ifdef HAVE_X11
-#include <X11/Xlib.h>
-#endif
-
-#ifdef HAVE_XV
-#include <X11/extensions/Xvlib.h>
+#  include <X11/Xlib.h>
+#  ifdef HAVE_XV
+#    include <X11/extensions/Xvlib.h>
+#  endif
 #endif
 
 #endif  /* !__linux__ */
@@ -337,9 +336,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   unsigned int          ver, rev, eventB, reqB, errorB;
   char                  *disname = NULL;
   void                  *x11_handle;
-#ifndef HAVE_XV_STATIC
   void                  *xv_handle;
-#endif
   Display               *(*xopendisplay)(char*);
   char                  *(*xdisplayname)(char*);
   int                   (*xvqueryextension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
@@ -348,7 +345,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   char                  *err = NULL;
   int                   formats, adaptors, i;
   XvImageFormatValues   *img_formats;
-  XvAdaptorInfo     *adaptor_info;
+  XvAdaptorInfo         *adaptor_info;
 
   hc->title       = "Check for MIT Xv extension";
   hc->explanation = "You can improve performance by installing an X11\n"
@@ -382,12 +379,13 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     return hc;
   }
   
-#ifndef HAVE_XV_STATIC
   dlerror(); /* clear error code */
   xv_handle = dlopen("libXv.so", RTLD_LAZY);
   if(!xv_handle) {
     hc->msg = dlerror();
-    hc->status = XINE_HEALTH_CHECK_FAIL;
+    /* Xv might still work when linked statically into the output plugin,
+     * so reporting FAIL would be wrong here */
+    hc->status = XINE_HEALTH_CHECK_UNSUPPORTED;
     dlclose(x11_handle);
     return hc;
   }
@@ -421,11 +419,6 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     dlclose(xv_handle);
     return hc;
   }
-#else
-  xvqueryextension   = XvQueryExtension;
-  xvqueryadaptors    = XvQueryAdaptors;
-  xvlistimageformats = XvListImageFormats;
-#endif
   
   if(!(dpy = (*xopendisplay)(disname))) {
 
@@ -434,9 +427,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n", disname);
     dlclose(x11_handle);
-#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
-#endif
     return hc;
   }
 
@@ -446,9 +437,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     }
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "Unable to open display: %s\n",disname);
     dlclose(x11_handle);
-#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
-#endif
     return hc;
   }
   else {
@@ -463,18 +452,14 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
 				 &adaptors,&adaptor_info))  {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: XvQueryAdaptors failed.\n");
     dlclose(x11_handle);
-#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
-#endif
     return hc;
   }
 
   if (!adaptor_info) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: No adaptors found.\n");
     dlclose(x11_handle);
-#ifndef HAVE_XV_STATIC
     dlclose(xv_handle);
-#endif
     return hc;
   }
 
@@ -496,9 +481,7 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
   }
 
   dlclose(x11_handle);
-#ifndef HAVE_XV_STATIC
   dlclose(xv_handle);
-#endif
   
   return hc;
 #else

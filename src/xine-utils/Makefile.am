@@ -8,10 +8,6 @@ if PPC_ARCH
 pppc_files = ppcasm_string.S 
 endif
 
-if HAVE_XV_STATIC
-xv_libs = $(XV_LIB)
-endif
-
 AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
 
 libxineutils_la_SOURCES = $(pppc_files) \
@@ -27,7 +23,7 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmlparser.c \
 	xine_buffer.c 
 
-libxineutils_la_LIBADD = $(THREAD_LIBS) $(xv_libs)
+libxineutils_la_LIBADD = $(THREAD_LIBS)
 
 include_HEADERS = attributes.h \
 	compat.h \
