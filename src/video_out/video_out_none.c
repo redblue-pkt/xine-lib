@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.10 2003/02/05 23:30:23 guenter Exp $
+ * $Id: video_out_none.c,v 1.11 2003/02/14 14:48:08 guenter Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -142,8 +142,8 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 	uv_size = frame->vo_frame.pitches[1] * ((height+1)/2);
 	
 	frame->vo_frame.base[0] = malloc (y_size + 2*uv_size);
-	frame->vo_frame.base[1] = frame->vo_frame.base[0]+y_size;
-	frame->vo_frame.base[2] = frame->vo_frame.base[0]+y_size+uv_size;
+	frame->vo_frame.base[1] = frame->vo_frame.base[0]+y_size+uv_size;
+	frame->vo_frame.base[2] = frame->vo_frame.base[0]+y_size;
       }
       break;
 
