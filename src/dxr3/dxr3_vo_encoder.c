@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.14 2001/12/13 00:36:32 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.15 2001/12/13 03:41:31 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -316,7 +316,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       /* fill with black (yuy2 16,128,16,128,...) */
       memset(frame->real_base[0], 128, 2*image_size); /* U and V */
       for (i=0; i<2*image_size; i+=2)
-	*(frame->vo_frame.base[0]+i) = 16; /* Y */
+	*(frame->real_base[0]+i) = 16; /* Y */
     }
     else { /* IMGFMT_YV12 */
       image_size = width * oheight; /* includes black bars */
@@ -541,10 +541,7 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 	rte_data_t *this = (rte_data_t*)drv->enc;
 	rte_context* context; 
 	rte_codec *codec;
-	enum rte_frame_rate frame_rate;
-	enum rte_pixformat pixformat;
 	int width, height;
-	double fps;
 	char tmpstr[128];
 
 	width = drv->video_width;
@@ -568,58 +565,36 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 		context = 0;
 		return 1;
 	}
-
-	/* start guessing the framerate
-	 * (all this stuff can go for librte 0.5, where we can set a float
-	 * fps) */
-	fps = drv->fps;
-	if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
-		printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
-		frame_rate = RTE_RATE_1;
-	}
-	else if (fabs(fps - 24) < 0.01) { /* FILM */
-		printf("dxr3enc: setting mpeg output framerate to FILM (24 Hz))\n");
-		frame_rate = RTE_RATE_2;
-	}
-	else if (fabs(fps - 25) < 0.01) { /* PAL */
-		printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
-		frame_rate = RTE_RATE_3;
-	}  
-	else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
-		printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-		frame_rate = RTE_RATE_4;
-	}
-	else { /* go to PAL */
-		frame_rate = RTE_RATE_3; 
-		printf("dxr3enc: can't do %g Hz, using PAL\n", fps);
-	}
-	pixformat = (drv->format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV); 
 	this->rte_bitrate=drv->config->register_range(drv->config,"dxr3enc.rte_bitrate",10000, 1000,20000, "Dxr3enc: rte mpeg output bitrate (kbit/s)",NULL,NULL,NULL);
-	this->rte_bitrate *= 1000;
-	/* rte_set_video_parameters is obsolete; should be replaced with
-	 * rte_option_set calls */
-	if (!rte_set_video_parameters(context, pixformat,
-		context->width, context->height, frame_rate, 
-		this->rte_bitrate, "I")) {
-		printf("dxr3enc: set_video_parameters failed: %s\n",
-			context->error);
-		rte_context_destroy(context);
-		context = 0;
-		return 1;
-	}
-	/* there's a bug in rte_set_video_parameters that incorrectly sets
-	 * the frame rate. we set it here explicitly */
-	if (! rte_option_set(codec, "coded_frame_rate", fps)) {
-		printf("dxr3enc: rte_option_set coded_frame_rate failed\n");
-		rte_context_destroy(context);
-		context = 0;
-		return 1;
-	}
-	/* paranoid; make sure we don't do motion searching */
-	rte_set_motion(context, 0, 0);
+	this->rte_bitrate *= 1000; /* config in kbit/s, rte wants bit/s */
+	/* FIXME: this needs to be replaced with a codec option call. 
+	 * However, there seems to be none for the colour format!
+	 * So we'll use the deprecated set_video_parameters instead. 
+	 * Alternative is to manually set context->video_format (RTE_YU... )
+	 * and context->video_bytes (= width * height * bytes/pixel) */
+	rte_set_video_parameters(context, 
+		(drv->format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
+		context->width, context->height, 
+		context->video_rate, context->output_video_bits, 
+		context->gop_sequence);
+	/* Now set a whole bunch of codec options */
+	/* If I understand correctly, virtual_frame_rate is the frame rate
+	 * of the source (can be anything), while coded_frame_rate must be
+	 * one of the mpeg1 alloweds */
+	if (!rte_option_set(codec, "virtual_frame_rate", drv->fps))
+		printf("dxr3enc: WARNING: rte_option_set failed; virtual_frame_rate=%g.\n",drv->fps);
+	if (!rte_option_set(codec, "coded_frame_rate", drv->fps))
+		printf("dxr3enc: WARNING: rte_option_set failed; coded_frame_rate=%g.\n",drv->fps);
+	if (!rte_option_set(codec, "bit_rate", (int)this->rte_bitrate))
+		printf("dxr3enc: WARNING: rte_option_set failed; bit_rate = %d.\n", 
+			(int)this->rte_bitrate);
+	if (!rte_option_set(codec, "gop_sequence", "I"))
+		printf("dxr3enc: WARNING: rte_option_set failed; gop_sequence = \"I\".\n");
+	/* just to be sure, disable motion comp (not needed in I frames) */
+	if (!rte_option_set(codec, "motion_compensation", 0))
+		printf("dxr3enc: WARNING: rte_option_set failed; motion_compensation = 0.\n");
 	rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
 	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", drv->devname);
-	//rte_set_output(context, NULL, NULL, tmpstr);
 	rte_set_output(context, mp1e_callback, NULL, NULL);
 	if (!rte_init_context(context)) {
 		printf("dxr3enc: cannot init the context: %s\n",
@@ -642,7 +617,7 @@ static int rte_on_update_format(dxr3_driver_t *drv)
 		return 1;
 	}
 	this->rte_time = 0.0;
-	this->rte_time_step = 1.0/fps;
+	this->rte_time_step = 1.0/drv->fps;
 	
 	return 0;
 }
