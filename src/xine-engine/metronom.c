@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.10 2001/06/24 02:19:29 guenter Exp $
+ * $Id: metronom.c,v 1.11 2001/06/24 22:20:26 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -297,7 +297,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
      * for too long
      */
 
-    if ( !this->audio_stream_starting 
+    if ( !this->audio_stream_starting && this->have_audio
 	 && (this->video_wrap_offset != this->audio_wrap_offset)) {
       this->wrap_diff_counter++;
 

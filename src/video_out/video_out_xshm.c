@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.10 2001/06/21 17:34:24 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.11 2001/06/24 22:20:26 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -188,7 +188,7 @@ static XImage *create_ximage (xshm_driver_t *this, XShmSegmentInfo *shminfo,
 
     if (myimage == NULL )  {
       printf ("video_out_xshm: shared memory error when allocating image\n");
-      printf ("=> not using MIT Shared Memory extension.\n");
+      printf ("video_out_xshm: => not using MIT Shared Memory extension.\n");
       this->use_shm = 0;
       goto finishShmTesting;
     }
@@ -573,8 +573,6 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
   
-  /* printf ("video_out_xshm: display frame %d\n", frame); */
-
   if (this->expecting_event) {
 
     this->expecting_event--;
@@ -608,15 +606,19 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       this->expecting_event = 10;
 
+      XFlush(this->display); 
+    
     } else {
+
       XPutImage(this->display, 
 		this->drawable, this->gc, frame->image,
 		0, 0,  0, 0,
 		frame->rgb_width, frame->rgb_height);
+      
+      XFlush(this->display); 
+      
       frame->vo_frame.displayed (&frame->vo_frame);
     }
-    
-    XFlush(this->display); 
     
     XUnlockDisplay (this->display);
     
@@ -703,6 +705,8 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
     if (xev->count == 0) {
 
+      XLockDisplay (this->display);
+      
       if (this->use_shm) {
 	
 	XShmPutImage(this->display, 
@@ -712,11 +716,15 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 		     False);
     
       } else {
+	
 	XPutImage(this->display, 
 		  this->drawable, this->gc, this->cur_frame->image,
 		  0, 0,  this->output_xoffset, this->output_yoffset,
 		  this->cur_frame->rgb_width, this->cur_frame->rgb_height);
       }
+      XFlush (this->display);
+
+      XUnlockDisplay (this->display);
     }
 
   }
@@ -835,7 +843,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   /* 
-   * try to create shared image 
+   * try to create a shared image 
    * to find out if MIT shm really works
    * and what bpp it uses
    */

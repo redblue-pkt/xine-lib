@@ -28,7 +28,7 @@ noinst_HEADERS = avifmt.h      elfdll.h    msacm.h     pshpack1.h   winbase.h \
 		 pshpack4.h    windows.h   winuser.h   debugtools.h mmreg.h   \
 		 pe_image.h    pshpack8.h  winerror.h  driver.h     module.h  \
 		 poppack.h     vfw.h       loader.h    registry.h   win32.h   \
-		 wineacm.h     winestring.h
+		 wineacm.h     winestring.h config.h
 
 stubs.lo: stubs.s
 	$(CC) -c $(top_srcdir)/src/libw32dll/wine/stubs.s -o stubs.lo

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.25 2001/06/21 17:34:24 guenter Exp $
+ * $Id: video_out.c,v 1.26 2001/06/24 22:20:26 guenter Exp $
  *
  */
 
@@ -93,6 +93,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   pthread_mutex_lock (&queue->mutex);
 
   while (!queue->first) {
+    /* printf ("video_out: queue %d empty...\n", queue); */
     pthread_cond_wait (&queue->bNotEmpty, &queue->mutex);
   }
 
@@ -235,10 +236,11 @@ static void *video_out_loop (void *this_gen) {
 	img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
 	pthread_mutex_lock (&img->mutex);
 
+	img->bDisplayLock = 0;
+
 	if (!img->bDecoderLock) 
 	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
 
-	img->bDisplayLock = 0;
 	pthread_mutex_unlock (&img->mutex);
 
 	img = this->display_img_buf_queue->first;
@@ -276,9 +278,10 @@ static void *video_out_loop (void *this_gen) {
     pthread_mutex_unlock (&img->mutex);
 
     /* Overlay SPU FIXME: Check image format */
+    
     this->spu_decoder->overlay_yuv (this->spu_decoder, pts, 
 				    img->base[0], img->base[1], img->base[2]);
-
+    
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
     this->driver->display_frame (this->driver, img); 
   }
@@ -325,6 +328,11 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 				 int ratio, int format, uint32_t duration) {
 
   vo_frame_t *img;
+
+  /*
+  printf ("video_out: get_frame %d x %d from queue %d\n", 
+	  width, height, this->free_img_buf_queue);
+  */
 
   if (this->pts_per_frame != duration) {
     this->pts_per_frame = duration;
@@ -418,7 +426,10 @@ static int vo_frame_draw (vo_frame_t *img) {
   this->num_frames_delivered++;
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
-
+  /*
+  printf ("video_out: got image %d. vpts for picture is %d\n", 
+	  img, pic_vpts);
+  */
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
@@ -432,6 +443,12 @@ static int vo_frame_draw (vo_frame_t *img) {
 
       this->num_frames_discarded++;
       xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
+
+      pthread_mutex_lock (&img->mutex);
+      img->bDisplayLock = 0;
+      pthread_mutex_unlock (&img->mutex);
+
+      vo_frame_displayed (img);
 
       return frames_to_skip;
 
@@ -451,8 +468,15 @@ static int vo_frame_draw (vo_frame_t *img) {
     
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
-  } else
+  } else {
     this->num_frames_skipped++;
+
+    pthread_mutex_lock (&img->mutex);
+    img->bDisplayLock = 0;
+    pthread_mutex_unlock (&img->mutex);
+    
+    vo_frame_displayed (img);
+  }
 
   /*
    * performance measurement

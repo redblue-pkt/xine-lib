@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.44 2001/06/18 15:43:00 richwareham Exp $
+ * $Id: video_out_xv.c,v 1.45 2001/06/24 22:20:26 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -50,6 +50,7 @@
 #include <string.h>
 
 #include "monitor.h"
+#include "utils.h"
 #include "video_out.h"
 #include "video_out_x11.h"
 #include "xine_internal.h"
@@ -95,6 +96,7 @@ typedef struct {
   XvPortID           xv_port;
   XColor             black;
   int                expecting_event; /* completion event handling */
+  int                use_shm;
 
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
@@ -127,9 +129,8 @@ typedef struct {
 
 } xv_driver_t;
 
-/*
- *
- */
+int gX11Fail;
+
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -186,9 +187,174 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   return (vo_frame_t *) frame;
 }
 
-/*
- *
- */
+int HandleXError (Display *display, XErrorEvent *xevent) {
+  
+  char str [1024];
+
+  XGetErrorText (display, xevent->error_code, str, 1024);
+
+  printf ("received X error event: %s\n", str);
+
+  gX11Fail = 1;
+  return 0;
+
+}
+
+static void x11_InstallXErrorHandler (xv_driver_t *this)
+{
+  XSetErrorHandler (HandleXError);
+  XFlush (this->display);
+}
+
+static void x11_DeInstallXErrorHandler (xv_driver_t *this)
+{
+  XSetErrorHandler (NULL);
+  XFlush (this->display);
+}
+
+static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo, 
+			      int width, int height, int format) {
+
+  unsigned int  xv_format;
+  XvImage      *image;
+
+  switch (format) {
+  case IMGFMT_YV12:
+    xv_format = this->xv_format_yv12;
+    break;
+  case IMGFMT_RGB:
+    xv_format = this->xv_format_rgb;
+    break;
+  case IMGFMT_YUY2:
+    xv_format = this->xv_format_yuy2;
+    break;
+  default:
+    fprintf (stderr, "create_ximage: unknown format %08x\n",format);
+    exit (1);
+  }
+  
+  if (this->use_shm) {
+
+    /*
+     * try shm
+     */
+    
+    gX11Fail = 0;
+    x11_InstallXErrorHandler (this);
+
+    image = XvShmCreateImage(this->display, this->xv_port, xv_format, 0,
+			     width, height, shminfo);
+  
+    if (image == NULL )  {
+      printf("video_out_xv: XvShmCreateImage failed\n");
+      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }
+    
+    shminfo->shmid=shmget(IPC_PRIVATE, 
+			 image->data_size, 
+			 IPC_CREAT | 0777);
+  
+    if (image->data_size==0) {  
+      printf("video_out_xv: XvShmCreateImage returned a zero size\n");
+      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }   
+    
+    if (shminfo->shmid < 0 ) {
+      perror("video_out_xv: shared memory error in shmget: "); 
+      printf("video_out_xv: => not using MIT Shared Memory extension.\n");
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }
+    
+    shminfo->shmaddr  = (char *) shmat(shminfo->shmid, 0, 0);
+    
+    if (shminfo->shmaddr == NULL) {
+      printf("video_out_xv: shared memory error (address error NULL)\n");
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }
+    
+    if (shminfo->shmaddr == ((char *) -1)) {
+      printf("video_out_xv: shared memory error (address error)\n");
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }
+  
+    shminfo->readOnly = False;
+    image->data = shminfo->shmaddr;
+  
+    XShmAttach(this->display, shminfo);
+  
+    XSync(this->display, False);
+    shmctl(shminfo->shmid, IPC_RMID, 0);
+  
+    if (gX11Fail) {
+      printf ("video_out_xv: x11 error during shared memory XImage creation\n");
+      printf ("video_out_xv: => not using MIT Shared Memory extension.\n");
+      shmdt (shminfo->shmaddr);
+      shmctl (shminfo->shmid, IPC_RMID, 0);
+      shminfo->shmid = -1;
+      this->use_shm = 0;
+      goto finishShmTesting;
+    }
+
+    /* 
+     * Now that the Xserver has learned about and attached to the
+     * shared memory segment,  delete it.  It's actually deleted by
+     * the kernel when all users of that segment have detached from 
+     * it.  Gives an automatic shared memory cleanup in case we crash.
+     */
+    shmctl (shminfo->shmid, IPC_RMID, 0);
+    shminfo->shmid = -1;
+
+  finishShmTesting:
+    x11_DeInstallXErrorHandler(this);
+  }
+
+
+  /*
+   * fall back to plain Xv if necessary
+   */
+
+  if (!this->use_shm) {
+
+    char *data;
+
+    data = xmalloc (width * height * 3/2);
+
+    image = XvCreateImage (this->display, this->xv_port,
+			   xv_format, data, width, height);
+    
+
+  }
+  return image;
+}
+
+static void dispose_ximage (xv_driver_t *this, 
+			    XShmSegmentInfo *shminfo, 
+			    XvImage *myimage) {
+
+  if (this->use_shm) {
+
+    XShmDetach (this->display, shminfo);
+    XFree (myimage);
+    shmdt (shminfo->shmaddr);
+    if (shminfo->shmid >= 0) {
+      shmctl (shminfo->shmid, IPC_RMID, 0);
+      shminfo->shmid = -1;
+    }
+
+  } else {
+
+    XFree (myimage);
+
+  }
+}
+
 static void xv_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
@@ -196,7 +362,6 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
-  unsigned int  xv_format;
 
   if ((frame->width != width) 
       || (frame->height != height)
@@ -211,77 +376,12 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
      */
 
     if (frame->image) {
-      XShmDetach (this->display, &frame->shminfo);
-      
-      XFree (frame->image);
-      shmdt (frame->shminfo.shmaddr);
-      shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
-
+      dispose_ximage (this, &frame->shminfo, frame->image);
       frame->image = NULL;
     }
 
-    switch (format) {
-    case IMGFMT_YV12:
-      xv_format = this->xv_format_yv12;
-      break;
-    case IMGFMT_RGB:
-      xv_format = this->xv_format_rgb;
-      break;
-    case IMGFMT_YUY2:
-      xv_format = this->xv_format_yuy2;
-      break;
-    default:
-      fprintf (stderr, "xv_update_frame_format: unknown format %08x\n",format);
-      exit (1);
-    }
+    frame->image = create_ximage (this, &frame->shminfo, width, height, format);
 
-    frame->image = XvShmCreateImage(this->display, this->xv_port, xv_format, 0,
-				    width, height, &frame->shminfo);
-
-    if (frame->image == NULL )  {
-      fprintf(stderr, "xv_image_format: XvShmCreateImage failed.\n");
-      exit (1);
-    }
-
-    frame->shminfo.shmid=shmget(IPC_PRIVATE, 
-				frame->image->data_size, 
-				IPC_CREAT | 0777);
-
-    if (frame->image->data_size==0) {  
-      fprintf(stderr, "xv_update_frame_format: XvShmCreateImage "
-	      "returned a zero size\n");
-      exit (1);
-    }   
-
-    if (frame->shminfo.shmid < 0 ) {
-      perror("xv_update_frame_format: shared memory error in shmget: "); 
-      exit (1);
-    }
-
-    frame->shminfo.shmaddr  = (char *) shmat(frame->shminfo.shmid, 0, 0);
-  
-    if (frame->shminfo.shmaddr == NULL) {
-      fprintf(stderr, "xv_update_frame_format: shared memory "
-	      "error (address error NULL)\n");
-      exit (1);
-    }
-
-    if (frame->shminfo.shmaddr == ((char *) -1)) {
-      fprintf(stderr, "xv_update_frame_format: shared memory "
-	      "error (address error)\n");
-      exit (1);
-    }
-
-    frame->shminfo.readOnly = False;
-    frame->image->data = frame->shminfo.shmaddr;
-
-    /* memset (frame->image->data,0,frame->image->data_size);  */
-
-    XShmAttach(this->display, &frame->shminfo);
-
-    XSync(this->display, False);
-    shmctl(frame->shminfo.shmid, IPC_RMID, 0);
-  
     frame->vo_frame.base[0] = frame->image->data;
     frame->vo_frame.base[1] = frame->image->data + width * height * 5 / 4;
     frame->vo_frame.base[2] = frame->image->data + width * height;
@@ -326,6 +426,7 @@ static void xv_adapt_to_output_area (xv_driver_t *this,
    * clear unused output area
    */
 
+  XLockDisplay (this->display); 
   XSetForeground (this->display, this->gc, this->black.pixel);
 
   XFillRectangle(this->display, this->drawable, this->gc, 
@@ -343,7 +444,7 @@ static void xv_adapt_to_output_area (xv_driver_t *this,
 		 this->output_xoffset+this->output_width, dest_y, 
 		 dest_width - this->output_xoffset - this->output_width, 
 		 dest_height);
-
+  XUnlockDisplay (this->display); 
 }
 
 /*
@@ -470,13 +571,22 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     XLockDisplay (this->display);
     
     this->cur_frame = frame;
-    XvShmPutImage(this->display, this->xv_port, 
-		  this->drawable, this->gc, frame->image,
-		  0, 0,  frame->width, frame->height-5,
-		  this->output_xoffset, this->output_yoffset,
-		  this->output_width, this->output_height, True);
-    
-    this->expecting_event = 10;
+
+    if (this->use_shm) {
+      XvShmPutImage(this->display, this->xv_port, 
+		    this->drawable, this->gc, frame->image,
+		    0, 0,  frame->width, frame->height-5,
+		    this->output_xoffset, this->output_yoffset,
+		    this->output_width, this->output_height, True);
+      
+      this->expecting_event = 10;
+    } else {
+      XvPutImage(this->display, this->xv_port, 
+		 this->drawable, this->gc, frame->image,
+		 0, 0,  frame->width, frame->height-5,
+		 this->output_xoffset, this->output_yoffset,
+		 this->output_width, this->output_height);
+    }
     
     XFlush(this->display); 
     
@@ -587,12 +697,26 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     /* FIXME : take care of completion events */
 
     if (xev->count == 0) {
-      if (this->cur_frame)
-	XvShmPutImage(this->display, this->xv_port, 
-		      this->drawable, this->gc, this->cur_frame->image,
-		      0, 0,  this->cur_frame->width, this->cur_frame->height-5,
-		      this->output_xoffset, this->output_yoffset,
-		      this->output_width, this->output_height, False);
+      if (this->cur_frame) {
+	XLockDisplay (this->display);
+
+	if (this->use_shm) {
+	  XvShmPutImage(this->display, this->xv_port, 
+			this->drawable, this->gc, this->cur_frame->image,
+			0, 0,  this->cur_frame->width, this->cur_frame->height-5,
+			this->output_xoffset, this->output_yoffset,
+			this->output_width, this->output_height, False);
+	} else {
+	  XvPutImage(this->display, this->xv_port, 
+		     this->drawable, this->gc, this->cur_frame->image,
+		     0, 0,  this->cur_frame->width, this->cur_frame->height-5,
+		     this->output_xoffset, this->output_yoffset,
+		     this->output_width, this->output_height);
+	}
+	XFlush(this->display); 
+    
+	XUnlockDisplay (this->display);
+      }
     }
   }
     break;
@@ -613,9 +737,11 @@ static void xv_exit (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
+  XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
     fprintf(stderr, "xv_exit: XvUngrabPort() failed.\n");
   }
+  XUnlockDisplay (this->display);
 }
 
 /*
@@ -676,6 +802,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   int                   nattr;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XColor                dummy;
+  XvImage              *myimage;
+  XShmSegmentInfo       myshminfo;
   
   display = visual->display;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
@@ -685,7 +813,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
    */
 
   if (Success != XvQueryExtension(display,&ver,&rel,&req,&ev,&err)) {
-    fprintf (stderr, "video_out_xv: Xv extension not present.\n");
+    printf ("video_out_xv: Xv extension not present.\n");
     return NULL;
   }
 
@@ -695,7 +823,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), 
 				 &adaptors,&adaptor_info))  {
-    fprintf(stderr, "video_out_xv: XvQueryAdaptors failed.\n");
+    printf("video_out_xv: XvQueryAdaptors failed.\n");
     return NULL;
   }
 
@@ -868,6 +996,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
       printf("video_out_xv: this adaptor supports the rgb format.\n");
     }
   }
+
+  /* 
+   * try to create a shared image 
+   * to find out if MIT shm really works
+   */
+
+  myimage = create_ximage (this, &myshminfo, 100, 100, IMGFMT_YV12);
+  dispose_ximage (this, &myshminfo, myimage);
+
 
   return &this->vo_driver;
 }

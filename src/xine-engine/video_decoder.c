@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.27 2001/06/24 04:32:36 guenter Exp $
+ * $Id: video_decoder.c,v 1.28 2001/06/24 22:20:26 guenter Exp $
  *
  */
 
@@ -43,7 +43,7 @@ void *video_decoder_loop (void *this_gen) {
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
 
-    /* printf ("video_decoder: got buffer %d\n", buf->type);  */
+    /* printf ("video_decoder: got buffer %d\n", buf->type);   */
 
     switch (buf->type) {
     case BUF_CONTROL_START:
