@@ -1,20 +1,38 @@
-developers
-==========
+project leaders
+===============
 
-Guenter Bartsch <guenter@users.sourceforge.net>
-  project lead, main xine programming
+Miguel Freitas <miguel@cetuc.puc-rio.br>
+  many bug and deadlock fixes, engine maintenance, soft deinterlacer,
+  massive libwin32 updates
 
-Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
-  various suggestions, bug and build fixes, alsa plugin,
-  main xine-ui programming
+Michael Roitzsch <mroi@users.sourceforge.net>
+  several dxr3 fixes, massive engine contributions, multistream and
+  post plugin architecture, DVD navigation
+
+Mike Melanson <melanson@pcisys.net>
+  a whole bunch of file demuxers, lots of audio and video decoders,
+  assorted other input sources and utilities
+
+Thibaut Mattern <tmattern@noos.fr>
+  demuxer cleanups and fixes, mms input plugin fixes, xml parser,
+  mmsh protocol support
+
+project administrator / release manager
+=======================================
 
 Siegfried Langauf <siggi@users.sourceforge.net>
   Debian package, user support, project administration,
   plugin loader
 
-Miguel Freitas <miguel@cetuc.puc-rio.br>
-  many bug and deadlock fixes, engine maintenance, soft deinterlacer,
-  massive libwin32 updates
+developers
+==========
+
+Guenter Bartsch <guenter@users.sourceforge.net>
+  xine founder, former project leader
+
+Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+  various suggestions, bug and build fixes, alsa plugin,
+  main xine-ui programming
 
 Heiko Schaefer <heikos@users.sourceforge.net>
   FreeBSD support, testing, ideas
@@ -35,18 +53,6 @@ Juergen Keil <jk@tools.de>
 Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
   IRIX port, video out interface, opengl video output
 
-Thibaut Mattern <tmattern@noos.fr>
-  demuxer cleanups and fixes, mms input plugin fixes, xml parser,
-  mmsh protocol support
-
-Michael Roitzsch <mroi@users.sourceforge.net>
-  several dxr3 fixes, massive engine contributions, multistream and
-  post plugin architecture, DVD navigation
-
-Mike Melanson <melanson@pcisys.net>
-  a whole bunch of file demuxers, lots of audio and video decoders,
-  assorted other input sources and utilities
-
 Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
   decoder, SunPro compiler fixes, various bugfixes
@@ -57,6 +63,7 @@ Stephen Torri <storri@users.sourceforge.net>
 
 Stefan Holst <mail@s-holst.de>
   real media streaming support, input_net fixes, image demuxer/decoder
+  frontend programming
 
 Andreas Heinchen <andreas.heinchen@gmx.de>
   theora support, subtitles in ogm streams
