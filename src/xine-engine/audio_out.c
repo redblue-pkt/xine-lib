@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.38 2001/12/10 12:31:09 jkeil Exp $
+ * $Id: audio_out.c,v 1.39 2001/12/24 12:36:19 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -242,8 +242,6 @@ static void *ao_loop (void *this_gen) {
   int             num_output_frames ;
   int             paused_wait;
   
-  this->audio_loop_running = 1;
-  
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
 
@@ -443,6 +441,7 @@ static int ao_open(ao_instance_t *this,
     printf("audio_out: pthread already running!\n");
   }
   
+  this->audio_loop_running = 1;  
   if ((err = pthread_create (&this->audio_thread,
 			     NULL, ao_loop, this)) != 0) {
 
@@ -454,8 +453,6 @@ static int ao_open(ao_instance_t *this,
 
   } else
     printf ("audio_out: thread created\n");
-
-
 
   return this->output_frame_rate;
 }
