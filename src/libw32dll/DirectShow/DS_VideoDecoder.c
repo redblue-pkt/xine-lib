@@ -141,7 +141,11 @@ DS_VideoDecoder * DS_VideoDecoder_Create(CodecInfo * info,  BITMAPINFOHEADER * f
 
 
 	this->m_pDS_Filter = DS_Filter_Create((const char*)info->dll, &info->guid, &this->m_sOurType, &this->m_sDestType);
-
+        if( !this->m_pDS_Filter ) {
+          /* FIXME: memory leak */
+	  return NULL;        
+	}
+	
 	if (!flip)
 	{
 	    this->m_sVhdr2->bmiHeader.biHeight *= -1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.36 2001/11/18 03:53:23 guenter Exp $
+ * $Id: input_dvd.c,v 1.37 2001/11/29 12:05:06 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -364,6 +364,24 @@ static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
  
   return 1 ;
 }
+
+static int dvd_plugin_is_branch_possible(input_plugin_t *this_gen, char *nextmrl ) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+  char *mrl;
+
+  if (strncasecmp (nextmrl, "dvd://", 6))
+    return 0;
+  
+  mrl = this->mrl;
+  
+  mrl += 6;
+  nextmrl += 6;
+  
+  if( strncasecmp (mrl, "VTS_", 4) || strncasecmp (nextmrl, "VTS_", 4) )
+    return 0;
+    
+  return 1;
+} 
 
 static off_t dvd_plugin_read (input_plugin_t *this_gen, 
 			      char *buf, off_t nlen) {
@@ -762,7 +780,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = dvd_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = dvd_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
-  this->input_plugin.is_branch_possible= NULL;
+  this->input_plugin.is_branch_possible= dvd_plugin_is_branch_possible;
 
   this->device = config->register_string(config, "input.dvd_device", DVD,
 					 "path to your local dvd device file",
