@@ -1327,7 +1327,11 @@ static void switch_channel (dvb_input_plugin_t *this) {
   xine_pids_data_t data;
   xine_ui_data_t   ui_data;
 
+  /* control_nop appears to stop an occasional (quite long) pause between channel-changes, which the user
+     may see as a lockup. */
+  _x_demux_control_nop(this->stream, BUF_FLAG_END_STREAM);
   _x_demux_flush_engine(this->stream); 
+
   pthread_mutex_lock (&this->mutex);
   
   close (this->fd);
