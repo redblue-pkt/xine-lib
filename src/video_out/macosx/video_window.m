@@ -29,7 +29,7 @@
 
 #import "video_window.h"
 
-NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
+static NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 #define DEFAULT_VIDEO_WINDOW_SIZE (NSMakeSize(320, 200))
 
@@ -513,6 +513,11 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (void) drawRect: (NSRect) rect {
     [currentContext makeCurrentContext];
+    
+	if (!initDone) {
+        [currentContext flushBuffer];
+        return;
+    }
 
     /* Swap buffers only during the vertical retrace of the monitor.
        http://developer.apple.com/documentation/GraphicsImaging/Conceptual/OpenGL/chap5/chapter_5_section_44.html */
@@ -522,11 +527,6 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
   
     /* Black background */
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    if (!initDone) {
-        [currentContext flushBuffer];
-        return;
-    }
 
     /* Draw */
     glBindTexture (GL_TEXTURE_RECTANGLE_EXT, i_texture);
