@@ -13,7 +13,7 @@ lib_LTLIBRARIES = xineplug_inp_vcd.la
 
 AM_CFLAGS = $(LIBCDIO_CFLAGS) $(LIBVCD_CFLAGS)
 
-xineplug_inp_vcd_la_SOURCES = $(vcdx_SRCS)
+xineplug_inp_vcd_la_SOURCES = $(vcd_SRCS)
 xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
 if HAVE_VCDNAV
 xineplug_inp_vcd_la_LIBADD = $(XINE_LIB) $(LIBVCDINFO_LIBS)
