@@ -20,7 +20,8 @@ lib_LTLIBRARIES = \
 	xineplug_decode_svq1.la \
 	xineplug_decode_yuv.la \
 	xineplug_decode_qtrpza.la \
-	xineplug_decode_wc3video.la
+	xineplug_decode_wc3video.la \
+	xineplug_decode_qtrle.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
 xineplug_decode_cinepak_la_LDFLAGS = -avoid-version -module
@@ -60,6 +61,9 @@ xineplug_decode_qtrpza_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_wc3video_la_SOURCES = wc3video.c
 xineplug_decode_wc3video_la_LDFLAGS = -avoid-version -module
+
+xineplug_decode_qtrle_la_SOURCES = qtrle.c
+xineplug_decode_qtrle_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = svq1_codebooks.h
 

@@ -9,6 +9,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * AIFF file demuxer
   * Sun/NeXT SND/AU file demuxer
   * Id CIN video decoder
+  * QT RLE video decoder
   * QT SMC video decoder
   * QT RPZA video decoder
   * Wing Commander III video decoder
