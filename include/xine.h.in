@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.129 2004/09/20 19:30:03 valtri Exp $
+ * $Id: xine.h.in,v 1.130 2004/09/22 20:18:50 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -459,6 +459,8 @@ typedef struct {
 
   uint8_t *data;
   void    *xine_frame; /* used internally by xine engine */
+  
+  int      frame_number; /* frame number (may be unknown) */
 } xine_video_frame_t;
 
 int xine_get_next_video_frame (xine_video_port_t *port,
