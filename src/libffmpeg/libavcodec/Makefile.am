@@ -4,7 +4,7 @@ SUBDIRS = armv4l i386 mlib alpha ppc sparc libpostproc
 
 # some of ffmpeg's decoders are not used by xine yet
 EXTRA_DIST = motion_est_template.c imgresample.c \
-	cljr.c fdctref.c ffv1.c g726.c mdec.c raw.c svq3.c wmv2.c
+	adx.c cljr.c fdctref.c ffv1.c g726.c mdec.c raw.c svq3.c wmv2.c
 
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
