@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.6 2002/10/06 03:48:13 komadori Exp $
+ * $Id: wc3video.c,v 1.7 2002/10/23 01:40:01 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -42,11 +42,17 @@
 #define WC3_WIDTH   320
 #define WC3_HEIGHT  165
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} wc3video_class_t;
+
 typedef struct wc3video_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */
 
+  wc3video_class_t *class;
+  xine_stream_t    *stream;
+
   /* these are traditional variables in a video decoder object */
-  vo_instance_t    *video_out;   /* object that will receive frames */
   uint64_t          video_step;  /* frame duration in pts units */
   int               decoder_ok;  /* current decoder status */
   int               skipframes;
@@ -328,22 +334,6 @@ static void wc3_decode_frame (wc3video_decoder_t *this) {
  *************************************************************************/
 
 /*
- * This function is called to initialize the video decoder for use. 
- * Initialization usually involves setting up the fields in your
- * private video decoder object.
- */
-static void wc3video_init (video_decoder_t *this_gen, 
-  vo_instance_t *video_out) {
-  wc3video_decoder_t *this = (wc3video_decoder_t *) this_gen;
-
-  /* set our own video_out object to the one that xine gives us */
-  this->video_out  = video_out;
-
-  /* indicate that the decoder is not quite ready yet */
-  this->decoder_ok = 0;
-}
-
-/*
  * This function receives a buffer of data from the demuxer layer and
  * figures out how to handle it based on its header flags.
  */
@@ -375,7 +365,7 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -392,7 +382,7 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
     init_yuv_planes(&this->yuv_planes2, WC3_WIDTH, WC3_HEIGHT);
     this->current_planes = 1;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     return;
@@ -412,7 +402,7 @@ static void wc3video_decode_data (video_decoder_t *this_gen,
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
                                         WC3_WIDTH, WC3_HEIGHT,
                                         42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
@@ -470,11 +460,10 @@ static void wc3video_reset (video_decoder_t *this_gen) {
 }
 
 /*
- * This function is called when xine shuts down the decoder. It should
- * free any memory and release any other resources allocated during the
- * execution of the decoder.
+ * This function frees the video decoder instance allocated to the decoder.
  */
-static void wc3video_close (video_decoder_t *this_gen) {
+static void wc3video_dispose (video_decoder_t *this_gen) {
+
   wc3video_decoder_t *this = (wc3video_decoder_t *) this_gen;
 
   if (this->buf) {
@@ -484,46 +473,57 @@ static void wc3video_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-/*
- * This function returns the human-readable ID string to identify 
- * this decoder.
- */
-static char *wc3video_get_id(void) {
-  return "WC3 Video";
-}
-
-/*
- * This function frees the video decoder instance allocated to the decoder.
- */
-static void wc3video_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-/*
- * This function should be the plugin's only advertised function to the
- * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object.
- */
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  wc3video_decoder_t *this ;
+  wc3video_decoder_t  *this ;
 
-  this = (wc3video_decoder_t *) malloc (sizeof (wc3video_decoder_t));
-  memset(this, 0, sizeof (wc3video_decoder_t));
+  this = (wc3video_decoder_t *) xine_xmalloc (sizeof (wc3video_decoder_t));
 
-  this->video_decoder.init                = wc3video_init;
   this->video_decoder.decode_data         = wc3video_decode_data;
   this->video_decoder.flush               = wc3video_flush;
   this->video_decoder.reset               = wc3video_reset;
-  this->video_decoder.close               = wc3video_close;
-  this->video_decoder.get_identifier      = wc3video_get_id;
   this->video_decoder.dispose             = wc3video_dispose;
+  this->size                              = 0;
 
-  return (video_decoder_t *) this;
+  this->stream                            = stream;
+  this->class                             = (wc3video_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "WC3 Video";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Wing Commander III video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  wc3video_class_t *this;
+
+  this = (wc3video_class_t *) xine_xmalloc (sizeof (wc3video_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 /* plugin catalog information */
@@ -536,6 +536,6 @@ static decoder_info_t video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "WC3 Video", XINE_VERSION_CODE, &video_decoder_info, &init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "wc3video", XINE_VERSION_CODE, &video_decoder_info, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
