@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.5 2001/08/12 15:12:54 guenter Exp $
+ * $Id: demux_ts.c,v 1.6 2001/08/13 23:10:31 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -330,6 +330,7 @@ static void demux_ts_pes_buffer(
     unsigned int len)
 {
     demux_ts_media *m = &this->media[mediaIndex];
+    if (!m->fifo) return; /* To avoid segfault if Video out or Audio out plugin not loaded */
     /*
      * By checking the CC here, we avoid the need to check for the no-payload
      * case (i.e. adaptation field only) when it does not get bumped.
@@ -666,7 +667,7 @@ static void demux_ts_parse_ts(
             /*
              * Do the demuxing in descending order of packet frequency!
              */
-            if (pid == this->videoPid) {
+            if (pid == this->videoPid ) {
                 demux_ts_pes_buffer(this, originalPkt+data_offset, this->videoMedia, payload_unit_start_indicator, continuity_counter, data_len);
             } else if (pid == this->audioPid) {
                 demux_ts_pes_buffer(this, originalPkt+data_offset, this->audioMedia, payload_unit_start_indicator, continuity_counter, data_len);
