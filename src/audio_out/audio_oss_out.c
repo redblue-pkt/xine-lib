@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.45 2001/10/14 20:48:37 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.46 2001/10/14 23:38:30 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -120,6 +120,7 @@ typedef struct oss_driver_s {
   
   int              audio_started;
   int              sync_method;
+  int              latency;
 
   struct {
     char          *name;
@@ -274,9 +275,6 @@ static int ao_oss_open(ao_driver_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
-  if (this->sync_method == OSS_SYNC_SOFTSYNC) 
-    gettimeofday(&this->start_time, NULL);
-
   return this->output_sample_rate;
 }
 
@@ -319,7 +317,8 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
                   * this->output_sample_k_rate / 1000;
     frames += (tv.tv_sec - this->start_time.tv_sec)
                   * this->output_sample_rate;
-    frames -= this->output_sample_rate;
+
+    frames -= this->latency;
 
     /* calc delay */
 
@@ -661,7 +660,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("audio_oss_out: Audio driver realtime sync disabled...\n");
     printf ("audio_oss_out: ...will use system real-time clock for soft-sync instead\n");
     printf ("audio_oss_out: ...there may be audio/video synchronization issues\n");
+
+    gettimeofday(&this->start_time, NULL);
   }
+
+  this->latency = config->lookup_int (config, "oss_latency", 50000);
 
   this->capabilities = 0;
 
