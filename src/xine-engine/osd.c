@@ -38,10 +38,6 @@
 #  include <iconv.h>
 #endif
 
-#ifdef HAVE_LANGINFO_CODESET
-#include <langinfo.h>
-#endif
-
 #define LOG_MODULE "osd"
 #define LOG_VERBOSE
 /*
@@ -899,32 +895,34 @@ static void osd_free_encoding(osd_object_t *osd) {
  * ""   ... locale encoding
  */
 static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
+  char *enc;
+
 #ifdef HAVE_ICONV
   osd_free_encoding(osd);
 
   lprintf("osd=%p, encoding=%s\n", osd, encoding ? (encoding[0] ? encoding : "locale") : "no conversion");
+  /* no conversion, use latin1 */
   if (!encoding) return 1;
+  /* get encoding from system */
   if (!encoding[0]) {
-#ifdef HAVE_LANGINFO_CODESET
-    if ((encoding = nl_langinfo(CODESET)) == NULL) {
+    if ((enc = xine_get_system_encoding()) == NULL) {
       xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
 	      _("osd: can't find out current locale character set\n"));
       return 0;
     }
-#else
-    return 0;
-#endif
-    lprintf("locale encoding='%s'\n", osd, encoding);
-  }
+    lprintf("locale encoding='%s'\n", osd, enc);
+  } else
+    enc = strdup(encoding);
 
   /* prepare conversion to UCS-2 */
-  if ((osd->cd = iconv_open(UCS2_ENCODING, encoding)) == (iconv_t)-1) {
+  if ((osd->cd = iconv_open(UCS2_ENCODING, enc)) == (iconv_t)-1) {
     xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
-	    _("osd: unsupported conversion %s -> %s, no conversion performed\n"), encoding, UCS2_ENCODING);
+	    _("osd: unsupported conversion %s -> %s, no conversion performed\n"), enc, UCS2_ENCODING);
+    free(enc);
     return 0;
   }
 
-  osd->encoding = strdup(encoding);  
+  osd->encoding = enc;
   return 1;
 #else
   return encoding == NULL;

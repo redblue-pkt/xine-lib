@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.81 2004/03/18 16:50:00 komadori Exp $
+ * $Id: xineutils.h,v 1.82 2004/03/27 12:59:46 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1084,8 +1084,13 @@ void xine_list_insert_content (xine_list_t *l, void *content);
  */
 void xine_list_delete_current (xine_list_t *l);
 
+/**
+ * get encoding of current locale
+ */
+char *xine_get_system_encoding();
+
 #ifndef HAVE_BASENAME
-/*
+/**
  * get base name
  */
 char *basename (char const *name);
