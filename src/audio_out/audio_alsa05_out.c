@@ -24,7 +24,7 @@
  * for the SPDIF A52 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.9 2001/08/29 00:51:57 guenter Exp $
+ * $Id: audio_alsa05_out.c,v 1.10 2001/09/06 15:40:47 joachim_koenig Exp $
  */
 
 /* required for swab() */
@@ -175,6 +175,7 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
 
   case AO_CAP_MODE_STEREO:
   case AO_CAP_MODE_A52:
+  case AO_CAP_MODE_AC5:
     channels = 2;
     break;
 
@@ -206,7 +207,7 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
   this->bytes_in_buffer        = 0;
   this->direction              = SND_PCM_CHANNEL_PLAYBACK;
 
-  if (ao_mode == AO_CAP_MODE_A52) {
+  if ((ao_mode == AO_CAP_MODE_A52) || (mode == AO_CAP_MODE_AC5)) {
     this->pcm_default_device = 2;
     mode = SND_PCM_MODE_BLOCK;
   }
@@ -295,7 +296,7 @@ static int ao_alsa_open(ao_driver_t *this_gen,uint32_t bits, uint32_t rate, int 
   this->stop_mode = pcm_chan_params.stop_mode;
   this->ao_mode = ao_mode;
 
-  if (ao_mode == AO_CAP_MODE_A52) {
+  if ((ao_mode == AO_CAP_MODE_A52) || (mode == AO_CAP_MODE_AC5)) {
         pcm_chan_params.digital.dig_valid      = 1;
         pcm_chan_params.digital.dig_status[0]  = SND_PCM_DIG0_NONAUDIO;
         pcm_chan_params.digital.dig_status[0] |= SND_PCM_DIG0_PROFESSIONAL;
@@ -528,8 +529,10 @@ ao_driver_t *init_audio_out_plugin(config_values_t *config) {
 	   this->pcm_default_device);
 
   this->capabilities = AO_CAP_MODE_STEREO;
-  if (config->lookup_int (config, "a52_pass_through", 0)) 
+  if (config->lookup_int (config, "a52_pass_through", 0))  {
     this->capabilities |= AO_CAP_MODE_A52;
+    this->capabilities |= AO_CAP_MODE_AC5;
+  }
 
 
   this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;

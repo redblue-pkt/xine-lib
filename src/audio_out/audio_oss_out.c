@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.36 2001/09/01 18:00:16 jcdutton Exp $
+ * $Id: audio_oss_out.c,v 1.37 2001/09/06 15:40:47 joachim_koenig Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -226,6 +226,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
     this->num_channels = tmp;
     break;
   case AO_CAP_MODE_A52:
+  case AO_CAP_MODE_AC5:
     tmp = AFMT_AC3;
     if (ioctl(this->audio_fd, SNDCTL_DSP_SETFMT, &tmp) < 0 || tmp != AFMT_AC3) {
         printf("audio_oss_out: AC3 SNDCTL_DSP_SETFMT failed. %d\n",tmp);
@@ -549,6 +550,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if (caps & AFMT_AC3) {
     if (config->lookup_int (config, "a52_pass_through", 0)) {
       this->capabilities |= AO_CAP_MODE_A52;
+      this->capabilities |= AO_CAP_MODE_AC5;
       printf ("a/52-pass-through ");
     } else 
       printf ("(a/52-pass-through not enabled in .xinerc)");
