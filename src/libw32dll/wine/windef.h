@@ -114,6 +114,8 @@ extern "C" {
 #  endif
 # else
 // #  error You need gcc >= 2.7 to build Wine on a 386
+#  define __stdcall
+#  define __cdecl
 # endif
 #else 
 # define __stdcall
