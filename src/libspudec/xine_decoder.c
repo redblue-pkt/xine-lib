@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2001/10/26 15:49:15 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.31 2001/10/26 20:18:54 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -281,7 +281,9 @@ static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event
   new_event=0;
   /* We skip the 0 entry because that is used as a pointer to the first event.*/
   /* Find a free event slot */
+  xprintf (VERBOSE|SPU, "284MUTEX1:spu_events lock");
   pthread_mutex_lock (&this->spu_events_mutex);
+  xprintf (VERBOSE|SPU, "->ok\n");
   do {
     new_event++;
   } while ((new_event<MAX_EVENTS) && (this->spu_events[new_event].event->event_type > 0));
@@ -320,12 +322,12 @@ static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event
   this->spu_events[new_event].event->event_type=event->event_type;
   this->spu_events[new_event].event->vpts=event->vpts;
   this->spu_events[new_event].event->object.handle=event->object.handle;
-  xprintf (VERBOSE|SPU, "MALLOC1: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
+  xprintf (VERBOSE|SPU, "323MALLOC1: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
             new_event,
             this->spu_events[new_event].event->object.overlay,
             sizeof(vo_overlay_t));
   this->spu_events[new_event].event->object.overlay = xmalloc (sizeof(vo_overlay_t));
-  xprintf (VERBOSE|SPU, "MALLOC2: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
+  xprintf (VERBOSE|SPU, "328MALLOC2: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
             new_event,
             this->spu_events[new_event].event->object.overlay,
             sizeof(vo_overlay_t));
@@ -399,14 +401,32 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       if (this->state.menu == 0) {
         /* Subtitle */
         this->event.object.handle = handle;
-        this->event.object.overlay = &this->overlay;
+        /* FIXME: memcpy maybe. */
+        xprintf (VERBOSE|SPU, "403MALLOC: this->event.object.overlay=%p\n",
+                  this->event.object.overlay);
+        this->event.object.overlay = malloc(sizeof(vo_overlay_t));
+        memcpy(this->event.object.overlay, 
+               &this->overlay,
+               sizeof(vo_overlay_t));
+        this->overlay.rle=NULL;
+        xprintf (VERBOSE|SPU, "409MALLOC: this->event.object.overlay=%p\n",
+                  this->event.object.overlay);
         this->event.event_type = this->state.visible;
         this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
       } else {
         /* Menu */
         spu_free_handle(this, handle);
         this->event.object.handle = spu_get_menu_handle(this);
-        this->event.object.overlay = &this->overlay;
+        /* FIXME: memcpy maybe. */
+        xprintf (VERBOSE|SPU, "418MALLOC: this->event.object.overlay=%p\n",
+                  this->event.object.overlay);
+        this->event.object.overlay = malloc(sizeof(vo_overlay_t));
+        memcpy(this->event.object.overlay, 
+               &this->overlay,
+               sizeof(vo_overlay_t));
+        this->overlay.rle=NULL;
+        xprintf (VERBOSE|SPU, "424MALLOC: this->event.object.overlay=%p\n",
+                  this->event.object.overlay);
         this->event.event_type = EVENT_MENU_SPU;
         this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
       }
@@ -534,7 +554,9 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
 //  uint32_t     pts;
 //  int i;
 //  vo_overlay_t overlay;
+  xprintf (VERBOSE|SPU, "557MUTEX1:spu_events lock");
   pthread_mutex_lock (&this->spu_events_mutex);
+  xprintf (VERBOSE|SPU, " -> ok.\n");
   this_event=this->spu_events[0].next_event;
   if ((!this_event) || (vpts < this->spu_events[this_event].event->vpts) ) {
     pthread_mutex_unlock (&this->spu_events_mutex);
@@ -587,8 +609,19 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
       break;
 
     case EVENT_HIDE_MENU:
-      xprintf (VERBOSE|SPU, "HIDE MENU NOW\n");
+      xprintf (VERBOSE|SPU, "HIDE MENU NOW %d\n",handle);
       this->spu_showing[1].handle = -1;
+      if(this->spu_objects[handle].overlay->rle) {
+        xprintf (VERBOSE|SPU, "FREE1: this->spu_objects[%d].overlay->rle %p\n",
+          handle,
+          this->spu_objects[handle].overlay->rle);
+        free(this->spu_objects[handle].overlay->rle);
+        this->spu_objects[handle].overlay->rle = NULL;
+        xprintf (VERBOSE|SPU, "FREE2: this->spu_objects[%d].overlay->rle %p\n",
+          handle,
+          this->spu_objects[handle].overlay->rle);
+      }
+      
       /* FIXME: maybe free something here */
       /* spu_free_handle( this, handle ); */
       break;
