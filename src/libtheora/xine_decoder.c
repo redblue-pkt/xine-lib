@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2003/05/01 19:03:04 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.3 2003/05/01 20:53:24 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -64,18 +64,8 @@ typedef struct theora_decoder_s {
   int                width, height;
   int                initialized;
   int                frame_duration;
-  int                keyframe_granule_shift;
   int                skipframes;
 } theora_decoder_t;
-
-static int intlog(int num) {
-  int ret=0;
-  while(num>0){
-    num=num/2;
-    ret=ret+1;
-  }
-  return(ret);
-}
 
 static void readin_op (theora_decoder_t *this, char* src, int size) {
   if ( this->done+size > this->op_max_size) {
@@ -94,6 +84,8 @@ static void show_op_stats (theora_decoder_t *this) {
 
 static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
   int i;
+  /*fixme - clarify if the frame must be copied or if there is a simpler solution
+   like exchanging the pointers*/
   for(i=0;i<yuv->y_height;i++)
     memcpy(frame->base[0]+yuv->y_width*i, 
 	   yuv->y+yuv->y_stride*i, 
@@ -162,7 +154,6 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if ((buf->decoder_flags & BUF_FLAG_HEADER) && !this->initialized) {
     if (theora_decode_header(&this->t_info,&this->op)>=0) {
       theora_decode_init (&this->t_state,&this->t_info);
-      this->keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
       this->initialized=1;
       this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 #ifdef LOG
@@ -175,18 +166,15 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     } else
       printf ("libtheora: Header could not be decoded.\n");
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    theora_clear(&this->t_state);
-    theora_decode_header(&this->t_info,&this->op);
-    theora_decode_init(&this->t_state,&this->t_info);
-  } else if (!(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+    return;
+  } else if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+    return;
+  } else {
 
     if (!this->initialized) {
+      printf ("libtheora: cannot decode stream without header\n");
       return;
     }
-
-#ifdef LOG
-    printf ("libtheora: decoding i %lld p %lld\n",this->iframe,this->pframe);
-#endif
 
     ret=theora_decode_packetin( &this->t_state, &this->op);
 
@@ -194,15 +182,9 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       printf ("libtheora:Recieved an bad packet\n");
     } else if (!this->skipframes) {
 
-      int64_t iframe,pframe;
-
       theora_decode_YUVout(&this->t_state,&yuv);
 
-      iframe=this->t_state.granulepos>>this->keyframe_granule_shift;
-      pframe=this->t_state.granulepos-(iframe<<this->keyframe_granule_shift);
-#ifdef LOG
-      printf ("libtheora: decoded i %lld p %lld\n",iframe,pframe);
-#endif
+      /*fixme - aspectratio from theora is not considered*/
       frame = this->stream->video_out->get_frame( this->stream->video_out,
 						  this->width, this->height,
 						  ASPECT_SQUARE,
@@ -210,12 +192,10 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						  VO_BOTH_FIELDS);
       yuv2frame(&yuv, frame);
 
-      frame->pts = this->frame_duration* (iframe+pframe);
-
+      frame->pts = buf->pts;
       frame->duration=this->frame_duration;
       this->skipframes=frame->draw(frame, this->stream);
       frame->free(frame);
-      this->done=0;
     } else
       this->skipframes=0;
       theora_decode_YUVout(&this->t_state,&yuv);
