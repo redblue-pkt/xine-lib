@@ -22,6 +22,8 @@ xine-lib (1-beta5)
   * FFT post plugin improvements
   * 'Qclp' Qualcomm PureVoice audio decoing via Quicktime DLL
   * libdvdnav updated to 0.1.5: miscellaneous fixes
+  * HuffYUV video decoding via ffmpeg
+  * vidixfb vo driver for vidix overlay on linux frame buffer
 
 xine-lib (1-beta4)
   * http input fixes
