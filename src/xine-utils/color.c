@@ -50,6 +50,12 @@
  *
  * The extra 2 samples are necessary for the final conversion. The extra
  * 2 samples are simply mirrored from the last 2 samples on the line.
+ * This library provides a macro called FINISH_LINE() to mirror the last
+ * 2 samples in each color plane. To use it, call the macro with the YUV
+ * planes structure and the index of the first byte on the row. For
+ * example, in the above example, call FINISH_LINE() with a yuv_planes
+ * structure and the index 10 in order to finish (mirror the last 2 samples)
+ * on the second line.
  *
  * When an image has been fully decoded into the yuv_planes_t structure,
  * call yuv444_to_yuy2() with the structure and the final (pre-allocated)
@@ -70,7 +76,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.4 2002/07/15 21:42:34 esnel Exp $
+ * $Id: color.c,v 1.5 2002/07/20 04:20:56 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -318,13 +324,12 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
   int secondary_samples;
   int rewind_bytes;
   int toss_out_shift;
+  int row_inc = (pitch - 2 * yuv_planes->row_width);
 
   width_mod = yuv_planes->row_width % 6;
   secondary_samples = width_mod / 2;
   rewind_bytes = 6 - width_mod;
   toss_out_shift = rewind_bytes * 8;
-//printf ("width_mod = %d, secondary_samples = %d, rewind_bytes = %d, toss_out_shift = %d\n",
-//  width_mod, secondary_samples, rewind_bytes, toss_out_shift);
 
   /* set up some MMX registers: mm0 = 0, mm7 = color filter */
   pxor_r2r(mm0, mm0);
@@ -353,7 +358,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
 
     /* account for extra 2 samples */
     source_plane += 2;
-    dest_plane += (pitch - 2*yuv_planes->row_width);
+    dest_plane += row_inc;
   }
 
   /* figure out the U samples */
@@ -384,7 +389,6 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
 
         psrlq_i2r(16, mm1);      /* toss out 2 U samples and loop again */
       }
-
     }
 
     /* special case time: secondary samples */
@@ -393,8 +397,12 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
       movq_m2r(*source_plane, mm1); /* load 8 U samples */
       source_plane += 8;
 
-      /* toss out 2 U samples before starting */
-      psrlq_i2r(toss_out_shift, mm1);
+      /* toss out 1-2 U samples before starting */
+      /* (psrlq_m2r does not work like I expect it to, so this looks weird) */
+      if (toss_out_shift == 16)
+        psrlq_i2r(16, mm1);
+      else
+        psrlq_i2r(32, mm1);
 
       for (k = 0; k < secondary_samples; k++)
       {
@@ -416,7 +424,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
     } else
       source_plane += 2;
 
-    dest_plane += (pitch - 2*yuv_planes->row_width);
+    dest_plane += row_inc;
   }
 
   /* figure out the V samples */
@@ -455,8 +463,12 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
       movq_m2r(*source_plane, mm1); /* load 8 V samples */
       source_plane += 8;
 
-      /* toss out 2 V samples before starting */
-      psrlq_i2r(toss_out_shift, mm1);
+      /* toss out 1-2 V samples before starting */
+      /* (psrlq_m2r does not work like I expect it to, so this looks weird) */
+      if (toss_out_shift == 16)
+        psrlq_i2r(16, mm1);
+      else
+        psrlq_i2r(32, mm1);
 
       for (k = 0; k < secondary_samples; k++)
       {
@@ -478,7 +490,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int p
     } else
       source_plane += 2;
 
-    dest_plane += (pitch - 2*yuv_planes->row_width);
+    dest_plane += row_inc;
   }
 
   /* be a good MMX citizen and empty MMX state */

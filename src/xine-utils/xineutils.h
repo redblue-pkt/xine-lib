@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.18 2002/07/15 21:42:34 esnel Exp $
+ * $Id: xineutils.h,v 1.19 2002/07/20 04:20:56 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -752,6 +752,17 @@ extern void (*yuv444_to_yuy2)
 #define COMPUTE_V(r, g, b) \
   (unsigned char) \
   ((v_r_table[r] + v_g_table[g] + v_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
+
+#define FINISH_LINE(yuv_planes, row_ptr) \
+  yuv_planes.u[row_ptr + yuv_planes.row_width] = \
+    yuv_planes.u[row_ptr + yuv_planes.row_width - 1]; \
+  yuv_planes.u[row_ptr + yuv_planes.row_width + 1] = \
+    yuv_planes.u[row_ptr + yuv_planes.row_width - 2]; \
+ \
+  yuv_planes.v[row_ptr + yuv_planes.row_width] = \
+    yuv_planes.v[row_ptr + yuv_planes.row_width - 1]; \
+  yuv_planes.v[row_ptr + yuv_planes.row_width + 1] = \
+    yuv_planes.v[row_ptr + yuv_planes.row_width - 2];
 
 #define UNPACK_BGR15(packed_pixel, r, g, b) \
   b = (packed_pixel & 0x7C00) >> 7; \
