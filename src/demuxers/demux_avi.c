@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.76 2002/04/13 11:59:58 guenter Exp $
+ * $Id: demux_avi.c,v 1.77 2002/04/17 16:09:58 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -269,6 +269,19 @@ static int avi_add_index_entry(demux_avi_t *this, avi_t *AVI, unsigned char *tag
   return 0;
 }
 
+static void gen_index_show_progress (demux_avi_t *this, int percent) {
+
+  char str[60];
+
+  sprintf (str, "recons. index %3d%%", percent);
+
+  this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
+  this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, str, OSD_TEXT1);
+  this->xine->osd_renderer->show (this->xine->osd, 0);
+  
+
+}
+
 static avi_t *AVI_init(demux_avi_t *this)  {
 
   avi_t *AVI;
@@ -284,6 +297,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
   int auds_strf_seen = 0;
   int num_stream = 0;
   char data[256];
+  off_t file_length;
 
   /* Create avi_t structure */
 
@@ -529,6 +543,9 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     
     printf ("demux_avi: reconstructing index"); fflush (stdout);
     
+    gen_index_show_progress (this, 0);
+    file_length = this->input->get_length (this->input);
+
     while(1) {
       if( this->input->read(this->input, data,8) != 8 ) 
 	break;
@@ -536,6 +553,11 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       
       i++;
       if (i>1000) {
+	off_t pos;
+
+	pos = this->input->get_current_pos (this->input);
+	gen_index_show_progress (this, 100*pos/file_length);
+
 	printf (".");
 	i = 0; fflush (stdout);
       }
@@ -557,11 +579,13 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       }
       
       this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
+
     }
     printf ("\ndemux_avi: index recostruction done.\n");
+    this->xine->osd_renderer->hide (this->xine->osd, 0);
     idx_type = 1;
   }
-  
+
   /* Now generate the video index and audio index arrays */
   
   nvi = 0;
