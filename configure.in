@@ -88,12 +88,14 @@ AC_SUBST(BUILD_LIB_STATIC)
 dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
+AC_C_BIGENDIAN
+dnl AC_C_BIGENDIAN triggers an AC_TRY_RUN warning; we can't cross compile
+dnl xine (oh, well)
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AM_TYPE_PTRDIFF_T
-dnl AC_C_BIGENDIAN
 
 AC_SUBST(DEBUG_CFLAGS)
 AC_SUBST(GLOBAL_CFLAGS)
@@ -146,7 +148,7 @@ if test x$enable_mlib = xyes; then
                [ LIBS="$LIBS -L/opt/SUNWmlib/lib -lmlib" 
                  LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I/opt/SUNWmlib/include" 
-                 AC_DEFINE(HAVE_MLIB)
+		 AC_DEFINE(HAVE_MLIB)
                  AC_DEFINE(LIBMPEG2_MLIB)],
                , -L/opt/SUNWmlib/lib)
 fi
@@ -394,8 +396,10 @@ case $host in
        	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
         ;;
     sparc-*)
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
-        DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+	dnl hard code cpu target as sparcv8, hopefully no one wants to watch
+	dnl mpeg videos on his old SPARCstation2 :-)
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
         ;;
     *) echo "$host is not currently supported by xine"; exit 1;;
     esac
