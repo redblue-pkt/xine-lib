@@ -312,7 +312,7 @@ int sock_string_write(int socket, char *msg, ...) {
   va_list  args;
   
   va_start(args, msg);
-  vsnprintf(buf, _BUFSIZ, msg, args);
+  vsnprintf(buf, _BUFSIZ - 1, msg, args);
   va_end(args);
   
   /* Each line sent is '\n' terminated */
