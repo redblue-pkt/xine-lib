@@ -17,13 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2004/09/09 06:35:44 athp Exp $
+ * $Id: xine_decoder.c,v 1.2 2004/09/09 06:38:45 athp Exp $
  *
  */
 
-#define LOG
 #define LOG_MODULE "libspucmml"
 #define LOG_VERBOSE
+/*
+#define LOG
+*/
 #define LOG_OSD 0
 #define LOG_SCHEDULING 0
 #define LOG_WIDTH 0
@@ -44,9 +46,7 @@ typedef enum {
 
 typedef struct spucmml_class_s {
   spu_decoder_class_t class;
-
   char              *src_encoding;  /* encoding of subtitle file */
-
   xine_t            *xine;
 
 } spucmml_class_t;
@@ -69,8 +69,8 @@ typedef struct spucmml_decoder_s {
   int                lines;
   char               text[SUB_MAX_TEXT][SUB_BUFSIZE];
 
-  int                cached_width;          /* frame width                */
-  int                cached_height;         /* frame height               */
+  int                cached_width;          /* frame width */
+  int                cached_height;         /* frame height */
   int64_t            cached_img_duration;
   int                font_size;
   int                line_height;
@@ -85,6 +85,7 @@ typedef struct spucmml_decoder_s {
 
   cmml_anchor_t      current_anchor;
 } spucmml_decoder_t;
+
 
 static void video_frame_format_change_callback (void *user_data, const xine_event_t *event);
 
