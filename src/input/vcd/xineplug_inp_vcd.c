@@ -1,7 +1,7 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.10 2003/12/14 22:13:23 siggi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.11 2004/02/28 19:29:38 rockyb Exp $
  
-  Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
   Program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -160,6 +160,9 @@ static void vcd_close(vcd_input_class_t *class);
 static bool
 vcd_get_default_device(vcd_input_class_t *class, bool log_msg_if_fail)
 {
+  dbg_print(INPUT_DBG_CALL, "Called with %s\n",
+            log_msg_if_fail ? "True" : "False");
+
   if (NULL == class->vcd_device || strlen(class->vcd_device)==0) {
     char **cd_drives=NULL;
     cd_drives = cdio_get_devices_with_cap(NULL, 
