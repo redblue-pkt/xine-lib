@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.172 2004/04/26 17:50:12 mroi Exp $
+ * $Id: audio_out.c,v 1.173 2004/04/27 20:46:26 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1005,7 +1005,7 @@ static void *ao_loop (void *this_gen) {
 
       pthread_mutex_unlock( &this->driver_lock );
       xprintf(this->xine, XINE_VERBOSITY_LOG,
-              _("audio_oss_out: delay calculation impossible with an unavailable audio device\n"));
+              _("audio_out: delay calculation impossible with an unavailable audio device\n"));
 
       pthread_mutex_lock(&this->xine->streams_lock);
       for (stream = xine_list_first_content(this->xine->streams);
