@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.62 2002/01/02 18:16:08 jkeil Exp $
+ * $Id: video_out.c,v 1.63 2002/01/06 00:49:01 guenter Exp $
  *
  */
 
@@ -91,6 +91,11 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
 
   pthread_mutex_lock (&queue->mutex);
 
+  /* img already enqueue? (serious leak)
+  if( img->next )
+    *(char *)0=0;
+  */
+  
   img->next = NULL;
 
   if (!queue->first) {
@@ -188,6 +193,9 @@ static void *video_out_loop (void *this_gen) {
   static int	     prof_video_out = -1;
   static int	     prof_spu_blend = -1;
   sigset_t           vo_mask;
+  
+  uint32_t           last_draw_vpts = 0;
+  int                flush_sent = 0;
 
   /* printf ("%d video_out start\n", getpid());  */
 
@@ -197,7 +205,6 @@ static void *video_out_loop (void *this_gen) {
     prof_spu_blend = xine_profiler_allocate_slot ("spu blend");
 
   img_backup    = NULL;
-  this->still_counter = 0;
 
   /*
    * set up timer signal
@@ -226,8 +233,7 @@ static void *video_out_loop (void *this_gen) {
    * here it is - the big video output loop
    */
 
-  while ((this->video_loop_running) ||
-	 (!this->video_loop_running && this->display_img_buf_queue->first)) {
+  while ( this->video_loop_running ) {
 
     /*
      * wait until it's time to display a frame
@@ -238,6 +244,7 @@ static void *video_out_loop (void *this_gen) {
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
+      
       vo_set_timer (video_step);
     }
     
@@ -256,6 +263,23 @@ static void *video_out_loop (void *this_gen) {
     
     img = this->display_img_buf_queue->first;
 
+    /* update timer for inactivity flush */
+    if( img ) {
+      last_draw_vpts = cur_pts;
+    } else {
+      /* start timer when decoder receives the first packet */
+      if( !last_draw_vpts && this->decoder_started_flag )
+        last_draw_vpts = cur_pts;
+        
+      if( last_draw_vpts && (cur_pts - last_draw_vpts) > (8 * this->pts_per_frame) ) {
+        printf("video_out : sending decoder flush due to inactivity\n");
+        video_out_send_decoder_flush( this->xine->video_fifo );
+        last_draw_vpts = cur_pts;
+        flush_sent = 1;
+      }
+    }
+    
+    
     /*
      * throw away expired frames
      */
@@ -275,36 +299,42 @@ static void *video_out_loop (void *this_gen) {
 	this->num_frames_discarded++;
 
 	img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
-	pthread_mutex_lock (&img->mutex);
-
-	img->display_locked = 0;
 
 	/*
 	 * last frame? back it up for 
 	 * still frame creation
 	 */
 
-	if (img && !img->next) {
+	if (!this->display_img_buf_queue->first) {
 	  
 	  if (img_backup) {
+	    pthread_mutex_lock (&img_backup->mutex);
 #ifdef VIDEO_OUT_LOG
 	    printf("video_out : overwriting frame backup\n");
 #endif
-	    vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+	    img_backup->display_locked = 0;
+	    if (!img->decoder_locked) 
+	      vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+
+	    pthread_mutex_unlock (&img_backup->mutex);
 	  }
-	  
+	  printf("video_out : possible still frame (old)\n");
+	  flush_sent = 0;
+
+	  /* we must not clear display_locked from img_backup.
+	     without it decoder may try to free our backup.  */
 	  img_backup = img;
 	} else {
+	  pthread_mutex_lock (&img->mutex);
+	  
+	  img->display_locked = 0;
 	  if (!img->decoder_locked) 
 	    vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
+	  
+	  pthread_mutex_unlock (&img->mutex);
 	}
-
-	pthread_mutex_unlock (&img->mutex);
-
+	
 	img = this->display_img_buf_queue->first;
-
-	if (!img)
-	  diff = -1;
       }
     } 
 
@@ -320,73 +350,44 @@ static void *video_out_loop (void *this_gen) {
       printf ("video_out : no frame\n");
 #endif
 
-      if (!this->xine->video_fifo->first || this->xine->video_in_discontinuity) {
+      if (img_backup) {
 
-	this->still_counter++;
-
-	if (this->still_counter%8 == 0) {
-#ifdef VIDEO_OUT_LOG
-	  printf("video_out : sending decoder flush due to inactivity\n");
-#endif
-	  video_out_send_decoder_flush( this->xine->video_fifo );
-	} 
-
-	if (this->still_counter<8) {
-#ifdef VIDEO_OUT_LOG
-	  printf("video_out : no frame - waiting %d/8 frames\n", this->still_counter);
-#endif
-	  continue;
-	}
-
-	if (img_backup) {
-
-#ifdef VIDEO_OUT_LOG
-	  printf("video_out : generating still frame \n");
-#endif
-
-	  /* keep playing still frames */
-	  img = this->duplicate_frame( this, img_backup );
-	  img->display_locked = 1;
-	  do {
-	    img->PTS = this->metronom->got_video_frame(this->metronom, 0, 0);
-	    pts = img->PTS;
-	    diff = cur_pts - pts;
-	    
-	  } while (diff >this->pts_per_half_frame) ;
-
-	  /*
-	   * wait until it's time to display this still frame
-	   */
+	/*
+	 * wait until it's time to display this still frame
+	 */
+	pts = this->metronom->get_current_time (this->metronom);
+	do {
+	  xine_usec_sleep ( 10000 );
+	  cur_pts = this->metronom->get_current_time (this->metronom);
+	  diff = cur_pts - pts;
 	  
-	  while (pts > cur_pts) {
-	    xine_usec_sleep ( 10000 );
-	    cur_pts = this->metronom->get_current_time (this->metronom);
+	} while (diff < 2 * this->pts_per_frame) ;
 
-#ifdef VIDEO_OUT_LOG
-	    printf ("video_out: waiting until it's time to display this still frame\n");
-#endif
-	  }
-
-
-        } else {
-#ifdef VIDEO_OUT_LOG
-	  printf ("video_out : no frame, but no backup frame\n");
-#endif
+	/* if some frame arrived dont generate still */
+	if( this->display_img_buf_queue->first ) {
+	  xine_profiler_stop_count (prof_video_out);
 	  continue;
 	}
 
+//#ifdef VIDEO_OUT_LOG
+	printf("video_out : generating still frame (cur_pts = %d) \n", cur_pts);
+//#endif
+	
+	/* keep playing still frames */
+	img = this->duplicate_frame( this, img_backup );
+	img->display_locked = 1;
+  
+        img->PTS = cur_pts;
+        diff = 0;
 
       } else {
 #ifdef VIDEO_OUT_LOG
-	printf ("video_out : no frame, but video_fifo size is %d and not in discontinuity\n",
-		this->xine->video_fifo->size(this->xine->video_fifo));
+	printf ("video_out : no frame, but no backup frame\n");
 #endif
+	xine_profiler_stop_count (prof_video_out);
 	continue;
       }
-
     } else {
-
-      this->still_counter = 0;
 
       /*
        * time to display frame >img< ?
@@ -401,25 +402,37 @@ static void *video_out_loop (void *this_gen) {
 	continue;
       }
 
+      if (img_backup) {
+	pthread_mutex_lock (&img_backup->mutex);
+	printf("video_out : freeing frame backup\n");
+	img_backup->display_locked = 0;
+	if( !img_backup->decoder_locked )
+	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+	pthread_mutex_unlock (&img_backup->mutex);
+	img_backup = NULL;
+      }
+      
       /* 
        * last frame? make backup for possible still image 
        */
-      if (img && !img->next) {
+      if (img && !img->next &&
+          (this->xine->video_fifo->size(this->xine->video_fifo) < 10 ||
+           flush_sent || this->xine->video_in_discontinuity) ) {
 	
-	if (img_backup) {
-	  LOG_MSG(this->xine, _("video_out : overwriting frame backup\n"));
-	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
-	}
+	printf("video_out : possible still frame (fifosize = %d, flushsent=%d)\n",
+	  this->xine->video_fifo->size(this->xine->video_fifo), flush_sent);
         
 	img_backup = this->duplicate_frame(this, img);
       }
 
+      flush_sent = 0;
+      
       /*
        * remove frame from display queue and show it
        */
     
       img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
-      
+
       if (!img) {
 	xine_profiler_stop_count (prof_video_out);
 	continue;
@@ -476,17 +489,23 @@ static void *video_out_loop (void *this_gen) {
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
     pthread_mutex_lock (&img->mutex);
 
+    img->display_locked = 0;
     if (!img->decoder_locked) 
       vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
 
-    img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
 
     img = this->display_img_buf_queue->first;
   }
 
   if( img_backup ) {
-     vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+    pthread_mutex_lock (&img_backup->mutex);
+    
+    img_backup->display_locked = 0;
+    if( !img_backup->decoder_locked )
+      vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+    
+    pthread_mutex_unlock (&img_backup->mutex);
   }
  
   pthread_exit(NULL);
@@ -553,7 +572,8 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   img->ratio        = ratio;
   img->format       = format;
   img->duration     = duration;
-
+  img->drawn        = 0;
+  
   /* let driver ensure this image has the right format */
 
   this->driver->update_frame_format (this->driver, img, width, height, ratio, format, flags);
@@ -599,19 +619,34 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
 
   /* Support copy; Dangerous, since some decoders may use a source that's
    * not dupl->base. It's up to the copy implementation to check for NULL */ 
-  if (img->copy) {
-    int height = img->height;
-    int stride = img->width;
-    uint8_t* src[3];
+  if (img->format == IMGFMT_YV12) {
+    if (img->copy) {
+      int height = img->height;
+      int stride = img->width;
+      uint8_t* src[3];
   
-    src[0] = dupl->base[0];
-    src[1] = dupl->base[1];
-    src[2] = dupl->base[2];
-    while ((height -= 16) >= 0) {
-      dupl->copy(dupl, src);
-      src[0] += 16 * stride;
-      src[1] +=  4 * stride;
-      src[2] +=  4 * stride;
+      src[0] = dupl->base[0];
+      src[1] = dupl->base[1];
+      src[2] = dupl->base[2];
+      while ((height -= 16) >= 0) {
+        dupl->copy(dupl, src);
+        src[0] += 16 * stride;
+        src[1] +=  4 * stride;
+        src[2] +=  4 * stride;
+      }
+    }
+  } else {
+    if (img->copy) {
+      int height = img->height;
+      int stride = img->width;
+      uint8_t* src[3];
+      
+      src[0] = dupl->base[0];
+      
+      while ((height -= 16) >= 0) {
+        dupl->copy(dupl, src);
+        src[0] += 32 * stride;
+      }
     }
   }
   
@@ -729,7 +764,7 @@ static int vo_frame_draw (vo_frame_t *img) {
       printf ("video_out : frame rejected, %d frames to skip\n", frames_to_skip);
 #endif
 
-      LOG_MSG(this->xine, _("vo_frame_draw: rejected, %d frames to skip\n"), frames_to_skip);
+      LOG_MSG(this->xine, _("video_out: rejected, %d frames to skip\n"), frames_to_skip);
 
       pthread_mutex_lock (&img->mutex);
       img->display_locked = 0;

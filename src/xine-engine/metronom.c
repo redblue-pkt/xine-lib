@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.47 2002/01/02 18:16:08 jkeil Exp $
+ * $Id: metronom.c,v 1.48 2002/01/06 00:49:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -401,7 +401,18 @@ static void metronom_set_video_rate (metronom_t *this, uint32_t pts_per_frame) {
 }
 
 static uint32_t metronom_get_video_rate (metronom_t *this) {
-  return this->avg_frame_duration;
+  int ret;
+  
+  pthread_mutex_lock (&this->lock);
+  ret = this->avg_frame_duration;
+  pthread_mutex_unlock (&this->lock);
+
+  /* this is due bad streams, but returning 0 will
+     cause problems to video out timer setting. */
+  if( ret < 100 )
+    ret = 100;             
+
+  return ret;
 }
 
 static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
@@ -500,6 +511,21 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
   int pts_discontinuity = 0;
   
   pthread_mutex_lock (&this->lock);
+  
+  if( (this->audio_discontinuity || this->audio_stream_starting) &&
+      (this->video_discontinuity || this->video_stream_starting) ) {
+      
+      /* this is needed to take care of still frame with no audio
+         were vpts are not updated.
+         we can only do it here because audio and video decoder threads
+         have just been synced */
+      if ( this->video_vpts < metronom_get_current_time(this) ) {
+        this->video_vpts = metronom_get_current_time(this) + PREBUFFER_PTS_OFFSET;
+        this->audio_vpts = this->video_vpts;
+        LOG_MSG(this->xine, _("metronom: audio/video vpts too old, adjusted to %d\n"), 
+                this->video_vpts);
+      }
+  }
 
   /* check for pts discontinuities against the predicted pts value */
   if (pts && this->last_video_pts) {
@@ -701,6 +727,20 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
 
   pthread_mutex_lock (&this->lock);
 
+  if( (this->audio_discontinuity || this->audio_stream_starting) &&
+      (this->video_discontinuity || this->video_stream_starting) ) {
+      
+      /* this is needed to take care of still frame with no audio
+         were vpts are not updated.
+         we can only do it here because audio and video decoder threads
+         have just been synced */
+      if ( this->audio_vpts < metronom_get_current_time(this) ) {
+        this->audio_vpts = metronom_get_current_time(this) + PREBUFFER_PTS_OFFSET;
+        this->video_vpts = this->audio_vpts;
+        LOG_MSG(this->xine, _("metronom: audio/video vpts too old, adjusted to %d\n"), 
+                this->audio_vpts);
+      }
+  }
 
   this->last_audio_scr = scr;
 
