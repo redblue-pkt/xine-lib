@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.130 2003/01/08 21:21:12 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.131 2003/01/10 13:12:20 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -81,6 +81,8 @@ typedef struct {
   int                       overlay_enabled;
 
   extra_info_t             *extra_info_base; /* used to free mem chunk */
+
+  int                       current_width, current_height;
 } vos_t;
 
 /*
@@ -298,6 +300,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   img->stream = stream;
   extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+  this->current_width = img->width;
+  this->current_height = img->height;
   
   stream->metronom->got_video_frame (stream->metronom, img);
 
@@ -943,7 +947,8 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
   pthread_mutex_unlock(&this->streams_lock);
 }
 
-static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream) {
+static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
+                      int *width, int *height) {
 
   vos_t      *this = (vos_t *) this_gen;
   xine_stream_t *cur;
@@ -953,6 +958,8 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream) {
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))
     if (cur == stream) {
+      *width = this->current_width;
+      *height = this->current_height;
       ret = 1;
       break;
     }

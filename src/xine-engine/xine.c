@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.209 2003/01/10 11:57:19 miguelfreitas Exp $
+ * $Id: xine.c,v 1.210 2003/01/10 13:12:21 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -289,12 +289,13 @@ static int xine_stream_rewire_video(xine_post_out_t *output, void *data)
 {
   xine_stream_t *stream = (xine_stream_t *)output->data;
   xine_video_port_t *new_port = (xine_video_port_t *)data;
-  
+  int width, height;
+
   if (!data)
     return 0;
     
   if (stream->video_out && 
-      stream->video_out->status(stream->video_out, stream)) {
+      stream->video_out->status(stream->video_out, stream, &width, &height)) {
     /* register our stream at the new output port */
     stream->video_out->close(stream->video_out, stream);
     new_port->open(new_port, stream);
