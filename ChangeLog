@@ -22,7 +22,10 @@ xine-lib (1-rc3)
   * problem with long frame durations fixed
   * seek timeout in RIP input plugin
   * support for saved files bigger than 2 GB
-
+  * new unscaled overlay feature (using XShape extension)
+    text subtitles may now be rendered at full screen resolution
+  * load xine fonts on demand - faster startup
+  
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
   * Fix some errors in sound state when exiting xine and using alsa.
