@@ -51,6 +51,7 @@ install-debug: debug
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit; \
 	done;
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 
 
 prune-cache:
@@ -62,9 +63,15 @@ release-check: misc/relchk.sh
 	@./autogen.sh && $(SHELL) misc/relchk.sh
 	@mv -f .cvsversion.tmp .cvsversion
 
+
 slackbuild:
 	@(cd misc && $(MAKE) SlackBuild) && \
 	 PREFIX="/usr" misc/SlackBuild
+
+
+install-data-hook:
+	@if [ -f "$(top_srcdir)/post-install.sh" ]; then $(top_srcdir)/post-install.sh; fi
+
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 
