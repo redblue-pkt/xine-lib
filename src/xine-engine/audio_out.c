@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.110 2003/03/06 23:30:36 hadess Exp $
+ * $Id: audio_out.c,v 1.111 2003/03/08 17:24:22 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -219,7 +219,7 @@ static void fifo_append_int (audio_fifo_t *fifo,
 
   /* buf->next = NULL; */
 
-  XINE_ASSERT(!buf->next, "Next audio buffer is NULL.");
+  XINE_ASSERT(!buf->next, "Next audio buffer is not NULL.");
 
   if (!fifo->first) {
     fifo->first       = buf;
