@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.9 2004/06/05 16:37:37 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.10 2004/06/06 16:13:30 jstembridge Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -130,7 +130,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
       int i, codec_type;
-      xine_waveformatex *audio_header = (xine_waveformatex *)this->buf;
+      xine_waveformatex *audio_header;
   
       codec_type = buf->type & 0xFFFF0000;
       this->codec = NULL;
@@ -157,15 +157,19 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         this->audio_sample_rate = buf->decoder_info[1];
         this->audio_channels    = buf->decoder_info[3];
       
-        this->context->block_align = audio_header->nBlockAlign;
-        this->context->bit_rate    = audio_header->nAvgBytesPerSec * 8;
+        if(this->size) {
+          audio_header = (xine_waveformatex *)this->buf;
+        
+          this->context->block_align = audio_header->nBlockAlign;
+          this->context->bit_rate    = audio_header->nAvgBytesPerSec * 8;
       
-        if(audio_header->cbSize > 0) {
-          this->context->extradata = xine_xmalloc(audio_header->cbSize);
-          this->context->extradata_size = audio_header->cbSize;
-          memcpy( this->context->extradata, 
-                  (uint8_t *)audio_header + sizeof(xine_waveformatex),
-                  audio_header->cbSize ); 
+          if(audio_header->cbSize > 0) {
+            this->context->extradata = xine_xmalloc(audio_header->cbSize);
+            this->context->extradata_size = audio_header->cbSize;
+            memcpy( this->context->extradata, 
+                    (uint8_t *)audio_header + sizeof(xine_waveformatex),
+                    audio_header->cbSize ); 
+          }
         }
       } else {
         short *ptr;

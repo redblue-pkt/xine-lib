@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.36 2004/05/24 19:43:47 tmattern Exp $
+ * $Id: qt_decoder.c,v 1.37 2004/06/06 16:13:30 jstembridge Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -445,7 +445,8 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
-    memcpy (&this->wave, buf->content, sizeof (xine_waveformatex));
+    if (buf->size >= sizeof(xine_waveformatex))
+      memcpy (&this->wave, buf->content, sizeof (xine_waveformatex));
 
     this->wave.nChannels      = buf->decoder_info[3];
     this->wave.wBitsPerSample = buf->decoder_info[2];
