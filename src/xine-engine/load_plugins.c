@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.119 2002/12/08 20:53:02 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.120 2002/12/13 19:01:42 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -289,10 +289,12 @@ static void collect_plugins(xine_t *this, char *path){
 #ifdef USE_CACHED_CATALOG  
 	  info = _get_cached_plugin ( this->plugin_catalog->cache,
 			              str, &statbuffer, NULL);
+#ifdef LOG
 	  if( info )
 	    printf("load_plugins: using cached %s\n", str);
 	  else
 	    printf("load_plugins: %s not cached\n", str);
+#endif
 #endif
 
 	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
