@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.1 2003/05/13 22:39:41 miguelfreitas Exp $
+ * $Id: audio_none_out.c,v 1.2 2003/05/15 13:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -113,6 +113,14 @@ static int ao_none_get_gap_tolerance (ao_driver_t *this_gen)
 static int ao_none_write(ao_driver_t *this_gen, int16_t *data,
                          uint32_t num_frames)
 {
+  none_driver_t *this = (none_driver_t *) this_gen;
+  
+  /* take some time to pretend we are doing something.
+   * avoids burning cpu.
+   */
+  if( (1000 * num_frames / this->sample_rate) > 10 )
+    xine_usec_sleep ((1000 * num_frames / this->sample_rate)*1000/2);
+    
   return 1;
 }
 
