@@ -503,5 +503,9 @@ Ryan Tadlock <pholan-xine-users@midnight.postino.com>
 
 Casper Boemann <cbr@boemann.dk>
   reuse stubs for unresolved exports of win32 dlls
-    
+
+Thomas Hellström <unichrome@shipmail.org>
+  XxMC driver with reworked XvMC support, including VIA CLE266 vld
+  extensions.
+      
 (let us know if we've forgotten anyone)

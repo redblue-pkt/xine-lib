@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.130 2004/09/22 20:18:50 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.131 2004/09/28 18:49:39 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -417,6 +417,7 @@ int  xine_get_current_frame (xine_stream_t *stream,
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
 #define XINE_IMGFMT_XVMC (('C'<<24)|('M'<<16)|('v'<<8)|'X')
+#define XINE_IMGFMT_XXMC (('C'<<24)|('M'<<16)|('x'<<8)|'X')
 
 /* get current xine's virtual presentation timestamp (1/90000 sec)
  * note: this is mostly internal data.

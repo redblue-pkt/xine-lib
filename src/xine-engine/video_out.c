@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.206 2004/09/22 20:29:17 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.207 2004/09/28 18:49:40 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -335,7 +335,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->crop_right     = 0;
   img->crop_top       = 0;
   img->crop_bottom    = 0;
-  img->macroblocks    = NULL;
+
   _x_extra_info_reset ( img->extra_info );
 
   /* let driver ensure this image has the right format */
@@ -615,31 +615,36 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
 
   pthread_mutex_unlock (&dupl->mutex);
   
-  switch (img->format) {
-  case XINE_IMGFMT_YV12:
-    yv12_to_yv12(
-     /* Y */
-      img->base[0], img->pitches[0],
-      dupl->base[0], dupl->pitches[0],
-     /* U */
-      img->base[1], img->pitches[1],
-      dupl->base[1], dupl->pitches[1],
-     /* V */
-      img->base[2], img->pitches[2],
-      dupl->base[2], dupl->pitches[2],
-     /* width x height */
-      img->width, img->height);
-    break;
-  case XINE_IMGFMT_YUY2:
-    yuy2_to_yuy2(
-     /* src */
-      img->base[0], img->pitches[0],
-     /* dst */
-      dupl->base[0], dupl->pitches[0],
-     /* width x height */
-      img->width, img->height);
-    break;
-  }
+  if (dupl->proc_duplicate_frame_data) {
+    dupl->proc_duplicate_frame_data(dupl,img);
+  } else {
+  
+    switch (img->format) {
+    case XINE_IMGFMT_YV12:
+      yv12_to_yv12(
+       /* Y */
+        img->base[0], img->pitches[0],
+        dupl->base[0], dupl->pitches[0],
+       /* U */
+        img->base[1], img->pitches[1],
+        dupl->base[1], dupl->pitches[1],
+       /* V */
+        img->base[2], img->pitches[2],
+        dupl->base[2], dupl->pitches[2],
+       /* width x height */
+        img->width, img->height);
+      break;
+    case XINE_IMGFMT_YUY2:
+      yuy2_to_yuy2(
+       /* src */
+        img->base[0], img->pitches[0],
+       /* dst */
+        dupl->base[0], dupl->pitches[0],
+       /* width x height */
+        img->width, img->height);
+      break;
+    }
+  }  
   
   dupl->bad_frame   = 0;
   dupl->pts         = 0;
@@ -1661,6 +1666,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
 
     img = driver->alloc_frame (driver) ;
     if (!img) break;
+    img->proc_duplicate_frame_data = NULL;
 
     img->id        = i;
     

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.26 2004/05/29 14:45:25 mroi Exp $
+ * $Id: post.c,v 1.27 2004/09/28 18:49:40 miguelfreitas Exp $
  */
  
 /*
@@ -345,34 +345,6 @@ static void post_frame_dispose(vo_frame_t *vo_img) {
   _x_post_dec_usage(port);
 }
 
-static void post_frame_proc_macro_block(int x,
-			   int y,
-			   int mb_type,
-			   int motion_type,
-			   int (*mv_field_sel)[2],
-			   int *dmvector,
-			   int cbp,
-			   int dct_type,
-			   vo_frame_t *current_frame,
-			   vo_frame_t *forward_ref_frame,
-			   vo_frame_t *backward_ref_frame,
-			   int picture_structure,
-			   int second_field,
-			   int (*f_mot_pmv)[2],
-			   int (*b_mot_pmv)[2]) {
-  post_video_port_t *port = _x_post_video_frame_to_port(current_frame);
-  
-  if (port->frame_lock) pthread_mutex_lock(port->frame_lock);
-  _x_post_frame_copy_down(current_frame, current_frame->next);
-  current_frame->next->proc_macro_block(x, y, mb_type, motion_type, mv_field_sel,
-                                        dmvector, cbp, dct_type, current_frame->next,
-                                        forward_ref_frame, backward_ref_frame,
-                                        picture_structure, second_field, 
-                                        f_mot_pmv, b_mot_pmv);
-  _x_post_frame_copy_up(current_frame, current_frame->next);
-  if (port->frame_lock) pthread_mutex_unlock(port->frame_lock);
-}
-
 
 vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   vo_frame_t *new_frame;
@@ -397,8 +369,6 @@ vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *
     port->new_frame->proc_frame       ? port->new_frame->proc_frame       : NULL;
   new_frame->proc_slice       =
     port->new_frame->proc_slice       ? port->new_frame->proc_slice       : NULL;
-  new_frame->proc_macro_block =
-    port->new_frame->proc_macro_block ? port->new_frame->proc_macro_block : NULL;
   new_frame->field            =
     port->new_frame->field            ? port->new_frame->field            : post_frame_field;
   new_frame->draw             =
@@ -417,8 +387,6 @@ vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *
       new_frame->proc_frame       = post_frame_proc_frame;
     if (frame->proc_slice       && !new_frame->proc_slice)
       new_frame->proc_slice       = post_frame_proc_slice;
-    if (frame->proc_macro_block && !new_frame->proc_macro_block)
-      new_frame->proc_macro_block = post_frame_proc_macro_block;
   }
   
   return new_frame;
@@ -450,7 +418,7 @@ void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
   to->progressive_frame   = from->progressive_frame;
   to->picture_coding_type = from->picture_coding_type;
   to->drawn               = from->drawn;
-  to->macroblocks         = from->macroblocks;
+  to->accel_data          = from->accel_data;
   to->stream              = from->stream;
   
   if (to->extra_info != from->extra_info)

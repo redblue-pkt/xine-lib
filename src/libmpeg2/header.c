@@ -104,6 +104,8 @@ static uint32_t get_bits(uint8_t *buffer, uint32_t count, uint32_t *bit_position
 void mpeg2_header_state_init (picture_t * picture)
 {
     picture->scan = mpeg2_scan_norm;
+    picture->load_intra_quantizer_matrix = 1;
+    picture->load_non_intra_quantizer_matrix = 1;
 }
 
 int mpeg2_header_sequence (picture_t * picture, uint8_t * buffer)
@@ -150,7 +152,8 @@ int mpeg2_header_sequence (picture_t * picture, uint8_t * buffer)
     else
 	for (i = 0; i < 64; i++)
 	    picture->non_intra_quantizer_matrix[i] = 16;
-
+    picture->load_intra_quantizer_matrix = 1;
+    picture->load_non_intra_quantizer_matrix = 1;
     /* MPEG1 - for testing only */
     picture->mpeg1 = 1;
     picture->intra_dc_precision = 0;

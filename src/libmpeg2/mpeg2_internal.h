@@ -22,6 +22,7 @@
  */
 
 #include "video_out.h"
+#include "accel_xvmc.h"
 
 /* macroblock modes */
 #define MACROBLOCK_INTRA            XINE_MACROBLOCK_INTRA
@@ -108,6 +109,8 @@ typedef struct picture_s {
     /* sequence header stuff */
     uint8_t intra_quantizer_matrix [64];
     uint8_t non_intra_quantizer_matrix [64];
+    int load_intra_quantizer_matrix;
+    int load_non_intra_quantizer_matrix;
 
     /* The width and height of the picture snapped to macroblock units */
     int coded_picture_width;

@@ -28,7 +28,8 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	input_rip.c info_helper.c
 
 # FIXME: these are currently unused:
-EXTRA_DIST = lrb.c lrb.h
+EXTRA_DIST = lrb.c lrb.h accel_xvmc.h
+
 
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(zlib_dep) \
                           $(dirent_lib) $(pthread_dep) $(LIBXINEPOSIX)

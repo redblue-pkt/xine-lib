@@ -472,8 +472,6 @@ dnl static linking is preferred!
 dnl but only dynamic linking is possible when using libtool < 1.4.0
 
 AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
-AC_PREREQ_LIBTOOL(1.4.0, xvmc_lib="libXvMC.a", xvmc_lib="libXvMC.so")
-AC_PREREQ_LIBTOOL(1.4.0, xvmc_lib_nv="libXvMCNVIDIA.a", xv_lib_nv="libXvMCNVIDIA_dynamic.so.1")
 
 host_or_hostalias="$host"
 if test "$host_or_hostalias" = ""; then
@@ -491,14 +489,6 @@ case "$host_or_hostalias" in
 	if test "$xv_lib" = "libXv.a"; then
 	  echo "warning: hppa linker - disabling static libXv"
 	  xv_lib="libXv.so"
-	fi
-	if test "$xvmc_lib" = "libXvMC.a"; then
-	  echo "warning: hppa linker - disabling static libXvMC"
-	  xvmc_lib="libXvMC.so"
-	fi
-	if test "$xvmc_lib_nv" = "libXvMCNVIDIA.a"; then
-	  echo "warning: hppa linker - disabling static libXvMCNVIDIA"
-	  xvmc_lib_nv="libXvMCNVIDIA_dynamic.so.1"
 	fi
 	;;
 
@@ -566,45 +556,138 @@ AC_SUBST(XV_LIB)
 AC_SUBST(EXTRA_X_LIBS)
 AC_SUBST(EXTRA_X_CFLAGS)
 
-AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC is installed]),
-            xvmc_path="$withval", xvmc_path="/usr/X11R6/lib")
+dnl
+dnl Check if we can enable the xxmc plugin.
+dnl
+if test x$no_x = "x"; then
 
-AC_CHECK_LIB(XvMC, XvMCQueryExtension, 
-             [ AC_MSG_CHECKING(for $xvmc_lib location)
-               if test -f "$xvmc_path/$xvmc_lib_nv"; then
-               if test -f "$xvmc_path/$xvmc_lib"; then
-                 AC_MSG_RESULT(found in $xvmc_path)
-                 XVMC_LIB="-L$xvmc_path -lXvMC -lXvMCNVIDIA"
-	         AC_DEFINE(HAVE_XVMC,1,[Define this if you have libXvMC installed])
-	         ac_have_xvmc="yes"
-		 if test x$xvmc_lib = "xlibXvMC.a" ; then
-		   AC_DEFINE(HAVE_XVMC_STATIC,1,[Define this if you have libXvMC.a])
-		 fi
-               else
-                 AC_MSG_RESULT(not found in $xvmc_path)
-	         echo
-                 echo "****************************************************************"
-		 echo "* if you don't have a libXvMC.so on your system, use:          *"
-		 echo "* ld --whole-archive -shared -o libXvMC.so.1 libXvMC.a         *"
-		 echo "* then: ln -s libXvMC.so.1 libXvMC.so                          *"
-	         echo "* to create it or try to use --with-xvmc-path to set the       *"
-                 echo "* location of libXvMC.so                                       *"
-                 echo "****************************************************************"
-	         echo
-		 fi
-               fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
-	   
-AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
-dnl AM_CONDITIONAL(HAVE_XVMC_STATIC, test x$ac_have_xvmc = "xyes" -a x$xvmc_lib = "xlibXvMC.a")
-dnl
-dnl xine_check use XvMC functions API.
-dnl
-if test x$ac_have_xvmc = "xyes"; then
-  EXTRA_X_LIBS="-L$xvmc_path $XVMC_LIBS -lXext"
-  EXTRA_X_CFLAGS=""
+AC_ARG_WITH(xxmc-path, AC_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
+	xxmc plugin are  installed. Defalts to the default X library path.]),
+	xxmc_path="$withval", xxmc_path="$x_libraries")
+AC_ARG_WITH(xxmc-lib, AC_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the XvMC library 
+	libXXXX.so for the xxmc plugin.]),xxmc_stub="$withval", 
+	xxmc_stub="XvMCW")
+saved_libs="$LIBS"
+XXMC_LIB="-L$xxmc_path -l$xxmc_stub"
+AC_MSG_CHECKING(whether to enable the xxmc plugin with vld extensions)
+AC_MSG_RESULT()
+dnl Check if vld "extended" XvMC is available
+if test x$xxmc_stub == "xXvMCW"; then
+	AC_CHECK_LIB($xxmc_stub, XvMCPutSlice,
+             	     ac_have_xxmc="yes",
+	             [ac_have_xxmc="no"
+              	        AC_MSG_RESULT([*** Could not link with -l$xxmc_stub for vld extensions.])],
+                     [-L$xxmc_path $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+else
+    if test x$ac_have_xv = "xyes"; then 
+      AC_CHECK_LIB($xxmc_stub, XvMCPutSlice,
+	           [ac_have_xxmc="yes"
+	             XXMC_LIB="$XXMC_LIB -lXvMC"],
+                   [ac_have_xxmc="no"
+		     AC_MSG_RESULT([*** Could not link with -l$xxmc_stub -lXvMC for vld extensions.])],
+                   [-L$xxmc_path -lXvMC $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+    else 
+      ac_have_xxmc="no",
+    fi  
 fi
-AC_SUBST(XVMC_LIB)
+if test x$ac_have_xxmc = "xyes"; then
+  AC_CHECK_HEADERS($x_includes/X11/extensions/vldXvMC.h,
+     [ac_have_vldxvmc_h="yes"],
+     ac_have_xxmc="no",)
+  if test "x$ac_have_vldxvmc_h" = "xyes"; then
+     AC_DEFINE([HAVE_VLDXVMC], [1], 
+               [Define 1 if you have vldXvMC.h])
+  fi
+fi
+AM_CONDITIONAL(HAVE_VLDXVMC, test x$ac_have_vldxvmc_h = "xyes")
+dnl Try fallback to standard XvMC if vld failed
+if test x$ac_have_xxmc = "xno"; then
+  if test x$xxmc_stub == "xXvMCW"; then
+	  AC_CHECK_LIB($xxmc_stub, XvMCCreateContext,
+               ac_have_xxmc="yes",
+	       [ac_have_xxmc="no"
+                AC_MSG_RESULT([*** Could not link with -l$xxmc_stub for standard XvMC.])],
+               [-L$xxmc_path $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+  else
+      if test x$ac_have_xv = "xyes"; then 
+        AC_CHECK_LIB($xxmc_stub, XvMCCreateContext,
+	             [ac_have_xxmc="yes"
+		      XXMC_LIB="$XXMC_LIB -lXvMC"],
+                     [ac_have_xxmc="no"
+		      AC_MSG_RESULT([*** Could not link with -lXvMC for standard XvMC.])],
+                     [-L$xxmc_path -lXvMC $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+      else 
+        ac_have_xxmc="no",
+      fi  
+  fi
+fi
+if test x$ac_have_xxmc = "xyes"; then
+  AC_CHECK_HEADERS($x_includes/X11/extensions/XvMC.h,,
+     ac_have_xxmc="no",)
+fi
+if test x$ac_have_xxmc = "xyes"; then
+  AC_DEFINE(HAVE_XXMC,1,[Define this to compile the xxmc plugin.])
+  if test "x$ac_have_vldxvmc_h" = "xyes"; then
+    AC_MSG_RESULT([*** Enabling xxmc plugin with vld extensions.])
+  else
+    AC_MSG_RESULT([*** Enabling xxmc plugin for standard XvMC *only*.])
+  fi
+else
+  AC_MSG_RESULT([*** Disabling xxmc plugin due to above errors.])
+fi
+LIBS="$saved_libs"
+fi
+AM_CONDITIONAL(HAVE_XXMC, test x$ac_have_xxmc = "xyes")
+AC_SUBST(XXMC_LIB)
+	   
+dnl
+dnl Check if we can enable the xvmc plugin.
+dnl
+if test x$no_x = "x"; then
 
+AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC libraries for the
+	xvmc plugin are  installed. Defalts to the default X library path.]),
+	xvmc_path="$withval", xvmc_path="$x_libraries")
+AC_ARG_WITH(xvmc-lib, AC_HELP_STRING([--with-xvmc-lib=XXXX], [The name of the XvMC library 
+	libXXXX.so for the xvmc plugin.]),xvmc_stub="$withval", 
+	xvmc_stub="XvMCW")
+saved_libs="$LIBS"
+XVMC_LIB="-L$xvmc_path -l$xvmc_stub"
+AC_MSG_CHECKING(whether to enable the xvmc plugin)
+AC_MSG_RESULT()
+if test x$xvmc_stub == "xXvMCW"; then
+	AC_CHECK_LIB($xvmc_stub, XvMCCreateContext,
+             ac_have_xvmc="yes",
+	     [ac_have_xvmc="no"
+              AC_MSG_RESULT([*** Could not link with -l$xvmc_stub.])],
+             [-L$xvmc_path $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+else
+    if test x$ac_have_xv = "xyes"; then 
+      AC_CHECK_LIB($xvmc_stub, XvMCCreateContext,
+	           [ac_have_xvmc="yes"
+		    XVMC_LIB="$XVMC_LIB -lXvMC"],
+                   [ac_have_xvmc="no"
+		    AC_MSG_RESULT([*** Could not link with -lXvMC.])],
+                   [-L$xvmc_path -lXvMC $X_LIBS $X_PRE_LIBS $XV_LIB -lXext $X_EXTRA_LIBS])
+    else 
+      ac_have_xvmc="no",
+    fi  
+fi
+if test x$ac_have_xvmc = "xyes"; then
+  AC_CHECK_HEADERS($x_includes/X11/extensions/XvMC.h,,
+     ac_have_xvmc="no",)
+fi
+if test x$ac_have_xvmc = "xyes"; then
+  AC_DEFINE(HAVE_XVMC,1,[Define this if you have an XvMC library and XvMC.h installed.])
+  AC_MSG_RESULT([*** Enabling old xvmc plugin.])
+else
+  AC_MSG_RESULT([*** Disabling old xvmc plugin due to above errors.])
+fi
+
+LIBS="$saved_libs"
+fi
+AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
+AC_SUBST(XVMC_LIB)
 
 dnl ---------------------------------------------
 dnl Checks for Xinerama extension
@@ -2330,21 +2413,17 @@ if test x"$no_x" != "xyes"; then
       echo "   - Xv (XVideo *shared*)"
     fi
   fi
-  dnl XvMC
-  if test x$ac_have_xvmc = "xyes"; then
-    if test x$xvmc_lib="xlibXvMC.a"; then
-      echo "   - XvMC (XVideo *static*)"
+  dnl XxMC
+  if test x$ac_have_xxmc = "xyes"; then
+    if test "x$ac_have_vldxvmc_h" = "xyes"; then
+      echo "   - XxMC (XVideo extended motion compensation)"
     else
-      echo "   - XvMC (XVideo *shared*)"
+      echo "   - XxMC (XVideo motion compensation - vld extensions DISABLED)"
     fi
   fi
-  dnl XvMCNVIDIA
+  dnl XvMC
   if test x$ac_have_xvmc = "xyes"; then
-    if test x$xvmc_lib="xlibXvMCNVIDIA.a"; then
-      echo "   - XvMCNVIDIA (XVideo *static*)"
-    else
-      echo "   - XvMCNVIDIA (XVideo *shared*)"
-    fi
+    echo "   - XvMC (XVideo motion compensation)"
   fi
   if test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o \
 	  x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes"; then	

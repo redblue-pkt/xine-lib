@@ -34,7 +34,7 @@
 #include "xineutils.h"
 
 #include "attributes.h"
-
+#include "accel_xvmc.h"
 
 #define MOTION_ACCEL   XINE_VO_MOTION_ACCEL
 #define IDCT_ACCEL     XINE_VO_IDCT_ACCEL
@@ -1700,6 +1700,7 @@ void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer)
 #define bits (picture->bitstream_bits)
 #define bit_ptr (picture->bitstream_ptr)
     cpu_state_t cpu_state;
+    xine_xvmc_t *xvmc = (xine_xvmc_t *) picture->current_frame->accel_data;
 
     bitstream_init (picture, buffer);
 
@@ -1889,7 +1890,7 @@ void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer)
 	    }
 
 	}
-	picture->current_frame->proc_macro_block(picture->XvMC_x, picture->XvMC_y,
+        xvmc->proc_macro_block(picture->XvMC_x, picture->XvMC_y,
 					 picture->XvMC_mb_type,
 					 picture->XvMC_motion_type,
 					 picture->XvMC_mv_field_sel,
@@ -1965,7 +1966,7 @@ void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer)
 			picture->XvMC_x = picture->offset/16;
 			picture->XvMC_y = picture->v_offset/16;
 
-			picture->current_frame->proc_macro_block(picture->XvMC_x,picture->XvMC_y,
+			xvmc->proc_macro_block(picture->XvMC_x,picture->XvMC_y,
 					 picture->XvMC_mb_type,
 					 picture->XvMC_motion_type,
 					 picture->XvMC_mv_field_sel,
@@ -2004,7 +2005,7 @@ void mpeg2_xvmc_slice (picture_t * picture, int code, uint8_t * buffer)
 			picture->XvMC_x = picture->offset/16;
 			picture->XvMC_y = picture->v_offset/16;
 
-			picture->current_frame->proc_macro_block(picture->XvMC_x,picture->XvMC_y,
+			xvmc->proc_macro_block(picture->XvMC_x,picture->XvMC_y,
 					 picture->XvMC_mb_type,
 					 picture->XvMC_motion_type,
 					 picture->XvMC_mv_field_sel,

@@ -1,4 +1,4 @@
-/*
+ /*
  * decode.c
  * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
@@ -25,7 +25,6 @@
  */
 
 #include "config.h"
-
 #include <stdio.h>
 #include <string.h>	/* memcpy/memset, try to remove */
 #include <stdlib.h>
@@ -42,6 +41,7 @@
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "xineutils.h"
+#include "xxmc.h"
 
 /*
 #define LOG_PAN_SCAN
@@ -90,7 +90,10 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     /* initialize substructures */
     mpeg2_header_state_init (mpeg2dec->picture);
 
-    if( output->get_capabilities(output) & VO_CAP_XVMC_MOCOMP ) {
+    if ( output->get_capabilities(output) & VO_CAP_XXMC) {
+      printf("libmpeg2: output port has XxMC capability\n");
+      mpeg2dec->frame_format = XINE_IMGFMT_XXMC;
+    } else if( output->get_capabilities(output) & VO_CAP_XVMC_MOCOMP) {
       printf("libmpeg2: output port has XvMC capability\n");
       mpeg2dec->frame_format = XINE_IMGFMT_XVMC;
     } else {
@@ -273,6 +276,38 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	mpeg2dec->in_slice = 0;
     
     if (is_frame_done && picture->current_frame != NULL) {
+
+      /*
+       * This frame completion code will move to a separate libmpeg2_accel.c file?
+       * int libmpeg2_accel_frame_completion(mpeg2dec_t *, picture_t *, int);
+       */
+
+      if (mpeg2dec->frame_format == XINE_IMGFMT_XXMC) {
+	xine_xxmc_t *xxmc = (xine_xxmc_t *) 
+	  picture->current_frame->accel_data;
+	switch(xxmc->format) {
+	case XINE_IMGFMT_XXMC:
+	  switch(xxmc->acceleration) {
+	  case XINE_XVMC_ACCEL_VLD:
+	    mpeg2_xxmc_vld_frame_complete(mpeg2dec, picture, code);
+	    break;
+	  case XINE_XVMC_ACCEL_IDCT:
+	  case XINE_XVMC_ACCEL_MOCOMP:
+	    xxmc->decoded = !picture->current_frame->bad_frame;
+	    xxmc->proc_xxmc_flush( picture->current_frame );
+	    break;
+	  default:
+	    break;
+	  }
+	default:
+	  break;
+	}
+      }
+
+      /*
+       * End of frame completion code.
+       */
+
 
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
@@ -486,7 +521,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		     picture->current_frame != picture->forward_reference_frame ) {
 			picture->current_frame->free (picture->current_frame);
 		}
-		if (picture->picture_coding_type == B_TYPE)
+		if (picture->picture_coding_type == B_TYPE) {
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
@@ -494,7 +529,15 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     get_aspect_ratio(mpeg2dec),
 						     mpeg2dec->frame_format,
 						     flags);
-		else {
+		    /*
+		     * Move to libmpeg2_accel.c
+		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
+		     */
+		    mpeg2_xxmc_choose_coding(mpeg2dec->frame_format, picture);
+		    /*
+		     * End of new frame accel code.
+		     */
+		} else {
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
@@ -502,6 +545,14 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     get_aspect_ratio(mpeg2dec),
 						     mpeg2dec->frame_format,
 						     flags);
+		    /*
+		     * Move to libmpeg2_accel.c
+		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
+		     */
+		    mpeg2_xxmc_choose_coding(mpeg2dec->frame_format, picture);
+		    /*
+		     * End of new frame accel code.
+		     */
 		    if (picture->forward_reference_frame &&
 		        picture->forward_reference_frame != picture->backward_reference_frame)
 		      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -510,11 +561,30 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			picture->backward_reference_frame;
 		    picture->backward_reference_frame = picture->current_frame;
 		}
-		if(mpeg2dec->new_sequence)
-		{
-		    picture->mc = picture->current_frame->macroblocks;
-		    mpeg2dec->new_sequence = 0;
+
+		/*
+		 * Move to libmpeg2_accel.c
+		 * int libmpeg2_accel_new_sequence(mpeg2dec_t *, picture_t *)
+		 */
+
+		if(mpeg2dec->new_sequence) {
+		  switch(mpeg2dec->frame_format) {
+		    case XINE_IMGFMT_XXMC:
+		    case XINE_IMGFMT_XVMC: {
+		      xine_xvmc_t *xvmc = (xine_xvmc_t *) 
+		        picture->current_frame->accel_data;
+		      picture->mc = xvmc->macroblocks;
+		      mpeg2dec->new_sequence = 0;
+		      break;
+		    }
+		    default:
+		      break;
+		  }
 		}
+		/*
+		 * End of new sequence accel code.
+		 */
+
 		picture->current_frame->bad_frame          = 1;
 		picture->current_frame->drawn              = 0;
 		picture->current_frame->pts                = mpeg2dec->pts;
@@ -543,6 +613,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			 picture->current_frame->id, picture->picture_coding_type == I_TYPE ? "I" :
 			 picture->picture_coding_type == P_TYPE ? "P" : "B");
 		mpeg2dec->pts = 0;
+		/*printf("Starting to decode frame %d\n",picture->current_frame->id);*/
 	    }
 	}
 
@@ -551,17 +622,50 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  printf("slice target %08x past %08x future %08x\n",picture->current_frame,picture->forward_reference_frame,picture->backward_reference_frame);
 	  fflush(stdout);
 #endif
+	  /*
+	   * The below accelerated slice function choice will move to libmpeg2_accel.c ?
+	   * int libmpeg2_accel_slice(mpeg2dec_t *, picture_t *, int , char *)
+	   */
 
-	  if(picture->mc && picture->mc->xvmc_accel) {
-	    mpeg2_xvmc_slice (picture, code, buffer);
-	    
-	  } else {
-	    mpeg2_slice (picture, code, buffer);
+	  switch( mpeg2dec->frame_format ) {
+	    case XINE_IMGFMT_XXMC:
+	    {
+	      xine_xxmc_t *xxmc = (xine_xxmc_t *) 
+		picture->current_frame->accel_data;
+	      switch(xxmc->format) {
+	      case XINE_IMGFMT_XXMC:
+		switch(xxmc->acceleration) {
+		case XINE_XVMC_ACCEL_VLD:
+		  mpeg2_xxmc_slice(mpeg2dec, picture, code, buffer);
+		  break;
+		case XINE_XVMC_ACCEL_IDCT:
+		case XINE_XVMC_ACCEL_MOCOMP:
+		  mpeg2_xvmc_slice (picture, code, buffer);
+		  break;
+		default:
+		  mpeg2_slice (picture, code, buffer);
+		  break;
+		}
+		break;
+	      default:
+		mpeg2_slice (picture, code, buffer);
+		break;
+	      }
+	      break;
+	    }
+	    case XINE_IMGFMT_XVMC:
+	      mpeg2_xvmc_slice (picture, code, buffer);
+	      break;
+	    default:
+	      mpeg2_slice (picture, code, buffer);
+	      break;
 	  }
+	  /*
+	   * End of acceleration code.
+	   */
 
 	  if( picture->v_offset > picture->limit_y ) { 
 	    picture->current_frame->bad_frame = 0;
-	    lprintf("frame %d successfuly decoded\n",picture->current_frame->id); 
 	  }
 	}
     }
@@ -604,6 +708,7 @@ static inline uint8_t * copy_chunk (mpeg2dec_t * mpeg2dec,
 	    }
 	}
 	mpeg2dec->code = byte;
+	mpeg2dec->chunk_size = chunk_ptr - mpeg2dec->chunk_buffer - 3;
 	mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
 	mpeg2dec->shift = 0xffffff00;
 	return current;
@@ -652,6 +757,15 @@ void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec) {
     picture->forward_reference_frame->pts = 0;
   if ( picture->backward_reference_frame )
     picture->backward_reference_frame->pts = 0;
+  
+  /*
+   * Move to libmpeg2_accel.c
+   * int libmpeg2_accel_discontinuity(mpeg2dec_t *);
+   */
+  mpeg2dec->xxmc_last_slice_code=-1;
+  /*
+   * End of discontinuity accel code.
+   */
 }
 
 void mpeg2_reset (mpeg2dec_t * mpeg2dec) {

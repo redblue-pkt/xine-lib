@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.110 2004/09/26 22:54:52 valtri Exp $
+ * $Id: video_out.h,v 1.111 2004/09/28 18:49:40 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -60,13 +60,6 @@ typedef struct video_driver_class_s video_driver_class_t;
 typedef struct vo_overlay_s vo_overlay_t;
 typedef struct video_overlay_manager_s video_overlay_manager_t;
 
-typedef struct xine_macroblock_s {
-  short  *blockptr;          /* pointer to current dct block */
-  short  *blockbaseptr;      /* pointer to base of dct block array in blocks */
-  short   xvmc_accel;        /* type of acceleration supported */
-} xine_macroblocks_t;
-
-
 /* public part, video drivers may add private fields
  *
  * Remember that adding new functions to this structure requires
@@ -78,6 +71,11 @@ struct vo_frame_s {
    * member functions
    */
 
+  /* Duplicate picture data and acceleration specific data of a frame. */
+  /* if the image format isn't already known by Xine. Currently this is needed */
+  /* For all image formats except XINE_IMGFMT_YV12 and XINE_IMGFMT_YUY2 */
+  void (*proc_duplicate_frame_data) (vo_frame_t *vo_img, vo_frame_t *src);
+
   /* tell video driver to copy/convert the whole of this frame, may be NULL */
   /* at least one of proc_frame() and proc_slice() MUST set the variable proc_called to 1 */
   void (*proc_frame) (vo_frame_t *vo_img);
@@ -86,23 +84,6 @@ struct vo_frame_s {
   /* at least one of proc_frame() and proc_slice() MUST set the variable proc_called to 1 */
   void (*proc_slice) (vo_frame_t *vo_img, uint8_t **src);
 
-  /* XvMC routine for rendering  macroblocks, may be NULL */
-  void (*proc_macro_block)(int x,
-			   int y,
-			   int mb_type,
-			   int motion_type,
-			   int (*mv_field_sel)[2],
-			   int *dmvector,
-			   int cbp,
-			   int dct_type,
-			   vo_frame_t *current_frame,
-			   vo_frame_t *forward_ref_frame,
-			   vo_frame_t *backward_ref_frame,
-			   int picture_structure,
-			   int second_field,
-			   int (*f_mot_pmv)[2],
-			   int (*b_mot_pmv)[2]);
-  
   /* tell video driver that the decoder starts a new field */
   void (*field) (vo_frame_t *vo_img, int which_field);
 
@@ -161,8 +142,8 @@ struct vo_frame_s {
   int                        flags;         /* remember the frame flags */
   int                        proc_called;   /* track use of proc_*() methods */
   
-  /* used to carry macroblocks information for XvMC acceleration */
-  xine_macroblocks_t        *macroblocks;
+  /* Used to carry private data for accelerated plugins.*/
+  void                       *accel_data;
 
   /* "backward" references to where this frame originates from */
   xine_video_port_t         *port;
@@ -292,31 +273,7 @@ struct xine_video_port_s {
 #define VO_CAP_XVMC_IDCT              0x00000008 /* driver can use XvMC idct acceleration   */
 #define VO_CAP_UNSCALED_OVERLAY       0x00000010 /* driver can blend overlay at output resolution */
 #define VO_CAP_CROP                   0x00000020 /* driver can crop */
-
-/* macroblock modes */
-#define XINE_MACROBLOCK_INTRA 1
-#define XINE_MACROBLOCK_PATTERN 2
-#define XINE_MACROBLOCK_MOTION_BACKWARD 4
-#define XINE_MACROBLOCK_MOTION_FORWARD 8
-#define XINE_MACROBLOCK_QUANT 16
-#define XINE_MACROBLOCK_DCT_TYPE_INTERLACED 32
-
-/* motion types */
-#define XINE_MC_FIELD 1
-#define XINE_MC_FRAME 2
-#define XINE_MC_16X8  2
-#define XINE_MC_DMV   3
-
-/* picture coding type */
-#define XINE_PICT_I_TYPE 1
-#define XINE_PICT_P_TYPE 2
-#define XINE_PICT_B_TYPE 3
-#define XINE_PICT_D_TYPE 4
-
-/* xvmc acceleration types */
-#define XINE_VO_MOTION_ACCEL   1
-#define XINE_VO_IDCT_ACCEL     2
-#define XINE_VO_SIGNED_INTRA   4
+#define VO_CAP_XXMC                   0x00000040 /* driver can use extended XvMC */
 
 
 /*

@@ -7,7 +7,13 @@
     (these files required cropping after decoding)
   * Fix crashes with some input plugins when no audio output was available
   * Windows ports updates and cleanups
-  
+  * new xxmc driver supporting XvMC with extended vld (for VIA CLE266), 
+    idct and mocomp accelerations. includes automatic Xv fallback for 
+    non-mpeg streams. supports overlays and OSD.
+  * suggested using the libXvMCW so xine won't depend on any vendor
+    specific library. you can get the old behaviour (not recommended)
+    using ./configure --with-xvmc-lib=XvMCNVIDIA
+    
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
   * Fixed Xv initialization to enable multiple instances of the Xv plugin

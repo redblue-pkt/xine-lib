@@ -21,6 +21,9 @@
 
 /* Structure for the mpeg2dec decoder */
 
+#ifndef MPEG2_H
+#define MPEG2_H
+
 typedef struct mpeg2dec_s {
     xine_video_port_t * output;
     uint32_t frame_format;
@@ -45,6 +48,7 @@ typedef struct mpeg2dec_s {
     uint8_t * chunk_ptr;
     /* last start code ? */
     uint8_t code;
+    uint32_t chunk_size;
 
     int64_t pts;
     uint32_t rff_pattern; 
@@ -55,7 +59,8 @@ typedef struct mpeg2dec_s {
     
     /* a spu decoder for possible closed captions */
     spu_decoder_t *cc_dec;
-    
+    int xxmc_last_slice_code;
+    unsigned xxmc_mb_pic_height;
 } mpeg2dec_t ;
 
 
@@ -81,3 +86,5 @@ void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec);
  * currently
  */
 /* void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer); */
+
+#endif

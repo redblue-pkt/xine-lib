@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.17 2004/09/22 20:29:17 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.18 2004/09/28 18:49:40 miguelfreitas Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -70,6 +70,7 @@
 #include "xine.h"
 #include "video_out.h"
 #include "xine_internal.h"
+#include "accel_xvmc.h"
 
 /* TODO - delete these? */
 #include "alphablend.h"
@@ -125,7 +126,7 @@ typedef struct {
   /* temporary Xv only storage */
   XvImage             *image;
   XShmSegmentInfo      shminfo;
-
+  xine_xvmc_t          xvmc_data;
 } xvmc_frame_t;
 
 
@@ -494,7 +495,6 @@ static void xvmc_frame_dispose (vo_frame_t *vo_img) {
     XFree (frame->image);
     XUnlockDisplay (this->display);
   }
-
   free (frame);
 }
 
@@ -577,6 +577,8 @@ static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
   if (!frame)
     return NULL;
 
+  frame->vo_frame.accel_data = &frame->xvmc_data;
+
   /* keep track of frames and how many frames alocated. */
   this->frames[this->num_frame_buffers++] = frame;
   
@@ -590,8 +592,8 @@ static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.proc_frame       = NULL;
   frame->vo_frame.field            = xvmc_frame_field;
   frame->vo_frame.dispose          = xvmc_frame_dispose;
-  frame->vo_frame.proc_macro_block = xvmc_proc_macro_block;
   frame->vo_frame.driver           = this_gen;
+  frame->xvmc_data.proc_macro_block            = xvmc_proc_macro_block;
 
   return (vo_frame_t *) frame;
 }
@@ -777,6 +779,7 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
 				      double ratio, int format, int flags) {
   xvmc_driver_t  *this  = (xvmc_driver_t *) this_gen;
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
+  xine_xvmc_t *xvmc = (xine_xvmc_t *) frame_gen->accel_data;
 
   lprintf ("xvmc_update_frame_format\n");
 
@@ -816,14 +819,16 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
 
   frame->ratio = ratio;
 
-  frame->vo_frame.macroblocks = (xine_macroblocks_t *)&this->macroblocks;
+  xvmc->macroblocks = (xine_macroblocks_t *)&this->macroblocks;
   if( flags & VO_NEW_SEQUENCE_FLAG ) {
     xvmc_set_context (this, width, height, ratio, format, flags,
-                      frame->vo_frame.macroblocks);
+                      xvmc->macroblocks);
   }
+
   this->macroblocks.num_blocks       = 0;
   this->macroblocks.macroblockptr    = this->macroblocks.macroblockbaseptr;
   this->macroblocks.xine_mc.blockptr = this->macroblocks.xine_mc.blockbaseptr;
+
 }
 
 static void xvmc_clean_output_area (xvmc_driver_t *this) {

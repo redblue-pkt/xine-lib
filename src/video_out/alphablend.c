@@ -1277,3 +1277,191 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
     dst_y += dst_pitch;
   }
 }
+
+void clear_xx44_palette(xx44_palette_t *p) 
+{
+  register int i;
+  register uint32_t *cluts = p->cluts;
+  register int *ids = p->lookup_cache;
+
+  i= p->size;
+  while(i--)
+    *cluts++ = 0;
+  i = 2*OVL_PALETTE_SIZE;
+  while(i--)
+    *ids++ = -1;
+  p->max_used=1; 
+}
+
+void init_xx44_palette(xx44_palette_t *p, unsigned num_entries) 
+{
+  p->size = (num_entries > XX44_PALETTE_SIZE) ? XX44_PALETTE_SIZE : num_entries; 
+}
+
+void dispose_xx44_palette(xx44_palette_t *p) 
+{
+}
+
+static void colorToPalette(const uint32_t *icolor, unsigned char *palette_p,
+			   unsigned num_xvmc_components, char *xvmc_components) 
+{
+  const clut_t *color = (const clut_t *) icolor;
+  int i;
+  for (i=0; i<num_xvmc_components; ++i) {
+    switch(xvmc_components[i]) {
+    case 'V': *palette_p = color->cr; break;
+    case 'U': *palette_p = color->cb; break;
+    case 'Y': 
+    default:  *palette_p = color->y; break;
+    }
+    *palette_p++;
+  }
+}
+
+
+void xx44_to_xvmc_palette(const xx44_palette_t *p,unsigned char *xvmc_palette,
+			  unsigned first_xx44_entry, unsigned num_xx44_entries,
+			  unsigned num_xvmc_components, char *xvmc_components) 
+{
+  register int i;
+  register const uint32_t *cluts = p->cluts + first_xx44_entry;
+
+  for (i=0; i<num_xx44_entries; ++i) {
+    if ((cluts - p->cluts) < p->size) {
+      colorToPalette(cluts++, xvmc_palette, num_xvmc_components, xvmc_components);
+      xvmc_palette += num_xvmc_components;
+    }
+  }
+} 
+
+static int xx44_paletteIndex(xx44_palette_t *p, int color, uint32_t clut) 
+{
+
+  register int i;
+  register uint32_t *cluts = p->cluts;
+  register int tmp;
+
+  if ((tmp = p->lookup_cache[color]) >= 0) 
+    if (cluts[tmp] == clut) return tmp;
+
+  for (i=0; i<p->max_used; ++i) {
+    if (*cluts++ == clut) return p->lookup_cache[color] = i;
+  }
+
+  if (p->max_used == p->size -1) {
+    printf("video_out: Warning! Out of xx44 palette colors!\n");
+    return 1;
+  }
+  p->cluts[p->max_used] = clut;
+  return p->lookup_cache[color] = p->max_used++;
+}
+
+static void memblend_xx44(uint8_t *mem,uint8_t val, register size_t size, uint8_t mask)
+{
+  register uint8_t masked_val = val & mask;
+
+  while(size--) {
+    if ((*mem & mask) <= masked_val ) *mem = val;
+    mem++;
+  }
+}
+
+void blend_xx44 (uint8_t *dst_img, vo_overlay_t *img_overl,
+		int dst_width, int dst_height, int dst_pitch, 
+		xx44_palette_t *palette,int ia44) 
+{
+  int  src_width  = img_overl->width;
+  int  src_height = img_overl->height;
+  rle_elem_t *rle        = img_overl->rle;
+  rle_elem_t *rle_limit  = rle + img_overl->num_rle;
+  int mask;
+  int x_off = img_overl->x;
+  int y_off = img_overl->y;
+  int x, y;
+  uint8_t norm_pixel,clip_pixel;  
+  uint8_t *dst_y;
+  uint8_t *dst;
+  uint8_t alphamask = (ia44) ? 0x0F : 0xF0;
+  int clip_right;
+
+  if (!img_overl)
+    return;
+
+  dst_y = dst_img + dst_pitch*y_off + x_off;
+
+  if( (x_off + img_overl->width) < dst_width )
+    clip_right = img_overl->width;
+  else
+    clip_right = dst_width - x_off;
+
+  if ((src_height + y_off) > dst_height)
+    src_height = dst_height - y_off;
+
+  for (y = 0; y < src_height; y++) {
+
+    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+    dst = dst_y;
+
+    for (x = 0; x < src_width;) {
+      int len = (x + rle->len > clip_right) ? clip_right -x + 1 : rle->len;
+
+      if (len > 0) {
+	norm_pixel = (uint8_t)((xx44_paletteIndex(palette,rle->color,
+					     img_overl->color[rle->color]) << 4) | 
+			       (img_overl->trans[rle->color] & 0x0F));
+	clip_pixel = (uint8_t)((xx44_paletteIndex(palette,rle->color+OVL_PALETTE_SIZE,
+					     img_overl->clip_color[rle->color]) << 4) | 
+			       (img_overl->clip_trans[rle->color] & 0x0F));
+	if (!ia44) {
+	  norm_pixel = ((norm_pixel & 0x0F) << 4) | ((norm_pixel & 0xF0) >> 4);
+	  clip_pixel = ((clip_pixel & 0x0F) << 4) | ((clip_pixel & 0xF0) >> 4);
+	}
+	if (mask) {
+	  if (x < img_overl->clip_left) {
+	    if (x + len - 1 < img_overl->clip_left) {
+	      memblend_xx44(dst,norm_pixel,len, alphamask);
+	      dst += len;
+	    } else {
+	      memblend_xx44(dst,norm_pixel,img_overl->clip_left -x, alphamask);
+	      dst += img_overl->clip_left - x;
+	      len -= img_overl->clip_left - x;
+	      if (len < img_overl->clip_right - img_overl->clip_left + 1) {
+		memblend_xx44(dst,clip_pixel,len, alphamask);
+		dst += len;
+	      } else {
+		memblend_xx44(dst,clip_pixel,img_overl->clip_right - img_overl->clip_left +1,
+			      alphamask);
+		dst += img_overl->clip_right - img_overl->clip_left +1;
+		len -= img_overl->clip_right - img_overl->clip_left +1;
+		memblend_xx44(dst,norm_pixel,len, alphamask);
+		dst += len;
+	      }
+	    }
+	  } else if (x <= img_overl->clip_right) {  
+	    if (len < img_overl->clip_right - x + 1) {
+	      memblend_xx44(dst,clip_pixel,len, alphamask);
+	      dst += len;
+	    } else {
+	      memblend_xx44(dst,clip_pixel,img_overl->clip_right - x +1,alphamask);
+	      dst += img_overl->clip_right - x +1;
+	      len -= img_overl->clip_right - x +1;
+	      memblend_xx44(dst,norm_pixel,len, alphamask);
+	      dst += len;
+	    }
+	  } else {
+	    memblend_xx44(dst,norm_pixel,len, alphamask);
+	    dst += len;
+	  }
+	} else {
+	  memblend_xx44(dst,norm_pixel,len, alphamask);
+	  dst += len;
+	}
+      }
+      x += rle->len;
+      rle++;
+      if (rle >= rle_limit) break;
+    }  
+    if (rle >= rle_limit) break;
+    dst_y += dst_pitch;
+  }
+}
