@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.9 2003/06/26 22:25:03 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.10 2003/07/12 02:26:13 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -44,7 +44,7 @@ post_info_t deinterlace_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 3, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 3, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -121,6 +121,11 @@ struct post_plugin_deinterlace_s {
   pthread_mutex_t    lock;
 };
 
+
+typedef struct post_class_deinterlace_s {
+  post_class_t class;
+  deinterlace_parameters_t init_param;
+} post_class_deinterlace_t;
 
 static void _flush_frames(post_plugin_deinterlace_t *this) 
 {
@@ -224,17 +229,18 @@ static int            deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
 
 static void *deinterlace_init_plugin(xine_t *xine, void *data)
 {
-  post_class_t *class = (post_class_t *)malloc(sizeof(post_class_t));
+  post_class_deinterlace_t *class = (post_class_deinterlace_t *)malloc(sizeof(post_class_deinterlace_t));
+  config_values_t          *cfg;
   uint32_t config_flags = xine_mm_accel();
   int i;
 
   if (!class)
     return NULL;
   
-  class->open_plugin     = deinterlace_open_plugin;
-  class->get_identifier  = deinterlace_get_identifier;
-  class->get_description = deinterlace_get_description;
-  class->dispose         = deinterlace_class_dispose;
+  class->class.open_plugin     = deinterlace_open_plugin;
+  class->class.get_identifier  = deinterlace_get_identifier;
+  class->class.get_description = deinterlace_get_description;
+  class->class.dispose         = deinterlace_class_dispose;
 
 
   setup_speedy_calls(xine_mm_accel(),0);
@@ -270,7 +276,36 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
   }
   enum_methods[i+1] = NULL;
 
-  return class;
+
+  cfg = xine->config;
+
+  class->init_param.method = 
+    cfg->register_enum (cfg, "post.tvtime_method", 1, enum_methods,
+    param_descr.parameter[0].description, 
+    NULL, 10, NULL, NULL);
+  class->init_param.enabled = 1;
+  class->init_param.pulldown = 
+    cfg->register_enum (cfg, "post.tvtime_pulldown", 1, enum_pulldown,
+    param_descr.parameter[2].description, 
+    NULL, 10, NULL, NULL);
+  class->init_param.framerate_mode = 
+    cfg->register_enum (cfg, "post.tvtime_framerate_mode", 0, enum_framerate,
+    param_descr.parameter[3].description,
+    NULL, 10, NULL, NULL);
+  class->init_param.judder_correction =
+    cfg->register_bool (cfg, "post.tvtime_judder_correction", 1,
+    param_descr.parameter[4].description,
+    NULL, 10, NULL, NULL);
+  class->init_param.use_progressive_frame_flag = 
+    cfg->register_bool (cfg, "post.tvtime_use_progressive_frame_flag", 1,
+    param_descr.parameter[5].description,
+    NULL, 10, NULL, NULL);
+  class->init_param.chroma_filter = 
+    cfg->register_bool (cfg, "post.tvtime_chroma_filter", 0,
+    param_descr.parameter[6].description,
+    NULL, 10, NULL, NULL);
+
+  return &class->class;
 }
 
 
@@ -278,10 +313,11 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)malloc(sizeof(post_plugin_deinterlace_t));
+  post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)xine_xmalloc(sizeof(post_plugin_deinterlace_t));
   xine_post_in_t            *input = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
   xine_post_in_t            *input_api = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
   post_deinterlace_out_t    *output = (post_deinterlace_out_t *)malloc(sizeof(post_deinterlace_out_t));
+  post_class_deinterlace_t  *class = (post_class_deinterlace_t *)class_gen;
   post_video_port_t *port;
   
   if (!this || !input || !output || !video_target || !video_target[0]) {
@@ -292,22 +328,13 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   }
 
   this->stream = NULL;
-  this->cur_method = 1;
-  this->pulldown = 1;
-  this->enabled = 1;
-  this->framerate_mode = 0;
-  this->judder_correction = 1;
-  this->use_progressive_frame_flag = 1;
-  this->chroma_filter = 0;
-  this->framecounter = 0;
   memset( &this->recent_frame, 0, sizeof(this->recent_frame) );
 
   this->tvtime = tvtime_new_context();
 
-  this->tvtime->pulldown_alg = this->pulldown;
-  this->tvtime->curmethod = get_deinterlace_method( this->cur_method-1 );
-
   pthread_mutex_init (&this->lock, NULL);
+
+  set_parameters ((xine_post_t *)&this->post, &class->init_param);
   
   port = post_intercept_video_port(&this->post, video_target[0]);
   /* replace with our own get_frame function */
