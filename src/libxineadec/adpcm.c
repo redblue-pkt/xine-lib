@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.1 2002/06/06 05:00:32 tmmm Exp $
+ * $Id: adpcm.c,v 1.2 2002/06/07 04:50:15 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -125,6 +125,11 @@ typedef struct adpcm_decoder_s {
   int               bufsize;
   int               size;
 
+  /* these fields are used for decoding ADPCM data transported in MS file */
+  unsigned short   *decode_buffer;
+  unsigned int      in_block_size;
+  unsigned int      out_block_size;  /* size in samples (2 bytes/sample) */
+
 } adpcm_decoder_t;
 
 static void decode_ima_nibbles(unsigned short *output,
@@ -182,47 +187,79 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   int index_l = 0;
   int index_r = 0;
 
-  int i;
-  unsigned short *output;
-  unsigned int out_ptr;
+  int i, j;
+  unsigned int out_ptr = 0;
   audio_buffer_t *audio_buffer;
 
-  /* allocate an output buffer */
-  audio_buffer = this->audio_out->get_buffer (this->audio_out);
-  output = (unsigned short *)audio_buffer->mem;
-  out_ptr = 0;
-
-  /* the first predictor value goes straight to the output */
-  predictor_l = output[0] = LE_16(&this->buf[0]);
-  SE_16BIT(predictor_l);
-  index_l = this->buf[2];
-  if (this->channels == 2)
-  {
-    predictor_r = output[1] = LE_16(&this->buf[4]);
-    SE_16BIT(predictor_r);
-    index_r = this->buf[6];
+  /* make sure the input size checks out */
+  if ((this->size % this->in_block_size) != 0) {
+    printf ("adpcm: received DK4 ADPCM block that does not line up\n");
+    this->size = 0;
+    return;
   }
 
-  /* break apart the ADPCM nibbles */
-  out_ptr = this->channels;
-  for (i = DK4_ADPCM_PREAMBLE_SIZE * this->channels; i < this->size; i++) {
-    output[out_ptr++] = this->buf[i] >> 4;
-    output[out_ptr++] = this->buf[i] & 0x0F;
+  /* iterate through each block in the in buffer */
+  for (i = 0; i < this->size; i += this->in_block_size) {
+
+    /* the first predictor value goes straight to the output */
+    predictor_l = this->decode_buffer[0] = LE_16(&this->buf[i + 0]);
+    SE_16BIT(predictor_l);
+    index_l = this->buf[i + 2];
+    if (this->channels == 2) {
+      predictor_r = this->decode_buffer[1] = LE_16(&this->buf[i + 4]);
+      SE_16BIT(predictor_r);
+      index_r = this->buf[i + 6];
+    }
+
+    /* break apart the ADPCM nibbles */
+    out_ptr = this->channels;
+    for (j = DK4_ADPCM_PREAMBLE_SIZE * this->channels; 
+      j < this->in_block_size; j++) {
+      this->decode_buffer[out_ptr++] = this->buf[i + j] >> 4;
+      this->decode_buffer[out_ptr++] = this->buf[i + j] & 0x0F;
+    }
+
+    /* process the nibbles */
+    decode_ima_nibbles(&this->decode_buffer[this->channels],
+      out_ptr - this->channels,
+      this->channels,
+      predictor_l, index_l,
+      predictor_r, index_r);
+
+    /* dispatch the decoded audio */
+    j = 0;
+    while (j < out_ptr) {
+      audio_buffer = this->audio_out->get_buffer (this->audio_out);
+      if (audio_buffer->mem_size == 0) {
+        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+        return;
+      }
+
+/*
+this is a mess right now...but eventually, this needs to be fixed to that
+it handles the case of the decode buffer being too large to ship out in
+a single audio buffer
+      if ((out_ptr - j) > audio_buffer->mem_size) {
+        xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+          audio_buffer->mem_size);
+      }
+      else
+        xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
+          out_ptr - j);
+*/
+
+      xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
+        out_ptr * 2);
+      audio_buffer->num_frames = out_ptr / this->channels;
+
+
+      audio_buffer->vpts = buf->pts;
+      buf->pts = 0;  /* only first buffer gets the real pts */
+      this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+      j += audio_buffer->mem_size / 2;  /* 2 bytes per sample */
+    }
   }
-
-  /* process the nibbles */
-printf ("size = %d, channels = %d, out_ptr = %d\n", this->size, this->channels, out_ptr);
-  decode_ima_nibbles(&output[this->channels],
-//    (buf->size - DK4_ADPCM_PREAMBLE_SIZE * this->channels) * 2 - this->channels,
-out_ptr - this->channels,
-    this->channels,
-    predictor_l, index_l,
-    predictor_r, index_r);
-
-  audio_buffer->vpts = buf->pts;
-  audio_buffer->num_frames = out_ptr / this->channels;
-//printf ("sending %d frames\n", audio_buffer->num_frames);
-  this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
   /* reset buffer */
   this->size = 0;
@@ -262,8 +299,6 @@ void qt_ima_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;
       audio_buffer->num_frames = out_ptr / this->channels;
-printf ("send 1, out buffer max size = %d bytes, sending %d bytes, pts = %lld\n", 
-  audio_buffer->mem_size, out_ptr * 2, audio_buffer->vpts);
       this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
       /* get a new audio buffer */
@@ -329,12 +364,6 @@ printf ("send 1, out buffer max size = %d bytes, sending %d bytes, pts = %lld\n"
   audio_buffer->vpts = buf->pts;
   audio_buffer->num_frames = out_ptr / this->channels;
 
-
-printf ("send 2, out buffer max size = %d bytes, sending %d bytes, pts = %lld\n", 
-  audio_buffer->mem_size, out_ptr * 2, audio_buffer->vpts);
-
-
-
   this->audio_out->put_buffer (this->audio_out, audio_buffer);
   this->size = 0;
 }
@@ -364,12 +393,15 @@ void adpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->bits_per_sample = 16;  /* these codecs always output 16-bit PCM */
   this->channels = 0;
   this->ao_cap_mode = 0;
+  this->decode_buffer = NULL;
 }
 
 void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    xine_waveformatex *audio_header;
+
     this->rate = buf->decoder_info[1];
     this->channels = buf->decoder_info[3];
     this->ao_cap_mode =
@@ -378,6 +410,25 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = xine_xmalloc(AUDIOBUFSIZE);
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
+
+    /* if the data was transported in an MS-type file (packet size will be
+     * non-0 indicating an audio header), create a decode buffer */
+    if (buf->size) {
+      audio_header = (xine_waveformatex *)buf->content;
+      this->in_block_size = audio_header->nBlockAlign;
+
+      switch(buf->type) {
+        case BUF_AUDIO_DK4ADPCM:
+          /* A DK4 ADPCM block has 4 preamble bytes per channel and the
+           * initial predictor is also the first output sample (hence
+           * the +1) */
+          this->out_block_size = 
+            (this->in_block_size - (4 * this->channels)) * 2 + 1;
+          break;
+      }
+
+      this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
+    }
 
     return;
   }
@@ -406,7 +457,7 @@ void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   /* time to decode a frame */
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
-printf ("received buffer with %d bytes and pts %lld\n", this->size, buf->pts);
+//printf ("received buffer with %d bytes and pts %lld\n", this->size, buf->pts);
 
     switch(buf->type) {
 
@@ -429,6 +480,8 @@ void adpcm_close (audio_decoder_t *this_gen) {
   if (this->output_open)
     this->audio_out->close (this->audio_out);
   this->output_open = 0;
+
+  free(this->decode_buffer);
 }
 
 static char *adpcm_get_id(void) {
