@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.12 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.13 2002/11/04 22:48:14 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -33,23 +33,21 @@
 #include "config.h"
 #endif
 
-#warning DISABLED: FIXME
-#if 0
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include <math.h>
+
+#include <X11/Xlib.h>
+
+#include "xine.h"
 #include "vidixlib.h"
 
 #include "video_out.h"
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "xineutils.h"
-
-#include <X11/Xlib.h>
-#include "video_out_x11.h"
 #include "vo_scale.h"
               
 #undef LOG
@@ -67,36 +65,46 @@ typedef struct vidix_frame_s {
 
 struct vidix_driver_s {
 
-  vo_driver_t        vo_driver;
+  xine_vo_driver_t    vo_driver;
 
-  config_values_t   *config;
+  config_values_t    *config;
 
   char               *vidix_name;
-  VDL_HANDLE         vidix_handler;
+  VDL_HANDLE          vidix_handler;
   uint8_t            *vidix_mem;
-  vidix_capability_t vidix_cap;
-  vidix_playback_t   vidix_play;
-  vidix_fourcc_t     vidix_fourcc;
-  vidix_yuv_t        dstrides;
-  int                vidix_started;
-  int                next_frame;
+  vidix_capability_t  vidix_cap;
+  vidix_playback_t    vidix_play;
+  vidix_fourcc_t      vidix_fourcc;
+  vidix_yuv_t         dstrides;
+  int                 vidix_started;
+  int                 next_frame;
 
-  int                yuv_format;
+  int                 yuv_format;
           
-  pthread_mutex_t    mutex;
+  pthread_mutex_t     mutex;
 
-  uint32_t           capabilities;
+  uint32_t            capabilities;
 
    /* X11 / Xv related stuff */
-  Display           *display;
-  int                screen;
-  Drawable           drawable;
+  Display            *display;
+  int                 screen;
+  Drawable            drawable;
 
-  vo_scale_t         sc;
+  vo_scale_t          sc;
 
-  int                delivered_format;
-  int                zoom_x, zoom_y;
+  int                 delivered_format;
+  int                 zoom_x, zoom_y;
 };
+
+typedef struct {
+  video_driver_class_t driver_class;
+
+  config_values_t     *config;
+
+  VDL_HANDLE          vidix_handler;
+  vidix_capability_t  vidix_cap;
+} vidix_class_t;
+
 
 static void free_framedata(vidix_frame_t* frame)
 {
@@ -244,7 +252,7 @@ static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
 static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 {
    switch(frame->format) {   
-    case IMGFMT_YUY2:
+    case XINE_IMGFMT_YUY2:
       write_frame_YUY2(this, frame);
 /*
       else
@@ -252,7 +260,7 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 */
       break;
       
-    case IMGFMT_YV12:
+    case XINE_IMGFMT_YV12:
 	 write_frame_YUV420P3(this, frame);
 /*      switch(this->yuv_format) {
        case VIDEO_PALETTE_YUV422:
@@ -279,7 +287,7 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 }
 
 
-static uint32_t vidix_get_capabilities (vo_driver_t *this_gen) {
+static uint32_t vidix_get_capabilities (xine_vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
@@ -298,7 +306,7 @@ static void vidix_frame_dispose (vo_frame_t *vo_img) {
   free (frame);
 }
 
-static vo_frame_t *vidix_alloc_frame (vo_driver_t *this_gen) {
+static vo_frame_t *vidix_alloc_frame (xine_vo_driver_t *this_gen) {
 
   vidix_frame_t     *frame ;
 
@@ -342,8 +350,8 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   uint32_t apitch;
   int err,i;
   
-  if( !this->sc.ideal_width || !this->sc.ideal_height )
-    return;
+  //  if( !this->sc.ideal_width || !this->sc.ideal_height )
+  //    return;
 
   vo_scale_compute_output_size( &this->sc );
   
@@ -416,7 +424,7 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   this->vidix_started = 1;
 }
 
-static void vidix_update_frame_format (vo_driver_t *this_gen,
+static void vidix_update_frame_format (xine_vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
 				    int ratio_code, int format, int flags) {
@@ -438,7 +446,7 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
       frame->format = format;
 
       switch(format) {
-       case IMGFMT_YV12:
+       case XINE_IMGFMT_YV12:
 	 frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
 	 frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
 	 frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
@@ -446,7 +454,7 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
          frame->vo_frame.base[1] = malloc(frame->vo_frame.pitches[1] * ((height+1)/2));
 	 frame->vo_frame.base[2] = malloc(frame->vo_frame.pitches[2] * ((height+1)/2));
 	 break;
-       case IMGFMT_YUY2:
+       case XINE_IMGFMT_YUY2:
 	 frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
 	 frame->vo_frame.base[0] = malloc(frame->vo_frame.pitches[0] * height);
 	 frame->vo_frame.base[1] = NULL;
@@ -456,8 +464,8 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 	 printf("video_out_vidix: error. (unable to allocate framedata because of unknown frame format: %04x)\n", format);
       }
       
-      if((format == IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
-	 || (format == IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
+      if((format == XINE_IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
+	 || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
 	 printf("video_out_vidix: error. (framedata allocation failed: out of memory)\n");
 	 
 	 free_framedata(frame);
@@ -471,19 +479,19 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 /*
  *
  */
-static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void vidix_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
   
   if (overlay->rle) {
-    if( frame->format == IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+    if( frame->format == XINE_IMGFMT_YV12 )
+      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
     else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
   }
 }
 
-static int vidix_redraw_needed (vo_driver_t *this_gen) {
+static int vidix_redraw_needed (xine_vo_driver_t *this_gen) {
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   int ret = 0;
 
@@ -499,7 +507,7 @@ static int vidix_redraw_needed (vo_driver_t *this_gen) {
 }
 
 
-static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void vidix_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
@@ -536,7 +544,7 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   pthread_mutex_unlock(&this->mutex);
 }
 
-static int vidix_get_property (vo_driver_t *this_gen, int property) {
+static int vidix_get_property (xine_vo_driver_t *this_gen, int property) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
   
@@ -553,7 +561,7 @@ static int vidix_get_property (vo_driver_t *this_gen, int property) {
 }
 
 
-static int vidix_set_property (vo_driver_t *this_gen,
+static int vidix_set_property (xine_vo_driver_t *this_gen,
 			    int property, int value) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
@@ -592,7 +600,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void vidix_get_property_min_max (vo_driver_t *this_gen,
+static void vidix_get_property_min_max (xine_vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
 /*  vidix_driver_t *this = (vidix_driver_t *) this_gen; */
@@ -603,7 +611,7 @@ static void vidix_get_property_min_max (vo_driver_t *this_gen,
   }
 }
 
-static int vidix_gui_data_exchange (vo_driver_t *this_gen,
+static int vidix_gui_data_exchange (xine_vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   int ret = 0;
@@ -613,7 +621,7 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
     
   switch (data_type) {
 
-  case GUI_DATA_EX_DRAWABLE_CHANGED:
+  case XINE_GUI_SEND_DRAWABLE_CHANGED:
 #ifdef LOG
       printf ("video_out_vidix: GUI_DATA_EX_DRAWABLE_CHANGED\n");
 #endif
@@ -621,13 +629,13 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
     this->drawable = (Drawable) data;
     break;
   
-  case GUI_DATA_EX_EXPOSE_EVENT:
+  case XINE_GUI_SEND_EXPOSE_EVENT:
 #ifdef LOG
       printf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
 #endif
     break;
 
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+  case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
     {
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
@@ -651,7 +659,7 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
   return ret;
 }
                             
-static void vidix_exit (vo_driver_t *this_gen) {
+static void vidix_exit (xine_vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
@@ -661,12 +669,13 @@ static void vidix_exit (vo_driver_t *this_gen) {
   vdlClose(this->vidix_handler);
 }
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
-
-  vidix_driver_t          *this;
+static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  vidix_class_t        *class = (vidix_class_t *) class_gen;
+  config_values_t      *config = class->config;
+  vidix_driver_t       *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-  XWindowAttributes window_attributes;
-  int err;
+  XWindowAttributes     window_attributes;
+  int                   err;
     
   this = malloc (sizeof (vidix_driver_t));
 
@@ -675,37 +684,22 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     return NULL;
   }
   memset (this, 0, sizeof(vidix_driver_t));
-
   
-  if(vdlGetVersion() != VIDIX_VERSION)
-  {
-    printf("video_out_vidix: You have wrong version of VIDIX library\n");
-    return NULL;
-  }
-  this->vidix_handler = vdlOpen((XINE_PLUGINDIR"/vidix/"), NULL, TYPE_OUTPUT, 0);
-  if(this->vidix_handler == NULL)
-  {
-    printf("video_out_vidix: Couldn't find working VIDIX driver\n");
-    return NULL;
-  }
-  if((err=vdlGetCapability(this->vidix_handler,&this->vidix_cap)) != 0)
-  {
-    printf("video_out_vidix: Couldn't get capability: %s\n",strerror(err));
-    return NULL;
-  }
-  printf("video_out_vidix: Using: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
+  pthread_mutex_init (&this->mutex, NULL);
+
+  this->vidix_handler = class->vidix_handler;
+  this->vidix_cap = class->vidix_cap;
 
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->drawable          = visual->d;
  
-  vo_scale_init( &this->sc, visual->display_ratio, this->vidix_cap.flags & FLAG_UPSCALER, 0 );
+  vo_scale_init( &this->sc, 1, /*this->vidix_cap.flags & FLAG_UPSCALER,*/ 0 );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
   this->zoom_x = this->zoom_y = 100;
   
   this->config            = config;
-  pthread_mutex_init (&this->mutex, NULL);
   
   this->capabilities      = VO_CAP_YUY2 | VO_CAP_YV12;
 
@@ -724,24 +718,84 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.set_property         = vidix_set_property;
   this->vo_driver.get_property_min_max = vidix_get_property_min_max;
   this->vo_driver.gui_data_exchange    = vidix_gui_data_exchange;
-  this->vo_driver.exit                 = vidix_exit;
+  this->vo_driver.dispose              = vidix_exit;
   this->vo_driver.redraw_needed        = vidix_redraw_needed;
 
   printf ("video_out_vidix: warning, xine's vidix driver is EXPERIMENTAL\n");
   return &this->vo_driver;
 }
 
-static vo_info_t vo_info_vidix = {
-  6,
-  "vidix",
-  NULL,
-  VISUAL_TYPE_X11,
-  2  
-};
-
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_vidix.description = _("xine video output plugin using libvidix");
-  return &vo_info_vidix;
+static char* get_identifier (video_driver_class_t *this_gen) {
+  return "Vidix";
 }
 
-#endif
+static char* get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using libvidix");
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+  vidix_class_t        *this = (vidix_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *visual_gen) {
+  vidix_class_t        *this;
+  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
+  XWindowAttributes     window_attributes;
+  int                   err;
+  
+  this = malloc (sizeof (vidix_class_t));
+  
+  if (!this) {
+    printf ("video_out_vidix: malloc failed\n");
+    return NULL;
+  }
+  memset (this, 0, sizeof(vidix_class_t));
+  
+  
+  if(vdlGetVersion() != VIDIX_VERSION)
+  {
+    printf("video_out_vidix: You have wrong version of VIDIX library\n");
+    free(this);
+    return NULL;
+  }
+  this->vidix_handler = vdlOpen((XINE_PLUGINDIR"/vidix/"), NULL, TYPE_OUTPUT, 0);
+  if(this->vidix_handler == NULL)
+  {
+    printf("video_out_vidix: Couldn't find working VIDIX driver\n");
+    free(this);
+    return NULL;
+  }
+  if((err=vdlGetCapability(this->vidix_handler,&this->vidix_cap)) != 0)
+  {
+    printf("video_out_vidix: Couldn't get capability: %s\n",strerror(err));
+    free(this);
+    return NULL;
+  }
+  printf("video_out_vidix: Using: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
+
+  this->config            = xine->config;
+  
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  return this;
+}
+
+static vo_info_t vo_info_vidix = {
+  2,                    /* priority    */
+  XINE_VISUAL_TYPE_X11  /* visual type */
+};
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_OUT, 10, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
