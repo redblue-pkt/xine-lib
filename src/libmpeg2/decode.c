@@ -300,7 +300,13 @@ static inline uint8_t * copy_chunk (mpeg2dec_t * mpeg2dec,
     if (limit > end)
 	limit = end;
 
+    /* 
+    printf ("copy chunk current %08x\n", current );
+    printf ("copy chunk end     %08x\n", end); fflush(stdout);
+    */
+
     while (1) {
+
 	byte = *current++;
 	if (shift != 0x00000100) {
 	    shift = (shift | byte) << 8;

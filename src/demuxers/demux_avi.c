@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.30 2001/09/01 01:51:50 jcdutton Exp $
+ * $Id: demux_avi.c,v 1.31 2001/09/01 14:32:59 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -705,7 +705,6 @@ static int demux_avi_next (demux_avi_t *this) {
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
   buf->content = buf->mem;
-  buf->DTS  = 0 ; /* FIXME */
 
   audio_pts = get_audio_pts (this, this->avi->audio_posc, this->avi->audio_posb);
   video_pts = get_video_pts (this, this->avi->video_posf);
@@ -723,7 +722,8 @@ static int demux_avi_next (demux_avi_t *this) {
       return 0;
     }
 
-    buf->input_pos = this->input->get_current_pos(this->input);
+    buf->input_pos  = 0;
+    buf->input_time = 0;
 
     buf->type = this->avi->audio_type;
     buf->decoder_info[1] = this->avi->a_rate; /* Audio Rate */
@@ -740,9 +740,12 @@ static int demux_avi_next (demux_avi_t *this) {
     /* read video */
     xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: video \n");
 
-    buf->PTS   = video_pts;
-    buf->size  = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
-    buf->type  = this->avi->video_type;
+    buf->PTS        = video_pts;
+    buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
+    buf->type       = this->avi->video_type;
+    
+    buf->input_time = video_pts / 90000;
+    buf->input_pos  = this->input->get_current_pos(this->input);
 
     if (buf->size<0) {
       buf->free_buffer (buf);
@@ -849,13 +852,13 @@ static int demux_avi_get_status (demux_plugin_t *this_gen) {
 static void demux_avi_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
-			     off_t pos,
+			     off_t start_pos, int start_time,
 			     gui_get_next_mrl_cb_t next_mrl_cb,
 			     gui_branched_cb_t branched_cb) 
 {
   buf_element_t *buf;
   demux_avi_t *this = (demux_avi_t *) this_gen;
-  uint32_t video_pts;
+  uint32_t video_pts = 0;
 
   this->audio_fifo   = audio_fifo;
   this->video_fifo   = video_fifo;
@@ -889,24 +892,39 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   AVI_seek_start (this->avi);
 
   /*
-   * seek
+   * seek to start pos / time
    */
 
   /* seek video */
-  
-  while ( (this->avi->video_index[this->avi->video_posf].pos < pos)
-	  || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
-    this->avi->video_posf++;
-    if (this->avi->video_posf>this->avi->video_frames) {
-      this->status = DEMUX_FINISHED;
-      return;
+  if (start_pos) {
+    while ( (this->avi->video_index[this->avi->video_posf].pos < start_pos)
+	    || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
+      this->avi->video_posf++;
+      if (this->avi->video_posf>this->avi->video_frames) {
+	this->status = DEMUX_FINISHED;
+	return;
+      }
+    }
+    
+    video_pts = get_video_pts (this, this->avi->video_posf); 
+
+  } else if (start_time) {
+
+    video_pts = start_time * 90000;
+
+    while ( (get_video_pts (this, this->avi->video_posf) < video_pts)
+	    || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
+      this->avi->video_posf++;
+      if (this->avi->video_posf>this->avi->video_frames) {
+	this->status = DEMUX_FINISHED;
+	return;
+      }
     }
   }
 
-  video_pts = get_video_pts (this, this->avi->video_posf); 
-
+  /* seek audio */
   if (!this->no_audio) {
-    /* seek audio */
+    
     while (get_audio_pts (this, this->avi->audio_posc, 0) < video_pts) {
       this->avi->audio_posc++;
       if (this->avi->audio_posc>this->avi->audio_chunks) {
@@ -915,6 +933,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       }
     }
   }
+
 
   /* 
    * send start buffers
@@ -1028,8 +1047,6 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
-  printf ("avi_open...\n"); fflush (stdout);
-
   switch(stage) {
 
   case STAGE_BY_CONTENT: {
@@ -1043,12 +1060,7 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     
     this->input = input;
 
-    printf ("avi_init...\n"); fflush (stdout);
-
     this->avi = AVI_init (this);
-
-    printf ("avi_init...done\n");
-
 
     if (this->avi) {
 
@@ -1100,14 +1112,25 @@ static char *demux_avi_get_id(void) {
   return "AVI";
 }
 
+static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
+
+  demux_avi_t *this = (demux_avi_t *) this_gen;
+
+  if (this->avi) {
+    return get_video_pts(this, this->avi->video_frames) / 90000 ;
+  } 
+
+  return 0;
+}
+
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_avi_t *this;
 
-  if (iface != 2) {
-    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
+  if (iface != 3) {
+    printf( "demux_avi: this plugin doesn't support plugin API version %d.\n"
+	    "demux_avi: this means there's a version mismatch between xine and this "
+	    "demux_avi: demuxer plugin.\nInstalling current demuxer plugins should help.\n",
 	    iface);
     return NULL;
   }
@@ -1122,6 +1145,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
   this->demux_plugin.close             = demux_avi_close;
   this->demux_plugin.get_status        = demux_avi_get_status;
   this->demux_plugin.get_identifier    = demux_avi_get_id;
+  this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
   
   return (demux_plugin_t *) this;
 }

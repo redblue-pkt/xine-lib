@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.16 2001/08/25 08:40:08 guenter Exp $
+ * $Id: demux_elem.c,v 1.17 2001/09/01 14:33:00 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -82,7 +82,6 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   else
     buf->decoder_info[0] = 1;
 
-  buf->DTS             = 0;
   buf->PTS             = 0;
   buf->input_pos       = this->input->get_current_pos(this->input);
   buf->type            = BUF_VIDEO_MPEG;
@@ -174,11 +173,12 @@ static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
  *
  */
 static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
-				    fifo_buffer_t *video_fifo, 
-				    fifo_buffer_t *audio_fifo,
-				    off_t pos,
-				    gui_get_next_mrl_cb_t next_mrl_cb,
-				    gui_branched_cb_t branched_cb) {
+				   fifo_buffer_t *video_fifo, 
+				   fifo_buffer_t *audio_fifo,
+				   off_t start_pos, int start_time,
+				   gui_get_next_mrl_cb_t next_mrl_cb,
+				   gui_branched_cb_t branched_cb) {
+
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
   buf_element_t *buf;
   
@@ -187,12 +187,9 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
   
   this->status = DEMUX_OK;
   
-  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos, SEEK_SET);
-  }
-  
-  this->blocksize = 2048;
+  this->blocksize = this->input->get_blocksize(this->input);
+  if (!this->blocksize)
+    this->blocksize = 2048;
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
@@ -215,8 +212,10 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
       num_buffers--;
     }
 
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos, SEEK_SET);
+    /* FIXME: implement time seek */
+
+    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",start_pos);
+    this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
   /*
@@ -230,7 +229,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
  *
  */
 static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
-			       input_plugin_t *input, int stage) {
+				input_plugin_t *input, int stage) {
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
@@ -245,8 +244,7 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       input->seek(input, 0, SEEK_SET);
 
-      if(input->get_blocksize)
-	bs = input->get_blocksize(input);
+      bs = input->get_blocksize(input);
 
       if (bs<4)
 	bs = 4;
@@ -308,6 +306,10 @@ static void demux_mpeg_elem_close (demux_plugin_t *this) {
   /* nothing */
 }
 
+static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen,
+					     input_plugin_t *input, int stage) {
+  return 0 ; /*FIXME: implement */
+}
 /*
  *
  */
@@ -315,10 +317,10 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_mpeg_elem_t *this;
 
-  if (iface != 2) {
+  if (iface != 3) {
     printf( "demux_elem: plugin doesn't support plugin API version %d.\n"
 	    "demux_elem: this means there's a version mismatch between xine and this "
-	    "demux_elem: demuxer plugin.\nInstalling current input plugins should help.\n",
+	    "demux_elem: demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }
@@ -333,6 +335,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
   this->demux_plugin.close             = demux_mpeg_elem_close;
   this->demux_plugin.get_status        = demux_mpeg_elem_get_status;
   this->demux_plugin.get_identifier    = demux_mpeg_elem_get_id;
+  this->demux_plugin.get_stream_length = demux_mpeg_elem_get_stream_length;
   
   return &this->demux_plugin;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.44 2001/08/28 19:16:20 guenter Exp $
+ * $Id: video_decoder.c,v 1.45 2001/09/01 14:33:00 guenter Exp $
  *
  */
 
@@ -66,6 +66,8 @@ void *video_decoder_loop (void *this_gen) {
     buf = this->video_fifo->get (this->video_fifo);
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
+    if (buf->input_time)
+      this->cur_input_time = buf->input_time;
 
     /* printf ("video_decoder: got buffer %d\n", buf->type);    */
 
@@ -182,7 +184,7 @@ void *video_decoder_loop (void *this_gen) {
 		    decoder->get_identifier());
 	    
 	  }
-	  
+
 	  decoder->decode_data (this->cur_video_decoder_plugin, buf);  
 	}
       } else

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.10 2001/08/31 17:57:54 jkeil Exp $
+ * $Id: demux_ts.c,v 1.11 2001/09/01 14:33:00 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -46,6 +46,9 @@
  *
  * 29-Jul-2001 shaheedhaque     Reviewed by: n/a
  *                              Compiles!
+
+ *
+ * TODO: do without memcpys, seeking (if possible), preview buffers
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,244 +88,286 @@
  * Describe a single elementary stream.
  */
 typedef struct {
-    unsigned int pid;
-    fifo_buffer_t *fifo;
-    int type;
-    buf_element_t *buf;
-    int pes_buf_next;
-    int pes_len;
-    int pes_len_zero;
-    unsigned int counter;
+  unsigned int     pid;
+  fifo_buffer_t   *fifo;
+  int              type;
+  buf_element_t   *buf;
+  int              pes_buf_next;
+  int              pes_len;
+  int              pes_len_zero;
+  unsigned int     counter;
+  
 } demux_ts_media;
 
 typedef struct {
-    /*
-     * The first field must be the "base class" for the plugin!
-     */
-    demux_plugin_t plugin;
-
-    fifo_buffer_t *fifoAudio;
-    fifo_buffer_t *fifoVideo;
-    fifo_buffer_t *fifoSPU;
-
-    input_plugin_t *input;
-
-    pthread_t thread;
-
-    int mnAudioChannel;
-    int mnSPUChannel;
-    int status;
-
-    int blockSize;
-    demux_ts_media media[MAX_PIDS];
-    /*
-     * Stuff to do with the transport header. As well as the video
-     * and audio PIDs, we keep the index of the corresponding entry
-     * inthe media[] array.
-     */
-    unsigned int programNumber;
-    unsigned int pmtPid;
-    unsigned int pcrPid;
-    unsigned int videoPid;
-    unsigned int audioPid;
-    unsigned int videoMedia;
-    unsigned int audioMedia;
+  /*
+   * The first field must be the "base class" for the plugin!
+   */
+  demux_plugin_t   plugin;
+  
+  fifo_buffer_t   *fifoAudio;
+  fifo_buffer_t   *fifoVideo;
+  
+  input_plugin_t  *input;
+  
+  pthread_t        thread;
+  
+  int              status;
+  
+  int              broken_pes;
+  int              buf_type;
+  
+  int              blockSize;
+  int              rate;
+  demux_ts_media   media[MAX_PIDS];
+  /*
+   * Stuff to do with the transport header. As well as the video
+   * and audio PIDs, we keep the index of the corresponding entry
+   * inthe media[] array.
+   */
+  unsigned int     programNumber;
+  unsigned int     pmtPid;
+  unsigned int     pcrPid;
+  unsigned int     videoPid;
+  unsigned int     audioPid;
+  unsigned int     videoMedia;
+  unsigned int     audioMedia;
 } demux_ts;
 
-/*
-**
-** PRIVATE FUNCTIONS
-**
-*/
-static void *demux_ts_loop(
-    void *gen_this);
-static void demux_ts_pat_parse(
-    demux_ts *this,
-    unsigned char *originalPkt,
-    unsigned char *pkt,
-    unsigned int pus);
-static void demux_ts_pes_buffer(
-    demux_ts *this,
-    unsigned char *ts,
-    unsigned int mediaIndex,
-    unsigned int pus,
-    unsigned int cc,
-    unsigned int len);
-static void demux_ts_pes_new(
-    demux_ts *this,
-    unsigned int mediaIndex,
-    unsigned int pid,
-    fifo_buffer_t *fifo);
-static void demux_ts_pmt_parse(
-    demux_ts *this,
-    unsigned char *originalPkt,
-    unsigned char *pkt,
-    unsigned int pus);
-static void demux_ts_parse_ts(
-    demux_ts *this);
-static void demux_ts_queue_pes(
-    demux_ts *this,
-    buf_element_t *buf);
-static void demux_ts_close(
-    demux_plugin_t *gen_this);
-static char *demux_ts_get_id(
-    void);
-static int demux_ts_get_status(
-    demux_plugin_t *this_gen);
-static int demux_ts_open(
-    demux_plugin_t *this_gen,
-    input_plugin_t *input,
-    int stage);
-static void demux_ts_start(
-    demux_plugin_t *this_gen,
-    fifo_buffer_t *fifoVideo,
-    fifo_buffer_t *fifoAudio,
-    off_t pos,
-    gui_get_next_mrl_cb_t next_mrl_cb,
-    gui_branched_cb_t branched_cb);
-static void demux_ts_stop(
-    demux_plugin_t *this_gen);
-
-/*
-**
-** DATA
-**
-*/
 static uint32_t xine_debug;
 
+
 /*
- * Sit in a loop eating data.
+ * demux_ts_parse_pat
+ *
+ * Parse a program association table (PAT). 
+ * The PAT is expected to be exactly one section long,
+ * and that section is expected to be contained in a single TS packet.
+ *
+ * The PAT is assumed to contain a single program definition, though
+ * we can cope with the stupidity of SPTSs which contain NITs.
  */
-static void *demux_ts_loop(
-    void *gen_this)
-{
-    demux_ts *this = (demux_ts *)gen_this;
-    buf_element_t *buf;
+static void demux_ts_parse_pat (demux_ts *this, unsigned char *originalPkt,
+				unsigned char *pkt, unsigned int pus) {
 
+  unsigned int   length;
+  unsigned char *program;
+  unsigned int   programNumber;
+  unsigned int   pmtPid;
+  unsigned int   programCount;
+
+  /*
+   * A PAT in a single section should start with a payload unit start
+   * indicator set.
+   */
+  if (!pus) {
+    printf ("demux_ts: demux error! PAT without payload unit start\n");
+    return;
+  }
+  
+  /*
+   * PAT packets with a pus start with a pointer. Skip it!
+   */
+  pkt += pkt[4];
+  if (pkt - originalPkt > PKT_SIZE) {
+    printf ("demux_ts: demux error! PAT with invalid pointer\n");
+    return;
+  }
+  if (!(pkt[10] & 0x01)) {
     /*
-     * TBD: why do we not appear at the beginning of the file?
+     * Not current!
      */
-this->input->seek(this->input, 0, SEEK_SET);
-fprintf (stderr, "demux %u demux_ts_loop seeking back to start of file! \n", __LINE__);
-
-    do {
-        demux_ts_parse_ts(this);
-    } while (this->status == DEMUX_OK) ;
-
-    xprintf(VERBOSE|DEMUX, "demux loop finished (status: %d)\n", this->status);
-
-    this->status = DEMUX_FINISHED;
-    buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
-    this->fifoVideo->put(this->fifoVideo, buf);
-
-    if (this->fifoAudio) {
-      buf = this->fifoAudio->buffer_pool_alloc(this->fifoAudio);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
-      this->fifoAudio->put(this->fifoAudio, buf);
+    return;
+  }
+  length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
+  if (pkt - originalPkt > BODY_SIZE - 1 - 3 - (int)length) {
+    printf ("demux_ts: demux error! PAT with invalid section length\n");
+    return;
+  }
+  if ((pkt[11]) || (pkt[12])) {
+    printf ("demux_ts: demux error! PAT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
+    return;
+  }
+  
+  /*
+   * TBD: at this point, we should check the CRC. Its not that expensive, and
+   * the consequences of getting it wrong are dire!
+   */
+  
+  /*
+   * Process all programs in the program loop.
+   */
+  programCount = 0;
+  for (program = pkt + 13; program < pkt + 13 + length - 9; program += 4) {
+    programNumber = ((unsigned int)program[0] << 8) | program[1];
+    
+    /*
+     * Skip NITs completely.
+     */
+    if (!programNumber)
+      continue;
+    programCount++;
+    pmtPid = (((unsigned int)program[2] & 0x1f) << 8) | program[3];
+    
+    /*
+     * If we have yet to learn our program number, then learn it.
+     */
+    if (this->programNumber == INVALID_PROGRAM) {
+      xprintf(VERBOSE|DEMUX, "acquiring programNumber=%u pmtPid=%04x\n", programNumber, pmtPid);
+      this->programNumber = programNumber;
+      this->pmtPid = pmtPid;
+    } else {
+      if (this->programNumber != programNumber) {
+	fprintf(stderr, "demux error! MPTS: programNumber=%u pmtPid=%04x\n", programNumber, pmtPid);
+      } else {
+	if (this->pmtPid != pmtPid) {
+	  xprintf(VERBOSE|DEMUX, "pmtPid changed %04x\n", pmtPid);
+	  this->pmtPid = pmtPid;
+	}
+      }
     }
-    pthread_exit(NULL);
-    return NULL;
+  }
+}
+
+static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int packet_len) {
+
+  unsigned char *p;
+  uint32_t       header_len;
+  uint32_t       PTS;
+  uint32_t       stream_id;
+
+  p = buf->mem; 
+
+  /* we should have a PES packet here */
+
+  if (p[0] || p[1] || (p[2] != 1)) {
+    printf ("demux_ts: error %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
+    return 0 ;
+  }
+
+  packet_len -= 6;
+  /* packet_len = p[4] << 8 | p[5]; */
+  stream_id  = p[3];
+
+  if (packet_len==0)
+    return 0;
+
+  xprintf(VERBOSE|DEMUX, "packet stream id = %02x len = %d\n",
+	  stream_id, packet_len);
+
+
+  if (p[7] & 0x80) { /* PTS avail */
+
+    PTS  = (p[ 9] & 0x0E) << 29 ;
+    PTS |=  p[10]         << 22 ;
+    PTS |= (p[11] & 0xFE) << 14 ;
+    PTS |=  p[12]         <<  7 ;
+    PTS |= (p[13] & 0xFE) >>  1 ;
+    
+  } else
+    PTS = 0;
+
+  /* code works but not used in xine
+  if (p[7] & 0x40) { 
+    
+    DTS  = (p[14] & 0x0E) << 29 ;
+    DTS |=  p[15]         << 22 ;
+    DTS |= (p[16] & 0xFE) << 14 ;
+    DTS |=  p[17]         <<  7 ;
+    DTS |= (p[18] & 0xFE) >>  1 ;
+    
+  } else
+    DTS = 0;
+  */
+  
+  buf->PTS       = PTS;
+  buf->input_pos = this->input->get_current_pos(this->input);
+  /* FIXME: not working correctly */
+  buf->input_time = buf->input_pos / (this->rate * 50);
+  
+  header_len = p[8];
+
+  p += header_len + 9;
+  packet_len -= header_len + 3;
+
+  if (stream_id == 0xbd) {
+
+    int track, spu_id;
+
+    track = p[0] & 0x0F; /* hack : ac3 track */
+
+    if ((p[0] & 0xE0) == 0x20) {
+
+      spu_id = (p[0] & 0x1f);
+
+      buf->content   = p+1;
+      buf->size      = packet_len-1;
+      buf->type      = BUF_SPU_PACKAGE + spu_id;
+
+      this->buf_type = BUF_SPU_PACKAGE + spu_id;
+
+      return 1;
+    } else if ((p[0] & 0xF0) == 0x80) {
+
+      buf->content   = p+4;
+      buf->size      = packet_len - 4;
+      buf->type      = BUF_AUDIO_A52 + track;
+
+      this->buf_type = BUF_AUDIO_A52 + track;
+
+      return 1;
+
+    } else if ((p[0]&0xf0) == 0xa0) {
+
+      int pcm_offset;
+
+      for (pcm_offset=0; ++pcm_offset < packet_len-1 ; ){
+	if (p[pcm_offset] == 0x01 && p[pcm_offset+1] == 0x80 ) { /* START */
+	  pcm_offset += 2;
+	  break;
+	}
+      }
+  
+      buf->content   = p+pcm_offset;
+      buf->size      = packet_len-pcm_offset;
+      buf->type      = BUF_AUDIO_LPCM_BE + track;
+
+      this->buf_type = BUF_AUDIO_LPCM_BE + track;
+      
+      return 1;
+    }
+
+  } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
+
+    buf->content   = p;
+    buf->size      = packet_len;
+    buf->type      = BUF_VIDEO_MPEG;
+    this->buf_type = BUF_VIDEO_MPEG;
+
+    return 1;
+
+  } else if ((stream_id & 0xe0) == 0xc0) {
+
+    int track;
+
+    track = stream_id & 0x1f;
+
+    buf->content   = p;
+    buf->size      = packet_len;
+    buf->type      = BUF_AUDIO_MPEG + track;
+    this->buf_type = BUF_AUDIO_MPEG + track;
+
+    return 1;
+
+  } else {
+    xprintf(VERBOSE | DEMUX, "unknown packet, id = %x\n",stream_id);
+  }
+
+  return 0 ;
 }
 
 /*
- * NAME demux_ts_pat_parse
- *
- *  Parse a PAT. The PAT is expected to be exactly one section long,
- *  and that section is expected to be contained in a single TS packet.
- *
- *  The PAT is assumed to contain a single program definition, though
- *  we can cope with the stupidity of SPTSs which contain NITs.
- */
-static void demux_ts_pat_parse(
-    demux_ts *this,
-    unsigned char *originalPkt,
-    unsigned char *pkt,
-    unsigned int pus)
-{
-    unsigned int length;
-    unsigned char *program;
-    unsigned int programNumber;
-    unsigned int pmtPid;
-    unsigned int programCount;
-
-    /*
-     * A PAT in a single section should start with a payload unit start
-     * indicator set.
-     */
-    if (!pus) {
-        fprintf (stderr, "demux error! PAT without payload unit start\n");
-        return;
-    }
-
-    /*
-     * PAT packets with a pus start with a pointer. Skip it!
-     */
-    pkt += pkt[4];
-    if (pkt - originalPkt > PKT_SIZE) {
-        fprintf (stderr, "demux error! PAT with invalid pointer\n");
-        return;
-    }
-    if (!(pkt[10] & 0x01)) {
-        /*
-         * Not current!
-         */
-        return;
-    }
-    length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
-    if (pkt - originalPkt > BODY_SIZE - 1 - 3 - (int)length) {
-        fprintf (stderr, "demux error! PAT with invalid section length\n");
-        return;
-    }
-    if ((pkt[11]) || (pkt[12])) {
-        fprintf (stderr, "demux error! PAT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
-        return;
-    }
-
-    /*
-     * TBD: at this point, we should check the CRC. Its not that expensive, and
-     * the consequences of getting it wrong are dire!
-     */
-
-    /*
-     * Process all programs in the program loop.
-     */
-    programCount = 0;
-    for (program = pkt + 13; program < pkt + 13 + length - 9; program += 4) {
-        programNumber = ((unsigned int)program[0] << 8) | program[1];
-
-        /*
-         * Skip NITs completely.
-         */
-        if (!programNumber)
-            continue;
-        programCount++;
-        pmtPid = (((unsigned int)program[2] & 0x1f) << 8) | program[3];
-
-        /*
-        * If we have yet to learn our program number, then learn it.
-        */
-        if (this->programNumber == INVALID_PROGRAM) {
-            xprintf(VERBOSE|DEMUX, "acquiring programNumber=%u pmtPid=%04x\n", programNumber, pmtPid);
-            this->programNumber = programNumber;
-            this->pmtPid = pmtPid;
-        } else {
-            if (this->programNumber != programNumber) {
-                fprintf(stderr, "demux error! MPTS: programNumber=%u pmtPid=%04x\n", programNumber, pmtPid);
-            } else {
-                if (this->pmtPid != pmtPid) {
-                    xprintf(VERBOSE|DEMUX, "pmtPid changed %04x\n", pmtPid);
-                    this->pmtPid = pmtPid;
-                }
-            }
-        }
-    }
-}
-
-/*
- * Manage a buffer for a PES stream.
+ * buffer arriving pes data
  * Input is 188 bytes of Transport stream
  * Build a PES packet. PES packets can get as big as 65536
  * If PES packet length was empty(zero) work it out based on seeing the next PUS.
@@ -330,126 +375,96 @@ static void demux_ts_pat_parse(
  * then queue it. The queuing routine might have to cut it up to make bits < 4096. FIXME: implement cut up.
  * Currently if PES packets are >4096, corruption occurs.
  */
-static void demux_ts_pes_buffer(
-    demux_ts *this,
-    unsigned char *ts,
-    unsigned int mediaIndex,
-    unsigned int pus,
-    unsigned int cc,
-    unsigned int len)
-{
-    demux_ts_media *m = &this->media[mediaIndex];
-    if (!m->fifo) return; /* To avoid segfault if Video out or Audio out plugin not loaded */
-    /*
-     * By checking the CC here, we avoid the need to check for the no-payload
-     * case (i.e. adaptation field only) when it does not get bumped.
-     */
-    if (m->counter != INVALID_CC) {
-        if ((m->counter & 0x0f) != cc) {
-            fprintf(stderr, "dropped input packet cc = %d expected = %d\n", cc, m->counter);
-	}
-    }
-    m->counter = cc;
-    m->counter++;
-    if (pus) {
-        /* new PES packet */
-        if (ts[0] || ts[1] || ts[2] != 1) {
-            fprintf(stderr, "PUS set but no PES header (corrupt stream?)\n");
-            m->buf->free_buffer(m->buf);
-            m->buf = 0;
-	    m->pes_len_zero=0;
-            return;
-        }
-        if (m->buf) {
-            if(m->pes_len_zero) {
-/*
-	            fprintf(stderr,"Queuing ZERO PES %02X %02X %02X %02X %02X\n",  m->buf->mem[3], m->buf->mem[4], m->buf->mem[5], 
-			(m->pes_buf_next-6)  & 0xff,
-			(m->pes_buf_next-6)  >> 8 );
- */
-		    m->buf->mem[5]=(m->pes_buf_next - 6 ) & 0xff;
-        	    m->buf->mem[4]=(m->pes_buf_next - 6 ) >> 8;
-		    demux_ts_queue_pes(this, m->buf);
-          	    m->buf = 0;
-		    m->pes_len_zero=0;
-	    } else {
 
-            fprintf(stderr, "PUS set but last PES not complete (corrupt stream?) %d %d %d\n",
-                    m->pes_buf_next, m->pes_len, m->pes_len_zero);
- 
-            m->buf->free_buffer(m->buf);
-            m->buf = 0;
-            /* return; */
-	    }
-        }
-        m->pes_len = ((ts[4] << 8) | ts[5]) ;
-        if (m->pes_len) {
-		m->pes_len+=6;
-		m->pes_len_zero=0;
-	} else {
-		m->pes_len_zero=1;
-        }
-/*
-	fprintf(stderr,"starting new pes, len = %d %d %02X\n", m->pes_len, m->pes_len_zero,ts[3]);
- */
- 	if (m->fifo) {	/* allow running without sound card */
-        m->buf = m->fifo->buffer_pool_alloc(m->fifo);
-        memcpy(m->buf->mem, ts, len);
-        m->pes_buf_next = len;
-	}
-	return;
-    } else if (m->buf) {
-        if( m->pes_buf_next+len <= m->buf->max_size) {
-            memcpy(m->buf->mem+m->pes_buf_next, ts, len);
-            m->pes_buf_next += len;
-            if( !m->pes_len_zero) {
-	        if (m->pes_buf_next == m->pes_len ) {
-/*
-                    fprintf(stderr,"Queuing PES - len = %d\n",  m->pes_len);
-	            fprintf(stderr,"Queuing PES %02X\n",  m->buf->mem[3]);
- */
-                    demux_ts_queue_pes(this, m->buf);
-                    m->buf = 0;
-                } else if ( m->pes_buf_next > m->pes_len) {
-                    fprintf(stderr, "too much data read for PES (corrupt stream?)\n");
-                    m->buf->free_buffer(m->buf);
-                    m->buf = 0;
-		    m->pes_len_zero=0;
-                }
-	    } 
-        } else {
-		fprintf(stderr, "Buffer overflow on data read for PES (discontinuity ?)\n");
-		/* FIXME: Implement discontinuity sensing */
-                m->buf->free_buffer(m->buf);
-                m->buf = 0;
-		m->pes_len_zero=0;
-            }
-        
-    } else {
-	/*
-         fprintf(stderr, "nowhere to buffer input. Waiting for PUS. \n");
-	 */
+static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
+				unsigned int mediaIndex,
+				unsigned int pus,
+				unsigned int cc,
+				unsigned int len) {
+
+  buf_element_t *buf;
+
+  demux_ts_media *m = &this->media[mediaIndex];
+  if (!m->fifo) {
+
+    printf ("fifo unavailable (%d)\n", mediaIndex);
+
+    return; /* To avoid segfault if video out or audio out plugin not loaded */
+
+  }
+
+  /*
+   * By checking the CC here, we avoid the need to check for the no-payload
+   * case (i.e. adaptation field only) when it does not get bumped.
+   */
+  if (m->counter != INVALID_CC) {
+    if ((m->counter & 0x0f) != cc) {
+      printf("demux_ts: dropped input packet cc = %d expected = %d\n", cc, m->counter);
     }
+  }
+
+  m->counter = cc;
+  m->counter++;
+
+  if (pus) {
+    
+    /* new PES packet */
+    
+    if (ts[0] || ts[1] || ts[2] != 1) {
+      fprintf(stderr, "PUS set but no PES header (corrupt stream?)\n");
+      return;
+    }
+    
+    buf = m->fifo->buffer_pool_alloc(m->fifo);
+
+    memcpy (buf->mem, ts, len); /* FIXME: reconstruct parser to do without memcpys */
+    
+    if (!demux_ts_parse_pes_header(this, buf, len)) {
+      buf->free_buffer(buf);
+      this->broken_pes = 1;
+      printf ("demux_ts: broken pes encountered\n");
+    } else {
+      this->broken_pes = 0;
+
+      buf->decoder_info[0] = 1;
+
+      m->fifo->put (m->fifo, buf);
+    }
+
+  } else if (!this->broken_pes) {
+
+    buf = m->fifo->buffer_pool_alloc(m->fifo);
+
+    memcpy (buf->mem, ts, len); /* FIXME: reconstruct parser to do without memcpys */
+    
+    buf->content         = buf->mem;
+    buf->size            = len;
+    buf->type            = this->buf_type;
+    buf->PTS             = 0;
+    buf->input_pos       = this->input->get_current_pos(this->input);
+    buf->decoder_info[0] = 1;
+
+    m->fifo->put (m->fifo, buf);
+  }    
 }
 
 /*
  * Create a buffer for a PES stream.
  */
-static void demux_ts_pes_new(
-    demux_ts *this,
-    unsigned int mediaIndex,
-    unsigned int pid,
-    fifo_buffer_t *fifo)
-{
-    demux_ts_media *m = &this->media[mediaIndex];
+static void demux_ts_pes_new(demux_ts *this,
+			     unsigned int mediaIndex,
+			     unsigned int pid,
+			     fifo_buffer_t *fifo) {
 
-    /* new PID seen - initialise stuff */
-    m->pid = pid;
-    m->fifo = fifo;
-    m->buf = 0;
-    m->pes_buf_next = 0;
-    m->pes_len = 0;
-    m->counter = INVALID_CC;
+  demux_ts_media *m = &this->media[mediaIndex];
+  
+  /* new PID seen - initialise stuff */
+  m->pid = pid;
+  m->fifo = fifo;
+  m->buf = 0;
+  m->pes_buf_next = 0;
+  m->pes_len = 0;
+  m->counter = INVALID_CC;
 }
 
 /*
@@ -461,147 +476,145 @@ static void demux_ts_pes_new(
  * In other words, the PMT is assumed to describe a reasonable number of
  * video, audio and other streams (with descriptors).
  */
-static void demux_ts_pmt_parse(
-    demux_ts *this,
-    unsigned char *originalPkt,
-    unsigned char *pkt,
-    unsigned int pus)
-{
-    typedef enum
+static void demux_ts_parse_pmt(demux_ts *this,
+			       unsigned char *originalPkt,
+			       unsigned char *pkt,
+			       unsigned int pus) {
+  typedef enum
     {
-        ISO_11172_VIDEO = 1, // 1
-        ISO_13818_VIDEO = 2, // 2
-        ISO_11172_AUDIO = 3, // 3
-        ISO_13818_AUDIO = 4, // 4
-        ISO_13818_PRIVATE = 5, // 5
-        ISO_13818_PES_PRIVATE = 6, // 6
-        ISO_13522_MHEG = 7, // 7
-        ISO_13818_DSMCC = 8, // 8
-        ISO_13818_TYPE_A = 9, // 9
-        ISO_13818_TYPE_B = 10, // a
-        ISO_13818_TYPE_C = 11, // b
-        ISO_13818_TYPE_D = 12, // c
-        ISO_13818_TYPE_E = 13, // d
-        ISO_13818_AUX = 14
+      ISO_11172_VIDEO = 1, // 1
+      ISO_13818_VIDEO = 2, // 2
+      ISO_11172_AUDIO = 3, // 3
+      ISO_13818_AUDIO = 4, // 4
+      ISO_13818_PRIVATE = 5, // 5
+      ISO_13818_PES_PRIVATE = 6, // 6
+      ISO_13522_MHEG = 7, // 7
+      ISO_13818_DSMCC = 8, // 8
+      ISO_13818_TYPE_A = 9, // 9
+      ISO_13818_TYPE_B = 10, // a
+      ISO_13818_TYPE_C = 11, // b
+      ISO_13818_TYPE_D = 12, // c
+      ISO_13818_TYPE_E = 13, // d
+      ISO_13818_AUX = 14
     } streamType;
-    unsigned int length;
-    unsigned int programInfoLength;
-    unsigned int codedLength;
-    unsigned int mediaIndex;
-    unsigned int pid;
-    unsigned char *stream;
-
+  unsigned int length;
+  unsigned int programInfoLength;
+  unsigned int codedLength;
+  unsigned int mediaIndex;
+  unsigned int pid;
+  unsigned char *stream;
+  
+  /*
+   * A PMT in a single section should start with a payload unit start
+   * indicator set.
+   */
+  if (!pus) {
+    fprintf (stderr, "demux error! PMT without payload unit start\n");
+    return;
+  }
+  
+  /*
+   * PMT packets with a pus start with a pointer. Skip it!
+   */
+  pkt += pkt[4];
+  if (pkt - originalPkt > PKT_SIZE) {
+    fprintf (stderr, "demux error! PMT with invalid pointer\n");
+    return;
+  }
+  if (!(pkt[10] & 0x01)) {
     /*
-     * A PMT in a single section should start with a payload unit start
-     * indicator set.
+     * Not current!
      */
-    if (!pus) {
-        fprintf (stderr, "demux error! PMT without payload unit start\n");
-        return;
-    }
-
-    /*
-     * PMT packets with a pus start with a pointer. Skip it!
-     */
-    pkt += pkt[4];
-    if (pkt - originalPkt > PKT_SIZE) {
-        fprintf (stderr, "demux error! PMT with invalid pointer\n");
-        return;
-    }
-    if (!(pkt[10] & 0x01)) {
-        /*
-         * Not current!
-         */
-        return;
-    }
-    length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
-    if (pkt - originalPkt > BODY_SIZE - 1 - 3 - (int)length) {
-        fprintf (stderr, "demux error! PMT with invalid section length\n");
-        return;
-    }
-    if ((pkt[11]) || (pkt[12])) {
-        fprintf (stderr, "demux error! PMT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
-        return;
-    }
-
-    /*
-     * TBD: at this point, we should check the CRC. Its not that expensive, and
-     * the consequences of getting it wrong are dire!
-     */
-
-    /*
-     * ES definitions start here...we are going to learn upto one video
-     * PID and one audio PID.
-     */
-
-    programInfoLength = (((unsigned int)pkt[15] & 0x0f) << 8) | pkt[16];
-    stream = &pkt[17] + programInfoLength;
-    codedLength = 13 + programInfoLength;
+    return;
+  }
+  length = (((unsigned int)pkt[6] & 0x3) << 8) | pkt[7];
+  if (pkt - originalPkt > BODY_SIZE - 1 - 3 - (int)length) {
+    fprintf (stderr, "demux error! PMT with invalid section length\n");
+    return;
+  }
+  if ((pkt[11]) || (pkt[12])) {
+    fprintf (stderr, "demux error! PMT with invalid section %02x of %02x\n", pkt[11], pkt[12]);
+    return;
+  }
+  
+  /*
+   * TBD: at this point, we should check the CRC. Its not that expensive, and
+   * the consequences of getting it wrong are dire!
+   */
+  
+  /*
+   * ES definitions start here...we are going to learn upto one video
+   * PID and one audio PID.
+   */
+  
+  programInfoLength = (((unsigned int)pkt[15] & 0x0f) << 8) | pkt[16];
+  stream = &pkt[17] + programInfoLength;
+  codedLength = 13 + programInfoLength;
+  if (codedLength > length) {
+    fprintf (stderr, "demux error! PMT with inconsistent progInfo length\n");
+    return;
+  }
+  length -= codedLength;
+  
+  /*
+   * Extract the elementary streams.
+   */
+  mediaIndex = 0;
+  while (length > 0) {
+    unsigned int streamInfoLength;
+    
+    pid = (((unsigned int)stream[1] & 0x1f) << 8) | stream[2];
+    streamInfoLength = (((unsigned int)stream[3] & 0xf) << 8) | stream[4];
+    codedLength = 5 + streamInfoLength;
     if (codedLength > length) {
-        fprintf (stderr, "demux error! PMT with inconsistent progInfo length\n");
-        return;
+      fprintf (stderr, "demux error! PMT with inconsistent streamInfo length\n");
+      return;
     }
+    
+    /*
+     * Squirrel away the first audio and the first video stream. TBD: there
+     * should really be a way to select the stream of interest.
+     */
+    switch (stream[0]) {
+    case ISO_11172_VIDEO:
+    case ISO_13818_VIDEO:
+      if (this->videoPid == INVALID_PID) {
+	xprintf(VERBOSE|DEMUX, "video pid  %04x\n", pid);
+	demux_ts_pes_new(this, mediaIndex, pid, this->fifoVideo);
+      }
+      this->videoPid = pid;
+      this->videoMedia = mediaIndex;
+      break;
+    case ISO_11172_AUDIO:
+    case ISO_13818_AUDIO:
+      if (this->audioPid == INVALID_PID) {
+	xprintf(VERBOSE|DEMUX, "audio pid  %04x\n", pid);
+	demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
+      }
+      this->audioPid = pid;
+      this->audioMedia = mediaIndex;
+      break;
+    default:
+      break;
+    }
+    mediaIndex++;
+    stream += codedLength;
     length -= codedLength;
-
-    /*
-     * Extract the elementary streams.
-     */
-    mediaIndex = 0;
-    while (length > 0) {
-        unsigned int streamInfoLength;
-
-        pid = (((unsigned int)stream[1] & 0x1f) << 8) | stream[2];
-        streamInfoLength = (((unsigned int)stream[3] & 0xf) << 8) | stream[4];
-        codedLength = 5 + streamInfoLength;
-        if (codedLength > length) {
-            fprintf (stderr, "demux error! PMT with inconsistent streamInfo length\n");
-            return;
-        }
-
-        /*
-         * Squirrel away the first audio and the first video stream. TBD: there
-         * should really be a way to select the stream of interest.
-         */
-	switch (stream[0]) {
-        case ISO_11172_VIDEO:
-	case ISO_13818_VIDEO:
-            if (this->videoPid == INVALID_PID) {
-                xprintf(VERBOSE|DEMUX, "video pid  %04x\n", pid);
-                demux_ts_pes_new(this, mediaIndex, pid, this->fifoVideo);
-            }
-            this->videoPid = pid;
-            this->videoMedia = mediaIndex;
-	    break;
-        case ISO_11172_AUDIO:
-	case ISO_13818_AUDIO:
-            if (this->audioPid == INVALID_PID) {
-                xprintf(VERBOSE|DEMUX, "audio pid  %04x\n", pid);
-                demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
-            }
-            this->audioPid = pid;
-            this->audioMedia = mediaIndex;
-	    break;
-	default:
-	    break;
-        }
-	mediaIndex++;
-        stream += codedLength;
-        length -= codedLength;
+  }
+  
+  /*
+   * Get the current PCR PID.
+   */
+  pid = (((unsigned int)pkt[13] & 0x1f) << 8) |
+    pkt[14];
+  if (this->pcrPid != pid) {
+    if (this->pcrPid == INVALID_PID) {
+      xprintf(VERBOSE|DEMUX, "pcr pid %04x\n", pid);
+    } else {
+      xprintf(VERBOSE|DEMUX, "pcr pid changed %04x\n", pid);
     }
-
-    /*
-     * Get the current PCR PID.
-     */
-    pid = (((unsigned int)pkt[13] & 0x1f) << 8) |
-            pkt[14];
-    if (this->pcrPid != pid) {
-        if (this->pcrPid == INVALID_PID) {
-            xprintf(VERBOSE|DEMUX, "pcr pid %04x\n", pid);
-	} else {
-            xprintf(VERBOSE|DEMUX, "pcr pid changed %04x\n", pid);
-	}
-        this->pcrPid = pid;
-    }
+    this->pcrPid = pid;
+  }
 }
 
 /*********************************************************************
@@ -632,26 +645,24 @@ static void demux_ts_pmt_parse(
 /* When we've acquired sync, we need to set all of the continuity
  * counters to an invalid value to disable the sequence checking */
 
-static void resetAllCCs(demux_ts * this) 
-{
-	int i;
-	for (i = 0; i != MAX_PIDS; ++i)
-		this->media[i].counter = INVALID_CC;
+static void resetAllCCs(demux_ts * this)  {
+  int i;
+  for (i = 0; i != MAX_PIDS; ++i)
+    this->media[i].counter = INVALID_CC;
 }
 
 /* Find the first sync byte in the packet pointed to by p */
 
-static int searchForSyncByte(const unsigned char * p)
-{
-    const unsigned char * start = p, * end = p + PKT_SIZE;
-
-    while (p != end && *p != SYNC_BYTE)
-        p++;
-
-    if (p == end)
-        return -1;
-    else
-        return p - start;
+static int searchForSyncByte(const unsigned char * p) {
+  const unsigned char * start = p, * end = p + PKT_SIZE;
+  
+  while (p != end && *p != SYNC_BYTE)
+    p++;
+  
+  if (p == end)
+    return -1;
+  else
+    return p - start;
 }
 
 /* Main synchronisation routine.
@@ -660,52 +671,51 @@ static int searchForSyncByte(const unsigned char * p)
  * loop, so its harmless and easier than doing the packet looping internally.
  */
 
-static unsigned char * demux_synchronise(demux_ts * this)
-{
-    static int in, out, count;          /* statics are zeroed */
-    static unsigned char buf[BUF_SIZE];
-
-    int syncByte, syncBytePosn;
-    unsigned char * retPtr = NULL;
-
-    if (this->input->read(this->input, &buf[in], PKT_SIZE) != PKT_SIZE) {
-        if (count > 0) {
-            int oldOut = out;	/* drain pipeline on end of stream */
-            BUMP(out);
-            count--;
-            retPtr = &buf[oldOut];
-		} else {
-        	this->status = DEMUX_FINISHED;
-		}
-        return retPtr;
+static unsigned char * demux_synchronise(demux_ts * this) {
+  static int in, out, count;          /* statics are zeroed */
+  static unsigned char buf[BUF_SIZE];
+  
+  int syncByte, syncBytePosn;
+  unsigned char * retPtr = NULL;
+  
+  if (this->input->read(this->input, &buf[in], PKT_SIZE) != PKT_SIZE) {
+    if (count > 0) {
+      int oldOut = out;	/* drain pipeline on end of stream */
+      BUMP(out);
+      count--;
+      retPtr = &buf[oldOut];
+    } else {
+      this->status = DEMUX_FINISHED;
     }
-
-    syncBytePosn = out;
-    WRAP_ADD(syncBytePosn, count * PKT_SIZE, BUF_SIZE - PKT_SIZE);
-    syncByte = buf[syncBytePosn];
-
-    if (syncByte != SYNC_BYTE) {        /* new packet not in sync */
-        int syncPosn = searchForSyncByte(&buf[in]);
-        if (syncPosn > 0) {
-            memmove(&buf[0], &buf[in + syncPosn], PKT_SIZE - syncPosn);
-            in = PKT_SIZE - syncPosn;
-        } else {
-            in = 0;         /* no sync byte in packet, so start again */
-        }
-        out = count = 0;
-    } else {                /* this packet extends the sync run */
-        BUMP(in);
-        count++;
-        if (count > MIN_SYNCS) {	/* sync acquired */
-            int oldOut = out;
-			resetAllCCs(this);
-            BUMP(out);
-            count--;
-            retPtr = &buf[oldOut];
-        }
-    }
-
     return retPtr;
+  }
+  
+  syncBytePosn = out;
+  WRAP_ADD(syncBytePosn, count * PKT_SIZE, BUF_SIZE - PKT_SIZE);
+  syncByte = buf[syncBytePosn];
+  
+  if (syncByte != SYNC_BYTE) {        /* new packet not in sync */
+    int syncPosn = searchForSyncByte(&buf[in]);
+    if (syncPosn > 0) {
+      memmove(&buf[0], &buf[in + syncPosn], PKT_SIZE - syncPosn);
+      in = PKT_SIZE - syncPosn;
+    } else {
+      in = 0;         /* no sync byte in packet, so start again */
+    }
+    out = count = 0;
+  } else {                /* this packet extends the sync run */
+    BUMP(in);
+    count++;
+    if (count > MIN_SYNCS) {	/* sync acquired */
+      int oldOut = out;
+      resetAllCCs(this);
+      BUMP(out);
+      count--;
+      retPtr = &buf[oldOut];
+    }
+  }
+  
+  return retPtr;
 }
 
 #undef BUMP
@@ -714,423 +724,223 @@ static unsigned char * demux_synchronise(demux_ts * this)
 #undef BUF_SIZE
 #undef SYNC_BYTE
 
-/***************************************************************************/
 
-static void demux_ts_parse_ts(
-    demux_ts *this)
-{
-    /* unsigned char originalPkt[PKT_SIZE]; */
-    unsigned char * originalPkt;
-    unsigned int sync_byte;
-    unsigned int transport_error_indicator;
-    unsigned int payload_unit_start_indicator;
-    unsigned int transport_priority;
-    unsigned int pid;
-    unsigned int transport_scrambling_control;
-    unsigned int adaption_field_control;
-    unsigned int continuity_counter;
-    unsigned int data_offset;
-    unsigned int data_len;
+/* transport stream packet layer */
 
-    /* get next synchronised packet, or NULL */
-    originalPkt = demux_synchronise(this);
-    if (originalPkt == NULL)
-      return;
+static void demux_ts_parse_packet (demux_ts *this) {
 
-    sync_byte=originalPkt[0];
-    transport_error_indicator = (originalPkt[1]  >> 7) & 0x01;
-    payload_unit_start_indicator = (originalPkt[1] >> 6) & 0x01;
-    transport_priority = (originalPkt[1] >> 5) & 0x01;
-    pid = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
-    transport_scrambling_control = (originalPkt[3] >> 6)  & 0x03;
-    adaption_field_control = (originalPkt[3] >> 4) & 0x03;
-    continuity_counter  = originalPkt[3] & 0x0f;
-
-    /*
-     * Discard packets that are obviously bad.
-     * FIXME: maybe search for 0x47 is the first 188 bytes[packet size] of stream.
-     */
-    if (sync_byte != 0x47) {
-        fprintf (stderr, "demux error! invalid ts sync byte %02x\n",originalPkt[0]);
-        return;
-    }
-    if (transport_error_indicator) {
-        fprintf (stderr, "demux error! transport error\n");
-        return;
-    }
-/*
-    for(n=0;n<4;n++) {fprintf(stderr,"%02X ",originalPkt[n]);}
-    fprintf(stderr," sync:%02X TE:%02X PUS:%02X TP:%02X PID:%04X TSC:%02X AFC:%02X CC:%02X\n",
-	sync_byte,
-	transport_error_indicator,
-	payload_unit_start_indicator,
-	transport_priority,
-	pid,
-	transport_scrambling_control,
-	adaption_field_control, 
-	continuity_counter ); 
- */
-    
-    data_offset=4;
-    if (adaption_field_control & 0x1) {
-        /*
-         * Has a payload! Calculate & check payload length.
-         */
-        if (adaption_field_control & 0x2) {
-            /*
-             * Skip adaptation header.
-             */
-            data_offset+=originalPkt[4]+1;
-        }
-        data_len = PKT_SIZE - data_offset;
-        if (data_len > PKT_SIZE) {
-            fprintf (stderr, "demux error! invalid payload size %d\n",data_len);
-        } else {
-
-            /*
-             * Do the demuxing in descending order of packet frequency!
-             */
-            if (pid == this->videoPid ) {
-                demux_ts_pes_buffer(this, originalPkt+data_offset, this->videoMedia, payload_unit_start_indicator, continuity_counter, data_len);
-            } else if (pid == this->audioPid) {
-                demux_ts_pes_buffer(this, originalPkt+data_offset, this->audioMedia, payload_unit_start_indicator, continuity_counter, data_len);
-            } else if (pid == this->pmtPid) {
-                demux_ts_pmt_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
-            } else if (pid == 0) {
-                demux_ts_pat_parse(this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
-            } else if (pid == 0x1fff) {
-		/* fprintf(stderr,"Null Packet\n"); */
-	    }
-        }
-    }
-
-    /*
-     * Now check for PCRs. First test for an adaptation header, since
-     * that is the most likely test to fail.
-     */
-}
-
-static void demux_ts_queue_pes(
-    demux_ts *this,
-    buf_element_t *buf)
-{
-  unsigned char *p;
-  int            bMpeg1=0;
-  uint32_t       nHeaderLen;
-  uint32_t       nPTS;
-  uint32_t       nDTS;
-  uint32_t       nPacketLen;
-  uint32_t       nStreamID;
-
-  p = buf->mem; /* len = this->blockSize; */
-  /* FIXME: HACK to get the decoders working */
-  buf->decoder_info[0] = 1;
-  /* we should have a PES packet here */
-
-  if (p[0] || p[1] || (p[2] != 1)) {
-    fprintf (stderr, "demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
-    buf->free_buffer(buf);
-    return ;
+  unsigned char *originalPkt;
+  unsigned int   sync_byte;
+  unsigned int   transport_error_indicator;
+  unsigned int   payload_unit_start_indicator;
+  unsigned int   transport_priority;
+  unsigned int   pid;
+  unsigned int   transport_scrambling_control;
+  unsigned int   adaption_field_control;
+  unsigned int   continuity_counter;
+  unsigned int   data_offset;
+  unsigned int   data_len;
+  
+  /* get next synchronised packet, or NULL */
+  originalPkt = demux_synchronise(this);
+  if (originalPkt == NULL)
+    return;
+  
+  sync_byte                      = originalPkt[0];
+  transport_error_indicator      = (originalPkt[1]  >> 7) & 0x01;
+  payload_unit_start_indicator   = (originalPkt[1] >> 6) & 0x01;
+  transport_priority             = (originalPkt[1] >> 5) & 0x01;
+  pid                            = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
+  transport_scrambling_control   = (originalPkt[3] >> 6)  & 0x03;
+  adaption_field_control         = (originalPkt[3] >> 4) & 0x03;
+  continuity_counter             = originalPkt[3] & 0x0f;
+  
+  /*
+   * Discard packets that are obviously bad.
+   * FIXME: maybe search for 0x47 is the first 188 bytes[packet size] of stream.
+   */
+  if (sync_byte != 0x47) {
+    fprintf (stderr, "demux error! invalid ts sync byte %02x\n",originalPkt[0]);
+    return;
   }
-
-  nPacketLen = p[4] << 8 | p[5];
-  nStreamID  = p[3];
-
-  xprintf(VERBOSE|DEMUX, "packet stream id = %02x len = %d\n",nStreamID, nPacketLen);
-
-  if (bMpeg1) {
-
-    if (nStreamID == 0xBF) {
-      buf->free_buffer(buf);
-      return ;
+  if (transport_error_indicator) {
+    fprintf (stderr, "demux error! transport error\n");
+    return;
+  }
+  
+  data_offset=4;
+  if (adaption_field_control & 0x1) {
+    /*
+     * Has a payload! Calculate & check payload length.
+     */
+    if (adaption_field_control & 0x2) {
+      /*
+       * Skip adaptation header.
+       */
+      data_offset+=originalPkt[4]+1;
     }
 
-    p   += 6; /* nPacketLen -= 6; */
+    data_len = PKT_SIZE - data_offset;
 
-    while ((p[0] & 0x80) == 0x80) {
-      p++;
-      nPacketLen--;
-      /* printf ("stuffing\n");*/
-    }
+    if (data_len > PKT_SIZE) {
 
-    if ((p[0] & 0xc0) == 0x40) {
-      /* STD_buffer_scale, STD_buffer_size */
-      p += 2;
-      nPacketLen -=2;
-    }
+      printf ("demux_ts: demux error! invalid payload size %d\n",data_len);
 
-    nPTS = 0;
-    nDTS = 0;
-    if ((p[0] & 0xf0) == 0x20) {
-      nPTS  = (p[ 0] & 0x0E) << 29 ;
-      nPTS |=  p[ 1]         << 22 ;
-      nPTS |= (p[ 2] & 0xFE) << 14 ;
-      nPTS |=  p[ 3]         <<  7 ;
-      nPTS |= (p[ 4] & 0xFE) >>  1 ;
-      p   += 5;
-      nPacketLen -=5;
-    } else if ((p[0] & 0xf0) == 0x30) {
-      nPTS  = (p[ 0] & 0x0E) << 29 ;
-      nPTS |=  p[ 1]         << 22 ;
-      nPTS |= (p[ 2] & 0xFE) << 14 ;
-      nPTS |=  p[ 3]         <<  7 ;
-      nPTS |= (p[ 4] & 0xFE) >>  1 ;
-      nDTS  = (p[ 5] & 0x0E) << 29 ;
-      nDTS |=  p[ 6]         << 22 ;
-      nDTS |= (p[ 7] & 0xFE) << 14 ;
-      nDTS |=  p[ 8]         <<  7 ;
-      nDTS |= (p[ 9] & 0xFE) >>  1 ;
-      p   += 10;
-      nPacketLen -= 10;
     } else {
-      p++;
-      nPacketLen --;
-    }
-
-  } else { /* mpeg 2 */
-
-    if (p[7] & 0x80) { /* PTS avail */
-
-      nPTS  = (p[ 9] & 0x0E) << 29 ;
-      nPTS |=  p[10]         << 22 ;
-      nPTS |= (p[11] & 0xFE) << 14 ;
-      nPTS |=  p[12]         <<  7 ;
-      nPTS |= (p[13] & 0xFE) >>  1 ;
-
-    } else
-      nPTS = 0;
-
-    if (p[7] & 0x40) { /* PTS avail */
-
-      nDTS  = (p[14] & 0x0E) << 29 ;
-      nDTS |=  p[15]         << 22 ;
-      nDTS |= (p[16] & 0xFE) << 14 ;
-      nDTS |=  p[17]         <<  7 ;
-      nDTS |= (p[18] & 0xFE) >>  1 ;
-
-    } else
-      nDTS = 0;
-
-
-    nHeaderLen = p[8];
-
-    p    += nHeaderLen + 9;
-    nPacketLen -= nHeaderLen + 3;
-  }
-
-  xprintf(VERBOSE|DEMUX, "stream_id=%x len=%d pts=%d dts=%d\n", nStreamID, nPacketLen, nPTS, nDTS);
-
-  if (nStreamID == 0xbd) {
-
-    int nTrack,nSPUID;
-
-    nTrack = p[0] & 0x0F; /* hack : ac3 track */
-
-    if((p[0] & 0xE0) == 0x20) {
-      nSPUID = (p[0] & 0x1f);
-
-      xprintf(VERBOSE|DEMUX, "SPU PES packet, id 0x%03x\n",p[0] & 0x1f);
-
-      if((this->mnSPUChannel >= 0)
-         && (this->fifoSPU != NULL)
-         && (nSPUID == this->mnSPUChannel)) {
-        buf->content  = p+1;
-        buf->size     = nPacketLen-1;
-        buf->type     = BUF_SPU_PACKAGE;
-        buf->PTS      = nPTS;
-        buf->DTS      = nDTS ;
-        buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
-
-        this->fifoSPU->put(this->fifoSPU, buf);
-        return;
+      
+      /*
+       * Do the demuxing in descending order of packet frequency!
+       */
+      if (pid == this->videoPid ) {
+	demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia, 
+			     payload_unit_start_indicator, continuity_counter, data_len);
+      } else if (pid == this->audioPid) {
+	demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia, 
+			     payload_unit_start_indicator, continuity_counter, data_len);
+      } else if (pid == this->pmtPid) {
+	demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
+      } else if (pid == 0) {
+	demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
+      } else if (pid == 0x1fff) {
+	/* fprintf(stderr,"Null Packet\n"); */
       }
     }
-
-    if (((p[0]&0xF0) == 0x80) && (nTrack == this->mnAudioChannel)) {
-
-      xprintf(VERBOSE|DEMUX|AC3, "ac3 PES packet, track %02x\n",nTrack);
-      /* printf ( "ac3 PES packet, track %02x\n",nTrack);  */
-
-      buf->content  = p+4;
-      buf->size     = nPacketLen-4;
-      buf->type     = BUF_AUDIO_A52;
-      buf->PTS      = nPTS;
-      buf->DTS      = nDTS ;
-      buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
-
-      this->fifoAudio->put(this->fifoAudio, buf);
-      return ;
-    } else if (((p[0]&0xf0) == 0xa0) || (nTrack == (this->mnAudioChannel-16))) {
-
-      int pcm_offset;
-
-      xprintf(VERBOSE|DEMUX,"LPCMacket, len : %d %02x\n",nPacketLen-4, p[0]);
-
-      /* printf ("PCM!!!!!!!!!!!!!!!!!!!!!!!\n"); */
-
-      for( pcm_offset=0; ++pcm_offset < nPacketLen-1 ; ){
-        if ( p[pcm_offset] == 0x01 && p[pcm_offset+1] == 0x80 ) { /* START */
-          pcm_offset += 2;
-          break;
-        }
-      }
-
-      buf->content  = p+pcm_offset;
-      buf->size     = nPacketLen-pcm_offset;
-      buf->type     = BUF_AUDIO_LPCM_BE;
-      buf->PTS      = nPTS;
-      buf->DTS      = nDTS ;
-      buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
-
-      this->fifoAudio->put(this->fifoAudio, buf);
-      return ;
-    }
-
-  } else if ((nStreamID >= 0xbc) && ((nStreamID & 0xf0) == 0xe0)) {
-
-    xprintf(VERBOSE|DEMUX, "video %X\n", nStreamID);
-
-    buf->content = p;
-    buf->size    = nPacketLen;
-    buf->type    = BUF_VIDEO_MPEG;
-    buf->PTS     = nPTS;
-    buf->DTS     = nDTS;
-
-    this->fifoVideo->put(this->fifoVideo, buf);
-    return ;
-
-  }  else if ((nStreamID & 0xe0) == 0xc0) {
-    int nTrack;
-
-    nTrack = nStreamID & 0x1f;
-
-    xprintf(VERBOSE|DEMUX|MPEG, "mpg audio #%d\n", nTrack);
-    xprintf(VERBOSE|DEMUX|MPEG, "bMpeg1=%d this->mnAudioChannel %d\n", bMpeg1, this->mnAudioChannel);
-
-//    if ((bMpeg1 && (nTrack == this->mnAudioChannel))
-//        || (!bMpeg1 && (nTrack == (this->mnAudioChannel-8)))) {
-
-      buf->content  = p;
-      buf->size     = nPacketLen;
-      buf->type     = BUF_AUDIO_MPEG;
-      buf->PTS      = nPTS;
-      buf->DTS      = nDTS;
-      buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
-
-      this->fifoAudio->put(this->fifoAudio, buf);
-      return ;
-//    }
-
-  } else {
-    xprintf(VERBOSE | DEMUX, "unknown packet, id = %x\n",nStreamID);
   }
-
-  buf->free_buffer(buf);
-  return ;
+  
 }
 
-static void demux_ts_close(
-    demux_plugin_t *gen_this)
-{
-    /* nothing */
+/*
+ * Sit in a loop eating data.
+ */
+static void *demux_ts_loop(void *gen_this) {
+
+  demux_ts *this = (demux_ts *)gen_this;
+  buf_element_t *buf;
+  
+  do {
+    demux_ts_parse_packet(this);
+  } while (this->status == DEMUX_OK) ;
+  
+  xprintf(VERBOSE|DEMUX, "demux loop finished (status: %d)\n", this->status);
+  
+  this->status = DEMUX_FINISHED;
+  buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
+  buf->type            = BUF_CONTROL_END;
+  buf->decoder_info[0] = 0; /* stream finished */
+  this->fifoVideo->put(this->fifoVideo, buf);
+  
+  if (this->fifoAudio) {
+    buf = this->fifoAudio->buffer_pool_alloc(this->fifoAudio);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 0; /* stream finished */
+    this->fifoAudio->put(this->fifoAudio, buf);
+  }
+  pthread_exit(NULL);
+  return NULL;
 }
 
-static char *demux_ts_get_id(
-    void)
-{
-    return "MPEG_TS";
+static void demux_ts_close(demux_plugin_t *gen_this) {
+
+  /* nothing */
 }
 
-static int demux_ts_get_status(
-    demux_plugin_t *this_gen)
-{
-    demux_ts *this = (demux_ts *)this_gen;
-    return this->status;
+static char *demux_ts_get_id(void) {
+  return "MPEG_TS";
 }
 
-static int demux_ts_open(
-    demux_plugin_t *this_gen,
-    input_plugin_t *input,
-    int stage)
-{
-    demux_ts *this = (demux_ts *) this_gen;
-    char *mrl;
-    char *media;
-    char *ending;
+static int demux_ts_get_status(demux_plugin_t *this_gen) {
 
-    switch (stage) {
-    case STAGE_BY_EXTENSION:
-        mrl = input->get_mrl(input);
-        media = strstr(mrl, "://");
-        if (media) {
-fprintf (stderr, "demux %u ts_open! \n", __LINE__);
-            if ((!(strncasecmp(mrl, "stdin", 5))) || (!(strncasecmp(mrl, "fifo", 4)))) {
-                if(!(strncasecmp(media+3, "ts", 3))) {
-                    break;
-                }
-                return DEMUX_CANNOT_HANDLE;
-            }
-            else if (strncasecmp(mrl, "file", 4)) {
-                return DEMUX_CANNOT_HANDLE;
-            }
-        }
-        ending = strrchr(mrl, '.');
-        if (ending) {
-            xprintf(VERBOSE|DEMUX, "demux_ts_open: ending %s of %s\n", ending, mrl);
-            if ((!strcasecmp(ending, ".m2t")) || (!strcasecmp(ending, ".ts"))) {
-                break;
-            }
-        }
-        return DEMUX_CANNOT_HANDLE;
-    default:
-        return DEMUX_CANNOT_HANDLE;
+  demux_ts *this = (demux_ts *)this_gen;
+
+  return this->status;
+}
+
+static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
+			 int stage) {
+
+  demux_ts *this = (demux_ts *) this_gen;
+  char     *mrl;
+  char     *media;
+  char     *ending;
+  
+  switch (stage) {
+  case STAGE_BY_EXTENSION:
+    mrl = input->get_mrl(input);
+    media = strstr(mrl, "://");
+    if (media) {
+      fprintf (stderr, "demux %u ts_open! \n", __LINE__);
+      if ((!(strncasecmp(mrl, "stdin", 5))) || (!(strncasecmp(mrl, "fifo", 4)))) {
+	if(!(strncasecmp(media+3, "ts", 3))) {
+	  break;
+	}
+	return DEMUX_CANNOT_HANDLE;
+      }
+      else if (strncasecmp(mrl, "file", 4)) {
+	return DEMUX_CANNOT_HANDLE;
+      }
     }
-
-    this->input = input;
-    this->blockSize = PKT_SIZE;
-    return DEMUX_CAN_HANDLE;
+    ending = strrchr(mrl, '.');
+    if (ending) {
+      xprintf(VERBOSE|DEMUX, "demux_ts_open: ending %s of %s\n", ending, mrl);
+      if ((!strcasecmp(ending, ".m2t")) || (!strcasecmp(ending, ".ts"))) {
+	break;
+      }
+    }
+    return DEMUX_CANNOT_HANDLE;
+  default:
+    return DEMUX_CANNOT_HANDLE;
+  }
+  
+  this->input = input;
+  this->blockSize = PKT_SIZE;
+  return DEMUX_CAN_HANDLE;
 }
 
-static void demux_ts_start(
-    demux_plugin_t *this_gen,
-    fifo_buffer_t *fifoVideo,
-    fifo_buffer_t *fifoAudio,
-    off_t pos,
-    gui_get_next_mrl_cb_t next_mrl_cb,
-    gui_branched_cb_t branched_cb)
-{
-    demux_ts *this = (demux_ts *)this_gen;
-    buf_element_t *buf;
+static void demux_ts_start(demux_plugin_t *this_gen, 
+			   fifo_buffer_t *fifoVideo,
+			   fifo_buffer_t *fifoAudio,
+			   off_t start_pos, int start_time,
+			   gui_get_next_mrl_cb_t next_mrl_cb,
+			   gui_branched_cb_t branched_cb) {
 
-    this->fifoVideo = fifoVideo;
-    this->fifoAudio = fifoAudio;
-
-    /*
-     * Send reset buffer.
-     */
-    buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
+  demux_ts *this = (demux_ts *)this_gen;
+  buf_element_t *buf;
+  
+  this->fifoVideo = fifoVideo;
+  this->fifoAudio = fifoAudio;
+  
+  /*
+   * send start buffers
+   */
+  buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
+  buf->type = BUF_CONTROL_START;
+  this->fifoVideo->put(this->fifoVideo, buf);
+  if (this->fifoAudio) {
+    buf = this->fifoAudio->buffer_pool_alloc(this->fifoAudio);
     buf->type = BUF_CONTROL_START;
-    this->fifoVideo->put(this->fifoVideo, buf);
-    if (this->fifoAudio) {
-        buf = this->fifoAudio->buffer_pool_alloc(this->fifoAudio);
-        buf->type = BUF_CONTROL_START;
-        this->fifoAudio->put(this->fifoAudio, buf);
-    }
+    this->fifoAudio->put(this->fifoAudio, buf);
+  }
+  
+  this->status = DEMUX_OK ;
+  this->broken_pes = 1;
 
-    this->status = DEMUX_OK ;
-    if (this->input->get_blocksize(this->input))
-        this->blockSize = this->input->get_blocksize(this->input);
-    pos /= (off_t)this->blockSize;
-    pos *= (off_t)this->blockSize;
+  
+  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
 
-    /*
-     * Now start demuxing.
-     */
-    pthread_create(&this->thread, NULL, demux_ts_loop, this);
+    if ( (!start_pos) && (start_time))
+      start_pos = start_time * this->rate * 50;
+
+    this->input->seek (this->input, start_pos, SEEK_SET);
+
+  } 
+
+  /*
+   * Now start demuxing.
+   */
+  pthread_create(&this->thread, NULL, demux_ts_loop, this);
 }
 
-static void demux_ts_stop(
-    demux_plugin_t *this_gen)
+static void demux_ts_stop(demux_plugin_t *this_gen)
 {
   demux_ts *this = (demux_ts *)this_gen;
   buf_element_t *buf;
@@ -1166,45 +976,56 @@ static void demux_ts_stop(
   }
 }
 
-demux_plugin_t *init_demuxer_plugin(
-    int iface,
-    config_values_t *config)
-{
-    demux_ts *this;
-    int i;
+static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 
-    if (iface != 2) {
-        printf(
-            "demux_ts: plugin doesn't support plugin API version %d.\n"
-            "demux_ts: this means there's a version mismatch between xine and this "
-            "demux_ts: demuxer plugin.\nInstalling current input plugins should help.\n",
-            iface);
-        return NULL;
-    }
+  demux_ts *this = (demux_ts *)this_gen;
 
-    /*
-     * Initialise the generic plugin.
-     */
-    this = xmalloc(sizeof(*this));
-    xine_debug = config->lookup_int(config, "xine_debug", 0);
-    this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
-    this->plugin.open              = demux_ts_open;
-    this->plugin.start             = demux_ts_start;
-    this->plugin.stop              = demux_ts_stop;
-    this->plugin.close             = demux_ts_close;
-    this->plugin.get_status        = demux_ts_get_status;
-    this->plugin.get_identifier    = demux_ts_get_id;
-
-    /*
-     * Initialise our specialised data.
-     */
-    this->mnSPUChannel = -1; /* Turn off SPU by default */
-    for (i = 0; i < MAX_PIDS; i++)
-        this->media[i].pid = INVALID_PID;
-    this->programNumber = INVALID_PROGRAM;
-    this->pmtPid = INVALID_PID;
-    this->pcrPid = INVALID_PID;
-    this->videoPid = INVALID_PID;
-    this->audioPid = INVALID_PID;
-    return (demux_plugin_t *)this;
+  return this->input->get_length (this->input) / (this->rate * 50);
 }
+
+
+demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
+
+  demux_ts *this;
+  int i;
+  
+  if (iface != 3) {
+    printf("demux_ts: plugin doesn't support plugin API version %d.\n"
+	   "demux_ts: this means there's a version mismatch between xine and this "
+	   "demux_ts: demuxer plugin.\nInstalling current demux plugins should help.\n",
+	   iface);
+    return NULL;
+  }
+
+  /*
+   * Initialise the generic plugin.
+   */
+  this = xmalloc(sizeof(*this));
+  xine_debug = config->lookup_int(config, "xine_debug", 0);
+  this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
+  this->plugin.open              = demux_ts_open;
+  this->plugin.start             = demux_ts_start;
+  this->plugin.stop              = demux_ts_stop;
+  this->plugin.close             = demux_ts_close;
+  this->plugin.get_status        = demux_ts_get_status;
+  this->plugin.get_identifier    = demux_ts_get_id;
+  this->plugin.get_stream_length = demux_ts_get_stream_length;
+  
+  /*
+   * Initialise our specialised data.
+   */
+  for (i = 0; i < MAX_PIDS; i++)
+    this->media[i].pid = INVALID_PID;
+  this->programNumber = INVALID_PROGRAM;
+  this->pmtPid = INVALID_PID;
+  this->pcrPid = INVALID_PID;
+  this->videoPid = INVALID_PID;
+  this->audioPid = INVALID_PID;
+
+  this->rate = 16000; /* FIXME */
+
+  return (demux_plugin_t *)this;
+}
+
+
+

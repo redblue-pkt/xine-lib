@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.8 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: demux.h,v 1.9 2001/09/01 14:32:59 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    2
+#define DEMUXER_PLUGIN_IFACE_VERSION    3
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -57,8 +57,7 @@ typedef char* (*gui_get_next_mrl_cb_t) (void);
 typedef void (*gui_branched_cb_t) (void);
 
 /*
- * a demux plugin (no matter if it's staically built into xine
- * or dynamically loaded at run-time) must implement these functions
+ * a demux plugin must implement these functions
  */
 
 typedef struct demux_plugin_s demux_plugin_t;
@@ -84,12 +83,20 @@ struct demux_plugin_s
 
   /*
    * start demux thread
-   * pos : 0..65535
+   *
+   * for seekable streams, a start position can be specified
+   *
+   * start_pos  : position in input source
+   * start_time : position measured in seconds from stream start
+   *
+   * if both parameters are !=0 start_pos will be used
+   * for non-seekable streams both values will be ignored
    */
 
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
 		 fifo_buffer_t *audio_fifo, 
-		 off_t pos, gui_get_next_mrl_cb_t next_mrl_cb,
+		 off_t start_pos, int start_time,
+		 gui_get_next_mrl_cb_t next_mrl_cb,
 		 gui_branched_cb_t branched_cb) ;
   
   /*
@@ -117,15 +124,18 @@ struct demux_plugin_s
 
   char* (*get_identifier) (void);
 
+  /*
+   * estimate stream length in seconds
+   * may return 0 for non-seekable streams
+   */
+
+  int (*get_stream_length) (demux_plugin_t *this);
 } ;
 
 /*
- * for dynamic demux plugins:
- *
- * make sure you provide this (and only this!) function call:
+ * demuxer plugins should provide this (and only this!) function call:
  *
  * demux_plugin_t *init_demux_plugin (int iface_version, config_values_t *cfg);
- *
  */
 
 #ifdef __cplusplus

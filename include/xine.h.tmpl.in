@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.39 2001/08/28 22:52:57 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.40 2001/09/01 14:32:59 guenter Exp $
  *
  */
 
@@ -106,12 +106,6 @@ extern "C" {
  * \sa xine_get_status()
  */
 #define XINE_QUIT      2
-/**
- * \def XINE_PAUSE
- * Pause status.
- * \sa xine_get_status()
- */
-#define XINE_PAUSE     3
 
           /** @} end of status_group */
 
@@ -604,36 +598,16 @@ void xine_exit (xine_t *self);
  * \brief Start to play a stream
  * \param self Current xine engine configuration ( #see xine_init() )
  * \param MRL Media Resource Location to open
- * \param pos Start from position (0..65535)
+ * \param start_pos position in input source (0..65535)
+ * \param start_time position measured in seconds from stream start
  * \return Nothing
  *
- * Open a stream and play it
+ * Open a stream and play it.  If both start position parameters 
+ * are !=0 start_pos will be used
+ * for non-seekable streams both values will be ignored
  *
  */
-void xine_play (xine_t *self, char *MRL, int pos);
-
-/**
- * \fn void xine_seek (xine_t *self, char *MRL, int pos)
- * \brief Seek a stream to pos
- * \param self Current xine engine configuration ( #see xine_init() )
- * \param MRL Media Resource Location to open
- * \param pos Start from position (0..65535)
- * \return Nothing
- *
- * Seek (already opened) stream and play it.
- *
- */
-void xine_seek (xine_t *self, char *MRL, int pos);
-
-/**
- * \fn void xine_pause (xine_t *self)
- * \brief Pause toggle
- * \param self Current xine engine configuration ( #see xine_init() )
- * \return Nothing
- *
- * Toggle pause mode.
- */
-void xine_pause (xine_t *self);
+void xine_play (xine_t *self, char *MRL, int start_pos, int start_time);
 
 /*
  * set playback speed
@@ -697,6 +671,26 @@ int xine_get_status (xine_t *self);
  * Get current position in stream.
  */
 int xine_get_current_position (xine_t *self);
+
+/**
+ * \fn int xine_get_current_time (xine_t *self)
+ * \brief get current pos in seconds
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return current position measured in seconds from the beginning of the stream
+ *
+ * get current position measured in seconds from the beginning of the stream
+ */
+int xine_get_current_time (xine_t *self);
+
+/**
+ * \fn int xine_get_stream_length (xine_t *self);
+ * \brief estimate length of input stream in seconds
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return length of input stream in seconds or 0 if stream is not seekable
+ *
+ * estimate length of input stream in seconds
+ */
+int xine_get_stream_length (xine_t *self);
 
 /**
  * \fn int xine_get_audio_channel (xine_t *self)

@@ -134,15 +134,25 @@ Keyboard shortcuts:
 Key           action
 
 RETURN        play
-F             toggle fullscreen mode
-Q             quit
-0             jump start of current stream
-1-9           jump to 10-90% of current stream
-SPACE         pause
+SPACE, P      pause
+Up/Down       fast forward / slow motion
+
+0             seek start of current stream
+1-9           seek to 10-90% of current stream
+Left/Right    seek -+ 15 sec (+CTRL: 60 sec)
 PgUp/Prior    jump to previous playlist entry
 PgDown/Next   jump to next playlist entry
+
+F             toggle fullscreen mode
 A             toggle aspect ratio (AUTO/16:9/4:3/DVB)
-Ctrl          show/hide mouse cursor
+I             toggle interlaced mode
+< >           modify output window size
++ -           change audio channel
+, .           change subtitle channel
+n m           adjust a/v sync
+home          reset a/v sync
+
+Q             quit
 
 more to come.
 
@@ -171,7 +181,7 @@ displays the subtitles from stream 0.
 controlling xine via CORBA:
 ---------------------------
 
-[ FIXME: corba support is not known to work as of xine 0.6 ]
+[ FIXME: corba support is not known to work as of xine 0.5 ]
 
 xine implements a CORBA server interface to enable remote control and
 scripting. For this, you need ORBit which should already be installed if

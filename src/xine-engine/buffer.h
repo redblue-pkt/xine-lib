@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.7 2001/08/31 17:57:54 jkeil Exp $
+ * $Id: buffer.h,v 1.8 2001/09/01 14:33:00 guenter Exp $
  *
  *
  * contents:
@@ -109,8 +109,9 @@ struct buf_element_s {
   uint32_t              size ;   /* size of _content_ */
   uint32_t              max_size;        
   uint32_t              type;
-  uint32_t              PTS, DTS;
+  uint32_t              PTS;
   off_t                 input_pos; /* remember where this buf came from in the input source */
+  int                   input_time;/* time offset in seconds from beginning of stream       */
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */
 
   void (*free_buffer) (buf_element_t *buf);

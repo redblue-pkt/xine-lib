@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.16 2001/08/12 15:12:54 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.17 2001/09/01 14:33:00 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -38,7 +38,7 @@
 #include "monitor.h"
 #include "demux.h"
 
-#define DEMUX_MPGAUDIO_IFACE_VERSION 1
+#define DEMUX_MPGAUDIO_IFACE_VERSION 3
 
 typedef struct {
 
@@ -92,7 +92,6 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
     return 0;
   }
 
-  buf->DTS             = 0;
   buf->PTS             = 0;
   buf->input_pos       = this->input->get_current_pos(this->input);
   buf->type            = BUF_AUDIO_MPEG;
@@ -179,7 +178,7 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
 static void demux_mpgaudio_start (demux_plugin_t *this_gen,
 				  fifo_buffer_t *video_fifo, 
 				  fifo_buffer_t *audio_fifo,
-				  off_t pos,
+				  off_t start_pos, int start_time,
 				  gui_get_next_mrl_cb_t next_mrl_cb,
 				  gui_branched_cb_t branched_cb) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
@@ -191,8 +190,11 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
   
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos, SEEK_SET);
+    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",start_pos);
+    this->input->seek (this->input, start_pos, SEEK_SET);
+
+    /* FIMXE: implement seeking to start_time */
+
   }
   
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -277,9 +279,6 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
   return DEMUX_CANNOT_HANDLE;
 }
 
-/*
- *
- */
 static char *demux_mpgaudio_get_id(void) {
   return "MPGAUDIO";
 }
@@ -288,14 +287,21 @@ static void demux_mpgaudio_close (demux_plugin_t *this) {
   /* nothing */
 }
 
+static int demux_mpgaudio_get_stream_length (demux_plugin_t *this) {
+  /* FIXME: implement */
+
+  return 0;
+}
+
+
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_mpgaudio_t *this;
 
-  if (iface != 2) {
+  if (iface != 3) {
     printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
 	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
+	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }
@@ -310,6 +316,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
   this->demux_plugin.close             = demux_mpgaudio_close;
   this->demux_plugin.get_status        = demux_mpgaudio_get_status;
   this->demux_plugin.get_identifier    = demux_mpgaudio_get_id;
+  this->demux_plugin.get_stream_length = demux_mpgaudio_get_stream_length;
   
   return &this->demux_plugin;
 }

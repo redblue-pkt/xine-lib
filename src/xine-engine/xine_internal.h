@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.42 2001/08/28 22:52:57 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.43 2001/09/01 14:33:00 guenter Exp $
  *
  */
 
@@ -120,7 +120,6 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 #define XINE_STOP      0 
 #define XINE_PLAY      1 
 #define XINE_QUIT      2
-#define XINE_PAUSE     3
 
 typedef struct xine_s xine_t;
 
@@ -146,6 +145,7 @@ struct xine_s {
   int                        status;
   int                        speed;
   off_t                      cur_input_pos;
+  int                        cur_input_time;
   char                       cur_mrl[1024];
 
   spu_functions_t           *spu_out;
@@ -166,7 +166,6 @@ struct xine_s {
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
-  int                        paused;
 
   ao_instance_t             *audio_out;
   fifo_buffer_t             *audio_fifo;
@@ -211,29 +210,18 @@ xine_t *xine_init (vo_driver_t *vo,
 		   gui_branched_cb_t branched_cb);
 
 /*
- * open a stream and play it
+ * open a stream sekk to a given position and play it
  *
- * name : mrl to open
- * pos  : start position 0..65535
+ * name       : mrl to open
+ * start_pos  : position in input source (0..65535)
+ * start_time : position measured in seconds from stream start
  *
- */
-void xine_play (xine_t *this, char *MRL, int pos);
-
-
-/*
- * seek the stream to pos, and play it
- *
- * name : mrl to open
- * pos  : start position 0..65535
+ * if both parameters are !=0 start_pos will be used
+ * for non-seekable streams both values will be ignored
  *
  */
-void xine_seek (xine_t *this, char *MRL, int pos);
+void xine_play (xine_t *this, char *MRL, int start_pos, int start_time);
 
-
-/*
- * toggle pause mode
- */
-void xine_pause (xine_t *this);
 
 /*
  * set/get playback speed
@@ -278,6 +266,18 @@ int xine_get_status (xine_t *this);
  * returns position (range : 0 - 65535)
  */
 int xine_get_current_position (xine_t *this);
+
+/*
+ * get current position measured in seconds from 
+ * the beginning of the stream
+ */
+int xine_get_current_time (xine_t *this);
+
+/*
+ * estimate length of input stream in seconds
+ * may return 0 if stream is not seekable
+ */
+int xine_get_stream_length (xine_t *this);
 
 /*
  * return the current audio channel

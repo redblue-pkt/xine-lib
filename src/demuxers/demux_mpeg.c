@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.31 2001/08/28 19:16:19 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.32 2001/09/01 14:33:00 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -61,6 +61,8 @@ typedef struct demux_mpeg_s {
 
   int                  status;
   int                  preview_mode;
+
+  int                  rate;
 
   int                  send_end_buffers;
 
@@ -168,7 +170,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     }
     buf->type      = BUF_AUDIO_A52 + track;
     buf->PTS       = pts;
-    buf->DTS       = 0 ; /* FIXME */
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -218,7 +219,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     }
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->PTS       = pts;
-    buf->DTS       = 0;   /* FIXME */
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -268,7 +268,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
-    buf->DTS  = 0;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -390,12 +389,13 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
     }
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->PTS       = pts;
-    buf->DTS       = 0;   /* FIXME */
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
       buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
+    if (this->rate)
+      buf->input_time = buf->input_pos / (this->rate * 50);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -404,8 +404,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
 
     xprintf (VERBOSE|DEMUX|VIDEO, ", video #%d", nID & 0x0f);
 
-    if(this->input->read_block)
-      buf = this->input->read_block (this->input, this->video_fifo, nLen);
+    buf = this->input->read_block (this->input, this->video_fifo, nLen);
 
     if (buf == NULL) {
       this->status = DEMUX_FINISHED;
@@ -413,12 +412,13 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
-    buf->DTS  = 0; /* FIXME */
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
       buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
+    if (this->rate)
+      buf->input_time = buf->input_pos / (this->rate * 50);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -459,9 +459,19 @@ static uint32_t parse_pack(demux_mpeg_t *this)
 
   /* mux_rate */
 
-  buf = read_bytes (this, 3) ;
+  if (!this->rate) {
+    buf = read_bytes (this,1);
+    this->rate = (buf & 0x7F) << 15;
+    buf = read_bytes (this,1);
+    this->rate |= (buf << 7);
+    buf = read_bytes (this,1);
+    this->rate |= (buf >> 1);
 
-  /* printf ("  mux_rate = %06x\n",buf); */
+    /* printf ("demux_mpeg: mux_rate = %d\n",this->rate); */
+
+  } else
+    buf = read_bytes (this, 3) ;
+
 
   /* system header */
 
@@ -595,7 +605,7 @@ static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
 static void demux_mpeg_start (demux_plugin_t *this_gen,
 			      fifo_buffer_t *video_fifo,
 			      fifo_buffer_t *audio_fifo,
-			      off_t pos,
+			      off_t start_pos, int start_time,
 			      gui_get_next_mrl_cb_t next_mrl_cb,
 			      gui_branched_cb_t branched_cb) 
 {
@@ -604,6 +614,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
   this->video_fifo    = video_fifo;
   this->audio_fifo    = audio_fifo;
+
+  this->rate = 0; /* fixme */
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
@@ -636,8 +648,11 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
     } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
 
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos+4, SEEK_SET);
+    if ( (!start_pos) && (start_time))
+      start_pos = start_time * this->rate * 50;
+
+    this->input->seek (this->input, start_pos+4, SEEK_SET);
+
   } else
     read_bytes(this, 4);
 
@@ -759,14 +774,25 @@ static void demux_mpeg_close (demux_plugin_t *this) {
   /* nothing */
 }
 
+static int demux_mpeg_get_stream_length (demux_plugin_t *this_gen) {
+
+  demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+
+  if (this->rate) 
+    return this->input->get_length (this->input) / (this->rate * 50);
+  else
+    return 0;
+
+}
+
 demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_mpeg_t *this;
 
-  if (iface != 2) {
+  if (iface != 3) {
     printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
 	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
+	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }
@@ -781,6 +807,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
   this->demux_plugin.close             = demux_mpeg_close;
   this->demux_plugin.get_status        = demux_mpeg_get_status;
   this->demux_plugin.get_identifier    = demux_mpeg_get_id;
+  this->demux_plugin.get_stream_length = demux_mpeg_get_stream_length;
   
   return (demux_plugin_t *) this;
 }
