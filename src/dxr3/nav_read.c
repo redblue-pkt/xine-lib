@@ -1,1 +1,1 @@
-#include "../libspudec/nav_read.c"
+#include "../input/libdvdread/nav_read.c"

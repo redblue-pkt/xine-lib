@@ -7,15 +7,16 @@ XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_decode_spu_la_SOURCES = \
 	nav_read.c \
-	nav_print.c \
 	spu.c \
 	xine_decoder.c
+
+AM_CFLAGS = -I../input/libdvdread
 
 xineplug_decode_spu_la_LIBADD = $(XINE_LIB)
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = spu.h nav_read.h bswap.h nav_print.h
-include_HEADERS = spu_decoder_api.h nav_types.h
+noinst_HEADERS = spu.h
+include_HEADERS = spu_decoder_api.h
 
 $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)

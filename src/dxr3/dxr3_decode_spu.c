@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.32 2003/03/07 17:07:15 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.33 2003/03/08 14:11:52 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -301,7 +301,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     if (p[3] == 0xbf && p[6] == 0x00) { /* Private stream 2 */
       pci_t pci;
       
-      nav_read_pci(&pci, p + 7);
+      navRead_PCI(&pci, p + 7);
 #if LOG_BTN
       printf("dxr3_decode_spu: PCI packet hli_ss is %d\n", pci.hli.hl_gi.hli_ss);
 #endif

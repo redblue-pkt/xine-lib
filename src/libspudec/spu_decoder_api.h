@@ -26,6 +26,12 @@
 
 #define SPU_DECODER_IFACE_VERSION 13
 
+#ifdef XINE_COMPILE
+#include "input/libdvdread/nav_types.h"
+#else
+#include "nav_types.h"
+#endif
+
 /*
  * generic xine spu decoder plugin interface
  */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.128 2003/02/22 14:18:55 mroi Exp $
+ * $Id: xine_internal.h,v 1.129 2003/03/08 14:11:52 mroi Exp $
  *
  */
 
@@ -60,10 +60,8 @@ typedef struct extra_info_s extra_info_t;
 #include "lrb.h"
 
 #ifdef XINE_COMPILE
-#include "libspudec/nav_types.h"
 #include "libspudec/spu_decoder_api.h"
 #else
-#include "nav_types.h"
 #include "spu_decoder_api.h"
 #endif
 

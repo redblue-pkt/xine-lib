@@ -1,4 +1,4 @@
-AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS)
+AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS) -I../input/libdvdread
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
@@ -45,11 +45,8 @@ $(XINE_LIB):
 noinst_HEADERS = \
 	em8300.h \
 	alphablend.h \
-	bswap.h \
 	dxr3.h \
 	dxr3_scr.h \
-	nav_read.h \
-	nav_types.h \
 	video_out_dxr3.h
 
 debug:

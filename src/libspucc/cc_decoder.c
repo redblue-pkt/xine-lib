@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.18 2002/12/22 00:35:05 komadori Exp $
+ * $Id: cc_decoder.c,v 1.19 2003/03/08 14:11:52 mroi Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -43,12 +43,6 @@
 #include "osd.h"
 #include "video_out/alphablend.h"
 #include "cc_decoder.h"
-
-#ifdef XINE_COMPILE
-#include "libspudec/spu.h"
-#else
-#include "spu.h"
-#endif
 #include "osd.h"
 
 /*

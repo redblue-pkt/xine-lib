@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.61 2003/02/28 02:51:50 storri Exp $
+ * $Id: spu.c,v 1.62 2003/03/08 14:11:53 mroi Exp $
  *
  */
 
@@ -109,7 +109,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       int btngr_ns = 0, btn_ns = 0;
       printf("libspudec:nav_PCI\n");
 #endif
-      nav_read_pci(&pci, p+1);
+      navRead_PCI(&pci, p+1);
 #ifdef LOG_NAV
       printf("libspudec:nav:hli_ss=%u, hli_s_ptm=%u, hli_e_ptm=%u, btn_sl_e_ptm=%u pts=%lli\n",
        pci.hli.hl_gi.hli_ss,
@@ -142,7 +142,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 #ifdef LOG_NAV
       printf("NAV DSI packet\n");  
 #endif
-      nav_read_dsi(&dsi, p+1);
+      navRead_DSI(&dsi, p+1);
 
 //      self->vobu_start = self->dsi.dsi_gi.nv_pck_lbn;
 //      self->vobu_length = self->dsi.dsi_gi.vobu_ea;
@@ -436,7 +436,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #ifdef LOG_BUTTON
       fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
         this->event.event_type,
-        this->stream->metronom->get_current_time(this->stream->metronom),
+        this->stream->xine->clock->get_current_time(this->stream->metronom),
         this->event.vpts);
 #endif 
       ovl_instance->add_event(ovl_instance, (void *)&this->event);
