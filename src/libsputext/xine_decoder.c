@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2002/06/23 22:51:16 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.32 2002/06/23 23:33:24 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -1038,9 +1038,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   static char *subtitle_size_strings[SUBTITLE_SIZE_NUM] = { NULL };
 
   if (!subtitle_size_strings[0]) {
-    subtitle_size_strings[SUBTITLE_SIZE_SMALL]  = _("Small");
-    subtitle_size_strings[SUBTITLE_SIZE_NORMAL] = _("Normal");
-    subtitle_size_strings[SUBTITLE_SIZE_LARGE]  = _("Large");
+    subtitle_size_strings[SUBTITLE_SIZE_SMALL]  = "small";
+    subtitle_size_strings[SUBTITLE_SIZE_NORMAL] = "normal";
+    subtitle_size_strings[SUBTITLE_SIZE_LARGE]  = "large";
   }
 
   if (iface_version != 8) {
