@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.20 2002/12/22 15:02:06 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.21 2003/01/26 23:31:13 f1rmb Exp $
  *
  *
  * contents:
@@ -163,9 +163,10 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
   else 
     fifo->first = element;
 
-  fifo->last  = element;
+  fifo->last = element;
   element->next = NULL;
   fifo->fifo_size++;
+  fifo->data_size += element->size;
 
   pthread_cond_signal (&fifo->not_empty);
 
@@ -186,6 +187,7 @@ static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
     fifo->last = element;
     
   fifo->fifo_size++;
+  fifo->data_size += element->size;
 
   pthread_cond_signal (&fifo->not_empty);
 
@@ -213,6 +215,7 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
     fifo->last = NULL;
 
   fifo->fifo_size--;
+  fifo->data_size -= buf->size;
 
   pthread_mutex_unlock (&fifo->mutex);
 
@@ -270,6 +273,19 @@ static int fifo_buffer_size (fifo_buffer_t *this) {
   pthread_mutex_unlock(&this->mutex);
 
   return size;
+}
+
+/*
+ * Return the amount of the data in the fifo buffer
+ */
+static uint32_t fifo_buffer_data_size (fifo_buffer_t *this) {
+  int data_size;
+
+  pthread_mutex_lock(&this->mutex);
+  data_size = this->data_size;
+  pthread_mutex_unlock(&this->mutex);
+
+  return data_size;
 }
 
 /*

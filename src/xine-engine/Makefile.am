@@ -8,21 +8,24 @@ AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) @ANSI_FLAGS@
 
 lib_LTLIBRARIES = libxine.la
 
-XINEUTILS_LIB = $(top_builddir)/src/xine-utils/libxineutils.la
-
-if HAVE_NVTV
-NVTVCLIENT_LIB = nvtv/libnvclient.la
-endif
+XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
+NVTVCLIENT_LIB = $(top_builddir)/src/xine-engine/nvtv/libnvclient.la
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c \
 	video_overlay.c osd.c scratch.c locale.c demux.c vo_scale.c \
 	xine_interface.c post.c tvmode.c
-libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
 
-libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS)\
-	             -lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
+if HAVE_NVTV
+libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
+		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
+else
+libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
+		-lm $(XINEUTILS_LIB)
+endif
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
@@ -45,7 +48,10 @@ install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
 $(XINEUTILS_LIB):
-	cd $(top_srcdir)/src/xine-utils; make
+	cd $(top_srcdir)/src/xine-utils && $(MAKE) libxineutils.la
+
+$(NVTVCLIENT_LIB):
+	cd $(top_builddir)/src/xine-engine/nvtv && $(MAKE) libnvclient.la
 
 ###
 # Install header files (default=$includedir/xine)

@@ -163,6 +163,10 @@ dnl ---------------------------------------------
 AC_SUBST(DEBUG_CFLAGS)
 DEBUG_CFLAGS="$CFLAGS -g -DDEBUG"
 
+dnl dummy
+ASFLAGS="$ASFLAGS"
+AC_SUBST(ASFLAGS)
+
 dnl ---------------------------------------------
 dnl threads
 dnl ---------------------------------------------
