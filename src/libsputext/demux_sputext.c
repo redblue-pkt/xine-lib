@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.38 2004/07/27 18:06:46 mroi Exp $
+ * $Id: demux_sputext.c,v 1.39 2004/10/27 22:22:25 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -118,12 +118,13 @@ typedef struct demux_sputext_class_s {
 #define FORMAT_VPLAYER    4
 #define FORMAT_RT         5
 #define FORMAT_SSA        6 /* Sub Station Alpha */
-#define FORMAT_DUNNO      7 /*... erm ... dunnowhat. tell me if you know */
+#define FORMAT_PJS	  7
 #define FORMAT_MPSUB      8 
 #define FORMAT_AQTITLE    9 
 #define FORMAT_JACOBSUB   10
 #define FORMAT_SUBVIEWER2 11
 #define FORMAT_SUBRIP09   12
+#define FORMAT_MPL2       13 /*Mplayer sub 2 ?*/
 
 static int eol(char p) {
   return (p=='\r' || p=='\n' || p=='\0');
@@ -602,17 +603,49 @@ static subtitle_t *sub_read_line_ssa(demux_sputext_t *this,subtitle_t *current) 
   return current;
 }
 
-static subtitle_t *sub_read_line_dunnowhat (demux_sputext_t *this, subtitle_t *current) {
+/* Sylvain "Skarsnik" Colinet <scolinet@gmail.com>
+ * From MPlayer subreader.c :
+ *
+ * PJS subtitles reader.
+ * That's the "Phoenix Japanimation Society" format.
+ * I found some of them in http://www.scriptsclub.org/ (used for anime).
+ * The time is in tenths of second.
+ *
+ * by set, based on code by szabi (dunnowhat sub format ;-)
+ */
+
+static subtitle_t *sub_read_line_pjs (demux_sputext_t *this, subtitle_t *current) {
   char line[LINE_LEN + 1];
   char text[LINE_LEN + 1];
+  char *s, *d;
   
   memset (current, 0, sizeof(subtitle_t));
   
   if (!read_line_from_input(this, line, LINE_LEN))
     return NULL;
-  if (sscanf (line, "%ld,%ld,\"%" LINE_LEN_QUOT "[^\"]", &(current->start),
-	      &(current->end), text) <3)
+  for (s = line; *s && isspace(*s); s++);
+  if (*s == 0)
+    return NULL;
+  if (sscanf (line, "%ld,%ld,", &(current->start),
+	      &(current->end)) <2)
     return ERR;
+  /* the files I have are in tenths of second */
+  current->start *= 10;
+  current->end *= 10;
+ 
+  /* walk to the beggining of the string */
+  for (; *s; s++) if (*s==',') break;
+  if (*s) {
+      for (s++; *s; s++) if (*s==',') break;
+      if (*s) s++;
+  }
+  if (*s!='"') {
+       return ERR;
+  }
+  /* copy the string to the text buffer */
+  for (s++, d=text; *s && *s!='"'; s++, d++)
+      *d=*s;
+  *d=0;
   current->text[0] = strdup(text);
   current->lines = 1;
   
@@ -962,6 +995,43 @@ static subtitle_t *sub_read_line_subrip09 (demux_sputext_t *this, subtitle_t *cu
   return current;
 }
 
+/* Code from subreader.c of MPlayer
+** Sylvain "Skarsnik" Colinet <scolinet@gmail.com>
+*/
+
+subtitle_t *sub_read_line_mpl2(demux_sputext_t *this, subtitle_t *current) {
+  char line[LINE_LEN+1];
+  char line2[LINE_LEN+1];
+  char *p, *next;
+  int i;
+
+  memset (current, 0, sizeof(subtitle_t));
+  do {
+     if (!read_line_from_input (this, line, LINE_LEN)) return NULL;
+  } while ((sscanf (line,
+		      "[%ld][%ld]%[^\r\n]",
+		      &(current->start), &(current->end), line2) < 3));
+  current->start *= 10;
+  current->end *= 10;
+  p=line2;
+
+  next=p, i=0;
+  while ((next = sub_readtext (next, &(current->text[i])))) {
+      if (current->text[i] == ERR) {return ERR;}
+      i++;
+      if (i >= SUB_MAX_TEXT) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "Too many lines in a subtitle\n");
+	current->lines = i;
+	return current;
+      }
+    }
+  current->lines= ++i;
+
+  return current;
+}
+
+
+
 static int sub_autodetect (demux_sputext_t *this) {
 
   char line[LINE_LEN + 1];
@@ -1024,8 +1094,8 @@ static int sub_autodetect (demux_sputext_t *this) {
     }
     if (sscanf (line, "%d,%d,\"%c", &i, &i, (char *) &i) == 3) {
       this->uses_time=0;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "(dunno) subtitle format detected\n");
-      return FORMAT_DUNNO;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "pjs subtitle format detected\n");
+      return FORMAT_PJS;
     }
     if (sscanf (line, "FORMAT=%d", &i) == 1) {
       this->uses_time=0; 
@@ -1060,6 +1130,11 @@ static int sub_autodetect (demux_sputext_t *this) {
     }
   }
   
+    if (sscanf (line, "[%d][%d]", &i, &i) == 2) {
+      this->uses_time = 1;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "mpl2 subtitle format detected\n");
+      return FORMAT_MPL2;
+    }
   return FORMAT_UNKNOWN;  /* too many bad lines */
 }
 
@@ -1077,12 +1152,13 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     sub_read_line_vplayer,
     sub_read_line_rt,
     sub_read_line_ssa,
-    sub_read_line_dunnowhat,
+    sub_read_line_pjs,
     sub_read_line_mpsub,
     sub_read_line_aqt,
     sub_read_line_jacobsub,
     sub_read_line_subviewer2,
     sub_read_line_subrip09,
+    sub_read_line_mpl2,
   };
 
   /* Rewind (sub_autodetect() needs to read input from the beginning) */

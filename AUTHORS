@@ -510,5 +510,8 @@ Thomas Hellström <unichrome@shipmail.org>
 
 Frank van Viegen <frank@vanviegen.net>
   libsmbclient input plugin
+
+Sylvain Colinet <scolinet@gmail.com>
+  mpl2 subtitle support
       
 (let us know if we've forgotten anyone)
