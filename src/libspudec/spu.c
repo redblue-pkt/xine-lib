@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.35 2002/04/23 21:48:06 jcdutton Exp $
+ * $Id: spu.c,v 1.36 2002/04/23 22:42:17 jcdutton Exp $
  *
  */
 
@@ -285,14 +285,6 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
           this->overlay.clip_trans[i] = this->overlay.trans[i];
         }
       }
-
-      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3] |
-        this->overlay.clip_trans[0] | this->overlay.clip_trans[1] | this->overlay.clip_trans[2] | this->overlay.clip_trans[3]) ) {
-        /* SPU is transparent so why bother displaying it. */
-        printf ("spu: transparent spu found, discarding it.\n" ); 
-        return;
-      }
-  
       if ((this->state.modified) ) { 
         spudec_draw_picture(&this->state, cur_seq, &this->overlay);
       }
