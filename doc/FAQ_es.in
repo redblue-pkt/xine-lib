@@ -1,0 +1,471 @@
+
+   ----------------------
+         Xine FAQ
+   ----------------------
+
+
+¿ cómo construyo esta bestia ?
+------------------------------
+
+Primero asegúrese de usar un gcc estable, una bajada oficial del gcc para 
+compilar.
+Puede probar versiones del gcc remendadas (patched), pero estas no son 
+soportadas y probablemente no funcionen (por ejemplo el pgcc conocido para 
+hacer libmpeg falla).
+
+./autogen.sh  <--- solo necesario si comprobara Xine sin CVS
+./configure
+make
+make install
+
+
+¿ Como puedo proporcionar los  CFLAGS adicionales para la recompilación ?
+-------------------------------------------------------------------------
+
+Puede poner el GLOBAL_CFLAGS variable y configurarlo de nuevo.
+
+Éste puede ser usado par especificaciones adicionales que incluyan paths o 
+paths de bibliotecas ( library paths) al recompilar. Ejemplo:
+
+export GLOBAL_CFLAGS="-I/usr/include -L/home/guenter/xine_libs"
+
+
+¿ Hay binarios disponibles para mi K7 ? ¿ Puedo construirlos ?
+--------------------------------------------------------------
+
+Por el momento nosotros no proporcionamos binarios para el K7, no hay soporte 
+para K7 desde la última versión estable del gcc (2.92.2 cuando se escribió esto).
+Use en cambio los binarios para el 686. ¡Estos binarios funcionan bien y usan 
+3DNow!
+
+Si tiene un gcc más nuevo puede intentar compilar par el K7 obteniendo "más" 
+soporte (especialmente mejor cobertura de instrucciones). Si la configuración 
+del script falla al detectar su procesador/gcc correctamente pruebe configurar 
+XINE_BUILD explícitamente para validar la descripción del string para su 
+configuración por ej.:.
+
+export XINE_BUILD=k7-pc-linux-gnu
+rm -f config.cache
+./autogen.sh
+make
+make install
+
+
+Xine falla diciendo: "no video port found" (no se encontró puerto de vídeo)
+---------------------------------------------------------------------------
+
+Usted tiene la extensión de vídeo Xv, pero su driver de la tarjeta de vídeo 
+no lo soporta. Primero trate de encontrar un driver para sus hardware que 
+soporte Xv (chequee en su vendedor de su placa de vídeo). Si su driver tiene 
+soporte para Xv pero no puede hacerlo funcionar, intente bajar más la 
+resolución (una resolución de 1024x768 es todavía bastante buena para 
+anamorphic mpeg-2).
+
+Si todo falla, use la opción "-s" que forzara a Xine a usar la salida con 
+Xshm (recuerde cambiar la profundidad de color a 16bpp para tener velocidad).
+
+xine -s foo.vob
+
+
+Xine falla quejándose de los dispositivos/drivers de audio
+----------------------------------------------------------
+
+Pude seleccionar el driver de audio usando la opción -A . Pruebe así:
+
+xine -A null
+
+Si tiene los drivers ALSA instalados, pruebe:
+
+xine -A alsa
+
+
+¿ Xine muestra su logo pero no veo mi vídeo ?
+---------------------------------------------
+
+Use el botón de play del reproductor o presione RETORNO ó ENTRADA para 
+REPRODUCIR.
+
+
+Xine reproduce el audio pero no veo la película
+-----------------------------------------------
+
+Si ve algunos mensajes de "rechazo" , es porque su  hardware no esta bien 
+configurado para Xine. Podría ser que su placa de sonido no soporte las 
+característica en "tiempo real" (Xine cuando se inicia realiza pruebas, 
+podría mirar de nuevo estos mensajes que da). Pruebe entonces encontrar los 
+mejores drivers.
+
+Tal vez su hardware sea simplemente lento - vea si le da los siguientes 
+mensajes para la velocidad: "Xine drops a lot of frames" (Xine descartó algunos 
+cuadros).
+
+Si esta usando Xv y la salida de vídeo se queda en blanco, pruebe mover la 
+ventana alrededor de la pantalla o llevarla a pantalla completa (tecla "F").
+Hay una bug (falla) en la configuración del revestimiento [Repárame].
+
+
+¿ Dónde debo poner lo códigos dlls de windows para Xine ?
+---------------------------------------------------------
+
+guárdelos en:
+
+@w32_path@
+
+Xine se cuelga cuando intento reproducir archivos AVI
+-----------------------------------------------------
+
+El soporte para los códigos win32 es todavía experimental. Debería funcionar 
+bien si su sistema reúne esto requisitos:
+
+- Funciona el driver par Xv 
+- Los archivos AVI contienen audio en formato mpeg
+- Tiene los codecs instalados correctamente en: @w32_path@
+
+
+Obtengo el siguiente mensaje: demux error! 00 00 00 (should be 0x000001)
+------------------------------------------------------------------------
+
+Probablemente Xine no puede acceder a su fuente de entrada. La mayoría de las 
+veces esto pasa cuando está intentado reproducir DVDs cerrados/encriptados 
+(protección de zona). Recuerde que Xine no puede reproducir estos DVDs de una 
+< sin tener que hacer ningún otro trabajo> (por razones legales). 
+
+Podría usar una entrada para el DVD con un plugin css-enabled (habilitador css) 
+para evitar esto.
+
+Otra razón podría ser que su (RPC-2) de su reproductor de DVD no este ajustado 
+a la región correcta.
+
+
+Obtengo mensajes como los siguientes: "Ouch! lastPTS : 100657583 current 
+pts : 100652798"
+------------------------------------------------------------------------
+
+Apunte sus miradas al driver de su placa de sonido, falla el driver al 
+proporcionar en tiempo exacto la información. Intente encontrar mejores 
+drivers (oss <-> alsa).
+
+Si esta usando alsa, asegúrese  de que Xine este usando el alsa nativo API y no 
+la emulación del oss. Use:
+
+xine -A alsa
+
+Me pone lo siguiente varias veces: "200 frames delivered, 200 frames skipped, 
+0 frames discarded" ("200 cuadros liberados", 200 cuadros saltados, 0 cuadros 
+descartados")
+-----------------------------------------------------------------------------
+
+Observe que ha seleccionado mal un canal de audio o está intentando reproducir 
+un stream (secuencia de cuadros) que usa características que Xine no soporta 
+(por ahora).
+
+
+Cuando reproduzco un stream, Xine muestra algunos cuadros pero no hay sonido
+----------------------------------------------------------------------------
+
+Pruebe otro canal de sonido:
+
+xine -a channel stream.vob
+
+Algunos archivos .vob tienen el sonido en canales extraños (ej. 3, 7, 10)
+
+
+¿ Puede Xine reproducir SVCDs ?
+-------------------------------
+
+Si, pero tendrá que experimentar con los canales de sonido
+
+xine -a channel VCD://<track number>    (número de pista)
+
+Normalmente, encontrara el canal de sonido en la pista (track) #8 y, para  
+SVCDs bilingües en la #9, así
+
+xine -a 8 
+
+Apretando el botón de "vcd" le permitirá reproducir sus SVCDs
+
+
+Xine pierde algunos de los cuadros
+----------------------------------
+
+Su hardware es demasiado lento para Xine. Asegúrese de activar todas las 
+opciones de optimización de velocidad. Unos pocos puntos deberá constatar:
+
+- usar un kernel reciente optimizado para su hardware
+
+- usar el último gas/gcc
+
+- cerrar otras aplicaciones (use una herramienta como "top" para encontrar que 
+  aplicaciones están usando su CPU)
+
+- si no esta usando Xv, asegúrese de tener ajustada la resolución de la placa 
+  de vídeo en 16bpp y no en  24 o superior (reducen el ancho de banda)
+
+- asegúrese que la unidad de disco duro que proporciona los datos de vídeo esta 
+  en modo DMA (si lo soporta) 
+  Bajo linux, puede usar hdparm para verificar esto, por ejemplo:
+
+  hdparm /dev/hda
+
+  =>
+  ...
+   using_dma    =  1 (on)
+
+  más información sobre esto la puede encontrará aquí:
+
+  http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html
+
+- Xine necesita memorias de acceso de alta velocidad que dependen de su chip 
+  set.
+  Asegúrese de habilitar todas las opciones que permitan mejorar la velocidad. 
+
+  Especialmente el chipset via apollo pro es conocido a pesar de ser un poco 
+  raro, (la mayoría de mis motherboard gigabyte). Si no puede configurar la 
+  ram accediendo a la bios podría querer realmente probar algunos trucos sucios,
+  como explico más adelante (por ejemplo)
+         http://www.overclockers.com/tips105/index03.asp
+  este sitio web se centra sobre herramientas bajo Windows  para tocar el 
+  chipset, puede hacer lo mismo en FreeBSD con pciconf. En algunas 
+  distribuciones de linux hay herramientas similares.
+
+  Por favor contáctese con Heiko si tiene cualquier problema o consejos sobre 
+  omo tocar el chipset via apollo pro.
+
+- Una buena herramienta para mejorar el desempeño la puede encontrar aquí:
+
+  http://powertweak.sourceforge.net
+
+- habilite el soporte para MTRR en su kernel. Si esta usando todavía el XFree 
+  3.x, tendrá que decirle al kernel donde esta la memoria gráfica.
+  Encontrará detalles sobre esto en el howto para dvd de linux.
+
+  Si está usando XFree 4.x habilitando el soporte para MTRR debería ser 
+  suficiente.
+
+  Pruebe cat /proc/mtrr - si el archivo existe y encuentra una entrada 
+  correspondiente a la cantidad de memoria que posee su placa de vídeo, todo 
+  debería estar bien.
+
+- configure y use dispositivos raw para acceder al dvd
+
+  dispositivos raw deben estar disponibles en linux con kernel 2.4.x y hay 
+  parches para kernels viejos disponibles en:
+
+  ftp://ftp.kernel.org/pub/linux/kernel/people/sct/raw-io/
+
+  para usar dispositivos raw, primero conecte un dispositivo raw libre a su 
+  dispositivo dvd, use algo como:
+
+  raw /dev/raw1 /dev/hdc
+
+  luego cree un enlace (link) llamado "rdvd" que apunte a  ese dispositivo raw
+
+  ln -s /dev/raw1 /dev/rdvd
+
+
+¿ Como hago que la extensión Xv trabaje ?
+-----------------------------------------
+
+Primero necesita instalar/usar el XFree 4.x. Una vez que los tenga asegúrese 
+que los drivers del Xfree que esta usando están soportando Xv en su hardware. 
+Aquí están algunos lugares donde buscar los drivers convenientes:
+
+g200/g400    : xfree 4.x suporta a estas de una (sin tener que hacer ningún 
+               otro trabajo)
+placas nvidia: www.nvidia.com (tiene los drivers binarios)
+placas ATI   : GATOS www.linuxvideo.org/gatos/
+i815         : el último código xfree 4.x soporta a estos
+3dfx (voodoo): el último código xfree 4.x soporta a estos
+
+
+El AC3 vía S/PDIF no funciona con mi placa de sonido
+----------------------------------------------------
+
+El AC3 vía S/PDIF es soportado por ALSA solo en placas de sonido con chips 
+Trident 4DWaveNX y YMF. Entonces si posee una placa de sonido con uno de esos 
+chips use:
+
+xine -S -A alsa 
+
+La opción  -S deshabilita el decodificador interno AC3. En máquinas muy lentas 
+puede mejorar la reproducción del vídeo (sacando el sonido) cuando inicializa 
+Xine con:
+
+xine -S -A null
+
+
+
+¿ Dónde y como obtengo la última versión de desarrollo ?
+--------------------------------------------------------
+
+consulte fuera de nuestra CVS:
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine login
+
+<empty password>
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co xine
+
+
+
+¿ Cómo uso el plugin para el dvd ?
+----------------------------------
+
+Lo primero de todo:
+El plugin para dvd entregado actualmente con Xine no soporta la reproducción de
+dvds cerrados y/o encriptados. Necesitara programas externos o algo "mejor" 
+como el Xine_dvd_plugin para ver éstos DVDs directamente con Xine. Por supuesto
+podrá reproducir archivos mpeg2 tras la desencriptación (hablando técnicamente)
+que es la película en el dvd usando Xine con la ayuda de unos programas 
+adicionales.
+Debido a la situación incierta con respecto al la legalidad de la encriptación 
+del css nosotros no hemos incluido nada de esta naturaleza en la distribución 
+de Xine, ni tampoco hacemos apoyo del uso de dicho software (deberá verificar 
+si el uso de dicho software es legal donde usted vive).
+Nosotros esperamos que esta situación cambie pronto.
+
+Para dvds abiertos/no encriptados es una buena idea primero verificar que 
+archivos hay en el dvd montándolo. Los archivos se llaman algo así como 
+.../VIDEO_TS/VTS_xx_x.VOB, donde las x son números.
+Si busca los archivos que terminan con mayúsculas .VOB en el dvd, probablemente
+estas sean las películas dentro de él. Actualmente no se soporta la unión (de 
+los capítulos) en la reproducción de las películas - deberá reproducir 
+individualmente cada una de las partes.
+
+Para reproducir estos archivos VOB use algo como lo siguiente:
+
+xine dvd://VTS_xx_x.VOB
+
+Asegúrese de no proporcionar ningún nombre de camino (no VIDEO_TS/) y use 
+letras mayúsculas para los nombres de los archivos.
+
+Xine trata de abrir el dvd usando /dev/cdrom. En freebsd solamente funcionara 
+por el momento si crea un enlace simbólico entre su dvd y el nodo del 
+dispositivo.
+
+
+Incapacidad de abrir el dispositivo dvd (/dev/dvd) 
+--------------------------------------------------
+
+Probablemente no tenga  /dev/dvd (verifique esto). En este caso, simplemente 
+cree un enlace /dev/dvd que apunte a su dispositivo DVD. 
+Algo como
+
+cd /dev
+ln -s hdc dvd
+
+debería hacer el trabajo.
+
+
+¡ La relación de aspecto es incorrecta !
+----------------------------------------
+
+Pruebe apretando "A" (preferiblemente cuando Xine esta detenido, de lo 
+contrario puede experimentar un fallo de segmentación).
+
+
+¿ Como puedo reproducir desde STDIN ?
+-------------------------------------
+
+use algo como lo siguiente
+
+cat stream.mpg | xine stdin://mpeg1
+
+o, si tiene archivos mpeg-2 use
+
+cat stream.vob | xine stdin://mpeg2
+
+
+¿ Como puedo cambiarle la apariencia (skin) ?
+---------------------------------------------
+
+Ejecute por lo menos una vez Xine - escribirá su archivo de configuración 
+.xinerc en su directorio home. Ahora edite ese archivo y cambie la linea 
+"skin:default" para que corresponda a la apariencia que le gustaría que use.
+
+
+¿ Como puedo cambiar el color/brillo/contraste ?
+------------------------------------------------
+
+Por el momento esto solo es soportado por algunos drivers Xv. Encontrará tres 
+entradas en su ~/.xinerc como estas:
+
+brightness:0
+saturation:0
+contrast:128
+ 
+los valores y los rangos posibles dependen de su driver Xv, así tendrá que 
+experimentar un poco para obtener una buena imagen.
+
+
+¡ Algunas partes de mi Escritorio (X Desktop) se ponen transparentes cuando 
+Xine reproduce el vídeo !
+---------------------------------------------------------------------------
+
+Mire un poco los colores de su GUI correspondientes a la llave de color(en 
+inglés colorkey = color especial usado por mecanismos de overlay para
+reemplazar partes de un cuadro) usados por Xv. Puede cambiar la valoración 
+de esta llave de color para evitar esto. Tiene que haber una línea como:
+
+colorkey:2110
+
+en su ~/.xinerc donde puede cambiar el color usado por Xine para el 
+revestimiento de vídeo.
+
+
+No consigo sonido, pero "el driver de audio 'oss' fallo, uso entonces los 
+drivers nulos."
+-------------------------------------------------------------------------
+
+Antes de nada, asegúrese que su drivers de Audio OSS esta funcionando (por 
+ejemplo reproduce música con otro software).
+
+La razón mas común de esto es que otro programa esta accediendo a su 
+dispositivo de audio. Si esta usando linux, el comando "fuser /dev/dsp" debe 
+dar el PID del proceso.
+
+Si esta usando GNOME, las oportunidades son, que esto este causado por esd. 
+Simplemente desactive  esd (temporalmente), clikeando con el botón derecho en 
+el programa (applet) de control de sonido y seleccionado "Place Esound in 
+standby" (Ponga en espera a Esound). Todos lo sonido de GNOME serán 
+desactivados. Pero probablemente quiera escuchar su película, de cualquier 
+manera ;-)
+
+
+Después de correr Xine varias veces falla en ubicar la memoria asignada!
+------------------------------------------------------------------------
+
+Esto debe arreglarse en Xine 0.3.3 o superior. Sin embargo, eso solo puede 
+funcionar si se sale de Xine de la manera "correcta" (ej. usando el panel o 
+presionando la tecla "q").
+No cierre simplemente la ventana de salida de vídeo usando su manejador de 
+ventanas (window manager) - Xine no liberará la memoria compartida en ese 
+caso (!).
+
+
+Tengo problemas cuando uso Xine en BSD
+--------------------------------------
+
+Verifique si encuentra lo que está buscando en el archivo README.freebsd
+
+
+¡ Creo que encontré un error (bug) !
+------------------------------------
+
+Xine esta en una fase temprana de desarrollo. Por favor sea paciente.
+Si tiene tiempo, por favor contáctenos y envíenos un reporte completo sobre 
+el error.
+Por favor incluya completamente toda la salida de la consola de Xine y algunos 
+detalles sobre su hardware y sistema operativo.
+
+Puede localizarnos vía correo electrónico:
+
+  Lista de correo de Xine (Xine Mailing List) <xine-user@lists.sourceforge.net>
+
+
+***********************************************************************
+***  Nota del traductor: he tratado de mantener la fidelidad del    ***
+***  artículo original en inglés lo mayor posible, por comentarios  *** 
+***  sobre la traducción, comunicarse con Alfredo J. Delaiti        ***
+***  alfredodelaiti@netscape.net                        ***
+***********************************************************************
