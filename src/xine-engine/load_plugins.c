@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.158 2003/10/23 17:57:04 hadess Exp $
+ * $Id: load_plugins.c,v 1.159 2003/10/31 22:08:37 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -161,7 +161,7 @@ static void _insert_plugin (xine_t *this,
   int                i;
 
   if (info->API != api_version) {
-    if (this->verbosity >= XINE_VERBOSITY_DEBUG)
+    if (this->verbosity >= XINE_VERBOSITY_LOG)
       printf ("load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n",
 	      info->id, info->API, api_version);
     return;
@@ -313,7 +313,7 @@ static void collect_plugins(xine_t *this, char *path){
 
 	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 
-	    if (this->verbosity >= XINE_VERBOSITY_DEBUG) {
+	    if (this->verbosity >= XINE_VERBOSITY_LOG) {
 	      char *dl_error_msg = dlerror();
 	      /* too noisy -- but good to catch unresolved references */
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
@@ -1667,7 +1667,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
 
     if (!node->plugin_class) {
       /* remove non working plugin from catalog */
-      if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      if (stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	printf("load_plugins: plugin %s failed to init its class.\n", 
 	       node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
@@ -1687,7 +1687,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
       return vd;
     } else {
       /* remove non working plugin from catalog */
-      if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      if (stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	printf("load_plugins: plugin %s failed to instantiate itself.\n", node->info->id);
       for (j = i + 1; j < PLUGINS_PER_TYPE; j++)
         catalog->video_decoder_map[stream_type][j - 1] =
