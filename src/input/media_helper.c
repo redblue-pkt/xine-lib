@@ -53,14 +53,12 @@
 
 static int media_umount_media(const char *device)
 {
-#ifndef WIN32
-  int i;
   pid_t pid;
   int status;
 
   pid=fork();
   if (pid == 0) {
-    i= execl("/bin/umount", "umount", device, NULL);
+    execl("/bin/umount", "umount", device, NULL);
     exit(127);
   }
   do {
@@ -74,36 +72,41 @@ static int media_umount_media(const char *device)
   } while(1);
   
   return -1;
-#else
-  return 0;
-#endif /* WIN32 */
 } 
 
-int media_eject_media (xine_t *xine, const char *device) {
+int media_eject_media (xine_t *xine, const char *device)
+{
+#if defined (__sun)
 
-#ifndef WIN32
-  int   ret, status;
-  int   fd;
-#endif /* WIN32 */
+  if (fork() == 0) {
+    execl("/usr/bin/eject", "eject", device, NULL);
+    _exit(EXIT_FAILURE);
+  }
+
+  return 1;
+
+#elif defined (WIN32)
+
+  return 0;
+
+#else 
+
+  int ret, status, fd;
 
   /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",device, this->current_dvd_device, this->opened, this->dvdnav); */
   media_umount_media(device);
-  /**********
-        printf("input_dvd: umount result: %s\n", 
-                  strerror(errno));  
-   ***********/
+  /* printf("input_dvd: umount result: %s\n", strerror(errno)); */
 
-#ifndef WIN32
   if ((fd = open (device, O_RDONLY|O_NONBLOCK)) > -1) {
 
 #if defined (__linux__)
+
     if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
       switch(status) {
       case CDS_TRAY_OPEN:
         if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
 #ifdef LOG_MEDIA_EJECT
-          printf("input_dvd: CDROMCLOSETRAY failed: %s\n", 
-                  strerror(errno));  
+          printf("input_dvd: CDROMCLOSETRAY failed: %s\n", strerror(errno));  
 #endif
         }
         break;
@@ -118,12 +121,12 @@ int media_eject_media (xine_t *xine, const char *device) {
     }
     else {
 #ifdef LOG_MEDIA_EJECT
-      printf("input_dvd: CDROM_DRIVE_STATUS failed: %s\n", 
-              strerror(errno));
+      printf("input_dvd: CDROM_DRIVE_STATUS failed: %s\n", strerror(errno));
 #endif
       close(fd);
       return 0;
     }
+
 #elif defined (__NetBSD__) || defined (__OpenBSD__) || defined (__FreeBSD__)
 
     if (ioctl(fd, CDIOCALLOW) == -1) {
@@ -137,13 +140,13 @@ int media_eject_media (xine_t *xine, const char *device) {
 #endif
 
     close(fd);
-  } else {
-    xprintf(xine, XINE_VERBOSITY_LOG,
-	    _("input_dvd: Device %s failed to open during eject calls\n"), device);
   }
+  else {
+    xprintf(xine, XINE_VERBOSITY_LOG, _("input_dvd: Device %s failed to open during eject calls\n"), device);
+  }
+
   return 1;
-#else
-  return 0;
-#endif /* WIN32 */
+
+#endif
 }
 
