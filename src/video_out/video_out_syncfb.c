@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.94 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.95 2003/12/13 00:55:11 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -839,6 +839,10 @@ static void syncfb_dispose(vo_driver_t *this_gen)
   munmap(0, this->capabilities.memory_size);   
   
   close(this->fd);
+
+  XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
+  XUnlockDisplay (this->display);
   
   free(this);
 }

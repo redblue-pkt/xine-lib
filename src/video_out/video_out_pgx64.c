@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.46 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_pgx64.c,v 1.47 2003/12/13 00:55:11 f1rmb Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -924,6 +924,10 @@ static void pgx64_dispose(vo_driver_t *this_gen)
   this->class->instance_count--;
   pthread_mutex_unlock(&this->class->mutex);
 
+  XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
+  XUnlockDisplay (this->display);
+  
   free(this);
 }
 

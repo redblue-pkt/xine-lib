@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.186 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.187 2003/12/13 00:55:11 f1rmb Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1014,6 +1014,7 @@ static void xv_dispose (vo_driver_t *this_gen) {
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_xv: xv_exit: XvUngrabPort() failed.\n");
   }
+  XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
 
   for( i=0; i < VO_NUM_RECENT_FRAMES; i++ ) {
@@ -1334,6 +1335,12 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     }
   }
 
+  if(fo) {
+    XLockDisplay(this->display);
+    XFree(fo);
+    XUnlockDisplay(this->display);
+  }
+
   /*
    * try to create a shared image
    * to find out if MIT shm really works, using supported format
@@ -1420,8 +1427,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
    * check adaptors, search for one that supports (at least) yuv12
    */
 
-  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display),
-				 &adaptors,&adaptor_info))  {
+  if (Success != XvQueryAdaptors(display,DefaultRootWindow(display), &adaptors, &adaptor_info))  {
     xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out_xv: XvQueryAdaptors failed.\n");
     XUnlockDisplay(display);
     return NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.56 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.57 2003/12/13 00:55:11 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -919,11 +919,13 @@ static void vidix_exit (vo_driver_t *this_gen) {
   vdlClose(this->vidix_handler);
 
 #ifdef HAVE_X11
-  if( this->xoverlay ) {
-    XLockDisplay (this->display);
+  XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
+
+  if( this->xoverlay )
     x11osd_destroy (this->xoverlay);
-    XUnlockDisplay (this->display);
-  }
+
+  XUnlockDisplay (this->display);
 #endif
 
   free (this);
@@ -1111,6 +1113,8 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 static void dispose_class (video_driver_class_t *this_gen) {
   vidix_class_t        *this = (vidix_class_t *) this_gen;
 
+
+
   free (this);
 }
 
@@ -1118,7 +1122,6 @@ static void dispose_class (video_driver_class_t *this_gen) {
 static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   vidix_driver_t       *this   = open_plugin(class_gen);
   config_values_t      *config = this->config;
-    
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes     window_attributes;  
   

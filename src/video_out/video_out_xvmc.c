@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.11 2003/12/06 18:11:56 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.12 2003/12/13 00:55:11 f1rmb Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -1258,6 +1258,7 @@ static void xvmc_dispose (vo_driver_t *this_gen) {
   }
 
   XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
     lprintf ("xvmc_dispose: XvUngrabPort() failed.\n");
   }
@@ -1528,6 +1529,12 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
       this->capabilities     |= VO_CAP_YUY2;
       lprintf("this adaptor supports the yuy2 format.\n");
     }
+  }
+
+  if(fo) {
+    XLockDisplay(this->display);
+    XFree(fo);
+    XUnlockDisplay(this->display);
   }
 
   /*

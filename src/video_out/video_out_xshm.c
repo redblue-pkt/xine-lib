@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.124 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.125 2003/12/13 00:55:11 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -954,7 +954,11 @@ static void xshm_dispose (vo_driver_t *this_gen) {
     this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
 
   this->yuv2rgb_factory->dispose (this->yuv2rgb_factory);
-
+  
+  XLockDisplay (this->display);
+  XFreeGC(this->display, this->gc);
+  XUnlockDisplay (this->display);
+  
   if( this->xoverlay ) {
     XLockDisplay (this->display);
     x11osd_destroy (this->xoverlay);
