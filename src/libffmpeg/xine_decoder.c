@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.85 2003/01/08 01:02:29 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.86 2003/01/08 13:19:05 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -68,7 +68,7 @@ typedef struct ff_decoder_s {
   int               size;
   int               skipframes;
 
-  AVVideoFrame      *av_picture;
+  AVFrame           *av_frame;
   AVCodecContext    *context;
   AVCodec           *codec;
 
@@ -124,7 +124,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
    */ 
   this->bih.biWidth = (this->bih.biWidth + 1) & (~1);
 
-  this->av_picture = avcodec_alloc_picture();
+  this->av_frame = avcodec_alloc_frame();
   this->context = avcodec_alloc_context();
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
@@ -445,7 +445,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         if( codec_type == BUF_VIDEO_DV && this->skipframes )
           len = this->size;
         else
-	  len = avcodec_decode_video (this->context, this->av_picture,
+	  len = avcodec_decode_video (this->context, this->av_frame,
 				      &got_picture, &this->buf[offset],
 				      this->size);
 	if (len<0) {
@@ -499,7 +499,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 	
 	img = this->stream->video_out->get_frame (this->stream->video_out,
-						  /* this->av_picture.linesize[0],  */
+						  /* this->av_frame.linesize[0],  */
 						  this->bih.biWidth,
 						  this->bih.biHeight,
 						  ratio, 
@@ -519,26 +519,26 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  dy = img->base[0];
 	  du = img->base[1];
 	  dv = img->base[2];
-	  sy = this->av_picture->data[0];
-	  su = this->av_picture->data[1];
-	  sv = this->av_picture->data[2];
+	  sy = this->av_frame->data[0];
+	  su = this->av_frame->data[1];
+	  sv = this->av_frame->data[2];
 	  
           if (this->context->pix_fmt == PIX_FMT_YUV410P) {
 
             yuv9_to_yv12(
              /* Y */
-              this->av_picture->data[0],
-              this->av_picture->linesize[0],
+              this->av_frame->data[0],
+              this->av_frame->linesize[0],
               img->base[0],
               img->pitches[0],
              /* U */
-              this->av_picture->data[1],
-              this->av_picture->linesize[1],
+              this->av_frame->data[1],
+              this->av_frame->linesize[1],
               img->base[1],
               img->pitches[1],
              /* V */
-              this->av_picture->data[2],
-              this->av_picture->linesize[2],
+              this->av_frame->data[2],
+              this->av_frame->linesize[2],
               img->base[2],
               img->pitches[2],
              /* width x height */
@@ -552,7 +552,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    
 	    dy += img->pitches[0];
 	  
-	    sy += this->av_picture->linesize[0];
+	    sy += this->av_frame->linesize[0];
 	  }
 	
           if (this->context->pix_fmt != PIX_FMT_YUV410P)
@@ -590,11 +590,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    dv += img->pitches[2];
 	    
 	    if (this->context->pix_fmt != PIX_FMT_YUV420P) {
-	      su += 2*this->av_picture->linesize[1];
-	      sv += 2*this->av_picture->linesize[2];
+	      su += 2*this->av_frame->linesize[1];
+	      sv += 2*this->av_frame->linesize[2];
 	    } else {
-	      su += this->av_picture->linesize[1];
-	      sv += this->av_picture->linesize[2];
+	      su += this->av_frame->linesize[1];
+	      sv += this->av_frame->linesize[2];
 	    }
 	  }
 	}
@@ -660,9 +660,13 @@ void avcodec_register_all(void)
     //    register_avcodec(&dvaudio_decoder);
     register_avcodec(&mjpeg_decoder);
     register_avcodec(&mjpegb_decoder);
+    register_avcodec(&mp2_decoder);
+    register_avcodec(&mp3_decoder);
     register_avcodec(&wmav1_decoder);
     register_avcodec(&wmav2_decoder);
-
+    register_avcodec(&mace3_decoder);
+    register_avcodec(&mace6_decoder);
+    register_avcodec(&huffyuv_decoder);
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
@@ -685,8 +689,8 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if( this->context )
     free( this->context );
 
-  if( this->av_picture )
-    free( this->av_picture );
+  if( this->av_frame )
+    free( this->av_frame );
   
   if (this->buf)
     free(this->buf);
