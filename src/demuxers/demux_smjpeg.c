@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.9 2002/08/31 18:20:50 mroi Exp $
+ * $Id: demux_smjpeg.c,v 1.10 2002/09/03 02:44:01 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -115,6 +115,7 @@ static void *demux_smjpeg_loop (void *this_gen) {
   unsigned char preamble[SMJPEG_CHUNK_PREAMBLE_SIZE];
   off_t current_file_pos;
   int64_t last_frame_pts = 0;
+  unsigned int audio_frame_count = 0;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -146,9 +147,26 @@ static void *demux_smjpeg_loop (void *this_gen) {
        *      90000           1000
        *
        * therefore, xine pts = timestamp * 90000 / 1000 => timestamp * 90
+       *
+       * However, millisecond timestamps are not completely accurate
+       * for the audio samples. These audio chunks usually have 256 bytes,
+       * or 512 nibbles, which corresponds to 512 samples.
+       *
+       *   512 samples * (1 sec / 22050 samples) * (1000 ms / 1 sec)
+       *     = 23.2 ms
+       *
+       * where the audio samples claim that each chunk is 23 ms long.
+       * Therefore, manually compute the pts values for the audio samples.
        */
-      pts = BE_32(&preamble[4]);
-      pts *= 90;
+      if (chunk_tag == sndD_TAG) {
+        pts = audio_frame_count;
+        pts *= 90000;
+        pts /= (this->audio_sample_rate * this->audio_channels);
+        audio_frame_count += ((remaining_sample_bytes - 4) * 2);
+      } else {
+        pts = BE_32(&preamble[4]);
+        pts *= 90;
+      }
 
       /* break up the data into packets and dispatch them */
       if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
