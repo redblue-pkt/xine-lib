@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.8 2002/10/22 17:18:24 jkeil Exp $
+ * $Id: vm.c,v 1.9 2002/11/18 12:41:16 mroi Exp $
  *
  */
 
@@ -541,7 +541,7 @@ int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result)
   part++;
   if (found == 1) {
     fprintf(MSG_OUT, "libdvdnav: ************ this chapter FOUND!\n");
-    printf("VTS_PTT_SRPT - Title %3i part %3i: PGC: %3i PG: %3i\n",
+    fprintf(MSG_OUT, "libdvdnav: VTS_PTT_SRPT - Title %3i part %3i: PGC: %3i PG: %3i\n",
              title, part,
              vts_ptt_srpt->title[title-1].ptt[part-1].pgcn ,
              vts_ptt_srpt->title[title-1].ptt[part-1].pgn );
@@ -1988,6 +1988,11 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.9  2002/11/18 12:41:16  mroi
+ * sync to libdvdnav cvs
+ * * fix read cache and improve it for slower drives
+ * * improve chapter skipping
+ *
  * Revision 1.8  2002/10/22 17:18:24  jkeil
  * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
  *
