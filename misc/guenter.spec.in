@@ -82,85 +82,13 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/man/man3/vo_frame_t.3
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
-# input plugins
-%{prefix}/lib/xine/plugins/xineplug_inp_dvd.la
-%{prefix}/lib/xine/plugins/xineplug_inp_dvd.so
-%{prefix}/lib/xine/plugins/xineplug_inp_file.la
-%{prefix}/lib/xine/plugins/xineplug_inp_file.so
-%{prefix}/lib/xine/plugins/xineplug_inp_net.la
-%{prefix}/lib/xine/plugins/xineplug_inp_net.so
-%{prefix}/lib/xine/plugins/xineplug_inp_rtp.la
-%{prefix}/lib/xine/plugins/xineplug_inp_rtp.so
-%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.la
-%{prefix}/lib/xine/plugins/xineplug_inp_stdin_fifo.so
-%{prefix}/lib/xine/plugins/xineplug_inp_vcd.la
-%{prefix}/lib/xine/plugins/xineplug_inp_vcd.so
-# demuxer plugins
-%{prefix}/lib/xine/plugins/xineplug_dmx_avi.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_avi.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_audio.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_block.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.so
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
-# decoder plugins
-%{prefix}/lib/xine/plugins/xineplug_decode_a52.la
-%{prefix}/lib/xine/plugins/xineplug_decode_a52.so
-%{prefix}/lib/xine/plugins/xineplug_decode_ff.so
-%{prefix}/lib/xine/plugins/xineplug_decode_ff.la
-%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.so
-%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.la
-%{prefix}/lib/xine/plugins/xineplug_decode_mad.so
-%{prefix}/lib/xine/plugins/xineplug_decode_mad.la
-%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.la
-%{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.so
-%{prefix}/lib/xine/plugins/xineplug_decode_spu.la
-%{prefix}/lib/xine/plugins/xineplug_decode_spu.so
-# audio driver plugins
-%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
-%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa.so
-%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.so
-%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
-# video driver plugins
-%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.so
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
-%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
-%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
-%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
-# dxr3
-%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
-%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
-%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
-%{prefix}/include/dxr3_overlay.h
+# plugins
+%{prefix}/lib/xine/plugins/xineplug_*.la
+%{prefix}/lib/xine/plugins/xineplug_*.so
 # doc, lib, skins
 %{prefix}/share/doc/xine/xine-lib-API/*
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
-
-#
-# stuff we do not build
-#
-
-#%files alsa05
-#%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
-#%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.so
 
 %changelog
