@@ -37,7 +37,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.7 2003/03/10 23:21:27 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.8 2003/03/12 23:04:41 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1069,7 +1069,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       aux = strchr(this->save_prefix, '!');
       if( aux ) { 
         aux[0] = '\0';
-        this->max_page_age = atoi(aux+1);
+        if( atoi(aux+1) )
+          this->max_page_age = atoi(aux+1);
       }
     } else {
       this->save_prefix=strdup(this->tmp_prefix);
