@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_elem.c,v 1.71 2003/05/19 23:31:07 tmattern Exp $
+ */
+
+/*
+ * $Id: demux_elem.c,v 1.72 2003/07/03 12:35:18 andruil Exp $
  *
  * demultiplexer for elementary mpeg streams
- * 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,66 +34,46 @@
 #include <unistd.h>
 #include <string.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_elem"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
 #include "demux.h"
 
-/*
-#define LOG
-*/
-
 #define NUM_PREVIEW_BUFFERS 50
-#define SCRATCH_SIZE ((MAX_PREVIEW_SIZE>4096)?MAX_PREVIEW_SIZE:4096)
 
 typedef struct {  
-
   demux_plugin_t      demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   int                  blocksize;
-  int                  status;
-  
-  uint8_t              scratch[SCRATCH_SIZE];
-
-  char                 last_mrl[1024];
 } demux_mpeg_elem_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_mpeg_elem_class_t;
 
 static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
 
-#ifdef LOG
-  printf ("demux_elem: next piece\n");
-#endif
-
+  lprintf ("next piece\n");
   buf = this->input->read_block(this->input, this->video_fifo, this->blocksize);
 
   if (!buf) {
     this->status = DEMUX_FINISHED;
     return 0;
   }
-#ifdef LOG
-  printf ("demux_elem: size = %d\n", buf->size);
-#endif
-  
+
+  lprintf ("size = %d\n", buf->size);
   if (buf->size <= 0) {
     buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
@@ -140,11 +121,11 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
   
   xine_demux_control_start(this->stream);
   
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+  if (INPUT_IS_SEEKABLE(this->input)) {
     int num_buffers = NUM_PREVIEW_BUFFERS;
-    
+
     this->input->seek (this->input, 0, SEEK_SET);
-    
+
     this->status = DEMUX_OK ;
     while ((num_buffers > 0) && (this->status == DEMUX_OK)) {
       demux_mpeg_elem_next(this, 1);
@@ -162,26 +143,23 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
 				  off_t start_pos, int start_time) {
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
-  
+
   this->status = DEMUX_OK;
 
-  if (this->stream->demux_thread_running) 
+  if (this->stream->demux_thread_running)
     xine_demux_flush_engine(this->stream);
-  
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-	  
+
+  if (INPUT_IS_SEEKABLE(this->input)) {
+
     /* FIXME: implement time seek */
 
     if (start_pos != this->input->seek (this->input, start_pos, SEEK_SET)) {
       this->status = DEMUX_FINISHED;
       return this->status;
-	}
-
-#ifdef LOG
-    printf ("demux_elem: seeking to %lld\n", start_pos);
-#endif
+    }
+    lprintf ("seeking to %lld\n", start_pos);
   }
-  
+
   /*
    * now start demuxing
    */
@@ -209,10 +187,43 @@ static int demux_mpeg_elem_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mpeg_elem_t *this;
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT: {
+    uint8_t scratch[4];
+
+    if (xine_demux_read_header(input, scratch, 4) != 4)
+      return NULL;
+
+    lprintf ("%02x %02x %02x %02x\n", scratch[0], scratch[1], scratch[2], scratch[3]);
+
+    if (scratch[0] || scratch[1] || (scratch[2] != 0x01) || (scratch[3] != 0xb3))
+      return NULL;
+    lprintf ("input accepted.\n");
+  }
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions))
+      return NULL;
+  }
+  break;
+
+  case METHOD_EXPLICIT:
+  break;
+
+  default:
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
   this->stream = stream;
@@ -231,63 +242,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-
-  switch (stream->content_detection_method) {
-
-  case METHOD_BY_CONTENT: {
-    uint8_t *scratch = this->scratch;
-
-    if (!xine_demux_read_header(this->input, scratch, 4))
-      return NULL;
-		
-#ifdef LOG	
-    printf ("demux_elem: %02x %02x %02x %02x\n",
-            scratch[0], scratch[1], 
-            scratch[2], scratch[3]);
-#endif
-	
-    if (scratch[0] || scratch[1] || (scratch[2] != 0x01) || (scratch[3] != 0xb3)) {
-      free (this);
-      return NULL;
-    }
-	
-    this->input = input;
-    
-#ifdef LOG	
-    printf ("demux_elem: input accepted.\n");
-#endif
-
-  }
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".mpv", 4)) {
-      free (this);
-      return NULL;
-    }
-  }
-  break;
-
-  case METHOD_EXPLICIT:
-  break;
-
-  default:
-    free (this);
-    return NULL;
-  }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -319,9 +273,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   demux_mpeg_elem_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_mpeg_elem_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_mpeg_elem_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

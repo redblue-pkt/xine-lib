@@ -16,14 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * CDDA "Demuxer" by Mike Melanson (melanson@pcisys.net)
  * All this demuxer does is read raw CD frames and shovel them to the
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.7 2003/05/06 15:20:13 esnel Exp $
- *
+ * $Id: demux_cdda.c,v 1.8 2003/07/03 12:35:18 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +38,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_cdda"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
@@ -47,33 +53,19 @@
 #define CD_BYTES_PER_SECOND (44100 * 2 * 2)
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_cdda_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_cdda_class_t;
 
 static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
@@ -191,14 +183,12 @@ static int demux_cdda_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_cdda_t   *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_cdda.c: input not seekable, can not handle!\n"));
+  if (!INPUT_IS_SEEKABLE(input)) {
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 
@@ -237,8 +227,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -269,9 +257,7 @@ void *demux_cdda_init_plugin (xine_t *xine, void *data) {
 
   demux_cdda_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_cdda_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_cdda_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

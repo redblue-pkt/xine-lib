@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.60 2003/04/26 20:16:01 guenter Exp $
+ * $Id: demux_film.c,v 1.61 2003/07/03 12:35:18 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,18 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_film"
+/* #define LOG_VERBOSE */
+
+/* set DEBUG_FILM_LOAD to dump the frame index after the demuxer loads a
+ * FILM file */
+#define DEBUG_FILM_LOAD 0
+
+/* set DEBUG_FILM_DEMUX to output information about the A/V chunks that the
+ * demuxer is dispatching to the engine */
+#define DEBUG_FILM_DEMUX 0
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -59,21 +71,16 @@ typedef struct {
 } film_sample_t;
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   off_t                data_start;
   off_t                data_size;
-  int                  status;
 
   /* when this flag is set, demuxer only dispatches audio samples until it
    * encounters a video keyframe, then it starts sending every frame again */
@@ -100,39 +107,12 @@ typedef struct {
   unsigned int         current_sample;
   unsigned int         last_sample;
   int                  total_time;
-
-  char                 last_mrl[1024];
 } demux_film_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_film_class_t;
 
-/* set DEBUG_FILM_LOAD to dump the frame index after the demuxer loads a
- * FILM file */
-#define DEBUG_FILM_LOAD 0
-
-/* set DEBUG_FILM_DEMUX to output information about the A/V chunks that the
- * demuxer is dispatching to the engine */
-#define DEBUG_FILM_DEMUX 0
-
-#if DEBUG_FILM_LOAD
-#define debug_film_load printf
-#else
-static inline void debug_film_load(const char *format, ...) { }
-#endif
-
-#if DEBUG_FILM_DEMUX
-#define debug_film_demux printf
-#else
-static inline void debug_film_demux(const char *format, ...) { }
-#endif
 
 /* Open a FILM file
  * This function is called from the _open() function of this demuxer.
@@ -142,7 +122,6 @@ static int open_film_file(demux_film_t *film) {
   unsigned char *film_header;
   unsigned int film_header_size;
   unsigned char scratch[16];
-  unsigned char preview[MAX_PREVIEW_SIZE];
   unsigned int chunk_type;
   unsigned int chunk_size;
   unsigned int i, j;
@@ -158,33 +137,18 @@ static int open_film_file(demux_film_t *film) {
   film->audio_bits = 0;
   film->audio_channels = 0;
 
-  if (film->input->get_capabilities(film->input) & INPUT_CAP_SEEKABLE) {
-    /* reset the file */
-    film->input->seek(film->input, 0, SEEK_SET);
-
-    /* get the signature, header length and file version */
-    if (film->input->read(film->input, scratch, 16) != 16) {
-      return 0;
-    }
-  } else {
-    film->input->get_optional_data(film->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(scratch, preview, 16);
-  }
+  /* get the signature, header length and file version */
+  if (xine_demux_read_header(film->input, scratch, 16) != 16)
+    return 0;
 
   /* FILM signature correct? */
   if (strncmp(scratch, "FILM", 4)) {
     return 0;
   }
-  debug_film_load("  demux_film: found 'FILM' signature\n");
+  llprintf(DEBUG_FILM_LOAD, "found 'FILM' signature\n");
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((film->input->get_capabilities(film->input) & INPUT_CAP_SEEKABLE) == 0) {
-    film->input->seek(film->input, 16, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  film->input->seek(film->input, 16, SEEK_SET);
 
   /* header size = header size - 16-byte FILM signature */
   film_header_size = BE_32(&scratch[4]) - 16;
@@ -192,7 +156,7 @@ static int open_film_file(demux_film_t *film) {
   if (!film_header)
     return 0;
   strncpy(film->version, &scratch[8], 4);
-  debug_film_load("  demux_film: 0x%X header bytes, version %c%c%c%c\n",
+  llprintf(DEBUG_FILM_LOAD, "0x%X header bytes, version %c%c%c%c\n",
     film_header_size,
     film->version[0],
     film->version[1],
@@ -230,7 +194,7 @@ static int open_film_file(demux_film_t *film) {
 
     switch(chunk_type) {
     case FDSC_TAG:
-      debug_film_load("  demux_film: parsing FDSC chunk\n");
+      llprintf(DEBUG_FILM_LOAD, "parsing FDSC chunk\n");
 
       /* always fetch the video information */
       film->bih.biWidth = BE_32(&film_header[i + 16]);
@@ -266,27 +230,27 @@ static int open_film_file(demux_film_t *film) {
         film->audio_type = 0;
 
       if (film->video_type)
-        debug_film_load("    video: %dx%d %c%c%c%c\n",
+        llprintf(DEBUG_FILM_LOAD, "video: %dx%d %c%c%c%c\n",
           film->bih.biWidth, film->bih.biHeight,
           film_header[i + 8],
           film_header[i + 9],
           film_header[i + 10],
           film_header[i + 11]);
       else
-        debug_film_load("    no video\n");
+        llprintf(DEBUG_FILM_LOAD, "no video\n");
 
       if (film->audio_type)
-        debug_film_load("    audio: %d Hz, %d channels, %d bits PCM\n",
+        llprintf(DEBUG_FILM_LOAD, "audio: %d Hz, %d channels, %d bits PCM\n",
           film->sample_rate,
           film->audio_channels,
           film->audio_bits);
       else
-        debug_film_load("    no audio\n");
+        llprintf(DEBUG_FILM_LOAD, "no audio\n");
 
       break;
 
     case STAB_TAG:
-      debug_film_load("  demux_film: parsing STAB chunk\n");
+      llprintf(DEBUG_FILM_LOAD, "parsing STAB chunk\n");
 
       /* load the sample table */
       if (film->sample_table)
@@ -297,14 +261,14 @@ static int open_film_file(demux_film_t *film) {
         xine_xmalloc(film->sample_count * sizeof(film_sample_t));
       for (j = 0; j < film->sample_count; j++) {
 
-        film->sample_table[j].sample_offset = 
+        film->sample_table[j].sample_offset =
           BE_32(&film_header[(i + 16) + j * 16 + 0])
           + film_header_size + 16;
-        film->sample_table[j].sample_size = 
+        film->sample_table[j].sample_size =
           BE_32(&film_header[(i + 16) + j * 16 + 4]);
-        pts = 
+        pts =
           BE_32(&film_header[(i + 16) + j * 16 + 8]);
-        film->sample_table[j].duration = 
+        film->sample_table[j].duration =
           BE_32(&film_header[(i + 16) + j * 16 + 12]);
 
         if (pts == 0xFFFFFFFF) {
@@ -315,7 +279,7 @@ static int open_film_file(demux_film_t *film) {
           /* figure out audio pts */
           film->sample_table[j].pts = audio_byte_count;
           film->sample_table[j].pts *= 90000;
-          film->sample_table[j].pts /= 
+          film->sample_table[j].pts /=
             (film->sample_rate * film->audio_channels * (film->audio_bits / 8));
           audio_byte_count += film->sample_table[j].sample_size;
 
@@ -329,7 +293,7 @@ static int open_film_file(demux_film_t *film) {
             film->sample_table[j].keyframe = 0;
           else
             film->sample_table[j].keyframe = 1;
- 
+
           /* remove the keyframe bit */
           film->sample_table[j].pts = pts & 0x7FFFFFFF;
 
@@ -347,7 +311,7 @@ static int open_film_file(demux_film_t *film) {
         if (film->sample_table[j].pts > largest_pts)
           largest_pts = film->sample_table[j].pts;
 
-        debug_film_load("    sample %4d @ %8llX, %8X bytes, %s, pts %lld, duration %lld%s\n",
+        llprintf(DEBUG_FILM_LOAD, "sample %4d @ %8llX, %8X bytes, %s, pts %lld, duration %lld%s\n",
           j,
           film->sample_table[j].sample_offset,
           film->sample_table[j].sample_size,
@@ -364,12 +328,12 @@ static int open_film_file(demux_film_t *film) {
       if (chunk_size == film->sample_count * 16)
         i += 16;
 
-      /* allocate enough space in the interleave preload buffer for the 
+      /* allocate enough space in the interleave preload buffer for the
        * first chunk (which will be more than enough for successive chunks) */
       if (film->audio_type) {
         if (film->interleave_buffer)
           free(film->interleave_buffer);
-        film->interleave_buffer = 
+        film->interleave_buffer =
           xine_xmalloc(film->sample_table[0].sample_size);
       }
       break;
@@ -434,7 +398,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     }
   }
 
-  debug_film_demux("  demux_film: dispatching frame...\n");
+  llprintf(DEBUG_FILM_DEMUX, "dispatching frame...\n");
 
   if ((!this->sample_table[i].audio) &&
     (this->video_type == BUF_VIDEO_CINEPAK)) {
@@ -509,7 +473,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_film_demux("    sending video buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %d bytes, %lld pts, %d duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->video_fifo->put(this->video_fifo, buf);
     }
@@ -552,7 +516,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_film_demux("    sending video buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %d bytes, %lld pts, %d duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->video_fifo->put(this->video_fifo, buf);
     }
@@ -611,7 +575,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_film_demux("    sending mono audio buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending mono audio buf with %d bytes, %lld pts, %d duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
 
@@ -681,7 +645,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_film_demux("    sending stereo audio buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending stereo audio buf with %d bytes, %lld pts, %d duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
     }
@@ -761,7 +725,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
     
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* perform a binary search on the sample table, testing the offset 
@@ -873,9 +837,8 @@ static int demux_film_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_film_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_film_t));
@@ -898,6 +861,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -908,40 +884,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".cpk", 4) &&
-        strncasecmp (ending, ".cak", 4) &&
-        strncasecmp (ending, ".film", 5)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_film_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -974,8 +920,6 @@ void *demux_film_init_plugin (xine_t *xine, void *data) {
   demux_film_class_t     *this;
 
   this         = xine_xmalloc (sizeof (demux_film_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

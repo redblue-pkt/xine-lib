@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * FLI File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For information on the FLI format, as well as various traps to
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.41 2003/05/31 02:04:17 tmmm Exp $
+ * $Id: demux_fli.c,v 1.42 2003/07/03 12:35:18 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,19 +53,12 @@
 #define FLI_MC_PTS_INC 6000  /* pts increment for Magic Carpet game FLIs */
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  off_t                start;
   int                  status;
 
   /* video information */
@@ -78,38 +73,18 @@ typedef struct {
   unsigned int         frame_count;
   int64_t              pts_counter;
 
-  char                 last_mrl[1024];
-
-  off_t stream_len;
+  off_t                stream_len;
 } demux_fli_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_fli_class_t;
 
 /* returns 1 if the FLI file was opened successfully, 0 otherwise */
 static int open_fli_file(demux_fli_t *this) {
 
-  unsigned char preview[MAX_PREVIEW_SIZE];
-
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, this->fli_header, FLI_HEADER_SIZE) !=
-      FLI_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(this->fli_header, preview, FLI_HEADER_SIZE);
-  }
+  if (xine_demux_read_header(this->input, this->fli_header, FLI_HEADER_SIZE) != FLI_HEADER_SIZE)
+    return 0;
 
   /* validate the file */
   this->magic_number = LE_16(&this->fli_header[4]);
@@ -117,17 +92,14 @@ static int open_fli_file(demux_fli_t *this) {
       (this->magic_number != FLI_FILE_MAGIC_2))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the
-   * signature bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
-  }
+  /* file is qualified; skip over the signature bytes in the stream */
+  this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
 
   /* check if this is a special FLI file from Magic Carpet game */
   if (LE_16(&this->fli_header[16]) == FLI_CHUNK_MAGIC_1) {
     /* if the input is non-seekable, do not bother with playing the
      * special file type */
-    if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    if (INPUT_IS_SEEKABLE(this->input)) {
       this->input->seek(this->input, FLI_HEADER_SIZE_MC, SEEK_SET);
     } else {
       return 0;
@@ -325,9 +297,8 @@ static int demux_fli_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_fli_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_fli_t));
@@ -350,6 +321,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -360,39 +344,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".fli", 4) &&
-        strncasecmp (ending, ".flc", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_fli_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -424,9 +379,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   demux_fli_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_fli_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_fli_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
