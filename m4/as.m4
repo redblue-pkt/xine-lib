@@ -7,7 +7,7 @@ dnl Daniel Caujolle-Bert <segfault@club-internet.fr>
 AC_DEFUN([AM_PROG_AS_MOD],
 [# By default we simply use the C compiler to build assembly code.
 AC_REQUIRE([AC_PROG_CC])
-: ${CCAS='$CC'}
+: ${CCAS='$(CC)'}
 # Set CCASFLAGS if not already set.
 : ${CCASFLAGS='$(CFLAGS)'}
 # Set ASCOMPILE if not already set.

@@ -60,7 +60,7 @@ AC_ARG_ENABLE(aalibtest,
      fi
   fi
 
-  min_aalib_version=ifelse([$1], ,1.2,$1)
+  min_aalib_version=ifelse([$1], ,1.4,$1)
 
   if test x"$enable_aalibtest" != "xyes"; then
     AC_MSG_CHECKING([for AALIB version >= $min_aalib_version])

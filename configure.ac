@@ -273,7 +273,7 @@ dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
 dnl ---------------------------------------------
 AC_CHECK_LIB(GL, glBegin,
-	[AC_CHECK_HEADER(GL/GL.h,
+	[AC_CHECK_HEADER(GL/gl.h,
              [ ac_have_opengl="yes"
                OPENGL_LIBS="-lGL" 
 	       AC_CHECK_LIB(glut, glutInit, dnl check for glut
@@ -392,7 +392,7 @@ AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 dnl ---------------------------------------------
 dnl Checks for Ascii-Art library
 dnl ---------------------------------------------
-AM_PATH_AALIB(1.2,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
+AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 dnl ---------------------------------------------

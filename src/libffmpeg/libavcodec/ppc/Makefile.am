@@ -2,11 +2,9 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@
-
 # we must not use CFLAGS here, gcc optimizations produce
 # bad code if we do so.
-CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 
 ASFLAGS =
 

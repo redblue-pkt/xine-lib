@@ -6,9 +6,7 @@ SUBDIRS = armv4l i386 mlib alpha
 
 EXTRA_DIST = fdctref.c imgresample.c
 
-#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@
-
-AM_CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic

@@ -2,6 +2,7 @@
 # the Makefile for the native xine audio decoders
 #
 
+
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = \

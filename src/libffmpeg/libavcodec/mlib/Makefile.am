@@ -2,9 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@
-
-AM_CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic

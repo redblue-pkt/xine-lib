@@ -1,4 +1,4 @@
-AM_CFLAGS = @CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
+AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
 EXTRA_DIST = audio_alsa_out.c \
 	audio_arts_out.c \
@@ -65,7 +65,6 @@ xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
 xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
-xineplug_ao_out_sun_la_LIBADD = 
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_irixal_la_SOURCES = audio_irixal_out.c 

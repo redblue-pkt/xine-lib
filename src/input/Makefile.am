@@ -37,7 +37,7 @@ DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE \
 link_dvdnav = libdvdnav/libdvdnav.la libdvdread/libdvdread.la
 endif
 
-AM_CFLAGS = @CFLAGS@ $(DVD_CFLAGS) 
+AM_CFLAGS = $(DVD_CFLAGS) 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS) 
 
 lib_LTLIBRARIES = \
@@ -51,7 +51,6 @@ lib_LTLIBRARIES = \
 	xineplug_inp_rtp.la \
 	xineplug_inp_stdin_fifo.la
 	
-
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module

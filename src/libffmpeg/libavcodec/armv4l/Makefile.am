@@ -2,8 +2,6 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@
-
 AM_CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 

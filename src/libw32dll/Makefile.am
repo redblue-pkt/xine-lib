@@ -1,6 +1,6 @@
-CFLAGS = @CFLAGS@ -I$(srcdir)/wine
+AM_CFLAGS = -I$(srcdir)/wine
 
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ -I$(srcdir)/wine
+#DEBUG_CFLAGS = @DEBUG_CFLAGS@ -I$(srcdir)/wine
 
 SUBDIRS = wine DirectShow
 

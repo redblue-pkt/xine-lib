@@ -1,4 +1,4 @@
-CFLAGS = @CFLAGS@ -DOPT_SPEED
+AM_CFLAGS = -DOPT_SPEED
 
 EXTRA_DIST = imdct_l_arm.S
 

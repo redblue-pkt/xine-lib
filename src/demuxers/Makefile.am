@@ -1,4 +1,4 @@
-AM_CFLAGS = @CFLAGS@ $(OGG_CFLAGS)
+AM_CFLAGS = $(OGG_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -70,7 +70,6 @@ xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
-xineplug_dmx_qt_la_LIBADD = -lz $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_dmx_asf_la_SOURCES = demux_asf.c
 xineplug_dmx_asf_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.62 2002/09/18 22:12:17 guenter Exp $
+ * $Id: video_out.h,v 1.63 2002/10/09 05:13:40 storri Exp $
  *
  *
  * xine version of video_out.h 
@@ -152,7 +152,7 @@ struct vo_instance_s {
 
   /* private stuff can be added here */
 
-} ;
+};
 
 /* constants for the get/set property functions */
 

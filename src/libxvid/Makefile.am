@@ -1,4 +1,4 @@
-CFLAGS = @CFLAGS@ @XVID_CFLAGS@
+AM_CFLAGS = @XVID_CFLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 

@@ -2,7 +2,7 @@ EXTRA_DIST = README vidix.txt
 
 SUBDIRS = drivers
 
-CFLAGS = @CFLAGS@ @STATIC@
+AM_CFLAGS = @STATIC@
 
 if HAVE_VIDIX
 vidix_lib = libvidix.la

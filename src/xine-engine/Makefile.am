@@ -2,8 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @CFLAGS@ $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_DATADIR@/xine_logo.mpv\"
-
+AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_DATADIR@/xine_logo.mpv\"
 
 lib_LTLIBRARIES = libxine.la
 

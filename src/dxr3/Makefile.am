@@ -1,4 +1,4 @@
-AM_CFLAGS = @CFLAGS@ $(X_CFLAGS)
+AM_CFLAGS = $(X_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 

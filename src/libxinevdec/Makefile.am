@@ -1,6 +1,3 @@
-CFLAGS = @CFLAGS@
-DEBUG_CFLAGS = @DEBUG_CFLAGS@
-
 EXTRA_DIST = foovideo.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
