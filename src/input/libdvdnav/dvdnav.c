@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.26 2003/04/29 21:55:49 jcdutton Exp $
+ * $Id: dvdnav.c,v 1.27 2003/04/29 22:18:14 jcdutton Exp $
  *
  */
 
@@ -70,7 +70,7 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, const char *path) {
   struct timeval time;
   
   /* Create a new structure */
-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://dvd.sf.net\n", VERSION);
+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://xine.sf.net\n", VERSION);
 
   (*dest) = NULL;
   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
