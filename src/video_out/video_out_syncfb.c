@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.70 2002/05/28 10:43:45 heikos Exp $
+ * $Id: video_out_syncfb.c,v 1.71 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -992,7 +992,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 
    display     = visual->display;
    device_name = config->register_string(config, "video.syncfb_device", "/dev/syncfb",
-					 "syncfb (teletux) device node", NULL, NULL, NULL);
+					 _("syncfb (teletux) device node"), NULL, NULL, NULL);
    
    if(!(this = xine_xmalloc(sizeof (syncfb_driver_t)))) {
       printf("video_out_syncfb: aborting. (allocation of syncfb_driver_t failed: out of memory)\n");
@@ -1161,11 +1161,12 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 static vo_info_t vo_info_syncfb = {
   5,
   "SyncFB",
-  "xine video output plugin using the SyncFB module for Matrox G200/G400 cards",
+  NULL,
   VISUAL_TYPE_X11,
   10
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_syncfb.description = _("xine video output plugin using the SyncFB module for Matrox G200/G400 cards");
   return &vo_info_syncfb;
 }

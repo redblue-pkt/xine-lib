@@ -434,9 +434,9 @@ void xine_probe_fast_memcpy(config_values_t *config)
 
   best = config->register_enum (config, "misc.memcpy_method", 0,
 				memcpy_methods, 
-				"Memcopy method to use in xine for large data chunks.",
+				_("Memcopy method to use in xine for large data chunks."),
 				NULL, update_fast_memcpy, NULL);
-
+  
   /* check if function is configured and valid for this machine */
   if( best != 0 && 
      (config_flags & memcpy_method[best].cpu_require) == 

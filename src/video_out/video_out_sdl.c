@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.7 2002/05/13 02:42:12 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.8 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -687,12 +687,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_sdl = {
   5,
   "sdl",
-  "xine video output plugin using Simple DirectMedia Layer",
+  NULL,
   VISUAL_TYPE_X11,
   4  
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_sdl.description = _("xine video output plugin using Simple DirectMedia Layer");
   return &vo_info_sdl;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.103 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.104 2002/06/12 12:22:33 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1083,7 +1083,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
     xine_strdupa(valid_mrls, (this->config->register_string(this->config,
 							    "mrl.mrls_mpeg_block", VALID_MRLS,
-							    "valid mrls for mpeg block demuxer",
+							    _("valid mrls for mpeg block demuxer"),
 							    NULL, NULL, NULL)));
     
     MRL = input->get_mrl (input);
@@ -1124,7 +1124,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_mpeg_block", VALID_ENDS,
-							    "valid mrls ending for mpeg block demuxer",
+							    _("valid mrls ending for mpeg block demuxer"),
 							    NULL, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
@@ -1174,9 +1174,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_block_t *this;
 
   if (iface != 9) {
-    printf ("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
-	    "                  this means there's a version mismatch between xine and this "
-	    "                  demuxer plugin.\nInstalling current demux plugins should help.\n",
+    printf (_("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
+	      "                  this means there's a version mismatch between xine and this "
+	      "                  demuxer plugin.\nInstalling current demux plugins should help.\n"),
 	    iface);
     return NULL;
   }
@@ -1187,11 +1187,11 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   /* Calling register_string() configure valid mrls in configfile */
   (void*) this->config->register_string(this->config, "mrl.mrls_mpeg_block", VALID_MRLS,
-					"valid mrls for mpeg block demuxer",
+					_("valid mrls for mpeg block demuxer"),
 					NULL, NULL, NULL);
   (void*) this->config->register_string(this->config,
 					"mrl.ends_mpeg_block", VALID_ENDS,
-					"valid mrls ending for mpeg block demuxer",
+					_("valid mrls ending for mpeg block demuxer"),
 					NULL, NULL, NULL);    
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.19 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: video_out_aa.c,v 1.20 2002/06/12 12:22:38 f1rmb Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -298,11 +298,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_aa = {
   5,
   "aa",
-  "xine video output plugin using the ascii-art library",
+  NULL,
   VISUAL_TYPE_AA,
   10
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_aa.description = _("xine video output plugin using the ascii-art library");
   return &vo_info_aa;
 }

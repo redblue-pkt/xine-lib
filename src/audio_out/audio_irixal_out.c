@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.6 2002/03/11 19:58:00 jkeil Exp $
+ * $Id: audio_irixal_out.c,v 1.7 2002/06/12 12:22:27 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -379,7 +379,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config)
   /* TODO: anything can change during runtime... move check to the right location */
   this->gap_tolerance = config->register_range (config, "audio.irixal_gap_tolerance",
 					        DEFAULT_GAP_TOLERANCE, 0, 90000,
-						"irixal audio output maximum gap length in 1/90000s",
+						_("irixal audio output maximum gap length in 1/90000s"),
 						NULL, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_irixal_get_capabilities;
@@ -402,12 +402,13 @@ static ao_info_t ao_info_irixal =
 {
   AO_IRIXAL_IFACE_VERSION,
   "irixal",
-  "xine audio output plugin using IRIX libaudio",
+  NULL,
   10
 };
 
 ao_info_t *get_audio_out_plugin_info()
 {
+  ao_info_irixal.description = _("xine audio output plugin using IRIX libaudio");
   return &ao_info_irixal;
 }
 

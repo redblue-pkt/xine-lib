@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.119 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: video_out_xv.c,v 1.120 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1157,12 +1157,14 @@ static void xv_check_capability (xv_driver_t *this,
   /* is this a boolean property ? */
   if ((attr.min_value == 0) && (attr.max_value == 1)) {
     this->config->register_bool (this->config, this->scratch, int_default,
-				 "Xv property", NULL, xv_property_callback, &this->props[property]);
+				 _("Xv property"),
+				 NULL, xv_property_callback, &this->props[property]);
   
   } else {
     this->config->register_range (this->config, this->scratch, int_default,
 				  this->props[property].min, this->props[property].max,   
-				  "Xv property", NULL, xv_property_callback, &this->props[property]);
+				  _("Xv property"), 
+				  NULL, xv_property_callback, &this->props[property]);
   }
   
   entry = this->config->lookup_entry (this->config, this->scratch);
@@ -1403,13 +1405,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  /* This setting is specific to Permedia 2/3 cards. */
 	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
 					      attr[k].min_value, attr[k].max_value,
-					      "bilinear scaling mode (permedia 2/3)",
+					      _("bilinear scaling mode (permedia 2/3)"),
 					      NULL, xv_update_XV_FILTER, this);
 	  config->update_num(config,"video.XV_FILTER",xv_filter);
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xv_double_buffer;
 	  xv_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
-						    "double buffer to sync video to the retrace",
+						    _("double buffer to sync video to the retrace"),
 						    NULL, xv_update_XV_DOUBLE_BUFFER, this);
 	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
 	}
@@ -1458,7 +1460,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
 						    deinterlace_methods, 
-						    "Software deinterlace method (Key I toggles deinterlacer on/off)",
+						    _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
 						    NULL, xv_update_deinterlace, this);
   this->deinterlace_enabled = 0;
 
@@ -1468,12 +1470,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_xv = {
   5,
   "Xv",
-  "xine video output plugin using the MIT X video extension",
+  NULL,
   VISUAL_TYPE_X11,
   10
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_xv.description = _("xine video output plugin using the MIT X video extension");
   return &vo_info_xv;
 }
 

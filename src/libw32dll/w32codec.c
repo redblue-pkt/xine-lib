@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.80 2002/06/09 13:23:36 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.81 2002/06/12 12:22:36 f1rmb Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1356,7 +1356,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   }
   cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
-					 "path to win32 codec dlls",
+					 _("path to win32 codec dlls"),
 					 NULL, NULL, NULL);
 
   this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
@@ -1395,17 +1395,17 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   config_values_t *cfg;
   
   if (iface_version != 8) {
-    printf( "w32codec: plugin doesn't support plugin API version %d.\n"
-	    "w32codec: this means there's a version mismatch between xine and this "
-	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
-	    iface_version);
+    printf(_("w32codec: plugin doesn't support plugin API version %d.\n"
+	     "w32codec: this means there's a version mismatch between xine and this "
+	     "w32codec: decoder plugin.\nInstalling current input plugins should help.\n"),
+	   iface_version);
 
     return NULL;
   }
 
   cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
-					 "path to win32 codec dlls",
+					 _("path to win32 codec dlls"),
 					 NULL, NULL, NULL);
 
   this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));

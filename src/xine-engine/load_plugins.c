@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.77 2002/05/01 19:42:57 guenter Exp $
+ * $Id: load_plugins.c,v 1.78 2002/06/12 12:22:38 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -648,6 +648,10 @@ char **xine_list_video_output_plugins (int visual_type) {
 
   install_segv_handler();
   
+#ifdef ENABLE_NLS
+  bindtextdomain("xine-lib", XINE_LOCALEDIR);
+#endif 
+
   dir = opendir (XINE_PLUGINDIR);
 
   if (dir) {
@@ -770,6 +774,10 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
   DIR *dir;
   vo_driver_t *vod;
 
+#ifdef ENABLE_NLS
+  bindtextdomain("xine-lib", XINE_LOCALEDIR);
+#endif 
+
 #if IGNORE_DXR3ENC
   if (! strcasecmp(id, "dxr3enc")) {
     printf( /* big poo poo */
@@ -882,6 +890,10 @@ char **xine_list_audio_output_plugins(void) {
 
   install_segv_handler();
   
+#ifdef ENABLE_NLS
+  bindtextdomain("xine-lib", XINE_LOCALEDIR);
+#endif 
+
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {
@@ -927,8 +939,9 @@ char **xine_list_audio_output_plugins(void) {
 	    ao_info = getinfo();
 
 #ifdef LOG
-	    printf("load_plugins: id=%s, priority=%d, interface_version=%d\n", 
-		   ao_info->id, ao_info->priority, ao_info->interface_version); 
+	    printf("load_plugins: id=%s (%s), priority=%d, interface_version=%d\n", 
+		   ao_info->id, ao_info->description, 
+		   ao_info->priority, ao_info->interface_version); 
 #endif
 
 	    if ( ao_info->interface_version == AUDIO_OUT_IFACE_VERSION) {
@@ -986,6 +999,10 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id) {
 
   install_segv_handler();
   
+#ifdef ENABLE_NLS
+  bindtextdomain("xine-lib", XINE_LOCALEDIR);
+#endif 
+
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {

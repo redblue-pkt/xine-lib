@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.67 2002/06/03 23:12:44 tmattern Exp $
+ * $Id: audio_oss_out.c,v 1.68 2002/06/12 12:22:27 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -633,7 +633,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   best_rate = 0;
   devnum = config->register_num (config, "audio.oss_device_num", -1,
-				 "/dev/dsp# device to use for oss output, -1 => auto_detect",
+				 _("/dev/dsp# device to use for oss output, -1 => auto_detect"),
 				 NULL, NULL, NULL);
 
   if (devnum >= 0) {
@@ -701,7 +701,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->sync_method = config->register_enum (config, "audio.oss_sync_method", OSS_SYNC_AUTO_DETECT,
 					     sync_methods, 
-					     "A/V sync method to use by OSS, depends on driver/hardware",
+					     _("A/V sync method to use by OSS, depends on driver/hardware"),
 					     NULL, NULL, NULL);
 
   if (this->sync_method == OSS_SYNC_AUTO_DETECT) {
@@ -768,8 +768,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->latency = config->register_range (config, "audio.oss_latency", 0,
 					  -3000, 3000, 
-					  "Adjust a/v sync for OSS softsync",
-					  "Use this to manually adjust a/v sync if you're using softsync",
+					  _("Adjust a/v sync for OSS softsync"),
+					  _("Use this to manually adjust a/v sync if you're using softsync"),
 					  NULL, NULL);
   
   this->capabilities = 0;
@@ -791,7 +791,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==4) ) {
     if (config->register_bool (config, "audio.four_channel", 0,
-			       "Enable 4.0 channel analog surround output",
+			       _("Enable 4.0 channel analog surround output"),
 			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_4CHANNEL;
       printf ("4-channel ");
@@ -802,7 +802,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==5) ) {
     if (config->register_bool (config, "audio.five_channel", 0,
-			       "Enable 5.0 channel analog surround output",
+			       _("Enable 5.0 channel analog surround output"),
 			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5CHANNEL;
       printf ("5-channel ");
@@ -813,7 +813,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==6) ) {
     if (config->register_bool (config, "audio.five_lfe_channel", 0,
-			       "Enable 5.1 channel analog surround output",
+			       _("Enable 5.1 channel analog surround output"),
 			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       printf ("5.1-channel ");
@@ -824,7 +824,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
   if (caps & AFMT_AC3) {
     if (config->register_bool (config, "audio.a52_pass_through", 0,
-			       "Enable A52 / AC5 digital audio output via spdif",
+			       _("Enable A52 / AC5 digital audio output via spdif"),
 			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_A52;
       this->capabilities |= AO_CAP_MODE_AC5;
@@ -840,7 +840,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    */
 
   this->mixer.name = config->register_string(config, "audio.mixer_name", "/dev/mixer",
-					     "oss mixer device", NULL, NULL, NULL);
+					     _("oss mixer device"), NULL, NULL, NULL);
   {
     int mixer_fd;
     int audio_devs;
@@ -907,11 +907,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 static ao_info_t ao_info_oss = {
   AO_OUT_OSS_IFACE_VERSION,
   "oss",
-  "xine audio output plugin using oss-compliant audio devices/drivers",
+  NULL,
   10
 };
 
 ao_info_t *get_audio_out_plugin_info() {
+  ao_info_oss.description = _("xine audio output plugin using oss-compliant audio devices/drivers");
   return &ao_info_oss;
 }
-

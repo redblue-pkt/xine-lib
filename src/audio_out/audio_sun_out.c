@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.19 2002/04/06 14:19:12 miguelfreitas Exp $
+ * $Id: audio_sun_out.c,v 1.20 2002/06/12 12:22:28 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -661,7 +661,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   devname = config->register_string(config,
 				    "audio.sun_audio_device",
 				    "/dev/audio",
-				    "device used for audio output with the 'Sun' audio plugin",
+				    _("device used for audio output with the 'Sun' audio plugin"),
 				    NULL,
 				    NULL,
 				    NULL);
@@ -740,11 +740,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 static ao_info_t ao_info_sun = {
   AO_SUN_IFACE_VERSION,
   "sun",
-  "xine audio output plugin using sun-compliant audio devices/drivers",
+  NULL,
   10
 };
 
 ao_info_t *get_audio_out_plugin_info() {
+  ao_info_sun.description = _("xine audio output plugin using sun-compliant audio devices/drivers"); 
   return &ao_info_sun;
 }
 

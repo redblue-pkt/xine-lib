@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/05/25 19:19:18 siggi Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/06/12 12:22:34 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -547,10 +547,10 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   config_values_t *cfg;
 
   if (iface_version != 8) {
-    printf( "liba52: plugin doesn't support plugin API version %d.\n"
-	    "liba52: this means there's a version mismatch between xine and this "
-	    "liba52: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
+    printf(_("liba52: plugin doesn't support plugin API version %d.\n"
+	     "liba52: this means there's a version mismatch between xine and this "
+	     "liba52: decoder plugin.\nInstalling current plugins should help.\n"),
+	     iface_version);
     return NULL;
   }
 
@@ -571,13 +571,13 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
-						 "a/52 volume control",
+						 _("a/52 volume control"),
 						 NULL, NULL, NULL) / 100.0;
   this->disable_dynrng = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
-					      "enable a/52 dynamic range compensation",
+					      _("enable a/52 dynamic range compensation"),
 					      NULL, NULL, NULL);
   this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
-						      "enable audio downmixing to 2.0 surround stereo",
+						      _("enable audio downmixing to 2.0 surround stereo"),
 						      NULL, NULL, NULL);
 
   return (audio_decoder_t *) this;

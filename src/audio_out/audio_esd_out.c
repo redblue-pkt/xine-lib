@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.18 2002/03/11 19:58:00 jkeil Exp $
+ * $Id: audio_esd_out.c,v 1.19 2002/06/12 12:22:26 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -411,7 +411,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_MUTE_VOL;
   this->latency            = config->register_range (config, "audio.esd_latency", 30000,
 						     -30000, 90000,
-						     "esd audio output latency (adjust a/v sync)",
+						     _("esd audio output latency (adjust a/v sync)"),
 						     NULL, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_esd_get_capabilities;
@@ -433,11 +433,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 static ao_info_t ao_info_esd = {
   AO_OUT_ESD_IFACE_VERSION,
   "esd",
-  "xine audio output plugin using esd",
+  NULL,
   5
 };
 
 ao_info_t *get_audio_out_plugin_info() {
+  ao_info_esd.description = _("xine audio output plugin using esd");
   return &ao_info_esd;
 }
 

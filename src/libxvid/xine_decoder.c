@@ -221,9 +221,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     XVID_INIT_PARAM xinit;
     
     if (iface_version != 9) {
-	printf ("xvid: plugin doesn't support plugin API version %d.\n"
-		"xvid: this means there's a version mismatch between xine and this\n"
-		"xvid: decoder plugin. Installing current plugins should help.\n",
+	printf (_("xvid: plugin doesn't support plugin API version %d.\n"
+		  "xvid: this means there's a version mismatch between xine and this\n"
+		  "xvid: decoder plugin. Installing current plugins should help.\n"),
 		iface_version);
 	return NULL;
     }
@@ -231,9 +231,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     xinit.cpu_flags = 0;
     xvid_init(NULL, 0, &xinit, NULL);
     if (xinit.api_version != API_VERSION) {
-	printf ("xvid: there is mismatch between API used by currently installed XviD\n"
-		"xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
-		"xvid: Compiling this plugin against current XviD library should help.\n",
+	printf (_("xvid: there is mismatch between API used by currently installed XviD\n"
+		  "xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
+		  "xvid: Compiling this plugin against current XviD library should help.\n"),
 		xinit.api_version >> 16, xinit.api_version & 0xFFFF,
 		API_VERSION >> 16, API_VERSION & 0xFFFF);
 	return NULL;

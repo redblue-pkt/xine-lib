@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.49 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.50 2002/06/12 12:22:33 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -466,7 +466,7 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
     
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_mgaudio", VALID_ENDS,
-							    "valid mrls ending for mpeg audio demuxer",
+							    _("valid mrls ending for mpeg audio demuxer"),
 							    NULL, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
@@ -522,9 +522,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpgaudio_t *this;
 
   if (iface != 9) {
-    printf ("demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	    "            this means there's a version mismatch between xine and this "
-	    "            demuxer plugin.\nInstalling current demux plugins should help.\n",
+    printf (_("demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	      "            this means there's a version mismatch between xine and this "
+	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
 	    iface);
     return NULL;
   }
@@ -535,7 +535,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   (void*) this->config->register_string(this->config,
 					"mrl.ends_mgaudio", VALID_ENDS,
-					"valid mrls ending for mpeg audio demuxer",
+					_("valid mrls ending for mpeg audio demuxer"),
 					NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUX_MPGAUDIO_IFACE_VERSION;

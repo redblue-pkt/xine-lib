@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.49 2002/05/25 19:19:17 siggi Exp $
+ * $Id: input_dvd.c,v 1.50 2002/06/12 12:22:34 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -854,10 +854,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   */
   
   this->device = config->register_string(config, "input.dvd_device", DVD,
-					 "path to your local dvd device file",
+					 _("path to your local dvd device file"),
 					 NULL, device_change_cb, (void *)this);
   this->raw_device = config->register_string(config, "input.dvd_raw_device", RDVD,
-					     "path to a raw device set up for dvd access",
+					     _("path to a raw device set up for dvd access"),
 					     NULL, rawdevice_change_cb, (void*)this);
 #ifdef __sun
   check_solaris_vold_device(this);

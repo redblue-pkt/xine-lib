@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.139 2002/06/10 13:41:55 miguelfreitas Exp $
+ * $Id: xine.c,v 1.140 2002/06/12 12:22:38 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -584,7 +584,7 @@ xine_t *xine_init (vo_driver_t *vo,
 
   pthread_mutex_lock (&this->logo_lock);
   this->logo_mrl = config->register_string(config, "misc.logo_mrl", XINE_LOGO_FILE,
-					   "logo mrl, displayed in video output window",
+					   _("logo mrl, displayed in video output window"),
 					   NULL, _logo_change_cb, (void *) this);
   pthread_mutex_unlock (&this->logo_lock);
 
@@ -596,8 +596,9 @@ xine_t *xine_init (vo_driver_t *vo,
   
 #ifdef ENABLE_NLS
   bindtextdomain("xine-lib", XINE_LOCALEDIR);
+  textdomain("xine-lib");
 #endif 
-
+  
   printf ("xine: xine_init entered\n");
   
   this->err     = XINE_ERROR_NONE;

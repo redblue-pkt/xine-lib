@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.51 2002/06/09 11:12:22 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.52 2002/06/12 12:22:33 f1rmb Exp $
  *
  */
 
@@ -1204,9 +1204,9 @@ static int demux_qt_open(demux_plugin_t *this_gen,
       return DEMUX_CANNOT_HANDLE;
 
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                 "mrl.ends_qt", VALID_ENDS,
-                 "valid mrls ending for qt demuxer",
-                 NULL, NULL, NULL)));
+							    "mrl.ends_qt", VALID_ENDS,
+							    _("valid mrls ending for qt demuxer"),
+							    NULL, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
@@ -1437,10 +1437,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_qt_t      *this;
 
   if (iface != 9) {
-    printf ("demux_qt: plugin doesn't support plugin API version %d.\n"
-            "          this means there's a version mismatch between xine and this "
-            "          demuxer plugin.\nInstalling current demux plugins should
-help.\n",
+    printf (_("demux_qt: plugin doesn't support plugin API version %d.\n"
+	      "          this means there's a version mismatch between xine and this "
+	      "          demuxer plugin.\nInstalling current demux plugins should help.\n"),
             iface);
     return NULL;
   }
@@ -1451,7 +1450,7 @@ help.\n",
 
   (void*) this->config->register_string(this->config,
                                         "mrl.ends_qt", VALID_ENDS,
-                                        "valid mrls ending for qt demuxer",
+                                        _("valid mrls ending for qt demuxer"),
                                         NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.10 2002/05/06 00:48:09 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.11 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -702,9 +702,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->output_scale_factor = 1.0;
   
   this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
-						     "disable all video scaling (faster!)",
+						     _("disable all video scaling (faster!)"),
 						     NULL, NULL, NULL);
-
+  
   this->vo_driver.get_capabilities     = fb_get_capabilities;
   this->vo_driver.alloc_frame          = fb_alloc_frame;
   this->vo_driver.update_frame_format  = fb_update_frame_format;
@@ -718,8 +718,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.redraw_needed        = fb_redraw_needed;
 
   device_name = config->register_string (config, "video.fb_device", "/dev/fb0",
-					  "framebuffer device", NULL, NULL, NULL);
-
+					 _("framebuffer device"), NULL, NULL, NULL);
+  
   if( (this->fd = open(device_name, O_RDWR) ) < 0) {
     printf("video_out_fb: aborting. (unable to open device \"%s\")\n", device_name);
     free(this);
@@ -876,11 +876,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_fb = {
   5,
   "fb",
-  "xine video output plugin using linux framebuffer device",
+  NULL,
   VISUAL_TYPE_FB,
   5
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_fb.description = _("xine video output plugin using linux framebuffer device");
   return &vo_info_fb;
 }

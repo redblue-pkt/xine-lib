@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.94 2002/06/07 04:15:46 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.95 2002/06/12 12:22:32 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1494,7 +1494,7 @@ static int demux_avi_open(demux_plugin_t *this_gen,
       xine_strdupa(valid_ends,
                    this->config->register_string(this->config,
                                                  "mrl.ends_avi", VALID_ENDS,
-                                                 "valid mrls ending for avi demuxer",
+                                                 _("valid mrls ending for avi demuxer"),
                                                  NULL, NULL, NULL));
       while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
@@ -1553,15 +1553,15 @@ static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
-
+  
   demux_avi_t     *this;
-
+  
   if (iface != 9) {
     xine_log (xine, XINE_LOG_PLUGIN,
               _("demux_avi: this plugin doesn't support plugin API version %d.\n"
                 "demux_avi: this means there's a version mismatch between xine and this "
                 "demux_avi: demuxer plugin.\nInstalling current demuxer plugins should help.\n"),
-                iface);
+	      iface);
     return NULL;
   }
 
@@ -1571,7 +1571,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   (void*) this->config->register_string(this->config,
                                         "mrl.ends_avi", VALID_ENDS,
-                                        "valid mrls ending for avi demuxer",
+                                        _("valid mrls ending for avi demuxer"),
                                         NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

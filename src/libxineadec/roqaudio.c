@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.2 2002/06/03 00:57:34 tmmm Exp $
+ * $Id: roqaudio.c,v 1.3 2002/06/12 12:22:37 f1rmb Exp $
  *
  */
 
@@ -191,10 +191,10 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   roqaudio_decoder_t *this ;
 
   if (iface_version != 8) {
-    printf( "RoQ Audio: plugin doesn't support plugin API version %d.\n"
-            "RoQ Audio: this means there's a version mismatch between xine and this\n"
-            "RoQ Audio: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
+    printf(_("RoQ Audio: plugin doesn't support plugin API version %d.\n"
+	     "RoQ Audio: this means there's a version mismatch between xine and this\n"
+	     "RoQ Audio: decoder plugin.\nInstalling current plugins should help.\n"),
+	   iface_version);
 
     return NULL;
   }

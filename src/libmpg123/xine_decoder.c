@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2002/03/31 20:38:41 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.8 2002/06/12 12:22:36 f1rmb Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -106,10 +106,10 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   mpgdec_decoder_t *this ;
 
   if (iface_version != 2) {
-    printf( "libmpg123: plugin doesn't support plugin API version %d.\n"
-	    "libmpg123: this means there's a version mismatch between xine and this "
-	    "libmpg123: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
+    printf(_("libmpg123: plugin doesn't support plugin API version %d.\n"
+	     "libmpg123: this means there's a version mismatch between xine and this "
+	     "libmpg123: decoder plugin.\nInstalling current plugins should help.\n"),
+	     iface_version);
 
     return NULL;
   }

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.56 2002/06/03 09:45:12 f1rmb Exp $
+ * $Id: audio_out.c,v 1.57 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -718,11 +718,12 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
-					       resample_modes, "adjust whether resampling is done or not",
+					       resample_modes,
+					       _("adjust whether resampling is done or not"),
 					       NULL, NULL, NULL);
   this->force_rate    = config->register_num (config, "audio.force_rate", 0,
-						"if !=0 always resample to given rate",
-						NULL, NULL, NULL);
+					      _("if !=0 always resample to given rate"),
+					      NULL, NULL, NULL);
 
   /*
    * pre-allocate memory for samples
@@ -749,12 +750,12 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
     int vol;
     
     vol = config->register_range (config, "audio.mixer_volume", 
-				  50, 0, 100, "Audio volume", 
+				  50, 0, 100, _("Audio volume"), 
 				  NULL, NULL, NULL);
     
     if(config->register_bool (config, "audio.remember_volume", 0,
-			      "restore volume level at startup", 
-			      "if this not set, xine will not touch any mixer settings at startup",
+			      _("restore volume level at startup"), 
+			      _("if this not set, xine will not touch any mixer settings at startup"),
 			      NULL, NULL)) {
       int prop = 0;
 

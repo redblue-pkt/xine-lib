@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2002/06/04 15:39:05 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.37 2002/06/12 12:22:35 f1rmb Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -552,10 +552,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   config_values_t *cfg;
 
   if (iface_version != 9) {
-    printf( "divx4: plugin doesn't support plugin API version %d.\n"
-	    "divx4: this means there's a version mismatch between xine and this "
-	    "divx4: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
+    printf(_("divx4: plugin doesn't support plugin API version %d.\n"
+	     "divx4: this means there's a version mismatch between xine and this "
+	     "divx4: decoder plugin.\nInstalling current plugins should help.\n"),
+	     iface_version);
     
     return NULL;
   }
@@ -565,7 +565,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
      if it fails, print a message and return 0 so that xine ignores
      us from then on. */
   libdecore_name = cfg->register_string (cfg, "codec.divx4_libdivxdecore", "libdivxdecore.so",
-					 "Relative path to libdivxdecore.so to open",
+					 _("Relative path to libdivxdecore.so to open"),
 					 NULL, NULL, NULL);  
 
   libdecore_handle = dlopen(libdecore_name, RTLD_LAZY);
@@ -590,20 +590,20 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.reset               = divx4_reset;
   this->video_decoder.dispose             = divx4_dispose;
   this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
-							       "priority of the divx4 plugin (>5 => enable)",
+							       _("priority of the divx4 plugin (>5 => enable)"),
 							       NULL, NULL, NULL); 
   this->decore = libdecore_func;
   this->postproc 			  = cfg->register_range (cfg, "codec.divx4_postproc", 3,
 								 0, 6,
-								 "the postprocessing level, 0 = none and fast, 6 = all and slow",
+								 _("the postprocessing level, 0 = none and fast, 6 = all and slow"),
 								 NULL, divx4_update_postproc, this);
   this->can_handle_311			  = cfg->register_bool (cfg, "codec.divx4_msmpeg4v3", 1,
-								"use divx4 plugin for msmpeg4v3 streams",
+								_("use divx4 plugin for msmpeg4v3 streams"),
 								NULL, NULL, NULL);
   this->size				  = 0;
   /* allow override of version checking by user */
   this->version 			  = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
-							      "Divx version to check for (set to 0 (default) if unsure)",
+							      _("Divx version to check for (set to 0 (default) if unsure)"),
 							      NULL, NULL, NULL);
 
   /* if the version set in the config file, we can check right now. 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.2 2002/06/01 17:21:28 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.3 2002/06/12 12:22:34 f1rmb Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -170,10 +170,10 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   
   this->rte_bitrate = drv->config->register_range(drv->config,
-    "dxr3.rte_bitrate", 10000, 1000, 20000,
-    "Dxr3enc: rte mpeg output bitrate (kbit/s)", 
-    "The bitrate the mpeg encoder library librte should use for dxr3's encoding mode",
-    NULL, NULL);
+						  "dxr3.rte_bitrate", 10000, 1000, 20000,
+						  _("Dxr3enc: rte mpeg output bitrate (kbit/s)"), 
+						  _("The bitrate the mpeg encoder library librte should use for dxr3's encoding mode"),
+						  NULL, NULL);
   this->rte_bitrate *= 1000; /* config in kbit/s, rte wants bit/s */
   
   /* FIXME: this needs to be replaced with a codec option call. 
@@ -371,10 +371,10 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   this->fp = init_fp;
   this->fp.quality = drv->config->register_range(drv->config,
-    "dxr3.fame_quality", 90, 10, 100,
-    "Dxr3enc: fame mpeg encoding quality",
-    "The encoding quality of the libfame mpeg encoder library.",
-    NULL,NULL);
+						 "dxr3.fame_quality", 90, 10, 100,
+						 _("Dxr3enc: fame mpeg encoding quality"),
+						 _("The encoding quality of the libfame mpeg encoder library."),
+						 NULL,NULL);
 #if LOG_ENC
   /* the really interesting bit is the quantizer scale. The formula
    * below is copied from libfame's sources (could be changed in the

@@ -860,7 +860,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
 
   this->textpalette = config->register_enum (config, "misc.osd_text_palette", 0,
                                              textpalettes_str, 
-                                             "Palette (foreground-border-background) to use on subtitles",
+                                             _("Palette (foreground-border-background) to use on subtitles"),
                                              NULL, update_text_palette, this);
   
   /*

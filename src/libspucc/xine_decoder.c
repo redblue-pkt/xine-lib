@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2002/05/25 19:19:18 siggi Exp $
+ * $Id: xine_decoder.c,v 1.14 2002/06/12 12:22:36 f1rmb Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -217,37 +217,37 @@ static void spucc_register_cfg_vars(spucc_decoder_t *this,
 
   cc_vars->cc_enabled = xine_cfg->register_bool(xine_cfg, 
 						"misc.cc_enabled", 0,
-						"Enable closed captions in MPEG-2 streams",
+						_("Enable closed captions in MPEG-2 streams"),
 						NULL, spucc_cfg_enable_change,
 						this);
-
+  
   cc_vars->cc_scheme = xine_cfg->register_enum(xine_cfg,
 					       "misc.cc_scheme", 0,
 					       cc_schemes,
-					       "Closed-captioning foreground/background scheme",
+					       _("Closed-captioning foreground/background scheme"),
 					       NULL, spucc_cfg_scheme_change,
 					       this);
-
+  
   copy_str(cc_vars->font, 
 	   xine_cfg->register_string(xine_cfg, "misc.cc_font", "cc",
-				     "Standard closed captioning font",
+				     _("Standard closed captioning font"),
 				     NULL, spucc_font_change, this),
 	   CC_FONT_MAX);
-
+  
   copy_str(cc_vars->italic_font,
 	   xine_cfg->register_string(xine_cfg, "misc.cc_italic_font", "cci",
-				     "Italic closed captioning font",
+				     _("Italic closed captioning font"),
 				     NULL, spucc_font_change, this),
 	   CC_FONT_MAX);
-
+  
   cc_vars->font_size = xine_cfg->register_num(xine_cfg, "misc.cc_font_size",
 					      24,
-					      "Closed captioning font size",
+					      _("Closed captioning font size"),
 					      NULL, spucc_num_change,
 					      this);
-
+  
   cc_vars->center = xine_cfg->register_bool(xine_cfg, "misc.cc_center", 1,
-					    "Center-adjust closed captions",
+					    _("Center-adjust closed captions"),
 					    NULL, spucc_num_change,
 					    this);
 }
@@ -386,9 +386,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   spucc_decoder_t *this ;
 
   if (iface_version != 8) {
-    printf("libspucc: doesn't support plugin api version %d.\n"
-	   "libspucc: This means there is a version mismatch between xine and\n"
-	   "libspucc: this plugin.\n", iface_version);
+    printf(_("libspucc: doesn't support plugin api version %d.\n"
+	     "libspucc: This means there is a version mismatch between xine and\n"
+	     "libspucc: this plugin.\n"), iface_version);
     return NULL;
   }
 

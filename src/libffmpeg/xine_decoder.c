@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2002/06/09 21:09:58 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.42 2002/06/12 12:22:35 f1rmb Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -372,10 +372,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
   if (iface_version != 9) {
-    printf( "ffmpeg: plugin doesn't support plugin API version %d.\n"
-	    "ffmpeg: this means there's a version mismatch between xine and this "
-	    "ffmpeg: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
+    printf(_("ffmpeg: plugin doesn't support plugin API version %d.\n"
+	     "ffmpeg: this means there's a version mismatch between xine and this "
+	     "ffmpeg: decoder plugin.\nInstalling current plugins should help.\n"),
+	     iface_version);
     
     return NULL;
   }

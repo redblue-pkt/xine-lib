@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.24 2002/05/25 19:19:17 siggi Exp $
+ * $Id: input_cda.c,v 1.25 2002/06/12 12:22:34 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1841,23 +1841,23 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->cda->cur_pos   = -1;
   
   this->cda->device_name = strdup(config->register_string(config, "input.cda_device", CDROM,
-							  "path to your local cd audio device file",
+							  _("path to your local cd audio device file"),
 							  NULL, 
 							  device_change_cb, (void *) this));
   
   this->cddb.server = config->register_string(config, "input.cda_cddb_server", CDDB_SERVER,
-					      "cddbp server name", NULL,
+					      _("cddbp server name"), NULL,
 					      server_change_cb, (void *) this);
   
   this->cddb.port = config->register_num(config, "input.cda_cddb_port", CDDB_PORT,
-					 "cddbp server port", NULL,
+					 _("cddbp server port"), NULL,
 					 port_change_cb, (void *) this);
 
   this->cddb.fd = -1;
 
   this->cddb.cache_dir = config->register_string(config, "input.cda_cddb_cachedir", 
 						 (_cda_cddb_get_default_location()),
-						 "cddbp cache directory", NULL, 
+						 _("cddbp cache directory"), NULL, 
 						 cachedir_change_cb, (void *) this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));

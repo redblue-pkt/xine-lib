@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.98 2002/06/10 21:42:44 mshopf Exp $
+ * $Id: xine.h.tmpl.in,v 1.99 2002/06/12 12:22:25 f1rmb Exp $
  *
  */
 
@@ -106,12 +106,6 @@ extern "C" {
  * \sa xine_get_status()
  */
 #define XINE_QUIT      2
-/** 
- * \def XINE_LOGOT
- * Logo displaying status.
- * \sa xine_get_status()
- */
-#define XINE_LOGO      3
 
           /** @} end of status_group */
 

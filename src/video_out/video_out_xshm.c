@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.75 2002/05/18 12:36:45 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.76 2002/06/12 12:22:38 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1280,7 +1280,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->user_ratio          = ASPECT_AUTO;
   
   this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
-						     "disable all video scaling (faster!)",
+						     _("disable all video scaling (faster!)"),
 						     NULL, NULL, NULL);
   this->drawable	    = visual->d;
   this->expecting_event	    = 0;
@@ -1422,7 +1422,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->yuv2rgb_swap  = swapped;
   this->yuv2rgb_gamma = config->register_range (config, "video.xshm_gamma", 0,
 						-100, 100, 
-						"gamma correction for XShm driver",
+						_("gamma correction for XShm driver"),
 						NULL, NULL, NULL);
 
   this->yuv2rgb_factory = yuv2rgb_factory_init (mode, swapped, 
@@ -1435,12 +1435,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_shm = {
   5,                /* interface version */
   "XShm",           /* id                */
-  "xine video output plugin using the MIT X shared memory extension",
+  NULL,
   VISUAL_TYPE_X11,  /* visual_type       */
   6
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_shm.description = _("xine video output plugin using the MIT X shared memory extension");
   return &vo_info_shm;
 }
 

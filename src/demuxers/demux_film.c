@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.10 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.11 2002/06/12 12:22:33 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -497,10 +497,11 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
     if(!suffix)
       return DEMUX_CANNOT_HANDLE;
 
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                 "mrl.ends_film", VALID_ENDS,
-                 "valid mrls ending for film demuxer",
-                 NULL, NULL, NULL)));
+    xine_strdupa(valid_ends,
+		 (this->config->register_string(this->config,
+						"mrl.ends_film", VALID_ENDS,
+						_("valid mrls ending for film demuxer"),
+						NULL, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
@@ -729,9 +730,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_film_t *this;
 
   if (iface != 9) {
-    printf ("demux_film: plugin doesn't support plugin API version %d.\n"
-            "            this means there's a version mismatch between xine and this "
-            "            demuxer plugin. Installing current demux plugins should help.\n",
+    printf (_("demux_film: plugin doesn't support plugin API version %d.\n"
+	      "            this means there's a version mismatch between xine and this "
+	      "            demuxer plugin. Installing current demux plugins should help.\n"),
             iface);
     return NULL;
   }
@@ -739,6 +740,11 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this         = (demux_film_t *) xine_xmalloc(sizeof(demux_film_t));
   this->config = xine->config;
   this->xine   = xine;
+  
+  (void *) this->config->register_string(this->config,
+					 "mrl.ends_film", VALID_ENDS,
+					 _("valid mrls ending for film demuxer"),
+					 NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_film_open;

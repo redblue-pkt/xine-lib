@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/05/30 15:12:45 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/06/12 12:22:36 f1rmb Exp $
  *
  * code based on mplayer module:
  *
@@ -1002,9 +1002,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   sputext_decoder_t *this ;
 
   if (iface_version != 8) {
-    printf("libsputext: doesn't support plugin api version %d.\n"
-	   "libsputext: This means there is a version mismatch between xine and\n"
-	   "libsputext: this plugin.\n", iface_version);
+    printf(_("libsputext: doesn't support plugin api version %d.\n"
+	     "libsputext: This means there is a version mismatch between xine and\n"
+	     "libsputext: this plugin.\n"), iface_version);
     return NULL;
   }
 
@@ -1024,17 +1024,17 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->font                            = xine->config->register_string(xine->config, 
 									"codec.spu_font", 
 									"sans", 
-									"font for avi subtitles", 
+									_("font for avi subtitles"), 
 									NULL, update_osd_font, this);
   this->src_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_src_encoding", 
 									"windows-1250", 
-									"source encoging of subtitles", 
+									_("source encoging of subtitles"), 
 									NULL, update_osd_src_encoding, this);
   this->dst_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_dst_encoding", 
 									"iso-8859-2", 
-									"target encoging for subtitles (have to match font encoding)", 
+									_("target encoging for subtitles (have to match font encoding)"), 
 									NULL, update_osd_dst_encoding, this);
 
   return (spu_decoder_t *) this;

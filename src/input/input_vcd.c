@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.42 2002/05/25 19:19:18 siggi Exp $
+ * $Id: input_vcd.c,v 1.43 2002/06/12 12:22:34 f1rmb Exp $
  *
  */
 
@@ -1181,7 +1181,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.is_branch_possible= NULL;
   
   this->device = config->register_string(config, "input.vcd_device", CDROM,
-					 "path to your local vcd device file",
+					 _("path to your local vcd device file"),
 					 NULL, device_change_cb, (void *)this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));

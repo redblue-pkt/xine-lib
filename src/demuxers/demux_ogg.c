@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.28 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.29 2002/06/12 12:22:33 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -608,7 +608,7 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
     
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_ogg", VALID_ENDS,
-							    "valid mrls ending for ogg demuxer",
+							    _("valid mrls ending for ogg demuxer"),
 							    NULL, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
@@ -659,7 +659,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   (void*) this->config->register_string(this->config,
 					"mrl.ends_ogg", VALID_ENDS,
-					"valid mrls ending for ogg demuxer",
+					_("valid mrls ending for ogg demuxer"),
 					NULL, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.68 2002/05/25 19:19:18 siggi Exp $
+ * $Id: xine_decoder.c,v 1.69 2002/06/12 12:22:36 f1rmb Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -302,9 +302,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   spudec_decoder_t *this ;
 
   if (iface_version != 8) {
-    printf("libspudec: Doesn't support plugin API version %d.\n"
-	   "libspudec: This means there is a version mismatch between XINE and\n"
-	   "libspudec: this plugin.\n", iface_version);
+    printf(_("libspudec: Doesn't support plugin API version %d.\n"
+	     "libspudec: This means there is a version mismatch between XINE and\n"
+	     "libspudec: this plugin.\n"), iface_version);
     return NULL;
   }
 

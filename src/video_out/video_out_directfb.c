@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.8 2002/05/06 00:48:09 miguelfreitas Exp $
+ * $Id: video_out_directfb.c,v 1.9 2002/06/12 12:22:38 f1rmb Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -560,12 +560,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 static vo_info_t vo_info_directfb = {
   4,
   "DirectFB",
-  "xine video output plugin using the DirectFB library.",
+  NULL,
   VISUAL_TYPE_DFB,
   8
 };
 
 vo_info_t *get_video_out_plugin_info() {
+  vo_info_directfb.description = _("xine video output plugin using the DirectFB library.");
   return &vo_info_directfb;
 }
 

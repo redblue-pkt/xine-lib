@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.55 2002/06/03 23:12:44 tmattern Exp $
+ * $Id: audio_alsa_out.c,v 1.56 2002/06/12 12:22:26 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -105,7 +105,6 @@ typedef struct alsa_driver_s {
     long               left_vol;
     long               right_vol;
     int                mute;
-    int                remember_volume;
   } mixer;
 } alsa_driver_t;
 
@@ -187,7 +186,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_default_device",
                                          "default",
-                                         "device used for mono output",
+                                         _("device used for mono output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -197,7 +196,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_front_device",
                                          "default",
-                                         "device used for stereo output",
+                                         _("device used for stereo output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -207,7 +206,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround40_device",
                                          "surround40",
-                                         "device used for 4-channel output",
+                                         _("device used for 4-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -217,7 +216,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround50_device",
                                          "surround51",
-                                         "device used for 5-channel output",
+                                         _("device used for 5-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -227,7 +226,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround51_device",
                                          "surround51",
-                                         "device used for 5.1-channel output",
+                                         _("device used for 5.1-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -238,7 +237,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = config->register_string(config,
                                          "audio.alsa_a52_device",
                                          "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-                                         "device used for 5.1-channel output",
+                                         _("device used for 5.1-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -709,7 +708,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   pcm_device = config->register_string(config,
 				       "audio.alsa_default_device",
 				       "default",
-				       "device used for mono output",
+				       _("device used for mono output"),
 				       NULL,
 				       NULL,
 				       NULL);
@@ -843,7 +842,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   this->mixer.name = config->register_string(config,
                                              "audio.alsa_mixer_name",
                                              "PCM",
-                                             "alsa mixer device",
+                                             _("alsa mixer device"),
                                              NULL,
                                              NULL,
                                              NULL);
@@ -891,42 +890,42 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   pcm_device = config->register_string(config,
                                          "audio.alsa_default_device",
                                          "default",
-                                         "device used for mono output",
+                                         _("device used for mono output"),
                                          NULL,
                                          NULL,
                                          NULL);
   pcm_device = config->register_string(config,
                                          "audio.alsa_front_device",
                                          "default",
-                                         "device used for stereo output",
+                                         _("device used for stereo output"),
                                          NULL,
                                          NULL,
                                          NULL);
   pcm_device = config->register_string(config,
                                          "audio.alsa_surround40_device",
                                          "surround40",
-                                         "device used for 4-channel output",
+                                         _("device used for 4-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
   pcm_device = config->register_string(config,
                                          "audio.alsa_surround50_device",
                                          "surround51",
-                                         "device used for 5-channel output",
+                                         _("device used for 5-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
   pcm_device = config->register_string(config,
                                          "audio.alsa_surround51_device",
                                          "surround51",
-                                         "device used for 5.1-channel output",
+                                         _("device used for 5.1-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
   pcm_device = config->register_string(config,
                                          "audio.alsa_a52_device",
                                          "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-                                         "device used for 5.1-channel output",
+                                         _("device used for 5.1-channel output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -935,7 +934,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   pcm_device = config->register_string(config,
                                          "audio.alsa_default_device",
                                          "default",
-                                         "device used for mono output",
+                                         _("device used for mono output"),
                                          NULL,
                                          NULL,
                                          NULL);
@@ -982,7 +981,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
         config->register_bool (config,
                                "audio.four_channel",
                                0,
-                               "used to inform xine about what the sound card can do",
+                               _("used to inform xine about what the sound card can do"),
                                NULL,
                                NULL,
                                NULL) ) {
@@ -995,7 +994,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
         config->register_bool (config,
                                "audio.five_channel",
                                0,
-                               "used to inform xine about what the sound card can do",
+                               _("used to inform xine about what the sound card can do"),
                                NULL,
                                NULL,
                                NULL) ) {
@@ -1008,7 +1007,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
         config->register_bool (config,
                                "audio.five_lfe_channel",
                                0,
-                               "used to inform xine about what the sound card can do",
+                               _("used to inform xine about what the sound card can do"),
                                NULL,
                                NULL,
                                NULL) ) {
@@ -1026,7 +1025,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if (config->register_bool (config,
                                "audio.a52_pass_through",
                                0,
-                               "used to inform xine about what the sound card can do",
+                               _("used to inform xine about what the sound card can do"),
                                NULL,
                                NULL,
                                NULL) ) {
@@ -1045,7 +1044,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->mixer.name = config->register_string(config,
                                              "audio.alsa_mixer_name",
                                              "PCM",
-                                             "alsa mixer device",
+                                             _("alsa mixer device"),
                                              NULL,
                                              NULL,
                                              NULL);
@@ -1072,11 +1071,13 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 static ao_info_t ao_info_alsa9 = {
   AO_OUT_ALSA_IFACE_VERSION,
   "alsa09",
-  "xine audio output plugin using alsa-compliant audio devices/drivers",
+  NULL,
   11
 };
 
 ao_info_t *get_audio_out_plugin_info() {
+
+  ao_info_alsa9.description = _("xine audio output plugin using alsa-compliant audio devices/drivers");
   return &ao_info_alsa9;
 }
 
