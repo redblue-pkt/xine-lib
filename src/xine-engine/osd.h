@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.21 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: osd.h,v 1.22 2003/11/26 13:33:55 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -207,6 +207,11 @@ struct osd_renderer_s {
    */
   int (*show_unscaled) (osd_object_t *osd, int64_t vpts );
 
+  /*
+   * see xine.h for defined XINE_OSD_CAP_ values.
+   */
+  uint32_t (*get_capabilities) (osd_object_t *osd);
+  
   /* private stuff */
 
   pthread_mutex_t             osd_mutex;
@@ -216,14 +221,14 @@ struct osd_renderer_s {
   osd_font_t                 *fonts;         /* loaded fonts */
   int                        textpalette;    /* default textpalette */
   
-  config_values_t           *config;
+  xine_stream_t              *stream;
 
 };
 
 /*
  *   initialize the osd rendering engine
  */
-osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, config_values_t *config );
+osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, xine_stream_t *stream );
 
 
 /*

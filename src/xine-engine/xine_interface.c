@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.67 2003/11/16 23:33:49 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.68 2003/11/26 13:33:55 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -603,6 +603,10 @@ xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int hei
   return this;
 }
 
+uint32_t xine_osd_get_capabilities(xine_osd_t *this) {
+  return this->osd.renderer->get_capabilities(&this->osd);
+} 
+
 void xine_osd_draw_point(xine_osd_t *this, int x, int y, int color) {
   this->osd.renderer->point(&this->osd, x, y, color);
 } 
@@ -643,6 +647,10 @@ void xine_osd_set_position(xine_osd_t *this, int x, int y) {
 }
 
 void xine_osd_show(xine_osd_t *this, int64_t vpts) {
+  this->osd.renderer->show(&this->osd, vpts);
+}
+
+void xine_osd_show_unscaled(xine_osd_t *this, int64_t vpts) {
   this->osd.renderer->show(&this->osd, vpts);
 }
 

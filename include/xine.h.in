@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.105 2003/11/22 21:19:09 f1rmb Exp $
+ * $Id: xine.h.in,v 1.106 2003/11/26 13:33:54 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1671,10 +1671,14 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event);
 /* yellow text, black border, transparent background */
 #define XINE_TEXTPALETTE_YELLOW_BLACK_TRANSPARENT   3
 
+#define XINE_OSD_CAP_FREETYPE2 0x0001 /* freetype2 support compiled in     */
+#define XINE_OSD_CAP_UNSCALED  0x0002 /* unscaled overlays supp. by vo drv */
+
 typedef struct xine_osd_s xine_osd_t;
 
 xine_osd_t *xine_osd_new           (xine_stream_t *self, int x, int y,
 				    int width, int height);
+uint32_t    xine_osd_get_capabilities (xine_osd_t *self);
 void        xine_osd_draw_point    (xine_osd_t *self, int x, int y, int color);
 
 void        xine_osd_draw_line     (xine_osd_t *self, int x1, int y1,
@@ -1706,6 +1710,7 @@ void        xine_osd_set_encoding(xine_osd_t *self, const char *encoding);
 /* set position were overlay will be blended */
 void        xine_osd_set_position  (xine_osd_t *self, int x, int y);
 void        xine_osd_show          (xine_osd_t *self, int64_t vpts);
+void        xine_osd_show_unscaled (xine_osd_t *self, int64_t vpts);
 void        xine_osd_hide          (xine_osd_t *self, int64_t vpts);
 /* empty drawing area */
 void        xine_osd_clear         (xine_osd_t *self);

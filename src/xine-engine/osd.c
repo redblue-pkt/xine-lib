@@ -1290,18 +1290,35 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
   }
 }
 
+static uint32_t osd_get_capabilities (osd_object_t *osd) {
+     
+  osd_renderer_t *this = osd->renderer;
+  uint32_t capabilities = 0;
+
+#ifdef HAVE_FT2
+  capabilities |= XINE_OSD_CAP_FREETYPE2;
+#endif
+
+  if( this->stream->video_out->get_capabilities(this->stream->video_out) &
+      VO_CAP_UNSCALED_OVERLAY)
+    capabilities |= XINE_OSD_CAP_UNSCALED;
+ 
+  return capabilities; 
+}
+
+
 /*
  * initialize the osd rendering engine
  */
 
-osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, config_values_t *config ) {
+osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, xine_stream_t *stream ) {
 
   osd_renderer_t *this;
   char str[1024];
 
   this = xine_xmalloc(sizeof(osd_renderer_t)); 
   this->video_overlay = video_overlay;
-  this->config = config;
+  this->stream = stream;
   this->event.object.overlay = xine_xmalloc( sizeof(vo_overlay_t) );
 
   pthread_mutex_init (&this->osd_mutex, NULL);
@@ -1316,7 +1333,8 @@ osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, co
 
   osd_preload_fonts (this, str);
 
-  this->textpalette = config->register_enum (config, "misc.osd_text_palette", 0,
+  this->textpalette = this->stream->xine->config->register_enum (this->stream->xine->config,
+                                             "misc.osd_text_palette", 0,
                                              textpalettes_str, 
                                              _("Palette (foreground-border-background) to use on subtitles"),
                                              NULL, 10, update_text_palette, this);
@@ -1344,6 +1362,7 @@ osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, co
   this->close              = osd_renderer_close;
   this->draw_bitmap        = osd_draw_bitmap;
   this->show_unscaled      = osd_show_unscaled;
+  this->get_capabilities   = osd_get_capabilities;
 
   return this;
 }
