@@ -47,7 +47,6 @@
 /*
 #define LOG
 */
-#define LOG
 
 #define XINE_ENGINE_INTERNAL
 
