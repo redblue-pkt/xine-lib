@@ -99,10 +99,11 @@ struct yuv2rgb_s {
   void            **table_gU;
   int              *table_gV;
   void            **table_bU;
+  void             *table_mmx;
 
   uint8_t          *cmap;
-  scale_line_func_t scale_line;
-  
+  scale_line_func_t scale_line;  
+
 } ;
 
 /*
@@ -131,9 +132,6 @@ struct yuv2rgb_factory_s {
   int      swapped;
   uint8_t *cmap;
 
-  int      gamma;
-  int      entry_size;
-
   uint32_t matrix_coefficients;
 
   void    *table_base;
@@ -141,6 +139,8 @@ struct yuv2rgb_factory_s {
   void    *table_gU[256];
   int      table_gV[256];
   void    *table_bU[256];
+  void    *table_mmx_base;
+  void    *table_mmx;
 
   /* preselected functions for mode/swap/hardware */
   yuv2rgb_fun_t               yuv2rgb_fun;

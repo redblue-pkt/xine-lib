@@ -47,13 +47,17 @@ do {				\
 	movq_r2m (src, dest);	\
 } while (0)
 
-static mmx_t mmx_subYw = {0x1010101010101010};
-static mmx_t mmx_addYw = {0x0000000000000000};
-static mmx_t mmx_U_green = {0xf37df37df37df37d};
-static mmx_t mmx_U_blue = {0x4093409340934093};
-static mmx_t mmx_V_red = {0x3312331233123312};
-static mmx_t mmx_V_green = {0xe5fce5fce5fce5fc};
-static mmx_t mmx_Y_coeff = {0x253f253f253f253f};
+typedef struct mmx_csc_s mmx_csc_t;
+
+struct mmx_csc_s {
+  mmx_t subYw;
+  mmx_t addYw;
+  mmx_t U_green;
+  mmx_t U_blue;
+  mmx_t V_red;
+  mmx_t V_green;
+  mmx_t Y_coeff;
+};
 
 extern const int32_t Inverse_Table_6_9[8][4];
 
@@ -62,6 +66,12 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
 {
   int a,s,i;
   int crv, cbu, cgu, cgv, cty;
+  mmx_csc_t *csc;
+
+  /* 'table_mmx' is 64bit aligned for better performance */
+  if (this->table_mmx == NULL) {
+    this->table_mmx = xine_xmalloc_aligned (8, sizeof(mmx_csc_t), &this->table_mmx_base);
+  }
 
   if( brightness <= 16 ) {
     a = 0;
@@ -70,10 +80,12 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
     a = brightness - 16;
     s = 0;
   }
-  
+
+  csc = (mmx_csc_t *) this->table_mmx;
+
   for( i = 0; i < 8; i++ ) {
-    *((unsigned char *)&mmx_subYw + i) = s;
-    *((unsigned char *)&mmx_addYw + i) = a;
+    csc->subYw.ub[i] = s;
+    csc->addYw.ub[i] = a;
   }
 
   crv = Inverse_Table_6_9[this->matrix_coefficients][0];
@@ -88,15 +100,15 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
   cty = (76309 * contrast + 512) / 1024;
 
   for (i=0; i < 4; i++) {
-    *((int16_t *)&mmx_U_green + i) = -cgu;
-    *((int16_t *)&mmx_U_blue  + i) =  cbu;
-    *((int16_t *)&mmx_V_red   + i) =  crv;
-    *((int16_t *)&mmx_V_green + i) = -cgv;
-    *((int16_t *)&mmx_Y_coeff + i) =  cty;
+    csc->U_green.w[i] = -cgu;
+    csc->U_blue.w[i]  =  cbu;
+    csc->V_red.w[i]   =  crv;
+    csc->V_green.w[i] = -cgv;
+    csc->Y_coeff.w[i] =  cty;
   }
 }
 
-static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
+static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv, mmx_csc_t *csc)
 {
     static mmx_t mmx_80w = {0x0080008000800080};
     static mmx_t mmx_00ffw = {0x00ff00ff00ff00ff};
@@ -104,8 +116,8 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     movq_m2r (*py, mm6);		// mm6 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0
     pxor_r2r (mm4, mm4);		// mm4 = 0
 
-    psubusb_m2r (mmx_subYw, mm6);	// Y -= 16
-    paddusb_m2r (mmx_addYw, mm6);
+    psubusb_m2r (csc->subYw, mm6);	// Y -= 16
+    paddusb_m2r (csc->addYw, mm6);
 
     movd_m2r (*pu, mm0);		// mm0 = 00 00 00 00 u3 u2 u1 u0
     movq_r2r (mm6, mm7);		// mm7 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0
@@ -116,7 +128,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     movd_m2r (*pv, mm1);		// mm1 = 00 00 00 00 v3 v2 v1 v0
     psllw_i2r (3, mm6);			// promote precision
 
-    pmulhw_m2r (mmx_Y_coeff, mm6);	// mm6 = luma_rgb even
+    pmulhw_m2r (csc->Y_coeff, mm6);	// mm6 = luma_rgb even
     psllw_i2r (3, mm7);			// promote precision
 
     punpcklbw_r2r (mm4, mm0);		// mm0 = u3 u2 u1 u0
@@ -124,7 +136,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     psubsw_m2r (mmx_80w, mm0);		// u -= 128
     punpcklbw_r2r (mm4, mm1);		// mm1 = v3 v2 v1 v0
 
-    pmulhw_m2r (mmx_Y_coeff, mm7);	// mm7 = luma_rgb odd
+    pmulhw_m2r (csc->Y_coeff, mm7);	// mm7 = luma_rgb odd
     psllw_i2r (3, mm0);			// promote precision
 
     psubsw_m2r (mmx_80w, mm1);		// v -= 128
@@ -134,7 +146,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
 
     movq_r2r (mm1, mm4);		// mm4 = v3 v2 v1 v0
 
-    pmulhw_m2r (mmx_U_blue, mm0);	// mm0 = chroma_b
+    pmulhw_m2r (csc->U_blue, mm0);		// mm0 = chroma_b
 
 
     // slot
@@ -143,7 +155,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     // slot
 
 
-    pmulhw_m2r (mmx_V_red, mm1);	// mm1 = chroma_r
+    pmulhw_m2r (csc->V_red, mm1);	// mm1 = chroma_r
     movq_r2r (mm0, mm3);		// mm3 = chroma_b
 
     paddsw_r2r (mm6, mm0);		// mm0 = B6 B4 B2 B0
@@ -152,7 +164,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     packuswb_r2r (mm0, mm0);		// saturate to 0-255
 
 
-    pmulhw_m2r (mmx_U_green, mm2);	// mm2 = u * u_green
+    pmulhw_m2r (csc->U_green, mm2);	// mm2 = u * u_green
 
 
     packuswb_r2r (mm3, mm3);		// saturate to 0-255
@@ -161,7 +173,7 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv)
     punpcklbw_r2r (mm3, mm0);		// mm0 = B7 B6 B5 B4 B3 B2 B1 B0
 
 
-    pmulhw_m2r (mmx_V_green, mm4);	// mm4 = v * v_green
+    pmulhw_m2r (csc->V_green, mm4);	// mm4 = v * v_green
 
     
     // slot
@@ -420,7 +432,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 
 	i = width; img = image;
 	do {
-	  mmx_yuv2rgb (py, pu, pv); 
+	  mmx_yuv2rgb (py, pu, pv, this->table_mmx);
 	  mmx_unpack_16rgb (img, cpu); 
 	  py += 8;
 	  pu += 4;
@@ -461,7 +473,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	do {
 	  /* printf ("i : %d\n",i); */
 
-	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf, this->table_mmx);
 	  mmx_unpack_16rgb (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;
@@ -531,7 +543,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 
 	i = width; img = image;
 	do {
-	  mmx_yuv2rgb (py, pu, pv); 
+	  mmx_yuv2rgb (py, pu, pv, this->table_mmx);
 	  mmx_unpack_15rgb (img, cpu); 
 	  py += 8;
 	  pu += 4;
@@ -572,7 +584,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	do {
 	  /* printf ("i : %d\n",i); */
 
-	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf, this->table_mmx);
 	  mmx_unpack_15rgb (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;
@@ -640,7 +652,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
       do {
 	i = width; img = image;
 	do {
-	  mmx_yuv2rgb (py, pu, pv);
+	  mmx_yuv2rgb (py, pu, pv, this->table_mmx);
 	  mmx_unpack_24rgb (img, cpu);
 	  py += 8;
 	  pu += 4;
@@ -682,7 +694,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	do {
 	  /* printf ("i : %d\n",i); */
 
-	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf, this->table_mmx);
 	  mmx_unpack_24rgb (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;
@@ -751,7 +763,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
       do {
 	i = width; img = image;
 	do {
-	  mmx_yuv2rgb (py, pu, pv);
+	  mmx_yuv2rgb (py, pu, pv, this->table_mmx);
 	  mmx_unpack_32rgb (img, cpu);
 	  py += 8;
 	  pu += 4;
@@ -793,7 +805,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	do {
 	  /* printf ("i : %d\n",i); */
 
-	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf, this->table_mmx);
 	  mmx_unpack_32rgb (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;
@@ -861,7 +873,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
       do {
 	i = width; img = image;
 	do {
-	  mmx_yuv2rgb (py, pu, pv);
+	  mmx_yuv2rgb (py, pu, pv, this->table_mmx);
 	  mmx_unpack_32bgr (img, cpu);
 	  py += 8;
 	  pu += 4;
@@ -903,7 +915,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	do {
 	  /* printf ("i : %d\n",i); */
 
-	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf, this->table_mmx);
 	  mmx_unpack_32bgr (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;

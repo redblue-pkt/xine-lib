@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.39 2003/02/02 13:38:24 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.40 2003/02/02 17:27:45 esnel Exp $
  */
 
 #include "config.h"
@@ -2215,7 +2215,8 @@ static int div_round (int dividend, int divisor)
     return -((-dividend + (divisor>>1)) / divisor);
 }
 
-static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped) 
+static void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
+				    int brightness, int contrast, int saturation)
 {
   int i;
   uint8_t table_Y[1024];
@@ -2231,10 +2232,13 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   int cgu = -Inverse_Table_6_9[this->matrix_coefficients][2];
   int cgv = -Inverse_Table_6_9[this->matrix_coefficients][3];
 
+  int mode = this->mode;
+  int swapped = this->swapped;
+
   for (i = 0; i < 1024; i++) {
     int j;
 
-    j = (76309 * (i - 384 - 16) + 32768) >> 16;
+    j = (76309 * (i - 384 - 16 + brightness) + 32768) >> 16;
     j = (j < 0) ? 0 : ((j > 255) ? 255 : j);
     table_Y[i] = j;
   }
@@ -2242,8 +2246,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   switch (mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
-    table_32 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
-    this->table_base = table_32;
+    if (this->table_base == NULL) {
+      this->table_base = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
+    }
+    table_32 = this->table_base;
 
     entry_size = sizeof (uint32_t);
     table_r = table_32 + 197;
@@ -2272,8 +2278,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    table_8 = malloc ((256 + 2*232) * sizeof (uint8_t));
-    this->table_base = table_8;
+    if (this->table_base == NULL) {
+      this->table_base = malloc ((256 + 2*232) * sizeof (uint8_t));
+    }
+    table_8 = this->table_base;
 
     entry_size = sizeof (uint8_t);
     table_r = table_g = table_b = table_8 + 232;
@@ -2286,8 +2294,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   case MODE_16_BGR:
   case MODE_15_RGB:
   case MODE_16_RGB:
-    table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
-    this->table_base = table_16;
+    if (this->table_base == NULL) {
+      this->table_base = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
+    }
+    table_16 = this->table_base;
 
     entry_size = sizeof (uint16_t);
     table_r = table_16 + 197;
@@ -2327,8 +2337,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
 
   case MODE_8_RGB:
   case MODE_8_BGR:
-    table_8 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint8_t));
-    this->table_base = table_8;
+    if (this->table_base == NULL) {
+      this->table_base = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint8_t));
+    }
+    table_8 = this->table_base;
 
     entry_size = sizeof (uint8_t);
     table_r = table_8 + 197;
@@ -2352,8 +2364,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
     return;
 
   case MODE_PALETTE:
-    table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
-    this->table_base = table_16;
+    if (this->table_base == NULL) {
+      this->table_base = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
+    }
+    table_16 = this->table_base;
 
     entry_size = sizeof (uint16_t);
     table_r = table_16 + 197;
@@ -2390,8 +2404,10 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
     this->table_bU[i] = (((uint8_t *)table_b) +
 			 entry_size * div_round (cbu * (i-128), 76309));
   }
-  this->gamma = 0;
-  this->entry_size = entry_size;
+
+#ifdef ARCH_X86
+  mmx_yuv2rgb_set_csc_levels (this, brightness, contrast, saturation);
+#endif  
 }
 
 static uint32_t yuv2rgb_single_pixel_32 (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
@@ -3110,6 +3126,7 @@ yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
   this->table_gU                 = factory->table_gU;
   this->table_gV                 = factory->table_gV;
   this->table_bU                 = factory->table_bU;
+  this->table_mmx                = factory->table_mmx;
 
   this->yuv2rgb_fun              = factory->yuv2rgb_fun;
   this->yuy22rgb_fun             = factory->yuy22rgb_fun;
@@ -3125,25 +3142,10 @@ yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
  * factory functions 
  */
 
-void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
-			     int brightness, int contrast, int saturation) {
-
-  int i, gamma = brightness;
-  
-  for (i = 0; i < 256; i++) {
-    (uint8_t *)this->table_rV[i] += this->entry_size*(gamma - this->gamma);
-    (uint8_t *)this->table_gU[i] += this->entry_size*(gamma - this->gamma);
-    (uint8_t *)this->table_bU[i] += this->entry_size*(gamma - this->gamma);
-  }
-#ifdef ARCH_X86
-  mmx_yuv2rgb_set_csc_levels (this, brightness, contrast, saturation);
-#endif  
-  this->gamma = gamma;
-}
-
 static void yuv2rgb_factory_dispose (yuv2rgb_factory_t *this) {
 
   free (this->table_base);
+  free (this->table_mmx_base);
   free (this);
 }
 
@@ -3166,9 +3168,11 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
   this->dispose             = yuv2rgb_factory_dispose;
   this->matrix_coefficients = 6;
   this->table_base          = NULL;
+  this->table_mmx           = NULL;
+  this->table_mmx_base      = NULL;
 
 
-  yuv2rgb_setup_tables (this, mode, swapped);
+  yuv2rgb_set_csc_levels (this, 0, 128, 128);
 
   /*
    * auto-probe for the best yuv2rgb function
