@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.38 2002/06/03 13:50:50 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.39 2002/06/03 13:55:46 miguelfreitas Exp $
  *
  */
 
@@ -1043,8 +1043,8 @@ static void *demux_qt_loop (void *this_gen) {
           this->audio_fifo->put (this->audio_fifo, buf);
         }
 
-        /* set last_frame_pts to some sane value on seek */
-        last_frame_pts = this->qt->frames[i].pts - 3000;
+        /* reset last_frame_pts on seek */
+        last_frame_pts = 0;
       }
 
       /* check if all the samples have been sent */

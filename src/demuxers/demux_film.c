@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.7 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.8 2002/06/03 13:55:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -286,8 +286,8 @@ printf ("************ sending new pts\n");
           this->audio_fifo->put (this->audio_fifo, buf);
         }
         
-        /* set last_frame_pts to some sane value on seek */
-        last_frame_pts = this->sample_table[i].pts - 3000;
+        /* reset last_frame_pts on seek */
+        last_frame_pts = 0;
       }
 
       /* check if all the samples have been sent */
