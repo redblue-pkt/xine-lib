@@ -18,6 +18,7 @@ Options:
 	[--cflags]
 	[--plugindir]
 	[--skindir]
+	[--desktopdir]
 EOF
 	exit $1
 }
@@ -64,6 +65,9 @@ while test $# -gt 0; do
     --skindir)
       echo_skindir=yes
       ;;
+    --desktopdir)
+      echo_desktopdir=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -92,3 +96,6 @@ fi
 if test "$echo_skindir" = "yes"; then
       echo "@XINE_SKINPATH@"
 fi      
+if test "$echo_desktopdir" = "yes"; then
+      echo "@XINE_DESKTOPPATH@"
+fi

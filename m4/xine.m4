@@ -71,6 +71,7 @@ AC_ARG_ENABLE(xinetest,
       xine_config_sub_version=`$XINE_CONFIG $xine_config_args --version | \
              sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
       xine_skin_dir=`$XINE_CONFIG $xine_config_args --skindir`
+      xine_desktop_dir=`$XINE_CONFIG $xine_config_args --desktopdir`
       xine_plugin_dir=`$XINE_CONFIG $xine_config_args --plugindir`
       dnl    if test "x$enable_xinetest" = "xyes" ; then
       ac_save_CFLAGS="$CFLAGS"

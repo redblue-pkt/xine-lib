@@ -597,9 +597,16 @@ eval XINE_SKINPATH="$XINE_SKINDIR"
 AC_DEFINE_UNQUOTED(XINE_SKINDIR,"$XINE_SKINPATH")
 AC_SUBST(XINE_SKINPATH)
 
+
 AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_DEMUXDIR)
 AC_SUBST(XINE_SKINDIR)
+
+
+dnl Where desktops icons will/should be installed.
+eval XINE_DESKTOPPATH="${datadir}/xine/desktop"
+AC_SUBST(XINE_DESKTOPPATH)
+
 
 dnl
 dnl Some informations about xine-lib compilation
