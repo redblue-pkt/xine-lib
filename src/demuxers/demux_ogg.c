@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.133 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.134 2004/01/13 09:40:44 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1352,7 +1352,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
 static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   int i;
-  printf("Displose num_streams:%d\n", this->num_streams);
+
   for (i=0; i<this->num_streams; i++) {
     ogg_stream_clear(&this->si[i]->oss);
 
