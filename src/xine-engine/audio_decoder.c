@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.81 2002/07/25 17:11:51 mroi Exp $
+ * $Id: audio_decoder.c,v 1.82 2002/07/26 14:51:23 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -221,8 +221,12 @@ void *audio_decoder_loop (void *this_gen) {
 	    } else
 	      audio_type = this->audio_track_map[0];
 
-	  } else 
-	    audio_type = this->audio_track_map[this->audio_channel_user];
+	  } else {
+	    if (this->audio_channel_user <= this->audio_track_map_entries)
+	      audio_type = this->audio_track_map[this->audio_channel_user];
+	    else
+	      audio_type = -1;
+	  }
 
 	  /* now, decode this buffer if it's the right audio type */
 	  
