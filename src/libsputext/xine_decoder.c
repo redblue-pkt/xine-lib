@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.67 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.68 2003/12/04 02:23:49 miguelfreitas Exp $
  *
  */
 
@@ -93,9 +93,8 @@ typedef struct sputext_decoder_s {
   int                height;         /* frame height               */
   int                font_size;
   int                line_height;
-  int                seek_count;
-  int                master_started;
-  int                slave_started;
+  int                started;
+  int                finished;
 
   osd_renderer_t    *renderer;
   osd_object_t      *osd;
@@ -263,7 +262,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t *val;
   char *str;
   extra_info_t extra_info;
-  int status;
+  int master_status, slave_status;
+  int vo_discard;
   
   /* filter unwanted streams */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
@@ -284,119 +284,124 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   lprintf("decoder data [%s]\n", this->text[0]);
   lprintf("mode %d timing %d->%d\n", uses_time, start, end);
 
-#ifdef LOG
-  if( end <= start )
-    printf("libsputext: discarding subtitle with invalid timing\n");
-#endif
+  if( end <= start ) {
+    lprintf("libsputext: discarding subtitle with invalid timing\n");
+    return;
+  }
   
   spu_offset = this->stream->master->metronom->get_option (this->stream->master->metronom,
                                                            METRONOM_SPU_OFFSET);
-  start += (spu_offset / 90);
-  end += (spu_offset / 90);
-   
-  _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
-  
-  if( !this->seek_count ) {
-    this->seek_count = extra_info.seek_count;
+  if( uses_time ) {
+    start += (spu_offset / 90);
+    end += (spu_offset / 90);
+  } else {
+    if( this->osd && this->img_duration ) {
+      start += spu_offset / this->img_duration;
+      end += spu_offset / this->img_duration;
+    }
   }
    
-  while(this->seek_count == extra_info.seek_count) {
+  while( !this->finished ) {
+ 
+    master_status = xine_get_status (this->stream->master);
+    slave_status = xine_get_status (this->stream);
+    vo_discard = this->stream->video_out->get_property(this->stream->video_out, 
+                                                       VO_PROP_DISCARD_FRAMES);
+
+    _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
+   
+    lprintf("master: %d slave: %d input_pos: %lld vo_discard: %d\n", 
+      master_status, slave_status, extra_info.input_pos, vo_discard);
+
+    if( !this->started && (master_status == XINE_STATUS_PLAY &&
+                           slave_status == XINE_STATUS_PLAY &&
+                           extra_info.input_pos) ) {
+      lprintf("started\n");
+
+      this->width = this->height = 0;
+      this->started = 1;
+    }
+
+    if( this->started ) {
+
+      if( master_status != XINE_STATUS_PLAY || 
+          slave_status != XINE_STATUS_PLAY ||
+          vo_discard ) {
+        lprintf("finished\n");
   
-    update_output_size( this );
-    
-    if( this->osd ) {
+        this->width = this->height = 0;
+        this->finished = 1;
+        return;
+      }
+
+      update_output_size( this );
       
-      /* try to use frame number mode */
-      if( !uses_time && extra_info.frame_number ) {
+      if( this->osd ) {
         
-        diff = end - extra_info.frame_number;
-        
-        /* discard old subtitles */
-        if( diff < 0 ) {
-          lprintf("discarding old\n");
-
-          return;
-        }
+        /* try to use frame number mode */
+        if( !uses_time && extra_info.frame_number ) {
           
-        diff = start - extra_info.frame_number;
-        
-        /* draw it if less than 1/2 second left */
-        if( diff < 90000/2 / this->img_duration ) {
-          start_vpts = extra_info.vpts + diff * this->img_duration;
-          end_vpts = start_vpts + (end-start) * this->img_duration;
-     
-          draw_subtitle(this, start_vpts, end_vpts);
-          return;     
-        }
-        
-      } else {
-        
-        if( !uses_time ) {
-          start = start * this->img_duration / 90;
-          end = end * this->img_duration / 90;
-          uses_time = 1;
-        }
-        
-        diff = end - extra_info.input_time;
-        
-        /* discard old subtitles */
-        if( diff < 0 ) {
-          lprintf("discarding old\n");
-
-          return;
-        }
+          diff = end - extra_info.frame_number;
           
-        diff = start - extra_info.input_time;
-        
-        /* draw it if less than 1/2 second left */
-        if( diff < 500 ) {
-          start_vpts = extra_info.vpts + diff * 90;
-          end_vpts = start_vpts + (end-start) * 90;
+          /* discard old subtitles */
+          if( diff < 0 ) {
+            lprintf("discarding old\n");
+            return;
+          }
+            
+          diff = start - extra_info.frame_number;
           
-          draw_subtitle(this, start_vpts, end_vpts);
-          return;     
+          /* draw it if less than 1/2 second left */
+          if( diff < 90000/2 / this->img_duration ) {
+            start_vpts = extra_info.vpts + diff * this->img_duration;
+            end_vpts = start_vpts + (end-start) * this->img_duration;
+       
+            draw_subtitle(this, start_vpts, end_vpts);
+            return;     
+          }
+          
+        } else {
+          
+          if( !uses_time ) {
+            start = start * this->img_duration / 90;
+            end = end * this->img_duration / 90;
+            uses_time = 1;
+          }
+          
+          diff = end - extra_info.input_time;
+          
+          /* discard old subtitles */
+          if( diff < 0 ) {
+            lprintf("discarding old\n");
+            return;
+          }
+            
+          diff = start - extra_info.input_time;
+          
+          /* draw it if less than 1/2 second left */
+          if( diff < 500 ) {
+            start_vpts = extra_info.vpts + diff * 90;
+            end_vpts = start_vpts + (end-start) * 90;
+            
+            draw_subtitle(this, start_vpts, end_vpts);
+            return;     
+          }
         }
       }
     }
     
-    status = xine_get_status (this->stream->master);
-   
-    if( this->master_started && (status == XINE_STATUS_QUIT || 
-                                 status == XINE_STATUS_STOP) ) {
-      lprintf("master stopped\n");
-
-      this->width = this->height = 0;
-      return;
-    }
-    if( status == XINE_STATUS_PLAY )
-      this->master_started = 1;
-    
-    status = xine_get_status (this->stream);
-   
-    if( this->slave_started && (status == XINE_STATUS_QUIT || 
-                                status == XINE_STATUS_STOP) ) {
-      lprintf("slave stopped\n");
-
-      this->width = this->height = 0;
-      return;
-    }
-    if( status == XINE_STATUS_PLAY )
-      this->slave_started = 1;
-
     xine_usec_sleep (50000);
-            
-    _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
-  }
 
-  lprintf("seek_count mismatch\n");
+  }
 }  
 
 
 static void spudec_reset (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
   
+  lprintf("i guess we just seeked\n");
   this->width = this->height = 0;
-  this->seek_count = 0;
+  this->started = this->finished = 0;
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
@@ -454,7 +459,6 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
   this->spu_decoder.decode_data         = spudec_decode_data;
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.discontinuity       = spudec_discontinuity;
-  this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.get_interact_info   = NULL;
   this->spu_decoder.set_button          = NULL;
   this->spu_decoder.dispose             = spudec_dispose;
