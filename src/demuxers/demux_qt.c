@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.128 2002/12/18 03:42:31 guenter Exp $
+ * $Id: demux_qt.c,v 1.129 2002/12/18 20:32:20 esnel Exp $
  *
  */
 
@@ -2141,30 +2141,54 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   /* perform a binary search on the sample table, testing the offset
    * boundaries first */
-  if (start_pos <= this->qt->frames[0].offset)
-    best_index = 0;
-  else if (start_pos >= this->qt->frames[this->qt->frame_count - 1].offset) {
-    this->status = DEMUX_FINISHED;
-    return this->status;
-  } else {
-    left = 0;
-    right = this->qt->frame_count - 1;
-    found = 0;
+  if (start_pos) {
+    if (start_pos <= this->qt->frames[0].offset)
+      best_index = 0;
+    else if (start_pos >= this->qt->frames[this->qt->frame_count - 1].offset) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    } else {
+      left = 0;
+      right = this->qt->frame_count - 1;
+      found = 0;
 
-    while (!found) {
-      middle = (left + right) / 2;
-      if ((start_pos >= this->qt->frames[middle].offset) &&
-          (start_pos <= this->qt->frames[middle].offset +
-           this->qt->frames[middle].size)) {
-        found = 1;
-      } else if (start_pos < this->qt->frames[middle].offset) {
-        right = middle;
-      } else {
-        left = middle;
+      while (!found) {
+	middle = (left + right) / 2;
+	if ((start_pos >= this->qt->frames[middle].offset) &&
+	    (start_pos <= this->qt->frames[middle].offset +
+	     this->qt->frames[middle].size)) {
+	  found = 1;
+	} else if (start_pos < this->qt->frames[middle].offset) {
+	  right = middle;
+	} else {
+	  left = middle;
+        }
       }
-    }
 
-    best_index = middle;
+      best_index = middle;
+    }
+  } else {
+    int64_t pts = 90000 * start_time;
+
+    if (pts <= this->qt->frames[0].pts)
+      best_index = 0;
+    else if (pts >= this->qt->frames[this->qt->frame_count - 1].pts) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    } else {
+      left = 0;
+      right = this->qt->frame_count - 1;
+      do {
+	middle = (left + right + 1) / 2;
+	if (pts < this->qt->frames[middle].pts) {
+	  right = (middle - 1);
+	} else {
+	  left = middle;
+	}
+      } while (left < right);
+
+      best_index = middle;
+    }
   }
 
   /* search back in the table for the nearest keyframe */
