@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.115 2003/10/12 13:35:49 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.116 2003/10/20 07:04:55 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -127,7 +127,6 @@ static snd_output_t *jcd_out;
 static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
   int range = max - min;
   int tmp;
-  
   if (range == 0)
     return 0;
   val -= min;
@@ -239,6 +238,7 @@ static void error_callback(const char *file, int line,
   char     *buf;
   int       n, size = 100;
   
+  printf("%s:%s:%d entered\n", __FILE__, __FUNCTION__, __LINE__ );
   if((buf = xine_xmalloc(size)) == NULL) 
     return;
   
@@ -361,10 +361,11 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   printf("audio_alsa_out: Number of channels = %d\n",this->num_channels);
 #endif
 
-  if (this->audio_fd != NULL) {
+  if (this->audio_fd) {
     xine_log (this->class->xine, XINE_LOG_MSG,
               "audio_alsa_out:Already open...WHY!");
     snd_pcm_close (this->audio_fd);
+    this->audio_fd = NULL;
   }
 
   this->open_mode              = mode;
@@ -803,6 +804,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
   }
 
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
+  this->audio_fd=NULL;
   free (this);
 }
 
@@ -934,7 +936,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
-    if (this->audio_fd > 0) {
+    if (this->audio_fd) {
       if (this->has_pause_resume) {
         if ((err=snd_pcm_pause(this->audio_fd, 1)) < 0) {
           printf("audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
@@ -956,19 +958,22 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     break;
 
   case AO_CTRL_PLAY_RESUME:
-    if (this->audio_fd > 0) {
+    if (this->audio_fd) {
       if (this->has_pause_resume) {
         if ((err=snd_pcm_pause(this->audio_fd, 0)) < 0) {
+          if (err == -77) {
+            printf("audio_alsa_out: Warning: How am I supposed to RESUME, if I am not PAUSED. audio_out.c, please don't call me!\n");
+            break;
+          }
           printf("audio_alsa_out: Resume call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
-          ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_RESUME);
         }
       }
     }
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
-    if (this->audio_fd > 0) {
+    if (this->audio_fd) {
       if ((err=snd_pcm_drop(this->audio_fd)) < 0) {
         printf("audio_alsa_out: Drop call failed. (err=%d:%s)\n",err, snd_strerror(err));
       }
