@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.134 2002/11/28 10:21:05 petli Exp $
+ * $Id: demux_avi.c,v 1.135 2002/12/06 01:01:15 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1219,6 +1219,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     buf->size = sizeof (this->avi->bih);
 
     this->avi->video_type = fourcc_to_buf_video(this->avi->bih.biCompression);
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = *(uint32_t *)this->avi->compressor;
 
     if (!this->avi->video_type)
       this->avi->video_type = fourcc_to_buf_video(*(uint32_t *)this->avi->compressor);
