@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.37 2002/11/20 11:57:43 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.38 2002/12/12 12:00:24 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,10 +31,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-#if defined(__linux__)
-#include <linux/config.h> /* Check for DEVFS */
-#endif
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -242,7 +238,8 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
   if (this->nbc) 
     nbc_close (this->nbc);
 
-  close(this->fh);
+  if (this->fh != STDIN_FILENO)
+    close(this->fh);
   
   free (this->mrl);
   free (this);
@@ -271,7 +268,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   /* stdin_input_class_t  *cls = (stdin_input_class_t *) cls_gen; */
   stdin_input_plugin_t *this;
   char                 *mrl = strdup(data);
-  char                 *filename;
   int                   fh;
 
 
@@ -282,30 +278,29 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   if (!strncasecmp(mrl, "stdin:/", 7) 
       || !strncmp(mrl, "-", 1)) {
-#if defined(CONFIG_DEVFS_FS)
-    filename = "/dev/vc/stdin";
-#else
-    filename = "/dev/stdin";
-#endif
+
+    fh = STDIN_FILENO;
 
   } else if (!strncasecmp (mrl, "fifo:/", 6)) {
+    char *filename;
+
+    fh = open (filename, O_RDONLY);
 
     filename = (char *) &mrl[6];
     
+    printf("input_stdin_fifo: filename '%s'\n", filename);
+  
+    if (fh == -1) {
+      printf ("stdin: failed to open '%s'\n",
+	      filename);
+      free (mrl);
+      return NULL;
+    }
   } else {
     free (mrl);
     return NULL;
   }
   
-  printf("input_stdin_fifo: filename '%s'\n", filename);
-  fh = open (filename, O_RDONLY);
-  
-  if (fh == -1) {
-    printf ("stdin: failed to open '%s'\n",
-	    filename);
-    free (mrl);
-    return NULL;
-  }
 
   /* 
    * mrl accepted and opened successfully at this point

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.84 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.85 2002/12/12 12:00:23 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -358,10 +358,17 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
     printf ("demux_mpgaudio: stream is seekable\n");
 #endif
 
-  } else  if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+  } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
+
+#ifdef LOG
+    printf ("demux_mpgaudio: input plugin provides preview\n");
+#endif
+    
+    input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
     head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 #ifdef LOG
-    printf ("demux_mpgaudio: got preview\n");
+    printf ("demux_mpgaudio: got preview %02x %02x %02x %02x\n",
+	    buf[0], buf[1], buf[2], buf[3]);
 #endif
   } else {
 #ifdef LOG
