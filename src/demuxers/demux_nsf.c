@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.10 2003/02/22 14:06:47 esnel Exp $
+ * $Id: demux_nsf.c,v 1.11 2003/03/07 12:51:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -316,7 +316,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_nsf_t   *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_nsf.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_nsf.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

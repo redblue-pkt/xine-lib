@@ -22,7 +22,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.4 2003/02/18 00:10:10 tmmm Exp $
+ * $Id: demux_cdda.c,v 1.5 2003/03/07 12:51:47 guenter Exp $
  *
  */
 
@@ -197,7 +197,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_cdda_t   *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_cdda.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_cdda.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

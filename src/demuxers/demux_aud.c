@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.4 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_aud.c,v 1.5 2003/03/07 12:51:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -289,7 +289,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_aud_t    *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_aud.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_aud.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

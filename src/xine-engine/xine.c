@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.233 2003/03/06 16:49:33 guenter Exp $
+ * $Id: xine.c,v 1.234 2003/03/07 12:51:48 guenter Exp $
  *
  * top-level xine functions
  *
@@ -774,6 +774,9 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 #endif
   }
 
+  xine_log (stream->xine, XINE_LOG_MSG, 
+	    "xine: found input plugin  : %s\n",
+	    stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
 
   if (!stream->demux_plugin) {
   
@@ -797,10 +800,9 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
   }
 
-  if (stream->xine->verbosity >= XINE_VERBOSITY_LOG) {
-    printf("xine: found input plugin  : %s\n",stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
-    printf("xine: found demuxer plugin: %s\n",stream->demux_plugin->demux_class->get_description(stream->demux_plugin->demux_class));
-  }
+  xine_log (stream->xine, XINE_LOG_MSG, 
+	    "xine: found demuxer plugin: %s\n",
+	    stream->demux_plugin->demux_class->get_description(stream->demux_plugin->demux_class));
 
   extra_info_reset( stream->current_extra_info );
   extra_info_reset( stream->video_decoder_extra_info );

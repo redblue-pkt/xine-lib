@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.152 2003/03/02 17:00:31 tmattern Exp $
+ * $Id: demux_avi.c,v 1.153 2003/03/07 12:51:47 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -764,7 +764,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
         AVI->palette_count = AVI->bih->biClrUsed;
         if (AVI->palette_count > 256) {
           printf ("demux_avi: number of colors exceeded 256 (%d)",
-            AVI->palette_count);
+		  AVI->palette_count);
           AVI->palette_count = 256;
         }
         for (j = 0; j < AVI->palette_count; j++) {
@@ -1385,9 +1385,11 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->avi->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->avi->height;
 
-  for (i=0; i < this->avi->n_audio; i++)
-    printf ("demux_avi: audio format[%d] = 0x%x\n",
-	    i, this->avi->audio[i]->wavex->wFormatTag);
+  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+    for (i=0; i < this->avi->n_audio; i++)
+      printf ("demux_avi: audio format[%d] = 0x%x\n",
+	      i, this->avi->audio[i]->wavex->wFormatTag);
+  }
   this->no_audio = 0;
 
   for(i=0; i < this->avi->n_audio; i++) {
@@ -1398,7 +1400,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 	      this->avi->audio[i]->wavex->wFormatTag);
       this->no_audio  = 1;
       this->avi->audio[i]->audio_type     = BUF_AUDIO_UNKNOWN;
-    } else
+    } else if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
       printf ("demux_avi: audio type %s (wFormatTag 0x%x)\n",
 	      buf_audio_name(this->avi->audio[i]->audio_type),
 	      (int)this->avi->audio[i]->wavex->wFormatTag);
@@ -1439,8 +1441,10 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     }
 
     buf->type = this->avi->video_type;
-    printf ("demux_avi: video codec is '%s'\n",
-	    buf_video_name(buf->type));
+
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf ("demux_avi: video codec is '%s'\n",
+	      buf_video_name(buf->type));
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -1510,7 +1514,9 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
    * seek to start pos / time
    */
 
-  printf ("demux_avi: start pos is %lld, start time is %d\n", start_pos, start_time);
+  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+    printf ("demux_avi: start pos is %lld, start time is %d\n", 
+	    start_pos, start_time);
 
   /* Seek video.  We do a single idx_grow at the beginning rather than
    * incrementally growing the index in a loop, so that if the index
@@ -1582,7 +1588,8 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
    * position we've already found, so we won't be seeking though the
    * file much at this point. */
 
-  printf ("demux_avi: video_pts = %lld\n", video_pts);
+  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+    printf ("demux_avi: video_pts = %lld\n", video_pts);
 
   audio_pts = 77777777;
 
@@ -1694,7 +1701,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->status = DEMUX_FINISHED;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf("demux_avi.c: streaming mode\n");
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf("demux_avi.c: streaming mode\n");
     this->streaming = 1;
   }
 
@@ -1703,8 +1711,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT:
 
     if (input->get_capabilities(input) & INPUT_CAP_BLOCK) {
-      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
-	      this->AVI_errno);
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+	printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
+		this->AVI_errno);
       free (this);
       return NULL;
     }
@@ -1760,14 +1769,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->avi = AVI_init (this);
   if (!this->avi) {
-    printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
-            this->AVI_errno);
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
+	      this->AVI_errno);
     free (this);
     return NULL;
   }
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
-  printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
+  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+    printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
 
   return &this->demux_plugin;
 }

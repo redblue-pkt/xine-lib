@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.16 2003/01/23 16:12:14 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.17 2003/03/07 12:51:48 guenter Exp $
  *
  */
 
@@ -291,7 +291,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_ra_t     *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_ra.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_ra.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

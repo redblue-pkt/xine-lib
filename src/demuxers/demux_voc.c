@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.27 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_voc.c,v 1.28 2003/03/07 12:51:48 guenter Exp $
  *
  */
 
@@ -318,7 +318,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_voc_t    *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_voc.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_voc.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

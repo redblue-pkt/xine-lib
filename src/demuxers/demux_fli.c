@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.38 2003/02/08 15:49:26 tmmm Exp $
+ * $Id: demux_fli.c,v 1.39 2003/03/07 12:51:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -302,7 +302,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_fli_t    *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_fli.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_fli.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 

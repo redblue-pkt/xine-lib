@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.43 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_pes.c,v 1.44 2003/03/07 12:51:48 guenter Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -347,8 +347,10 @@ static void *demux_pes_loop (void *this_gen) {
     xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
+#ifdef LOG
   printf ("demux_pes: demux loop finished (status: %d, buf:%x)\n",
 	  this->status, w);
+#endif
 
   this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
@@ -365,7 +367,9 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
   pthread_mutex_lock( &this->mutex );
   
   if (!this->thread_running) {
+#ifdef LOG
     printf ("demux_pes: stop...ignored\n");
+#endif
     pthread_mutex_unlock( &this->mutex );
     return;
   }

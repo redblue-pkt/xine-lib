@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.67 2003/02/23 22:07:06 guenter Exp $
+ * $Id: demux_ogg.c,v 1.68 2003/03/07 12:51:47 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -136,8 +136,9 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
   if (!preview && pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
-    printf ("demux_ogg: diff=%lld (pts=%lld, last_pts=%lld)\n", 
-	    diff, pts, this->last_pts[video]);
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf ("demux_ogg: diff=%lld (pts=%lld, last_pts=%lld)\n", 
+	      diff, pts, this->last_pts[video]);
 
     if (this->buf_flag_seek) {
       xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -326,8 +327,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
       if (ogg_page_bos(&this->og)) {
 
+#ifdef LOG
 	printf ("demux_ogg: beginning of stream\ndemux_ogg: serial number %d\n",
 		cur_serno);
+#endif
 
 	ogg_stream_init(&this->oss[this->num_streams], cur_serno);
 	stream_num = this->num_streams;
@@ -588,7 +591,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	      fcc = *(uint32_t*)(op.packet+68);
 
+#ifdef LOG
 	      printf ("demux_ogg: fourcc %08x\n", fcc);
+#endif
 
 	      this->buf_types[stream_num] = fourcc_to_buf_video (fcc);
 	      if( !this->buf_types[stream_num] )

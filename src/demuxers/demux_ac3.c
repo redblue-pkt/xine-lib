@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.5 2003/02/27 22:26:48 mroi Exp $
+ * $Id: demux_ac3.c,v 1.6 2003/03/07 12:51:47 guenter Exp $
  *
  */
 
@@ -299,6 +299,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_ac3_t   *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
     printf(_("demux_ac3.c: input not seekable, can not handle!\n"));
     return NULL;
   }

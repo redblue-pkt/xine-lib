@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.37 2003/02/22 13:20:30 esnel Exp $
+ * $Id: demux_wav.c,v 1.38 2003/03/07 12:51:48 guenter Exp $
  *
  */
 
@@ -319,7 +319,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_wav_t    *this;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_wav.c: input not seekable, can not handle!\n"));
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+      printf(_("demux_wav.c: input not seekable, can not handle!\n"));
     return NULL;
   }
 
