@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.13 2001/08/23 11:27:35 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.14 2001/09/06 11:57:57 jkeil Exp $
  */
 
 #include "config.h"
@@ -95,6 +95,10 @@ int yuv2rgb_setup (yuv2rgb_t *this,
     this->v_buffer = this->v_chunk = NULL;
   }
 
+  
+  this->step_dx = source_width  * 32768 / dest_width;
+  this->step_dy = source_height * 32768 / dest_height;
+    
   if ((source_width == dest_width) && (source_height == dest_height)) {
     this->do_scale = 0;
 
@@ -114,9 +118,6 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 
   } else {
     this->do_scale = 1;
-    
-    this->step_dx = source_width  * 32768 / dest_width;
-    this->step_dy = source_height * 32768 / dest_height;
     
     /*
      * space for two y-lines (for yuv2rgb_mlib)
