@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.12 2002/10/22 07:36:05 jcdutton Exp $
+ * $Id: events.c,v 1.13 2002/10/23 11:44:31 jcdutton Exp $
  *
  * Event handling functions
  *
@@ -84,7 +84,7 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
     cevent->type        = event->type;
     cevent->stream      = event->stream;
     cevent->data_length = event->data_length;
-    if (cevent->data_length > 0 ) {
+    if ((event->data_length > 0) && (event->data) ) {
       cevent->data = malloc (event->data_length);
       memcpy (cevent->data, event->data, event->data_length);
     } else {

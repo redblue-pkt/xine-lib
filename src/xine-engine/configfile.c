@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.35 2002/09/22 14:29:40 mroi Exp $
+ * $Id: configfile.c,v 1.36 2002/10/23 11:44:31 jcdutton Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -37,9 +37,9 @@
 #include "xineutils.h"
 #include "xine_internal.h"
 
-/* 
+ 
 #define LOG
-*/
+
 
 
 /* 

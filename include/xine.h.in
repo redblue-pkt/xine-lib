@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.22 2002/10/20 02:17:36 storri Exp $
+ * $Id: xine.h.in,v 1.23 2002/10/23 11:44:30 jcdutton Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -78,6 +78,12 @@ typedef struct xine_vo_driver_s xine_vo_driver_t;
  */
 
 xine_t *xine_new (void);
+
+/*
+ * Scan plugins
+ */
+
+void xine_scan_plugins (xine_t *self);
 
 /*
  * post_init the xine engine
@@ -790,7 +796,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_INPUT_MENU2          104
 #define XINE_EVENT_INPUT_MENU3          105
 #define XINE_EVENT_INPUT_MENU4          106
-#define XINE_EVENT_INPUT_MENU5          106
+#define XINE_EVENT_INPUT_MENU5          107
 #define XINE_EVENT_INPUT_MENU6          108
 #define XINE_EVENT_INPUT_MENU7          109
 #define XINE_EVENT_INPUT_UP             110
