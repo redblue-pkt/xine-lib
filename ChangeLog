@@ -5,6 +5,9 @@ xine-lib (1-rc4a)
     makes it possible to play AVIs over sftp:
   * added documentation for the post plugin system to the hackersguide
   * add support for decoding On2 VP5 and VP6 using Windows dlls
+  * fix bugs with the colorkey overlay support introduced in rc4. under certain
+    circunstances, parts of the images were not shown.
+  * enable colorkey overlays for more cards using XVideo and vidix drivers.
   * make it possible for the CDDA plugin to give away Musicbrainz CD Index ID
 
 xine-lib (1-rc4)
