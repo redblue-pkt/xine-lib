@@ -6,9 +6,13 @@ EXTRA_DIST = build_rpms.sh \
 	vga.xinefont.gz \
 	xine-fontconv.c \
 	xine-lib.spec.in \
-	xine-lib.spec 
+	xine-lib.spec \
+	libxine.pc.in
 
 bin_SCRIPTS = xine-config
+
+pkgconfigdir=$(libdir)/pkgconfig
+pkgconfig_DATA=libxine.pc
 
 debug:
 
