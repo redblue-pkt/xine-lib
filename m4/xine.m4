@@ -54,10 +54,10 @@ AC_ARG_ENABLE(xinetest,
 
   min_xine_version=ifelse([$1], ,0.5.0,$1)
   if test "x$enable_xinetest" != "xyes" ; then
-    AC_MSG_CHECKING(for XINE version >= $min_xine_version)
+    AC_MSG_CHECKING(for XINE-LIB version >= $min_xine_version)
   else
     AC_PATH_PROG(XINE_CONFIG, xine-config, no)
-    AC_MSG_CHECKING(for XINE version >= $min_xine_version)
+    AC_MSG_CHECKING(for XINE-LIB version >= $min_xine_version)
     no_xine=""
     if test "$XINE_CONFIG" = "no" ; then
       no_xine=yes
