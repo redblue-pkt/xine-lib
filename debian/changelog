@@ -1,3 +1,27 @@
+xine-lib (1-rc5-1.1) unstable; urgency=high
+
+  * Non-maintainer upload, prepared by Steve Langasek and me
+  * High-urgency upload for a sarge-targetted RC fix.
+  * Use --build, not --host, to specify the architecture; otherwise
+    autoconf thinks we're cross-compiling when we aren't.
+  * src/libffmpeg/libavcodec/sparc/dsputil_vis.c et al: make this code
+    conditional on ENABLE_VIS, since that's what that define is for;
+    fixes FTBFS on sparc when using a 32-bit target (closes: #270884).
+  * Add patch to fix overflows when handling vcd:// MRLs
+    (closes: #265061).
+
+ -- Frank Lichtenheld <djpig@debian.org>  Sun, 26 Sep 2004 02:22:51 +0200
+
+xine-lib (1-rc5-1) unstable; urgency=medium
+
+  * New upstream release (closes: #258274)
+    * fixes MPEG demuxer selection (closes: #249247)
+    * suppresses warning about skipped frames on fast-fwd (closes: #255125)
+  * re-processed autogen.sh, so Debian's libtool is used (closes:  #251584)
+  * passing CFLAGS explicitly to make (closes: 251103)
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 11 Jul 2004 21:01:43 +0200
+
 xine-lib (1-rc4a-1) unstable; urgency=high
 
   * new upstream version
