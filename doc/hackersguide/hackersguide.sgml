@@ -106,8 +106,8 @@
     <sect2>
     <title>libmad</title>
     <para>
-    Mpeg audio decoder plugin (i.e. mp3 decoding). Quite slow and
-    due to be replaced by ffmpeg's mp3 decoder.
+    Mpeg audio decoder plugin (i.e. mp3 decoding). 
+    ISO/IEC compliant decoder using fixed point math.
     </para>
     </sect2>
     <sect2>
