@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.116 2002/04/13 13:34:27 jcdutton Exp $
+ * $Id: xine.c,v 1.117 2002/04/14 21:28:03 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -318,6 +318,8 @@ int xine_play (xine_t *this, char *mrl,
 
   pthread_mutex_lock (&this->xine_lock);
 
+  xine_set_speed_internal (this, SPEED_NORMAL);
+  
   /*
    * stop engine only for different mrl
    */
@@ -430,8 +432,6 @@ int xine_play (xine_t *this, char *mrl,
     this->status = XINE_PLAY;
     strncpy (this->cur_mrl, mrl, 1024);
     
-    xine_set_speed_internal (this, SPEED_NORMAL);
-
     /* osd */
     xine_usec_sleep(100000); /* FIXME: how do we assure an updated cur_input_time? */
     xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 300000);
