@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.7 2004/04/28 00:14:13 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.8 2004/05/02 20:00:57 mroi Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -756,7 +756,7 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   devname = class->config->register_string(class->config, "video.pgx32_device", "/dev/fb",
     _("PGX32 device path"),
     _("Specifies the file name for the PGX32 device to be used."),
-    XINE_CONFIG_SECURITY, NULL, NULL);
+    20, NULL, NULL);
 
   if ((fbfd = open(devname, O_RDWR)) < 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx32: Error: can't open framebuffer device '%s'\n"), devname);
