@@ -23,12 +23,12 @@
  * Thanks for the good research!
  */
 
-#include <Cocoa/Cocoa.h>
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
+#import <Cocoa/Cocoa.h>
+#import <OpenGL/OpenGL.h>
+#import <OpenGL/gl.h>
+#import <OpenGL/glext.h>
 
-#include "video_window.h"
+#import "video_window.h"
 
 NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
