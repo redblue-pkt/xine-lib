@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.127 2003/02/14 00:35:30 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.128 2003/02/22 14:18:55 mroi Exp $
  *
  */
 
@@ -129,6 +129,8 @@ struct extra_info_s {
   
   int                   seek_count; /* internal engine use */
   int64_t               vpts;       /* set on output layers only */ 
+  
+  int                   invalid;    /* do not use this extra info to update anything */
 };
 
 /*

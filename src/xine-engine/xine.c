@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.230 2003/02/14 00:35:30 miguelfreitas Exp $
+ * $Id: xine.c,v 1.231 2003/02/22 14:18:55 mroi Exp $
  *
  * top-level xine functions
  *
@@ -93,23 +93,25 @@ void extra_info_reset( extra_info_t *extra_info ) {
 
 void extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
   
-  if( src->input_pos )
-    dst->input_pos = src->input_pos;
-  
-  if( src->input_length )
-    dst->input_length = src->input_length;
-    
-  if( src->input_time )
-    dst->input_time = src->input_time;
-    
-  if( src->frame_number )
-    dst->frame_number = src->frame_number;
-    
-  if( src->seek_count )
-    dst->seek_count = src->seek_count;
+  if (!src->invalid) {
+    if( src->input_pos )
+      dst->input_pos = src->input_pos;
 
-  if( src->vpts )
-    dst->vpts = src->vpts;
+    if( src->input_length )
+      dst->input_length = src->input_length;
+
+    if( src->input_time )
+      dst->input_time = src->input_time;
+
+    if( src->frame_number )
+      dst->frame_number = src->frame_number;
+
+    if( src->seek_count )
+      dst->seek_count = src->seek_count;
+
+    if( src->vpts )
+      dst->vpts = src->vpts;
+  }
 }
 
 static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
