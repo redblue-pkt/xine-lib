@@ -154,54 +154,54 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
 
   picture_t * picture = mpeg2dec->picture;
 
-  mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = picture->frame_width;
-  mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
+  mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = picture->frame_width;
+  mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = picture->frame_height;
 
   switch (picture->aspect_ratio_information) {
   case XINE_VO_ASPECT_PAN_SCAN:
   case XINE_VO_ASPECT_ANAMORPHIC:
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 /9.0;
     break;
   case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11/1.0;
     break;
   case XINE_VO_ASPECT_SQUARE:      /* square pels */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
     break;
   default:
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
     break;
   }
 
   switch (mpeg2dec->picture->frame_rate_code) {
   case 1: /* 23.976 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3913;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3913;
     break;
   case 2: /* 24 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3750;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3750;
     break;
   case 3: /* 25 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3600;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3600;
     break;
   case 4: /* 29.97 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3003;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3003;
     break;
   case 5: /* 30 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
     break;
   case 6: /* 50 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1800;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1800;
     break;
   case 7: /* 59.94 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1525;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1525;
     break;
   case 8: /* 60 fps */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1509;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 1509;
     break;
   default:
        /* printf ("invalid/unknown frame rate code : %d \n",
                frame->frame_rate_code); */
-    mpeg2dec->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
+    mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
   }
 }
 
@@ -349,15 +349,16 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
-            xine_frame_change_event_t notify_event;
-
 	    remember_metainfo (mpeg2dec);
+#if 0
+            xine_frame_change_event_t notify_event;
 
 	    notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
 	    notify_event.width = picture->coded_picture_width;
 	    notify_event.height = picture->coded_picture_height;
 	    notify_event.aspect = picture->aspect_ratio_information;
 	    xine_send_event(mpeg2dec->xine, &notify_event.event);
+#endif
 
 	    if (picture->forward_reference_frame) 
 	      picture->forward_reference_frame->free (picture->forward_reference_frame);
@@ -680,7 +681,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
       if (mpeg2dec->force_aspect) picture->aspect_ratio_information = mpeg2dec->force_aspect;
 	  
       if (mpeg2dec->is_sequence_needed) {
-        xine_frame_change_event_t notify_event;
+        //xine_frame_change_event_t notify_event;
 	
 	mpeg2dec->is_sequence_needed = 0;
 	picture->frame_width  = picture->coded_picture_width;
@@ -688,11 +689,11 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
 	remember_metainfo (mpeg2dec);
 
-	notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
-	notify_event.width = picture->coded_picture_width;
-	notify_event.height = picture->coded_picture_height;
-	notify_event.aspect = picture->aspect_ratio_information;
-	xine_send_event(mpeg2dec->xine, &notify_event.event);
+	//notify_event.event.type = XINE_EVENT_FRAME_CHANGE;
+	//notify_event.width = picture->coded_picture_width;
+	//notify_event.height = picture->coded_picture_height;
+	//notify_event.aspect = picture->aspect_ratio_information;
+	//xine_send_event(mpeg2dec->xine, &notify_event.event);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
       if (mpeg2_header_extension (picture, mpeg2dec->chunk_buffer)) {
@@ -719,6 +720,7 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
 {
   /* check if user data denotes closed captions */
   if (buffer[0] == 'C' && buffer[1] == 'C') {
+#if 0
     xine_closed_caption_event_t event;
     uint8_t *end = find_end(buffer);
 
@@ -727,5 +729,7 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
     event.buf_len = end - &buffer[2];
     event.pts = mpeg2dec->pts;
     xine_send_event(mpeg2dec->xine, &event.event);
+#endif
+
   }
 }

@@ -32,6 +32,7 @@ SUBDIRS = \
 	input \
 	demuxers \
 	libffmpeg \
+	libmpeg2 \
 	liba52 \
 	libmad 
 

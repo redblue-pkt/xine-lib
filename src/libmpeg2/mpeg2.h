@@ -46,7 +46,7 @@ typedef struct mpeg2dec_s {
     int64_t pts;
     uint32_t rff_pattern; 
     int force_aspect;
-    xine_t *xine;
+    xine_stream_t *stream;
 } mpeg2dec_t ;
 
 
