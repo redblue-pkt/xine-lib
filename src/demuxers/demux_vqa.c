@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.18 2002/11/09 23:22:33 guenter Exp $
+ * $Id: demux_vqa.c,v 1.19 2002/11/20 06:16:24 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,17 +78,19 @@ typedef struct {
 
   input_plugin_t      *input;
 
+  off_t                data_start;
   off_t                filesize;
   int                  status;
 
-  unsigned int         video_width;
-  unsigned int         video_height;
-  unsigned int         vector_width;
-  unsigned int         vector_height;
+  unsigned char        header[VQA_HEADER_SIZE];
 
   unsigned int         audio_sample_rate;
   unsigned int         audio_bits;
   unsigned int         audio_channels;
+
+  int64_t              video_pts;
+  unsigned int         audio_frames;
+  unsigned int         iteration;
 
   char                 last_mrl[1024];
 } demux_vqa_t ;
@@ -106,49 +108,47 @@ typedef struct {
 /* returns 1 if the VQA file was opened successfully, 0 otherwise */
 static int open_vqa_file(demux_vqa_t *this) {
 
-  unsigned char header[VQA_HEADER_SIZE];
-  off_t last_offset;
-  unsigned char preamble[VQA_PREAMBLE_SIZE];
+  unsigned char scratch[12];
   unsigned int chunk_size;
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, 12) != 12)
+  /* get the actual filesize */
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->filesize = this->input->get_length(this->input);
+    this->input->seek(this->input, 0, SEEK_SET);
+  } else
+    this->filesize = 1;
+
+  if (this->input->read(this->input, scratch, 12) != 12)
     return 0;
 
   /* check for the VQA signatures */
-  if ((BE_32(&header[0]) != FORM_TAG) ||
-      (BE_32(&header[8]) != WVQA_TAG))
+  if ((BE_32(&scratch[0]) != FORM_TAG) ||
+      (BE_32(&scratch[8]) != WVQA_TAG))
     return 0;
 
-  /* get the file size (a.k.a., last offset) as reported by the file */
-  this->input->seek(this->input, 4, SEEK_SET);
-  if (this->input->read(this->input, header, 4) != 4)
-    return 0;
-  last_offset = BE_32(&header[0]);
+  /* skip to the start of the VQA header */
+  this->input->seek(this->input, 8, SEEK_CUR);
 
-  /* get the actual filesize */
-  this->filesize = this->input->get_length(this->input);
-
-  /* skip to the VQA header */
-  this->input->seek(this->input, 20, SEEK_SET);
-  if (this->input->read(this->input, header, VQA_HEADER_SIZE)
+  /* load the VQA header */
+  if (this->input->read(this->input, this->header, VQA_HEADER_SIZE)
     != VQA_HEADER_SIZE)
     return 0;
 
-  /* fetch the interesting information */
-  this->video_width = LE_16(&header[6]);
-  this->video_height = LE_16(&header[8]);
-  this->vector_width = header[10];
-  this->vector_height = header[11];
-  this->audio_sample_rate = LE_16(&header[24]);
-  this->audio_channels = header[26];
+  this->audio_sample_rate = LE_16(&this->header[24]);
+  this->audio_channels = this->header[26];
 
   /* skip the FINF chunk */
-  if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
+  if (this->input->read(this->input, scratch, VQA_PREAMBLE_SIZE) !=
     VQA_PREAMBLE_SIZE)
     return 0;
-  chunk_size = BE_32(&preamble[4]);
-  this->input->seek(this->input, chunk_size, SEEK_CUR);
+  chunk_size = BE_32(&scratch[4]);
+  printf ("current pos @ %llX + ", this->input->get_current_pos(this->input));
+  printf ("%X bytes seek forward = new pos @ %llX)\n", 
+    chunk_size,
+    this->input->seek(this->input, chunk_size, SEEK_CUR));
+
+  this->video_pts = this->audio_frames = 0;
+  this->iteration = 0;
 
   return 1;
 }
@@ -157,14 +157,11 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf = NULL;
-  unsigned int i = 0;
   unsigned char preamble[VQA_PREAMBLE_SIZE];
   unsigned int chunk_size;
   off_t current_file_pos;
   int skip_byte;
-  int64_t video_pts = 0;
-  int64_t audio_pts = 0;
-  unsigned int audio_frames = 0;
+  int64_t audio_pts;
 
   /* load and dispatch the audio portion of the frame */
   if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
@@ -176,10 +173,11 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
   current_file_pos = this->input->get_current_pos(this->input);
   chunk_size = BE_32(&preamble[4]);
   skip_byte = chunk_size & 0x1;
-  audio_pts = audio_frames;
+  audio_pts = this->audio_frames;
   audio_pts *= 90000;
   audio_pts /= this->audio_sample_rate;
-  audio_frames += (chunk_size * 2 / this->audio_channels);
+  this->audio_frames += (chunk_size * 2 / this->audio_channels);
+
   while (chunk_size) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_VQA_IMA;
@@ -212,7 +210,7 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
 
   /* load and dispatch the video portion of the frame but only if this
    * is not frame #0 */
-  if (i > 0) {
+  if (this->iteration > 0) {
     if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
       VQA_PREAMBLE_SIZE) {
       this->status = DEMUX_FINISHED;
@@ -226,8 +224,8 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
       buf->type = BUF_VIDEO_VQA;
       buf->input_pos = current_file_pos;
       buf->input_length = this->filesize;
-      buf->input_time = video_pts / 90000;
-      buf->pts = video_pts;
+      buf->input_time = this->video_pts / 90000;
+      buf->pts = this->video_pts;
 
       if (chunk_size > buf->max_size)
         buf->size = buf->max_size;
@@ -247,10 +245,10 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
 
       this->video_fifo->put (this->video_fifo, buf);
     }
-    video_pts += VQA_PTS_INC;
+    this->video_pts += VQA_PTS_INC;
   }
 
-  i++;
+  this->iteration++;
 
   return this->status;
 }
@@ -269,8 +267,10 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
     (this->audio_channels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = 
+    LE_16(&this->header[6]);
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 
+    LE_16(&this->header[8]);
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
@@ -286,23 +286,10 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = VQA_PTS_INC;  /* initial video_step */
-  /* really be a rebel: No structure at all, just put the video width
-   * and height straight into the buffer, BE_16 format */
-  buf->content[0] = (this->video_width >> 8) & 0xFF;
-  buf->content[1] = (this->video_width >> 0) & 0xFF;
-  buf->content[2] = (this->video_height >> 8) & 0xFF;
-  buf->content[3] = (this->video_height >> 0) & 0xFF;
-  buf->size = 4;
-  buf->type = BUF_VIDEO_VQA;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  /* send the vector size to the video decoder */
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_SPECIAL;
-  buf->decoder_info[1] = BUF_SPECIAL_VQA_VECTOR_SIZE;
-  buf->decoder_info[2] = this->vector_width;
-  buf->decoder_info[3] = this->vector_height;
-  buf->size = 0;
+  /* send the VQA header in place of the bitmapinfo header that many
+   * demuxers send; the VQA video decoder will understand what this means */
+  memcpy(buf->content, this->header, VQA_HEADER_SIZE);
+  buf->size = VQA_HEADER_SIZE;
   buf->type = BUF_VIDEO_VQA;
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -358,10 +345,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_vqa_t    *this;
 
+/*
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf(_("demux_vqa.c: input not seekable, can not handle!\n"));
     return NULL;
   }
+*/
 
   this         = xine_xmalloc (sizeof (demux_vqa_t));
   this->stream = stream;
@@ -423,14 +412,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
-  /* print vital stats */
-  xine_log (this->stream->xine, XINE_LOG_MSG,
-    _("demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"),
-    this->video_width,
-    this->video_height,
-    this->audio_channels,
-    this->audio_sample_rate);
 
   return &this->demux_plugin;
 }
