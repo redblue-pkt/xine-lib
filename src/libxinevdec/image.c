@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.16 2004/12/03 15:46:42 mroi Exp $
+ * $Id: image.c,v 1.17 2005/02/03 23:18:34 holstsn Exp $
  *
  * a image video decoder
  */
@@ -29,8 +29,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
-#include <png.h>
+#include <stdio.h>
 
 #define LOG_MODULE "image_video_decoder"
 #define LOG_VERBOSE
@@ -39,9 +38,12 @@
 */
 
 #include "xine_internal.h"
-#include "bswap.h"
 #include "video_out.h"
 #include "buffer.h"
+#include "xineutils.h"
+#include "bswap.h"
+
+#include <wand/magick_wand.h>
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -60,244 +62,92 @@ typedef struct image_decoder_s {
 
   xine_stream_t    *stream;
   int               video_open;
-  int               pts;
-
-  /* png */
-  png_structp       png_ptr;
-  png_infop         info_ptr;
-  char             *user_error_ptr;
-  png_uint_32       width, height;
-  int               bit_depth,
-                    color_type,
-		    interlace_type,
-		    compression_type,
-		    filter_type;
-  png_bytep        *rows;
-  jmp_buf           jmpbuf;
-  int               passes, rowbytes;
-  int               rows_valid;
+  
+  unsigned char    *image;
+  int               index;
 
 } image_decoder_t;
 
-/*
- * png stuff
- */
-
-static void info_callback(png_structp png_ptr, png_infop info);
-static void row_callback(png_structp png_ptr, png_bytep new_row,
-			 png_uint_32 row_num, int pass);
-static void end_callback(png_structp png_ptr, png_infop info);
-
-static int initialize_png_reader(image_decoder_t *this) {
- 
-  this->png_ptr = png_create_read_struct
-      (PNG_LIBPNG_VER_STRING, (png_voidp)this,
-       NULL, NULL);
-  if (!this->png_ptr)
-      return -1;
-  
-  this->info_ptr = png_create_info_struct(this->png_ptr);
-  
-  if (!this->info_ptr) {
-      png_destroy_read_struct(&this->png_ptr, NULL, NULL);
-      return -1;
-  }
-
-  if (setjmp(this->jmpbuf)) {
-      png_destroy_read_struct(&this->png_ptr, &this->info_ptr,
-	 (png_infopp)NULL);
-      return -1;
-  }
-
-  png_set_progressive_read_fn(this->png_ptr, (void *)this,
-      info_callback, row_callback, end_callback);
-
-  return 0;
-}
-
-static void finalize_png_reader(image_decoder_t *this) {
-
-  png_destroy_read_struct(&this->png_ptr, &this->info_ptr,
-	 (png_infopp)NULL);
-  this->png_ptr = NULL;
-  this->info_ptr = NULL;
-
-}
-
-static int process_data(image_decoder_t *this, 
-			png_bytep buffer, png_uint_32 length) {
-   
-  if (setjmp(this->jmpbuf)) {
-    png_destroy_read_struct(&this->png_ptr, &this->info_ptr, (png_infopp)NULL);
-    return -1;
-  }
-  png_process_data(this->png_ptr, this->info_ptr, buffer, length);
-  return 0;
-}
-
- /*
-  * process png header (do some conversions if necessary)
-  */
-
-static void info_callback(png_structp png_ptr, png_infop info_ptr) {
-  int i;
-  image_decoder_t *this = png_get_progressive_ptr(png_ptr);
-
-  lprintf("png info cb\n");
-  png_get_IHDR(png_ptr, info_ptr, &this->width, &this->height,
-       &this->bit_depth, &this->color_type, &this->interlace_type,
-       &this->compression_type, &this->filter_type);
-   
-
-  /* expand palette images to RGB, low-bit-depth
-   * grayscale images to 8 bits, transparency chunks to full alpha channel;
-   * strip 16-bit-per-sample images to 8 bits per sample; and convert
-   * grayscale to RGB[A] */
-
-  if (this->color_type == PNG_COLOR_TYPE_PALETTE)
-      png_set_expand(png_ptr);
-  if (this->color_type == PNG_COLOR_TYPE_GRAY && this->bit_depth < 8)
-      png_set_expand(png_ptr);
-  if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
-      png_set_expand(png_ptr);
-  if (this->bit_depth == 16)
-      png_set_strip_16(png_ptr);
-  if (this->color_type == PNG_COLOR_TYPE_GRAY ||
-      this->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-      png_set_gray_to_rgb(png_ptr);
-  if (this->color_type & PNG_COLOR_MASK_ALPHA)
-      png_set_strip_alpha(png_ptr);
-
-
-  /* we'll let libpng expand interlaced images, too */
-
-  this->passes = png_set_interlace_handling(png_ptr);
-
-  /* all transformations have been registered; now update info_ptr data and
-   * then get rowbytes */
-
-  png_read_update_info(png_ptr, info_ptr);
-
-  this->rowbytes = (int)png_get_rowbytes(png_ptr, info_ptr);
-
-  this->rows = xine_xmalloc(sizeof(png_bytep)*this->height);
-
-  for (i=0; i<this->height; i++) {
-   this->rows[i] = xine_xmalloc(this->rowbytes);
-  }
-  this->rows_valid = 1;
-}
-
-static void row_callback(png_structp png_ptr, png_bytep new_row,
-  png_uint_32 row_num, int pass) {
-
-  image_decoder_t *this = png_get_progressive_ptr(png_ptr);
-
-  if (!new_row) return;
-
-  /*
-   * copy new row to this->rows
-   */
-  
-  png_progressive_combine_row(png_ptr, this->rows[row_num], new_row);
-}
-
-/* for rgb2yuv */
-#define	CENTERSAMPLE	128
-#define	SCALEBITS	16
-#define	FIX(x)	 	( (int32_t) ( (x) * (1<<SCALEBITS) + 0.5 ) )
-#define	ONE_HALF	( (int32_t) (1<< (SCALEBITS-1)) )
-#define	CBCR_OFFSET	(CENTERSAMPLE << SCALEBITS)
-#define	FOOTROOM	(16 << SCALEBITS)
-
-static void end_callback(png_structp png_ptr, png_infop info) {
-
-  vo_frame_t *img; /* video out frame */
-  int row, col;
-
-  /*
-   * libpng has read end of image, now convert rows into a video frame
-   */
-  
-  image_decoder_t *this = png_get_progressive_ptr(png_ptr);
-  finalize_png_reader(this);
-  lprintf("png end cb\n");
-    
-  if (this->rows_valid) {
-    img = this->stream->video_out->get_frame (this->stream->video_out, this->width,
-				      this->height, (double)this->width/(double)this->height, 
-				      XINE_IMGFMT_YUY2, 
-				      VO_BOTH_FIELDS);
-
-    img->pts = this->pts;
-    img->duration = 3600;
-    img->bad_frame = 0;
-    
-    for (row=0; row<this->height; row++) {
-
-      uint16_t *out;
-
-      out = (uint16_t *) (img->base[0] + row * img->pitches[0] );
-
-      for (col=0; col<this->width; col++, out++) {
-      
-	uint8_t   r,g,b;
-	uint8_t   y,u,v;
-
-	r = *(this->rows[row]+col*3);
-	g = *(this->rows[row]+col*3+1);
-	b = *(this->rows[row]+col*3+2);
-	y = (FIX(0.257) * r + FIX(0.504) * g + FIX(0.098) * b + ONE_HALF + FOOTROOM)
-	    >> SCALEBITS;
-	if (!(col & 0x0001)) {
-	  /* even pixel, do u */
-	  u = (- FIX(0.148) * r - FIX(0.291) * g + FIX(0.439) * b
-	      + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
-	  *out = ( (uint16_t) u << 8) | (uint16_t) y;
-	} else {
-	  /* odd pixel, do v */
-	  v = (FIX(0.439) * r - FIX(0.368) * g - FIX(0.071) * b
-	      + CBCR_OFFSET + ONE_HALF-1) >> SCALEBITS;
-	  *out = ( (uint16_t) v << 8) | (uint16_t) y;
-	}
-
-	*out = le2me_16(*out);
-      }
-      
-      free(this->rows[row]);
-    }
-    free(this->rows);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
-    img->draw(img, this->stream);
-    img->free(img);
-  }
-}
-
-
-/*
- * png stuff end
- */
 
 static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
 
-  if (!this->png_ptr) {
-    if (initialize_png_reader(this) < 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: failed to init png reader\n");
-    }
-  }
   if (!this->video_open) {
     lprintf("opening video\n");
     this->stream->video_out->open(this->stream->video_out, this->stream);
     this->video_open = 1;
   }
 
-  lprintf("have to decode data\n");
+  xine_buffer_copyin(this->image, this->index, buf->mem, buf->size);
+  this->index += buf->size;
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
+    int                width, height, i;
+    MagickBooleanType  status;
+    MagickWand        *wand;
+    uint8_t           *img_buf, *img_buf_ptr;
+    yuv_planes_t       yuv_planes;
+    vo_frame_t        *img;
 
-  this->pts = buf->pts;
-  if (process_data(this, buf->content, buf->size) < 0)
-  {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: error processing data\n");
+    /*
+     * this->image -> rgb data
+     */
+    wand = NewMagickWand();
+    status = MagickReadImageBlob(wand, this->image, this->index);
+    this->index = 0;
+
+    if (status == MagickFalse) {
+      DestroyMagickWand(wand);
+      lprintf("error loading image\n");
+      return;
+    }
+
+    width = MagickGetImageWidth(wand) & ~1; /* must be even for init_yuv_planes */
+    height = MagickGetImageHeight(wand);
+    img_buf = malloc(width * height * 3);
+    MagickGetImagePixels(wand, 0, 0, width, height, "RGB", CharPixel, img_buf);
+    DestroyMagickWand(wand);
+
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, width);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, height);
+
+    lprintf("image loaded successfully\n");
+
+    /*
+     * rgb data -> yuv_planes
+     */
+    init_yuv_planes(&yuv_planes, width, height);
+
+    img_buf_ptr = img_buf;
+    for (i=0; i < width*height; i++) {
+      uint8_t r = *(img_buf_ptr++);
+      uint8_t g = *(img_buf_ptr++);
+      uint8_t b = *(img_buf_ptr++);
+
+      yuv_planes.y[i] = COMPUTE_Y(r, g, b);
+      yuv_planes.u[i] = COMPUTE_U(r, g, b);
+      yuv_planes.v[i] = COMPUTE_V(r, g, b);
+    }
+    free(img_buf);
+
+    /*
+     * alloc and draw video frame
+     */
+    img = this->stream->video_out->get_frame (this->stream->video_out, width,
+					      height, (double)width/(double)height, 
+					      XINE_IMGFMT_YUY2, 
+					      VO_BOTH_FIELDS);
+    img->pts = buf->pts;
+    img->duration = 3600;
+    img->bad_frame = 0;
+
+    yuv444_to_yuy2(&yuv_planes, img->base[0], img->pitches[0]);
+    free_yuv_planes(&yuv_planes);
+    
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
+    
+    img->draw(img, this->stream);
+    img->free(img);
   }
 }
 
@@ -312,12 +162,14 @@ static void image_flush (video_decoder_t *this_gen) {
 
 
 static void image_reset (video_decoder_t *this_gen) {
-  /* image_decoder_t *this = (image_decoder_t *) this_gen; */
+  image_decoder_t *this = (image_decoder_t *) this_gen;
    
   /*
    * reset decoder after engine flush (prepare for new
    * video data not related to recently decoded data)
    */
+  
+  this->index = 0;
 }
 
 
@@ -339,6 +191,8 @@ static void image_dispose (video_decoder_t *this_gen) {
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->video_open = 0;
   }
+
+  xine_buffer_free(this->image);
 
   lprintf("closed\n");
   free (this);
@@ -367,9 +221,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
    * initialisation of privates
    */
 
-  if (initialize_png_reader(this) < 0) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: failed to init png reader\n");
-  }
+  this->image = xine_buffer_init(10240);
 
   return &this->video_decoder;
 }
@@ -397,7 +249,6 @@ static void dispose_class (video_decoder_class_t *this_gen) {
 static void *init_class (xine_t *xine, void *data) {
 
   image_class_t       *this;
-  /* config_values_t    *config = xine->config; */
 
   this = (image_class_t *) xine_xmalloc (sizeof (image_class_t));
 

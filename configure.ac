@@ -1039,28 +1039,25 @@ AC_CHECK_LIB(mng, mng_initialize,
 AM_CONDITIONAL(HAVE_LIBMNG, test x"$have_libmng" = "xyes")
 AC_SUBST(MNG_LIBS)
 
-
 dnl ---------------------------------------------
-dnl PNG lib.
+dnl MagickWand API of Imagemagick.
 dnl ---------------------------------------------
 
-AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
-if test "$LIBPNG_CONFIG" = "no" ; then
-  AC_CHECK_LIB(png, png_create_read_struct,
-		  have_libpng=yes
-		  PNG_LIBS="-lpng",
-  AC_MSG_RESULT([*** All libpng dependent parts will be disabled ***]))
+AC_PATH_PROG(WAND_CONFIG, Wand-config, no)
+if test "$WAND_CONFIG" = "no" ; then
+  AC_MSG_RESULT([*** All Imagemagick dependent parts will be disabled, Wand-config not found. ***])
 else
-  PNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
-  PNG_LIBS=`$LIBPNG_CONFIG --libs`
-  have_libpng="yes"
-  AC_DEFINE(HAVE_LIBPNG,1,[Define this if you have png library])
+  WAND_CFLAGS=`$WAND_CONFIG --cflags`
+  WAND_LDFLAGS=`$WAND_CONFIG --ldflags`
+  WAND_LIBS=`$WAND_CONFIG --libs`
+  have_imagemagick="yes"
+  AC_DEFINE(HAVE_WAND,1,[Define this if you have Imagemagick])
 fi
 
-AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes" )
-AC_SUBST(PNG_CFLAGS)
-AC_SUBST(PNG_LIBS)
-
+AM_CONDITIONAL(HAVE_WAND, test x"$have_imagemagick" = "xyes" )
+AC_SUBST(WAND_CFLAGS)
+AC_SUBST(WAND_LDFLAGS)
+AC_SUBST(WAND_LIBS)
 
 dnl ---------------------------------------------
 dnl freetype2 lib.

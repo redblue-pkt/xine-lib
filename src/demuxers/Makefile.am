@@ -18,7 +18,7 @@ if HAVE_LIBMNG
 mng_module = xineplug_dmx_mng.la
 endif
 
-if HAVE_LIBPNG
+if HAVE_WAND
 image_module = xineplug_dmx_image.la
 endif
 

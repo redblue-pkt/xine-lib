@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = foovideo.c
 
-if HAVE_LIBPNG
+if HAVE_WAND
 image_module = xineplug_decode_image.la
 endif
 
@@ -26,6 +26,6 @@ xineplug_decode_yuv_la_LIBADD = $(XINE_LIB)
 xineplug_decode_yuv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_image_la_SOURCES = image.c
-xineplug_decode_image_la_CFLAGS = $(PNG_CFLAGS)
-xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(PNG_LIBS)
-xineplug_decode_image_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_image_la_CFLAGS = $(WAND_CFLAGS)
+xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(WAND_LIBS)
+xineplug_decode_image_la_LDFLAGS = $(WAND_LDFLAGS) -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

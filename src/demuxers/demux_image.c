@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.15 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_image.c,v 1.16 2005/02/03 23:18:34 holstsn Exp $
  *
  * image dummy demultiplexer
  */
@@ -74,13 +74,14 @@ static int demux_image_send_chunk (demux_plugin_t *this_gen) {
   buf->size = this->input->read (this->input, buf->mem, buf->max_size-1);
 
   if (buf->size <= 0) {
-    buf->free_buffer(buf);
-    xine_usec_sleep(250000);
+    buf->size = 0;
+    buf->decoder_flags |= BUF_FLAG_FRAME_END;
+    this->status = DEMUX_FINISHED;
   } else {
-    lprintf("got %i bytes\n", buf->size);
-    this->video_fifo->put (this->video_fifo, buf);
+    this->status = DEMUX_OK;
   }
-  this->status = DEMUX_OK;
+  this->video_fifo->put (this->video_fifo, buf);
+  
   return this->status;
 }
 
@@ -196,7 +197,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "png";
+  return "png gif jpg jpeg";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
