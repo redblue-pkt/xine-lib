@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.2 2002/08/28 03:37:17 tmmm Exp $
+ * $Id: idcinvideo.c,v 1.3 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "video_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "video_out.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -300,7 +300,7 @@ static void idcinvideo_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -402,8 +402,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this = (idcinvideo_decoder_t *) malloc (sizeof (idcinvideo_decoder_t));
   memset(this, 0, sizeof (idcinvideo_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = idcinvideo_can_handle;
   this->video_decoder.init                = idcinvideo_init;
   this->video_decoder.decode_data         = idcinvideo_decode_data;
   this->video_decoder.flush               = idcinvideo_flush;

@@ -22,17 +22,17 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.8 2002/07/15 21:42:34 esnel Exp $
+ * $Id: msvc.c,v 1.9 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "bswap.h"
 #include "xineutils.h"
-#include "xine_internal.h"
 
 #define VIDEOBUFSIZE	128 * 1024
 
@@ -189,10 +189,6 @@ static void cram_decode_frame (msvc_decoder_t *this, uint8_t *data, int size) {
   }
 }
 
-static int msvc_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_VIDEO_MSVC);
-}
-
 static void msvc_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   msvc_decoder_t *this = (msvc_decoder_t *) this_gen;
 
@@ -271,7 +267,7 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img = this->video_out->get_frame (this->video_out,
 					this->biWidth, this->biHeight,
-					42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+					XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts	     = buf->pts;
@@ -349,23 +345,13 @@ static void msvc_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   msvc_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "msvc: plugin doesn't support plugin API version %d.\n"
-	    "msvc: this means there's a version mismatch between xine and this "
-	    "msvc: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
-    return NULL;
-  }
 
   this = (msvc_decoder_t *) malloc (sizeof (msvc_decoder_t));
   memset(this, 0, sizeof (msvc_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = msvc_can_handle;
   this->video_decoder.init                = msvc_init;
   this->video_decoder.decode_data         = msvc_decode_data;
   this->video_decoder.flush               = msvc_flush;
@@ -375,5 +361,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = msvc_dispose;
   this->video_decoder.priority            = 5;
 
-  return (video_decoder_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_MSVC,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "msvc", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

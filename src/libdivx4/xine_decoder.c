@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2002/07/15 21:42:33 esnel Exp $
+ * $Id: xine_decoder.c,v 1.41 2002/09/04 23:31:09 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -440,8 +440,8 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
     img = this->video_out->get_frame (this->video_out, this->bih.biWidth,
-				      this->bih.biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, 
-				      IMGFMT_YV12, 
+				      this->bih.biHeight, XINE_VO_ASPECT_DONT_TOUCH, 
+				      XINE_IMGFMT_YV12, 
 				      VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -502,7 +502,7 @@ static void divx4_close (video_decoder_t *this_gen)  {
   this->buf = NULL;
 }
 
-static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry) {
+static void divx4_update_postproc(void *this_gen, xine_cfg_entry_t *entry) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
@@ -510,7 +510,7 @@ static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry) {
   printf ("divx4: update_postproc this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
 #endif
   
-  if( this->postproc != entry->num_value ) {
+  if( this->postproc != entry->num_value) {
     this->postproc = entry->num_value;
     divx4_set_pp( this );
   }
@@ -546,7 +546,7 @@ static void divx4_dispose(video_decoder_t *this_gen) {
 
 /* This is pretty generic. I took the liberty to increase the
    priority over that of libffmpeg :-) */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   divx4_decoder_t *this ;
   char *libdecore_name;
@@ -554,14 +554,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   decoreFunc libdecore_func = 0;
   config_values_t *cfg;
 
-  if (iface_version != 10) {
-    printf(_("divx4: plugin doesn't support plugin API version %d.\n"
-	     "divx4: this means there's a version mismatch between xine and this "
-	     "divx4: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    
-    return NULL;
-  }
   cfg = xine->config;
   
   /* Try to dlopen libdivxdecore, then look for decore function 
@@ -569,7 +561,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
      us from then on. */
   libdecore_name = cfg->register_string (cfg, "codec.divx4_libdivxdecore", "libdivxdecore.so",
 					 _("Relative path to libdivxdecore.so to open"),
-					 NULL, NULL, NULL);  
+					 NULL, 0, NULL, NULL);  
 
   libdecore_handle = dlopen(libdecore_name, RTLD_LAZY);
   if (libdecore_handle)
@@ -583,8 +575,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   this->decoder_ok = 0;
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = divx4_can_handle;
   this->video_decoder.init                = divx4_init;
   this->video_decoder.decode_data         = divx4_decode_data;
   this->video_decoder.close               = divx4_close;
@@ -594,20 +584,20 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = divx4_dispose;
   this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
 							       _("priority of the divx4 plugin (>5 => enable)"),
-							       NULL, NULL, NULL); 
+							       NULL, 0, NULL, NULL); 
   this->decore = libdecore_func;
   this->postproc 			  = cfg->register_range (cfg, "codec.divx4_postproc", 3,
 								 0, 6,
 								 _("the postprocessing level, 0 = none and fast, 6 = all and slow"),
-								 NULL, divx4_update_postproc, this);
+								 NULL, 10, divx4_update_postproc, this);
   this->can_handle_311			  = cfg->register_bool (cfg, "codec.divx4_msmpeg4v3", 1,
 								_("use divx4 plugin for msmpeg4v3 streams"),
-								NULL, NULL, NULL);
+								NULL, 10, NULL, NULL);
   this->size				  = 0;
   /* allow override of version checking by user */
   this->version 			  = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
 							      _("Divx version to check for (set to 0 (default) if unsure)"),
-							      NULL, NULL, NULL);
+							      NULL, 20, NULL, NULL);
 
   /* if the version set in the config file, we can check right now. 
    * otherwise postpone until we retrieve the version from the library
@@ -630,4 +620,24 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   return (video_decoder_t *) this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
 
+static uint32_t video_types[] = { 
+  /* BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311 , */
+  /* BUF_VIDEO_MSMPEG4_V2, */
+  BUF_VIDEO_MPEG4, BUF_VIDEO_DIVX5,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  4                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "divx4", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.90 2002/08/29 06:06:02 tmmm Exp $
+ * $Id: w32codec.c,v 1.91 2002/09/04 23:31:10 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -41,11 +41,11 @@
 #include "DirectShow/DS_AudioDecoder.h"
 #include "DirectShow/DS_VideoDecoder.h"
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "audio_out.h"
 #include "buffer.h"
 #include "xineutils.h"
-#include "xine_internal.h"
 
 /*
 #define LOG
@@ -399,29 +399,6 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 #define IMGFMT_24RGB mmioFOURCC( 24,'R','G','B')
 #define IMGFMT_16RGB mmioFOURCC( 16,'R','G','B')
 #define IMGFMT_15RGB mmioFOURCC( 15,'R','G','B')
-
-static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_VIDEO_MSMPEG4_V1 ||
-           buf_type == BUF_VIDEO_MSMPEG4_V2 ||
-           buf_type == BUF_VIDEO_MSMPEG4_V3 ||
-           buf_type == BUF_VIDEO_IV50 ||
-           buf_type == BUF_VIDEO_IV41 ||
-           buf_type == BUF_VIDEO_IV32 ||
-           buf_type == BUF_VIDEO_IV31 ||
-           buf_type == BUF_VIDEO_CINEPAK ||
-           /* buf_type == BUF_VIDEO_ATIVCR1 || */
-           buf_type == BUF_VIDEO_ATIVCR2 ||
-	   buf_type == BUF_VIDEO_I263 ||
-	   buf_type == BUF_VIDEO_MSVC ||
-	   buf_type == BUF_VIDEO_DV ||
-           buf_type == BUF_VIDEO_WMV7 ||
-           buf_type == BUF_VIDEO_WMV8 ||
-           buf_type == BUF_VIDEO_VP31 ||
-           buf_type == BUF_VIDEO_MSS1 ||
-           buf_type == BUF_VIDEO_XXAN );
-}
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
@@ -926,21 +903,6 @@ static void w32v_dispose (video_decoder_t *this_gen) {
  * audio stuff
  */
 
-static int w32a_can_handle (audio_decoder_t *this_gen, int buf_type) {
-
-  int codec = buf_type & 0xFFFF0000;
-
-  return ( (codec == BUF_AUDIO_DIVXA) ||
-	   (codec == BUF_AUDIO_MSADPCM) ||
-	   (codec == BUF_AUDIO_MSIMAADPCM) ||
-	   (codec == BUF_AUDIO_MSGSM) ||
-	   (codec == BUF_AUDIO_IMC) ||
-	   (codec == BUF_AUDIO_LH) || 
-	   (codec == BUF_AUDIO_VOXWARE) ||
-           (codec == BUF_AUDIO_ACELPNET) ||
-           (codec == BUF_AUDIO_VIVOG723) );
-}
-
 static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
 
   buf_type = buf_type & 0xFFFF0000;
@@ -1339,30 +1301,20 @@ static void init_routine(void) {
   w32v_init_rgb_ycc();
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   w32v_decoder_t *this ;
   config_values_t *cfg;
 
-  if (iface_version != 10) {
-    printf( "w32codec: plugin doesn't support plugin API version %d.\n"
-	    "w32codec: this means there's a version mismatch between xine and this "
-	    "w32codec: decoder plugin.\nInstalling current decoder plugins should help.\n",
-	    iface_version);
-    
-    return NULL;
-  }
   cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
 					 _("path to win32 codec dlls"),
-					 NULL, NULL, NULL);
+					 NULL, 0, NULL, NULL);
 
   this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
 
   this->xine = xine;
   
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = w32v_can_handle;
   this->video_decoder.init                = w32v_init;
   this->video_decoder.decode_data         = w32v_decode_data;
   this->video_decoder.flush               = w32v_flush;
@@ -1376,38 +1328,31 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   
   this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
 
-  return (video_decoder_t *) this;
+#ifdef SYNC_SHUTDOWN
+  w32v_instance = NULL;
+#endif
+
+  return this;
 }
 
 static void w32a_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   w32a_decoder_t *this ;
   config_values_t *cfg;
   
-  if (iface_version != 9) {
-    printf(_("w32codec: plugin doesn't support plugin API version %d.\n"
-	     "w32codec: this means there's a version mismatch between xine and this "
-	     "w32codec: decoder plugin.\nInstalling current decoder plugins should help.\n"),
-	   iface_version);
-
-    return NULL;
-  }
-
   cfg = xine->config;
   win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
 					 _("path to win32 codec dlls"),
-					 NULL, NULL, NULL);
+					 NULL, 0, NULL, NULL);
 
   this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));
 
   this->xine = xine;
     
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = w32a_can_handle;
   this->audio_decoder.init                = w32a_init;
   this->audio_decoder.decode_data         = w32a_decode_data;
   this->audio_decoder.reset               = w32a_reset;
@@ -1418,6 +1363,47 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   
   pthread_once (&once_control, init_routine);
 
-  return (audio_decoder_t *) this;
+#ifdef SYNC_SHUTDOWN
+  w32a_instance = NULL;
+#endif
+  
+  return this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_MSMPEG4_V1, BUF_VIDEO_MSMPEG4_V2, BUF_VIDEO_MSMPEG4_V3,
+  BUF_VIDEO_IV50, BUF_VIDEO_IV41, BUF_VIDEO_IV32, BUF_VIDEO_IV31,
+  BUF_VIDEO_CINEPAK, /* BUF_VIDEO_ATIVCR1, */
+  BUF_VIDEO_ATIVCR2, BUF_VIDEO_I263, BUF_VIDEO_MSVC,
+  BUF_VIDEO_DV, BUF_VIDEO_WMV7, BUF_VIDEO_WMV8,
+  BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_XXAN,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  1                    /* priority        */
+};
+
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_DIVXA, BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
+  BUF_AUDIO_MSGSM, BUF_AUDIO_IMC, BUF_AUDIO_LH,
+  BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723,
+  0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "win32", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 9, "win32", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.4 2002/08/28 14:20:09 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.5 2002/09/04 23:31:13 guenter Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -61,15 +61,17 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
     switch (this->user_ratio) {
     case ASPECT_AUTO:
       switch (this->delivered_ratio_code) {
-      case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-      case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
+      case XINE_VO_ASPECT_ANAMORPHIC:  /* anamorphic     */
+      case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
         desired_ratio = 16.0 /9.0;
         break;
-      case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
+#if 0 /* FIXME */
+      case XINE_VO_ASPECT_211_1:       /* 2.11:1 */
         desired_ratio = 2.11/1.0;
         break;
-      case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-      case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
+#endif
+      case XINE_VO_ASPECT_SQUARE:      /* square pels */
+      case XINE_VO_ASPECT_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
         desired_ratio = image_ratio;
         break;
       case 0:                             /* forbidden -> 4:3 */
@@ -77,7 +79,7 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
       default:
         printf ("vo_scale: unknown aspect ratio (%d) in stream => using 4:3\n",
   	      this->delivered_ratio_code);
-      case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
+      case XINE_VO_ASPECT_4_3:         /* 4:3             */
         desired_ratio = 4.0 / 3.0;
         break;
       }
@@ -96,22 +98,24 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
       desired_ratio = 4.0 / 3.0;
     }
   
-    corr_factor = this->display_ratio * desired_ratio / image_ratio ;
-  
-    if (fabs(corr_factor - 1.0) < 0.005) {
-      this->ideal_width  = this->delivered_width;
-      this->ideal_height = this->delivered_height;
-  
-    } else {
-  
-      if (corr_factor >= 1.0) {
-        this->ideal_width  = this->delivered_width * corr_factor + 0.5;
-        this->ideal_height = this->delivered_height;
-      } else {
-        this->ideal_width  = this->delivered_width;
-        this->ideal_height = this->delivered_height / corr_factor + 0.5;
-      }
+    this->video_pixel_aspect = desired_ratio / image_ratio;
+    
+    assert (this->gui_pixel_aspect != 0.0);
+    if (fabs (this->video_pixel_aspect / this->gui_pixel_aspect - 1.0)
+	< 0.005) {
+      this->video_pixel_aspect = this->gui_pixel_aspect;
     }
+
+#if 0
+    
+    /* onefield_xv divide by 2 the number of lines */
+    if (this->deinterlace_enabled
+	&& (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
+	&& (this->cur_frame->format == XINE_IMGFMT_YV12)) {
+      this->displayed_height  = this->displayed_height / 2;
+      this->displayed_yoffset = this->displayed_yoffset / 2;
+    }
+#endif
   }
 }
 
@@ -241,13 +245,15 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
 
 int vo_scale_redraw_needed (vo_scale_t *this) {
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
+  double gui_aspect;
   int ret = 0;
   
   if( this->frame_output_cb ) {
     this->frame_output_cb (this->user_data,
 			   this->ideal_width, this->ideal_height, 
+			   this->video_pixel_aspect,
 			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_win_x, &gui_win_y );
+			   &gui_aspect, &gui_win_x, &gui_win_y );
   } else {
     printf ("vo_scale: error! frame_output_cb must be set!\n");
   }

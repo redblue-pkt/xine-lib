@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.110 2002/08/07 20:50:45 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.111 2002/09/04 23:31:07 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1099,7 +1099,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_mrls, (this->config->register_string(this->config,
 							    "mrl.mrls_mpeg_block", VALID_MRLS,
 							    _("valid mrls for mpeg block demuxer"),
-							    NULL, NULL, NULL)));
+							    NULL, 20, NULL, NULL)));
     
     MRL = input->get_mrl (input);
     
@@ -1140,7 +1140,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_mpeg_block", VALID_ENDS,
 							    _("valid mrls ending for mpeg block demuxer"),
-							    NULL, NULL, NULL)));
+							    NULL, 20, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
       while(*m == ' ' || *m == '\t') m++;
@@ -1184,17 +1184,9 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
 
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
   demux_mpeg_block_t *this;
-
-  if (iface != 10) {
-    printf (_("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
-	      "                  this means there's a version mismatch between xine and this "
-	      "                  demuxer plugin.\nInstalling current demux plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->config = xine->config;
@@ -1203,11 +1195,11 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   /* Calling register_string() configure valid mrls in configfile */
   (void*) this->config->register_string(this->config, "mrl.mrls_mpeg_block", VALID_MRLS,
 					_("valid mrls for mpeg block demuxer"),
-					NULL, NULL, NULL);
+					NULL, 20, NULL, NULL);
   (void*) this->config->register_string(this->config,
 					"mrl.ends_mpeg_block", VALID_ENDS,
 					_("valid mrls ending for mpeg block demuxer"),
-					NULL, NULL, NULL);    
+					NULL, 20, NULL, NULL);    
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_block_open;
@@ -1224,5 +1216,15 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
     
-  return (demux_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "mpeg_block", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

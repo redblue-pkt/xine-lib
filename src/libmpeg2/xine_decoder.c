@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/08/19 17:43:45 guenter Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/09/04 23:31:09 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -46,10 +46,6 @@ typedef struct mpeg2dec_decoder_s {
   vo_instance_t   *video_out;
   pthread_mutex_t  lock; /* mutex for async flush */
 } mpeg2dec_decoder_t;
-
-static int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG) ;
-}
 
 static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
@@ -86,10 +82,9 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
       this->mpeg2.force_aspect = buf->decoder_info[2];
-      if (buf->decoder_info[3] == 0x1 
-	  && buf->decoder_info[2] == XINE_ASPECT_RATIO_ANAMORPHIC)
+      if (buf->decoder_info[3] == 0x1 && buf->decoder_info[2] == XINE_VO_ASPECT_ANAMORPHIC)
         /* letterboxing is denied, we have to do pan&scan */
-        this->mpeg2.force_aspect = XINE_ASPECT_RATIO_PAN_SCAN;
+        this->mpeg2.force_aspect = XINE_VO_ASPECT_PAN_SCAN;
     }
     pthread_mutex_unlock (&this->lock);
     return;
@@ -162,23 +157,13 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
   free (this);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   mpeg2dec_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf(_("libmpeg2: plugin doesn't support plugin API version %d.\n"
-	     "libmpeg2: this means there's a version mismatch between xine and this "
-	     "libmpeg2: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    return NULL;
-  }
 
   this = (mpeg2dec_decoder_t *) malloc (sizeof (mpeg2dec_decoder_t));
   memset(this, 0, sizeof (mpeg2dec_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = mpeg2dec_can_handle;
   this->video_decoder.init                = mpeg2dec_init;
   this->video_decoder.decode_data         = mpeg2dec_decode_data;
   this->video_decoder.flush               = mpeg2dec_flush;
@@ -191,6 +176,22 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->mpeg2.xine = xine;
   pthread_mutex_init (&this->lock, NULL);
 
-  return (video_decoder_t *) this;
+  return this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
+
+static decoder_info_t dec_info_mpeg2 = {
+  supported_types,     /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.6 2002/07/18 22:58:54 esnel Exp $
+ * $Id: svq1.c,v 1.7 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -25,11 +25,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "bswap.h"
 #include "xineutils.h"
-#include "xine_internal.h"
 
 #include "svq1_codebooks.h"
 
@@ -1366,10 +1366,6 @@ static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitches[3]) {
   }
 }
 
-static int svq1dec_can_handle (video_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_VIDEO_SORENSON_V1);
-}
-
 static void svq1dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   svq1dec_decoder_t *this = (svq1dec_decoder_t *) this_gen;
 
@@ -1422,7 +1418,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	img = this->video_out->get_frame (this->video_out,
 					  this->svq1->width,
 					  this->svq1->height,
-					  42, IMGFMT_YV12, VO_BOTH_FIELDS);
+					  XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
 	img->duration	= this->video_step;
 	img->pts	= buf->pts;
@@ -1500,22 +1496,12 @@ static void svq1dec_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   svq1dec_decoder_t *this ;
 
-  if (iface_version != 10) {
-    printf( "svq1: plugin doesn't support plugin API version %d.\n"
-	    "svq1: this means there's a version mismatch between xine and this "
-	    "svq1: decoder plugin.\nInstalling current plugins should help.\n",
-	    iface_version);
-    return NULL;
-  }
-
   this = (svq1dec_decoder_t *) xine_xmalloc (sizeof (svq1dec_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = svq1dec_can_handle;
   this->video_decoder.init                = svq1dec_init;
   this->video_decoder.decode_data         = svq1dec_decode_data;
   this->video_decoder.flush               = svq1dec_flush;
@@ -1525,5 +1511,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = svq1dec_dispose;
   this->video_decoder.priority            = 4;
 
-  return (video_decoder_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_SORENSON_V1,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  4                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "svq1", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

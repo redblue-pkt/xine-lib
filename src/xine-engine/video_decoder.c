@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.95 2002/09/04 10:49:25 mroi Exp $
+ * $Id: video_decoder.c,v 1.96 2002/09/04 23:31:13 guenter Exp $
  *
  */
 
@@ -38,8 +38,9 @@
 */
 
 static spu_decoder_t* update_spu_decoder(xine_t *this, int type) {
+
   int streamtype = (type>>16) & 0xFF;
-  spu_decoder_t *spu_decoder = this->spu_decoder_plugins [streamtype];
+  spu_decoder_t *spu_decoder = get_spu_decoder (this, streamtype);
 
   if (spu_decoder && this->cur_spu_decoder_plugin != spu_decoder) {
 
@@ -263,7 +264,7 @@ void *video_decoder_loop (void *this_gen) {
 	
 	streamtype = (buf->type>>16) & 0xFF;
 	
-	decoder = this->video_decoder_plugins [streamtype];
+	decoder = get_video_decoder (this, streamtype);
 	
 	if (decoder) {
 

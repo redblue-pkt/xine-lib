@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.1 2002/08/15 03:12:27 miguelfreitas Exp $
+ * $Id: vo_scale.h,v 1.2 2002/09/04 23:31:13 guenter Exp $
  * 
  * vo_scale.h
  *
@@ -93,6 +93,14 @@ struct vo_scale_s {
   int                gui_win_x, gui_win_y;
   
   /*
+   * video + display pixel aspect
+   * One pixel of height 1 has this width
+   * This may be corrected by the driver in order to fit the video seamlessly
+   */
+  double             gui_pixel_aspect;
+  double             video_pixel_aspect;
+
+  /*
    * "output" size:
    *
    * this is finally the ideal size "fitted" into the
@@ -113,12 +121,16 @@ struct vo_scale_s {
   void              *user_data;
   void (*frame_output_cb) (void *user_data,
 			   int video_width, int video_height,
+                           double video_pixel_aspect,
 			   int *dest_x, int *dest_y, 
 			   int *dest_height, int *dest_width,
+                           double *dest_pixel_aspect,
 			   int *win_x, int *win_y);
   
   void (*dest_size_cb) (void *user_data,
 			int video_width, int video_height, 
+                        double video_pixel_aspect,
+                        double *dest_pixel_aspect,
 			int *dest_width, int *dest_height);
 
   /* borders */

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.6 2002/07/15 21:42:34 esnel Exp $
+ * $Id: roqvideo.c,v 1.7 2002/09/04 23:31:11 guenter Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -50,9 +50,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 
 #define VIDEOBUFSIZE 128*1024
@@ -428,7 +428,7 @@ static void roq_decode_data (video_decoder_t *this_gen,
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
     img = this->video_out->get_frame (this->video_out, this->width,
-      this->height, XINE_ASPECT_RATIO_SQUARE, IMGFMT_YV12,
+      this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YV12,
       VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -489,22 +489,12 @@ static void roq_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   roq_decoder_t *this ;
 
-  if (iface_version != 10) {
-    printf(_("RoQ: plugin doesn't support plugin API version %d.\n"
-	     "RoQ: this means there's a version mismatch between xine and this "
-	     "RoQ: decoder plugin.\nInstalling current plugins should help.\n"),
-	   iface_version);
-    return NULL;
-  }
-
   this = (roq_decoder_t *) malloc (sizeof (roq_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = roq_can_handle;
   this->video_decoder.init                = roq_init;
   this->video_decoder.decode_data         = roq_decode_data;
   this->video_decoder.flush               = roq_flush;
@@ -514,5 +504,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = roq_dispose;
   this->video_decoder.priority            = 1;
 
-  return (video_decoder_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_ROQ,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "roq", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

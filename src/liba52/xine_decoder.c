@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/08/28 20:27:56 mroi Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/09/04 23:31:08 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -35,11 +35,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "a52.h"
 #include "a52_internal.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 
 #undef DEBUG_A52
@@ -126,10 +126,6 @@ static const struct frmsize_s frmsizecod_tbl[64] =
   { 640 ,{1280 ,1393 ,1920 } },
   { 640 ,{1280 ,1394 ,1920 } }
 };
-
-int a52dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_A52) ;
-}
 
 void a52dec_reset (audio_decoder_t *this_gen) {
 
@@ -538,25 +534,15 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   a52dec_decoder_t *this ;
   config_values_t *cfg;
-
-  if (iface_version != 9) {
-    printf(_("liba52: plugin doesn't support plugin API version %d.\n"
-	     "liba52: this means there's a version mismatch between xine and this "
-	     "liba52: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    return NULL;
-  }
 
   cfg = xine->config;
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = a52dec_can_handle;
   this->audio_decoder.init                = a52dec_init;
   this->audio_decoder.decode_data         = a52dec_decode_data;
   this->audio_decoder.reset               = a52dec_reset;
@@ -569,14 +555,28 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
 						 _("a/52 volume control"),
-						 NULL, NULL, NULL) / 100.0;
+						 NULL, 0, NULL, NULL) / 100.0;
   this->disable_dynrng = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
 					      _("enable a/52 dynamic range compensation"),
-					      NULL, NULL, NULL);
+					      NULL, 0, NULL, NULL);
   this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
 						      _("enable audio downmixing to 2.0 surround stereo"),
-						      NULL, NULL, NULL);
+						      NULL, 0, NULL, NULL);
 
-  return (audio_decoder_t *) this;
+  return this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_A52, 0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  2                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.32 2002/07/28 21:37:35 heikos Exp $
+ * $Id: audio_out.h,v 1.33 2002/09/04 23:31:13 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -44,9 +44,7 @@ extern "C" {
  * driver plugin has to implement.
  */
 
-typedef struct ao_driver_s ao_driver_t;
-
-struct ao_driver_s {
+struct xine_ao_driver_s {
 
   /* 
    *
@@ -55,7 +53,7 @@ struct ao_driver_s {
    *
    * See AO_CAP_* bellow.
    */
-  uint32_t (*get_capabilities) (ao_driver_t *this);
+  uint32_t (*get_capabilities) (xine_ao_driver_t *this);
 
   /*
    * open the driver and make it ready to receive audio data 
@@ -63,26 +61,26 @@ struct ao_driver_s {
    *
    * return value: 0 : failure, >0 : output sample rate
    */
-  int (*open)(ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
+  int (*open)(xine_ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
 
   /* return the number of audio channels
    */
-  int (*num_channels)(ao_driver_t *self_gen);
+  int (*num_channels)(xine_ao_driver_t *self_gen);
 
   /* return the number of bytes per frame.
    * A frame is equivalent to one sample being output on every audio channel.
    */
-  int (*bytes_per_frame)(ao_driver_t *self_gen);
+  int (*bytes_per_frame)(xine_ao_driver_t *self_gen);
 
   /* return the delay is frames measured by 
    * looking at pending samples in the audio output device
    */
-  int (*delay)(ao_driver_t *self_gen);
+  int (*delay)(xine_ao_driver_t *self_gen);
 
   /* 
    * return gap tolerance (in pts) needed for this driver
    */
-  int (*get_gap_tolerance) (ao_driver_t *self_gen);
+  int (*get_gap_tolerance) (xine_ao_driver_t *self_gen);
 
   /*
    * write audio data to output buffer 
@@ -92,20 +90,20 @@ struct ao_driver_s {
    *   0 => audio samples were not yet processed, 
    *        call write_audio_data with the _same_ samples again
    */
-  int (*write)(ao_driver_t *this,
+  int (*write)(xine_ao_driver_t *this,
 	       int16_t* audio_data, uint32_t num_samples);
 
   /*
    * this is called when the decoder no longer uses the audio
    * output driver - the driver should get ready to get opened() again
    */
-  void (*close)(ao_driver_t *this);
+  void (*close)(xine_ao_driver_t *this);
 
   /*
    * shut down this audio output driver plugin and
    * free all resources allocated
    */
-  void (*exit) (ao_driver_t *this);
+  void (*exit) (xine_ao_driver_t *this);
 
   /*
    * Get, Set a property of audio driver.
@@ -115,9 +113,9 @@ struct ao_driver_s {
    *
    * See AO_PROP_* below for available properties.
    */
-  int (*get_property) (ao_driver_t *this, int property);
+  int (*get_property) (xine_ao_driver_t *this, int property);
 
-  int (*set_property) (ao_driver_t *this, int property, int value);
+  int (*set_property) (xine_ao_driver_t *this, int property, int value);
 
 
   /*
@@ -125,7 +123,7 @@ struct ao_driver_s {
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
+  int (*control) (xine_ao_driver_t *this, int cmd, /* arg */ ...);
 };
 
 /*
@@ -204,7 +202,7 @@ struct ao_instance_s {
 
   /* private stuff */
 
-  ao_driver_t    *driver;
+  xine_ao_driver_t    *driver;
   pthread_mutex_t driver_lock;
   metronom_t     *metronom;
   xine_t         *xine;
@@ -236,19 +234,15 @@ struct ao_instance_s {
 /* This initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
+ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, xine_t *xine) ;
 /*
  * to build a dynamic audio output plugin,
  * you have to implement these driver:
  *
  *
- * ao_driver_t *init_audio_out_plugin (config_values_t *config)
+ * xine_ao_driver_t *init_audio_out_plugin (config_values_t *config)
  *
  * init this plugin, check if device is available
- *
- * ao_info_t *get_audio_out_plugin_info ()
- *
- * peek at some (static) information about the plugin without initializing it
  *
  */
 
@@ -287,14 +281,6 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) ;
 
 /* above that value audio frames are discarded */
 #define AO_MAX_GAP              15000
-
-typedef struct ao_info_s {
-
-  int     interface_version;
-  char   *id;
-  char   *description;
-  int     priority;
-} ao_info_t ;
 
 #ifdef __cplusplus
 }

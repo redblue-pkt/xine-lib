@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.28 2002/07/05 17:32:02 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.29 2002/09/04 23:31:08 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -347,20 +347,10 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
 }
 
 
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   stdin_input_plugin_t *this;
   config_values_t      *config;
-
-  if (iface != 8) {
-    xine_log (xine, XINE_LOG_PLUGIN,
-	      _("stdin/fifo input plugin doesn't support plugin API version %d.\n"
-		"PLUGIN DISABLED.\n"
-		"This means there's a version mismatch between xine and this input"
-		"plugin.\nInstalling current input plugins should help.\n"),
-	      iface);
-    return NULL;
-  }
 
   this       = (stdin_input_plugin_t *) xine_xmalloc(sizeof(stdin_input_plugin_t));
   config     = xine->config;
@@ -393,5 +383,15 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->curpos          = 0;
   this->nbc             = NULL;
 
-  return (input_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "stdin", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.25 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_aa.c,v 1.26 2002/09/04 23:31:12 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -26,6 +26,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#warning DISABLED: FIXME
+#if 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -300,3 +303,5 @@ vo_info_t *get_video_out_plugin_info() {
   vo_info_aa.description = _("xine video output plugin using the ascii-art library");
   return &vo_info_aa;
 }
+
+#endif

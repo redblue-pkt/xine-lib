@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2002/08/19 17:40:41 guenter Exp $
+ * $Id: xine_decoder.c,v 1.52 2002/09/04 23:31:09 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -79,25 +79,6 @@ typedef struct ff_decoder_s {
 
 #define VIDEOBUFSIZE 128*1024
 
-static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_VIDEO_MSMPEG4_V3 ||
-           buf_type == BUF_VIDEO_MSMPEG4_V2 ||
-           buf_type == BUF_VIDEO_MSMPEG4_V1 ||
-           buf_type == BUF_VIDEO_WMV7 ||
-           buf_type == BUF_VIDEO_MPEG4 ||
-           buf_type == BUF_VIDEO_XVID  ||
-           buf_type == BUF_VIDEO_DIVX5 ||
-           buf_type == BUF_VIDEO_MJPEG ||
-	   /* buf_type == BUF_VIDEO_I263 || */
-	   buf_type == BUF_VIDEO_H263 ||
-	   buf_type == BUF_VIDEO_RV10 ||
-	   /* PIX_FMT_YUV410P must be supported to enable svq1 */
-	   /* buf_type == BUF_VIDEO_SORENSON_V1 || */
-	   buf_type == BUF_VIDEO_JPEG ||
-	   buf_type == BUF_VIDEO_MPEG);
-}
 
 static void init_codec (ff_decoder_t *this, AVCodec *codec) {
 
@@ -450,18 +431,18 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	switch(this->context.aspect_ratio_info) {
 	case FF_ASPECT_SQUARE:
-	  ratio = XINE_ASPECT_RATIO_SQUARE;
+	  ratio = XINE_VO_ASPECT_SQUARE;
 	  break;
 	case FF_ASPECT_4_3_625:
 	case FF_ASPECT_4_3_525:
-	  ratio = XINE_ASPECT_RATIO_4_3;
+	  ratio = XINE_VO_ASPECT_4_3;
 	  break;
 	case FF_ASPECT_16_9_625:
 	case FF_ASPECT_16_9_525:
-	  ratio = XINE_ASPECT_RATIO_ANAMORPHIC;
+	  ratio = XINE_VO_ASPECT_ANAMORPHIC;
 	  break;
 	default:
-	  ratio = XINE_ASPECT_RATIO_DONT_TOUCH;
+	  ratio = XINE_VO_ASPECT_DONT_TOUCH;
 	}
 	
 	img = this->video_out->get_frame (this->video_out,
@@ -469,7 +450,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					  this->bih.biWidth,
 					  this->bih.biHeight,
 					  ratio, 
-					  IMGFMT_YV12,
+					  XINE_IMGFMT_YV12,
 					  VO_BOTH_FIELDS);
 	
 	img->pts      = buf->pts;
@@ -627,24 +608,13 @@ static void ff_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   ff_decoder_t *this ;
   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
-  if (iface_version != 10) {
-    printf(_("ffmpeg: plugin doesn't support plugin API version %d.\n"
-	     "ffmpeg: this means there's a version mismatch between xine and this "
-	     "ffmpeg: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    
-    return NULL;
-  }
-
   this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = ff_can_handle;
   this->video_decoder.init                = ff_init;
   this->video_decoder.decode_data         = ff_decode_data;
   this->video_decoder.flush               = ff_flush;
@@ -660,7 +630,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
 
   this->illegal_vlc = xine->config->register_bool (xine->config, "codec.ffmpeg_illegal_vlc", 1,
-                      _("allow illegal vlc codes in mpeg4 streams"), NULL, NULL, NULL);
+                      _("allow illegal vlc codes in mpeg4 streams"), NULL, 
+						   10, NULL, NULL);
 
   pthread_once( &once_control, init_routine );
 
@@ -668,3 +639,28 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 }
 
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t supported_types[] = { 
+  BUF_VIDEO_MSMPEG4_V3, BUF_VIDEO_MSMPEG4_V2,
+  BUF_VIDEO_MSMPEG4_V1, BUF_VIDEO_WMV7, BUF_VIDEO_MPEG4,
+  BUF_VIDEO_XVID, BUF_VIDEO_DIVX5, BUF_VIDEO_MJPEG,
+  BUF_VIDEO_H263, BUF_VIDEO_RV10,
+  /* PIX_FMT_YUV410P must be supported to enable svq1 */
+  /* BUF_VIDEO_SORENSON_V1 */
+  BUF_VIDEO_JPEG, BUF_VIDEO_MPEG, 0 
+};
+
+static decoder_info_t dec_info_ffmpeg = {
+  supported_types,     /* supported types */
+  5                    /* priority        */
+};
+
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "ffmpeg", XINE_VERSION_CODE, &dec_info_ffmpeg, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

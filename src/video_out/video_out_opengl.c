@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.16 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.17 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -56,6 +56,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#warning DISABLED: FIXME
+#if 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1113,3 +1116,4 @@ vo_info_t *get_video_out_plugin_info() {
     return &vo_info_shm;
 }
 
+#endif

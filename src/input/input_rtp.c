@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -503,21 +503,11 @@ static void rtp_plugin_dispose (input_plugin_t *this_gen ) {
 /*
  *
  */
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   rtp_input_plugin_t *this;
   config_values_t    *config;
   int                 bufn;
-
-  if (iface != 8) {
-    LOG_MSG(xine,
-	    _("rtp input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
 
     
   this       = (rtp_input_plugin_t *) xine_xmalloc(sizeof(rtp_input_plugin_t));
@@ -564,5 +554,16 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl     = NULL;
   this->config  = config;
     
-  return (input_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "rtp", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+

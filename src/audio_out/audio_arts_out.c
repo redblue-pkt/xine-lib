@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.13 2002/06/12 12:22:26 f1rmb Exp $
+ * $Id: audio_arts_out.c,v 1.14 2002/09/04 23:31:07 guenter Exp $
  */
 
 /* required for swab() */
@@ -50,7 +50,7 @@
 
 typedef struct arts_driver_s {
 
-  ao_driver_t    ao_driver;
+  xine_ao_driver_t    ao_driver;
 
   arts_stream_t  audio_stream;
   int            capabilities;
@@ -95,7 +95,7 @@ static void ao_arts_volume(void *buffer, int length, int left, int right)
 /*
  * open the audio device for writing to
  */
-static int ao_arts_open(ao_driver_t *this_gen,
+static int ao_arts_open(xine_ao_driver_t *this_gen,
 		   uint32_t bits, uint32_t rate, int mode)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
@@ -154,24 +154,24 @@ static int ao_arts_open(ao_driver_t *this_gen,
 }
 
 
-static int ao_arts_num_channels(ao_driver_t *this_gen)
+static int ao_arts_num_channels(xine_ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
     return this->num_channels;
 }
 
-static int ao_arts_bytes_per_frame(ao_driver_t *this_gen)
+static int ao_arts_bytes_per_frame(xine_ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
   return this->bytes_per_frame;
 }
 
-static int ao_arts_get_gap_tolerance (ao_driver_t *this_gen)
+static int ao_arts_get_gap_tolerance (xine_ao_driver_t *this_gen)
 {
   return GAP_TOLERANCE;
 }
 
-static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
+static int ao_arts_write(xine_ao_driver_t *this_gen, int16_t *data,
                          uint32_t num_frames)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
@@ -184,7 +184,7 @@ static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
 }
 
 
-static int ao_arts_delay (ao_driver_t *this_gen)
+static int ao_arts_delay (xine_ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
 
@@ -197,7 +197,7 @@ static int ao_arts_delay (ao_driver_t *this_gen)
   return this->latency * this->sample_rate / 1000;
 }
 
-static void ao_arts_close(ao_driver_t *this_gen)
+static void ao_arts_close(xine_ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
 
@@ -207,12 +207,12 @@ static void ao_arts_close(ao_driver_t *this_gen)
   }
 }
 
-static uint32_t ao_arts_get_capabilities (ao_driver_t *this_gen) {
+static uint32_t ao_arts_get_capabilities (xine_ao_driver_t *this_gen) {
   arts_driver_t *this = (arts_driver_t *) this_gen;
   return this->capabilities;
 }
 
-static void ao_arts_exit(ao_driver_t *this_gen)
+static void ao_arts_exit(xine_ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
   
@@ -225,7 +225,7 @@ static void ao_arts_exit(ao_driver_t *this_gen)
 /*
  *
  */
-static int ao_arts_get_property (ao_driver_t *this_gen, int property) {
+static int ao_arts_get_property (xine_ao_driver_t *this_gen, int property) {
 
   arts_driver_t *this = (arts_driver_t *) this_gen;
   
@@ -246,7 +246,7 @@ static int ao_arts_get_property (ao_driver_t *this_gen, int property) {
 /*
  *
  */
-static int ao_arts_set_property (ao_driver_t *this_gen, int property, int value) {
+static int ao_arts_set_property (xine_ao_driver_t *this_gen, int property, int value) {
 
   arts_driver_t *this = (arts_driver_t *) this_gen;
   int mute = (value) ? 1 : 0;
@@ -279,7 +279,7 @@ static int ao_arts_set_property (ao_driver_t *this_gen, int property, int value)
 /*
  *
  */
-static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+static int ao_arts_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   /*arts_driver_t *this = (arts_driver_t *) this_gen;*/
 
   switch (cmd) {
@@ -298,9 +298,10 @@ static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 }
 
 
-ao_driver_t *init_audio_out_plugin (config_values_t *config) {
+void *init_audio_out_plugin (xine_t *xine, void *data) {
 
-  arts_driver_t *this;
+  /* config_values_t *config = xine->config; */
+  arts_driver_t   *this;
   int		   rc;
 
   this = (arts_driver_t *) malloc (sizeof (arts_driver_t));
@@ -345,13 +346,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.get_gap_tolerance   = ao_arts_get_gap_tolerance;
   this->ao_driver.control	      = ao_arts_ctrl;
 
-  return &this->ao_driver;
+  return this;
 }
 
 static ao_info_t ao_info_arts = {
-  AO_OUT_ARTS_IFACE_VERSION,
-  "arts",
-  NULL,
+  "xine audio output plugin using arts-compliant audio devices/drivers",
   5
 };
 
@@ -359,4 +358,14 @@ ao_info_t *get_audio_out_plugin_info() {
   ao_info_arts.description = _("xine audio output plugin using arts-compliant audio devices/drivers");
   return &ao_info_arts;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_OUT, AO_OUT_ARTS_IFACE_VERSION, "arts", XINE_VERSION_CODE, &ao_info_arts, init_audio_out_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
 

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.75 2002/07/31 06:29:08 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.76 2002/09/04 23:31:07 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,7 +72,7 @@
 
 typedef struct alsa_driver_s {
 
-  ao_driver_t   ao_driver;
+  xine_ao_driver_t   ao_driver;
 
   config_values_t *config;
 
@@ -154,7 +154,7 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 /*
  * open the audio device for writing to
  */
-static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
+static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t *config = this->config;
@@ -180,7 +180,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "default",
                                          _("device used for mono output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   case AO_CAP_MODE_STEREO:
@@ -190,7 +190,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "default",
                                          _("device used for stereo output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   case AO_CAP_MODE_4CHANNEL:
@@ -200,7 +200,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "surround40",
                                          _("device used for 4-channel output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   case AO_CAP_MODE_5CHANNEL:
@@ -210,7 +210,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "surround51",
                                          _("device used for 5-channel output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   case AO_CAP_MODE_5_1CHANNEL:
@@ -220,7 +220,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "surround51",
                                          _("device used for 5.1-channel output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   case AO_CAP_MODE_A52:
@@ -231,7 +231,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
                                          _("device used for 5.1-channel output"),
                                          NULL,
-                                         NULL,
+                                         10, NULL,
                                          NULL);
     break;
   default:
@@ -388,7 +388,7 @@ __close:
 /*
  * Return the number of audio channels
  */
-static int ao_alsa_num_channels(ao_driver_t *this_gen)
+static int ao_alsa_num_channels(xine_ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->num_channels;
@@ -397,7 +397,7 @@ static int ao_alsa_num_channels(ao_driver_t *this_gen)
 /*
  * Return the number of bytes per frame
  */
-static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
+static int ao_alsa_bytes_per_frame(xine_ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->bytes_per_frame;
@@ -406,7 +406,7 @@ static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
 /*
  * Return gap tolerance (in pts)
  */
-static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
+static int ao_alsa_get_gap_tolerance (xine_ao_driver_t *this_gen)
 {
   return GAP_TOLERANCE;
 }
@@ -414,7 +414,7 @@ static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
 /*
  * Return the delay. is frames measured by looking at pending samples
  */
-static int ao_alsa_delay (ao_driver_t *this_gen) 
+static int ao_alsa_delay (xine_ao_driver_t *this_gen) 
 {
   snd_pcm_status_t  *pcm_stat;
   snd_pcm_sframes_t delay;
@@ -459,7 +459,7 @@ static void xrun(alsa_driver_t *this)
 /*
  * Write audio data to output buffer (blocking)
  */
-static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
+static int ao_alsa_write(xine_ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
   snd_pcm_sframes_t result;
   uint8_t *buffer=(uint8_t *)data;
@@ -486,7 +486,7 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 /*
  * This is called when the decoder no longer uses the audio
  */
-static void ao_alsa_close(ao_driver_t *this_gen)
+static void ao_alsa_close(xine_ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   if(this->audio_fd) snd_pcm_close(this->audio_fd);
@@ -497,7 +497,7 @@ static void ao_alsa_close(ao_driver_t *this_gen)
 /*
  * Find out what output modes + capatilities are supported
  */
-static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
+static uint32_t ao_alsa_get_capabilities (xine_ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->capabilities;
 }
@@ -505,7 +505,7 @@ static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
 /*
  * Shut down audio output driver plugin and free all resources allocated
  */
-static void ao_alsa_exit(ao_driver_t *this_gen)
+static void ao_alsa_exit(xine_ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   void          *p;
@@ -532,7 +532,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
 /*
  * Get a property of audio driver
  */
-static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
+static int ao_alsa_get_property (xine_ao_driver_t *this_gen, int property) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int err;
 
@@ -576,7 +576,7 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
 /*
  * Set a property of audio driver
  */
-static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value) {
+static int ao_alsa_set_property (xine_ao_driver_t *this_gen, int property, int value) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int err;
 
@@ -647,7 +647,7 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
 /*
  * Misc control operations
  */
-static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+static int ao_alsa_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int result;
 
@@ -712,7 +712,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 /*
  * Initialize mixer
  */
-static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
+static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->config;
   char                 *pcm_device;
@@ -733,7 +733,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 				       "default",
 				       _("device used for mono output"),
 				       NULL,
-				       NULL,
+				       10, NULL,
 				       NULL);
   
   if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
@@ -860,14 +860,12 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     config->update_string(config, "audio.alsa_mixer_name", "PCM");
   }
   
-  config->save(config);
-  
   this->mixer.name = config->register_string(config,
                                              "audio.alsa_mixer_name",
                                              "PCM",
                                              _("alsa mixer device"),
                                              NULL,
-                                             NULL,
+                                             10, NULL,
                                              NULL);
   
   goto __again;
@@ -903,67 +901,68 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 /*
  * Initialize plugin
  */
-ao_driver_t *init_audio_out_plugin (config_values_t *config) {
+void *init_audio_out_plugin (xine_t *xine, void *data) {
 
-  alsa_driver_t *this;
-  int              err;
-  char             *pcm_device;
+  config_values_t     *config = xine->config;
+  alsa_driver_t       *this;
+  int                  err;
+  char                *pcm_device;
   snd_pcm_hw_params_t *params;
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
   snd_pcm_hw_params_alloca(&params);
   /* Fill the .xinerc file with options */ 
   pcm_device = config->register_string(config,
-                                         "audio.alsa_default_device",
-                                         "default",
-                                         _("device used for mono output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_default_device",
+				       "default",
+				       _("device used for mono output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_front_device",
-                                         "default",
-                                         _("device used for stereo output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_front_device",
+				       "default",
+				       _("device used for stereo output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_surround40_device",
-                                         "surround40",
-                                         _("device used for 4-channel output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_surround40_device",
+				       "surround40",
+				       _("device used for 4-channel output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_surround50_device",
-                                         "surround51",
-                                         _("device used for 5-channel output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_surround50_device",
+				       "surround51",
+				       _("device used for 5-channel output"),
+				       NULL,
+                                       10, NULL,
+				       NULL);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_surround51_device",
-                                         "surround51",
-                                         _("device used for 5.1-channel output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_surround51_device",
+				       "surround51",
+				       _("device used for 5.1-channel output"),
+				       NULL,
+                                       10,  NULL,
+				       NULL);
   pcm_device = config->register_string(config,
-                                         "audio.alsa_a52_device",
-                                         "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-                                         _("device used for 5.1-channel output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_a52_device",
+				       "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
+				       _("device used for 5.1-channel output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
 
   /* Use the default device to open first */
   pcm_device = config->register_string(config,
-                                         "audio.alsa_default_device",
-                                         "default",
-                                         _("device used for mono output"),
-                                         NULL,
-                                         NULL,
-                                         NULL);
+				       "audio.alsa_default_device",
+				       "default",
+				       _("device used for mono output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
  
   /*
    * find best device driver/channel
@@ -1014,7 +1013,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                0,
                                _("used to inform xine about what the sound card can do"),
                                NULL,
-                               NULL,
+                               0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
     printf ("4-channel ");
@@ -1027,7 +1026,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                0,
                                _("used to inform xine about what the sound card can do"),
                                NULL,
-                               NULL,
+                               0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
     printf ("5-channel ");
@@ -1040,7 +1039,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                0,
                                _("used to inform xine about what the sound card can do"),
                                NULL,
-                               NULL,
+                               0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
     printf ("5.1-channel ");
@@ -1058,7 +1057,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                0,
                                _("used to inform xine about what the sound card can do"),
                                NULL,
-                               NULL,
+                               0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
@@ -1077,7 +1076,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                              "PCM",
                                              _("alsa mixer device"),
                                              NULL,
-                                             NULL,
+                                             10, NULL,
                                              NULL);
 
   pthread_mutex_init(&this->mixer.mutex, NULL);
@@ -1099,16 +1098,23 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   return &this->ao_driver;
 }
 
-static ao_info_t ao_info_alsa9 = {
-  AO_OUT_ALSA_IFACE_VERSION,
-  "alsa09",
-  NULL,
-  11
+static ao_info_t ao_info_alsa = {
+  "xine audio output plugin using alsa-compliant audio devices/drivers",
+  10
 };
 
 ao_info_t *get_audio_out_plugin_info() {
 
-  ao_info_alsa9.description = _("xine audio output plugin using alsa-compliant audio devices/drivers");
-  return &ao_info_alsa9;
+  ao_info_alsa.description = _("xine audio output plugin using alsa-compliant audio devices/drivers");
+  return &ao_info_alsa;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_OUT, AO_OUT_ALSA_IFACE_VERSION, "alsa", XINE_VERSION_CODE, &ao_info_alsa, init_audio_out_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.21 2002/08/02 13:00:13 tmmm Exp $
+ * $Id: demux_film.c,v 1.22 2002/09/04 23:31:07 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -527,7 +527,7 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
 		 (this->config->register_string(this->config,
 						"mrl.ends_film", VALID_ENDS,
 						_("valid mrls ending for film demuxer"),
-						NULL, NULL, NULL)));
+						NULL, 20, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
@@ -802,7 +802,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void *) this->config->register_string(this->config,
 					 "mrl.ends_film", VALID_ENDS,
 					 _("valid mrls ending for film demuxer"),
-					 NULL, NULL, NULL);
+					 NULL, 20, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_film_open;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.82 2002/07/26 14:51:23 mroi Exp $
+ * $Id: audio_decoder.c,v 1.83 2002/09/04 23:31:13 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -234,7 +234,7 @@ void *audio_decoder_loop (void *this_gen) {
 	    
 	    int streamtype = (buf->type>>16) & 0xFF;
 	    
-	    decoder = this->audio_decoder_plugins [streamtype];
+	    decoder = get_audio_decoder (this, streamtype);
 	    
 	    /* close old decoder of audio type has changed */
 	    
@@ -362,19 +362,3 @@ int xine_get_audio_channel (xine_t *this) {
   return this->audio_type & 0xFFFF; 
 }
 
-void xine_select_audio_channel (xine_t *this, int channel) {
-
-  pthread_mutex_lock (&this->xine_lock);
-
-  if (channel < -2)
-    channel = -2;
-
-  this->audio_channel_user = channel;
-
-  pthread_mutex_unlock (&this->xine_lock);
-}
-
-int xine_get_audio_selection (xine_t *this) {
-
-  return this->audio_channel_user;
-}

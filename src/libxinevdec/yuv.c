@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.3 2002/08/28 14:03:30 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.4 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -59,12 +59,6 @@ typedef struct yuv_decoder_s {
 /**************************************************************************
  * xine video plugin functions
  *************************************************************************/
-
-static int yuv_can_handle (video_decoder_t *this_gen, int buf_type) {
-
-  return (buf_type == BUF_VIDEO_YVU9 ||
-          buf_type == BUF_VIDEO_GREY);
-}
 
 /*
  * This function is responsible is called to initialize the video decoder
@@ -145,7 +139,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         img = this->video_out->get_frame (this->video_out,
                                           this->width, this->height,
-                                          42, IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
         xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
 
@@ -188,7 +182,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
 
         img = this->video_out->get_frame (this->video_out,
                                           this->width, this->height,
-                                          42, IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          42, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
         xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
         memset( img->base[1], 0x80, this->width * this->height / 4 );
@@ -199,7 +193,7 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         /* just allocate something to avoid compiler warnings */
         img = this->video_out->get_frame (this->video_out,
                                           this->width, this->height,
-                                          42, IMGFMT_YV12, VO_BOTH_FIELDS);
+                                          XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
       }
 
@@ -289,23 +283,13 @@ static void yuv_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   yuv_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "yuv: plugin doesn't support plugin API version %d.\n"
-            "yuv: this means there's a version mismatch between xine and this "
-            "yuv: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
 
   this = (yuv_decoder_t *) malloc (sizeof (yuv_decoder_t));
   memset(this, 0, sizeof (yuv_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = yuv_can_handle;
   this->video_decoder.init                = yuv_init;
   this->video_decoder.decode_data         = yuv_decode_data;
   this->video_decoder.flush               = yuv_flush;
@@ -315,6 +299,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = yuv_dispose;
   this->video_decoder.priority            = 1;
 
-  return (video_decoder_t *) this;
+  return this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_YVU9,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "yuv", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

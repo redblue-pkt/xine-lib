@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.46 2002/07/05 17:32:02 mroi Exp $
+ * $Id: input_vcd.c,v 1.47 2002/09/04 23:31:08 guenter Exp $
  *
  */
 
@@ -142,7 +142,7 @@ typedef struct {
 /*
  * Callback for configuratoin changes.
  */
-static void device_change_cb(void *data, cfg_entry_t *cfg) {
+static void device_change_cb (void *data, xine_cfg_entry_t *cfg) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) data;
   
   this->device = cfg->str_value;
@@ -1135,22 +1135,12 @@ static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
 /*
  *
  */
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   vcd_input_plugin_t *this;
   config_values_t    *config;
   int                 i;
 
-  if (iface != 8) {
-    LOG_MSG(xine, 
-	    _("vcd input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
-    
   this       = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
   config     = xine->config;
   this->xine = xine;
@@ -1182,7 +1172,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->device = config->register_string(config, "input.vcd_device", CDROM,
 					 _("path to your local vcd device file"),
-					 NULL, device_change_cb, (void *)this);
+					 NULL, 10, device_change_cb, (void *)this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
@@ -1191,5 +1181,15 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl     = NULL;
   this->config  = config;
   
-  return (input_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "vcd", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.80 2002/07/17 21:23:57 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.81 2002/09/04 23:31:13 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -31,6 +31,7 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <string.h>
@@ -39,6 +40,8 @@
 #include <signal.h>
 
 #include "xine_internal.h"
+#include "xine_plugin.h"
+#include "plugin_catalog.h"
 #include "demuxers/demux.h"
 #include "input/input_plugin.h"
 #include "video_out.h"
@@ -50,15 +53,6 @@
 /*
 #define LOG
 */
-
-/* transition code; between xine 0.9.7 and 0.9.8, the dxr3enc driver
- * was integrated in the dxr3 driver and no longer exists as a seperate
- * plugin. upgraded installs may have an old dxr3enc driver left in the 
- * plugins dir, which we do not want to load. this define activates 
- * some code to check for this and print warnings. 
- * should probably be removed for version 1.0 
- * --- Harm van der Heijden */
-#define IGNORE_DXR3ENC 1
 
 extern int errno;
 
@@ -90,259 +84,484 @@ static void remove_segv_handler(void){
 
 #endif
 
+
+
+
 /*
- *  Demuxers plugins section
+ * plugin list/catalog management functions
+ *
  */
-void load_demux_plugins (xine_t *this, config_values_t *config) {
+
+static char  *_strclone(const char *str){
+  char *new;
+
+  new = xine_xmalloc(strlen(str)+1);
+  strcpy(new, str);
+  return new;
+}
+
+static void _insert_plugin (xine_list_t *list,
+			    char *filename, plugin_info_t *info){
+
+  plugin_node_t     *entry;
+  vo_info_t         *vo_new, *vo_old;
+  ao_info_t         *ao_new, *ao_old;
+  decoder_info_t    *decoder_new, *decoder_old;
+  uint32_t          *types;
+  int                i;
+
+  /* FIXME: TODO: insert replacement/priority logic here */
+  
+  entry = xine_xmalloc(sizeof(plugin_node_t));
+  entry->filename = _strclone(filename);
+  entry->info = xine_xmalloc(sizeof(plugin_info_t));
+  *(entry->info) = *info;
+  entry->info->id = _strclone(info->id);
+  entry->info->init = NULL;
+
+  switch (info->type){
+
+  case PLUGIN_VIDEO_OUT:
+    vo_old = info->special_info;
+    vo_new = xine_xmalloc(sizeof(vo_info_t));
+    vo_new->priority = vo_old->priority;
+    vo_new->description = _strclone(vo_old->description);
+    vo_new->visual_type = vo_old->visual_type;
+    entry->info->special_info = vo_new;
+    break;
+
+  case PLUGIN_AUDIO_OUT:
+    ao_old = info->special_info;
+    ao_new = xine_xmalloc(sizeof(ao_info_t));
+    ao_new->priority = ao_old->priority;
+    ao_new->description = _strclone(ao_old->description);
+    entry->info->special_info = ao_new;
+    break;
+
+  case PLUGIN_AUDIO_DECODER:
+  case PLUGIN_VIDEO_DECODER:
+    decoder_old = info->special_info;
+    decoder_new = xine_xmalloc(sizeof(decoder_info_t));
+    if (decoder_old == NULL) {
+      printf ("load_plugins: plugin %s from %s is broken: special_info=NULL\n",
+	      info->id, entry->filename);
+      abort();
+    }
+    for (i=0; decoder_old->supported_types[i] != 0; ++i);
+    types = xine_xmalloc((i+1)*sizeof(uint32_t));
+    for (i=0; decoder_old->supported_types[i] != 0; ++i){
+      types[i] = decoder_old->supported_types[i];
+    }
+    decoder_new->supported_types = types;
+    decoder_new->priority = decoder_old->priority;
+    entry->info->special_info = decoder_new;
+    break;
+  }
+
+  /*
+   * insert plugin into list
+   * FIXME: find right place depending on plugin priority
+   */
+
+  xine_list_append_content (list, entry);
+}
+
+
+static plugin_catalog_t *_empty_catalog(void){
+
+  plugin_catalog_t *catalog;
+  
+  catalog = xine_xmalloc(sizeof(plugin_catalog_t));
+  catalog->input = xine_list_new();
+  catalog->demux = xine_list_new();
+  catalog->spu   = xine_list_new();
+  catalog->audio = xine_list_new();
+  catalog->video = xine_list_new();
+  catalog->aout  = xine_list_new();
+  catalog->vout  = xine_list_new();
+
+  return catalog;
+}
+
+/*
+ * First stage plugin loader (catalog builder)
+ *
+ ***************************************************************************/
+
+static void collect_plugins(xine_t *this, char *path){
+
   DIR *dir;
 
-  if (this == NULL || config == NULL) {
-    printf (_("%s(%s@%d): parameter should be non null, exiting\n"),
+#ifdef LOG
+  printf ("load_plugins: collect_plugins in %s\n", path);
+#endif
+
+  dir = opendir(path);  
+  if (dir) {
+    struct dirent *pEntry;
+    
+    while ((pEntry = readdir (dir)) != NULL) {
+      char *str;
+      void *lib;
+      struct stat statbuffer;
+	  
+      str = xine_xmalloc(strlen(path) + strlen(pEntry->d_name) + 2);
+      sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	  
+      if (stat(str, &statbuffer)) {
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("load_plugins: unable to stat %s\n"), str); 
+      }
+      else {
+		
+	switch (statbuffer.st_mode & S_IFMT){
+		  
+	case S_IFREG:
+	  /* regular file, ie. plugin library, found => load it */
+		  
+	  plugin_name = str;
+		  
+	  if(!(lib = dlopen (str, RTLD_LAZY))) {
+	    char *dl_error_msg = dlerror();
+			
+#ifdef LOG
+	    /* too noisy */
+	    printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
+		    str, dl_error_msg); 
+#endif
+	  }
+	  else {
+			
+	    plugin_info_t *info;
+			
+	    if ((info = dlsym(lib, "xine_plugin_info"))) {
+			  
+	      for (; info->type != PLUGIN_NONE; ++info){
+
+		xine_log (this, XINE_LOG_PLUGIN,
+			  _("load_plugins: plugin %s found\n"), str);
+
+		switch (info->type){
+		case PLUGIN_INPUT:
+		  _insert_plugin(this->plugin_catalog->input, str, info);
+		  break;
+		case PLUGIN_DEMUX:
+		  _insert_plugin(this->plugin_catalog->demux, str, info);
+		  break;
+		case PLUGIN_AUDIO_DECODER:
+		  _insert_plugin(this->plugin_catalog->audio, str, info);
+		  break;
+		case PLUGIN_VIDEO_DECODER:
+		  _insert_plugin(this->plugin_catalog->video, str, info);
+		  break;
+		case PLUGIN_SPU_DECODER:
+		  _insert_plugin(this->plugin_catalog->spu, str, info);
+		  break;
+		case PLUGIN_AUDIO_OUT:
+		  _insert_plugin(this->plugin_catalog->aout, str, info);
+		  break;
+		case PLUGIN_VIDEO_OUT:
+		  _insert_plugin(this->plugin_catalog->vout, str, info);
+		  break;
+		default:
+		  xine_log (this, XINE_LOG_PLUGIN,
+			    _("load_plugins: unknown plugin type %d in %s\n"),
+			    info->type, str);
+		}
+	      }
+			  
+	    }
+	    else {
+	      char *dl_error_msg = dlerror();
+			  
+	      xine_log (this, XINE_LOG_PLUGIN,
+			_("load_plugins: can't get plugin info from %s:\n%s\n"),
+			str, dl_error_msg); 
+	    }
+	    dlclose(lib);
+	  }
+	  break;
+	case S_IFDIR:
+		  
+	  if (*pEntry->d_name != '.'){ /* catches ".", ".." or ".hidden" dirs */
+	    collect_plugins(this, str);
+	  }
+	} /* switch */
+      } /* if (stat(...)) */
+      free(str);
+    } /* while */
+  } /* if (dir) */
+} /* collect_plugins */
+
+
+/*
+ * generic 2nd stage plugin loader
+ */
+
+static void *_load_plugin(xine_t *this,
+			  char *filename, plugin_info_t *target,
+			  void *data) {
+
+  void *lib;
+
+  if(!(lib = dlopen (filename, RTLD_LAZY))) {
+
+    xine_log (this, XINE_LOG_PLUGIN,
+	      _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"),
+	      filename, dlerror()); 
+
+  } else {
+
+    plugin_info_t *info;
+	
+    if ((info = dlsym(lib, "xine_plugin_info"))) {
+      /* TODO: use sigsegv handler */
+      while (info->type != PLUGIN_NONE){
+	if (info->type == target->type
+	    && info->API == target->API
+	    && !strcasecmp(info->id, target->id)
+	    && info->version == target->version){
+	  
+	  return info->init(this, data);
+	}
+      }
+
+    } else {
+      xine_log (this, XINE_LOG_PLUGIN,
+		"load_plugins: Yikes! %s doesn't contain plugin info.\n",
+		filename);
+    }
+  }
+  return NULL; /* something failed if we came here... */
+}
+
+/*
+ *  load input+demuxer plugins
+ */
+static void load_plugins(xine_t *this) {
+
+  plugin_node_t *node;
+
+  /* 
+   * input plugins
+   */
+
+  node = xine_list_first_content (this->plugin_catalog->input);
+  while (node) {
+
+#ifdef LOG
+    printf("load_plugins: load input plugin %s from %s\n",
+	   node->info->id, node->filename);
+#endif
+
+    node->plugin = _load_plugin(this, node->filename, node->info, NULL);
+
+    node = xine_list_next_content (this->plugin_catalog->input);
+  }
+
+  /* 
+   * demux plugins
+   */
+
+  node = xine_list_first_content (this->plugin_catalog->demux);
+  while (node) {
+
+#ifdef LOG
+    printf("load_plugins: load demux plugin %s from %s\n",
+	   node->info->id, node->filename);
+#endif
+
+    node->plugin = _load_plugin(this, node->filename, node->info, NULL);
+
+    node = xine_list_next_content (this->plugin_catalog->demux);
+  }
+}
+
+static void map_decoders (xine_t *this) {
+
+  plugin_catalog_t *catalog = this->plugin_catalog;
+  plugin_node_t    *node;
+  int               i;
+
+#ifdef LOG
+  printf ("load_plugins: map_decoders\n");
+#endif
+
+  /* clean up */
+
+  for (i=0; i<DECODER_MAX; i++) {
+    catalog->audio_decoder_map[i]=NULL;
+    catalog->video_decoder_map[i]=NULL;
+    catalog->spu_decoder_map[i]=NULL;
+  }
+
+  /* 
+   * map audio decoders 
+   */
+  
+  node = xine_list_first_content (this->plugin_catalog->audio);
+  while (node) {
+
+    decoder_info_t *di = (decoder_info_t *) node->info->special_info;
+    int            *type;
+
+#ifdef LOG
+    printf ("load_plugins: mapping decoder %s\n", node->info->id);
+#endif
+
+    type = di->supported_types;
+
+    while (type && (*type)) {
+
+      int streamtype = ((*type)>>16) & 0xFF;
+      int priority;
+
+#ifdef LOG
+      printf ("load_plugins: decoder handles stream type %02x, priority %d\n",
+	      streamtype, di->priority);
+#endif
+
+      if (catalog->audio_decoder_map[streamtype]) {
+	priority = ((decoder_info_t *) catalog->audio_decoder_map[streamtype]->info->special_info)->priority;
+      } else
+	priority = 0;
+
+      if (di->priority > priority) {
+#ifdef LOG
+	printf ("load_plugins: using decoder %s for stream type %02x\n",
+		node->info->id, streamtype);
+#endif
+	catalog->audio_decoder_map[streamtype] = node;
+      }
+
+      type++;
+    }
+
+    node = xine_list_next_content (this->plugin_catalog->audio);
+  }
+
+  /* 
+   * map video decoders 
+   */
+  
+  node = xine_list_first_content (this->plugin_catalog->video);
+  while (node) {
+
+    decoder_info_t *di = (decoder_info_t *) node->info->special_info;
+    int            *type;
+
+#ifdef LOG
+    printf ("load_plugins: mapping decoder %s\n", node->info->id);
+#endif
+
+    type = di->supported_types;
+
+    while (type && (*type)) {
+
+      int streamtype = ((*type)>>16) & 0xFF;
+      int priority;
+
+#ifdef LOG
+      printf ("load_plugins: decoder handles stream type %02x, priority %d\n",
+	      streamtype, di->priority);
+#endif
+
+      if (catalog->video_decoder_map[streamtype]) {
+	priority = ((decoder_info_t *) catalog->video_decoder_map[streamtype]->info->special_info)->priority;
+      } else
+	priority = 0;
+
+      if (di->priority > priority) {
+#ifdef LOG
+	printf ("load_plugins: using decoder %s for stream type %02x\n",
+		node->info->id, streamtype);
+#endif
+	catalog->video_decoder_map[streamtype] = node;
+      }
+
+      type++;
+    }
+
+    node = xine_list_next_content (this->plugin_catalog->video);
+  }
+
+  /* 
+   * map spu decoders 
+   */
+  
+  node = xine_list_first_content (this->plugin_catalog->spu);
+  while (node) {
+
+    decoder_info_t *di = (decoder_info_t *) node->info->special_info;
+    int            *type;
+
+#ifdef LOG
+    printf ("load_plugins: mapping decoder %s\n", node->info->id);
+#endif
+
+    type = di->supported_types;
+
+    while (type && (*type)) {
+
+      int streamtype = ((*type)>>16) & 0xFF;
+      int priority;
+
+#ifdef LOG
+      printf ("load_plugins: decoder handles stream type %02x, priority %d\n",
+	      streamtype, di->priority);
+#endif
+
+      if (catalog->spu_decoder_map[streamtype]) {
+	priority = ((decoder_info_t *) catalog->spu_decoder_map[streamtype]->info->special_info)->priority;
+      } else
+	priority = 0;
+
+      if (di->priority > priority) {
+#ifdef LOG
+	printf ("load_plugins: using decoder %s for stream type %02x\n",
+		node->info->id, streamtype);
+#endif
+	catalog->spu_decoder_map[streamtype] = node;
+      }
+
+      type++;
+    }
+
+    node = xine_list_next_content (this->plugin_catalog->spu);
+  }
+}
+
+/*
+ *  initialize catalog, load all plugins into new catalog
+ */
+void scan_plugins (xine_t *this) {
+
+#ifdef LOG
+  printf("load_plugins: scan_plugins()\n");
+#endif
+  if (this == NULL || this->config == NULL) {
+    fprintf(stderr, "%s(%s@%d): parameter should be non null, exiting\n",
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
     abort();
   }
 
-  this->num_demuxer_plugins = 0;
+  this->plugin_catalog = _empty_catalog();
+  /* TODO: add more plugin dir(s), maybe ~/.xine/plugins or /usr/local/... */
+  collect_plugins(this, XINE_PLUGINDIR);
 
-  install_segv_handler();
-  
-  dir = opendir (XINE_PLUGINDIR) ;
-  
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (pEntry->d_name);
-      
-      if ((strncasecmp(pEntry->d_name, 
-		       XINE_DEMUXER_PLUGIN_PREFIXNAME, 
-		       XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
-	  ((pEntry->d_name[nLen-3]=='.') 
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
-	
-	/*
-	 * demux plugin found => load it
-	 */
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	plugin_name = str;
-	
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  char *dl_error_msg = dlerror();
+  load_plugins (this);
 
-	  xine_log (this, XINE_LOG_PLUGIN,
-		    _("load_plugins: cannot open demux plugin %s:\n%s\n"),
-		    str, dl_error_msg);
-
-	} else {
-
-	  void *(*initplug) (int, xine_t *);
-	  
-	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
-	    demux_plugin_t *dxp;
-	      
-	    dxp = (demux_plugin_t *) initplug (DEMUXER_PLUGIN_IFACE_VERSION, this);
-	    if (dxp) {
-	      this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
-	    
-	      xine_log (this, XINE_LOG_PLUGIN,
-			_("load_plugins: demux plugin found : %s\n"), 
-			this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
-
-	      this->num_demuxer_plugins++;
-	    }
-	  }
-	  
-	  if(this->num_demuxer_plugins > DEMUXER_PLUGIN_MAX) {
-	    printf ( _("load_plugins: too many demux plugins installed, exiting.\n"));
-	    abort();
-	  }
-	}
-      }
-    }
-    closedir(dir);
-  }
-  
-  remove_segv_handler();
-  /*
-   * init demuxer
-   */
-  
-  this->cur_demuxer_plugin = NULL;
+  map_decoders (this);
 }
 
-void xine_list_demux_plugins (config_values_t *config,
-			      char **identifiers, char **mimetypes) {
-  DIR *dir;
-  xine_t *this;
-  int sizeid, sizemime;
-  int incsize;
-  char *s;
-   
-  this = xine_xmalloc (sizeof (xine_t));
-  
-  sizeid = sizemime = incsize = 4096;
-  *identifiers = xine_xmalloc (sizeid);
-  *mimetypes = xine_xmalloc (sizemime);
-    
-  this->config          = config;
 
-  install_segv_handler();
-  
-  dir = opendir (XINE_PLUGINDIR) ;
-  
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (pEntry->d_name);
-      
-      if ((strncasecmp(pEntry->d_name, 
-		       XINE_DEMUXER_PLUGIN_PREFIXNAME, 
-		       XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
-	  ((pEntry->d_name[nLen-3]=='.') 
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
-	
-	/*
-	 * demux plugin found => load it
-	 */
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	plugin_name = str;
-	
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  printf ("load_plugins: cannot open demux plugin %s:\n%s\n",
-		  str, dlerror());
-	} else {
-	  void *(*initplug) (int, xine_t *);
-	  
-	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
-	    demux_plugin_t *dxp;
-	      
-	    dxp = (demux_plugin_t *) initplug(DEMUXER_PLUGIN_IFACE_VERSION, this);
-	    if (dxp) {
-	      /* realloc sucks, but it will make this code much simpler */
-	      s = dxp->get_identifier();
-	      if( strlen(s) + strlen(*identifiers) + 2 > sizeid ) {
-	        sizeid += incsize;
-	        *identifiers = realloc( *identifiers, sizeid );
-	      }
-	      strcat(*identifiers, s);
-	      strcat(*identifiers, "\n");
-
-	      s = dxp->get_mimetypes(); 
-	      if( strlen(s) + strlen(*mimetypes) + 2 > sizemime ) {
-	        sizemime += incsize;
-	        *identifiers = realloc( *identifiers, sizemime );
-	      }
-	      strcat(*mimetypes, s);
-	    }
-	  }
-	  dlclose(plugin);
-	}
-      }
-    }
-    closedir(dir);
-  }
-  remove_segv_handler();
-  
-  free(this);
-}
-
-/** ***************************************************************
- *  Input plugins section
- */
-void load_input_plugins (xine_t *this, 
-			 config_values_t *config) {
-  DIR *dir;
-  
-  this->num_input_plugins = 0;
-  
-  install_segv_handler();
-
-  dir = opendir (XINE_PLUGINDIR) ;
-  
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (pEntry->d_name);
-      
-      if ((strncasecmp(pEntry->d_name,
- 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
-		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((pEntry->d_name[nLen-3]=='.') 
-	  && (pEntry->d_name[nLen-2]=='s')
-	  && (pEntry->d_name[nLen-1]=='o'))) {
-
-	/*
-	 * input plugin found => load it
-	 */
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	plugin_name = str;
-	
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  char *dl_error_msg = dlerror();
-
-	  xine_log (this, XINE_LOG_PLUGIN,
-		    _("load_plugins: cannot open input plugin %s:\n%s\n"), 
-		    str, dl_error_msg);
-	} else {
-	  void *(*initplug) (int, xine_t *);
-	  
-	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
-	    input_plugin_t *ip;
-	      
-	    ip = (input_plugin_t *) initplug (INPUT_PLUGIN_IFACE_VERSION, this);
-	    if (ip) {
-	      this->input_plugins[this->num_input_plugins] = ip; 
-	    
-	      xine_log (this, XINE_LOG_PLUGIN,
-			_("load_plugins: input plugin found : %s\n"), 
-			this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
-
-	      this->num_input_plugins++;
-	    }
-
-	  } else {
-	    xine_log (this, XINE_LOG_PLUGIN,
-		      _("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n"), str);
-	  }
-	  
-	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
-	    printf (_("%s(%d): too many input plugins installed, "
-		      "exiting.\n"), __FILE__, __LINE__);
-	    abort();
-	  }
-	}
-      }
-    }
-    closedir(dir);
-  }
-  
-  remove_segv_handler();
-  
-  if (this->num_input_plugins == 0) {
-    printf (_("load_plugins: no input plugins found in %s! - "
-	      "Did you install xine correctly??\n"), XINE_PLUGINDIR);
-    abort();
-  }
-  
-}
 
 static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
+
+  /* FIXME */
+
+#if 0
+
   input_plugin_t  *ip;
   char           **plugin_ids;
   int              i;
@@ -370,6 +589,9 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
   plugin_ids[n] = NULL;
 
   return plugin_ids;
+
+#endif
+  return NULL;
 }
 
 char **xine_get_autoplay_input_plugin_ids(xine_t *this) {
@@ -383,6 +605,10 @@ char **xine_get_browsable_input_plugin_ids(xine_t *this) {
 }
 
 char *xine_get_input_plugin_description(xine_t *this, char *plugin_id) {
+
+  /* FIXME */
+
+#if 0
   char            *str;
   input_plugin_t  *ip;
   int              i;
@@ -399,691 +625,111 @@ char *xine_get_input_plugin_description(xine_t *this, char *plugin_id) {
       return str;
     }
   }
-  
+#endif  
+
   return NULL;
-}
-
-uint32_t xine_get_input_plugin_capabilities(xine_t *this) {
-  
-  if (this && this->cur_input_plugin && this->cur_input_plugin->get_capabilities)
-    return this->cur_input_plugin->get_capabilities(this->cur_input_plugin);
-  
-  return INPUT_CAP_NOCAP;
-}
-
-/** ***************************************************************
- *  Decoder plugins section
- */
-static int decide_spu_insert(spu_decoder_t *p, int streamtype, int prio) {
-
-  if (!p->can_handle (p, (streamtype<<16) | BUF_SPU_BASE))
-    return 0;
-
-  if (p->priority < prio)
-    return 0;
-
-  /* All conditions successfully passed */
-  return p->priority;
-}
-
-static int decide_video_insert(video_decoder_t *p, int streamtype, int prio) {
-
-  if (!p->can_handle (p, (streamtype<<16) | BUF_VIDEO_BASE))
-    return 0;
-
-  if (p->priority < prio)
-    return 0;
-
-  /* All conditions successfully passed */
-  return p->priority;
-}
-
-static int decide_audio_insert(audio_decoder_t *p, int streamtype, int prio) {
-
-  if (!p->can_handle (p, (streamtype<<16) | BUF_AUDIO_BASE))
-    return 0;
-
-  if (p->priority < prio)
-    return 0;
-
-  /* All conditions successfully passed */
-  return p->priority;
 }
 
 /*
- * load audio and video decoder plugins 
+ *  video out plugins section
  */
-void load_decoder_plugins (xine_t *this,  config_values_t *config) {
-  DIR *dir;
-  int  i;
-  int spu_prio[DECODER_PLUGIN_MAX], video_prio[DECODER_PLUGIN_MAX],
-   audio_prio[DECODER_PLUGIN_MAX];
 
-  if (this == NULL || config == NULL) {
-    printf ( _("%s(%s@%d): parameter should be non null, exiting\n"),
-	     __FILE__, __XINE_FUNCTION__, __LINE__);
-    abort();
-  }
-
-  /*
-   * clean up first
-   */
-  this->cur_spu_decoder_plugin = NULL;
-  for (i=0; i<DECODER_PLUGIN_MAX; i++) {
-    this->spu_decoder_plugins[i] = NULL;
-    spu_prio[i] = 0;
-  }
-  this->num_spu_decoders_loaded = 0;
-
-  this->cur_video_decoder_plugin = NULL;
-  for (i=0; i<DECODER_PLUGIN_MAX; i++) {
-    this->video_decoder_plugins[i] = NULL;
-    video_prio[i] = 0;
-  }
-  this->num_video_decoders_loaded = 0;
-
-  this->cur_audio_decoder_plugin = NULL;
-  for (i=0; i<DECODER_PLUGIN_MAX; i++) {
-    this->audio_decoder_plugins[i] = NULL;
-    audio_prio[i] = 0;
-  }
-  this->num_audio_decoders_loaded = 0;
-
-  /*
-   * now scan for decoder plugins
-   */
-
-   
-  install_segv_handler();
-    
-  dir = opendir (XINE_PLUGINDIR) ;
+xine_vo_driver_t *xine_open_video_driver (xine_t *this,
+					  char *id, 
+					  int visual_type, void *visual) {
   
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (pEntry->d_name);
-      
-      if ((strncasecmp(pEntry->d_name, 
-		       XINE_DECODER_PLUGIN_PREFIXNAME, 
-		       XINE_DECODER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
-	  ((pEntry->d_name[nLen-3]=='.') 
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
-	
-	/*
-	 * decoder plugin found => load it
-	 */
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	plugin_name =  str;
-		
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  char *dl_error_msg = dlerror();
+  plugin_node_t      *node;
+  xine_vo_driver_t   *driver;
+  vo_info_t          *vo_info;
 
-	  xine_log (this, XINE_LOG_PLUGIN,
-		    _("load_plugins: failed to load plugin %s:\n%s\n"),
-		    str, dl_error_msg);
+  driver = NULL;
 
-	} else {
-	  int plugin_prio;
+  node = xine_list_first_content (this->plugin_catalog->vout);
+  while (node) {
 
-	  /*
-	   * does this plugin provide an spu decoder plugin?
-	   */
-	  {
-	    void *(*initplug) (int, xine_t *);
-	    
-	    if((initplug = dlsym(plugin, "init_spu_decoder_plugin")) != NULL) {
-	      
-	      spu_decoder_t *sdp;
-	      int            streamtype;
-	      
-	      sdp = (spu_decoder_t *) initplug (SPU_DECODER_IFACE_VERSION, this);
-	      if (sdp) {
-
-		this->spu_decoders_loaded [this->num_spu_decoders_loaded] = sdp;
-		this->num_spu_decoders_loaded++;
-
-		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++) {
-		  if ((plugin_prio =
-		       decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
-
-		    this->spu_decoder_plugins[streamtype] = sdp;
-		    spu_prio[streamtype] = plugin_prio;
-		  }
-		}
-		
-		xine_log (this, XINE_LOG_PLUGIN,
-			  _("spu decoder plugin found : %s\n"),
-			  sdp->get_identifier());
-
-	      }
-	    }
-	  }
-
-	  /*
-	   * does this plugin provide an video decoder plugin?
-	   */
-
-	  {
-	    void *(*initplug) (int, xine_t *);
-	    if((initplug = dlsym(plugin, "init_video_decoder_plugin")) != NULL) {
-	      
-	      video_decoder_t *vdp;
-	      int              streamtype;
-	      
-	      vdp = (video_decoder_t *) initplug(VIDEO_DECODER_IFACE_VERSION, this);
-	      if (vdp) {
-
-		this->video_decoders_loaded [this->num_video_decoders_loaded] = vdp;
-		this->num_video_decoders_loaded++;
-
-		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-		  if ((plugin_prio =
-		       decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
-
-		    this->video_decoder_plugins[streamtype] = vdp;
-		    video_prio[streamtype] = plugin_prio;
-		  }
-		
-		xine_log (this, XINE_LOG_PLUGIN,
-			  _("video decoder plugin found : %s\n"), 
-			  vdp->get_identifier());
-
-	      }
-	    }
-	    
-	    /*
-	     * does this plugin provide an audio decoder plugin?
-	     */
-	    
-	    if((initplug = dlsym(plugin, "init_audio_decoder_plugin")) != NULL) {
-	      
-	      audio_decoder_t *adp;
-	      int              streamtype;
-	      
-	      adp = (audio_decoder_t *) initplug(AUDIO_DECODER_IFACE_VERSION, this);
-	      if (adp) {
-
-		this->audio_decoders_loaded [this->num_audio_decoders_loaded] = adp;
-		this->num_audio_decoders_loaded++;
-
-		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
-		  if ((plugin_prio =
-		       decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
-
-		    this->audio_decoder_plugins[streamtype] = adp; 
-		    audio_prio[streamtype] = plugin_prio;
-		  }
-		
-		xine_log (this, XINE_LOG_PLUGIN,
-			  _("audio decoder plugin found : %s\n"), 
-			  adp->get_identifier());
-
-	      }
-	    }
-	    
-	  }
+    vo_info = node->info->special_info;
+    if (vo_info->visual_type == visual_type) {
+      if (id) {
+	if (!strcasecmp (node->info->id, id)) {
+	  driver = (xine_vo_driver_t*)_load_plugin (this, node->filename, 
+						    node->info, visual);
+	  break;
 	}
+
+      } else {
+
+	driver = (xine_vo_driver_t*)_load_plugin (this, node->filename, 
+						  node->info, visual);
+	if (driver)
+	  break;
+	
       }
     }
-    closedir(dir);
-  }
-  remove_segv_handler();
-
-  this->cur_spu_decoder_plugin = NULL;
-  this->cur_video_decoder_plugin = NULL;
-  this->cur_audio_decoder_plugin = NULL;
-}
-
-/** ***************************************************************
- * Video output plugins section
- */
-char **xine_list_video_output_plugins (int visual_type) {
-
-  char **plugin_ids;
-  int    num_plugins = 0;
-  DIR   *dir;
-  int    i,j;
-  int    plugin_prios[50];
-
-  plugin_ids = (char **) xine_xmalloc (50 * sizeof (char *));
-  plugin_ids[0] = NULL;
-
-  install_segv_handler();
-  
-#ifdef ENABLE_NLS
-  bindtextdomain("xine-lib", XINE_LOCALEDIR);
-#endif 
-
-  dir = opendir (XINE_PLUGINDIR);
-
-  if (dir) {
-    struct dirent *dir_entry;
-
-    while ((dir_entry = readdir (dir)) != NULL) {
-      char  str[1024];
-      void *plugin;
-      int nLen = strlen (dir_entry->d_name);
-
-      if ((strncasecmp(dir_entry->d_name,
- 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME,
-		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.')
-	   && (dir_entry->d_name[nLen-2]=='s')
-	   && (dir_entry->d_name[nLen-1]=='o'))) {
-
-#ifdef LOG
-	printf ("load_plugins: found a video output plugin: %s\n",
-		dir_entry->d_name); 
-#endif
-
-#if IGNORE_DXR3ENC
-	if (!strncasecmp(dir_entry->d_name, 
-			 XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
-			 XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7)) {
-		printf ("load_plugins: (ignoring obsolete dxr3enc driver)");
-		continue;
-	}
-#endif
-
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-	plugin_name = str;
-	
-	/*
-	 * now, see if we can open this plugin,
-	 * check if it has got the right visual type
-	 * and finally if all this went through get it's id
-	 */
-
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
-
-	  printf("load_plugins: cannot load plugin %s:\n%s\n",
-		 str, dlerror());
-
-	} else {
-
-	  vo_info_t* (*getinfo) ();
-	  vo_info_t   *vo_info;
-
-	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
-	    vo_info = getinfo();
-
-	    if ( (vo_info->visual_type == visual_type)
-		 && (vo_info->interface_version == VIDEO_OUT_DRIVER_IFACE_VERSION) ) {
-#ifdef LOG
-	       printf("video output plugin found : %s (%s)\n",
-		      vo_info->id, vo_info->description); 
-#endif
-
-	      /* sort the list by vo_info->priority */
-
-	      i = 0;
-	      while ( (i<num_plugins) && (vo_info->priority<plugin_prios[i]) )
-		i++;
-
-	      j = num_plugins;
-	      while (j>i) {
-		plugin_ids[j]   = plugin_ids[j-1];
-		plugin_prios[j] = plugin_prios[j-1];
-		j--;
-	      }
-
-	      plugin_ids[i] = (char *) malloc (strlen(vo_info->id)+1);
-	      strcpy (plugin_ids[i], vo_info->id);
-	      plugin_prios[i] = vo_info->priority;
-
-	      num_plugins++;
-	      plugin_ids[num_plugins] = NULL;
-	    } else {
-	      
-	      if(vo_info->interface_version != VIDEO_OUT_DRIVER_IFACE_VERSION)
-		printf ("load_plugins: %s has wrong interface version (%d)\n",
-			str, vo_info->interface_version);
-#ifdef LOG
-	      else if(vo_info->visual_type != visual_type)
-		printf ("load_plugins: %s has wrong visual type (%d)\n",
-			str, vo_info->visual_type);
-#endif
-	    }
-	  } else {
-
-	    printf("load_plugins: %s seems to be an invalid plugin "
-		   "(lacks get_video_out_plugin_info() function)\n",  str);
-
-	  }
-	  dlclose (plugin);
-	}
-      }
-    }
-    closedir(dir);
-  } else {
-    printf ("load_plugins: %s - cannot access plugin dir '%s': %s\n",
-	    __XINE_FUNCTION__, XINE_PLUGINDIR, strerror(errno));
-  }
-  
-  remove_segv_handler();
-
-  if (!num_plugins) {
-    fprintf(stderr, "load_plugins: no video plugins found, make sure you have them "
-            "installed at %s\n", XINE_PLUGINDIR );
-  }
-  return plugin_ids;
-}
-
-
-vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-				           char *id, 
-					   int visual_type, void *visual) {
-  DIR *dir;
-  vo_driver_t *vod;
-
-#ifdef ENABLE_NLS
-  bindtextdomain("xine-lib", XINE_LOCALEDIR);
-#endif 
-
-#if IGNORE_DXR3ENC
-  if (! strcasecmp(id, "dxr3enc")) {
-    printf( /* big poo poo */
-	   "load_plugins: *************************************************************\n"
-	   "load_plugins: WARNING: video out driver \"dxr3enc\" no longer exists.\n"
-	   "load_plugins: the mpeg encoding output is now integrated in the \"dxr3\"\n"
-	   "load_plugins: driver.\n"
-	   "load_plugins: *************************************************************\n"
-	   );
-    return 0; 
-  }
-#endif 
-
-  install_segv_handler();
-
-  dir = opendir (XINE_PLUGINDIR);
-  
-  if (dir) {
-    struct dirent *dir_entry;
     
-    while ((dir_entry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      
-      int nLen = strlen (dir_entry->d_name);
-      
-      if ((strncasecmp(dir_entry->d_name,
- 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
-		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.') 
-	   && (dir_entry->d_name[nLen-2]=='s')
-	   && (dir_entry->d_name[nLen-1]=='o'))) {
-
-#if IGNORE_DXR3ENC
-	if (! strncasecmp(dir_entry->d_name, 
-		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
-		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7))
-	{
-		printf("load_plugins: ignoring obsolete dxr3enc driver.\n");
-		continue;
-	}
-#endif
-
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-		
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
-	  printf("load_plugins: video output plugin %s failed to link:\n%s\n",
-		 str, dlerror());
-	} else {
-	  vo_info_t* (*getinfo) (void);
-	  vo_info_t   *vo_info;
-
-	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
-	    vo_info = getinfo();
-
-	    if (!strcasecmp(id, vo_info->id) ) {
-
-	      if (vo_info->interface_version == VIDEO_OUT_DRIVER_IFACE_VERSION) {
-		
-		if(vo_info->visual_type == visual_type) {
-		  void *(*initplug) (config_values_t *, void *);
-		  
-		  if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
-		    
-		    vod = (vo_driver_t *) initplug(config, visual);
-		    
-		    if (vod)
-		      printf("load_plugins: video output plugin %s successfully"
-			     " loaded.\n", id);
-		    else
-		      printf("load_plugins: video output plugin %s: "
-			     "init_video_out_plugin failed.\n", str);
-		    
-		    closedir(dir);
-		    remove_segv_handler();
-		    
-		    return vod;
-		  }
-		}
-		else {
-		  printf("load_plugins: video output plugin %s: "
-			 "wrong interface visual type %d.\n", str, vo_info->visual_type);
-		}
-	      } 
-	      else {
-		printf("load_plugins: video output plugin %s: "
-		       "wrong interface version %d.\n", str, vo_info->interface_version);
-	      }
-	    }
-	  }
-	}
-      }
-    }
-    closedir(dir);
+    node = xine_list_next_content (this->plugin_catalog->vout);
   }
 
-  remove_segv_handler();
+  if (!driver) 
+    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
 
-  printf ("load_plugins: failed to find video output plugin <%s>\n", id);
-  return NULL;
+  return driver;
 }
 
-/** ***************************************************************
- *  Audio output plugins section
+/*
+ *  audio output plugins section
  */
+
 char **xine_list_audio_output_plugins(void) {
 
-  char **plugin_ids;
-  int    num_plugins = 0;
-  DIR   *dir;
-  int    i,j;
-  int    plugin_prios[50];
-
-  plugin_ids = (char **) xine_xmalloc (50 * sizeof (char *));
-  plugin_ids[0] = NULL;
-
-  install_segv_handler();
-  
-#ifdef ENABLE_NLS
-  bindtextdomain("xine-lib", XINE_LOCALEDIR);
-#endif 
-
-  dir = opendir (XINE_PLUGINDIR);
-  
-  if (dir) {
-    struct dirent *dir_entry;
-    
-    while ((dir_entry = readdir (dir)) != NULL) {
-      char  str[1024];
-      void *plugin;
-      int nLen = strlen (dir_entry->d_name);
-      
-      if ((strncasecmp(dir_entry->d_name,
-		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 
-		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.') 
-	   && (dir_entry->d_name[nLen-2]=='s')
-	   && (dir_entry->d_name[nLen-1]=='o'))) {
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-	plugin_name = str;
-	
-	/* printf ("load_plugins: trying to load plugin %s\n", str); */
-
-	/*
-	 * now, see if we can open this plugin,
-	 * and get it's id
-	 */
-
-	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-
-	  printf("load_plugins: cannot load plugin %s (%s)\n",
-		 str, dlerror()); 
-
-	} else {
-
-	  ao_info_t* (*getinfo) ();
-	  ao_info_t   *ao_info;
-
-#ifdef LOG
-	  printf ("load_plugins: plugin %s successfully loaded.\n", str);  
-#endif
-
-	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
-	    ao_info = getinfo();
-
-#ifdef LOG
-	    printf("load_plugins: id=%s (%s), priority=%d, interface_version=%d\n", 
-		   ao_info->id, ao_info->description, 
-		   ao_info->priority, ao_info->interface_version); 
-#endif
-
-	    if ( ao_info->interface_version == AUDIO_OUT_IFACE_VERSION) {
-
-	      /* sort the list by ao_info->priority */
-
-	      i = 0;
-	      while ( (i<num_plugins) && (ao_info->priority<plugin_prios[i]) )
-		i++;
-	      
-	      j = num_plugins;
-	      while (j>i) {
-		plugin_ids[j]   = plugin_ids[j-1];
-		plugin_prios[j] = plugin_prios[j-1];
-		j--;
-	      }
-
-	      plugin_ids[i] = (char *) malloc (strlen(ao_info->id)+1);
-	      strcpy (plugin_ids[i], ao_info->id);
-	      plugin_prios[i] = ao_info->priority;
-
-	      num_plugins++;
-	      plugin_ids[num_plugins] = NULL;
-	    } else {
-
-	      printf ("load_plugins: audio output plugin >%s< doesn't support interface version %d\n",
-		      ao_info->id, AUDIO_OUT_IFACE_VERSION);    
-
-	    }
-	  } else {
-
-	    printf("load_plugins: %s seems to be an invalid plugin "
-		   "(lacks get_audio_out_plugin_info() function)\n",  str);
-
-	  }
-	  dlclose (plugin);
-	}
-      }
-    }
-    closedir(dir);
-  } else {
-    printf ("load_plugins: %s - cannot access plugin dir: %s",
-	    __XINE_FUNCTION__, strerror(errno));
-  }
-  
-  remove_segv_handler();
-  
-  return plugin_ids;
-}
-
-ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id) {
-
-  DIR *dir;
-  ao_driver_t *aod = NULL;
-
-  install_segv_handler();
-  
-#ifdef ENABLE_NLS
-  bindtextdomain("xine-lib", XINE_LOCALEDIR);
-#endif 
-
-  dir = opendir (XINE_PLUGINDIR);
-  
-  if (dir) {
-    struct dirent *pEntry;
-    
-    while ((pEntry = readdir (dir)) != NULL) {
-      char str[1024];
-      void *plugin;
-      int nLen = strlen (pEntry->d_name);
-
-      aod = NULL;
-      memset(&str, 0, 1024);
-      
-      if ((strncasecmp(pEntry->d_name,
- 		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 
-		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((pEntry->d_name[nLen-3]=='.') 
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
-	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-        /* RTLD_GLOBAL is needed when using ALSA09 */	
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
-	  printf("load_plugins: audio output plugin %s failed to link: %s\n",
-		 str, dlerror());
-	  /* return NULL; */
-	} else {
-	  void *(*initplug) (config_values_t *);
-	  ao_info_t* (*getinfo) ();
-	  ao_info_t   *ao_info;
-
-	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
-	    ao_info = getinfo();
-	  
-	    if (!strcasecmp(id, ao_info->id)) {
-	    
-	      if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
-		
-		aod = (ao_driver_t *) initplug(config);
-		
-		if (aod)
-		  printf("load_plugins: audio output plugin %s successfully"
-			 " loaded.\n", id);
-		else
-		  printf("load_plugins: audio output plugin %s: "
-			 "init_audio_out_plugin failed.\n", str);
-
-		closedir(dir);
-		remove_segv_handler();
-		return aod;
-	      }
-	    }
-	  }
-	}
-      }
-    }
-    closedir(dir);
-  }
-
-  remove_segv_handler();
   return NULL;
 }
+
+
+xine_ao_driver_t *xine_open_audio_driver (xine_t *this, char *id,
+					  void *data) {
+
+  plugin_node_t      *node;
+  xine_ao_driver_t   *driver;
+  ao_info_t          *ao_info;
+
+  driver = NULL;
+
+  node = xine_list_first_content (this->plugin_catalog->aout);
+  while (node) {
+
+    ao_info = node->info->special_info;
+
+    if (id) {
+      if (!strcasecmp(node->info->id, id)) {
+	driver = (xine_ao_driver_t*)_load_plugin(this, node->filename, node->info, data);
+	break;
+      }
+    } else {
+      driver = (xine_ao_driver_t*)_load_plugin (this, node->filename, node->info, data);
+      if (driver)
+	  break;
+    }
+
+    node = xine_list_next_content (this->plugin_catalog->aout);
+  }
+
+  if (!driver) {
+    if (id)
+      printf ("load_plugins: failed to load audio output plugin <%s>\n", id);
+    else
+      printf ("load_plugins: audio output auto-probing didn't find any usable audio driver.\n");
+  }
+  return driver; 
+} 
 
 /** ***************************************************************
  *  Autoplay featured plugins section
  */
 char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls) {
+
+  /* FIXME */
+
+#if 0
   input_plugin_t  *ip;
   char           **autoplay_mrls = NULL;
   int              i;
@@ -1113,12 +759,22 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls) {
 
  autoplay_mrls_done:
   return autoplay_mrls;
+
+
+#endif
+  return NULL;
 }
 
-/** ***************************************************************
- *  Browse featured plugins section
+/*
+ * browse featured plugins section
  */
-mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl, int *num_mrls) {
+xine_mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
+				   char *start_mrl, int *num_mrls) {
+
+  /* FIXME */
+
+#if 0
+
   input_plugin_t  *ip;
   mrl_t **browse_mrls = NULL;
   int              i;
@@ -1148,4 +804,79 @@ mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl, in
 
  browse_mrls_done:
   return browse_mrls;
+
+#endif
+  return NULL;
+}
+
+video_decoder_t *get_video_decoder (xine_t *this, uint8_t stream_type) {
+
+  plugin_node_t   *node;
+
+#ifdef LOG
+  printf ("load_plugins: looking for video decoder for streamtype %02x\n",
+	  stream_type);
+#endif
+
+  node = this->plugin_catalog->video_decoder_map[stream_type];
+
+  if (!node)
+    return NULL;
+
+  if (!node->plugin) 
+    node->plugin = _load_plugin(this, node->filename, node->info, NULL);
+
+  return node->plugin; 
+}
+
+audio_decoder_t *get_audio_decoder (xine_t *this, uint8_t stream_type) {
+
+  plugin_node_t   *node;
+
+#ifdef LOG
+  printf ("load_plugins: looking for audio decoder for streamtype %02x\n",
+	  stream_type);
+#endif
+
+  node = this->plugin_catalog->audio_decoder_map[stream_type];
+
+  if (!node)
+    return NULL;
+
+  if (!node->plugin) 
+    node->plugin = _load_plugin(this, node->filename, node->info, NULL);
+
+  return node->plugin; 
+}
+
+spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type) {
+  return NULL; /* FIXME */
+}
+
+
+/*
+ * dispose all currently loaded plugins (shutdown)
+ */
+
+void dispose_plugins (xine_t *this) {
+
+  /* FIXME: adapt old code */
+  
+#if 0
+  for (i = 0; i < this->num_demuxer_plugins; i++)
+    this->demuxer_plugins[i]->close (this->demuxer_plugins[i]);
+
+  for (i = 0; i < this->num_input_plugins; i++)
+    this->input_plugins[i]->dispose (this->input_plugins[i]);
+
+  for (i = 0; i < this->num_audio_decoders_loaded; i++) 
+    this->audio_decoders_loaded[i]->dispose (this->audio_decoders_loaded[i]);
+
+  for (i = 0; i < this->num_video_decoders_loaded; i++) 
+    this->video_decoders_loaded[i]->dispose (this->video_decoders_loaded[i]);
+
+  for (i = 0; i < this->num_spu_decoders_loaded; i++) 
+    this->spu_decoders_loaded[i]->dispose (this->spu_decoders_loaded[i]);
+
+#endif
 }

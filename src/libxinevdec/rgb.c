@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.4 2002/08/28 03:37:17 tmmm Exp $
+ * $Id: rgb.c,v 1.5 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -62,11 +62,6 @@ typedef struct rgb_decoder_s {
   yuv_planes_t      yuv_planes;
   
 } rgb_decoder_t;
-
-static int rgb_can_handle (video_decoder_t *this_gen, int buf_type) {
-
-  return (buf_type == BUF_VIDEO_RGB);
-}
 
 static void rgb_init (video_decoder_t *this_gen, 
   vo_instance_t *video_out) {
@@ -154,7 +149,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -280,23 +275,13 @@ static void rgb_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   rgb_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "rgb: plugin doesn't support plugin API version %d.\n"
-            "rgb: this means there's a version mismatch between xine and this "
-            "rgb: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
 
   this = (rgb_decoder_t *) malloc (sizeof (rgb_decoder_t));
   memset(this, 0, sizeof (rgb_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = rgb_can_handle;
   this->video_decoder.init                = rgb_init;
   this->video_decoder.decode_data         = rgb_decode_data;
   this->video_decoder.flush               = rgb_flush;
@@ -306,6 +291,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = rgb_dispose;
   this->video_decoder.priority            = 1;
 
-  return (video_decoder_t *) this;
+  return this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_RGB,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "rgb", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.28 2002/07/05 17:32:01 mroi Exp $
+ * $Id: input_cda.c,v 1.29 2002/09/04 23:31:08 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -196,22 +196,22 @@ static void _cda_stop_cd(cdainfo_t *);
 /*
  * Callbacks for configuratoin changes.
  */
-static void device_change_cb(void *data, cfg_entry_t *cfg) {
+static void device_change_cb(void *data, xine_cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
   
   this->cda->device_name = cfg->str_value;
 }
-static void server_change_cb(void *data, cfg_entry_t *cfg) {
+static void server_change_cb(void *data, xine_cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
   
   this->cddb.server = cfg->str_value;
 }
-static void port_change_cb(void *data, cfg_entry_t *cfg) {
+static void port_change_cb(void *data, xine_cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
   
   this->cddb.port = cfg->num_value;
 }
-static void cachedir_change_cb(void *data, cfg_entry_t *cfg) {
+static void cachedir_change_cb(void *data, xine_cfg_entry_t *cfg) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) data;
   
   this->cddb.cache_dir = cfg->str_value;
@@ -1429,7 +1429,7 @@ static buf_element_t *cda_plugin_read_block (input_plugin_t *this_gen,
   if(this->xine->speed != this->speed) {
     int old_status = this->cda->status;
     this->speed = this->xine->speed;
-    if((this->speed == SPEED_PAUSE) && this->cda->status == CDA_PLAY) {
+    if((this->speed == XINE_SPEED_PAUSE) && this->cda->status == CDA_PLAY) {
       _cda_pause_cd(this->cda);
     }
     else {
@@ -1782,23 +1782,13 @@ static void cda_plugin_dispose (input_plugin_t *this_gen ) {
 /*
  * Initialize plugin.
  */
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
   cda_input_plugin_t *this;
   config_values_t    *config;
   int                 i;
 
   _ENTER_FUNC();
 
-  if (iface != 8) {
-    LOG_MSG(xine,
-	    _("cda input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
-    
   this       = (cda_input_plugin_t *) xine_xmalloc(sizeof(cda_input_plugin_t));
   config     = xine->config;
 
@@ -1840,22 +1830,22 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->cda->device_name = config->register_string(config, "input.cda_device", CDROM,
 						   _("path to your local cd audio device file"),
-						   NULL, 
+						   NULL, 10, 
 						   device_change_cb, (void *) this);
   
   this->cddb.server = config->register_string(config, "input.cda_cddb_server", CDDB_SERVER,
-					      _("cddbp server name"), NULL,
+					      _("cddbp server name"), NULL, 10,
 					      server_change_cb, (void *) this);
   
   this->cddb.port = config->register_num(config, "input.cda_cddb_port", CDDB_PORT,
-					 _("cddbp server port"), NULL,
+					 _("cddbp server port"), NULL, 10,
 					 port_change_cb, (void *) this);
 
   this->cddb.fd = -1;
 
   this->cddb.cache_dir = config->register_string(config, "input.cda_cddb_cachedir", 
 						 (_cda_cddb_get_default_location()),
-						 _("cddbp cache directory"), NULL, 
+						 _("cddbp cache directory"), NULL, 20, 
 						 cachedir_change_cb, (void *) this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
@@ -1865,3 +1855,14 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   return (input_plugin_t *) this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "cda", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+

@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.1 2002/08/12 03:56:12 tmmm Exp $
+ * $Id: demux_aiff.c,v 1.2 2002/09/04 23:31:07 guenter Exp $
  *
  */
 
@@ -231,7 +231,7 @@ static int demux_aiff_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
                                                             "mrl.ends_aiff", VALID_ENDS,
                                                             _("valid mrls ending for aiff demuxer"),
-                                                            NULL, NULL, NULL)));
+                                                            NULL, 10, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
@@ -494,7 +494,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
                                         "mrl.ends_aiff", VALID_ENDS,
                                         _("valid mrls ending for aiff demuxer"),
-                                        NULL, NULL, NULL);
+                                        NULL, 10, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_aiff_open;

@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.44 2002/09/01 06:02:53 jcdutton Exp $
+ * $Id: spu.c,v 1.45 2002/09/04 23:31:10 guenter Exp $
  *
  */
 
@@ -50,12 +50,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xineutils.h"
-#include "xine_internal.h"
 #include "spu.h"
 #include "buffer.h"
-#include "events.h"
 #include "xine-engine/bswap.h"
 #include "nav_types.h"
 #include "nav_read.h"

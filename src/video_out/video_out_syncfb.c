@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.76 2002/08/16 22:51:39 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.77 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -53,8 +53,8 @@
 
 #include "video_out_syncfb.h"
 
+#include "xine.h"
 #include "video_out.h"
-#include "video_out_x11.h"
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "xineutils.h"
@@ -78,7 +78,7 @@ typedef struct {
 
 struct syncfb_driver_s {
 
-  vo_driver_t        vo_driver;
+  xine_vo_driver_t        vo_driver;
 
   config_values_t   *config;
 
@@ -263,14 +263,14 @@ static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
 static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
    switch(frame->format) {   
-    case IMGFMT_YUY2:
+   case XINE_IMGFMT_YUY2:
       if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422))
 	write_frame_YUY2(this, frame);
       else
 	printf("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n");	
       break;
       
-    case IMGFMT_YV12:
+   case XINE_IMGFMT_YV12:
       switch(this->yuv_format) {
        case VIDEO_PALETTE_YUV422:
 	 write_frame_YUV422(this, frame);
@@ -378,13 +378,13 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
 	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
 	
       switch(this->cur_frame->format) {
-       case IMGFMT_YV12:
+      case XINE_IMGFMT_YV12:
 	 this->syncfb_config.src_palette = this->yuv_format;
 	 break;
-       case IMGFMT_YUY2:
+      case XINE_IMGFMT_YUY2:
 	 this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
 	 break;
-       default:
+      default:
 	 printf("video_out_syncfb: error. (unknown frame format)\n");
 	 this->syncfb_config.src_palette = 0;
 	 break;
@@ -420,7 +420,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
  * public functions defined and used by the xine interface
  */
 
-static int syncfb_redraw_needed(vo_driver_t* this_gen)
+static int syncfb_redraw_needed(xine_vo_driver_t* this_gen)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
 
@@ -438,7 +438,7 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
   return ret;
 }
 
-static uint32_t syncfb_get_capabilities (vo_driver_t *this_gen)
+static uint32_t syncfb_get_capabilities (xine_vo_driver_t *this_gen)
 {
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
@@ -460,7 +460,7 @@ static void syncfb_frame_dispose(vo_frame_t* vo_img)
   }
 }
 
-static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
+static vo_frame_t* syncfb_alloc_frame(xine_vo_driver_t* this_gen)
 {
   syncfb_frame_t* frame;
   
@@ -488,7 +488,7 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
   return (vo_frame_t *) frame;
 }
 
-static void syncfb_update_frame_format(vo_driver_t* this_gen,
+static void syncfb_update_frame_format(xine_vo_driver_t* this_gen,
 				       vo_frame_t* frame_gen,
 				       uint32_t width, uint32_t height,
 				       int ratio_code, int format, int flags)
@@ -510,7 +510,7 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
       frame->format = format;
 
       switch(format) {
-       case IMGFMT_YV12:
+      case XINE_IMGFMT_YV12:
 /*	 frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame_size, (void **)&frame->data_mem[0]);
          frame->vo_frame.base[1] = xine_xmalloc_aligned(16, frame_size/4, (void **)&frame->data_mem[1]);
 	 frame->vo_frame.base[2] = xine_xmalloc_aligned(16, frame_size/4, (void **)&frame->data_mem[2]);*/
@@ -521,21 +521,21 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
          frame->vo_frame.base[1] = malloc(frame->vo_frame.pitches[1] * ((height+1)/2));
 	 frame->vo_frame.base[2] = malloc(frame->vo_frame.pitches[2] * ((height+1)/2));
 	 break;
-       case IMGFMT_YUY2:
+      case XINE_IMGFMT_YUY2:
 /*	 frame->vo_frame.base[0] = xine_xmalloc_aligned(16, (frame_size*2), (void **)&frame->data_mem[0]);*/
 	 frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
 	 frame->vo_frame.base[0] = malloc(frame->vo_frame.pitches[0] * height);
 	 frame->vo_frame.base[1] = NULL;
 	 frame->vo_frame.base[2] = NULL;
 	 break;
-       default:
+      default:
 	 printf("video_out_syncfb: error. (unable to allocate framedata because of unknown frame format: %04x)\n", format);
       }
       
 /*      if((format == IMGFMT_YV12 && (frame->data_mem[0] == NULL || frame->data_mem[1] == NULL || frame->data_mem[2] == NULL))
 	 || (format == IMGFMT_YUY2 && frame->data_mem[0] == NULL)) {*/
-      if((format == IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
-	 || (format == IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
+      if((format == XINE_IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
+	 || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
 	 printf("video_out_syncfb: error. (framedata allocation failed: out of memory)\n");
 	 
 	 free_framedata(frame);
@@ -545,20 +545,20 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
   frame->ratio_code = ratio_code;
 }
 
-static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
+static void syncfb_overlay_blend(xine_vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
 {
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
    
    /* alpha blend here */
    if(overlay->rle) {
-      if(frame->format == IMGFMT_YV12)
+     if(frame->format == XINE_IMGFMT_YV12)
 	blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
       else
 	blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height);
    }
 }
 
-static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
+static void syncfb_display_frame(xine_vo_driver_t* this_gen, vo_frame_t* frame_gen)
 {
   syncfb_driver_t* this  = (syncfb_driver_t *) this_gen;
   syncfb_frame_t*  frame = (syncfb_frame_t *) frame_gen;
@@ -631,14 +631,14 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    this->bufinfo.id = -1;   
 }
 
-static int syncfb_get_property(vo_driver_t* this_gen, int property)
+static int syncfb_get_property(xine_vo_driver_t* this_gen, int property)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   return this->props[property].value;
 }
 
-static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
+static int syncfb_set_property(xine_vo_driver_t* this_gen, int property, int value)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
@@ -745,7 +745,7 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
   return value;
 }
 
-static void syncfb_get_property_min_max(vo_driver_t *this_gen, 
+static void syncfb_get_property_min_max(xine_vo_driver_t *this_gen, 
 					int property, int *min, int *max)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
@@ -760,7 +760,7 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
    
   switch (data_type) {
-   case GUI_DATA_EX_DRAWABLE_CHANGED:
+   case XINE_GUI_SEND_DRAWABLE_CHANGED:
      this->drawable = (Drawable) data;
      this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
      break;
@@ -790,7 +790,7 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
   return 0;
 }
 
-static void syncfb_exit(vo_driver_t *this_gen)
+static void syncfb_exit(xine_vo_driver_t *this_gen)
 {
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
@@ -803,7 +803,7 @@ static void syncfb_exit(vo_driver_t *this_gen)
   close(this->fd);
 }
 
-vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
+xine_vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 {
    syncfb_driver_t*  this;
    Display*          display = NULL; 
@@ -815,7 +815,8 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 
    display     = visual->display;
    device_name = config->register_string(config, "video.syncfb_device", "/dev/syncfb",
-					 _("syncfb (teletux) device node"), NULL, NULL, NULL);
+					 _("syncfb (teletux) device node"), 
+					 NULL, 10, NULL, NULL);
    
    if(!(this = xine_xmalloc(sizeof (syncfb_driver_t)))) {
       printf("video_out_syncfb: aborting. (allocation of syncfb_driver_t failed: out of memory)\n");
@@ -938,7 +939,10 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   /* FIXME: setting the default_repeat to anything higher than 1 will result
             in a distorted video, so for now, set this manually to 0 until
             the kernel driver is fixed... */
-  this->default_repeat       = config->register_range(config, "video.syncfb_default_repeat", 3, 1, 4, "default frame repeat for SyncFB", NULL, NULL, NULL);
+  this->default_repeat       = config->register_range(config, 
+						      "video.syncfb_default_repeat", 3, 1, 4, 
+						      "default frame repeat for SyncFB", NULL, 
+						      0, NULL, NULL);
   this->default_repeat       = 0;
  
   this->display              = visual->display;
@@ -978,7 +982,7 @@ static vo_info_t vo_info_syncfb = {
   6,
   "SyncFB",
   NULL,
-  VISUAL_TYPE_X11,
+  XINE_VISUAL_TYPE_X11,
   10
 };
 
@@ -986,3 +990,5 @@ vo_info_t *get_video_out_plugin_info() {
   vo_info_syncfb.description = _("xine video output plugin using the SyncFB module for Matrox G200/G400 cards");
   return &vo_info_syncfb;
 }
+
+

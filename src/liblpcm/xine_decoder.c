@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.31 2002/09/01 04:32:08 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.32 2002/09/04 23:31:09 guenter Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -34,9 +34,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h> /* ntohs */
+
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 
 
 typedef struct lpcm_decoder_s {
@@ -51,14 +52,6 @@ typedef struct lpcm_decoder_s {
   int              output_open;
   int		   cpu_be;	/* TRUE, if we're a Big endian CPU */
 } lpcm_decoder_t;
-
-int lpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_AUDIO_LPCM_BE ||
-	   buf_type == BUF_AUDIO_LPCM_LE );
-}
-
 
 void lpcm_reset (audio_decoder_t *this_gen) {
 
@@ -204,22 +197,12 @@ static void lpcm_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   lpcm_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf(_("liblpcm: plugin doesn't support plugin API version %d.\n"
-	     "liblpcm: this means there's a version mismatch between xine and this "
-	     "liblpcm: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    return NULL;
-  }
-
   this = (lpcm_decoder_t *) malloc (sizeof (lpcm_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = lpcm_can_handle;
   this->audio_decoder.init                = lpcm_init;
   this->audio_decoder.decode_data         = lpcm_decode_data;
   this->audio_decoder.reset               = lpcm_reset;
@@ -228,6 +211,20 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.dispose             = lpcm_dispose;
   this->audio_decoder.priority            = 1;
     
-  return (audio_decoder_t *) this;
+  return this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_LPCM_BE, BUF_AUDIO_LPCM_LE, 0
+};
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "pcm", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include "events.h"
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
@@ -828,7 +827,7 @@ static void osd_renderer_close (osd_renderer_t *this) {
 }
 
 
-static void update_text_palette(void *this_gen, cfg_entry_t *entry)
+static void update_text_palette(void *this_gen, xine_cfg_entry_t *entry)
 {
   osd_renderer_t *this = (osd_renderer_t *)this_gen;
 
@@ -870,7 +869,7 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, conf
   this->textpalette = config->register_enum (config, "misc.osd_text_palette", 0,
                                              textpalettes_str, 
                                              _("Palette (foreground-border-background) to use on subtitles"),
-                                             NULL, update_text_palette, this);
+                                             NULL, 10, update_text_palette, this);
   
   /*
    * set up function pointer

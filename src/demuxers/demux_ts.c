@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.52 2002/07/05 17:32:01 mroi Exp $
+ * $Id: demux_ts.c,v 1.53 2002/09/04 23:31:08 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1463,7 +1463,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 		 (this->config->register_string(this->config,
 						"mrl.mrls_ts", VALID_MRLS,
 						_("valid mrls for ts demuxer"),
-						NULL, NULL, NULL)));
+						NULL, 20, NULL, NULL)));
     
     mrl = input->get_mrl(input);
     media = strstr(mrl, "://");
@@ -1498,7 +1498,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 		   (this->config->register_string(this->config,
 						  "mrl.ends_ts", VALID_ENDS,
 						  _("valid mrls ending for ts demuxer"),
-						  NULL, NULL, NULL)));
+						  NULL, 20, NULL, NULL)));
       while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
         while(*m == ' ' || *m == '\t') m++;
@@ -1677,11 +1677,11 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config, "mrl.mrls_ts", 
 					VALID_MRLS,
                                         _("valid mrls for ts demuxer"),
-                                        NULL, NULL, NULL);
+                                        NULL, 20, NULL, NULL);
   (void*) this->config->register_string(this->config,
                                         "mrl.ends_ts", VALID_ENDS,
                                         _("valid mrls ending for ts demuxer"),
-                                        NULL, NULL, NULL);
+                                        NULL, 20, NULL, NULL);
 
   this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->plugin.open              = demux_ts_open;

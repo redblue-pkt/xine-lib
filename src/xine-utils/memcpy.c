@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -397,17 +397,20 @@ static unsigned long long int rdtsc()
 }
 #endif
 
-static void update_fast_memcpy(void *this_gen, cfg_entry_t *entry)
-{
+static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
   static int config_flags = -1;
     
+  int method;
+
   config_flags = xine_mm_accel();
 
-  if( entry->num_value != 0 && 
-     (config_flags & memcpy_method[entry->num_value].cpu_require) == 
-      memcpy_method[entry->num_value].cpu_require ) {
-    printf("xine: using %s\n", memcpy_method[entry->num_value].name );
-    xine_fast_memcpy = memcpy_method[entry->num_value].function;
+  method = entry->num_value;
+
+  if (method != 0 
+      && (config_flags & memcpy_method[method].cpu_require) == 
+      memcpy_method[method].cpu_require ) {
+    printf("xine: using %s\n", memcpy_method[method].name );
+    xine_fast_memcpy = memcpy_method[method].function;
     return;
   } else {
     printf("xine: will probe memcpy on startup\n" );
@@ -437,7 +440,7 @@ void xine_probe_fast_memcpy(config_values_t *config)
   best = config->register_enum (config, "misc.memcpy_method", 0,
 				memcpy_methods, 
 				_("Memcopy method to use in xine for large data chunks."),
-				NULL, update_fast_memcpy, NULL);
+				NULL, 20, update_fast_memcpy, NULL);
   
   /* check if function is configured and valid for this machine */
   if( best != 0 && 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2002/07/17 20:29:04 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.6 2002/09/04 23:31:09 guenter Exp $
  *
  */
 
@@ -27,9 +27,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "faad.h"
 
@@ -63,12 +64,6 @@ typedef struct faad_decoder_s {
   ao_instance_t   *audio_out;
   int              output_open;
 } faad_decoder_t;
-
-static int faad_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_AUDIO_AAC );
-}
 
 
 static void faad_reset (audio_decoder_t *this_gen) {
@@ -354,23 +349,13 @@ static void faad_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   faad_decoder_t *this ;
-
-  if (iface_version != 9) {
-    printf(_("libfaad: plugin doesn't support plugin API version %d.\n"
-	     "libfaad: this means there's a version mismatch between xine and this "
-	     "libfaad: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    return NULL;
-  }
 
   this = (faad_decoder_t *) malloc (sizeof (faad_decoder_t));
   this->xine = xine;
   
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = faad_can_handle;
   this->audio_decoder.init                = faad_init;
   this->audio_decoder.decode_data         = faad_decode_data;
   this->audio_decoder.reset               = faad_reset;
@@ -379,6 +364,20 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.dispose             = faad_dispose;
   this->audio_decoder.priority            = 1;
     
-  return (audio_decoder_t *) this;
+  return this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_AAC, 0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "faad", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

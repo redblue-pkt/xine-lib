@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.10 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_roq.c,v 1.11 2002/09/04 23:31:08 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -291,7 +291,7 @@ static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_roq", VALID_ENDS,
 							    _("valid mrls ending for roq demuxer"),
-							    NULL, NULL, NULL)));
+							    NULL, 20, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
@@ -542,7 +542,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void *) this->config->register_string(this->config,
 					 "mrl.ends_roq", VALID_ENDS,
 					 _("valid mrls ending for roq demuxer"),
-					 NULL, NULL, NULL);
+					 NULL, 20, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_roq_open;

@@ -67,14 +67,6 @@ typedef struct xvid_decoder_s {
     void		*xvid_handle;
 } xvid_decoder_t;
 
-static int xvid_can_handle (video_decoder_t *this_gen, int buf_type) {
-    buf_type &= (BUF_MAJOR_MASK|BUF_DECODER_MASK);
-
-    /* FIXME: what is it exactly that xvid can handle? :> */
-
-    return ((buf_type == BUF_VIDEO_XVID) || (buf_type == BUF_VIDEO_DIVX5));
-}
-
 static void xvid_init_plugin (video_decoder_t *this_gen, vo_instance_t *video_out) {
     xvid_decoder_t *this = (xvid_decoder_t *) this_gen;
     
@@ -155,8 +147,8 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 		
 		image = this->video_out->get_frame (this->video_out,
 						    this->frame_width, this->frame_height,
-						    XINE_ASPECT_RATIO_DONT_TOUCH,
-						    IMGFMT_YV12, VO_BOTH_FIELDS);
+						    XINE_VO_ASPECT_DONT_TOUCH,
+						    XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 		image->pts = buf->pts;
 		image->duration = this->frame_duration;
 		image->bad_frame = 0;
@@ -243,8 +235,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
     this = (xvid_decoder_t *) malloc (sizeof (xvid_decoder_t));
     
-    this->video_decoder.interface_version = iface_version;
-    this->video_decoder.can_handle	  = xvid_can_handle;
     this->video_decoder.init		  = xvid_init_plugin;
     this->video_decoder.decode_data	  = xvid_decode_data;
     this->video_decoder.flush		  = xvid_flush;
@@ -253,8 +243,35 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
     this->video_decoder.dispose		  = xvid_dispose;
     this->video_decoder.priority          = xine->config->register_num (xine->config, "codec.xvid_priority", 3,
                                                          _("priority of the xvid plugin (>5 => enable)"),
-                                                          NULL, NULL, NULL); 
+									NULL, 0, NULL, NULL); 
     this->frame_size			  = 0;
     
     return (video_decoder_t *) this;
 }
+
+static int xvid_can_handle (video_decoder_t *this_gen, int buf_type) {
+    buf_type &= (BUF_MAJOR_MASK|BUF_DECODER_MASK);
+
+    /* FIXME: what is it exactly that xvid can handle? :> */
+    return 0;
+}
+
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_XVID, BUF_VIDEO_DIVX5,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  3                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "xvid", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

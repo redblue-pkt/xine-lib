@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.15 2002/08/23 00:24:30 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.16 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -44,6 +44,7 @@
 #include <sys/stat.h>
 #include <fcntl.h> 
              
+#include "xine.h"
 #include "video_out.h"
 
 #include <errno.h>
@@ -90,7 +91,7 @@ typedef struct fb_frame_s {
 
 typedef struct fb_driver_s {
 
-  vo_driver_t        vo_driver;
+  xine_vo_driver_t      vo_driver;
 
   config_values_t   *config;
 
@@ -120,14 +121,14 @@ typedef struct fb_driver_s {
  * and now, the driver functions
  */
 
-static uint32_t fb_get_capabilities (vo_driver_t *this_gen) {
+static uint32_t fb_get_capabilities (xine_vo_driver_t *this_gen) {
   return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
 }
 
 static void fb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
 
-  if (frame->format == IMGFMT_YV12) {
+  if (frame->format == XINE_IMGFMT_YV12) {
     frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,
 				 src[0], src[1], src[2]);
   } else {
@@ -171,7 +172,7 @@ static void fb_frame_dispose (vo_frame_t *vo_img) {
 }
 
 
-static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
+static vo_frame_t *fb_alloc_frame (xine_vo_driver_t *this_gen) {
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame ;
 
@@ -226,7 +227,7 @@ static void fb_compute_rgb_size (fb_driver_t *this, fb_frame_t *frame) {
 #endif
 }
 
-static void fb_update_frame_format (vo_driver_t *this_gen,
+static void fb_update_frame_format (xine_vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
 				      int ratio_code, int format, int flags) {
@@ -290,7 +291,7 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
     frame->data = xine_xmalloc (frame->sc.output_width * frame->sc.output_height *
                                 this->bytes_per_pixel );
     
-    if (format == IMGFMT_YV12) {
+    if (format == XINE_IMGFMT_YV12) {
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
@@ -387,7 +388,7 @@ static void fb_overlay_clut_yuv2rgb(fb_driver_t  *this, vo_overlay_t *overlay,
   }
 }
 
-static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void fb_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
 
@@ -419,11 +420,11 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_o
    }
 }
 
-static int fb_redraw_needed (vo_driver_t *this_gen) {
+static int fb_redraw_needed (xine_vo_driver_t *this_gen) {
   return 0;
 }
 
-static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void fb_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
@@ -457,7 +458,7 @@ static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   frame->vo_frame.displayed (&frame->vo_frame);
 }
 
-static int fb_get_property (vo_driver_t *this_gen, int property) {
+static int fb_get_property (xine_vo_driver_t *this_gen, int property) {
 
   fb_driver_t *this = (fb_driver_t *) this_gen;
 
@@ -496,7 +497,7 @@ static int fb_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void fb_get_property_min_max (vo_driver_t *this_gen,
+static void fb_get_property_min_max (xine_vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* fb_driver_t *this = (fb_driver_t *) this_gen;  */
@@ -517,14 +518,14 @@ static int is_fullscreen_size (fb_driver_t *this, int w, int h)
     return 0;
 }
 
-static int fb_gui_data_exchange (vo_driver_t *this_gen, 
+static int fb_gui_data_exchange (xine_vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
   return 0;
 }
 
 
-static void fb_exit (vo_driver_t *this_gen) {
+static void fb_exit (xine_vo_driver_t *this_gen) {
 
   fb_driver_t *this = (fb_driver_t *) this_gen;
   
@@ -533,7 +534,7 @@ static void fb_exit (vo_driver_t *this_gen) {
   close(this->fd);
 }
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+xine_vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   fb_driver_t        *this;
   int                mode;
@@ -735,7 +736,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->yuv2rgb_gamma = config->register_range (config, "video.fb_gamma", 0,
 						-100, 100, 
 						"gamma correction for fb driver",
-						NULL, NULL, NULL);
+						NULL, 0, NULL, NULL);
 
   this->yuv2rgb_factory = yuv2rgb_factory_init (mode, this->yuv2rgb_swap, 
 						this->yuv2rgb_cmap);
@@ -749,7 +750,7 @@ static vo_info_t vo_info_fb = {
   6,
   "fb",
   NULL,
-  VISUAL_TYPE_FB,
+  XINE_VISUAL_TYPE_FB,
   5
 };
 
@@ -757,3 +758,5 @@ vo_info_t *get_video_out_plugin_info() {
   vo_info_fb.description = _("xine video output plugin using linux framebuffer device");
   return &vo_info_fb;
 }
+
+

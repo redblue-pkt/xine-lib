@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.63 2002/08/09 22:07:29 mroi Exp $
+ * $Id: audio_out.c,v 1.64 2002/09/04 23:31:13 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -704,10 +704,6 @@ static void ao_exit(ao_instance_t *this) {
   
   vol = this->driver->get_property(this->driver, prop);
   this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
-
-  /* Save config is needed, otherwise value change will be lost */
-  this->xine->config->save(this->xine->config);
-
   this->driver->exit(this->driver);
   pthread_mutex_unlock( &this->driver_lock );
 
@@ -792,7 +788,7 @@ static int ao_control (ao_instance_t *this, int cmd, ...) {
   return rval;
 }
 
-ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
+ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, xine_t *xine) {
  
   config_values_t *config = xine->config;
   ao_instance_t   *this;
@@ -823,16 +819,16 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes,
 					       _("adjust whether resampling is done or not"),
-					       NULL, NULL, NULL);
+					       NULL, 20, NULL, NULL);
   this->force_rate    = config->register_num (config, "audio.force_rate", 0,
 					      _("if !=0 always resample to given rate"),
-					      NULL, NULL, NULL);
+					      NULL, 20, NULL, NULL);
 
   this->passthrough_offset = config->register_num (config,
 						   "audio.passthrough_offset",
 						   10000,
 						   _("adjust if audio is offsync"),
-						   NULL, NULL, NULL);
+						   NULL, 10, NULL, NULL);
 
   /*
    * pre-allocate memory for samples
@@ -872,12 +868,12 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
     
     vol = config->register_range (config, "audio.mixer_volume", 
 				  50, 0, 100, _("Audio volume"), 
-				  NULL, NULL, NULL);
+				  NULL, 0, NULL, NULL);
     
     if(config->register_bool (config, "audio.remember_volume", 0,
 			      _("restore volume level at startup"), 
 			      _("if this not set, xine will not touch any mixer settings at startup"),
-			      NULL, NULL)) {
+			      0, NULL, NULL)) {
       int prop = 0;
 
       if((ao_get_capabilities(this)) & AO_CAP_MIXER_VOL)

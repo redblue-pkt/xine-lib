@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2002/07/05 17:32:03 mroi Exp $
+ * $Id: xine_decoder.c,v 1.16 2002/09/04 23:31:10 guenter Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -28,7 +28,6 @@
 #include <string.h>
 
 #include "buffer.h"
-#include "events.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "cc_decoder.h"
@@ -125,7 +124,7 @@ static void spucc_do_init (spucc_decoder_t *this, vo_instance_t *vo_out)
 
 /*----------------- configuration listeners --------------------------------*/
 
-static void spucc_cfg_enable_change(void *this_gen, cfg_entry_t *value)
+static void spucc_cfg_enable_change(void *this_gen, xine_cfg_entry_t *value)
 {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
   cc_config_t *cc_cfg = &this->cc_cfg;
@@ -148,7 +147,7 @@ static void spucc_cfg_enable_change(void *this_gen, cfg_entry_t *value)
 }
 
 
-static void spucc_cfg_scheme_change(void *this_gen, cfg_entry_t *value)
+static void spucc_cfg_scheme_change(void *this_gen, xine_cfg_entry_t *value)
 {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
   cc_config_t *cc_cfg = &this->cc_cfg;
@@ -165,7 +164,7 @@ static void spucc_cfg_scheme_change(void *this_gen, cfg_entry_t *value)
 }
 
 
-static void spucc_font_change(void *this_gen, cfg_entry_t *value)
+static void spucc_font_change(void *this_gen, xine_cfg_entry_t *value)
 {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
   cc_config_t *cc_cfg = &this->cc_cfg;
@@ -188,7 +187,7 @@ static void spucc_font_change(void *this_gen, cfg_entry_t *value)
 }
 
 
-static void spucc_num_change(void *this_gen, cfg_entry_t *value)
+static void spucc_num_change(void *this_gen, xine_cfg_entry_t *value)
 {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
   cc_config_t *cc_cfg = &this->cc_cfg;
@@ -218,37 +217,37 @@ static void spucc_register_cfg_vars(spucc_decoder_t *this,
   cc_vars->cc_enabled = xine_cfg->register_bool(xine_cfg, 
 						"misc.cc_enabled", 0,
 						_("Enable closed captions in MPEG-2 streams"),
-						NULL, spucc_cfg_enable_change,
+						NULL, 0, spucc_cfg_enable_change,
 						this);
   
   cc_vars->cc_scheme = xine_cfg->register_enum(xine_cfg,
 					       "misc.cc_scheme", 0,
 					       cc_schemes,
 					       _("Closed-captioning foreground/background scheme"),
-					       NULL, spucc_cfg_scheme_change,
+					       NULL, 10, spucc_cfg_scheme_change,
 					       this);
   
   copy_str(cc_vars->font, 
 	   xine_cfg->register_string(xine_cfg, "misc.cc_font", "cc",
 				     _("Standard closed captioning font"),
-				     NULL, spucc_font_change, this),
+				     NULL, 10, spucc_font_change, this),
 	   CC_FONT_MAX);
   
   copy_str(cc_vars->italic_font,
 	   xine_cfg->register_string(xine_cfg, "misc.cc_italic_font", "cci",
 				     _("Italic closed captioning font"),
-				     NULL, spucc_font_change, this),
+				     NULL, 10, spucc_font_change, this),
 	   CC_FONT_MAX);
   
   cc_vars->font_size = xine_cfg->register_num(xine_cfg, "misc.cc_font_size",
 					      24,
 					      _("Closed captioning font size"),
-					      NULL, spucc_num_change,
+					      NULL, 10, spucc_num_change,
 					      this);
   
   cc_vars->center = xine_cfg->register_bool(xine_cfg, "misc.cc_center", 1,
 					    _("Center-adjust closed captions"),
-					    NULL, spucc_num_change,
+					    NULL, 10, spucc_num_change,
 					    this);
 }
 

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.20 2002/06/12 12:22:28 f1rmb Exp $
+ * $Id: audio_sun_out.c,v 1.21 2002/09/04 23:31:07 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#warning DISABLED: FIXME
+#if 0
 
 #include <stdio.h>
 #include <errno.h>
@@ -734,13 +737,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.get_gap_tolerance     = ao_sun_get_gap_tolerance;
   this->ao_driver.control		= ao_sun_ctrl;
 
-  return &this->ao_driver;
+  return this;
 }
 
 static ao_info_t ao_info_sun = {
-  AO_SUN_IFACE_VERSION,
-  "sun",
-  NULL,
+  "xine audio output plugin using sun-compliant audio devices/drivers",
   10
 };
 
@@ -748,4 +749,17 @@ ao_info_t *get_audio_out_plugin_info() {
   ao_info_sun.description = _("xine audio output plugin using sun-compliant audio devices/drivers"); 
   return &ao_info_sun;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_OUT, AO_OUT_SUN_IFACE_VERSION, "sun", XINE_VERSION_CODE, &ao_info_sun, init_audio_out_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+
+
+#endif
 

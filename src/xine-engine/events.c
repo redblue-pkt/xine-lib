@@ -29,8 +29,9 @@
 
 #include "xine_internal.h"
 
-int xine_register_event_listener(xine_t *this, xine_event_listener_t listener,
-				 void *user_data) {
+int xine_register_event_listener (xine_t *this, 
+				  xine_event_listener_cb_t listener,
+				  void *user_data) {
   /* Ensure the listener is non-NULL */
   if(listener == NULL) {
     return 0;
@@ -59,7 +60,8 @@ void xine_send_event(xine_t *this, xine_event_t *event) {
   }
 }
 
-int xine_remove_event_listener(xine_t *this, xine_event_listener_t listener) {
+int xine_remove_event_listener(xine_t *this, 
+			       xine_event_listener_cb_t listener) {
   uint16_t i, found;
 
   found = 1; i = 0;

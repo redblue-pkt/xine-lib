@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.8 2002/08/02 13:11:25 tmmm Exp $
+ * $Id: demux_wav.c,v 1.9 2002/09/04 23:31:08 guenter Exp $
  *
  */
 
@@ -224,7 +224,7 @@ static int demux_wav_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
                                                             "mrl.ends_wav", VALID_ENDS,
                                                             _("valid mrls ending for wav demuxer"),
-                                                            NULL, NULL, NULL)));    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
+                                                            NULL, 20, NULL, NULL)));    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
       while(*m == ' ' || *m == '\t') m++;
 
@@ -480,7 +480,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
                                         "mrl.ends_wav", VALID_ENDS,
                                         _("valid mrls ending for wav demuxer"),
-                                        NULL, NULL, NULL);
+                                        NULL, 20, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_wav_open;

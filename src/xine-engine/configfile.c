@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.23 2002/06/17 07:47:50 f1rmb Exp $
+ * $Id: configfile.c,v 1.24 2002/09/04 23:31:13 guenter Exp $
  *
- * config file management - implementation
+ * config object (was: file) management - implementation
  *
  */
  
@@ -35,9 +35,10 @@
 #include <assert.h>
 #include "configfile.h"
 #include "xineutils.h"
+#include "xine_internal.h"
 
 /* 
-#define CONFIG_LOG
+#define LOG
 */
 
 
@@ -59,7 +60,7 @@ static char *copy_string (char *str) {
   return cpy;
 }
 
-static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
+static cfg_entry_t *xine_config_add (config_values_t *this, char *key) {
 
   cfg_entry_t *entry;
 
@@ -78,7 +79,7 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
   
   this->last = entry;
 
-#ifdef CONFIG_LOG
+#ifdef LOG
   printf ("configfile: add entry key=%s\n", key);
 #endif
 
@@ -89,7 +90,7 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
  * external interface
  */
 
-static cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
+static cfg_entry_t *_xine_config_lookup_entry (config_values_t *this, char *key) {
   cfg_entry_t *entry;
 
   entry = this->first;
@@ -101,28 +102,29 @@ static cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) 
 }
 
 
-static char *config_file_register_string (config_values_t *this,
-					  char *key, char *def_value,
-					  char *description, 
-					  char *help,
-					  config_cb_t changed_cb,
-					  void *cb_data) {
+static char *_xine_config_register_string (config_values_t *this,
+					   char *key, char *def_value,
+					   char *description, 
+					   char *help,
+					   int exp_level,
+					   xine_config_cb_t changed_cb,
+					   void *cb_data) {
   
   cfg_entry_t *entry;
 
   assert (key);
   assert (def_value);
 
-#ifdef CONFIG_LOG
+#ifdef LOG
   printf ("configfile: registering %s\n", key);
 #endif
 
   /* make sure this entry exists, create it if not */
 
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
 
   if (!entry) {
-    entry = config_file_add (this, key);
+    entry = xine_config_add (this, key);
     entry->unknown_value = copy_string(def_value);
   }
     
@@ -156,33 +158,35 @@ static char *config_file_register_string (config_values_t *this,
   entry->str_default    = copy_string(def_value);
   entry->description    = description;
   entry->help           = help;       
+  entry->exp_level      = exp_level;
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
   
   return entry->str_value;
 }
 
-static int config_file_register_num (config_values_t *this,
-				     char *key, int def_value,
-				     char *description, 
-				     char *help,
-				     config_cb_t changed_cb,
-				     void *cb_data) {
+static int _xine_config_register_num (config_values_t *this,
+				      char *key, int def_value,
+				      char *description, 
+				      char *help,
+				      int exp_level,
+				      xine_config_cb_t changed_cb,
+				      void *cb_data) {
   
   cfg_entry_t *entry;
 
   assert (key);
 
-#ifdef CONFIG_LOG
+#ifdef LOG
   printf ("configfile: registering %s\n", key);
 #endif
 
   /* make sure this entry exists, create it if not */
 
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
 
   if (!entry) {
-    entry = config_file_add (this, key);
+    entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
   }
     
@@ -209,33 +213,35 @@ static int config_file_register_num (config_values_t *this,
   entry->num_default    = def_value;
   entry->description    = description;
   entry->help           = help;       
+  entry->exp_level      = exp_level;
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
 
   return entry->num_value;
 }
 
-static int config_file_register_bool (config_values_t *this,
-				      char *key, int def_value,
-				      char *description, 
-				      char *help,
-				      config_cb_t changed_cb,
-				      void *cb_data) {
+static int _xine_config_register_bool (config_values_t *this,
+				       char *key, int def_value,
+				       char *description, 
+				       char *help,
+				       int exp_level,
+				       xine_config_cb_t changed_cb,
+				       void *cb_data) {
 
   cfg_entry_t *entry;
 
   assert (key);
 
-#ifdef CONFIG_LOG
+#ifdef LOG
   printf ("configfile: registering %s\n", key);
 #endif
 
   /* make sure this entry exists, create it if not */
 
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
 
   if (!entry) {
-    entry = config_file_add (this, key);
+    entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
   }
     
@@ -262,33 +268,35 @@ static int config_file_register_bool (config_values_t *this,
   entry->num_default    = def_value;
   entry->description    = description;
   entry->help           = help;       
+  entry->exp_level      = exp_level;
   entry->callback       = changed_cb; 
   entry->callback_data  = cb_data;   
 
   return entry->num_value;
 }
 
-static int config_file_register_range (config_values_t *this,
-				       char *key, int def_value,
-				       int min, int max,
-				       char *description, 
-				       char *help,
-				       config_cb_t changed_cb,
-				       void *cb_data) {
+static int _xine_config_register_range (config_values_t *this,
+					char *key, int def_value,
+					int min, int max,
+					char *description, 
+					char *help,
+					int exp_level,
+					xine_config_cb_t changed_cb,
+					void *cb_data) {
   
   cfg_entry_t *entry;
 
   assert (key);
 
-#ifdef CONFIG_LOG
-  printf ("configfile: registering %s\n", key);
+#ifdef LOG
+  printf ("configfile: registering range %s\n", key);
 #endif
 
   /* make sure this entry exists, create it if not */
 
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
   if (!entry) {
-    entry = config_file_add (this, key);
+    entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
   }
     
@@ -316,13 +324,14 @@ static int config_file_register_range (config_values_t *this,
   entry->range_max     = max;
   entry->description   = description;
   entry->help          = help;       
+  entry->exp_level     = exp_level;
   entry->callback      = changed_cb; 
   entry->callback_data = cb_data;   
 
   return entry->num_value;
 }
 
-static int config_file_parse_enum (char *str, char **values) {
+static int xine_config_parse_enum (char *str, char **values) {
 
   char **value;
   int    i;
@@ -333,7 +342,7 @@ static int config_file_parse_enum (char *str, char **values) {
 
   while (*value) {
 
-#ifdef CONFIG_LOG
+#ifdef LOG
     printf ("configfile: parse enum, >%s< ?= >%s<\n",
 	    *value, str);
 #endif
@@ -345,7 +354,7 @@ static int config_file_parse_enum (char *str, char **values) {
     i++;
   }
 
-#ifdef CONFIG_LOG
+#ifdef LOG
   printf ("configfile: warning, >%s< is not a valid enum here, using 0\n",
 	  str);
 #endif
@@ -353,28 +362,29 @@ static int config_file_parse_enum (char *str, char **values) {
   return 0;
 }
 
-static int config_file_register_enum (config_values_t *this,
-				      char *key, int def_value,
-				      char **values,
-				      char *description, 
-				      char *help,
-				      config_cb_t changed_cb,
-				      void *cb_data) {
+static int _xine_config_register_enum (config_values_t *this,
+				       char *key, int def_value,
+				       char **values,
+				       char *description, 
+				       char *help,
+				       int exp_level,
+				       xine_config_cb_t changed_cb,
+				       void *cb_data) {
 
   cfg_entry_t *entry;
 
   assert (key);
   assert (values);
 
-#ifdef CONFIG_LOG
-  printf ("configfile: registering %s\n", key);
+#ifdef LOG
+  printf ("configfile: registering enum %s\n", key);
 #endif
 
   /* make sure this entry exists, create it if not */
 
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
   if (!entry) {
-    entry = config_file_add (this, key);
+    entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
   }
     
@@ -390,7 +400,7 @@ static int config_file_register_enum (config_values_t *this,
     entry->type      = CONFIG_TYPE_ENUM;
 
     if (entry->unknown_value)
-      entry->num_value = config_file_parse_enum (entry->unknown_value, values);
+      entry->num_value = xine_config_parse_enum (entry->unknown_value, values);
     else
       entry->num_value = def_value;
 
@@ -402,22 +412,28 @@ static int config_file_register_enum (config_values_t *this,
   entry->enum_values   = values;
   entry->description   = description;
   entry->help          = help;       
+  entry->exp_level     = exp_level;
   entry->callback      = changed_cb; 
   entry->callback_data = cb_data;   
 
   return entry->num_value;
 }
 
-static void config_file_update_num (config_values_t *this,
+static void xine_config_update_num (config_values_t *this,
 				    char *key, int value) {
 
   cfg_entry_t *entry;
 
   entry = this->lookup_entry (this, key);
 
+#ifdef LOG
+  printf ("configfile: updating %s to %d\n",
+	  key, value);
+#endif
+
   if (!entry) {
 
-#ifdef CONFIG_LOG
+#ifdef LOG
     printf ("configfile: WARNING! tried to update unknown key %s (to %d)\n",
 	    key, value);
 #endif
@@ -434,14 +450,21 @@ static void config_file_update_num (config_values_t *this,
 
   entry->num_value = value;
 
+  /* FIXME
   if (entry->callback) 
     entry->callback (entry->callback_data, entry);
+  */
 }
 
-static void config_file_update_string (config_values_t *this,
+static void xine_config_update_string (config_values_t *this,
 				       char *key, char *value) {
 
   cfg_entry_t *entry;
+
+#ifdef LOG
+  printf ("configfile: updating %s to %s\n",
+	  key, value);
+#endif
 
   entry = this->lookup_entry (this, key);
 
@@ -465,20 +488,60 @@ static void config_file_update_string (config_values_t *this,
     entry->str_value = copy_string (value);
   }
 
+  /* FIXME
   if (entry->callback) 
     entry->callback (entry->callback_data, entry);
+  */
 }
 
-static void config_file_save (config_values_t *this) {
+/*
+ * load/save config data from/to afile (e.g. $HOME/.xine/config)
+ */
+void xine_load_config (xine_t *x, char *filename) {
+
+  config_values_t *this = x->config;
   FILE *f_config;
-  char filename[1024];
 
-  sprintf (filename, "%s/.xine", xine_get_homedir());
-  mkdir (filename, 0755);
+#ifdef LOG
+  printf ("configfile: reading from file '%s'\n",
+	  filename);
+#endif
 
-  sprintf (filename, "%s/.xine/config", xine_get_homedir());
+  f_config = fopen (filename, "r");
+  
+  if (f_config) {
+    
+    char line[1024];
+    char *value;
 
-#ifdef CONFIG_LOG
+    while (fgets (line, 1023, f_config)) {
+      line[strlen(line)-1]= (char) 0; /* eliminate lf */
+      
+      if (line[0] == '#')
+	continue;
+
+      if ((value = strchr (line, ':'))) {
+
+	cfg_entry_t *entry;
+
+	*value = (char) 0;
+	value++;
+	
+	entry = xine_config_add (this, line);
+	entry->unknown_value = copy_string (value);
+      }
+    }
+    
+    fclose (f_config);
+  }
+}
+
+void xine_save_config (xine_t *x, char *filename) {
+
+  config_values_t *this = x->config;
+  FILE *f_config;
+
+#ifdef LOG
   printf ("writing config file to %s\n", filename);
 #endif
 
@@ -493,6 +556,11 @@ static void config_file_save (config_values_t *this) {
     entry = this->first;
 
     while (entry) {
+
+#ifdef LOG
+      printf ("configfile: saving key '%s'\n", entry->key);
+#endif
+
       if (entry->description)
 	fprintf (f_config, "# %s\n", entry->description);
 
@@ -553,44 +621,15 @@ static void config_file_save (config_values_t *this) {
   }  
 }
 
-static void config_file_read (config_values_t *this, char *filename){
+static void xine_config_dispose (config_values_t *this) {
 
-  FILE *f_config;
-
-  f_config = fopen (filename, "r");
-  
-  if (f_config) {
-    
-    char line[1024];
-    char *value;
-
-    while (fgets (line, 1023, f_config)) {
-      line[strlen(line)-1]= (char) 0; /* eliminate lf */
-      
-      if (line[0] == '#')
-	continue;
-
-      if ((value = strchr (line, ':'))) {
-
-	cfg_entry_t *entry;
-
-	*value = (char) 0;
-	value++;
-	
-	entry = config_file_add (this, line);
-	entry->unknown_value = copy_string (value);
-      }
-    }
-    
-    fclose (f_config);
-  }
-}
-
-static void config_file_dispose (config_values_t *this)
-{
   cfg_entry_t *entry, *last;
 
   entry = this->first;
+
+#ifdef LOG
+  printf ("configfile: dispose\n");
+#endif
 
   while (entry) {
     last = entry;
@@ -612,15 +651,15 @@ static void config_file_dispose (config_values_t *this)
 }
 
 
-static void config_file_unregister_cb (config_values_t *this,
-				       char *key)
-{
+static void xine_config_unregister_cb (config_values_t *this,
+				       char *key) {
+
   cfg_entry_t *entry;
   
   assert (this);
   assert (key);
   
-  entry = config_file_lookup_entry (this, key);
+  entry = _xine_config_lookup_entry (this, key);
   if (entry) {
     entry->callback = NULL;
     entry->callback_data = NULL;
@@ -628,46 +667,43 @@ static void config_file_unregister_cb (config_values_t *this,
 }
 
 
-config_values_t *xine_config_file_init (char *filename) {
+config_values_t *xine_config_init () {
 
 #ifdef HAVE_IRIXAL
   volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
 #endif
   config_values_t *this;
 
-  if ( (this = xine_xmalloc(sizeof(config_values_t))) ) {
+  if (!(this = xine_xmalloc(sizeof(config_values_t)))) {
 
-    this->first = NULL;
-    this->last  = NULL;
-
-    config_file_read (this, filename);
-   
-  } else {
     printf ("configfile: could not allocate config object\n");
     abort();
   }
 
-  this->register_string = config_file_register_string;
-  this->register_range  = config_file_register_range;
-  this->register_enum   = config_file_register_enum;
-  this->register_num    = config_file_register_num;
-  this->register_bool   = config_file_register_bool;
-  this->update_num      = config_file_update_num;
-  this->update_string   = config_file_update_string;
-  this->parse_enum      = config_file_parse_enum;
-  this->lookup_entry    = config_file_lookup_entry;
-  this->save            = config_file_save;
-  this->read            = config_file_read;
-  this->dispose         = config_file_dispose;
-  this->unregister_callback = config_file_unregister_cb;
+  this->first = NULL;
+  this->last  = NULL;
+
+  this->register_string = _xine_config_register_string;
+  this->register_range  = _xine_config_register_range;
+  this->register_enum   = _xine_config_register_enum;
+  this->register_num    = _xine_config_register_num;
+  this->register_bool   = _xine_config_register_bool;
+  this->update_num      = xine_config_update_num;
+  this->update_string   = xine_config_update_string;
+  this->parse_enum      = xine_config_parse_enum;
+  this->lookup_entry    = _xine_config_lookup_entry;
+  this->unregister_callback = xine_config_unregister_cb;
 
   return this;
 }
 
-
-int config_file_change_opt(config_values_t *config, char *opt) {
+int xine_config_change_opt(config_values_t *config, char *opt) {
   cfg_entry_t *entry;
   int          handled = 0;
+
+#ifdef LOG
+  printf ("configfile: change_opt '%s'\n", opt);
+#endif
   
   if(config && opt && (!strncasecmp(opt, "opt:", 4))) {
     char *optsafe;
@@ -701,7 +737,7 @@ int config_file_change_opt(config_values_t *config, char *opt) {
 	  break;
 	  
 	case CONFIG_TYPE_UNKNOWN:
-#if LOG
+#ifdef LOG
 	  printf("configfile: change_opt() try to update an CONFIG_TYPE_UNKNOWN entry\n");
 #endif
 	  break;
@@ -714,95 +750,3 @@ int config_file_change_opt(config_values_t *config, char *opt) {
   return handled;
 }
 
-/*
- * $Log: configfile.c,v $
- * Revision 1.23  2002/06/17 07:47:50  f1rmb
- * Add Siggi's idea about option config change on the fly. New "mrl style"
- * opt:key=value. I hope i haven't introduced races here.
- *
- * Revision 1.22  2002/04/29 23:32:00  jcdutton
- * Replace all exit(1) with abort().
- * xine-lib should really never do an exit or abort, but instead pass back nice error values to the calling application, but until that happens, use abort() as that is tracable with gdb, whereas exit(1) is not backtraceable.
- *
- * Revision 1.21  2002/04/27 23:00:40  cvogler
- * Add function to unregister configfile callback.
- *
- * Necessary to prevent segfaults if target of a callback has been disposed.
- *
- * Revision 1.20  2002/04/11 07:17:43  esnel
- * Fix configfile corruption reported by Chris Rankin
- *
- * Revision 1.19  2002/03/16 13:33:47  esnel
- * fix memory leak, add dispose() function to config_values_s
- *
- * Revision 1.18  2002/02/06 10:57:15  f1rmb
- * rename config_file_init to xine_config_file_init.
- *
- * Revision 1.17  2002/01/13 23:08:27  jcdutton
- * Fix another compiler warning.
- *
- * Revision 1.16  2002/01/13 21:21:05  jcdutton
- * Undo last change.
- *
- * Revision 1.15  2002/01/13 21:15:48  jcdutton
- * Fix a few compile warnings.
- *
- * Revision 1.14  2002/01/09 15:16:37  mshopf
- * IRIX port finally compiles (and actually works) again.
- *
- * Revision 1.13  2001/12/01 22:38:32  guenter
- * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
- *
- * Revision 1.12  2001/11/30 21:55:06  f1rmb
- * Add an automatic way for input plugin to add extra valid mrls:
- * add at bottom of init_input_plugin() a line like this:
- * REGISTER_VALID_MRLS(this->config, "mrl.mrls_mpeg_block", "xxx");
- *
- * Revision 1.11  2001/11/20 19:13:28  guenter
- * add more checks against incorrect configfile usage
- *
- * Revision 1.10  2001/11/20 17:22:14  miguelfreitas
- * testing some configfile stuff...
- *
- * Revision 1.9  2001/11/19 02:57:10  guenter
- * make description strings optional - config options without description string will not appear in setup dialog
- *
- * Revision 1.8  2001/11/18 21:38:23  miguelfreitas
- * fix enum value saving
- *
- * Revision 1.7  2001/11/18 15:08:31  guenter
- * more cleanups, config stuff bugfixes
- *
- * Revision 1.6  2001/11/18 03:53:25  guenter
- * new configfile interface, code cleanup, xprintf is gone
- *
- * Revision 1.5  2001/11/17 14:26:39  f1rmb
- * Add 'xine_' prefix to all of xine-utils functions (what about cpu
- * acceleration?). Merge xine-utils header files to a new one "xineutils.h".
- * Update xine-lib C/headers to reflect those changes.
- * dxr3 headers are no more installed ine $includdir, but $includdir/xine.
- *
- * Revision 1.4  2001/07/26 11:12:26  f1rmb
- * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
- * proto decl, etc...
- *
- * Revision 1.3  2001/06/15 11:08:13  f1rmb
- * Check arguments in public functions.
- *
- * Revision 1.2  2001/06/15 10:17:53  f1rmb
- * Passing NULL to config_file_lookup_str() is valid.
- *
- * Revision 1.1.1.1  2001/04/18 22:36:01  f1rmb
- * Initial import into CVS
- *
- * Revision 1.8  2001/03/31 03:42:25  guenter
- * more cleanups, started xv driver
- *
- * Revision 1.7  2001/03/28 12:30:25  siggi
- * fixed init function
- * added read function (multiple config files now supported)
- *
- * Revision 1.6  2001/03/27 17:12:49  siggi
- * made config file handler a dynamic "object"
- *
- */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.90 2002/09/01 13:50:07 heikos Exp $
+ * $Id: metronom.c,v 1.91 2002/09/04 23:31:13 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -137,7 +137,7 @@ static void unixscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_unlock (&this->lock);
   
-  unixscr_set_speed (&this->scr, SPEED_NORMAL);
+  unixscr_set_speed (&this->scr, XINE_SPEED_NORMAL);
 }
 
 static int64_t unixscr_get_current (scr_plugin_t *scr) {
@@ -183,7 +183,7 @@ static scr_plugin_t* unixscr_init () {
   
   pthread_mutex_init (&this->lock, NULL);
   
-  unixscr_set_speed (&this->scr, SPEED_PAUSE);
+  unixscr_set_speed (&this->scr, XINE_SPEED_PAUSE);
   printf("xine-scr_init: complete\n");
 
   return &this->scr;
@@ -215,13 +215,13 @@ static int64_t metronom_get_current_time (metronom_t *this) {
 static void metronom_stop_clock(metronom_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, SPEED_PAUSE);
+    if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_PAUSE);
 }
 
 static void metronom_resume_clock(metronom_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
-    if (*scr) (*scr)->set_speed(*scr, SPEED_NORMAL);
+    if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_NORMAL);
 }
 
 
@@ -657,7 +657,7 @@ static int metronom_sync_loop (metronom_t *this) {
   scr_plugin_t** scr;
   int64_t        pts;
   
-  while (((xine_t*)this->xine)->status != XINE_QUIT) {
+  while (((xine_t*)this->xine)->status != XINE_STATUS_QUIT) {
     pts = this->scr_master->get_current(this->scr_master);
     
     for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)

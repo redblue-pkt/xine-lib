@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.21 2002/08/28 03:32:48 tmmm Exp $
+ * $Id: xineutils.h,v 1.22 2002/09/04 23:31:14 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -35,6 +35,7 @@ extern "C" {
 #include "attributes.h"
 #include "compat.h"
 #include "xmlparser.h"
+
   /*
    * debugable mutexes
    */
@@ -783,6 +784,79 @@ extern int u_b_table[256];
 extern int v_r_table[256];
 extern int v_g_table[256];
 extern int v_b_table[256];
+
+
+/******** double cained lists with builtin iterator *******/
+
+typedef struct xine_node_s {
+
+  struct xine_node_s    *next, *prev;
+  
+  void                  *content;
+  
+} xine_node_t;
+
+
+typedef struct {
+
+  xine_node_t    *first, *last, *cur;
+
+} xine_list_t;
+
+
+
+xine_list_t *xine_list_new (void);
+
+
+/**
+ * dispose the whole list.
+ * note: disposes _only_ the list structure, content must be free()d elsewhere
+ */
+void xine_list_free(xine_list_t *l);
+
+
+/**
+ * returns: Boolean
+ */
+int xine_list_is_empty (xine_list_t *l);
+
+/**
+ * return content of first entry in list.
+ */
+void *xine_list_first_content (xine_list_t *l);
+
+/**
+ * return next content in list.
+ */
+void *xine_list_next_content (xine_list_t *l);
+
+/**
+ * Return last content of list.
+ */
+void *xine_list_last_content (xine_list_t *l);
+
+/**
+ * Return previous content of list.
+ */
+void *xine_list_prev_content (xine_list_t *l);
+
+/**
+ * Append content to list.
+ */
+void xine_list_append_content (xine_list_t *l, void *content);
+
+/**
+ * Insert content in list.
+ */
+void xine_list_insert_content (xine_list_t *l, void *content);
+
+/**
+ * Remove current content in list.
+ * note: removes only the list entry; content must be free()d elsewhere.
+ */
+void xine_list_delete_current (xine_list_t *l);
+
+
 
 #ifdef __cplusplus
 }

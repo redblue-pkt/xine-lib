@@ -25,6 +25,7 @@
 
 #include <inttypes.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "mpeg2_internal.h"
 #include "attributes.h"

@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.1 2002/09/01 01:50:39 tmmm Exp $
+ * $Id: qtrpza.c,v 1.2 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "video_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "video_out.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -366,7 +366,7 @@ static void qtrpza_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -460,8 +460,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this = (qtrpza_decoder_t *) malloc (sizeof (qtrpza_decoder_t));
   memset(this, 0, sizeof (qtrpza_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = qtrpza_can_handle;
   this->video_decoder.init                = qtrpza_init;
   this->video_decoder.decode_data         = qtrpza_decode_data;
   this->video_decoder.flush               = qtrpza_flush;

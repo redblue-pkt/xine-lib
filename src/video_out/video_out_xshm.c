@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.86 2002/08/28 14:20:10 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.87 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -37,6 +37,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "xine.h"
 #include "video_out.h"
 
 #include <X11/Xlib.h>
@@ -54,7 +55,6 @@
 #include <netinet/in.h>
 
 #include "xine_internal.h"
-#include "video_out_x11.h"
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
@@ -90,7 +90,7 @@ typedef struct xshm_frame_s {
 
 typedef struct xshm_driver_s {
 
-  vo_driver_t        vo_driver;
+  xine_vo_driver_t   vo_driver;
 
   config_values_t   *config;
 
@@ -296,7 +296,7 @@ static void dispose_ximage (xshm_driver_t *this,
  * and now, the driver functions
  */
 
-static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
+static uint32_t xshm_get_capabilities (xine_vo_driver_t *this_gen) {
   return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
 }
 
@@ -308,7 +308,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   printf ("video_out_xshm: copy... (format %d)\n", frame->format);
 #endif
 
-  if (frame->format == IMGFMT_YV12) {
+  if (frame->format == XINE_IMGFMT_YV12) {
     frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,
 				 src[0], src[1], src[2]);
   } else {
@@ -360,7 +360,7 @@ static void xshm_frame_dispose (vo_frame_t *vo_img) {
 }
 
 
-static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
+static vo_frame_t *xshm_alloc_frame (xine_vo_driver_t *this_gen) {
 
   xshm_frame_t  *frame ;
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
@@ -422,7 +422,7 @@ static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
 #endif
 }
 
-static void xshm_update_frame_format (vo_driver_t *this_gen,
+static void xshm_update_frame_format (xine_vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
 				      int ratio_code, int format, int flags) {
@@ -521,7 +521,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     XUnlockDisplay (this->display); 
 
-    if (format == IMGFMT_YV12) {
+    if (format == XINE_IMGFMT_YV12) {
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
@@ -597,7 +597,7 @@ static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overla
   }
 }
 
-static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void xshm_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
@@ -649,7 +649,7 @@ static void clean_output_area (xshm_driver_t *this, xshm_frame_t *frame) {
   XUnlockDisplay (this->display);
 }
 
-static int xshm_redraw_needed (vo_driver_t *this_gen) {
+static int xshm_redraw_needed (xine_vo_driver_t *this_gen) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   int ret = 0;
 
@@ -669,7 +669,7 @@ static int xshm_redraw_needed (vo_driver_t *this_gen) {
   return ret;
 }
 
-static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void xshm_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
@@ -759,7 +759,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 #endif
 }
 
-static int xshm_get_property (vo_driver_t *this_gen, int property) {
+static int xshm_get_property (xine_vo_driver_t *this_gen, int property) {
 
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
 
@@ -807,7 +807,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void xshm_get_property_min_max (vo_driver_t *this_gen,
+static void xshm_get_property_min_max (xine_vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* xshm_driver_t *this = (xshm_driver_t *) this_gen;  */
@@ -826,7 +826,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
 
   switch (data_type) {
-  case GUI_DATA_EX_COMPLETION_EVENT: {
+  case XINE_GUI_SEND_COMPLETION_EVENT: {
 
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
 
@@ -844,7 +844,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   }
   break;
 
-  case GUI_DATA_EX_EXPOSE_EVENT:
+  case XINE_GUI_SEND_EXPOSE_EVENT:
     
   /* FIXME : take care of completion events */
 #ifdef LOG
@@ -894,7 +894,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     
   break;
 
-  case GUI_DATA_EX_DRAWABLE_CHANGED:
+  case XINE_GUI_SEND_DRAWABLE_CHANGED:
     this->drawable = (Drawable) data;
 
     XFreeGC(this->display, this->gc);
@@ -902,7 +902,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
     break;
 
-  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+  case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
 
     if (this->cur_frame) {
       
@@ -930,7 +930,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   return 0;
 }
 
-static void xshm_exit (vo_driver_t *this_gen) {
+static void xshm_exit (xine_vo_driver_t *this_gen) {
 
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
   
@@ -996,7 +996,7 @@ static char *visual_class_name(Visual *visual) {
   }
 }
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+xine_vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xshm_driver_t        *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
@@ -1038,7 +1038,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   
   this->sc.scaling_disabled  = config->register_bool (config, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
-						     NULL, NULL, NULL);
+						     NULL, 10, NULL, NULL);
   this->drawable	    = visual->d;
   this->expecting_event	    = 0;
   this->cur_frame           = NULL;
@@ -1185,7 +1185,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->yuv2rgb_gamma = config->register_range (config, "video.xshm_gamma", 0,
 						-100, 100, 
 						_("gamma correction for XShm driver"),
-						NULL, NULL, NULL);
+						NULL, 0, NULL, NULL);
 
   this->yuv2rgb_factory = yuv2rgb_factory_init (mode, swapped, 
 						this->yuv2rgb_cmap);
@@ -1198,7 +1198,7 @@ static vo_info_t vo_info_shm = {
   6,                /* interface version */
   "XShm",           /* id                */
   NULL,
-  VISUAL_TYPE_X11,  /* visual_type       */
+  XINE_VISUAL_TYPE_X11,  /* visual_type       */
   6
 };
 
@@ -1206,4 +1206,5 @@ vo_info_t *get_video_out_plugin_info() {
   vo_info_shm.description = _("xine video output plugin using the MIT X shared memory extension");
   return &vo_info_shm;
 }
+
 

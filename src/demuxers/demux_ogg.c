@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.39 2002/09/01 20:50:57 guenter Exp $
+ * $Id: demux_ogg.c,v 1.40 2002/09/04 23:31:08 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1038,7 +1038,7 @@ static int demux_ogg_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_ogg", VALID_ENDS,
 							    _("valid mrls ending for ogg demuxer"),
-							    NULL, NULL, NULL)));
+							    NULL, 20, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
       while(*m == ' ' || *m == '\t') m++;
@@ -1073,18 +1073,10 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
     return 0;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
   demux_ogg_t     *this;
 
-  if (iface != 10) {
-    printf( _("demux_ogg: plugin doesn't support plugin API version %d.\n"
-	      "           this means there's a version mismatch between xine and this "
-	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
-  
   this         = xine_xmalloc (sizeof (demux_ogg_t));
   this->config = xine->config;
   this->xine   = xine;
@@ -1092,7 +1084,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
 					"mrl.ends_ogg", VALID_ENDS,
 					_("valid mrls ending for ogg demuxer"),
-					NULL, NULL, NULL);
+					NULL, 20, NULL, NULL);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_ogg_open;
@@ -1108,5 +1100,15 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
   
-  return (demux_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "ogg", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

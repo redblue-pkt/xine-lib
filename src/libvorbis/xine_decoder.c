@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2002/08/19 22:12:54 guenter Exp $
+ * $Id: xine_decoder.c,v 1.16 2002/09/04 23:31:10 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 
 #include <ogg/ogg.h>
 #include <vorbis/codec.h>
@@ -64,10 +64,6 @@ typedef struct vorbis_decoder_s {
   int               header_count;
 
 } vorbis_decoder_t;
-
-static int vorbis_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_VORBIS) ;
-}
 
 
 static void vorbis_reset (audio_decoder_t *this_gen) {
@@ -241,23 +237,12 @@ static void vorbis_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   vorbis_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf(_("libvorbis: plugin doesn't support plugin API version %d.\n"
-	     "libvorbis: this means there's a version mismatch between xine and this "
-	     "libvorbis: decoder plugin.\nInstalling current plugins should help.\n"),
-	   iface_version);
-
-    return NULL;
-  }
-
   this = (vorbis_decoder_t *) malloc (sizeof (vorbis_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = vorbis_can_handle;
   this->audio_decoder.init                = vorbis_init;
   this->audio_decoder.decode_data         = vorbis_decode_data;
   this->audio_decoder.reset               = vorbis_reset;
@@ -269,3 +254,17 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   return (audio_decoder_t *) this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_VORBIS, 0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -12,7 +12,7 @@ endif
 
 CFLAGS = @CFLAGS@ $(THREAD_CFLAGS)
 
-libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c color.c
+libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c color.c list.c
 libxineutils_la_LIBADD = $(THREAD_LIBS)
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)

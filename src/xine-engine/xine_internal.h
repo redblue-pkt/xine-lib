@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.92 2002/07/14 20:55:17 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.93 2002/09/04 23:31:13 guenter Exp $
  *
  */
 
@@ -30,6 +30,16 @@ extern "C" {
 
 #include <inttypes.h>
 
+/*
+ * include public part of xine header
+ */
+
+#ifdef XINE_COMPILE
+#include "include/xine.h"
+#else
+#include "xine.h"
+#endif
+
 #ifdef XINE_COMPILE
 #include "input/input_plugin.h"
 #include "demuxers/demux.h"
@@ -37,29 +47,31 @@ extern "C" {
 #include "input_plugin.h"
 #include "demux.h"
 #endif
+
 #include "video_out.h"
 #include "audio_out.h"
 #include "metronom.h"
 #include "spu_decoder.h"
-#include "events.h"
 #include "lrb.h"
+
 #ifdef XINE_COMPILE
 #include "libspudec/spu_decoder_api.h"
 #else
 #include "spu_decoder_api.h"
 #endif
+
 #include "osd.h"
 #include "scratch.h"
 #include "xineintl.h"
+#include "plugin_catalog.h"
 
-#define INPUT_PLUGIN_MAX       50
-#define DEMUXER_PLUGIN_MAX     50
-#define DECODER_PLUGIN_MAX     256
 #define VIDEO_DECODER_IFACE_VERSION      10
 #define AUDIO_DECODER_IFACE_VERSION      9
-#define AUDIO_OUT_PLUGIN_MAX   50
-#define VIDEO_OUT_PLUGIN_MAX   50
-#define XINE_MAX_EVENT_LISTENERS 50
+#define XINE_MAX_EVENT_LISTENERS         50
+
+/* used by plugin loader */
+#define XINE_VERSION_CODE                XINE_MAJOR_VERSION*10000+XINE_MINOR_VERSION*100+XINE_SUB_VERSION
+
 
 /*
  * generic xine video decoder plugin interface
@@ -72,10 +84,6 @@ extern "C" {
 typedef struct video_decoder_s video_decoder_t;
 
 struct video_decoder_s {
-
-  int interface_version;
-
-  int (*can_handle) (video_decoder_t *this, int buf_type);
 
   void (*init) (video_decoder_t *this, vo_instance_t *video_out);
 
@@ -107,10 +115,6 @@ typedef struct audio_decoder_s audio_decoder_t;
 
 struct audio_decoder_s {
 
-  int interface_version;
-
-  int (*can_handle) (audio_decoder_t *this, int buf_type);
-
   void (*init) (audio_decoder_t *this, ao_instance_t *audio_out);
 
   void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
@@ -128,34 +132,17 @@ struct audio_decoder_s {
 };
 
 /*
- * gui callback functions
- *
+ * log constants
  */
 
-/*
- * player status constants:
- */
-
-#define XINE_STOP      0 
-#define XINE_PLAY      1 
-#define XINE_QUIT      2
-#define XINE_LOGO      3
-
-/*
- * log output
- */
 #define XINE_LOG_FORMAT    0 /* stream format, decoders, video size... */
 #define XINE_LOG_MSG       1 /* warnings, errors, ... */
 #define XINE_LOG_PLUGIN    2
 #define XINE_LOG_NUM       3 /* # of log buffers defined */
 
-typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
-
-#define XINE_CODEC_AUDIO   0
-#define XINE_CODEC_VIDEO   1
-
-typedef void (*xine_report_codec_t) (void *user_data, int codec_type,
-                                     uint32_t fourcc, char *description, int handled);
+/*
+ * the big xine struct, holding everything together
+ */
 
 struct xine_s {
   
@@ -170,14 +157,12 @@ struct xine_s {
   /* Logo manipulation mutex */
   pthread_mutex_t            logo_lock;
 
-  input_plugin_t            *input_plugins[INPUT_PLUGIN_MAX];
-  int                        num_input_plugins;
+  plugin_catalog_t          *plugin_catalog;
+  
   input_plugin_t            *cur_input_plugin;
   /* kept to do proper ejecting (otherwise we eject the logo) */
   input_plugin_t            *last_input_plugin;
 
-  demux_plugin_t            *demuxer_plugins[DEMUXER_PLUGIN_MAX];
-  int                        num_demuxer_plugins;
   demux_plugin_t            *cur_demuxer_plugin;
   int                        demux_strategy;
 
@@ -190,11 +175,8 @@ struct xine_s {
 
   spu_functions_t           *spu_out;
   pthread_t                  spu_thread;
-  spu_decoder_t             *spu_decoder_plugins[DECODER_PLUGIN_MAX];
   spu_decoder_t             *cur_spu_decoder_plugin;
   int                        spu_finished;
-  spu_decoder_t             *spu_decoders_loaded[DECODER_PLUGIN_MAX];
-  int                        num_spu_decoders_loaded;
 
   /* *_user: -2 => off
              -1 => auto (use *_auto value)
@@ -209,16 +191,14 @@ struct xine_s {
   int                        spu_channel_pan_scan;
   int                        spu_channel;
 
-  vo_driver_t               *video_driver;
+  xine_vo_driver_t          *video_driver;
   vo_instance_t             *video_out;
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;
-  video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
-  video_decoder_t           *video_decoders_loaded[DECODER_PLUGIN_MAX];
-  int                        num_video_decoders_loaded;
   int                        video_finished;
   int                        video_in_discontinuity;
+  int                        video_channel;
   
   osd_renderer_t            *osd_renderer;
   osd_object_t              *osd;
@@ -228,10 +208,7 @@ struct xine_s {
   fifo_buffer_t             *audio_fifo;
   lrb_t                     *audio_temp;
   pthread_t                  audio_thread;
-  audio_decoder_t           *audio_decoder_plugins[DECODER_PLUGIN_MAX];
   audio_decoder_t           *cur_audio_decoder_plugin;
-  audio_decoder_t           *audio_decoders_loaded[DECODER_PLUGIN_MAX];
-  int                        num_audio_decoders_loaded;
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   int                        audio_finished;
@@ -244,7 +221,7 @@ struct xine_s {
   pthread_mutex_t            finished_lock;
 
   /* Array of event handlers. */
-  xine_event_listener_t      event_listeners[XINE_MAX_EVENT_LISTENERS];
+  xine_event_listener_cb_t   event_listeners[XINE_MAX_EVENT_LISTENERS];
   void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
 
@@ -259,7 +236,7 @@ struct xine_s {
   pthread_t                  finished_thread;
   int                        finished_thread_running;
   
-  xine_report_codec_t        report_codec_cb;
+  xine_report_codec_cb_t     report_codec_cb;
   void                      *report_codec_user_data;
   
   int                        playing_logo;
@@ -268,282 +245,51 @@ struct xine_s {
 };
 
 /*
- * read config file and init a config object
- * (if it exists)
- */
-config_values_t *xine_config_file_init (char *filename);
-
-/*
- * init xine - call once at startup
+ * private function prototypes:
  */
 
-xine_t *xine_init (vo_driver_t *vo, 
-		   ao_driver_t *ao,
-		   config_values_t *config);
-
-/*
- * open a stream sekk to a given position and play it
- *
- * name       : mrl to open
- * start_pos  : position in input source (0..65535)
- * start_time : position measured in seconds from stream start
- *
- * if both parameters are !=0 start_pos will be used
- * for non-seekable streams both values will be ignored
- *
- * returns 1 on succ, 0 on failure
- */
-int xine_play (xine_t *this, char *MRL, int start_pos, int start_time);
-int xine_play_internal (xine_t *this, char *MRL, int start_pos, int start_time);
-
-
-/*
- * set/get playback speed
- *
- * constants see below
- */
-
-void xine_set_speed (xine_t *this, int speed);
-int xine_get_speed (xine_t *this);
-
-#define SPEED_PAUSE   0
-#define SPEED_SLOW_4  1
-#define SPEED_SLOW_2  2
-#define SPEED_NORMAL  4
-#define SPEED_FAST_2  8
-#define SPEED_FAST_4 16
-
-/*
- * manually adjust a/v sync
- */
-
-void xine_set_av_offset (xine_t *this, int offset_pts);
-int xine_get_av_offset (xine_t *this);
-
-/*
- * stop playing
- */
-void xine_stop_internal (xine_t *this);
-void xine_stop (xine_t *this);
-
-/*
- * tell current input plugin to eject media.
- */
-int xine_eject(xine_t *this);
-
-/*
- * return current status (XINE_PLAY/XINE_STOP...)
- */
-int xine_get_status (xine_t *this);
-
-/*
- * get current position in stream
- * returns position (range : 0 - 65535)
- */
-int xine_get_current_position (xine_t *this);
-
-/*
- * get current position measured in seconds from 
- * the beginning of the stream
- */
-int xine_get_current_time (xine_t *this);
-
-/*
- * estimate length of input stream in seconds
- * may return 0 if stream is not seekable
- */
-int xine_get_stream_length (xine_t *this);
-
-/*
- * return the current physical audio channel
- */
-int xine_get_audio_channel (xine_t *this);
-
-/*
- * return the current logical audio channel
- */
-int xine_get_audio_selection (xine_t *this);
-
-/*
- * try to find out current audio language
- */
-void xine_get_audio_lang (xine_t *this, char *str);
-
-/*
- * set desired logical audio channel (-1 => auto)
- */
-void xine_select_audio_channel (xine_t *this, int channel);
-
-/*
- * return the current SPU channel
- */
-int xine_get_spu_channel (xine_t *this);
-
-/*
- * set desired SPU channel
- */
-void xine_select_spu_channel (xine_t *this, int channel);
-
-/*
- * try to find out current spu language
- */
-void xine_get_spu_lang (xine_t *this, char *str);
-
-/*
- * check if the stream is seekable (at the moment)
- */
-
-int xine_is_stream_seekable (xine_t *this);
-
-/*
- * exit xine
- */
-void xine_exit (xine_t *this);
-
-/*
- * browsing support
- */
-
-/*
- * some input plugins are browseable
- * returns a list of ids of these plugins
- */
-char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
-
-/*
- * browse function
- * asks input plugin named <plugin_id> to return
- * a list of available MRLs in domain/directory <start_mrl>
- * 
- * start_mrl may be NULL indicating the toplevel domain/dir
- * returns start_mrl if start_mrl is a valid MRL, not a directory
- * returns NULL if start_mrl is an invalid MRL, not even a directory
- */
-
-mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
-			      char *start_mrl, int *num_mrls);
-
-/*
- * autoplay support
- */
-
-/*
- * some input plugins can generate autoplay lists
- * returns a list of ids of these plugins
- */
-char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
-
-/*
- * get autoplay MRL list for input plugin named <plugin_id>
- */
-char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
-
-/*
- * internal use only
- */
-
+int  xine_open_internal          (xine_t *this, char *MRL);
+int  xine_play_internal          (xine_t *this,
+				  int start_pos, int start_time);
+void xine_stop_internal          (xine_t *this);
 void xine_notify_stream_finished (xine_t *this);
-void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t buf_type, int handled );
-void xine_internal_osd (xine_t *this, char *str, int duration);
+void xine_report_codec           (xine_t *this, int codec_type, 
+				  uint32_t fourcc, uint32_t buf_type, int handled );
+void xine_internal_osd           (xine_t *this, char *str, int duration);
 
-/*
- * video decoder stuff
- */
+void video_decoder_init          (xine_t *this);
+void video_decoder_shutdown      (xine_t *this);
 
-/*
- * init video decoders, allocate video fifo,
- * start video decoder thread
- */
-
-void video_decoder_init (xine_t *this);
-
-/*
- * quit video thread
- */
-
-void video_decoder_shutdown (xine_t *this);
-
-/*
- * spu decoder stuff
- */
-
-/*
- * init audio decoders, allocate audio fifo,
- * start audio decoder thread
- */
-
-void audio_decoder_init (xine_t *this);
-
-/*
- * quit audio thread
- */
-
-void audio_decoder_shutdown (xine_t *this);
-
+void audio_decoder_init          (xine_t *this);
+void audio_decoder_shutdown      (xine_t *this);
 
 /* 
- * Load input/demux/audio_out/video_out plugins
+ * demuxer helper functions from demux.c 
  */
 
-/* plugin naming scheme */
-#define XINE_INPUT_PLUGIN_PREFIXNAME            "xineplug_inp_"
-#define XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH     13
+void xine_demux_flush_engine     (xine_t *this);
 
-#define XINE_DEMUXER_PLUGIN_PREFIXNAME          "xineplug_dmx_"
-#define XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH   13
+void xine_demux_control_newpts   (xine_t *this, int64_t pts, uint32_t flags );
 
-#define XINE_VIDEO_OUT_PLUGIN_PREFIXNAME        "xineplug_vo_out_"
-#define XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
+void xine_demux_control_start    (xine_t *this );
 
-#define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME        "xineplug_ao_out_"
-#define XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH 16
-
-#define XINE_DECODER_PLUGIN_PREFIXNAME          "xineplug_decode_"
-#define XINE_DECODER_PLUGIN_PREFIXNAME_LENGTH   16
+void xine_demux_control_end      (xine_t *this, uint32_t flags );
 
 /*
- * load all available demuxer plugins
- */
-void load_demux_plugins (xine_t *this, 
-			 config_values_t *config);
-                         
-/*
- *  list (open and close) all available demuxer plugins
- */
-void xine_list_demux_plugins (config_values_t *config,
-			      char **identifiers, char **mimetypes);
-                          
-/*
- * load all available input plugins
+ * plugin management
  */
 
-void load_input_plugins (xine_t *this, 
-			 config_values_t *config);
-
 /*
- * load all available decoder plugins
- */
-void load_decoder_plugins (xine_t *this, 
-			   config_values_t *config);
-
-/*
- * output driver load support functions
+ * on-demand loading of audio/video/spu decoder plugins
  */
 
-/* video */
+video_decoder_t *get_video_decoder (xine_t *this, uint8_t stream_type); 
+audio_decoder_t *get_audio_decoder (xine_t *this, uint8_t stream_type); 
+spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type); 
 
-#define VISUAL_TYPE_X11   1
-#define VISUAL_TYPE_AA    2
-#define VISUAL_TYPE_FB    3
-#define VISUAL_TYPE_GTK   4
-#define VISUAL_TYPE_DFB   5
-
-/*
- * list_video_output_plugins
+/* 
+ * plugin_loader functions
  *
- * returns a list of available video output plugins for
- * the specified visual type - the list is sorted by plugin
- * priority
  */
 
 char **xine_list_video_output_plugins (int visual_type);
@@ -554,8 +300,8 @@ char **xine_list_video_output_plugins (int visual_type);
  * load a specific video output plugin
  */
 
-vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-					   char *id, int visual_type, void *visual);
+xine_vo_driver_t *xine_load_video_output_plugin(xine_t *this,
+						char *id, int visual_type, void *visual);
 
 /*
  * audio output plugin dynamic loading stuff
@@ -576,101 +322,18 @@ char **xine_list_audio_output_plugins ();
  * load a specific audio output plugin
  */
 
-ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
-
-/*
- * sending events
- * event dispatcher mechanism
- */
-
-/*
- * register an event listener callback.
- * returns 0 if the listener was registerd, non-zero if it could not.
- */
-
-int xine_register_event_listener(xine_t *this, xine_event_listener_t listener,
-				 void *user_data);
-
-/*
- * attempt to remove a registered event listener.
- * returns 0 if the listener was removed, non-zero if not (e.g. not found).
- */
-
-int xine_remove_event_listener(xine_t *this, xine_event_listener_t listener);
-
-/*
- * send an event to all listeners.
- */
-
-void xine_send_event(xine_t *this, xine_event_t *event);
-
-/*
- * register an codec reporting callback.
- * return 0 if ok
- * obs: set to NULL to unregister
- */
-
-int xine_register_report_codec_cb(xine_t *this, xine_report_codec_t report_codec,
-				 void *user_data);
+xine_ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
 
 
-/*
- * snapshot function
- *
- * returns:
- * width, height : size of image (be aware that u,v may be subsampled)
- * ratio_code    : aspect ratio of the frame
- * format        : subsampling format YUV 4:2:0 or 4:2:2
- * y             : lumiance information
- * u,v           : subsample color information
- */
-int xine_get_current_frame (xine_t *this, int *width, int *height,
-			    int *ratio_code, int *format,
-			    uint8_t **y, uint8_t **u,
-			    uint8_t **v);
+void xine_set_speed (xine_t *this, int speed) ;
 
-#define XINE_ASPECT_RATIO_SQUARE      1
-#define XINE_ASPECT_RATIO_4_3         2
-#define XINE_ASPECT_RATIO_ANAMORPHIC  3
-#define XINE_ASPECT_RATIO_211_1       4
-#define XINE_ASPECT_RATIO_PAN_SCAN   41
-#define XINE_ASPECT_RATIO_DONT_TOUCH 42
+int  xine_get_spu_lang (xine_t *this, int channel, char *str) ;
 
-osd_renderer_t *xine_get_osd_renderer (xine_t *this);
-  
-/*
- * xine log functions 
- */
-  
-char **xine_get_log_names (xine_t *this);
-void   xine_log (xine_t *this, int buf, const char *format, ...);
-char **xine_get_log (xine_t *this, int buf);
-int    xine_get_log_section_count (xine_t *this);
+void xine_select_spu_channel (xine_t *this, int channel) ;
 
+int xine_get_audio_channel (xine_t *this) ;
 
-/*
- * xine error reporting
- */
-
-#define XINE_ERROR_NONE              0
-#define XINE_ERROR_NO_INPUT_PLUGIN   1
-#define XINE_ERROR_NO_DEMUXER_PLUGIN 2
-#define XINE_ERROR_DEMUXER_FAILED    3
-
-int xine_get_error (xine_t *this);
-
-
-/* 
- * demuxer helper functions from demux.c 
- */
-
-void xine_demux_flush_engine(xine_t *this);
-
-void xine_demux_control_newpts( xine_t *this, int64_t pts, uint32_t flags );
-
-void xine_demux_control_start( xine_t *this );
-
-void xine_demux_control_end( xine_t *this, uint32_t flags );
+int xine_get_spu_channel (xine_t *this) ;
 
 #ifdef __cplusplus
 }

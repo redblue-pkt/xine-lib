@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.1 2002/08/29 06:09:06 tmmm Exp $
+ * $Id: qtsmc.c,v 1.2 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -32,9 +32,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "video_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "video_out.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -598,7 +598,7 @@ static void qtsmc_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        42, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -692,8 +692,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this = (qtsmc_decoder_t *) malloc (sizeof (qtsmc_decoder_t));
   memset(this, 0, sizeof (qtsmc_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = qtsmc_can_handle;
   this->video_decoder.init                = qtsmc_init;
   this->video_decoder.decode_data         = qtsmc_decode_data;
   this->video_decoder.flush               = qtsmc_flush;

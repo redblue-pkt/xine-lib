@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.4 2002/07/05 17:32:04 mroi Exp $
+ * $Id: roqaudio.c,v 1.5 2002/09/04 23:31:10 guenter Exp $
  *
  */
 
@@ -32,9 +32,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -65,10 +65,6 @@ typedef struct roqaudio_decoder_s {
 
   short             square_array[256];
 } roqaudio_decoder_t;
-
-static int roqaudio_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_AUDIO_ROQ);
-}
 
 static void roqaudio_reset (audio_decoder_t *this_gen) {
 }
@@ -186,23 +182,12 @@ static void roqaudio_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   roqaudio_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf(_("RoQ Audio: plugin doesn't support plugin API version %d.\n"
-	     "RoQ Audio: this means there's a version mismatch between xine and this\n"
-	     "RoQ Audio: decoder plugin.\nInstalling current plugins should help.\n"),
-	   iface_version);
-
-    return NULL;
-  }
-
   this = (roqaudio_decoder_t *) malloc (sizeof (roqaudio_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = roqaudio_can_handle;
   this->audio_decoder.init                = roqaudio_init;
   this->audio_decoder.decode_data         = roqaudio_decode_data;
   this->audio_decoder.reset               = roqaudio_reset;
@@ -214,3 +199,17 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   return (audio_decoder_t *) this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_ROQ, 0
+};
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  5                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "roq", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.12 2002/08/16 21:10:02 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.13 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -49,15 +49,15 @@
 #include <math.h>
 #include <SDL/SDL.h>
 
-#include "video_out.h"
+#include "xine.h"
 #include "xine_internal.h"
+#include "video_out.h"
 #include "alphablend.h"
 #include "xineutils.h"
 #include "vo_scale.h"
 
 #ifdef HAVE_X11
 #include <X11/Xlib.h>
-#include "video_out_x11.h"
 #endif
 
 /*
@@ -75,13 +75,13 @@ typedef struct sdl_frame_s {
 
 struct sdl_driver_s {
 
-  vo_driver_t        vo_driver;
+  xine_vo_driver_t   vo_driver;
 
   config_values_t   *config;
 
-  SDL_Surface * surface;
-  uint32_t sdlflags;
-  uint8_t bpp;
+  SDL_Surface       *surface;
+  uint32_t           sdlflags;
+  uint8_t            bpp;
   
   pthread_mutex_t    mutex;
 
@@ -98,7 +98,7 @@ struct sdl_driver_s {
 
 };
 
-static uint32_t sdl_get_capabilities (vo_driver_t *this_gen) {
+static uint32_t sdl_get_capabilities (xine_vo_driver_t *this_gen) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
 
@@ -119,7 +119,7 @@ static void sdl_frame_dispose (vo_frame_t *vo_img) {
   free (frame);
 }
 
-static vo_frame_t *sdl_alloc_frame (vo_driver_t *this_gen) {
+static vo_frame_t *sdl_alloc_frame (xine_vo_driver_t *this_gen) {
 
   sdl_frame_t     *frame ;
 
@@ -160,7 +160,7 @@ static void sdl_compute_output_size (sdl_driver_t *this) {
 }
 
 
-static void sdl_update_frame_format (vo_driver_t *this_gen,
+static void sdl_update_frame_format (xine_vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
 				    int ratio_code, int format, int flags) {
@@ -181,14 +181,14 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
       frame->overlay = NULL; 
     }
       
-    if( format == IMGFMT_YV12 ) {
+    if( format == XINE_IMGFMT_YV12 ) {
 #ifdef SDL_LOG
       printf ("video_out_sdl: format YV12 ");
 #endif
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YV12_OVERLAY,
 					     this->surface);
       
-    } else if( format == IMGFMT_YUY2 ) {
+    } else if( format == XINE_IMGFMT_YUY2 ) {
 #ifdef SDL_LOG
       printf ("video_out_sdl: format YUY2 ");
 #endif
@@ -219,12 +219,12 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
 /*
  *
  */
-static void sdl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void sdl_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
   
   if (overlay->rle) {
-    if( frame->format == IMGFMT_YV12 )
+    if( frame->format == XINE_IMGFMT_YV12 )
       blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
     else
       blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
@@ -251,7 +251,7 @@ static void sdl_check_events (sdl_driver_t * this)
   }
 }
 
-static int sdl_redraw_needed (vo_driver_t *this_gen) {
+static int sdl_redraw_needed (xine_vo_driver_t *this_gen) {
   sdl_driver_t  *this = (sdl_driver_t *) this_gen;
   int ret = 0;
 
@@ -290,7 +290,7 @@ static int sdl_redraw_needed (vo_driver_t *this_gen) {
 }
 
 
-static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void sdl_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   sdl_driver_t  *this = (sdl_driver_t *) this_gen;
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
@@ -331,7 +331,7 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   pthread_mutex_unlock(&this->mutex);
 }
 
-static int sdl_get_property (vo_driver_t *this_gen, int property) {
+static int sdl_get_property (xine_vo_driver_t *this_gen, int property) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
   
@@ -360,7 +360,7 @@ static int sdl_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void sdl_get_property_min_max (vo_driver_t *this_gen,
+static void sdl_get_property_min_max (xine_vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
 /*  sdl_driver_t *this = (sdl_driver_t *) this_gen; */
@@ -377,9 +377,9 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
     
   switch (data_type) {
 
-  case GUI_DATA_EX_DRAWABLE_CHANGED:
+  case XINE_GUI_SEND_DRAWABLE_CHANGED:
 #ifdef SDL_LOG
-      printf ("video_out_sdl: GUI_DATA_EX_DRAWABLE_CHANGED\n");
+      printf ("video_out_sdl: XINE_GUI_SEND_DRAWABLE_CHANGED\n");
 #endif
     
     this->drawable = (Drawable) data;
@@ -387,9 +387,9 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
     /* probably we need to close and reinitialize SDL */
     break;
   
-  case GUI_DATA_EX_EXPOSE_EVENT:
+  case XINE_GUI_SEND_EXPOSE_EVENT:
 #ifdef SDL_LOG
-      printf ("video_out_sdl: GUI_DATA_EX_EXPOSE_EVENT\n");
+      printf ("video_out_sdl: XINE_GUI_SEND_EXPOSE_EVENT\n");
 #endif
     break;
       
@@ -421,7 +421,7 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
   return ret;
 }
                             
-static void sdl_exit (vo_driver_t *this_gen) {
+static void sdl_exit (xine_vo_driver_t *this_gen) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
 
@@ -429,7 +429,7 @@ static void sdl_exit (vo_driver_t *this_gen) {
   SDL_QuitSubSystem (SDL_INIT_VIDEO);
 }
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+xine_vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   sdl_driver_t          *this;
   const SDL_VideoInfo * vidInfo;
@@ -530,7 +530,7 @@ static vo_info_t vo_info_sdl = {
   6,
   "sdl",
   NULL,
-  VISUAL_TYPE_X11,
+  XINE_VISUAL_TYPE_X11,
   4  
 };
 

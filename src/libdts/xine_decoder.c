@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/07/05 17:32:02 mroi Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/09/04 23:31:09 guenter Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -36,9 +36,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h> /* ntohs */
+
+#include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 
 
 typedef struct dts_decoder_s {
@@ -52,12 +53,6 @@ typedef struct dts_decoder_s {
   ao_instance_t   *audio_out;
   int              output_open;
 } dts_decoder_t;
-
-int dts_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_AUDIO_DTS);
-}
 
 
 void dts_reset (audio_decoder_t *this_gen) {
@@ -225,22 +220,12 @@ static void dts_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   dts_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf(_("libdts: plugin doesn't support plugin API version %d.\n"
-	     "libdts: this means there's a version mismatch between xine and this "
-	     "libdts: decoder plugin.\nInstalling current plugins should help.\n"),
-	     iface_version);
-    return NULL;
-  }
-
   this = (dts_decoder_t *) malloc (sizeof (dts_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = dts_can_handle;
   this->audio_decoder.init                = dts_init;
   this->audio_decoder.decode_data         = dts_decode_data;
   this->audio_decoder.reset               = dts_reset;
@@ -249,6 +234,20 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.dispose             = dts_dispose;
   this->audio_decoder.priority            = 1;
     
-  return (audio_decoder_t *) this;
+  return this;
 }
 
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_DTS, 0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "dts", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

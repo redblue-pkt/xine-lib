@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.15 2002/07/05 17:32:02 mroi Exp $
+ * $Id: input_mms.c,v 1.16 2002/09/04 23:31:08 guenter Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -284,20 +284,11 @@ static void mms_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   mms_input_plugin_t *this;
   config_values_t    *config;
   
-  if (iface != 8) {
-    printf ("mms input plugin doesn't support plugin API version %d.\n"
-            "PLUGIN DISABLED.\n"
-            "This means there's a version mismatch between xine and this input"
-            "plugin.\nInstalling current input plugins should help.\n",
-            iface);
-    return NULL;
-  }
-
   this       = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
   config     = xine->config;
   this->xine = xine;
@@ -328,5 +319,16 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->curpos          = 0;
   this->nbc             = NULL;
   
-  return &this->input_plugin;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "mms", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+

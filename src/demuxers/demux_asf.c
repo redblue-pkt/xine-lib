@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.53 2002/08/27 23:12:16 tmattern Exp $
+ * $Id: demux_asf.c,v 1.54 2002/09/04 23:31:07 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1406,7 +1406,7 @@ static int demux_asf_open(demux_plugin_t *this_gen,
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_asf", VALID_ENDS,
 							    _("valid mrls ending for asf demuxer"),
-							    NULL, NULL, NULL)));
+							    NULL, 20, NULL, NULL)));
     while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
       
       while(*m == ' ' || *m == '\t') m++;
@@ -1439,18 +1439,10 @@ static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
   return this->length;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+void *init_demuxer_plugin (xine_t *xine, void *data) {
 
   demux_asf_t     *this;
 
-  if (iface != 10) {
-    printf (_("demux_asf: plugin doesn't support plugin API version %d.\n"
-	      "           this means there's a version mismatch between xine and this "
-	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
-  
   this         = xine_xmalloc (sizeof (demux_asf_t));
   this->config = xine->config;
   this->xine   = xine;
@@ -1458,7 +1450,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
 					"mrl.ends_asf", VALID_ENDS,
 					_("valid mrls ending for asf demuxer"),
-					NULL, NULL, NULL);
+					NULL, 20, NULL, NULL);
   
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_asf_open;
@@ -1474,5 +1466,16 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
   
-  return (demux_plugin_t *) this;
+  return this;
 }
+
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "asf", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

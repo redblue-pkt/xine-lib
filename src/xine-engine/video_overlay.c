@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.23 2002/09/01 05:52:15 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.24 2002/09/04 23:31:13 guenter Exp $
  *
  */
 
@@ -29,7 +29,6 @@
 #include <fcntl.h>
 
 #include "buffer.h"
-#include "events.h"
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
@@ -548,8 +547,8 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 /* This is called from video_out.c 
  * must call output->overlay_blend for each active overlay.
  */
-static void video_overlay_multiple_overlay_blend(video_overlay_instance_t *this_gen, int64_t vpts, 
-                                         vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
+static void video_overlay_multiple_overlay_blend (video_overlay_instance_t *this_gen, int64_t vpts, 
+						  xine_vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int i;
   int32_t  handle;

@@ -31,12 +31,11 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "xineutils.h"
-#include "xine_internal.h"
-#include "events.h"
 
 /*
 #define LOG_PAN_SCAN
@@ -373,7 +372,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
-						     IMGFMT_YV12,
+						     XINE_IMGFMT_YV12,
 						     picture->picture_structure);
 		else {
 		    picture->current_frame =
@@ -381,7 +380,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
-						     IMGFMT_YV12,
+						     XINE_IMGFMT_YV12,
 						     (VO_PREDICTION_FLAG | picture->picture_structure));
 		    if (picture->forward_reference_frame)
 		      picture->forward_reference_frame->free (picture->forward_reference_frame);

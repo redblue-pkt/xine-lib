@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.2 2002/09/01 04:26:20 tmmm Exp $
+ * $Id: logpcm.c,v 1.3 2002/09/04 23:31:10 guenter Exp $
  *
  */
 
@@ -41,9 +41,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "audio_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
+#include "video_out.h"
+#include "audio_out.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -263,8 +264,6 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   this = (logpcm_decoder_t *) malloc (sizeof (logpcm_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = logpcm_can_handle;
   this->audio_decoder.init                = logpcm_init;
   this->audio_decoder.decode_data         = logpcm_decode_data;
   this->audio_decoder.reset               = logpcm_reset;

@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.12 2002/09/03 02:46:30 tmmm Exp $
+ * $Id: adpcm.c,v 1.13 2002/09/04 23:31:10 guenter Exp $
  */
 
 #include <stdio.h>
@@ -33,9 +33,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
+#include "video_out.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -963,18 +964,6 @@ static void vqa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   this->size = 0;
 }
 
-static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
-  buf_type &= 0xFFFF0000;
-
-  return ( buf_type == BUF_AUDIO_MSADPCM ||
-           buf_type == BUF_AUDIO_MSIMAADPCM ||
-           buf_type == BUF_AUDIO_QTIMAADPCM ||
-           buf_type == BUF_AUDIO_DK3ADPCM ||
-           buf_type == BUF_AUDIO_DK4ADPCM ||
-           buf_type == BUF_AUDIO_SMJPEG_IMA ||
-           buf_type == BUF_AUDIO_VQA_IMA );
-}
-
 static void adpcm_reset (audio_decoder_t *this_gen) {
 
   /* adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen; */
@@ -1145,22 +1134,12 @@ static void adpcm_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   adpcm_decoder_t *this ;
 
-  if (iface_version != 9) {
-    printf( "libadpcm: plugin doesn't support plugin API version %d.\n"
-            "libadpcm: this means there's a version mismatch between xine and this "
-            "libadpcm: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
-
   this = (adpcm_decoder_t *) malloc (sizeof (adpcm_decoder_t));
 
-  this->audio_decoder.interface_version   = iface_version;
-  this->audio_decoder.can_handle          = adpcm_can_handle;
   this->audio_decoder.init                = adpcm_init;
   this->audio_decoder.decode_data         = adpcm_decode_data;
   this->audio_decoder.reset               = adpcm_reset;
@@ -1169,5 +1148,22 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.dispose             = adpcm_dispose;
   this->audio_decoder.priority            = 9;
 
-  return (audio_decoder_t *) this;
+  return this;
 }
+
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
+  BUF_AUDIO_QTIMAADPCM, BUF_AUDIO_DK3ADPCM,
+  BUF_AUDIO_DK4ADPCM, 0
+ };
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.71 2002/07/05 20:54:37 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.72 2002/09/04 23:31:07 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -108,7 +108,7 @@
 
 typedef struct oss_driver_s {
 
-  ao_driver_t      ao_driver;
+  xine_ao_driver_t ao_driver;
   char             audio_dev[20];
   int              audio_fd;
   int              capabilities;
@@ -141,7 +141,7 @@ typedef struct oss_driver_s {
 /*
  * open the audio device for writing to
  */
-static int ao_oss_open(ao_driver_t *this_gen,
+static int ao_oss_open(xine_ao_driver_t *this_gen,
 		       uint32_t bits, uint32_t rate, int mode) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -322,27 +322,27 @@ static int ao_oss_open(ao_driver_t *this_gen,
   return this->output_sample_rate;
 }
 
-static int ao_oss_num_channels(ao_driver_t *this_gen) {
+static int ao_oss_num_channels(xine_ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   return this->num_channels;
 }
 
-static int ao_oss_bytes_per_frame(ao_driver_t *this_gen) {
+static int ao_oss_bytes_per_frame(xine_ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   return this->bytes_per_frame;
 }
 
-static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen){
+static int ao_oss_get_gap_tolerance (xine_ao_driver_t *this_gen){
 
   /* oss_driver_t *this = (oss_driver_t *) this_gen; */
 
   return GAP_TOLERANCE;
 }
 
-static int ao_oss_delay(ao_driver_t *this_gen) {
+static int ao_oss_delay(xine_ao_driver_t *this_gen) {
 
   count_info    info;
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -398,7 +398,7 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
   * audio frames are equivalent one sample on each channel.
   * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
-static int ao_oss_write(ao_driver_t *this_gen,
+static int ao_oss_write(xine_ao_driver_t *this_gen,
 			int16_t* frame_buffer, uint32_t num_frames) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -429,7 +429,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
   return write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
 }
 
-static void ao_oss_close(ao_driver_t *this_gen) {
+static void ao_oss_close(xine_ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
@@ -437,14 +437,14 @@ static void ao_oss_close(ao_driver_t *this_gen) {
   this->audio_fd = -1;
 }
 
-static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
+static uint32_t ao_oss_get_capabilities (xine_ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   return this->capabilities;
 }
 
-static void ao_oss_exit(ao_driver_t *this_gen) {
+static void ao_oss_exit(xine_ao_driver_t *this_gen) {
 
   oss_driver_t    *this   = (oss_driver_t *) this_gen;
 
@@ -454,7 +454,7 @@ static void ao_oss_exit(ao_driver_t *this_gen) {
   free (this);
 }
 
-static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
+static int ao_oss_get_property (xine_ao_driver_t *this_gen, int property) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
@@ -498,7 +498,7 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
   return 0;
 }
 
-static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
+static int ao_oss_set_property (xine_ao_driver_t *this_gen, int property, int value) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
@@ -582,7 +582,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
   return ~value;
 }
 
-static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
+static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   switch (cmd) {
@@ -611,9 +611,10 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-ao_driver_t *init_audio_out_plugin (config_values_t *config) {
+void *init_audio_out_plugin (xine_t *xine, void *data) {
 
-  oss_driver_t *this;
+  config_values_t *config = xine->config;
+  oss_driver_t    *this;
   int              caps;
 #ifdef CONFIG_DEVFS_FS
   char             devname[] = "/dev/sound/dsp\0\0\0";
@@ -638,7 +639,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   best_rate = 0;
   devnum = config->register_num (config, "audio.oss_device_num", -1,
 				 _("/dev/dsp# device to use for oss output, -1 => auto_detect"),
-				 NULL, NULL, NULL);
+				 NULL, 10, NULL, NULL);
 
   if (devnum >= 0) {
     sprintf (this->audio_dev, DSP_TEMPLATE, devnum);
@@ -706,7 +707,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->sync_method = config->register_enum (config, "audio.oss_sync_method", OSS_SYNC_AUTO_DETECT,
 					     sync_methods, 
 					     _("A/V sync method to use by OSS, depends on driver/hardware"),
-					     NULL, NULL, NULL);
+					     NULL, 20, NULL, NULL);
 
   if (this->sync_method == OSS_SYNC_AUTO_DETECT) {
 
@@ -774,7 +775,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 					  -3000, 3000, 
 					  _("Adjust a/v sync for OSS softsync"),
 					  _("Use this to manually adjust a/v sync if you're using softsync"),
-					  NULL, NULL);
+					  10, NULL, NULL);
   
   this->capabilities = 0;
   
@@ -800,7 +801,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if ( (status != -1) && (num_channels==4) ) {
     if (config->register_bool (config, "audio.four_channel", 0,
 			       _("Enable 4.0 channel analog surround output"),
-			       NULL, NULL, NULL)) {
+			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_4CHANNEL;
       printf ("4-channel ");
     } else
@@ -811,7 +812,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if ( (status != -1) && (num_channels==5) ) {
     if (config->register_bool (config, "audio.five_channel", 0,
 			       _("Enable 5.0 channel analog surround output"),
-			       NULL, NULL, NULL)) {
+			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5CHANNEL;
       printf ("5-channel ");
     } else
@@ -822,7 +823,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if ( (status != -1) && (num_channels==6) ) {
     if (config->register_bool (config, "audio.five_lfe_channel", 0,
 			       _("Enable 5.1 channel analog surround output"),
-			       NULL, NULL, NULL)) {
+			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       printf ("5.1-channel ");
     } else
@@ -833,7 +834,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   if (caps & AFMT_AC3) {
     if (config->register_bool (config, "audio.a52_pass_through", 0,
 			       _("Enable A52 / AC5 digital audio output via spdif"),
-			       NULL, NULL, NULL)) {
+			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_A52;
       this->capabilities |= AO_CAP_MODE_AC5;
       printf ("a/52-pass-through ");
@@ -848,7 +849,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    */
 
   this->mixer.name = config->register_string(config, "audio.mixer_name", "/dev/mixer",
-					     _("oss mixer device"), NULL, NULL, NULL);
+					     _("oss mixer device"), NULL, 
+					     10, NULL, NULL);
   {
     int mixer_fd;
     int audio_devs;
@@ -909,13 +911,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.get_gap_tolerance   = ao_oss_get_gap_tolerance;
   this->ao_driver.control	      = ao_oss_ctrl;
 
-  return &this->ao_driver;
+  return this;
 }
 
 static ao_info_t ao_info_oss = {
-  AO_OUT_OSS_IFACE_VERSION,
-  "oss",
-  NULL,
+  "xine audio output plugin using oss-compliant audio devices/drivers",
   10
 };
 
@@ -923,3 +923,13 @@ ao_info_t *get_audio_out_plugin_info() {
   ao_info_oss.description = _("xine audio output plugin using oss-compliant audio devices/drivers");
   return &ao_info_oss;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, init_audio_out_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

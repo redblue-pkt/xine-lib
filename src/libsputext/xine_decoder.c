@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2002/07/05 17:32:03 mroi Exp $
+ * $Id: xine_decoder.c,v 1.39 2002/09/04 23:31:10 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -39,7 +39,6 @@
 #include <iconv.h>
 
 #include "buffer.h"
-#include "events.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "osd.h"
@@ -995,7 +994,7 @@ static char *spudec_get_id(void) {
   return "sputext";
 }
 
-static void update_osd_font(void *this_gen, cfg_entry_t *entry)
+static void update_osd_font(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
@@ -1007,7 +1006,7 @@ static void update_osd_font(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_font = %s\n", this->font );
 }
 
-static void update_osd_src_encoding(void *this_gen, cfg_entry_t *entry)
+static void update_osd_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
@@ -1016,7 +1015,7 @@ static void update_osd_src_encoding(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_src_encoding = %s\n", this->src_encoding );
 }
 
-static void update_osd_dst_encoding(void *this_gen, cfg_entry_t *entry)
+static void update_osd_dst_encoding(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
@@ -1025,7 +1024,7 @@ static void update_osd_dst_encoding(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_dst_encoding = %s\n", this->dst_encoding );
 }
 
-static void update_subtitle_size(void *this_gen, cfg_entry_t *entry)
+static void update_subtitle_size(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
@@ -1034,7 +1033,7 @@ static void update_subtitle_size(void *this_gen, cfg_entry_t *entry)
   update_font_size (this_gen);
 }
 
-static void update_time_offset(void *this_gen, cfg_entry_t *entry)
+static void update_time_offset(void *this_gen, xine_cfg_entry_t *entry)
 {
   sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
 
@@ -1076,28 +1075,28 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"codec.spu_font", 
 									"sans", 
 									_("font for avi subtitles"), 
-									NULL, update_osd_font, this);
+									NULL, 0, update_osd_font, this);
   this->subtitle_size                    = xine->config->register_enum(xine->config, 
 								       "codec.spu_subtitle_size", 
 								       1,
 								       subtitle_size_strings,
 								       _("subtitle size (relative window size)"), 
-								       NULL, update_subtitle_size, this);
+								       NULL, 0, update_subtitle_size, this);
   this->src_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_src_encoding", 
 									"windows-1250", 
 									_("source encoding of subtitles"), 
-									NULL, update_osd_src_encoding, this);
+									NULL, 10, update_osd_src_encoding, this);
   this->dst_encoding                    = xine->config->register_string(xine->config, 
 									"codec.spu_dst_encoding", 
 									"iso-8859-2", 
 									_("target encoding for subtitles (have to match font encoding)"), 
-									NULL, update_osd_dst_encoding, this);
+									NULL, 10, update_osd_dst_encoding, this);
   this->time_offset                     = xine->config->register_num   (xine->config, 
 								        "codec.spu_time_offset", 
 								        0,
 								        _("subtitle time offset in 1/100 sec"), 
-								        NULL, update_time_offset, this);
+								        NULL, 10, update_time_offset, this);
 
   return (spu_decoder_t *) this;
 }

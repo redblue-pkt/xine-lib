@@ -1,23 +1,10 @@
 
-SUBDIRS = man xine-lib-API hackersguide
+SUBDIRS = man hackersguide
 
-EXTRA_DIST = $(docs_DOCS) README dataflow.dia xine-lib-API.cfg
+EXTRA_DIST = $(docs_DOCS) README dataflow.dia
 
 docdir = $(prefix)/share/doc/xine
 docs_DOCS = 
-
-docs:
-	@if test x"$$DOXYGEN" != "xno"; then \
-	  echo -n "  + Creating docs: "; \
-	  if test ! -d xine-lib-API/html; \
-	     then mkdir -p xine-lib-API/html; \
-	  fi; \
-	  cp ../misc/xine_logo.png ./xine-lib-API/html; \
-	  echo -e "<HTML>\n<HEAD>\n<TITLE>\$$projectname</TITLE>\n<IMG SRC=\"xine_logo.png\" alt=\"xine logo\" ALIGN=CENTER WIDTH=100% CELLPADDING=0 BORDER=0>\n</HEAD>\n<BODY BGCOLOR=#000000 TEXT=#ccccFF LINK=#a0a0FF VLINK=#40ddff ALINK=#ffffff leftmargin=\"0\" topmargin=\"0\" marginwidth=\"0\" marginheight=\"0\">\n" > ./xine-lib-API/xine_header.html; \
-	  $(DOXYGEN) xine-lib-API.cfg; \
-	  echo "done.";\
-	fi
-
 
 install-data-local:
 	@documentations='$(docs_DOCS)'; \

@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.4 2002/08/28 03:37:17 tmmm Exp $
+ * $Id: msrle.c,v 1.5 2002/09/04 23:31:11 guenter Exp $
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -165,12 +165,6 @@ void decode_msrle8(msrle_decoder_t *this) {
  * xine video plugin functions
  *************************************************************************/
 
-static int msrle_can_handle (video_decoder_t *this_gen, int buf_type) {
-
-  return (buf_type == BUF_VIDEO_MSRLE);
-
-}
-
 /*
  * This function is responsible is called to initialize the video decoder
  * for use. Initialization usually involves setting up the fields in your
@@ -259,7 +253,7 @@ static void msrle_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
@@ -346,23 +340,13 @@ static void msrle_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   msrle_decoder_t *this ;
-
-  if (iface_version != 10) {
-    printf( "msrle: plugin doesn't support plugin API version %d.\n"
-            "msrle: this means there's a version mismatch between xine and this "
-            "msrle: decoder plugin.\nInstalling current plugins should help.\n",
-            iface_version);
-    return NULL;
-  }
 
   this = (msrle_decoder_t *) malloc (sizeof (msrle_decoder_t));
   memset(this, 0, sizeof (msrle_decoder_t));
 
-  this->video_decoder.interface_version   = iface_version;
-  this->video_decoder.can_handle          = msrle_can_handle;
   this->video_decoder.init                = msrle_init;
   this->video_decoder.decode_data         = msrle_decode_data;
   this->video_decoder.flush               = msrle_flush;
@@ -372,6 +356,25 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.dispose             = msrle_dispose;
   this->video_decoder.priority            = 1;
 
-  return (video_decoder_t *) this;
+  return this;
 }
 
+/*
+ * exported plugin catalog entry
+ */
+
+static uint32_t video_types[] = { 
+  BUF_VIDEO_MSRLE,
+  0
+ };
+
+static decoder_info_t dec_info_video = {
+  video_types,         /* supported types */
+  1                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "msrle", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

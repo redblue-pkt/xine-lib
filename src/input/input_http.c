@@ -685,20 +685,10 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   http_input_plugin_t *this;
   config_values_t    *config;
-
-  if (iface != 8) {
-    xine_log (xine, XINE_LOG_PLUGIN,
-	    _("http input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
 
   this       = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
   config     = xine->config;
@@ -730,5 +720,16 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->curpos  = 0;
   this->nbc     = NULL;
   
-  return (input_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "http", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.52 2002/07/05 17:32:02 mroi Exp $
+ * $Id: input_file.c,v 1.53 2002/09/04 23:31:08 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -110,12 +110,12 @@ typedef struct {
 /*
  * Callback for config changes.
  */
-static void hidden_bool_cb(void *data, cfg_entry_t *cfg) {
+static void hidden_bool_cb(void *data, xine_cfg_entry_t *cfg) {
   file_input_plugin_t *this = (file_input_plugin_t *) data;
   
   this->show_hidden_files = cfg->num_value;
 }
-static void origin_change_cb(void *data, cfg_entry_t *cfg) {
+static void origin_change_cb(void *data, xine_cfg_entry_t *cfg) {
   file_input_plugin_t *this = (file_input_plugin_t *) data;
   
   this->origin_path = cfg->str_value;
@@ -847,23 +847,10 @@ static void file_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
-/*
- *
- */
-input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
+void *init_input_plugin (xine_t *xine, void *data) {
 
   file_input_plugin_t *this;
   config_values_t     *config;
-
-  if (iface != 8) {
-    LOG_MSG(xine,
-	    _("file input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
 
   this       = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
   config     = xine->config;
@@ -906,12 +893,23 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
     this->origin_path = config->register_string(this->config, "input.file_origin_path",
 						current_dir, _("origin path to grab file mrls"),
-						NULL, origin_change_cb, (void *) this);
+						NULL, 0, origin_change_cb, (void *) this);
   }
   
   this->show_hidden_files = this->config->register_bool(this->config, "input.file_hidden_files", 
 							1, _("hidden files displaying."),
-							NULL, hidden_bool_cb, (void *) this);
+							NULL, 10, hidden_bool_cb, (void *) this);
   
-  return (input_plugin_t *) this;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_INPUT, 8, "file", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+

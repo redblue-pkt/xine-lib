@@ -1,0 +1,192 @@
+The (new) xine plugin system
+============================
+
+The plugin system enables some of xine's most valuable features:
+
+- drop-in extensiability
+  (we have always had this...)
+- support parallel installation of multiple (incompatible) libxine versions
+- support for multiple plugin directories
+  (/usr/lib/xine/plugins + $HOME/.xine/plugins + /usr/local/... + ...)
+- support for recursive plugin directories
+  (plugins are found even in subdirectories of the plugin directories)
+- version management
+  On start, xine finds all plugins in its plugin (sub)directories and
+  chooses an appropriate version (usually the newest) for each plugin
+- simplification
+  plugins don't have to follow any special naming convention any more,
+  and any plugin may contain an arbitrary subset of input, demuxer,
+  decoder or output plugins.
+
+User view
+---------
+
+
+Developer view - How it works
+-----------------------------
+
+Essentally, plugins are just shared objects, ie dynamic libraries. In
+contrast to normal dynamic libraries, they are stored outside of the
+system's library PATHs and libxine does its own bookkeeping, which
+enables most advanced features mentioned above.
+
+The plugin mechanism is mainly defined by 3 components, namely plugin
+location (file system layout), plugin content (what's inside the .so?)
+and the loading mechanism. Each of those has a dedicated section here:
+
+Plugin location and filesystem layout
+-------------------------------------
+
+The primary goal for this new plugin mechanism was the need to support
+simultaneous installation of several (most likely incompatible)
+libxine versions without them overwriting each other's
+plugins. Therefore, we have this simple layout:
+
+Plugins are installed below XINE_PLUGINDIR (/usr/local/lib/xine/plugins
+by default).
+Note that plugins are _never_ directly installed into XINE_PLUGINDIR.
+Instead, a separate subdirectory is created for any "plugin
+provider". A plugin provider is equivalent with the exact version of
+one source package. Typical examples include "xine-lib-0.9.11" or
+"xine-dvdnav-1.0". Every source package is free to install an
+arbitrary number of plugins in its own, private directory. If a
+package installs several plugins, they may optionally be organized
+further into subdirectories.
+
+So you will finally end up with something like this:
+
+/usr/local/ lib/xine/plugins
+    xine-lib-0.9.11
+        demux_mpeg_block.so
+        decode_mpeg.so
+        video_out_xv.so
+        ...
+    xine-dvdnav-0.9.11
+        input_dvdnav.so
+    xine-lib-1.2
+	input
+	    file.so
+	    stdin_fifo.so
+	    vcd.so
+	demuxers
+	    fli.so
+	    avi.so
+	    ...
+	decoders
+	    ffmpeg.so
+	    mpeg.so (may contain mpeg 1/2 audio and video decoders)
+	    pcm.so
+	    ...
+	output
+	    video_xv.so
+	    audio_oss.so
+	    ...
+    xine-lib-3.0
+	avi.so (avi demuxer)
+	mpeg.so (contains mpeg demuxers and audio/video decoders)
+	video_out_xv.so (Xv video out)
+	...
+
+As you can see, every package is free to organize plugins at will
+below its own plugin provider directory.
+
+Additionally, administrators may choose to put plugins directly into
+XINE_PLUGINDIR, or in a "local" subdirectory.
+Users may wish to put additional plugins in ~/.xine/plugins/.
+Again, there may be subdirectories to help organize the plugins.
+
+
+Plugin Content: What's inside the .so?
+--------------------------------------
+
+Each plugin library (.so file) contains an arbitrary number of (virtual)
+plugins. Typically, it will contain exactly one plugin.  However, it
+may be useful to put a set of related plugins in one library, so they
+can share common code.
+
+First of all, what is a virtual plugin?
+A virtual plugin is essentially a structure that is defined by the
+xine engine. This structure typically contains lots of function
+pointers to the actual API functions.
+For each plugin API, there are several API versions, and each API
+version may specify a new, incompatible structure. Therefore, it is
+essential that only those plugins are loaded that support current
+libxine's API, so the .so file needs a "plugin directory" that
+provides libxine with the version information, even before it tries to
+load any of the plugins.
+
+This plugin directory is helt in an array named "xine_plugin_info",
+which is defined like this:
+
+plugin.h:
+---------
+#define PLUGIN_NONE		0
+#define PLUGIN_INPUT		1
+#define PLUGIN_DEMUX		2
+#define PLUGIN_AUDIO_CODEC	3
+...
+
+struct plugin_info_s {
+  uint8_t    plugin_type;    /* one of the PLUGIN_* constants above  */
+  uint8_t    plugin_API;     /* API version supported by this plugin */
+  const char *plugin_id;     /* a name that identifies this plugin   */
+  uint32_t   plugin_version; /* version number, increased every release */
+  plugin_t   *(*init)(void); /* used to get/initialize an instance   */  
+};
+typedef struct plugin_info_s plugin_info_t;
+
+a fictitious file input plugin that supports input plugin API 12 and
+13, found in xine-lib 2.13.7 would then define this plugin directory:
+
+input_file.c:
+------------
+#include <xine/plugin.h>
+...
+plugin_t *(*init_api12)(void) {
+  input_plugin_t *this;
+
+  this = malloc(sizeof(input_plugin_t));
+  ...
+  return (plugin_t *) this;
+}
+/* same thing, with different initialization for API 13 */
+
+const plugin_info_t xine_plugin_info[] = {
+  { PLUGIN_INPUT, 12, "file", 21307, init_api12 },
+  { PLUGIN_INPUT, 13, "file", 21307, init_api13 },
+  { PLUGIN_NONE, 0, "", 0, NULL }
+}
+
+Notes:
+-----
+This input plugin supports two APIs, other plugins might provide a
+mixture of demuxer and decoder plugins that belong together somehow
+(ie. share common code).
+
+The init function itself doesn't have to check API versions any more.
+
+The xine_plugin_info list must be terminated by a dummy entry for a
+"PLUGIN_NONE" plugin.
+
+The plugin version number is generated from xine-lib's version number
+like this: MAJOR * 10000 + MINOR * 100 + SUBMINOR. (2.13.7 => 21307)
+This is not required, but it's an easy way to ensure that the version
+increases for every release.
+
+The structure of xine_plugin_info may _never_ be changed. If it ever
+needs to be changed, it must be renamed to avoid erraneous loading of
+incompatible plugin directories.
+
+
+Plugin Loader Mechanism
+-----------------------
+
+The plugin loader needs two passes over the plugins:
+
+1) all configured plugin directories are recursively scanned,
+   collecting all compatible versions of all the available plugins
+
+2) for each virtual plugin (identified by plugin_id), the newest
+   version found above is selected and loaded.
+
+

@@ -20,7 +20,7 @@ dnl   XINE_SUB += 1; continue with LT_* values below
 dnl
 XINE_MAJOR=0
 XINE_MINOR=9
-XINE_SUB=13
+XINE_SUB=14
 
 
 dnl The libtool version numbers (LT_*); Don't even think about faking this!
@@ -40,7 +40,7 @@ dnl }
 
 LT_CURRENT=2
 LT_REVISION=0
-LT_AGE=2
+LT_AGE=0
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
@@ -993,9 +993,9 @@ AC_SUBST(w32_path)
 
 
 dnl
-dnl Some include paths ( !!! DO NOT REMOVE !!! )
+dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl
-INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-utils -I$(top_builddir)/src/xine-utils $(INTLDIR)'
+INCLUDES='-I$(top_srcdir) -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR)'
 AC_SUBST(INCLUDES)
 
 
@@ -1021,11 +1021,6 @@ AM_CONDITIONAL(INSTALL_M4, test x"$ACLOCAL_DIR" != "x")
 
 
 dnl
-dnl Check for doxygen (dynamic documentation generator)
-dnl
-AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)
-
-dnl
 dnl It seems automake 1.5 don't take care about this script
 dnl
 if test ! -z "$am_depcomp"; then
@@ -1039,7 +1034,7 @@ dnl
 AC_OUTPUT([
 Makefile
 include/Makefile
-include/xine.h.tmpl
+include/xine.h
 src/Makefile
 src/audio_out/Makefile
 src/video_out/Makefile
@@ -1088,8 +1083,6 @@ doc/Makefile
 doc/man/Makefile
 doc/man/en/Makefile
 doc/man/en/man3/Makefile
-doc/xine-lib-API/Makefile
-doc/xine-lib-API/html/Makefile
 doc/hackersguide/Makefile
 misc/xine-lib.spec
 misc/SlackBuild
@@ -1098,7 +1091,7 @@ misc/relchk.sh
 misc/fonts/Makefile
 intl/Makefile
 po/Makefile.in],
-[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
+[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh])
 
 dnl
 dnl Hack the libtool script (if required).
@@ -1279,3 +1272,6 @@ if test "x$am_cv_have_irixal" = xyes; then
 fi
 echo "---"
 
+echo 
+echo "*** CFLAGS: $CFLAGS"
+echo

@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.11 2002/06/17 07:47:50 f1rmb Exp $
+ * $Id: configfile.h,v 1.12 2002/09/04 23:31:13 guenter Exp $
  *
  * config file management
  *
@@ -32,10 +32,10 @@ extern "C" {
 
 #include <inttypes.h>
 
+#include "xine.h"
+
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;
-
-typedef void (*config_cb_t) (void *, cfg_entry_t *);
 
 struct cfg_entry_s {
   cfg_entry_t     *next;
@@ -68,8 +68,11 @@ struct cfg_entry_s {
   char            *description;
   char            *help;
 
+  /* user experience level */
+  int              exp_level;
+
   /* callback function and data for live changeable values */
-  config_cb_t      callback;
+  xine_config_cb_t callback;
   void            *callback_data;
 };
 
@@ -100,7 +103,8 @@ struct config_values_s {
 			    char *def_value,
 			    char *description, 
 			    char *help,
-			    config_cb_t changed_cb,
+			    int exp_level,
+			    xine_config_cb_t changed_cb,
 			    void *cb_data);
 
   int (*register_range) (config_values_t *this,
@@ -109,7 +113,8 @@ struct config_values_s {
 			 int min, int max,
 			 char *description, 
 			 char *help,
-			 config_cb_t changed_cb,
+			 int exp_level,
+			 xine_config_cb_t changed_cb,
 			 void *cb_data);
 
   int (*register_enum) (config_values_t *this,
@@ -118,7 +123,8 @@ struct config_values_s {
 			char **values,
 			char *description, 
 			char *help,
-			config_cb_t changed_cb,
+			int exp_level,
+			xine_config_cb_t changed_cb,
 			void *cb_data);
 
   int (*register_num) (config_values_t *this,
@@ -126,7 +132,8 @@ struct config_values_s {
 		       int def_value,
 		       char *description, 
 		       char *help,
-		       config_cb_t changed_cb,
+		       int exp_level,
+		       xine_config_cb_t changed_cb,
 		       void *cb_data);
 
   int (*register_bool) (config_values_t *this,
@@ -134,7 +141,8 @@ struct config_values_s {
 			int def_value,
 			char *description, 
 			char *help,
-			config_cb_t changed_cb,
+			int exp_level,
+			xine_config_cb_t changed_cb,
 			void *cb_data);
 
   /* convenience function to update range, enum, num and bool values */
@@ -159,21 +167,6 @@ struct config_values_s {
 				char *key);
 
   /*
-   * write config file to disk
-   */
-  void (*save) (config_values_t *this);
-
-  /*
-   * read config file from disk, overriding values in memory
-   */
-  void (*read) (config_values_t *this, char *filename);
-
-  /*
-   * free memory resources
-   */
-  void (*dispose) (config_values_t *this);
-
-  /*
    * unregister callback function
    */
   void (*unregister_callback) (config_values_t *this,
@@ -182,15 +175,21 @@ struct config_values_s {
   /* 
    * config values are stored here:
    */
-  cfg_entry_t         *first, *last;
+  cfg_entry_t         *first, *last, *cur;
+  xine_cfg_entry_t     public_entry;
 };
 
 /*
- * init internal data structures, read config file
- * (if it exists)
+ * allocate and init a new xine config object
  */
-config_values_t *xine_config_file_init (char *filename);
-int config_file_change_opt(config_values_t *config, char *opt);
+config_values_t *xine_config_init ();
+
+/*
+ * hack: intepret "opt:"-style mrls for config value changes
+ */
+
+int xine_config_change_opt(config_values_t *config, char *opt) ;
+
 
 #ifdef __cplusplus
 }
@@ -198,55 +197,3 @@ int config_file_change_opt(config_values_t *config, char *opt);
 
 #endif
 
-/*
- * $Log: configfile.h,v $
- * Revision 1.11  2002/06/17 07:47:50  f1rmb
- * Add Siggi's idea about option config change on the fly. New "mrl style"
- * opt:key=value. I hope i haven't introduced races here.
- *
- * Revision 1.10  2002/04/27 23:00:40  cvogler
- * Add function to unregister configfile callback.
- *
- * Necessary to prevent segfaults if target of a callback has been disposed.
- *
- * Revision 1.9  2002/03/16 13:33:47  esnel
- * fix memory leak, add dispose() function to config_values_s
- *
- * Revision 1.8  2002/02/06 10:57:15  f1rmb
- * rename config_file_init to xine_config_file_init.
- *
- * Revision 1.7  2001/12/01 22:38:32  guenter
- * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
- *
- * Revision 1.6  2001/11/30 21:55:06  f1rmb
- * Add an automatic way for input plugin to add extra valid mrls:
- * add at bottom of init_input_plugin() a line like this:
- * REGISTER_VALID_MRLS(this->config, "mrl.mrls_mpeg_block", "xxx");
- *
- * Revision 1.5  2001/11/20 17:22:14  miguelfreitas
- * testing some configfile stuff...
- *
- * Revision 1.4  2001/11/18 03:53:25  guenter
- * new configfile interface, code cleanup, xprintf is gone
- *
- * Revision 1.3  2001/07/26 11:12:26  f1rmb
- * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
- * proto decl, etc...
- *
- * Revision 1.2  2001/07/18 21:38:17  f1rmb
- * Split alsa drivers, more checks about versions. Made xine lib c++ compliant.
- *
- * Revision 1.1.1.1  2001/04/18 22:36:05  f1rmb
- * Initial import into CVS
- *
- * Revision 1.6  2001/03/31 03:42:25  guenter
- * more cleanups, started xv driver
- *
- * Revision 1.5  2001/03/28 12:30:25  siggi
- * fixed init function
- * added read function (multiple config files now supported)
- *
- * Revision 1.4  2001/03/27 21:49:02  siggi
- * started touching demuxers
- *
- */

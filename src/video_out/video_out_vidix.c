@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.10 2002/09/02 19:58:47 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.11 2002/09/04 23:31:12 guenter Exp $
  * 
  * video_out_vidix.c
  *
@@ -32,6 +32,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#warning DISABLED: FIXME
+#if 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -741,3 +744,4 @@ vo_info_t *get_video_out_plugin_info() {
   return &vo_info_vidix;
 }
 
+#endif

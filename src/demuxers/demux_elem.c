@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.49 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.50 2002/09/04 23:31:07 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -315,7 +315,7 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
       xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							      "mrl.ends_elem", VALID_ENDS,
 							      _("valid mrls ending for elementary demuxer"),
-							      NULL, NULL, NULL)));
+							      NULL, 20, NULL, NULL)));
       while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
 	
 	while(*m == ' ' || *m == '\t') m++;
@@ -357,21 +357,11 @@ static void demux_mpeg_elem_close (demux_plugin_t *this) {
 static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen) {
   return 0 ; /*FIXME: implement */
 }
-/*
- *
- */
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+
+static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
   demux_mpeg_elem_t *this;
 
-  if (iface != 10) {
-    printf (_("demux_elem: plugin doesn't support plugin API version %d.\n"
-	      "            this means there's a version mismatch between xine and this "
-	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
-  
   this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
   this->config = xine->config;
   this->xine   = xine;
@@ -379,7 +369,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
 					"mrl.ends_elem", VALID_ENDS,
 					_("valid mrls ending for elementary demuxer"),
-					NULL, NULL, NULL);    
+					NULL, 20, NULL, NULL);    
 
   this->demux_plugin.interface_version = DEMUX_MPEG_ELEM_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_elem_open;
@@ -395,5 +385,15 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
   
-  return &this->demux_plugin;
+  return this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "elem", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
