@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.14 2003/07/16 14:14:17 andruil Exp $
+ * $Id: utils.c,v 1.15 2003/07/16 21:55:02 jstembridge Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -187,13 +187,13 @@ void xine_hexdump (char *buf, int length) {
     printf ("%04X ",j);
     for (i=j; i<j+16; i++) {
       if( i<length )
-        printf ("%02X ", buf[i]);
+        printf ("%02X ", (unsigned char) buf[i]);
       else
         printf("   ");
     }
     for (i=j;i<(j+16<length?j+16:length);i++) {
       c=buf[i];
-      if ((c>=20) && (c<128))
+      if ((c>=32) && (c<128))
         printf ("%c", c);
       else
         printf (".");
