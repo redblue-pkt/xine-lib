@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.60 2002/09/22 14:29:40 mroi Exp $
+ * $Id: input_file.c,v 1.61 2002/10/14 15:47:17 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,25 +43,258 @@ extern int errno;
 
 #define MAXFILES      65535
 
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
+typedef struct {
+
+  input_class_t     input_class;
+
+  xine_t           *xine;
+  config_values_t  *config;
+  
+  int               show_hidden_files;
+  char             *origin_path;
+
+  int               mrls_allocated_entries;
+  xine_mrl_t      **mrls;
+  
+} file_input_class_t;
+
+typedef struct {
+  input_plugin_t    input_plugin;
+  
+  xine_stream_t    *stream;
+
+  int               fh;
+  char             *mrl;
+
+  FILE             *sub;
+
+} file_input_plugin_t;
+
+
+static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
+
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_SPULANG;
+}
+
+
+static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return read (this->fh, buf, len);
+}
+
+/*
+ * helper function to release buffer
+ * in case demux thread is cancelled
+ */
+static void pool_release_buffer (void *arg) {
+  buf_element_t *buf = (buf_element_t *) arg;
+  if( buf != NULL )
+    buf->free_buffer(buf);
+}
+
+static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
+
+  off_t                 num_bytes, total_bytes;
+  file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
+  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
+
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
+  pthread_cleanup_push( pool_release_buffer, buf );
+
+  buf->content = buf->mem;
+  buf->type = BUF_DEMUX_BLOCK;
+  total_bytes = 0;
+
+  while (total_bytes < todo) {
+    pthread_testcancel();
+    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
+    if (num_bytes <= 0) {
+      if (num_bytes < 0) 
+	xine_log (this->stream->xine, XINE_LOG_MSG,
+		  _("input_file: read error (%s)\n"), strerror(errno));
+      buf->free_buffer (buf);
+      buf = NULL;
+      break;
+    }
+    total_bytes += num_bytes;
   }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
+
+  if( buf != NULL )
+    buf->size = total_bytes;
+
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+  pthread_cleanup_pop(0);
+
+  return buf;
+}
+
+static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return lseek (this->fh, offset, origin);
+}
+
+static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->fh <0)
+    return 0;
+
+  return lseek (this->fh, 0, SEEK_CUR);
+}
+
+static off_t file_plugin_get_length (input_plugin_t *this_gen) {
+
+  struct stat          buf ;
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->fh <0)
+    return 0;
+
+  if (fstat (this->fh, &buf) == 0) {
+    return buf.st_size;
+  } else
+    perror ("system call fstat");
+  return 0;
+}
+
+static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
+  return 0;
+}
+
+/*
+ * Return 1 is filepathname is a directory, otherwise 0
+ */
+static int is_a_dir(char *filepathname) {
+  struct stat  pstat;
+  
+  stat(filepathname, &pstat);
+
+  return (S_ISDIR(pstat.st_mode));
+}
+
+static int file_plugin_eject_media (input_plugin_t *this_gen) {
+  return 1; /* doesn't make sense */
+}
+
+static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return this->mrl;
+}
+
+static int file_plugin_get_optional_data (input_plugin_t *this_gen, 
+					  void *data, int data_type) {
+  
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+#ifdef LOG
+  printf ("input_file: get optional data, type %08x, sub %p\n",
+	  data_type, this->sub);
 #endif
+
+  switch(data_type) {
+  case INPUT_OPTIONAL_DATA_TEXTSPU0:
+    if(this->sub) {
+      FILE **tmp;
+      
+      /* dirty hacks... */
+      tmp = data;
+      *tmp = this->sub;
+      
+      return INPUT_OPTIONAL_SUCCESS;
+    }
+    break;
+    
+  case INPUT_OPTIONAL_DATA_SPULANG:
+    sprintf(data, "%3s", (this->sub) ? "sub" : "none");
+    return INPUT_OPTIONAL_SUCCESS;
+    break;
+    
+  default:
+    return INPUT_OPTIONAL_UNSUPPORTED;
+    break;
+
+  }
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
+static void file_plugin_dispose (input_plugin_t *this_gen ) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  close(this->fh);
+
+  if (this->sub) 
+    fclose (this->sub);
+
+  free (this->mrl);
+
+  free (this);
+}
+
+static void *open_plugin (void *cls_gen, xine_stream_t *stream, 
+			  const void *data) {
+
+  file_input_class_t  *cls = (file_input_class_t *) cls_gen;
+  file_input_plugin_t *this;
+  char                *mrl = strdup ((char *) data);
+  FILE                *sub;
+  char                *filename, *subtitle;
+  int                  fh;
+
+  if (!strncasecmp (mrl, "file://", 7))
+    filename = &mrl[7];
+  else
+    filename = mrl;
+
+  subtitle = strrchr (filename, '%');
+  if (subtitle) {
+    *subtitle = 0;
+    subtitle++;
+
+    xine_log (cls->xine, XINE_LOG_MSG,
+	      _("input_file: trying to open subtitle file '%s'\n"),
+	      subtitle);
+
+    sub = fopen (subtitle, "r");
+
+  } else
+    sub = NULL;
+
+
+  fh = open (filename, O_RDONLY);
+
+  if (fh == -1) {
+    free (mrl);
+    return NULL;
+  }
+
+  this = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
+  this->stream = stream;
+  this->mrl    = mrl;
+  this->fh     = fh;
+  this->sub    = sub;
+
+  this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
+  this->input_plugin.read               = file_plugin_read;
+  this->input_plugin.read_block         = file_plugin_read_block;
+  this->input_plugin.seek               = file_plugin_seek;
+  this->input_plugin.get_current_pos    = file_plugin_get_current_pos;
+  this->input_plugin.get_length         = file_plugin_get_length;
+  this->input_plugin.get_blocksize      = file_plugin_get_blocksize;
+  this->input_plugin.get_mrl            = file_plugin_get_mrl;
+  this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
+  this->input_plugin.dispose            = file_plugin_dispose;
+
+  return this;
+}
+
+
+/*
+ * plugin class functions
+ */
 
 #ifndef S_ISLNK
 #define S_ISLNK(mode)  0
@@ -85,38 +318,16 @@ extern int errno;
 #define S_IXUGO        (S_IXUSR | S_IXGRP | S_IXOTH)
 #endif
 
-typedef struct {
-  input_plugin_t    input_plugin;
-
-  xine_t           *xine;
-  
-  int               fh;
-  int               show_hidden_files;
-  char             *origin_path;
-  FILE             *sub;
-  char             *mrl;
-  config_values_t  *config;
-
-  int               mrls_allocated_entries;
-  xine_mrl_t      **mrls;
-  
-} file_input_plugin_t;
-
-
-/* ***************************************************************************
- *                            PRIVATES FUNCTIONS
- */
-
 /*
  * Callback for config changes.
  */
 static void hidden_bool_cb(void *data, xine_cfg_entry_t *cfg) {
-  file_input_plugin_t *this = (file_input_plugin_t *) data;
+  file_input_class_t *this = (file_input_class_t *) data;
   
   this->show_hidden_files = cfg->num_value;
 }
 static void origin_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  file_input_plugin_t *this = (file_input_plugin_t *) data;
+  file_input_class_t *this = (file_input_class_t *) data;
   
   this->origin_path = cfg->str_value;
 }
@@ -206,7 +417,9 @@ static uint32_t get_file_type(char *filepathname, char *origin, xine_t *xine) {
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
-      LOG_MSG(xine, _("lstat failed for %s{%s}\n"), filepathname, origin);
+#ifdef LOG
+      printf ("lstat failed for %s{%s}\n", filepathname, origin);
+#endif
       file_type |= mrl_unknown;
       return file_type;
     }
@@ -257,179 +470,17 @@ static off_t get_file_size(char *filepathname, char *origin) {
 
   return pstat.st_size;
 }
-/*
- *                              END OF PRIVATES
- *****************************************************************************/
 
-/*
- *
- */
-static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
-
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_GET_DIR | INPUT_CAP_SPULANG;
+static char *file_class_get_description (input_class_t *this_gen) {
+  return _("file input plugin");
 }
 
-/*
- *
- */
-static int file_plugin_open (input_plugin_t *this_gen, const char *mrl) {
+static xine_mrl_t **file_class_get_dir (input_class_t *this_gen, 
+					const char *filename, int *nFiles) {
 
-  char                *filename, *subtitle;
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+  /* FIXME: this code needs cleanup badly */
 
-  if (this->mrl)
-    free (this->mrl);
-
-  this->mrl = strdup(mrl);
-
-  if (!strncasecmp (this->mrl, "file://", 7))
-    filename = &this->mrl[7];
-  else
-    filename = this->mrl;
-
-  subtitle = strrchr (filename, '%');
-  if (subtitle) {
-    *subtitle = 0;
-    subtitle++;
-
-    LOG_MSG(this->xine, _("input_file: trying to open subtitle file '%s'\n"),
-	    subtitle);
-
-    this->sub = fopen (subtitle, "r");
-
-  } else
-    this->sub = NULL;
-
-
-  this->fh = open (filename, O_RDONLY);
-
-  if (this->fh == -1) {
-    return 0;
-  }
-
-  return 1;
-}
-
-/*
- *
- */
-static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  return read (this->fh, buf, len);
-}
-
-/*
- * helper function to release buffer
- * in case demux thread is cancelled
- */
-static void pool_release_buffer (void *arg) {
-  buf_element_t *buf = (buf_element_t *) arg;
-  if( buf != NULL )
-    buf->free_buffer(buf);
-}
-
-/*
- *
- */
-static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
-
-  off_t                 num_bytes, total_bytes;
-  file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
-  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
-
-  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
-  pthread_cleanup_push( pool_release_buffer, buf );
-
-  buf->content = buf->mem;
-  buf->type = BUF_DEMUX_BLOCK;
-  total_bytes = 0;
-
-  while (total_bytes < todo) {
-    pthread_testcancel();
-    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
-    if (num_bytes <= 0) {
-      if (num_bytes < 0) 
-	LOG_MSG_STDERR(this->xine, _("input_file: read error (%s)\n"), strerror(errno));
-      buf->free_buffer (buf);
-      buf = NULL;
-      break;
-    }
-    total_bytes += num_bytes;
-  }
-
-  if( buf != NULL )
-    buf->size = total_bytes;
-
-  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
-  pthread_cleanup_pop(0);
-
-  return buf;
-}
-
-/*
- *
- */
-static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  return lseek (this->fh, offset, origin);
-}
-
-/*
- *
- */
-static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  if (this->fh <0)
-    return 0;
-
-  return lseek (this->fh, 0, SEEK_CUR);
-}
-
-/*
- *
- */
-static off_t file_plugin_get_length (input_plugin_t *this_gen) {
-
-  struct stat          buf ;
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  if (this->fh <0)
-    return 0;
-
-  if (fstat (this->fh, &buf) == 0) {
-    return buf.st_size;
-  } else
-    perror ("system call fstat");
-  return 0;
-}
-
-/*
- *
- */
-static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
-  return 0;
-}
-
-/*
- * Return 1 is filepathname is a directory, otherwise 0
- */
-static int is_a_dir(char *filepathname) {
-  struct stat  pstat;
-  
-  stat(filepathname, &pstat);
-
-  return (S_ISDIR(pstat.st_mode));
-}
-
-/*
- *
- */
-static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen, 
-						     const char *filename, int *nFiles) {
-  file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
+  file_input_class_t   *this = (file_input_class_t *) this_gen;
   struct dirent        *pdirent;
   DIR                  *pdir;
   xine_mrl_t           *hide_files, *dir_files, *norm_files;
@@ -522,10 +573,8 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	  memset(linkbuf, 0, sizeof(linkbuf));
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
-	  if(linksize < 0) {
-	    LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
-			   __XINE_FUNCTION__, __LINE__, strerror(errno));
-	  }
+	  if(linksize < 0) 
+	    printf ("input_file: readlink() failed: %s\n", strerror(errno));
 	  else {
 	    dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
 	    strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
@@ -562,8 +611,7 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
-	    LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
-			   __XINE_FUNCTION__, __LINE__, strerror(errno));
+	    printf ("input_file: readlink() failed: %s\n", strerror(errno));
 	  }
 	  else {
 	    hide_files[num_hide_files].link = (char *) 
@@ -598,8 +646,7 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	
 	if(linksize < 0) {
-	  LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
-			 __XINE_FUNCTION__, __LINE__, strerror(errno));
+	  printf ("input_file: readlink() failed: %s\n", strerror(errno));
 	}
 	else {
 	  norm_files[num_norm_files].link = (char *) 
@@ -743,143 +790,29 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   return this->mrls;
 }
 
-/*
- *
- */
-static int file_plugin_eject_media (input_plugin_t *this_gen) {
-  return 1; /* doesn't make sense */
-}
-
-/*
- *
- */
-static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  return this->mrl;
-}
-
-/*
- *
- */
-static void file_plugin_close (input_plugin_t *this_gen) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  close(this->fh);
-  this->fh = -1;
-
-  if (this->sub) {
-    fclose (this->sub);
-    this->sub = NULL;
-  }
-}
-
-/*
- *
- */
-static void file_plugin_stop (input_plugin_t *this_gen) {
-
-  file_plugin_close(this_gen);
-}
-
-/*
- *
- */
-static char *file_plugin_get_description (input_plugin_t *this_gen) {
-  return _("plain file input plugin as shipped with xine");
-}
-
-/*
- *
- */
-static char *file_plugin_get_identifier (input_plugin_t *this_gen) {
-  return "file";
-}
-
-/*
- *
- */
-static int file_plugin_get_optional_data (input_plugin_t *this_gen, 
-					  void *data, int data_type) {
-  
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-#ifdef LOG
-  LOG_MSG(this->xine, _("input_file: get optional data, type %08x, sub %p\n"),
-	  data_type, this->sub);
-#endif
-
-  switch(data_type) {
-  case INPUT_OPTIONAL_DATA_TEXTSPU0:
-    if(this->sub) {
-      FILE **tmp;
-      
-      /* dirty hacks... */
-      tmp = data;
-      *tmp = this->sub;
-      
-      return INPUT_OPTIONAL_SUCCESS;
-    }
-    break;
-    
-  case INPUT_OPTIONAL_DATA_SPULANG:
-    sprintf(data, "%3s", (this->sub) ? "sub" : "none");
-    return INPUT_OPTIONAL_SUCCESS;
-    break;
-    
-  default:
-    return INPUT_OPTIONAL_UNSUPPORTED;
-    break;
-
-  }
-
-  return INPUT_OPTIONAL_UNSUPPORTED;
-}
-
-static void file_plugin_dispose (input_plugin_t *this_gen ) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-
-  if (this->mrl)
-    free (this->mrl);
+static void file_class_dispose (input_class_t *this_gen) {
+  file_input_class_t  *this = (file_input_class_t *) this_gen;
 
   free (this->mrls);
   free (this);
 }
 
-static void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_plugin (xine_t *xine, void *data) {
 
-  file_input_plugin_t *this;
+  file_input_class_t  *this;
   config_values_t     *config;
 
-  this       = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
-  config     = xine->config;
-  this->xine = xine;
+  this = (file_input_class_t *) xine_xmalloc (sizeof (file_input_class_t));
 
-  this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
-  this->input_plugin.open               = file_plugin_open;
-  this->input_plugin.read               = file_plugin_read;
-  this->input_plugin.read_block         = file_plugin_read_block;
-  this->input_plugin.seek               = file_plugin_seek;
-  this->input_plugin.get_current_pos    = file_plugin_get_current_pos;
-  this->input_plugin.get_length         = file_plugin_get_length;
-  this->input_plugin.get_blocksize      = file_plugin_get_blocksize;
-  this->input_plugin.get_dir            = file_plugin_get_dir;
-  this->input_plugin.eject_media        = file_plugin_eject_media;
-  this->input_plugin.get_mrl            = file_plugin_get_mrl;
-  this->input_plugin.close              = file_plugin_close;
-  this->input_plugin.stop               = file_plugin_stop;
-  this->input_plugin.get_description    = file_plugin_get_description;
-  this->input_plugin.get_identifier     = file_plugin_get_identifier;
-  this->input_plugin.get_autoplay_list  = NULL;
-  this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
-  this->input_plugin.dispose            = file_plugin_dispose;
-  this->input_plugin.is_branch_possible = NULL;
+  this->xine   = xine;
+  this->config = xine->config;
+  config       = xine->config;
 
-  this->fh                     = -1;
-  this->sub                    = NULL;
-  this->mrl                    = NULL;
-  this->config                 = config;
-  
+  this->input_class.get_dir            = file_class_get_dir;
+  this->input_class.get_description    = file_class_get_description;
+  this->input_class.get_autoplay_list  = NULL;
+  this->input_class.dispose            = file_class_dispose;
+
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
 
@@ -889,14 +822,18 @@ static void *init_input_plugin (xine_t *xine, void *data) {
     if(getcwd(current_dir, sizeof(current_dir)) == NULL)
       strcpy(current_dir, ".");
 
-    this->origin_path = config->register_string(this->config, "input.file_origin_path",
-						current_dir, _("file browsing start location"),
-						NULL, 0, origin_change_cb, (void *) this);
+    this->origin_path = config->register_string(config, "input.file_origin_path",
+						current_dir, 
+						_("file browsing start location"),
+						NULL, 0, origin_change_cb, 
+						(void *) this);
   }
   
-  this->show_hidden_files = this->config->register_bool(this->config, "input.file_hidden_files", 
-							1, _("list hidden files"),
-							NULL, 10, hidden_bool_cb, (void *) this);
+  this->show_hidden_files = config->register_bool(config, 
+						  "input.file_hidden_files", 
+						  1, _("list hidden files"),
+						  NULL, 10, hidden_bool_cb, 
+						  (void *) this);
   
   return this;
 }
@@ -907,7 +844,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 8, "file", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_INPUT, 8, "file", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.22 2002/09/22 14:29:40 mroi Exp $
+ * $Id: xine_interface.c,v 1.23 2002/10/14 15:47:44 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -304,41 +304,42 @@ void xine_config_reset (xine_t *this) {
   pthread_mutex_unlock(&config->config_lock);
 }
   
-int xine_gui_send_vo_data (xine_t *this,
+int xine_gui_send_vo_data (xine_stream_t *stream,
 			   int type, void *data) {
 
-  return this->video_driver->gui_data_exchange (this->video_driver, type, data);
+  return stream->video_driver->gui_data_exchange (stream->video_driver, 
+						  type, data);
 }
 
-void xine_set_param (xine_t *this, int param, int value) {
+void xine_set_param (xine_stream_t *stream, int param, int value) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    xine_set_speed (this, value);
+    xine_set_speed (stream, value);
     break;
 
   case XINE_PARAM_AV_OFFSET:
-    this->metronom->set_option (this->metronom, METRONOM_AV_OFFSET, value);
+    stream->metronom->set_option (stream->metronom, METRONOM_AV_OFFSET, value);
     break;
 
   case XINE_PARAM_AUDIO_CHANNEL_LOGICAL:
-    pthread_mutex_lock (&this->xine_lock);
+    pthread_mutex_lock (&stream->frontend_lock);
     if (value < -2)
       value = -2;
-    this->audio_channel_user = value;
-    pthread_mutex_unlock (&this->xine_lock);
+    stream->audio_channel_user = value;
+    pthread_mutex_unlock (&stream->frontend_lock);
     break;
 
   case XINE_PARAM_SPU_CHANNEL:
-    xine_select_spu_channel (this, value);
+    xine_select_spu_channel (stream, value);
     break;
 
   case XINE_PARAM_VIDEO_CHANNEL:
-    pthread_mutex_lock (&this->xine_lock);
+    pthread_mutex_lock (&stream->frontend_lock);
     if (value<0)
       value = 0;
-    this->video_channel = value;
-    pthread_mutex_unlock (&this->xine_lock);
+    stream->video_channel = value;
+    pthread_mutex_unlock (&stream->frontend_lock);
     break;
 
   case XINE_PARAM_AUDIO_VOLUME:
@@ -357,7 +358,7 @@ void xine_set_param (xine_t *this, int param, int value) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
-    this->video_driver->set_property(this->video_driver, param & 0xffffff, value);
+    stream->video_driver->set_property(stream->video_driver, param & 0xffffff, value);
     break;
     
   default:
@@ -365,23 +366,23 @@ void xine_set_param (xine_t *this, int param, int value) {
   }
 }
 
-int  xine_get_param (xine_t *this, int param) {
+int  xine_get_param (xine_stream_t *stream, int param) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    return this->speed;
+    return stream->speed;
 
   case XINE_PARAM_AV_OFFSET:
-    return this->metronom->get_option (this->metronom, METRONOM_AV_OFFSET);
+    return stream->metronom->get_option (stream->metronom, METRONOM_AV_OFFSET);
 
   case XINE_PARAM_AUDIO_CHANNEL_LOGICAL:
-    return this->audio_channel_user;
+    return stream->audio_channel_user;
 
   case XINE_PARAM_SPU_CHANNEL:
-    return this->spu_channel_user;
+    return stream->spu_channel_user;
 
   case XINE_PARAM_VIDEO_CHANNEL:
-    return this->video_channel;
+    return stream->video_channel;
 
   case XINE_PARAM_AUDIO_VOLUME:
     return -1; /* FIXME: implement */
@@ -399,7 +400,7 @@ int  xine_get_param (xine_t *this, int param) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
-    return this->video_driver->get_property(this->video_driver, param & 0xffffff);
+    return stream->video_driver->get_property(stream->video_driver, param & 0xffffff);
     break;
     
   default:
@@ -409,18 +410,18 @@ int  xine_get_param (xine_t *this, int param) {
   return 0;
 }
 
-uint32_t xine_get_stream_info (xine_t *this, int info) {
+uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
 
   switch (info) {
 
   case XINE_STREAM_INFO_SEEKABLE:
-    if (this->cur_input_plugin)
-      return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SEEKABLE;
+    if (stream->input_plugin)
+      return stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_SEEKABLE;
     return 0;
 
   case XINE_STREAM_INFO_HAS_CHAPTERS:
-    if (this->cur_input_plugin)
-      return this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_CHAPTERS;
+    if (stream->input_plugin)
+      return stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_CHAPTERS;
     return 0;
 
   case XINE_STREAM_INFO_BITRATE:
@@ -435,7 +436,7 @@ uint32_t xine_get_stream_info (xine_t *this, int info) {
   case XINE_STREAM_INFO_AUDIO_BITS:
   case XINE_STREAM_INFO_AUDIO_SAMPLERATE:
   case XINE_STREAM_INFO_AUDIO_BITRATE:
-    return this->stream_info[info];
+    return stream->stream_info[info];
 
   default:
     printf ("xine_interface: error, unknown stream info (%d) requested\n",
@@ -444,8 +445,8 @@ uint32_t xine_get_stream_info (xine_t *this, int info) {
   return 0;
 }
 
-const char *xine_get_meta_info (xine_t *this, int info) {
+const char *xine_get_meta_info (xine_stream_t *stream, int info) {
 
-  return this->meta_info[info];
+  return stream->meta_info[info];
 }
 

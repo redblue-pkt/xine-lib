@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.69 2002/10/12 19:20:02 jkeil Exp $
+ * $Id: audio_out.c,v 1.70 2002/10/14 15:47:25 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -581,28 +581,28 @@ static int ao_open(ao_instance_t *this,
 
   switch (mode) {
   case AO_CAP_MODE_MONO:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
     break;
   case AO_CAP_MODE_STEREO:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
     break;
   case AO_CAP_MODE_4CHANNEL:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
     break;
   case AO_CAP_MODE_5CHANNEL:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
     break;
   case AO_CAP_MODE_5_1CHANNEL:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
   default:
-    this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
   }
   
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
 
   this->input.mode            = mode;
   this->input.rate            = rate;
@@ -861,9 +861,10 @@ static int ao_control (ao_instance_t *this, int cmd, ...) {
   return rval;
 }
 
-ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, xine_t *xine) {
+ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, 
+				xine_stream_t *stream) {
  
-  config_values_t *config = xine->config;
+  config_values_t *config = stream->xine->config;
   ao_instance_t   *this;
   int              i;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
@@ -871,8 +872,9 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, xine_t *xine) {
   this = xine_xmalloc (sizeof (ao_instance_t)) ;
 
   this->driver                = driver;
-  this->metronom              = xine->metronom;
-  this->xine                  = xine;
+  this->metronom              = stream->metronom;
+  this->xine                  = stream->xine;
+  this->stream                = stream;
   pthread_mutex_init( &this->driver_lock, NULL );
 
   this->open                  = ao_open;

@@ -55,6 +55,7 @@ struct spu_decoder_s {
 
   int (*get_nav_pci) (spu_decoder_t *this, pci_t *nav_pci);
 
+  void *node; /* used by plugin loader */
 };
 
 typedef struct spu_button_s spu_button_t;

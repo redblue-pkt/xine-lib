@@ -1,8 +1,8 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project, 
- *                          Rich Wareham <richwareham@users.sourceforge.net>
+ * Copyright (C) 2000-2002 the xine project, 
+ *                         Rich Wareham <richwareham@users.sourceforge.net>
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.92 2002/10/06 15:48:02 jkeil Exp $
+ * $Id: input_dvd.c,v 1.93 2002/10/14 15:47:16 guenter Exp $
  *
  */
 
@@ -1564,6 +1564,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.93  2002/10/14 15:47:16  guenter
+ * introduction of xine_stream_t and async xine events - all still in developement
+ *
  * Revision 1.92  2002/10/06 15:48:02  jkeil
  * Proper alignment is needed for the array of "xine_mrl_t" structures on SPARC.
  *

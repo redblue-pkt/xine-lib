@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.93 2002/09/05 22:29:17 mroi Exp $
+ * $Id: metronom.c,v 1.94 2002/10/14 15:47:38 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -657,7 +657,7 @@ static int metronom_sync_loop (metronom_t *this) {
   scr_plugin_t** scr;
   int64_t        pts;
   
-  while (((xine_t*)this->xine)->status != XINE_STATUS_QUIT) {
+  while (this->stream->status != XINE_STATUS_QUIT) {
     pts = this->scr_master->get_current(this->scr_master);
     
     for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
@@ -699,12 +699,12 @@ static void metronom_exit (metronom_t *this) {
 }
 
 
-metronom_t * metronom_init (int have_audio, void *xine) {
+metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
   int         err;
 
-  this->xine                 = xine;
+  this->stream               = stream;
   this->set_audio_rate       = metronom_set_audio_rate;
   this->got_video_frame      = metronom_got_video_frame;
   this->got_audio_samples    = metronom_got_audio_samples;

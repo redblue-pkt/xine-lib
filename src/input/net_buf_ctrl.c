@@ -32,9 +32,9 @@
 
 #define DEFAULT_LOW_WATER_MARK  2
 #define DEFAULT_HIGH_WATER_MARK 5
-/*
+
 #define LOG
-*/
+
 struct nbc_s {
 
   xine_t          *xine;
@@ -55,8 +55,8 @@ void nbc_check_buffers (nbc_t *this) {
   }
 #ifdef LOG
   if (this->buffering) {
-    xine_log (this->xine, XINE_LOG_MSG, 
-	      "net_buf_ctl: buffering (%d/%d)...\n", fifo_fill, this->high_water_mark);
+    printf ("net_buf_ctl: buffering (%d/%d)...\n", 
+	    fifo_fill, this->high_water_mark);
   }
 #endif
   if (fifo_fill<this->low_water_mark) {

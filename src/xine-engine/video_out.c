@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.104 2002/09/09 03:06:14 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.105 2002/10/14 15:47:41 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -54,6 +54,7 @@ typedef struct {
   xine_vo_driver_t         *driver;
   metronom_t               *metronom;
   xine_t                   *xine;
+  xine_stream_t            *stream;
   
   img_buf_fifo_t           *free_img_buf_queue;
   img_buf_fifo_t           *display_img_buf_queue;
@@ -550,11 +551,11 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      */
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
     if (img && !img->next &&
-	(this->xine->video_fifo->size(this->xine->video_fifo) < 10 
-	 || this->xine->video_in_discontinuity) ) {
+	(this->stream->video_fifo->size(this->stream->video_fifo) < 10 
+	 || this->stream->video_in_discontinuity) ) {
 	
       printf ("video_out: possible still frame (fifosize = %d)\n",
-	      this->xine->video_fifo->size(this->xine->video_fifo));
+	      this->stream->video_fifo->size(this->stream->video_fifo));
         
       this->img_backup = duplicate_frame (this, img);
     }
@@ -620,7 +621,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
   /* prevent decoder thread from allocating new frames */
   this->free_img_buf_queue->locked_for_read = 1;
   
-  while( this->xine->speed == XINE_SPEED_PAUSE ) {
+  while (this->stream->speed == XINE_SPEED_PAUSE) {
   
     /* we need at least one free frame to keep going */
     if( this->display_img_buf_queue->first &&
@@ -716,7 +717,7 @@ static void *video_out_loop (void *this_gen) {
 
     diff = vpts - this->last_delivery_pts;
     if (diff > 30000 && !this->display_img_buf_queue->first) {
-      if (this->xine->cur_video_decoder_plugin) {
+      if (this->stream->video_decoder_plugin) {
 
 #ifdef LOG
 	printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
@@ -724,7 +725,7 @@ static void *video_out_loop (void *this_gen) {
 		this->free_img_buf_queue->num_buffers);
 #endif
 	
-	this->xine->cur_video_decoder_plugin->flush(this->xine->cur_video_decoder_plugin);
+	this->stream->video_decoder_plugin->flush(this->stream->video_decoder_plugin);
       }
       this->last_delivery_pts = vpts;
     }
@@ -747,8 +748,8 @@ static void *video_out_loop (void *this_gen) {
     do {
       vpts = this->metronom->get_current_time (this->metronom);
   
-      if( this->xine->speed == XINE_SPEED_PAUSE )
-        paused_loop( this, vpts );
+      if (this->stream->speed == XINE_SPEED_PAUSE)
+        paused_loop (this, vpts);
 
       usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
 
@@ -886,7 +887,8 @@ static void vo_enable_overlay (vo_instance_t *this_gen, int overlay_enabled) {
 }
 
 
-vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, xine_t *xine) {
+vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, 
+				xine_stream_t *stream) {
 
   vos_t            *this;
   int               i;
@@ -898,8 +900,9 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, xine_t *xine) {
   this = xine_xmalloc (sizeof (vos_t)) ;
 
   this->driver                = driver;
-  this->xine                  = xine;
-  this->metronom              = xine->metronom;
+  this->xine                  = stream->xine;
+  this->metronom              = stream->metronom;
+  this->stream                = stream;
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;

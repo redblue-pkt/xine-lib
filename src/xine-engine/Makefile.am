@@ -24,7 +24,7 @@ libxine_la_LDFLAGS =  \
 include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
 	lrb.h video_overlay.h osd.h scratch.h xine_plugin.h xineintl.h  \
-	plugin_catalog.h
+	plugin_catalog.h audio_decoder.h video_decoder.h
 
 noinst_HEADERS = bswap.h nvtvd.h
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.8 2002/04/09 13:20:44 jcdutton Exp $
+ * $Id: video_overlay.h,v 1.9 2002/10/14 15:47:43 guenter Exp $
  *
  */
 
@@ -25,6 +25,7 @@
 #define HAVE_VIDEO_OVERLAY_H
 
 #include "xine_internal.h"
+#include "events.h"
 
 #ifdef	__GNUC__
 #define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{y: (_y), cr: (_cr), cb: (_cb)}
@@ -67,10 +68,10 @@ typedef struct vo_buttons_s {
   int32_t           right; 
   uint32_t          select_color[OVL_PALETTE_SIZE];
   uint8_t           select_trans[OVL_PALETTE_SIZE];
-  xine_menu_event_t select_event;
+  xine_event_t      select_event;
   uint32_t          active_color[OVL_PALETTE_SIZE];
   uint8_t           active_trans[OVL_PALETTE_SIZE];
-  xine_menu_event_t active_event;
+  xine_event_t      active_event;
   int32_t           clip_rgb_clut;      /* true if clut was converted to rgb*/
                                         /* FIXME: Probably not needed ^^^ */
 } vo_buttons_t;

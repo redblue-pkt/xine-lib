@@ -32,92 +32,92 @@
  *          indication must be sent. relative discontinuities are likely
  *          to cause "jumps" on metronom.
  */
-void xine_demux_flush_engine (xine_t *this) {
+void xine_demux_flush_engine (xine_stream_t *stream) {
 
   buf_element_t *buf;
 
-  this->video_fifo->clear(this->video_fifo);
+  stream->video_fifo->clear(stream->video_fifo);
 
-  if( this->audio_fifo )
-    this->audio_fifo->clear(this->audio_fifo);
+  if( stream->audio_fifo )
+    stream->audio_fifo->clear(stream->audio_fifo);
   
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type            = BUF_CONTROL_RESET_DECODER;
-  this->video_fifo->put (this->video_fifo, buf);
+  stream->video_fifo->put (stream->video_fifo, buf);
 
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if(stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type            = BUF_CONTROL_RESET_DECODER;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    stream->audio_fifo->put (stream->audio_fifo, buf);
   }
   
-  this->metronom->adjust_clock(this->metronom,
-                               this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+  stream->metronom->adjust_clock(stream->metronom,
+                               stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
 }
 
 
-void xine_demux_control_newpts( xine_t *this, int64_t pts, uint32_t flags ) {
+void xine_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t flags ) {
 
   buf_element_t *buf;
       
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_NEWPTS;
   buf->decoder_flags = flags;
   buf->disc_off = pts;
-  this->video_fifo->put (this->video_fifo, buf);
+  stream->video_fifo->put (stream->video_fifo, buf);
 
-  if (this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if (stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type = BUF_CONTROL_NEWPTS;
     buf->decoder_flags = flags;
     buf->disc_off = pts;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    stream->audio_fifo->put (stream->audio_fifo, buf);
   }
 }
 
-void xine_demux_control_headers_done (xine_t *this) {
+void xine_demux_control_headers_done (xine_stream_t *stream) {
 
   buf_element_t *buf;
       
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_HEADERS_DONE;
-  this->video_fifo->put (this->video_fifo, buf);
+  stream->video_fifo->put (stream->video_fifo, buf);
 
-  if (this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if (stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type = BUF_CONTROL_HEADERS_DONE;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    stream->audio_fifo->put (stream->audio_fifo, buf);
   }
 }
 
-void xine_demux_control_start( xine_t *this ) {
+void xine_demux_control_start( xine_stream_t *stream ) {
 
   buf_element_t *buf;
       
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_START;
-  this->video_fifo->put (this->video_fifo, buf);
+  stream->video_fifo->put (stream->video_fifo, buf);
 
-  if (this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if (stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type = BUF_CONTROL_START;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    stream->audio_fifo->put (stream->audio_fifo, buf);
   }
 }
 
-void xine_demux_control_end( xine_t *this, uint32_t flags ) {
+void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
       
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_END;
   buf->decoder_flags = flags;
-  this->video_fifo->put (this->video_fifo, buf);
+  stream->video_fifo->put (stream->video_fifo, buf);
 
-  if (this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  if (stream->audio_fifo) {
+    buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type = BUF_CONTROL_END;
     buf->decoder_flags = flags;
-    this->audio_fifo->put (this->audio_fifo, buf);
+    stream->audio_fifo->put (stream->audio_fifo, buf);
   }
 }

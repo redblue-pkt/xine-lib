@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.63 2002/10/09 05:13:40 storri Exp $
+ * $Id: video_out.h,v 1.64 2002/10/14 15:47:42 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -303,6 +303,8 @@ struct xine_vo_driver_s {
    */
   int (*redraw_needed) (xine_vo_driver_t *this);
 
+  void *node; /* needed by plugin_loader */
+
 };
 
 typedef struct rle_elem_s {
@@ -363,7 +365,8 @@ video_overlay_instance_t *video_overlay_new_instance ();
  * a given video driver
  */
 
-vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, xine_t *xine) ;
+vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, 
+				xine_stream_t *stream) ;
 
 #ifdef __cplusplus
 }

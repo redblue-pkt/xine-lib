@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
-"POT-Creation-Date: 2002-09-18 09:07-0400\n"
+"POT-Creation-Date: 2002-10-08 01:29+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -100,11 +100,11 @@ msgstr "périphérique du mixeur oss"
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques oss"
 
-#: src/audio_out/audio_sun_out.c:667
+#: src/audio_out/audio_sun_out.c:853
 msgid "device used for audio output with the 'Sun' audio plugin"
 msgstr "Périphérique utilisé pour le plugin audio 'Sun'"
 
-#: src/audio_out/audio_sun_out.c:749
+#: src/audio_out/audio_sun_out.c:938
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques sun"
 
@@ -221,25 +221,25 @@ msgstr ""
 msgid "valid mrls ending for elementary demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:1068 src/demuxers/demux_mpeg.c:1157
+#: src/demuxers/demux_mpeg.c:1066 src/demuxers/demux_mpeg.c:1155
 msgid "valid mrls for mpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:1087
+#: src/demuxers/demux_mpeg.c:1085
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr ""
 "demux_mpeg: specifiez le type de flux mpeg (mpeg1/mpeg2), s'il vous plait le "
 "type.\n"
 
-#: src/demuxers/demux_mpeg.c:1101 src/demuxers/demux_mpeg.c:1161
+#: src/demuxers/demux_mpeg.c:1099 src/demuxers/demux_mpeg.c:1159
 msgid "valid mrls ending for mpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpgaudio.c:445
+#: src/demuxers/demux_mpgaudio.c:446
 msgid "demux_mpgaudio: no audio driver!\n"
 msgstr "demux_mpgaudio: pas de pilote audio!\n"
 
-#: src/demuxers/demux_mpgaudio.c:611 src/demuxers/demux_mpgaudio.c:670
+#: src/demuxers/demux_mpgaudio.c:612 src/demuxers/demux_mpgaudio.c:671
 msgid "valid mrls ending for mpeg audio demuxer"
 msgstr ""
 
@@ -251,78 +251,69 @@ msgstr ""
 msgid "valid mrls ending for pes demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1447 src/demuxers/demux_qt.c:1763
+#: src/demuxers/demux_qt.c:1715 src/demuxers/demux_qt.c:1996
 msgid "valid mrls ending for qt demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1521
+#: src/demuxers/demux_qt.c:1758
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr ""
 "demux_qt: Fichier Apple Quicktime, %stemps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_qt.c:1527
+#: src/demuxers/demux_qt.c:1764
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1536
+#: src/demuxers/demux_qt.c:1773
 #, fuzzy, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_qt: audio '%c%c%c%c' @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:453
-#: src/demuxers/demux_wav.c:322
+#: src/demuxers/demux_qt.c:1781 src/demuxers/demux_smjpeg.c:471
+#: src/demuxers/demux_wav.c:340
 #, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "canal"
 msgstr[1] "canal"
 
-#: src/demuxers/demux_ogg.c:411
+#: src/demuxers/demux_ogg.c:413
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:1082 src/demuxers/demux_ogg.c:1128
+#: src/demuxers/demux_ogg.c:1084 src/demuxers/demux_ogg.c:1130
 msgid "valid mrls ending for ogg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1410 src/demuxers/demux_asf.c:1454
+#: src/demuxers/demux_asf.c:1419 src/demuxers/demux_asf.c:1463
 msgid "valid mrls ending for asf demuxer"
 msgstr ""
 
-#: src/demuxers/demux_film.c:147
-msgid "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
-msgstr ""
-
-#: src/demuxers/demux_film.c:176
+#: src/demuxers/demux_film.c:168
 msgid "invalid FILM chunk size\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:254
+#: src/demuxers/demux_film.c:243
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:529 src/demuxers/demux_film.c:796
+#: src/demuxers/demux_film.c:571 src/demuxers/demux_film.c:818
 msgid "valid mrls ending for film demuxer"
 msgstr ""
 
-#: src/demuxers/demux_film.c:577
+#: src/demuxers/demux_film.c:613
 #, fuzzy, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr "demux_film: Fichier FILM %c%c%c%c, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_film.c:586
+#: src/demuxers/demux_film.c:621
 #, fuzzy, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr "demux_film: '%c%c%c%c' video @ %dx%d, %d Hz\n"
 
-#: src/demuxers/demux_film.c:596
-#, fuzzy, c-format
-msgid "demux_film: unknown video codec %c%c%c%c\n"
-msgstr "demux_film: codec vidéo inconnu '%c%c%c%c'\n"
-
-#: src/demuxers/demux_film.c:606
+#: src/demuxers/demux_film.c:631
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr ""
@@ -335,7 +326,7 @@ msgstr ""
 "demux_mpeg_block: trop d'erreurs, arrêt de la lecture. Ce flux est peut être "
 "crypté ?\n"
 
-#: src/demuxers/demux_mpeg_block.c:459
+#: src/demuxers/demux_mpeg_block.c:460
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -344,183 +335,178 @@ msgstr ""
 "demux_mpeg_block: attention: l'entête pes indique que ce flux sera crypté "
 "(mode de cryptage %d)\n"
 
-#: src/demuxers/demux_mpeg_block.c:1104 src/demuxers/demux_mpeg_block.c:1200
+#: src/demuxers/demux_mpeg_block.c:1105 src/demuxers/demux_mpeg_block.c:1201
 msgid "valid mrls for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1145 src/demuxers/demux_mpeg_block.c:1204
+#: src/demuxers/demux_mpeg_block.c:1146 src/demuxers/demux_mpeg_block.c:1205
 msgid "valid mrls ending for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:293 src/demuxers/demux_roq.c:536
+#: src/demuxers/demux_roq.c:392 src/demuxers/demux_roq.c:548
 msgid "valid mrls ending for roq demuxer"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:416
+#: src/demuxers/demux_roq.c:428
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:420
+#: src/demuxers/demux_roq.c:432
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_fli.c:305
+#: src/demuxers/demux_fli.c:319
 #, c-format
 msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
 msgstr ""
 
-#: src/demuxers/demux_fli.c:309
+#: src/demuxers/demux_fli.c:323
 #, fuzzy, c-format
 msgid "demux_fli: %d frames, %dx%d\n"
 msgstr "demux_fli: %d taille de trame vidéo %d x %d\n"
 
-#: src/demuxers/demux_fli.c:312
+#: src/demuxers/demux_fli.c:326
 #, fuzzy, c-format
 msgid "demux_fli: running time: %d min, %d sec\n"
 msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_idcin.c:387 src/demuxers/demux_idcin.c:599
+#: src/demuxers/demux_idcin.c:438 src/demuxers/demux_idcin.c:620
 msgid "valid mrls ending for idcin demuxer"
 msgstr ""
 
-#: src/demuxers/demux_idcin.c:451
+#: src/demuxers/demux_idcin.c:472
 #, c-format
 msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_idcin.c:456
+#: src/demuxers/demux_idcin.c:477
 #, c-format
 msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:298 src/demuxers/demux_smjpeg.c:565
+#: src/demuxers/demux_smjpeg.c:413 src/demuxers/demux_smjpeg.c:583
 msgid "valid mrls ending for smjpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:431
+#: src/demuxers/demux_smjpeg.c:449
 #, fuzzy, c-format
 msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
 msgstr "demux_smjpeg: Fichier SMJPEG, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_smjpeg.c:436
+#: src/demuxers/demux_smjpeg.c:454
 #, fuzzy, c-format
 msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_smjpeg: video '%c%c%c%c' @ %dx%d\n"
 
-#: src/demuxers/demux_smjpeg.c:445
+#: src/demuxers/demux_smjpeg.c:463
 #, fuzzy, c-format
 msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_smjpeg: audio '%c%c%c%c' @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_wav.c:226 src/demuxers/demux_wav.c:474
+#: src/demuxers/demux_wav.c:296 src/demuxers/demux_wav.c:490
 msgid "valid mrls ending for wav demuxer"
 msgstr ""
 
-#: src/demuxers/demux_wav.c:317
+#: src/demuxers/demux_wav.c:335
 #, fuzzy, c-format
 msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
 msgstr "demux_wav: audio 0x%X @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_wav.c:324
+#: src/demuxers/demux_wav.c:342
 #, fuzzy, c-format
 msgid "demux_wav: running time = %lld min, %lld sec\n"
 msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_wav.c:328
+#: src/demuxers/demux_wav.c:346
 #, c-format
 msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
 msgstr ""
 
-#: src/demuxers/demux_aiff.c:233 src/demuxers/demux_aiff.c:488
+#: src/demuxers/demux_aiff.c:321 src/demuxers/demux_aiff.c:505
 msgid "valid mrls ending for aiff demuxer"
 msgstr ""
 
-#: src/demuxers/demux_aiff.c:342
+#: src/demuxers/demux_aiff.c:361
 #, fuzzy, c-format
 msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
 msgstr "demux_qt: audio '%c%c%c%c' @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_aiff.c:348
+#: src/demuxers/demux_aiff.c:367
 #, fuzzy, c-format
 msgid "demux_aiff: running time: %d min, %d sec\n"
 msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_snd.c:221 src/demuxers/demux_snd.c:473
-msgid "valid mrls ending for snd demuxer"
-msgstr ""
-
-#: src/demuxers/demux_snd.c:279
+#: src/demuxers/demux_snd.c:206
 msgid "demux_snd: bad header parameters\n"
 msgstr ""
 
-#: src/demuxers/demux_snd.c:316
+#: src/demuxers/demux_snd.c:243
 #, fuzzy, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demus_avi: type audio inconnu 0x%lx\n"
 
-#: src/demuxers/demux_snd.c:327
+#: src/demuxers/demux_snd.c:306 src/demuxers/demux_snd.c:489
+msgid "valid mrls ending for snd demuxer"
+msgstr ""
+
+#: src/demuxers/demux_snd.c:345
 #, fuzzy, c-format
 msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
 msgstr "demux_qt: audio '%c%c%c%c' @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_snd.c:333
+#: src/demuxers/demux_snd.c:351
 #, fuzzy, c-format
 msgid "demux_snd: running time: %d min, %d sec\n"
 msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
 
-#: src/demuxers/demux_voc.c:220 src/demuxers/demux_voc.c:465
-msgid "valid mrls ending for voc demuxer"
-msgstr ""
-
-#: src/demuxers/demux_voc.c:286
+#: src/demuxers/demux_voc.c:215
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
 msgstr ""
 
-#: src/demuxers/demux_voc.c:306
+#: src/demuxers/demux_voc.c:236
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 
-#: src/demuxers/demux_voc.c:324
+#: src/demuxers/demux_voc.c:305 src/demuxers/demux_voc.c:484
+msgid "valid mrls ending for voc demuxer"
+msgstr ""
+
+#: src/demuxers/demux_voc.c:345
 #, fuzzy, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
 msgstr "demux_wav: audio 0x%X @ %d Hz, %d bits, %d %s\n"
 
-#: src/demuxers/demux_vqa.c:299 src/demuxers/demux_vqa.c:562
+#: src/demuxers/demux_vqa.c:347 src/demuxers/demux_vqa.c:513
 msgid "valid mrls ending for vqa demuxer"
 msgstr ""
 
-#: src/demuxers/demux_vqa.c:427
-#, fuzzy, c-format
-msgid "demux_vqa: running time: %d min, %d sec\n"
-msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
-
-#: src/demuxers/demux_vqa.c:431
+#: src/demuxers/demux_vqa.c:383
 #, c-format
 msgid "demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_wc3movie.c:197
+#: src/demuxers/demux_wc3movie.c:218
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
 
 #. report an unknown chunk and skip it
-#: src/demuxers/demux_wc3movie.c:288
+#: src/demuxers/demux_wc3movie.c:305 src/demuxers/demux_wc3movie.c:486
 #, fuzzy, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
 msgstr "demux_film: codec vidéo inconnu '%c%c%c%c'\n"
 
-#: src/demuxers/demux_wc3movie.c:365 src/demuxers/demux_wc3movie.c:603
-msgid "valid mrls ending for mve demuxer"
+#: src/demuxers/demux_wc3movie.c:399
+msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr ""
 
-#: src/demuxers/demux_wc3movie.c:436
-msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
+#: src/demuxers/demux_wc3movie.c:558 src/demuxers/demux_wc3movie.c:822
+msgid "valid mrls ending for mve demuxer"
 msgstr ""
 
 #: src/input/input_net.c:102
@@ -603,42 +589,26 @@ msgstr "incapable d'allouer le buffer d'entrée.\n"
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "plugin d'entrée stdin/fifo fournis avec xine"
 
-#: src/input/input_file.c:209
-#, c-format
-msgid "lstat failed for %s{%s}\n"
-msgstr "lstat a échoué pour %s{%s}\n"
-
-#: src/input/input_file.c:295
-#, c-format
-msgid "input_file: trying to open subtitle file '%s'\n"
-msgstr "input_file: tente d'ouvrir le fichier de sous-titre '%s'\n"
-
-#: src/input/input_file.c:353
+#: src/input/input_file.c:115
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: erreur de lecture (%s)\n"
 
-#: src/input/input_file.c:526 src/input/input_file.c:565
-#: src/input/input_file.c:601
+#: src/input/input_file.c:257
 #, c-format
-msgid "%s(%d): readlink() failed: %s\n"
-msgstr "%s(%d): readlink() à échoué: %s\n"
+msgid "input_file: trying to open subtitle file '%s'\n"
+msgstr "input_file: tente d'ouvrir le fichier de sous-titre '%s'\n"
 
-#: src/input/input_file.c:789
-msgid "plain file input plugin as shipped with xine"
-msgstr "plugin d'entrée pour lecteur de fichier fournis avec xine"
-
-#: src/input/input_file.c:808
-#, c-format
-msgid "input_file: get optional data, type %08x, sub %p\n"
+#: src/input/input_file.c:475
+msgid "file input plugin"
 msgstr ""
 
-#: src/input/input_file.c:893
-msgid "origin path to grab file mrls"
+#: src/input/input_file.c:827
+msgid "file browsing start location"
 msgstr ""
 
-#: src/input/input_file.c:898
-msgid "hidden files displaying."
+#: src/input/input_file.c:834
+msgid "list hidden files"
 msgstr ""
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
@@ -933,11 +903,11 @@ msgstr ""
 msgid "buffering..."
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1311 src/libw32dll/w32codec.c:1348
+#: src/libw32dll/w32codec.c:1365 src/libw32dll/w32codec.c:1402
 msgid "path to win32 codec dlls"
 msgstr ""
 
-#: src/video_out/video_out_aa.c:303
+#: src/video_out/video_out_aa.c:299
 msgid "xine video output plugin using the ascii-art library"
 msgstr "plugin de sortie video de xine utilisant la librairie ascii-art"
 
@@ -950,15 +920,15 @@ msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1046 src/video_out/video_out_fb.c:645
+#: src/video_out/video_out_xshm.c:1062 src/video_out/video_out_fb.c:645
 msgid "disable all video scaling (faster!)"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1193
+#: src/video_out/video_out_xshm.c:1209
 msgid "gamma correction for XShm driver"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1210
+#: src/video_out/video_out_xshm.c:1226
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr ""
 
@@ -1037,57 +1007,48 @@ msgstr ""
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:140
-#, c-format
-msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-msgstr ""
-
-#: src/xine-engine/xine.c:458
+#: src/xine-engine/xine.c:288
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:475
+#: src/xine-engine/xine.c:303
 #, c-format
-msgid "xine: couldn't find demuxer for >%s<\n"
+msgid "xine: couldn't find demux for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:540
-msgid "xine_play: demuxer failed to start\n"
+#: src/xine-engine/xine.c:394
+msgid "xine_play: demux failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:745
-msgid "logo mrl, displayed in video output window"
-msgstr ""
-
-#: src/xine-engine/xine.c:1087
+#: src/xine-engine/xine.c:761
 msgid "messages"
 msgstr "messages"
 
-#: src/xine-engine/xine.c:1088
+#: src/xine-engine/xine.c:762
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:841
+#: src/xine-engine/audio_out.c:846
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:844
+#: src/xine-engine/audio_out.c:849
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:850
+#: src/xine-engine/audio_out.c:855
 msgid "adjust if audio is offsync"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:890
+#: src/xine-engine/audio_out.c:895
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:894
+#: src/xine-engine/audio_out.c:899
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:895
+#: src/xine-engine/audio_out.c:900
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
@@ -1095,29 +1056,29 @@ msgstr ""
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:208
+#: src/xine-engine/load_plugins.c:238
 #, fuzzy, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:239
+#: src/xine-engine/load_plugins.c:269
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:265
+#: src/xine-engine/load_plugins.c:302
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:275
+#: src/xine-engine/load_plugins.c:312
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:307
+#: src/xine-engine/load_plugins.c:344
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1329,19 +1290,19 @@ msgid ""
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:353
+#: src/libxinevdec/fli.c:350
 #, c-format
 msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
 "chunk\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:369
+#: src/libxinevdec/fli.c:366
 #, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
 msgstr ""
 
-#: src/libxinevdec/fli.c:397
+#: src/libxinevdec/fli.c:394
 #, c-format
 msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
@@ -1371,6 +1332,23 @@ msgstr ""
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr ""
+
+#, fuzzy
+#~ msgid "demux_film: unknown video codec %c%c%c%c\n"
+#~ msgstr "demux_film: codec vidéo inconnu '%c%c%c%c'\n"
+
+#, fuzzy
+#~ msgid "demux_vqa: running time: %d min, %d sec\n"
+#~ msgstr "demux_wav: Fichier WAV, temps d'execution: %d min, %d sec\n"
+
+#~ msgid "lstat failed for %s{%s}\n"
+#~ msgstr "lstat a échoué pour %s{%s}\n"
+
+#~ msgid "%s(%d): readlink() failed: %s\n"
+#~ msgstr "%s(%d): readlink() à échoué: %s\n"
+
+#~ msgid "plain file input plugin as shipped with xine"
+#~ msgstr "plugin d'entrée pour lecteur de fichier fournis avec xine"
 
 #~ msgid "demux_avi: video format = %s\n"
 #~ msgstr "demux_avi: format vidéo = %s\n"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.36 2002/09/05 22:29:17 mroi Exp $
+ * $Id: metronom.h,v 1.37 2002/10/14 15:47:39 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -51,6 +51,7 @@ extern "C" {
 #include <sys/time.h>
 #include <pthread.h>
 #include "video_out.h"
+#include "xine.h"
 
 typedef struct metronom_s metronom_t ;
 typedef struct scr_plugin_s scr_plugin_t;
@@ -62,11 +63,6 @@ typedef struct scr_plugin_s scr_plugin_t;
 #define DISC_STREAMSEEK  3
 
 struct metronom_s {
-
-  /*
-   * pointer to current xine object. a void pointer is used to avoid type declaration clash.
-   */
-  void *xine;
 
   /*
    * called by audio output driver to inform metronom about current audio
@@ -206,6 +202,11 @@ struct metronom_s {
   void (*exit) (metronom_t *this);
 
   /*
+   * pointer to current xine stream object. 
+   */
+  xine_stream_t *stream;
+
+  /*
    * metronom internal stuff
    */
 
@@ -247,7 +248,7 @@ struct metronom_s {
   int             force_audio_jump;
 };
 
-metronom_t *metronom_init (int have_audio, void *xine);
+metronom_t *metronom_init (int have_audio, xine_stream_t *stream);
 
 /*
  * metronom options

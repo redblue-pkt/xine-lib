@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.164 2002/10/12 19:22:05 jkeil Exp $
+ * $Id: xine.c,v 1.165 2002/10/14 15:47:43 guenter Exp $
  *
  * top-level xine functions
  *
@@ -57,507 +57,362 @@
 #include "xineutils.h"
 #include "compat.h"
 
-#define LOGO_DELAY 500000 /* usec */
+void xine_notify_stream_finished (xine_stream_t *stream) {
 
-static void play_logo_internal (xine_t *this) {
-  pthread_mutex_lock (&this->logo_lock);
-  this->playing_logo = 1;
-  if( !xine_open_internal(this, this->logo_mrl) )
-    this->playing_logo = 0;
-  else {
-    xine_play_internal (this, 0, 0);
-    this->status = XINE_STATUS_LOGO;
-  }
-  pthread_mutex_unlock (&this->logo_lock);
-}
-
-/* config callback for logo mrl changing */
-static void _logo_change_cb(void *data, xine_cfg_entry_t *cfg) {
-  xine_t            *this = (xine_t *) data;
-  
-  pthread_mutex_lock (&this->logo_lock);
-  this->logo_mrl = cfg->str_value;
-  pthread_mutex_unlock (&this->logo_lock);
-  
-  /*
-   * Start playback of new mrl only if 
-   * current status is XINE_STATUS_STOP or XINE_STATUS_LOGO 
-   */
-  pthread_mutex_lock (&this->xine_lock);
-  if(this->metronom && (this->status == XINE_STATUS_LOGO || this->status == XINE_STATUS_STOP)) {
-    xine_stop_internal(this);  
-    this->metronom->adjust_clock(this->metronom,
-				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
-    play_logo_internal(this);
-  }
-  pthread_mutex_unlock (&this->xine_lock);
-}
-
-void * xine_notify_stream_finished_thread (void * this_gen) {
-  xine_t *this = this_gen;
   xine_event_t event;
 
-  pthread_mutex_lock (&this->xine_lock);
-  xine_stop_internal (this);
-  pthread_mutex_unlock (&this->xine_lock);
-
-  event.type = XINE_EVENT_PLAYBACK_FINISHED;
-  xine_send_event (this, &event);
-
-  xine_usec_sleep (LOGO_DELAY);
-  
-  pthread_mutex_lock (&this->xine_lock);
-  if (this->status == XINE_STATUS_STOP) {
-    play_logo_internal(this);
-  }
-  pthread_mutex_unlock (&this->xine_lock);
-
-  return NULL;
-}
-
-void xine_notify_stream_finished (xine_t *this) {
-  int err;
-
-  if (this->status == XINE_STATUS_QUIT)
+  if (stream->status == XINE_STATUS_QUIT)
     return;
 
-  if (this->finished_thread_running)
-    pthread_join (this->finished_thread, NULL);
+  event.data_length = 0;
+  event.type        = XINE_EVENT_UI_PLAYBACK_FINISHED;
 
-  this->finished_thread_running = 1;
+  xine_event_send (stream, &event);
+}
 
-  /* This thread will just execute xine_stop and (possibly) xine_play then die.
-     It might look useless but i need to detach this code from the current
-     thread to make sure that video_decoder and audio_decoder are running and
-     freeing buffers. Free buffers might be needed by the main thread during
-     a xine_play, for example.
+void xine_report_codec (xine_stream_t *stream, int codec_type, 
+			uint32_t fourcc, uint32_t buf_type, int handled) {
 
-     This is not a theorical situation: i was able to trigger it with simple
-     user actions (play,seek,etc). [MF]
-  */
-  if ((err = pthread_create (&this->finished_thread,
-			     NULL, xine_notify_stream_finished_thread, this)) != 0) {
-    printf (_("xine_notify_stream_finished: can't create new thread (%s)\n"),
-	    strerror(err));
-    abort();
+  if (codec_type == XINE_CODEC_VIDEO) {
+    stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC]  = fourcc;
+    stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = handled;
+  } else {
+    stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC]  = fourcc;
+    stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = handled;
   }
 }
 
-void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t buf_type, int handled ) {
 
-  if( this->report_codec_cb ) {
-    if( codec_type == XINE_CODEC_VIDEO ) {
-      if( !buf_type )
-        buf_type = fourcc_to_buf_video( fourcc );
+static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
 
-      this->report_codec_cb( this->report_codec_user_data,
-                             codec_type, fourcc,
-                             buf_video_name( buf_type ), handled );
-    } else {
-      if( !buf_type )
-        buf_type = formattag_to_buf_audio( fourcc );
-    
-      this->report_codec_cb( this->report_codec_user_data,
-                             codec_type, fourcc,
-                             buf_audio_name( buf_type ), handled );
-    }
-  }
-}
-
-int xine_register_report_codec_cb(xine_t *this, 
-				  xine_report_codec_cb_t report_codec,
-				  void *user_data) {
-  
-  this->report_codec_cb = report_codec;
-  this->report_codec_user_data = user_data;
-  return 1;
-}
-
-void xine_internal_osd (xine_t *this, char *str, int duration) {
-
-  uint32_t seconds;
-  char tstr[256];
-  int64_t start_time;
-  
-  this->curtime_needed_for_osd = 0;
-  start_time = this->metronom->get_current_time (this->metronom);
-    
-  if (this->osd_display) {
-   
-    this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
-    this->osd_renderer->render_text (this->osd, 0, 5, str, OSD_TEXT1);
-  
-    seconds = this->cur_input_time;
-  
-    sprintf (tstr, "%02d:%02d:%02d", 
-             seconds / (60 * 60),
-             (seconds % (60*60)) / 60,
-             seconds % 60);
-    
-    this->osd_renderer->render_text (this->osd, 45, 5, tstr, OSD_TEXT1);
-  
-    this->osd_renderer->show (this->osd, start_time);
-    this->osd_renderer->hide (this->osd, start_time+duration);
-  }
-}
-
-static void update_osd_display(void *this_gen, xine_cfg_entry_t *entry)
-{
-  xine_t *this = (xine_t *) this_gen;
-  
-  this->osd_display = entry->num_value;
-}
-
-
-static void xine_set_speed_internal (xine_t *this, int speed) {
-
-  this->metronom->set_speed (this->metronom, speed);
+  stream->metronom->set_speed (stream->metronom, speed);
 
   /* see coment on audio_out loop about audio_paused */
-  if( this->audio_out ) {
-    this->audio_out->audio_paused = (speed != XINE_SPEED_NORMAL) + 
-                                    (speed == XINE_SPEED_PAUSE);
+  if( stream->audio_out ) {
+    stream->audio_out->audio_paused = (speed != XINE_SPEED_NORMAL) + 
+      (speed == XINE_SPEED_PAUSE);
 
     /*
      * slow motion / fast forward does not play sound, drop buffered
      * samples from the sound driver
      */
     if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
-	this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
+      stream->audio_out->control(stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
-    this->audio_out->control(this->audio_out,
-			     speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
+    stream->audio_out->control(stream->audio_out,
+			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
   }
-
-  this->speed = speed;
+  
+  stream->speed = speed;
 }
 
 
-void xine_stop_internal (xine_t *this) {
+static void xine_stop_internal (xine_stream_t *stream) {
 
-  printf ("xine_stop. status before = %d\n", this->status);
+  int finished_count_audio = 0;
+  int finished_count_video = 0;
 
-  if (this->status == XINE_STATUS_STOP) {
-    printf ("xine_stop ignored\n");
+  printf ("xine: xine_stop. status before = %d\n", stream->status);
+
+  if (stream->status == XINE_STATUS_STOP) {
+    printf ("xine: xine_stop ignored\n");
     return;
   }
   
   /* make sure we're not in "paused" state */
-  xine_set_speed_internal(this, XINE_SPEED_NORMAL);
+  xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
-  if(this->status != XINE_STATUS_QUIT)
-    this->status = XINE_STATUS_STOP;
+  if (stream->status != XINE_STATUS_QUIT)
+    stream->status = XINE_STATUS_STOP;
     
-  printf ("xine_stop: stopping demuxer\n");
-  if(this->cur_demuxer_plugin) {
-    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-    this->cur_demuxer_plugin = NULL;
-  }
-  printf ("xine_stop: stopped demuxer\n");
+  /*
+   * stop demux
+   */
 
-  if(this->cur_input_plugin) {
-    this->cur_input_plugin->close(this->cur_input_plugin);
-    if (strcmp(this->cur_mrl, this->logo_mrl) != 0)
-      /* remember the last input plugin for a possible eject */
-      this->last_input_plugin = this->cur_input_plugin;
+  pthread_mutex_lock (&stream->counter_lock);
+  if (stream->audio_fifo)
+    finished_count_audio = stream->finished_count_audio + 1;
+  else
+    finished_count_audio = 0;
+
+  finished_count_video = stream->finished_count_video + 1;
+  pthread_mutex_unlock (&stream->counter_lock);
+
+  printf ("xine_stop: stopping demux\n");
+  if (stream->demux_plugin) {
+    stream->demux_plugin->dispose (stream->demux_plugin);
+    stream->demux_plugin = NULL;
+
+    /*
+     * wait until engine has really stopped
+     */
+
+    pthread_mutex_lock (&stream->counter_lock);
+    while ((stream->finished_count_audio<finished_count_audio) || 
+	   (stream->finished_count_video<finished_count_video)) {
+      printf ("xine: waiting for finisheds.\n");
+      pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
+    }
+    pthread_mutex_unlock (&stream->counter_lock);
+  }
+  printf ("xine_stop: demux stopped\n");
+
+  /*
+   * close input plugin
+   */
+
+  if (stream->input_plugin) {
+    stream->input_plugin->dispose(stream->input_plugin);
+    stream->input_plugin = NULL;
   }
 
   /* remove buffered samples from the sound device driver */
-  if (this->audio_out)
-    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
+  if (stream->audio_out)
+    stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
   printf ("xine_stop: done\n");
 }
 
-void xine_stop (xine_t *this) {
-  pthread_mutex_lock (&this->xine_lock);
-  xine_stop_internal(this);
+void xine_stop (xine_stream_t *stream) {
+
+  pthread_mutex_lock (&stream->frontend_lock);
+
+  xine_stop_internal (stream);
   
   /*
-     this will make output threads discard about everything
-     am i abusing of xine architeture? :)
-  */
-  this->metronom->adjust_clock(this->metronom,
-			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+   * stream will make output threads discard about everything
+   * am i abusing of xine architeture? :)
+   */
+  stream->metronom->adjust_clock (stream->metronom,
+				  stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
   
-  if(this->status == XINE_STATUS_STOP) {
-    play_logo_internal(this);
-  }
-
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_unlock (&stream->frontend_lock);
 }
 
+xine_stream_t *xine_stream_new (xine_t *this, 
+				xine_ao_driver_t *ao, xine_vo_driver_t *vo) {
 
-/*
- * demuxer probing 
- */
-static int probe_demux (xine_t *this, int stage1, int stage2) {
+  xine_stream_t *stream;
+  int            i;
 
-  int i;
-  int stages[3];
+  printf ("xine: xine_stream_new\n");
 
-  stages[0] = stage1;
-  stages[1] = stage2;
-  stages[2] = -1;
+  /*
+   * create a new stream object
+   */
 
-  if (stages[0] == -1) {
-    printf ("xine: probe_demux stage1 = %d is not allowed \n", stage1);
+  pthread_mutex_lock (&this->streams_lock);
+
+  stream = (xine_stream_t *) xine_xmalloc (sizeof (xine_stream_t)) ;
+
+  stream->xine                   = this;
+  stream->status                 = XINE_STATUS_STOP;
+  for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
+    stream->stream_info[i]       = 0;
+    stream->meta_info[i]         = NULL;
+  }
+  stream->speed                  = XINE_SPEED_NORMAL;
+  stream->input_pos              = 0;
+  stream->input_length           = 0;
+  stream->input_time             = 0;
+  stream->spu_out                = NULL;
+  stream->spu_decoder_plugin     = NULL;
+  stream->audio_channel_user     = -1;
+  stream->audio_channel_auto     = 0;
+  stream->spu_channel_auto       = -1;
+  stream->spu_channel_letterbox  = -1;
+  stream->spu_channel_pan_scan   = -1;
+  stream->spu_channel_user       = -1;
+  stream->spu_channel            = -1;
+  stream->video_driver           = vo;
+  stream->video_in_discontinuity = 0;
+  stream->video_channel          = 0;
+  stream->header_count_audio     = 0; 
+  stream->header_count_video     = 0; 
+  stream->finished_count_audio   = 0; 
+  stream->finished_count_video   = 0; 
+  stream->err                    = 0;
+
+  /*
+   * init mutexes and conditions
+   */
+
+  pthread_mutex_init (&stream->frontend_lock, NULL);
+  pthread_mutex_init (&stream->event_queues_lock, NULL);
+  pthread_mutex_init (&stream->osd_lock, NULL);
+  pthread_mutex_init (&stream->counter_lock, NULL);
+  pthread_cond_init  (&stream->counter_changed, NULL);
+
+  /*
+   * create a metronom
+   */
+
+  stream->metronom = metronom_init ( (ao != NULL), stream);
+
+  /*
+   * alloc fifos, init and start decoder threads
+   */
+
+  stream->video_out = vo_new_instance (vo, stream);
+  video_decoder_init (stream);
+
+  if (ao) 
+    stream->audio_out = ao_new_instance (ao, stream);
+  audio_decoder_init (stream);
+
+  /*
+   * osd
+   */
+
+  stream->osd_renderer = osd_renderer_init (stream->video_out->get_overlay_instance (stream->video_out), stream->xine->config );
+  
+  /*
+   * register stream
+   */
+
+  xine_list_append_content (this->streams, stream);
+
+  pthread_mutex_unlock (&this->streams_lock);
+
+  return stream;
+}
+
+static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
+
+  int header_count_audio;
+  int header_count_video;
+
+  /*
+   * find an input plugin
+   */
+
+  if (!(stream->input_plugin = find_input_plugin (stream, mrl))) {
+    xine_log (stream->xine, XINE_LOG_MSG, 
+	      _("xine: cannot find input plugin for this MRL\n"));
+
+    stream->err = XINE_ERROR_NO_INPUT_PLUGIN;
+    return 0;
+  }
+  stream->input_class = stream->input_plugin->input_class;
+  stream->meta_info[XINE_META_INFO_INPUT_PLUGIN] 
+    = strdup (stream->input_class->get_identifier (stream->input_class));
+
+
+  /*
+   * find a demux plugin
+   */
+  if (!find_demux_plugin (stream, stream->input_plugin)) {
+    xine_log (stream->xine, XINE_LOG_MSG,
+	      _("xine: couldn't find demux for >%s<\n"), mrl);
+    stream->input_plugin->dispose (stream->input_plugin);
+    stream->input_plugin = NULL;
+    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+
+    /* remove buffered samples from the sound device driver */
+    if (stream->audio_out)
+      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
+
+    stream->status = XINE_STATUS_STOP;
     return 0;
   }
 
-  i = 0;
-  while (stages[i] != -1) {
-
-    plugin_node_t *node;
-
-    node = xine_list_first_content (this->plugin_catalog->demux);
-
-    while (node) {
-      demux_plugin_t *plugin;
-
-      plugin = (demux_plugin_t *) node->plugin;
-
-      if (plugin->open (plugin, 
-			this->cur_input_plugin, 
-			stages[i]) == DEMUX_CAN_HANDLE) {
-	
-	this->cur_demuxer_plugin = plugin;
-
-	return 1;
-      }
-      node = xine_list_next_content (this->plugin_catalog->demux);
-    }
-    i++;
-  }
-
-  return 0;
-}
-
-/*
- * try to find a demuxer which handle current mrl.
- */
-static int find_demuxer(xine_t *this) {
-
-  this->cur_demuxer_plugin = NULL;
-
-  switch (this->demux_strategy) {
-
-  case DEMUX_DEFAULT_STRATEGY:
-    if (probe_demux (this, STAGE_BY_CONTENT, STAGE_BY_EXTENSION))
-      return 1;
-    break;
-
-  case DEMUX_REVERT_STRATEGY:
-    if (probe_demux (this, STAGE_BY_EXTENSION, STAGE_BY_CONTENT))
-      return 1;
-    break;
-
-  case DEMUX_CONTENT_STRATEGY:
-    if (probe_demux (this, STAGE_BY_CONTENT, -1))
-      return 1;
-    break;
-
-  case DEMUX_EXTENSION_STRATEGY:
-    if (probe_demux (this, STAGE_BY_EXTENSION, -1))
-      return 1;
-    break;
-  }
-  
-  return 0;
-}
-
-int xine_open_internal (xine_t *this, const char *mrl) {
-
-  printf ("xine: open mrl '%s'\n", mrl);
-
-  /* 
-   * is this an 'opt:' mrlstyle ? 
-   */ 
-  if (xine_config_change_opt(this->config, mrl)) {
-    xine_event_t event;
-    
-    this->status = XINE_STATUS_STOP;
-    
-    event.type = XINE_EVENT_PLAYBACK_FINISHED;
-    pthread_mutex_unlock (&this->xine_lock);
-    xine_send_event (this, &event);
-    pthread_mutex_lock (&this->xine_lock);
-    return 1;
-  }
+  stream->meta_info[XINE_META_INFO_SYSTEMLAYER] 
+    = strdup (stream->demux_plugin->demux_class->get_identifier());
 
   /*
-   * stop engine only for different mrl
+   * start metronom clock
    */
 
-  if ((this->status == XINE_STATUS_PLAY && strcmp (mrl, this->cur_mrl)) 
-      || (this->status == XINE_STATUS_LOGO)) {
-    
-    printf ("xine: stopping engine\n");
+  stream->metronom->start_clock (stream->metronom, 0);
 
-    if (this->speed != XINE_SPEED_NORMAL) 
-      xine_set_speed_internal (this, XINE_SPEED_NORMAL);
+  /*
+   * send and decode headers
+   */
 
-    if(this->cur_demuxer_plugin) {
-      this->playing_logo = 0;
-      this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-    }
-    
-    if(this->cur_input_plugin) {
+  pthread_mutex_lock (&stream->counter_lock);
+  if (stream->audio_fifo)
+    header_count_audio = stream->header_count_audio + 1;
+  else
+    header_count_audio = 0;
 
-      if (strcmp (mrl, this->cur_mrl)) 
-        this->cur_input_plugin->close(this->cur_input_plugin);
-      else
-        this->cur_input_plugin->stop(this->cur_input_plugin);
-    }
-
-    /* remove buffered samples from the sound device driver */
-    if (this->audio_out)
-      this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
-
-    this->status = XINE_STATUS_STOP;
-  }
-
-  if (this->status == XINE_STATUS_STOP) {
-
-    plugin_node_t *node;
-    int            i, header_count;
-
-    /*
-     * (1/3) reset metainfo 
-     */
-    
-    for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
-      this->stream_info[i] = 0;
-      if (this->meta_info[i]) {
-	free (this->meta_info[i]);
-	this->meta_info[i] = NULL;
-      }
-    }
-
-    /* 
-     * (2/3) start engine for new mrl'
-     */
-
-    printf ("xine: starting engine for new mrl\n");
-
-    /*
-     * find input plugin
-     */
-    this->cur_input_plugin = NULL;
-    node = xine_list_first_content (this->plugin_catalog->input);
-    while (node) {
-      input_plugin_t *plugin;
-      
-      plugin = (input_plugin_t *) node->plugin;
-
-      if (plugin->open (plugin, mrl)) {
-        this->cur_input_plugin = plugin;
-        break;
-      }
-      node = xine_list_next_content (this->plugin_catalog->input);
-    }
-
-    if (!this->cur_input_plugin) {
-      xine_log (this, XINE_LOG_MSG, 
-	        _("xine: cannot find input plugin for this MRL\n"));
-      this->cur_demuxer_plugin = NULL;
-      this->err = XINE_ERROR_NO_INPUT_PLUGIN;
-
-      return 0;
-    }
+  header_count_video = stream->header_count_video + 1;
+  pthread_mutex_unlock (&stream->counter_lock);
   
-    this->meta_info[XINE_META_INFO_INPUT_PLUGIN] 
-      = strdup (this->cur_input_plugin->get_identifier(this->cur_input_plugin));
+  stream->demux_plugin->send_headers (stream->demux_plugin);
 
-    /*
-     * find demuxer plugin
-     */
-    header_count = this->header_sent_counter+1;
-
-    if (!find_demuxer(this)) {
-      xine_log (this, XINE_LOG_MSG,
-	        _("xine: couldn't find demuxer for >%s<\n"), mrl);
-      this->cur_input_plugin->close(this->cur_input_plugin);
-      this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
-      return 0;
-    }
-
-    this->meta_info[XINE_META_INFO_SYSTEMLAYER] 
-      = strdup (this->cur_demuxer_plugin->get_identifier());
-
-    /* FIXME: ?? limited length ??? */
-    strncpy (this->cur_mrl, mrl, 1024);
-
-    printf ("xine: engine start successful - waiting for headers to be sent\n");
-
-    /*
-     * (3/3) wait for headers to be sent and decoded
-     */
-
-    while (header_count>this->header_sent_counter) {
-      printf ("xine: waiting for headers.\n");
-      xine_usec_sleep (20000);
-    }
-
-    printf ("xine: xine_open done.\n");
-
-    return 1;
+  pthread_mutex_lock (&stream->counter_lock);
+  while ((stream->header_count_audio<header_count_audio) || 
+	 (stream->header_count_video<header_count_video)) {
+    printf ("xine: waiting for headers.\n");
+    pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
   }
+  pthread_mutex_unlock (&stream->counter_lock);
 
-  printf ("xine: xine_open ignored (same mrl, already playing)\n");
-  return 0;
+  return 1;
 }
 
-int xine_play_internal (xine_t *this, int start_pos, int start_time) {
+int xine_open (xine_stream_t *stream, const char *mrl) {
+
+  int ret;
+
+  pthread_mutex_lock (&stream->frontend_lock);
+
+  printf ("xine: xine_open %s\n", mrl);
+
+  ret = xine_open_internal (stream, mrl);
+
+  pthread_mutex_unlock (&stream->frontend_lock);
+
+  return ret;
+}
+
+
+static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_time) {
 
   double     share ;
   off_t      pos, len;
   int        demux_status;
 
-  printf ("xine: xine_play_internal\n");
+  printf ("xine: xine_play\n");
 
-  if (this->speed != XINE_SPEED_NORMAL) 
-    xine_set_speed_internal (this, XINE_SPEED_NORMAL);
+  if (stream->speed != XINE_SPEED_NORMAL) 
+    xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /*
-   * start/seek demuxer
+   * start/seek demux
    */
   if (start_pos) {
     /* FIXME: do we need to protect concurrent access to input plugin here? */
-    len = this->cur_input_plugin->get_length (this->cur_input_plugin);
+    len = stream->input_plugin->get_length (stream->input_plugin);
     share = (double) start_pos / 65535;
     pos = (off_t) (share * len) ;
   } else
     pos = 0;
   
-  if (this->status == XINE_STATUS_STOP) {
+  if (stream->status == XINE_STATUS_STOP) {
 
-    demux_status = this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
+    demux_status = stream->demux_plugin->start (stream->demux_plugin,
 						    pos, start_time);
   } else {
-    demux_status = this->cur_demuxer_plugin->seek (this->cur_demuxer_plugin,
+    demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
   }
 
   if (demux_status != DEMUX_OK) {
-    xine_log (this, XINE_LOG_MSG, 
-	      _("xine_play: demuxer failed to start\n"));
+    xine_log (stream->xine, XINE_LOG_MSG, 
+	      _("xine_play: demux failed to start\n"));
     
-    this->err = XINE_ERROR_DEMUXER_FAILED;
+    stream->err = XINE_ERROR_DEMUX_FAILED;
     
-    if( this->status == XINE_STATUS_STOP )      
-      this->cur_input_plugin->close(this->cur_input_plugin);
+    if (stream->status == XINE_STATUS_STOP)   
+      stream->input_plugin->dispose(stream->input_plugin);
   
+    pthread_mutex_unlock (&stream->frontend_lock);
     return 0;
     
   } else {
-
-    this->status = XINE_STATUS_PLAY;
-    
-    /* osd will be updated as soon as we know cur_input_time */
-    if( !this->playing_logo )
-      this->curtime_needed_for_osd = 5;
+    stream->status = XINE_STATUS_PLAY;
   }
 
   printf ("xine: xine_play_internal ...done\n");
@@ -565,102 +420,88 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
   return 1;
 }             
 
-int xine_open (xine_t *this, const char *mrl) {
+int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
+
   int ret;
 
-  pthread_mutex_lock (&this->xine_lock);
-  ret = xine_open_internal (this, mrl);
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_lock (&stream->frontend_lock);
+
+  ret = xine_play_internal (stream, start_pos, start_time);
+
+  pthread_mutex_unlock (&stream->frontend_lock);
   
   return ret;
 }
 
-int  xine_play (xine_t *this, int start_pos, int start_time) {
-  int ret;
-
-  pthread_mutex_lock (&this->xine_lock);
-  ret = xine_play_internal (this, start_pos, start_time);
-  pthread_mutex_unlock (&this->xine_lock);
-  
-  return ret;
-}
-
-
-int xine_eject (xine_t *this) {
+int xine_eject (xine_stream_t *stream) {
   
   int status;
 
-  if(this->last_input_plugin == NULL) 
+  if (!stream->input_class) 
     return 0;
   
-  pthread_mutex_lock (&this->xine_lock);
+  pthread_mutex_lock (&stream->frontend_lock);
 
   status = 0;
-  if (((this->status == XINE_STATUS_STOP) || (this->status == XINE_STATUS_LOGO))
-      && this->last_input_plugin && this->last_input_plugin->eject_media) {
+  if ((stream->status == XINE_STATUS_STOP)
+      && stream->input_class && stream->input_class->eject_media) {
 
-    status = this->last_input_plugin->eject_media (this->last_input_plugin);
+    status = stream->input_class->eject_media (stream->input_class);
   }
 
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_unlock (&stream->frontend_lock);
   return status;
+}
+
+void xine_dispose (xine_stream_t *stream) {
+
+  printf ("xine: xine_dispose\n");
+
+  stream->status = XINE_STATUS_QUIT;
+
+  xine_stop(stream);
+
+  printf ("xine_exit: shutdown audio\n");
+
+  audio_decoder_shutdown (stream);
+
+  printf ("xine_exit: shutdown video\n");
+
+  video_decoder_shutdown (stream);
+
+  stream->osd_renderer->close( stream->osd_renderer );
+  stream->video_out->exit (stream->video_out);
+  stream->video_fifo->dispose (stream->video_fifo);
+
+  pthread_mutex_destroy (&stream->frontend_lock);
+  pthread_mutex_destroy (&stream->counter_lock);
+  pthread_mutex_destroy (&stream->osd_lock);
+  pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_cond_destroy (&stream->counter_changed);
+
+  free (stream);
 }
 
 void xine_exit (xine_t *this) {
 
+  /* FIXME */
+
+  printf ("xine_exit: bye!\n");
+
+#if 0
+
   int i;
 
-  /* skip some cleanup steps, when xine_init wasn't run */
-  if (this->video_driver && this->metronom) {
-
-    /* cleanup things from xine_init... */
-    this->status = XINE_STATUS_QUIT;
-
-    xine_stop(this);
-
-    pthread_mutex_lock (&this->finished_lock);
-
-    if (this->finished_thread_running)
-      pthread_join (this->finished_thread, NULL);
-
-    pthread_mutex_unlock (&this->finished_lock);
-
-    printf ("xine_exit: shutdown audio\n");
-
-    audio_decoder_shutdown (this);
-
-    printf ("xine_exit: shutdown video\n");
-
-    video_decoder_shutdown (this);
-
-    this->osd_renderer->close( this->osd_renderer );
-    this->video_out->exit (this->video_out);
-    this->video_fifo->dispose (this->video_fifo);
-
-    this->metronom->exit (this->metronom);
-
-    printf ("xine_exit: bye!\n");
-  }
-
-  /* cleanup things from xine_new... */
-  this->status = XINE_STATUS_QUIT;
-
   for (i = 0; i < XINE_LOG_NUM; i++)
-    this->log_buffers[i]->dispose (this->log_buffers[i]);
+    stream->log_buffers[i]->dispose (stream->log_buffers[i]);
 
-  dispose_plugins (this);
+  stream->metronom->exit (stream->metronom);
+
+  dispose_plugins (stream);
   xine_profiler_print_results ();
-  this->config->dispose(this->config);
+  stream->config->dispose(stream->config);
 
-  pthread_mutex_destroy (&this->logo_lock);
-  pthread_mutex_destroy (&this->xine_lock);
-  pthread_mutex_destroy (&this->finished_lock);
-  pthread_mutex_destroy (&this->osd_lock);
-  pthread_mutex_destroy (&this->event_lock);
-  pthread_cond_destroy (&this->event_handled);
-
-  free (this);
-
+#endif
 }
 
 xine_t *xine_new (void) {
@@ -684,22 +525,6 @@ xine_t *xine_new (void) {
 #endif 
 
   /*
-   * init locks
-   */
-
-  pthread_mutex_init (&this->xine_lock, NULL);
-
-  pthread_mutex_init (&this->finished_lock, NULL);
-  
-  pthread_mutex_init (&this->osd_lock, NULL);
-  
-  pthread_mutex_init (&this->event_lock, NULL);
-  
-  pthread_cond_init (&this->event_handled, NULL);
-  
-  this->finished_thread_running = 0;
-
-  /*
    * config
    */
 
@@ -711,33 +536,12 @@ xine_t *xine_new (void) {
 
   for (i = 0; i < XINE_LOG_NUM; i++)
     this->log_buffers[i] = new_scratch_buffer (25);
-
-  /*
-   * defaults 
-   */
   
-  this->err                    = XINE_ERROR_NONE;
-  this->spu_channel_auto       = -1;
-  this->spu_channel_letterbox  = -1;
-  this->spu_channel_pan_scan   = -1;
-  this->spu_channel_user       = -1;
-  this->cur_input_pos          = 0;
-  this->cur_input_length       = 0;
-  this->last_input_plugin      = NULL;
-  this->num_event_listeners    = 0; /* initially there are none */
-  this->cur_input_plugin       = NULL;
-  this->cur_spu_decoder_plugin = NULL;
-  this->report_codec_cb        = NULL; 
-  this->header_sent_counter    = 0;
-
-  /* 
-   * meta info
+  /*
+   * streams_lock
    */
 
-  for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
-    this->stream_info[i] = 0;
-    this->meta_info  [i] = NULL;
-  }
+  pthread_mutex_init (&this->streams_lock, NULL);
 
   /* 
    * plugins
@@ -745,48 +549,21 @@ xine_t *xine_new (void) {
   
   scan_plugins(this);
 
-  /*
-   * logo 
-   */
-
-  pthread_mutex_init (&this->logo_lock, NULL);
-
-  pthread_mutex_lock (&this->logo_lock);
-  this->logo_mrl = this->config->register_string(this->config, 
-						 "misc.logo_mrl", 
-						 XINE_LOGO_FILE,
-						 _("logo mrl, displayed in video output window"),
-						 NULL, 0, _logo_change_cb, 
-						 (void *) this);
-  pthread_mutex_unlock (&this->logo_lock);
-
   return this;
-
 }
 
 
-void xine_init (xine_t *this,
-		xine_ao_driver_t *ao,
-		xine_vo_driver_t *vo) {
+void xine_init (xine_t *this) {
 
   static char *demux_strategies[] = {"default", "reverse", "content",
 				     "extension", NULL};
 
-  this->video_driver = vo;
-
   /* initialize color conversion tables and functions */
   init_yuv_conversion();
 
-  
-  /*
-   * create a metronom
-   */
-
-  this->metronom = metronom_init ( (ao != NULL), this);
-        
   /* probe for optimized memcpy or config setting */
   xine_probe_fast_memcpy (this->config);
-
+  
   /*
    * content detection strategy
    */
@@ -797,216 +574,121 @@ void xine_init (xine_t *this,
 						       demux_strategies, 
 						       "media format detection strategy",
 						       NULL, 10, NULL, NULL);
-
   /*
-   * init and start decoder threads
+   * keep track of all opened streams 
    */
 
-  this->video_out = vo_new_instance (vo, this);
-  video_decoder_init (this);
+  this->streams = xine_list_new();
+  pthread_mutex_init (&this->streams_lock, NULL);
 
-  this->osd_renderer = osd_renderer_init (this->video_out->get_overlay_instance (this->video_out), this->config );
-  
-  this->osd = this->osd_renderer->new_object (this->osd_renderer, 300, 100);
-  this->osd_renderer->set_font (this->osd, "cetus", 24);
-  this->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT, OSD_TEXT1 );
-  this->osd_renderer->set_position (this->osd, 10,10);
-
-  this->osd_display = this->config->register_bool (this->config, 
-						   "misc.osd_display", 1,
-						   "Show status on play, pause, ff, ...", 
-						   NULL, 0,
-						   update_osd_display, this );
-  
-  if (ao) 
-    this->audio_out = ao_new_instance (ao, this);
-
-  audio_decoder_init (this);
-
-  /*
-   * start metronom clock (needed for osd)
-   */
-
-  this->metronom->start_clock (this->metronom, 0);
-
-  if (this->osd_display) {
-   
-    char tstr[30];
-
-    this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
-    sprintf (tstr, "xine-lib v%01d.%01d.%01d", XINE_MAJOR, XINE_MINOR, XINE_SUB);
-
-    this->osd_renderer->render_text (this->osd, 5, 5, tstr, OSD_TEXT1);
-  
-    this->osd_renderer->show (this->osd, 0);
-    this->osd_renderer->hide (this->osd, 300000);
-  }
-
-  this->status = XINE_STATUS_STOP;
-
-  play_logo_internal(this);
 }
 
-void xine_select_spu_channel (xine_t *this, int channel) {
+void xine_select_spu_channel (xine_stream_t *stream, int channel) {
 
-  pthread_mutex_lock (&this->xine_lock);
+  pthread_mutex_lock (&stream->frontend_lock);
 
-  this->spu_channel_user = (channel >= -2 ? channel : -2);
+  stream->spu_channel_user = (channel >= -2 ? channel : -2);
 
-  switch (this->spu_channel_user) {
+  switch (stream->spu_channel_user) {
   case -2:
-    this->spu_channel = -1;
-    this->video_out->enable_ovl (this->video_out, 0);
+    stream->spu_channel = -1;
+    stream->video_out->enable_ovl (stream->video_out, 0);
     break;
   case -1:
-    this->spu_channel = this->spu_channel_auto;
-    this->video_out->enable_ovl (this->video_out, 1);
+    stream->spu_channel = stream->spu_channel_auto;
+    stream->video_out->enable_ovl (stream->video_out, 1);
     break;
   default:
-    this->spu_channel = this->spu_channel_user;
-    this->video_out->enable_ovl (this->video_out, 1);
+    stream->spu_channel = stream->spu_channel_user;
+    stream->video_out->enable_ovl (stream->video_out, 1);
   }
 
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_unlock (&stream->frontend_lock);
 }
 
-static int xine_get_current_position (xine_t *this) {
+static int xine_get_current_position (xine_stream_t *stream) {
 
   off_t len;
   double share;
   
-  pthread_mutex_lock (&this->xine_lock);
+  pthread_mutex_lock (&stream->frontend_lock);
 
-  if (!this->cur_input_plugin) {
+  if (!stream->input_plugin) {
     printf ("xine: xine_get_current_position: no input source\n");
-    pthread_mutex_unlock (&this->xine_lock);
+    pthread_mutex_unlock (&stream->frontend_lock);
     return 0;
   }
   
-  /* pos = this->mCurInput->seek (0, SEEK_CUR); */
-  len = this->cur_input_length;
-  if (len == 0) len = this->cur_input_plugin->get_length (this->cur_input_plugin); 
-  share = (double) this->cur_input_pos / (double) len * 65535;
+  /* pos = stream->mCurInput->seek (0, SEEK_CUR); */
+  len = stream->input_length;
+  if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin); 
+  share = (double) stream->input_pos / (double) len * 65535;
 
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_unlock (&stream->frontend_lock);
 
   return (int) share;
 }
 
-int xine_get_status(xine_t *this) {
-  int status;
-
-  status = this->status;
-  if( status == XINE_STATUS_LOGO )
-    status = XINE_STATUS_STOP;
-  return status;
+int xine_get_status (xine_stream_t *stream) {
+  return stream->status;
 }
 
 /*
  * trick play 
  */
 
-void xine_set_speed (xine_t *this, int speed) {
+void xine_set_speed (xine_stream_t *stream, int speed) {
 
-  pthread_mutex_lock (&this->xine_lock);
+  pthread_mutex_lock (&stream->frontend_lock);
 
   if (speed <= XINE_SPEED_PAUSE) 
     speed = XINE_SPEED_PAUSE;
   else if (speed > XINE_SPEED_FAST_4) 
     speed = XINE_SPEED_FAST_4;
 
-  /* osd */
-
-  pthread_mutex_lock (&this->osd_lock);
-  switch (speed) {
-  case XINE_SPEED_PAUSE:
-    xine_internal_osd (this, "<", 90000);
-    break;
-  case XINE_SPEED_SLOW_4:
-    xine_internal_osd (this, "<>", 20000 * speed);
-    break;
-  case XINE_SPEED_SLOW_2:
-    xine_internal_osd (this, "@>", 20000 * speed);
-    break;
-  case XINE_SPEED_NORMAL:
-    xine_internal_osd (this, ">", 20000 * speed);
-    break;
-  case XINE_SPEED_FAST_2:
-    xine_internal_osd (this, "$$", 20000 * speed);
-    break;
-  case XINE_SPEED_FAST_4:
-    xine_internal_osd (this, "$$$", 20000 * speed);
-    break;
-  } 
-  pthread_mutex_unlock (&this->osd_lock);
-    
   printf ("xine: set_speed %d\n", speed);
-  xine_set_speed_internal (this, speed);
+  xine_set_speed_internal (stream, speed);
 
-  pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_unlock (&stream->frontend_lock);
 }
 
 
-int xine_get_speed (xine_t *this) {
-  return this->speed;
+int xine_get_speed (xine_stream_t *stream) {
+  return stream->speed;
 }
 
 /*
  * time measurement / seek
  */
 
-static int xine_get_stream_length (xine_t *this) {
+static int xine_get_stream_length (xine_stream_t *stream) {
 
-  if(this->cur_demuxer_plugin)
-    return this->cur_demuxer_plugin->get_stream_length (this->cur_demuxer_plugin);
+  if (stream->demux_plugin)
+    return stream->demux_plugin->get_stream_length (stream->demux_plugin);
 
   return 0;
 }
 
-int xine_get_pos_length (xine_t *this, int *pos_stream, 
+int xine_get_pos_length (xine_stream_t *stream, int *pos_stream, 
 			 int *pos_time, int *length_time) {
   
   if (pos_stream)
-    *pos_stream  = xine_get_current_position (this); 
+    *pos_stream  = xine_get_current_position (stream); 
   if (pos_time)
-    *pos_time    = this->cur_input_time * 1000;
+    *pos_time    = stream->input_time * 1000;
   if (length_time)
-    *length_time = xine_get_stream_length (this) * 1000;
+    *length_time = xine_get_stream_length (stream) * 1000;
 
   return 1;
 }
 
-static int xine_get_audio_capabilities(xine_t *this) {
-
-  if(this->audio_out)
-    return (this->audio_out->get_capabilities(this->audio_out));
-
-  return AO_CAP_NOCAP;
-}
-
-static int xine_get_audio_property(xine_t *this, int property) {
-  
-  if(this->audio_out)
-    return(this->audio_out->get_property(this->audio_out, property));
-
-  return 0;
-}
-
-static int xine_set_audio_property(xine_t *this, int property, int value) {
-
-  if(this->audio_out)
-    return(this->audio_out->set_property(this->audio_out, property, value));
-  
-  return ~value;
-}
-
-int xine_get_current_frame (xine_t *this, int *width, int *height,
+int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
 			    int *ratio_code, int *format,
 			    uint8_t *img) {
 
   vo_frame_t *frame;
 
-  frame = this->video_out->get_last_frame (this->video_out);
+  frame = stream->video_out->get_last_frame (stream->video_out);
 
   if (!frame)
     return 0;
@@ -1041,42 +723,39 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
   return 1;
 }
 
-const char * xine_get_spu_lang (xine_t *this, int channel) {
+int xine_get_spu_lang (xine_stream_t *stream, int channel, char *lang) {
 
-  if (this->cur_input_plugin) {
-    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SPULANG) {
-      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, 
-						 this->spu_lang, 
-						 INPUT_OPTIONAL_DATA_SPULANG);
-      return this->spu_lang;
+  if (stream->input_plugin) {
+    if (stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_SPULANG) {
+      stream->input_plugin->get_optional_data (stream->input_plugin, lang,
+					       INPUT_OPTIONAL_DATA_SPULANG);
+      return 1;
     }
   } 
 
-  return NULL;
+  return 0;
 }
 
-const char* xine_get_audio_lang (xine_t *this, int channel) {
+int xine_get_audio_lang (xine_stream_t *stream, int channel, char *lang) {
 
-  if (this->cur_input_plugin) {
-    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_AUDIOLANG) {
-      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, 
-						 this->audio_lang, 
-						 INPUT_OPTIONAL_DATA_AUDIOLANG);
-      return this->audio_lang;
+  if (stream->input_plugin) {
+    if (stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_AUDIOLANG) {
+      stream->input_plugin->get_optional_data (stream->input_plugin, lang,
+					       INPUT_OPTIONAL_DATA_AUDIOLANG);
+      return 1;
     }
   } 
 
-  return NULL;
+  return 0;
 }
 
-int xine_get_spu_channel (xine_t *this) {
-
-  return this->spu_channel_user;
+int xine_get_spu_channel (xine_stream_t *stream) {
+  return stream->spu_channel_user;
 }
 
-osd_renderer_t *xine_get_osd_renderer (xine_t *this) {
+osd_renderer_t *xine_get_osd_renderer (xine_stream_t *stream) {
 
-  return this->osd_renderer;
+  return stream->osd_renderer;
 }
 
 /*
@@ -1127,11 +806,11 @@ void xine_register_log_cb (xine_t *this, xine_log_cb_t cb, void *user_data) {
 }
 
 
-int xine_get_error (xine_t *this) {
-  return this->err;
+int xine_get_error (xine_stream_t *stream) {
+  return stream->err;
 }
 
-int xine_trick_mode (xine_t *this, int mode, int value) {
+int xine_trick_mode (xine_stream_t *stream, int mode, int value) {
   printf ("xine: xine_trick_mode not implemented yet.\n");
   abort ();
 }

@@ -17,15 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.19 2002/09/18 00:51:33 guenter Exp $
+ * $Id: demux.h,v 1.20 2002/10/14 15:47:12 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
 #define HAVE_DEMUX_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "buffer.h"
 #include "xine_internal.h"
@@ -35,43 +31,68 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    11
+#define DEMUXER_PLUGIN_IFACE_VERSION    14
 
-#define DEMUX_OK                  0
-#define DEMUX_FINISHED            1
+#define DEMUX_OK                   0
+#define DEMUX_FINISHED             1
 
-#define DEMUX_CANNOT_HANDLE       0
-#define DEMUX_CAN_HANDLE          1
+#define DEMUX_CANNOT_HANDLE        0
+#define DEMUX_CAN_HANDLE           1
 
-#define DEMUX_DEFAULT_STRATEGY    0
-#define DEMUX_REVERT_STRATEGY     1
-#define DEMUX_CONTENT_STRATEGY    2
-#define DEMUX_EXTENSION_STRATEGY  3
+#define METHOD_BY_CONTENT          1
+#define METHOD_BY_EXTENSION        2
 
-#define STAGE_BY_CONTENT          1
-#define STAGE_BY_EXTENSION        2
+typedef struct demux_class_s demux_class_t ;
+
+struct demux_class_s {
+
+  /*
+   * return human readable (verbose = 1 line) description for this plugin
+   */
+  char* (*get_description) (demux_class_t *this);
+
+  /*
+   * return human readable identifier for this plugin
+   */
+
+  char* (*get_identifier) (demux_class_t *this);
+  
+  /*
+   * return MIME types supported for this plugin
+   */
+
+  char* (*get_mimetypes) (demux_class_t *this);
+
+  /*
+   * return ' ' seperated list of file extensions this
+   * demuxer is likely to handle
+   * (will be used to filter media files in 
+   * file selection dialogs)
+   */
+
+  char* (*get_extensions) (demux_class_t *this);
+
+  /*
+   * close down, free all resources
+   */
+  void (*dispose) (demux_class_t *this);
+};
+
 
 /*
- * a demux plugin must implement these functions
+ * any demux plugin must implement these functions
  */
 
 typedef struct demux_plugin_s demux_plugin_t;
 
-struct demux_plugin_s
-{
+struct demux_plugin_s {
+
   /*
-   * ask demuxer to open the given stream (input-plugin) 
-   * using the content-detection method specified in <stage>
-   *
-   * demuxer should send header/preview packages in this stage
-   *
-   * return values: 
-   *    DEMUX_CAN_HANDLE    on success
-   *    DEMUX_CANNOT_HANDLE on failure
+   * send headers, followed by BUF_CONTROL_HEADERS_DONE down the
+   * fifos, then return. do not start demux thread (yet)
    */
 
-  int (*open) (demux_plugin_t *this, input_plugin_t *ip, 
-	       int stage);
+  void (*send_headers) (demux_plugin_t *this);
 
   /*
    * start demux thread
@@ -106,17 +127,18 @@ struct demux_plugin_s
    */
 
   int (*seek) (demux_plugin_t *this, 
-		 off_t start_pos, int start_time);
+	       off_t start_pos, int start_time);
   
   /*
-   * stop & kill demux thread, free resources associated with current
-   * input stream
+   * stop & kill demux thread
+   *
+   * keep plugin ready for restart
    */
 
   void (*stop) (demux_plugin_t *this) ;
 
   /*
-   * close demuxer, free all resources
+   * stop & kill demux thread, free resources 
    */
 
   void (*dispose) (demux_plugin_t *this) ;
@@ -128,32 +150,18 @@ struct demux_plugin_s
   int (*get_status) (demux_plugin_t *this) ;
 
   /*
-   * return human readable identifier for this plugin
-   */
-
-  char* (*get_identifier) (void);
-  
-  /*
-   * return MIME types supported for this plugin
-   */
-
-  char* (*get_mimetypes) (void);
-  /*
    * estimate stream length in seconds
    * may return 0 for non-seekable streams
    */
 
   int (*get_stream_length) (demux_plugin_t *this);
-} ;
 
-/*
- * demuxer plugins should provide this (and only this!) function call:
- *
- * demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
- */
- 
-#ifdef __cplusplus
-}
-#endif
+
+  /*
+   * "backwards" link to plugin class
+   */
+
+  demux_class_t *demux_class;
+} ;
 
 #endif

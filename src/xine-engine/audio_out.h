@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.34 2002/09/18 00:51:34 guenter Exp $
+ * $Id: audio_out.h,v 1.35 2002/10/14 15:47:27 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -124,6 +124,8 @@ struct xine_ao_driver_s {
    * See AO_CTRL_* below.
    */
   int (*control) (xine_ao_driver_t *this, int cmd, /* arg */ ...);
+
+  void *node;
 };
 
 /*
@@ -203,9 +205,10 @@ struct ao_instance_s {
   /* private stuff */
 
   xine_ao_driver_t    *driver;
-  pthread_mutex_t driver_lock;
-  metronom_t     *metronom;
-  xine_t         *xine;
+  pthread_mutex_t      driver_lock;
+  metronom_t          *metronom;
+  xine_stream_t       *stream;
+  xine_t              *xine;
 
   int             audio_loop_running;
   int             audio_paused;
@@ -231,20 +234,12 @@ struct ao_instance_s {
   int64_t         passthrough_offset;
 };
 
-/* This initiates the audio_out sync routines
+/* 
+ * this initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, xine_t *xine) ;
-/*
- * to build a dynamic audio output plugin,
- * you have to implement these driver:
- *
- *
- * xine_ao_driver_t *init_audio_out_plugin (config_values_t *config)
- *
- * init this plugin, check if device is available
- *
- */
+ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, 
+				xine_stream_t *stream) ;
 
 /*
  * audio output modes + capabilities

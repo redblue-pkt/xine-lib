@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.113 2002/10/12 17:14:41 jkeil Exp $
+ * $Id: demux_avi.c,v 1.114 2002/10/14 15:47:13 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -70,8 +70,6 @@
 #include "libw32dll/wine/vfw.h"
 
 #define MAX_AUDIO_STREAMS 8
-
-#define VALID_ENDS "avi"
 
 /* The following variable indicates the kind of error */
 
@@ -168,9 +166,7 @@ typedef struct
 typedef struct demux_avi_s {
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
-
-  config_values_t     *config;
+  xine_stream_t       *stream;
 
   fifo_buffer_t       *audio_fifo;
   fifo_buffer_t       *video_fifo;
@@ -197,6 +193,16 @@ typedef struct demux_avi_s {
 
   idx_grow_t           idx_grow;
 } demux_avi_t ;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_avi_class_t;
 
 #define AVI_ERR_SIZELIM      1     /* The write of the data would exceed
                                       the maximum size of the AVI file.
@@ -393,16 +399,16 @@ static void demux_avi_stop (demux_plugin_t *this_gen);
  * notify the user.  Returns -1 if EOF was reached, the non-negative
  * return value of stopper otherwise. */
 static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
-	void *stopdata)
-{
+	void *stopdata) {
+
   unsigned long n;
-  long i;
-  long retval = -1;
-  long num_read = 0;
-  off_t ioff = 8;
-  char data[256];
-  int did_osd = 0;
-  off_t savepos = this->input->seek(this->input, 0, SEEK_CUR);
+  long          i;
+  long          retval = -1;
+  long          num_read = 0;
+  off_t         ioff = 8;
+  char          data[256];
+  off_t         savepos = this->input->seek(this->input, 0, SEEK_CUR);
+
   this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
 
   while ((retval = stopper(this, stopdata)) < 0) {
@@ -410,22 +416,24 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
     num_read += 1;
 
     if (num_read % 1000 == 0) {
-      /* Update the user using the OSD */
-      off_t file_len = this->input->get_length (this->input);
-      char str[60];
+      /* send event to frontend about index generation progress */
 
-      sprintf(str, "Building index (%3lld%%)",
-	      100 * this->idx_grow.nexttagoffset / file_len);
+      xine_event_t             event;
+      xine_idx_progress_data_t idx;
+      off_t                    file_len;
 
-      this->xine->osd_renderer->filled_rect (this->xine->osd,
-	  0, 0, 299, 99, 0);
-      this->xine->osd_renderer->render_text (this->xine->osd,
-	  5, 30, str, OSD_TEXT1);
-      this->xine->osd_renderer->show (this->xine->osd, 0);
-      did_osd = 1;
+      file_len = this->input->get_length (this->input);
+
+      idx.percent = 100 * this->idx_grow.nexttagoffset / file_len;
+
+      event.type = XINE_EVENT_BUILDING_INDEX;
+      event.data = &idx;
+      event.data_length = sizeof (xine_idx_progress_data_t);
+      
+      xine_event_send (this->stream, &event);
     }
 
-    if( this->input->read(this->input, data,8) != 8 )
+    if (this->input->read(this->input, data,8) != 8)
       break;
     n = str2ulong(data+4);
 
@@ -466,12 +474,7 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
 
   }
 
-  /* Clear the OSD */
-  if (did_osd) {
-      this->xine->osd_renderer->hide (this->xine->osd, 0);
-  }
-
-  this->input->seek(this->input, savepos, SEEK_SET);
+  this->input->seek (this->input, savepos, SEEK_SET);
 
   if (retval < 0) retval = -1;
   return retval;
@@ -649,7 +652,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
         ERR_EXIT(AVI_ERR_NO_MEM);
 
       if (this->input->read(this->input, (char *)AVI->idx, n) != n ) {
-        xine_log (this->xine, XINE_LOG_MSG, _("demux_avi: avi index is broken\n"));
+        xine_log (this->stream->xine, XINE_LOG_MSG, 
+		  _("demux_avi: avi index is broken\n"));
         free (AVI->idx);	/* Index is broken, reconstruct */
         AVI->idx = NULL;
         AVI->n_idx = AVI->max_idx = 0;
@@ -1162,13 +1166,13 @@ static void *demux_avi_loop (void *this_gen) {
   } while( this->status == DEMUX_OK );
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end (this->stream, BUF_FLAG_END_STREAM);
   }
 
   printf ("demux_avi: demux loop finished.\n");
 
   this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
+  pthread_mutex_unlock (&this->mutex);
 
   pthread_exit(NULL);
 
@@ -1180,27 +1184,27 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   demux_avi_t   *this = (demux_avi_t *) this_gen;
   void *p;
 
-  pthread_mutex_lock( &this->mutex );
+  pthread_mutex_lock (&this->mutex);
 
   if (!this->thread_running) {
     printf ("demux_avi: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
+    pthread_mutex_unlock (&this->mutex);
     return;
   }
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
-  pthread_mutex_unlock( &this->mutex );
+  pthread_mutex_unlock (&this->mutex);
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine (this->stream);
   /*
     AVI_close (this->avi);
     this->avi = NULL;
   */
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end (this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_avi_dispose (demux_plugin_t *this_gen) {
@@ -1218,19 +1222,20 @@ static int demux_avi_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static int demux_avi_send_headers (demux_avi_t *this) {
+static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
+  demux_avi_t *this = (demux_avi_t *) this_gen;
   int i;
 
   pthread_mutex_lock (&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
 
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->avi->width;
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->avi->height;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->avi->width;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->avi->height;
 
   for (i=0; i < this->avi->n_audio; i++)
     printf ("demux_avi: audio format[%d] = 0x%x\n",
@@ -1243,7 +1248,6 @@ static int demux_avi_send_headers (demux_avi_t *this) {
     if( !this->avi->audio[i]->audio_type ) {
       printf ("demux_avi: unknown audio type 0x%x\n",
 	      this->avi->audio[i]->wavex->wFormatTag);
-      xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->avi->audio[i]->wavex->wFormatTag, 0, 0);
       this->no_audio  = 1;
       this->avi->audio[i]->audio_type     = BUF_CONTROL_NOP;
     } else
@@ -1252,11 +1256,12 @@ static int demux_avi_send_headers (demux_avi_t *this) {
 	      (int)this->avi->audio[i]->wavex->wFormatTag);
   }
 
-  xine_demux_control_headers_done (this->xine);
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = !this->no_audio;
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
 }
 
 static int demux_avi_start (demux_plugin_t *this_gen,
@@ -1380,15 +1385,13 @@ static int demux_avi_start (demux_plugin_t *this_gen,
    * send start buffers
    */
   if( !this->thread_running && (this->status == DEMUX_OK) ) {
-    xine_demux_control_start(this->xine);
+    xine_demux_control_start (this->stream);
   } else {
-    xine_demux_flush_engine(this->xine);
+    xine_demux_flush_engine (this->stream);
   }
 
   if( this->status == DEMUX_OK )
-  {
-    xine_demux_control_newpts(this->xine, video_pts, BUF_FLAG_SEEK);
-  }
+    xine_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
 
   if( !this->thread_running && (this->status == DEMUX_OK) ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -1407,8 +1410,6 @@ static int demux_avi_start (demux_plugin_t *this_gen,
 	      (char*)&this->avi->bih.biCompression);
       buf->free_buffer (buf);
     
-      xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->avi->bih.biCompression, 0, 0);
-
       this->status = DEMUX_FINISHED;
     } else {
       buf->type = this->avi->video_type;
@@ -1496,107 +1497,6 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
   return demux_avi_start (this_gen, start_pos, start_time);
 }
 
-static int demux_avi_open(demux_plugin_t *this_gen,
-                          input_plugin_t *input, int stage) {
-
-  demux_avi_t *this = (demux_avi_t *) this_gen;
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf("demux_avi.c: not seekable, can't handle!\n");
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  switch(stage) {
-
-  case STAGE_BY_CONTENT: {
-    if (input->get_blocksize(input))
-      return DEMUX_CANNOT_HANDLE;
-
-    if (!(input->get_capabilities(input) & INPUT_CAP_SEEKABLE))
-      return DEMUX_CANNOT_HANDLE;
-
-    input->seek(input, 0, SEEK_SET);
-
-    this->input = input;
-
-    if (this->avi)
-      AVI_close (this->avi);
-
-    this->avi = AVI_init (this);
-
-    if (this->avi) {
-
-      printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
-
-      strncpy(this->last_mrl, input->get_mrl (input), 1024);
-
-      return demux_avi_send_headers (this);
-    }
-
-    /* printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n", this->AVI_errno); */
-    
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *ending, *mrl;
-    char *m, *valid_ends;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if(ending) {
-      xine_strdupa(valid_ends,
-                   this->config->register_string(this->config,
-                                                 "mrl.ends_avi", VALID_ENDS,
-                                                 _("valid mrls ending for avi demuxer"),
-                                                 NULL, 20, NULL, NULL));
-      while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-        while(*m == ' ' || *m == '\t') m++;
-
-        if(!strcasecmp((ending + 1), m)) {
-
-          this->input = input;
-
-          if (this->avi)
-            AVI_close (this->avi);
-
-          this->avi = AVI_init (this);
-
-          if (this->avi) {
-            strncpy(this->last_mrl, input->get_mrl (input), 1024);
-            return demux_avi_send_headers (this);
-          } else {
-            printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
-            this->AVI_errno);
-            return DEMUX_CANNOT_HANDLE;
-          }
-        }
-      }
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-  }
-
-  return DEMUX_CANNOT_HANDLE;
-}
-
-static char *demux_avi_get_id(void) {
-  return "AVI";
-}
-
-static char *demux_avi_get_mimetypes(void) {
-  return "video/msvideo: avi: AVI animation;"
-         "video/x-msvideo: avi: AVI animation;";
-}
-
 static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
@@ -1608,31 +1508,131 @@ static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
   return 0;
 }
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
+static void* open_plugin (void *class_gen, xine_stream_t *stream, 
+			  const void *input_gen) {
   
-  demux_avi_t     *this;
-  
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_avi_t    *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf("demux_avi.c: not seekable, can't handle!\n");
+    return NULL;
+  }
+
   this         = xine_xmalloc (sizeof (demux_avi_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-                                        "mrl.ends_avi", VALID_ENDS,
-                                        _("valid mrls ending for avi demuxer"),
-                                        NULL, 20, NULL, NULL);
-
-  this->demux_plugin.open              = demux_avi_open;
+  this->demux_plugin.send_headers      = demux_avi_send_headers;
   this->demux_plugin.start             = demux_avi_start;
   this->demux_plugin.seek              = demux_avi_seek;
   this->demux_plugin.stop              = demux_avi_stop;
   this->demux_plugin.dispose           = demux_avi_dispose;
   this->demux_plugin.get_status        = demux_avi_get_status;
-  this->demux_plugin.get_identifier    = demux_avi_get_id;
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_avi_get_mimetypes;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case XINE_DEMUX_CONTENT_STRATEGY: 
+
+    if (input->get_capabilities(input) & INPUT_CAP_BLOCK) {
+      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
+	      this->AVI_errno);
+      free (this);
+      return NULL;
+    }
+
+    input->seek(input, 0, SEEK_SET);
+
+    this->avi = AVI_init (this);
+
+    if (!this->avi) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case XINE_DEMUX_EXTENSION_STRATEGY: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".AVI", 4)) {
+      free (this);
+      return NULL;
+    }
+
+    this->avi = AVI_init (this);
+
+    if (!this->avi) {
+      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",
+	      this->AVI_errno);
+      free (this);
+      return NULL;
+    }
+  }
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
+
+  return this;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "AVI/RIFF demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "AVI";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "avi";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "video/msvideo: avi: AVI animation;"
+         "video/x-msvideo: avi: AVI animation;";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_avi_class_t *this = (demux_avi_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+  
+  demux_avi_class_t     *this;
+  
+  this         = xine_xmalloc (sizeof (demux_avi_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
 
   return this;
 }
@@ -1643,6 +1643,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "avi", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+  { PLUGIN_DEMUX, 12, "avi", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL, NULL }
 };

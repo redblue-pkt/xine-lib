@@ -17,15 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.31 2002/09/22 14:29:40 mroi Exp $
+ * $Id: input_plugin.h,v 1.32 2002/10/14 15:47:19 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
 #define HAVE_INPUT_PLUGIN_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <inttypes.h>
 #include <sys/types.h>
@@ -33,8 +29,151 @@ extern "C" {
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   8
+#define INPUT_PLUGIN_IFACE_VERSION   9
  
+typedef struct input_class_s input_class_t ;
+
+struct input_class_s {
+
+  /*
+   * return short, human readable identifier for this plugin class
+   */
+  char* (*get_identifier) (input_class_t *this);
+
+  /*
+   * return human readable (verbose = 1 line) description for 
+   * this plugin class
+   */
+  char* (*get_description) (input_class_t *this);
+
+  /*
+   * ls function, optional: may be NULL
+   * return value: NULL => filename is a file, **char=> filename is a dir
+   */
+  xine_mrl_t ** (*get_dir) (input_class_t *this, const char *filename, int *nFiles);
+
+  /*
+   * generate autoplay list, optional: may be NULL
+   * return value: list of MRLs
+   */
+  char ** (*get_autoplay_list) (input_class_t *this, int *num_files);
+
+  /*
+   * close down, free all resources
+   */
+  void (*dispose) (input_class_t *this);
+
+  /*
+   * eject/load the media (if possible)
+   *
+   * returns 0 for temporary failures
+   */
+  int (*eject_media) (input_class_t *this);
+};
+
+typedef struct input_plugin_s input_plugin_t;
+
+struct input_plugin_s {
+
+  /*
+   * return capabilities of input source
+   */
+
+  uint32_t (*get_capabilities) (input_plugin_t *this);
+
+  /*
+   * read nlen bytes, return number of bytes read
+   */
+  off_t (*read) (input_plugin_t *this, char *buf, off_t nlen);
+
+
+  /*
+   * read one block, return newly allocated block (or NULL on failure)
+   * for blocked input sources len must be == blocksize
+   * the fifo parameter is only used to get access to the buffer_pool_alloc function
+   */
+  buf_element_t *(*read_block)(input_plugin_t *this, fifo_buffer_t *fifo, off_t len);
+
+
+  /*
+   * seek position, return new position 
+   *
+   * if seeking failed, -1 is returned
+   */
+  off_t (*seek) (input_plugin_t *this, off_t offset, int origin);
+
+
+  /*
+   * get current position in stream.
+   *
+   */
+  off_t (*get_current_pos) (input_plugin_t *this);
+
+
+  /*
+   * return length of input (-1 => unlimited, e.g. stream)
+   */
+  off_t (*get_length) (input_plugin_t *this);
+
+
+  /*
+   * return block size of input source (if supported, 0 otherwise)
+   */
+
+  uint32_t (*get_blocksize) (input_plugin_t *this);
+
+
+  /*
+   * return current MRL
+   */
+  char * (*get_mrl) (input_plugin_t *this);
+
+
+  /*
+   * request optional data from input plugin.
+   */
+  int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
+
+
+  /*
+   * close stream, free instance resources
+   */
+  void (*dispose) (input_plugin_t *this);
+
+  /*
+   * "backward" link to input plugin class struct
+   */
+
+  input_class_t *input_class;
+
+};
+
+/*
+ * possible capabilites an input plugin can have:
+ */
+#define INPUT_CAP_NOCAP                0x00000000
+#define INPUT_CAP_SEEKABLE             0x00000001
+#define INPUT_CAP_BLOCK                0x00000002
+#define INPUT_CAP_CLUT                 0x00000004
+#define INPUT_CAP_AUDIOLANG            0x00000008
+#define INPUT_CAP_SPULANG              0x00000010
+#define INPUT_CAP_VARIABLE_BITRATE     0x00000020
+/* for non-seekable plugins, allows content detection: */
+#define INPUT_CAP_PREVIEW              0x00000040  
+#define INPUT_CAP_CHAPTERS             0x00000080
+
+
+#define INPUT_OPTIONAL_UNSUPPORTED    0
+#define INPUT_OPTIONAL_SUCCESS        1
+
+#define INPUT_OPTIONAL_DATA_CLUT      1
+#define INPUT_OPTIONAL_DATA_AUDIOLANG 2
+#define INPUT_OPTIONAL_DATA_SPULANG   3
+#define INPUT_OPTIONAL_DATA_TEXTSPU0  4
+#define INPUT_OPTIONAL_DATA_TEXTSPU1  5
+#define INPUT_OPTIONAL_DATA_TEXTSPU2  6
+#define INPUT_OPTIONAL_DATA_PREVIEW   7
+
 #define MAX_MRL_ENTRIES 255
 
 /* Types of mrls returned by get_dir() */
@@ -136,174 +275,5 @@ extern "C" {
   }                                                                           \
 }
 
-typedef struct input_plugin_s input_plugin_t;
-
-struct input_plugin_s
-{
-
-  /*
-   * return capabilities of input source
-   */
-
-  uint32_t (*get_capabilities) (input_plugin_t *this);
-
-  /*
-   * open input MRL - return 1 if succ
-   */
-  int (*open) (input_plugin_t *this, const char *mrl);
-
-
-  /*
-   * read nlen bytes, return number of bytes read
-   */
-  off_t (*read) (input_plugin_t *this, char *buf, off_t nlen);
-
-
-  /*
-   * read one block, return newly allocated block (or NULL on failure)
-   * for blocked input sources len must be == blocksize
-   * the fifo parameter is only used to get access to the buffer_pool_alloc function
-   */
-  buf_element_t *(*read_block)(input_plugin_t *this, fifo_buffer_t *fifo, off_t len);
-
-
-  /*
-   * seek position, return new position 
-   *
-   * if seeking failed, -1 is returned
-   */
-  off_t (*seek) (input_plugin_t *this, off_t offset, int origin);
-
-
-  /*
-   * get current position in stream.
-   *
-   */
-  off_t (*get_current_pos) (input_plugin_t *this);
-
-
-  /*
-   * return length of input (-1 => unlimited, e.g. stream)
-   */
-  off_t (*get_length) (input_plugin_t *this);
-
-
-  /*
-   * return block size of input source (if supported, 0 otherwise)
-   */
-
-  uint32_t (*get_blocksize) (input_plugin_t *this);
-
-
-  /*
-   * ls function
-   * return value: NULL => filename is a file, **char=> filename is a dir
-   */
-  xine_mrl_t ** (*get_dir) (input_plugin_t *this, const char *filename, int *nFiles);
-
-
-  /*
-   * eject/load the media (if it's possible)
-   *
-   * returns 0 for temporary failures
-   */
-  int (*eject_media) (input_plugin_t *this);
-
-
-  /*
-   * return current MRL
-   */
-  char * (*get_mrl) (input_plugin_t *this);
-
-
-  /*
-   * stop input source
-   */
-  void (*stop) (input_plugin_t *this);
-
-
-  /*
-   * close input source
-   */
-  void (*close) (input_plugin_t *this);
-
-
-  /*
-   * return human readable (verbose = 1 line) description for this plugin
-   */
-  char* (*get_description) (input_plugin_t *this);
-
-
-  /*
-   * return short, human readable identifier for this plugin
-   * this is used for GUI buttons, The identifier must have max. 4 characters
-   * characters (max. 5 including terminating \0)
-   */
-  char* (*get_identifier) (input_plugin_t *this);
-
-
-  /*
-   * generate autoplay list
-   * return value: list of MRLs
-   */
-  char ** (*get_autoplay_list) (input_plugin_t *this, int *nFiles);
-
-
-  /*
-   * request optional data from input plugin.
-   */
-  int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
-
-  /*
-   * check if it is possible/valid to directly branch to this MRL
-   * optional: may be NULL
-   */
-  
-  int (*is_branch_possible) (input_plugin_t *this, char *next_mrl);
-
-  /*
-   * free resources
-   */
-  void (*dispose) (input_plugin_t *this);
-};
-
-/*
- * possible capabilites an input plugin can have:
- */
-#define INPUT_CAP_NOCAP       0x00000000
-#define INPUT_CAP_SEEKABLE    0x00000001
-#define INPUT_CAP_BLOCK       0x00000002
-#define INPUT_CAP_AUTOPLAY    0x00000004
-#define INPUT_CAP_GET_DIR     0x00000008
-#define INPUT_CAP_BROWSABLE   0x00000010
-#define INPUT_CAP_CLUT        0x00000020
-#define INPUT_CAP_AUDIOLANG   0x00000040
-#define INPUT_CAP_SPULANG     0x00000080
-#define INPUT_CAP_VARIABLE_BITRATE     0x00000100
-#define INPUT_CAP_PREVIEW     0x00000200  /* Requires INPUT_CAP_SEEKABLE */
-#define INPUT_CAP_CHAPTERS    0x00000400
-
-
-#define INPUT_OPTIONAL_UNSUPPORTED    0
-#define INPUT_OPTIONAL_SUCCESS        1
-
-#define INPUT_OPTIONAL_DATA_CLUT      1
-#define INPUT_OPTIONAL_DATA_AUDIOLANG 2
-#define INPUT_OPTIONAL_DATA_SPULANG   3
-#define INPUT_OPTIONAL_DATA_TEXTSPU0  4
-#define INPUT_OPTIONAL_DATA_TEXTSPU1  5
-#define INPUT_OPTIONAL_DATA_TEXTSPU2  6
-#define INPUT_OPTIONAL_DATA_PREVIEW   7
-
-/*
- * each input plugin _must_ implement this function:
- *
- * input_plugin_t *init_input_plugin (int iface, xine_t *xine) ;
- *
- */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

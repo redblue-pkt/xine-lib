@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.3 2002/09/05 16:24:14 guenter Exp $
+ * $Id: xine_plugin.h,v 1.4 2002/10/14 15:47:46 guenter Exp $
  *
  * generic plugin definitions
  *
@@ -26,7 +26,7 @@
 #ifndef XINE_PLUGIN_H
 #define XINE_PLUGIN_H
 
-#define PLUGIN_NONE	          0
+#define PLUGIN_NONE	      0
 #define PLUGIN_INPUT	      1
 #define PLUGIN_DEMUX	      2
 #define PLUGIN_AUDIO_DECODER  3
@@ -42,7 +42,8 @@ typedef struct {
   char       *id;                 /* a name that identifies this plugin      */
   uint32_t    version;            /* version number, increased every release */
   void       *special_info;       /* plugin-type specific, see structs below */
-  void       *(*init)(xine_t *, void *); /* used to get/initialize an instance*/
+  void       *(*init)(xine_t *, void *); /* init the plugin class            */
+  void       *(*open)(void *, xine_stream_t *, const void *); /* create an instance*/
 } plugin_info_t;
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.103 2002/09/20 22:34:26 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.104 2002/10/14 15:47:45 guenter Exp $
  *
  */
 
@@ -66,69 +66,18 @@ extern "C" {
 #include "scratch.h"
 #include "xineintl.h"
 #include "plugin_catalog.h"
+#include "video_decoder.h"
+#include "audio_decoder.h"
 
-#define VIDEO_DECODER_IFACE_VERSION      10
-#define AUDIO_DECODER_IFACE_VERSION      9
 #define XINE_MAX_EVENT_LISTENERS         50
 #define XINE_MAX_EVENT_TYPES             100
+
+#define XINE_CODEC_AUDIO   0
+#define XINE_CODEC_VIDEO   1
 
 /* used by plugin loader */
 #define XINE_VERSION_CODE                XINE_MAJOR_VERSION*10000+XINE_MINOR_VERSION*100+XINE_SUB_VERSION
 
-
-/*
- * generic xine video decoder plugin interface
- *
- * for a dynamic plugin make sure you provide this function call:
- * video_decoder_t *init_video_decoder_plugin (int iface_version,  
- *                                             xine_t *xine);
- */
-
-typedef struct video_decoder_s video_decoder_t;
-
-struct video_decoder_s {
-
-  void (*init) (video_decoder_t *this, vo_instance_t *video_out);
-
-  void (*decode_data) (video_decoder_t *this, buf_element_t *buf);
-
-  void (*reset) (video_decoder_t *this);
-  
-  void (*flush) (video_decoder_t *this);
-
-  void (*close) (video_decoder_t *this);
-
-  char* (*get_identifier) (void);
-
-  void (*dispose) (video_decoder_t *this);
-
-};
-
-/*
- * generic xine audio decoder plugin interface
- *
- * for a dynamic plugin make sure you provide this function call:
- * audio_decoder_t *init_audio_decoder_plugin (int iface_version,  
- *                                             xine_t *xine);
- */
-
-typedef struct audio_decoder_s audio_decoder_t;
-
-struct audio_decoder_s {
-
-  void (*init) (audio_decoder_t *this, ao_instance_t *audio_out);
-
-  void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
-
-  void (*reset) (audio_decoder_t *this);
-  
-  void (*close) (audio_decoder_t *this);
-
-  char* (*get_identifier) (void);
-
-  void (*dispose) (audio_decoder_t *this);
-
-};
 
 /*
  * log constants
@@ -141,169 +90,158 @@ struct audio_decoder_s {
 #define XINE_STREAM_INFO_MAX 99
 
 /*
- * the big xine struct, holding everything together
+ * the "big" xine struct, holding everything together
  */
 
 struct xine_s {
   
-  /* private : */
-
-  metronom_t                *metronom;
-  
   config_values_t           *config;
-
-  /* MRL of displayed logo */
-  char                      *logo_mrl;
-  /* Logo manipulation mutex */
-  pthread_mutex_t            logo_lock;
 
   plugin_catalog_t          *plugin_catalog;
   
-  input_plugin_t            *cur_input_plugin;
-  /* kept to do proper ejecting (otherwise we eject the logo) */
-  input_plugin_t            *last_input_plugin;
-
-  demux_plugin_t            *cur_demuxer_plugin;
   int                        demux_strategy;
 
+  /* log output that may be presented to the user */
+  scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
+
+  xine_list_t               *streams;
+  pthread_mutex_t            streams_lock;
+};
+
+/*
+ * xine event queue
+ */
+
+struct xine_event_queue_s {
+  xine_list_t               *events;
+  pthread_mutex_t            lock;
+  pthread_cond_t             new_event;
+  xine_stream_t             *stream;
+  pthread_t                 *listener_thread;
+  xine_event_listener_cb_t   callback;
+  void                      *user_data;
+};
+
+/*
+ * xine_stream - per-stream parts of the xine engine
+ */
+
+struct xine_stream_s {
+  
+  xine_t                    *xine;
+
   int                        status;
+
+  input_plugin_t            *input_plugin;
+  input_class_t             *input_class; /* eject */
+  int                        content_detection_method;
+  demux_plugin_t            *demux_plugin;
+
+  metronom_t                *metronom;
   int                        speed;
-  off_t                      cur_input_pos;
-  off_t                      cur_input_length;
-  int                        cur_input_time;
-  char                       cur_mrl[1024];
+  off_t                      input_pos;
+  off_t                      input_length;
+  int                        input_time;
 
-  spu_functions_t           *spu_out;
-  pthread_t                  spu_thread;
-  spu_decoder_t             *cur_spu_decoder_plugin;
-  int                        spu_finished;
-
+  xine_vo_driver_t          *video_driver;
+  vo_instance_t             *video_out;
+  fifo_buffer_t             *video_fifo;
+  pthread_t                  video_thread;
+  video_decoder_t           *video_decoder_plugin;
+  int                        video_in_discontinuity;
+  int                        video_channel;
+  
+  ao_instance_t             *audio_out;
+  fifo_buffer_t             *audio_fifo;
+  lrb_t                     *audio_temp;
+  pthread_t                  audio_thread;
+  audio_decoder_t           *audio_decoder_plugin;
+  uint32_t                   audio_track_map[50];
+  int                        audio_track_map_entries;
+  uint32_t                   audio_type;
   /* *_user: -2 => off
              -1 => auto (use *_auto value)
 	    >=0 => respect the user's choice
   */
-
   int                        audio_channel_user;
   int                        audio_channel_auto;
+
+  spu_functions_t           *spu_out;
+  pthread_t                  spu_thread;
+  spu_decoder_t             *spu_decoder_plugin;
   int                        spu_channel_user;
   int                        spu_channel_auto;
   int                        spu_channel_letterbox;
   int                        spu_channel_pan_scan;
   int                        spu_channel;
 
-  xine_vo_driver_t          *video_driver;
-  vo_instance_t             *video_out;
-  fifo_buffer_t             *video_fifo;
-  pthread_t                  video_thread;
-  video_decoder_t           *cur_video_decoder_plugin;
-  int                        video_finished;
-  int                        video_in_discontinuity;
-  int                        video_channel;
-  
-  osd_renderer_t            *osd_renderer;
-  osd_object_t              *osd;
-  int                        osd_display;
+  /* lock for public xine player functions */
+  pthread_mutex_t            frontend_lock;
 
-  ao_instance_t             *audio_out;
-  fifo_buffer_t             *audio_fifo;
-  lrb_t                     *audio_temp;
-  pthread_t                  audio_thread;
-  audio_decoder_t           *cur_audio_decoder_plugin;
-  uint32_t                   audio_track_map[50];
-  int                        audio_track_map_entries;
-  int                        audio_finished;
-  uint32_t                   audio_type;
-
-  /* Lock for xine player functions */
-  pthread_mutex_t            xine_lock;
-
-  /* Lock for xxx_finished variables */
-  pthread_mutex_t            finished_lock;
-
-  /* Array of event handlers. */
-  xine_event_listener_cb_t   event_listeners[XINE_MAX_EVENT_LISTENERS];
-  void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
-  uint16_t                   num_event_listeners;
-  uint8_t                    event_pending[XINE_MAX_EVENT_TYPES];
-  pthread_cond_t             event_handled;
-  pthread_mutex_t            event_lock;
-
-  /* scratch string buffers */
-  char                       str[1024];
-  char                       spu_lang[80];
-  char                       audio_lang[80];
-  
-  /* log output that may be presented to the user */
-  scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
-
-  int                        err;
-
-  pthread_t                  finished_thread;
-  int                        finished_thread_running;
-  
-  xine_report_codec_cb_t     report_codec_cb;
-  void                      *report_codec_user_data;
-  
-  int                        playing_logo;
-  int                        curtime_needed_for_osd;
   pthread_mutex_t            osd_lock;
+  osd_renderer_t            *osd_renderer;
 
   /* stream meta information */
   int                        stream_info[XINE_STREAM_INFO_MAX];
   char                      *meta_info  [XINE_STREAM_INFO_MAX];
 
-  int                        header_sent_counter; /* wait for headers sent */
+  /* wait for headers sent / stream decoding finished */
+  pthread_mutex_t            counter_lock;
+  pthread_cond_t             counter_changed;
+  int                        header_count_audio; 
+  int                        header_count_video; 
+  int                        finished_count_audio; 
+  int                        finished_count_video; 
+
+  /* event mechanism */
+  xine_list_t               *event_queues;
+  pthread_mutex_t            event_queues_lock;
+
+  int                        err;
 };
+
+
 
 /*
  * private function prototypes:
  */
 
-int  xine_open_internal          (xine_t *this, const char *mrl);
-int  xine_play_internal          (xine_t *this,
-				  int start_pos, int start_time);
-void xine_stop_internal          (xine_t *this);
-void xine_notify_stream_finished (xine_t *this);
-void xine_report_codec           (xine_t *this, int codec_type, 
-				  uint32_t fourcc, uint32_t buf_type, int handled );
-void xine_internal_osd           (xine_t *this, char *str, int duration);
+void xine_handle_stream_end      (xine_stream_t *stream, int non_user);
 
-void video_decoder_init          (xine_t *this);
-void video_decoder_shutdown      (xine_t *this);
+/* find and instantiate input and demux plugins */
 
-void audio_decoder_init          (xine_t *this);
-void audio_decoder_shutdown      (xine_t *this);
+input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl);
+demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input);
 
-/* 
- * demuxer helper functions from demux.c 
- */
+/* create decoder fifos and threads */
 
-void xine_demux_flush_engine     (xine_t *this);
+void video_decoder_init          (xine_stream_t *stream);
+void video_decoder_shutdown      (xine_stream_t *stream);
 
-void xine_demux_control_newpts   (xine_t *this, int64_t pts, uint32_t flags );
+void audio_decoder_init          (xine_stream_t *stream);
+void audio_decoder_shutdown      (xine_stream_t *stream);
 
-void xine_demux_control_headers_done (xine_t *this );
+/* demuxer helper functions from demux.c */
 
-void xine_demux_control_start    (xine_t *this );
-
-void xine_demux_control_end      (xine_t *this, uint32_t flags );
-
-/*
- * plugin management
- */
-
-/*
- * on-demand loading of audio/video/spu decoder plugins
- */
-
-video_decoder_t *get_video_decoder (xine_t *this, uint8_t stream_type); 
-audio_decoder_t *get_audio_decoder (xine_t *this, uint8_t stream_type); 
-spu_decoder_t   *get_spu_decoder   (xine_t *this, uint8_t stream_type); 
+void xine_demux_flush_engine         (xine_stream_t *stream);
+void xine_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
+void xine_demux_control_headers_done (xine_stream_t *stream);
+void xine_demux_control_start        (xine_stream_t *stream);
+void xine_demux_control_end          (xine_stream_t *stream, uint32_t flags);
 
 /* 
  * plugin_loader functions
  *
  */
+
+/* on-demand loading of audio/video/spu decoder plugins */
+
+video_decoder_t *get_video_decoder  (xine_stream_t *stream, uint8_t stream_type); 
+void             free_video_decoder (xine_stream_t *stream, video_decoder_t *decoder);
+audio_decoder_t *get_audio_decoder  (xine_stream_t *stream, uint8_t stream_type); 
+void             free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder);
+spu_decoder_t   *get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type); 
+void             free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder);
 
 /*
  * load_video_output_plugin
@@ -327,13 +265,13 @@ xine_vo_driver_t *xine_load_video_output_plugin(xine_t *this,
 xine_ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
 
 
-void xine_set_speed (xine_t *this, int speed) ;
+void xine_set_speed (xine_stream_t *stream, int speed) ;
 
-void xine_select_spu_channel (xine_t *this, int channel) ;
+void xine_select_spu_channel (xine_stream_t *stream, int channel) ;
 
-int xine_get_audio_channel (xine_t *this) ;
+int xine_get_audio_channel (xine_stream_t *stream) ;
 
-int xine_get_spu_channel (xine_t *this) ;
+int xine_get_spu_channel (xine_stream_t *stream) ;
 
 #ifdef __cplusplus
 }
