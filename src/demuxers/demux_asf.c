@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.124 2003/07/16 00:13:55 tmattern Exp $
+ * $Id: demux_asf.c,v 1.125 2003/07/19 00:18:49 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1783,6 +1783,10 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 
   this->status = DEMUX_OK;
  
+  if (this->reference_mode) {
+    return this->status;
+  }
+  
   /*
    * seek to start position
    */
