@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.66 2003/03/16 21:40:27 f1rmb Exp $
+ * $Id: xine.h.in,v 1.67 2003/03/19 01:11:12 holstsn Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -946,6 +946,26 @@ typedef struct {
 			   int *win_x, int *win_y);
 
 } x11_visual_t;
+
+/*
+ * this is the visual data struct any fb gui
+ * may supply to the xine_open_video_driver call
+ * ("data" parameter) to get frame_output_cd calls
+ */
+
+typedef struct {
+
+ void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   double video_pixel_aspect,
+			   int *dest_x, int *dest_y,
+			   int *dest_width, int *dest_height,
+			   double *dest_pixel_aspect,
+			   int *win_x, int *win_y);
+
+  void             *user_data;
+
+} fb_visual_t;
 
 /*
  * "type" constants for xine_gui_send_vo_data (...)

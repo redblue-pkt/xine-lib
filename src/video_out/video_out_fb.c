@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.23 2003/02/02 12:44:03 esnel Exp $
+ * $Id: video_out_fb.c,v 1.24 2003/03/19 01:11:13 holstsn Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -573,7 +573,13 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     memset(frame->video_mem, 0,
 	   this->fb_bytes_per_line * this->sc.gui_height);
   }
-    
+
+  if (this->sc.frame_output_cb) {
+    this->sc.delivered_height   = frame->sc.delivered_height;
+    this->sc.delivered_width    = frame->sc.delivered_width;
+    vo_scale_redraw_needed( &this->sc );
+  }
+
   if(this->use_zero_copy)
   {
     if(this->old_frame)
@@ -925,6 +931,11 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   config_values_t *config;
   fb_driver_t *this;
   fb_class_t *class;
+  fb_visual_t *visual = NULL;
+  
+  if (visual_gen) {
+    visual = (fb_visual_t *) visual_gen;
+  }
           
   class = (fb_class_t *)class_gen;
   config = class->config;
@@ -959,6 +970,11 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   this->sc.gui_width  = this->fb_var.xres;
   this->sc.gui_height = this->fb_var.yres;
   this->sc.user_ratio = ASPECT_AUTO;
+
+  if (visual) {
+    this->sc.frame_output_cb = visual->frame_output_cb;
+    this->sc.user_data       = visual->user_data;
+  }
 
   this->sc.scaling_disabled =
     config->register_bool(config, "video.disable_scaling", 0,
