@@ -36,23 +36,25 @@
  
  #include <stdlib.h>
  #include <stdio.h>
-@@ -179,7 +179,7 @@
+@@ -181,7 +181,7 @@
    struct timeval time;
    
    /* Create a new structure */
--  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://dvd.sf.net\n");
-+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://xine.sf.net\n");
+-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://dvd.sf.net\n", VERSION);
++  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://xine.sf.net\n", VERSION);
  
-   /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
-    * we return but never free() it.
+   (*dest) = NULL;
+   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
 --- src/input/libdvdnav/dvdnav.h	Thu Jul 25 17:26:00 2002
 +++ src/input/libdvdnav/dvdnav.h	Fri Aug  9 22:01:19 2002
-@@ -40,7 +40,7 @@
+@@ -40,8 +40,8 @@
  /* Various useful types */
  #include "dvd_types.h"
  
 -#include <dvdread/dvd_reader.h>
+-#include <dvdread/ifo_types.h> /* For vm_cmd_t */
 +#include "dvd_reader.h"
++#include "ifo_types.h" /* For vm_cmd_t */
  
  /**
   * Opaque data-type can be viewed as a 'DVD handle'. You should get
@@ -124,9 +126,9 @@
  
 --- src/input/libdvdnav/vm.c	Sat Jul  6 18:12:09 2002
 +++ src/input/libdvdnav/vm.c	Fri Aug  9 22:03:48 2002
-@@ -34,8 +34,8 @@
- #include <inttypes.h>
- #include <assert.h>
+@@ -37,8 +37,8 @@
+ #include <sys/stat.h>
+ #include <fcntl.h>
  
 -#include <dvdread/ifo_types.h>
 -#include <dvdread/ifo_read.h>

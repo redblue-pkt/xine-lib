@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.2 2002/09/04 11:07:47 mroi Exp $
+ * $Id: vm.h,v 1.3 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -27,6 +27,7 @@
 #define VM_H_INCLUDED
 
 #include "decoder.h"
+#include "remap.h"
 #include <dvd_types.h>
 
 /* DOMAIN enum */
@@ -87,6 +88,9 @@ typedef struct {
   dvd_state_t   state;
   int  badness_counter;
   int32_t hop_channel;
+  char dvd_name[50];
+  int dvd_name_length;
+  remap_t *map;
 } vm_t;
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: navigation.c,v 1.2 2002/09/04 11:07:47 mroi Exp $
+ * $Id: navigation.c,v 1.3 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -51,23 +51,34 @@ dvdnav_status_t dvdnav_get_number_of_titles(dvdnav_t *this, int *titles) {
     return S_ERR;
   }
 
+  if(!this->started) {
+    /* Start the VM */
+    vm_start(this->vm);
+    this->started = 1;
+  }
+
   (*titles) = vm_get_vmgi(this->vm)->tt_srpt->nr_of_srpts;
 
   return S_OK;
 }
 
-/* This function should not be used. FIXME: Suggest alternative */
-dvdnav_status_t dvdnav_get_number_of_programs(dvdnav_t *this, int *programs) {
+dvdnav_status_t dvdnav_get_number_of_parts(dvdnav_t *this, int title, int *parts) {
   if(!this)
    return S_ERR;
 
-  if(!programs) {
+  if(!parts) {
     printerr("Passed a NULL pointer");
     return S_ERR;
   }
-
-  (*programs) = this->vm->state.pgc->nr_of_programs;
-
+  if(!this->started) {
+    printerr("Virtual DVD machine not started.");
+    return S_ERR;
+  }
+  if ((title < 1) || (title > vm_get_vmgi(this->vm)->tt_srpt->nr_of_srpts) ) {
+    printerr("Passed a title number out of range");
+    return S_ERR;
+  }
+  (*parts) = vm_get_vmgi(this->vm)->tt_srpt->title[title-1].nr_of_ptts;
   return S_OK;
 }
 

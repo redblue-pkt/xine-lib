@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: settings.c,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: settings.c,v 1.2 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -33,11 +33,13 @@
 /* Characteristics/setting API calls */
 
 dvdnav_status_t dvdnav_get_region_mask(dvdnav_t *this, int *region) {
-  if(!this)
-   return S_ERR;
+  if(!this) {
+    printerr("Passed a NULL this pointer");
+    return S_ERR;
+  }
 
   if(!region) {
-    printerr("Passed a NULL pointer");
+    printerr("Passed a NULL region pointer");
     return S_ERR;
   }
 
@@ -75,11 +77,13 @@ dvdnav_status_t dvdnav_set_readahead_flag(dvdnav_t *this, int use_readahead) {
 }
 
 dvdnav_status_t dvdnav_get_readahead_flag(dvdnav_t *this, int* flag) {
-  if(!this)
-   return S_ERR;
+  if(!this) {
+    printerr("Passed a NULL this pointer");
+    return S_ERR;
+  }
 
   if(!flag) {
-    printerr("Passed a NULL pointer");
+    printerr("Passed a NULL flag pointer");
     return S_ERR;
   }
 
@@ -88,9 +92,16 @@ dvdnav_status_t dvdnav_get_readahead_flag(dvdnav_t *this, int* flag) {
 }
 
 static dvdnav_status_t set_language_register(dvdnav_t *this, char *code, int reg) {
-  if(!this)
+  if(!this ) {
+    printerr("Passed a NULL this pointer");
     return S_ERR;
+  }
     
+  if(!code) {
+    printerr("Passed a NULL code pointer");
+    return S_ERR;
+  }
+
   if(!code[0] || !code[1]) {
     printerr("Passed illegal language code");
     return S_ERR;

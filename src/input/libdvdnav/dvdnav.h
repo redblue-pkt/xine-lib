@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.3 2002/08/09 22:52:14 mroi Exp $
+ * $Id: dvdnav.h,v 1.4 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -41,6 +41,7 @@ extern "C" {
 #include "dvd_types.h"
 
 #include "dvd_reader.h"
+#include "ifo_types.h" /* For vm_cmd_t */
 
 /**
  * Opaque data-type can be viewed as a 'DVD handle'. You should get
@@ -274,9 +275,10 @@ dvdnav_status_t dvdnav_get_number_of_titles(dvdnav_t *self, int *titles);
  * Returns the number of programs within the current title.
  * 
  * \param self Pointer to dvdnav_t associated with this operation.
- * \param programs Pointer to int to receive number of programs.
+ * \param titles int to select title.
+ * \param parts Pointer to int to receive number of parts.
  */
-dvdnav_status_t dvdnav_get_number_of_programs(dvdnav_t *self, int *programs);
+dvdnav_status_t dvdnav_get_number_of_parts(dvdnav_t *self, int title, int *parts);
 
 /**
  * If we are currently in a still-frame this function skips it (or attempts to).
@@ -532,31 +534,31 @@ dvdnav_status_t dvdnav_get_highlight_area(pci_t* nav_pci , int32_t button, int32
  * 
  * \param self Pointer to dvdnav_t associated with this operation.
  */
-dvdnav_status_t dvdnav_upper_button_select(dvdnav_t *self);
+dvdnav_status_t dvdnav_upper_button_select(dvdnav_t *self, pci_t *pci);
 /**
  * Move button highlight around as suggested by function name (e.g. with arrow keys).
  * 
  * \param self Pointer to dvdnav_t associated with this operation.
  */
-dvdnav_status_t dvdnav_lower_button_select(dvdnav_t *self);
+dvdnav_status_t dvdnav_lower_button_select(dvdnav_t *self, pci_t *pci);
 /**
  * Move button highlight around as suggested by function name (e.g. with arrow keys).
  * 
  * \param self Pointer to dvdnav_t associated with this operation.
  */
-dvdnav_status_t dvdnav_right_button_select(dvdnav_t *self);
+dvdnav_status_t dvdnav_right_button_select(dvdnav_t *self, pci_t *pci);
 /**
  * Move button highlight around as suggested by function name (e.g. with arrow keys).
  * 
  * \param self Pointer to dvdnav_t associated with this operation.
  */
-dvdnav_status_t dvdnav_left_button_select(dvdnav_t *self);
+dvdnav_status_t dvdnav_left_button_select(dvdnav_t *self, pci_t *pci);
 
 /**
  * Activate (press) the currently highlighted button.
  * \param self Pointer to dvdnav_t associated with this operation.
  */
-dvdnav_status_t dvdnav_button_activate(dvdnav_t *self);
+dvdnav_status_t dvdnav_button_activate(dvdnav_t *self, pci_t *pci);
 
 /**
  * Highlight a specific button.
@@ -564,7 +566,7 @@ dvdnav_status_t dvdnav_button_activate(dvdnav_t *self);
  * \param self Pointer to dvdnav_t associated with this operation.
  * \param button 1..39 -- Button number to activate.
  */
-dvdnav_status_t dvdnav_button_select(dvdnav_t *self, int button);
+dvdnav_status_t dvdnav_button_select(dvdnav_t *self, pci_t *pci, int button);
 
 /**
  * Activate (press) specified button.
@@ -572,7 +574,15 @@ dvdnav_status_t dvdnav_button_select(dvdnav_t *self, int button);
  * \param self Pointer to dvdnav_t associated with this operation.
  * \param button 1..39 -- Button number to activate.
  */
-dvdnav_status_t dvdnav_button_select_and_activate(dvdnav_t *self, int button);
+dvdnav_status_t dvdnav_button_select_and_activate(dvdnav_t *self, pci_t *pci, int button);
+
+/**
+ * Activate (press) a button and execute specified command.
+ *
+ * \param self Pointer to dvdnav_t associated with this operation.
+ * \param cmd DVD Command to execute.
+ */
+dvdnav_status_t dvdnav_button_activate_cmd(dvdnav_t *self, int32_t button, vm_cmd_t *cmd);
 
 /**
  * Select button at specified (image) co-ordinates.
@@ -581,7 +591,7 @@ dvdnav_status_t dvdnav_button_select_and_activate(dvdnav_t *self, int button);
  * \param x X co-ordinate in image.
  * \param y Y xo-ordinate in image.
  */
-dvdnav_status_t dvdnav_mouse_select(dvdnav_t *self, int x, int y);
+dvdnav_status_t dvdnav_mouse_select(dvdnav_t *self, pci_t *pci, int x, int y);
 
 /**
  * Activate (press) button at specified co-ordinates.
@@ -590,7 +600,7 @@ dvdnav_status_t dvdnav_mouse_select(dvdnav_t *self, int x, int y);
  * \param x X co-ordinate in image.
  * \param y Y xo-ordinate in image.
  */
-dvdnav_status_t dvdnav_mouse_activate(dvdnav_t *self, int x, int y);
+dvdnav_status_t dvdnav_mouse_activate(dvdnav_t *self, pci_t *pci, int x, int y);
 
 /**
  * @}

@@ -11,6 +11,7 @@ libdvdnav_la_SOURCES = \
 	highlight.c \
 	navigation.c \
 	read_cache.c \
+	remap.c \
 	searching.c \
 	settings.c \
 	vm.c \
@@ -23,6 +24,7 @@ noinst_HEADERS = \
 	dvdnav.h \
 	dvdnav_events.h \
 	dvdnav_internal.h \
+	remap.h \
 	vm.h \
 	vmcmd.h \
 	read_cache.h \

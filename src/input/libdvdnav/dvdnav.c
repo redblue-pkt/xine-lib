@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.7 2002/09/04 11:07:47 mroi Exp $
+ * $Id: dvdnav.c,v 1.8 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
+
+#include "remap.h"
 
 /*
  * NOTE:
@@ -179,11 +181,8 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, char *path) {
   struct timeval time;
   
   /* Create a new structure */
-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://xine.sf.net\n");
+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://xine.sf.net\n", VERSION);
 
-  /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
-   * we return but never free() it.
-   */
   (*dest) = NULL;
   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
   if(!this)
@@ -199,10 +198,15 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, char *path) {
   this->vm = vm_new_vm();
   if(!this->vm) {
     printerr("Error initialising the DVD VM");
+    pthread_mutex_destroy(&this->vm_lock);
+    free(this);
     return S_ERR;
   }
   if(vm_reset(this->vm, path) == -1) {
     printerr("Error starting the VM / opening the DVD device");
+    pthread_mutex_destroy(&this->vm_lock);
+    vm_free_vm(this->vm);
+    free(this);
     return S_ERR;
   }
 
@@ -593,13 +597,13 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE stream_id_letterbox=%d\n",stream_change.physical_letterbox);
     fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE stream_id_pan_scan=%d\n",stream_change.physical_pan_scan);
 #endif
-    pthread_mutex_unlock(&this->vm_lock); 
     if (stream_change.physical_wide != -1 &&
         stream_change.physical_letterbox != -1 &&
         stream_change.physical_pan_scan != -1) {
 #ifdef LOG_DEBUG
       fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE returning S_OK\n");
 #endif
+      pthread_mutex_unlock(&this->vm_lock); 
       return S_OK;
     }
   }
@@ -781,6 +785,14 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     }
     /* Perform the jump if necessary (this is always a 
      * VOBU boundary). */
+
+     if (this->vm->map) {
+       this->vobu.vobu_next = remap_block( this->vm->map,
+           this->vm->state.domain, this->vm->state.TTN_REG,
+           this->vm->state.pgN,
+           this->vobu.vobu_start, this->vobu.vobu_next);
+     }
+
 
     //result = DVDReadBlocks(this->file, this->vobu.vobu_start + this->vobu.vobu_next, 1, buf);
     result = dvdnav_read_cache_block(this->cache, this->vobu.vobu_start + this->vobu.vobu_next, 1, buf);
@@ -998,6 +1010,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.8  2002/09/20 12:53:53  mroi
+ * sync to latest libdvdnav cvs version
+ *
  * Revision 1.7  2002/09/04 11:07:47  mroi
  * sync to libdvdnav cvs
  *

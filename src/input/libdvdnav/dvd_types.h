@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvd_types.h,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: dvd_types.h,v 1.2 2002/09/20 12:53:53 mroi Exp $
  *
  */
 
@@ -295,6 +295,5 @@ typedef struct {
   uint32_t pts;         /*!< Highlight PTS to match with SPU */
   uint32_t buttonN;     /*!< Button number for the SPU decoder. */
 } dvdnav_highlight_area_t;
-
 
 #endif /* DVD_H_INCLUDED */
