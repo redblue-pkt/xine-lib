@@ -1,3 +1,9 @@
+xine-lib (1-beta4)
+  * http input fixes
+  * rtsp input fixes (remove long wait on end of stream)
+  * build fixes
+  * initial support for reference streams (only .ram for now)
+
 xine-lib (1-beta3)
   * PSX STR file demuxer
   * Westwood Studios AUD demuxer
