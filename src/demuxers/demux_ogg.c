@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.148 2004/07/09 01:27:42 athp Exp $
+ * $Id: demux_ogg.c,v 1.149 2004/07/10 10:06:30 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1730,9 +1730,9 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
   }
 }
 
-static int detect_content (int detection_method, demux_class_t *class_gen,
-                            input_plugin_t *input)
-{
+static int detect_ogg_content (int detection_method, demux_class_t *class_gen,
+                               input_plugin_t *input) {
+
   switch (detection_method) {
 
     case METHOD_BY_CONTENT: {
@@ -1741,13 +1741,12 @@ static int detect_content (int detection_method, demux_class_t *class_gen,
       if (_x_demux_read_header(input, buf, 4) != 4)
         return 0;
 
-      if ((buf[0] != 'O')
-          || (buf[1] != 'g')
-          || (buf[2] != 'g')
-          || (buf[3] != 'S'))
+      if ((buf[0] == 'O') && (buf[1] == 'g') && (buf[2] == 'g') &&
+          (buf[3] == 'S'))
+        return 1;
+      else
         return 0;
     }
-    break;
 
     case METHOD_BY_EXTENSION: {
       char *extensions, *mrl;
@@ -1755,17 +1754,79 @@ static int detect_content (int detection_method, demux_class_t *class_gen,
       mrl = input->get_mrl (input);
       extensions = class_gen->get_extensions (class_gen);
 
-      if (!_x_demux_check_extension (mrl, extensions)) {
+      if (!_x_demux_check_extension (mrl, extensions))
         return 1;
-      }
+      else
+        return 0;
     }
-    break;
 
     case METHOD_EXPLICIT:
-    break;
+      return 1;
 
     default:
+      return 0;
+  }
+}
+
+static int detect_anx_content (int detection_method, demux_class_t *class_gen,
+    input_plugin_t *input) {
+
+  if (detect_ogg_content(detection_method, class_gen, input) == 0)
     return 0;
+
+  switch (detection_method) {
+
+#define ANNODEX_SIGNATURE_SEARCH 128
+
+    case METHOD_BY_CONTENT: {
+      uint8_t buf[ANNODEX_SIGNATURE_SEARCH];
+      int found_annodex_signature = 0;
+      const char *annodex_signature = "Annodex";
+      int annodex_signature_length = 7; /* = strlen(annodex_signature) */
+      int i, j;
+
+      if (_x_demux_read_header(input, buf, ANNODEX_SIGNATURE_SEARCH) !=
+          ANNODEX_SIGNATURE_SEARCH)
+        return 0;
+
+      /* scan for 'Annodex' signature in the first 64 bytes */
+      for (i = 0, j = 0; i < ANNODEX_SIGNATURE_SEARCH; i++) {
+        if (buf[i] == annodex_signature[j]) {
+          if (j >= annodex_signature_length) {
+            /* found signature */
+            found_annodex_signature = 1;
+            break;
+          } else {
+            j++;
+          }
+        }
+      }
+
+      if (found_annodex_signature)
+        return 1;
+      else
+        return 0;
+    }
+
+#undef ANNODEX_SIGNATURE_SEARCH
+
+    case METHOD_BY_EXTENSION: {
+      char *extensions, *mrl;
+
+      mrl = input->get_mrl (input);
+      extensions = class_gen->get_extensions (class_gen);
+
+      if (!_x_demux_check_extension (mrl, extensions))
+        return 1;
+      else
+        return 0;
+    }
+
+    case METHOD_EXPLICIT:
+      return 1;
+
+    default:
+      return 0;
   }
 }
 
@@ -1775,7 +1836,7 @@ static demux_plugin_t *anx_open_plugin (demux_class_t *class_gen,
 
   demux_ogg_t *this;
 
-  if (detect_content(stream->content_detection_method, class_gen, input) == 0)
+  if (detect_anx_content(stream->content_detection_method, class_gen, input) == 0)
     return NULL;
 
   /*
@@ -1821,7 +1882,7 @@ static demux_plugin_t *ogg_open_plugin (demux_class_t *class_gen,
 
   demux_ogg_t *this;
 
-  if (detect_content(stream->content_detection_method, class_gen, input) == 0)
+  if (detect_ogg_content(stream->content_detection_method, class_gen, input) == 0)
     return NULL;
 
   /*
