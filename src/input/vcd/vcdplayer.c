@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.2 2003/12/05 15:54:58 f1rmb Exp $
+  $Id: vcdplayer.c,v 1.3 2004/02/19 02:31:22 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -934,6 +934,8 @@ vcdplayer_read (vcdplayer_input_t *this, uint8_t *buf, const off_t nlen)
     typedef struct {
       uint8_t subheader	[8];
       uint8_t data	[M2F2_SECTOR_SIZE];
+      uint8_t spare     [4];
+      
     } vcdsector_t;
     vcdsector_t vcd_sector;
 
