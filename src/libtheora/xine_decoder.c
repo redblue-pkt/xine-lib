@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2003/04/30 08:49:40 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.2 2003/05/01 19:03:04 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -272,8 +272,8 @@ static video_decoder_t *theora_open_plugin (video_decoder_class_t *class_gen, xi
 
   theora_decoder_t  *this ;
 
-  printf ("You are trying to decoda an theorastream. Theora is in the moment\n");
-  printf ("aplha, xiph is developing on it. If the stream could not be played back\n");
+  printf ("You are trying to decode an theorastream. Theora is in the moment\n");
+  printf ("in development, expect nasty surprises. If the stream could not be played back\n");
   printf ("go to http://xine.sourceforge.net and grab the latest release of xine.\n");
 
   this = (theora_decoder_t *) malloc (sizeof (theora_decoder_t));
