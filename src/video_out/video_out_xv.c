@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.126 2002/08/15 03:12:25 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.127 2002/08/15 18:24:14 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -132,6 +132,8 @@ struct xv_driver_s {
 
   int                use_colorkey;
   uint32_t           colorkey;
+
+  int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 };
 
 int gX11Fail;
@@ -214,14 +216,15 @@ int HandleXError (Display *display, XErrorEvent *xevent) {
 
 static void x11_InstallXErrorHandler (xv_driver_t *this)
 {
-  XSetErrorHandler (HandleXError);
+  this->x11_old_error_handler = XSetErrorHandler (HandleXError);
   XFlush (this->display);
 }
 
 static void x11_DeInstallXErrorHandler (xv_driver_t *this)
 {
-  XSetErrorHandler (NULL);
+  XSetErrorHandler (this->x11_old_error_handler);
   XFlush (this->display);
+  this->x11_old_error_handler = NULL;
 }
 
 static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
@@ -1143,6 +1146,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->deinterlace_frame.image = NULL;
   this->use_colorkey      = 0;
   this->colorkey          = 0;
+  this->x11_old_error_handler = NULL;
 
   XAllocNamedColor(this->display,
 		   DefaultColormap(this->display, this->screen),

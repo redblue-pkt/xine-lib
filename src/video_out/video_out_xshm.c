@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.84 2002/08/15 03:12:25 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.85 2002/08/15 18:24:14 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -117,6 +117,8 @@ typedef struct xshm_driver_s {
   xshm_frame_t      *cur_frame; /* for completion event handling */
   vo_overlay_t      *overlay;
 
+  int (*x11_old_error_handler)  (Display *, XErrorEvent *);
+
 } xshm_driver_t;
 
 
@@ -140,14 +142,15 @@ static int HandleXError (Display *display, XErrorEvent *xevent) {
 
 static void x11_InstallXErrorHandler (xshm_driver_t *this)
 {
-  XSetErrorHandler (HandleXError);
+  this->x11_old_error_handler = XSetErrorHandler (HandleXError);
   XFlush (this->display);
 }
 
 static void x11_DeInstallXErrorHandler (xshm_driver_t *this)
 {
-  XSetErrorHandler (NULL);
+  XSetErrorHandler (this->x11_old_error_handler);
   XFlush (this->display);
+  this->x11_old_error_handler = NULL;
 }
 
 /*
@@ -1039,6 +1042,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->cur_frame           = NULL;
   this->gc		    = XCreateGC (this->display, this->drawable,
 					 0, NULL);
+
+  this->x11_old_error_handler = NULL;
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
