@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.31 2002/07/05 21:23:07 uid45177 Exp $
+ * $Id: buffer_types.c,v 1.32 2002/07/07 00:43:49 tmmm Exp $
  *
  *
  * contents:
@@ -290,6 +290,7 @@ static video_db_t video_db[] = {
 {
   {
     meFOURCC('j','p','e','g'),
+    meFOURCC('j','f','i','f'),
     0
   },
   BUF_VIDEO_JPEG,
