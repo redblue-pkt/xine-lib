@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2003/01/13 14:26:17 mroi Exp $
+ * $Id: xine_decoder.c,v 1.52 2003/01/17 20:53:46 miguelfreitas Exp $
  *
  */
 
@@ -76,6 +76,8 @@ typedef struct sputext_decoder_s {
   int                font_size;
   int                line_height;
   int                seek_count;
+  int                master_started;
+  int                slave_started;
 
   char              *font;
   subtitle_size      subtitle_size;
@@ -244,8 +246,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         diff = end - extra_info.frame_number;
         
         /* discard old subtitles */
-        if( diff < 0 )
+        if( diff < 0 ) {
+#ifdef LOG
+          printf("libsputext: discarding old\n");
+#endif
           return;
+        }
           
         diff = start - extra_info.frame_number;
         
@@ -269,8 +275,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         diff = end - extra_info.input_time;
         
         /* discard old subtitles */
-        if( diff < 0 )
+        if( diff < 0 ) {
+#ifdef LOG
+          printf("libsputext: discarding old\n");
+#endif
           return;
+        }
           
         diff = start - extra_info.input_time;
         
@@ -287,22 +297,37 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     
     status = xine_get_status (this->stream->master);
    
-    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP ) {
+    if( this->master_started && (status == XINE_STATUS_QUIT || 
+                                 status == XINE_STATUS_STOP) ) {
+#ifdef LOG
+      printf("libsputext: master stopped\n");
+#endif
       this->width = this->height = 0;
       return;
     }
+    if( status == XINE_STATUS_PLAY )
+      this->master_started = 1;
     
     status = xine_get_status (this->stream);
    
-    if( status == XINE_STATUS_QUIT || status == XINE_STATUS_STOP ) {
+    if( this->slave_started && (status == XINE_STATUS_QUIT || 
+                                status == XINE_STATUS_STOP) ) {
+#ifdef LOG
+      printf("libsputext: slave stopped\n");
+#endif
       this->width = this->height = 0;
       return;
     }
+    if( status == XINE_STATUS_PLAY )
+      this->slave_started = 1;
 
     xine_usec_sleep (50000);
             
     xine_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   }
+#ifdef LOG
+  printf("libsputext: seek_count mismatch\n");
+#endif
 }  
 
 
