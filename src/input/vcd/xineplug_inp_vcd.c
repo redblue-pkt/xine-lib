@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.24 2004/07/22 14:12:20 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.25 2004/07/25 17:42:55 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -290,7 +290,7 @@ static bool
 vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 {
 
-  char mrl[MRL_PREFIX_LEN+MAX_DEVICE_LEN+(sizeof("@E")-1)+10];
+  char mrl[MRL_PREFIX_LEN+MAX_DEVICE_LEN+(sizeof("@E")-1)+12];
   vcdplayer_input_t *player;
   unsigned int n, i=0;
   unsigned int num_entries;
