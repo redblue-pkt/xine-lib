@@ -44,7 +44,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "xine_internal.h"
-#include "xineutils.h"
 
 void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
 
@@ -382,11 +381,7 @@ static struct {
   char *name;
   void *(* function)(void *to, const void *from, size_t len);
 
-#ifdef _MSC_VER
-  uint64_t time; /* This type could be used for non-MSC build too! */
-#else
-  unsigned long long time;
-#endif /* _MSC_VER */
+  unsigned long long time; /* This type could be used for non-MSC build too! */
 
   uint32_t cpu_require;
 } memcpy_method[] =
@@ -458,11 +453,7 @@ static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
 #define BUFSIZE 1024*1024
 void xine_probe_fast_memcpy(config_values_t *config)
 {
-#ifdef _MSC_VER
   uint64_t t;
-#else
-  unsigned long long t;
-#endif /* _MSC_VER */
 
   char *buf1, *buf2;
   int i, j, best;
