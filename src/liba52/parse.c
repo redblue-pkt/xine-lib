@@ -29,14 +29,7 @@
 #include "a52_internal.h"
 #include "bitstream.h"
 #include "tables.h"
-
-#ifdef HAVE_MEMALIGN
-/* some systems have memalign() but no declaration for it */
-void * memalign (size_t align, size_t size);
-#else
-/* assume malloc alignment is sufficient */
-#define memalign(align,size) malloc (size)
-#endif
+#include "xineutils.h"
 
 static sample_t q_1[2];
 static sample_t q_2[2];
@@ -54,7 +47,7 @@ sample_t * a52_init (uint32_t mm_accel)
 
     imdct_init (mm_accel);
 
-    samples = memalign (16, 256 * 12 * sizeof (sample_t));
+    samples = xine_xmalloc_aligned (16, 256 * 12 * sizeof (sample_t));
     if (samples == NULL)
 	return NULL;
 

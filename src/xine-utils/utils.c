@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.2 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: utils.c,v 1.3 2001/11/17 22:40:01 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -34,6 +34,7 @@
 #include <pwd.h>
 #include <time.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #ifndef	__GNUC__
 #define __FUNCTION__	__func__
@@ -57,18 +58,67 @@ void *xine_xmalloc(size_t size) {
   return ptr;
 }
 
+typedef struct mem_aligned_s {
+  struct mem_aligned_s *next;
+  void *ptr;
+  void *aligned_ptr;
+} mem_aligned_t;
+
+static mem_aligned_t *mem_aligned;
+static pthread_mutex_t mem_aligned_mutex;
+
 /*
  *
  */
 void *xine_xmalloc_aligned (size_t alignment, size_t size) {
-  char *pMem;
-
-  pMem = xine_xmalloc (size+alignment);
-
+  char *pMem, *ptr;
+  mem_aligned_t *reg;
+  
+  ptr = pMem = xine_xmalloc (size+alignment);
+  
   while ((int) pMem % alignment)
     pMem++;
-
+    
+  pthread_mutex_lock (&mem_aligned_mutex);
+  reg = malloc( sizeof(mem_aligned_t) );
+  reg->next = mem_aligned;
+  reg->ptr = ptr;
+  reg->aligned_ptr = pMem;
+  mem_aligned = reg;
+  pthread_mutex_unlock (&mem_aligned_mutex);  
+  
   return pMem;
+}
+
+
+void xine_free_aligned( void *p ) {
+  mem_aligned_t *reg, *last;
+
+  pthread_mutex_lock (&mem_aligned_mutex);
+  
+  last = NULL;
+  reg = mem_aligned;
+  while( reg != NULL ) {
+    if ( reg->aligned_ptr == p ) {
+      free( reg->ptr );
+      if( last )
+        last->next = reg->next;
+      else
+        mem_aligned = reg->next;
+      free( reg );
+      pthread_mutex_unlock (&mem_aligned_mutex);
+      return;
+    }
+    last = reg;
+    reg = reg->next;
+  }
+  pthread_mutex_unlock (&mem_aligned_mutex);
+}
+
+
+void xine_init_mem_aligned(void) {
+  mem_aligned = NULL;
+  pthread_mutex_init (&mem_aligned_mutex, NULL);
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.1 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: xineutils.h,v 1.2 2001/11/17 22:40:01 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -615,6 +615,16 @@ void *xine_xmalloc(size_t size);
  * Same as above, but memory is aligned to 'alignement'.
  */
 void *xine_xmalloc_aligned(size_t alignment, size_t size);
+
+/*
+ * Free memory allocated with the above function
+ */
+void *xine_free_aligned(void *p);
+
+/* 
+ * Initialize aligned memory allocator
+ */
+void xine_init_mem_aligned(void);
 
 /* 
  * Get user home directory.

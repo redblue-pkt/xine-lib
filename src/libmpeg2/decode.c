@@ -50,8 +50,10 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 	motion_comp_init ();
     }
 
-    mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4);
-    mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t));
+    if( !mpeg2dec->chunk_buffer )
+      mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4);
+    if( !mpeg2dec->picture )
+      mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t));
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->is_sequence_needed = 1;
@@ -414,10 +416,15 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->backward_reference_frame->free (picture->backward_reference_frame);
     }
 
-    /* FIXME
-    free (mpeg2dec->chunk_buffer);
-    free (mpeg2dec->picture);
-    */
+    if ( mpeg2dec->chunk_buffer ) {
+      xine_free_aligned (mpeg2dec->chunk_buffer);
+      mpeg2dec->chunk_buffer = NULL;
+    }
+    
+    if ( mpeg2dec->picture ) {
+      xine_free_aligned (mpeg2dec->picture);
+      mpeg2dec->picture = NULL;
+    }
 }
 
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
