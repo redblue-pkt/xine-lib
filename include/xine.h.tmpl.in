@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.75 2002/01/10 15:48:55 jcdutton Exp $
+ * $Id: xine.h.tmpl.in,v 1.76 2002/02/01 09:53:54 f1rmb Exp $
  *
  */
 
@@ -962,6 +962,7 @@ void xine_get_spu_lang (xine_t *self, char *str);
  * \fn int xine_is_stream_seekable (xine_t *self)
  * \brief check if the stream is seekable (at the moment) 
  * \param self current xine engine configuration ( #see xine_init() )
+ * \return seekble boolean or -1 is there is not plugin selected.
  *
  * check if the stream is seekable (at the moment).
  * this state may change during playback
