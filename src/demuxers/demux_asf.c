@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.122 2003/06/13 20:46:22 tmattern Exp $
+ * $Id: demux_asf.c,v 1.123 2003/06/13 23:53:11 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -677,7 +677,6 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
   buf_element_t *buf;
   int            bufsize;
   int            package_done;
-  int            send_ts = 1;
 
 #ifdef LOG
   printf ("demux_asf: asf_send_buffer_nodefrag: timestamp=%lld, pts=%lld\n", timestamp, timestamp * 90);
@@ -726,12 +725,7 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 	    buf->extra_info->input_time);
 #endif
 
-    if (send_ts) {
-      buf->pts      = timestamp * 90;
-      send_ts       = 0;
-    } else {
-      buf->pts      = 0;
-    }
+    buf->pts        = timestamp * 90;
     buf->type       = stream->buf_type;
     buf->size       = bufsize;
     timestamp       = 0;
@@ -823,11 +817,10 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
           /* tm: not needed */          
           buf->pts = stream->timestamp * 90 + stream->ts_per_kbyte *
             (p-stream->buffer) / 1024;
+
 #endif
-          if (p == stream->buffer)
-            buf->pts      = stream->timestamp * 90;
-          else
-            buf->pts = 0;
+          /* send the same pts for the entire frame */
+          buf->pts        = stream->timestamp * 90;
           
           buf->type       = stream->buf_type;
           buf->size       = bufsize;
