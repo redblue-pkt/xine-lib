@@ -68,6 +68,7 @@ extern int errno;
 #endif
 
 #define NET_BS_LEN 2324
+#define PREBUF_SIZE 100000
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -79,6 +80,8 @@ typedef struct {
   config_values_t *config;
 
   off_t            curpos;
+
+  int              buffering;
 
 } net_input_plugin_t;
 
@@ -196,6 +199,7 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->fh = host_connect(filename, port, this->xine);
   this->curpos = 0;
+  this->buffering = 0;
 
   if (this->fh == -1) {
     return 0;
@@ -213,6 +217,16 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
+
+  if (this->curpos==0) {
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
+    this->buffering = 1;
+    printf ("input_net: buffering...\n");
+  } else if ((this->curpos>PREBUF_SIZE) && this->buffering) {
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
+    this->buffering = 0;
+    printf ("input_net: buffering...finished\n");
+  }
 
   total=0;
   while (total<len){ 
@@ -385,10 +399,11 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_optional_data = net_plugin_get_optional_data;
   this->input_plugin.is_branch_possible= NULL;
 
-  this->fh      = -1;
-  this->mrl     = NULL;
-  this->config  = config;
-  this->curpos  = 0;
+  this->fh        = -1;
+  this->mrl       = NULL;
+  this->config    = config;
+  this->curpos    = 0;
+  this->buffering = 0;
   
   return (input_plugin_t *) this;
 }
