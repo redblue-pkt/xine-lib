@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.43 2001/10/14 14:39:36 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.44 2001/10/14 14:43:42 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -754,6 +754,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
       */
       this->capabilities |= AO_CAP_MUTE_VOL;
       
+      close(mixer_fd);
+
     } else {
       if(strcmp(this->mixer.name, "/dev/mixer")) {
 	config->set_str(config, "mixer_name", "/dev/mixer");
