@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.142 2003/01/19 23:33:33 tmmm Exp $
+ * $Id: demux_qt.c,v 1.143 2003/02/03 02:10:53 miguelfreitas Exp $
  *
  */
 
@@ -2029,6 +2029,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     this->qt->frames[this->qt->frame_count - 1].size -
     this->data_start;
 
+  this->bih.biSize = sizeof(this->bih);
   this->bih.biWidth = this->qt->video_width;
   this->bih.biHeight = this->qt->video_height;
   this->bih.biBitCount = this->qt->video_depth;
@@ -2095,8 +2096,6 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   /* send header info to decoder. some mpeg4 streams need this */
   if( this->qt->video_decoder_config ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_SPECIAL;
-    buf->decoder_info[0] = BUF_SPECIAL_DECODER_CONFIG;
     buf->type = this->qt->video_type;
     buf->size = this->qt->video_decoder_config_len;
     buf->content = this->qt->video_decoder_config;      
