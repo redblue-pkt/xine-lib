@@ -266,7 +266,7 @@ Andrew Patrikalakis <anrp@irulethe.net>
 Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
   demux_ts fixes and improvements
 
-Carsten Weinhold <cw.news@gmx.net>
+Carsten Weinhold <news.cw@gmx.net>
   patch to improve quality of linearblend filter, new AV sync
   method by resampling audio.
 
