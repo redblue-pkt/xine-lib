@@ -33,15 +33,15 @@ dnl    if (any interfaces have been _removed_ or _incompatibly changed_)
 dnl       AGE = 0;
 dnl }
 
-LT_CURRENT=8
-LT_REVISION=1
-LT_AGE=7
+LT_CURRENT=9
+LT_REVISION=0
+LT_AGE=8
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="rc2"
+  XINE_PRE="rc3"
 fi
 
 AC_SUBST(XINE_MAJOR)
