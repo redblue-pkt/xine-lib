@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.119 2002/12/27 13:44:59 guenter Exp $
+ * $Id: xine_internal.h,v 1.120 2002/12/27 22:49:38 esnel Exp $
  *
  */
 
@@ -193,6 +193,8 @@ struct xine_stream_s {
   pthread_t                  spu_thread;
   spu_decoder_t             *spu_decoder_plugin;
   int                        spu_decoder_streamtype;
+  uint32_t                   spu_track_map[50];
+  int                        spu_track_map_entries;
   int                        spu_channel_user;
   int                        spu_channel_auto;
   int                        spu_channel_letterbox;

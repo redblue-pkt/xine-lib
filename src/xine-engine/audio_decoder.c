@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.96 2002/12/27 00:53:50 guenter Exp $
+ * $Id: audio_decoder.c,v 1.97 2002/12/27 22:49:38 esnel Exp $
  *
  *
  * functions that implement audio decoding
@@ -199,6 +199,10 @@ void *audio_decoder_loop (void *stream_gen) {
 	     || (stream->audio_track_map[i] != buf->type) ) {
           
           j = stream->audio_track_map_entries;
+
+          if (j >= 50)
+            break;
+
           while (j>i) {
             stream->audio_track_map[j] = stream->audio_track_map[j-1];
             j--;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.117 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.118 2002/12/27 22:49:38 esnel Exp $
  *
  */
 
@@ -101,6 +101,7 @@ void *video_decoder_loop (void *stream_gen) {
       if (stream->spu_decoder_plugin) {
         free_spu_decoder (stream, stream->spu_decoder_plugin);
         stream->spu_decoder_plugin = NULL;
+        stream->spu_track_map_entries = 0;
       }
       
       stream->metronom->handle_video_discontinuity (stream->metronom, 
@@ -173,6 +174,7 @@ void *video_decoder_loop (void *stream_gen) {
       if (stream->spu_decoder_plugin) {
         free_spu_decoder (stream, stream->spu_decoder_plugin);
         stream->spu_decoder_plugin = NULL;
+        stream->spu_track_map_entries = 0;
       }
 
       running = 0;
@@ -279,12 +281,44 @@ void *video_decoder_loop (void *stream_gen) {
 
       } else if ( (buf->type & 0xFF000000) == BUF_SPU_BASE ) {
 
+        uint32_t spu_type = 0;
+        int      i,j;
+
         if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
           break;
 
         xine_profiler_start_count (prof_spu_decode);
 
         update_spu_decoder(stream, buf->type);
+
+        /* update track map */
+        
+        i = 0;
+        while ( (i<stream->spu_track_map_entries) && (stream->spu_track_map[i]<buf->type) ) 
+          i++;
+        
+        if ( (i==stream->spu_track_map_entries)
+             || (stream->spu_track_map[i] != buf->type) ) {
+
+          j = stream->spu_track_map_entries;
+
+          if (j >= 50)
+            break;
+
+          while (j>i) {
+            stream->spu_track_map[j] = stream->spu_track_map[j-1];
+            j--;
+          }
+          stream->spu_track_map[i] = buf->type;
+          stream->spu_track_map_entries++;
+        }
+
+        if (stream->spu_channel_user >= 0) {
+          if (stream->spu_channel_user <= stream->spu_track_map_entries)
+            stream->spu_channel = stream->spu_track_map[stream->spu_channel_user];
+          else
+            stream->spu_channel = stream->spu_channel_auto;
+        }
 
         if (stream->spu_decoder_plugin) {
           stream->spu_decoder_plugin->decode_data (stream->spu_decoder_plugin, buf);
@@ -324,6 +358,7 @@ void video_decoder_init (xine_stream_t *stream) {
    * larger chunks.
    */
   stream->video_fifo = fifo_buffer_new (500, 8192);
+  stream->spu_track_map_entries = 0;
 
   pthread_attr_init(&pth_attrs);
   pthread_attr_getschedparam(&pth_attrs, &pth_params);

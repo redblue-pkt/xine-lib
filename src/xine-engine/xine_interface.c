@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.36 2002/12/27 03:40:08 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.37 2002/12/27 22:49:38 esnel Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -509,13 +509,11 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
   case XINE_STREAM_INFO_VIDEO_HAS_STILL:
     return stream->stream_info[info];
 
-/* TODO:
-  case XINE_STREAM_INFO_MAX_SPU_CHANNEL:
-    return 0;
-*/
-
   case XINE_STREAM_INFO_MAX_AUDIO_CHANNEL:
     return stream->audio_track_map_entries;
+
+  case XINE_STREAM_INFO_MAX_SPU_CHANNEL:
+    return stream->spu_track_map_entries;
 
   default:
     printf ("xine_interface: error, unknown stream info (%d) requested\n",
