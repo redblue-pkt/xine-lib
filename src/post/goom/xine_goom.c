@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.28 2003/03/11 17:40:30 jkeil Exp $
+ * $Id: xine_goom.c,v 1.29 2003/04/09 20:15:52 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -141,7 +141,9 @@ static void fps_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   if(class->ip) {
     post_plugin_goom_t *this = class->ip;
     this->fps = cfg->num_value;
-    this->samples_per_frame = this->sample_rate / this->fps;
+
+    if(this->sample_rate && this->fps)
+      this->samples_per_frame = this->sample_rate / this->fps;
   }
 }
 
@@ -185,7 +187,7 @@ static void csc_method_changed_cb(void *data, xine_cfg_entry_t *cfg) {
 static void *goom_init_plugin(xine_t *xine, void *data)
 {
   post_class_goom_t *this = (post_class_goom_t *)malloc(sizeof(post_class_goom_t));
-  config_values_t *cfg;
+  config_values_t   *cfg;
 
   if (!this)
     return NULL;
@@ -256,10 +258,17 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
+  memset(this, 0, sizeof(post_plugin_goom_t));
+  memset(input, 0, sizeof(xine_post_in_t));
+  memset(output, 0, sizeof(post_goom_out_t));
+  memset(outputv, 0, sizeof(post_goom_out_t));
+
   /*
    * Lookup config entries.
    */
-  class->ip = this;
+  this->class = class;
+  class->ip   = this;
+
 #ifdef LOG
   printf("goom: goom_open_plugin\n");
 #endif
@@ -351,9 +360,11 @@ static void goom_class_dispose(post_class_t *class_gen)
 
 static void goom_dispose(post_plugin_t *this_gen)
 {
-  post_plugin_goom_t *this = (post_plugin_goom_t *)this_gen;
-  xine_post_out_t *output = (xine_post_out_t *)xine_list_last_content(this_gen->output);
-  xine_video_port_t *port = *(xine_video_port_t **)output->data;
+  post_plugin_goom_t *this   = (post_plugin_goom_t *)this_gen;
+  xine_post_out_t    *output = (xine_post_out_t *)xine_list_last_content(this_gen->output);
+  xine_video_port_t  *port   = *(xine_video_port_t **)output->data;
+
+  this->class->ip = NULL;
 
   goom_close();
 
