@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.19 2004/02/04 23:32:19 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.20 2004/02/08 18:17:28 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -57,11 +57,6 @@
 #define MAX_FRAMES               32
 
 #define WRAP_THRESHOLD        90000
-
-#define INIT_STD_VIDEO            0
-#define INIT_STD_AUDIO            1
-#define INIT_VORBIS               2
-#define INIT_SUBTITLE             3
 
 
 typedef struct {
@@ -340,6 +335,13 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
   buf->type          = track->buf_type;
   buf->pts           = 0;
   track->fifo->put (track->fifo, buf);
+}
+
+
+static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
+
+  _x_demux_send_data(track->fifo, track->codec_private, track->codec_private_len,
+                     0, track->buf_type, BUF_FLAG_HEADER, 0, 0, 0, 0, 0);
 }
 
 
@@ -656,7 +658,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
           (track->language ? track->language : ""));
 
   if (track->codec_id) {
-    int init_mode = INIT_STD_VIDEO;
+    void (*init_codec)(demux_matroska_t *, matroska_track_t *) = NULL;
 
     if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_VFW_FOURCC)) {
       xine_bmiheader *bih;
@@ -666,7 +668,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       _x_bmiheader_le2me(bih);
 
       track->buf_type = _x_fourcc_to_buf_video(bih->biCompression);
-      init_mode = INIT_STD_VIDEO;
+      init_codec = init_codec_video;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_UNCOMPRESSED)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_SP)) {
@@ -681,13 +683,13 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       lprintf("MATROSKA_CODEC_ID_V_REAL_RV30\n");
       track->buf_type = BUF_VIDEO_RV30;
       track->handle_content = handle_realvideo;
-      init_mode = INIT_STD_VIDEO;
+      init_codec = init_codec_real;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV40)) {
     
       lprintf("MATROSKA_CODEC_ID_V_REAL_RV40\n");
       track->buf_type = BUF_VIDEO_RV40;
       track->handle_content = handle_realvideo;
-      init_mode = INIT_STD_VIDEO;
+      init_codec = init_codec_real;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MJPEG)) {
     } else if ((!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_MPEG1_L1)) ||
@@ -695,7 +697,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
                (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_MPEG1_L3))) {
       lprintf("MATROSKA_CODEC_ID_A_MPEG1\n");
       track->buf_type = BUF_AUDIO_MPEG;
-      init_mode = INIT_STD_AUDIO;
+      init_codec = init_codec_audio;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_INT_BE)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_INT_LE)) {
@@ -706,53 +708,49 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
 
       lprintf("MATROSKA_CODEC_ID_A_VORBIS\n");
       track->buf_type = BUF_AUDIO_VORBIS;
-      init_mode = INIT_VORBIS;
+      init_codec = init_codec_vorbis;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_ACM)) {
     } else if (!strncmp(track->codec_id, MATROSKA_CODEC_ID_A_AAC,
                         sizeof(MATROSKA_CODEC_ID_A_AAC - 1))) {
       lprintf("MATROSKA_CODEC_ID_A_AAC\n");
       track->buf_type = BUF_AUDIO_AAC;
-      init_mode = INIT_STD_AUDIO;
+      init_codec = init_codec_audio;
       
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_14_4)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_28_8)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_COOK)) {
       lprintf("MATROSKA_CODEC_ID_A_REAL_COOK\n");
       track->buf_type = BUF_AUDIO_COOK;
-      init_mode = INIT_STD_AUDIO;
+      init_codec = init_codec_real;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_SIPR)) {
       lprintf("MATROSKA_CODEC_ID_A_REAL_SIPR\n");
       track->buf_type = BUF_AUDIO_SIPRO;
-      init_mode = INIT_STD_AUDIO;
+      init_codec = init_codec_real;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_RALF)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_ATRC)) {
       lprintf("MATROSKA_CODEC_ID_A_REAL_ATRC\n");
       track->buf_type = BUF_AUDIO_ATRK;
-      init_mode = INIT_STD_AUDIO;
+      init_codec = init_codec_real;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_UTF8) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_UTF8)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_UTF8\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_utf8;
-      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_SSA) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_SSA)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_SSA\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_ssa;
-      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_ASS) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_ASS)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_ASS\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_ssa;
-      init_mode = INIT_SUBTITLE;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_USF)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_USF\n");
       track->buf_type = BUF_SPU_OGM;
       track->handle_content = handle_sub_utf8;
-      init_mode = INIT_SUBTITLE;
     } else {
       lprintf("unknown codec\n");
     }
@@ -781,19 +779,9 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
           break;
       }
 
-      switch (init_mode) {
-        case INIT_STD_VIDEO:
-          init_codec_video(this, track);
-        break;
-
-        case INIT_STD_AUDIO:
-          init_codec_audio(this, track);
-        break;
-
-        case INIT_VORBIS:
-          init_codec_vorbis(this, track);
-        break;
-      }
+      if (init_codec)
+        init_codec(this, track);
+      
     }
   }
   
