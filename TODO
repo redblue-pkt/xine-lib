@@ -13,7 +13,6 @@ required for 1.0
 
 - decoder plugin garbage collection (unload unused decoder plugins)
 - fix memleaks
-- brightness/contrast : map to specified ranges 
 - implement get_audio/video_frame at least for 1 set of demuxer+decoders
   implement null_audio/video_output plugins
   implement test frontend that uses these functions

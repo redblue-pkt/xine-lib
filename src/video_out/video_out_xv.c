@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.144 2002/10/29 00:36:21 komadori Exp $
+ * $Id: video_out_xv.c,v 1.145 2002/10/29 02:57:59 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -738,6 +738,9 @@ static int xv_get_property (xine_vo_driver_t *this_gen, int property) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
   
+  printf ("video_out_xv: property #%d = %d\n", property, 
+	  this->props[property].value);
+
   return this->props[property].value;
 }
 
@@ -1005,8 +1008,8 @@ static void xv_check_capability (xv_driver_t *this,
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
-  printf ("video_out_xv: port attribute %s value is %d\n",
-	  str_prop, int_default);
+  printf ("video_out_xv: port attribute %s (%d) value is %d\n",
+	  str_prop, property, int_default);
 
   if (config_name) {
     /* is this a boolean property ? */
@@ -1032,7 +1035,9 @@ static void xv_check_capability (xv_driver_t *this,
       this->use_colorkey = 1;
       this->colorkey = entry->num_value;
     }
-  }
+  } else 
+    this->props[property].value  = int_default;
+
 }
 
 static void xv_update_deinterlace(void *this_gen, xine_cfg_entry_t *entry) {
