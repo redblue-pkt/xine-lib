@@ -138,7 +138,7 @@ int main() {
       CFLAGS="$CFLAGS $ALSA_CFLAGS"
       LIBS="$LIBS $ALSA_LIBS"
       AC_TRY_LINK([
-#include <sys/asoudlib.h>
+#include <sys/asoundlib.h>
 #include <stdio.h>
 ], 
       [return ((SND_LIB_MAJOR) || (SND_LIB_MINOR) || (SND_LIB_SUBMINOR));],
