@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.94 2003/11/15 14:01:03 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.95 2003/11/16 15:31:51 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1833,19 +1833,6 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
                  * 1000 / (this->rate * 50));
   else
     return 0;
-}
-
-static int demux_ts_get_video_frame (demux_plugin_t *this_gen,
-				     int timestamp, 
-				     int *width, int *height,
-				     int *ratio_code, 
-				     int *duration, 
-				     int *format,
-				     uint8_t *img) {
-
-  /* demux_ts_t *this = (demux_ts_t*)this_gen; */
-
-  return 0;
 }
 
 

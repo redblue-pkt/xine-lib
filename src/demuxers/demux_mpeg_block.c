@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.198 2003/11/15 14:00:49 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.199 2003/11/16 15:31:51 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -86,9 +86,6 @@ typedef struct demux_mpeg_block_s {
   int64_t               dts;
   uint32_t              stream_id;
   int32_t               mpeg1;
-
-  /* stream index for get_audio/video_frame */
-  int                   have_index;
 
   int64_t               last_cell_time;
   off_t                 last_cell_pos;
@@ -1287,33 +1284,6 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
     return 0;
 }
 
-static void generate_index (demux_mpeg_block_t *this) {
-
-  /* FIXME: implement */
-
-}
-
-static int demux_mpeg_block_get_video_frame (demux_plugin_t *this_gen,
-					     int timestamp, 
-					     int *width, int *height,
-					     int *ratio_code, 
-					     int *duration, 
-					     int *format,
-					     uint8_t *img) {
-
-  demux_mpeg_block_t *this = (demux_mpeg_block_t*) this_gen; 
-
-  if (!this->have_index) {
-
-    generate_index (this);
-
-    this->have_index = 1;
-  }
-
-
-  return 0;
-}
-
 static uint32_t demux_mpeg_block_get_capabilities(demux_plugin_t *this_gen) {
   return DEMUX_CAP_NOCAP;
 }
@@ -1345,7 +1315,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->scratch    = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status     = DEMUX_FINISHED;
-  this->have_index = 0;
 
 #ifdef LOG
   printf ("demux_mpeg_block:open_plugin:detection_method=%d\n",
