@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.15 2002/11/22 23:37:04 guenter Exp $
+ * $Id: demux_real.c,v 1.16 2002/11/25 02:32:48 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -774,6 +774,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
 	  /* stream_read(demuxer->stream, dp_data+dp_hdr->len, size); */
 	  n = this->input->read (this->input, buf->content, size);
+
+	  buf->size = size;
 
 	  if (n<size) {
 	    printf ("demux_real: read error %d/%d\n", n, size);
