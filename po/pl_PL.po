@@ -6,9 +6,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-10-08 01:29+0200\n"
-"PO-Revision-Date: 2002-09-26 08:47+0200\n"
+"PO-Revision-Date: 2002-10-28 21:02+0100\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
-"Language-Team: Polski <pl@li.org>\n"
+"Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -82,8 +82,7 @@ msgstr "/dev/dsp# urz±dzenie u¿ywane dla wyj¶cia oss, - 1 => auto_detect"
 # src/audio_out/audio_oss_out.c:708
 #: src/audio_out/audio_oss_out.c:709
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
-msgstr ""
-"metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
+msgstr "metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
 
 # src/audio_out/audio_oss_out.c:775
 #: src/audio_out/audio_oss_out.c:776
@@ -135,14 +134,12 @@ msgstr "urz±dzenie u¿ywane do wyj¶cia d¼wiêku z wtyczk± d¼wiêku 'Sun'"
 # src/audio_out/audio_sun_out.c:748
 #: src/audio_out/audio_sun_out.c:938
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
 
 # src/audio_out/audio_arts_out.c:359
 #: src/audio_out/audio_arts_out.c:358
 msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami arts"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami arts"
 
 # src/audio_out/audio_irixal_out.c:382
 #: src/audio_out/audio_irixal_out.c:385
@@ -163,8 +160,7 @@ msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT zrzuca wiele pakietów TS\n"
 #: src/demuxers/demux_ts.c:343
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
-msgstr ""
-"demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
+msgstr "demux_ts: POPRAW MNIE: (nie wspierane)PAT sk³ada siê z wielu sekcji (%d)\n"
 
 # src/demuxers/demux_ts.c:353
 #: src/demuxers/demux_ts.c:353
@@ -576,8 +572,7 @@ msgstr ""
 
 #: src/demuxers/demux_voc.c:236
 #, c-format
-msgid ""
-"unknown VOC compression type (0x%02X); please report to xine developers\n"
+msgid "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 "nieznany typ kompresji VOC (0x%02X); proszê skontaktowaæ siê z programistami "
 "xine\n"
@@ -591,8 +586,7 @@ msgstr "prawid³owe rozszerzenia plików dla demultiplexera voc"
 #: src/demuxers/demux_voc.c:345
 #, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-msgstr ""
-"demux_voc: format VOC 0x%X d¼wiêk, %d Hz, czas odtwarzania %d min, %d sec\n"
+msgstr "demux_voc: format VOC 0x%X d¼wiêk, %d Hz, czas odtwarzania %d min, %d sec\n"
 
 # src/demuxers/demux_qt.c:1270 src/demuxers/demux_qt.c:1561
 #: src/demuxers/demux_vqa.c:347 src/demuxers/demux_vqa.c:513
@@ -608,8 +602,7 @@ msgstr "demux_vqa: %dx%d obraz VQA, kana³ %d, %d Hz IMA d¼wiêk ADPCM\n"
 #: src/demuxers/demux_wc3movie.c:218
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
-msgstr ""
-"demux_wc3movie: fragment obrazu odnosi siê do b³êdnej palety (%d >= %d)\n"
+msgstr "demux_wc3movie: fragment obrazu odnosi siê do b³êdnej palety (%d >= %d)\n"
 
 # src/demuxers/demux_film.c:606
 #. report an unknown chunk and skip it
@@ -620,8 +613,7 @@ msgstr "demux_wc3movie: nieznany kodek wideo %c%c%c%c\n"
 
 #: src/demuxers/demux_wc3movie.c:399
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
-msgstr ""
-"demux_wc3movie: Wyst±pi³ problem z za³adowaniem fragmentów palety barw.\n"
+msgstr "demux_wc3movie: Wyst±pi³ problem z za³adowaniem fragmentów palety barw.\n"
 
 # src/demuxers/demux_mpeg.c:926 src/demuxers/demux_mpeg.c:994
 #: src/demuxers/demux_wc3movie.c:558 src/demuxers/demux_wc3movie.c:822
@@ -739,15 +731,15 @@ msgstr "input_file: próbuje otworzyæ plik z napisami '%s'\n"
 
 #: src/input/input_file.c:475
 msgid "file input plugin"
-msgstr ""
+msgstr "wtyczka wej¶cia pliku"
 
 #: src/input/input_file.c:827
 msgid "file browsing start location"
-msgstr ""
+msgstr "miejsce startu przegl±darki plików"
 
 #: src/input/input_file.c:834
 msgid "list hidden files"
-msgstr ""
+msgstr "pokazuj ukryte pliki"
 
 # src/input/input_vcd.c:157 src/input/input_vcd.c:194
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
@@ -758,8 +750,7 @@ msgstr "input_vcd : b³±d w ioctl CDROMREADTOCHDR\n"
 #: src/input/input_vcd.c:167
 #, c-format
 msgid "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n"
-msgstr ""
-"input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
+msgstr "input_vcd: b³±d w kontroli wej¶cie/wyj¶cie CDROMREADTOCENTRY dla ¶cie¿ki %d\n"
 
 # src/input/input_vcd.c:178
 #: src/input/input_vcd.c:178
@@ -1123,10 +1114,8 @@ msgstr "wêze³ urz±dzenia syncfb (teletux)"
 
 # src/video_out/video_out_syncfb.c:1170
 #: src/video_out/video_out_syncfb.c:990
-msgid ""
-"xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
+msgid "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
 
 # src/video_out/video_out_fb.c:705 src/video_out/video_out_xshm.c:1283
 #: src/video_out/video_out_xshm.c:1062 src/video_out/video_out_fb.c:645
@@ -1141,8 +1130,7 @@ msgstr "korekta gamma dla sterownika XShm"
 # src/video_out/video_out_xshm.c:1445
 #: src/video_out/video_out_xshm.c:1226
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
 
 # src/video_out/video_out_xv.c:1160 src/video_out/video_out_xv.c:1166
 #: src/video_out/video_out_xv.c:1012 src/video_out/video_out_xv.c:1018
@@ -1177,8 +1165,7 @@ msgstr "urz±dzenie buforu ramki"
 # src/video_out/video_out_fb.c:885
 #: src/video_out/video_out_fb.c:758
 msgid "xine video output plugin using linux framebuffer device"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
 
 # src/video_out/video_out_sdl.c:696
 #: src/video_out/video_out_sdl.c:538
@@ -1244,13 +1231,12 @@ msgstr "xine: nie mogê znale¼æ wtyczki wej¶cia dla tego MRL\n"
 
 # src/xine-engine/xine.c:436
 #: src/xine-engine/xine.c:303
-#, fuzzy, c-format
+#, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nie mogê znale¼æ demultiplexera dla >%s<\n"
 
 # src/xine-engine/xine.c:471
 #: src/xine-engine/xine.c:394
-#, fuzzy
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: zawiód³ start demultiplexera\n"
 
@@ -1478,8 +1464,7 @@ msgstr "dxr3enc: czêstotliwo¶æ wyj¶æia rte mpeg (kbit/s)"
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr ""
-"czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
+msgstr "czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
 
 # src/dxr3/dxr3_mpeg_encoders.c:389
 #: src/dxr3/dxr3_mpeg_encoders.c:389
@@ -1648,50 +1633,3 @@ msgstr "MS RLE: ramka ptr w³a¶nie wykroczy³a poza granice (2)\n"
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: zakoñczono dekodowanie ramki z pozosta³ymi bajtami (%d < %d)\n"
 
-# src/demuxers/demux_film.c:147
-#~ msgid ""
-#~ "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
-#~ msgstr ""
-#~ "demux_film: To nie jest plik filmowy (dlaczego zosta³ on wys³any do tego "
-#~ "demultipleksera?)\n"
-
-# src/demuxers/demux_film.c:606
-#~ msgid "demux_film: unknown video codec %c%c%c%c\n"
-#~ msgstr "demux_film: nieznany kodek wideo %c%c%c%c\n"
-
-# src/demuxers/demux_wav.c:324
-#~ msgid "demux_vqa: running time: %d min, %d sec\n"
-#~ msgstr "demux_vqa: czas odtwarzania = %d min, %d sek\n"
-
-# src/input/input_file.c:209
-#~ msgid "lstat failed for %s{%s}\n"
-#~ msgstr "lstat zawiód³ dla %s{%s}\n"
-
-# src/input/input_file.c:527 src/input/input_file.c:566
-# src/input/input_file.c:602
-#~ msgid "%s(%d): readlink() failed: %s\n"
-#~ msgstr "%s(%d): readlink() failed: %s\n"
-
-# src/input/input_file.c:790
-#~ msgid "plain file input plugin as shipped with xine"
-#~ msgstr "wtyczka wej¶cia pliku dostarczane z xine"
-
-# src/input/input_file.c:809
-#~ msgid "input_file: get optional data, type %08x, sub %p\n"
-#~ msgstr "input_file: pobieranie dodatkowych danych, typ %08x, sub %p\n"
-
-# src/input/input_file.c:908
-#~ msgid "origin path to grab file mrls"
-#~ msgstr "¶cie¿ka dostêpu do plików multimedialnych"
-
-# src/input/input_file.c:913
-#~ msgid "hidden files displaying."
-#~ msgstr "wy¶wietlanie ukrytych plików"
-
-# src/xine-engine/xine.c:137
-#~ msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
-#~ msgstr "xine_notify_stream_finished: nie mogê utworzyæ nowego w±tku (%s)\n"
-
-# src/xine-engine/xine.c:600
-#~ msgid "logo mrl, displayed in video output window"
-#~ msgstr "mrl logo, wy¶wietlane w oknie wyj¶cia obrazu"
