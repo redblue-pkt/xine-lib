@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.5 2001/04/27 23:51:52 guenter Exp $
+ * $Id: demux_avi.c,v 1.6 2001/04/28 21:23:04 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -964,7 +964,7 @@ static char *demux_avi_get_id(void) {
   return "AVI";
 }
 
-demux_plugin_t *init_demux_plugin(int iface, config_values_t *config) {
+demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_avi_t *this = xmalloc (sizeof (demux_avi_t));
 

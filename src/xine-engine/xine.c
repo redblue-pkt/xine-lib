@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.8 2001/04/28 19:47:42 guenter Exp $
+ * $Id: xine.c,v 1.9 2001/04/28 21:23:04 guenter Exp $
  *
  * top-level xine functions
  *
@@ -129,21 +129,8 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 	
 	this->cur_demuxer_plugin = this->demuxer_plugins[i];
 	
-	xprintf(VERBOSE|DEMUX,"demuxer '%s' handle in stage '%s'.\n", 
-		this->demux_plugins[i].get_identifier(),
-		(stages[s] == STAGE_BY_CONTENT) ? "STAGE_BY_CONTENT"
-		: ((stages[s] == STAGE_BY_EXTENSION) ? "STAGE_BY_EXTENSION"
-		   : "UNKNOWN"));
 	return 1;
       }
-#ifdef DEBUG
-      else
-	xprintf(VERBOSE|DEMUX, "demuxer '%s' cannot handle in stage '%s'.\n", 
-		this->demuxer_plugins[i].get_identifier(),
-		(stages[s] == STAGE_BY_CONTENT) ? "STAGE_BY_CONTENT"
-		: ((stages[s] == STAGE_BY_EXTENSION) ? "STAGE_BY_EXTENSION"
-		   : "UNKNOWN"));
-#endif
     }
     s++;
   }
@@ -396,21 +383,19 @@ xine_t *xine_init (vo_driver_t *vo,
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
-#ifdef TEST_FILE
-  gTestFile = open ("/tmp/test.mp3", O_WRONLY | O_CREAT, 0644); 
-#endif
-
   /*
    * init lock
    */
 
   pthread_mutex_init (&this->xine_lock, NULL);
+  printf ("xine_init: lock created\n");
 
   /*
    * create a metronom
    */
 
   this->metronom = metronom_init ();
+  printf ("xine_init: metronom created\n");
 
   /*
    * load input and demuxer plugins

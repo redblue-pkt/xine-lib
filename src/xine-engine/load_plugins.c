@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.12 2001/04/28 19:47:42 guenter Exp $
+ * $Id: load_plugins.c,v 1.13 2001/04/28 21:23:04 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -156,13 +156,13 @@ void load_input_plugins (xine_t *this,
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+
+	printf ("load_plugins: trying to load input plugin >%s<\n",str);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n", 
-		  __FILE__, __LINE__, str, dlerror());
-	  exit(1);
-	}
-	else {
+	  printf("load_plugins: cannot open input plugin %s: %s\n", 
+		 str, dlerror());
+	} else {
 	  void *(*initplug) (int, config_values_t *);
 	  
 	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
@@ -171,12 +171,14 @@ void load_input_plugins (xine_t *this,
 	    ip = (input_plugin_t *) initplug(iface_version, config);
 	    this->input_plugins[this->num_input_plugins] = ip; 
 	    
-	    printf("input plugin found : %s(ID: %s, iface: %d)\n", 
+	    printf("load_plugins: input plugin found : %s(ID: %s, iface: %d)\n", 
 		   str,   
 		   this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]),
 		   this->input_plugins[this->num_input_plugins]->interface_version);
 
 	    this->num_input_plugins++;
+	  } else {
+	    printf ("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n");
 	  }
 	  
 	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
@@ -190,7 +192,7 @@ void load_input_plugins (xine_t *this,
   }
   
   if (this->num_input_plugins == 0) {
-    printf ("No input plugins found in %s! - "
+    printf ("load_plugins: no input plugins found in %s! - "
 	    "Did you install xine correctly??\n", XINE_PLUGINDIR);
     exit (1);
   }
@@ -486,6 +488,8 @@ char **xine_list_audio_output_plugins() {
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 
+	/* printf ("load_plugins: trying to load plugin %s\n", str); */
+
 	/*
 	 * now, see if we can open this plugin,
 	 * and get it's id
@@ -500,6 +504,8 @@ char **xine_list_audio_output_plugins() {
 
 	  ao_info_t* (*getinfo) ();
 	  ao_info_t   *ao_info;
+
+	  /* printf ("load_plugins: plugin %s successfully loaded.\n", str); */
 
 	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
 	    ao_info = getinfo();

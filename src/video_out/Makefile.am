@@ -1,6 +1,6 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ -DXINE_COMPILE
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+# LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.4 2001/04/24 17:42:26 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.5 2001/04/28 21:23:04 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -608,7 +608,7 @@ static void demux_mpeg_close (demux_plugin_t *this) {
   /* nothing */
 }
 
-demux_plugin_t *init_demux_plugin(int iface, config_values_t *config) {
+demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
 
   demux_mpeg_t *this = xmalloc (sizeof (demux_mpeg_t));
 
