@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.141 2002/06/17 07:47:50 f1rmb Exp $
+ * $Id: xine.c,v 1.142 2002/07/05 15:08:58 mroi Exp $
  *
  * top-level xine functions
  *
@@ -657,11 +657,13 @@ xine_t *xine_init (vo_driver_t *vo,
 
   load_demux_plugins(this, config);
 
-  this->spu_channel_auto   = -1;
-  this->spu_channel_user   = -1;
-  this->cur_input_pos      = 0;
-  this->cur_input_length   = 0;
-  this->last_input_plugin  = NULL;
+  this->spu_channel_auto      = -1;
+  this->spu_channel_letterbox = -1;
+  this->spu_channel_pan_scan  = -1;
+  this->spu_channel_user      = -1;
+  this->cur_input_pos         = 0;
+  this->cur_input_length      = 0;
+  this->last_input_plugin     = NULL;
 
   /*
    * init and start decoder threads

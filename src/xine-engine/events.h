@@ -161,6 +161,7 @@ typedef struct {
 typedef struct {
   xine_event_t     event;
   int              ratio_code;
+  int              scale_permission;
 } xine_aspect_ratio_event_t;
 
 #ifdef __cplusplus

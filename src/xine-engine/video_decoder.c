@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.90 2002/06/19 23:42:50 tmattern Exp $
+ * $Id: video_decoder.c,v 1.91 2002/07/05 15:08:58 mroi Exp $
  *
  */
 
@@ -133,7 +133,12 @@ void *video_decoder_loop (void *this_gen) {
       {
 	xine_ui_event_t  ui_event;
 	
+	/* We use widescreen spu as the auto selection, because widescreen
+	 * display is common. SPU decoders can choose differently if it suits
+	 * them. */
 	this->spu_channel_auto = buf->decoder_info[0];
+	this->spu_channel_letterbox = buf->decoder_info[1];
+	this->spu_channel_pan_scan = buf->decoder_info[2];
 	if (this->spu_channel_user == -1)
 	  this->spu_channel = this->spu_channel_auto;
 	
