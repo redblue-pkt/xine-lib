@@ -4,6 +4,8 @@ xine-lib (1-rc4)
     DVD of "24" season 1
   * improved precision in metronom's audio timestamp calculation fixes some
     sync problems, especially in long-running applications
+  * fix playing mpeg vob files with LPCM
+  * correct field order when deinterlacing bottom-field-first streams
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
