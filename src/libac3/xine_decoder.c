@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2001/07/20 22:37:56 guenter Exp $
+ * $Id: xine_decoder.c,v 1.17 2001/07/21 22:05:17 ehasenle Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -272,25 +272,25 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
 	float_to_int (this->samples[1], this->int_samples+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
-	float_to_int (this->samples[0], this->int_samples,   4);
-	float_to_int (this->samples[1], this->int_samples+1, 4);
-	float_to_int (this->samples[2], this->int_samples+2, 4);
-	float_to_int (this->samples[3], this->int_samples+3, 4);
+	float_to_int (this->samples[0], this->int_samples,   4); /*  L */
+	float_to_int (this->samples[1], this->int_samples+1, 4); /*  R */
+	float_to_int (this->samples[2], this->int_samples+2, 4); /* RL */
+	float_to_int (this->samples[3], this->int_samples+3, 4); /* RR */
 	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (this->samples[0], this->int_samples,   5);
-	float_to_int (this->samples[1], this->int_samples+1, 5);
-	float_to_int (this->samples[2], this->int_samples+2, 5);
-	float_to_int (this->samples[3], this->int_samples+3, 5);
-	float_to_int (this->samples[4], this->int_samples+4, 5);
+	float_to_int (this->samples[0], this->int_samples+0, 5); /*  L */
+	float_to_int (this->samples[1], this->int_samples+4, 5); /*  C */
+	float_to_int (this->samples[2], this->int_samples+1, 5); /*  R */
+	float_to_int (this->samples[3], this->int_samples+2, 5); /* RL */
+	float_to_int (this->samples[4], this->int_samples+3, 5); /* RR */
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
-	float_to_int (this->samples[0], this->int_samples,   6);
-	float_to_int (this->samples[1], this->int_samples+1, 6);
-	float_to_int (this->samples[2], this->int_samples+2, 6);
-	float_to_int (this->samples[3], this->int_samples+3, 6);
-	float_to_int (this->samples[4], this->int_samples+4, 6);
-	float_to_int (this->samples[5], this->int_samples+5, 6);
+	float_to_int (this->samples[0], this->int_samples+5, 6); /* lfe */
+	float_to_int (this->samples[1], this->int_samples+0, 6); /*   L */
+	float_to_int (this->samples[2], this->int_samples+4, 6); /*   C */
+	float_to_int (this->samples[3], this->int_samples+1, 6); /*   R */
+	float_to_int (this->samples[4], this->int_samples+2, 6); /*  RL */
+	float_to_int (this->samples[5], this->int_samples+3, 6); /*  RR */
 	break;
       default:
 	printf ("libac3: help - unsupported mode %08x\n", output_mode);
