@@ -8,6 +8,7 @@ xine-lib (1-rc4)
     the wrong aspect
   * major refinement of post plugin architecture fixes a lot of races
   * fix runtime audio channel selection, specially for ogg/ogm streams
+  * preliminary matroska support
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
