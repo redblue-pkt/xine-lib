@@ -23,6 +23,7 @@ xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \
 		dxr3_vo_core.c mpeg_encoders.c
+xineplug_vo_out_dxr3_la_LIBADD = $(X_LIBS) -lXext
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version \
 		-module $(link_fame) $(link_rte) $(X_LIBS)
 
