@@ -19,8 +19,7 @@ xine-lib (1-rc1)
   * Allow a52 passthru to be switchied on and off without having to exit xine.
     One has to stop playing, and then restart playing for it to activate.
   * Fix .mp3 content detection for .mp3 files with a header or ID3.
-  * Make sure mpeg_demux_pes waits for a "program_stream_pack_header"
-    before demuxing anything else. Otherwise detection of mpeg1/mpeg2 fails.
+  * Fix detection of mpeg1/mpeg2 in demux_mpeg_pes.
   * Fix long standing problem with alsa not working on some audio cards
     when using 6 analogue channels for output.
   * Fix bug in playing A52 .wav files via SPDIF passthrough.
@@ -34,6 +33,8 @@ xine-lib (1-rc1)
   * fix some asf demuxer bugs
     seq number handling (helps a lot with mms live video streams)
     frame duration bug with "still" frames
+  * Add support for some A52 streams into demux_mpeg_pes.
+    Used by PRO7 digital tv channel.
   * fix colors of YUY2 overlay blending
 
 xine-lib (1-rc0a)
