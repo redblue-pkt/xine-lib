@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.16 2004/06/23 19:45:54 mroi Exp $
+ * $Id: plugin_catalog.h,v 1.17 2005/02/09 20:03:21 tmattern Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -46,11 +46,18 @@
 
 typedef struct {
   char            *filename;
-  plugin_info_t   *info;
-  void            *plugin_class;
-  int              ref; /* count instances created of this plugin */
   off_t            filesize;
   time_t           filemtime;
+  int              ref;          /* count number of classes */
+  void            *lib_handle;
+  int              no_unload;    /* set if the file can't be unloaded */
+} plugin_file_t ;
+
+typedef struct {
+  plugin_file_t   *file;
+  plugin_info_t   *info;
+  void            *plugin_class;
+  int              ref;          /* count intances of plugins */
 } plugin_node_t ;
 
 struct plugin_catalog_s {
@@ -64,6 +71,7 @@ struct plugin_catalog_s {
   xine_list_t     *post;
   
   xine_list_t     *cache;
+  xine_list_t     *file;
 
   plugin_node_t   *audio_decoder_map[DECODER_MAX][PLUGINS_PER_TYPE];
   plugin_node_t   *video_decoder_map[DECODER_MAX][PLUGINS_PER_TYPE];

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.22 2004/12/16 13:31:40 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.23 2005/02/09 20:03:22 tmattern Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -547,7 +547,7 @@ int dxr3_lavc_init(dxr3_driver_t *drv, plugin_node_t *node)
   int (*init)(dxr3_driver_t *);
   int result;
   
-  ffmpeg = dlopen(node->filename, RTLD_LAZY);
+  ffmpeg = dlopen(node->file->filename, RTLD_LAZY);
   if (!ffmpeg) return 0;
   
   init = dlsym(ffmpeg, "dxr3_encoder_init");

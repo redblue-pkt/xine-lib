@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.138 2005/02/02 23:11:40 dsalt Exp $
+ * $Id: xine.h.in,v 1.139 2005/02/09 20:03:18 tmattern Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1027,6 +1027,8 @@ const char *const *xine_list_spu_plugins(xine_t *self);
 const char *const *xine_list_audio_decoder_plugins(xine_t *self);
 const char *const *xine_list_video_decoder_plugins(xine_t *self);
 
+/* unload unused plugins */
+void xine_plugins_garbage_collector(xine_t *self);
 
 /*********************************************************************
  * visual specific gui <-> xine engine communication                 *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.308 2005/01/21 18:47:54 hadess Exp $
+ * $Id: xine.c,v 1.309 2005/02/09 20:03:21 tmattern Exp $
  */
 
 /*
@@ -359,9 +359,8 @@ static void close_internal (xine_stream_t *stream) {
   stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
   stream->ignore_speed_change = 0;
   
-  lprintf ("disposing demux\n");
   if (stream->demux_plugin) {
-    stream->demux_plugin->dispose (stream->demux_plugin);
+    _x_free_demux_plugin(stream, stream->demux_plugin);
     stream->demux_plugin = NULL;
   }
 
@@ -370,7 +369,7 @@ static void close_internal (xine_stream_t *stream) {
    */
 
   if (stream->input_plugin) {
-    stream->input_plugin->dispose(stream->input_plugin);
+    _x_free_input_plugin(stream, stream->input_plugin);
     stream->input_plugin = NULL;
   }
 
@@ -1042,12 +1041,12 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
   if (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK) {
     xine_log (stream->xine, XINE_LOG_MSG, _("xine: demuxer failed to start\n"));
 
-    stream->demux_plugin->dispose (stream->demux_plugin);
+    _x_free_demux_plugin(stream, stream->demux_plugin);
     stream->demux_plugin = NULL;
 
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "demux disposed\n");
 
-    stream->input_plugin->dispose (stream->input_plugin);
+    _x_free_input_plugin(stream, stream->input_plugin);
     stream->input_plugin = NULL;
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 

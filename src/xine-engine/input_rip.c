@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.28 2005/02/03 07:19:07 valtri Exp $
+ * $Id: input_rip.c,v 1.29 2005/02/09 20:03:20 tmattern Exp $
  */
 
 /* TODO:
@@ -490,7 +490,7 @@ static void rip_plugin_dispose(input_plugin_t *this_gen) {
 
   lprintf("rip_plugin_dispose\n");
 
-  this->main_input_plugin->dispose(this->main_input_plugin);
+  _x_free_input_plugin(this->stream, this->main_input_plugin);
   fclose(this->file);
   if (this->preview) free(this->preview);
   free(this);

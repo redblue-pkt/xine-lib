@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.5 2004/12/13 18:19:48 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.6 2005/02/09 20:03:19 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -306,7 +306,7 @@ static void cache_plugin_dispose(input_plugin_t *this_gen) {
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	  LOG_MODULE": seek_calls: %d, main input seek calls: %d\n", this->seek_call, this->main_seek_call);
 
-  this->main_input_plugin->dispose(this->main_input_plugin);
+  _x_free_input_plugin(this->stream, this->main_input_plugin);
   free(this);
 }
 
