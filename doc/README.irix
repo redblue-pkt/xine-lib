@@ -1,0 +1,25 @@
+building xine on IRIX
+---------------------
+
+* Compile xine with GNU make (gmake).
+
+
+Known Problems
+--------------
+
+* No sound
+
+  IRIX does not seem to support OSS audio. The IRIX libaudio driver is not
+  yet finished.
+
+* Cannot compile with IRIX cc
+
+  This is an unresolved issue with automake and dependencies.
+
+* xine crashes upon startup
+
+  Some graphics cards (e.g. V8) seem to have problems with xine-ui.
+  This is being worked on.
+
+
+Matthias Hopf <mat@mshopf.de>
