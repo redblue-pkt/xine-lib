@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.14 2002/12/01 00:36:00 guenter Exp $
+ * $Id: mms.c,v 1.15 2002/12/03 23:30:39 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -72,7 +72,7 @@ struct mms_s {
   char         *url;
 
   /* command to send */
-  char          scmd[CMD_HEADER_LEN+CMD_BODY_LEN];
+  char          scmd[CMD_HEADER_LEN + CMD_BODY_LEN];
   char         *scmd_body; /* pointer to &scmd[CMD_HEADER_LEN] */
   int           scmd_len; /* num bytes written in header */
 
@@ -267,6 +267,7 @@ static int send_command (mms_t *this, int command, uint32_t switches,
 #ifdef LOG
   {
     int i;
+    unsigned char c;
 
   printf ("\nlibmms: ***************************************************\ncommand sent, %d bytes\n", length + 48);
 
@@ -281,7 +282,7 @@ static int send_command (mms_t *this, int command, uint32_t switches,
 
   printf ("ascii contents>");
   for (i = 48; i < (length + 48); i += 2) {
-    unsigned char c = this->scmd[i];
+    c = this->scmd[i];
 
     if ((c >= 32) && (c <= 128))
       printf ("%c", c);
@@ -292,7 +293,7 @@ static int send_command (mms_t *this, int command, uint32_t switches,
 
   printf ("libmms: complete hexdump of package follows:\n");
   for (i = 0; i < (length + 48); i++) {
-    unsigned char c = this->scmd[i];
+    c = this->scmd[i];
 
     printf ("%02x", c);
 
@@ -718,7 +719,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   
   report_progress (stream, 10);
 
-  this = (mms_t*) malloc (sizeof (mms_t));
+  this = (mms_t*) xine_xmalloc (sizeof (mms_t));
 
   this->url             = url;
   this->host            = host;
