@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.45 2004/03/31 16:18:16 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.46 2004/04/10 15:29:57 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -127,8 +127,7 @@ typedef struct dxr3_spudec_s {
   dxr3_driver_t           *dxr3_vo;      /* we need to talk to the video out */
   xine_event_queue_t      *event_queue;
   
-  char                     devname[128];
-  char                     devnum[3];
+  int                      devnum;
   int                      fd_spu;       /* to access the dxr3 spu device */
   
   dxr3_spu_stream_state_t  spu_stream_state[MAX_SPU_STREAMS];
@@ -175,8 +174,6 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
 {
   dxr3_spudec_t *this;
   dxr3_spudec_class_t *class = (dxr3_spudec_class_t *)class_gen;
-  const char *confstr;
-  int dashpos;
   char tmpstr[128];
   int i;
   
@@ -199,27 +196,15 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   this->dxr3_vo                       = (dxr3_driver_t *)stream->video_driver;
   this->event_queue                   = xine_event_new_queue(stream);
 
-  confstr = stream->xine->config->register_string(stream->xine->config,
-    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
-  strncpy(this->devname, confstr, 128);
-  this->devname[127] = '\0';
-  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
-  if (this->devname[dashpos] == '-') {
-    /* use new device naming scheme with trailing number */
-    strncpy(this->devnum, &this->devname[dashpos], 3);
-    this->devname[dashpos] = '\0';
-  } else {
-    /* use old device naming scheme without trailing number */
-    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
-    this->devnum[0] = '\0';
-  }
+  this->devnum = stream->xine->config->register_num(stream->xine->config,
+    CONF_KEY, 0, CONF_NAME, CONF_HELP, 10, NULL, NULL);
   
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   if (this->dxr3_vo->fd_spu)
     this->fd_spu = this->dxr3_vo->fd_spu;
   else {
     /* open dxr3 spu device */
-    snprintf(tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
+    snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300_sp-%d", this->devnum);
     if ((this->fd_spu = open(tmpstr, O_WRONLY)) < 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 	      _("dxr3_decode_spu: Failed to open spu device %s (%s)\n"), tmpstr, strerror(errno));

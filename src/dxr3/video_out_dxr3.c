@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.99 2004/03/31 16:18:55 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.100 2004/04/10 15:29:57 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -167,26 +167,12 @@ static void *dxr3_aa_init_plugin(xine_t *xine, void *visual_gen)
 static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
 {
   dxr3_driver_class_t *this;
-  const char *confstr;
-  int dashpos;
   
   this = (dxr3_driver_class_t *)xine_xmalloc(sizeof(dxr3_driver_class_t));
   if (!this) return NULL;
   
-  confstr = xine->config->register_string(xine->config,
-    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
-  strncpy(this->devname, confstr, 128);
-  this->devname[127] = '\0';
-  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
-  if (this->devname[dashpos] == '-') {
-    /* use new device naming scheme with trailing number */
-    strncpy(this->devnum, &this->devname[dashpos], 3);
-    this->devname[dashpos] = '\0';
-  } else {
-    /* use old device naming scheme without trailing number */
-    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
-    this->devnum[0] = '\0';
-  }
+  this->devnum = xine->config->register_num(xine->config,
+    CONF_KEY, 0, CONF_NAME, CONF_HELP, 10, NULL, NULL);
 
   this->video_driver_class.open_plugin     = dxr3_vo_open_plugin;
   this->video_driver_class.get_identifier  = dxr3_vo_get_identifier;
@@ -266,19 +252,22 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   this->class                          = class;
   this->swap_fields                    = config->register_bool(config,
-    "dxr3.enc_swap_fields", 0, _("swap odd and even lines"), NULL, 10,
-    dxr3_update_swap_fields, this);
+    "dxr3.enc_swap_fields", 0, _("swap odd and even lines"),
+    _("Swaps the even and odd field of the image.\nEnable this option for "
+      "non-MPEG material which produces a vertical jitter on screen."),
+    10, dxr3_update_swap_fields, this);
   this->add_bars                       = config->register_bool(config,
-    "dxr3.enc_add_bars", 1, _("Add black bars to correct aspect ratio"),
-    _("If disabled, will assume source has 4:3 aspect ratio."), 10,
-    dxr3_update_add_bars, this);
+    "dxr3.enc_add_bars", 1, _("add black bars to correct aspect ratio"),
+    _("Adds black bars when the image has an aspect ratio the card cannot "
+      "handle natively. This is needed to maintain proper image proportions."),
+    20, dxr3_update_add_bars, this);
   this->enhanced_mode                  = config->register_bool(config,
     "dxr3.enc_alt_play_mode", 1,
-    _("dxr3: use alternate play mode for mpeg encoder playback"),
-    _("Enabling this option will utilise a smoother play mode."), 10,
-    dxr3_update_enhanced_mode, this);
+    _("use smooth play mode for mpeg encoder playback"),
+    _("Enabling this option will utilise a smoother play mode for non-MPEG content."),
+    20, dxr3_update_enhanced_mode, this);
   
-  snprintf(tmpstr, sizeof(tmpstr), "%s%s", class->devname, class->devnum);
+  snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300-%d", class->devnum);
 #if LOG_VID
   printf("video_out_dxr3: Entering video init, devname = %s.\n", tmpstr);
 #endif
@@ -290,7 +279,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
     return 0;
   }
   
-  snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", class->devname, class->devnum);
+  snprintf (tmpstr, sizeof(tmpstr), "/dev/em8300_mv-%d", class->devnum);
   if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
     xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
 	    _("video_out_dxr3: Failed to open video device %s (%s)\n"), tmpstr, strerror(errno));
@@ -335,9 +324,16 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #endif
   if (encoder) {
     encoder = config->register_enum(config, "dxr3.encoder", 0,
-      available_encoders, _("the encoder for non mpeg content"),
-      _("Content other than mpeg has to pass an additional reencoding stage, "
-      "because the dxr3 handles mpeg only."), 10, NULL, NULL);
+      available_encoders, _("encoder for non mpeg content"),
+      _("Content other than MPEG has to pass an additional reencoding stage, "
+	"because the dxr3 handles only MPEG.\nDepending on what is supported by your xine, "
+	"this setting can be \"fame\", \"rte\", \"libavcodec\" or \"none\".\n"
+	"The \"libavcodec\" encoder makes use of the ffmpeg plugin that already ships with xine, "
+	"so you do not need to install any additional library for that. Even better is that "
+	"libdavcodec also provides high quality with low CPU usage. Using \"libavcodec\" is "
+	"therefore strongly suggested.\n\"fame\" and \"rte\" are still there, "
+	"but xine support for them is outdated, so these might fail to work."),
+      0, NULL, NULL);
     if ((strcmp(available_encoders[encoder], "libavcodec") == 0) && !dxr3_lavc_init(this, node)) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
 	      _("video_out_dxr3: Mpeg encoder libavcodec failed to init.\n"));
@@ -380,7 +376,28 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   /* overlay or tvout? */
   confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
-    _("Dxr3: videoout mode (tv or overlay)"), NULL, 0, NULL, NULL);
+    _("video output mode (TV or overlay)"),
+    _("The way the DXR3 outputs the final video can be set here. The individual values are:\n\n"
+      "letterboxed tv\n"
+      "Send video to the TV out connector only. This is the mode used for the standard 4:3 "
+      "television set. Anamorphic (16:9) video will be displayed letterboxed, pan&scan "
+      "material will have the image cropped at the left and right side. This is the common "
+      "setting for TV viewing and acts like a standalone DVD player.\n\n"
+      "widescreen tv\n"
+      "Send video to the tv out connector only. This mode is intended for 16:9 widescreen TV sets. "
+      "Anamorphic and pan&scan content will fill the entire screen, but you have to set the "
+      "TV's aspect ratio manually to 16:9 using your.\n\n"
+      "letterboxed overlay\n"
+      "Overlay Video output on the computer screen with the option of on-the-fly switching "
+      "to TV out by hiding the video window. The overlay will be displayed with black borders "
+      "if it is anamorphic (16:9).\n"
+      "This setting is only useful in the rare case of a DVD subtitle channel that would "
+      "only display properly in letterbox mode. A good example for that are the animated "
+      "commentator's silhouettes on \"Ghostbusters\".\n\n"
+      "widescreen overlay\n"
+      "Overlay Video output on the computer screen with the option of on-the-fly switching "
+      "to TV out by hiding the video window. This is the common variant of DXR3 overlay."),
+    0, NULL, NULL);
   if (!(class->visual_type == XINE_VISUAL_TYPE_X11) && confnum > 1)
     /* no overlay modes when not using X11 -> switch to letterboxed tv */
     confnum = 0;
@@ -411,15 +428,20 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
       this->tv_switchable = 1;
       this->widescreen_enabled = confnum - 2;
       confstr = config->register_string(config, "dxr3.keycolor", "0x80a040",
-        _("Dxr3: overlay colorkey value"), NULL, 10, NULL, NULL);
+	_("overlay colorkey value"), _("Hexadecimal RGB value of the key color.\n"
+	"You can try different values, if you experience windows becoming transparent "
+	"when using DXR3 overlay mode."), 20, NULL, NULL);
       sscanf(confstr, "%x", &this->overlay.colorkey);
       confstr = config->register_string(config, "dxr3.color_interval", "50.0",
-        _("Dxr3: overlay colorkey range"),
-        _("A greater value widens the tolerance for the overlay keycolor"), 10, NULL, NULL);
+	_("overlay colorkey tolerance"), _("A greater value widens the tolerance for "
+	"the overlay keycolor.\nYou can try lower values, if you experience windows "
+	"becoming transparent when using DXR3 overlay mode, but parts of the image borders may "
+	"disappear when using a too low setting."), 20, NULL, NULL);
       sscanf(confstr, "%f", &this->overlay.color_interval);
       this->overlay.shrink = config->register_num(config, "dxr3.shrink_overlay_area", 0,
-        _("Crops the overlay area from top and bottom to avoid green lines"),
-	NULL, 20, NULL, NULL);
+	_("crop the overlay area at top and bottom"),
+        _("Removes one pixel line from the top and bottom of the overlay. Enable this, if "
+	"you see green lines at the top or bottom of the overlay."), 10, NULL, NULL);
     } else {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
 	      _("video_out_dxr3: please run autocal, overlay disabled\n"));
@@ -432,7 +454,9 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   /* init tvmode */
   confnum = config->register_enum(config, "dxr3.preferred_tvmode", 3, tv_modes,
-    _("dxr3 preferred tv mode"), NULL, 0, NULL, NULL);
+    _("preferred tv mode"), _("Selects the TV mode to be used by the DXR3. The values mean:\n\n"
+    "ntsc: NTSC at 60Hz\npal: PAL at 50Hz\npal60: PAL at 60Hz\ndefault: keep the card's setting"),
+    0, NULL, NULL);
   switch (confnum) {
   case 0: /* ntsc */
     this->tv_mode = EM8300_VIDEOMODE_NTSC;
@@ -634,7 +658,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     int64_t time;
     
     /* open the device for the encoder */
-    snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", this->class->devname, this->class->devnum);
+    snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300_mv-%d", this->class->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY)) < 0)
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 	      "video_out_dxr3: Failed to open video device %s (%s)\n", tmpstr, strerror(errno));
@@ -827,7 +851,7 @@ static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   
   /* try to open the dxr3 spu device */
   if (!this->fd_spu) {
-    snprintf (tmpstr, sizeof(tmpstr), "%s_sp%s", this->class->devname, this->class->devnum);
+    snprintf (tmpstr, sizeof(tmpstr), "/dev/em8300_sp-%d", this->class->devnum);
     if ((this->fd_spu = open (tmpstr, O_WRONLY)) < 0) {
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 	      "video_out_dxr3: Failed to open spu device %s (%s)\n"

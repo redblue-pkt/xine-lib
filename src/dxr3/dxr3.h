@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3.h,v 1.7 2003/12/09 00:02:29 f1rmb Exp $
+ * $Id: dxr3.h,v 1.8 2004/04/10 15:29:57 mroi Exp $
  */
 
 #ifndef HAVE_DXR3_H
@@ -28,10 +28,9 @@
 #include "xine_internal.h"
 
 /* data for the device name config entry */
-#define CONF_LOOKUP "dxr3.devicename"
-#define CONF_DEFAULT "/dev/em8300-0"
-#define CONF_NAME _("Dxr3: Device Name")
-#define CONF_HELP _("The device file of the dxr3 mpeg decoder card control device.")
+#define CONF_KEY  "dxr3.device_number"
+#define CONF_NAME _("DXR3 device number")
+#define CONF_HELP _("If you have more than one DXR3 in your computer, you can specify which one to use here.")
 
 /* image format used by dxr3_decoder to tag undecoded mpeg data */
 #define XINE_IMGFMT_DXR3 (('3'<<24)|('R'<<16)|('X'<<8)|'D')

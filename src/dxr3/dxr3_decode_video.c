@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.52 2004/02/16 20:19:09 uid86226 Exp $
+ * $Id: dxr3_decode_video.c,v 1.53 2004/04/10 15:29:57 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -101,8 +101,7 @@ typedef struct dxr3_decoder_s {
   xine_stream_t         *stream;
   dxr3_scr_t            *scr;                  /* shortcut to the scr plugin in the dxr3 video out */
   
-  char                   devname[128];
-  char                   devnum[3];
+  int                    devnum;
   int                    fd_control;
   int                    fd_video;             /* to access the dxr3 devices */
   
@@ -172,8 +171,6 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   dxr3_decoder_t *this;
   dxr3_decoder_class_t *class = (dxr3_decoder_class_t *)class_gen;
   config_values_t *cfg;
-  const char *confstr;
-  int dashpos;
   char tmpstr[128];
   
   if (class->instance) return NULL;
@@ -194,21 +191,9 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->stream                      = stream;
   this->scr                         = NULL;
   
-  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
-  strncpy(this->devname, confstr, 128);
-  this->devname[127] = '\0';
-  dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
-  if (this->devname[dashpos] == '-') {
-    /* use new device naming scheme with trailing number */
-    strncpy(this->devnum, &this->devname[dashpos], 3);
-    this->devname[dashpos] = '\0';
-  } else {
-    /* use old device naming scheme without trailing number */
-    /* FIXME: remove this when everyone uses em8300 >=0.12.0 */
-    this->devnum[0] = '\0';
-  }
+  this->devnum = cfg->register_num(cfg, CONF_KEY, 0, CONF_NAME, CONF_HELP, 10, NULL, NULL);
   
-  snprintf(tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
+  snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300-%d", this->devnum);
 #if LOG_VID
   printf("dxr3_decode_video: Entering video init, devname=%s.\n",tmpstr);
 #endif
@@ -246,17 +231,23 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->avg_duration          = 0;
   
   this->sync_every_frame      = cfg->register_bool(cfg,
-    "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
-    _("This is relevant for progressive video only (most PAL films)."), 20,
-    dxr3_update_sync_mode, this);
+    "dxr3.sync_every_frame", 0, _("try to sync video every frame"),
+    _("Tries to set a synchronization timestamp for every frame. "
+      "Normally this is not necessary, because sync is sufficent "
+      "even when the timestamp is set only every now and then.\n"
+      "This is relevant for progressive video only (most PAL films)."),
+    20, dxr3_update_sync_mode, this);
   this->enhanced_mode         = cfg->register_bool(cfg,
-    "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
-    _("Enabling this option will utilise a smoother play mode."), 10,
-    dxr3_update_enhanced_mode, this);
+    "dxr3.alt_play_mode", 1, _("use smooth play mode"),
+    _("Enabling this option will utilise a smoother play mode."),
+    20, dxr3_update_enhanced_mode, this);
   this->correct_durations     = cfg->register_bool(cfg,
-    "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
-    _("Enable this for streams with wrong frame durations."), 10,
-    dxr3_update_correct_durations, this);
+    "dxr3.correct_durations", 0, _("correct frame durations in broken streams"),
+    _("Enables a small logic that corrects the frame durations of "
+      "some mpeg streams with wrong framerate codes. Currently a "
+      "correction for NTSC streams erroneously labeled as PAL "
+      "streams is implemented. Enable only, when you encounter such streams."),
+    0, dxr3_update_correct_durations, this);
   
   /* the dxr3 needs a longer prebuffering to have time for its internal decoding */
   this->stream->metronom->set_option(this->stream->metronom, METRONOM_PREBUFFER, 90000);
@@ -499,7 +490,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     int64_t time;
     
     /* open the device for the decoder */
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
+    snprintf (tmpstr, sizeof(tmpstr), "/dev/em8300_mv-%d", this->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY)) < 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 	      _("dxr3_decode_video: Failed to open video device %s (%s)\n"), tmpstr, strerror(errno)); 

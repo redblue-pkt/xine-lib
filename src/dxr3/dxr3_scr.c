@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.13 2004/01/04 22:26:29 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.14 2004/04/10 15:29:57 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -58,15 +58,17 @@ static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry)
 dxr3_scr_t *dxr3_scr_init(xine_t *xine)
 {
   dxr3_scr_t *this;
-  const char *confstr;
+  int devnum;
+  char tmpstr[128];
   
   this = (dxr3_scr_t *)xine_xmalloc(sizeof(dxr3_scr_t));
   
-  confstr = xine->config->register_string(xine->config,
-    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
-  if ((this->fd_control = open(confstr, O_WRONLY)) < 0) {
+  devnum = xine->config->register_num(xine->config,
+    CONF_KEY, 0, CONF_NAME, CONF_HELP, 10, NULL, NULL);
+  snprintf(tmpstr, sizeof(tmpstr), "/dev/em8300-%d", devnum);
+  if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
-	    "dxr3_scr: Failed to open control device %s (%s)\n", confstr, strerror(errno));
+	    "dxr3_scr: Failed to open control device %s (%s)\n", tmpstr, strerror(errno));
     free(this);
     return NULL;
   }
@@ -82,8 +84,10 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   this->scr_plugin.exit              = dxr3_scr_exit;
   
   this->priority                     = xine->config->register_num(
-    xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
-    _("Scr priorities greater 5 make the dxr3 xine's master clock."), 20,
+    xine->config, "dxr3.scr_priority", 10, _("SCR plugin priority"),
+    _("Priority of the DXR3 SCR plugin. Values less than 5 mean that the "
+      "unix system timer will be used. Values greater 5 force to use "
+      "DXR3's internal clock as sync source."), 25,
     dxr3_scr_update_priority, this);
   this->offset                       = 0;
   this->last_pts                     = 0;
