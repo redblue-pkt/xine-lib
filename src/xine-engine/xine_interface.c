@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.9 2002/09/10 10:40:22 mroi Exp $
+ * $Id: xine_interface.c,v 1.10 2002/09/11 17:41:08 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -75,10 +75,10 @@ int xine_check_version(int major, int minor, int sub) {
  */
 
 const char* xine_config_register_string (xine_p self,
-					 char *key,
-					 char *def_value,
-					 char *description,
-					 char *help,
+					 const char *key,
+					 const char *def_value,
+					 const char *description,
+					 const char *help,
 					 int   exp_level,
 					 xine_config_cb_t changed_cb,
 					 void *cb_data) {
@@ -95,11 +95,11 @@ const char* xine_config_register_string (xine_p self,
 }
   
 int xine_config_register_range (xine_p self,
-				char *key,
+				const char *key,
 				int def_value,
 				int min, int max,
-				char *description,
-				char *help,
+				const char *description,
+				const char *help,
 				int   exp_level,
 				xine_config_cb_t changed_cb,
 				void *cb_data) {
@@ -111,11 +111,11 @@ int xine_config_register_range (xine_p self,
   
 
 int xine_config_register_enum (xine_p self,
-			       char *key,
+			       const char *key,
 			       int def_value,
 			       char **values,
-			       char *description,
-			       char *help,
+			       const char *description,
+			       const char *help,
 			       int   exp_level,
 			       xine_config_cb_t changed_cb,
 			       void *cb_data) {
@@ -127,10 +127,10 @@ int xine_config_register_enum (xine_p self,
   
 
 int xine_config_register_num (xine_p self,
-			      char *key,
+			      const char *key,
 			      int def_value,
-			      char *description,
-			      char *help,
+			      const char *description,
+			      const char *help,
 			      int   exp_level,
 			      xine_config_cb_t changed_cb,
 			      void *cb_data) {
@@ -142,10 +142,10 @@ int xine_config_register_num (xine_p self,
 
 
 int xine_config_register_bool (xine_p self,
-			       char *key,
+			       const char *key,
 			       int def_value,
-			       char *description,
-			       char *help,
+			       const char *description,
+			       const char *help,
 			       int   exp_level,
 			       xine_config_cb_t changed_cb,
 			       void *cb_data) {
@@ -223,7 +223,7 @@ xine_cfg_entry_t *xine_config_get_next_entry (xine_p this) {
  * search for a config entry by key 
  */
 
-xine_cfg_entry_t *xine_config_lookup_entry (xine_p this, char *key) {
+xine_cfg_entry_t *xine_config_lookup_entry (xine_p this, const char *key) {
 
   config_values_t *config = this->config;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.29 2002/09/10 14:06:33 jcdutton Exp $
+ * $Id: configfile.c,v 1.30 2002/09/11 17:41:08 guenter Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -46,7 +46,7 @@
  * internal utility functions
  */
 
-static char *copy_string (char *str) {
+static char *copy_string (const char *str) {
 
   char *cpy;
   int   len;
@@ -60,7 +60,7 @@ static char *copy_string (char *str) {
   return cpy;
 }
 
-static cfg_entry_t *xine_config_add (config_values_t *this, char *key) {
+static cfg_entry_t *xine_config_add (config_values_t *this, const char *key) {
 
   cfg_entry_t *entry;
 
@@ -92,7 +92,7 @@ static cfg_entry_t *xine_config_add (config_values_t *this, char *key) {
  * external interface
  */
 
-static cfg_entry_t *_xine_config_lookup_entry (config_values_t *this, char *key) {
+static cfg_entry_t *_xine_config_lookup_entry (config_values_t *this, const char *key) {
   cfg_entry_t *entry;
 
   entry = this->first;
@@ -105,9 +105,10 @@ static cfg_entry_t *_xine_config_lookup_entry (config_values_t *this, char *key)
 
 
 static char *_xine_config_register_string (config_values_t *this,
-					   char *key, char *def_value,
-					   char *description, 
-					   char *help,
+					   const char *key, 
+					   const char *def_value,
+					   const char *description, 
+					   const char *help,
 					   int exp_level,
 					   xine_config_cb_t changed_cb,
 					   void *cb_data) {
@@ -168,9 +169,9 @@ static char *_xine_config_register_string (config_values_t *this,
 }
 
 static int _xine_config_register_num (config_values_t *this,
-				      char *key, int def_value,
-				      char *description, 
-				      char *help,
+				      const char *key, int def_value,
+				      const char *description, 
+				      const char *help,
 				      int exp_level,
 				      xine_config_cb_t changed_cb,
 				      void *cb_data) {
@@ -223,9 +224,10 @@ static int _xine_config_register_num (config_values_t *this,
 }
 
 static int _xine_config_register_bool (config_values_t *this,
-				       char *key, int def_value,
-				       char *description, 
-				       char *help,
+				       const char *key, 
+				       int def_value,
+				       const char *description, 
+				       const char *help,
 				       int exp_level,
 				       xine_config_cb_t changed_cb,
 				       void *cb_data) {
@@ -278,10 +280,11 @@ static int _xine_config_register_bool (config_values_t *this,
 }
 
 static int _xine_config_register_range (config_values_t *this,
-					char *key, int def_value,
+					const char *key, 
+					int def_value,
 					int min, int max,
-					char *description, 
-					char *help,
+					const char *description, 
+					const char *help,
 					int exp_level,
 					xine_config_cb_t changed_cb,
 					void *cb_data) {
@@ -333,7 +336,7 @@ static int _xine_config_register_range (config_values_t *this,
   return entry->num_value;
 }
 
-static int xine_config_parse_enum (char *str, char **values) {
+static int xine_config_parse_enum (const char *str, char **values) {
 
   char **value;
   int    i;
@@ -365,10 +368,11 @@ static int xine_config_parse_enum (char *str, char **values) {
 }
 
 static int _xine_config_register_enum (config_values_t *this,
-				       char *key, int def_value,
+				       const char *key, 
+				       int def_value,
 				       char **values,
-				       char *description, 
-				       char *help,
+				       const char *description, 
+				       const char *help,
 				       int exp_level,
 				       xine_config_cb_t changed_cb,
 				       void *cb_data) {
@@ -442,7 +446,7 @@ static void xine_config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
 }
 
 static void xine_config_update_num (config_values_t *this,
-				    char *key, int value) {
+				    const char *key, int value) {
 
   cfg_entry_t *entry;
 
@@ -480,7 +484,8 @@ static void xine_config_update_num (config_values_t *this,
 }
 
 static void xine_config_update_string (config_values_t *this,
-				       char *key, char *value) {
+				       const char *key, 
+				       const char *value) {
 
   cfg_entry_t *entry;
 
@@ -521,7 +526,7 @@ static void xine_config_update_string (config_values_t *this,
 /*
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
-void xine_load_config (xine_p xine_ro, char *filename) {
+void xine_load_config (xine_p xine_ro, const char *filename) {
 
   config_values_t *this = xine_ro->config;
   FILE *f_config;
@@ -580,7 +585,7 @@ void xine_load_config (xine_p xine_ro, char *filename) {
   }
 }
 
-void xine_save_config (xine_p xine_ro, char *filename) {
+void xine_save_config (xine_p xine_ro, const char *filename) {
 
   config_values_t *this = xine_ro->config;
   FILE *f_config;
@@ -696,7 +701,7 @@ static void xine_config_dispose (config_values_t *this) {
 
 
 static void xine_config_unregister_cb (config_values_t *this,
-				       char *key) {
+				       const char *key) {
 
   cfg_entry_t *entry;
   

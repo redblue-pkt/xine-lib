@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.14 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: configfile.h,v 1.15 2002/09/11 17:41:08 guenter Exp $
  *
  * config file management
  *
@@ -65,8 +65,8 @@ struct cfg_entry_s {
   char           **enum_values;
 
   /* help info for the user */
-  char            *description;
-  char            *help;
+  const char      *description;
+  const char      *help;
 
   /* user experience level */
   int              exp_level;
@@ -99,60 +99,60 @@ struct config_values_s {
    */
 
   char* (*register_string) (config_values_t *this,
-			    char *key, 
-			    char *def_value,
-			    char *description, 
-			    char *help,
+			    const char *key, 
+			    const char *def_value,
+			    const char *description, 
+			    const char *help,
 			    int exp_level,
 			    xine_config_cb_t changed_cb,
 			    void *cb_data);
 
   int (*register_range) (config_values_t *this,
-			 char *key,
+			 const char *key,
 			 int def_value,
 			 int min, int max,
-			 char *description, 
-			 char *help,
+			 const char *description, 
+			 const char *help,
 			 int exp_level,
 			 xine_config_cb_t changed_cb,
 			 void *cb_data);
 
   int (*register_enum) (config_values_t *this,
-			char *key,
+			const char *key,
 			int def_value,
 			char **values,
-			char *description, 
-			char *help,
+			const char *description, 
+			const char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
 			void *cb_data);
 
   int (*register_num) (config_values_t *this,
-		       char *key, 
+		       const char *key, 
 		       int def_value,
-		       char *description, 
-		       char *help,
+		       const char *description, 
+		       const char *help,
 		       int exp_level,
 		       xine_config_cb_t changed_cb,
 		       void *cb_data);
 
   int (*register_bool) (config_values_t *this,
-			char *key, 
+			const char *key, 
 			int def_value,
-			char *description, 
-			char *help,
+			const char *description, 
+			const char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
 			void *cb_data);
 
   /* convenience function to update range, enum, num and bool values */
-  void (*update_num) (config_values_t *this, char *key, int value);
+  void (*update_num) (config_values_t *this, const char *key, int value);
 
   /* convenience function to update string values */
-  void (*update_string) (config_values_t *this, char *key, char *value);
+  void (*update_string) (config_values_t *this, const char *key, const char *value);
 
   /* small utility function for enum handling */
-  int (*parse_enum) (char *str, char **values);
+  int (*parse_enum) (const char *str, char **values);
 
   /*
    * lookup config entries
@@ -161,12 +161,12 @@ struct config_values_s {
    * and you changed the value of this item
    */
 
-  cfg_entry_t* (*lookup_entry) (config_values_t *this, char *key);
+  cfg_entry_t* (*lookup_entry) (config_values_t *this, const char *key);
 
   /*
    * unregister callback function
    */
-  void (*unregister_callback) (config_values_t *this, char *key);
+  void (*unregister_callback) (config_values_t *this, const char *key);
 
   /* 
    * config values are stored here:

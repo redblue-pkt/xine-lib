@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.90 2002/09/09 20:41:51 uid86226 Exp $
+ * $Id: load_plugins.c,v 1.91 2002/09/11 17:41:08 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -597,7 +597,7 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_p this) {
   return (_xine_get_featured_input_plugin_ids(this, INPUT_CAP_GET_DIR));
 }
 
-const char *xine_get_input_plugin_description(xine_p this, char *plugin_id) {
+const char *xine_get_input_plugin_description(xine_p this, const char *plugin_id) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;
@@ -623,7 +623,7 @@ const char *xine_get_input_plugin_description(xine_p this, char *plugin_id) {
  */
 
 xine_vo_driver_p xine_open_video_driver (xine_p this_ro,
-					 char *id, 
+					 const char *id, 
 					 int visual_type, void *visual) {
   xine_t *this = (xine_t *)this_ro;
 
@@ -716,7 +716,7 @@ const char *const *xine_list_video_output_plugins (xine_p this) {
   return catalog->ids;
 }
 
-xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, char *id,
+xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, const char *id,
 					 void *data) {
   xine_t *this = (xine_t *)this_ro;
   
@@ -758,7 +758,8 @@ xine_ao_driver_p xine_open_audio_driver (xine_p this_ro, char *id,
  * get autoplay mrl list from input plugin
  */
 
-const char *const *xine_get_autoplay_mrls (xine_p this, char *plugin_id, int *num_mrls) {
+const char *const *xine_get_autoplay_mrls (xine_p this, const char *plugin_id, 
+					   int *num_mrls) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;
@@ -787,8 +788,8 @@ const char *const *xine_get_autoplay_mrls (xine_p this, char *plugin_id, int *nu
 /*
  * input plugin mrl browser support
  */
-const xine_mrl_t *const *xine_get_browse_mrls (xine_p this, char *plugin_id, 
-				               char *start_mrl, int *num_mrls) {
+const xine_mrl_t *const *xine_get_browse_mrls (xine_p this, const char *plugin_id, 
+				               const char *start_mrl, int *num_mrls) {
 
   plugin_catalog_t   *catalog;
   plugin_node_t      *node;

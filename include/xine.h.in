@@ -17,13 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.11 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: xine.h.in,v 1.12 2002/09/11 17:41:07 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
- * _important_note_: as a rule of thumb, never free() any pointers
- *                   returned by the xine engine
- *                   (unless stated otherwise)
+ *
+ * some programming guidelines about this api:
+ * -------------------------------------------
+ * 
+ * (1) libxine has (per instance) a fairly static memory
+ *     model
+ * (2) as a rule of thumb, never free() or realloc() any pointers
+ *     returned by the xine engine (unless stated otherwise)
+ * (3) xine is multi-threaded, make sure your programming environment 
+ *     can handle this.
+ *     for x11-related stuff this means that you either have to properly
+ *     use xlockdisplay() or use two seperate connections to the x-server
  *
  */
  
@@ -63,6 +72,10 @@ typedef const xine_vo_driver_t *const xine_vo_driver_p;
  * utility function - see below) and then call xine_open_audio
  * and xine_open_video to obtain audio/video pointers which
  * you then pass to the xine_init function.
+ *
+ * the only proper way to shut down the xine engine is to
+ * call xine_exit() - do not try to free() the xine pointer
+ * yourself and do not try to access any internal data structures
  */
 
 xine_p xine_new (void);
@@ -80,10 +93,10 @@ xine_p xine_new (void);
  * found ...
  */
 
-xine_ao_driver_p xine_open_audio_driver (xine_p self, char *id,
+xine_ao_driver_p xine_open_audio_driver (xine_p self, const char *id,
 					 void *data);
 
-xine_vo_driver_p xine_open_video_driver (xine_p self, char *id,
+xine_vo_driver_p xine_open_video_driver (xine_p self, const char *id,
 					 int visual, void *data);
 
 /*
@@ -100,7 +113,7 @@ void xine_init (xine_p self, xine_ao_driver_p ao, xine_vo_driver_p vo);
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-int  xine_open (xine_p self, char *mrl);
+int  xine_open (xine_p self, const char *mrl);
 
 /*
  * play a stream from a given position 
@@ -167,10 +180,16 @@ int  xine_get_param (xine_p self, int param);
 /*
  * try to find out audio/spu language of given channel
  * (use -1 for current channel)
- * returns 1 if ok, 0 on failure
+ *
+ * returns 0-terminated string on success, NULL otherwise
+ *
+ * the pointer returned by xine_get_audio_lang stays valid until
+ * xine_get_audio_lang is called again.
+ * the pointer returned by xine_get_spu_lang stays valid until
+ * xine_get_spu_lang is called again.
  */
-int  xine_get_audio_lang (xine_p self, int channel, char *str);
-int  xine_get_spu_lang   (xine_p self, int channel, char *str);
+const char *xine_get_audio_lang (xine_p self, int channel);
+const char *xine_get_spu_lang   (xine_p self, int channel);
 
 /* 
  * get position / length information 
@@ -245,7 +264,8 @@ void   xine_register_log_cb (xine_p self, xine_log_cb_t cb,
 #define XINE_CODEC_VIDEO   1
 
 typedef void (*xine_report_codec_cb_t) (void *user_data, int codec_type,
-					uint32_t fourcc, const char *description, 
+					uint32_t fourcc, 
+					const char *description, 
 					int handled);
 /*
  * register an codec reporting callback
@@ -430,17 +450,22 @@ const char *const *xine_get_browsable_input_plugin_ids (xine_p self) ;
  * returns <start_mrl> if <start_mrl> is a valid MRL, not a directory
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
-const xine_mrl_t *const *xine_get_browse_mrls (xine_p self, char *plugin_id, 
-					       char *start_mrl, int *num_mrls);
+const xine_mrl_t *const *xine_get_browse_mrls (xine_p self, 
+					       const char *plugin_id, 
+					       const char *start_mrl, 
+					       int *num_mrls);
 
 /* get a list of plugins that support the autoplay feature */
 const char *const *xine_get_autoplay_input_plugin_ids (xine_p self);
 
 /* get autoplay MRL list from input plugin named <plugin_id> */
-const char *const *xine_get_autoplay_mrls (xine_p self, char *plugin_id, int *num_mrls);
+const char *const *xine_get_autoplay_mrls (xine_p self, 
+					   const char *plugin_id, 
+					   int *num_mrls);
 
 /* get a description string for an input plugin */
-const char *xine_get_input_plugin_description (xine_p self, char *plugin_id);
+const char *xine_get_input_plugin_description (xine_p self, 
+					       const char *plugin_id);
 
 /* get lists of available audio and video output plugins */
 const char *const *xine_list_audio_output_plugins (xine_p self) ;
@@ -579,7 +604,7 @@ typedef struct xine_cfg_entry_s xine_cfg_entry_t;
 typedef void (*xine_config_cb_t) (void *user_data, 
 				  xine_cfg_entry_t *entry);
 struct xine_cfg_entry_s {
-  char            *key;     /* unique id (example: gui.logo_mrl) */
+  const char      *key;     /* unique id (example: gui.logo_mrl) */
 
   int              type;
 
@@ -603,8 +628,8 @@ struct xine_cfg_entry_s {
   char           **enum_values;
 
   /* help info for the user */
-  char            *description;
-  char            *help;
+  const char      *description;
+  const char      *help;
 
   /* user experience level */
   int              exp_level; /* 0 => beginner,
@@ -617,50 +642,49 @@ struct xine_cfg_entry_s {
 
 };
 
-const char *xine_config_register_string (
-				   xine_p self,
-				   char *key,
-				   char *def_value,
-				   char *description,
-				   char *help,
-				   int   exp_level,
-				   xine_config_cb_t changed_cb,
-				   void *cb_data);
+const char *xine_config_register_string (xine_p self,
+					 const char *key,
+					 const char *def_value,
+					 const char *description,
+					 const char *help,
+					 int   exp_level,
+					 xine_config_cb_t changed_cb,
+					 void *cb_data);
   
 int   xine_config_register_range  (xine_p self,
-				   char *key,
+				   const char *key,
 				   int def_value,
 				   int min, int max,
-				   char *description,
-				   char *help,
+				   const char *description,
+				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data);
 
 int   xine_config_register_enum   (xine_p self,
-				   char *key,
+				   const char *key,
 				   int def_value,
 				   char **values,
-				   char *description,
-				   char *help,
+				   const char *description,
+				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data);
 
 int   xine_config_register_num    (xine_p self,
-				   char *key,
+				   const char *key,
 				   int def_value,
-				   char *description,
-				   char *help,
+				   const char *description,
+				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data);
 
 int   xine_config_register_bool   (xine_p self,
-				   char *key,
+				   const char *key,
 				   int def_value,
-				   char *description,
-				   char *help,
+				   const char *description,
+				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data);
@@ -673,17 +697,24 @@ xine_cfg_entry_t *xine_config_get_first_entry (xine_p self);
 /*
  * get next config item (iterate through the items)
  * this will return NULL when called after returning the last item
+ *
+ * do not free() or realloc() the pointer returned by this function.
  */     
 xine_cfg_entry_t *xine_config_get_next_entry (xine_p self);
 
 /*
  * search for a config entry by key 
+ *
+ * do not free() or realloc() the pointer returned by this function.
  */
 
-xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, char *key);
+xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, const char *key);
 
 /*
  * update a config entry (which was returned from lookup_entry() )
+ *
+ * xine will make a deep copy of the data in the entry into it's internal
+ * config database.
  */
 void              xine_config_update_entry (xine_p self,
 					    xine_cfg_entry_t *entry);
@@ -692,9 +723,9 @@ void              xine_config_update_entry (xine_p self,
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
 void              xine_load_config         (xine_p self,
- 			                    char *cfg_filename);
+ 			                    const char *cfg_filename);
 void              xine_save_config         (xine_p self,
-					    char *cfg_filename);
+					    const char *cfg_filename);
 void              xine_reset_config        (xine_p self);
 
 /*
@@ -923,7 +954,8 @@ void        xine_osd_clear         (xine_osd_p self);
  * osd objects are closed
  */
 void        xine_osd_free          (xine_osd_p self);
-void        xine_osd_set_palette   (xine_osd_p self, const uint32_t *const color, 
+void        xine_osd_set_palette   (xine_osd_p self, 
+				    const uint32_t *const color, 
 				    const uint8_t *const trans );
 /*
  * set on existing text palette

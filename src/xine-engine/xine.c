@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.155 2002/09/10 14:07:21 mroi Exp $
+ * $Id: xine.c,v 1.156 2002/09/11 17:41:08 guenter Exp $
  *
  * top-level xine functions
  *
@@ -363,7 +363,7 @@ static int find_demuxer(xine_t *this) {
   return 0;
 }
 
-int xine_open_internal (xine_t *this, char *mrl) {
+int xine_open_internal (xine_t *this, const char *mrl) {
 
   printf ("xine_open: mrl '%s'\n", mrl);
 
@@ -467,7 +467,7 @@ int xine_open_internal (xine_t *this, char *mrl) {
 	      this->cur_demuxer_plugin->get_identifier());
   }
 
-#warning ?? limited length ???
+  /* FIXME: ?? limited length ??? */
   strncpy (this->cur_mrl, mrl, 1024);
 
   printf ("xine: xine_open done.\n");
@@ -528,7 +528,7 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
   return 1;
 }             
 
-int xine_open (xine_p this_ro, char *mrl) {
+int xine_open (xine_p this_ro, const char *mrl) {
   xine_t *this = (xine_t *)this_ro;
   int ret;
 
@@ -992,60 +992,34 @@ int xine_get_current_frame (xine_p this_ro, int *width, int *height,
   return 1;
 }
 
-int xine_get_spu_lang (xine_p this_ro, int channel, char *str) {
+const char * xine_get_spu_lang (xine_p this_ro, int channel) {
   xine_t *this = (xine_t *)this_ro;
 
-  switch (this->spu_channel_user) {
-  case -2:
-    sprintf (str, "off");
-    break;
-  case -1:
-    if (this->cur_input_plugin) {
-      if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SPULANG) {
-	this->cur_input_plugin->get_optional_data (this->cur_input_plugin, this->str, 
-						   INPUT_OPTIONAL_DATA_SPULANG);
-	sprintf (str, "*(%s)", this->str);
-	return 1;
-      }
-    } 
-    if (this->spu_channel_auto == -1)
-      sprintf (str, "*(off)");
-    else
-      sprintf (str, "*(%3d)", this->spu_channel_auto);
-    break;
-  default:
-    sprintf (str, "%3d", this->spu_channel_user);
-  }
-  return 0;
+  if (this->cur_input_plugin) {
+    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SPULANG) {
+      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, 
+						 this->spu_lang, 
+						 INPUT_OPTIONAL_DATA_SPULANG);
+      return this->spu_lang;
+    }
+  } 
+
+  return NULL;
 }
 
-int xine_get_audio_lang (xine_p this_ro, int channel, char *str) {
+const char* xine_get_audio_lang (xine_p this_ro, int channel) {
   xine_t *this = (xine_t *)this_ro;
 
-  switch (this->audio_channel_user) {
-  case -2:
-    sprintf (str, "off");
-    break;
-  case -1:
-    if (this->cur_input_plugin) {
-      if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_AUDIOLANG) {
-	this->cur_input_plugin->get_optional_data (this->cur_input_plugin, this->str, 
-						   INPUT_OPTIONAL_DATA_AUDIOLANG);
+  if (this->cur_input_plugin) {
+    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_AUDIOLANG) {
+      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, 
+						 this->audio_lang, 
+						 INPUT_OPTIONAL_DATA_AUDIOLANG);
+      return this->audio_lang;
+    }
+  } 
 
-	sprintf (str, "*(%s)", this->str);
-
-	return 1;
-      }
-    } 
-    if (this->audio_channel_auto == -1)
-      sprintf (str, "*(off)");
-    else
-      sprintf (str, "*(%3d)", this->audio_channel_auto);
-    break;
-  default:
-    sprintf (str, "%3d", this->audio_channel_user);
-  }
-  return 0;
+  return NULL;
 }
 
 int xine_get_spu_channel (xine_t *this) {

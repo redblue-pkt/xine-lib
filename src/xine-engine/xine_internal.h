@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.97 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.98 2002/09/11 17:41:08 guenter Exp $
  *
  */
 
@@ -221,8 +221,10 @@ struct xine_s {
   void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
 
-  /* scratch string buffer */
+  /* scratch string buffers */
   char                       str[1024];
+  char                       spu_lang[80];
+  char                       audio_lang[80];
   
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
@@ -244,7 +246,7 @@ struct xine_s {
  * private function prototypes:
  */
 
-int  xine_open_internal          (xine_t *this, char *mrl);
+int  xine_open_internal          (xine_t *this, const char *mrl);
 int  xine_play_internal          (xine_t *this,
 				  int start_pos, int start_time);
 void xine_stop_internal          (xine_t *this);
