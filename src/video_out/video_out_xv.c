@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.33 2001/06/03 19:41:05 guenter Exp $
+ * $Id: video_out_xv.c,v 1.34 2001/06/04 15:04:13 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -146,13 +146,15 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
   xv_frame_t  *frame = (xv_frame_t *) vo_img ;
   xv_driver_t *this = (xv_driver_t *) vo_img->instance->driver;
 
-  XLockDisplay (this->display); 
-  XShmDetach (this->display, &frame->shminfo);
-  XFree (frame->image);
-  XUnlockDisplay (this->display); 
+  if (frame->image) {
+    XLockDisplay (this->display); 
+    XShmDetach (this->display, &frame->shminfo);
+    XFree (frame->image);
+    XUnlockDisplay (this->display); 
 
-  shmdt (frame->shminfo.shmaddr);
-  shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
+    shmdt (frame->shminfo.shmaddr);
+    shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
+  }
 
   free (frame);
 }
@@ -746,6 +748,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
   this->xv_port           = xv_port;
   this->capabilities      = 0;
+  this->expecting_event   = 0;
 
   XAllocNamedColor(this->display, 
 		   DefaultColormap(this->display, this->screen), 

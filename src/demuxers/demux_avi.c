@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.13 2001/06/03 12:39:40 guenter Exp $
+ * $Id: demux_avi.c,v 1.14 2001/06/04 15:04:11 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -937,9 +937,12 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     
     this->input = input;
     this->avi = AVI_init (this);
-    if (this->avi)
+    if (this->avi) {
+
+      printf ("demux_avi: %d frames\n", this->avi->video_frames);
+
       return DEMUX_CAN_HANDLE;
-    else 
+    } else 
       printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",this->AVI_errno);
 
     return DEMUX_CANNOT_HANDLE;
