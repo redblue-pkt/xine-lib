@@ -30,6 +30,8 @@ xine-lib (1.0.1)
   * plugin description accessor functions (may load plugins)
   * fixed translations, they were not used in some cases
   * Win32 port updates: cross compilation of VCD, external ffmpeg with MSVC
+  * fixed pthread leak
+  * fixed onefield_xv deprecated deinterlace method
 
 xine-lib (1.0)
   * unbreak DXR3 plugin
