@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.22 2002/10/27 16:14:28 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.23 2002/10/28 03:24:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -73,11 +71,6 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
-
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                input_length;
   int                  status;
@@ -213,7 +206,7 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
   return 1;
 }
 
-static void *demux_smjpeg_loop (void *this_gen) {
+static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
 
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -225,146 +218,109 @@ static void *demux_smjpeg_loop (void *this_gen) {
   int64_t last_frame_pts = 0;
   unsigned int audio_frame_count = 0;
 
-  pthread_mutex_lock( &this->mutex );
-
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-
-      /* load the next sample */
-      current_file_pos = this->input->get_current_pos(this->input);
-      if (this->input->read(this->input, preamble, 
-        SMJPEG_CHUNK_PREAMBLE_SIZE) != SMJPEG_CHUNK_PREAMBLE_SIZE) {
-        this->status = DEMUX_FINISHED;
-        continue;  /* skip to next while() iteration to bail out */
-      }
-
-      chunk_tag = BE_32(&preamble[0]);
-      remaining_sample_bytes = BE_32(&preamble[8]);
-
-      /*
-       * Each sample has an absolute timestamp in millisecond units:
-       *
-       *    xine pts     timestamp (ms)
-       *    --------  =  --------------
-       *      90000           1000
-       *
-       * therefore, xine pts = timestamp * 90000 / 1000 => timestamp * 90
-       *
-       * However, millisecond timestamps are not completely accurate
-       * for the audio samples. These audio chunks usually have 256 bytes,
-       * or 512 nibbles, which corresponds to 512 samples.
-       *
-       *   512 samples * (1 sec / 22050 samples) * (1000 ms / 1 sec)
-       *     = 23.2 ms
-       *
-       * where the audio samples claim that each chunk is 23 ms long.
-       * Therefore, manually compute the pts values for the audio samples.
-       */
-      if (chunk_tag == sndD_TAG) {
-        pts = audio_frame_count;
-        pts *= 90000;
-        pts /= (this->audio_sample_rate * this->audio_channels);
-        audio_frame_count += ((remaining_sample_bytes - 4) * 2);
-      } else {
-        pts = BE_32(&preamble[4]);
-        pts *= 90;
-      }
-
-      /* break up the data into packets and dispatch them */
-      if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
-        (chunk_tag == vidD_TAG)) {
-
-        while (remaining_sample_bytes) {
-          if (chunk_tag == sndD_TAG) {
-            buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-            buf->type = this->audio_type;
-          } else {
-            buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-            buf->type = this->video_type;
-          }
-
-          buf->input_pos = current_file_pos;
-          buf->input_length = this->input_length;
-          buf->input_time = pts / 90000;
-          buf->pts = pts;
-
-          if (last_frame_pts) {
-            buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-            buf->decoder_info[0] = buf->pts - last_frame_pts;
-          }
-
-          if (remaining_sample_bytes > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = remaining_sample_bytes;
-          remaining_sample_bytes -= buf->size;
-
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            this->status = DEMUX_FINISHED;
-            break;
-          }
-
-          /* every frame is a keyframe */
-          buf->decoder_flags |= BUF_FLAG_KEYFRAME;
-          if (!remaining_sample_bytes)
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-          if (chunk_tag == sndD_TAG)
-            this->audio_fifo->put(this->audio_fifo, buf);
-          else
-            this->video_fifo->put(this->video_fifo, buf);
-        }
-
-      } else {
-
-        /* skip the chunk if it can't be handled */
-        this->input->seek(this->input, remaining_sample_bytes, SEEK_CUR);
-
-      }
-
-      if (chunk_tag == vidD_TAG)
-        last_frame_pts = buf->pts;
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_smjpeg: demux loop finished (status: %d)\n",
-          this->status);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+  /* load the next sample */
+  current_file_pos = this->input->get_current_pos(this->input);
+  if (this->input->read(this->input, preamble, 
+    SMJPEG_CHUNK_PREAMBLE_SIZE) != SMJPEG_CHUNK_PREAMBLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    return this->status;  /* skip to next while() iteration to bail out */
   }
 
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
-  return NULL;
+  chunk_tag = BE_32(&preamble[0]);
+  remaining_sample_bytes = BE_32(&preamble[8]);
+
+  /*
+   * Each sample has an absolute timestamp in millisecond units:
+   *
+   *    xine pts     timestamp (ms)
+   *    --------  =  --------------
+   *      90000           1000
+   *
+   * therefore, xine pts = timestamp * 90000 / 1000 => timestamp * 90
+   *
+   * However, millisecond timestamps are not completely accurate
+   * for the audio samples. These audio chunks usually have 256 bytes,
+   * or 512 nibbles, which corresponds to 512 samples.
+   *
+   *   512 samples * (1 sec / 22050 samples) * (1000 ms / 1 sec)
+   *     = 23.2 ms
+   *
+   * where the audio samples claim that each chunk is 23 ms long.
+   * Therefore, manually compute the pts values for the audio samples.
+   */
+  if (chunk_tag == sndD_TAG) {
+    pts = audio_frame_count;
+    pts *= 90000;
+    pts /= (this->audio_sample_rate * this->audio_channels);
+    audio_frame_count += ((remaining_sample_bytes - 4) * 2);
+  } else {
+    pts = BE_32(&preamble[4]);
+    pts *= 90;
+  }
+
+  /* break up the data into packets and dispatch them */
+  if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
+    (chunk_tag == vidD_TAG)) {
+
+    while (remaining_sample_bytes) {
+      if (chunk_tag == sndD_TAG) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = this->audio_type;
+      } else {
+        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+        buf->type = this->video_type;
+      }
+
+      buf->input_pos = current_file_pos;
+      buf->input_length = this->input_length;
+      buf->input_time = pts / 90000;
+      buf->pts = pts;
+
+      if (last_frame_pts) {
+        buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+        buf->decoder_info[0] = buf->pts - last_frame_pts;
+      }
+
+      if (remaining_sample_bytes > buf->max_size)
+        buf->size = buf->max_size;
+      else
+        buf->size = remaining_sample_bytes;
+      remaining_sample_bytes -= buf->size;
+
+      if (this->input->read(this->input, buf->content, buf->size) !=
+        buf->size) {
+        this->status = DEMUX_FINISHED;
+        break;
+      }
+
+      /* every frame is a keyframe */
+      buf->decoder_flags |= BUF_FLAG_KEYFRAME;
+      if (!remaining_sample_bytes)
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+      if (chunk_tag == sndD_TAG)
+        this->audio_fifo->put(this->audio_fifo, buf);
+      else
+        this->video_fifo->put(this->video_fifo, buf);
+    }
+
+  } else {
+
+    /* skip the chunk if it can't be handled */
+    this->input->seek(this->input, remaining_sample_bytes, SEEK_CUR);
+
+  }
+
+  if (chunk_tag == vidD_TAG)
+    last_frame_pts = buf->pts;
+  
+  return this->status;
 }
 
 static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
 
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
   buf_element_t *buf;
-
-  pthread_mutex_lock(&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -409,76 +365,26 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_smjpeg_start (demux_plugin_t *this_gen,
-                               off_t start_pos, int start_time) {
-
-  demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
-  int err;
-
-  pthread_mutex_lock(&this->mutex);
-
-  /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
-
-    this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_smjpeg_loop, this)) != 0) {
-      printf ("demux_smjpeg: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
 }
 
 static int demux_smjpeg_seek (demux_plugin_t *this_gen,
-                              off_t start_pos, int start_time) {
-
-  /* SMJPEG files consist of a series of keyframes, but there is no
-   * master index; in order to effectively seek, an index would have to be
-   * built by traversing the file in advance. Therefore, don't bother
-   * implementing the seek function. */
-
-  return 0;
-}
-
-static void demux_smjpeg_stop (demux_plugin_t *this_gen) {
+                               off_t start_pos, int start_time) {
 
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
-  void *p;
 
-  pthread_mutex_lock( &this->mutex );
+  /* if thread is not running, initialize demuxer */
+  if( !this->stream->demux_thread_running ) {
 
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
+    this->status = DEMUX_OK;
   }
 
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
+
 
 static void demux_smjpeg_dispose (demux_plugin_t *this_gen) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
 
-  demux_smjpeg_stop(this_gen);
-
-  pthread_mutex_destroy (&this->mutex);
   free(this);
 }
 
@@ -511,16 +417,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_smjpeg_send_headers;
-  this->demux_plugin.start             = demux_smjpeg_start;
+  this->demux_plugin.send_chunk        = demux_smjpeg_send_chunk;
   this->demux_plugin.seek              = demux_smjpeg_seek;
-  this->demux_plugin.stop              = demux_smjpeg_stop;
   this->demux_plugin.dispose           = demux_smjpeg_dispose;
   this->demux_plugin.get_status        = demux_smjpeg_get_status;
   this->demux_plugin.get_stream_length = demux_smjpeg_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -642,6 +546,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "smjpeg", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "smjpeg", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

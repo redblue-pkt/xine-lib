@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.129 2002/10/26 22:50:52 guenter Exp $
+ * $Id: demux_avi.c,v 1.130 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -55,8 +55,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -182,10 +180,6 @@ typedef struct demux_avi_s {
 
   avi_t               *avi;
 
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-
   int                  status;
 
   int                  no_audio;
@@ -193,8 +187,6 @@ typedef struct demux_avi_s {
 
   uint32_t             video_step;
   uint32_t             AVI_errno;
-
-  int                  send_end_buffers;
 
   char                 last_mrl[1024];
 
@@ -394,8 +386,6 @@ static long start_time_stopper(demux_avi_t *this, void *data)
 
   return -1;
 }
-
-static void demux_avi_stop (demux_plugin_t *this_gen);
 
 /* This is called periodically to check if there's more file now than
  * there was before.  If there is, we constuct the index for (just) the
@@ -1150,83 +1140,19 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
   }
 }
 
-static void *demux_avi_loop (void *this_gen) {
-  demux_avi_t *this = (demux_avi_t *) this_gen;
-
-  pthread_mutex_lock( &this->mutex );
-  /* do-while needed to seek after demux finished */
-  do {
-
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
-
-      if (!demux_avi_next (this, 0)) {
-        this->status = DEMUX_FINISHED;
-      }
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end (this->stream, BUF_FLAG_END_STREAM);
-  }
-
-  printf ("demux_avi: demux loop finished.\n");
-
-  this->thread_running = 0;
-  pthread_mutex_unlock (&this->mutex);
-
-  pthread_exit(NULL);
-
-  return NULL;
-}
-
-static void demux_avi_stop (demux_plugin_t *this_gen) {
+static int demux_avi_send_chunk (demux_plugin_t *this_gen) {
 
   demux_avi_t   *this = (demux_avi_t *) this_gen;
-  void *p;
 
-  pthread_mutex_lock (&this->mutex);
-
-  if (!this->thread_running) {
-    printf ("demux_avi: stop...ignored\n");
-    pthread_mutex_unlock (&this->mutex);
-    return;
+  if (!demux_avi_next (this, 0)) {
+    this->status = DEMUX_FINISHED;
   }
 
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock (&this->mutex);
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine (this->stream);
-  /*
-    AVI_close (this->avi);
-    this->avi = NULL;
-  */
-
-  xine_demux_control_end (this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_avi_dispose (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
-
-  demux_avi_stop(this_gen);
 
   if (this->avi)
     AVI_close (this->avi);
@@ -1244,8 +1170,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
   int i;
-
-  pthread_mutex_lock (&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -1281,7 +1205,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
    * send start/header buffers 
    */
 
-  if (!this->thread_running)  {
+  if (!this->stream->demux_thread_running)  {
 
     buf_element_t  *buf;
     int             i;
@@ -1368,8 +1292,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
       } else
         this->have_spu = 0;
-
-      this->send_end_buffers = 1;
     }
 
     /*
@@ -1386,22 +1308,16 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
 }
 
-static int demux_avi_start (demux_plugin_t *this_gen,
+static int demux_avi_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
   demux_avi_t    *this = (demux_avi_t *) this_gen;
   int64_t         video_pts = 0, max_pos, min_pos = 0, cur_pos;
-  int             err;
   video_index_entry_t *vie = NULL;
-  int             status;
   int64_t         audio_pts;
 
-  pthread_mutex_lock( &this->mutex );
-   
   AVI_seek_start (this->avi);
 
   /*
@@ -1535,36 +1451,12 @@ static int demux_avi_start (demux_plugin_t *this_gen,
     }
   }
 
-  if (this->thread_running) 
-    xine_demux_flush_engine (this->stream);
+  xine_demux_flush_engine (this->stream);
 
   if (this->status == DEMUX_OK)
     xine_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
 
-  if (!this->thread_running) {
-
-    this->thread_running = 1;
-    if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
-      printf ("demux_avi: can't create new thread (%s)\n",
-	      strerror(err));
-      abort();
-    }
-  }
-
-  /* this->status is saved because we can be interrupted between
-   * pthread_mutex_unlock and return
-   */
-  status = this->status;
-  pthread_mutex_unlock( &this->mutex );
-  return status;
-}
-
-
-static int demux_avi_seek (demux_plugin_t *this_gen,
-			   off_t start_pos, int start_time) {
-  /* demux_avi_t *this = (demux_avi_t *) this_gen; */
-
-  return demux_avi_start (this_gen, start_pos, start_time);
+  return this->status;
 }
 
 static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
@@ -1594,17 +1486,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_avi_send_headers;
-  this->demux_plugin.start             = demux_avi_start;
+  this->demux_plugin.send_chunk        = demux_avi_send_chunk;
   this->demux_plugin.seek              = demux_avi_seek;
-  this->demux_plugin.stop              = demux_avi_stop;
   this->demux_plugin.dispose           = demux_avi_dispose;
   this->demux_plugin.get_status        = demux_avi_get_status;
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
-
+  
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: 
@@ -1719,6 +1609,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 15, "avi", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

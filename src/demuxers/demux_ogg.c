@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.48 2002/10/27 01:52:15 guenter Exp $
+ * $Id: demux_ogg.c,v 1.49 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <sched.h>
 #include <string.h>
 #include <stdlib.h>
@@ -105,14 +104,8 @@ typedef struct demux_ogg_s {
 
   input_plugin_t       *input;
 
-  pthread_t             thread;
-  int                   thread_running;
-  pthread_mutex_t       mutex;
-
   int                   status;
   
-  int                   send_end_buffers;
-
   int                   frame_duration;
 
   ogg_sync_state        oy;
@@ -813,103 +806,20 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
   }
 }
 
-static void *demux_ogg_loop (void *this_gen) {
-  
+static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
+
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-#ifdef LOG
-  printf ("demux_ogg: demux loop starting...\n"); 
-#endif
 
-  pthread_mutex_lock( &this->mutex );
-  /* do-while needed to seek after demux finished */
-  do {
+  demux_ogg_send_content (this);
 
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
-
-      demux_ogg_send_content (this);
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while (this->send_end_buffers 
-	   && (this->audio_fifo && this->audio_fifo->size(this->audio_fifo)) 
-	   && (this->status != DEMUX_OK) ) {
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-    
-#ifdef LOG
-  printf ("demux_ogg: demux loop finished (status: %d)\n",
-	  this->status);
-#endif
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-#ifdef LOG
-    printf ("demux_ogg: sending end buffers\n");
-#endif
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
-  } else {
-#ifdef LOG
-    printf ("demux_ogg: not sending end buffers\n");
-#endif
-  }
-
-  this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
-
-#ifdef LOG
-  printf ("demux_ogg: thread ends\n");
-#endif
-
-  pthread_exit(NULL);
-
-  return NULL;
+  return this->status;
 }
 
 static void demux_ogg_dispose (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
 
-  demux_ogg_stop (this_gen);
-
   free (this);
-}
-
-static void demux_ogg_stop (demux_plugin_t *this_gen) {
-
-  demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  printf ("demux_ogg: demux_ogg_stop\n");
-  
-  if (!this->thread_running) {
-    printf ("demux_ogg: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-  
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static int demux_ogg_get_status (demux_plugin_t *this_gen) {
@@ -921,8 +831,6 @@ static int demux_ogg_get_status (demux_plugin_t *this_gen) {
 static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-
-  pthread_mutex_lock( &this->mutex );
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -963,19 +871,13 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = this->num_audio_streams>0;
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
 }
 
-static int demux_ogg_start (demux_plugin_t *this_gen,
+static int demux_ogg_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  int          err;
-
-  pthread_mutex_lock( &this->mutex );
-  err = 1;
-
+  
   /*
    * seek to start position
    */
@@ -996,43 +898,17 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
 
   this->send_newpts     = 1;
 
-  if( !this->thread_running ) {
-    /*
-     * now start demuxing
-     */
-
+  if( !this->stream->demux_thread_running ) {
+    
     this->status            = DEMUX_OK;
-    this->send_end_buffers  = 1;
-    this->thread_running    = 1;
     this->buf_flag_seek     = 0;
 
-#ifdef LOG
-    printf ("demux_ogg: creating thread (send_end_buffers=%d)\n",
-	    this->send_end_buffers);
-#endif
-
-    if ((err = pthread_create (&this->thread,
-			       NULL, demux_ogg_loop, this)) != 0) {
-      printf ("demux_ogg: can't create new thread (%s)\n",
-	      strerror(err));
-      abort();
-    }
   } else {
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
-    err = 0;
   }
   
-  pthread_mutex_unlock( &this->mutex );
-
-  return err ? DEMUX_FINISHED : DEMUX_OK;
-}
-
-static int demux_ogg_seek (demux_plugin_t *this_gen,
-			     off_t start_pos, int start_time) {
-  /* demux_ogg_t *this = (demux_ogg_t *) this_gen; */
-
-  return demux_ogg_start (this_gen, start_pos, start_time);
+  return this->status;
 }
 
 static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
@@ -1116,16 +992,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_ogg_send_headers;
-  this->demux_plugin.start             = demux_ogg_start;
+  this->demux_plugin.send_chunk        = demux_ogg_send_chunk;
   this->demux_plugin.seek              = demux_ogg_seek;
-  this->demux_plugin.stop              = demux_ogg_stop;
   this->demux_plugin.dispose           = demux_ogg_dispose;
   this->demux_plugin.get_status        = demux_ogg_get_status;
   this->demux_plugin.get_stream_length = demux_ogg_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
   
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
   
   return &this->demux_plugin;
 }
@@ -1183,6 +1057,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 15, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

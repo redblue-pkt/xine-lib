@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.107 2002/10/27 01:52:15 guenter Exp $
+ * $Id: xine_internal.h,v 1.108 2002/10/28 03:24:44 miguelfreitas Exp $
  *
  */
 
@@ -201,6 +201,11 @@ struct xine_stream_s {
   /* event mechanism */
   xine_list_t               *event_queues;
   pthread_mutex_t            event_queues_lock;
+  
+  /* demux thread stuff */
+  pthread_t                  demux_thread;
+  int                        demux_thread_running;
+  pthread_mutex_t            demux_lock;
 
   int                        err;
 };
@@ -238,6 +243,8 @@ void xine_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32
 void xine_demux_control_headers_done (xine_stream_t *stream);
 void xine_demux_control_start        (xine_stream_t *stream);
 void xine_demux_control_end          (xine_stream_t *stream, uint32_t flags);
+int xine_demux_start_thread          (xine_stream_t *stream);
+int xine_demux_stop_thread           (xine_stream_t *stream);
 
 /* 
  * plugin_loader functions

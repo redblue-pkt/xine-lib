@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.7 2002/10/27 16:14:31 tmmm Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.8 2002/10/28 03:24:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,8 +32,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -170,7 +168,7 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
   return 1;
 }
 
-static void *demux_yuv4mpeg2_loop (void *this_gen) {
+static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -179,101 +177,63 @@ static void *demux_yuv4mpeg2_loop (void *this_gen) {
   off_t current_file_pos;
   int64_t pts;
 
-  pthread_mutex_lock( &this->mutex );
-
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-
-      /* validate that this is an actual frame boundary */
-      if (this->input->read(this->input, preamble, Y4M_FRAME_SIGNATURE_SIZE) !=
-        Y4M_FRAME_SIGNATURE_SIZE) {
-        this->status = DEMUX_FINISHED;
-        break;
-      }
-      if (memcmp(preamble, Y4M_FRAME_SIGNATURE, Y4M_FRAME_SIGNATURE_SIZE) !=
-        0) {
-        this->status = DEMUX_FINISHED;
-        break;
-      }
-
-      /* load and dispatch the raw frame */
-      bytes_remaining = this->frame_size;
-      current_file_pos = 
-        this->input->get_current_pos(this->input) - this->data_start;
-      pts = current_file_pos;
-      pts /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
-      pts *= this->frame_pts_inc;
-
-      /* reset the pts after a seek */
-      if (this->seek_flag) {
-        xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
-        this->seek_flag = 0;
-      }
-
-      while(bytes_remaining) {
-        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-        buf->type = BUF_VIDEO_YV12;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->data_size;
-        buf->pts = pts;
-
-        if (bytes_remaining > buf->max_size)
-          buf->size = buf->max_size;
-        else
-          buf->size = bytes_remaining;
-        bytes_remaining -= buf->size;
-
-        if (this->input->read(this->input, buf->content, buf->size) !=
-          buf->size) {
-          this->status = DEMUX_FINISHED;
-          break;
-        }
-
-        if (!bytes_remaining)
-          buf->decoder_flags |= BUF_FLAG_FRAME_END;
-        this->video_fifo->put(this->video_fifo, buf);
-      }
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_yuv4mpeg2: demux loop finished (status: %d)\n",
-          this->status);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+  /* validate that this is an actual frame boundary */
+  if (this->input->read(this->input, preamble, Y4M_FRAME_SIGNATURE_SIZE) !=
+    Y4M_FRAME_SIGNATURE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+  if (memcmp(preamble, Y4M_FRAME_SIGNATURE, Y4M_FRAME_SIGNATURE_SIZE) !=
+    0) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
   }
 
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
+  /* load and dispatch the raw frame */
+  bytes_remaining = this->frame_size;
+  current_file_pos = 
+    this->input->get_current_pos(this->input) - this->data_start;
+  pts = current_file_pos;
+  pts /= (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE);
+  pts *= this->frame_pts_inc;
 
-  return NULL;
-}
+  /* reset the pts after a seek */
+  if (this->seek_flag) {
+    xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+    this->seek_flag = 0;
+  }
+
+  while(bytes_remaining) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type = BUF_VIDEO_YV12;
+    buf->input_pos = current_file_pos;
+    buf->input_length = this->data_size;
+    buf->pts = pts;
+
+    if (bytes_remaining > buf->max_size)
+      buf->size = buf->max_size;
+    else
+      buf->size = bytes_remaining;
+    bytes_remaining -= buf->size;
+
+    if (this->input->read(this->input, buf->content, buf->size) !=
+      buf->size) {
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
+    if (!bytes_remaining)
+      buf->decoder_flags |= BUF_FLAG_FRAME_END;
+    this->video_fifo->put(this->video_fifo, buf);
+  }
+  
+  return this->status;
+} 
 
 static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
   buf_element_t *buf;
-
-  pthread_mutex_lock(&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -300,53 +260,12 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   this->video_fifo->put (this->video_fifo, buf);
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
-                                 off_t start_pos, int start_time);
-
-static int demux_yuv4mpeg2_start (demux_plugin_t *this_gen,
-                                  off_t start_pos, int start_time) {
-
-  demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
-  int err;
-
-  demux_yuv4mpeg2_seek(this_gen, start_pos, start_time);
-
-  pthread_mutex_lock(&this->mutex);
-
-  /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
-
-    /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
-
-    this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_yuv4mpeg2_loop, this)) != 0) {
-      printf ("demux_yuv4mpeg2: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
-
-    this->status = DEMUX_OK;
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
 }
 
 static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
                                  off_t start_pos, int start_time) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
-  int status;
-
-  pthread_mutex_lock(&this->mutex);
 
    /* YUV4MPEG2 files are essentially constant bit-rate video. Seek along
     * the calculated frame boundaries. Divide the requested seek offset
@@ -361,41 +280,25 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 
   this->input->seek(this->input, start_pos, SEEK_SET);
   this->seek_flag = 1;
-  status = this->status = DEMUX_OK;
+  this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
-  pthread_mutex_unlock(&this->mutex);
 
-  return status;
-}
+  /* if thread is not running, initialize demuxer */
+  if( !this->stream->demux_thread_running ) {
 
-static void demux_yuv4mpeg2_stop (demux_plugin_t *this_gen) {
+    /* send new pts */
+    xine_demux_control_newpts(this->stream, 0, 0);
 
-  demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
+    this->status = DEMUX_OK;
   }
 
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_yuv4mpeg2_dispose (demux_plugin_t *this_gen) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
-  demux_yuv4mpeg2_stop(this_gen);
   free(this);
 }
 
@@ -429,16 +332,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_yuv4mpeg2_send_headers;
-  this->demux_plugin.start             = demux_yuv4mpeg2_start;
+  this->demux_plugin.send_chunk        = demux_yuv4mpeg2_send_chunk;
   this->demux_plugin.seek              = demux_yuv4mpeg2_seek;
-  this->demux_plugin.stop              = demux_yuv4mpeg2_stop;
   this->demux_plugin.dispose           = demux_yuv4mpeg2_dispose;
   this->demux_plugin.get_status        = demux_yuv4mpeg2_get_status;
   this->demux_plugin.get_stream_length = demux_yuv4mpeg2_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -540,6 +441,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 14, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "yuv4mpeg2", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

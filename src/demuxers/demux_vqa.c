@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.15 2002/10/27 16:14:30 tmmm Exp $
+ * $Id: demux_vqa.c,v 1.16 2002/10/28 03:24:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,8 +37,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -79,11 +77,6 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
-
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                filesize;
   int                  status;
@@ -160,7 +153,7 @@ static int open_vqa_file(demux_vqa_t *this) {
   return 1;
 }
 
-static void *demux_vqa_loop (void *this_gen) {
+static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -173,137 +166,99 @@ static void *demux_vqa_loop (void *this_gen) {
   int64_t audio_pts = 0;
   unsigned int audio_frames = 0;
 
-  pthread_mutex_lock( &this->mutex );
+  /* load and dispatch the audio portion of the frame */
+  if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
+    VQA_PREAMBLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
 
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
+  current_file_pos = this->input->get_current_pos(this->input);
+  chunk_size = BE_32(&preamble[4]);
+  skip_byte = chunk_size & 0x1;
+  audio_pts = audio_frames;
+  audio_pts *= 90000;
+  audio_pts /= this->audio_sample_rate;
+  audio_frames += (chunk_size * 2 / this->audio_channels);
+  while (chunk_size) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = BUF_AUDIO_VQA_IMA;
+    buf->input_pos = current_file_pos;
+    buf->input_length = this->filesize;
+    buf->input_time = audio_pts / 90000;
+    buf->pts = audio_pts;
 
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
+    if (chunk_size > buf->max_size)
+      buf->size = buf->max_size;
+    else
+      buf->size = chunk_size;
+    chunk_size -= buf->size;
 
-      /* load and dispatch the audio portion of the frame */
-      if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
-        VQA_PREAMBLE_SIZE) {
+    if (this->input->read(this->input, buf->content, buf->size) !=
+      buf->size) {
+      buf->free_buffer(buf);
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
+    if (!chunk_size)
+      buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+  /* stay on 16-bit alignment */
+  if (skip_byte)
+    this->input->seek(this->input, 1, SEEK_CUR);
+
+  /* load and dispatch the video portion of the frame but only if this
+   * is not frame #0 */
+  if (i > 0) {
+    if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
+      VQA_PREAMBLE_SIZE) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+
+    current_file_pos = this->input->get_current_pos(this->input);
+    chunk_size = BE_32(&preamble[4]);
+    while (chunk_size) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_VIDEO_VQA;
+      buf->input_pos = current_file_pos;
+      buf->input_length = this->filesize;
+      buf->input_time = video_pts / 90000;
+      buf->pts = video_pts;
+
+      if (chunk_size > buf->max_size)
+        buf->size = buf->max_size;
+      else
+        buf->size = chunk_size;
+      chunk_size -= buf->size;
+
+      if (this->input->read(this->input, buf->content, buf->size) !=
+        buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
 
-      current_file_pos = this->input->get_current_pos(this->input);
-      chunk_size = BE_32(&preamble[4]);
-      skip_byte = chunk_size & 0x1;
-      audio_pts = audio_frames;
-      audio_pts *= 90000;
-      audio_pts /= this->audio_sample_rate;
-      audio_frames += (chunk_size * 2 / this->audio_channels);
-      while (chunk_size) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = BUF_AUDIO_VQA_IMA;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->filesize;
-        buf->input_time = audio_pts / 90000;
-        buf->pts = audio_pts;
+      if (!chunk_size)
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-        if (chunk_size > buf->max_size)
-          buf->size = buf->max_size;
-        else
-          buf->size = chunk_size;
-        chunk_size -= buf->size;
-
-        if (this->input->read(this->input, buf->content, buf->size) !=
-          buf->size) {
-          buf->free_buffer(buf);
-          this->status = DEMUX_FINISHED;
-          break;
-        }
-
-        if (!chunk_size)
-          buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
-      /* stay on 16-bit alignment */
-      if (skip_byte)
-        this->input->seek(this->input, 1, SEEK_CUR);
-
-      /* load and dispatch the video portion of the frame but only if this
-       * is not frame #0 */
-      if (i > 0) {
-        if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
-          VQA_PREAMBLE_SIZE) {
-          this->status = DEMUX_FINISHED;
-          break;
-        }
-
-        current_file_pos = this->input->get_current_pos(this->input);
-        chunk_size = BE_32(&preamble[4]);
-        while (chunk_size) {
-          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->type = BUF_VIDEO_VQA;
-          buf->input_pos = current_file_pos;
-          buf->input_length = this->filesize;
-          buf->input_time = video_pts / 90000;
-          buf->pts = video_pts;
-
-          if (chunk_size > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = chunk_size;
-          chunk_size -= buf->size;
-
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            buf->free_buffer(buf);
-            this->status = DEMUX_FINISHED;
-            break;
-          }
-
-          if (!chunk_size)
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-          this->video_fifo->put (this->video_fifo, buf);
-        }
-        video_pts += VQA_PTS_INC;
-      }
-
-      i++;
+      this->video_fifo->put (this->video_fifo, buf);
     }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_vqa: demux loop finished (status: %d)\n",
-          this->status);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+    video_pts += VQA_PTS_INC;
   }
 
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
+  i++;
 
-  return NULL;
+  return this->status;
 }
 
 static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf;
-
-  pthread_mutex_lock(&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -363,75 +318,25 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_vqa_start (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
-
-  demux_vqa_t *this = (demux_vqa_t *) this_gen;
-  int err;
-
-  pthread_mutex_lock(&this->mutex);
-
-  /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
-
-    this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_vqa_loop, this)) != 0) {
-      printf ("demux_vqa: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
-
-    this->status = DEMUX_OK;
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
 }
 
 static int demux_vqa_seek (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
-
-  /* despite the presence of a frame index in the header, VQA files are 
-   * not built for seeking; don't even bother */
-
-  return 0;
-}
-
-static void demux_vqa_stop (demux_plugin_t *this_gen) {
+                             off_t start_pos, int start_time) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
-  void *p;
 
-  pthread_mutex_lock( &this->mutex );
+  /* if thread is not running, initialize demuxer */
+  if( !this->stream->demux_thread_running ) {
 
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
+    this->status = DEMUX_OK;
   }
 
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_vqa_dispose (demux_plugin_t *this_gen) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
-
-  demux_vqa_stop(this_gen);
 
   free(this);
 }
@@ -463,16 +368,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_vqa_send_headers;
-  this->demux_plugin.start             = demux_vqa_start;
+  this->demux_plugin.send_chunk        = demux_vqa_send_chunk;
   this->demux_plugin.seek              = demux_vqa_seek;
-  this->demux_plugin.stop              = demux_vqa_stop;
   this->demux_plugin.dispose           = demux_vqa_dispose;
   this->demux_plugin.get_status        = demux_vqa_get_status;
   this->demux_plugin.get_stream_length = demux_vqa_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -576,6 +479,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "vqa", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "vqa", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

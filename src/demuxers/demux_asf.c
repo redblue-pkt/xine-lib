@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.72 2002/10/27 23:01:40 guenter Exp $
+ * $Id: demux_asf.c,v 1.73 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -33,8 +33,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -124,13 +122,7 @@ typedef struct demux_asf_s {
   int               segtype;
   int               frame;
 
-  pthread_t         thread;
-  int               thread_running;
-  pthread_mutex_t   mutex;
-
   int               status;
-
-  int               send_end_buffers;
 
   int               send_discontinuity;
 
@@ -1116,98 +1108,28 @@ static void asf_read_packet(demux_asf_t *this) {
  * xine specific functions start here
  */
 
-static void *demux_asf_loop (void *this_gen) {
-  
+static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
+
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
-  printf ("demux_asf: demux loop starting...\n"); 
+  asf_read_packet (this);
 
-  pthread_mutex_lock( &this->mutex );
-  /* do-while needed to seek after demux finished */
-  do {
-
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
-
-      asf_read_packet (this);
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-
-
-  /*
-    printf ("demux_asf: demux loop finished (status: %d)\n",
-    this->status);
-  */
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
-  }
-
-  this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
-
-  pthread_exit(NULL);
-
-  return NULL;
+  return this->status;
 }
 
-static void demux_asf_stop (demux_plugin_t *this_gen) {
+static void demux_asf_dispose (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
   int i;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    printf ("demux_asf: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
-
+  
   for (i=0; i<this->num_streams; i++) {
     if( this->streams[i].buffer ) {
       free( this->streams[i].buffer );
       this->streams[i].buffer = NULL;
     }
   }
-}
-
-static void demux_asf_dispose (demux_plugin_t *this_gen) {
-
-  demux_asf_t *this = (demux_asf_t *) this_gen;
-
-  demux_asf_stop (this_gen);
 
   free (this);
-
 }
 
 static int demux_asf_get_status (demux_plugin_t *this_gen) {
@@ -1224,8 +1146,6 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   uint32_t buf_type, max_vrate, max_arate, sum_rate;
   uint32_t bitrate = 0;
   
-  pthread_mutex_lock (&this->mutex);
-
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
@@ -1258,7 +1178,6 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
     printf ("demux_asf: asf_read_header failed.\n");
 
     this->status = DEMUX_FINISHED; 
-    pthread_mutex_unlock (&this->mutex);
     return;
   } else {
 
@@ -1323,86 +1242,47 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_asf_start (demux_plugin_t *this_gen,
-			    off_t start_pos, int start_time) {
-
-  demux_asf_t *this = (demux_asf_t *) this_gen;
-  int err;
-  int status;
-
-  pthread_mutex_lock( &this->mutex );
-
-  this->status = DEMUX_OK;
-
-  if (!this->thread_running) {
-    xine_demux_flush_engine(this->stream);
-  }
-
-  if( this->status == DEMUX_OK ) {
-    /*
-     * seek to start position
-     */
-    this->send_discontinuity       = 2;
-    this->last_video_pts           = 0;
-    this->keyframe_found           = (this->num_video_streams==0);
-
-    if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-
-      if ( (!start_pos) && (start_time))
-        start_pos = start_time * this->rate;
-
-      if (start_pos < this->header_size)
-        start_pos = this->header_size;
-
-      this->input->seek (this->input, start_pos, SEEK_SET);
-    }
-
-    /*
-     * now start demuxing
-     */
-
-    if( !this->thread_running ) {
-      this->send_end_buffers = 1;
-      this->thread_running   = 1;
-      this->buf_flag_seek    = 0;
-      if ((err = pthread_create (&this->thread,
-			       NULL, demux_asf_loop, this)) != 0) {
-        printf ("demux_asf: can't create new thread (%s)\n",
-	      strerror(err));
-        abort();
-      }
-    } else {
-      this->buf_flag_seek = 1;
-    }
-  }
-
-  /* this->status is saved because we can be interrupted between
-   * pthread_mutex_unlock and return
-   */
-  status = this->status;
-  pthread_mutex_unlock( &this->mutex );
-  return status;
-
-/*
-  if( !starting && this->status != DEMUX_OK ) {
-    void *p;
-    pthread_join (this->thread, &p);
-  }
-*/
-
 }
 
 static int demux_asf_seek (demux_plugin_t *this_gen,
-			   off_t start_pos, int start_time) {
-  /* demux_asf_t *this = (demux_asf_t *) this_gen; */
+			    off_t start_pos, int start_time) {
 
-  return demux_asf_start (this_gen, start_pos, start_time);
+  demux_asf_t *this = (demux_asf_t *) this_gen;
+
+  this->status = DEMUX_OK;
+
+  xine_demux_flush_engine(this->stream);
+
+  /*
+   * seek to start position
+   */
+  this->send_discontinuity       = 2;
+  this->last_video_pts           = 0;
+  this->keyframe_found           = (this->num_video_streams==0);
+
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+
+    if ( (!start_pos) && (start_time))
+      start_pos = start_time * this->rate;
+
+    if (start_pos < this->header_size)
+      start_pos = this->header_size;
+
+    this->input->seek (this->input, start_pos, SEEK_SET);
+  }
+
+  /*
+   * now start demuxing
+   */
+
+  if( !this->stream->demux_thread_running ) {
+    this->buf_flag_seek = 0;
+  } else {
+    this->buf_flag_seek = 1;
+  }
+
+  return this->status;
 }
-
 
 static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
 
@@ -1480,16 +1360,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_asf_send_headers;
-  this->demux_plugin.start             = demux_asf_start;
+  this->demux_plugin.send_chunk        = demux_asf_send_chunk;
   this->demux_plugin.seek              = demux_asf_seek;
-  this->demux_plugin.stop              = demux_asf_stop;
   this->demux_plugin.dispose           = demux_asf_dispose;
   this->demux_plugin.get_status        = demux_asf_get_status;
   this->demux_plugin.get_stream_length = demux_asf_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
   
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
   
   return &this->demux_plugin;
 }
@@ -1543,6 +1421,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "asf", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 15, "asf", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

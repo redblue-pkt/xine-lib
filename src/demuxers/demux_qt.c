@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.105 2002/10/27 17:28:24 tmmm Exp $
+ * $Id: demux_qt.c,v 1.106 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  */
 
@@ -41,8 +41,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -273,11 +271,6 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
-
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   int                  status;
 
@@ -1429,7 +1422,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
  * xine demuxer functions
  **********************************************************************/
 
-static void *demux_qt_loop (void *this_gen) {
+static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -1438,191 +1431,155 @@ static void *demux_qt_loop (void *this_gen) {
   int edit_list_compensation = 0;
   int frame_duration;
 
-  pthread_mutex_lock( &this->mutex );
+  i = this->current_frame;
 
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
+  /* if there is an incongruency between last and current sample, it
+   * must be time to send a new pts */
+  if (this->last_frame + 1 != this->current_frame) {
+    /* send new pts */
+    xine_demux_control_newpts(this->stream, this->qt->frames[i].pts, 
+      this->qt->frames[i].pts ? BUF_FLAG_SEEK : 0);
+  }
 
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
+  this->last_frame = this->current_frame;
+  this->current_frame++;
 
-      i = this->current_frame;
+  /* check if all the samples have been sent */
+  if (i >= this->qt->frame_count) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
 
-      /* if there is an incongruency between last and current sample, it
-       * must be time to send a new pts */
-      if (this->last_frame + 1 != this->current_frame) {
-        /* send new pts */
-        xine_demux_control_newpts(this->stream, this->qt->frames[i].pts, 
-          this->qt->frames[i].pts ? BUF_FLAG_SEEK : 0);
+  /* check if we're only sending audio samples until the next keyframe */
+  if ((this->waiting_for_keyframe) &&
+      (this->qt->frames[i].type == MEDIA_VIDEO)) {
+    if (this->qt->frames[i].keyframe) {
+      this->waiting_for_keyframe = 0;
+    } else {
+      /* move on to the next sample */
+      return this->status;
+    }
+  }
+
+  if (this->qt->frames[i].type == MEDIA_VIDEO) {
+    remaining_sample_bytes = this->qt->frames[i].size;
+    this->input->seek(this->input, this->qt->frames[i].offset,
+      SEEK_SET);
+
+    /* frame duration is the pts diff between this video frame and
+     * the next video frame (so search for the next video frame) */
+    frame_duration = 0;
+    j = i;
+    while (++j < this->qt->frame_count) {
+      if (this->qt->frames[j].type == MEDIA_VIDEO) {
+        frame_duration = 
+          this->qt->frames[j].pts - this->qt->frames[i].pts;
+        break;
       }
+    }
 
-      this->last_frame = this->current_frame;
-      this->current_frame++;
+    /* Due to the edit lists, some successive frames have the same pts
+     * which would ordinarily cause frame_duration to be 0 which can
+     * cause DIV-by-0 errors in the engine. Perform this little trick
+     * to compensate. */
+    if (!frame_duration) {
+      frame_duration = 1;
+      edit_list_compensation++;
+    } else {
+      frame_duration -= edit_list_compensation;
+      edit_list_compensation = 0;
+    }
 
-      /* check if all the samples have been sent */
-      if (i >= this->qt->frame_count) {
+/*
+printf ("%d) video frame, size %d, pts %lld, duration %d\n",
+i, 
+this->qt->frames[i].size,
+this->qt->frames[i].pts,
+frame_duration);
+*/
+
+    while (remaining_sample_bytes) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = this->qt->video_type;
+      buf->input_pos = this->qt->frames[i].offset - this->data_start;
+      buf->input_length = this->data_size;
+      buf->input_time = this->qt->frames[i].pts / 90000;
+      buf->pts = this->qt->frames[i].pts;
+
+      buf->decoder_flags |= BUF_FLAG_FRAMERATE;
+      buf->decoder_info[0] = frame_duration;
+
+      if (remaining_sample_bytes > buf->max_size)
+        buf->size = buf->max_size;
+      else
+        buf->size = remaining_sample_bytes;
+      remaining_sample_bytes -= buf->size;
+
+      if (this->input->read(this->input, buf->content, buf->size) !=
+        buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
 
-      /* check if we're only sending audio samples until the next keyframe */
-      if ((this->waiting_for_keyframe) &&
-          (this->qt->frames[i].type == MEDIA_VIDEO)) {
-        if (this->qt->frames[i].keyframe) {
-          this->waiting_for_keyframe = 0;
-        } else {
-          /* move on to the next sample */
-          continue;
-        }
-      }
+      if (this->qt->frames[i].keyframe)
+        buf->decoder_flags |= BUF_FLAG_KEYFRAME;
+      if (!remaining_sample_bytes)
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      if (this->qt->frames[i].type == MEDIA_VIDEO) {
-        remaining_sample_bytes = this->qt->frames[i].size;
-        this->input->seek(this->input, this->qt->frames[i].offset,
-          SEEK_SET);
+      this->video_fifo->put(this->video_fifo, buf);
+    }
 
-        /* frame duration is the pts diff between this video frame and
-         * the next video frame (so search for the next video frame) */
-        frame_duration = 0;
-        j = i;
-        while (++j < this->qt->frame_count) {
-          if (this->qt->frames[j].type == MEDIA_VIDEO) {
-            frame_duration = 
-              this->qt->frames[j].pts - this->qt->frames[i].pts;
-            break;
-          }
-        }
-
-        /* Due to the edit lists, some successive frames have the same pts
-         * which would ordinarily cause frame_duration to be 0 which can
-         * cause DIV-by-0 errors in the engine. Perform this little trick
-         * to compensate. */
-        if (!frame_duration) {
-          frame_duration = 1;
-          edit_list_compensation++;
-        } else {
-          frame_duration -= edit_list_compensation;
-          edit_list_compensation = 0;
-        }
-
-/*
-printf ("%d) video frame, size %d, pts %lld, duration %d\n",
-  i, 
-  this->qt->frames[i].size,
-  this->qt->frames[i].pts,
-  frame_duration);
-*/
-
-        while (remaining_sample_bytes) {
-          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->type = this->qt->video_type;
-          buf->input_pos = this->qt->frames[i].offset - this->data_start;
-          buf->input_length = this->data_size;
-          buf->input_time = this->qt->frames[i].pts / 90000;
-          buf->pts = this->qt->frames[i].pts;
-
-          buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-          buf->decoder_info[0] = frame_duration;
-
-          if (remaining_sample_bytes > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = remaining_sample_bytes;
-          remaining_sample_bytes -= buf->size;
-
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            buf->free_buffer(buf);
-            this->status = DEMUX_FINISHED;
-            break;
-          }
-
-          if (this->qt->frames[i].keyframe)
-            buf->decoder_flags |= BUF_FLAG_KEYFRAME;
-          if (!remaining_sample_bytes)
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-          this->video_fifo->put(this->video_fifo, buf);
-        }
-
-      } else if ((this->qt->frames[i].type == MEDIA_AUDIO) &&
-          this->audio_fifo && this->qt->audio_type) {
-        /* load an audio sample and packetize it */
-        remaining_sample_bytes = this->qt->frames[i].size;
-        this->input->seek(this->input, this->qt->frames[i].offset,
-          SEEK_SET);
+  } else if ((this->qt->frames[i].type == MEDIA_AUDIO) &&
+      this->audio_fifo && this->qt->audio_type) {
+    /* load an audio sample and packetize it */
+    remaining_sample_bytes = this->qt->frames[i].size;
+    this->input->seek(this->input, this->qt->frames[i].offset,
+      SEEK_SET);
 
 /*
 printf ("%d) audio frame, size %d, pts %lld\n",
-  i, 
-  this->qt->frames[i].size,
-  this->qt->frames[i].pts);
+i, 
+this->qt->frames[i].size,
+this->qt->frames[i].pts);
 */
 
-        while (remaining_sample_bytes) {
-          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->type = this->qt->audio_type;
-          buf->input_pos = this->qt->frames[i].offset - this->data_start;
-          buf->input_length = this->data_size;
-          buf->input_time = this->qt->frames[i].pts / 90000;
-          buf->pts = this->qt->frames[i].pts;
+    while (remaining_sample_bytes) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = this->qt->audio_type;
+      buf->input_pos = this->qt->frames[i].offset - this->data_start;
+      buf->input_length = this->data_size;
+      buf->input_time = this->qt->frames[i].pts / 90000;
+      buf->pts = this->qt->frames[i].pts;
 
-          if (remaining_sample_bytes > buf->max_size)
-            buf->size = buf->max_size;
-          else
-            buf->size = remaining_sample_bytes;
-          remaining_sample_bytes -= buf->size;
+      if (remaining_sample_bytes > buf->max_size)
+        buf->size = buf->max_size;
+      else
+        buf->size = remaining_sample_bytes;
+      remaining_sample_bytes -= buf->size;
 
-          if (this->input->read(this->input, buf->content, buf->size) !=
-            buf->size) {
-            buf->free_buffer(buf);
-            this->status = DEMUX_FINISHED;
-            break;
-          }
+      if (this->input->read(this->input, buf->content, buf->size) !=
+        buf->size) {
+        buf->free_buffer(buf);
+        this->status = DEMUX_FINISHED;
+        break;
+      }
 
-          if (!remaining_sample_bytes) {
-            buf->decoder_flags |= BUF_FLAG_FRAME_END;
+      if (!remaining_sample_bytes) {
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-            if( this->qt->audio_sample_size_table ) {
-              buf->decoder_flags |= BUF_FLAG_SPECIAL;
-              buf->decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE;
-              buf->decoder_info[3] = (uint32_t)
-                &this->qt->audio_sample_size_table[this->qt->frames[i].official_byte_count];
-            }
-          }
-
-          this->audio_fifo->put(this->audio_fifo, buf);
+        if( this->qt->audio_sample_size_table ) {
+          buf->decoder_flags |= BUF_FLAG_SPECIAL;
+          buf->decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE;
+          buf->decoder_info[3] = (uint32_t)
+            &this->qt->audio_sample_size_table[this->qt->frames[i].official_byte_count];
         }
       }
+
+      this->audio_fifo->put(this->audio_fifo, buf);
     }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_qt: demux loop finished (status: %d)\n",
-          this->status);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
-
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
-  return NULL;
+  return this->status;
 }
 
 static void demux_qt_send_headers(demux_plugin_t *this_gen) {
@@ -1631,7 +1588,6 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   buf_element_t *buf;
 
 printf ("sending qt headers\n");
-  pthread_mutex_lock(&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -1739,41 +1695,6 @@ printf ("sending qt headers\n");
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_qt_seek (demux_plugin_t *this_gen,
-                          off_t start_pos, int start_time);
-
-static int demux_qt_start (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
-  demux_qt_t *this = (demux_qt_t *) this_gen;
-  int err;
-
-  /* perform a seek with the start_pos before starting the demuxer */
-  demux_qt_seek(this_gen, start_pos, start_time);
-
-  pthread_mutex_lock(&this->mutex);
-
-  /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
-
-    this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    this->last_frame = 0;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
-      printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
 }
 
 static int demux_qt_seek (demux_plugin_t *this_gen,
@@ -1784,9 +1705,6 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   int left, middle, right;
   int found;
   int64_t keyframe_pts;
-  int status;
-
-  pthread_mutex_lock(&this->mutex);
 
   this->waiting_for_keyframe = 0;
 
@@ -1795,9 +1713,8 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   if (start_pos <= this->qt->frames[0].offset)
     best_index = 0;
   else if (start_pos >= this->qt->frames[this->qt->frame_count - 1].offset) {
-    status = this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock( &this->mutex );
-    return status;
+    this->status = DEMUX_FINISHED;
+    return this->status;
   } else {
     left = 0;
     right = this->qt->frame_count - 1;
@@ -1844,44 +1761,18 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
 
   xine_demux_flush_engine(this->stream);
-
-  pthread_mutex_unlock( &this->mutex );
-
-  return DEMUX_OK;
-}
-
-static void demux_qt_stop (demux_plugin_t *this_gen) {
-
-  demux_qt_t *this = (demux_qt_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
+  
+  if( !this->stream->demux_thread_running ) {
+    this->last_frame = 0;
   }
 
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  xine_demux_flush_engine(this->stream);
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  this->current_frame = this->last_frame = 0;
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_qt_dispose (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  demux_qt_stop(this_gen);
-
   free_qt_info(this->qt);
-  pthread_mutex_destroy (&this->mutex);
   free(this);
 }
 
@@ -1919,16 +1810,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_qt_send_headers;
-  this->demux_plugin.start             = demux_qt_start;
+  this->demux_plugin.send_chunk        = demux_qt_send_chunk;
   this->demux_plugin.seek              = demux_qt_seek;
-  this->demux_plugin.stop              = demux_qt_stop;
   this->demux_plugin.dispose           = demux_qt_dispose;
   this->demux_plugin.get_status        = demux_qt_get_status;
   this->demux_plugin.get_stream_length = demux_qt_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -2070,6 +1959,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

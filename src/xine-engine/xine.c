@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.177 2002/10/27 01:52:15 guenter Exp $
+ * $Id: xine.c,v 1.178 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -67,6 +67,9 @@ void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
   if (stream->status == XINE_STATUS_QUIT)
     return;
   stream->status = XINE_STATUS_STOP;
+  
+  /* join thread if needed to fix resource leaks */  
+  xine_demux_stop_thread( stream );
     
   if (non_user) {
     /* frontends will not be interested in receiving this event
@@ -160,8 +163,8 @@ static void xine_stop_internal (xine_stream_t *stream) {
   printf ("xine_stop: stopping demux\n");
 #endif
   if (stream->demux_plugin) {
-    stream->demux_plugin->dispose (stream->demux_plugin);
-    stream->demux_plugin = NULL;
+    
+    xine_demux_stop_thread( stream );
 
     /*
      * wait until engine has really stopped
@@ -182,15 +185,6 @@ static void xine_stop_internal (xine_stream_t *stream) {
 #ifdef LOG
   printf ("xine_stop: demux stopped\n");
 #endif
-
-  /*
-   * close input plugin
-   */
-
-  if (stream->input_plugin) {
-    stream->input_plugin->dispose(stream->input_plugin);
-    stream->input_plugin = NULL;
-  }
 
   /* remove buffered samples from the sound device driver */
   if (stream->audio_out)
@@ -216,6 +210,40 @@ void xine_stop (xine_stream_t *stream) {
   
   pthread_mutex_unlock (&stream->frontend_lock);
 }
+
+
+static void xine_close_internal (xine_stream_t *stream) {
+
+  xine_stop_internal( stream );
+  
+#ifdef LOG
+  printf ("xine_close: disposing demux\n");
+#endif
+  if (stream->demux_plugin) {
+    
+    stream->demux_plugin->dispose (stream->demux_plugin);
+    stream->demux_plugin = NULL;
+  }
+
+  /*
+   * close input plugin
+   */
+
+  if (stream->input_plugin) {
+    stream->input_plugin->dispose(stream->input_plugin);
+    stream->input_plugin = NULL;
+  }
+}
+
+void xine_close (xine_stream_t *stream) {
+
+  pthread_mutex_lock (&stream->frontend_lock);
+
+  xine_close_internal (stream);
+  
+  pthread_mutex_unlock (&stream->frontend_lock);
+}
+
 
 xine_stream_t *xine_stream_new (xine_t *this, 
 				xine_ao_driver_t *ao, xine_vo_driver_t *vo) {
@@ -270,6 +298,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * init mutexes and conditions
    */
 
+  pthread_mutex_init (&stream->demux_lock, NULL);
   pthread_mutex_init (&stream->frontend_lock, NULL);
   pthread_mutex_init (&stream->event_queues_lock, NULL);
   pthread_mutex_init (&stream->osd_lock, NULL);
@@ -335,7 +364,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    * stop engine if necessary
    */
 
-  xine_stop_internal (stream);
+  xine_close_internal (stream);
 
 #ifdef LOG
   printf ("xine: engine should be stopped now\n");
@@ -363,8 +392,6 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   if (!(stream->demux_plugin=find_demux_plugin (stream, stream->input_plugin))) {
     xine_log (stream->xine, XINE_LOG_MSG,
 	      _("xine: couldn't find demux for >%s<\n"), mrl);
-    stream->input_plugin->dispose (stream->input_plugin);
-    stream->input_plugin = NULL;
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
     /* remove buffered samples from the sound device driver */
@@ -483,14 +510,8 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     return 0;
   }    
   
-  if (stream->status == XINE_STATUS_STOP) {
-
-    demux_status = stream->demux_plugin->start (stream->demux_plugin,
-						    pos, start_time);
-  } else {
-    demux_status = stream->demux_plugin->seek (stream->demux_plugin,
+  demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
-  }
 
   if (demux_status != DEMUX_OK) {
     xine_log (stream->xine, XINE_LOG_MSG, 
@@ -498,12 +519,10 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     
     stream->err = XINE_ERROR_DEMUX_FAILED;
     
-    if (stream->status == XINE_STATUS_STOP)   
-      stream->input_plugin->dispose(stream->input_plugin);
-  
     return 0;
     
   } else {
+    xine_demux_start_thread( stream );
     stream->status = XINE_STATUS_PLAY;
   }
 
@@ -754,9 +773,13 @@ int xine_get_speed (xine_stream_t *stream) {
  */
 
 static int xine_get_stream_length (xine_stream_t *stream) {
+  
+  pthread_mutex_lock( &stream->demux_lock );
 
   if (stream->demux_plugin)
     return stream->demux_plugin->get_stream_length (stream->demux_plugin);
+  
+  pthread_mutex_unlock( &stream->demux_lock );
 
   return 0;
 }

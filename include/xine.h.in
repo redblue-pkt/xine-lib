@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.29 2002/10/26 22:50:52 guenter Exp $
+ * $Id: xine.h.in,v 1.30 2002/10/28 03:24:42 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -169,10 +169,16 @@ uint32_t    xine_get_stream_info (xine_stream_t *stream, int info);
 const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 
 /*
+ * stop stream playback
+ * xine_stream_t stays valid for new xine_open or xine_play
+ */
+void xine_stop (xine_stream_t *stream);
+
+/*
  * stop stream playback, free all stream-related resources
  * xine_stream_t stays valid for new xine_open
  */
-void xine_stop (xine_stream_t *stream);
+void xine_close (xine_stream_t *stream);
 
 /*
  * ask current/recent input plugin to eject media - may or may not work,

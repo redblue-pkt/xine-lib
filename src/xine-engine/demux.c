@@ -23,9 +23,15 @@
  * $id$ 
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
+
+#define LOG
+
 
 /* internal use only - called from demuxers on seek/stop
  * warning: after clearing decoders fifos an absolute discontinuity
@@ -120,4 +126,121 @@ void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
     buf->decoder_flags = flags;
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
+}
+
+static void *demux_loop (void *stream_gen) {
+
+  xine_stream_t *stream = (xine_stream_t *)stream_gen;
+  int status;
+  
+#ifdef LOG
+  printf ("demux: loop starting...\n");
+#endif
+    
+  pthread_mutex_lock( &stream->demux_lock );
+
+  /* do-while needed to seek after demux finished */
+  do {
+
+    /* main demuxer loop */
+    status = stream->demux_plugin->get_status(stream->demux_plugin);
+    while(status == DEMUX_OK && stream->demux_thread_running) {
+
+      status = stream->demux_plugin->send_chunk(stream->demux_plugin);
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &stream->demux_lock );
+      pthread_mutex_lock( &stream->demux_lock );
+    }
+
+#ifdef LOG
+    printf ("demux: main demuxer loop finished (status: %d)\n", status);
+#endif
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(stream->demux_thread_running && 
+          (!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) &&
+          (!stream->audio_fifo || stream->audio_fifo->size(stream->audio_fifo)) &&
+          status != DEMUX_OK ){
+      pthread_mutex_unlock( &stream->demux_lock );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &stream->demux_lock );
+      status = stream->demux_plugin->get_status(stream->demux_plugin);
+    }
+
+  } while( status == DEMUX_OK && stream->demux_thread_running );
+
+#ifdef LOG
+  printf ("demux: loop finished (status: %d)\n", status);
+#endif
+  
+  /* demux_thread_running is zero is demux loop has being stopped by user */
+  if (stream->demux_thread_running) {
+    xine_demux_control_end(stream, BUF_FLAG_END_STREAM);
+  } else {
+    xine_demux_control_end(stream, BUF_FLAG_END_USER);
+  }
+  
+  stream->demux_thread_running = 0;
+  pthread_mutex_unlock( &stream->demux_lock );
+  
+  pthread_exit(NULL);
+
+  return NULL;
+}
+
+int xine_demux_start_thread (xine_stream_t *stream) {
+
+  int err;
+  
+#ifdef LOG
+  printf ("demux: start thread called\n");
+#endif
+  
+  pthread_mutex_lock( &stream->demux_lock );
+  
+  if( !stream->demux_thread_running ) {
+    
+    stream->demux_thread_running = 1;
+    if ((err = pthread_create (&stream->demux_thread,
+			       NULL, demux_loop, (void *)stream)) != 0) {
+      printf ("demux: can't create new thread (%s)\n",
+	      strerror(err));
+      abort();
+    }
+  }
+  
+  pthread_mutex_unlock( &stream->demux_lock );
+  return 0;
+}
+
+int xine_demux_stop_thread (xine_stream_t *stream) {
+  
+  void *p;
+  
+#ifdef LOG
+  printf ("demux: stop thread called\n");
+#endif
+  
+  pthread_mutex_lock( &stream->demux_lock );
+  stream->demux_thread_running = 0;
+  pthread_mutex_unlock( &stream->demux_lock );
+
+#ifdef LOG
+  printf ("demux: joining thread %d\n", stream->demux_thread );
+#endif
+  
+  /* FIXME: counter_lock isn't meant to protect demux_thread update.
+     however we can't use demux_lock here. should we create a new lock? */
+  pthread_mutex_lock (&stream->counter_lock);
+  
+  /* <join; demux_thread = 0;> must be atomic */
+  if( stream->demux_thread )
+    pthread_join (stream->demux_thread, &p);
+  stream->demux_thread = 0;
+  
+  pthread_mutex_unlock (&stream->counter_lock);
+    
+  xine_demux_flush_engine(stream);
+  
+  return 0;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.21 2002/10/17 17:43:42 mroi Exp $
+ * $Id: demux.h,v 1.22 2002/10/28 03:24:43 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -31,7 +31,7 @@
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    14
+#define DEMUXER_PLUGIN_IFACE_VERSION    15
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -99,24 +99,7 @@ struct demux_plugin_s {
   void (*send_headers) (demux_plugin_t *this);
 
   /*
-   * start demux thread
-   *
-   * for seekable streams, a start position can be specified
-   *
-   * start_pos  : position in input source
-   * start_time : position measured in seconds from stream start
-   *
-   * if both parameters are !=0 start_pos will be used
-   * for non-seekable streams both values will be ignored
-   *
-   * returns the demux status (like get_status, but immediately after
-   *                           starting the demuxer)
-   */
-
-  int (*start) (demux_plugin_t *this, off_t start_pos, int start_time);
-
-  /*
-   * ask running demux thread to seek 
+   * ask demux to seek 
    *
    * for seekable streams, a start position can be specified
    *
@@ -132,17 +115,21 @@ struct demux_plugin_s {
 
   int (*seek) (demux_plugin_t *this, 
 	       off_t start_pos, int start_time);
-  
+
   /*
-   * stop & kill demux thread
+   * send a chunk of data down to decoder fifos 
    *
-   * keep plugin ready for restart
+   * the meaning of "chunk" is specific to every demux, usually
+   * it involves parsing one unit of data from stream.
+   *
+   * this function will be called from demux loop and should return
+   * the demux current status
    */
 
-  void (*stop) (demux_plugin_t *this) ;
-
+  int (*send_chunk) (demux_plugin_t *this);
+          
   /*
-   * stop & kill demux thread, free resources 
+   * free resources 
    */
 
   void (*dispose) (demux_plugin_t *this) ;

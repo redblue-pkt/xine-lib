@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.5 2002/10/27 03:18:11 tmmm Exp $
+ * $Id: demux_real.c,v 1.6 2002/10/28 03:24:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -82,11 +80,6 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
-
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
 
   off_t                data_start;
   off_t                data_size;
@@ -254,7 +247,7 @@ static int open_real_file(demux_real_t *this) {
   return 1;
 }
 
-static void *demux_real_loop (void *this_gen) {
+static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   demux_real_t *this = (demux_real_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -262,121 +255,77 @@ static void *demux_real_loop (void *this_gen) {
   unsigned char data_chunk_header[DATA_CHUNK_HEADER_SIZE];
   char header[DATA_PACKET_HEADER_SIZE];
 
-  pthread_mutex_lock( &this->mutex );
+  /* load a header from wherever the stream happens to be pointing */
+  if (this->input->read(this->input, header, DATA_PACKET_HEADER_SIZE) !=
+    DATA_PACKET_HEADER_SIZE) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
 
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-
-      /* load a header from wherever the stream happens to be pointing */
-      if (this->input->read(this->input, header, DATA_PACKET_HEADER_SIZE) !=
-        DATA_PACKET_HEADER_SIZE) {
-        this->status = DEMUX_FINISHED;
-        break;
-      }
-
-      /* log the packet information */
-      this->packets[this->current_packet].stream = BE_16(&header[4]);
-      this->packets[this->current_packet].offset = 
-        this->input->get_current_pos(this->input);
-      this->packets[this->current_packet].size = 
-        BE_16(&header[2]) - DATA_PACKET_HEADER_SIZE;
-      this->packets[this->current_packet].pts = 
-        BE_32(&header[6]);
-      this->packets[this->current_packet].pts *= 90;
-      this->packets[this->current_packet].keyframe =
-        (header[11] & PN_KEYFRAME_FLAG);
+  /* log the packet information */
+  this->packets[this->current_packet].stream = BE_16(&header[4]);
+  this->packets[this->current_packet].offset = 
+    this->input->get_current_pos(this->input);
+  this->packets[this->current_packet].size = 
+    BE_16(&header[2]) - DATA_PACKET_HEADER_SIZE;
+  this->packets[this->current_packet].pts = 
+    BE_32(&header[6]);
+  this->packets[this->current_packet].pts *= 90;
+  this->packets[this->current_packet].keyframe =
+    (header[11] & PN_KEYFRAME_FLAG);
 
 printf ("packet %d: stream %d, 0x%X bytes @ %llX, pts = %lld%s\n",
-  this->current_packet,
-  this->packets[this->current_packet].stream,
-  this->packets[this->current_packet].size,
-  this->packets[this->current_packet].offset,
-  this->packets[this->current_packet].pts,
-  (this->packets[this->current_packet].keyframe) ? ", keyframe" : "");
+this->current_packet,
+this->packets[this->current_packet].stream,
+this->packets[this->current_packet].size,
+this->packets[this->current_packet].offset,
+this->packets[this->current_packet].pts,
+(this->packets[this->current_packet].keyframe) ? ", keyframe" : "");
 
 
 
 this->input->seek(this->input, this->packets[this->current_packet].size,
-  SEEK_CUR);
+SEEK_CUR);
 
-      this->current_packet++;
-      this->current_data_chunk_packet_count--;
+  this->current_packet++;
+  this->current_data_chunk_packet_count--;
 
-      /* check if it's time to reload */
-      if (!this->current_data_chunk_packet_count && 
-        this->next_data_chunk_offset) {
+  /* check if it's time to reload */
+  if (!this->current_data_chunk_packet_count && 
+    this->next_data_chunk_offset) {
 
-        /* seek to the next DATA chunk offset */
-        this->input->seek(this->input, this->next_data_chunk_offset, SEEK_SET);
+    /* seek to the next DATA chunk offset */
+    this->input->seek(this->input, this->next_data_chunk_offset, SEEK_SET);
 
-        /* load the DATA chunk preamble */
-        if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-          PREAMBLE_SIZE) {
-          this->status = DEMUX_FINISHED;
-          break;
-        }
+    /* load the DATA chunk preamble */
+    if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+      PREAMBLE_SIZE) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
 
-        /* load the rest of the DATA chunk header */
-        if (this->input->read(this->input, data_chunk_header, 
-          DATA_CHUNK_HEADER_SIZE) != DATA_CHUNK_HEADER_SIZE) {
-          this->status = DEMUX_FINISHED;
-          break;
-        }
+    /* load the rest of the DATA chunk header */
+    if (this->input->read(this->input, data_chunk_header, 
+      DATA_CHUNK_HEADER_SIZE) != DATA_CHUNK_HEADER_SIZE) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
 printf ("**** found next DATA tag\n");
-        this->current_data_chunk_packet_count = BE_32(&data_chunk_header[2]);
-        this->next_data_chunk_offset = BE_32(&data_chunk_header[6]);
-      }
-
-if (!this->current_data_chunk_packet_count) {
-  this->status = DEMUX_FINISHED;
-  break;
-}
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_real: demux loop finished (status: %d)\n",
-          this->status);
-
-  /* seek back to the beginning of the data in preparation for another
-   * start */
-  this->input->seek(this->input, this->data_start, SEEK_SET);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+    this->current_data_chunk_packet_count = BE_32(&data_chunk_header[2]);
+    this->next_data_chunk_offset = BE_32(&data_chunk_header[6]);
   }
 
-  this->thread_running = 0;
-
-  pthread_mutex_unlock( &this->mutex );
-
-  return NULL;
+  if (!this->current_data_chunk_packet_count) {
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+  return this->status;
 }
 
 static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
   demux_real_t *this = (demux_real_t *) this_gen;
   buf_element_t *buf;
-
-  pthread_mutex_lock( &this->mutex );
 
   this->video_fifo = this->stream->video_fifo;
   this->audio_fifo = this->stream->audio_fifo;
@@ -391,79 +340,29 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock( &this->mutex );
 }
 
 static int demux_real_seek (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time);
-
-static int demux_real_start (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
 
   demux_real_t *this = (demux_real_t *) this_gen;
-  int err;
-
-  pthread_mutex_lock(&this->mutex);
-
-  demux_real_seek(this_gen, start_pos, start_time);
 
   /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
+  if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
 /*    xine_demux_control_newpts(this->stream, 0, 0);
 */
 
     this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_real_loop, this)) != 0) {
-      printf ("demux_real: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
   }
 
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
-}
-
-static int demux_real_seek (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
-
-  return 0;
-}
-
-static void demux_real_stop (demux_plugin_t *this_gen) {
-
-  demux_real_t *this = (demux_real_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_real_dispose (demux_plugin_t *this_gen) {
 
   demux_real_t *this = (demux_real_t *) this_gen;
-
-  demux_real_stop(this_gen);
 
   free(this->packets);
   free(this);
@@ -499,16 +398,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_real_send_headers;
-  this->demux_plugin.start             = demux_real_start;
+  this->demux_plugin.send_chunk        = demux_real_send_chunk;
   this->demux_plugin.seek              = demux_real_seek;
-  this->demux_plugin.stop              = demux_real_stop;
   this->demux_plugin.dispose           = demux_real_dispose;
   this->demux_plugin.get_status        = demux_real_get_status;
   this->demux_plugin.get_stream_length = demux_real_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -610,6 +507,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 14, "real", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "real", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

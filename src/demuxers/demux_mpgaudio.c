@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.72 2002/10/27 00:27:26 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.73 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <sched.h>
 #include <string.h>
 #include <stdlib.h>
@@ -66,13 +65,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-
   int                  status;
-
-  int                  send_end_buffers;
 
   int                  stream_length;
   long                 bitrate;
@@ -323,74 +316,14 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
   return worked;
 }
 
-static void *demux_mpgaudio_loop (void *this_gen) {
+static int demux_mpgaudio_send_chunk (demux_plugin_t *this_gen) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  pthread_mutex_lock( &this->mutex );
-  
-  /* do-while needed to seek after demux finished */
-  do {
+  if (!demux_mpgaudio_next (this, 0))
+    this->status = DEMUX_FINISHED;
 
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
- 
-      if (!demux_mpgaudio_next (this, 0))
-        this->status = DEMUX_FINISHED;
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-  
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
-  }
-  printf ("demux_mpgaudio: demux loop finished.\n");
-
-  this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
-  pthread_exit(NULL);
-
-  return NULL;
-}
-
-static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
-
-  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-  
-  if (!this->thread_running) {
-    printf ("demux_mpgaudio_block: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-  
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
@@ -442,8 +375,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
 static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-
-  pthread_mutex_lock (&this->mutex);
+  int i;
 
   this->stream_length = 0;
   this->bitrate       = 0;
@@ -456,51 +388,36 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
-    if (!this->thread_running) {
+      
+    head = demux_mpgaudio_read_head(this->input);
 
-      head = demux_mpgaudio_read_head(this->input);
+    if (mpg123_head_check(head))
+      mpg123_decode_header(this,head);
 
-      if (mpg123_head_check(head))
-        mpg123_decode_header(this,head);
-
-      read_id3_tags (this);
-
-    }
+    read_id3_tags (this);
   }
 
   /*
    * send preview buffers
    */
-    
-  if (!this->thread_running) {
-    int i;
+  xine_demux_control_start (this->stream);
 
-    xine_demux_control_start (this->stream);
-
-    if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) 
-      this->input->seek (this->input, 0, SEEK_SET);
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) 
+    this->input->seek (this->input, 0, SEEK_SET);
     
-    for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
-      if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
-        break;
-      }
+  for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
+    if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
+      break;
     }
   }
 
   xine_demux_control_headers_done (this->stream);
-
-  
-  pthread_mutex_unlock (&this->mutex);
 }
 
-static int demux_mpgaudio_start (demux_plugin_t *this_gen,
+static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
 				 off_t start_pos, int start_time) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  int err;
-  int status;
-  
-  pthread_mutex_lock( &this->mutex );
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
@@ -514,43 +431,18 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
   this->send_newpts = 1;
 
-  if( !this->thread_running ) {
-    /*
-     * now start demuxing
-     */
-
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
+  if( !this->stream->demux_thread_running ) {
     this->buf_flag_seek = 0;
-    if ((err = pthread_create (&this->thread,
-			     NULL, demux_mpgaudio_loop, this)) != 0) {
-      printf ("demux_mpgaudio: can't create new thread (%s)\n",
-	      strerror(err));
-      abort();
-    }
   }
   else {
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
   }
-  /* this->status is saved because we can be interrupted between
-   * pthread_mutex_unlock and return
-   */
-  status = this->status;
-  pthread_mutex_unlock( &this->mutex );
-  return status;
-}
-
-static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
-			     off_t start_pos, int start_time) {
-  /* demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen; */
-
-  return demux_mpgaudio_start (this_gen, start_pos, start_time);
+  
+  return this->status;
 }
 
 static void demux_mpgaudio_dispose (demux_plugin_t *this) {
-
-  demux_mpgaudio_stop (this);
 
   free (this);
 }
@@ -661,9 +553,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this = xine_xmalloc (sizeof (demux_mpgaudio_t));
 
   this->demux_plugin.send_headers      = demux_mpgaudio_send_headers;
-  this->demux_plugin.start             = demux_mpgaudio_start;
+  this->demux_plugin.send_chunk        = demux_mpgaudio_send_chunk;
   this->demux_plugin.seek              = demux_mpgaudio_seek;
-  this->demux_plugin.stop              = demux_mpgaudio_stop;
   this->demux_plugin.dispose           = demux_mpgaudio_dispose;
   this->demux_plugin.get_status        = demux_mpgaudio_get_status;
   this->demux_plugin.get_stream_length = demux_mpgaudio_get_stream_length;
@@ -673,8 +564,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->audio_fifo = stream->audio_fifo;
   this->status     = DEMUX_FINISHED;
   this->stream     = stream;
-
-  pthread_mutex_init( &this->mutex, NULL );
   
   return &this->demux_plugin;
 }
@@ -736,6 +625,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "mp3", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 15, "mp3", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.133 2002/10/27 22:56:08 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.134 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <sched.h>
 #include <string.h>
 #include <stdlib.h>
@@ -64,16 +63,11 @@ typedef struct demux_mpeg_block_s {
 
   input_plugin_t       *input;
 
-  pthread_t             thread;
-  int                   thread_running;
-  pthread_mutex_t       mutex;
-
   int                   status;
   
   int                   blocksize;
   int                   rate;
 
-  int                   send_end_buffers;
   int                   warned; /* encryption warning */
 
   char                  cur_mrl[256];
@@ -628,55 +622,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   
 }
 
-static void *demux_mpeg_block_loop (void *this_gen) {
+static int demux_mpeg_block_send_chunk (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
 
-  /* printf ("demux_mpeg_block: demux loop starting...\n"); */
-  pthread_mutex_lock( &this->mutex );
+  demux_mpeg_block_parse_pack(this, 0);
 
-  /* do-while needed to seek after demux finished */
-  do {
-
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
-
-      demux_mpeg_block_parse_pack(this, 0);
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-
-  /*
-  printf ("demux_mpeg_block: demux loop finished (status: %d)\n",
-	  this->status);
-  */
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
-  }
-
-  this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
-  
-  pthread_exit(NULL);
-
-  return NULL;
+  return this->status;
 }
 
 /* estimate bitrate */
@@ -818,37 +770,12 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   
 }
 
-static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
-
-  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-  
-  if (!this->thread_running) {
-    printf ("demux_mpeg_block: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-  
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-  
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
-}
-
 static void demux_mpeg_block_dispose (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  demux_mpeg_block_stop(this_gen);
+  
   free (this->scratch_base);
   free (this);
-  
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -882,7 +809,6 @@ static int demux_mpeg_detect_blocksize(demux_mpeg_block_t *this,
 static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  pthread_mutex_lock (&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -925,21 +851,13 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_BITRATE]   = this->rate * 50 * 8;
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
-
-  return;
 }
 
 
-static int demux_mpeg_block_start (demux_plugin_t *this_gen,
+static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
 				   off_t start_pos, int start_time) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  int err;
-  int status;
-
-  pthread_mutex_lock( &this->mutex );
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
@@ -962,41 +880,20 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
    * now start demuxing
    */
   this->send_newpts = 1;
-  if( !this->thread_running ) {
+  if( !this->stream->demux_thread_running ) {
     
     this->buf_flag_seek = 0;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
     this->status   = DEMUX_OK ;
     this->last_pts[0]   = 0;
     this->last_pts[1]   = 0;
-    
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-    if ((err = pthread_create (&this->thread,
-			       NULL, demux_mpeg_block_loop, this)) != 0) {
-      printf ("demux_mpeg_block: can't create new thread (%s)\n",
-	      strerror(err));
-      abort();
-    }
   } else {
     this->buf_flag_seek = 1;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
     xine_demux_flush_engine(this->stream);
   }
   
-  /* this->status is saved because we can be interrupted between
-   * pthread_mutex_unlock and return
-   */
-  status = this->status;
-  pthread_mutex_unlock( &this->mutex );
-  return status;
-}
-
-static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
-				  off_t start_pos, int start_time) {
-  /* demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen; */
-
-  return demux_mpeg_block_start (this_gen, start_pos, start_time);
+  return this->status;
 }
 
 
@@ -1051,20 +948,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->stream = stream;
   this->input  = input;
-
+  
   this->demux_plugin.send_headers      = demux_mpeg_block_send_headers;
-  this->demux_plugin.start             = demux_mpeg_block_start;
+  this->demux_plugin.send_chunk        = demux_mpeg_block_send_chunk;
   this->demux_plugin.seek              = demux_mpeg_block_seek;
-  this->demux_plugin.stop              = demux_mpeg_block_stop;
   this->demux_plugin.dispose           = demux_mpeg_block_dispose;
   this->demux_plugin.get_status        = demux_mpeg_block_get_status;
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
-  
   this->scratch = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
 
 #ifdef LOG
   printf ("demux_mpeg_block:open_plugin:detection_method=%d\n",
@@ -1203,6 +1097,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.22 2002/10/27 16:14:30 tmmm Exp $
+ * $Id: demux_wav.c,v 1.23 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  */
 
@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -61,10 +59,6 @@ typedef struct {
 
   input_plugin_t      *input;
 
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-  int                  send_end_buffers;
   int                  status;
 
   xine_waveformatex    *wave;
@@ -154,7 +148,7 @@ static int open_wav_file(demux_wav_t *this) {
   return 1;
 }
 
-static void *demux_wav_loop (void *this_gen) {
+static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
 
   demux_wav_t *this = (demux_wav_t *) this_gen;
   buf_element_t *buf = NULL;
@@ -162,97 +156,55 @@ static void *demux_wav_loop (void *this_gen) {
   off_t current_file_pos;
   int64_t current_pts;
 
-  pthread_mutex_lock( &this->mutex );
-  this->seek_flag = 1;
+  /* just load data chunks from wherever the stream happens to be
+   * pointing; issue a DEMUX_FINISHED status if EOF is reached */
+  remaining_sample_bytes = this->wave->nBlockAlign;
+  current_file_pos = 
+    this->input->get_current_pos(this->input) - this->data_start;
 
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
+  current_pts = current_file_pos;
+  current_pts *= 90000;
+  current_pts /= this->wave->nAvgBytesPerSec;
 
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-
-      /* just load data chunks from wherever the stream happens to be
-       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-      remaining_sample_bytes = this->wave->nBlockAlign;
-      current_file_pos = 
-        this->input->get_current_pos(this->input) - this->data_start;
-
-      current_pts = current_file_pos;
-      current_pts *= 90000;
-      current_pts /= this->wave->nAvgBytesPerSec;
-
-      if (this->seek_flag) {
-        xine_demux_control_newpts(this->stream, current_pts, 0);
-        this->seek_flag = 0;
-      }
-
-      while (remaining_sample_bytes) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = this->audio_type;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->data_size;
-        buf->input_time = current_pts / 90000;
-        buf->pts = current_pts;
-
-        if (remaining_sample_bytes > buf->max_size)
-          buf->size = buf->max_size;
-        else
-          buf->size = remaining_sample_bytes;
-        remaining_sample_bytes -= buf->size;
-
-        if (this->input->read(this->input, buf->content, buf->size) !=
-          buf->size) {
-          buf->free_buffer(buf);
-          this->status = DEMUX_FINISHED;
-          break;
-        }
-
-        if (!remaining_sample_bytes)
-          buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_wav: demux loop finished (status: %d)\n",
-          this->status);
-
-  /* seek back to the beginning of the data in preparation for another
-   * start */
-  this->input->seek(this->input, this->data_start, SEEK_SET);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
+  if (this->seek_flag) {
+    xine_demux_control_newpts(this->stream, current_pts, 0);
+    this->seek_flag = 0;
   }
 
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
-  return NULL;
+  while (remaining_sample_bytes) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->input_pos = current_file_pos;
+    buf->input_length = this->data_size;
+    buf->input_time = current_pts / 90000;
+    buf->pts = current_pts;
+
+    if (remaining_sample_bytes > buf->max_size)
+      buf->size = buf->max_size;
+    else
+      buf->size = remaining_sample_bytes;
+    remaining_sample_bytes -= buf->size;
+
+    if (this->input->read(this->input, buf->content, buf->size) !=
+      buf->size) {
+      buf->free_buffer(buf);
+      this->status = DEMUX_FINISHED;
+      break;
+    }
+
+    if (!remaining_sample_bytes)
+      buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  return this->status;
 }
 
 static void demux_wav_send_headers(demux_plugin_t *this_gen) {
 
   demux_wav_t *this = (demux_wav_t *) this_gen;
   buf_element_t *buf;
-
-  pthread_mutex_lock(&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -288,55 +240,19 @@ static void demux_wav_send_headers(demux_plugin_t *this_gen) {
 
   xine_demux_control_headers_done (this->stream);
 
-  pthread_mutex_unlock (&this->mutex);
-}
-
-static int demux_wav_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time);
-
-static int demux_wav_start (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
-
-  demux_wav_t *this = (demux_wav_t *) this_gen;
-  int err;
-
-  demux_wav_seek(this_gen, start_pos, start_time);
-
-  pthread_mutex_lock(&this->mutex);
-
-  /* if thread is not running, initialize demuxer */
-  if (!this->thread_running) {
-
-    this->status = DEMUX_OK;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
-
-    if ((err = pthread_create (&this->thread, NULL, demux_wav_loop, this)) != 0) {
-      printf ("demux_wav: can't create new thread (%s)\n", strerror(err));
-      abort();
-    }
-  }
-
-  pthread_mutex_unlock(&this->mutex);
-
-  return DEMUX_OK;
 }
 
 static int demux_wav_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time) {
 
   demux_wav_t *this = (demux_wav_t *) this_gen;
-  int status;
-
-  pthread_mutex_lock(&this->mutex);
 
   /* check the boundary offsets */
   if (start_pos <= 0)
     this->input->seek(this->input, this->data_start, SEEK_SET);
   else if (start_pos >= this->data_size) {
-    status = this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return status;
+    this->status = DEMUX_FINISHED;
+    return this->status;
   } else {
     /* This function must seek along the block alignment. The start_pos
      * is in reference to the start of the data. Divide the start_pos by
@@ -351,46 +267,19 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
   }
 
   this->seek_flag = 1;
-  status = this->status = DEMUX_OK;
+  this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
-  pthread_mutex_unlock(&this->mutex);
-
-  return status;
-}
-
-static void demux_wav_stop (demux_plugin_t *this_gen) {
-
-  demux_wav_t *this = (demux_wav_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    pthread_mutex_unlock( &this->mutex );
-    return;
+  
+  /* if thread is not running, initialize demuxer */
+  if( !this->stream->demux_thread_running ) {
   }
 
-  /* seek back to the beginning of the data in preparation for another
-   * start */
-  this->input->seek(this->input, this->data_start, SEEK_SET);
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static void demux_wav_dispose (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
-  demux_wav_stop(this_gen);
-
-  pthread_mutex_destroy (&this->mutex);
   free(this);
 }
 
@@ -424,16 +313,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_wav_send_headers;
-  this->demux_plugin.start             = demux_wav_start;
+  this->demux_plugin.send_chunk        = demux_wav_send_chunk;
   this->demux_plugin.seek              = demux_wav_seek;
-  this->demux_plugin.stop              = demux_wav_stop;
   this->demux_plugin.dispose           = demux_wav_dispose;
   this->demux_plugin.get_status        = demux_wav_get_status;
   this->demux_plugin.get_stream_length = demux_wav_get_stream_length;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init (&this->mutex, NULL);
 
   switch (stream->content_detection_method) {
 
@@ -552,6 +439,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "wav", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 15, "wav", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

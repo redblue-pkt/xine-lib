@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.91 2002/10/27 00:01:13 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.92 2002/10/28 03:24:43 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -60,18 +58,12 @@ typedef struct demux_mpeg_s {
   xine_stream_t	      *stream;
   input_plugin_t      *input;
 
-  pthread_t            thread;
-  int                  thread_running;
-  pthread_mutex_t      mutex;
-
   unsigned char        dummy_space[100000];
 
   int                  status;
   int                  preview_mode;
 
   int                  rate;
-
-  int                  send_end_buffers;
 
   int64_t              last_pts[2];
   int                  send_newpts;
@@ -777,75 +769,17 @@ static void demux_mpeg_resync (demux_mpeg_t *this, uint32_t buf) {
   }
 }
 
-static void *demux_mpeg_loop (void *this_gen) {
+static int demux_mpeg_send_chunk (demux_plugin_t *this_gen) {
 
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
+
   uint32_t w=0;
 
-  pthread_mutex_lock( &this->mutex );
-  /* do-while needed to seek after demux finished */
-  do {
+  w = parse_pack (this);
+  if (w != 0x000001ba)
+    demux_mpeg_resync (this, w);
 
-    /* main demuxer loop */
-    while(this->status == DEMUX_OK) {
-      w = parse_pack (this);
-      if (w != 0x000001ba)
-        demux_mpeg_resync (this, w);
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while( this->status == DEMUX_OK );
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
-  }
-
-  printf ("demux_mpeg: demux thread finished (status: %d, buf:%x)\n",
-          this->status, w);
-
-  this->thread_running = 0;
-  pthread_mutex_unlock( &this->mutex );
-
-  pthread_exit(NULL);
-
-  return NULL;
-}
-
-static void demux_mpeg_stop (demux_plugin_t *this_gen) {
-
-  demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
-  void *p;
-
-  pthread_mutex_lock( &this->mutex );
-
-  if (!this->thread_running) {
-    printf ("demux_mpeg: stop...ignored\n");
-    pthread_mutex_unlock( &this->mutex );
-    return;
-  }
-
-  this->send_end_buffers = 0;
-  this->status = DEMUX_FINISHED;
-
-  pthread_mutex_unlock( &this->mutex );
-  pthread_join (this->thread, &p);
-
-  xine_demux_flush_engine(this->stream);
-
-  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+  return this->status;
 }
 
 static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
@@ -860,8 +794,6 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
   uint32_t w;
   int num_buffers = NUM_PREVIEW_BUFFERS;
     
-  pthread_mutex_lock( &this->mutex );
-
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
@@ -900,18 +832,12 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate * 50 * 8;
 
   xine_demux_control_headers_done (this->stream);
-
-  pthread_mutex_unlock (&this->mutex);
 }
 
-static int demux_mpeg_start (demux_plugin_t *this_gen,
+static int demux_mpeg_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
 
   demux_mpeg_t   *this = (demux_mpeg_t *) this_gen;
-  int             err;
-  int             status;
-
-  pthread_mutex_lock( &this->mutex );
 
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
 
@@ -929,42 +855,19 @@ static int demux_mpeg_start (demux_plugin_t *this_gen,
   this->send_newpts = 1;
   this->status = DEMUX_OK ;
 
-  if( !this->thread_running ) {
+  if( !this->stream->demux_thread_running ) {
     this->preview_mode = 0;
-    this->send_end_buffers = 1;
-    this->thread_running = 1;
     this->buf_flag_seek = 0;
-
-    if ((err = pthread_create (&this->thread,
-                               NULL, demux_mpeg_loop, this)) != 0) {
-      printf ("demux_mpeg: can't create new thread (%s)\n",
-              strerror(err));
-      abort();
-    }
   }
   else {
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
   }
 
-  /* this->status is saved because we can be interrupted between
-   * pthread_mutex_unlock and return
-   */
-  status = this->status;
-  pthread_mutex_unlock( &this->mutex );
-  return status;
-}
-
-static int demux_mpeg_seek (demux_plugin_t *this_gen,
-                             off_t start_pos, int start_time) {
-  /* demux_mpeg_t *this = (demux_mpeg_t *) this_gen; */
-
-  return demux_mpeg_start (this_gen, start_pos, start_time);
+  return this->status;
 }
 
 static void demux_mpeg_dispose (demux_plugin_t *this_gen) {
-
-  demux_mpeg_stop (this_gen);
 
   free (this_gen);
 }
@@ -989,9 +892,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->input  = input;
 
   this->demux_plugin.send_headers      = demux_mpeg_send_headers;
-  this->demux_plugin.start             = demux_mpeg_start;
+  this->demux_plugin.send_chunk       = demux_mpeg_send_chunk;
   this->demux_plugin.seek              = demux_mpeg_seek;
-  this->demux_plugin.stop              = demux_mpeg_stop;
   this->demux_plugin.dispose           = demux_mpeg_dispose;
   this->demux_plugin.get_status        = demux_mpeg_get_status;
   this->demux_plugin.get_stream_length = demux_mpeg_get_stream_length;
@@ -999,9 +901,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->status = DEMUX_FINISHED;
   this->has_pts = 0;
-
-  pthread_mutex_init( &this->mutex, NULL );
-
 
   switch (stream->content_detection_method) {
 
