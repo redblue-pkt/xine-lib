@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.66 2003/05/03 14:24:06 mroi Exp $
+ * $Id: spu.c,v 1.67 2003/08/05 15:08:40 mroi Exp $
  *
  */
 
@@ -851,7 +851,8 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
 } 
 void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
                                 vo_overlay_t * overlay, vo_overlay_t * base ) {
-  btni_t *button_ptr;
+  btni_t *button_ptr = NULL;
+  unsigned int btns_per_group;
   int i;
 
   /* FIXME: Need to communicate with dvdnav vm to get/set 
@@ -862,13 +863,24 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
    *   button = this->pci.hli.hl_gi.fosl_btnn ;
    * }
    */
-  if((button <= 0) || (button > nav_pci->hli.hl_gi.btn_ns)) {
-    printf("libspudec:xine_decoder.c:Unable to select button number %i as it doesn't exist. Forcing button 1\n",
-	      button);
-    button = 1;
+  if((button <= 0) || (button > nav_pci->hli.hl_gi.btn_ns))
+    return;
+  
+  btns_per_group = 36 / nav_pci->hli.hl_gi.btngr_ns;
+  
+  /* choose button group: we can always use a normal 4:3 or widescreen button group
+   * as long as xine blends the overlay before scaling the image to its aspect */
+  if (!button_ptr && nav_pci->hli.hl_gi.btngr_ns >= 1 && !(nav_pci->hli.hl_gi.btngr1_dsp_ty & 6))
+    button_ptr = &nav_pci->hli.btnit[0 * btns_per_group + button - 1];
+  if (!button_ptr && nav_pci->hli.hl_gi.btngr_ns >= 2 && !(nav_pci->hli.hl_gi.btngr2_dsp_ty & 6))
+    button_ptr = &nav_pci->hli.btnit[1 * btns_per_group + button - 1];
+  if (!button_ptr && nav_pci->hli.hl_gi.btngr_ns >= 3 && !(nav_pci->hli.hl_gi.btngr3_dsp_ty & 6))
+    button_ptr = &nav_pci->hli.btnit[2 * btns_per_group + button - 1];
+  if (!button_ptr) {
+    printf("libspudec: No suitable menu button group found, using group 1.\n");
+    button_ptr = &nav_pci->hli.btnit[button - 1];
   }
-  /* FIXME:Only the first grouping of buttons are used at the moment */
-  button_ptr = &nav_pci->hli.btnit[button-1];
+  
   /* button areas in the nav packet are in screen coordinates,
    * overlay clipping areas are in overlay coordinates;
    * therefore we must subtract the display coordinates of the underlying overlay */
