@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.22 2001/06/17 01:04:38 guenter Exp $
+ * $Id: video_out.c,v 1.23 2001/06/17 02:22:30 guenter Exp $
  *
  */
 
@@ -114,7 +114,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
 
   return img;
 }
-/*
+
 static void vo_set_timer (uint32_t video_step) {
   struct itimerval tval;
 
@@ -133,7 +133,7 @@ void video_timer_handler (int hubba) {
   signal (SIGALRM, video_timer_handler);
 
 }
-*/
+
 static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
@@ -154,35 +154,37 @@ static void *video_out_loop (void *this_gen) {
   pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
   */
 
-  /*
+  
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
     printf ("video_out: sigprocmask failed.\n");
   }
   signal (SIGALRM, video_timer_handler);
-  */
+  
   
   video_step = this->metronom->get_video_rate (this->metronom);
 
-  ts.tv_sec = 0;
-  ts.tv_nsec = video_step * 10000 / 9;
+  /*
+    ts.tv_sec = 0;
+    ts.tv_nsec = video_step * 2000 / 9;
+  */
 
-  /* vo_set_timer (video_step); */
+  vo_set_timer (video_step); 
 
 
   while (this->video_loop_running) {
 
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
 
-    /* pause (); */
-    nanosleep (&ts, NULL);
+    pause (); 
+    /* nanosleep (&ts, NULL); */
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
-      /* vo_set_timer (video_step); */
-      ts.tv_nsec = video_step * 10000 / 9;
+      vo_set_timer (video_step); 
+      /* ts.tv_nsec = video_step * 2000 / 9; */
     }
 
     pts_absdiff = 1000000;
