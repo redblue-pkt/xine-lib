@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.18 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.19 2004/11/24 16:11:09 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -219,6 +219,8 @@ struct xvmc_driver_s {
 
   void                *user_data;
   xine_t              *xine;
+
+  alphablend_t         alphablend_extra_data;
 };
 
 
@@ -868,6 +870,7 @@ static void xvmc_compute_output_size (xvmc_driver_t *this) {
 
 static void xvmc_overlay_blend (vo_driver_t *this_gen, 
 				vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+  xvmc_driver_t  *this  = (xvmc_driver_t *) this_gen;
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
 
   lprintf ("xvmc_overlay_blend\n");
@@ -879,10 +882,12 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12)
       blend_yuv(frame->vo_frame.base, overlay, 
-		frame->width, frame->height, frame->vo_frame.pitches);
+		frame->width, frame->height, frame->vo_frame.pitches,
+                &this->alphablend_extra_data);
     else
       blend_yuy2(frame->vo_frame.base[0], overlay, 
-		 frame->width, frame->height, frame->vo_frame.pitches[0]);
+		 frame->width, frame->height, frame->vo_frame.pitches[0],
+                 &this->alphablend_extra_data);
   }
 }
 
@@ -1281,6 +1286,8 @@ static void xvmc_dispose (vo_driver_t *this_gen) {
     this->recent_frames[i] = NULL;
   }
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+
   free (this);
 }
 
@@ -1386,6 +1393,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   
   if (!this)
     return NULL;
+
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
 
   this->display            = visual->display;
   this->overlay            = NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.42 2004/11/23 15:01:23 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.43 2004/11/24 16:11:04 mroi Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -114,6 +114,7 @@ typedef struct {
 
   vo_driver_t        vo_driver;
   vo_scale_t         sc;
+  alphablend_t       alphablend_extra_data;
 
   /* X11 related stuff */
   Display           *display;
@@ -950,13 +951,15 @@ static void opengl_overlay_blend (vo_driver_t *this_gen,
         opengl_overlay_clut_yuv2rgb (this, overlay, frame);
 
 #     if BYTES_PER_PIXEL == 3
-        blend_rgb24 ((uint8_t *)frame->rgb, overlay,
-		     frame->width, frame->height,
-		     frame->width, frame->height);
+      blend_rgb24 ((uint8_t *)frame->texture, overlay,
+		   frame->width, frame->height,
+		   frame->width, frame->height,
+                   &this->alphablend_extra_data);
 #     elif BYTES_PER_PIXEL == 4
-	blend_rgb32 ((uint8_t *)frame->rgb, overlay,
-		     frame->width, frame->height,
-		     frame->width, frame->height);
+      blend_rgb32 ((uint8_t *)frame->texture, overlay,
+		   frame->width, frame->height,
+		   frame->width, frame->height,
+                   &this->alphablend_extra_data);
 #     else
 #       error "bad BYTES_PER_PIXEL"
 #     endif
@@ -1256,6 +1259,8 @@ static void opengl_dispose (vo_driver_t *this_gen) {
     XUnlockDisplay (this->display);
   }
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+    
   free (this);
 }
 
@@ -1294,6 +1299,8 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
   this->sc.dest_size_cb     = visual->dest_size_cb;
   this->sc.user_data        = visual->user_data;
   this->sc.user_ratio       = XINE_VO_ASPECT_AUTO;
+  
+  _x_alphablend_init (&this->alphablend_extra_data, class->xine);
   
   this->drawable	    = visual->d;
   this->gui_width  = this->gui_height  = -1;
@@ -1368,7 +1375,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
 						      _("enable double buffering"),
 						      _("For OpenGL double buffering does not only remove tearing artifacts,\n"
 							"it also reduces flickering a lot.\n"
-							" It should not have any performance impact."),
+							"It should not have any performance impact."),
 						      20, NULL, NULL);
   
   pthread_mutex_init (&this->render_action_mutex, NULL);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.22 2004/04/10 15:29:58 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.23 2004/11/24 16:11:03 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #include "vo_scale.h"
 #include "dxr3_scr.h"
 #include "dxr3.h"
+#include "alphablend.h"
 
 /* the number of supported encoders */
 #define SUPPORTED_ENCODER_COUNT 3
@@ -116,6 +117,7 @@ typedef struct dxr3_driver_s {
   int                  top_bar;             /* the height of the upper black bar */
   
   vo_scale_t           scale;
+  alphablend_t         alphablend_extra_data;
 
   dxr3_overlay_t       overlay;
 #ifdef HAVE_X11

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.205 2004/09/22 20:29:16 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.206 2004/11/24 16:11:08 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -154,6 +154,8 @@ struct xv_driver_s {
   int              (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
   xine_t            *xine;
+
+  alphablend_t       alphablend_extra_data;
 };
 
 typedef struct {
@@ -667,10 +669,12 @@ static void xv_overlay_blend (vo_driver_t *this_gen,
     } else {
       if (frame->format == XINE_IMGFMT_YV12)
         blend_yuv(frame->vo_frame.base, overlay, 
-		  frame->width, frame->height, frame->vo_frame.pitches);
+		  frame->width, frame->height, frame->vo_frame.pitches,
+                  &this->alphablend_extra_data);
       else
         blend_yuy2(frame->vo_frame.base[0], overlay, 
-		   frame->width, frame->height, frame->vo_frame.pitches[0]);
+		   frame->width, frame->height, frame->vo_frame.pitches[0],
+                   &this->alphablend_extra_data);
     }
   }
 }
@@ -1083,6 +1087,8 @@ static void xv_dispose (vo_driver_t *this_gen) {
     XUnlockDisplay (this->display);
   }
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free (this);
 }
 
@@ -1244,6 +1250,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   if (!this)
     return NULL;
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->config            = config;

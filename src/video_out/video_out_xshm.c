@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.136 2004/10/08 20:54:36 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.137 2004/11/24 16:11:08 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -119,6 +119,8 @@ typedef struct {
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
   xine_t            *xine;
+
+  alphablend_t       alphablend_extra_data;
 } xshm_driver_t;
 
 typedef struct {
@@ -662,17 +664,20 @@ static void xshm_overlay_blend (vo_driver_t *this_gen,
         case 16:
          blend_rgb16 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
-		      frame->sc.delivered_width, frame->sc.delivered_height);
+		      frame->sc.delivered_width, frame->sc.delivered_height,
+                      &this->alphablend_extra_data);
          break;
         case 24:
          blend_rgb24 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
-		      frame->sc.delivered_width, frame->sc.delivered_height);
+		      frame->sc.delivered_width, frame->sc.delivered_height,
+                      &this->alphablend_extra_data);
          break;
         case 32:
          blend_rgb32 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
-		      frame->sc.delivered_width, frame->sc.delivered_height);
+		      frame->sc.delivered_width, frame->sc.delivered_height,
+                      &this->alphablend_extra_data);
          break;
         default:
 	  xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
@@ -991,6 +996,8 @@ static void xshm_dispose (vo_driver_t *this_gen) {
     XUnlockDisplay (this->display);
   }
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free (this);
 }
 
@@ -1067,6 +1074,8 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   if (!this)
     return NULL;
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->display		    = visual->display;
   this->screen		    = visual->screen;
 
@@ -1101,7 +1110,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
   this->vo_driver.dispose              = xshm_dispose;
   this->vo_driver.redraw_needed        = xshm_redraw_needed;
-
+  
   XLockDisplay(this->display);
   XAllocNamedColor (this->display,
 		    DefaultColormap (this->display, this->screen),

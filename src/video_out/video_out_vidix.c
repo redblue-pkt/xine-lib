@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.65 2004/09/22 20:29:16 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.66 2004/11/24 16:11:07 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -144,6 +144,8 @@ struct vidix_driver_s {
   int                 delivered_format;
   
   xine_t             *xine;
+
+  alphablend_t        alphablend_extra_data;
 };
 
 typedef struct vidix_class_s {
@@ -587,9 +589,9 @@ static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, v
 #endif
     } else { 
       if( frame->format == XINE_IMGFMT_YV12 )
-        blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+        blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
       else
-        blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+        blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
     }
   }
 }
@@ -896,6 +898,8 @@ static void vidix_exit (vo_driver_t *this_gen) {
   XUnlockDisplay (this->display);
 #endif
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free (this);
 }
 
@@ -908,6 +912,8 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this = (vidix_driver_t *) xine_xmalloc (sizeof (vidix_driver_t));
   if (!this)
     return NULL;
+
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
   
   pthread_mutex_init (&this->mutex, NULL);
 

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.5 2004/11/19 08:56:30 totte67 Exp $
+ * $Id: xxmc.h,v 1.6 2004/11/24 16:11:10 mroi Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -265,6 +265,8 @@ struct xxmc_driver_s {
    * to protect the XvMC Calls. 
    */ 
   context_lock_t     xvmc_lock;
+
+  alphablend_t       alphablend_extra_data;
 };
 
 typedef struct {

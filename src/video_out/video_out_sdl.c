@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.40 2004/09/22 20:29:16 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.41 2004/11/24 16:11:06 mroi Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -105,6 +105,8 @@ struct sdl_driver_s {
   
   vo_scale_t         sc;
   xine_t            *xine;
+
+  alphablend_t       alphablend_extra_data;
 };
 
 typedef struct {
@@ -237,14 +239,14 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
  *
  */
 static void sdl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
-
+  sdl_driver_t  *this = (sdl_driver_t *) this_gen;
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
 
   if (overlay->rle) {
     if( frame->format == XINE_IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
     else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
   }
 
 }
@@ -446,6 +448,8 @@ static void sdl_dispose (vo_driver_t * this_gen) {
   SDL_FreeSurface (this->surface);
   SDL_QuitSubSystem (SDL_INIT_VIDEO);
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free(this);
 }
 
@@ -466,6 +470,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   if (!this)
     return NULL;
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
   
   this->hw_accel = class->config->register_bool(class->config, 

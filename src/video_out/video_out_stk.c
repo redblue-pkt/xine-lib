@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.13 2004/09/22 20:29:16 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.14 2004/11/24 16:11:06 mroi Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -93,6 +93,8 @@ typedef struct stk_driver_s {
     uint32_t           capabilities;
     vo_scale_t         sc;
     xine_t            *xine;
+
+    alphablend_t       alphablend_extra_data;
 } stk_driver_t;
 
 
@@ -222,14 +224,15 @@ static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
 
 
 static void stk_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+    stk_driver_t* this = (stk_driver_t*)this_gen;
     stk_frame_t* frame = (stk_frame_t*)frame_gen;
     //printf("video_out_stk: overlay_blend()\n");
 
     if (overlay->rle) {
         if (frame->format == XINE_IMGFMT_YV12)
-            blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+            blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
         else
-            blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+            blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
     }
 
 }
@@ -373,6 +376,9 @@ static void stk_dispose (vo_driver_t * this_gen) {
     
     /* FIXME: any libstk deleting must be done in the app or library 
      * since we didn't create the surface */
+    
+    _x_alphablend_free(&this->alphablend_extra_data);
+
     free(this);
 }
 
@@ -386,6 +392,8 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
     this = (stk_driver_t *) xine_xmalloc (sizeof (stk_driver_t));
     if (!this)
       return NULL;
+
+    _x_alphablend_init(&this->alphablend_extra_data, class->xine);
 
     /* populate the video output driver members */
     this->config     = class->config;

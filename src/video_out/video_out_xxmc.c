@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.9 2004/11/19 08:56:30 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.10 2004/11/24 16:11:10 mroi Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -1397,7 +1397,8 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 	    this->first_overlay = 0;
 	  }
 	  blend_xx44(this->subImage->data, overlay, this->subImage->width, 
-		     this->subImage->height, this->subImage->width, 
+		     this->subImage->height, this->subImage->width,
+                     &this->alphablend_extra_data,
 		     &this->palette, (this->subImage->id == FOURCC_IA44));
 	  XVMCLOCKDISPLAY( this->display );
 	  XvMCCompositeSubpicture( this->display, this->new_subpic, 
@@ -1412,10 +1413,12 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
     } else {      
       if (frame->format == XINE_IMGFMT_YV12) {
         blend_yuv(frame->vo_frame.base, overlay, 
-		  frame->width, frame->height, frame->vo_frame.pitches);
+		  frame->width, frame->height, frame->vo_frame.pitches,
+                  &this->alphablend_extra_data);
       } else {
 	blend_yuy2(frame->vo_frame.base[0], overlay, 
-		   frame->width, frame->height, frame->vo_frame.pitches[0]);
+		   frame->width, frame->height, frame->vo_frame.pitches[0],
+                   &this->alphablend_extra_data);
       }
     }
   }
@@ -1820,6 +1823,8 @@ static void xxmc_dispose (vo_driver_t *this_gen) {
   }
   free_context_lock(&this->xvmc_lock);
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free (this);
 }
 
@@ -2138,6 +2143,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   if (!this)
     return NULL;
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->config            = config;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.38 2004/10/09 06:45:48 mroi Exp $
+ * $Id: video_out_fb.c,v 1.39 2004/11/24 16:11:04 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -144,6 +144,8 @@ typedef struct fb_driver_s
 
   int                use_zero_copy;
   xine_t            *xine;
+
+  alphablend_t       alphablend_extra_data;
 } fb_driver_t;
 
 typedef struct
@@ -529,7 +531,8 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 		    frame->sc.output_width,
 		    frame->sc.output_height,
 		    frame->sc.delivered_width,
-		    frame->sc.delivered_height);
+		    frame->sc.delivered_height,
+                    &this->alphablend_extra_data);
         break;
 				
        case 24:
@@ -538,7 +541,8 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 		    frame->sc.output_width,
 		    frame->sc.output_height,
 		    frame->sc.delivered_width,
-		    frame->sc.delivered_height);
+		    frame->sc.delivered_height,
+                    &this->alphablend_extra_data);
         break;
 				
        case 32:
@@ -547,7 +551,8 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 		    frame->sc.output_width,
 		    frame->sc.output_height,
 		    frame->sc.delivered_width,
-		    frame->sc.delivered_height);
+		    frame->sc.delivered_height,
+                    &this->alphablend_extra_data);
 	break;
      }        
    }
@@ -700,6 +705,10 @@ static void fb_dispose(vo_driver_t *this_gen)
   
   munmap(0, this->mem_size);   
   close(this->fd);
+
+  _x_alphablend_free(&this->alphablend_extra_data);
+
+  free(this);
 }
 
 static int get_fb_var_screeninfo(int fd, struct fb_var_screeninfo *var, xine_t *xine)
@@ -968,6 +977,8 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   this = (fb_driver_t *) xine_xmalloc(sizeof(fb_driver_t));
   if(!this)
     return NULL;
+
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
   
   register_callbacks(this);
 

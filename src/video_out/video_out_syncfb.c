@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.98 2004/09/22 20:29:16 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.99 2004/11/24 16:11:06 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -117,6 +117,7 @@ struct syncfb_driver_s {
   int                  video_win_visibility;
   xine_t              *xine;
 
+  alphablend_t         alphablend_extra_data;
 };
 
 typedef struct {
@@ -570,9 +571,9 @@ static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, v
   /* alpha blend here */
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12)
-      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
     else
-      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
   }
 }
 
@@ -849,6 +850,8 @@ static void syncfb_dispose(vo_driver_t *this_gen)
   XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
   
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free(this);
 }
 
@@ -868,6 +871,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    if(!(this = xine_xmalloc(sizeof (syncfb_driver_t))))
      return NULL;
  
+   _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
    /* check for syncfb device */
    if((this->fd = open(class->device_name, O_RDWR)) < 0) {
       xprintf(class->xine, XINE_VERBOSITY_DEBUG,

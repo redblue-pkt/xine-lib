@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.104 2004/09/22 20:29:13 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.105 2004/11/24 16:11:02 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -234,7 +234,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   this = (dxr3_driver_t *)xine_xmalloc(sizeof(dxr3_driver_t));
   if (!this) return NULL;
-
+  
   this->vo_driver.get_capabilities     = dxr3_get_capabilities;
   this->vo_driver.alloc_frame          = dxr3_alloc_frame;
   this->vo_driver.update_frame_format  = dxr3_update_frame_format;
@@ -253,6 +253,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   pthread_mutex_init(&this->spu_device_lock, NULL);
   
   _x_vo_scale_init(&this->scale, 0, 0, config);
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
   
   this->class                          = class;
   this->swap_fields                    = config->register_bool(config,
@@ -808,19 +809,22 @@ static void dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int
 static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
   vo_overlay_t *overlay)
 {
+  dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+  
   if (frame_gen->format != XINE_IMGFMT_DXR3) {
     dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
     
     if (overlay->rle) {
       if (frame_gen->format == XINE_IMGFMT_YV12)
         blend_yuv(frame->vo_frame.base, overlay,
-	  frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.pitches);
+                  frame->vo_frame.width, frame->vo_frame.height,
+                  frame->vo_frame.pitches, &this->alphablend_extra_data);
       else
         blend_yuy2(frame->vo_frame.base[0], overlay,
-	  frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.pitches[0]);
+                   frame->vo_frame.width, frame->vo_frame.height,
+                   frame->vo_frame.pitches[0], &this->alphablend_extra_data);
     }
   } else { /* XINE_IMGFMT_DXR3 */
-    dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
     if (!this->spu_enc->need_reencode) return;
     /* FIXME: we only handle the last overlay because previous ones are simply overwritten */
     this->spu_enc->overlay = overlay;
@@ -1248,6 +1252,9 @@ static void dxr3_dispose(vo_driver_t *this_gen)
   pthread_mutex_unlock(&this->spu_device_lock);
   pthread_mutex_destroy(&this->video_device_lock);
   pthread_mutex_destroy(&this->spu_device_lock);
+
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free(this);
 }
 

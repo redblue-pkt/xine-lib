@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.11 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_pgx32.c,v 1.12 2004/11/24 16:11:05 mroi Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -173,6 +173,8 @@ typedef struct {
   pgx32_frame_t *current;
 
   int delivered_format, deinterlace_en;
+
+  alphablend_t alphablend_extra_data;
 } pgx32_driver_t;
 
 /*
@@ -775,6 +777,9 @@ static void pgx32_dispose(vo_driver_t *this_gen)
 
   munmap(this->vbase, GFXP_VRAM_MMAPLEN);
   munmap((void *)this->vregs, GFXP_REGS_MMAPLEN);
+
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free(this);
 }
 
@@ -804,6 +809,8 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
     return NULL;
   }
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->vo_driver.get_capabilities     = pgx32_get_capabilities;
   this->vo_driver.alloc_frame          = pgx32_alloc_frame;
   this->vo_driver.update_frame_format  = pgx32_update_frame_format;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.27 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_directfb.c,v 1.28 2004/11/24 16:11:03 mroi Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -117,6 +117,7 @@ typedef struct directfb_driver_s {
 			  int video_width, int video_height, 
 			  int *dest_width, int *dest_height);
 
+  alphablend_t     alphablend_extra_data;
 } directfb_driver_t;
 
 typedef struct {
@@ -358,11 +359,13 @@ static void directfb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen
 #   if BYTES_PER_PIXEL == 3
       blend_rgb24 ((uint8_t *)frame->texture, overlay,
                    frame->width, frame->height,
-                   this->delivered_width, this->delivered_height);
+                   this->delivered_width, this->delivered_height,
+                   &this->alphablend_extra_data);
 #   elif BYTES_PER_PIXEL == 4
       blend_rgb32 ((uint8_t *)frame->texture, overlay,
                    frame->width, frame->height,
-                   this->delivered_width, this->delivered_height);
+                   this->delivered_width, this->delivered_height,
+                   &this->alphablend_extra_data);
 #   else
 #     error "bad BYTES_PER_PIXEL"
 #   endif
@@ -505,12 +508,16 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
 static int directfb_redraw_needed (vo_driver_t *this_gen) {
 /*     directfb_driver_t  *this = (directfb_driver_t *) this_gen; */
 
-    return 0;
+  return 0;
 }
 
 
 static void directfb_dispose (vo_driver_t *this_gen) {
-  /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
+
+  _x_alphablend_free(&this->alphablend_extra_data);
+
+  free(this);
 }
 
 typedef struct {
@@ -533,6 +540,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   if (!this)
     return NULL;
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   this->xine                = class->xine;
   this->frame_width	    = 0;
   this->frame_height	    = 0;

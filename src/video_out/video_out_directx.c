@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.19 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_directx.c,v 1.20 2004/11/24 16:11:04 mroi Exp $
  */
 
 typedef unsigned char boolean;
@@ -117,6 +117,8 @@ typedef struct {
   yuv2rgb_t               *yuv2rgb;         /* used for format conversion */
   int			   mode;	    /* rgb mode */
   int		           bytespp;	    /* rgb bits per pixel */
+
+  alphablend_t             alphablend_extra_data;
 } win32_driver_t;
 
 typedef struct {
@@ -399,6 +401,8 @@ void Destroy( win32_driver_t * win32_driver )
   if( win32_driver->ddobj )
     IDirectDraw_Release( win32_driver->ddobj );
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+  
   free( win32_driver );
 }
 
@@ -1099,9 +1103,9 @@ static void win32_overlay_blend( vo_driver_t * vo_driver, vo_frame_t * vo_frame,
   if( vo_overlay->rle )
     {
       if( vo_frame->format == XINE_IMGFMT_YV12 )
-	blend_yuv( win32_frame->vo_frame.base, vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches );
+	blend_yuv( win32_frame->vo_frame.base, vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches, &this->alphablend_extra_data );
       else
-	blend_yuy2( win32_frame->vo_frame.base[0], vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches[0] );
+	blend_yuy2( win32_frame->vo_frame.base[0], vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches[0], &this->alphablend_extra_data );
     }
 }
 
@@ -1171,6 +1175,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *wi
   directx_class_t *class = (directx_class_t *)class_gen;
   win32_driver_t  *win32_driver = ( win32_driver_t * ) xine_xmalloc ( sizeof( win32_driver_t ) );
 
+  _x_alphablend_init(&this->alphablend_extra_data, class->xine);
+  
   win32_driver->xine = class->xine;
 
   /* Make sure that the DirectX drivers are available and present! */
