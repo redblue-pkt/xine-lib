@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.104 2004/04/11 15:27:19 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.105 2004/04/26 17:57:08 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -750,7 +750,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       "OSS device name and the audio device number.\n"
 				       "If you do not need a number because you are happy with "
 				       "your system's default audio device, set this to -1.\n"
-				       "The range of this value is -1 or 0-15."),
+				       "The range of this value is -1 or 0-15. This setting is "
+				       "ignored, when the OSS audio device name is set to \"auto\"."),
 				     10, NULL, NULL);
   if (devname_val == 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG,
@@ -1008,21 +1009,41 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
    */
   {
     char mixer_name[32];
-    char *mixer_num;
+    int mixer_num;
     int mixer_fd;
     int audio_devs;
+    char *parse;
+    
+    mixer_num = config->register_num(config, "audio.mixer_number", -1,
+				     _("OSS audio mixer number, -1 for none"),
+				     _("The full mixer device name is created by taking the "
+				       "OSS device name, replacing \"dsp\" with \"mixer\" and "
+				       "adding the mixer number.\n"
+				       "If you do not need a number because you are happy with "
+				       "your system's default mixer device, set this to -1.\n"
+				       "The range of this value is -1 or 0-15. This setting is "
+				       "ignored, when the OSS audio device name is set to \"auto\"."),
+				     10, NULL, NULL);
     
     /* get the mixer device name from the audio device name by replacing "dsp" with "mixer" */
     strcpy(mixer_name, this->audio_dev);
-    if ((mixer_num = strstr(mixer_name, "dsp"))) {
-      mixer_num[0] = '\0';
-      mixer_num += 3;
-      this->mixer.name = (char *)malloc(strlen(mixer_name) + sizeof("mixer") + strlen(mixer_num));
-      sprintf(this->mixer.name, "%smixer%s", mixer_name, mixer_num);
+    if ((parse = strstr(mixer_name, "dsp"))) {
+      parse[0] = '\0';
+      parse += 3;
+      this->mixer.name = (char *)malloc(strlen(mixer_name) + sizeof("mixer") + 2);
+      if (devname_val == 0)
+	sprintf(this->mixer.name, "%smixer%s", mixer_name, parse);
+      else {
+	if (mixer_num == -1)
+	  sprintf(this->mixer.name, "%smixer", mixer_name);
+	else
+	  sprintf(this->mixer.name, "%smixer%d", mixer_name, mixer_num);
+      }
     } else {
       this->mixer.name = (char *)malloc(1);
       this->mixer.name[0] = '\0';
     }
+    printf("DEBUG: mixer name %s\n", this->mixer.name);
     _x_assert(this->mixer.name[0] != '\0');
     
     mixer_fd = open(this->mixer.name, O_RDONLY);
