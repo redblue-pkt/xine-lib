@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.13 2001/09/27 02:11:16 miguelfreitas Exp $
+* $Id: spu.c,v 1.14 2001/10/04 23:22:21 miguelfreitas Exp $
 *
 *****/
 
@@ -413,6 +413,7 @@ void spuDiscoverClut(spu_state_t *state, vo_overlay_t *ovl)
            ovl->color[seqcolor[1]] = state->clut[state->cur_colors[seqcolor[1]]];
            ovl->color[seqcolor[2]] = state->clut[state->cur_colors[seqcolor[2]]];
            state->need_clut = 0;
+           break;
         }
       }
       if( i == 5 && seqcolor[1] == seqcolor[5]
@@ -431,6 +432,7 @@ void spuDiscoverClut(spu_state_t *state, vo_overlay_t *ovl)
            ovl->color[seqcolor[2]] = state->clut[state->cur_colors[seqcolor[2]]];
            ovl->color[seqcolor[3]] = state->clut[state->cur_colors[seqcolor[3]]];
            state->need_clut = 0;
+           break;
         }
       }
       i = 0;
