@@ -435,9 +435,6 @@ AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 dnl
 dnl dxr3 / hollywood plus card
 dnl
-AC_LINUX_PATH(/usr/src/linux)
-AC_SUBST([LINUX_INCLUDE])
-
 AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
@@ -451,6 +448,9 @@ AM_CONDITIONAL(HAVE_ENCODER, test x"$have_encoder" = "xyes")
 dnl
 dnl Vidix/libdha
 dnl
+AC_LINUX_PATH(/usr/src/linux)
+AC_SUBST([LINUX_INCLUDE])
+
 AC_ARG_ENABLE(vidix, [  --disable-vidix         Do not build vidix support],
 	      check_vidix=no, check_vidix=yes)
 AC_ARG_ENABLE(dha-kmod, [  --enable-dha-kmod       Build DHA kernel module],
