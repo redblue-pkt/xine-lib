@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.138 2004/01/29 12:59:11 andruil Exp $
+ * $Id: demux_ogg.c,v 1.139 2004/02/03 10:36:11 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1601,6 +1601,27 @@ static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
   return DEMUX_CAP_SPULANG | DEMUX_CAP_AUDIOLANG | cap_chapter;
 }
 
+static int format_lang_string (demux_ogg_t * this, uint32_t buf_mask, uint32_t buf_type, int channel, char *str) {
+  int stream_num;
+
+  for (stream_num=0; stream_num<this->num_streams; stream_num++) {
+    if ((this->si[stream_num]->buf_types & buf_mask) == buf_type) {
+      if (this->si[stream_num]->language) {
+        strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
+        str[XINE_LANG_MAX - 1] = '\0';
+        if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
+          /* the string got truncated */
+          str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
+        /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
+      } else {
+        snprintf(str, XINE_LANG_MAX, "channel %d",channel);
+      }
+      return DEMUX_OPTIONAL_SUCCESS;
+    }
+  }
+  return DEMUX_OPTIONAL_UNSUPPORTED;
+}
+
 static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
 					void *data, int data_type) {
   
@@ -1608,7 +1629,6 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
 
   char *str=(char *) data;
   int channel = *((int *)data);
-  int stream_num;
 
   switch (data_type) {
   case DEMUX_OPTIONAL_DATA_SPULANG:
@@ -1617,48 +1637,15 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       strcpy( str, "none");
       return DEMUX_OPTIONAL_SUCCESS;
     } else if ((channel>=0) && (channel<this->num_streams)) {
-       for (stream_num=0; stream_num<this->num_streams; stream_num++) {
-	if (this->si[stream_num]->buf_types==BUF_SPU_OGM+channel) {
-	  if (this->si[stream_num]->language) {
-            strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
-	    str[XINE_LANG_MAX - 1] = '\0';
-	    if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
-	      /* the string got truncated */
-	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
-	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
-	    return DEMUX_OPTIONAL_SUCCESS;
-	  } else {
-	    snprintf(str, XINE_LANG_MAX, "channel %d",channel);
-	    return DEMUX_OPTIONAL_SUCCESS;
-	  }
-	}
-      }
-      return DEMUX_OPTIONAL_UNSUPPORTED;
+      return format_lang_string (this, 0xFFFFFFFF, BUF_SPU_OGM+channel, channel, str);
     }
     return DEMUX_OPTIONAL_UNSUPPORTED;
   case DEMUX_OPTIONAL_DATA_AUDIOLANG:
     lprintf ("DEMUX_OPTIONAL_DATA_AUDIOLANG channel = %d\n",channel);
     if (channel==-1) {
-      strcpy( str, "none");
-      return DEMUX_OPTIONAL_SUCCESS;
+      return format_lang_string (this, 0xFF00001F, BUF_AUDIO_BASE, channel, str);
     } else if ((channel>=0) && (channel<this->num_streams)) {
-      for (stream_num=0; stream_num<this->num_streams; stream_num++) {
-	if ((this->si[stream_num]->buf_types & 0xFF00001F) == BUF_AUDIO_BASE+channel) {
-	  if (this->si[stream_num]->language) {
-            strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
-	    str[XINE_LANG_MAX - 1] = '\0';
-	    if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
-	      /* the string got truncated */
-	      str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
-	    /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
-	    return DEMUX_OPTIONAL_SUCCESS;
-	  } else {
-            snprintf(str, XINE_LANG_MAX, "channel %d",channel);
-	    return DEMUX_OPTIONAL_SUCCESS;
-	  }
-	}
-      }
-      return DEMUX_OPTIONAL_UNSUPPORTED;
+      return format_lang_string (this, 0xFF00001F, BUF_AUDIO_BASE+channel, channel, str);
     }
     return DEMUX_OPTIONAL_UNSUPPORTED;
   default:
