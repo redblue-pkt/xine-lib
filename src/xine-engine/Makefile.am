@@ -25,6 +25,9 @@ include_HEADERS  = buffer.h metronom.h configfile.h \
 
 noinst_HEADERS = bswap.h
 
+$(top_builddir)/src/xine-utils/libxineutils.la:
+	@cd $(top_builddir)/src/xine-utils && make libxineutils.la
+
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
