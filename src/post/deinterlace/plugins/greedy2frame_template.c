@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: greedy2frame_template.c,v 1.3 2004/01/02 20:53:43 miguelfreitas Exp $
+// $Id: greedy2frame_template.c,v 1.4 2004/01/05 01:47:26 tmmm Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 // port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,9 @@
 // CVS Log
 //
 // $Log: greedy2frame_template.c,v $
+// Revision 1.4  2004/01/05 01:47:26  tmmm
+// DOS/Win CRs are forbidden, verboten, interdit
+//
 // Revision 1.3  2004/01/02 20:53:43  miguelfreitas
 // better MANGLE from ffmpeg
 //
