@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.62 2002/07/28 21:37:35 heikos Exp $
+ * $Id: audio_out.c,v 1.63 2002/08/09 22:07:29 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -324,7 +324,7 @@ static void *ao_loop (void *this_gen) {
       hw_vpts = cur_time;
   
 #ifdef LOG
-      printf ("audio_out: current delay is %d, current time is %lld\n",
+      printf ("audio_out: current delay is %lld, current time is %lld\n",
 	      delay, cur_time);
 #endif
 
