@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.60 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_vcd.c,v 1.61 2002/12/21 16:11:23 rockyb Exp $
  *
  */
 
@@ -229,8 +229,9 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
    * ATAPI devices.
    */
   if (this->controller_type == 0) {
-    if (ioctl(this->fd, DKIOCINFO, &cinfo) == 0
-	&& strcmp(cinfo.dki_cname, "ide") == 0)
+    if ( ioctl(this->fd, DKIOCINFO, &cinfo) == 0
+	 && ((strcmp(cinfo.dki_cname, "ide") == 0) 
+	     || (strncmp(cinfo.dki_cname, "pci", 3) == 0)) )
       this->controller_type = SUN_CTRL_ATAPI;
     else
       this->controller_type = SUN_CTRL_SCSI;    
@@ -345,7 +346,8 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = (struct cdrom_msf *)
+      &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -425,7 +427,8 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = (struct cdrom_msf0 *) 
+      &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -569,7 +572,8 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 
   do
   {  
-    end_msf = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
+    end_msf = (struct cdrom_msf0 *) 
+      &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
     /*
     printf ("cur: %02d:%02d:%02d  end: %02d:%02d:%02d\n",
@@ -634,7 +638,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   struct cdrom_msf0   *start_msf;
   off_t                sector_pos;
 
-  start_msf = &this->cls->tocent[this->cur_track].cdte_addr.msf;
+  start_msf = (struct cdrom_msf0 *)
+    &this->cls->tocent[this->cur_track].cdte_addr.msf;
 
   switch (origin) {
   case SEEK_SET:
@@ -729,8 +734,10 @@ static off_t vcd_plugin_get_length (input_plugin_t *this_gen) {
   struct cdrom_msf0       *end_msf, *start_msf;
   off_t len ;
 
-  start_msf = &this->cls->tocent[this->cur_track].cdte_addr.msf;
-  end_msf   = &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
+  start_msf = (struct cdrom_msf0 *)
+    &this->cls->tocent[this->cur_track].cdte_addr.msf;
+  end_msf   = (struct cdrom_msf0 *)
+    &this->cls->tocent[this->cur_track+1].cdte_addr.msf;
 
   len = 75 - start_msf->frame;
 
