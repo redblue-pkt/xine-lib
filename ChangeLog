@@ -1,4 +1,6 @@
   * fix possible crash in CDDB queries
+  * work around the gnome-vfs sftp: method having a max read size of 256k,
+    makes it possible to play AVIs over sftp:
 
 xine-lib (1-rc4)
   * experimental DTS software decoder using libdts
