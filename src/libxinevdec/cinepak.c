@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.24 2002/12/15 18:02:35 esnel Exp $
+ * $Id: cinepak.c,v 1.25 2002/12/15 18:44:52 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -68,11 +68,17 @@ typedef struct cvid_decoder_s {
   int		    bufsize;
   int		    size;
 
-  long		    biWidth;
-  long		    biHeight;
-  uint8_t          *img_buffer;
-
   cvid_strip_t	    strips[MAX_STRIPS];
+
+  unsigned int	    coded_width;
+  unsigned int	    coded_height;
+  int		    luma_pitch;
+  int		    chroma_pitch;
+  uint8_t	   *current;
+  int		    offsets[3];
+
+  unsigned int	    width;
+  unsigned int	    height;
 } cvid_decoder_t;
 
 static unsigned char     yuv_palette[256 * 4];
@@ -146,8 +152,7 @@ static int cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
   uint8_t	  *eod = (data + size);
   uint32_t	   flag, mask;
   cvid_codebook_t *codebook;
-  int		   x, y;
-  int              n = (this->biWidth * this->biHeight);
+  unsigned int	   x, y;
   uint8_t	  *iy[4];
   uint8_t	  *iu[2];
   uint8_t	  *iv[2];
@@ -157,14 +162,14 @@ static int cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
 
   for (y=strip->y1; y < strip->y2; y+=4) {
 
-    iy[0] = this->img_buffer + (y * this->biWidth) + strip->x1;
-    iy[1] = iy[0] + this->biWidth;
-    iy[2] = iy[1] + this->biWidth;
-    iy[3] = iy[2] + this->biWidth;
-    iu[0] = this->img_buffer + n + ((y * this->biWidth) >> 2) + (strip->x1 >> 1);
-    iu[1] = iu[0] + (this->biWidth >> 1);
-    iv[0] = iu[0] + (n >> 2);
-    iv[1] = iv[0] + (this->biWidth >> 1);
+    iy[0] = &this->current[strip->x1 + (y * this->luma_pitch) + this->offsets[0]];
+    iy[1] = iy[0] + this->luma_pitch;
+    iy[2] = iy[1] + this->luma_pitch;
+    iy[3] = iy[2] + this->luma_pitch;
+    iu[0] = &this->current[(strip->x1/2) + ((y/2) * this->chroma_pitch) + this->offsets[1]];
+    iu[1] = iu[0] + this->chroma_pitch;
+    iv[0] = &this->current[(strip->x1/2) + ((y/2) * this->chroma_pitch) + this->offsets[2]];
+    iv[1] = iv[0] + this->chroma_pitch;
 
     for (x=strip->x1; x < strip->x2; x+=4) {
       if ((chunk_id & 0x0100) && !(mask >>= 1)) {
@@ -249,9 +254,9 @@ static int cinepak_decode_strip (cvid_decoder_t *this,
   uint8_t *eod = (data + size);
   int	   chunk_id, chunk_size;
 
-  if (strip->x1 >= this->biWidth  || strip->x2 > this->biWidth  ||
-      strip->y1 >= this->biHeight || strip->y2 > this->biHeight ||
-      strip->x1 >= strip->x2      || strip->y1 >= strip->y2)
+  if (strip->x1 >= this->coded_width  || strip->x2 > this->coded_width  ||
+      strip->y1 >= this->coded_height || strip->y2 > this->coded_height ||
+      strip->x1 >= strip->x2	      || strip->y1 >= strip->y2)
     return -1;
 
   while ((data + 4) <= eod) {
@@ -308,7 +313,7 @@ static int cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size) 
     this->strips[i].y1 = y0;
     this->strips[i].x1 = 0;
     this->strips[i].y2 = y0 + BE_16 (&data[8]);
-    this->strips[i].x2 = this->biWidth;
+    this->strips[i].x2 = this->coded_width;
 
     strip_size = BE_16 (&data[2]) - 12;
     data      += 12;
@@ -332,6 +337,31 @@ static int cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size) 
   }
 
   return 0;
+}
+
+static void cinepak_copy_frame (cvid_decoder_t *this, uint8_t *base[3], int pitches[3]) {
+  int i, j;
+  uint8_t *src, *dst;
+
+  src = &this->current[this->offsets[0]];
+  dst = base[0];
+
+  for (i=0; i < this->height; ++i) {
+    memcpy (dst, src, this->width);
+    src += this->luma_pitch;
+    dst += pitches[0];
+  }
+
+  for (i=1; i < 3; i++) {
+    src = &this->current[this->offsets[i]];
+    dst = base[i];
+
+    for (j=0; j < (this->height / 2); ++j) {
+      memcpy (dst, src, (this->width / 2));
+      src += this->chroma_pitch;
+      dst += pitches[i];
+    }
+  }
 }
 
 static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -359,15 +389,23 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     xine_bmiheader *bih;
+    int		    chroma_size;
 
     bih = (xine_bmiheader *) buf->content;
-    this->biWidth = (bih->biWidth + 3) & ~0x03;
-    this->biHeight = (bih->biHeight + 3) & ~0x03;
     this->video_step = buf->decoder_info[1];
 
-    if (this->img_buffer)
-      free (this->img_buffer);
-    this->img_buffer = malloc((this->biWidth * this->biHeight * 3) / 2);
+    this->width		= (bih->biWidth + 1) & ~0x1;
+    this->height	= (bih->biHeight + 1) & ~0x1;
+    this->coded_width	= (this->width + 3) & ~0x3;
+    this->coded_height	= (this->height + 3) & ~0x3;
+    this->luma_pitch	= this->coded_width;
+    this->chroma_pitch	= this->coded_width / 2;
+
+    chroma_size		= (this->chroma_pitch * (this->coded_height / 2));
+    this->current	= (uint8_t *) realloc (this->current, 6*chroma_size);
+    this->offsets[0]	= 0;
+    this->offsets[1]	= 4*chroma_size;
+    this->offsets[2]	= 5*chroma_size;
 
     if (this->buf)
       free (this->buf);
@@ -401,45 +439,21 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
       vo_frame_t *img;
-      uint8_t    *dy, *du, *dv, *sy, *su, *sv;
-      int	  result, y;
+      int	  result;
 
       result = cinepak_decode_frame (this, this->buf, this->size);
-      result = 0;
 
       img = this->stream->video_out->get_frame (this->stream->video_out,
-					this->biWidth, this->biHeight,
-					XINE_VO_ASPECT_SQUARE,
-					XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+						this->width, this->height,
+						XINE_VO_ASPECT_SQUARE,
+						XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts	     = buf->pts;
       img->bad_frame = (result != 0);
 
       if (result == 0) {
-	dy = img->base[0];
-	du = img->base[1];
-	dv = img->base[2];
-	sy = this->img_buffer;
-	su = this->img_buffer + (this->biWidth * this->biHeight);
-	sv = this->img_buffer + ((this->biWidth * this->biHeight * 5) / 4);
-
-	for (y=0; y < this->biHeight; y++) {
-	  xine_fast_memcpy (dy, sy, this->biWidth);
-
-	  dy += img->pitches[0];
-	  sy += this->biWidth;
-	}
-
-	for (y=0; y < (this->biHeight/2); y++) {
-	  xine_fast_memcpy (du, su, this->biWidth/2);
-	  xine_fast_memcpy (dv, sv, this->biWidth/2);
-
-	  du += img->pitches[1];
-	  dv += img->pitches[2];
-	  su += this->biWidth/2;
-	  sv += this->biWidth/2;
-	}
+	cinepak_copy_frame (this, img->base, img->pitches);
       }
 
       img->draw(img, this->stream);
@@ -465,14 +479,12 @@ static void cvid_discontinuity (video_decoder_t *this_gen) {
 static void cvid_dispose (video_decoder_t *this_gen) {
   cvid_decoder_t *this = (cvid_decoder_t *) this_gen;
 
-  if (this->img_buffer) {
-    free (this->img_buffer);
-    this->img_buffer = NULL;
+  if (this->current) {
+    free (this->current);
   }
 
   if (this->buf) {
     free (this->buf);
-    this->buf = NULL;
   }
 
   if (this->decoder_ok) {  
@@ -487,7 +499,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   cvid_decoder_t  *this ;
 
-  this = (cvid_decoder_t *) malloc (sizeof (cvid_decoder_t));
+  this = (cvid_decoder_t *) xine_xmalloc (sizeof (cvid_decoder_t));
 
   this->video_decoder.decode_data         = cvid_decode_data;
   this->video_decoder.flush               = cvid_flush;
@@ -501,7 +513,6 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   this->decoder_ok    = 0;
   this->buf           = NULL;
-  this->img_buffer    = NULL;
 
   return &this->video_decoder;
 }
