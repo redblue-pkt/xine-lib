@@ -1385,7 +1385,7 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
 	     buf->pts = this->pts_aud_start;
 	 
 	 /* Save start pts */
-	 this->pts_aud_start = get_time(); //this->stream->xine->clock->get_current_time(this->stream->xine->clock);
+	 this->pts_aud_start = get_time(); /* this->stream->xine->clock->get_current_time(this->stream->xine->clock); */
    
 	 if (!buf)
 	    /* Skip first sample as we don't have a good pts for this one */
@@ -1450,7 +1450,7 @@ static uint32_t v4l_plugin_get_capabilities (input_plugin_t *this_gen)
    if (this->audio_only)
       return 0x10;
    else
-      return 0; // 0x10: Has audio only.
+      return 0; /* 0x10: Has audio only. */
 }
 
 /**
