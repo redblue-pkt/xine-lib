@@ -21,7 +21,7 @@
  * For more information regarding the VQA file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_vqa.c,v 1.6 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_vqa.c,v 1.7 2002/09/21 20:27:02 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -257,6 +257,119 @@ static void *demux_vqa_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_vqa_and_send_headers(demux_vqa_t *this) {
+
+  unsigned char header[VQA_HEADER_SIZE];
+  unsigned char *finf_chunk;
+  int i;
+  off_t last_offset;
+  uint64_t audio_pts_counter = 0;
+  uint64_t video_pts_counter = 0;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* get the file size (a.k.a., last offset) as reported by the file */
+  this->input->seek(this->input, 4, SEEK_SET);
+  if (this->input->read(this->input, header, 4) != 4) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+  last_offset = BE_32(&header[0]);
+
+  /* get the actual filesize */
+  this->filesize = this->input->get_length(this->input);
+
+  /* skip to the VQA header */
+  this->input->seek(this->input, 20, SEEK_SET);
+  if (this->input->read(this->input, header, VQA_HEADER_SIZE)
+    != VQA_HEADER_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* fetch the interesting information */
+  this->total_frames = LE_16(&header[4]);
+  this->video_width = LE_16(&header[6]);
+  this->video_height = LE_16(&header[8]);
+  this->vector_width = header[10];
+  this->vector_height = header[11];
+  this->audio_sample_rate = LE_16(&header[24]);
+  this->audio_channels = header[26];
+
+  /* fetch the chunk table */
+  this->input->seek(this->input, 8, SEEK_CUR);  /* skip FINF and length */
+  finf_chunk = xine_xmalloc(this->total_frames * 4);
+  this->frame_table = xine_xmalloc(this->total_frames * sizeof(vqa_frame_t));
+  if (this->input->read(this->input, finf_chunk, this->total_frames * 4) !=
+    this->total_frames * 4) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+  for (i = 0; i < this->total_frames; i++) {
+    this->frame_table[i].frame_offset = (LE_32(&finf_chunk[i * 4]) * 2) &
+      0x03FFFFFF;
+    if (i < this->total_frames - 1)
+      this->frame_table[i].frame_size = LE_32(&finf_chunk[(i + 1) * 4]) * 2 - 
+        this->frame_table[i].frame_offset;
+    else
+      this->frame_table[i].frame_size = last_offset - 
+        this->frame_table[i].frame_offset;
+
+    /*
+     * VQA files play at a constant rate of 15 frames/second. The file data
+     * begins with 1/15 sec of compressed audio followed by 1 video frame
+     * that will be displayed for 1/15 sec.
+     *
+     *   xine pts     frame #
+     *   --------  =  -------  =>  xine pts = 90000 * frame # / 15
+     *    90000         15
+     *
+     * Thus, each frame has a duration of 90000 / 15 (VQA_PTS_INC, in
+     * this code).
+     *
+     * If this is the first frame in the file, it contains 1/2 sec
+     * of audio and no video. Each successive frame represents 1/15 sec.
+     */
+    if (i == 0) {
+      this->frame_table[i].audio_pts = 0;
+      this->frame_table[i].video_pts = 0;
+      audio_pts_counter += (90000 / 2);
+    } else {
+      this->frame_table[i].audio_pts = audio_pts_counter;
+      this->frame_table[i].video_pts = video_pts_counter;
+      audio_pts_counter += VQA_PTS_INC;
+      video_pts_counter += VQA_PTS_INC;
+    }
+  }
+
+  this->total_time = this->frame_table[this->total_frames - 1].video_pts /
+    90000;
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->audio_sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bits;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_vqa_open(demux_plugin_t *this_gen, input_plugin_t *input,
                           int stage) {
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
@@ -276,7 +389,7 @@ static int demux_vqa_open(demux_plugin_t *this_gen, input_plugin_t *input,
     /* check for the VQA signatures */
     if ((BE_32(&header[0]) == FORM_TAG) &&
         (BE_32(&header[8]) == WVQA_TAG))
-      return DEMUX_CAN_HANDLE;
+      return load_vqa_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -302,10 +415,8 @@ static int demux_vqa_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_vqa_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -321,113 +432,23 @@ static int demux_vqa_open(demux_plugin_t *this_gen, input_plugin_t *input,
 }
 
 static int demux_vqa_start (demux_plugin_t *this_gen,
-                             fifo_buffer_t *video_fifo,
-                             fifo_buffer_t *audio_fifo,
                              off_t start_pos, int start_time) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned char header[VQA_HEADER_SIZE];
-  unsigned char *finf_chunk;
-  int i;
-  off_t last_offset;
-  uint64_t audio_pts_counter = 0;
-  uint64_t video_pts_counter = 0;
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    /* get the file size (a.k.a., last offset) as reported by the file */
-    this->input->seek(this->input, 4, SEEK_SET);
-    if (this->input->read(this->input, header, 4) != 4) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-    last_offset = BE_32(&header[0]);
-
-    /* get the actual filesize */
-    this->filesize = this->input->get_length(this->input);
-
-    /* skip to the VQA header */
-    this->input->seek(this->input, 20, SEEK_SET);
-    if (this->input->read(this->input, header, VQA_HEADER_SIZE)
-      != VQA_HEADER_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    /* fetch the interesting information */
-    this->total_frames = LE_16(&header[4]);
-    this->video_width = LE_16(&header[6]);
-    this->video_height = LE_16(&header[8]);
-    this->vector_width = header[10];
-    this->vector_height = header[11];
-    this->audio_sample_rate = LE_16(&header[24]);
-    this->audio_channels = header[26];
-
-    /* fetch the chunk table */
-    this->input->seek(this->input, 8, SEEK_CUR);  /* skip FINF and length */
-    finf_chunk = xine_xmalloc(this->total_frames * 4);
-    this->frame_table = xine_xmalloc(this->total_frames * sizeof(vqa_frame_t));
-    if (this->input->read(this->input, finf_chunk, this->total_frames * 4) !=
-      this->total_frames * 4) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-    for (i = 0; i < this->total_frames; i++) {
-      this->frame_table[i].frame_offset = (LE_32(&finf_chunk[i * 4]) * 2) &
-        0x03FFFFFF;
-      if (i < this->total_frames - 1)
-        this->frame_table[i].frame_size = LE_32(&finf_chunk[(i + 1) * 4]) * 2 - 
-          this->frame_table[i].frame_offset;
-      else
-        this->frame_table[i].frame_size = last_offset - 
-          this->frame_table[i].frame_offset;
-
-      /*
-       * VQA files play at a constant rate of 15 frames/second. The file data
-       * begins with 1/15 sec of compressed audio followed by 1 video frame
-       * that will be displayed for 1/15 sec.
-       *
-       *   xine pts     frame #
-       *   --------  =  -------  =>  xine pts = 90000 * frame # / 15
-       *    90000         15
-       *
-       * Thus, each frame has a duration of 90000 / 15 (VQA_PTS_INC, in
-       * this code).
-       *
-       * If this is the first frame in the file, it contains 1/2 sec
-       * of audio and no video. Each successive frame represents 1/15 sec.
-       */
-      if (i == 0) {
-        this->frame_table[i].audio_pts = 0;
-        this->frame_table[i].video_pts = 0;
-        audio_pts_counter += (90000 / 2);
-      } else {
-        this->frame_table[i].audio_pts = audio_pts_counter;
-        this->frame_table[i].video_pts = video_pts_counter;
-        audio_pts_counter += VQA_PTS_INC;
-        video_pts_counter += VQA_PTS_INC;
-      }
-    }
-
-    this->total_time = this->frame_table[this->total_frames - 1].video_pts /
-      90000;
 
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_vqa: running time: %d min, %d sec\n"),
       this->total_time / 60,
       this->total_time % 60);
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"),
       this->video_width,
       this->video_height,
@@ -496,6 +517,8 @@ static int demux_vqa_start (demux_plugin_t *this_gen,
 static int demux_vqa_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time) {
 
+  /* VQA files are not built for seeking; don't even bother */
+
   return 0;
 }
 
@@ -522,7 +545,7 @@ static void demux_vqa_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_vqa_close (demux_plugin_t *this_gen) {
+static void demux_vqa_dispose (demux_plugin_t *this_gen) {
 
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
 
@@ -566,7 +589,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_vqa_start;
   this->demux_plugin.seek              = demux_vqa_seek;
   this->demux_plugin.stop              = demux_vqa_stop;
-  this->demux_plugin.close             = demux_vqa_close;
+  this->demux_plugin.dispose           = demux_vqa_dispose;
   this->demux_plugin.get_status        = demux_vqa_get_status;
   this->demux_plugin.get_identifier    = demux_vqa_get_id;
   this->demux_plugin.get_stream_length = demux_vqa_get_stream_length;
@@ -584,6 +607,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "vqa", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "vqa", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.24 2002/09/10 15:07:13 mroi Exp $
+ * $Id: demux_cda.c,v 1.25 2002/09/21 20:27:02 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -170,8 +170,6 @@ static int demux_cda_get_status (demux_plugin_t *this_gen) {
  *
  */
 static int demux_cda_start (demux_plugin_t *this_gen,
-			     fifo_buffer_t *video_fifo, 
-			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
   int             err;
@@ -184,9 +182,6 @@ static int demux_cda_start (demux_plugin_t *this_gen,
   this->blocksize  = this->input->get_blocksize(this->input);
 
   if( !this->thread_running ) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
     xine_demux_control_start(this->xine);
   }
   
@@ -218,10 +213,33 @@ static int demux_cda_start (demux_plugin_t *this_gen,
 
 static int demux_cda_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
-  demux_cda_t *this = (demux_cda_t *) this_gen;
 
-	return demux_cda_start (this_gen, this->video_fifo, this->audio_fifo,
+	return demux_cda_start (this_gen,
 			 start_pos, start_time);
+}
+
+/*
+ *
+ */
+static int demux_cda_send_headers(demux_cda_t *this) {
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* hardwired stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 44100;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
 }
 
 /*
@@ -244,7 +262,7 @@ static int demux_cda_open(demux_plugin_t *this_gen, input_plugin_t *input, int s
     if(media) {
       if(!strncasecmp(MRL, "cda", 3)) {
 	this->input = input;
-	return DEMUX_CAN_HANDLE;
+	return demux_cda_send_headers(this);
       }
     }
   }
@@ -275,7 +293,7 @@ static char *demux_cda_get_mimetypes(void) {
 /*
  *
  */
-static void demux_cda_close (demux_plugin_t *this) {
+static void demux_cda_dispose (demux_plugin_t *this) {
   free (this);
 }
 
@@ -301,7 +319,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_cda_start;
   this->demux_plugin.seek              = demux_cda_seek;
   this->demux_plugin.stop              = demux_cda_stop;
-  this->demux_plugin.close             = demux_cda_close;
+  this->demux_plugin.dispose           = demux_cda_dispose;
   this->demux_plugin.get_status        = demux_cda_get_status;
   this->demux_plugin.get_identifier    = demux_cda_get_id;
   this->demux_plugin.get_stream_length = demux_cda_get_stream_length;
@@ -319,6 +337,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "cda", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "cda", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
