@@ -14,6 +14,7 @@ xine-lib (1-rc1)
   * simple VCR functionality added to DVB input plugin
     just press MENU2 (that is for example F2 in gxine) to start/stop recording
   * display channel number and name in DVB mode
+  * first steps towards AMD64 support (thanks to Adrian Schroeter of SuSE)
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
