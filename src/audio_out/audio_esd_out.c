@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.10 2001/09/14 20:44:01 jcdutton Exp $
+ * $Id: audio_esd_out.c,v 1.11 2001/09/24 18:15:59 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <esd.h>
+#include <signal.h>
 #include <sys/time.h>
 #include <inttypes.h>
 
@@ -202,13 +203,30 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   esd_driver_t *this;
   int           audio_fd;
+  sigset_t	vo_mask, vo_mask_orig;
 
   /*
    * open stream to ESD server
+   *
+   * esd_open_sound needs a working SIGALRM for detecting a failed
+   * attempt to autostart the esd daemon;  esd notifies the process that
+   * attempts the esd daemon autostart with a SIGALRM (SIGUSR1) signal
+   * about a failure to open the audio device (successful daemin startup).
+   *
+   * Temporarily release the blocked SIGALRM, while esd_open_sound is active.
+   * (Otherwise xine hangs in esd_open_sound on a machine without sound)
    */
+
+  sigemptyset(&vo_mask);
+  sigaddset(&vo_mask, SIGALRM);
+  if (sigprocmask(SIG_UNBLOCK, &vo_mask, &vo_mask_orig)) 
+    printf("audio_esd_out: cannot unblock SIGALRM: %s\n", strerror(errno));
 
   printf("audio_esd_out: connecting to esd server...\n");
   audio_fd = esd_open_sound(NULL);
+
+  if (sigprocmask(SIG_SETMASK, &vo_mask_orig, NULL))
+    printf("audio_esd_out: cannot block SIGALRM: %s\n", strerror(errno));
 
   if(audio_fd < 0) {
     char *server = getenv("ESPEAKER");
