@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.48 2002/06/07 04:15:46 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.49 2002/06/08 21:45:09 miguelfreitas Exp $
  *
  */
 
@@ -196,7 +196,8 @@ typedef struct {
   unsigned int modification_time;
   unsigned int time_scale;  /* base clock frequency is Hz */
   unsigned int duration;
-
+  off_t input_length;
+        
   int64_t moov_first_offset;
   int64_t moov_last_offset;
   int64_t mdat_first_offset;
@@ -270,6 +271,7 @@ qt_info *create_qt_info(void) {
   info->modification_time = 0;
   info->time_scale = 0;
   info->duration = 0;
+  info->input_length = 0;
 
   info->audio_codec = 0;
   info->audio_sample_rate = 0;
@@ -898,6 +900,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     info->last_error = QT_FILE_READ_ERROR;
     return info->last_error;
   }
+      
+  info->input_length = input->get_length (input);
 
   /* traverse through the file looking for the moov and mdat atoms */
   info->moov_first_offset = info->mdat_first_offset = -1;
@@ -1072,6 +1076,8 @@ static void *demux_qt_loop (void *this_gen) {
           buf->content = buf->mem;
           buf->type = this->qt->video_type;
           buf->input_pos = this->qt->frames[i].offset;
+          buf->input_length = this->qt->input_length;
+          buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
           buf->decoder_flags = 0;
 
@@ -1112,6 +1118,8 @@ static void *demux_qt_loop (void *this_gen) {
           buf->content = buf->mem;
           buf->type = this->qt->audio_type;
           buf->input_pos = this->qt->frames[i].offset;
+          buf->input_length = this->qt->input_length;
+          buf->input_time = this->qt->frames[i].pts / 90000;
           buf->pts = this->qt->frames[i].pts;
           buf->decoder_flags = 0;
 
