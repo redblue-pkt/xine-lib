@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.78 2003/12/13 11:35:07 valtri Exp $
+ * $Id: input_http.c,v 1.79 2003/12/13 11:52:56 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -898,7 +898,7 @@ static void *init_class (xine_t *xine, void *data) {
 
     if((proxy_env = getenv("http_proxy")) && (strlen(proxy_env))) {
       int   proxy_port = DEFAULT_HTTP_PORT;
-      char  *http_proxy = xine_xmalloc(strlen(proxy_env + 1));
+      char  *http_proxy = xine_xmalloc(strlen(proxy_env) + 1);
       char *p;
       
       if(!strncmp(proxy_env, "http://", 7))
