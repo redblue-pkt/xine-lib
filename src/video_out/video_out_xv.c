@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.133 2002/09/15 11:35:08 jcdutton Exp $
+ * $Id: video_out_xv.c,v 1.134 2002/09/15 20:56:24 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1201,7 +1201,7 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
   this->props[VO_PROP_INTERLACED].value     = 0;
   this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
   this->props[VO_PROP_ZOOM_X].value    = 100;
-  this->props[VO_PROP_ZOOM_Y].value    = 128;
+  this->props[VO_PROP_ZOOM_Y].value    = 100;
 
   /*
    * check this adaptor's capabilities
