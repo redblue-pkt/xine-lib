@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.73 2002/09/05 05:51:14 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.74 2002/09/05 20:19:48 guenter Exp $
  *
  */
 
@@ -156,7 +156,7 @@ typedef struct {
   xine_t           *xine;
   char              dvd_name[128];
   size_t            dvd_name_length;                   
-  mrl_t           **mrls;
+  xine_mrl_t           **mrls;
   int               num_mrls;
   
   /* special buffer handling for libdvdnav caching */
@@ -326,16 +326,16 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
     }
 
     /* allocate enough memory for:
-     * - a list of pointers to mrls       sizeof(mrl_t *)     * num_mrls + 1
-     * - an array of mrl structures       sizeof(mrl_t)       * num_mrls
+     * - a list of pointers to mrls       sizeof(xine_mrl_t *)     * num_mrls + 1
+     * - an array of mrl structures       sizeof(xine_mrl_t)       * num_mrls
      * - enough chars for every filename  sizeof(char)*25     * num_mrls
      *   - "dvd://:000000.000000\0" = 25 chars
      */
-    if ((this->mrls = (mrl_t **) malloc(sizeof(mrl_t *) + num_mrls *
-	(sizeof(mrl_t*) + sizeof(mrl_t) + 25*sizeof(char))))) {
+    if ((this->mrls = (xine_mrl_t **) malloc(sizeof(xine_mrl_t *) + num_mrls *
+	(sizeof(xine_mrl_t*) + sizeof(xine_mrl_t) + 25*sizeof(char))))) {
     
       /* the first mrl struct comes after the pointer list */
-      mrl_t *mrl = (mrl_t *) &this->mrls[num_mrls+1];
+      xine_mrl_t *mrl = (xine_mrl_t *) &this->mrls[num_mrls+1];
       /* the chars for filenames come after the mrl structs */
       char *name = (char *) &mrl[num_mrls];
       int pos = 0, j;
@@ -882,8 +882,8 @@ static uint32_t dvdnav_plugin_get_blocksize (input_plugin_t *this_gen) {
   return DVD_BLOCK_SIZE;
 }
 
-static mrl_t **dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
-				    char *filename, int *nFiles) {
+static xine_mrl_t **dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
+					   char *filename, int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t*)this_gen;
 
   trace_print("Called\n");
@@ -1508,6 +1508,9 @@ void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.74  2002/09/05 20:19:48  guenter
+ * use xine_mrl_t instead of mrl_t in input plugins, implement more configfile functions
+ *
  * Revision 1.73  2002/09/05 05:51:14  jcdutton
  * XV Video out at least loads now and we see the xine logo again.
  * The DVD plugin now loads, but audio and spu info is lost.

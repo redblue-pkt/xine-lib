@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.27 2002/07/17 21:23:57 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.28 2002/09/05 20:19:49 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -130,19 +130,11 @@ extern "C" {
   assert((d) != NULL);                                                        \
                                                                               \
   while((s) != NULL) {                                                        \
-    d[i] = (mrl_t *) malloc(sizeof(mrl_t));                                   \
+    d[i] = (xine_mrl_t *) malloc(sizeof(xine_mrl_t));                                   \
     MRL_DUPLICATE(s[i], d[i]);                                                \
     i++;                                                                      \
   }                                                                           \
 }
-
-typedef struct {
-  char         *origin;  /* Origin of grabbed mrls (eg: path for file plugin */
-  char         *mrl;     /* <type>://<location>                              */
-  char         *link;    /* name of link, if exist, otherwise NULL           */
-  uint32_t      type;    /* match to mrl_type enum                           */
-  off_t         size;    /* size of this source, may be 0                    */
-} mrl_t;
 
 typedef struct input_plugin_s input_plugin_t;
 
@@ -212,7 +204,7 @@ struct input_plugin_s
    * ls function
    * return value: NULL => filename is a file, **char=> filename is a dir
    */
-  mrl_t** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
+  xine_mrl_t** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
 
 
   /*

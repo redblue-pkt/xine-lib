@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.2 2002/09/04 23:31:13 guenter Exp $
+ * $Id: xine_interface.c,v 1.3 2002/09/05 20:19:50 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -238,13 +238,44 @@ xine_cfg_entry_t *xine_config_lookup_entry (xine_t *this, char *key) {
  */
 void xine_config_update_entry (xine_t *this, xine_cfg_entry_t *entry){
   printf ("xine_interface: xine_config_update_entry: not implemented\n");
-  abort();
+
+  switch (entry->type) {
+  case XINE_CONFIG_TYPE_RANGE:
+  case XINE_CONFIG_TYPE_ENUM:
+  case XINE_CONFIG_TYPE_NUM:
+  case XINE_CONFIG_TYPE_BOOL:
+    this->config->update_num (this->config, entry->key, entry->num_value);
+    break;
+
+  case XINE_CONFIG_TYPE_STRING:
+    this->config->update_string (this->config, entry->key, entry->str_value);
+    break;
+
+  default:
+    printf ("xine_interface: error, unknown config entry type %d\n",
+	    entry->type);
+    abort();
+  }
 }
   
 
 void xine_reset_config (xine_t *this){
-  printf ("xine_interface: xine_reset_config: not implemented\n");
-  abort();
+
+  config_values_t *config = this->config;
+  cfg_entry_t *entry;
+
+  config->cur = NULL;
+
+  entry = config->first;
+  while (entry) {
+    cfg_entry_t *next;
+    next = entry->next;
+    free (entry);
+    entry = next;
+  }
+
+  config->first = NULL;
+  config->last = NULL;
 }
   
 int xine_gui_send_vo_data (xine_t *this,

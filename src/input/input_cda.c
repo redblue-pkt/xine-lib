@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.29 2002/09/04 23:31:08 guenter Exp $
+ * $Id: input_cda.c,v 1.30 2002/09/05 20:19:48 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -182,7 +182,7 @@ typedef struct {
 
   char                  *filelist[100];
   int                    mrls_allocated_entries;
-  mrl_t                **mrls;
+  xine_mrl_t                **mrls;
   
 } cda_input_plugin_t;
 
@@ -1618,7 +1618,7 @@ static char *cda_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  * Get dir.
  */
-static mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen, 
 				   char *filename, int *nEntries) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
@@ -1660,11 +1660,11 @@ static mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
     if((i-1) >= this->mrls_allocated_entries) {
       ++this->mrls_allocated_entries;
       /* note: 1 extra pointer for terminating NULL */
-      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-      this->mrls[(i-1)] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
+      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(xine_mrl_t*));
+      this->mrls[(i-1)] = (xine_mrl_t *) xine_xmalloc(sizeof(xine_mrl_t));
     }
     else {
-      memset(this->mrls[(i-1)], 0, sizeof(mrl_t));
+      memset(this->mrls[(i-1)], 0, sizeof(xine_mrl_t));
     }
     
     if(this->mrls[(i-1)]->mrl) {
@@ -1848,7 +1848,7 @@ void *init_input_plugin (xine_t *xine, void *data) {
 						 _("cddbp cache directory"), NULL, 20, 
 						 cachedir_change_cb, (void *) this);
 
-  this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
+  this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
 
   _LEAVE_FUNC();

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.47 2002/09/04 23:31:08 guenter Exp $
+ * $Id: input_vcd.c,v 1.48 2002/09/05 20:19:49 guenter Exp $
  *
  */
 
@@ -128,7 +128,7 @@ typedef struct {
   char                  *filelist[100];
 
   int                    mrls_allocated_entries;
-  mrl_t                **mrls;
+  xine_mrl_t                **mrls;
 
 #if defined(__sun)
   int			 controller_type;
@@ -973,7 +973,7 @@ static char *vcd_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  *
  */
-static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
+static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
 				   char *filename, int *nEntries) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
@@ -1017,11 +1017,11 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     if((i-1) >= this->mrls_allocated_entries) {
       ++this->mrls_allocated_entries;
       /* note: 1 extra pointer for terminating NULL */
-      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
-      this->mrls[(i-1)] = (mrl_t *) xine_xmalloc(sizeof(mrl_t));
+      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(xine_mrl_t*));
+      this->mrls[(i-1)] = (xine_mrl_t *) xine_xmalloc(sizeof(xine_mrl_t));
     }
     else {
-      memset(this->mrls[(i-1)], 0, sizeof(mrl_t));
+      memset(this->mrls[(i-1)], 0, sizeof(xine_mrl_t));
     }
     
     if(this->mrls[(i-1)]->mrl) {
@@ -1174,7 +1174,7 @@ void *init_input_plugin (xine_t *xine, void *data) {
 					 _("path to your local vcd device file"),
 					 NULL, 10, device_change_cb, (void *)this);
 
-  this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
+  this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;
 
   this->fd      = -1;

@@ -210,17 +210,9 @@ static void xvid_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+void *init_video_decoder_plugin (xine_t *xine, void *data) {
     xvid_decoder_t *this;
     XVID_INIT_PARAM xinit;
-    
-    if (iface_version != 10) {
-	printf (_("xvid: plugin doesn't support plugin API version %d.\n"
-		  "xvid: this means there's a version mismatch between xine and this\n"
-		  "xvid: decoder plugin. Installing current plugins should help.\n"),
-		iface_version);
-	return NULL;
-    }
     
     xinit.cpu_flags = 0;
     xvid_init(NULL, 0, &xinit, NULL);
