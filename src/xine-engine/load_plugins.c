@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.7 2001/04/26 11:31:36 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.8 2001/04/26 21:40:17 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -352,7 +352,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
   vo_driver_t *vod;
   
   if((filename == NULL && id == NULL) || visual == NULL || config == NULL) {
-    printf("%s(%s@%d): parameter should be non null\n",
+    printf("%s(%s@%d): parameter(s) should be non null.\n",
 	   __FILE__, __FUNCTION__, __LINE__);
     return NULL;
   }
@@ -378,7 +378,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
 	if(filename) { /* load by name */
-	  if(!strncasecmp(filename, pEntry->d_name, strlen(filename))) {
+	  if(!strncasecmp(filename, pEntry->d_name, strlen(pEntry->d_name))) {
 	    
 	    if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	      fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
@@ -391,7 +391,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	      if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 		
 		vod = (vo_driver_t *) initplug(VIDEO_OUT_PLUGIN_IFACE_VERSION,
-					       config, visual_type, visual);
+					       config, visual, visual_type);
 		
 		printf("video output plugin found : %s(ID: %s, iface: %d)\n",
 		       str, vod->get_identifier(), vod->interface_version);
@@ -402,7 +402,6 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	  }
 	}
 	else { /* load by ID */
-	  
 	  if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	    fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
 		    __FILE__, __LINE__, str, dlerror());
@@ -414,7 +413,7 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 	    if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 	      
 	      vod = (vo_driver_t *) initplug(VIDEO_OUT_PLUGIN_IFACE_VERSION,
-					     config, visual_type, visual);
+					     config, visual, visual_type);
 	      
 	      printf("video output plugin found : %s(ID: %s, iface: %d)\n",
 		     str, vod->get_identifier(), vod->interface_version);

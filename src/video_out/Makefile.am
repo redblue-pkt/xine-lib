@@ -22,6 +22,7 @@ endif
 lib_LTLIBRARIES = $(xv_module) ## $(xshm_module) $(syncfb_module)
 
 xineplug_vo_out_xv_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c video_out_xv.c
+xineplug_vo_out_xv_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
 
 ##xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c video_out_xshm.c
