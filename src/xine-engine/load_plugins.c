@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.195 2005/02/09 20:03:20 tmattern Exp $
+ * $Id: load_plugins.c,v 1.196 2005/02/12 09:21:32 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -700,7 +700,6 @@ static int _load_plugin_class(xine_t *this,
   plugin_info_t *target = node->info;
   void *lib;
   plugin_info_t *info;
-
 
   /* load the dynamic library if needed */
   if (!node->file->lib_handle) {
@@ -1963,7 +1962,9 @@ static void _unload_unref_plugins(xine_t *this, xine_list_t *list) {
 }
 
 void xine_plugins_garbage_collector(xine_t *self) {
+  plugin_catalog_t *catalog = self->plugin_catalog;
 
+  pthread_mutex_lock (&catalog->lock);
   _unload_unref_plugins(self, self->plugin_catalog->input);
   _unload_unref_plugins(self, self->plugin_catalog->demux);
   _unload_unref_plugins(self, self->plugin_catalog->spu);
@@ -1997,6 +1998,8 @@ void xine_plugins_garbage_collector(xine_t *self) {
     printf("End of plugin summary\n\n");
   }
 #endif
+
+  pthread_mutex_unlock (&catalog->lock);
 }
 
 spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
