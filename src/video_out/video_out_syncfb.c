@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.28 2001/11/05 01:18:51 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.29 2001/11/05 10:50:19 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -140,8 +140,6 @@ int gX11Fail;
 //
 // internal video_out_syncfb functions
 // 
-
-// FIXME: function is broken, YUV420P3 to YUV422 conversion needs to be fixed
 static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
 {
    uint_8*  crp;
@@ -176,7 +174,6 @@ static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uin
    }
 }
 
-// FIXME: function is broken, YUV420P3 to YUV420P2 conversion needs to be fixed
 static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cr, uint_8* cb)
 {
    uint_8* dest;
@@ -849,12 +846,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
       this->palette = VIDEO_PALETTE_YUV420P3;
       printf("video_out_syncfb: using palette yuv420p3.\n");
-/*   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
+   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
       this->palette = VIDEO_PALETTE_YUV420P2;
       printf("video_out_syncfb: using palette yuv420p2.\n");
    } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {
       this->palette = VIDEO_PALETTE_YUV422;
-      printf("video_out_syncfb: using palette yuv422.\n");*/
+      printf("video_out_syncfb: using palette yuv422.\n");
    } else {
       printf("video_out_syncfb: aborting. (no supported palette found)\n");
       
