@@ -163,7 +163,7 @@ maintainer-clean: distclean
 distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 dist distdir:
 	(cd $(top_srcdir); \
-	 head -3 po/POTFILES.in > \
+	 head -n 3 po/POTFILES.in > \
 	 /tmp/POTFILES.in && \
 	 find src -name "*.[chy]" | \
 	 xargs grep -l '[^A-Za-z_]_(' | \
