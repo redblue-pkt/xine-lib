@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.166 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux_qt.c,v 1.167 2003/10/29 01:45:52 tmmm Exp $
  *
  */
 
@@ -99,6 +99,7 @@ typedef unsigned int qt_atom;
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
+#define DRMS_FOURCC QT_ATOM('d', 'r', 'm', 's')
 #define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
 #define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
 #define RAW_FOURCC  QT_ATOM('r', 'a', 'w', ' ')
@@ -136,7 +137,8 @@ typedef enum {
   QT_NO_MOOV_ATOM,
   QT_NO_ZLIB,
   QT_ZLIB_ERROR,
-  QT_HEADER_TROUBLE
+  QT_HEADER_TROUBLE,
+  QT_DRM_NOT_SUPPORTED
 } qt_error;
 
 /* there are other types but these are the ones we usually care about */
@@ -762,19 +764,6 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
     if (current_atom == TKHD_ATOM) {
       trak->flags = BE_16(&trak_atom[i + 6]);
-#if 0
-      if (trak->type == MEDIA_VIDEO) {
-        /* fetch display parameters */
-        if( !trak->stsd_atoms[j].video.width ||
-            !trak->stsd_atoms[j].video.height ) {
-
-          trak->stsd_atoms[j].video.width =
-            BE_16(&trak_atom[i + 0x50]);
-          trak->stsd_atoms[j].video.height =
-            BE_16(&trak_atom[i + 0x54]); 
-        }
-      }
-#endif
     } else if (current_atom == ELST_ATOM) {
 
       /* there should only be one edit list table */
@@ -1053,6 +1042,11 @@ static qt_error parse_trak_atom (qt_trak *trak,
           /* if this is MP4 audio, mark the trak as VBR */
           if (BE_32(&trak_atom[atom_pos + 0x0]) == MP4A_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
+
+          if (BE_32(&trak_atom[atom_pos + 0x0]) == DRMS_FOURCC) {
+            last_error = QT_DRM_NOT_SUPPORTED;
+            goto free_trak;
+          }
 
           /* check for a MS-style WAVE format header */
           if ((current_atom_size >= 0x48) && 
@@ -1756,7 +1750,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->traks = (qt_trak *)realloc(info->traks, 
         info->trak_count * sizeof(qt_trak));
 
-      parse_trak_atom (&info->traks[info->trak_count - 1], &moov_atom[i - 4]);
+      info->last_error = parse_trak_atom (&info->traks[info->trak_count - 1], 
+        &moov_atom[i - 4]);
       if (info->last_error != QT_OK) {
         info->trak_count--;
         return;
@@ -2716,6 +2711,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
     if (open_qt_file(this->qt, this->input, this->bandwidth) != QT_OK) {
+
+      /* special consideration for DRM-protected files */
+      if (this->qt->last_error == QT_DRM_NOT_SUPPORTED)
+        xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+          "DRM-protected Quicktime file", NULL);
+
       free_qt_info (this->qt);
       free (this);
       return NULL;
