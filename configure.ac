@@ -2139,8 +2139,10 @@ dnl Newest automake workaround
 dnl ---------------------------------------------
 
 AC_SUBST(mkdir_p)
-if test x"$mkdir_p" = "x"; then
-  MKINSTALLDIRS="mkinstalldirs"
+if test -n "$ac_aux_dir"; then
+  MKINSTALLDIRS="$ac_aux_dir/install-sh -d"
+else
+  MKINSTALLDIRS="\$(top_srcdir)/install-sh -d"
 fi
 AC_SUBST(MKINSTALLDIRS)
 
