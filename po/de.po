@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.13\n"
+"Project-Id-Version: xine-lib 1.0.0\n"
 "POT-Creation-Date: 2002-11-21 22:42-0600\n"
-"PO-Revision-Date: 2002-11-04 09:09+0200\n"
+"PO-Revision-Date: 2002-11-22 19:05+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -463,9 +463,8 @@ msgid "unable to allocate input buffer.\n"
 msgstr "Puffer kann nicht eingerichtet werden.\n"
 
 #: src/input/input_stdin_fifo.c:358
-#, fuzzy
 msgid "stdin streaming input plugin"
-msgstr "http Netzwerkdatenstrom-Plugin"
+msgstr "Standardeingabe Streaming-Plugin"
 
 #: src/input/input_file.c:115
 #, c-format
@@ -490,9 +489,8 @@ msgid "list hidden files"
 msgstr "Versteckte Dateien anzeigen"
 
 #: src/input/input_vcd.c:902
-#, fuzzy
 msgid "Video CD input plugin"
-msgstr "Datei Plugin"
+msgstr "Video-CD Plugin"
 
 #: src/input/input_vcd.c:1132
 msgid "path to your local vcd device file"
@@ -734,7 +732,6 @@ msgid "Colorkey used for Xv video overlay"
 msgstr "Farbschlüssel für Xv Videooverlay"
 
 #: src/video_out/video_out_xv.c:1209
-#, fuzzy
 msgid "Make Xv autopaint its colorkey"
 msgstr "Xv automatisch Farbschlüssel zeichnen lassen"
 
@@ -772,9 +769,8 @@ msgid "gamma correction for OpenGL driver"
 msgstr "Gamma-Korrektur für OpenGL-Treiber"
 
 #: src/video_out/video_out_opengl.c:961
-#, fuzzy
 msgid "xine video output plugin using OpenGL - TNG"
-msgstr "xine Videoausgabe benutzt OpenGL(tm)"
+msgstr "xine Videoausgabe mit OpenGL - TNG"
 
 #: src/video_out/video_out_directfb.c:564
 msgid "xine video output plugin using the DirectFB library."
