@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.137 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.138 2003/11/22 20:29:41 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -170,12 +170,6 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 					    this->output_format,
 					    VO_BOTH_FIELDS|this->frame_flags);
 
-  /* use drawn as a decoder flag.
-   * if true: free this frame on release_buffer.
-   * if false: free this frame after drawing it.
-   */
-  img->drawn = av_frame->reference;
-  
   av_frame->opaque = img;
 
   av_frame->data[0]= img->base[0];
@@ -206,8 +200,7 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
   av_frame->data[1]= NULL;
   av_frame->data[2]= NULL;
   
-  if(img->drawn)
-    img->free(img);
+  img->free(img);
 
   av_frame->opaque = NULL;
 }
@@ -992,7 +985,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if ( (buf->decoder_flags & (BUF_FLAG_FRAME_END|BUF_FLAG_FRAME_START))
 	  || this->is_continous) {
 
-      vo_frame_t *img, *tmp_img = NULL;
+      vo_frame_t *img;
       int         free_img;
       int         got_picture, len;
       int         offset;
@@ -1060,11 +1053,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
             (double) this->context->width / (double) this->context->height;
 
-
-	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
-	  img = (vo_frame_t*)this->av_frame->opaque;
-	  free_img = !img->drawn;
-	} else {
+	if(this->av_frame->type == FF_BUFFER_TYPE_INTERNAL) {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
 						    this->context->width,
 						    this->context->height,
@@ -1072,6 +1061,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						    this->output_format,
 						    VO_BOTH_FIELDS|this->frame_flags);
 	  free_img = 1;
+	} else {
+	  assert(this->av_frame->opaque);
+
+	  img = (vo_frame_t*) this->av_frame->opaque;
+	  free_img = 0;
 	}
 
 	if (len<0 || this->skipframes) {
@@ -1086,10 +1080,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  if(this->pp_available && this->pp_quality) {
 
-	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
-	      if(free_img)
-	        tmp_img = img;
-
+	    if(this->av_frame->type != FF_BUFFER_TYPE_INTERNAL) {
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        img->width,
 						        img->height,
@@ -1107,12 +1098,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
 
-	    if(tmp_img) {
-	      tmp_img->free(tmp_img);
-	      tmp_img = NULL;
-	    }
-
-	  } else if(this->av_frame->type != FF_BUFFER_TYPE_USER) {
+	  } else if(this->av_frame->type == FF_BUFFER_TYPE_INTERNAL) {
 	    ff_convert_frame(this, img);
 	  }
 	}
