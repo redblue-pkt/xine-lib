@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.1 2001/10/27 15:50:34 hrm Exp $
+ * $Id: video_out_dxr3enc.c,v 1.2 2001/10/27 17:27:48 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -424,7 +424,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     }
     else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
       printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-      fp.frame_rate_num = 30000; fp.frame_rate_den = 10001;
+      fp.frame_rate_num = 30000; fp.frame_rate_den = 1001;
     }
     else { /* try 1/fps, but libfame will probably go to PAL */
       fp.frame_rate_num = (int)(fps + 0.5); fp.frame_rate_den = 1;
