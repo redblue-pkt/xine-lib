@@ -43,7 +43,6 @@ extern "C" {
 #define XINE_EVENT_UI_CHANNELS_CHANGED   5 /* inform ui that new channel info is available */
 #define XINE_EVENT_UI_SET_TITLE          6 /* request title display change in ui */
 #define XINE_EVENT_INPUT_MENU1           7
-#define XINE_EVENT_INPUT_MENU0           8 /* Escape key just a duplicate */
 #define XINE_EVENT_INPUT_MENU2           8
 #define XINE_EVENT_INPUT_MENU3           9
 #define XINE_EVENT_INPUT_UP             10
