@@ -1,7 +1,8 @@
 # Note that this is NOT a relocatable package
 %define ver     @SPEC_VERSION@
 %define rel     0
-%define prefix  @prefix@
+#%define prefix  @prefix@
+%define prefix  /usr
 %define name    @PACKAGE@
 
 Name:        %{name}
