@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.294 2004/06/02 19:46:10 tmattern Exp $
+ * $Id: xine.c,v 1.295 2004/06/13 21:28:57 miguelfreitas Exp $
  */
 
 /*
@@ -108,11 +108,8 @@ void _x_extra_info_reset( extra_info_t *extra_info ) {
 void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
 
   if (!src->invalid) {
-    if( src->input_pos )
-      dst->input_pos = src->input_pos;
-
-    if( src->input_length )
-      dst->input_length = src->input_length;
+    if( src->input_normpos )
+      dst->input_normpos = src->input_normpos;
 
     if( src->input_time )
       dst->input_time = src->input_time;
@@ -1084,8 +1081,6 @@ static void __wait_first_frame (xine_stream_t *stream) {
 
 static int __play_internal (xine_stream_t *stream, int start_pos, int start_time) {
 
-  double     share ;
-  off_t      pos, len;
   int        demux_status;
   int        demux_thread_running;
 
@@ -1127,20 +1122,10 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   /*
    * start/seek demux
    */
-  if (start_pos) {
-    pthread_mutex_lock( &stream->current_extra_info_lock );
-    len = stream->current_extra_info->input_length;
-    pthread_mutex_unlock( &stream->current_extra_info_lock );
-    if ((len == 0) && stream->input_plugin)
-      len = stream->input_plugin->get_length (stream->input_plugin);
-    share = (double) start_pos / 65535;
-    pos = (off_t) (share * len) ;
-  } else
-    pos = 0;
 
   /* seek to new position (no data is sent to decoders yet) */
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
-					     pos, start_time, 
+					     start_pos, start_time, 
 					     stream->demux_thread_running);
 
   if (stream->audio_out)
@@ -1557,8 +1542,7 @@ void _x_select_spu_channel (xine_stream_t *stream, int channel) {
 
 static int __get_current_position (xine_stream_t *stream) {
 
-  off_t len;
-  double share;
+  int pos;
 
   pthread_mutex_lock (&stream->frontend_lock);
 
@@ -1581,17 +1565,12 @@ static int __get_current_position (xine_stream_t *stream) {
   }
 
   pthread_mutex_lock( &stream->current_extra_info_lock );
-  len = stream->current_extra_info->input_length;
-  share = (double) stream->current_extra_info->input_pos;
+  pos = stream->current_extra_info->input_normpos;
   pthread_mutex_unlock( &stream->current_extra_info_lock );
-
-  if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
-  share /= (double) len;
-  share *= 65536;
 
   pthread_mutex_unlock (&stream->frontend_lock);
 
-  return (int) share;
+  return pos;
 }
 
 void _x_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size) {

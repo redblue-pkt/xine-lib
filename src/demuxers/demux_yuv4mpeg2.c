@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.38 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.39 2004/06/13 21:28:55 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -265,8 +265,8 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
   while(bytes_remaining) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_I420;
-    buf->extra_info->input_pos = current_file_pos;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)((double) current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = pts / 90;
     buf->pts = pts;
 
@@ -337,6 +337,8 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   if (INPUT_IS_SEEKABLE(this->input)) {
 
@@ -498,6 +500,6 @@ demuxer_info_t demux_info_yuv4mpeg2 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "yuv4mpeg2", XINE_VERSION_CODE, &demux_info_yuv4mpeg2, init_plugin },
+  { PLUGIN_DEMUX, 25, "yuv4mpeg2", XINE_VERSION_CODE, &demux_info_yuv4mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

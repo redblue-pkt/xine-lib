@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.103 2004/06/10 20:16:59 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.104 2004/06/13 21:28:54 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -779,10 +779,12 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       }
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
-      m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-           if (this->rate)
-  	           m->buf->extra_info->input_time = (int)((int64_t)m->buf->extra_info->input_pos
-                   				    * 1000 / (this->rate * 50));
+      if( this->input->get_length (this->input) )
+        m->buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
+      if (this->rate)
+        m->buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
+                                         * 1000 / (this->rate * 50));
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = NULL; /* forget about buf -- not our responsibility anymore */
@@ -812,10 +814,12 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       m->buf->type = m->type;
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
-      m->buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+      if( this->input->get_length (this->input) )
+        m->buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
       if (this->rate)
-  	           m->buf->extra_info->input_time = (int)((int64_t)m->buf->extra_info->input_pos
-                   				    * 1000 / (this->rate * 50));
+        m->buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
+                                         * 1000 / (this->rate * 50));
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
       m->buf = m->fifo->buffer_pool_alloc(m->fifo);
@@ -1799,6 +1803,8 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
   demux_ts_t *this = (demux_ts_t *) this_gen;
   int i;
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
@@ -2097,6 +2103,6 @@ demuxer_info_t demux_info_ts = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "mpeg-ts", XINE_VERSION_CODE, &demux_info_ts, init_class },
+  { PLUGIN_DEMUX, 25, "mpeg-ts", XINE_VERSION_CODE, &demux_info_ts, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.2 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_flv.c,v 1.3 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -144,8 +144,9 @@ printf ("  chunk_type = %X, 0x%X -1 bytes, pts %lld, sub-type = %X\n",
     while (remaining_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLV1;
-      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-      buf->extra_info->input_length = this->input->get_length(this->input);
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
 
       if (remaining_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -343,6 +344,6 @@ demuxer_info_t demux_info_flv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "flashvideo", XINE_VERSION_CODE, &demux_info_flv, init_plugin },
+  { PLUGIN_DEMUX, 25, "flashvideo", XINE_VERSION_CODE, &demux_info_flv, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

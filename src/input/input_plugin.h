@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.55 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_plugin.h,v 1.56 2004/06/13 21:28:56 miguelfreitas Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -36,7 +36,7 @@
 #  include <xine/configfile.h>
 #endif
 
-#define INPUT_PLUGIN_IFACE_VERSION   14
+#define INPUT_PLUGIN_IFACE_VERSION   15
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;

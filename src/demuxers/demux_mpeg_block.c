@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.207 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_mpeg_block.c,v 1.208 2004/06/13 21:28:53 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -226,10 +226,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   else
     buf->decoder_flags = 0;
     
-  if( !buf->extra_info->input_length ) {
-    buf->extra_info->input_pos = this->input->get_current_pos (this->input);
-    buf->extra_info->input_length = this->input->get_length (this->input);
-  }
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
 
   while(p < (buf->content + this->blocksize)) {
     if (p[0] || p[1] || (p[2] != 1)) {
@@ -521,7 +520,7 @@ static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_
       cell_time += (frames * 1000)/30;
 
     this->last_cell_time = cell_time;
-    this->last_cell_pos = buf->extra_info->input_pos;
+    this->last_cell_pos = this->input->get_current_pos (this->input);
     this->last_begin_time = buf->extra_info->input_time;
   }
     
@@ -565,17 +564,17 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
   /* some input plugins like DVD can have better timing information and have
    * already set the total_time, so we can derive our datarate from this */
   if (buf->extra_info->total_time)
-    this->rate = (int)((int64_t)buf->extra_info->input_length * 1000 /
+    this->rate = (int)((int64_t)this->input->get_length (this->input) * 1000 /
                        (buf->extra_info->total_time * 50));
 
   if (this->rate && this->last_cell_time) {
     if( this->last_begin_time == buf->extra_info->input_time )
       buf->extra_info->input_time = this->last_cell_time + buf->extra_info->input_time +
-       ((buf->extra_info->input_pos - this->last_cell_pos) * 1000 / (this->rate * 50));
+       ((this->input->get_current_pos (this->input) - this->last_cell_pos) * 1000 / (this->rate * 50));
   }
 
   if (this->rate && !buf->extra_info->input_time)
-    buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+    buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input) 
                                         * 1000 / (this->rate * 50));
   if (this->mpeg1) {
     header_len = 6;
@@ -1267,6 +1266,8 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
 				   off_t start_pos, int start_time, int playing) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
   start_time /= 1000;
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
@@ -1559,6 +1560,6 @@ demuxer_info_t demux_info_mpeg_block = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "mpeg_block", XINE_VERSION_CODE, &demux_info_mpeg_block, init_plugin },
+  { PLUGIN_DEMUX, 25, "mpeg_block", XINE_VERSION_CODE, &demux_info_mpeg_block, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

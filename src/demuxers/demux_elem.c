@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.84 2004/05/16 18:01:28 tmattern Exp $
+ * $Id: demux_elem.c,v 1.85 2004/06/13 21:28:52 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -84,7 +84,9 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf->size                  = done;
   buf->content               = buf->mem;
   buf->pts                   = 0;
-  buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
   buf->type                  = BUF_VIDEO_MPEG;
 
   if (preview_mode)
@@ -142,6 +144,8 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
 				  off_t start_pos, int start_time, int playing) {
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   this->status = DEMUX_OK;
 
@@ -303,6 +307,6 @@ demuxer_info_t demux_info_elem = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "elem", XINE_VERSION_CODE, &demux_info_elem, init_plugin },
+  { PLUGIN_DEMUX, 25, "elem", XINE_VERSION_CODE, &demux_info_elem, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

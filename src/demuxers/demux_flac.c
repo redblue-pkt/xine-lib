@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.1 2004/06/11 01:29:49 tmmm Exp $
+ * $Id: demux_flac.c,v 1.2 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -225,9 +225,9 @@ static int demux_flac_send_chunk(demux_plugin_t *this_gen) {
    * boundaries and let the engine figure out the pts */
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type = BUF_AUDIO_FLAC;
-  buf->extra_info->input_pos = this->input->get_current_pos(this->input) -
-    this->data_start;
-  buf->extra_info->input_length = this->data_size;
+  if( this->data_size )
+    buf->extra_info->input_normpos = (int) ( (double) (this->input->get_current_pos(this->input) -
+                                     this->data_start) * 65535 / this->data_size );
   buf->pts = 0;
   buf->size = buf->max_size;
 
@@ -245,8 +245,8 @@ static int demux_flac_send_chunk(demux_plugin_t *this_gen) {
   input_time_guess = this->total_samples;
   input_time_guess /= this->sample_rate;
   input_time_guess *= 1000;
-  input_time_guess *= buf->extra_info->input_pos;
-  input_time_guess /= buf->extra_info->input_length;
+  input_time_guess *= buf->extra_info->input_normpos;
+  input_time_guess /= 65535;
   buf->extra_info->input_time = input_time_guess;
 
   if (this->input->read(this->input, buf->content, buf->size) !=
@@ -294,6 +294,8 @@ static void demux_flac_send_headers(demux_plugin_t *this_gen) {
 static int demux_flac_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time, int playing) {
   demux_flac_t *this = (demux_flac_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
   int seekpoint_index = 0;
   int64_t start_pts;
 

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.186 2004/06/07 21:15:04 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.187 2004/06/13 21:28:54 miguelfreitas Exp $
  *
  */
 
@@ -2296,8 +2296,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = video_trak->properties->video.codec_buftype;
-      buf->extra_info->input_pos = video_trak->frames[i].offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double) (video_trak->frames[i].offset - this->data_start)
+                                                * 65535 / this->data_size);
       buf->extra_info->input_time = video_trak->frames[i].pts / 90;
       buf->pts = video_trak->frames[i].pts;
 
@@ -2353,8 +2354,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = audio_trak->properties->audio.codec_buftype;
-      buf->extra_info->input_pos = audio_trak->frames[i].offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double) (audio_trak->frames[i].offset - this->data_start)
+                                                * 65535 / this->data_size);
       /* The audio chunk is often broken up into multiple 8K buffers when
        * it is sent to the audio decoder. Only attach the proper timestamp
        * to the first buffer. This is for the linear PCM decoder which
@@ -2716,6 +2718,9 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   qt_trak *video_trak = NULL;
   qt_trak *audio_trak = NULL;
 
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
+
   int64_t keyframe_pts;
 
   /* short-circuit any attempts to seek in a non-seekable stream, including
@@ -2976,6 +2981,6 @@ demuxer_info_t demux_info_qt = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "quicktime", XINE_VERSION_CODE, &demux_info_qt, init_plugin },
+  { PLUGIN_DEMUX, 25, "quicktime", XINE_VERSION_CODE, &demux_info_qt, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

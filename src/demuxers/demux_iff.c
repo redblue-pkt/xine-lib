@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.10 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_iff.c,v 1.11 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -799,8 +799,8 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
       while (remaining_sample_bytes) {
         buf                             = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type                       = this->audio_type;
-        buf->extra_info->input_pos      = zw_pts;
-        buf->extra_info->input_length   = input_length;
+        if( input_length )
+          buf->extra_info->input_normpos = (int)((double)zw_pts * 65535 / input_length);
         buf->pts                        = zw_pts * 90000 / this->audio_bytes_per_second;
         buf->extra_info->input_time     = buf->pts / 90;
 
@@ -958,7 +958,9 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
         else
           buf->decoder_info[0]          = this->video_pts_inc;
         buf->decoder_info_ptr[0]        = this->anhd;
-        buf->extra_info->input_pos      = this->input->get_current_pos(this->input);
+        if( this->input->get_length (this->input) )
+          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                           65535 / this->input->get_length (this->input) );
         buf->pts                        = this->video_pts;
         buf->extra_info->input_time     = buf->pts / 90;
 
@@ -1078,6 +1080,8 @@ static int demux_iff_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
 
   demux_iff_t *this                     = (demux_iff_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   switch( this->iff_type ) {
     case IFF_8SVX_CHUNK:
@@ -1332,7 +1336,7 @@ demuxer_info_t demux_info_iff = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "iff", XINE_VERSION_CODE, &demux_info_iff, init_plugin },
+  { PLUGIN_DEMUX, 25, "iff", XINE_VERSION_CODE, &demux_info_iff, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -274,7 +274,7 @@ static int
 demux_flac_send_chunk (demux_plugin_t *this_gen) {
     demux_flac_t *this = (demux_flac_t *) this_gen;
     buf_element_t *buf = NULL;
-    off_t current_file_pos;
+    off_t current_file_pos, file_size = 0;
     int64_t current_pts;
     unsigned int remaining_sample_bytes = 0;
 
@@ -282,11 +282,13 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
 
     current_file_pos = this->input->get_current_pos (this->input) 
                         - this->data_start;
+    if( (this->data_size - this->data_start) > 0 )
+        file_size = (this->data_size - this->data_start);
 
     current_pts = current_file_pos;
     current_pts *= this->length_in_msec * 90;
-    if( (this->data_size - this->data_start) > 0 )
-        current_pts /= (this->data_size - this->data_start);
+    if( file_size )
+        current_pts /= file_size;
 
     if (this->seek_flag) {
 #ifdef USE_ESTIMATED_PTS
@@ -307,8 +309,8 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
 
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_FLAC;
-        buf->extra_info->input_pos    = current_file_pos;
-        buf->extra_info->input_length = this->data_size - this->data_start;
+        if( file_size )
+          buf->extra_info->input_normpos = (int) ((double)current_file_pos * 65535 / file_size);
         buf->extra_info->input_time   = current_pts / 90;
 #ifdef USE_ESTIMATED_PTS
         buf->pts = current_pts;
@@ -405,6 +407,9 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int 
     demux_flac_t *this = (demux_flac_t *) this_gen;
 
     lprintf("demux_flac_seek\n");
+
+    start_pos = (off_t) ( (double) start_pos / 65535 *
+                this->input->get_length (this->input) );
 
     if (!start_pos && start_time) {
         double distance = (double)start_time;

@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.51 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_idcin.c,v 1.52 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -197,9 +197,10 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_IDCIN;
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input) -
-      IDCIN_HEADER_SIZE - HUFFMAN_TABLE_SIZE;;
-    buf->extra_info->input_length = this->filesize;
+    if( this->filesize )
+      buf->extra_info->input_normpos = (int)( (double) (this->input->get_current_pos (this->input) -
+                                                        IDCIN_HEADER_SIZE - HUFFMAN_TABLE_SIZE) *
+                                     65535 / this->filesize );
     buf->extra_info->input_time = this->pts_counter / 90;
     buf->pts = this->pts_counter;
 
@@ -240,8 +241,9 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_LPCM_LE;
-      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-      buf->extra_info->input_length = this->filesize;
+      if( this->filesize )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) *
+                                         65535 / this->filesize );
       buf->extra_info->input_time = this->pts_counter / 90;
       buf->pts = this->pts_counter;
 

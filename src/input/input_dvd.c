@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.180 2004/04/10 15:45:10 mroi Exp $
+ * $Id: input_dvd.c,v 1.181 2004/06/13 21:28:56 miguelfreitas Exp $
  *
  */
 
@@ -775,8 +775,6 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   if (this->pg_length && this->pgc_length) {
     int pos, length;
     dvdnav_get_position(this->dvdnav, &pos, &length);
-    buf->extra_info->input_pos = pos * (off_t)DVD_BLOCK_SIZE;
-    buf->extra_info->input_length = length * (off_t)DVD_BLOCK_SIZE;
     switch (((dvd_input_class_t *)this->input_plugin.input_class)->seek_mode) {
     case 0: /* PGC based seeking */
       buf->extra_info->total_time = this->pgc_length / 90;
@@ -1773,6 +1771,13 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.181  2004/06/13 21:28:56  miguelfreitas
+ * implement steps 1, 2, 3 and 4 of the seeking proposal:
+ * http://article.gmane.org/gmane.comp.video.xine.devel/9532
+ *
+ * it is now up to demuxers to decide what the 0..65535 position means.
+ * demuxers tested: ogg, voc, flac, rm, asf, vqa, vob, avi, y4m, au, mov, ts, mp3, mpg, wav, ra, mve
+ *
  * Revision 1.180  2004/04/10 15:45:10  mroi
  * improving config help strings
  *
@@ -2295,6 +2300,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 14, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 15, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

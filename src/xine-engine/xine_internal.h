@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.157 2004/05/29 14:45:25 mroi Exp $
+ * $Id: xine_internal.h,v 1.158 2004/06/13 21:28:58 miguelfreitas Exp $
  *
  */
 
@@ -400,15 +400,14 @@ int _x_action_pending (xine_stream_t *stream);
 
 void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
                         int64_t pts, uint32_t type, uint32_t decoder_flags,
-                        off_t input_pos, off_t input_length,
-                        int input_time, int total_time,
+                        int input_normpos, int input_time, int total_time,
                         uint32_t frame_number);
 
 int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input, 
                             int size, int64_t pts, uint32_t type, 
-                            uint32_t decoder_flags, off_t input_pos, 
-                            off_t input_length, int input_time, 
-                            int total_time, uint32_t frame_number);
+                            uint32_t decoder_flags, off_t input_normpos, 
+                            int input_time, int total_time,
+                            uint32_t frame_number);
 
 
 /* 

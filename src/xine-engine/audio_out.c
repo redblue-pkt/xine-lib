@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.178 2004/05/29 14:45:25 mroi Exp $
+ * $Id: audio_out.c,v 1.179 2004/06/13 21:28:57 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1213,7 +1213,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   frame->sample_rate     = this->input.rate;
   frame->num_channels    = _x_ao_mode2channels (this->input.mode);
   frame->bits_per_sample = this->input.bits;
-  frame->pos_stream      = out_buf->extra_info->input_pos;
+  frame->pos_stream      = out_buf->extra_info->input_normpos;
   frame->pos_time        = out_buf->extra_info->input_time;
   frame->data            = (uint8_t *) out_buf->mem;
 

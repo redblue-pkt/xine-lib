@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.24 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_str.c,v 1.25 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 /*
@@ -359,7 +359,7 @@ static int demux_str_send_chunk(demux_plugin_t *this_gen) {
     buf->pts = frame_number * FRAME_DURATION;
 
     if (this->seek_flag) {
-      _x_demux_control_newpts(this->stream, buf->pts, 0);
+      _x_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
       this->seek_flag = 0;
     }
 
@@ -371,8 +371,9 @@ static int demux_str_send_chunk(demux_plugin_t *this_gen) {
      *}
      */
 
-    buf->extra_info->input_pos = current_pos;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)( (double) current_pos * 
+                                     65535 / this->data_size );
     buf->extra_info->input_time = (current_pos*1000)/(CD_RAW_SECTOR_SIZE*75);
 
     /* constant size chunk */
@@ -404,12 +405,13 @@ static int demux_str_send_chunk(demux_plugin_t *this_gen) {
 	((sector[0x13] & 0x04) ? 18900 : 37800);
 
       if (this->seek_flag) {
-	_x_demux_control_newpts(this->stream, buf->pts, 0);
+	_x_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
 	this->seek_flag = 0;
       }
 
-      buf->extra_info->input_pos = current_pos;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double) current_pos * 
+                                     65535 / this->data_size );
       buf->extra_info->input_time = (current_pos*1000)/(CD_RAW_SECTOR_SIZE*75);
 
       buf->size = 2304;
@@ -498,6 +500,8 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
 
 static int demux_str_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_str_t *this = (demux_str_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   _x_demux_flush_engine (this->stream);
 

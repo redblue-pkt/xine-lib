@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.49 2004/05/16 21:45:24 jcdutton Exp $ 
+ * $Id: demux.c,v 1.50 2004/06/13 21:28:57 miguelfreitas Exp $ 
  */
 
 
@@ -483,7 +483,7 @@ int _x_action_pending (xine_stream_t *stream) {
  */
 void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
                         int64_t pts, uint32_t type, uint32_t decoder_flags,
-                        off_t input_pos, off_t input_length,
+                        int input_normpos,
                         int input_time, int total_time,
                         uint32_t frame_number) {
   buf_element_t *buf;
@@ -510,8 +510,7 @@ void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
     buf->pts = pts;
     pts = 0;
 
-    buf->extra_info->input_pos     = input_pos;
-    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_normpos = input_normpos;
     buf->extra_info->input_time    = input_time;
     buf->extra_info->total_time    = total_time;
     buf->extra_info->frame_number  = frame_number;
@@ -529,9 +528,9 @@ void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
  */
 int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input, 
                             int size, int64_t pts, uint32_t type, 
-                            uint32_t decoder_flags, off_t input_pos, 
-                            off_t input_length, int input_time, 
-                            int total_time, uint32_t frame_number) {
+                            uint32_t decoder_flags, off_t input_normpos, 
+                            int input_time, int total_time, 
+                            uint32_t frame_number) {
   buf_element_t *buf;
 
   decoder_flags |= BUF_FLAG_FRAME_START;
@@ -558,8 +557,7 @@ int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input,
     buf->pts = pts;
     pts = 0;
 
-    buf->extra_info->input_pos     = input_pos;
-    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_normpos = input_normpos;
     buf->extra_info->input_time    = input_time;
     buf->extra_info->total_time    = total_time;
     buf->extra_info->frame_number  = frame_number;

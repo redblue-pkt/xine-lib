@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.99 2004/05/27 11:10:13 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.100 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -679,8 +679,8 @@ unknown:
     buf->size                   = this->video_stream->mdpr->type_specific_len;
     buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->type                   = this->video_stream->buf_type;
-    buf->extra_info->input_pos  = 0;
-    buf->extra_info->input_time = 0;
+    buf->extra_info->input_normpos = 0;
+    buf->extra_info->input_time    = 0;
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -973,6 +973,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   uint32_t        id, timestamp;
   int64_t         pts;
   off_t           offset, input_length = 0;
+  int             normpos = 0;
 
   if(this->reference_mode)
     return demux_real_parse_references(this);
@@ -1121,6 +1122,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
       if(this->data_start && this->data_chunk_size)
         input_length = this->data_start + 18 + this->data_chunk_size;
+      if( input_length )
+        normpos = (int)((double) this->input->get_current_pos(this->input) * 65535 / input_length);
         
       check_newpts (this, pts, PTS_VIDEO, 0);
 
@@ -1224,8 +1227,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         buf->pts = pts;
         pts = 0;
         
-        buf->extra_info->input_pos     = this->input->get_current_pos(this->input);
-        buf->extra_info->input_length  = input_length;
+        buf->extra_info->input_normpos = normpos;
         buf->extra_info->input_time    = input_time;
         buf->extra_info->total_time    = this->duration;
         
@@ -1269,6 +1271,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       input_length = this->data_start + 18 + this->data_chunk_size;
     else
       input_length = 0;
+    
+    if( input_length )
+      normpos = (int)((double) this->input->get_current_pos(this->input) * 65535 / input_length);
           
     check_newpts (this, pts, PTS_AUDIO, 0);
     
@@ -1287,8 +1292,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         
       for(i = 0; i < frames; i++) {
         if(_x_demux_read_send_data(this->audio_fifo, this->input, sizes[i], pts, 
-             this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
-             input_length, input_time, this->duration, 0) < 0) {
+             this->audio_stream->buf_type, 0, normpos, 
+             input_time, this->duration, 0) < 0) {
 
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
 
@@ -1303,8 +1308,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       free(sizes);
     } else {
       if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
-           this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
-           input_length, input_time, this->duration, 0) < 0) {
+           this->audio_stream->buf_type, 0, normpos,
+           input_time, this->duration, 0) < 0) {
 
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "read error 44\n");
 
@@ -1405,6 +1410,9 @@ static int demux_real_seek (demux_plugin_t *this_gen,
   demux_real_t       *this = (demux_real_t *) this_gen;
   real_index_entry_t *index, *other_index = NULL;
   int                 i = 0, entries;
+  
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) &&
      ((this->audio_stream && this->audio_stream->index) ||
@@ -1650,6 +1658,6 @@ demuxer_info_t demux_info_real = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "real", XINE_VERSION_CODE, &demux_info_real, init_class },
+  { PLUGIN_DEMUX, 25, "real", XINE_VERSION_CODE, &demux_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

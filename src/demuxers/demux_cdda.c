@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.18 2004/01/09 01:26:32 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.19 2004/06/13 21:28:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,16 +84,17 @@ static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
   }
 
   buf->type = BUF_AUDIO_LPCM_LE;
-  buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-  buf->extra_info->input_length = this->input->get_length(this->input);
-  buf->pts = buf->extra_info->input_pos;
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
+  buf->pts = this->input->get_current_pos(this->input);
   buf->pts *= 90000;
   buf->pts /= CD_BYTES_PER_SECOND;
   buf->extra_info->input_time = buf->pts / 90;
   buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
   if (this->seek_flag) {
-    _x_demux_control_newpts(this->stream, buf->pts, 0);
+    _x_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
     this->seek_flag = 0;
   }
 
@@ -139,6 +140,8 @@ static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
 
 static int demux_cdda_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
   start_time /= 1000;
 
   if (start_pos)

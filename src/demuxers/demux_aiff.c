@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.38 2004/01/09 01:26:32 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.39 2004/06/13 21:28:52 miguelfreitas Exp $
  *
  */
 
@@ -183,7 +183,7 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
   current_pts /= this->audio_bytes_per_second;
 
   if (this->seek_flag) {
-    _x_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, BUF_FLAG_SEEK);
     this->seek_flag = 0;
   }
 
@@ -195,8 +195,8 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->extra_info->input_pos = current_file_pos;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = current_pts / 90;
     buf->pts = current_pts;
 
@@ -267,6 +267,8 @@ static int demux_aiff_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;

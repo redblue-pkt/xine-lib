@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.54 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_fli.c,v 1.55 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -178,9 +178,9 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
     /* send a buffer with only the chunk header */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_FLI;
-    buf->extra_info->input_pos = current_file_pos;
+    if( this->stream_len )
+      buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->stream_len);
     buf->extra_info->input_time = this->pts_counter / 90;
-    buf->extra_info->input_length = this->stream_len;
     buf->pts = this->pts_counter;
     buf->size = 6;
     memcpy(buf->content, fli_buf, 6);
@@ -191,9 +191,9 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLI;
-      buf->extra_info->input_pos = current_file_pos;
+      if( this->stream_len )
+        buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->stream_len);
       buf->extra_info->input_time = this->pts_counter / 90;
-      buf->extra_info->input_length = this->stream_len;
       buf->pts = this->pts_counter;
 
       if (chunk_size > buf->max_size)
@@ -400,6 +400,6 @@ demuxer_info_t demux_info_fli = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "fli", XINE_VERSION_CODE, &demux_info_fli, init_plugin },
+  { PLUGIN_DEMUX, 25, "fli", XINE_VERSION_CODE, &demux_info_fli, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

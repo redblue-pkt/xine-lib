@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.137 2004/06/01 04:31:17 tmmm Exp $
+ * $Id: buffer.h,v 1.138 2004/06/13 21:28:57 miguelfreitas Exp $
  *
  *
  * contents:
@@ -250,16 +250,18 @@ typedef struct extra_info_s extra_info_t;
   
 struct extra_info_s {
 
-  off_t                 input_pos; /* remember where this buf came from in the input source */
-  off_t                 input_length; /* remember the length of the input source */
-  int                   input_time;/* time offset in miliseconds from beginning of stream       */
-  uint32_t              frame_number; /* number of current frame if known */
+  int                   input_normpos; /* remember where this buf came from in
+                                        * the input source (0..65535). can be
+                                        * either time or offset based. */
+  int                   input_time;    /* time offset in miliseconds from
+                                        * beginning of stream */
+  uint32_t              frame_number;  /* number of current frame if known */
   
-  int                   seek_count; /* internal engine use */
-  int64_t               vpts;       /* set on output layers only */ 
+  int                   seek_count;    /* internal engine use */
+  int64_t               vpts;          /* set on output layers only */ 
   
-  int                   invalid;    /* do not use this extra info to update anything */
-  int                   total_time; /* duration in miliseconds of the stream */
+  int                   invalid;       /* do not use this extra info to update anything */
+  int                   total_time;    /* duration in miliseconds of the stream */
 };
 
 

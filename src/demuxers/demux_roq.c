@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.52 2004/05/29 19:01:53 tmmm Exp $
+ * $Id: demux_roq.c,v 1.53 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -208,7 +208,9 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
       /* send out the preamble */
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_ROQ;
-      buf->extra_info->input_pos = current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE;
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) (current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE) * 
+                                     65535 / this->input->get_length (this->input) );
       buf->pts = 0;
       buf->size = RoQ_CHUNK_PREAMBLE_SIZE;
       memcpy(buf->content, preamble, RoQ_CHUNK_PREAMBLE_SIZE);
@@ -218,7 +220,9 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
       while (chunk_size) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
         buf->type = BUF_AUDIO_ROQ;
-        buf->extra_info->input_pos = current_file_pos;
+        if( this->input->get_length (this->input) )
+          buf->extra_info->input_normpos = (int)( (double) current_file_pos * 
+                                     65535 / this->input->get_length (this->input) );
         buf->pts = audio_pts;
 
         if (chunk_size > buf->max_size)
@@ -253,7 +257,9 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     /* send out the preamble */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_ROQ;
-    buf->extra_info->input_pos = current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE;
+    if( this->input->get_length (this->input) )
+      buf->extra_info->input_normpos = (int)( (double) (current_file_pos - RoQ_CHUNK_PREAMBLE_SIZE) * 
+                                     65535 / this->input->get_length (this->input) );
     buf->pts = this->video_pts_counter;
     buf->size = RoQ_CHUNK_PREAMBLE_SIZE;
     memcpy(buf->content, preamble, RoQ_CHUNK_PREAMBLE_SIZE);
@@ -262,7 +268,9 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_VIDEO_ROQ;
-      buf->extra_info->input_pos = current_file_pos;
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) current_file_pos * 
+                                     65535 / this->input->get_length (this->input) );
       buf->pts = this->video_pts_counter;
 
       if (chunk_size > buf->max_size)

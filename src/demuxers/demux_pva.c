@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.18 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_pva.c,v 1.19 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -170,8 +170,8 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
       buf->type = BUF_VIDEO_MPEG;
       buf->pts = pts;
       pts = 0;
-      buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int) ((double) current_file_pos * 65535 / this->data_size);
       buf->extra_info->input_time = buf->pts / 90;
 
       if (chunk_size > buf->max_size)
@@ -254,7 +254,9 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
     buf->type = BUF_AUDIO_MPEG;
     buf->pts = pts;
 
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int) ((double) this->input->get_current_pos(this->input) * 
+                                              65535 / this->data_size);
 
     this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -301,7 +303,9 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
   buf->size = n;
 
   buf->pts = 0;
-  buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+  if( this->data_size )
+    buf->extra_info->input_normpos = (int) ((double) this->input->get_current_pos(this->input) * 
+                                              65535 / this->data_size);
   buf->type = BUF_VIDEO_MPEG;
 
   buf->decoder_flags = BUF_FLAG_PREVIEW;
@@ -326,7 +330,9 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
     buf->size = n;
 
     buf->pts = 0;
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int) ((double) this->input->get_current_pos(this->input) * 
+                                              65535 / this->data_size);
     buf->type = BUF_AUDIO_MPEG;
 
     buf->decoder_flags = BUF_FLAG_PREVIEW;
@@ -343,6 +349,9 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
   unsigned char seek_buffer[SEEK_BUFFER_SIZE];
   int found = 0;
   int i;
+  
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   /* start from the start_pos */
   this->input->seek(this->input, start_pos, SEEK_SET);
@@ -517,6 +526,6 @@ demuxer_info_t demux_info_pva = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "pva", XINE_VERSION_CODE, &demux_info_pva, init_plugin },
+  { PLUGIN_DEMUX, 25, "pva", XINE_VERSION_CODE, &demux_info_pva, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

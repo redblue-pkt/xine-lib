@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.6 2004/02/12 23:31:19 jstembridge Exp $
+ * $Id: matroska.h,v 1.7 2004/06/13 21:28:55 miguelfreitas Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -226,8 +226,7 @@ struct matroska_track_s {
 		                            int decoder_flags,
                                             uint8_t *data, int data_len,
                                             int64_t data_pts, int data_duration,
-                                            off_t input_pos, off_t input_length,
-                                            int input_time);
+                                            int input_normpos, int input_time);
 };
 
 /* IDs in the tags master */

@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.21 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_nsf.c,v 1.22 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,8 +142,7 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
       else
         buf->size = buf->max_size;
 
-      buf->extra_info->input_pos = 0;
-      buf->extra_info->input_length = 0;
+      buf->extra_info->input_normpos = 0;
       buf->extra_info->input_time = 0;
       buf->pts = 0;
 
@@ -171,8 +170,8 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
       buf->decoder_info[1] = 0;
 
     buf->type = BUF_AUDIO_NSF;
-    buf->extra_info->input_pos = this->current_song - 1;
-    buf->extra_info->input_length = this->total_songs;
+    if(this->total_songs) 
+      buf->extra_info->input_normpos = (this->current_song - 1) * 65535 / this->total_songs;
     buf->extra_info->input_time = this->current_pts / 90;
     buf->pts = this->current_pts;
     buf->size = 0;
@@ -238,6 +237,8 @@ static int demux_nsf_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
 
   demux_nsf_t *this = (demux_nsf_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->total_songs );
 
   /* if thread is not running, initialize demuxer */
   if( !playing ) {

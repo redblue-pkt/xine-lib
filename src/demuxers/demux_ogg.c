@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.145 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.146 2004/06/13 21:28:54 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -305,7 +305,9 @@ static void send_ogg_packet (demux_ogg_t *this,
     }
 
     buf->pts = pts;
-    buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
+    if( this->input->get_length (this->input) )
+      buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                       65535 / this->input->get_length (this->input) );
     buf->extra_info->input_time = buf->pts / 90 ;
     buf->type       = this->si[stream_num]->buf_types;
 
@@ -546,7 +548,13 @@ static void send_ogg_buf (demux_ogg_t *this,
                           uint32_t     decoder_flags) {
 
   int hdrlen;
+  int normpos = 0;
 
+  if( this->input->get_length (this->input) )
+    normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                              65535 / this->input->get_length (this->input) );
+
+  
   hdrlen = (*op->packet & PACKET_LEN_BITS01) >> 6;
   hdrlen |= (*op->packet & PACKET_LEN_BITS2) << 1;
 
@@ -584,8 +592,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     _x_demux_send_data(this->audio_fifo, data, size,
                        pts, this->si[stream_num]->buf_types, decoder_flags,
-                       this->input->get_current_pos(this->input),
-                       this->input->get_length(this->input),
+                       normpos,
                        pts / 90, this->time_length, 0);
 
 
@@ -651,8 +658,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
       _x_demux_send_data(this->video_fifo, data, size,
                          pts, this->si[stream_num]->buf_types, decoder_flags,
-                         this->input->get_current_pos(this->input),
-                         this->input->get_length(this->input),
+                         normpos,
                          pts / 90, this->time_length, 0);
 
       if (this->chapter_info && op->granulepos != -1) {
@@ -1443,6 +1449,8 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   int i;
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
   /*
    * seek to start position
    */
@@ -1760,6 +1768,6 @@ demuxer_info_t demux_info_ogg = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "ogg", XINE_VERSION_CODE, &demux_info_ogg, init_class },
+  { PLUGIN_DEMUX, 25, "ogg", XINE_VERSION_CODE, &demux_info_ogg, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

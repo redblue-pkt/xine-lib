@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.204 2004/06/05 14:11:24 tmattern Exp $
+ * $Id: demux_avi.c,v 1.205 2004/06/13 21:28:52 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1589,7 +1589,9 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
       buf->type = audio->audio_type | i;
       buf->extra_info->input_time = audio_pts / 90;
-      buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
 
       check_newpts (this, buf->pts, PTS_AUDIO);
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -1608,13 +1610,17 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     buf->type       = this->avi->video_type;
 
     buf->extra_info->input_time = video_pts / 90;
-    buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
 
-    if (this->has_index) {
+    if (this->has_index && this->avi->video_idx.video_frames > 2) {
       /* use video_frames-2 instead of video_frames-1 to fix problems with weird
          non-interleaved streams */
-      buf->extra_info->input_length =
-        this->avi->video_idx.vindex[this->avi->video_idx.video_frames - 2].pos;
+      buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                       65535 /
+                                       this->avi->video_idx.vindex[this->avi->video_idx.video_frames - 2].pos);
+    } else {
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
     }
     buf->extra_info->frame_number = this->avi->video_posf;
     buf->decoder_flags |= decoder_flags;
@@ -1743,7 +1749,9 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
           return 0;
         }
         buf->extra_info->input_time = audio_pts / 90;
-        buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
+        if( this->input->get_length (this->input) )
+          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                           65535 / this->input->get_length (this->input) );
 
         buf->type = audio->audio_type | audio_stream;
 
@@ -1788,8 +1796,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         buf->type       = this->avi->video_type;
         buf->extra_info->input_time = video_pts / 90;
-        buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
-        buf->extra_info->input_length = buf->extra_info->input_pos;
+        buf->extra_info->input_normpos = 65535;
         buf->extra_info->frame_number = this->avi->video_posf;
         buf->decoder_flags |= decoder_flags;
 
@@ -2040,7 +2047,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 static int demux_avi_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
-                             
+  
   if (!this->streaming) {
     _x_demux_flush_engine (this->stream);
     this->seek_request    = 1;
@@ -2058,6 +2065,9 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
   int64_t              audio_pts;
   off_t                start_pos = this->seek_start_pos;
   int                  start_time = this->seek_start_time;
+  
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   this->status = DEMUX_OK;
 
@@ -2353,6 +2363,6 @@ demuxer_info_t demux_info_avi = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "avi", XINE_VERSION_CODE, &demux_info_avi, init_class },
+  { PLUGIN_DEMUX, 25, "avi", XINE_VERSION_CODE, &demux_info_avi, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

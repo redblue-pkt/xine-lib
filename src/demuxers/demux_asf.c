@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.160 2004/05/30 14:38:02 tmattern Exp $
+ * $Id: demux_asf.c,v 1.161 2004/06/13 21:28:52 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -833,11 +833,13 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     lprintf ("data: %d %d %d %d\n", buf->content[0], buf->content[1], buf->content[2], buf->content[3]);
 
-    buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
+    if( this->input->get_length (this->input) )
+      buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                       65535 / this->input->get_length (this->input) );
     buf->extra_info->input_time = timestamp;
 
-    lprintf ("input pos is %lld, input time is %d, rate %d\n",
-             buf->extra_info->input_pos,
+    lprintf ("input normpos is %lld, input time is %d, rate %d\n",
+             buf->extra_info->input_normpos,
              buf->extra_info->input_time,
              this->rate);
 
@@ -942,7 +944,9 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
       buf = stream->fifo->buffer_pool_alloc (stream->fifo);
       xine_fast_memcpy (buf->content, p, bufsize);
       
-      buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
+      if( this->input->get_length (this->input) )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                         65535 / this->input->get_length (this->input) );
       buf->extra_info->input_time = stream->timestamp;
       
 #if 0
@@ -1895,6 +1899,8 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   int64_t        ts;
 
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   lprintf ("demux_asf_seek: start_pos = %lld, start_time=%d\n",
 	   start_pos, start_time);
@@ -2250,6 +2256,6 @@ demuxer_info_t demux_info_asf = {
  
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "asf", XINE_VERSION_CODE, &demux_info_asf, init_class },
+  { PLUGIN_DEMUX, 25, "asf", XINE_VERSION_CODE, &demux_info_asf, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

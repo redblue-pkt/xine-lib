@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.22 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_mng.c,v 1.23 2004/06/13 21:28:53 miguelfreitas Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -170,7 +170,9 @@ static int demux_mng_send_chunk(demux_mng_t *this){
     buf->type = BUF_VIDEO_RGB;
     buf->decoder_flags = BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = 90 * this->timer_count;
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+    if( this->input->get_length (this->input) )
+      buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
     buf->extra_info->input_time = this->tick_count;
     buf->pts = 90 * this->tick_count;
 
@@ -375,6 +377,6 @@ demuxer_info_t demux_info_mng = {
 };
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 24, "mng", XINE_VERSION_CODE, &demux_info_mng, (void*)init_plugin},
+  { PLUGIN_DEMUX, 25, "mng", XINE_VERSION_CODE, &demux_info_mng, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

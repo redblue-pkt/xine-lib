@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.24 2004/05/29 20:20:55 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.25 2004/06/13 21:28:53 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -333,8 +333,8 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           while (opcode_size) {
             buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
             buf->type = this->audio_type;
-            buf->extra_info->input_pos = current_file_pos;
-            buf->extra_info->input_length = this->data_size;
+            if( this->data_size )
+              buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
             buf->extra_info->input_time = audio_pts / 90;
             buf->pts = audio_pts;
   
@@ -454,8 +454,8 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         while (decode_map_size_countdown) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_INTERPLAY;
-          buf->extra_info->input_pos = current_file_pos;
-          buf->extra_info->input_length = this->data_size;
+          if( this->data_size )
+            buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
           buf->extra_info->input_time = this->video_pts / 90;
           buf->pts = this->video_pts;
 
@@ -475,8 +475,8 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         while (opcode_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_INTERPLAY;
-          buf->extra_info->input_pos = current_file_pos;
-          buf->extra_info->input_length = this->data_size;
+          if( this->data_size )
+            buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
           buf->extra_info->input_time = this->video_pts / 90;
           buf->pts = this->video_pts;
           buf->decoder_flags = BUF_FLAG_FRAMERATE;

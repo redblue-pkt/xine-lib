@@ -147,17 +147,11 @@ static int demux_mod_send_chunk(demux_plugin_t *this_gen) {
     buf->free_buffer(buf);
   }
   else {
-    int64_t input_pos;
-  
     buf->size = mlen;
     buf->pts = this->current_pts;
     buf->extra_info->input_time = buf->pts / 90;
-    buf->extra_info->input_length = this->input->get_length(this->input);
     
-    input_pos = buf->extra_info->input_length;
-    input_pos *= buf->extra_info->input_time;
-    input_pos /= this->mod_length;
-    buf->extra_info->input_pos = input_pos;
+    buf->extra_info->input_normpos = buf->extra_info->input_time * 65535 / this->mod_length;
     buf->decoder_flags = BUF_FLAG_FRAME_END;
     
     if (this->seek_flag) {
@@ -216,11 +210,10 @@ static int demux_mod_seek (demux_plugin_t *this_gen,
   demux_mod_t *this = (demux_mod_t *) this_gen;
   int64_t seek_millis;
   
-  
   if (start_pos) {
     seek_millis = this->mod_length; 
     seek_millis *= start_pos;
-    seek_millis /= this->input->get_length(this->input);
+    seek_millis /= 65535;
   } else {
     seek_millis = start_time;
   }

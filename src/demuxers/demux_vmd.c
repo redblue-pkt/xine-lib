@@ -28,7 +28,7 @@
  * checking the first 2 bytes, which are 0x2E 0x03 in a Sierra VMD file.
  * There is a 1/65536 chance of a false positive using this method.
  *
- * $Id: demux_vmd.c,v 1.2 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_vmd.c,v 1.3 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -235,8 +235,9 @@ static int demux_vmd_send_chunk(demux_plugin_t *this_gen) {
     /* send off the frame record first in its own buffer */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_VMD;
-    buf->extra_info->input_pos = frame->frame_offset - this->data_start;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)( (double) (frame->frame_offset - this->data_start) * 
+                                              65535 / this->data_size);
     memcpy(buf->content, frame->frame_record, BYTES_PER_FRAME_RECORD);
     buf->size = BYTES_PER_FRAME_RECORD;
     buf->pts = frame->pts;
@@ -246,8 +247,9 @@ static int demux_vmd_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_VMD;
-      buf->extra_info->input_pos = frame->frame_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double) (frame->frame_offset - this->data_start) * 
+                                              65535 / this->data_size);
 
       if (remaining_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -276,8 +278,9 @@ static int demux_vmd_send_chunk(demux_plugin_t *this_gen) {
     /* send off the frame record first in its own buffer */
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_VMD;
-    buf->extra_info->input_pos = frame->frame_offset - this->data_start;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)( (double) (frame->frame_offset - this->data_start) * 
+                                              65535 / this->data_size);
     memcpy(buf->content, frame->frame_record, BYTES_PER_FRAME_RECORD);
     buf->size = BYTES_PER_FRAME_RECORD;
     buf->pts = 0;  /* let the engine sort out the audio pts */
@@ -287,8 +290,9 @@ static int demux_vmd_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_VMD;
-      buf->extra_info->input_pos = frame->frame_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double) (frame->frame_offset - this->data_start) * 
+                                              65535 / this->data_size);
 
       if (remaining_bytes > buf->max_size)
         buf->size = buf->max_size;

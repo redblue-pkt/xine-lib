@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.20 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_rawdv.c,v 1.21 2004/06/13 21:28:54 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -94,7 +94,9 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
   
   buf->pts                    = this->pts;
   buf->extra_info->input_time = this->pts/90;
-  buf->extra_info->input_pos  = this->input->get_current_pos(this->input);
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
   buf->extra_info->frame_number  = this->cur_frame;
   buf->type                   = BUF_VIDEO_DV;
   
@@ -109,7 +111,7 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
     abuf->size   = buf->size;
     abuf->decoder_flags = buf->decoder_flags;
     abuf->extra_info->input_time = buf->extra_info->input_time;
-    abuf->extra_info->input_pos = buf->extra_info->input_pos;
+    abuf->extra_info->input_normpos = buf->extra_info->input_normpos;
     this->audio_fifo->put (this->audio_fifo, abuf);
   }
   if (!this->bytes_left) {
@@ -287,7 +289,8 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
 				  off_t start_pos, int start_time, int playing) {
 
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
-
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   if (!INPUT_IS_SEEKABLE(this->input)) {
     this->status = DEMUX_OK;
@@ -429,6 +432,6 @@ demuxer_info_t demux_info_raw_dv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "rawdv", XINE_VERSION_CODE, &demux_info_raw_dv, init_plugin },
+  { PLUGIN_DEMUX, 25, "rawdv", XINE_VERSION_CODE, &demux_info_raw_dv, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

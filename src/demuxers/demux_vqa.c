@@ -29,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.40 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_vqa.c,v 1.41 2004/06/13 21:28:55 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -163,8 +163,8 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_VQA_IMA;
-      buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_length = this->filesize;
+      if( this->filesize )
+         buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->filesize);
       buf->extra_info->input_time = audio_pts / 90;
       buf->pts = audio_pts;
 
@@ -208,8 +208,8 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_VQA;
-      buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_length = this->filesize;
+      if( this->filesize )
+         buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->filesize);
       buf->extra_info->input_time = this->video_pts / 90;
       buf->pts = this->video_pts;
 

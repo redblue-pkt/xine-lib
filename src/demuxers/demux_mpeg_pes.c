@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.24 2004/05/16 21:35:16 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.25 2004/06/13 21:28:53 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -186,10 +186,10 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   else
     buf->decoder_flags = 0;
     
-  if( !buf->extra_info->input_length ) {
-    buf->extra_info->input_pos = this->input->get_current_pos (this->input);
-    buf->extra_info->input_length = this->input->get_length (this->input);
-  }
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
+  
   i = this->input->read (this->input, buf->mem, (off_t) 6);
   if (i != 6) {
     buf->free_buffer (buf);
@@ -548,7 +548,7 @@ static int32_t parse_private_stream_2(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       cell_time += (frames * 1000)/30;
 
     this->last_cell_time = cell_time;
-    this->last_cell_pos = buf->extra_info->input_pos;
+    this->last_cell_pos = this->input->get_current_pos (this->input);
     this->last_begin_time = buf->extra_info->input_time;
   }
     
@@ -591,17 +591,17 @@ static int32_t parse_pes_for_pts(demux_mpeg_pes_t *this, uint8_t *p, buf_element
   /* some input plugins like DVD can have better timing information and have
    * already set the total_time, so we can derive our datarate from this */
   if (buf->extra_info->total_time)
-    this->rate = (int)((int64_t)buf->extra_info->input_length * 1000 /
+    this->rate = (int)((int64_t)this->input->get_length (this->input) * 1000 /
                        (buf->extra_info->total_time * 50));
 
   if (this->rate && this->last_cell_time) {
     if( this->last_begin_time == buf->extra_info->input_time )
       buf->extra_info->input_time = this->last_cell_time + buf->extra_info->input_time +
-       ((buf->extra_info->input_pos - this->last_cell_pos) * 1000 / (this->rate * 50));
+       ((this->input->get_current_pos (this->input) - this->last_cell_pos) * 1000 / (this->rate * 50));
   }
 
   if (this->rate && !buf->extra_info->input_time)
-    buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+    buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input) 
                                         * 1000 / (this->rate * 50));
 
   /* FIXME: This was determined by comparing a single MPEG1 and a single MPEG2 stream */
@@ -1272,6 +1272,8 @@ static int demux_mpeg_pes_seek (demux_plugin_t *this_gen,
 
   demux_mpeg_pes_t *this = (demux_mpeg_pes_t *) this_gen;
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
@@ -1529,6 +1531,6 @@ demuxer_info_t demux_info_mpeg_pes = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "mpeg_pes", XINE_VERSION_CODE, &demux_info_mpeg_pes, init_plugin },
+  { PLUGIN_DEMUX, 25, "mpeg_pes", XINE_VERSION_CODE, &demux_info_mpeg_pes, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

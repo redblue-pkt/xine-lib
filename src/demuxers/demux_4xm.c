@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.14 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_4xm.c,v 1.15 2004/06/13 21:28:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -264,8 +264,9 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
     /* send the 8-byte chunk header first */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_VIDEO_4XM;
-    buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-    buf->extra_info->input_length = this->filesize;
+    if( this->filesize )
+      buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                       65535 / this->filesize );
     buf->extra_info->input_time = this->video_pts / 90;
     buf->pts = this->video_pts;
     buf->size = 8;
@@ -278,8 +279,9 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_4XM;
-      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-      buf->extra_info->input_length = this->filesize;
+      if( this->filesize )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->filesize );
       buf->extra_info->input_time = this->video_pts / 90;
       buf->pts = this->video_pts;
 
@@ -326,8 +328,9 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->tracks[current_track].audio_type;
-      buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-      buf->extra_info->input_length = this->filesize;
+      if( this->filesize )
+        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->filesize );
       /* let the engine sort it out */
       buf->extra_info->input_time = 0;
       buf->pts = 0;

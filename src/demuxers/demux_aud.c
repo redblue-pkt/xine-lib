@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.18 2004/04/20 13:57:26 valtri Exp $
+ * $Id: demux_aud.c,v 1.19 2004/06/13 21:28:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -164,8 +164,8 @@ static int demux_aud_send_chunk(demux_plugin_t *this_gen) {
   while (chunk_size) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = this->audio_type;
-    buf->extra_info->input_pos = current_file_pos;
-    buf->extra_info->input_length = this->data_size;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = audio_pts / 90;
     buf->pts = audio_pts;
 

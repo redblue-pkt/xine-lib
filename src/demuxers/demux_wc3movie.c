@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.51 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_wc3movie.c,v 1.52 2004/06/13 21:28:55 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -209,8 +209,8 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         while (chunk_size) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->type = BUF_AUDIO_LPCM_LE;
-          buf->extra_info->input_pos = current_file_pos;
-          buf->extra_info->input_length = this->data_size;
+          if( this->data_size )
+            buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
           buf->extra_info->input_time = audio_pts / 90;
           buf->pts = audio_pts;
   
@@ -239,8 +239,8 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       while (chunk_size) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
         buf->type = BUF_VIDEO_WC3;
-        buf->extra_info->input_pos = current_file_pos;
-        buf->extra_info->input_length = this->data_size;
+        if( this->data_size )
+          buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
         buf->extra_info->input_time = this->video_pts / 90;
         buf->pts = this->video_pts;
 
@@ -533,6 +533,9 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
   int new_shot = -1;
 
   start_time /= 1000;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
+  
   this->status = DEMUX_OK;
   _x_demux_flush_engine(this->stream);
   this->seek_flag = 1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.82 2004/06/11 09:47:30 valtri Exp $
+ * $Id: xine_decoder.c,v 1.83 2004/06/13 21:28:57 miguelfreitas Exp $
  *
  */
 
@@ -626,12 +626,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
    
-    lprintf("master: %d slave: %d input_pos: %lld vo_discard: %d\n", 
-      master_status, slave_status, extra_info.input_pos, vo_discard);
+    lprintf("master: %d slave: %d input_normpos: %lld vo_discard: %d\n", 
+      master_status, slave_status, extra_info.input_normpos, vo_discard);
 
     if( !this->started && (master_status == XINE_STATUS_PLAY &&
                            slave_status == XINE_STATUS_PLAY &&
-                           extra_info.input_pos) ) {
+                           extra_info.input_normpos) ) {
       lprintf("started\n");
 
       this->width = this->height = 0;

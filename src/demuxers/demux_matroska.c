@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.27 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.28 2004/06/13 21:28:53 miguelfreitas Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -512,8 +512,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
                               int decoder_flags,
                               uint8_t *data, int data_len,
                               int64_t data_pts, int data_duration,
-                              off_t input_pos, off_t input_length,
-                              int input_time) {
+                              int input_normpos, int input_time) {
   demux_matroska_t *this = (demux_matroska_t *) this_gen;
   int chunks;
   int chunk_tab_size;
@@ -527,7 +526,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
                      data + chunk_tab_size + 1,
                      data_len - chunk_tab_size - 1,
                      data_pts, track->buf_type, decoder_flags,
-                     input_pos, input_length, input_time,
+                     input_normpos, input_time,
                      this->duration, 0);
 
   /* sends the fragment table */
@@ -562,8 +561,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
                             int decoder_flags,
                             uint8_t *data, int data_len,
                             int64_t data_pts, int data_duration,
-                            off_t input_pos, off_t input_length,
-                            int input_time) {
+                            int input_normpos, int input_time) {
   buf_element_t *buf;
   uint32_t *val;
   int commas = 0;
@@ -622,8 +620,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
 
     *dest = '\0'; dest++; dest_len--;
     buf->size = dest - (char *)buf->content;
-    buf->extra_info->input_pos     = input_pos;
-    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_normpos = input_normpos;
     buf->extra_info->input_time    = input_time;
   
     track->fifo->put(track->fifo, buf);
@@ -636,8 +633,7 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
                              int decoder_flags,
                              uint8_t *data, int data_len,
                              int64_t data_pts, int data_duration,
-                             off_t input_pos, off_t input_length,
-                             int input_time) {
+                             int input_normpos, int input_time) {
   demux_matroska_t *this = (demux_matroska_t *) this_gen;
   buf_element_t *buf;
   uint32_t *val;
@@ -658,8 +654,7 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->content[8 + data_len] = '\0';
 
     lprintf("sub: %s\n", buf->content + 8);
-    buf->extra_info->input_pos     = input_pos;
-    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_normpos = input_normpos;
     buf->extra_info->input_time    = input_time;
     track->fifo->put(track->fifo, buf);
   } else {
@@ -1254,7 +1249,7 @@ static int read_block_data (demux_matroska_t *this, int len) {
 
 static int parse_block (demux_matroska_t *this, uint64_t block_size,
                         uint64_t cluster_timecode, uint64_t block_duration,
-                        off_t block_pos, off_t file_len, int is_key) {
+                        int normpos, int is_key) {
   matroska_track_t *track;
   int64_t           track_num;
   uint8_t          *data;
@@ -1327,11 +1322,11 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
                              decoder_flags,
                              data, block_size_left,
                              pts, xduration,
-                             block_pos, file_len, pts / 90);
+                             normpos, pts / 90);
     } else {
       _x_demux_send_data(track->fifo, data, block_size_left,
                          pts, track->buf_type, decoder_flags,
-                         block_pos, file_len, pts / 90,
+                         normpos, pts / 90,
                          this->duration, 0);
     }
   } else {
@@ -1422,11 +1417,11 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
                                decoder_flags,
                                data, frame[i],
                                pts, 0,
-                               block_pos, file_len, pts / 90);
+                               normpos, pts / 90);
       } else {
         _x_demux_send_data(track->fifo, data, frame[i],
                            pts, track->buf_type, decoder_flags,
-                           block_pos, file_len, pts / 90,
+                           normpos, pts / 90,
                            this->duration, 0);
       }
       data += frame[i];
@@ -1445,6 +1440,7 @@ static int parse_block_group(demux_matroska_t *this,
   uint64_t block_duration = 0;
   off_t block_pos         = 0;
   off_t file_len          = 0;
+  int normpos             = 0;
   int block_len           = 0;
   int is_key              = 1;
 
@@ -1460,6 +1456,8 @@ static int parse_block_group(demux_matroska_t *this,
         block_pos = this->input->get_current_pos(this->input);
         block_len = elem.len;
         file_len = this->input->get_length(this->input);
+        if( file_len )
+          normpos = (int) ( (double) block_pos * 65535 / file_len );
 
         if (!read_block_data(this, elem.len))
           return 0;
@@ -1490,7 +1488,7 @@ static int parse_block_group(demux_matroska_t *this,
 
   /* we have the duration, we can parse the block now */
   if (!parse_block(this, block_len, cluster_timecode, block_duration,
-                   block_pos, file_len, is_key))
+                   normpos, is_key))
     return 0;
   return 1;
 }
@@ -2003,6 +2001,9 @@ static int demux_matroska_seek (demux_plugin_t *this_gen,
   matroska_index_t *index;
   matroska_track_t *track;
   int i, entry;
+  
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   this->status = DEMUX_OK;
 
@@ -2323,6 +2324,6 @@ demuxer_info_t demux_info_matroska = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "matroska", XINE_VERSION_CODE, &demux_info_matroska, init_class },
+  { PLUGIN_DEMUX, 25, "matroska", XINE_VERSION_CODE, &demux_info_matroska, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

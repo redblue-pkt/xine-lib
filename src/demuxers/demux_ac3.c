@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.15 2004/01/09 01:26:32 miguelfreitas Exp $
+ * $Id: demux_ac3.c,v 1.16 2004/06/13 21:28:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -187,7 +187,7 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   audio_pts /= this->sample_rate;
 
   if (this->seek_flag) {
-    _x_demux_control_newpts(this->stream, audio_pts, 0);
+    _x_demux_control_newpts(this->stream, audio_pts, BUF_FLAG_SEEK);
     this->seek_flag = 0;
   }
 
@@ -209,8 +209,9 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   }
 
   buf->type = BUF_AUDIO_A52;
-  buf->extra_info->input_pos = current_stream_pos;
-  buf->extra_info->input_length = this->input->get_length(this->input);
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) current_stream_pos * 
+                                     65535 / this->input->get_length (this->input) );
   buf->extra_info->input_time = audio_pts / 90;
   buf->pts = audio_pts;
   buf->decoder_flags |= BUF_FLAG_FRAME_END;
@@ -250,6 +251,8 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
 
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.75 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_film.c,v 1.76 2004/06/13 21:28:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -417,9 +417,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->video_type;
-      buf->extra_info->input_pos = 
-        this->sample_table[i].sample_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double)(this->sample_table[i].sample_offset -
+                                                         this->data_start) *
+                                                 65535 / this->data_size);
       buf->extra_info->input_time = this->sample_table[i].pts / 90;
       buf->pts = this->sample_table[i].pts;
 
@@ -487,9 +488,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->video_type;
-      buf->extra_info->input_pos = 
-        this->sample_table[i].sample_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double)(this->sample_table[i].sample_offset -
+                                                         this->data_start) *
+                                                 65535 / this->data_size);
       buf->extra_info->input_time = this->sample_table[i].pts / 90;
       buf->pts = this->sample_table[i].pts;
 
@@ -531,9 +533,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->audio_type;
-      buf->extra_info->input_pos = 
-        this->sample_table[i].sample_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double)(this->sample_table[i].sample_offset -
+                                                         this->data_start) *
+                                                 65535 / this->data_size);
 
       /* special hack to accomodate linear PCM decoder: only the first
        * buffer gets the real pts */
@@ -598,9 +601,10 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->audio_type;
-      buf->extra_info->input_pos = 
-        this->sample_table[i].sample_offset - this->data_start;
-      buf->extra_info->input_length = this->data_size;
+      if( this->data_size )
+        buf->extra_info->input_normpos = (int)( (double)(this->sample_table[i].sample_offset -
+                                                         this->data_start) *
+                                                 65535 / this->data_size);
 
       /* special hack to accomodate linear PCM decoder: only the first
        * buffer gets the real pts */
@@ -720,6 +724,9 @@ static int demux_film_seek (demux_plugin_t *this_gen, off_t start_pos, int start
   int left, middle, right;
   int found;
   int64_t keyframe_pts;
+
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   this->waiting_for_keyframe = 1;
   this->status = DEMUX_OK;

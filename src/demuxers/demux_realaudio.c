@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.31 2004/03/14 22:10:15 jstembridge Exp $
+ * $Id: demux_realaudio.c,v 1.32 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -199,24 +199,25 @@ static int open_ra_file(demux_ra_t *this) {
 static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
-  off_t current_file_pos;
+  off_t current_normpos = 0;
   int64_t current_pts;
 
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-  current_file_pos =
-    this->input->get_current_pos(this->input) - this->data_start;
+  if( this->input->get_length (this->input) )
+    current_normpos = (int)( (double) (this->input->get_current_pos (this->input) - this->data_start) * 
+                      65535 / this->data_size );
 
   current_pts = 0;  /* let the engine sort out the pts for now */
 
   if (this->seek_flag) {
-    _x_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, BUF_FLAG_SEEK);
     this->seek_flag = 0;
   }
 
   if(_x_demux_read_send_data(this->audio_fifo, this->input, this->block_align, 
-                             current_pts, this->audio_type, 0, current_file_pos, 
-                             this->data_size, current_pts / 90, 0, 0) < 0) {
+                             current_pts, this->audio_type, 0, current_normpos, 
+                             current_pts / 90, 0, 0) < 0) {
     this->status = DEMUX_FINISHED;                           
   }
   
@@ -261,6 +262,8 @@ static int demux_ra_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
 
   demux_ra_t *this = (demux_ra_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;

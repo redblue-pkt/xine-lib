@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.49 2004/02/09 22:24:37 jstembridge Exp $
+ * $Id: demux_smjpeg.c,v 1.50 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -255,8 +255,8 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
         buf->type = this->video_type;
       }
 
-      buf->extra_info->input_pos = current_file_pos;
-      buf->extra_info->input_length = this->input_length;
+      if( this->input_length )
+        buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->input_length);
       buf->extra_info->input_time = pts / 90;
       buf->pts = pts;
 

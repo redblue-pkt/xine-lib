@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.16 2004/05/16 18:01:43 tmattern Exp $
+ * $Id: demux_nsv.c,v 1.17 2004/06/13 21:28:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -309,9 +309,9 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
     }
 
     buf->type = this->video_type;
-    buf->extra_info->input_pos = current_file_pos;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)((double)current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = this->video_pts / 90;
-    buf->extra_info->input_length = this->data_size;
     buf->pts = this->video_pts;
     buf->decoder_flags |= BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = this->frame_pts_inc;
@@ -337,9 +337,9 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
     }
 
     buf->type = this->audio_type;
-    buf->extra_info->input_pos = current_file_pos;
+    if( this->data_size )
+      buf->extra_info->input_normpos = (int)((double)current_file_pos * 65535 / this->data_size);
     buf->extra_info->input_time = this->video_pts / 90;
-    buf->extra_info->input_length = this->data_size;
     buf->pts = this->video_pts;
     buf->decoder_flags |= BUF_FLAG_FRAMERATE;
     buf->decoder_info[0] = this->frame_pts_inc;
@@ -530,6 +530,6 @@ demuxer_info_t demux_info_nsv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 24, "nsv", XINE_VERSION_CODE, &demux_info_nsv, demux_nsv_init_plugin },
+  { PLUGIN_DEMUX, 25, "nsv", XINE_VERSION_CODE, &demux_info_nsv, demux_nsv_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

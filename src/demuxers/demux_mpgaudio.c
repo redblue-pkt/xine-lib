@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.137 2004/05/05 22:37:46 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.138 2004/06/13 21:28:54 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -424,7 +424,9 @@ static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
   pts = (int64_t)this->cur_fpts;
   check_newpts(this, pts);
 
-  buf->extra_info->input_pos  = frame_pos;
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) frame_pos * 
+                                     65535 / this->input->get_length (this->input) );
   buf->extra_info->input_time = pts / 90;
   buf->pts                    = pts;
   buf->size                   = len + 4;
@@ -750,6 +752,8 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
                                 off_t start_pos, int start_time, int playing) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->input->get_length (this->input) );
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     if (!start_pos && start_time && this->stream_length > 0) {
