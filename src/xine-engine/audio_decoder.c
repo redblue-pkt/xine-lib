@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.15 2001/06/09 17:07:22 guenter Exp $
+ * $Id: audio_decoder.c,v 1.16 2001/06/11 03:14:29 heikos Exp $
  *
  *
  * functions that implement audio decoding
@@ -184,6 +184,8 @@ void *audio_decoder_loop (void *this_gen) {
 }
 
 void audio_decoder_init (xine_t *this) {
+  if (this->audio_out == NULL)
+    return;
 
   this->audio_fifo = fifo_buffer_new (1500, 4096);
 
