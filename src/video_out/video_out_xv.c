@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.172 2003/08/25 21:51:48 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.173 2003/08/29 23:10:13 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -785,10 +785,11 @@ static void xv_property_callback (void *property_gen, xine_cfg_entry_t *entry) {
   xv_property_t *property = (xv_property_t *) property_gen;
   xv_driver_t   *this = property->this;
   
+  XLockDisplay (this->display);
   XvSetPortAttribute (this->display, this->xv_port,
 		      property->atom,
 		      entry->num_value);
-
+  XUnlockDisplay (this->display);
 }
 
 static int xv_set_property (vo_driver_t *this_gen,
