@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.19 2001/08/25 07:12:16 guenter Exp $
+ * $Id: metronom.c,v 1.20 2001/08/25 21:34:25 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -88,7 +88,6 @@ static void unixscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
   pthread_mutex_lock (&this->lock);
 
   this->cur_pts = vpts;
-  gettimeofday(&this->cur_time, NULL);
 
   pthread_mutex_unlock (&this->lock);
 }
@@ -109,16 +108,15 @@ static uint32_t unixscr_get_current (scr_plugin_t *scr) {
 
   struct   timeval tv;
   uint32_t pts;
-  
+  double   pts_calc; 
   pthread_mutex_lock (&this->lock);
 
   gettimeofday(&tv, NULL);
+  
+  pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
+  pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
 
-  this->cur_pts += (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
-  this->cur_pts += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
-
-  pts = this->cur_pts;
-  memcpy (&this->cur_time, &tv, sizeof (tv));
+  pts = this->cur_pts + pts_calc;
   
   pthread_mutex_unlock (&this->lock);
 
