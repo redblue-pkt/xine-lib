@@ -346,7 +346,7 @@ John McCutchan <ttb@tentacle.dhs.org>
   flac demuxer and decoder
 
 Fredrik Noring <noring@nocrew.org>
-  linux fb frontend. fb plugin enhancements.
+  linux fb frontend. improved fb driver with zero copy
 
 Marco Zühlke <MZuehlke@myrealbox.com>
   visualization improvements
