@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.1 2001/12/09 17:24:39 guenter Exp $
+ * $Id: scratch.c,v 1.2 2001/12/10 22:30:53 guenter Exp $
  *
  * top-level xine functions
  *
@@ -63,8 +63,8 @@ scratch_buffer_t *new_scratch_buffer (int num_lines) {
 
   this = xine_xmalloc (sizeof (scratch_buffer_t));
 
-  this->lines   = xine_xmalloc (sizeof (char *) * num_lines+1);
-  this->ordered = xine_xmalloc (sizeof (char *) * num_lines+1);
+  this->lines   = xine_xmalloc (sizeof (char *) * (num_lines+1));
+  this->ordered = xine_xmalloc (sizeof (char *) * (num_lines+1));
   for (i=0; i<num_lines; i++) {
     this->lines[i]   = xine_xmalloc (1024);
   }
