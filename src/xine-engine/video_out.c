@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.109 2002/11/02 16:22:19 tmattern Exp $
+ * $Id: video_out.c,v 1.110 2002/11/03 13:47:00 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -911,28 +911,20 @@ static void vo_enable_overlay (vo_instance_t *this_gen, int overlay_enabled) {
  * Flush video_out fifo
  */
 static void vo_flush (vo_instance_t *this_gen) {
-  /*
   vos_t      *this = (vos_t *) this_gen;
   vo_frame_t *img;
   int        i, num_buffers;
-  */
-  /* FIXME: this implementation is stupid */
-  /*
+
   pthread_mutex_lock (&this->display_img_buf_queue->mutex);
-  pthread_mutex_lock (&this->free_img_buf_queue->mutex);
   num_buffers = this->display_img_buf_queue->num_buffers;
-  */
   /* don't flush the last img, it improves seeking */
-  /*
   printf ("video_out: flush fifo (%d buffers)\n", num_buffers);
   for (i = 1; i < num_buffers; i++) {
     img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
-    vo_append_to_img_buf_queue_int (this->free_img_buf_queue, img);
+    vo_frame_dec_lock( img );
   }
 
-  pthread_mutex_unlock (&this->free_img_buf_queue->mutex);
   pthread_mutex_unlock (&this->display_img_buf_queue->mutex);
-  */
 }
 
 
