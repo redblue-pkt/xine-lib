@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.82 2003/04/26 20:16:25 guenter Exp $
+ * $Id: demux_ts.c,v 1.83 2003/05/19 13:52:29 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -844,15 +844,20 @@ static void demux_ts_pes_new(demux_ts_t*this,
 static void demux_ts_get_lang_desc(demux_ts_t *this, char *dest,
 				   const unsigned char *data, int length)
 {
-  while (length >= 2 && length >= 2 + data[1])
+  const unsigned char *d = data;
+
+  while (d < (data + length))
+
     {
-      if (data[0] == 10 && data[1] >= 4)
+      if (d[0] == 10 && d[1] >= 4)
+
 	{
-	  memcpy(dest, data + 2, 3);
+      memcpy(dest, d + 2, 3);
 	  dest[3] = 0;
 	  printf("demux_ts: found ISO 639 lang: %s\n", dest);
 	  return;
 	}
+      d += 2 + d[1];
     }
   printf("demux_ts: found no ISO 639 lang\n");
   memset(dest, 0, 4);
