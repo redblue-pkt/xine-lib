@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.28 2001/09/25 23:30:38 guenter Exp $
+ * $Id: metronom.c,v 1.29 2001/10/03 17:15:44 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -742,6 +742,7 @@ static int metronom_sync_loop (metronom_t *this) {
 metronom_t * metronom_init (int have_audio) {
 
   metronom_t *this = xmalloc (sizeof (metronom_t));
+  int         err;
 
   this->audio_stream_start   = metronom_audio_stream_start;
   this->audio_stream_end     = metronom_audio_stream_end  ;
@@ -769,10 +770,10 @@ metronom_t * metronom_init (int have_audio) {
   this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
   this->register_scr(this, unixscr_init());
 
-  if (pthread_create(&this->sync_thread, NULL,
-      (void*(*)(void*)) metronom_sync_loop, this))
+  if ((err = pthread_create(&this->sync_thread, NULL,
+      			    (void*(*)(void*)) metronom_sync_loop, this)) != 0)
     fprintf(stderr, "metronom: cannot create sync thread (%s)\n",
-     strerror(errno));
+     strerror(err));
 
   pthread_mutex_init (&this->lock, NULL);
   pthread_cond_init (&this->video_started, NULL);

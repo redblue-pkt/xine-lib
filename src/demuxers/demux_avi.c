@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.42 2001/09/18 17:41:47 jkeil Exp $
+ * $Id: demux_avi.c,v 1.43 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -870,6 +870,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   buf_element_t *buf;
   demux_avi_t *this = (demux_avi_t *) this_gen;
   uint32_t video_pts = 0;
+  int err;
 
   this->audio_fifo   = audio_fifo;
   this->video_fifo   = video_fifo;
@@ -1091,7 +1092,11 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 
-  pthread_create (&this->thread, NULL, demux_avi_loop, this) ;
+  if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
+    fprintf (stderr, "demux_avi: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 static int demux_avi_open(demux_plugin_t *this_gen, 

@@ -270,6 +270,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
   char               *pptr;
   int                 port = 7658;
   pthread_attr_t      thread_attrs;
+  int                 err;
 
   this->mrl = mrl;
 
@@ -309,8 +310,12 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
   pthread_cond_init(&this->buffer_notempty, NULL);
   pthread_attr_init(&thread_attrs);
   pthread_attr_setdetachstate(&thread_attrs, PTHREAD_CREATE_DETACHED);
-  pthread_create(&this->reader_thread, &thread_attrs, 
-		 input_plugin_read_loop, (void *)&this);
+  if ((err = pthread_create(&this->reader_thread, &thread_attrs, 
+		            input_plugin_read_loop, (void *)&this)) != 0) {
+    fprintf (stderr, "input_rtp: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
   pthread_attr_destroy(&thread_attrs);
 
   return 1;

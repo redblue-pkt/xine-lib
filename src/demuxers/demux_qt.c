@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.5 2001/09/20 13:25:40 heikos Exp $
+ * $Id: demux_qt.c,v 1.6 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -1070,7 +1070,7 @@ static int quicktime_atom_read_type(char *data, char *type)
   
   //printf("%c%c%c%c ", type[0], type[1], type[2], type[3]); 
   /* need this for quicktime_check_sig */
-  if(isalpha(type[0]) && isalpha(type[1]) && isalpha(type[2]) && isalpha(type[3]))
+  if(isalpha(type[0] & 0xff) && isalpha(type[1] & 0xff) && isalpha(type[2] & 0xff) && isalpha(type[3] & 0xff))
     return 0;
   else
     return 1;
@@ -4213,6 +4213,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf;
+  int err;
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
@@ -4307,7 +4308,10 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   this->status = DEMUX_OK ;
 
-  pthread_create (&this->thread, NULL, demux_qt_loop, this) ;
+  if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
+    fprintf (stderr, "demux_qt: can't create new thread (%s)\n", strerror(err));
+    exit (1);
+  }
 }
 
 static int demux_qt_open(demux_plugin_t *this_gen,

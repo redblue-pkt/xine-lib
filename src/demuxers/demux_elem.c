@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.20 2001/10/03 15:08:06 jkeil Exp $
+ * $Id: demux_elem.c,v 1.21 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -186,6 +186,7 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
   buf_element_t *buf;
+  int err;
   
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
@@ -227,7 +228,12 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
    * now start demuxing
    */
 
-  pthread_create (&this->thread, NULL, demux_mpeg_elem_loop, this) ;
+  if ((err = pthread_create (&this->thread,
+			     NULL, demux_mpeg_elem_loop, this)) != 0) {
+    fprintf (stderr, "demux_elem: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 /*

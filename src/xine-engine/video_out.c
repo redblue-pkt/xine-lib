@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.49 2001/10/03 14:11:54 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.50 2001/10/03 17:15:44 jkeil Exp $
  *
  */
 
@@ -337,6 +337,7 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
 static void vo_open (vo_instance_t *this) {
 
   pthread_attr_t       pth_attrs;
+  int		       err;
 
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
@@ -344,11 +345,12 @@ static void vo_open (vo_instance_t *this) {
     pthread_attr_init(&pth_attrs);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
 
-    if( pthread_create (&this->video_thread, &pth_attrs, video_out_loop, this) )
+    if((err = pthread_create (&this->video_thread,
+			      &pth_attrs, video_out_loop, this)) != 0)
     {
-      printf ("video_out: error creating thread\n");
+      fprintf (stderr, "video_out: can't create thread (%s)\n", strerror(err));
       /* FIXME: why pthread_create fails? */
-      printf ("Sorry, this should not happen. Please restart Xine.\n");
+      fprintf (stderr, "Sorry, this should not happen. Please restart Xine.\n");
       exit(1);
     }
     else

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.34 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.35 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -31,6 +31,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -662,6 +663,7 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 {
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
   buf_element_t *buf;
+  int err;
 
   this->video_fifo    = video_fifo;
   this->audio_fifo    = audio_fifo;
@@ -712,7 +714,12 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   this->send_end_buffers = 1;
   this->status = DEMUX_OK ;
 
-  pthread_create (&this->thread, NULL, demux_mpeg_loop, this) ;
+  if ((err = pthread_create (&this->thread,
+			     NULL, demux_mpeg_loop, this)) != 0) {
+    fprintf (stderr, "demux_mpeg: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 static int demux_mpeg_open(demux_plugin_t *this_gen, 

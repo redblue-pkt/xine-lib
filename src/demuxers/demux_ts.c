@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.16 2001/09/17 14:35:19 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.17 2001/10/03 17:15:43 jkeil Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -58,6 +58,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -882,6 +883,7 @@ static void demux_ts_start(demux_plugin_t *this_gen,
 
   demux_ts *this = (demux_ts *)this_gen;
   buf_element_t *buf;
+  int err;
   
   this->fifoVideo = fifoVideo;
   this->fifoAudio = fifoAudio;
@@ -913,7 +915,10 @@ static void demux_ts_start(demux_plugin_t *this_gen,
   /*
    * Now start demuxing.
    */
-  pthread_create(&this->thread, NULL, demux_ts_loop, this);
+  if ((err = pthread_create(&this->thread, NULL, demux_ts_loop, this)) != 0) {
+    fprintf(stderr, "demux_ts: can't create new thread (%s)\n", strerror(err));
+    exit (1);
+  }
 }
 
 static void demux_ts_stop(demux_plugin_t *this_gen)

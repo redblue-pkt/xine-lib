@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.7 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_pes.c,v 1.8 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -30,6 +30,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -405,6 +406,7 @@ static void demux_pes_start (demux_plugin_t *this_gen,
 {
   demux_pes_t *this = (demux_pes_t *) this_gen;
   buf_element_t *buf;
+  int err;
 
   this->video_fifo    = video_fifo;
   this->audio_fifo    = audio_fifo;
@@ -452,7 +454,12 @@ static void demux_pes_start (demux_plugin_t *this_gen,
   this->send_end_buffers = 1;
   this->status = DEMUX_OK ;
 
-  pthread_create (&this->thread, NULL, demux_pes_loop, this) ;
+  if ((err = pthread_create (&this->thread,
+			     NULL, demux_pes_loop, this)) != 0) {
+    fprintf (stderr, "demux_pes: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 static int demux_pes_open(demux_plugin_t *this_gen, 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.47 2001/09/25 23:44:46 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.48 2001/10/03 17:15:43 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -658,6 +658,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;
+  int err;
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
@@ -732,7 +733,12 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->status = DEMUX_OK ;
 
-  pthread_create (&this->thread, NULL, demux_mpeg_block_loop, this) ;
+  if ((err = pthread_create (&this->thread,
+			     NULL, demux_mpeg_block_loop, this)) != 0) {
+    fprintf (stderr, "demux_mpeg_block: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,

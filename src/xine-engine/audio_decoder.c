@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.42 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.43 2001/10/03 17:15:43 jkeil Exp $
  *
  *
  * functions that implement audio decoding
@@ -27,6 +27,9 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sched.h>
 #include <unistd.h>
 
@@ -268,6 +271,7 @@ void audio_decoder_init (xine_t *this) {
 
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
+  int                  err;
 
   if (this->audio_out == NULL) {
     this->audio_finished = 1;    
@@ -283,7 +287,12 @@ void audio_decoder_init (xine_t *this) {
   pthread_attr_setschedparam(&pth_attrs, &pth_params);
   pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
   
-  pthread_create (&this->audio_thread, &pth_attrs, audio_decoder_loop, this) ;
+  if ((err = pthread_create (&this->audio_thread,
+			     &pth_attrs, audio_decoder_loop, this)) != 0) {
+    fprintf (stderr, "audio_decoder: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 void audio_decoder_shutdown (xine_t *this) {
