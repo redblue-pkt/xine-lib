@@ -82,10 +82,6 @@ xineplug_decode_interplayvideo_la_SOURCES = interplayvideo.c
 xineplug_decode_interplayvideo_la_LIBADD = $(XINE_LIB)
 xineplug_decode_interplayvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_decode_xan_la_SOURCES = xan/xan.c
-#xineplug_decode_xan_la_LIBADD = $(XINE_LIB)
-#xineplug_decode_xan_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_decode_yuv_frames_la_SOURCES = yuv_frames.c
 xineplug_decode_yuv_frames_la_LIBADD = $(XINE_LIB)
 xineplug_decode_yuv_frames_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
