@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.6 2002/06/03 13:31:12 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.7 2002/06/03 17:31:29 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -312,8 +312,8 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     xine_bmiheader *bih;
 
     bih = (xine_bmiheader *) buf->content;
-    this->biWidth = (le2me_32 (bih->biWidth) + 3) & ~0x03;
-    this->biHeight = (le2me_32 (bih->biHeight) + 3) & ~0x03;
+    this->biWidth = (bih->biWidth + 3) & ~0x03;
+    this->biHeight = (bih->biHeight + 3) & ~0x03;
     this->video_step = buf->decoder_info[1];
 
     if (this->img_buffer)

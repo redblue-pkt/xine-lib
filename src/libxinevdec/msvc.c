@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.4 2002/06/03 13:31:12 miguelfreitas Exp $
+ * $Id: msvc.c,v 1.5 2002/06/03 17:31:29 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -210,9 +210,9 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     xine_bmiheader *bih;
 
     bih = (xine_bmiheader *) buf->content;
-    this->biWidth = (le2me_32 (bih->biWidth) + 3) & ~0x03;
-    this->biHeight = (le2me_32 (bih->biHeight) + 3) & ~0x03;
-    this->biBitCount = le2me_32 (bih->biBitCount);
+    this->biWidth = (bih->biWidth + 3) & ~0x03;
+    this->biHeight = (bih->biHeight + 3) & ~0x03;
+    this->biBitCount = bih->biBitCount;
     this->video_step = buf->decoder_info[1];
 
     if (this->biBitCount != 8 && this->biBitCount != 16) {
@@ -270,6 +270,19 @@ static void msvc_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       img->bad_frame = 0;
 
       xine_fast_memcpy (img->base[0], this->img_buffer, (n << 1));
+
+      if (img->copy) {
+	int height = abs(this->biHeight);
+	int stride = this->biWidth;
+	uint8_t* src[3];
+
+	src[0] = img->base[0];
+
+	while ((height -= 16) >= 0) {
+	  img->copy(img, src);
+	  src[0] += 32 * stride;
+	}
+      }
 
       img->draw(img);
       img->free(img);
