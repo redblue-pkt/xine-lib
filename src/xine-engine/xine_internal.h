@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.130 2003/03/25 12:52:41 mroi Exp $
+ * $Id: xine_internal.h,v 1.131 2003/03/27 18:57:15 miguelfreitas Exp $
  *
  */
 
@@ -257,6 +257,8 @@ struct xine_stream_s {
   pthread_mutex_t            next_audio_port_lock;
   pthread_cond_t             next_video_port_wired;
   pthread_cond_t             next_audio_port_wired;
+
+  int64_t                    metronom_prebuffer;
 };
 
 

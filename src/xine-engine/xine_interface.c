@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.46 2003/03/26 11:06:59 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.47 2003/03/27 18:57:12 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -402,6 +402,10 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU] = value;
     break;
   
+  case XINE_PARAM_METRONOM_PREBUFFER:
+    stream->metronom_prebuffer = value;
+    break;
+
   default:
     printf ("xine_interface: unknown param %d\n", param);
   }
@@ -462,19 +466,18 @@ int  xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
     return stream->video_out->get_property(stream->video_out, param);
-    break;
   
   case XINE_PARAM_IGNORE_VIDEO:
     return stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO];
-    break;
     
   case XINE_PARAM_IGNORE_AUDIO:
     return stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO];
-    break;
   
   case XINE_PARAM_IGNORE_SPU:
     return stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU];
-    break;
+
+  case XINE_PARAM_METRONOM_PREBUFFER:
+    return stream->metronom_prebuffer;
 
   default:
     printf ("xine_interface: unknown param %d\n", param);

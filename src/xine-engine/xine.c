@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.238 2003/03/25 12:52:37 mroi Exp $
+ * $Id: xine.c,v 1.239 2003/03/27 18:57:10 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -400,7 +400,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->err                    = 0;
   stream->next_audio_port        = NULL;
   stream->next_video_port        = NULL;
-  
+  stream->metronom_prebuffer     = PREBUFFER_PTS_OFFSET;  
+
   /*
    * initial master/slave
    */

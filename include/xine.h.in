@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.69 2003/03/21 17:54:54 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.70 2003/03/27 18:56:54 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -287,10 +287,11 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 #define XINE_PARAM_VERBOSITY              11 /* control console output      */
 #define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
-#define XINE_PARAM_IGNORE_VIDEO           13
-#define XINE_PARAM_IGNORE_AUDIO           14
-#define XINE_PARAM_IGNORE_SPU             15
-#define XINE_PARAM_ENABLE_BROADCAST       16 /* 0(default) => don't         */
+#define XINE_PARAM_IGNORE_VIDEO           13 /* disable video decoding      */
+#define XINE_PARAM_IGNORE_AUDIO           14 /* disable audio decoding      */
+#define XINE_PARAM_IGNORE_SPU             15 /* disable spu decoding        */
+#define XINE_PARAM_ENABLE_BROADCAST       16 /* (not implemented yet)       */
+#define XINE_PARAM_METRONOM_PREBUFFER     17 /* unit: 1/90000 sec           */
 
 
 /* speed values */

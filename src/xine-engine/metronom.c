@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.113 2003/03/06 16:49:33 guenter Exp $
+ * $Id: metronom.c,v 1.114 2003/03/27 18:57:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,7 +43,6 @@
 #define WRAP_THRESHOLD       120000 
 #define MAX_NUM_WRAP_DIFF        10
 #define MAX_SCR_PROVIDERS        10
-#define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
 
@@ -307,14 +306,16 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
   
   if ( this->video_vpts < this->clock->get_current_time(this->clock) ||
        type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
-    this->video_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
+    this->video_vpts = this->stream->metronom_prebuffer + 
+                       this->clock->get_current_time(this->clock);
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
       printf ("metronom: video vpts adjusted with prebuffer to %lld\n", 
 	      this->video_vpts);
   }
   if ( this->audio_vpts < this->clock->get_current_time(this->clock) ||
        type == DISC_STREAMSTART || type == DISC_STREAMSEEK ) {
-    this->audio_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
+    this->audio_vpts = this->stream->metronom_prebuffer +
+                       this->clock->get_current_time(this->clock);
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
       printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", 
 	      this->audio_vpts);
@@ -784,7 +785,7 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 
   /* initialize video stuff */
 
-  this->video_vpts                  = PREBUFFER_PTS_OFFSET;
+  this->video_vpts                  = stream->metronom_prebuffer;
   this->video_drift                 = 0;
   this->video_drift_step            = 0;
   this->video_discontinuity_count   = 0;
@@ -798,7 +799,7 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   /* initialize audio stuff */
 
   this->have_audio                  = have_audio;
-  this->audio_vpts                  = PREBUFFER_PTS_OFFSET;
+  this->audio_vpts                  = this->stream->metronom_prebuffer;
   this->audio_discontinuity_count   = 0;
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     
