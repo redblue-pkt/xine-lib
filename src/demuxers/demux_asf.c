@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.126 2003/07/25 21:02:04 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.127 2003/07/27 23:35:44 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -879,7 +879,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 }
 
 /* return 0 of ok */
-static int asf_parse_packet_header(demux_asf_t *this, uint8_t *raw_id) {
+static int asf_parse_packet_header(demux_asf_t *this) {
 
   int64_t   timestamp;
   int       duration;
@@ -1021,7 +1021,6 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
                                             uint32_t *frag_offset,
                                             uint32_t *rlen,
                                             uint32_t *seq) {
-
   uint8_t        stream_id;
   int            i;
   uint32_t       s_hdr_size = 0;
@@ -1031,11 +1030,12 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
 #ifdef LOG
   printf ("demux_asf: got raw_id=%d\n", raw_id);
 #endif
-
+  
   for (i = 0; i < this->num_streams; i++) {
     if (this->streams[i].stream_id == stream_id &&
         (stream_id == this->audio_stream_id || stream_id == this->video_stream_id)) {
       *stream = &this->streams[i];
+      break;
     }
 
 #ifdef LOG
@@ -1050,7 +1050,11 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
     }
 #endif
   }
-
+  
+  /* keyframe detection for non-seekable input plugins */
+  if (*stream && (*stream)->skip && (raw_id & 0x80) && !this->keyframe_ts)
+    this->keyframe_ts = 1;
+  
   switch ((this->segtype >> 4) & 3){
   case 1:
     *seq = get_byte(this); s_hdr_size += 1; break;
@@ -1167,7 +1171,7 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
 
 
     if (stream && stream->fifo) {
-      if (stream->resync && (*timestamp >= this->keyframe_ts)) {
+      if (stream->resync && (*timestamp >= this->keyframe_ts) && (this->keyframe_ts)) {
         if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
           printf ("demux_asf: stream resynced\n");
         stream->resync = 0;
@@ -1273,7 +1277,8 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
   this->packet_size_left -= s_hdr_size;
 
   if (stream && stream->fifo) {
-    if (stream->resync && (*timestamp >= this->keyframe_ts) && !frag_offset) {
+    if (stream->resync && (*timestamp >= this->keyframe_ts) &&
+        this->keyframe_ts && !frag_offset) {
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
         printf ("demux_asf: stream resynced\n");
       stream->resync = 0;
@@ -1599,7 +1604,7 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
     default:
     
     
-      if (asf_parse_packet_header(this, &raw_id)) {
+      if (asf_parse_packet_header(this)) {
         if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
           printf ("demux_asf: get_packet failed\n");
         this->status = DEMUX_FINISHED;
@@ -1849,7 +1854,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
         goto error;
       }
   
-      if (asf_parse_packet_header(this, &raw_id)) {
+      if (asf_parse_packet_header(this)) {
         if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
           printf ("demux_asf: demux_asf_seek: get_packet failed\n");
         goto error;
@@ -1915,13 +1920,20 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     } else {
       this->input->seek (this->input, start_pos + this->packet_size, SEEK_SET);
     }
+    this->streams[this->video_stream].resync = 1;
+    this->streams[this->video_stream].skip   = 1;
+    this->streams[this->audio_stream].resync = 1;
+    this->streams[this->audio_stream].skip   = 1;
+  } else {
+    /* "streaming" mode */
+    this->keyframe_ts = 0; /* means next keyframe */
+    this->streams[this->video_stream].resync = 1;
+    this->streams[this->video_stream].skip   = 1;
+    this->streams[this->audio_stream].resync = 0;
+    this->streams[this->audio_stream].skip   = 0;
   }
   this->send_newpts                        = 1;
   this->buf_flag_seek                      = 1;
-  this->streams[this->video_stream].resync = 1;
-  this->streams[this->video_stream].skip   = 1;
-  this->streams[this->audio_stream].resync = 1;
-  this->streams[this->audio_stream].skip   = 1;
   return this->status;
   
 error:
