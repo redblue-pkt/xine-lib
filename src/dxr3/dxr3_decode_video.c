@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.38 2003/08/05 15:07:42 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.39 2003/08/05 15:30:04 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -339,7 +339,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 	break;
       default:
 	if (this->have_header_info)
-	  this->ratio = this->last_width / this->last_height;
+	  this->ratio = (double)this->last_width / (double)this->last_height;
       }
       
       this->last_aspect_code = this->aspect_code;
@@ -718,7 +718,7 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
       this->ratio = 2.11;
       break;
     default:
-      this->ratio = this->width / this->height;
+      this->ratio = (double)this->width / (double)this->height;
     }
     
     /* update stream metadata */
