@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.85 2002/11/15 00:20:33 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.86 2002/11/17 16:18:33 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -141,120 +141,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 static void spudec_reset (spu_decoder_t *this_gen) {
 }
 
-static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
-  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
-#if 0
-/* FIXME: get events working again. */
-
-  xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
-
-  video_overlay_instance_t *ovl_instance;
-
-  if((!this) || (!event)) {
-    return;
-  }
-
-  switch (event->event.type) {
-  case XINE_EVENT_SPU_BUTTON:
-    {
-      /* This function will move to video_overlay 
-       * when video_overlay does menus */
-
-      video_overlay_event_t *overlay_event = NULL;
-      vo_overlay_t        *overlay = NULL;
-      spu_button_t        *but = event->data;
-      overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
-
-      overlay = xine_xmalloc (sizeof(vo_overlay_t));
-
-#ifdef LOG_DEBUG
-      printf ("BUTTON\n");
-      printf ("\tshow=%d\n",but->show);
-      printf ("\tclut [%x %x %x %x]\n",
-	   but->color[0], but->color[1], but->color[2], but->color[3]);
-      printf ("\ttrans [%d %d %d %d]\n",
-	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
-      printf ("\tleft = %u right = %u top = %u bottom = %u\n",
-	   but->left, but->right, but->top, but->bottom );
-      printf ("\tpts = %lli\n",
-	   but->pts );
-#endif
-      /* FIXME: Watch out for threads. We should really put a lock on this 
-       * because events is a different thread than decode_data */
-      //if (!this->state.forced_display) return;
-
-#ifdef LOG_DEBUG
-      printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%u\n",this->menu_handle);
-#endif
-      
-      if (but->show > 0) {
-#ifdef LOG_NAV
-        fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:buttonN = %u show=%d\n",
-          but->buttonN,
-          but->show);
-#endif
-        this->buttonN = but->buttonN;
-        if (this->button_filter != 1) {
-#ifdef LOG_NAV
-          fprintf (stdout,"libspudec:xine_decoder.c:spudec_event_listener:buttonN updates not allowed\n");
-#endif
-          /* Only update highlight is the menu will let us */
-          free(overlay_event);
-          free(overlay);
-          break;
-        }
-        if (but->show == 2) {
-          this->button_filter = 2;
-        }
-        pthread_mutex_lock(&this->nav_pci_lock);
-        overlay_event->object.handle = this->menu_handle;
-        overlay_event->object.pts = this->pci.hli.hl_gi.hli_s_ptm;
-        overlay_event->object.overlay=overlay;
-        overlay_event->event_type = EVENT_MENU_BUTTON;
-#ifdef LOG_NAV
-        fprintf(stderr, "libspudec:Button Overlay\n");
-#endif
-        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, but->show-1,
-	                           overlay, &this->overlay );
-        pthread_mutex_unlock(&this->nav_pci_lock);
-      } else {
-        fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
-        assert(0);
-        overlay_event->object.handle = this->menu_handle;
-        overlay_event->event_type = EVENT_HIDE_MENU;
-      }
-      overlay_event->vpts = 0; 
-      if (this->vo_out) {
-        ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
-#ifdef LOG_NAV
-        fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
-          overlay_event->event_type,
-          this->stream->metronom->get_current_time(this->stream->metronom),
-          overlay_event->vpts);
-#endif
-        ovl_instance->add_event (ovl_instance, (void *)overlay_event);
-        free(overlay_event);
-        free(overlay);
-      } else {
-        free(overlay_event);
-        free(overlay);
-      }
-    }
-    break;
-  case XINE_EVENT_SPU_CLUT:
-    {
-    /* FIXME: This function will need checking before it works. */
-      spudec_clut_table_t *clut = event->data;
-      if (clut) {
-        xine_fast_memcpy(this->state.clut, clut->clut, sizeof(uint32_t)*16);
-        this->state.need_clut = 0;
-      }
-    }
-    break;
-  }
-#endif
-}
-
 static void spudec_dispose (spu_decoder_t *this_gen) {
 
   spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
@@ -274,8 +160,6 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
     this->spudec_stream_state[i].overlay_handle = -1;
   }
   pthread_mutex_destroy(&this->nav_pci_lock);
-  /* FIXME: get events working. */
-  /*xine_remove_event_listener (this->stream, spudec_event_listener);*/
 
   free (this->event.object.overlay);
   free (this);
@@ -313,7 +197,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   /* FIXME: Watch out for threads. We should really put a lock on this
    * because events is a different thread than decode_data */
 
-#ifdef LOG_DEBUG
+#ifdef LOG_BUTTON
   printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%u\n",this->menu_handle);
 #endif
 
@@ -325,7 +209,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
 #endif
     this->buttonN = button;
     if (this->button_filter != 1) {
-#ifdef LOG_NAV
+#ifdef LOG_BUTTON
       fprintf (stdout,"libspudec:xine_decoder.c:spudec_event_listener:buttonN updates not allowed\n");
 #endif
       /* Only update highlight is the menu will let us */
@@ -341,7 +225,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
     overlay_event->object.pts = this->pci.hli.hl_gi.hli_s_ptm;
     overlay_event->object.overlay=overlay;
     overlay_event->event_type = EVENT_MENU_BUTTON;
-#ifdef LOG_NAV
+#ifdef LOG_BUTTON
     fprintf(stderr, "libspudec:Button Overlay\n");
 #endif
     spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, show-1,
@@ -356,7 +240,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   overlay_event->vpts = 0;
   if (this->vo_out) {
     ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
-#ifdef LOG_NAV
+#ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
             overlay_event->event_type,
             this->stream->metronom->get_current_time(this->stream->metronom),
@@ -391,9 +275,6 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   this->buttonN = 1;
   this->event.object.overlay = malloc(sizeof(vo_overlay_t));
  
-/* FIXME: get events working again. */
-  /*xine_register_event_listener(xine, spudec_event_listener, this);*/
-
   pthread_mutex_init(&this->nav_pci_lock, NULL);
 
   this->vo_out      = stream->video_out;
@@ -439,9 +320,6 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
-/* FIXME: get config stuff working */
-
-/*  this->config = xine->config; */
 
   printf ("libspudec:init_plugin called\n");
   return this;
