@@ -212,6 +212,7 @@ xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   if (stat (hc->cdrom_dev,&cdrom_st) < 0) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - could not access cdrom: %s\n", hc->cdrom_dev);
     return hc;
+  }
   
   if ((cdrom_st.st_mode & S_IFMT) != S_IFBLK) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "FAILED - %s is not a block device.\n", hc->cdrom_dev);
