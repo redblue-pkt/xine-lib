@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2003/05/12 12:05:49 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.37 2003/05/23 18:21:59 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -145,6 +145,39 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
   return result;
 }
 
+/* Used by dts.wav files, only 14 bits of the 16 possible are used in the CD. */
+static void squash14to16(uint8_t *buf_from, uint8_t *buf_to, uint32_t number_of_bytes) {
+  int32_t from;
+  int32_t to=0;
+  uint16_t sample1;
+  uint16_t sample2;
+  uint16_t sample3;
+  uint16_t sample4;
+  uint16_t sample16bit;
+  /* This should convert the 14bit sync word into a 16bit one. */  
+  printf("libdts: squashing %d bytes.\n", number_of_bytes);
+  for(from=0;from<number_of_bytes;from+=8) {
+    sample1 = buf_from[from+0] | buf_from[from+1] << 8;
+    sample1 = (sample1 & 0x1fff) | ((sample1 & 0x8000) >> 2);
+    sample2 = buf_from[from+2] | buf_from[from+3] << 8;
+    sample2 = (sample2 & 0x1fff) | ((sample2 & 0x8000) >> 2);
+    sample16bit = (sample1 << 2) | (sample2 >> 12);
+    buf_to[to++] = sample16bit >> 8; /* Add some swabbing in as well */
+    buf_to[to++] = sample16bit & 0xff;
+    sample3 = buf_from[from+4] | buf_from[from+5] << 8;
+    sample3 = (sample3 & 0x1fff) | ((sample3 & 0x8000) >> 2);
+    sample16bit = ((sample2 & 0xfff) << 4) | (sample3 >> 10);
+    buf_to[to++] = sample16bit >> 8; /* Add some swabbing in as well */
+    buf_to[to++] = sample16bit & 0xff;
+    sample4 = buf_from[from+6] | buf_from[from+7] << 8;
+    sample4 = (sample4 & 0x1fff) | ((sample4 & 0x8000) >> 2);
+    sample16bit = ((sample3 & 0x3ff) << 6) | (sample4 >> 8);
+    buf_to[to++] = sample16bit >> 8; /* Add some swabbing in as well */
+    buf_to[to++] = sample16bit & 0xff;
+    buf_to[to++] = sample4 & 0xff;
+  }
+
+}
 #endif
 
 
@@ -162,6 +195,7 @@ void dts_discontinuity (audio_decoder_t *this_gen) {
 static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint8_t        *data_in = (uint8_t *)buf->content;
   getbits_state_t state;
+  uint32_t       sync_type=0;
   uint8_t        frame_type;
   uint8_t        deficit_sample_count;
   uint8_t        crc_present_flag;
@@ -212,17 +246,41 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint16_t       extension_frame_byte_data_size_FSIZE96;
   uint8_t        revision_number;
 
-  int32_t        n, ch;
-  if ((data_in[0] != 0x7f) || 
-      (data_in[1] != 0xfe) ||
-      (data_in[2] != 0x80) ||
-      (data_in[3] != 0x01)) {
+  int32_t        n, ch, i;
+  printf("libdts: parse1: ");
+  for(i=0;i<16;i++) {
+    printf("%02x ",data_in[i]);
+  }
+  printf("\n");
+  
+  if ((data_in[0] == 0x7f) && 
+      (data_in[1] == 0xfe) &&
+      (data_in[2] == 0x80) &&
+      (data_in[3] == 0x01)) {
+    sync_type=1;
+  }
+  if (data_in[0] == 0xff &&
+      data_in[1] == 0x1f &&
+      data_in[2] == 0x00 &&
+      data_in[3] == 0xe8 &&
+      data_in[4] == 0xf1 &&    /* DTS standard document was wrong here! */
+      data_in[5] == 0x07 ) {   /* DTS standard document was wrong here! */
+    squash14to16(&data_in[0], &data_in[0], buf->size);
+    buf->size = buf->size - (buf->size / 8); /* size = size * 7 / 8; */
+    sync_type=2;
+  }
+  if (sync_type == 0) {
     printf("libdts: DTS Sync bad\n");
     return;
   }
-  printf("libdts: DTS Sync OK\n");
+  printf("libdts: DTS Sync OK. type=%d\n", sync_type);
+  printf("libdts: parse2: ");
+  for(i=0;i<16;i++) {
+    printf("%02x ",data_in[i]);
+  }
+  printf("\n");
+
   getbits_init(&state, &data_in[4]);
-  
   frame_type = getbits(&state, 1); /* 1: Normal Frame, 2:Termination Frame */
   deficit_sample_count = getbits(&state, 5);
   crc_present_flag = getbits(&state, 1);
@@ -349,23 +407,27 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   printf("getbits status: byte_pos = %d, bit_pos = %d\n", 
           state.byte_position,
           state.bit_position);
+#if 0
   for(n=0;n<2016;n++) {
     if((n % 32) == 0) printf("\n");
     printf("%02X ",state.start[state.byte_position+n]);
   }
   printf("\n");
+#endif
   if ((extension_audio_descriptor_flag == 0)
      || (extension_audio_descriptor_flag == 3)) {
     printf("libdts:trying extension...\n");
     channel_extension_sync_word = getbits(&state, 32);
     extension_primary_frame_byte_size = getbits(&state, 10); 
     extension_channel_arrangement = getbits(&state, 4);
+  }
 
 
-extension_sync_word_SYNC96 = getbits(&state, 32);
-extension_frame_byte_data_size_FSIZE96 = getbits(&state, 12);
-revision_number = getbits(&state, 4);
-}
+#if 0
+    extension_sync_word_SYNC96 = getbits(&state, 32);
+    extension_frame_byte_data_size_FSIZE96 = getbits(&state, 12);
+    revision_number = getbits(&state, 4);
+#endif
 
 
   printf("frame_type = %d\n",
@@ -552,6 +614,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
 
 #ifdef LOG_DEBUG
+    {
+    int i;
     printf("libdts: DTS frame type=%d\n",data_in[4] >> 7);
     printf("libdts: DTS deficit frame count=%d\n",(data_in[4] & 0x7f) >> 2);
     printf("libdts: DTS AC5 PCM samples=%d\n",ac5_pcm_samples);
@@ -564,6 +628,7 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       printf("%02x ",data_in[i]);
     }
     printf("\n");
+    }
 #endif
 
 
