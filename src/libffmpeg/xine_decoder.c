@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.102 2003/03/15 19:23:50 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.103 2003/03/16 15:54:00 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -84,6 +84,7 @@ struct ff_video_decoder_s {
   int                pp_flags;
   pp_context_t      *pp_context;
   pp_mode_t         *pp_mode;
+  pthread_mutex_t    pp_lock;
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
 
@@ -193,6 +194,7 @@ static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
     ff_video_decoder_t *this  = class->ip;
     
     if(this->pp_available) {
+      pthread_mutex_lock(&this->pp_lock);
       if(entry->num_value) {
         if(this->pp_quality)
           pp_free_mode(this->pp_mode);
@@ -212,6 +214,7 @@ static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
       }        
       
       this->pp_quality = entry->num_value;
+      pthread_mutex_unlock(&this->pp_lock);
     }
   }
 }
@@ -220,6 +223,8 @@ static void init_postprocess (ff_video_decoder_t *this) {
   uint32_t cpu_caps;
   xine_cfg_entry_t quality_entry;
 
+  pthread_mutex_init(&this->pp_lock, NULL);
+  
   /* Allow post processing on mpeg-4 (based) codecs */
   switch(this->codec->id) {
     case CODEC_ID_MPEG4:
@@ -636,6 +641,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	} else {
 	  img->bad_frame = 0;
 	  
+	  pthread_mutex_lock(&this->pp_lock);
 	  if(this->pp_available && this->pp_quality)
 	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
 			   img->base, img->pitches, 
@@ -777,6 +783,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 
 	  }
+	  pthread_mutex_unlock(&this->pp_lock);
 	}
       
 	this->skipframes = img->draw(img, this->stream);
