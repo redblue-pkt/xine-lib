@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.58 2002/09/18 22:12:16 guenter Exp $
+ * $Id: demux_asf.c,v 1.59 2002/09/19 21:46:21 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -61,7 +61,7 @@ typedef struct {
   int               seq;
 
   int               frag_offset;
-  int               timestamp;
+  int64_t           timestamp;
   int               ts_per_kbyte;
   int               defrag;
 
@@ -565,13 +565,14 @@ static int asf_read_header (demux_asf_t *this) {
 	goto fail;
       */
     } else if (!memcmp(&g, &stream_group_guid, sizeof(GUID))) {
-#ifdef LOG
-      printf("demux_asf: GUID stream group\n");
-#endif
       int streams;
       int stream_id;
       int i;
   
+#ifdef LOG
+      printf("demux_asf: GUID stream group\n");
+#endif
+
       streams = get_le16(this);
       for(i = 0; i < streams; i++) {
         stream_id = get_le16(this);
@@ -615,7 +616,8 @@ static void asf_reorder(demux_asf_t *this, uint8_t *src, int len){
 
 static int asf_get_packet(demux_asf_t *this) {
 
-  int      timestamp, hdr_size;
+  int64_t  timestamp;
+  int      hdr_size;
   uint32_t sig = 0;
   int      duration;
   int      packet_size;
@@ -691,6 +693,10 @@ static void hexdump (unsigned char *data, int len, xine_t *xine) {
 
 static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
+#ifdef LOG
+  printf ("demux_asf: send_discontinuity, pts %lld\n", pts);
+#endif
+
   if (this->buf_flag_seek) {
     xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
     this->buf_flag_seek = 0;
@@ -701,7 +707,8 @@ static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
 
 static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream, 
-				      int frag_offset, int seq, int timestamp,
+				      int frag_offset, int seq, 
+				      int64_t timestamp,
 				      int frag_len, int payload_size) {
 
   buf_element_t *buf;
@@ -802,7 +809,8 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 }
 
 static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream, 
-				    int frag_offset, int seq, int timestamp, 
+				    int frag_offset, int seq, 
+				    int64_t timestamp, 
 				    int frag_len, int payload_size) {
   
   buf_element_t *buf;
@@ -910,7 +918,8 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 static void asf_read_packet(demux_asf_t *this) {
 
   int            raw_id, stream_id, seq, frag_offset, payload_size, frag_len;
-  int            timestamp, flags, i;
+  int            flags, i;
+  int64_t        timestamp;
   asf_stream_t  *stream;
 
   if ((this->packet_size_left < FRAME_HEADER_SIZE) ||
