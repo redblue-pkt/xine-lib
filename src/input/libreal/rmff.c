@@ -17,13 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.4 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: rmff.c,v 1.5 2003/11/27 22:33:01 mroi Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
  */
-
-#include <xineutils.h>
 
 #define LOG_MODULE "rmff"
 #define LOG_VERBOSE

@@ -33,7 +33,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "bswap.h"
 
 #define LOG_MODULE "input_pnm"
 #define LOG_VERBOSE
@@ -41,6 +40,7 @@
 #define LOG
 */
 
+#include "bswap.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
