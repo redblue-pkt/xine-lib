@@ -140,10 +140,8 @@ void blend_tux_rgb16 (uint8_t * img, int dst_width, int dst_height)
                 for (x=0; x<img_overl->width; x++) {			\
 			o = img_overl->trans[*src&0x0f];		\
 									\
-/*			if ((*src&0x0f) != 0)	 if alpha is != 0 */	\
-			if (o)		/* if alpha is != 0 */		\
-				*dst = blendpixel_rgb##bpp (*dst, img_overl->clut[(*src&0x0f)]/*.y*/, o); \
-/*				*dst = blendpixel_rgb##bpp (*dst, myclut[img_overl->clut[(*src&0x0f)]], o);*/\
+			if ((*src) >> 4 & 0xf)		/* if alpha is != 0 */		\
+				*dst = blendpixel_rgb##bpp (*dst, myclut[img_overl->clut[(*src&0x0f)]], o);   \
 			src++;						\
 			dst++;						\
                 }							\
@@ -151,11 +149,9 @@ void blend_tux_rgb16 (uint8_t * img, int dst_width, int dst_height)
         }								\
 }
 
-//void blend_rgb16 (uint8_t *img, overlay_buf_t *img_overl, int dst_width, int dst_height)
-void blend_rgb (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
+void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		int dst_height)
 {
-#ifdef PRIV_CLUT
 	u_int myclut[] = {
 		0x0000,
 		0x20e2,
@@ -174,7 +170,6 @@ void blend_rgb (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		0xad13,
 		0xffdf,
 	};
-#endif
 
 	BLEND (16, img, img_overl, dst_width, dst_height);
 	//blend_tux_rgb16 (img, dst_width, dst_height);
@@ -184,7 +179,6 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		  int dst_height)
 {
 //FIXME CLUT
-#ifdef PRIV_CLUT
 	u_int myclut[] = {
 		0x0000,
 		0x20e2,
@@ -203,7 +197,6 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		0xad13,
 		0xffdf,
 	};
-#endif
 	BLEND (24, img, img_overl, dst_width, dst_height);
 }
 
@@ -211,7 +204,6 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		  int dst_height)
 {
 //FIXME CLUT
-#ifdef PRIV_CLUT
 	u_int myclut[] = {
 		0x0000,
 		0x20e2,
@@ -230,7 +222,6 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 		0xad13,
 		0xffdf,
 	};
-#endif
 	BLEND (32, img, img_overl, dst_width, dst_height);
 }
 

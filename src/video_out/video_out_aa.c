@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.8 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: video_out_aa.c,v 1.9 2001/07/10 19:33:05 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -261,9 +261,6 @@ static void aa_get_property_min_max (vo_driver_t *this_gen,
   *max = 0;
 }
 
-static void aa_set_overlay (vo_driver_t *this, vo_overlay_t *overlay) {
-}
-
 static void aa_exit (vo_driver_t *this_gen) {
 }
 
@@ -286,7 +283,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
   this->vo_driver.gui_data_exchange    = NULL;
   this->vo_driver.exit                 = aa_exit;
-  this->vo_driver.set_overlay          = aa_set_overlay;
 
   return (vo_driver_t*) this;
 }    

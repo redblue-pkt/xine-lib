@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.15 2001/07/06 11:14:38 heikos Exp $
+ * $Id: video_out_xshm.c,v 1.16 2001/07/10 19:33:05 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -55,6 +55,7 @@
 #include "utils.h"
 #include "video_out_x11.h"
 #include "yuv2rgb.h"
+#include "alphablend.h"
 
 uint32_t xine_debug;
 
@@ -597,6 +598,31 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   }
 }
 
+/*
+ *
+ */
+static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+  xshm_driver_t  *this = (xshm_driver_t *) this_gen;
+  xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
+
+// Alpha Blend here
+   if (overlay->data) {
+     switch(this->bpp) {
+       case 16:
+        blend_rgb16( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        break;
+       case 24:
+        blend_rgb24( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        break;
+       case 32:
+        blend_rgb32( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        break;
+       default:
+/* It should never get here */
+     }        
+   }
+}
+
 static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
@@ -652,13 +678,6 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     XUnlockDisplay (this->display);
     
   }
-}
-
-/* Stores an overlay in the Video Out driver */
-static void xshm_set_overlay (vo_driver_t *this_gen, vo_overlay_t *overlay) {
-  xshm_driver_t *this = (xshm_driver_t *) this_gen;
-
-  this->overlay = overlay;
 }
 
 static int xshm_get_property (vo_driver_t *this_gen, int property) {
@@ -831,8 +850,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
   this->vo_driver.update_frame_format  = xshm_update_frame_format;
+  this->vo_driver.overlay_blend        = xshm_overlay_blend;
   this->vo_driver.display_frame        = xshm_display_frame;
-  this->vo_driver.set_overlay          = xshm_set_overlay;
   this->vo_driver.get_property         = xshm_get_property;
   this->vo_driver.set_property         = xshm_set_property;
   this->vo_driver.get_property_min_max = xshm_get_property_min_max;

@@ -28,8 +28,11 @@
 
 #include "video_out.h"
 
-void blend_rgb (uint8_t * img, vo_overlay_t * overlay, int width,
-
+void blend_rgb16 (uint8_t * img, vo_overlay_t * overlay, int width,
+		int height);
+void blend_rgb24 (uint8_t * img, vo_overlay_t * overlay, int width,
+		int height);
+void blend_rgb32 (uint8_t * img, vo_overlay_t * overlay, int width,
 		int height);
 void blend_yuv (uint8_t * img, vo_overlay_t * overlay, int width,
 

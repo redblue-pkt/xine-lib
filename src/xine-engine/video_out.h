@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.11 2001/07/08 18:15:54 guenter Exp $
+ * $Id: video_out.h,v 1.12 2001/07/10 19:33:05 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -218,9 +218,7 @@ struct vo_driver_s {
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
 
   /* overlay functions */
-  void (*overlay_blend) (vo_frame_t *vo_img, vo_overlay_t *overlay);
-  void (*set_overlay) (vo_driver_t *this, vo_overlay_t *overlay);
-
+  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
 
   /*
    * these can be used by the gui directly:

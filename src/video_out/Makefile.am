@@ -30,7 +30,7 @@ xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	video_out_xshm.c
+	alphablend.c video_out_xshm.c
 xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.32 2001/07/09 16:13:12 guenter Exp $
+ * $Id: video_out.c,v 1.33 2001/07/10 19:33:05 guenter Exp $
  *
  */
 
@@ -276,21 +276,21 @@ static void *video_out_loop (void *this_gen) {
 
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
 
+    
     overlay=this->first_overlay;
     while (overlay) {
       if(overlay->state==OVERLAY_SHOWING) {
-        this->driver->overlay_blend (img,overlay);
+        if (this->driver->overlay_blend) this->driver->overlay_blend (this->driver, img, overlay);
       }
       overlay=overlay->next;
     }
+    
     this->driver->display_frame (this->driver, img); 
 
-/* Control Overlay SHOW/HIDE based on PTS */
-/* FIXME: Not implemented: These all need to be put to FREE state if the slider gets moved or STOP is pressed. */
+    /* Control Overlay SHOW/HIDE based on PTS */
     overlay=this->first_overlay;
     count=1;
     while (overlay) {
-//      count++;
       switch(overlay->state) {
       case OVERLAY_FREE:
 	break;
