@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.309 2005/02/09 20:03:21 tmattern Exp $
+ * $Id: xine.c,v 1.310 2005/02/13 22:12:50 holstsn Exp $
  */
 
 /*
@@ -383,6 +383,9 @@ static void close_internal (xine_stream_t *stream) {
     _x_meta_info_reset(stream, i);
     _x_meta_info_public_reset(stream, i);
   }
+  stream->audio_track_map_entries = 0;
+  stream->spu_track_map_entries = 0;
+
 }
 
 void xine_close (xine_stream_t *stream) {
