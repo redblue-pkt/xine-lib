@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.84 2004/09/01 12:52:34 hadess Exp $
+ * $Id: buffer_types.c,v 1.85 2004/09/03 13:56:04 mroi Exp $
  *
  *
  * contents:
@@ -637,7 +637,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_H264,
-  "Apple Video Codec (H264)"
+  "Advanced Video Coding (H264)"
 },
 { { 0 }, 0, "last entry" }
 };
