@@ -17,6 +17,7 @@
   * external subtitles support. use either MRL syntax like 
     "test.mpg#subtitle:file.sub" or the frontend option.
   * updated VIDIX driver (image controls supported)
+  * mmsh protocol support
 	
 xine-lib (1-beta2)
   * what a GOOM! post plugin
