@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.161 2002/09/22 14:29:40 mroi Exp $
+ * $Id: xine.c,v 1.162 2002/10/03 17:46:29 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -603,37 +603,43 @@ void xine_exit (xine_t *this) {
 
   int i;
 
+  /* skip some cleanup steps, when xine_init wasn't run */
+  if (this->video_driver && this->metronom) {
+
+    /* cleanup things from xine_init... */
+    this->status = XINE_STATUS_QUIT;
+
+    xine_stop(this);
+
+    pthread_mutex_lock (&this->finished_lock);
+
+    if (this->finished_thread_running)
+      pthread_join (this->finished_thread, NULL);
+
+    pthread_mutex_unlock (&this->finished_lock);
+
+    printf ("xine_exit: shutdown audio\n");
+
+    audio_decoder_shutdown (this);
+
+    printf ("xine_exit: shutdown video\n");
+
+    video_decoder_shutdown (this);
+
+    this->osd_renderer->close( this->osd_renderer );
+    this->video_out->exit (this->video_out);
+    this->video_fifo->dispose (this->video_fifo);
+
+    this->metronom->exit (this->metronom);
+
+    printf ("xine_exit: bye!\n");
+  }
+
+  /* cleanup things from xine_new... */
   this->status = XINE_STATUS_QUIT;
-
-  xine_stop(this);
-
-  pthread_mutex_lock (&this->finished_lock);
-
-  if (this->finished_thread_running)
-    pthread_join (this->finished_thread, NULL);
-
-  pthread_mutex_unlock (&this->finished_lock);
-
-  printf ("xine_exit: shutdown audio\n");
-
-  audio_decoder_shutdown (this);
-
-  printf ("xine_exit: shutdown video\n");
-
-  video_decoder_shutdown (this);
-
-  this->osd_renderer->close( this->osd_renderer );
-  this->video_out->exit (this->video_out);
-  this->video_fifo->dispose (this->video_fifo);
-
-  this->status = XINE_STATUS_QUIT;
-
-  printf ("xine_exit: bye!\n");
 
   for (i = 0; i < XINE_LOG_NUM; i++)
     this->log_buffers[i]->dispose (this->log_buffers[i]);
-
-  this->metronom->exit (this->metronom);
 
   dispose_plugins (this);
   xine_profiler_print_results ();
