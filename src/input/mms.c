@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.45 2004/04/06 06:43:05 tmattern Exp $
+ * $Id: mms.c,v 1.46 2004/04/06 06:45:47 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -56,9 +56,9 @@
 /********** logging **********/
 #define LOG_MODULE "mms"
 #define LOG_VERBOSE
-
+/*
 #define LOG 
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
