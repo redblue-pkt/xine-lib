@@ -726,6 +726,26 @@ mpeg2_state_t mpeg2_header_end_btype (mpeg2dec_t * mpeg2dec)
         mpeg2dec->action = mpeg2_header_end_btype2;
         return STATE_SLICE;
 }
+
+mpeg2_state_t mpeg2_reset (mpeg2dec_t * mpeg2dec)
+{
+	mpeg2dec->info.display_fbuf = mpeg2dec->fbuf[0];
+	mpeg2dec->info.discard_fbuf = mpeg2dec->fbuf[0];
+        mpeg2dec->fbuf[0]=0;
+        mpeg2dec->action = mpeg2_header_end_btype;
+        mpeg2dec->shift = 0xffffff00;
+        mpeg2dec->code = 0xb4;
+        mpeg2dec->first_decode_slice = 1;
+        mpeg2dec->nb_decode_slices = 0xb0 - 1;
+        mpeg2dec->decoder.scan = mpeg2_scan_norm;
+        mpeg2dec->picture = mpeg2dec->pictures;
+        mpeg2dec->first = 1;
+        mpeg2dec->alloc_index = 0;
+        mpeg2dec->alloc_index_user = 0;
+
+        return STATE_SLICE;
+}
+
 mpeg2_state_t mpeg2_header_end_itype2 (mpeg2dec_t * mpeg2dec)
 {
 	mpeg2dec->info.display_fbuf = 0;

@@ -233,6 +233,8 @@ mpeg2_state_t mpeg2_parse (mpeg2dec_t * mpeg2dec)
     case 0xb8:
 	mpeg2dec->action = mpeg2_parse_header;
 	break;
+    case 0xb2:
+        printf("libmpeg2:USER DATA for CC\n");
     default:
 	mpeg2dec->action = seek_chunk;
 	return STATE_INVALID;
