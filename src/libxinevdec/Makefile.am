@@ -9,7 +9,7 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_cinepak.la xineplug_decode_cyuv.la \
 	xineplug_decode_msvc.la xineplug_decode_roqvideo.la \
-	xineplug_decode_svq1.la
+	xineplug_decode_svq1.la xineplug_decode_fli.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c
 xineplug_decode_cinepak_la_LDFLAGS = -avoid-version -module
@@ -25,6 +25,9 @@ xineplug_decode_roqvideo_la_LDFLAGS = -avoid-version -module
 
 xineplug_decode_svq1_la_SOURCES = svq1.c svq1_codebooks.h
 xineplug_decode_svq1_la_LDFLAGS = -avoid-version -module
+
+xineplug_decode_fli_la_SOURCES = fli.c
+xineplug_decode_fli_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = svq1_codebooks.h
 
