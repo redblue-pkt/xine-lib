@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.47 2003/03/25 12:49:15 mroi Exp $
+ * $Id: configfile.c,v 1.48 2003/07/10 14:14:40 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -221,10 +221,10 @@ static char *_xine_config_register_string (config_values_t *this,
 #endif
 
   /* make sure this entry exists, create it if not */
+  pthread_mutex_lock(&this->config_lock);
 
   entry = _xine_config_lookup_entry (this, key);
 
-  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = copy_string(def_value);
@@ -285,10 +285,10 @@ static int _xine_config_register_num (config_values_t *this,
 #endif
 
   /* make sure this entry exists, create it if not */
+  pthread_mutex_lock(&this->config_lock);
 
   entry = _xine_config_lookup_entry (this, key);
 
-  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -343,10 +343,10 @@ static int _xine_config_register_bool (config_values_t *this,
 #endif
 
   /* make sure this entry exists, create it if not */
+  pthread_mutex_lock(&this->config_lock);
 
   entry = _xine_config_lookup_entry (this, key);
 
-  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -402,10 +402,10 @@ static int _xine_config_register_range (config_values_t *this,
 #endif
 
   /* make sure this entry exists, create it if not */
+  pthread_mutex_lock(&this->config_lock);
 
   entry = _xine_config_lookup_entry (this, key);
 
-  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
@@ -494,10 +494,10 @@ static int _xine_config_register_enum (config_values_t *this,
 #endif
 
   /* make sure this entry exists, create it if not */
+  pthread_mutex_lock(&this->config_lock);
 
   entry = _xine_config_lookup_entry (this, key);
 
-  pthread_mutex_lock(&this->config_lock);
   if (!entry) {
     entry = xine_config_add (this, key);
     entry->unknown_value = NULL;
