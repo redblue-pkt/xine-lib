@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.98 2002/10/23 04:58:15 tmmm Exp $
+ * $Id: demux_qt.c,v 1.99 2002/10/23 10:48:17 jkeil Exp $
  *
  */
 
@@ -1927,6 +1927,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
 
+    if (!is_qt_file(this->input)) {
+      free (this);
+      return NULL;
+    }
     if ((this->qt = create_qt_info()) == NULL) {
       free (this);
       return NULL;
@@ -1957,6 +1961,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
+    if (!is_qt_file(this->input)) {
+      free (this);
+      return NULL;
+    }
     if ((this->qt = create_qt_info()) == NULL) {
       free (this);
       return NULL;
