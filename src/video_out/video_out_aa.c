@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.5 2001/06/13 18:22:38 guenter Exp $
+ * $Id: video_out_aa.c,v 1.6 2001/06/13 18:25:27 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -94,8 +94,6 @@ static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
 }
 
 static void aa_dispose_frame (vo_frame_t *vo_img) {
-  /* fixme: implement */
-
   aa_frame_t *frame = (aa_frame_t *)vo_img;
   
   if (frame->mem[0])
