@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.55 2002/08/09 13:50:17 heikos Exp $
+ * $Id: input_dvd.c,v 1.56 2002/08/09 15:38:13 mroi Exp $
  *
  */
 
@@ -64,15 +64,15 @@
 #endif
 
 /* Xine includes */
-#include <xineutils.h>
-#include <buffer.h>
-#include <xine_internal.h>
+#include "xineutils.h"
+#include "buffer.h"
+#include "xine_internal.h"
 
 /* DVDNAV includes */
-#include <dvdnav.h>
+#include "dvdnav.h"
  
 /* libdvdread includes */
-#include <nav_read.h>
+#include "nav_read.h"
 
 /* Print debug messages? */
 /* #define INPUT_DEBUG 1 */
@@ -387,8 +387,8 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
   this->dvd_name_length        = 0;
 
   /* Check we can handle this MRL */
-  if (!strncasecmp (mrl, "dvd://",9))
-    locator = &mrl[9];
+  if (!strncasecmp (mrl, "dvd://",6))
+    locator = &mrl[6];
   else {
     return 0;
   }
@@ -1393,6 +1393,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.56  2002/08/09 15:38:13  mroi
+ * fix mrl parsing
+ *
  * Revision 1.55  2002/08/09 13:50:17  heikos
  * seems to compile better this way :)
  *
