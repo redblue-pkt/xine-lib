@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.72 2002/09/04 23:31:08 guenter Exp $
+ * $Id: input_dvd.c,v 1.73 2002/09/05 05:51:14 jcdutton Exp $
  *
  */
 
@@ -1227,7 +1227,9 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	goto __audio_success;
       }
       
-      channel = (int8_t) xine_get_audio_channel(this->xine);
+      /* FIXME: where is xine_get_audio_channel now? */
+      /* channel = (int8_t) xine_get_audio_channel(this->xine); */
+      channel = 0;
       /*  printf("input_dvd: ********* AUDIO CHANNEL = %d\n", channel); */
       channel = dvdnav_get_audio_logical_stream(this->dvdnav, channel);
       if(channel != -1) {
@@ -1237,11 +1239,15 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
 	} 
 	else {
-	  sprintf(data, "%3i", xine_get_audio_channel(this->xine));
+      /* FIXME: where is xine_get_audio_channel now? */
+/*	  sprintf(data, "%3i", xine_get_audio_channel(this->xine)); */
+	  sprintf(data, "%3i", 0); 
 	}
       } 
       else {
-	channel = xine_get_audio_channel(this->xine);
+      /* FIXME: where is xine_get_audio_channel now? */
+/*	channel = xine_get_audio_channel(this->xine); */
+        channel = 0;
 	sprintf(data, "%3i", channel);
       }
       
@@ -1266,7 +1272,9 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	goto __spu_success;
       }
 
-      channel = (int8_t) xine_get_spu_channel(this->xine);
+      /* FIXME: where is xine_get_spu_channel now? */
+      /* channel = (int8_t) xine_get_spu_channel(this->xine);*/
+      channel = 0;
       /*  printf("input_dvd: ********* SPU CHANNEL = %i\n", channel); */
       if(channel == -1)
 	channel = dvdnav_get_spu_logical_stream(this->dvdnav, this->xine->spu_channel);
@@ -1280,11 +1288,14 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
 	} 
 	else {
-	  sprintf(data, "%3i", xine_get_spu_channel(this->xine));
+	  /* sprintf(data, "%3i", xine_get_spu_channel(this->xine));*/
+	  sprintf(data, "%3i", 0);
 	}
       } 
       else {
-	channel = xine_get_spu_channel(this->xine);
+      /* FIXME: where is xine_get_spu_channel now? */
+/*	channel = xine_get_spu_channel(this->xine); */
+        channel = 0;
 	if(channel == -1)
 	  sprintf(data, "%3s", "off");
 	else
@@ -1497,6 +1508,11 @@ void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.73  2002/09/05 05:51:14  jcdutton
+ * XV Video out at least loads now and we see the xine logo again.
+ * The DVD plugin now loads, but audio and spu info is lost.
+ * What happened to xine_get_spu_channel and xine_get_audio_channel?
+ *
  * Revision 1.72  2002/09/04 23:31:08  guenter
  * merging in the new_api branch ... unfortunately video_out / vo_scale is broken now ... matthias/miguel: please fix it :-)
  *
