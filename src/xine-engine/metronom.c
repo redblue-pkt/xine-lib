@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.65 2002/03/11 12:31:26 guenter Exp $
+ * $Id: metronom.c,v 1.66 2002/03/12 01:35:54 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -262,7 +262,6 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts,
     this->spu_vpts=pts;
   } else {
     pts=this->spu_vpts;
-    this->spu_vpts=this->spu_vpts;
   }
 
   if ( !this->in_discontinuity ) {
@@ -326,7 +325,6 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 
   int64_t vpts;
   int64_t pts = img->pts;
-  int64_t duration = img->duration;
   
   pthread_mutex_lock (&this->lock);
 
@@ -367,27 +365,31 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
       printf ("metronom: video jump\n");
 #endif
 	
-    } else if (diff) {
+    } else {
 
-      this->video_drift = diff;
+      /* this will fix video drift with a constant compensation each
+         frame for about 1 second of video. since a valid pts must
+         happen before that the difference will be recalculated,
+         resulting in a new (smaller) video_drift value. */
+      this->video_drift = diff/30;
 
 #ifdef LOG
-      printf ("metronom: video drift, drift is %lld\n", this->video_drift);
+      if (diff)
+        printf ("metronom: video drift, drift is %lld\n", this->video_drift);
 #endif
     }
   } 
 
-  this->video_vpts -= this->video_drift / 30;
-  this->video_drift -= this->video_drift / 30;
-
   img->vpts = this->video_vpts + this->av_offset;
 
 #ifdef LOG
-  printf ("metronom: video vpts for %10lld : %10lld (duration:%lld)\n", 
-	  pts, this->video_vpts, duration);
+  printf ("metronom: video vpts for %10lld : %10lld (duration:%d%c%d)\n", 
+	  pts, this->video_vpts, img->duration,
+	  (this->video_drift<0)?'+':'-', abs(this->video_drift) );
 #endif
-
-  this->video_vpts += duration;
+  
+  img->duration -= this->video_drift;
+  this->video_vpts += img->duration;
 
   pthread_mutex_unlock (&this->lock);
 }
