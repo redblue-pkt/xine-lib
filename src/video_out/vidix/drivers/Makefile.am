@@ -11,7 +11,8 @@ vidix_drivers = \
 	pm2_vid.la \
 	pm3_vid.la \
 	radeon_vid.la \
-	rage128_vid.la
+	rage128_vid.la \
+	cyberblade_vid.la
 endif
 
 lib_LTLIBRARIES = $(vidix_drivers)
@@ -74,7 +75,12 @@ mga_crtc2_vid_la_SOURCES = mga_crtc2_vid.c
 mga_crtc2_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la -lm
 mga_crtc2_vid_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = mach64.h nvidia.h glint_regs.h pm3_regs.h radeon.h
+cyberblade_vid_la_SOURCES = cyberblade_vid.c
+cyberblade_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
+cyberblade_vid_la_LDFLAGS = -avoid-version -module
+
+noinst_HEADERS = mach64.h nvidia.h glint_regs.h pm3_regs.h radeon.h \
+	cyberblade_regs.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/libdha
