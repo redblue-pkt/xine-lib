@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.146 2003/02/17 15:07:53 tmmm Exp $
+ * $Id: demux_qt.c,v 1.147 2003/02/17 17:53:23 tmmm Exp $
  *
  */
 
@@ -1499,7 +1499,7 @@ static qt_error build_frame_table(qt_trak *trak,
  * ordered by offset.
  */
 static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
-  int i;
+  int i, j;
   unsigned int moov_atom_size = BE_32(&moov_atom[0]);
   qt_atom current_atom;
   int string_size;
@@ -1562,8 +1562,18 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
     info->trak_count);
   for (i = 0; i < info->trak_count; i++) {
 
-    debug_frame_table("    qt: building frame table #%d\n", i);
+    debug_frame_table("    qt: building frame table #%d (%s)\n", i,
+      (info->traks[i].type == MEDIA_VIDEO) ? "video" : "audio");
     build_frame_table(&info->traks[i], info->timescale);
+
+    /* dump the frame table in debug mode */
+    for (j = 0; j < info->traks[i].frame_count; j++)
+      debug_frame_table("      %d: %8X bytes @ %llX, %lld pts%s\n",
+        j,
+        info->traks[i].frames[j].size,
+        info->traks[i].frames[j].offset,
+        info->traks[i].frames[j].pts,
+        (info->traks[i].frames[j].keyframe) ? " (keyframe)" : "");
 
     /* decide which audio trak and which video trak has the most frames */
     if ((info->traks[i].type == MEDIA_VIDEO) &&
