@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.3 2001/06/23 19:45:47 guenter Exp $
+ * $Id: audio_sun_out.c,v 1.4 2001/06/26 18:47:13 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -79,7 +79,7 @@ typedef struct sun_functions_s {
   int16_t       *zero_space;
   
   int            audio_started;
-
+  uint32_t       last_audio_vpts;
 } sun_functions_t;
 
 /*
@@ -110,6 +110,7 @@ static int ao_open(ao_functions_t *this_gen,
   this->input_sample_rate      = rate;
   this->bytes_in_buffer        = 0;
   this->audio_started          = 0;
+  this->last_audio_vpts	       = 0;
 
   /*
    * open audio device
@@ -201,7 +202,7 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   audio_info_t	   info;
 
   if (this->audio_fd<0)
-    return;
+    return 1;
 
   vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
 
@@ -210,6 +211,8 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
     return 1;
   }
+
+  this->last_audio_vpts = vpts;
 
   xprintf (VERBOSE|AUDIO, "audio_sun_out: got %d samples, vpts=%d\n",
 	   num_samples, vpts);
