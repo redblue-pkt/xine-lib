@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.30 2002/05/27 11:01:04 guenter Exp $
+ * $Id: demux_pes.c,v 1.31 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -116,19 +116,7 @@ static void check_newpts( demux_pes_t *this, int64_t pts )
 {
   if( this->send_newpts && !this->preview_mode && pts ) {
     
-    buf_element_t *buf;
-  
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type = BUF_CONTROL_NEWPTS;
-    buf->disc_off = pts;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if (this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = BUF_CONTROL_NEWPTS;
-      buf->disc_off = pts;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_newpts(this->xine, pts, 0);
     this->send_newpts = 0;
   }
 }
@@ -331,7 +319,6 @@ static void demux_pes_resync (demux_pes_t *this, uint32_t buf) {
 static void *demux_pes_loop (void *this_gen) {
 
   demux_pes_t *this = (demux_pes_t *) this_gen;
-  buf_element_t *buf;
   uint32_t w=0;
 
   /* do-while needed to seek after demux finished */
@@ -360,17 +347,7 @@ static void *demux_pes_loop (void *this_gen) {
   } while( this->status == DEMUX_OK );
   
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   printf ("demux_pes: demux loop finished (status: %d, buf:%x)\n",
@@ -386,7 +363,6 @@ static void *demux_pes_loop (void *this_gen) {
 static void demux_pes_stop (demux_plugin_t *this_gen) {
 
   demux_pes_t *this = (demux_pes_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -403,20 +379,9 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
-
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static int demux_pes_get_status (demux_plugin_t *this_gen) {
@@ -431,7 +396,6 @@ static int demux_pes_start (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
 
   demux_pes_t *this = (demux_pes_t *) this_gen;
-  buf_element_t *buf;
   int err;
   int status;
 
@@ -445,15 +409,7 @@ static int demux_pes_start (demux_plugin_t *this_gen,
      * send start buffer
      */
 
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type    = BUF_CONTROL_START;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
     if ((this->input->get_capabilities (this->input) & INPUT_CAP_PREVIEW) != 0 ) {
 
@@ -506,7 +462,7 @@ static int demux_pes_start (demux_plugin_t *this_gen,
     }
   }
   else {
-    xine_flush_engine(this->xine);
+    xine_demux_flush_engine(this->xine);
   }
 
   /* this->status is saved because we can be interrupted between
@@ -648,7 +604,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_pes_t     *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_pes: plugin doesn't support plugin API version %d.\n"
 	    "           this means there's a version mismatch between xine and this "
 	    "           demuxer plugin.\nInstalling current demux plugins should help.\n",

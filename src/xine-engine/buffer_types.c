@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.22 2002/06/05 22:44:52 tmattern Exp $
+ * $Id: buffer_types.c,v 1.23 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  *
  * contents:
@@ -38,10 +38,19 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#ifndef mmioFOURCC
-#define mmioFOURCC( ch0, ch1, ch2, ch3 )                                         \
-        ( (long)(unsigned char)(ch0) | ( (long)(unsigned char)(ch1) << 8 ) |     \
-        ( (long)(unsigned char)(ch2) << 16 ) | ( (long)(unsigned char)(ch3) << 24 ) )
+/* FOURCC will be manipulated using machine endian */
+#ifdef WORDS_BIGENDIAN
+#define meFOURCC( ch0, ch1, ch2, ch3 )              \
+        ( (uint32_t)(unsigned char)(ch3) |          \
+        ( (uint32_t)(unsigned char)(ch2) << 8 ) |   \
+        ( (uint32_t)(unsigned char)(ch1) << 16 ) |  \
+        ( (uint32_t)(unsigned char)(ch0) << 24 ) )
+#else
+#define meFOURCC( ch0, ch1, ch2, ch3 )              \
+        ( (uint32_t)(unsigned char)(ch0) |          \
+        ( (uint32_t)(unsigned char)(ch1) << 8 ) |   \
+        ( (uint32_t)(unsigned char)(ch2) << 16 ) |  \
+        ( (uint32_t)(unsigned char)(ch3) << 24 ) )
 #endif
 
 
@@ -61,7 +70,7 @@ typedef struct audio_db_s {
 static video_db_t video_db[] = {
 {
   {
-    mmioFOURCC('m', 'p', 'e', 'g'),
+    meFOURCC('m', 'p', 'e', 'g'),
     0
   },
   BUF_VIDEO_MPEG,
@@ -69,12 +78,12 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('D', 'I', 'V', 'X'),
-    mmioFOURCC('d', 'i', 'v', 'x'),
-    mmioFOURCC('D', 'i', 'v', 'x'),
-    mmioFOURCC('D', 'i', 'v', 'X'),
-    mmioFOURCC('M', 'P', '4', 'S'),
-    mmioFOURCC('m', 'p', '4', 'v'),
+    meFOURCC('D', 'I', 'V', 'X'),
+    meFOURCC('d', 'i', 'v', 'x'),
+    meFOURCC('D', 'i', 'v', 'x'),
+    meFOURCC('D', 'i', 'v', 'X'),
+    meFOURCC('M', 'P', '4', 'S'),
+    meFOURCC('m', 'p', '4', 'v'),
     0
   },
   BUF_VIDEO_MPEG4,
@@ -82,7 +91,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('X', 'V', 'I', 'D'),
+    meFOURCC('X', 'V', 'I', 'D'),
     0
   },
   BUF_VIDEO_XVID,
@@ -90,7 +99,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('D', 'X', '5', '0'),
+    meFOURCC('D', 'X', '5', '0'),
     0
   },
   BUF_VIDEO_DIVX5,
@@ -98,7 +107,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('c', 'v', 'i', 'd'),
+    meFOURCC('c', 'v', 'i', 'd'),
     0
   },
   BUF_VIDEO_CINEPAK,
@@ -106,9 +115,9 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('S', 'V', 'Q', '1'),
-    mmioFOURCC('s', 'v', 'q', '1'),
-    mmioFOURCC('s', 'v', 'q', 'i'),
+    meFOURCC('S', 'V', 'Q', '1'),
+    meFOURCC('s', 'v', 'q', '1'),
+    meFOURCC('s', 'v', 'q', 'i'),
     0
   },
   BUF_VIDEO_SORENSON_V1,
@@ -116,8 +125,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('S', 'V', 'Q', '3'),
-    mmioFOURCC('s', 'v', 'q', '3'),
+    meFOURCC('S', 'V', 'Q', '3'),
+    meFOURCC('s', 'v', 'q', '3'),
     0
   },
   BUF_VIDEO_SORENSON_V3,
@@ -125,14 +134,14 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('M', 'P', '4', '1'),
-    mmioFOURCC('m', 'p', '4', '1'),
-    mmioFOURCC('M', 'P', '4', '2'),
-    mmioFOURCC('m', 'p', '4', '2'),
-    mmioFOURCC('D', 'I', 'V', '2'),
-    mmioFOURCC('d', 'i', 'v', '2'),
-    mmioFOURCC('M', 'P', 'G', '4'),
-    mmioFOURCC('m', 'p', 'g', '4'),
+    meFOURCC('M', 'P', '4', '1'),
+    meFOURCC('m', 'p', '4', '1'),
+    meFOURCC('M', 'P', '4', '2'),
+    meFOURCC('m', 'p', '4', '2'),
+    meFOURCC('D', 'I', 'V', '2'),
+    meFOURCC('d', 'i', 'v', '2'),
+    meFOURCC('M', 'P', 'G', '4'),
+    meFOURCC('m', 'p', 'g', '4'),
     0
   },
   BUF_VIDEO_MSMPEG4_V12,
@@ -140,18 +149,18 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('M', 'P', '4', '3'),
-    mmioFOURCC('m', 'p', '4', '3'),
-    mmioFOURCC('D', 'I', 'V', '3'),
-    mmioFOURCC('d', 'i', 'v', '3'),
-    mmioFOURCC('D', 'I', 'V', '4'),
-    mmioFOURCC('d', 'i', 'v', '4'),
-    mmioFOURCC('D', 'I', 'V', '5'),
-    mmioFOURCC('d', 'i', 'v', '5'),
-    mmioFOURCC('D', 'I', 'V', '6'),
-    mmioFOURCC('d', 'i', 'v', '6'),
-    mmioFOURCC('A', 'P', '4', '1'),
-    mmioFOURCC('M', 'P', 'G', '3'),
+    meFOURCC('M', 'P', '4', '3'),
+    meFOURCC('m', 'p', '4', '3'),
+    meFOURCC('D', 'I', 'V', '3'),
+    meFOURCC('d', 'i', 'v', '3'),
+    meFOURCC('D', 'I', 'V', '4'),
+    meFOURCC('d', 'i', 'v', '4'),
+    meFOURCC('D', 'I', 'V', '5'),
+    meFOURCC('d', 'i', 'v', '5'),
+    meFOURCC('D', 'I', 'V', '6'),
+    meFOURCC('d', 'i', 'v', '6'),
+    meFOURCC('A', 'P', '4', '1'),
+    meFOURCC('M', 'P', 'G', '3'),
     0
   },
   BUF_VIDEO_MSMPEG4_V3,
@@ -159,7 +168,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('3', 'I', 'V', '1'),
+    meFOURCC('3', 'I', 'V', '1'),
     0
   },
   BUF_VIDEO_3IVX,
@@ -167,10 +176,10 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('d', 'm', 'b', '1'),
-    mmioFOURCC('M', 'J', 'P', 'G'),
-    mmioFOURCC('m', 'j', 'p', 'a'),
-    mmioFOURCC('m', 'j', 'p', 'b'),
+    meFOURCC('d', 'm', 'b', '1'),
+    meFOURCC('M', 'J', 'P', 'G'),
+    meFOURCC('m', 'j', 'p', 'a'),
+    meFOURCC('m', 'j', 'p', 'b'),
     0
   },
   BUF_VIDEO_MJPEG,
@@ -178,8 +187,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('I', 'V', '5', '0'),
-    mmioFOURCC('i', 'v', '5', '0'),
+    meFOURCC('I', 'V', '5', '0'),
+    meFOURCC('i', 'v', '5', '0'),
     0
   },
   BUF_VIDEO_IV50,
@@ -187,8 +196,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('I', 'V', '4', '1'),
-    mmioFOURCC('i', 'v', '4', '1'),
+    meFOURCC('I', 'V', '4', '1'),
+    meFOURCC('i', 'v', '4', '1'),
     0
   },
   BUF_VIDEO_IV41,
@@ -196,8 +205,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('I', 'V', '3', '2'),
-    mmioFOURCC('i', 'v', '3', '2'),
+    meFOURCC('I', 'V', '3', '2'),
+    meFOURCC('i', 'v', '3', '2'),
     0
   },
   BUF_VIDEO_IV32,
@@ -205,8 +214,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('I', 'V', '3', '1'),
-    mmioFOURCC('i', 'v', '3', '1'),
+    meFOURCC('I', 'V', '3', '1'),
+    meFOURCC('i', 'v', '3', '1'),
     0
   },
   BUF_VIDEO_IV31,
@@ -214,7 +223,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('V', 'C', 'R', '1'),
+    meFOURCC('V', 'C', 'R', '1'),
     0
   },
   BUF_VIDEO_ATIVCR1,
@@ -222,7 +231,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('V', 'C', 'R', '2'),
+    meFOURCC('V', 'C', 'R', '2'),
     0
   },
   BUF_VIDEO_ATIVCR2,
@@ -230,11 +239,11 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('I', '2', '6', '3'),
-    mmioFOURCC('i', '2', '6', '3'),
-    mmioFOURCC('V', 'I', 'V', 'O'),
-    mmioFOURCC('v', 'i', 'v', 'o'),
-    mmioFOURCC('v', 'i', 'v', '1'),
+    meFOURCC('I', '2', '6', '3'),
+    meFOURCC('i', '2', '6', '3'),
+    meFOURCC('V', 'I', 'V', 'O'),
+    meFOURCC('v', 'i', 'v', 'o'),
+    meFOURCC('v', 'i', 'v', '1'),
     0
   },
   BUF_VIDEO_I263,
@@ -249,7 +258,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('r','a','w',' '),
+    meFOURCC('r','a','w',' '),
     0
   },
   BUF_VIDEO_RGB,
@@ -261,7 +270,7 @@ static video_db_t video_db[] = {
     else if (!strncasecmp (video, "yuv2", 4))
     this->video_type = BUF_VIDEO_YUY2;
     */
-    mmioFOURCC('y','u','v','2'),
+    meFOURCC('y','u','v','2'),
     0
   },
   BUF_VIDEO_YUY2,
@@ -269,7 +278,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('j','p','e','g'),
+    meFOURCC('j','p','e','g'),
     0
   },
   BUF_VIDEO_JPEG,
@@ -277,7 +286,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('W','M','V','1'),
+    meFOURCC('W','M','V','1'),
     0
   },
   BUF_VIDEO_WMV7,
@@ -285,7 +294,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('W','M','V','2'),
+    meFOURCC('W','M','V','2'),
     0
   },
   BUF_VIDEO_WMV8,
@@ -293,12 +302,12 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('c','r','a','m'),
-    mmioFOURCC('C','R','A','M'),
-    mmioFOURCC('M','S','V','C'),
-    mmioFOURCC('m','s','v','c'),
-    mmioFOURCC('W','H','A','M'),
-    mmioFOURCC('w','h','a','m'),
+    meFOURCC('c','r','a','m'),
+    meFOURCC('C','R','A','M'),
+    meFOURCC('M','S','V','C'),
+    meFOURCC('m','s','v','c'),
+    meFOURCC('W','H','A','M'),
+    meFOURCC('w','h','a','m'),
     0
   },
   BUF_VIDEO_MSVC,
@@ -306,9 +315,9 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('D','V','S','D'),
-    mmioFOURCC('d','v','s','d'),
-    mmioFOURCC('d','v','c','p'),
+    meFOURCC('D','V','S','D'),
+    meFOURCC('d','v','s','d'),
+    meFOURCC('d','v','c','p'),
     0
   },
   BUF_VIDEO_DV,
@@ -316,10 +325,10 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('V','P','3','0'),
-    mmioFOURCC('v','p','3','0'),
-    mmioFOURCC('V','P','3','1'),
-    mmioFOURCC('v','p','3','1'),
+    meFOURCC('V','P','3','0'),
+    meFOURCC('v','p','3','0'),
+    meFOURCC('V','P','3','1'),
+    meFOURCC('v','p','3','1'),
     0
   },
   BUF_VIDEO_VP31,
@@ -327,9 +336,9 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('H', '2', '6', '3'),
-    mmioFOURCC('h', '2', '6', '3'),
-    mmioFOURCC('U', '2', '6', '3'),
+    meFOURCC('H', '2', '6', '3'),
+    meFOURCC('h', '2', '6', '3'),
+    meFOURCC('U', '2', '6', '3'),
     0
   },
   BUF_VIDEO_H263,
@@ -337,8 +346,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('c', 'y', 'u', 'v'),
-    mmioFOURCC('C', 'Y', 'U', 'V'),
+    meFOURCC('c', 'y', 'u', 'v'),
+    meFOURCC('C', 'Y', 'U', 'V'),
     0
   },
   BUF_VIDEO_CYUV,
@@ -346,7 +355,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('s', 'm', 'c', ' '),
+    meFOURCC('s', 'm', 'c', ' '),
     0
   },
   BUF_VIDEO_SMC,
@@ -354,8 +363,8 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('r', 'p', 'z', 'a'),
-    mmioFOURCC('a', 'z', 'p', 'r'),
+    meFOURCC('r', 'p', 'z', 'a'),
+    meFOURCC('a', 'z', 'p', 'r'),
     0
   },
   BUF_VIDEO_RPZA,
@@ -363,7 +372,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('r', 'l', 'e', ' '),
+    meFOURCC('r', 'l', 'e', ' '),
     0
   },
   BUF_VIDEO_QTRLE,
@@ -378,7 +387,7 @@ static video_db_t video_db[] = {
 },
 {
   {
-    mmioFOURCC('D', 'U', 'C', 'K'),
+    meFOURCC('D', 'U', 'C', 'K'),
     0
   },
   BUF_VIDEO_DUCKTM1,
@@ -399,7 +408,7 @@ static audio_db_t audio_db[] = {
 {
   {
     0x50, 0x55,
-    mmioFOURCC('.','m','p','3'), 0
+    meFOURCC('.','m','p','3'), 0
   },
   BUF_AUDIO_MPEG,
   "MPEG layer 2/3"
@@ -414,7 +423,7 @@ static audio_db_t audio_db[] = {
 {
   {
     0x01,
-    mmioFOURCC('r','a','w',' '),
+    meFOURCC('r','a','w',' '),
     0
   },
   BUF_AUDIO_LPCM_LE,
@@ -460,7 +469,7 @@ static audio_db_t audio_db[] = {
     /* these formattags are used by Vorbis ACM encoder and
        supported by NanDub, a variant of VirtualDub. */
     0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771,
-    mmioFOURCC('O','g','g','S'),
+    meFOURCC('O','g','g','S'),
     0
   },
   BUF_AUDIO_VORBIS,
@@ -517,7 +526,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    mmioFOURCC('i', 'm', 'a', '4'),
+    meFOURCC('i', 'm', 'a', '4'),
     0
   },
   BUF_AUDIO_QTIMAADPCM,
@@ -525,7 +534,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    mmioFOURCC('m', 'a', 'c', '3'),
+    meFOURCC('m', 'a', 'c', '3'),
     0
   },
   BUF_AUDIO_MAC3,
@@ -533,7 +542,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    mmioFOURCC('m', 'a', 'c', '6'),
+    meFOURCC('m', 'a', 'c', '6'),
     0
   },
   BUF_AUDIO_MAC6,
@@ -541,7 +550,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    mmioFOURCC('Q', 'D', 'M', 'C'),
+    meFOURCC('Q', 'D', 'M', 'C'),
     0
   },
   BUF_AUDIO_QDESIGN1,
@@ -549,7 +558,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    mmioFOURCC('Q', 'D', 'M', '2'),
+    meFOURCC('Q', 'D', 'M', '2'),
     0
   },
   BUF_AUDIO_QDESIGN2,
@@ -559,18 +568,10 @@ static audio_db_t audio_db[] = {
 };
 
 
-static unsigned long str2ulong(unsigned char *str)
-{
-  return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
-}
-
-uint32_t fourcc_to_buf_video( void * fourcc ) {
+uint32_t fourcc_to_buf_video( uint32_t fourcc_int ) {
 int i, j;
-uint32_t fourcc_int;
 static uint32_t cached_fourcc=0;
 static uint32_t cached_buf_type=0;
-
-  fourcc_int = str2ulong(fourcc);
 
   if( fourcc_int == cached_fourcc )
     return cached_buf_type;
@@ -636,17 +637,29 @@ int i;
 }
 
 void xine_bmiheader_le2me( xine_bmiheader *bih ) {
+  /* OBS: fourcc must be read using machine endianness
+   *      so don't play with biCompression here!
+   */
   
   bih->biSize = le2me_32(bih->biSize);
   bih->biWidth = le2me_32(bih->biWidth);
   bih->biHeight = le2me_32(bih->biHeight);
   bih->biPlanes = le2me_16(bih->biPlanes);
   bih->biBitCount = le2me_16(bih->biBitCount);
-  /* do not change byte order of fourcc */
-  /* bih->biCompression = le2me_32(bih->biCompression); */
   bih->biSizeImage = le2me_32(bih->biSizeImage);
   bih->biXPelsPerMeter = le2me_32(bih->biXPelsPerMeter);
   bih->biYPelsPerMeter = le2me_32(bih->biYPelsPerMeter);
   bih->biClrUsed = le2me_32(bih->biClrUsed);
   bih->biClrImportant = le2me_32(bih->biClrImportant);
+}
+
+void xine_waveformatex_le2me( xine_waveformatex *wavex ) {
+  
+  wavex->wFormatTag = le2me_16(wavex->wFormatTag);
+  wavex->nChannels = le2me_16(wavex->nChannels);
+  wavex->nSamplesPerSec = le2me_32(wavex->nSamplesPerSec);
+  wavex->nAvgBytesPerSec = le2me_32(wavex->nAvgBytesPerSec);
+  wavex->nBlockAlign = le2me_16(wavex->nBlockAlign);
+  wavex->wBitsPerSample = le2me_16(wavex->wBitsPerSample);
+  wavex->cbSize = le2me_16(wavex->cbSize);
 }

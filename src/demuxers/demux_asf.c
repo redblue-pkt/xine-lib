@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.42 2002/06/03 16:20:35 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.43 2002/06/07 02:40:46 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -324,7 +324,7 @@ static void get_str16_nolen(demux_asf_t *this, int len,
 static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
 
   buf_element_t *buf;
-  WAVEFORMATEX  *wavex = (WAVEFORMATEX *) this->wavex ;
+  xine_waveformatex  *wavex = (xine_waveformatex *) this->wavex ;
 
   if (!this->audio_fifo)
     return;
@@ -383,7 +383,7 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
   this->streams[this->num_streams].buf_type = 
-    fourcc_to_buf_video((void*)&bih->biCompression);
+    fourcc_to_buf_video(bih->biCompression);
     
   if( !this->streams[this->num_streams].buf_type ) {
     printf ("demux_asf: unknown video format %.4s\n",
@@ -495,6 +495,7 @@ static int asf_read_header (demux_asf_t *this) {
         uint8_t buffer[6];
 
 	this->input->read (this->input, (uint8_t *) this->wavex, total_size);
+	xine_waveformatex_le2me( (xine_waveformatex *) this->wavex );
 	
         /*
 	printf ("total size: %d bytes\n", total_size);
@@ -672,20 +673,7 @@ static void hexdump (unsigned char *data, int len, xine_t *xine) {
 
 static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
-  buf_element_t  *buf;
-
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type          = BUF_CONTROL_NEWPTS;
-  buf->disc_off      = pts;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type          = BUF_CONTROL_NEWPTS;
-    buf->disc_off      = pts;
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
-
+  xine_demux_control_newpts(this->xine, pts, 0);
 }
 
 
@@ -1122,8 +1110,7 @@ static void asf_read_packet(demux_asf_t *this) {
  */
 
 static void *demux_asf_loop (void *this_gen) {
-  buf_element_t *buf;
-
+  
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
   printf ("demux_asf: demux loop starting...\n"); 
@@ -1161,18 +1148,7 @@ static void *demux_asf_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
-
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -1193,7 +1169,6 @@ static void demux_asf_close (demux_plugin_t *this_gen) {
 static void demux_asf_stop (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
-  buf_element_t *buf;
   int i;
   void *p;
 
@@ -1211,19 +1186,9 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER;
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 
   for (i=0; i<this->num_streams; i++) {
     if( this->streams[i].buffer ) {
@@ -1245,7 +1210,6 @@ static int demux_asf_start (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
-  buf_element_t *buf;
   int err;
   int status;
 
@@ -1260,16 +1224,7 @@ static int demux_asf_start (demux_plugin_t *this_gen,
     /*
      * send start buffer
      */
-
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type    = BUF_CONTROL_START;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
     /*
      * initialize asf engine
@@ -1302,7 +1257,7 @@ static int demux_asf_start (demux_plugin_t *this_gen,
     }
   }
   else {
-    xine_flush_engine(this->xine);
+    xine_demux_flush_engine(this->xine);
   }
 
   if( this->status == DEMUX_OK ) {
@@ -1446,7 +1401,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_asf_t     *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_asf: plugin doesn't support plugin API version %d.\n"
 	    "           this means there's a version mismatch between xine and this "
 	    "           demuxer plugin.\nInstalling current demux plugins should help.\n",

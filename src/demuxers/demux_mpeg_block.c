@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.102 2002/05/25 19:19:17 siggi Exp $
+ * $Id: demux_mpeg_block.c,v 1.103 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -124,21 +124,9 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
     /* check if pts is outside nav pts range. any stream without nav must enter here. */
     if( pts > this->nav_last_end_pts || pts < this->nav_last_start_pts )
     {
-      buf_element_t *buf;
-    
       printf("demux_mpeg_block: pts wrap detected\n" );
   
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_NEWPTS;
-      buf->disc_off = pts;
-      this->video_fifo->put (this->video_fifo, buf);
-
-      if (this->audio_fifo) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = BUF_CONTROL_NEWPTS;
-        buf->disc_off = pts;
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
+      xine_demux_control_newpts(this->xine, pts, 0);
     }
     
     this->send_newpts = 0;
@@ -387,18 +375,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       printf ("demux_mpeg_block: informing metronom about new start pts\n");
 #endif
 
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_NEWPTS;
-      buf->disc_off = start_pts;
-      this->video_fifo->put (this->video_fifo, buf);
-
-      if (this->audio_fifo) {
-	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	buf->type = BUF_CONTROL_NEWPTS;
-	buf->disc_off = start_pts;
-	this->audio_fifo->put (this->audio_fifo, buf);
-      }
-
+      xine_demux_control_newpts(this->xine, start_pts, 0);
     }
     
     this->nav_last_end_pts = end_pts;
@@ -665,7 +642,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
 static void *demux_mpeg_block_loop (void *this_gen) {
 
-  buf_element_t *buf = NULL;
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
 
   /* printf ("demux_mpeg_block: demux loop starting...\n"); */
@@ -702,18 +678,7 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM;
-    this->video_fifo->put (this->video_fifo, buf);
-    
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
-
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -871,7 +836,6 @@ static void demux_mpeg_block_close (demux_plugin_t *this_gen) {
 static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -888,20 +852,9 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
   
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER;
-
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; 
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
@@ -960,15 +913,7 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
        * send start buffer
        */
 
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->video_fifo->put (this->video_fifo, buf);
-
-      if(this->audio_fifo) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type    = BUF_CONTROL_START;
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
+      xine_demux_control_start(this->xine);
 
       if (!this->rate)
         this->rate = demux_mpeg_block_estimate_rate (this);
@@ -1045,7 +990,7 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
       }
     }
     else {
-      xine_flush_engine(this->xine);
+      xine_demux_flush_engine(this->xine);
     }
   }
   else {
@@ -1228,12 +1173,12 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_mpeg_block_t *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
 	    "                  this means there's a version mismatch between xine and this "
 	    "                  demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
-  return NULL;
+    return NULL;
   }
 
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.3 2002/06/05 13:05:19 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.4 2002/06/07 02:40:47 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -246,17 +246,7 @@ static void *demux_roq_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -434,26 +424,10 @@ static int demux_roq_start (demux_plugin_t *this_gen,
         (this->audio_channels == 1) ? "monaural" : "stereo");
 
     /* send start buffers */
-    buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-    buf->type = BUF_CONTROL_START;
-    this->video_fifo->put(this->video_fifo, buf);
-    if (this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-      buf->type = BUF_CONTROL_START;
-      this->audio_fifo->put(this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
-    /* send new pts (or NOP if no audio) */
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type = BUF_CONTROL_NEWPTS;
-    buf->disc_off = 0;
-    this->video_fifo->put (this->video_fifo, buf);
-    if (this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->disc_off = 0;
-      buf->type = BUF_CONTROL_NEWPTS;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    /* send new pts */
+    xine_demux_control_newpts(this->xine, 0, 0);
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -511,7 +485,6 @@ static int demux_roq_seek (demux_plugin_t *this_gen,
 static void demux_roq_stop (demux_plugin_t *this_gen) {
 
   demux_roq_t *this = (demux_roq_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -527,19 +500,9 @@ static void demux_roq_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static void demux_roq_close (demux_plugin_t *this) {
@@ -569,7 +532,7 @@ static char *demux_roq_get_mimetypes(void) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_roq_t *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_roq: plugin doesn't support plugin API version %d.\n"
             "           this means there's a version mismatch between xine and this "
             "           demuxer plugin.\nInstalling current demux plugins should help.\n",

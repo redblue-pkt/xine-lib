@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.18 2002/05/27 11:01:04 guenter Exp $
+ * $Id: demux_cda.c,v 1.19 2002/06/07 02:40:46 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -90,7 +90,6 @@ static int demux_cda_next (demux_cda_t *this) {
  */
 static void *demux_cda_loop (void *this_gen) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
-  buf_element_t  *buf;
 
   pthread_mutex_lock( &this->mutex );
   /* do-while needed to seek after demux finished */
@@ -121,17 +120,7 @@ static void *demux_cda_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
   
   this->thread_running = 0;
@@ -145,7 +134,6 @@ static void *demux_cda_loop (void *this_gen) {
  */
 static void demux_cda_stop (demux_plugin_t *this_gen) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
-  buf_element_t  *buf;
   void           *p;
   
   pthread_mutex_lock( &this->mutex );
@@ -164,20 +152,9 @@ static void demux_cda_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
-
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 /*
@@ -197,7 +174,6 @@ static int demux_cda_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
   demux_cda_t    *this = (demux_cda_t *) this_gen;
-  buf_element_t  *buf;
   int             err;
   int status;
 
@@ -211,15 +187,7 @@ static int demux_cda_start (demux_plugin_t *this_gen,
     this->video_fifo = video_fifo;
     this->audio_fifo = audio_fifo;
 
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type    = BUF_CONTROL_START;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
   }
   
   /*
@@ -325,7 +293,7 @@ static int demux_cda_get_stream_length (demux_plugin_t *this_gen) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_cda_t *this;
   
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_cda: plugin doesn't support plugin API version %d.\n"
 	    "           this means there's a version mismatch between xine and this "
 	    "           demuxer plugin.\nInstalling current demux plugins should help.\n",

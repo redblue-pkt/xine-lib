@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.47 2002/06/03 16:20:36 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.48 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  *
  * contents:
@@ -246,8 +246,11 @@ struct fifo_buffer_s
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
 
 
-/* return BUF_VIDEO_xxx given the fourcc */
-uint32_t fourcc_to_buf_video( void * fourcc );
+/* return BUF_VIDEO_xxx given the fourcc
+ * fourcc_int must be read in machine endianness
+ * example: fourcc_int = *(uint32_t *)fourcc_char;
+ */
+uint32_t fourcc_to_buf_video( uint32_t fourcc_int );
 
 /* return codec name given BUF_VIDEO_xxx */
 char * buf_video_name( uint32_t buf_type );
@@ -270,7 +273,7 @@ typedef struct {
     int32_t        biHeight;
     int16_t        biPlanes;
     int16_t        biBitCount;
-    int32_t        biCompression;
+    uint32_t       biCompression;
     int32_t        biSizeImage;
     int32_t        biXPelsPerMeter;
     int32_t        biYPelsPerMeter;
@@ -281,6 +284,21 @@ typedef struct {
 /* convert xine_bmiheader struct from little endian */
 void xine_bmiheader_le2me( xine_bmiheader *bih );
 
+/* this is xine version of WAVEFORMATEX 
+ * (the same comments from xine_bmiheader)
+ */
+typedef struct {
+  int16_t   wFormatTag;
+  int16_t   nChannels;
+  int32_t   nSamplesPerSec;
+  int32_t   nAvgBytesPerSec;
+  int16_t   nBlockAlign;
+  int16_t   wBitsPerSample;
+  int16_t   cbSize;
+} xine_waveformatex;
+
+/* convert xine_waveformatex struct from little endian */
+void xine_waveformatex_le2me( xine_waveformatex *wavex );
 
 #ifdef __cplusplus
 }

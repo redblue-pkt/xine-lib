@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.9 2002/06/03 18:13:33 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.10 2002/06/07 02:40:47 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -270,21 +270,10 @@ static void *demux_film_loop (void *this_gen) {
        * must be time to send a new pts */
       if (this->last_sample + 1 != this->current_sample) {
 printf ("************ sending new pts\n");
-        xine_flush_engine(this->xine);
+        xine_demux_flush_engine(this->xine);
 
         /* send new pts */
-        if (this->video_fifo) {
-          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-          buf->type = BUF_CONTROL_NEWPTS;
-          buf->disc_off = this->sample_table[i].pts;
-          this->video_fifo->put (this->video_fifo, buf);
-        }
-        if (this->audio_fifo) {
-          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->type = BUF_CONTROL_NEWPTS;
-          buf->disc_off = this->sample_table[i].pts;
-          this->audio_fifo->put (this->audio_fifo, buf);
-        }
+        xine_demux_control_newpts(this->xine, this->sample_table[i].pts, 0);
         
         /* reset last_frame_pts on seek */
         last_frame_pts = 0;
@@ -464,17 +453,7 @@ printf ("************ sending new pts\n");
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
       
   this->thread_running = 0;
@@ -605,16 +584,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
         (this->audio_channels == 1) ? "monaural" : "stereo");
 
     /* send start buffers */
-    if (this->video_fifo) {
-      buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-      buf->type = BUF_CONTROL_START;
-      this->video_fifo->put(this->video_fifo, buf);
-    }
-    if (this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-      buf->type = BUF_CONTROL_START;
-      this->audio_fifo->put(this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
     /* send init info to decoders */
     if (this->video_fifo && this->video_type) {
@@ -706,7 +676,6 @@ printf ("actual new index = %d\n", this->current_sample);
 static void demux_film_stop (demux_plugin_t *this_gen) {
 
   demux_film_t *this = (demux_film_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -722,19 +691,9 @@ static void demux_film_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static void demux_film_close (demux_plugin_t *this_gen) {
@@ -769,7 +728,7 @@ static char *demux_film_get_mimetypes(void) {
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_film_t *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_film: plugin doesn't support plugin API version %d.\n"
             "            this means there's a version mismatch between xine and this "
             "            demuxer plugin. Installing current demux plugins should help.\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.15 2002/05/25 19:19:16 siggi Exp $
+ * $Id: demux.h,v 1.16 2002/06/07 02:40:46 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    8
+#define DEMUXER_PLUGIN_IFACE_VERSION    9
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -156,7 +156,7 @@ struct demux_plugin_s
  *
  * demux_plugin_t *init_demux_plugin (int iface_version, xine_t *xine);
  */
-
+ 
 #ifdef __cplusplus
 }
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.27 2002/06/03 13:31:13 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.28 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -232,7 +232,7 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 
 	  oggh = (dsogg_header_t *) &op.packet[1];
 
-	  this->buf_types[stream_num] = fourcc_to_buf_video (oggh->subtype);
+	  this->buf_types[stream_num] = fourcc_to_buf_video (*(uint32_t *)oggh->subtype);
 
 #ifdef LOG
 	  printf ("demux_ogg: subtype          %.4s\n", oggh->subtype);
@@ -371,8 +371,6 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 static void *demux_ogg_loop (void *this_gen) {
   
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  buf_element_t *buf;
-
 #ifdef LOG
   printf ("demux_ogg: demux loop starting...\n"); 
 #endif
@@ -409,18 +407,7 @@ static void *demux_ogg_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-    
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
-
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -440,7 +427,6 @@ static void demux_ogg_close (demux_plugin_t *this_gen) {
 static void demux_ogg_stop (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -459,19 +445,9 @@ static void demux_ogg_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static int demux_ogg_get_status (demux_plugin_t *this_gen) {
@@ -486,7 +462,6 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
-  buf_element_t *buf;
   int err, i;
 
   pthread_mutex_lock( &this->mutex );
@@ -500,15 +475,7 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
      * send start buffer
      */
 
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type    = BUF_CONTROL_START;
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
     /*
      * initialize ogg engine
@@ -546,17 +513,7 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
 
     /* send a new pts */
     if( this->thread_running ) {
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_NEWPTS;
-      buf->disc_off = start_pos / 90;
-      this->video_fifo->put (this->video_fifo, buf);
-
-      if (this->audio_fifo) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = BUF_CONTROL_NEWPTS;
-        buf->disc_off = start_pos / 90;
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
+      xine_demux_control_newpts(this->xine, start_pos / 90, 0);
     }
   }
 
@@ -576,7 +533,7 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
     }
   }
   else {
-    xine_flush_engine(this->xine);
+    xine_demux_flush_engine(this->xine);
     err = 0;
   }
   
@@ -688,7 +645,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_ogg_t     *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf( _("demux_ogg: plugin doesn't support plugin API version %d.\n"
 	      "           this means there's a version mismatch between xine and this "
 	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),

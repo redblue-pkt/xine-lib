@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2002/06/04 15:31:08 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.40 2002/06/07 02:40:46 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -46,12 +46,6 @@
 #define LOG
 */
 
-#ifndef mmioFOURCC
-#define mmioFOURCC( ch0, ch1, ch2, ch3 )                                         \
-        ( (long)(unsigned char)(ch0) | ( (long)(unsigned char)(ch1) << 8 ) |     \
-        ( (long)(unsigned char)(ch2) << 16 ) | ( (long)(unsigned char)(ch3) << 24 ) )
-#endif
-
 typedef struct ff_decoder_s {
   video_decoder_t   video_decoder;
 
@@ -70,25 +64,6 @@ typedef struct ff_decoder_s {
 } ff_decoder_t;
 
 #define VIDEOBUFSIZE 128*1024
-
-/*
-#define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
-#define IMGFMT_YV12  mmioFOURCC('Y','V','1','2')
-*/
-
-static unsigned long str2ulong(void *data)
-{
-  unsigned char *str = data;
-  return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
-}
-
-/*
-static unsigned short str2ushort(void *data)
-{
-  unsigned char *str = data;
-  return ( str[0] | (str[1]<<8) );
-}
-*/
 
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;

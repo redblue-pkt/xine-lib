@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.85 2002/05/25 19:19:19 siggi Exp $
+ * $Id: xine_internal.h,v 1.86 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  */
 
@@ -428,7 +428,6 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
  */
 
 void xine_notify_stream_finished (xine_t *this);
-void xine_flush_engine (xine_t *this);
 
 /*
  * video decoder stuff
@@ -631,6 +630,19 @@ int    xine_get_log_section_count (xine_t *this);
 #define XINE_ERROR_DEMUXER_FAILED    3
 
 int xine_get_error (xine_t *this);
+
+
+/* 
+ * demuxer helper functions from demux.c 
+ */
+
+void xine_demux_flush_engine(xine_t *this);
+
+void xine_demux_control_newpts( xine_t *this, int64_t pts, uint32_t flags );
+
+void xine_demux_control_start( xine_t *this );
+
+void xine_demux_control_end( xine_t *this, uint32_t flags );
 
 #ifdef __cplusplus
 }

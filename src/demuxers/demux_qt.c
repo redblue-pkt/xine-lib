@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.45 2002/06/06 22:04:48 siggi Exp $
+ * $Id: demux_qt.c,v 1.46 2002/06/07 02:40:47 miguelfreitas Exp $
  *
  */
 
@@ -55,8 +55,8 @@
 
 typedef unsigned int qt_atom;
 
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
+#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
+#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
 
 #define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
@@ -372,13 +372,13 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         sample_table->media_description.video.height =
           BE_16(&trak_atom[i + 0x2E]);
         sample_table->media_description.video.codec_format =
-          BE_32(&trak_atom[i + 0x10]);
+          *(uint32_t *)&trak_atom[i + 0x10];
 
       } else if (sample_table->type == MEDIA_AUDIO) {
 
         /* fetch audio parameters */
         sample_table->media_description.audio.codec_format =
-          BE_32(&trak_atom[i + 0x10]);
+          *(uint32_t *)&trak_atom[i + 0x10];
         sample_table->media_description.audio.sample_rate =
           BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
@@ -1021,20 +1021,10 @@ static void *demux_qt_loop (void *this_gen) {
       /* if there is an incongruency between last and current sample, it
        * must be time to send a new pts */
       if (this->last_frame + 1 != this->current_frame) {
-        xine_flush_engine(this->xine);
+        xine_demux_flush_engine(this->xine);
 
         /* send new pts */
-        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-        buf->type = BUF_CONTROL_NEWPTS;
-        buf->disc_off = this->qt->frames[i].pts;
-        this->video_fifo->put (this->video_fifo, buf);
-
-        if (this->audio_fifo) {
-          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-          buf->type = BUF_CONTROL_NEWPTS;
-          buf->disc_off = this->qt->frames[i].pts;
-          this->audio_fifo->put (this->audio_fifo, buf);
-        }
+        xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, 0);
 
         /* reset last_frame_pts on seek */
         last_frame_pts = 0;
@@ -1143,17 +1133,7 @@ static void *demux_qt_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-    this->video_fifo->put (this->video_fifo, buf);
-
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type            = BUF_CONTROL_END;
-      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
+    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -1222,7 +1202,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned int le_fourcc;
 
   pthread_mutex_lock(&this->mutex);
 
@@ -1246,13 +1225,10 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     this->bih.biWidth = this->qt->video_width;
     this->bih.biHeight = this->qt->video_height;
 
-    /* fourcc was stored in big endian, mapping routine wants machine endian */
-    this->bih.biCompression = be2me_32( this->qt->video_codec );
-    this->qt->video_type = fourcc_to_buf_video(&this->bih.biCompression);
+    this->bih.biCompression = this->qt->video_codec;
+    this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
 
-    /* fourcc was stored in opposite byte order that mapping routine wants */
-    le_fourcc = bswap_32( this->qt->audio_codec );
-    this->qt->audio_type = formattag_to_buf_audio(le_fourcc);
+    this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
 
     /* print vital stats */
     xine_log (this->xine, XINE_LOG_FORMAT,
@@ -1263,34 +1239,26 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     if (this->qt->video_codec)
       xine_log (this->xine, XINE_LOG_FORMAT,
         _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
-        (this->qt->video_codec >> 24) & 0xFF,
-        (this->qt->video_codec >> 16) & 0xFF,
-        (this->qt->video_codec >>  8) & 0xFF,
-        (this->qt->video_codec >>  0) & 0xFF,
+        *((char *)&this->qt->video_codec + 0),
+        *((char *)&this->qt->video_codec + 1),
+        *((char *)&this->qt->video_codec + 2),
+        *((char *)&this->qt->video_codec + 3),
         this->bih.biWidth,
         this->bih.biHeight);
     if (this->qt->audio_codec)
       xine_log (this->xine, XINE_LOG_FORMAT,
         _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"),
-        (this->qt->audio_codec >> 24) & 0xFF,
-        (this->qt->audio_codec >> 16) & 0xFF,
-        (this->qt->audio_codec >>  8) & 0xFF,
-        (this->qt->audio_codec >>  0) & 0xFF,
+        *((char *)&this->qt->audio_codec + 0),
+        *((char *)&this->qt->audio_codec + 1),
+        *((char *)&this->qt->audio_codec + 2),
+        *((char *)&this->qt->audio_codec + 3),
         this->qt->audio_sample_rate,
         this->qt->audio_bits,
         this->qt->audio_channels,
         (this->qt->audio_channels == 1) ? 0 : 's');
 
     /* send start buffers */
-    buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-    buf->type = BUF_CONTROL_START;
-    this->video_fifo->put(this->video_fifo, buf);
-
-    if (this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-      buf->type = BUF_CONTROL_START;
-      this->audio_fifo->put(this->audio_fifo, buf);
-    }
+    xine_demux_control_start(this->xine);
 
     /* send init info to decoders */
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -1373,7 +1341,6 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 static void demux_qt_stop (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
-  buf_element_t *buf;
   void *p;
 
   pthread_mutex_lock( &this->mutex );
@@ -1389,19 +1356,9 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_flush_engine(this->xine);
+  xine_demux_flush_engine(this->xine);
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type            = BUF_CONTROL_END;
-  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type            = BUF_CONTROL_END;
-    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
-    this->audio_fifo->put (this->audio_fifo, buf);
-  }
+  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
 static void demux_qt_close (demux_plugin_t *this_gen) {
@@ -1439,7 +1396,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_qt_t      *this;
 
-  if (iface != 8) {
+  if (iface != 9) {
     printf ("demux_qt: plugin doesn't support plugin API version %d.\n"
             "          this means there's a version mismatch between xine and this "
             "          demuxer plugin.\nInstalling current demux plugins should
