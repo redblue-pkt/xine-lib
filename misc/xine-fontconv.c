@@ -205,6 +205,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
   FT_Vector           origin;
   int                 max_bearing_y = 0;        
   int                 c, i;
+  int                 converted;
 
   static int border_pos[9][2] = {
     {-1,0},{1,0},{0,-1},{0,1},
@@ -275,6 +276,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
   gzwrite (fp, &font, 40+6);
  
   for (c = 32; c < 256; c++) {
+    converted = 0;
+    
     for( i=0; i < 9; i++ ) {
   
       glyph_index = FT_Get_Char_Index( face, c );
@@ -311,24 +314,28 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
           else
             add_final_bitmap( out_bitmap, &glyph_bitmap->bitmap, glyph_bitmap->left,
                               max_bearing_y - glyph_bitmap->top );
-
+          converted = 1;          
+                              
           FT_Done_Glyph( glyph );
         }
       }
     }
-    printf("[%c:%d] bitmap width: %d height: %d\n", c, c, out_bitmap->width, out_bitmap->rows );
-    /* 
-    print_bitmap(out_bitmap);
-    */
-    fontchar.code = c;
-    fontchar.width = out_bitmap->width;
-    fontchar.height = out_bitmap->rows;
-    gzwrite (fp, &fontchar,6);
-    gzwrite (fp, out_bitmap->buffer, out_bitmap->width*out_bitmap->rows);
+    
+    if( converted ) {
+      printf("[%c:%d] bitmap width: %d height: %d\n", c, c, out_bitmap->width, out_bitmap->rows );
+      /* 
+      print_bitmap(out_bitmap);
+      */
+      fontchar.code = c;
+      fontchar.width = out_bitmap->width;
+      fontchar.height = out_bitmap->rows;
+      gzwrite (fp, &fontchar,6);
+      gzwrite (fp, out_bitmap->buffer, out_bitmap->width*out_bitmap->rows);
+    }
   }
   gzclose(fp);
 
-  printf ("generated %s\n", filename);
+  printf ("generated %s (%d)\n", filename, font.num_fontchars);
 }  
 
 int main(int argc, char *argv[]) {
