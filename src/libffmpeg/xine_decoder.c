@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.111 2003/04/16 21:46:42 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.112 2003/04/16 22:03:35 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -145,7 +145,6 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
   int align, width, height;
-  int disable = 0;
         
   align=15;
     
@@ -153,19 +152,9 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   height = (context->height+align)&~align;
 
   if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
-    printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
-    disable = 1;
-  }
+    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
 
-/*  
-  if( this->bih.biWidth != context->width || 
-      this->bih.biHeight != context->height ) {
-    printf("ffmpeg: decoded and output frame size are not equal, DR1 disabled.\n");
-    disable = 1;
-  }
-*/
-
-  if (disable) {
     this->context->get_buffer = avcodec_default_get_buffer;
     this->context->release_buffer = avcodec_default_release_buffer;
     return avcodec_default_get_buffer(context, av_frame);
@@ -279,7 +268,8 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
       this->context->flags |= CODEC_FLAG_EMU_EDGE; 
       this->context->get_buffer = get_buffer;
       this->context->release_buffer = release_buffer;
-      printf("ffmpeg: direct rendering enabled\n");
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("ffmpeg: direct rendering enabled\n");
     }
 #endif
   }
@@ -744,8 +734,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
-      printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n", 
-        this->bufsize);
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n", 
+               this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
    
@@ -836,8 +827,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 	  
 	  this->aspect_ratio = this->context->aspect_ratio;
-	  printf ("ffmpeg: aspect ratio code %d selected for %.2f\n",
-	          this->xine_aspect_ratio, this->aspect_ratio);
+	  if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+	    printf ("ffmpeg: aspect ratio code %d selected for %.2f\n",
+	            this->xine_aspect_ratio, this->aspect_ratio);
 	}
 
 
@@ -1198,8 +1190,9 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
-      printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n",
-        this->bufsize);
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("ffmpeg: increasing source buffer to %d to avoid overflow.\n",
+               this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
 
