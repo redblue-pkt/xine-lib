@@ -193,6 +193,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
 %{_libdir}/xine/plugins/xineplug*.*
+%{_libdir}/xine/plugins/vidix/*_vid.*s
 %{_datadir}/xine/skins/*
 %{_datadir}/xine/fonts/*
 %{_mandir}/man1/*
@@ -205,8 +206,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/hackersguide/*.sgml doc/hackersguide/*.fig doc/hackersguide/README
 %{_libdir}/libxine*.so
 %{_libdir}/libxine*.la
-%{_libdir}/vidix/*_vid.so
-%{_libdir}/vidix/*_vid.la
 %{_includedir}/xine.h
 %{_includedir}/xine/*.h
 %{_datadir}/aclocal/xine.m4
