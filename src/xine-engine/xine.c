@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.132 2002/05/24 11:34:51 miguelfreitas Exp $
+ * $Id: xine.c,v 1.133 2002/05/24 13:15:47 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -162,6 +162,9 @@ void xine_flush_engine (xine_t *this) {
   
   this->metronom->adjust_clock(this->metronom,
 			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+
+  if (this->audio_out)
+    this->audio_out->control(this->audio_out, AO_CTRL_FLUSH_BUFFERS);
 }
 
 static void xine_internal_osd (xine_t *this, char *str, 
