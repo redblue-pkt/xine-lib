@@ -582,10 +582,18 @@ static off_t http_plugin_get_current_pos (input_plugin_t *this_gen){
   return this->curpos;
 }
 
-static off_t http_plugin_seek(input_plugin_t *this_gen,
-			      off_t offset, int origin) {
-
+static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+
+  if ((origin == SEEK_CUR) && (offset >= 0)) {
+    char *tmp;
+    assert((tmp = malloc(1024)) != NULL);
+    for (;((int)offset) - 1024 > 0; offset -= 1024) {
+      this->curpos += http_plugin_read(this_gen, tmp, 1024);
+    }
+    this->curpos += http_plugin_read(this_gen, tmp, offset);
+  }
+
   /* dummy implementation: don't seek, just return current position */
   return this->curpos;
 }

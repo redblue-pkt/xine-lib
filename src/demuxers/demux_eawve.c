@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.7 2002/11/20 11:57:40 mroi Exp $
+ * $Id: demux_eawve.c,v 1.8 2002/11/26 18:51:32 komadori Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -104,27 +104,6 @@ static uint32_t read_arbitary(input_plugin_t *input)
   }
 
   return word;
-}
-
-/*
- * Skip a number of bytes
- */
-
-static int skip_bytes(input_plugin_t *input, int bytes)
-{
-  if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-    return input->seek(input, bytes, SEEK_CUR);
-  }
-  else {
-    int i, dummy;
-
-    for (i=0;i<bytes;i++) {
-      if (input->read(input, (void*)&dummy, 1) != 1) {
-        return -1;
-      }
-    }
-    return input->get_current_pos(input);
-  }
 }
 
 /*
@@ -221,7 +200,7 @@ static int process_header(demux_eawve_t *this)
     return 0;
   }
 
-  if (skip_bytes(this->input, size - this->input->get_current_pos(this->input)) < 0) {
+  if (this->input->seek(this->input, size - this->input->get_current_pos(this->input), SEEK_CUR) < 0) {
     return 0;
   }
 
@@ -297,7 +276,7 @@ static int demux_eawve_send_chunk(demux_eawve_t *this)
     break;
 
     default: {
-      if (skip_bytes(this->input, header.size) < 0) {
+      if (this->input->seek(this->input, header.size, SEEK_CUR) < 0) {
         printf("demux_eawve: read error\n");
         this->status = DEMUX_FINISHED;
       }
