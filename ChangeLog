@@ -1,3 +1,4 @@
+  * XShm gamma adjusting (brightness)
   * bugfix: lot skipped frames and low cpu
   * reworked spu/menu decoder
   * new deinterlace method using Xv scaling for slower systems
