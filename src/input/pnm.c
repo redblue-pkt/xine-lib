@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.8 2002/12/26 20:30:00 holstsn Exp $
+ * $Id: pnm.c,v 1.9 2003/01/10 20:57:11 holstsn Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -44,8 +44,8 @@
 #define LOG
 */
 
-#define BUF_SIZE 1024
-#define HEADER_SIZE 1024
+#define BUF_SIZE 4096
+#define HEADER_SIZE 4096
 
 struct pnm_s {
 
