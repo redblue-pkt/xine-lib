@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.45 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_ogg.c,v 1.46 2002/10/19 17:42:52 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -917,7 +917,7 @@ static int send_headers (demux_ogg_t *this) {
    */
 
   if( !this->thread_running ) {
-
+`
     this->last_pts[0]   = 0;
     this->last_pts[1]   = 0;
 
