@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.105 2002/11/30 22:09:42 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.106 2002/12/13 16:47:41 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,7 +47,6 @@
 #define PREBUFFER_PTS_OFFSET  30000
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
-#define AV_DIFF_TOLERANCE     45000
 
 /*#define OLD_DRIFT_CORRECTION  1*/
 
@@ -301,20 +300,15 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
     }
-
-    if (this->video_vpts < this->audio_vpts) {
-      this->video_vpts = this->audio_vpts;
-      printf ("metronom: video vpts adjusted to %lld\n", this->video_vpts);
-    } else {
-      this->audio_vpts = this->video_vpts;
-      printf ("metronom: audio vpts adjusted to %lld\n", this->audio_vpts);
-    }
   }
   
   if ( this->video_vpts < this->clock->get_current_time(this->clock) ) {
     this->video_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
-    this->audio_vpts = this->video_vpts;
-    printf ("metronom: vpts adjusted with prebuffer to %lld\n", this->video_vpts);
+    printf ("metronom: video vpts adjusted with prebuffer to %lld\n", this->video_vpts);
+  }
+  if ( this->audio_vpts < this->clock->get_current_time(this->clock) ) {
+    this->audio_vpts = PREBUFFER_PTS_OFFSET + this->clock->get_current_time(this->clock);
+    printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", this->audio_vpts);
   }
   
 #ifdef LOG
@@ -326,7 +320,10 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 #ifdef LOG
     printf ("metronom: DISC_STREAMSTART\n");
 #endif
-    this->vpts_offset = this->video_vpts;
+    if (this->video_vpts > this->audio_vpts)
+      this->vpts_offset = this->audio_vpts = this->video_vpts;
+    else
+      this->vpts_offset = this->video_vpts = this->audio_vpts;
     this->force_audio_jump        = 1;
     this->force_video_jump        = 1;
     this->video_drift             = 0;
