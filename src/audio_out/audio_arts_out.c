@@ -17,13 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.26 2004/04/09 11:48:13 f1rmb Exp $
+ * $Id: audio_arts_out.c,v 1.27 2004/07/11 11:23:48 hadess Exp $
  */
-
-#ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
-/* required for swab() */	/* XXX: but swab is not used here at all? */
-#define _XOPEN_SOURCE 500
-#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -81,6 +76,7 @@ typedef struct {
   audio_driver_class_t  driver_class;
 
   xine_t               *xine;
+  int                   inited;
 } arts_class_t;
 
 /*
@@ -305,13 +301,20 @@ static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
   arts_class_t   *class = (arts_class_t *) class_gen;
   arts_driver_t  *this;
-  int		  rc;
+  int            rc;
 
   lprintf ("audio_arts_out: open_plugin called\n");
 
   this = (arts_driver_t *) xine_xmalloc (sizeof (arts_driver_t));
 
-  rc = arts_init();
+  if (class->inited == 0) {
+    rc = arts_init();
+    class->inited++;
+  } else {
+    xprintf (this->xine, XINE_VERBOSITY_LOG, "audio_arts_out: not trying to initialise a second time\n");
+    return NULL;
+  }
+
   if (rc < 0) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG,"audio_arts_out: arts_init failed: %s\n", arts_error_text(rc));
     return NULL;
@@ -380,6 +383,7 @@ static void *init_class (xine_t *xine, void *data) {
   lprintf ("audio_arts_out: init class\n");
 
   this = (arts_class_t *) xine_xmalloc (sizeof (arts_class_t));
+  this->inited = 0;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
