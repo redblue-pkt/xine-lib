@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.94 2003/06/18 12:59:39 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.95 2003/06/22 17:10:41 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1074,6 +1074,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
     
     pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
+    
+    pthread_attr_destroy(&pth_attrs);
   }
 
 }

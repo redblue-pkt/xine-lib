@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.163 2003/06/13 01:50:45 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.164 2003/06/22 17:10:41 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1522,6 +1522,8 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
       abort();
     } else if (xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf ("video_out: thread created\n");
+    
+    pthread_attr_destroy(&pth_attrs);
   }
 
   return &this->vo;

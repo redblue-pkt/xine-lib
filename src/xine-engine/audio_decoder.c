@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.106 2003/04/02 12:28:08 hadess Exp $
+ * $Id: audio_decoder.c,v 1.107 2003/06/22 17:10:41 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -390,6 +390,8 @@ void audio_decoder_init (xine_stream_t *stream) {
 	     strerror(err));
     abort();
   }
+  
+  pthread_attr_destroy(&pth_attrs);
 }
 
 void audio_decoder_shutdown (xine_stream_t *stream) {

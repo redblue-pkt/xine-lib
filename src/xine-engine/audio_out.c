@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.131 2003/06/20 20:57:28 andruil Exp $
+ * $Id: audio_out.c,v 1.132 2003/06/22 17:10:41 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1423,6 +1423,9 @@ static void ao_exit(xine_audio_port_t *this_gen) {
   free (this->frame_buf[1]->extra_info);
   free (this->frame_buf[1]);
   free (this->zero_space);
+  
+  pthread_mutex_destroy(&this->flush_audio_driver_lock);
+  pthread_cond_destroy(&this->flush_audio_driver_reached);
 
   buf = this->free_fifo->first;
 
@@ -1450,6 +1453,14 @@ static void ao_exit(xine_audio_port_t *this_gen) {
     buf = next;
   }
 
+  pthread_mutex_destroy(&this->free_fifo->mutex);
+  pthread_cond_destroy(&this->free_fifo->empty);
+  pthread_cond_destroy(&this->free_fifo->not_empty);
+  
+  pthread_mutex_destroy(&this->out_fifo->mutex);
+  pthread_cond_destroy(&this->out_fifo->empty);
+  pthread_cond_destroy(&this->out_fifo->not_empty);
+  
   free (this->free_fifo);
   free (this->out_fifo);
   free (this);
@@ -1870,6 +1881,8 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
       
     } else
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "thread created\n");
+    
+    pthread_attr_destroy(&pth_attrs);
   }
 
   return &this->ao;
