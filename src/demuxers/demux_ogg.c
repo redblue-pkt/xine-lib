@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.91 2003/05/04 12:39:55 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.92 2003/05/04 16:38:22 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -596,7 +596,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    xine_log (this->stream->xine, XINE_LOG_MSG,
 		      _("ogg: vorbis audio track indicated but no vorbis stream header found.\n"));
 	  }
-	  
+	  vorbis_comment_clear(&vc);
+	  vorbis_info_clear(&vi);
 	} else if (!strncmp (&op.packet[1], "video", 5)) {
 	  
 	  buf_element_t    *buf;
@@ -1170,6 +1171,14 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
 static void demux_ogg_dispose (demux_plugin_t *this_gen) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
+  int i;
+
+  for (i=0; i<this->num_streams; i++) {
+    printf ("freeing stream %d\n",i);
+    ogg_stream_clear(&this->oss[i]);
+  }
+
+  ogg_sync_clear(&this->oy);
 
   free (this);
 }
@@ -1389,6 +1398,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
    */
 
   this         = xine_xmalloc (sizeof (demux_ogg_t));
+  memset (this, 0, sizeof(demux_ogg_t));
   this->stream = stream;
   this->input  = input;
 
