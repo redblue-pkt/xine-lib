@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-04-16 01:31+0200\n"
+"POT-Creation-Date: 2002-04-29 00:54+0100\n"
 "PO-Revision-Date: 2002-04-05 17:21+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -95,17 +95,17 @@ msgstr "chyba z demuxu! Chyba pøenosu\n"
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: chyba z demuxu! Neplatná velikost dat %d\n"
 
-#: src/demuxers/demux_ts.c:1301
+#: src/demuxers/demux_ts.c:1300
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1403
+#: src/demuxers/demux_ts.c:1402
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nelze vytvoøit nové vlákno (%s)\n"
 
-#: src/demuxers/demux_ts.c:1471
+#: src/demuxers/demux_ts.c:1470
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -117,46 +117,46 @@ msgstr ""
 "          To znamená nesluèitelnost verzí mezi xine a tímto modulem.\n"
 "Instalace aktuálního demux-modulu by mìla pomoci.\n"
 
-#: src/demuxers/demux_avi.c:351
+#: src/demuxers/demux_avi.c:369
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index v avi je poru¹en\n"
 
-#: src/demuxers/demux_avi.c:976
+#: src/demuxers/demux_avi.c:1011
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: video formát = %s\n"
 
-#: src/demuxers/demux_avi.c:978
+#: src/demuxers/demux_avi.c:1013
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: velikost rámce videa %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:981
+#: src/demuxers/demux_avi.c:1016
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: zvukový formát[%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:989
+#: src/demuxers/demux_avi.c:1024
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: neznámý typ zvuku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:995
+#: src/demuxers/demux_avi.c:1030
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ zvuku: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1107
+#: src/demuxers/demux_avi.c:1142
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: neznámý kodek videa: '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1115
+#: src/demuxers/demux_avi.c:1150
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: kodek videa: '%s'\n"
 
-#: src/demuxers/demux_avi.c:1301
+#: src/demuxers/demux_avi.c:1336
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -169,11 +169,11 @@ msgstr ""
 "demux-modulem.\n"
 "Instalace aktuálního demux-modulu by mìla pomoci.\n"
 
-#: src/demuxers/demux_mpeg.c:915
+#: src/demuxers/demux_mpeg.c:937
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr "demux_mpeg: prosím uveïte typ mpegu (mpeg1/mpeg2).\n"
 
-#: src/demuxers/demux_mpeg_block.c:276
+#: src/demuxers/demux_mpeg_block.c:287
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -181,7 +181,7 @@ msgstr ""
 "demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná je tento "
 "tok dat poru¹en.\n"
 
-#: src/demuxers/demux_mpeg_block.c:434
+#: src/demuxers/demux_mpeg_block.c:446
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -195,12 +195,12 @@ msgstr ""
 msgid "mpgaudio: bitrate = %.2fkbps\n"
 msgstr "mpgaudio: bitrate = %.2fkbps\n"
 
-#: src/demuxers/demux_qt.c:3964
+#: src/demuxers/demux_qt.c:3976
 #, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
 msgstr "demux_qt: neznámý video kodek '%s'\n"
 
-#: src/demuxers/demux_qt.c:4209
+#: src/demuxers/demux_qt.c:4221
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr ""
@@ -242,22 +242,22 @@ msgstr "demux_asf: video formát: %s\n"
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: délka videa je %d sekund, rychlost toku dat je %d bytù/s\n"
 
-#: src/demuxers/demux_asf.c:1273
+#: src/demuxers/demux_asf.c:1283
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: název        : %s\n"
 
-#: src/demuxers/demux_asf.c:1275
+#: src/demuxers/demux_asf.c:1285
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor        : %s\n"
 
-#: src/demuxers/demux_asf.c:1277
+#: src/demuxers/demux_asf.c:1287
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1279
+#: src/demuxers/demux_asf.c:1289
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: kommentáø    : %s\n"
@@ -286,7 +286,7 @@ msgstr "input_net: nelze se pøipojit k '%s'.\n"
 msgid "net input plugin as shipped with xine"
 msgstr "modul pro sí»ový vstup dodávaný se xine"
 
-#: src/input/input_net.c:338
+#: src/input/input_net.c:342
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -347,7 +347,7 @@ msgstr "input_rtp: nelze vytvoøit nové vlákno (%s)\n"
 msgid "rtp input plugin as shipped with xine"
 msgstr "vstupní modul rtp dodávaný se xine"
 
-#: src/input/input_rtp.c:490
+#: src/input/input_rtp.c:514
 #, c-format
 msgid ""
 "rtp input plugin doesn't support plugin API version %d.\n"
@@ -359,7 +359,7 @@ msgstr ""
 "To znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
 "Instalace aktuálních vstupních modulù by mìla pomoci.\n"
 
-#: src/input/input_rtp.c:506 src/input/input_rtp.c:511
+#: src/input/input_rtp.c:530 src/input/input_rtp.c:535
 msgid "unable to allocate input buffer.\n"
 msgstr "nelze alokovat vstupní buffer.\n"
 
@@ -367,7 +367,7 @@ msgstr "nelze alokovat vstupní buffer.\n"
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "vstupní modul stdin/fifo dodávaný se xine"
 
-#: src/input/input_stdin_fifo.c:352
+#: src/input/input_stdin_fifo.c:356
 #, c-format
 msgid ""
 "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -493,7 +493,7 @@ msgstr "ioctl(cdromeject): %s"
 msgid "dvd device input plugin as shipped with xine"
 msgstr "vstupní modul pro DVD dodávaný se xine"
 
-#: src/input/input_dvd.c:798
+#: src/input/input_dvd.c:813
 #, c-format
 msgid ""
 "dvd input plugin doesn't support plugin API version %d.\n"
@@ -511,32 +511,32 @@ msgstr ""
 msgid "lstat failed for %s{%s}\n"
 msgstr "selhalo lstat pro %s{%s}\n"
 
-#: src/input/input_file.c:292
+#: src/input/input_file.c:295
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
 msgstr "input_file: zkou¹í se otevøít soubor s titulky '%s'\n"
 
-#: src/input/input_file.c:350
+#: src/input/input_file.c:353
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: chyba ètení (%s)\n"
 
-#: src/input/input_file.c:524 src/input/input_file.c:563
-#: src/input/input_file.c:599
+#: src/input/input_file.c:527 src/input/input_file.c:566
+#: src/input/input_file.c:602
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
 msgstr "%s(%d): selhal readlink(): %s\n"
 
-#: src/input/input_file.c:787
+#: src/input/input_file.c:790
 msgid "plain file input plugin as shipped with xine"
 msgstr "modul pro vstup ze souboru dodávaný ze xine"
 
-#: src/input/input_file.c:805
+#: src/input/input_file.c:808
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
 msgstr "input_file: volitelná data, typ %08x, podtyp %p\n"
 
-#: src/input/input_file.c:846
+#: src/input/input_file.c:859
 #, c-format
 msgid ""
 "file input plugin doesn't support plugin API version %d.\n"
@@ -645,7 +645,7 @@ msgstr "selhala funkce vcd_read_toc\n"
 msgid "unable to open %s: %s."
 msgstr "nelze otevøít %s: %s."
 
-#: src/input/input_vcd.c:1135
+#: src/input/input_vcd.c:1146
 #, c-format
 msgid ""
 "vcd input plugin doesn't support plugin API version %d.\n"
@@ -721,7 +721,7 @@ msgstr "input_http: Pøesmìrování umístìní není implmentováno\n"
 msgid "http network stream input plugin"
 msgstr "modul pro vstup ze sítì pomocí http"
 
-#: src/input/input_http.c:669
+#: src/input/input_http.c:673
 #, c-format
 msgid ""
 "http input plugin doesn't support plugin API version %d.\n"
@@ -849,7 +849,7 @@ msgstr "input_cda: posuv na cíl typu %d není implementován!\n"
 msgid "cd audio plugin as shipped with xine"
 msgstr "modul CD-zvuku dodávaný se xine"
 
-#: src/input/input_cda.c:1783
+#: src/input/input_cda.c:1796
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -892,47 +892,47 @@ msgstr ""
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: nelze vytvoøit nové vlákno (%s)\n"
 
-#: src/xine-engine/xine.c:253
+#: src/xine-engine/xine.c:244
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) první fáze chybná (%d) !!\n"
 
-#: src/xine-engine/xine.c:362
+#: src/xine-engine/xine.c:353
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nelze nalézt vstupní modul pro toto MRL\n"
 
-#: src/xine-engine/xine.c:374
+#: src/xine-engine/xine.c:365
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "pou¾ití vstupního modulu '%s' pro MRL '%s'\n"
 
-#: src/xine-engine/xine.c:384
+#: src/xine-engine/xine.c:375
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: nelze nalézt demuxer pro >%s<\n"
 
-#: src/xine-engine/xine.c:391
+#: src/xine-engine/xine.c:383
 #, fuzzy, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "detekován system layer formát '%s'.\n"
 
-#: src/xine-engine/xine.c:419
+#: src/xine-engine/xine.c:411
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: selhalo spu¹tìní demuxeru\n"
 
-#: src/xine-engine/xine.c:914
+#: src/xine-engine/xine.c:940
 msgid "stream format"
 msgstr "formát dat"
 
-#: src/xine-engine/xine.c:915
+#: src/xine-engine/xine.c:941
 msgid "messages"
 msgstr "zprávy"
 
-#: src/xine-engine/xine.c:916
+#: src/xine-engine/xine.c:942
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:458
+#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:460
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr "%s(%s@%d): parametr by nemìl být null, konec\n"
@@ -992,7 +992,7 @@ msgstr ""
 "load_plugins: v adresáøi %s nenalezen ¾ádný vstupní modul! - Byl xine "
 "korektnì nainstalován??\n"
 
-#: src/xine-engine/load_plugins.c:520
+#: src/xine-engine/load_plugins.c:525
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
@@ -1001,17 +1001,17 @@ msgstr ""
 "load_plugins: selhalo naètení modulu %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:549
+#: src/xine-engine/load_plugins.c:564
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr "nalezen modul dekódování titulkù : %s\n"
 
-#: src/xine-engine/load_plugins.c:578
+#: src/xine-engine/load_plugins.c:608
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr "nalezen video modul : %s\n"
 
-#: src/xine-engine/load_plugins.c:603
+#: src/xine-engine/load_plugins.c:647
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "nalezen zvukový modul : %s\n"

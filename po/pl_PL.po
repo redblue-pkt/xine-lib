@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-04-16 01:31+0200\n"
+"POT-Creation-Date: 2002-04-29 00:54+0100\n"
 "PO-Revision-Date: 2002-03-31 01:00+0100\n"
 "Last-Translator: Bart³omiej MURYN <forever@klub.chip.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -96,17 +96,17 @@ msgstr "blad demultiplexera! blad transportu\n"
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: blad demultiplexera! Bledny rozmiar payload %d\n"
 
-#: src/demuxers/demux_ts.c:1301
+#: src/demuxers/demux_ts.c:1300
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1403
+#: src/demuxers/demux_ts.c:1402
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nie moge utworzyc nowego watku (%s)\n"
 
-#: src/demuxers/demux_ts.c:1471
+#: src/demuxers/demux_ts.c:1470
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -119,46 +119,46 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja aktualnej wtyczki wejscia powinna pomoc.\n"
 
-#: src/demuxers/demux_avi.c:351
+#: src/demuxers/demux_avi.c:369
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index pliku avi uszkodzony\n"
 
-#: src/demuxers/demux_avi.c:976
+#: src/demuxers/demux_avi.c:1011
 #, fuzzy, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_asf: format obrazu : %s\n"
 
-#: src/demuxers/demux_avi.c:978
+#: src/demuxers/demux_avi.c:1013
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: rozmiar ramki wideo %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:981
+#: src/demuxers/demux_avi.c:1016
 #, fuzzy, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: format obrazu = %s, format dzwieku = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:989
+#: src/demuxers/demux_avi.c:1024
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: nieznany typ dzwieku 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:995
+#: src/demuxers/demux_avi.c:1030
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: typ dzwieku %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1107
+#: src/demuxers/demux_avi.c:1142
 #, fuzzy, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_qt: nieznany kodek wideo '%s'\n"
 
-#: src/demuxers/demux_avi.c:1115
+#: src/demuxers/demux_avi.c:1150
 #, fuzzy, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: kodek video >%s<\n"
 
-#: src/demuxers/demux_avi.c:1301
+#: src/demuxers/demux_avi.c:1336
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -171,11 +171,11 @@ msgstr ""
 "demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
 
-#: src/demuxers/demux_mpeg.c:915
+#: src/demuxers/demux_mpeg.c:937
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr "demux_mpeg: prosze podac typ strumienia mpeg(mpeg1/mpeg2).\n"
 
-#: src/demuxers/demux_mpeg_block.c:276
+#: src/demuxers/demux_mpeg_block.c:287
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -183,7 +183,7 @@ msgstr ""
 "demux_mpeg_block: zbyt wiele bledow, zatrzymuje odtwarzanie.Moze strumien "
 "jest zaszyfrowany?\n"
 
-#: src/demuxers/demux_mpeg_block.c:434
+#: src/demuxers/demux_mpeg_block.c:446
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -197,12 +197,12 @@ msgstr ""
 msgid "mpgaudio: bitrate = %.2fkbps\n"
 msgstr "mpgaudio: bitrate = %.2fkbps\n"
 
-#: src/demuxers/demux_qt.c:3964
+#: src/demuxers/demux_qt.c:3976
 #, c-format
 msgid "demux_qt: unknown video codec '%s'\n"
 msgstr "demux_qt: nieznany kodek wideo '%s'\n"
 
-#: src/demuxers/demux_qt.c:4209
+#: src/demuxers/demux_qt.c:4221
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr ""
@@ -245,22 +245,22 @@ msgstr "demux_asf: format obrazu : %s\n"
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: dlugosc strumienia jest %d sec, rate jest %d bajtow/sek\n"
 
-#: src/demuxers/demux_asf.c:1273
+#: src/demuxers/demux_asf.c:1283
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: tytul        : %s\n"
 
-#: src/demuxers/demux_asf.c:1275
+#: src/demuxers/demux_asf.c:1285
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor       : %s\n"
 
-#: src/demuxers/demux_asf.c:1277
+#: src/demuxers/demux_asf.c:1287
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1279
+#: src/demuxers/demux_asf.c:1289
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: comentarz      : %s\n"
@@ -289,7 +289,7 @@ msgstr "input_net: nie moge podlaczyc sie do '%s'.\n"
 msgid "net input plugin as shipped with xine"
 msgstr "wtyczka wejscia net dostarczana z xine"
 
-#: src/input/input_net.c:338
+#: src/input/input_net.c:342
 #, c-format
 msgid ""
 "net input plugin doesn't support plugin API version %d.\n"
@@ -350,7 +350,7 @@ msgstr "input_rtp: nie moge utworzyc nowego watku (%s)\n"
 msgid "rtp input plugin as shipped with xine"
 msgstr "Wtyczka wejscia rtp dostarczana z xine"
 
-#: src/input/input_rtp.c:490
+#: src/input/input_rtp.c:514
 #, c-format
 msgid ""
 "rtp input plugin doesn't support plugin API version %d.\n"
@@ -363,7 +363,7 @@ msgstr ""
 "oznacza to niezgodnosc miedzy xine a ta wtyczka wejscia\n"
 "Instalacja najnowszej wersji wtyczki powinno pomoc.\n"
 
-#: src/input/input_rtp.c:506 src/input/input_rtp.c:511
+#: src/input/input_rtp.c:530 src/input/input_rtp.c:535
 msgid "unable to allocate input buffer.\n"
 msgstr "nie moge umiejscowic bufora wejscia.\n"
 
@@ -371,7 +371,7 @@ msgstr "nie moge umiejscowic bufora wejscia.\n"
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "Wtyczka wejscia stdin/fifo dostarczana z xine"
 
-#: src/input/input_stdin_fifo.c:352
+#: src/input/input_stdin_fifo.c:356
 #, c-format
 msgid ""
 "stdin/fifo input plugin doesn't support plugin API version %d.\n"
@@ -498,7 +498,7 @@ msgstr "ioctl(cdromeject): %s"
 msgid "dvd device input plugin as shipped with xine"
 msgstr "wtyczka wejscia DVD dostarczana z xine"
 
-#: src/input/input_dvd.c:798
+#: src/input/input_dvd.c:813
 #, c-format
 msgid ""
 "dvd input plugin doesn't support plugin API version %d.\n"
@@ -516,32 +516,32 @@ msgstr ""
 msgid "lstat failed for %s{%s}\n"
 msgstr "lstat zawiodl dla %s{%s}\n"
 
-#: src/input/input_file.c:292
+#: src/input/input_file.c:295
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
 msgstr "input_file: probuje otworzyc plik z napisami '%s'\n"
 
-#: src/input/input_file.c:350
+#: src/input/input_file.c:353
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: blad odczytu (%s)\n"
 
-#: src/input/input_file.c:524 src/input/input_file.c:563
-#: src/input/input_file.c:599
+#: src/input/input_file.c:527 src/input/input_file.c:566
+#: src/input/input_file.c:602
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
 msgstr "%s(%d): readlink() failed: %s\n"
 
-#: src/input/input_file.c:787
+#: src/input/input_file.c:790
 msgid "plain file input plugin as shipped with xine"
 msgstr "wtyczka wejscia pliku dostarczane z xine"
 
-#: src/input/input_file.c:805
+#: src/input/input_file.c:808
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
 msgstr "input_file: pobieram dodatkowe dane, typ %08x, sub %p\n"
 
-#: src/input/input_file.c:846
+#: src/input/input_file.c:859
 #, c-format
 msgid ""
 "file input plugin doesn't support plugin API version %d.\n"
@@ -650,7 +650,7 @@ msgstr "vcd_read_toc zawiodlo\n"
 msgid "unable to open %s: %s."
 msgstr "nie moge otworzyc %s: %s."
 
-#: src/input/input_vcd.c:1135
+#: src/input/input_vcd.c:1146
 #, c-format
 msgid ""
 "vcd input plugin doesn't support plugin API version %d.\n"
@@ -726,7 +726,7 @@ msgstr "input_http: przekierowanie miejsca nie zaimplementowane\n"
 msgid "http network stream input plugin"
 msgstr "wtyczka wejscia strumienia sieciowego http"
 
-#: src/input/input_http.c:669
+#: src/input/input_http.c:673
 #, c-format
 msgid ""
 "http input plugin doesn't support plugin API version %d.\n"
@@ -853,7 +853,7 @@ msgstr "input_cda: blad wyszukiwania do poczatku %d nie zaimplementowany!\n"
 msgid "cd audio plugin as shipped with xine"
 msgstr "wtyczka wejscia CD audio dostarczana z xine"
 
-#: src/input/input_cda.c:1783
+#: src/input/input_cda.c:1796
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -895,47 +895,47 @@ msgstr ""
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr "xine_notify_stream_finished: nie moge utworzyc nowego watku (%s)\n"
 
-#: src/xine-engine/xine.c:253
+#: src/xine-engine/xine.c:244
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) bledny pierwszy etap = %d !!\n"
 
-#: src/xine-engine/xine.c:362
+#: src/xine-engine/xine.c:353
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nie moge znalezc wtyczki wejscia dla tego MRL\n"
 
-#: src/xine-engine/xine.c:374
+#: src/xine-engine/xine.c:365
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "uzywam wtyczki wejscia '%s' dla MRL '%s'\n"
 
-#: src/xine-engine/xine.c:384
+#: src/xine-engine/xine.c:375
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: nie moge znalezc demultiplexera dla >%s<\n"
 
-#: src/xine-engine/xine.c:391
+#: src/xine-engine/xine.c:383
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "format warstwy systemowej '%s' wykryty.\n"
 
-#: src/xine-engine/xine.c:419
+#: src/xine-engine/xine.c:411
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: zawiodl start demultiplexera\n"
 
-#: src/xine-engine/xine.c:914
+#: src/xine-engine/xine.c:940
 msgid "stream format"
 msgstr "format strumienia"
 
-#: src/xine-engine/xine.c:915
+#: src/xine-engine/xine.c:941
 msgid "messages"
 msgstr "wiadomosci"
 
-#: src/xine-engine/xine.c:916
+#: src/xine-engine/xine.c:942
 msgid "plugin"
 msgstr "wtyczka"
 
-#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:458
+#: src/xine-engine/load_plugins.c:101 src/xine-engine/load_plugins.c:460
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr "%s(%s@%d): parametr nie powinien byc pusty.\n"
@@ -996,7 +996,7 @@ msgstr ""
 "load_plugins: nie znaleziono zadnych wtyczek wejscia w %s! - Zainstalowales "
 "xine poprawnie??\n"
 
-#: src/xine-engine/load_plugins.c:520
+#: src/xine-engine/load_plugins.c:525
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
@@ -1005,17 +1005,17 @@ msgstr ""
 "load_plugins: nie udalo sie zaladowac wtyczki %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:549
+#: src/xine-engine/load_plugins.c:564
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr "znaleziono wtyczke dekodera spu : %s\n"
 
-#: src/xine-engine/load_plugins.c:578
+#: src/xine-engine/load_plugins.c:608
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr "znaleziono wtyczke dekodera obrazu : %s\n"
 
-#: src/xine-engine/load_plugins.c:603
+#: src/xine-engine/load_plugins.c:647
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "znaleziono wtyczke dekodera dzwieku : %s\n"
