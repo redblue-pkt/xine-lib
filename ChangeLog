@@ -19,8 +19,9 @@ xine-lib (0.9.13) unstable; urgency=low
   * initial support of Quicktime6 files
   * image redraw in paused mode (for window resize, adjusts etc)
   * skip by chapters GUI enhancement
-  
- -- Siggi Langauf <siggi@users.sf.net>  Sat,  3 Aug 2002 20:46:38 +0200
+  * deliver frame statistics only if frames have been skipped/dropped
+
+ -- Siggi Langauf <siggi@debian.org>  Sat,  3 Aug 2002 22:44:16 +0200
 
 xine-lib (0.9.12) unstable; urgency=low
 

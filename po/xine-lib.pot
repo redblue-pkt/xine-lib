@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-07-10 07:56+0200\n"
+"POT-Creation-Date: 2002-08-03 20:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,38 +14,38 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:728
-#: src/audio_out/audio_alsa_out.c:913 src/audio_out/audio_alsa_out.c:957
+#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:734
+#: src/audio_out/audio_alsa_out.c:919 src/audio_out/audio_alsa_out.c:963
 msgid "device used for mono output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:920
+#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:926
 msgid "device used for stereo output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:927
+#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:933
 msgid "device used for 4-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:934
+#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:940
 msgid "device used for 5-channel output"
 msgstr ""
 
 #: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:232
-#: src/audio_out/audio_alsa_out.c:941 src/audio_out/audio_alsa_out.c:948
+#: src/audio_out/audio_alsa_out.c:947 src/audio_out/audio_alsa_out.c:954
 msgid "device used for 5.1-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:862 src/audio_out/audio_alsa_out.c:1072
+#: src/audio_out/audio_alsa_out.c:868 src/audio_out/audio_alsa_out.c:1078
 msgid "alsa mixer device"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1009 src/audio_out/audio_alsa_out.c:1022
-#: src/audio_out/audio_alsa_out.c:1035 src/audio_out/audio_alsa_out.c:1053
+#: src/audio_out/audio_alsa_out.c:1015 src/audio_out/audio_alsa_out.c:1028
+#: src/audio_out/audio_alsa_out.c:1041 src/audio_out/audio_alsa_out.c:1059
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1105
+#: src/audio_out/audio_alsa_out.c:1111
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr ""
 
@@ -212,7 +212,7 @@ msgid ""
 "          Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:659
+#: src/demuxers/demux_avi.c:664
 msgid "demux_avi: avi index is broken\n"
 msgstr ""
 
@@ -241,21 +241,21 @@ msgstr ""
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1384
+#: src/demuxers/demux_avi.c:1383
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1393
+#: src/demuxers/demux_avi.c:1392
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1535 src/demuxers/demux_avi.c:1612
+#: src/demuxers/demux_avi.c:1532 src/demuxers/demux_avi.c:1609
 msgid "valid mrls ending for avi demuxer"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1599
+#: src/demuxers/demux_avi.c:1596
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -264,11 +264,11 @@ msgid ""
 "Installing current demuxer plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_elem.c:319 src/demuxers/demux_elem.c:383
+#: src/demuxers/demux_elem.c:317 src/demuxers/demux_elem.c:381
 msgid "valid mrls ending for elementary demuxer"
 msgstr ""
 
-#: src/demuxers/demux_elem.c:370
+#: src/demuxers/demux_elem.c:368
 #, c-format
 msgid ""
 "demux_elem: plugin doesn't support plugin API version %d.\n"
@@ -277,19 +277,19 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:893 src/demuxers/demux_mpeg.c:990
+#: src/demuxers/demux_mpeg.c:895 src/demuxers/demux_mpeg.c:992
 msgid "valid mrls for mpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:912
+#: src/demuxers/demux_mpeg.c:914
 msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:926 src/demuxers/demux_mpeg.c:994
+#: src/demuxers/demux_mpeg.c:928 src/demuxers/demux_mpeg.c:996
 msgid "valid mrls ending for mpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg.c:977 src/demuxers/demux_mpgaudio.c:525
+#: src/demuxers/demux_mpeg.c:979 src/demuxers/demux_mpgaudio.c:525
 #, c-format
 msgid ""
 "demux_mpeg: plugin doesn't support plugin API version %d.\n"
@@ -311,15 +311,15 @@ msgstr ""
 msgid "valid mrls ending for mpeg audio demuxer"
 msgstr ""
 
-#: src/demuxers/demux_pes.c:532 src/demuxers/demux_pes.c:620
+#: src/demuxers/demux_pes.c:526 src/demuxers/demux_pes.c:614
 msgid "valid mrls for pes demuxer"
 msgstr ""
 
-#: src/demuxers/demux_pes.c:562 src/demuxers/demux_pes.c:624
+#: src/demuxers/demux_pes.c:556 src/demuxers/demux_pes.c:618
 msgid "valid mrls ending for pes demuxer"
 msgstr ""
 
-#: src/demuxers/demux_pes.c:608
+#: src/demuxers/demux_pes.c:602
 #, c-format
 msgid ""
 "demux_pes: plugin doesn't support plugin API version %d.\n"
@@ -328,36 +328,33 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1270 src/demuxers/demux_qt.c:1561
+#: src/demuxers/demux_qt.c:1447 src/demuxers/demux_qt.c:1771
 msgid "valid mrls ending for qt demuxer"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1344
+#: src/demuxers/demux_qt.c:1521
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1350
+#: src/demuxers/demux_qt.c:1527
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1359
+#: src/demuxers/demux_qt.c:1536
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
+#: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
 #: src/demuxers/demux_wav.c:322
 msgid "channel"
-msgstr ""
+msgid_plural "channels"
+msgstr[0] ""
+msgstr[1] ""
 
-#: src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
-#: src/demuxers/demux_wav.c:322
-msgid "channels"
-msgstr ""
-
-#: src/demuxers/demux_qt.c:1548
+#: src/demuxers/demux_qt.c:1758
 #, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -370,16 +367,16 @@ msgstr ""
 msgid "ogg: vorbis audio stream detected\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:276
+#: src/demuxers/demux_ogg.c:275
 #, c-format
 msgid "ogg: unknown stream type (signature >%.8s<)\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:611 src/demuxers/demux_ogg.c:662
+#: src/demuxers/demux_ogg.c:603 src/demuxers/demux_ogg.c:654
 msgid "valid mrls ending for ogg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:649
+#: src/demuxers/demux_ogg.c:641
 #, c-format
 msgid ""
 "demux_ogg: plugin doesn't support plugin API version %d.\n"
@@ -393,41 +390,41 @@ msgstr ""
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:400
+#: src/demuxers/demux_asf.c:399
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:458
+#: src/demuxers/demux_asf.c:456
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1254
+#: src/demuxers/demux_asf.c:1247
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1256
+#: src/demuxers/demux_asf.c:1249
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1258
+#: src/demuxers/demux_asf.c:1251
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1260
+#: src/demuxers/demux_asf.c:1253
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1370 src/demuxers/demux_asf.c:1422
+#: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
 msgid "valid mrls ending for asf demuxer"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1409
+#: src/demuxers/demux_asf.c:1402
 #, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -457,32 +454,32 @@ msgstr ""
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:538 src/demuxers/demux_film.c:815
-#: src/demuxers/demux_smjpeg.c:544
+#: src/demuxers/demux_film.c:529 src/demuxers/demux_film.c:804
+#: src/demuxers/demux_smjpeg.c:537
 msgid "valid mrls ending for film demuxer"
 msgstr ""
 
-#: src/demuxers/demux_film.c:587
+#: src/demuxers/demux_film.c:577
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:596
+#: src/demuxers/demux_film.c:586
 #, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:606
+#: src/demuxers/demux_film.c:596
 #, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:616
+#: src/demuxers/demux_film.c:606
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_film.c:802
+#: src/demuxers/demux_film.c:791
 #, c-format
 msgid ""
 "demux_film: plugin doesn't support plugin API version %d.\n"
@@ -491,32 +488,32 @@ msgid ""
 "help.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:345
+#: src/demuxers/demux_mpeg_block.c:346
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:456
+#: src/demuxers/demux_mpeg_block.c:457
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
 "encrypted (encryption mode %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1012
+#: src/demuxers/demux_mpeg_block.c:1013
 msgid "demux_mpeg_block: unknown block size. try using demux_mpeg.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1100 src/demuxers/demux_mpeg_block.c:1204
+#: src/demuxers/demux_mpeg_block.c:1101 src/demuxers/demux_mpeg_block.c:1205
 msgid "valid mrls for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1141 src/demuxers/demux_mpeg_block.c:1208
+#: src/demuxers/demux_mpeg_block.c:1142 src/demuxers/demux_mpeg_block.c:1209
 msgid "valid mrls ending for mpeg block demuxer"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:1191
+#: src/demuxers/demux_mpeg_block.c:1192
 #, c-format
 msgid ""
 "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
@@ -525,21 +522,21 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:297 src/demuxers/demux_roq.c:550
+#: src/demuxers/demux_roq.c:293 src/demuxers/demux_roq.c:544
 msgid "valid mrls ending for roq demuxer"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:420
+#: src/demuxers/demux_roq.c:416
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:424
+#: src/demuxers/demux_roq.c:420
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_roq.c:537
+#: src/demuxers/demux_roq.c:531
 #, c-format
 msgid ""
 "demux_roq: plugin doesn't support plugin API version %d.\n"
@@ -548,17 +545,22 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_fli.c:311
+#: src/demuxers/demux_fli.c:305
 #, c-format
 msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
 msgstr ""
 
-#: src/demuxers/demux_fli.c:315
+#: src/demuxers/demux_fli.c:309
 #, c-format
 msgid "demux_fli: %d frames, %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:420
+#: src/demuxers/demux_fli.c:312
+#, c-format
+msgid "demux_fli: running time: %d min, %d sec\n"
+msgstr ""
+
+#: src/demuxers/demux_idcin.c:206 src/demuxers/demux_idcin.c:417
 msgid "valid mrls ending for idcin demuxer"
 msgstr ""
 
@@ -572,7 +574,7 @@ msgstr ""
 msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
 msgstr ""
 
-#: src/demuxers/demux_idcin.c:407
+#: src/demuxers/demux_idcin.c:404
 #, c-format
 msgid ""
 "demux_idcin: plugin doesn't support plugin API version %d.\n"
@@ -581,26 +583,26 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:276
+#: src/demuxers/demux_smjpeg.c:271
 msgid "valid mrls ending for smjpeg demuxer"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:398
+#: src/demuxers/demux_smjpeg.c:393
 #, c-format
 msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:403
+#: src/demuxers/demux_smjpeg.c:398
 #, c-format
 msgid "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:412
+#: src/demuxers/demux_smjpeg.c:407
 #, c-format
 msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr ""
 
-#: src/demuxers/demux_smjpeg.c:531
+#: src/demuxers/demux_smjpeg.c:524
 #, c-format
 msgid ""
 "demux_smjpeg: plugin doesn't support plugin API version %d.\n"
@@ -609,7 +611,7 @@ msgid ""
 "help.\n"
 msgstr ""
 
-#: src/demuxers/demux_wav.c:227 src/demuxers/demux_wav.c:482
+#: src/demuxers/demux_wav.c:226 src/demuxers/demux_wav.c:482
 msgid "valid mrls ending for wav demuxer"
 msgstr ""
 
@@ -620,7 +622,7 @@ msgstr ""
 
 #: src/demuxers/demux_wav.c:324
 #, c-format
-msgid "demux_wav: running time = %d min, %d sec\n"
+msgid "demux_wav: running time = %lld min, %lld sec\n"
 msgstr ""
 
 #: src/demuxers/demux_wav.c:328
@@ -1233,7 +1235,7 @@ msgstr ""
 msgid "buffering..."
 msgstr ""
 
-#: src/libmpeg2/xine_decoder.c:156
+#: src/libmpeg2/xine_decoder.c:169
 #, c-format
 msgid ""
 "libmpeg2: plugin doesn't support plugin API version %d.\n"
@@ -1259,11 +1261,11 @@ msgid ""
 "libspudec: this plugin.\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1404 src/libw32dll/w32codec.c:1453
+#: src/libw32dll/w32codec.c:1403 src/libw32dll/w32codec.c:1452
 msgid "path to win32 codec dlls"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1443
+#: src/libw32dll/w32codec.c:1442
 #, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
@@ -1272,102 +1274,122 @@ msgid ""
 "Installing current decoder plugins should help.\n"
 msgstr ""
 
-#: src/video_out/video_out_aa.c:307
+#: src/video_out/video_out_aa.c:298
 msgid "xine video output plugin using the ascii-art library"
 msgstr ""
 
-#: src/video_out/video_out_syncfb.c:995
+#: src/video_out/video_out_syncfb.c:1000
 msgid "syncfb (teletux) device node"
 msgstr ""
 
-#: src/video_out/video_out_syncfb.c:1170
+#: src/video_out/video_out_syncfb.c:1175
 msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
 msgstr ""
 
-#: src/video_out/video_out_fb.c:705 src/video_out/video_out_xshm.c:1283
+#: src/video_out/video_out_fb.c:708 src/video_out/video_out_xshm.c:1300
 msgid "disable all video scaling (faster!)"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1426
+#: src/video_out/video_out_xshm.c:1443
 msgid "gamma correction for XShm driver"
 msgstr ""
 
-#: src/video_out/video_out_xshm.c:1445
+#: src/video_out/video_out_xshm.c:1462
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1160 src/video_out/video_out_xv.c:1166
+#: src/video_out/video_out_xv.c:1186 src/video_out/video_out_xv.c:1192
 msgid "Xv property"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1408
+#: src/video_out/video_out_xv.c:1434
 msgid "bilinear scaling mode (permedia 2/3)"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1414
+#: src/video_out/video_out_xv.c:1440
 msgid "double buffer to sync video to the retrace"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1463
+#: src/video_out/video_out_xv.c:1489
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1479
+#: src/video_out/video_out_xv.c:1505
 msgid "xine video output plugin using the MIT X video extension"
 msgstr ""
 
-#: src/video_out/video_out_fb.c:721
+#: src/video_out/video_out_fb.c:724
 msgid "framebuffer device"
 msgstr ""
 
-#: src/video_out/video_out_fb.c:885
+#: src/video_out/video_out_fb.c:888
 msgid "xine video output plugin using linux framebuffer device"
 msgstr ""
 
-#: src/video_out/video_out_sdl.c:696
+#: src/video_out/video_out_sdl.c:700
 msgid "xine video output plugin using Simple DirectMedia Layer"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1106
+#: src/video_out/video_out_opengl.c:1092
 msgid "gamma correction for OpenGL driver"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1124
+#: src/video_out/video_out_opengl.c:1110
 msgid "xine video output plugin using OpenGL(tm)"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:569
+#: src/video_out/video_out_directfb.c:562
 msgid "xine video output plugin using the DirectFB library."
 msgstr ""
 
-#: src/video_out/video_out_vidix.c:869
+#: src/video_out/video_out_vidix.c:872
 msgid "xine video output plugin using libvidix"
 msgstr ""
 
-#: src/xine-engine/tvmode.c:270
-msgid "Show status on play, pause, ff, ..."
+#: src/xine-engine/tvmode.c:589
+msgid "TV System"
 msgstr ""
 
-#: src/xine-engine/video_out.c:308
+#: src/xine-engine/tvmode.c:594
+msgid "Mode Selection Policy"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:617
+msgid "Modes"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:627
+msgid "Prefer PAL"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:633
+msgid "Verbose resolution selection"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:639
+msgid "Screen Aspect Ratio"
+msgstr ""
+
+#: src/xine-engine/video_out.c:306
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:351
+#: src/xine-engine/video_out.c:442
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
 "lld).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:890
+#: src/xine-engine/video_out.c:968
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:893
+#: src/xine-engine/video_out.c:971
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
@@ -1376,47 +1398,47 @@ msgstr ""
 msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:294
+#: src/xine-engine/xine.c:296
 #, c-format
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:415
+#: src/xine-engine/xine.c:422
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:426
+#: src/xine-engine/xine.c:433
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:436
+#: src/xine-engine/xine.c:443
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:443
+#: src/xine-engine/xine.c:450
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:471
+#: src/xine-engine/xine.c:477
 msgid "xine_play: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:600
+#: src/xine-engine/xine.c:606
 msgid "logo mrl, displayed in video output window"
 msgstr ""
 
-#: src/xine-engine/xine.c:1024
+#: src/xine-engine/xine.c:1034
 msgid "stream format"
 msgstr ""
 
-#: src/xine-engine/xine.c:1025
+#: src/xine-engine/xine.c:1035
 msgid "messages"
 msgstr ""
 
-#: src/xine-engine/xine.c:1026
+#: src/xine-engine/xine.c:1036
 msgid "plugin"
 msgstr ""
 
@@ -1428,23 +1450,27 @@ msgstr ""
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:868
+#: src/xine-engine/audio_out.c:834
+msgid "adjust if audio is offsync"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:874
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:872
+#: src/xine-engine/audio_out.c:878
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:873
+#: src/xine-engine/audio_out.c:879
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
-#: src/xine-engine/osd.c:863
+#: src/xine-engine/osd.c:864
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:100 src/xine-engine/load_plugins.c:455
+#: src/xine-engine/load_plugins.c:100 src/xine-engine/load_plugins.c:463
 #, c-format
 msgid "%s(%s@%d): parameter should be non null, exiting\n"
 msgstr ""
@@ -1496,29 +1522,29 @@ msgid ""
 "correctly??\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:520
+#: src/xine-engine/load_plugins.c:528
 #, c-format
 msgid ""
 "load_plugins: failed to load plugin %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:553
+#: src/xine-engine/load_plugins.c:561
 #, c-format
 msgid "spu decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:586
+#: src/xine-engine/load_plugins.c:594
 #, c-format
 msgid "video decoder plugin found : %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:616
+#: src/xine-engine/load_plugins.c:624
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr ""
 
-#: src/liblpcm/xine_decoder.c:187
+#: src/liblpcm/xine_decoder.c:212
 #, c-format
 msgid ""
 "liblpcm: plugin doesn't support plugin API version %d.\n"
@@ -1527,7 +1553,7 @@ msgid ""
 "Installing current plugins should help.\n"
 msgstr ""
 
-#: src/libffmpeg/xine_decoder.c:413
+#: src/libffmpeg/xine_decoder.c:422
 #, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1536,7 +1562,7 @@ msgid ""
 "Installing current plugins should help.\n"
 msgstr ""
 
-#: src/libffmpeg/xine_decoder.c:436
+#: src/libffmpeg/xine_decoder.c:445
 msgid "allow illegal vlc codes in mpeg4 streams"
 msgstr ""
 
@@ -1544,65 +1570,65 @@ msgstr ""
 msgid "xine video output plugin for dxr3 cards"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:153
+#: src/dxr3/video_out_dxr3.c:151
 msgid "swap odd and even lines"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:156
+#: src/dxr3/video_out_dxr3.c:154
 msgid "Add black bars to correct aspect ratio"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:157
+#: src/dxr3/video_out_dxr3.c:155
 msgid "If disabled, will assume source has 4:3 aspect ratio."
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:160
+#: src/dxr3/video_out_dxr3.c:158
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
+#: src/dxr3/dxr3_decode_video.c:183 src/dxr3/video_out_dxr3.c:159
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:221
+#: src/dxr3/video_out_dxr3.c:219
 msgid "the encoder for non mpeg content"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:222
+#: src/dxr3/video_out_dxr3.c:220
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:252
+#: src/dxr3/video_out_dxr3.c:250
 msgid "Dxr3: contrast control"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:254
+#: src/dxr3/video_out_dxr3.c:252
 msgid "Dxr3: saturation control"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:256
+#: src/dxr3/video_out_dxr3.c:254
 msgid "Dxr3: brightness control"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:260
+#: src/dxr3/video_out_dxr3.c:258
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:287
+#: src/dxr3/video_out_dxr3.c:285
 msgid "Dxr3: overlay colorkey value"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:290
+#: src/dxr3/video_out_dxr3.c:288
 msgid "Dxr3: overlay colorkey range"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:291
+#: src/dxr3/video_out_dxr3.c:289
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 
-#: src/dxr3/video_out_dxr3.c:303
+#: src/dxr3/video_out_dxr3.c:301
 msgid "dxr3 preferred tv mode"
 msgstr ""
 
@@ -1623,7 +1649,7 @@ msgid ""
 "dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:131
+#: src/dxr3/dxr3_decode_video.c:133
 #, c-format
 msgid ""
 "dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
@@ -1632,31 +1658,31 @@ msgid ""
 "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:168
+#: src/dxr3/dxr3_decode_video.c:170
 msgid "Dxr3: video decoder priority"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:169
+#: src/dxr3/dxr3_decode_video.c:171
 msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:176
+#: src/dxr3/dxr3_decode_video.c:178
 msgid "Try to sync video every frame"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:177
+#: src/dxr3/dxr3_decode_video.c:179
 msgid "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:180
+#: src/dxr3/dxr3_decode_video.c:182
 msgid "Use alternate Play mode"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:184
+#: src/dxr3/dxr3_decode_video.c:186
 msgid "Correct frame durations in broken streams"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:185
+#: src/dxr3/dxr3_decode_video.c:187
 msgid "Enable this for streams with wrong frame durations."
 msgstr ""
 
@@ -1725,7 +1751,7 @@ msgid ""
 "Installing current plugins should help.\n"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:556
+#: src/libdivx4/xine_decoder.c:558
 #, c-format
 msgid ""
 "divx4: plugin doesn't support plugin API version %d.\n"
@@ -1734,23 +1760,23 @@ msgid ""
 "Installing current plugins should help.\n"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:569
+#: src/libdivx4/xine_decoder.c:571
 msgid "Relative path to libdivxdecore.so to open"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:594
+#: src/libdivx4/xine_decoder.c:596
 msgid "priority of the divx4 plugin (>5 => enable)"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:599
+#: src/libdivx4/xine_decoder.c:601
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:602
+#: src/libdivx4/xine_decoder.c:604
 msgid "use divx4 plugin for msmpeg4v3 streams"
 msgstr ""
 
-#: src/libdivx4/xine_decoder.c:607
+#: src/libdivx4/xine_decoder.c:609
 msgid "Divx version to check for (set to 0 (default) if unsure)"
 msgstr ""
 
@@ -1847,7 +1873,7 @@ msgstr ""
 msgid "priority of the xvid plugin (>5 => enable)"
 msgstr ""
 
-#: src/libxinevdec/cinepak.c:432
+#: src/libxinevdec/cinepak.c:452
 #, c-format
 msgid ""
 "cinepak: plugin doesn't support plugin API version %d.\n"
@@ -1856,7 +1882,7 @@ msgid ""
 "Installing current plugins should help.\n"
 msgstr ""
 
-#: src/libxinevdec/roqvideo.c:496
+#: src/libxinevdec/roqvideo.c:497
 #, c-format
 msgid ""
 "RoQ: plugin doesn't support plugin API version %d.\n"

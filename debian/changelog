@@ -2,9 +2,10 @@ xine-lib (0.9.13-1) unstable; urgency=low
 
   * new upstream release
     - includes ALSA big-endian fix (closes: #154914)
+    - only shows frame stats if frames have been skipped (closes: #151610)
   * removed control information concerning unreleased betas
   * conflicts: packages compiled against incompatible libxine0 (closes: #150832)
- -- Siggi Langauf <siggi@debian.org>  Fri,  2 Aug 2002 15:35:14 +0200
+ -- Siggi Langauf <siggi@debian.org>  Sat,  3 Aug 2002 22:47:56 +0200
 
 xine-lib (0.9.12-1) unstable; urgency=low
 

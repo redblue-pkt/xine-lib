@@ -5,48 +5,48 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.12\n"
-"POT-Creation-Date: 2002-07-24 09:04+0200\n"
+"POT-Creation-Date: 2002-08-03 20:55+0200\n"
 "PO-Revision-Date: 2002-07-24 09:21+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:728
-#: src/audio_out/audio_alsa_out.c:913 src/audio_out/audio_alsa_out.c:957
+#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:734
+#: src/audio_out/audio_alsa_out.c:919 src/audio_out/audio_alsa_out.c:963
 msgid "device used for mono output"
 msgstr "Gerät für Monoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:920
+#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:926
 msgid "device used for stereo output"
 msgstr "Gerät für Stereoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:927
+#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:933
 msgid "device used for 4-channel output"
 msgstr "Gerät für 4-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:934
+#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:940
 msgid "device used for 5-channel output"
 msgstr "Gerät für 5-Kanalausgabe"
 
 #: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:232
-#: src/audio_out/audio_alsa_out.c:941 src/audio_out/audio_alsa_out.c:948
+#: src/audio_out/audio_alsa_out.c:947 src/audio_out/audio_alsa_out.c:954
 msgid "device used for 5.1-channel output"
 msgstr "Gerät für 5.1-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:862 src/audio_out/audio_alsa_out.c:1072
+#: src/audio_out/audio_alsa_out.c:868 src/audio_out/audio_alsa_out.c:1078
 msgid "alsa mixer device"
 msgstr "ALSA Mixergerät"
 
-#: src/audio_out/audio_alsa_out.c:1009 src/audio_out/audio_alsa_out.c:1022
-#: src/audio_out/audio_alsa_out.c:1035 src/audio_out/audio_alsa_out.c:1053
+#: src/audio_out/audio_alsa_out.c:1015 src/audio_out/audio_alsa_out.c:1028
+#: src/audio_out/audio_alsa_out.c:1041 src/audio_out/audio_alsa_out.c:1059
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
-#: src/audio_out/audio_alsa_out.c:1105
+#: src/audio_out/audio_alsa_out.c:1111
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt ALSA-kompatibles Gerät/Treiber"
 
@@ -225,50 +225,50 @@ msgstr ""
 "          diesem Demultiplexer-Plugin besteht.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_avi.c:659
+#: src/demuxers/demux_avi.c:664
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
-#: src/demuxers/demux_avi.c:1239
+#: src/demuxers/demux_avi.c:1244
 #, c-format
 msgid "demux_avi: video format = %s\n"
 msgstr "demux_avi: Videoformat = %s\n"
 
-#: src/demuxers/demux_avi.c:1241
+#: src/demuxers/demux_avi.c:1246
 #, c-format
 msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: Video-Bildgröße %ld x %ld\n"
 
-#: src/demuxers/demux_avi.c:1244
+#: src/demuxers/demux_avi.c:1249
 #, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
 msgstr "demux_avi: Audioformat[%d] = 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1252
+#: src/demuxers/demux_avi.c:1257
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr "demux_avi: Unbekannter Audiotyp 0x%lx\n"
 
-#: src/demuxers/demux_avi.c:1259
+#: src/demuxers/demux_avi.c:1264
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: Audiotyp %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_avi.c:1378
+#: src/demuxers/demux_avi.c:1383
 #, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
 msgstr "demux_avi: Unbekannter Video-Codec '%.4s'\n"
 
-#: src/demuxers/demux_avi.c:1387
+#: src/demuxers/demux_avi.c:1392
 #, c-format
 msgid "demux_avi: video codec is '%s'\n"
 msgstr "demux_avi: Video Codec ist '%s'\n"
 
-#: src/demuxers/demux_avi.c:1527 src/demuxers/demux_avi.c:1604
+#: src/demuxers/demux_avi.c:1532 src/demuxers/demux_avi.c:1609
 msgid "valid mrls ending for avi demuxer"
 msgstr "Gültige MRL-Endungen für AVI-Demultiplexer"
 
-#: src/demuxers/demux_avi.c:1591
+#: src/demuxers/demux_avi.c:1596
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -357,33 +357,33 @@ msgstr ""
 "           diesem Demultiplexer-Plugin existiert.\n"
 "Das installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_qt.c:1358 src/demuxers/demux_qt.c:1665
+#: src/demuxers/demux_qt.c:1447 src/demuxers/demux_qt.c:1771
 msgid "valid mrls ending for qt demuxer"
 msgstr "Gültige MRL-Endungen für QT-Demultiplexer"
 
-#: src/demuxers/demux_qt.c:1432
+#: src/demuxers/demux_qt.c:1521
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr "demux_qt: Apple Quicktime Datei, %sLaufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_qt.c:1438
+#: src/demuxers/demux_qt.c:1527
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_qt: '%c%c%c%c' Video @ %dx%d\n"
 
-#: src/demuxers/demux_qt.c:1447
+#: src/demuxers/demux_qt.c:1536
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d %s\n"
 
-#: src/demuxers/demux_qt.c:1455 src/demuxers/demux_smjpeg.c:415
-#: src/demuxers/demux_wav.c:317
+#: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
+#: src/demuxers/demux_wav.c:322
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "Kanal"
 msgstr[1] "Kanäle"
 
-#: src/demuxers/demux_qt.c:1652
+#: src/demuxers/demux_qt.c:1758
 #, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -504,22 +504,22 @@ msgstr "Nicht erkanntes FILM-Paket\n"
 msgid "valid mrls ending for film demuxer"
 msgstr "Gültige MRL-Endungen für FILM-Demultiplexer"
 
-#: src/demuxers/demux_film.c:578
+#: src/demuxers/demux_film.c:577
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr "demux_film: FILM Version %c%c%c%c, Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_film.c:587
+#: src/demuxers/demux_film.c:586
 #, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr "demux_film: %c%c%c%c Video @ %dx%d, %d Hz Wiedergabegeschwindigkeit\n"
 
-#: src/demuxers/demux_film.c:597
+#: src/demuxers/demux_film.c:596
 #, c-format
 msgid "demux_film: unknown video codec %c%c%c%c\n"
 msgstr "demux_film: Unbekannter Video-Codec %c%c%c%c\n"
 
-#: src/demuxers/demux_film.c:607
+#: src/demuxers/demux_film.c:606
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr "demux_film: %d Hz, %d-Bits %s%s PCM Audio\n"
@@ -680,26 +680,26 @@ msgstr ""
 "              diesem Demultiplexer-Plugin existiert.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
-#: src/demuxers/demux_wav.c:222 src/demuxers/demux_wav.c:477
+#: src/demuxers/demux_wav.c:226 src/demuxers/demux_wav.c:482
 msgid "valid mrls ending for wav demuxer"
 msgstr "Gültige MRL-Endungen für WAV-Demultiplexer"
 
-#: src/demuxers/demux_wav.c:312
+#: src/demuxers/demux_wav.c:317
 #, c-format
 msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
 msgstr "demux_wav: Format 0x%X Audio, %d Hz, %d Bits/Sample, %d %s\n"
 
-#: src/demuxers/demux_wav.c:319
-#, c-format
-msgid "demux_wav: running time = %d min, %d sec\n"
+#: src/demuxers/demux_wav.c:324
+#, fuzzy, c-format
+msgid "demux_wav: running time = %lld min, %lld sec\n"
 msgstr "demux_wav: Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_wav.c:323
+#: src/demuxers/demux_wav.c:328
 #, c-format
 msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
 msgstr "demux_wav: Durchschnitt: %d Bytes/s, Blockausrichtung: %d\n"
 
-#: src/demuxers/demux_wav.c:464
+#: src/demuxers/demux_wav.c:469
 #, c-format
 msgid ""
 "demux_wav: plugin doesn't support plugin API version %d.\n"
@@ -1415,15 +1415,15 @@ msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
 msgstr "xine Videoausgabe benutzt SyncFB-Modul für Matrox G200/G400-Karten"
 
-#: src/video_out/video_out_fb.c:708 src/video_out/video_out_xshm.c:1292
+#: src/video_out/video_out_fb.c:708 src/video_out/video_out_xshm.c:1300
 msgid "disable all video scaling (faster!)"
 msgstr "Alle Videoskalierungen deaktivieren (schneller!)"
 
-#: src/video_out/video_out_xshm.c:1435
+#: src/video_out/video_out_xshm.c:1443
 msgid "gamma correction for XShm driver"
 msgstr "Gamma-Korrektur für XShm-Treiber"
 
-#: src/video_out/video_out_xshm.c:1454
+#: src/video_out/video_out_xshm.c:1462
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr "xine Videoausgabe benutzt 'MIX X Shared Memory' Erweiterung"
 
@@ -1476,16 +1476,37 @@ msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
 msgid "xine video output plugin using libvidix"
 msgstr "xine Videoausgabe benutzt libvidix"
 
-#: src/xine-engine/tvmode.c:268
-msgid "NVidia TV-Out support."
-msgstr "Unterstützung für NVidia TV-Ausgang"
+#: src/xine-engine/tvmode.c:589
+msgid "TV System"
+msgstr ""
 
-#: src/xine-engine/video_out.c:308
+#: src/xine-engine/tvmode.c:594
+msgid "Mode Selection Policy"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:617
+#, fuzzy
+msgid "Modes"
+msgstr "codecs"
+
+#: src/xine-engine/tvmode.c:627
+msgid "Prefer PAL"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:633
+msgid "Verbose resolution selection"
+msgstr ""
+
+#: src/xine-engine/tvmode.c:639
+msgid "Screen Aspect Ratio"
+msgstr ""
+
+#: src/xine-engine/video_out.c:306
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %d Bilder verworfen\n"
 
-#: src/xine-engine/video_out.c:351
+#: src/xine-engine/video_out.c:442
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -1494,13 +1515,13 @@ msgstr ""
 "video_out : Verwerfe Bild mit pts %lld, weil es zu alt ist (Unterschied: %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:888
+#: src/xine-engine/video_out.c:968
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: Kann Thread (%s) nicht erzeugen\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:891
+#: src/xine-engine/video_out.c:971
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
@@ -1516,42 +1537,42 @@ msgstr "xine_notify_stream_finished: Kann neuen Thread (%s) nicht anlegen\n"
 msgid "%s(%d) wrong first stage = %d !!\n"
 msgstr "%s(%d) Fehlerhafte 1. Stufe = %d !!\n"
 
-#: src/xine-engine/xine.c:421
+#: src/xine-engine/xine.c:422
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
-#: src/xine-engine/xine.c:432
+#: src/xine-engine/xine.c:433
 #, c-format
 msgid "using input plugin '%s' for MRL '%s'\n"
 msgstr "Benutze Plugin '%s' für MRL '%s'\n"
 
-#: src/xine-engine/xine.c:442
+#: src/xine-engine/xine.c:443
 #, c-format
 msgid "xine: couldn't find demuxer for >%s<\n"
 msgstr "xine: Kann keinen Demultiplexer für >%s< finden\n"
 
-#: src/xine-engine/xine.c:449
+#: src/xine-engine/xine.c:450
 #, c-format
 msgid "system layer format '%s' detected.\n"
 msgstr "System-layer Format '%s' erkannt.\n"
 
-#: src/xine-engine/xine.c:476
+#: src/xine-engine/xine.c:477
 msgid "xine_play: demuxer failed to start\n"
 msgstr "xine_play: Der Start des Demultiplexer-Plugins schlug fehl\n"
 
-#: src/xine-engine/xine.c:605
+#: src/xine-engine/xine.c:606
 msgid "logo mrl, displayed in video output window"
 msgstr "Logo-MRL, wird in Videoausgabefenster angezeigt"
 
-#: src/xine-engine/xine.c:1036
+#: src/xine-engine/xine.c:1034
 msgid "stream format"
 msgstr "Datenstrom Format"
 
-#: src/xine-engine/xine.c:1037
+#: src/xine-engine/xine.c:1035
 msgid "messages"
 msgstr "Nachrichten"
 
-#: src/xine-engine/xine.c:1038
+#: src/xine-engine/xine.c:1036
 msgid "plugin"
 msgstr "Plugin"
 
@@ -1563,21 +1584,25 @@ msgstr "Audiofrequenz anpassen oder nicht"
 msgid "if !=0 always resample to given rate"
 msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
-#: src/xine-engine/audio_out.c:868
+#: src/xine-engine/audio_out.c:834
+msgid "adjust if audio is offsync"
+msgstr ""
+
+#: src/xine-engine/audio_out.c:874
 msgid "Audio volume"
 msgstr "Lautstärke"
 
-#: src/xine-engine/audio_out.c:872
+#: src/xine-engine/audio_out.c:878
 msgid "restore volume level at startup"
 msgstr "Läustärke beim Starten wiederherstellen"
 
-#: src/xine-engine/audio_out.c:873
+#: src/xine-engine/audio_out.c:879
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert "
 "lassen"
 
-#: src/xine-engine/osd.c:863
+#: src/xine-engine/osd.c:864
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Farbpalette (Vordergrund,Rand,Hintergrund) für Untertitel"
 
@@ -1679,7 +1704,7 @@ msgstr ""
 "         diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
-#: src/libffmpeg/xine_decoder.c:418
+#: src/libffmpeg/xine_decoder.c:422
 #, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1692,7 +1717,7 @@ msgstr ""
 "        diesem Dekodierungs-Plugin existiert.\n"
 "Das installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
-#: src/libffmpeg/xine_decoder.c:441
+#: src/libffmpeg/xine_decoder.c:445
 msgid "allow illegal vlc codes in mpeg4 streams"
 msgstr "Akzeptiere illegale 'vlc'-Codes in MPEG4 Strömen"
 
@@ -2096,6 +2121,9 @@ msgstr ""
 "           diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
+#~ msgid "NVidia TV-Out support."
+#~ msgstr "Unterstützung für NVidia TV-Ausgang"
+
 #~ msgid "channels"
 #~ msgstr "Kanäle"
 
@@ -2466,9 +2494,6 @@ msgstr ""
 
 #~ msgid "demuxers"
 #~ msgstr "Demultiplexer"
-
-#~ msgid "codecs"
-#~ msgstr "codecs"
 
 #~ msgid "video"
 #~ msgstr "Video"
