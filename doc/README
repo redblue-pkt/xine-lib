@@ -17,9 +17,6 @@ hackersguide/
 man/
   contains some general manpages about xine-lib
 
-README.config_en
-  details about xine engine config options 
-
 README.dvb
   instructions on how to get DVB (DigitalTV) working in xine
 

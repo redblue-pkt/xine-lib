@@ -4,7 +4,7 @@ SUBDIRS = man hackersguide faq
 
 EXTRA_DIST = $(docs_DATA)
 docsdir = $(prefix)/share/doc/xine
-docs_DATA = README README.config_en README.dvb README.dxr3 \
+docs_DATA = README README.dvb README.dxr3 \
 	    README.freebsd README.irix README.network_dvd README.opengl \
 	    README.solaris README.syncfb
 
