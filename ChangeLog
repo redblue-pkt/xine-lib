@@ -5,6 +5,10 @@ xine-lib (0.9.12) unstable; urgency=low
   * fixed bug in libsputext that caused subtitle flashing
   * update win32 codec loading code
   * use directshow filter to decode msmpeg4 v1/v2
+  * fixed logo file name extension
+  * fixed german i18n files
+	
+ -- Guenter Bartsch <guenter@users.sourceforge.net>
 
 xine-lib (0.9.11) unstable; urgency=low
   
