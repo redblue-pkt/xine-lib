@@ -525,5 +525,8 @@ Reinhard Nissl <rnissl@gmx.de>
 
 Pekka J‰‰skel‰inen <pjaaskel@cs.tut.fi>
   DVB mouse-control and EPG enhancements
+
+Assaf Gillat <gillata@gmail.com>
+  CDDB protocol 6 support (UTF-8 and multiple cd entries)
       
 (let us know if we've forgotten anyone)
