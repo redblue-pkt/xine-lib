@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.54 2004/04/17 14:18:14 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.55 2004/06/13 16:00:17 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -361,8 +361,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 	  break;
 	case 8:
 	  this->repeat_first_field = (buffer[3] >> 1) & 1;
-#if 0  /* TODO: this needs more testing */
-	  /* clearing the progessive flag gets rid of the frame jitter with
+	  /* clearing the progessive flag gets rid of the slight shaking with
 	   * TV-out in the lower third of the image; but we have to set this
 	   * flag, when a still frame is coming along, otherwise the card will
 	   * drop one of the fields; therefore we check for the fifo size */
@@ -372,7 +371,6 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 	    else
 	      buffer[4] |=  (1 << 7);
 	  }
-#endif
 	  break;
 	}
       }
@@ -841,6 +839,8 @@ static void frame_format_change(dxr3_decoder_t *this)
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  10000 * this->ratio);
+  
+  _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG (DXR3)");
 }
 
 static void dxr3_update_panscan(void *this_gen, xine_cfg_entry_t *entry)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.101 2004/04/15 14:42:35 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.102 2004/06/13 16:00:17 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -729,7 +729,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       int i, image_size;
       
       /* calculate pitch and size including black bars */
-      frame->vo_frame.pitches[0] = 32*((width + 15) / 16);
+      frame->vo_frame.pitches[0] = 32 * ((width + 15) / 16);
       image_size = frame->vo_frame.pitches[0] * oheight;
       
       /* planar format, only base[0] */
