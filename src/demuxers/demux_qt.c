@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.50 2002/06/09 09:36:40 esnel Exp $
+ * $Id: demux_qt.c,v 1.51 2002/06/09 11:12:22 miguelfreitas Exp $
  *
  */
 
@@ -1267,7 +1267,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
     
-    if( !this->qt->audio_type )
+    if( !this->qt->audio_type && this->qt->audio_codec )
       xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
 
     /* print vital stats */
