@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.26 2001/11/12 03:00:12 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.27 2001/11/12 13:58:51 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -101,7 +101,6 @@ typedef struct {
   uint32_t         size;
   uint32_t         type;
   uint32_t         PTS;
-  uint32_t         PCR;
   buf_element_t   *buf;
   int              pes_buf_next;
   int              pes_len;
@@ -140,6 +139,7 @@ typedef struct {
   unsigned int     programNumber;
   unsigned int     pmtPid;
   unsigned int     pcrPid;
+  uint32_t         PCR;
   unsigned int     pid;
   unsigned int     videoPid;
   unsigned int     audioPid;
@@ -491,6 +491,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
       buf->size            = m->size;
       buf->type            = m->type;
       buf->PTS             = m->PTS;
+      buf->SCR             = this->PCR;
       buf->decoder_info[0] = 1;
       m->fifo->put (m->fifo, buf);
     }
@@ -502,6 +503,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
     buf->size            = len;
     buf->type            = m->type;
     buf->PTS             = 0;
+    buf->SCR             = 0;
     buf->input_pos       = this->input->get_current_pos(this->input);
     buf->decoder_info[0] = 1;
     m->fifo->put (m->fifo, buf);
@@ -792,19 +794,19 @@ static unsigned char * demux_synchronise(demux_ts * this) {
   return return_pointer;
 }
 
-static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_field_length) {
-  uint32_t    discontinuity_indicator;
-  uint32_t    random_access_indicator;
-  uint32_t    elementary_stream_priority_indicator;
-  uint32_t    PCR_flag;
-  uint32_t    PCR;
-  uint32_t    EPCR;
-  uint32_t    OPCR_flag;
-  uint32_t    OPCR;
-  uint32_t    EOPCR;
-  uint32_t    slicing_point_flag;
-  uint32_t    transport_private_data_flag;
-  uint32_t    adaptation_field_extension_flag;
+static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_field_length) {
+  uint32_t    discontinuity_indicator=0;
+  uint32_t    random_access_indicator=0;
+  uint32_t    elementary_stream_priority_indicator=0;
+  uint32_t    PCR_flag=0;
+  uint32_t    PCR=0;
+  uint32_t    EPCR=0;
+  uint32_t    OPCR_flag=0;
+  uint32_t    OPCR=0;
+  uint32_t    EOPCR=0;
+  uint32_t    slicing_point_flag=0;
+  uint32_t    transport_private_data_flag=0;
+  uint32_t    adaptation_field_extension_flag=0;
   uint32_t    offset = 1;
 
   discontinuity_indicator = ((data[0] >> 7) & 0x01);
@@ -864,6 +866,7 @@ static void demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_
     xprintf(VERBOSE|DEMUX, "\tadaptation_field_extension_flag=%d\n",
       adaptation_field_extension_flag);
   }
+  return PCR;
 }
 /* transport stream packet layer */
 
@@ -916,7 +919,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
     if (adaptation_field_control & 0x2) {
       uint32_t adaptation_field_length = originalPkt[4];
       if( adaptation_field_length > 0) {
-        demux_ts_adaptation_field_parse( originalPkt+5, adaptation_field_length); 
+        this->PCR = demux_ts_adaptation_field_parse( originalPkt+5, adaptation_field_length); 
       }
       /*
        * Skip adaptation header.
@@ -1196,6 +1199,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->programNumber = INVALID_PROGRAM;
   this->pmtPid = INVALID_PID;
   this->pcrPid = INVALID_PID;
+  this->PCR    = 0;
   this->videoPid = INVALID_PID;
   this->audioPid = INVALID_PID;
 
