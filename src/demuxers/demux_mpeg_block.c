@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.115 2002/09/18 22:12:17 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.116 2002/09/19 05:01:57 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -384,9 +384,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     if (this->nav_last_end_pts != start_pts && !preview_mode) {
 
-#ifdef LOG
+//#ifdef LOG
       printf("demux_mpeg_block: discontinuity detected by nav packet\n" );
-#endif
+//#endif
       if (this->buf_flag_seek) {
         xine_demux_control_newpts(this->xine, start_pts, BUF_FLAG_SEEK);
         this->buf_flag_seek = 0;
