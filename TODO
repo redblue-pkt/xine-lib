@@ -1,24 +1,39 @@
 
-The road to 1.0
+The road to xine-lib 1.0
+========================
+
+this only relates to the xine engine (xine-lib), not xine
+frontends
 
 
 required for 1.0
 ----------------
 
-- fix rate estimation in demux_mpeg/demux_mpeg_block
-  obs: rate estimation is now fixed for dvds. 
-- input_dvd: detect errors, display useful error messages
-  obs: partialy implemented. all modules must be checked
-  for error reporting.
 - update xine hacker's guide
+- update / rewrite xine HOWTO (stefan, guenter)
+- xine bug tracking system?
+- fix stream end detection for real streams
+
 
 optional
 --------
 
+- log/verbose output macros
+- fix cook audio streaming
+- better dvd error messages
 - fix streaming of small files (e.g. http) 
-- input_rtp
-- rtsp support (currently only real's rtsp derivate is implemented)
-- theora support
+
+- rtp / rtsp support:
+
+  - input_rtp
+  - rtsp support (currently only real's rtsp derivate is implemented)
+  - isma/apple streaming server support (mpeg4ip.sf.net)
+  - find out what all those people requesting rtp/multicast/... support
+    really want and how to implement it :)
+  - videolan streaming server support
+  - helix streaming server support
+
+- theora alpha api support (andreas)
 - detect broken savage drivers in health check, disable Xv in that case
 - id3v2 (guenter)
 - directfb video output plugin
@@ -28,29 +43,21 @@ optional
 - Move read cache code from libdvdnav into input_dvd.c (jcdutton)
 - Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
 - xvid decoder plugin 
-- opengl video output plugin (matthias)
+- opengl video output plugin (matthias, sopra at stuttgart university)
 - irix audio output plugin (matthias)
-- update DVB plugin (latest API, DVB-C support) (guenter)
 - support changing channel for V4L (event already defined in xine.h)
 
 Open Tasks
 ==========
 
-- resurrect the win32 port
-- port to other OS (Net/OpenBSD, Win32, hurd ...?)
+- port to other OS (Net/OpenBSD, hurd ...?)
 - MicroDVD input plugin
 - video output synced to vertical blank
   preferably without requiring
   root privileges (XSync extension? MAS?)
 - direct playback of vcd images
-- isma support (mpeg4ip.sf.net)
-- find out what all those people requesting rtp/multicast/... support
-  really want and how to implement it :)
 - resolve issues with ffmpeg's live http streaming server
 - videolan streaming support
-- support for theora         
 - MAS support (http://www.mediaapplicationserver.net)
-- nonlinear video editing and compositing frontend (michael)
-- stream format conversion frontend
-- audio filters
-- implement get_audio/video_frame at least for 1 set of demuxer+decoders
+- nonlinear video editing and compositing frontend (michael) => enix
+- stream format conversion frontend => enix
