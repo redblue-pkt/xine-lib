@@ -12,6 +12,7 @@ lib_LTLIBRARIES = $(vidix_drivers)
 
 radeon_vid_la_SOURCES = radeon_vid.c
 radeon_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la -lm
+radeon_vid_la_DEPENDENCIES = $(top_builddir)/src/video_out/libdha/libdha.la
 radeon_vid_la_LDFLAGS = -avoid-version -module
 
 rage128_vid.c:
@@ -21,10 +22,10 @@ rage128_vid.c:
 	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c
 
 rage128_vid.lo: $(rage128_vid_la_SOURCES)
-	source='$<' object='$@' libtool=yes \
+	source='$*.c' object='$@' libtool=yes \
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(LTCOMPILE) -DRAGE128 -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+	$(LTCOMPILE) -DRAGE128 -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
 
 rage128_vid_la_SOURCES = rage128_vid.c
 rage128_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
@@ -35,10 +36,10 @@ pm3_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 pm3_vid_la_LDFLAGS = -avoid-version -module
 
 mach64_vid.lo:
-	source='$<' object='$@' libtool=yes \
+	source='$*.c' object='$@' libtool=yes \
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(LTCOMPILE) -DRAGE128 -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+	$(LTCOMPILE) -DRAGE128 -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
 
 mach64_vid_la_SOURCES = mach64_vid.c
 mach64_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
@@ -63,16 +64,16 @@ mga_crtc2_vid.c:
 	  $(top_srcdir)/src/video_out/vidix/drivers/$*.c
 
 mga_crtc2_vid.lo: $(mga_crtc2_vid_la_SOURCES)
-	source='$<' object='$@' libtool=yes \
+	source='$*.c' object='$@' libtool=yes \
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(LTCOMPILE) -DCRTC2 -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+	$(LTCOMPILE) -DCRTC2 -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
 
 mga_crtc2_vid_la_SOURCES = mga_crtc2_vid.c
 mga_crtc2_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la -lm
 mga_crtc2_vid_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = mach64.h  nvidia.h  pm3_regs.h	radeon.h
+noinst_HEADERS = mach64.h nvidia.h pm3_regs.h radeon.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
