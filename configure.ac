@@ -6,7 +6,7 @@ AC_INIT
 AC_CONFIG_SRCDIR([src/xine-engine/xine.c])
 
 dnl
-dnl Require autoconf version 2.52
+dnl Require autoconf version 2.53
 dnl
 AC_PREREQ(2.53)
 
