@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.29 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.30 2002/12/22 04:00:51 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,7 +53,7 @@
 #define SOND_TAG FOURCC_TAG('S', 'O', 'N', 'D')
 #define PALT_TAG FOURCC_TAG('P', 'A', 'L', 'T')
 #define INDX_TAG FOURCC_TAG('I', 'N', 'D', 'X')
-#define BNAM_TAG FOURCC_TAG('B', 'N', 'A', 'N')
+#define BNAM_TAG FOURCC_TAG('B', 'N', 'A', 'M')
 #define SIZE_TAG FOURCC_TAG('S', 'I', 'Z', 'E')
 #define BRCH_TAG FOURCC_TAG('B', 'R', 'C', 'H')
 #define SHOT_TAG FOURCC_TAG('S', 'H', 'O', 'T')
