@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.70 2001/10/22 00:52:10 guenter Exp $
+ * $Id: video_out_xv.c,v 1.71 2001/10/24 20:45:06 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -678,7 +678,6 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if ( (frame->width != this->delivered_width)
 	 || (frame->height != this->delivered_height)
 	 || (frame->ratio_code != this->delivered_ratio_code) ) {
-
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
     /* Alpha Blend here
@@ -1114,10 +1113,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	}
 	else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  Atom atom;
+	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
 	  atom = XInternAtom (this->display, attr[k].name, False);
-	  XvSetPortAttribute (this->display, this->xv_port, atom, attr[k].max_value);
-	  printf("Enabling bilinear scaling\n");
+	  xv_filter = config->lookup_int (config, "XV_FILTER", 0);
+	  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
+	  printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",
+		 xv_filter);
 	}
       }
     }
