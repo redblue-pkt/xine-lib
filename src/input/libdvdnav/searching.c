@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.12 2003/03/25 13:17:22 mroi Exp $
+ * $Id: searching.c,v 1.13 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -26,10 +26,7 @@
 #endif
 
 #include <assert.h>
-
 #include "dvdnav_internal.h"
-
-#include "vm.h"
 
 /*
 #define LOG_DEBUG

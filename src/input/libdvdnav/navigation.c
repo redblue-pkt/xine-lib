@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: navigation.c,v 1.6 2003/03/25 13:17:22 mroi Exp $
+ * $Id: navigation.c,v 1.7 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -26,8 +26,6 @@
 #endif
 
 #include "dvdnav_internal.h"
-
-#include "vm.h"
 
 /* Navigation API calls */
 
@@ -140,7 +138,7 @@ dvdnav_status_t dvdnav_part_play(dvdnav_t *this, int title, int part) {
   }
   
   pthread_mutex_lock(&this->vm_lock);
-  if (!this->vm->vtsi || !this->vm->vmgi) {
+  if (!this->vm->vmgi) {
     printerr("Bad VM state.");
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;

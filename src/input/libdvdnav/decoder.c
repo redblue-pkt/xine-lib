@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.6 2003/02/20 16:01:58 mroi Exp $
+ * $Id: decoder.c,v 1.7 2003/03/29 13:19:08 mroi Exp $
  *
  */
 
@@ -32,8 +32,6 @@
 #include <string.h>  /* For memset */
 #include "ifo_types.h" /* vm_cmd_t */
 #include <assert.h>
-#include "vmcmd.h"
-#include "decoder.h"
 #include "dvdnav_internal.h"
 
 uint32_t vm_getbits(command_t *command, int start, int count) {

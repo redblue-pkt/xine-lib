@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vmcmd.h,v 1.4 2003/02/20 16:02:01 mroi Exp $
+ * $Id: vmcmd.h,v 1.5 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -27,7 +27,7 @@
 
 #include <inttypes.h>
 #include "ifo_types.h" /*  Only for vm_cmd_t  */
-#include "decoder.h"
+#include "dvdnav_internal.h"
 
 #ifdef TRACE
 void vmPrint_mnemonic(vm_cmd_t *command);

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.8 2003/03/25 13:17:22 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.9 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -28,9 +28,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#include "dvdnav.h"
-#include "vm.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,9 +42,13 @@
 #include "ifo_read.h"
 #include "ifo_types.h"
 
-
 /* Uncomment for VM command tracing */
 /* #define TRACE */
+
+#include "decoder.h"
+#include "dvdnav.h"
+#include "vm.h"
+#include "vmcmd.h"
 
 /* where should libdvdnav write its messages (stdout/stderr) */
 #define MSG_OUT stdout

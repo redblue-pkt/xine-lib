@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.16 2003/03/27 13:46:47 mroi Exp $
+ * $Id: vm.c,v 1.17 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -40,9 +40,6 @@
 #include "ifo_types.h"
 #include "ifo_read.h"
 
-#include "decoder.h"
-#include "vmcmd.h"
-#include "vm.h"
 #include "dvdnav_internal.h"
 
 /*
@@ -69,6 +66,7 @@ static int process_command(vm_t *vm,link_t link_values);
 
 /* Set */
 static int  set_TT(vm_t *vm, int tt);
+static int  set_PTT(vm_t *vm, int tt, int ptt);
 static int  set_VTS_TT(vm_t *vm, int vtsN, int vts_ttn);
 static int  set_VTS_PTT(vm_t *vm, int vtsN, int vts_ttn, int part);
 static int  set_FP_PGC(vm_t *vm);
@@ -123,7 +121,7 @@ static void vm_print_current_domain_state(vm_t *vm) {
 }
 #endif
 
-void dvd_read_name( vm_t *this, const char *devname) {
+static void dvd_read_name(char *name, const char *device) {
     int fd, i;
 #ifndef __FreeBSD__
     off64_t off;
@@ -133,7 +131,7 @@ void dvd_read_name( vm_t *this, const char *devname) {
     uint8_t data[DVD_VIDEO_LB_LEN];
 
     /* Read DVD name */
-    fd=open(devname, O_RDONLY);
+    fd=open(device, O_RDONLY);
     if (fd > 0) { 
       off = lseek64( fd, 32 * (int64_t) DVD_VIDEO_LB_LEN, SEEK_SET );
       if( off == ( 32 * (int64_t) DVD_VIDEO_LB_LEN ) ) {
@@ -149,8 +147,8 @@ void dvd_read_name( vm_t *this, const char *devname) {
               fprintf(MSG_OUT, " ");
             }
           }
-          strncpy(&this->dvd_name[0], &data[25], 48);
-          this->dvd_name[48]=0;
+          strncpy(name, &data[25], 48);
+          name[48] = 0;
           fprintf(MSG_OUT, "\nlibdvdnav: DVD Serial Number: ");
           for(i=73; i < 89; i++ ) {
             if((data[i] == 0)) break;
@@ -317,7 +315,7 @@ int vm_reset(vm_t *vm, const char *dvdroot) {
       fprintf(MSG_OUT, "libdvdnav: vm: faild to open/read the DVD\n");
       return 0;
     }
-    dvd_read_name(vm, dvdroot);
+    dvd_read_name(vm->dvd_name, dvdroot);
     vm->map  = remap_loadmap(vm->dvd_name);
     vm->vmgi = ifoOpenVMGI(vm->dvd);
     if(!vm->vmgi) {
@@ -481,13 +479,13 @@ int vm_jump_cell_block(vm_t *vm, int cell, int block) {
 }
 
 int vm_jump_title_part(vm_t *vm, int title, int part) {
-  int vtsN;
-
-  vtsN = vm->vmgi->tt_srpt->title[title - 1].title_set_nr;
-
-  if(!set_VTS_PTT(vm, vtsN, title, part))
+  if(!set_PTT(vm, title, part))
     return 0;
-  process_command(vm, play_PGC_PG(vm, (vm->state).pgN));
+  /* Some DVDs do not want us to jump directly into a title and have
+   * PGC pre commands taking us back to some menu. Since we do not like that,
+   * we do not execute PGC pre commands but directly play the PG. */
+  /* process_command(vm, play_PGC_PG(vm, (vm->state).pgN)); */
+  process_command(vm, play_PG(vm));
   return 1;
 }
 
@@ -1517,10 +1515,13 @@ static int process_command(vm_t *vm, link_t link_values) {
 /* Set functions */
 
 static int set_TT(vm_t *vm, int tt) {  
+  return set_PTT(vm, tt, 1);
+}
+
+static int set_PTT(vm_t *vm, int tt, int ptt) {
   assert(tt <= vm->vmgi->tt_srpt->nr_of_srpts);
-  (vm->state).TTN_REG = tt;
-  return set_VTS_TT(vm, vm->vmgi->tt_srpt->title[tt - 1].title_set_nr,
-		    vm->vmgi->tt_srpt->title[tt - 1].vts_ttn);
+  return set_VTS_PTT(vm, vm->vmgi->tt_srpt->title[tt - 1].title_set_nr,
+		     vm->vmgi->tt_srpt->title[tt - 1].vts_ttn, ptt);
 }
 
 static int set_VTS_TT(vm_t *vm, int vtsN, int vts_ttn) {
@@ -1807,6 +1808,12 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.17  2003/03/29 13:19:09  mroi
+ * sync to libdvdnav cvs once again
+ *  * some changes to mutual header inclusion to make it compile warning-less
+ *    when tracing is enabled
+ *  * title/part jumping should work much more reliable now
+ *
  * Revision 1.16  2003/03/27 13:46:47  mroi
  * sync to libdvdnav cvs
  *  * fix conversion of dvd_time_t (I do know BCD, I just did it wrong...)

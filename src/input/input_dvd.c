@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.136 2003/03/27 13:48:03 mroi Exp $
+ * $Id: input_dvd.c,v 1.137 2003/03/29 13:19:08 mroi Exp $
  *
  */
 
@@ -1357,13 +1357,13 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
       return 0;
     }
 
-    /* If there was a program specified, get that too. */
+    /* If there was a part specified, get that too. */
     pr = -1;
     if(found != -1) {
       pr = strtol(locator+found+1, NULL,10);
     }
 #ifdef INPUT_DEBUG
-    printf("input_dvd: Jumping to VTS >%i<, prog >%i<\n", tt, pr);
+    printf("input_dvd: Jumping to TT >%i<, PTT >%i<\n", tt, pr);
 #endif
     if(pr != -1) {
       dvdnav_part_play(this->dvdnav, tt, pr);
@@ -1617,6 +1617,12 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.137  2003/03/29 13:19:08  mroi
+ * sync to libdvdnav cvs once again
+ *  * some changes to mutual header inclusion to make it compile warning-less
+ *    when tracing is enabled
+ *  * title/part jumping should work much more reliable now
+ *
  * Revision 1.136  2003/03/27 13:48:03  mroi
  * use timing information provided by libdvdnav to get more accurate position
  *

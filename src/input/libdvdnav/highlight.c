@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: highlight.c,v 1.10 2003/03/08 14:36:13 mroi Exp $
+ * $Id: highlight.c,v 1.11 2003/03/29 13:19:09 mroi Exp $
  *
  */
 
@@ -26,11 +26,8 @@
 #endif
 
 #include <assert.h>
-
-#include "dvdnav_internal.h"
-
-#include "vm.h"
 #include "nav_types.h"
+#include "dvdnav_internal.h"
 
 /*
 #define BUTTON_TESTING
@@ -39,7 +36,6 @@
 #ifdef BUTTON_TESTING
 
 #include "nav_print.h"
-#include "vmcmd.h"
 
 static void print_time(dvd_time_t *dtime) {
   const char *rate;

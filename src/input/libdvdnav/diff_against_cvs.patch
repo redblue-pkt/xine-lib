@@ -7,8 +7,8 @@
 -#include <dvdread/ifo_types.h> /* vm_cmd_t */
 +#include "ifo_types.h" /* vm_cmd_t */
  #include <assert.h>
- #include "vmcmd.h"
- #include "decoder.h"
+ #include "dvdnav_internal.h"
+ 
 --- src/input/libdvdnav/decoder.h	Wed Sep  4 12:50:34 2002
 +++ src/input/libdvdnav/decoder.h	Wed Sep  4 12:50:42 2002
 @@ -28,7 +28,7 @@
@@ -17,9 +17,9 @@
  
 -#include <dvdread/ifo_types.h> /*  vm_cmd_t */
 +#include "ifo_types.h" /*  vm_cmd_t */
+ #include "dvdnav_internal.h"
  
  /* link command types */
- typedef enum {
 --- src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:34 2002
 +++ src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:42 2002
 @@ -33,7 +33,7 @@
@@ -75,7 +75,7 @@
  /* 
   * Copyright (C) 2001 Rich Wareham <richwareham@users.sourceforge.net>
   * 
-@@ -40,9 +41,9 @@
+@@ -37,9 +38,9 @@
  
  #undef WORDS_BIGENDIAN
  
@@ -86,28 +86,28 @@
 +#include "ifo_read.h"
 +#include "ifo_types.h"
  
- 
  /* Uncomment for VM command tracing */
+ /* #define TRACE */
 --- src/input/libdvdnav/highlight.c	Wed Sep  4 12:50:34 2002
 +++ src/input/libdvdnav/highlight.c	Wed Sep  4 12:55:44 2002
-@@ -30,7 +30,7 @@
- #include "dvdnav_internal.h"
+@@ -26,7 +26,7 @@
+ #endif
  
- #include "vm.h"
+ #include <assert.h>
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
+ #include "dvdnav_internal.h"
  
  /*
- #define BUTTON_TESTING
-@@ -38,7 +38,7 @@
+@@ -35,7 +35,7 @@
  
  #ifdef BUTTON_TESTING
  
 -#include <dvdread/nav_print.h>
 +#include "nav_print.h"
- #include "vmcmd.h"
  
  static void print_time(dvd_time_t *dtime) {
+   const char *rate;
 --- src/input/libdvdnav/vm.c	Sat Jul  6 18:12:09 2002
 +++ src/input/libdvdnav/vm.c	Fri Aug  9 22:03:48 2002
 @@ -37,8 +37,8 @@
@@ -119,8 +119,8 @@
 +#include "ifo_types.h"
 +#include "ifo_read.h"
  
- #include "decoder.h"
- #include "vmcmd.h"
+ #include "dvdnav_internal.h"
+ 
 --- src/input/libdvdnav/vmcmd.h	Sat Jun  1 14:40:50 2002
 +++ src/input/libdvdnav/vmcmd.h	Fri Aug  9 22:04:13 2002
 @@ -26,7 +26,7 @@
@@ -129,6 +129,6 @@
  #include <inttypes.h>
 -#include <dvdread/ifo_types.h> /*  Only for vm_cmd_t  */
 +#include "ifo_types.h" /*  Only for vm_cmd_t  */
- #include "decoder.h"
+ #include "dvdnav_internal.h"
  
  #ifdef TRACE
