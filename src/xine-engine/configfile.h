@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.23 2003/06/27 13:40:51 mroi Exp $
+ * $Id: configfile.h,v 1.24 2003/07/31 11:59:10 mroi Exp $
  *
  * config file management
  *
@@ -38,6 +38,8 @@ extern "C" {
 #else
 #  include <xine.h>
 #endif
+
+#define CONFIG_FILE_VERSION 1
 
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;
@@ -186,7 +188,12 @@ struct config_values_s {
   /*
    * mutex for modification to the config
    */
-   pthread_mutex_t      config_lock;
+  pthread_mutex_t      config_lock;
+  
+  /*
+   * current config files version number
+   */
+  int current_version;
 };
 
 /*
@@ -195,7 +202,7 @@ struct config_values_s {
 config_values_t *xine_config_init (void);
 
 /*
- * hack: intepret "opt:"-style mrls for config value changes
+ * interpret stream_setup part of mrls for config value changes
  */
 
 int xine_config_change_opt(config_values_t *config, const char *opt) ;

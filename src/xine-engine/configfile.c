@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.49 2003/07/12 12:31:14 mroi Exp $
+ * $Id: configfile.c,v 1.50 2003/07/31 11:59:10 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -670,6 +670,16 @@ void xine_config_load (xine_t *xine, const char *filename) {
 
       if (line[0] == '#')
 	continue;
+      
+      if (line[0] == '.') {
+	if (strncmp(line, ".version:", 9) == 0) {
+	  sscanf(line + 9, "%d", &this->current_version);
+	  if (this->current_version > CONFIG_FILE_VERSION)
+	    xine_log(xine, XINE_LOG_MSG,
+	      _("The current config file has been modified by a newer version of xine."));
+	}
+	continue;
+      }
 
       if ((value = strchr (line, ':'))) {
 
@@ -771,7 +781,8 @@ void xine_config_save (xine_t *xine, const char *filename) {
 
     cfg_entry_t *entry;
 
-    fprintf (f_config, "#\n# xine config file\n#\n\n");
+    fprintf (f_config, "#\n# xine config file\n#\n");
+    fprintf (f_config, ".version:%d\n\n", CONFIG_FILE_VERSION);
 
     pthread_mutex_lock(&this->config_lock);
     entry = this->first;
@@ -926,6 +937,7 @@ config_values_t *xine_config_init () {
 
   this->first = NULL;
   this->last  = NULL;
+  this->current_version = 0;
 
   pthread_mutex_init(&this->config_lock, NULL);
 
