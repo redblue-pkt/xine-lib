@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.72 2003/04/12 12:02:56 jstembridge Exp $
+ * $Id: demux_ogg.c,v 1.73 2003/04/13 22:02:18 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -86,6 +86,7 @@ typedef struct demux_ogg_s {
   uint32_t              buf_types[MAX_STREAMS];
   int                   samplerate[MAX_STREAMS];
   int                   preview_buffers[MAX_STREAMS];
+  int64_t               header_granulepos[MAX_STREAMS];
   int                   num_streams;
 
   int                   num_audio_streams;
@@ -133,9 +134,13 @@ static void hex_dump (uint8_t *p, int length) {
 static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview) {
   int64_t diff;
 
+#ifdef LOG
+  printf ("demux_ogg: new pts %lld found in stream\n",pts);
+#endif
+
   diff = pts - this->last_pts[video];
 
-  if (!preview && pts &&
+  if (!preview && (pts>=0) &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
@@ -152,7 +157,7 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
     this->last_pts[1-video] = 0;
   }
 
-  if (!preview && pts )
+  if (!preview && (pts>=0) )
     this->last_pts[video] = pts;
 
   /* use pts for bitrate measurement */
@@ -210,22 +215,26 @@ static void send_ogg_buf (demux_ogg_t *this,
     printf ("demux_ogg: audio buf_size %d\n", buf->size);
 #endif
 	
-    if (op->granulepos>0) {
+    if (op->granulepos>=0) {
       buf->pts = 90000 * op->granulepos / this->samplerate[stream_num];
 
+      check_newpts( this, buf->pts, PTS_AUDIO, decoder_flags );
+
+    } else if (this->header_granulepos[stream_num]>=0) {
+      buf->pts = 90000 * this->header_granulepos[stream_num] / this->samplerate[stream_num];
+      this->header_granulepos[stream_num]=-1;
       check_newpts( this, buf->pts, PTS_AUDIO, decoder_flags );
 
     } else
       buf->pts = 0; 
 
 #ifdef LOG
-    printf ("demux_ogg: audio granulepos %lld => pts %lld\n",
-	    op->granulepos, buf->pts);
+    printf ("demux_ogg: audio granulepos %lld => pts %lld => time %lld\n",
+	    op->granulepos, buf->pts,buf->pts/90);
 #endif
 
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    buf->extra_info->input_time    = (int)((uint64_t)buf->extra_info->input_pos 
-                                           * 8 * 1000 / this->avg_bitrate);
+    buf->extra_info->input_time    = buf->pts / 90;
     buf->type          = this->buf_types[stream_num] ;
     buf->decoder_flags = decoder_flags;
     
@@ -262,15 +271,18 @@ static void send_ogg_buf (demux_ogg_t *this,
       */
       memcpy (buf->content, op->packet+done, buf->size);
 
-      if (op->granulepos>0) {
+      if (op->granulepos>=0) {
 	buf->pts  = op->granulepos * this->frame_duration;  
 
 	check_newpts( this, buf->pts, PTS_VIDEO, decoder_flags );
-
+      } else if (this->header_granulepos[stream_num]>=0) {
+	buf->pts  = this->header_granulepos[stream_num] * this->frame_duration;
+	this->header_granulepos[stream_num]=-1;
+	check_newpts( this, buf->pts, PTS_VIDEO, decoder_flags );
       } else
 	buf->pts  = 0;
 #ifdef LOG
-      printf ("demux_ogg: video granulepos %lld, pts %lld\n", op->granulepos, buf->pts);
+      printf ("demux_ogg: video granulepos %lld, pts %lld, time %d\n", op->granulepos, buf->pts, buf->pts);
 #endif
       
       buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
@@ -403,6 +415,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
       }
     
       ogg_sync_wrote(&this->oy, bytes);
+#ifdef LOG
+    } else if (ret == -1) {
+      printf ("demux_ogg: Stream was out ouf sync");
+#endif
     } else if (ret > 0) {
       /* now we've got at least one new page */
     
@@ -419,7 +435,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	ogg_stream_init(&this->oss[this->num_streams], cur_serno);
 	stream_num = this->num_streams;
-	this->buf_types[stream_num] = 0;      
+	this->buf_types[stream_num] = 0;
+	this->header_granulepos[stream_num] = -1;
 	this->num_streams++;
       } else {
 	int i;
@@ -816,6 +833,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     }
   }
 
+
   this->time_length=-1;
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
@@ -917,6 +935,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
       ogg_stream_init(&this->oss[this->num_streams], cur_serno);
       stream_num = this->num_streams;
       this->buf_types[stream_num] = 0;      
+      this->header_granulepos[stream_num]=-1;
       this->num_streams++;
     }
     
@@ -936,9 +955,16 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
       /* printf("demux_ogg:   got a packet\n"); */
 
       if (*op.packet & PACKET_TYPE_HEADER) {
+	if (op.granulepos!=-1) {
+	  this->header_granulepos[stream_num]=op.granulepos;
 #ifdef LOG
-	printf ("demux_ogg: header => discard\n");
+	  printf ("demux_ogg: header with granulepos, remembering granulepos\n");
 #endif
+	} else {
+#ifdef LOG
+	  printf ("demux_ogg: header => discard\n");
+#endif
+	}
 	continue;
       }
 
@@ -958,7 +984,15 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	} else continue;
       }
 
-      send_ogg_buf (this, &op, stream_num, 0);
+      if (!this->buf_flag_seek)
+	send_ogg_buf (this, &op, stream_num, 0);
+      else
+	if ((op.granulepos!=-1) || (this->header_granulepos[stream_num]!=-1))
+	  send_ogg_buf (this, &op, stream_num, 0);
+#ifdef LOG
+	else
+	  printf ("demux_ogg: overreading packets until we will find an granulepos\n");
+#endif
     }
   }
 }
@@ -1050,6 +1084,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
 #endif
     }
 
+    ogg_sync_reset(&this->oy);
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
