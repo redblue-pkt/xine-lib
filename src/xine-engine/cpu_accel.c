@@ -42,6 +42,7 @@ static uint32_t x86_accel (void)
 	 : "a" (op)			\
 	 : "cc")
 
+    /*
     asm ("pushfl\n\t"
 	 "popl %0\n\t"
 	 "movl %0,%1\n\t"
@@ -55,8 +56,8 @@ static uint32_t x86_accel (void)
 	 :
 	 : "cc");
 
-    if (eax == ebx)		/* no cpuid */
-	return 0;
+    if (eax == ebx)*/		/* no cpuid */
+    /* return 0; */
 
     cpuid (0x00000000, eax, ebx, ecx, edx);
     if (!eax)			/* vendor string only */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.21 2001/06/16 12:56:29 guenter Exp $
+ * $Id: video_out.c,v 1.22 2001/06/17 01:04:38 guenter Exp $
  *
  */
 
@@ -114,7 +114,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
 
   return img;
 }
-
+/*
 static void vo_set_timer (uint32_t video_step) {
   struct itimerval tval;
 
@@ -122,8 +122,6 @@ static void vo_set_timer (uint32_t video_step) {
   tval.it_interval.tv_usec = video_step*100000/90000;
   tval.it_value.tv_sec     = 0;
   tval.it_value.tv_usec    = video_step*100000/90000;
-
-  /* printf ("video_out: tval.it_interval.tv_usec = %d\n", tval.it_interval.tv_usec);  */
 
   if (setitimer(ITIMER_REAL, &tval, NULL)) {
     printf ("vo_set_timer: setitimer failed :");
@@ -135,7 +133,7 @@ void video_timer_handler (int hubba) {
   signal (SIGALRM, video_timer_handler);
 
 }
-
+*/
 static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
@@ -147,6 +145,7 @@ static void *video_out_loop (void *this_gen) {
   /*
   int                dummysignum;
   */
+  struct timespec    ts;
 
   /* printf ("%d video_out start\n", getpid());  */
   /*
@@ -154,25 +153,36 @@ static void *video_out_loop (void *this_gen) {
   sigaddset(&vo_mask, SIGALRM);
   pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
   */
+
+  /*
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
     printf ("video_out: sigprocmask failed.\n");
   }
   signal (SIGALRM, video_timer_handler);
-
+  */
+  
   video_step = this->metronom->get_video_rate (this->metronom);
-  vo_set_timer (video_step);
+
+  ts.tv_sec = 0;
+  ts.tv_nsec = video_step * 10000 / 9;
+
+  /* vo_set_timer (video_step); */
+
 
   while (this->video_loop_running) {
 
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
-    pause ();
+
+    /* pause (); */
+    nanosleep (&ts, NULL);
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
-      vo_set_timer (video_step);
+      /* vo_set_timer (video_step); */
+      ts.tv_nsec = video_step * 10000 / 9;
     }
 
     pts_absdiff = 1000000;
@@ -291,8 +301,8 @@ static void vo_open (vo_instance_t *this) {
 
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
-    pthread_create (&this->video_thread, NULL, video_out_loop, this) ;
-    printf ("video_out: thread created.\n");
+    pthread_create (&this->video_thread, NULL, video_out_loop, this) ; 
+    printf ("video_out: thread created\n");
   } else
     printf ("video_out: vo_open : warning! video thread already running\n");
 
@@ -332,7 +342,7 @@ static void vo_close (vo_instance_t *this) {
     void *p;
 
     this->video_loop_running = 0;
-    kill (0, SIGALRM);
+    /*kill (0, SIGALRM);*/
     pthread_join (this->video_thread, &p);
   }
 }
@@ -400,7 +410,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
-  frames_to_skip = ((-1 * diff) / this->pts_per_frame + 1) * 2;
+  frames_to_skip = ((-1 * diff) / this->pts_per_frame + 3) * 2;
 
   xprintf (VERBOSE|VIDEO,"video_out:: delivery diff : %d\n",diff);
 
