@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.8 2001/05/30 21:48:23 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.9 2001/06/02 21:44:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -436,10 +436,15 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 	continue;
       
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
+	char str[1024];
 
-	sprintf (this->mrls[nFiles2]->filename,
+	sprintf (this->mrls[nFiles2]->mrl,
 		 "dvd://%s", this->filelist[i]); 
 	this->mrls[nFiles2]->type = mrl_dvd;
+
+	/* determine size */
+	sprintf (str, "/VIDEO_TS/%s", this->filelist[i]);
+	UDFFindFile(fd, str, &this->mrls[nFiles2]->size);
 
 	nFiles2++;
       }
@@ -550,7 +555,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
       this->filelist[i]       = (char *) malloc (256);
       this->filelist2[i]      = (char *) malloc (256);
       this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
-      this->mrls[i]->filename = (char *) malloc (256);
+      this->mrls[i]->mrl      = (char *) malloc (256);
     }
 
     this->mrls_allocated_entries = MAX_DIR_ENTRIES;

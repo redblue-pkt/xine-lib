@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.7 2001/05/30 21:48:23 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.8 2001/06/02 21:44:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -706,9 +706,12 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
-    sprintf (this->mrls[i-1]->filename, "vcd://%d",i);
+    sprintf (this->mrls[i-1]->mrl, "vcd://%d",i);
     this->mrls[i-1]->type = mrl_vcd;
-    /* printf ("list[%d] : %d %s\n", i, this->mrls[i-1]->filename);   */
+
+    /* hack */
+    this->cur_track = i;
+    this->mrls[i-1]->size = vcd_plugin_get_length ((input_plugin_t *) this);
   }
 
   return this->mrls;
@@ -795,7 +798,8 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     for (i = 0; i < 100; i++) {
       this->filelist[i]       = (char *) malloc (256);
       this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
-      this->mrls[i]->filename = (char *) malloc (256);
+      this->mrls[i]->mrl      = (char *) malloc (256);
+      this->mrls[i]->size     = 0;
     }
 
     this->mrls_allocated_entries = 100;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.10 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: input_file.c,v 1.11 2001/06/02 21:44:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -256,15 +256,18 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
        || this->mrls_allocated_entries == 0) {
       this->mrls[num_files] = (mrl_t *) malloc(sizeof(mrl_t));
       
-      this->mrls[num_files]->filename = (char *) 
+      this->mrls[num_files]->mrl = (char *) 
 	malloc(strlen(pdirent->d_name + 1));
     }
     else
-      this->mrls[num_files]->filename = (char *) 
-	realloc(this->mrls[num_files]->filename, strlen(pdirent->d_name + 1));
+      this->mrls[num_files]->mrl = (char *) 
+	realloc(this->mrls[num_files]->mrl, strlen(pdirent->d_name + 1));
     
-    strcpy(this->mrls[num_files]->filename, pdirent->d_name);
+    /* FIXME: store valid MRLs with valid path name */
+    strcpy(this->mrls[num_files]->mrl, pdirent->d_name);
     
+    this->mrls[num_files]->size = stat.st_size;
+
     /* 
      * Ok, now check file type 
      */
@@ -287,10 +290,10 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	  fprintf(stderr, "readlink() failed: %s\n", strerror(errno));
 	}
 	else {
-	  this->mrls[num_files]->filename = (char *) 
-	    realloc(this->mrls[num_files]->filename, (linksize + 1));
-	  memset(this->mrls[num_files]->filename, 0, linksize + 1);
-	  strncpy(this->mrls[num_files]->filename, linkbuf, linksize);
+	  this->mrls[num_files]->mrl = (char *) 
+	    realloc(this->mrls[num_files]->mrl, (linksize + 1));
+	  memset(this->mrls[num_files]->mrl, 0, linksize + 1);
+	  strncpy(this->mrls[num_files]->mrl, linkbuf, linksize);
 	}
       }
     }

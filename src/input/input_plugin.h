@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.6 2001/05/07 01:31:44 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.7 2001/06/02 21:44:01 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -60,8 +60,9 @@ typedef struct {         /* CLUT == Color LookUp Table */
 #define mrl_type_exec          0xFFFF8000 
 
 typedef struct {
-  char *filename; /* filename without pathname */
-  int type;       /* match to mrl_type enum    */
+  char *mrl;        /* <type>://<location              */
+  int   type;       /* match to mrl_type enum          */
+  off_t size;       /* size of this source, may be 0   */
 } mrl_t;
 
 typedef struct input_plugin_s input_plugin_t;
