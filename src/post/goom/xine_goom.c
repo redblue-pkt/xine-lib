@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.12 2002/12/29 23:58:43 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.13 2002/12/30 14:26:50 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -197,16 +197,23 @@ static void goom_class_dispose(post_class_t *class_gen)
 }
 
 
-static void goom_dispose(post_plugin_t *this)
+static void goom_dispose(post_plugin_t *this_gen)
 {
+  post_plugin_goom_t *this = (post_plugin_goom_t *)this_gen;
+  xine_post_out_t *output = (xine_post_out_t *)xine_list_first_content(this_gen->output);
+  xine_video_port_t *port = *(xine_video_port_t **)output->data;
+
   goom_close();
 
-  free(this->xine_post.audio_input);
-  free(this->xine_post.video_input);
-  free(xine_list_first_content(this->input));
-  free(xine_list_first_content(this->output));
-  xine_list_free(this->input);
-  xine_list_free(this->output);
+  if (this->stream)
+    port->close(port, this->stream);
+    
+  free(this->post.xine_post.audio_input);
+  free(this->post.xine_post.video_input);
+  free(xine_list_first_content(this->post.input));
+  free(xine_list_first_content(this->post.output));
+  xine_list_free(this->post.input);
+  xine_list_free(this->post.output);
   free(this);
 }
 
@@ -271,8 +278,6 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
 
-  this->vo_port->open( this->vo_port, stream );
-  
   this->bits = bits;
   this->mode = mode;
   this->channels = mode_channels(mode);
@@ -288,8 +293,6 @@ static void goom_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream )
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_goom_t *this = (post_plugin_goom_t *)port->post;
 
-  this->vo_port->close( this->vo_port, stream );
-  
   this->stream = NULL;
  
   port->original_port->close(port->original_port, stream );

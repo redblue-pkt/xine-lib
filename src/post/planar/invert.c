@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.6 2002/12/29 14:04:43 mroi Exp $
+ * $Id: invert.c,v 1.7 2002/12/30 14:26:51 mroi Exp $
  */
  
 /*
@@ -158,6 +158,12 @@ static void invert_class_dispose(post_class_t *class_gen)
 
 static void invert_dispose(post_plugin_t *this)
 {
+  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(this->output);
+  xine_video_port_t *port = *(xine_video_port_t **)output->xine_out.data;
+  
+  if (output->stream)
+    port->close(port, output->stream);
+
   free(this->xine_post.audio_input);
   free(this->xine_post.video_input);
   free(xine_list_first_content(this->input));
