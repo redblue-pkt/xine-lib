@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.11 2002/09/02 17:25:45 tmmm Exp $
+ * $Id: adpcm.c,v 1.12 2002/09/03 02:46:30 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -156,12 +156,17 @@ static void decode_ima_nibbles(unsigned short *output,
   int delta;
   int channel_number = 0;
 
+  /* take care of the left */
   step[0] = ima_adpcm_step[*index_l];
-  step[1] = ima_adpcm_step[*index_r];
   predictor[0] = *predictor_l;
-  predictor[1] = *predictor_r;
   index[0] = *index_l;
-  index[1] = *index_r;
+
+  /* only handle the right if non-NULL pointers */
+  if (index_r) {
+    step[1] = ima_adpcm_step[*index_r];
+    predictor[1] = *predictor_r;
+    index[1] = *index_r;
+  }
 
   for (i = 0; i < output_size; i++) {
     delta = output[i];
@@ -192,9 +197,13 @@ static void decode_ima_nibbles(unsigned short *output,
 
   /* save the index and predictor values in case the calling function cares */
   *predictor_l = predictor[0];
-  *predictor_r = predictor[1];
   *index_l = index[0];
-  *index_r = index[1];
+
+  /* only save the right channel information if pointers are non-NULL */
+  if (predictor_r) {
+    *predictor_r = predictor[1];
+    *index_r = index[1];
+  }
 }
 
 #define DK3_GET_NEXT_NIBBLE() \
