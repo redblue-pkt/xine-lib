@@ -337,7 +337,7 @@ dnl
 dnl Some extra checks.
 dnl
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_HAVE_FUNCS(sigaction sigset getpwuid_r)
+AC_HAVE_FUNCS(sigaction sigset getpwuid_r nanosleep)
 AC_CHECK_HEADERS(byteswap.h malloc.h sys/mman.h)
 
 dnl
