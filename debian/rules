@@ -104,8 +104,9 @@ binary-arch: build install
 	dh_movefiles --sourcedir=debian/libxine-dev -plibxine$(major)  \
 	usr/lib/libxine*.so.$(major)        \
 	usr/lib/libxine*.so.$(version)      \
-	usr/lib/xine/plugins/*.so          \
-	usr/share/xine
+	usr/lib/xine/plugins/*.so           \
+	usr/share/xine                      \
+	usr/share/locale
 
 #	dh_installdebconf	
 	dh_installdocs
