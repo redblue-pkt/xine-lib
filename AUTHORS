@@ -230,7 +230,8 @@ Contributions
     C version for linear blend deinterlacer
 
   Mike Melanson <melanson@pcisys.net>
-    QT, FILM and RoQ file demuxers, RoQ audio decoder
+    QT, FILM and RoQ file demuxers, RoQ audio decoder, various ADPCM
+    audio decoders
 
   Tim Ferguson <timf@mail.csse.monash.edu.au>
     CYUV and RoQ video decoders
