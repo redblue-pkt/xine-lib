@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.16 2004/04/10 15:45:11 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.17 2004/04/28 10:57:12 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -1041,7 +1041,7 @@ vcd_handle_events (void)
             } else {
               /* PBC is not on. "default" selection beginning of current 
                  selection . Alternative: */
-              LOG_MSG("%s\n", _("DeFAULT selected but PBC is not on."));
+              LOG_MSG("%s\n", _("DEFAULT selected but PBC is not on."));
               ;
             }
 #else 
