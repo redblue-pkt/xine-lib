@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.98 2002/05/21 22:16:14 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.99 2002/05/22 18:55:11 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -288,8 +288,6 @@ static int vo_frame_draw (vo_frame_t *img) {
     printf ("video_out: frame is ok => appending to display buffer\n");
 #endif
 
-    this->last_frame = img;
-
     vo_frame_inc_lock( img );
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
@@ -492,7 +490,14 @@ static void overlay_and_display_frame (vos_t *this,
 						  this->driver, img,
 						  this->video_loop_running && this->overlay_enabled);
   }
-  
+
+  /* hold current frame for snapshot feature */
+  if( this->last_frame ) {
+    vo_frame_dec_lock( this->last_frame );
+  }
+  vo_frame_inc_lock( img );
+  this->last_frame = img;
+
   this->driver->display_frame (this->driver, img);
   
   this->redraw_needed = 0; 
@@ -635,7 +640,11 @@ static void *video_out_loop (void *this_gen) {
     vo_frame_dec_lock( this->img_backup );
     this->img_backup = NULL;
   }
- 
+  if (this->last_frame) {
+    vo_frame_dec_lock( this->last_frame );
+    this->last_frame = NULL;
+  }
+
   pthread_exit(NULL);
 }
 
@@ -830,6 +839,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
   this->display_img_buf_queue = vo_new_img_buf_queue ();
   this->video_loop_running    = 0;
 
+  this->last_frame            = NULL;
   this->img_backup            = NULL;
   
   this->overlay_source        = video_overlay_new_instance();
