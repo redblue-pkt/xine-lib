@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.2 2002/07/15 21:42:34 esnel Exp $
+ * $Id: msrle.c,v 1.3 2002/07/20 04:24:59 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -90,13 +90,22 @@ void decode_msrle8(msrle_decoder_t *this) {
       /* fetch the next byte to see how to handle escape code */
       FETCH_NEXT_STREAM_BYTE();
       if (stream_byte == 0) {
+        /* take care of the extra 2 pixels on the C lines */
+        FINISH_LINE(this->yuv_planes, row_ptr);
+
         /* line is done, goto the next one */
         row_ptr -= row_dec;
         pixel_ptr = 0;
-      } else if (stream_byte == 1)
+      } else if (stream_byte == 1) {
+        /* take care of the extra 2 pixels on the C lines */
+        FINISH_LINE(this->yuv_planes, row_ptr);
+
         /* decode is done */
         return;
-      else if (stream_byte == 2) {
+      } else if (stream_byte == 2) {
+        /* take care of the extra 2 pixels on the C lines */
+        FINISH_LINE(this->yuv_planes, row_ptr);
+
         /* reposition frame decode coordinates */
         FETCH_NEXT_STREAM_BYTE();
         pixel_ptr += stream_byte;
