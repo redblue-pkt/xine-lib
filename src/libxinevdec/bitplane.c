@@ -28,7 +28,7 @@
  *   8 (long and short)
  * - untested (found no testfiles) IFF-ANIM OPT 3, 4 and 6
  *
- * $Id: bitplane.c,v 1.10 2004/08/21 21:21:13 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.11 2004/12/16 13:59:12 mroi Exp $
  */
 
 #include <stdio.h>
@@ -1203,13 +1203,13 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
     /* load the stream/meta info */
     switch( buf->type ) {
       case BUF_VIDEO_BITPLANE:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Uncompressed bitplane");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Uncompressed bitplane");
         break;
       case BUF_VIDEO_BITPLANE_BR1:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "ByteRun1 bitplane");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "ByteRun1 bitplane");
         break;
       default:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Unknown bitplane");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Unknown bitplane");
         break;
     }
 
@@ -1340,25 +1340,25 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
             break;
           /* also known as IFF-ANIM OPT3 */
           case IFF_ANHD_SDELTA:
-            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT3");
+            _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT3");
             bitplane_sdelta_opt_3 ( this );
             return;
             break;
           /* also known as IFF-ANIM OPT4 (never seen in real world) */
           case IFF_ANHD_SLDELTA:
-            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
+            _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT4 (SLDELTA)");
             bitplane_set_dlta_short ( this );
             break;
           /* also known as IFF-ANIM OPT5 */
           case IFF_ANHD_BVDELTA:
-            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT5 (BVDELTA)");
+            _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT5 (BVDELTA)");
             bitplane_dlta_5(this);
             break;
           /* IFF-ANIM OPT6 is exactly the same as OPT5, but for stereo-displays */
           /* first picture is on the left display, second on the right, third on */
           /* the left, forth on right, ... Only display left picture on mono display*/
           case IFF_ANHD_STEREOO5:
-            _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT6 (BVDELTA STEREO)");
+            _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT6 (BVDELTA STEREO)");
             bitplane_dlta_5(this);
             if( this->framenumber % 2   == 0 )
               this->skipframes          = 1;
@@ -1366,19 +1366,19 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
             break;
           case IFF_ANHD_OPT7:
             if(anhd->bits == 0) {
-              _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (SHORT)");
+              _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (SHORT)");
               bitplane_dlta_7_short(this);
             } else {
-              _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (LONG)");
+              _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT7 (LONG)");
               bitplane_dlta_7_long(this);
             }
             break;
           case IFF_ANHD_OPT8:
             if(anhd->bits == 0) {
-              _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (SHORT)");
+              _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (SHORT)");
               bitplane_dlta_8_short(this);
             } else {
-              _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (LONG)");
+              _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Anim OPT8 (LONG)");
               bitplane_dlta_8_long(this);
             }
             break;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.37 2004/12/12 22:01:08 mroi Exp $
+ * $Id: video_decoder.c,v 1.38 2004/12/16 13:59:05 mroi Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -336,8 +336,8 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
    * init codec
    */
   if (!this->decoder_ok) {
-    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-                     "mpeg-1 (ffmpeg)");
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, 
+                          "mpeg-1 (ffmpeg)");
 
     this->codec = avcodec_find_decoder (CODEC_ID_MPEG1VIDEO); 
     if (!this->codec) {
@@ -748,8 +748,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
       if(ff_video_lookup[i].type == codec_type) {
         this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
-                         ff_video_lookup[i].name);
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
+                              ff_video_lookup[i].name);
         break;
       }
 

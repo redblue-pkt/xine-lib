@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.36 2004/12/03 01:15:31 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.37 2004/12/16 13:59:10 mroi Exp $
  *
  */
 
@@ -302,7 +302,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
                                                
     /* stream/meta info */
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
       "AAC (libfaad)");
 
   } else {

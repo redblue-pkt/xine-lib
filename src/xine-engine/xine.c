@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.304 2004/12/12 22:01:32 mroi Exp $
+ * $Id: xine.c,v 1.305 2004/12/16 13:59:06 mroi Exp $
  */
 
 /*
@@ -668,8 +668,8 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 		stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
       if (stream->input_plugin->input_class->eject_media)
         stream->eject_class = stream->input_plugin->input_class;
-      _x_meta_info_set(stream, XINE_META_INFO_INPUT_PLUGIN, 
-		       (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class)));
+      _x_meta_info_set_utf8(stream, XINE_META_INFO_INPUT_PLUGIN, 
+			    (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class)));
 
       if (!stream->input_plugin->open(stream->input_plugin)) {
 	xine_log (stream->xine, XINE_LOG_MSG, _("xine: input plugin cannot open MRL [%s]\n"),mrl);
@@ -723,8 +723,8 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	    return 0;
 	  }
 
-	  _x_meta_info_set(stream, XINE_META_INFO_SYSTEMLAYER,
-			   (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
+	  _x_meta_info_set_utf8(stream, XINE_META_INFO_SYSTEMLAYER,
+				(stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
 	  free(demux_name);
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
@@ -796,8 +796,8 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
 	  }
 	  lprintf ("demux and input plugin found\n");
 
-	  _x_meta_info_set(stream, XINE_META_INFO_SYSTEMLAYER,
-			   (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
+	  _x_meta_info_set_utf8(stream, XINE_META_INFO_SYSTEMLAYER,
+				(stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
 	  free(demux_name);
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
@@ -1002,8 +1002,8 @@ static int __open_internal (xine_stream_t *stream, const char *mrl) {
     }
     lprintf ("demux and input plugin found\n");
 
-    _x_meta_info_set(stream, XINE_META_INFO_SYSTEMLAYER,
-		     (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
+    _x_meta_info_set_utf8(stream, XINE_META_INFO_SYSTEMLAYER,
+			  (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class)));
   }
 
   xine_log (stream->xine, XINE_LOG_MSG, _("xine: found demuxer plugin: %s\n"),

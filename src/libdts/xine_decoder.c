@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2004/11/03 19:30:05 mroi Exp $
+ * $Id: xine_decoder.c,v 1.60 2004/12/16 13:59:10 mroi Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -412,24 +412,24 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
               this->rate = this->dts_sample_rate;
               if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F2R) && (this->dts_flags & DTS_LFE))
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.1");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.1");
               else if ((((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F2R) && (this->dts_flags & DTS_LFE)) ||
                        (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F1R) && (this->dts_flags & DTS_LFE)))
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.1");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.1");
               else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F2R) 
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.0");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.0");
               else if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F2R) ||
                        ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F1R))
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.0");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 4.0");
               else if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F1R) ||
                        ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F))
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 3.0");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 3.0");
               else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_STEREO)
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 2.0 (stereo)");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 2.0 (stereo)");
               else if ((this->dts_flags & DTS_CHANNEL_MASK) == DTS_MONO)
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 1.0");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 1.0");
               else
-                _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
+                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
 
               _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->dts_bit_rate);
               _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->dts_sample_rate);

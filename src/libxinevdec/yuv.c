@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.33 2004/05/21 19:54:42 mroi Exp $
+ * $Id: yuv.c,v 1.34 2004/12/16 13:59:12 mroi Exp $
  */
 
 #include <stdio.h>
@@ -121,23 +121,23 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     switch (buf->type) {
 
       case BUF_VIDEO_YUY2:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YUY2");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YUY2");
         break;
       
       case BUF_VIDEO_YV12:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YV12");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YV12");
         break;
 
       case BUF_VIDEO_YVU9:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YVU9");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YVU9");
         break;
 
       case BUF_VIDEO_GREY:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Greyscale YUV");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Greyscale YUV");
         break;
         
       case BUF_VIDEO_I420:
-        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw I420");
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw I420");
         break;
 
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2004/12/16 13:16:50 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.16 2004/12/16 13:59:11 mroi Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -128,7 +128,7 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
   int len, i, nb_fields;
   char * end;
 
-  _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "speex");
+  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "speex");
 
   if (length < 8) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");

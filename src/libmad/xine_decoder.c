@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2004/03/16 14:12:04 mroi Exp $
+ * $Id: xine_decoder.c,v 1.53 2004/12/16 13:59:11 mroi Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -202,19 +202,19 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           if (! _x_meta_info_get(this->xstream, XINE_META_INFO_AUDIOCODEC)) {
             switch (this->frame.header.layer) {
             case MAD_LAYER_I:
-              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+              _x_meta_info_set_utf8(this->xstream, XINE_META_INFO_AUDIOCODEC, 
                 "MPEG audio layer 1 (lib: MAD)");
               break;
             case MAD_LAYER_II:
-              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+              _x_meta_info_set_utf8(this->xstream, XINE_META_INFO_AUDIOCODEC, 
                 "MPEG audio layer 2 (lib: MAD)");
               break;
             case MAD_LAYER_III:
-              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+              _x_meta_info_set_utf8(this->xstream, XINE_META_INFO_AUDIOCODEC, 
                 "MPEG audio layer 3 (lib: MAD)");
               break;
             default:
-              _x_meta_info_set(this->xstream, XINE_META_INFO_AUDIOCODEC, 
+              _x_meta_info_set_utf8(this->xstream, XINE_META_INFO_AUDIOCODEC, 
                 "MPEG audio (lib: MAD)");
             }
           }

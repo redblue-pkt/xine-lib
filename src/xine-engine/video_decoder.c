@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.154 2004/12/12 22:01:31 mroi Exp $
+ * $Id: video_decoder.c,v 1.155 2004/12/16 13:59:06 mroi Exp $
  *
  */
 
@@ -373,7 +373,7 @@ static void *video_decoder_loop (void *stream_gen) {
                     _("video_decoder: no plugin available to handle '%s'\n"), _x_buf_video_name( buf->type ) );
           
           if( !_x_meta_info_get(stream, XINE_META_INFO_VIDEOCODEC))
-	    _x_meta_info_set(stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name( buf->type ));
+	    _x_meta_info_set_utf8(stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name( buf->type ));
           
           buftype_unknown = buf->type;
           

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.58 2004/12/12 22:01:04 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.59 2004/12/16 13:59:06 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -821,7 +821,7 @@ static void frame_format_change(dxr3_decoder_t *this)
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  10000 * this->ratio);
   
-  _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG (DXR3)");
+  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG (DXR3)");
 }
 
 static void dxr3_update_panscan(void *this_gen, xine_cfg_entry_t *entry)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.5 2004/08/26 18:03:40 valtri Exp $
+ * $Id: dvaudio_decoder.c,v 1.6 2004/12/16 13:58:57 mroi Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -278,7 +278,7 @@ static void dvaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
     this->audio_bits = buf->decoder_info[2];
     this->audio_channels = buf->decoder_info[3];
     
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DV Audio");
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DV Audio");
     
     this->decoder_ok = 1;
    

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2004/11/19 05:35:49 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.56 2004/12/16 13:59:10 mroi Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -145,7 +145,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                                                this->ao_cap_mode) ;
 
     /* stream/meta info */
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Linear PCM");
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Linear PCM");
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, 
         this->bits_per_sample * this->rate * this->number_of_channels);
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.138 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.139 2004/12/16 13:59:11 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -414,7 +414,7 @@ static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
     snprintf(scratch_buf, 256, "MPEG %s Layer %1d%s",
              mpeg_ver[this->cur_frame.version_idx], this->cur_frame.layer,
              (this->is_vbr)? " VBR" : " CBR" );
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, scratch_buf);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, scratch_buf);
     
     this->meta_info_flag = 1;
   }
