@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.42 2003/01/13 17:43:08 mroi Exp $
+ * $Id: configfile.c,v 1.43 2003/01/31 22:00:19 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -710,17 +710,67 @@ void xine_config_load (xine_t *xine, const char *filename) {
   }
 }
 
-void xine_config_save (xine_t *xine_ro, const char *filename) {
+void xine_config_save (xine_t *xine, const char *filename) {
 
-  config_values_t *this = xine_ro->config;
+  config_values_t *this = xine->config;
+  char temp[XINE_PATH_MAX], traverse[XINE_PATH_MAX];
+  struct stat statbuf;
+  int temp_rename = 0;
   FILE *f_config;
 
+  /* traverse symbolic links */
+  strncpy(traverse, filename, XINE_PATH_MAX);
+  if (lstat(traverse, &statbuf) == 0) {
+    while (S_ISLNK(statbuf.st_mode)) {
+      int i;
+
+      if ((i = readlink(traverse, temp, XINE_PATH_MAX)) == -1) {
+        /* something failed -> revert */
+        strncpy(traverse, filename, XINE_PATH_MAX);
+	break;
+      }
+      temp[i] = '\0'; /* readlink does not terminate the string */
+      
+      /* search for a / to extract directory name */
+      for (i = strlen(traverse); i >= 0; i--) {
+        if (traverse[i] == '/' && (i == 0 || traverse[i-1] != '\\')) {
+	  traverse[i+1] = '\0';
+	  break;
+	}
+      }
+      if (i == -1)
+        /* no slash found at all */
+	traverse[i+1] = '\0';
+
+      strncat(traverse, temp, XINE_PATH_MAX - strlen(traverse) - 1);
+      if (lstat(traverse, &statbuf) != 0) {
+        /* something failed -> revert */
+        strncpy(traverse, filename, XINE_PATH_MAX);
+	break;
+      }
+    }
+  }
+  
+  sprintf(temp, "%s~", traverse);
+  
+  /* existence check */
+  f_config = fopen(temp, "r");
+  if (f_config)
+    fclose(f_config);
+
+  if (!f_config) {
 #ifdef LOG
-  printf ("writing config file to %s\n", filename);
+    printf ("writing config file to %s\n", temp);
 #endif
-
-  f_config = fopen (filename, "w");
-
+    f_config = fopen(temp, "w");
+    temp_rename = 1;
+  } else {
+#ifdef LOG
+    printf ("writing config file to %s\n", traverse);
+#endif
+    f_config = fopen(traverse, "w");
+  }
+    
   if (f_config) {
 
     cfg_entry_t *entry;
@@ -799,7 +849,10 @@ void xine_config_save (xine_t *xine_ro, const char *filename) {
       entry = entry->next;
     }
     pthread_mutex_unlock(&this->config_lock);
-    fclose (f_config);
+    if (fclose(f_config) != 0)
+      temp_rename = 0;
+    if (temp_rename)
+      rename(temp, traverse);
   }
 }
 
