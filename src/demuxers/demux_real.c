@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.55 2003/05/26 20:07:09 jstembridge Exp $
+ * $Id: demux_real.c,v 1.56 2003/05/29 00:13:11 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1246,6 +1246,7 @@ static int demux_real_seek (demux_plugin_t *this_gen,
   this->send_newpts     = 1;
   this->old_seqnum      = -1;
   this->fragment_size   = 0;
+  this->status          = DEMUX_OK;
 
   return this->status;
 }
