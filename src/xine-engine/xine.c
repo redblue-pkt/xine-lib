@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.279 2004/01/04 00:00:58 storri Exp $
+ * $Id: xine.c,v 1.280 2004/01/07 22:22:54 jstembridge Exp $
  */
 
 /*
@@ -1500,16 +1500,28 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
     switch (frame->format) {
 
     case XINE_IMGFMT_YV12:
-      memcpy (img, frame->base[0], frame->width*frame->height);
-      memcpy (img+frame->width*frame->height, frame->base[1],
-	      frame->width*frame->height/4);
-      memcpy (img+frame->width*frame->height+frame->width*frame->height/4,
-	      frame->base[2],
-	      frame->width*frame->height/4);
+      yv12_to_yv12(
+       /* Y */
+        frame->base[0], frame->pitches[0],
+        img, frame->width,
+       /* U */
+        frame->base[1], frame->pitches[1],
+        img+frame->width*frame->height, frame->width/2,
+       /* V */
+        frame->base[2], frame->pitches[2],
+        img+frame->width*frame->height+frame->width*frame->height/4, frame->width/2,
+       /* width x height */
+        frame->width, frame->height);
       break;
 
     case XINE_IMGFMT_YUY2:
-      memcpy (img, frame->base[0], frame->width * frame->height * 2);
+      yuy2_to_yuy2(
+       /* src */
+        frame->base[0], frame->pitches[0],
+       /* dst */
+        img, frame->width*2,
+       /* width x height */
+        frame->width, frame->height);
       break;
 
     default:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.184 2004/01/07 19:52:43 mroi Exp $
+ * $Id: video_out.c,v 1.185 2004/01/07 22:22:54 jstembridge Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -552,15 +552,26 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   image_size = img->pitches[0] * img->height;
 
   if (img->format == XINE_IMGFMT_YV12) {
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-    if (img->base[1])
-      xine_fast_memcpy(dupl->base[1], img->base[1], img->pitches[1] * ((img->height+1)/2));
-    if (img->base[2])
-      xine_fast_memcpy(dupl->base[2], img->base[2], img->pitches[2] * ((img->height+1)/2));
+    yv12_to_yv12(
+     /* Y */
+      img->base[0], img->pitches[0],
+      dupl->base[0], dupl->pitches[0],
+     /* U */
+      img->base[1], img->pitches[1],
+      dupl->base[1], dupl->pitches[1],
+     /* V */
+      img->base[2], img->pitches[2],
+      dupl->base[2], dupl->pitches[2],
+     /* width x height */
+      img->width, img->height);
   } else {
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
+    yuy2_to_yuy2(
+     /* src */
+      img->base[0], img->pitches[0],
+     /* dst */
+      dupl->base[0], dupl->pitches[0],
+     /* width x height */
+      img->width, img->height);
   }  
   
   dupl->bad_frame   = 0;

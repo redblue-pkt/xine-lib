@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.57 2003/12/14 22:13:24 siggi Exp $
+ * $Id: xine_decoder.c,v 1.58 2004/01/07 22:23:33 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -263,35 +263,6 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   return 1;
 }
 
-static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int pitches[3]) {
-  unsigned int i, j;
-  uint8_t *src, *dst;
-
-  src = this->frame_buffer;
-  dst = base[0];
-
-  for (i=0; i < this->height; ++i) {
-    memcpy (dst, src, this->width);
-    src += this->width;
-    dst += pitches[0];
-  }
-
-  for (i=1; i < 3; i++) {
-    src = this->frame_buffer + this->frame_size; 
-    dst = base[i];
-
-    if (i == 2) {
-      src += this->frame_size / 4;
-    }
-
-    for (j=0; j < (this->height / 2); ++j) {
-      memcpy (dst, src, (this->width / 2));
-      src += this->width / 2;
-      dst += pitches[i];
-    }
-  }
-}
-
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
@@ -403,7 +374,18 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 		 this->num_frames,
 		 this->duration);
 
-	realdec_copy_frame (this, img->base, img->pitches);
+	yv12_to_yv12(
+	 /* Y */
+	  this->frame_buffer, this->width,
+	  img->base[0], img->pitches[0],
+	 /* U */
+	  this->frame_buffer + this->frame_size, this->width/2,
+	  img->base[1], img->pitches[1],
+	 /* V */
+	  this->frame_buffer + this->frame_size * 5/4, this->width/2,
+	  img->base[2], img->pitches[2],
+	 /* width x height */
+	  this->width, this->height);
 
 	img->draw(img, this->stream);
 	img->free(img);
