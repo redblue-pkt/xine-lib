@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.20 2001/09/27 13:09:01 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.21 2001/09/27 18:41:33 jkeil Exp $
  */
 
 #include "config.h"
@@ -778,6 +778,92 @@ done:
 }
 
 
+/*
+ * Interpolates 8 output pixels from 5 source pixels using shifts.
+ * Useful for scaling a PAL svcd input source to 4:3 display format.
+ */
+static void scale_line_5_8 (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 8) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (3*p1 + 5*p2) >> 3;
+    p1 = source[2];
+    dest[2] = (3*p2 + 1*p1) >> 2;
+    dest[3] = (1*p2 + 7*p1) >> 3;
+    p2 = source[3];
+    dest[4] = (1*p1 + 1*p2) >> 1;
+    p1 = source[4];
+    dest[5] = (7*p2 + 1*p1) >> 3;
+    dest[6] = (1*p2 + 3*p1) >> 2;
+    p2 = source[5];
+    dest[7] = (5*p1 + 3*p2) >> 3;
+    source += 5;
+    dest += 8;
+  }
+
+  if ((width += 8) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[0] + 5*source[1]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[1] + 1*source[2]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 7*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 1*source[3]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[3] + 1*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[3] + 3*source[4]) >> 2;
+done:
+
+  profiler_stop_count(prof_scale_line);
+}
+
+
+/*
+ * Interpolates 4 output pixels from 3 source pixels using shifts.
+ * Useful for scaling a NTSC svcd input source to 4:3 display format.
+ */
+static void scale_line_3_4 (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 4) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 3*p2) >> 2;
+    p1 = source[2];
+    dest[2] = (1*p2 + 1*p1) >> 1;
+    p2 = source[3];
+    dest[3] = (3*p1 + 1*p2) >> 2;
+    source += 3;
+    dest += 4;
+  }
+
+  if ((width += 4) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 3*source[1]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 1*source[2]) >> 1;
+done:
+
+  profiler_stop_count(prof_scale_line);
+}
+
+
 /* Interpolate 2 output pixels from one source pixel. */
 
 static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
@@ -831,6 +917,8 @@ static scale_line_func_t find_scale_line_func(int step) {
     {  9, 16, scale_line_9_16,  "dvd fullscreen(1280x1024)" },
     { 11, 12, scale_line_11_12, "vcd(pal) 4:3" },
     { 11, 24, scale_line_11_24, "vcd(pal) 4:3 2*zoom" },
+    {  5,  8, scale_line_5_8,   "svcd(pal) 4:3" },
+    {  3,  4, scale_line_3_4,   "svcd(ntsc) 4:3" },
     {  1,  2, scale_line_1_2,   "2*zoom" },
     {  1,  1, scale_line_1_1,   "non-scaled" },
   };
