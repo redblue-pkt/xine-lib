@@ -1,3 +1,6 @@
+xine-lib (1-beta12)
+  * playback of theorastreams added
+
 xine-lib (1-beta11)
   * fix bugs in selecting ogm subtitles
   * fix multiple lines subtitles' display in OGM container

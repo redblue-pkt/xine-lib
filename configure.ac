@@ -605,6 +605,19 @@ AM_PATH_OGG(
 AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes"])
 
 dnl ---------------------------------------------
+dnl Ogg/Theora libs.
+dnl ---------------------------------------------
+
+echo "these are your cflags before ampath_blabla $CFLAGS "
+
+AM_PATH_OGG(
+           [ AM_PATH_THEORA(AC_DEFINE(HAVE_THEORA,1,[Define this if you have theora]),
+                           AC_MSG_RESULT([*** All OGG/THEORA dependent parts will be disabled ***]))
+          ],
+           AC_MSG_RESULT([*** All of OGG/Theora dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_THEORA, [test x"$no_ogg" != "xyes" -a x"$no_theora" != "xyes"])
+
+dnl ---------------------------------------------
 dnl check for libFLAC
 dnl ---------------------------------------------
 AM_PATH_LIBFLAC([],
@@ -1339,6 +1352,7 @@ src/libspudec/Makefile
 src/libspucc/Makefile
 src/libsputext/Makefile
 src/libvorbis/Makefile
+src/libtheora/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
 src/libw32dll/DirectShow/Makefile
@@ -1439,7 +1453,7 @@ echo "   - ac3"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
-if test x"$no_oggvorbis" = "xno"; then
+if test x"$no_vorbis" != "xyes"; then
   echo "   - ogg"
 fi
 if test x"$have_libmng" = "xyes"; then
@@ -1470,6 +1484,9 @@ fi
 if test x"$have_libpng" = "xyes"; then
   echo "   - png"
 fi
+if test x"$no_theora" != "xyes"; then
+  echo "   - theora"
+fi
 echo ""
 
 dnl audio decoders
@@ -1480,7 +1497,7 @@ echo "   - linear pcm      - roqaudio"
 echo "   - log pcm         - gsm610"
 echo "   - ffmpeg          - interplayaudio"
 echo "   - nosefart"
-if test x"$no_oggvorbis" = "xno"; then
+if test x"$no_vorbis" != "xyes"; then
   echo "   - vorbis"
 fi
 if test x"$enable_w32dll" = "xyes"; then

@@ -31,6 +31,7 @@ EXTRA_DIST = \
 	progtest.m4 \
 	sdl.m4 \
 	vorbis.m4 \
+	theora.m4 \
 	xine.m4 \
 	_xine.m4 \
 	xvid.m4

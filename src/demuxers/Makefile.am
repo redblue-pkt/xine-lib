@@ -1,4 +1,4 @@
-AM_CFLAGS = $(OGG_CFLAGS) @ANSI_FLAGS@
+AM_CFLAGS = $(THEORA_CFLAGS) $(OGG_CFLAGS) @ANSI_FLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -46,7 +46,7 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 	xineplug_dmx_yuv_frames.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
-xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
+xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(THEORA_LIBS) $(XINELIB)
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
