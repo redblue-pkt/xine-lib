@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.12 2002/12/22 23:20:21 tmmm Exp $
+ * $Id: color.c,v 1.13 2003/01/01 19:32:28 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -314,6 +314,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
     0x01, 0x00
   };
   unsigned char shifter[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  unsigned char vector[8];
   int block_loops = yuv_planes->row_width / 6;
   int filter_loops;
   int residual_filter_loops;
@@ -410,6 +411,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
           psrlq_i2r(3, mm2);       /* divide by 8 */
 
+#if 0
           /* load the destination address into ebx */
           __asm__ __volatile__ ("mov %0, %%ebx"
                               : /* nothing */
@@ -426,6 +428,11 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           __asm__ __volatile__ ("mov %%al, (%%ebx)"
                                 : /* nothing */
                                 : /* nothing */ );
+
+#else
+          movq_r2m(mm2, *vector);
+          dest_plane[0] = vector[0];
+#endif
 
           dest_plane += 4;
 
