@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.99 2002/01/16 17:35:34 miguelfreitas Exp $
+ * $Id: xine.c,v 1.100 2002/01/24 23:09:54 guenter Exp $
  *
  * top-level xine functions
  *
@@ -116,7 +116,7 @@ static void xine_internal_osd (xine_t *this, char *str,
   uint32_t seconds;
   char tstr[256];
 
-  if( this->osd_display ) {
+  if (this->osd_display) {
    
     this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
     this->osd_renderer->render_text (this->osd, 0, 5, str, OSD_TEXT1);
@@ -194,7 +194,7 @@ void xine_stop (xine_t *this) {
      am i abusing of xine architeture? :)
   */
   this->metronom->adjust_clock(this->metronom,
-    this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
 }
 
 
@@ -301,7 +301,7 @@ int xine_play (xine_t *this, char *mrl,
     /* this will make output threads discard about everything
        (seeking should be faster!) */
     this->metronom->adjust_clock(this->metronom,
-      this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
 
     this->status = XINE_STOP;
   }
@@ -446,7 +446,7 @@ xine_t *xine_init (vo_driver_t *vo,
   bindtextdomain("xine-lib", XINE_LOCALEDIR);
 #endif 
 
-  LOG_MSG(this, _("xine_init entered\n"));
+  printf ("xine: xine_init entered\n");
   
   this->err     = XINE_ERROR_NONE;
   this->config  = config;
@@ -519,7 +519,26 @@ xine_t *xine_init (vo_driver_t *vo,
     this->audio_out = ao_new_instance (ao, this->metronom, config);
 
   audio_decoder_init (this);
-  LOG_MSG(this, _("xine_init returning\n"));
+
+  /*
+   * start metronom clock (needed for osd)
+   */
+
+  this->metronom->start_clock (this->metronom, 0);
+
+  if (this->osd_display) {
+   
+    char tstr[30];
+
+    this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
+    sprintf (tstr, "xine-lib v%01d.%01d.%01d", XINE_MAJOR, XINE_MINOR, XINE_SUB);
+
+    this->osd_renderer->render_text (this->osd, 5, 5, tstr, OSD_TEXT1);
+  
+    this->osd_renderer->show (this->osd, 0);
+    this->osd_renderer->hide (this->osd, 300000);
+  }
+
 
   return this;
 }

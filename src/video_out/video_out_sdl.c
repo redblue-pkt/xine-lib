@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.3 2002/01/22 01:43:13 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.4 2002/01/24 23:09:53 guenter Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -511,13 +511,6 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
 
     area = (x11_rectangle_t *) data;
     sdl_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
-    break;
-
-  case GUI_DATA_EX_LOGO_VISIBILITY:
-#ifdef SDL_LOG
-      printf ("video_out_sdl: GUI_DATA_EX_LOGO_VISIBILITY\n");
-#endif
-    /* FIXME: implement */
     break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.66 2002/01/15 13:51:10 guenter Exp $
+ * $Id: video_out.c,v 1.67 2002/01/24 23:09:54 guenter Exp $
  *
  */
 
@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <zlib.h>
 
 #include "video_out.h"
 #include "xine_internal.h"
@@ -181,13 +182,53 @@ static void video_out_send_decoder_flush( fifo_buffer_t *video_fifo ) {
 
 }
 
+static vo_frame_t *vo_get_frame (vo_instance_t *this,
+				 uint32_t width, uint32_t height,
+				 int ratio, int format, uint32_t duration,
+				 int flags) {
 
+  vo_frame_t *img;
+
+  /*
+  printf ("video_out : get_frame %d x %d from queue %d\n",
+	  width, height, this->free_img_buf_queue);
+  fflush(stdout);
+  */
+
+  if (this->pts_per_frame != duration) {
+    this->pts_per_frame = duration;
+    this->pts_per_half_frame = duration / 2;
+    this->metronom->set_video_rate (this->metronom, duration);
+  }
+
+  img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
+
+  pthread_mutex_lock (&img->mutex);
+  img->display_locked = 0;
+  img->decoder_locked = 1;
+  img->driver_locked  = 0;
+  img->width        = width;
+  img->height       = height;
+  img->ratio        = ratio;
+  img->format       = format;
+  img->duration     = duration;
+  img->drawn        = 0;
+  
+  /* let driver ensure this image has the right format */
+
+  this->driver->update_frame_format (this->driver, img, width, height, ratio, format, flags);
+
+  pthread_mutex_unlock (&img->mutex);
+  
+  return img;
+}
 
 static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
   int                diff, absdiff, pts=0;
   vo_frame_t        *img, *img_backup;
+  int                backup_is_logo = 0;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   static int	     prof_video_out = -1;
@@ -325,7 +366,8 @@ static void *video_out_loop (void *this_gen) {
 
 	  /* we must not clear display_locked from img_backup.
 	     without it decoder may try to free our backup.  */
-	  img_backup = img;
+	  img_backup     = img;
+	  backup_is_logo = 0;
 	} else {
 	  pthread_mutex_lock (&img->mutex);
 	  
@@ -351,6 +393,51 @@ static void *video_out_loop (void *this_gen) {
 #ifdef VIDEO_OUT_LOG
       printf ("video_out : no frame\n");
 #endif
+
+      /*
+       * display logo ?
+       */
+      if (!this->video_opened && (!img_backup || !backup_is_logo)) {
+
+	if (img_backup) {
+	  pthread_mutex_lock (&img_backup->mutex);
+#ifdef VIDEO_OUT_LOG
+	  printf("video_out : overwriting frame backup\n");
+#endif
+	  img_backup->display_locked = 0;
+	  if (!img_backup->decoder_locked) 
+	    vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
+
+	  pthread_mutex_unlock (&img_backup->mutex);
+	}
+
+	img_backup = vo_get_frame (this, this->logo_w, this->logo_h,
+				   42, IMGFMT_YUY2, 6000, VO_BOTH_FIELDS);
+
+	img_backup->decoder_locked = 0;
+	img_backup->display_locked = 1;
+	img_backup->driver_locked  = 0;
+
+	xine_fast_memcpy(img_backup->base[0], this->logo_yuy2,
+			 this->logo_w*this->logo_h*2);
+
+	if (img_backup->copy) {
+	  int height = this->logo_h;
+	  int stride = this->logo_w;
+	  uint8_t* src[3];
+	  
+	  src[0] = img->base[0];
+	  
+	  while ((height -= 16) >= 0) {
+	    img->copy(img, src);
+	    src[0] += 32 * stride;
+	  }
+	}
+
+	backup_is_logo = 1;
+
+      }
+
 
       if (img_backup) {
 
@@ -383,9 +470,11 @@ static void *video_out_loop (void *this_gen) {
         diff = 0;
 
       } else {
+
 #ifdef VIDEO_OUT_LOG
 	printf ("video_out : no frame, but no backup frame\n");
 #endif
+
 	xine_profiler_stop_count (prof_video_out);
 	continue;
       }
@@ -426,6 +515,7 @@ static void *video_out_loop (void *this_gen) {
 	  this->xine->video_fifo->size(this->xine->video_fifo), flush_sent);
         
 	img_backup = this->duplicate_frame(this, img);
+	backup_is_logo = 0;
       }
 
       flush_sent = 0;
@@ -518,75 +608,6 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
   return this->driver->get_capabilities (this->driver);
 }
 
-static void vo_open (vo_instance_t *this) {
-
-  pthread_attr_t       pth_attrs;
-  int		       err;
-
-  if (!this->video_loop_running) {
-    this->video_loop_running = 1;
-    this->decoder_started_flag = 0;
-    this->pts_per_frame        = 0;
-
-    pthread_attr_init(&pth_attrs);
-    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
-
-    if((err = pthread_create (&this->video_thread,
-			      &pth_attrs, video_out_loop, this)) != 0) {
-
-      LOG_MSG(this->xine, _("video_out : can't create thread (%s)\n"), strerror(err));
-      /* FIXME: how does this happen ? */
-      LOG_MSG(this->xine, _("video_out : sorry, this should not happen. please restart xine.\n"));
-      exit(1);
-    }
-    else
-      LOG_MSG(this->xine, _("video_out : thread created\n"));
-  } else
-    LOG_MSG(this->xine, _("video_out : vo_open : warning! video thread already running\n"));
-
-}
-
-static vo_frame_t *vo_get_frame (vo_instance_t *this,
-				 uint32_t width, uint32_t height,
-				 int ratio, int format, uint32_t duration,
-				 int flags) {
-
-  vo_frame_t *img;
-
-  /*
-  printf ("video_out : get_frame %d x %d from queue %d\n",
-	  width, height, this->free_img_buf_queue);
-  fflush(stdout);
-  */
-
-  if (this->pts_per_frame != duration) {
-    this->pts_per_frame = duration;
-    this->pts_per_half_frame = duration / 2;
-    this->metronom->set_video_rate (this->metronom, duration);
-  }
-
-  img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
-
-  pthread_mutex_lock (&img->mutex);
-  img->display_locked = 0;
-  img->decoder_locked = 1;
-  img->driver_locked  = 0;
-  img->width        = width;
-  img->height       = height;
-  img->ratio        = ratio;
-  img->format       = format;
-  img->duration     = duration;
-  img->drawn        = 0;
-  
-  /* let driver ensure this image has the right format */
-
-  this->driver->update_frame_format (this->driver, img, width, height, ratio, format, flags);
-
-  pthread_mutex_unlock (&img->mutex);
-  
-  return img;
-}
-
 static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
   vo_frame_t *dupl;
   int image_size;
@@ -661,20 +682,19 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
   return dupl;
 }
 
+static void vo_open (vo_instance_t *this) {
+
+  this->video_opened = 1;
+
+}
+
 static void vo_close (vo_instance_t *this) {
     
   /* this will make sure all hide events were processed */
   if (this->overlay_source)
     this->overlay_source->flush_events (this->overlay_source);
-  
-  if (this->video_loop_running) {
-    void *p;
 
-    this->video_loop_running = 0;
-    this->video_paused = 0;
-    /*kill (0, SIGALRM);*/
-    pthread_join (this->video_thread, &p);
-  }
+  this->video_opened = 0;
 }
 
 static void vo_free_img_buffers (vo_instance_t *this) {
@@ -693,9 +713,21 @@ static void vo_free_img_buffers (vo_instance_t *this) {
 
 static void vo_exit (vo_instance_t *this) {
 
+  printf ("video_out: vo_exit...\n");
+  if (this->video_loop_running) {
+    void *p;
+
+    this->video_loop_running = 0;
+    this->video_paused       = 0;
+
+    pthread_join (this->video_thread, &p);
+  }
+
   vo_free_img_buffers (this);
 
   this->driver->exit (this->driver);
+
+  printf ("video_out: vo_exit... done\n");
 }
 
 static void vo_frame_displayed (vo_frame_t *img) {
@@ -836,10 +868,24 @@ static void vo_decoder_started (vo_instance_t *this) {
   this->decoder_started_flag = 1;
 }
 
+static uint16_t gzread_i16(gzFile *fp) {
+  uint16_t ret;
+  ret = gzgetc(fp) << 8 ;
+  ret |= gzgetc(fp);
+  return ret;
+}
+
+#define LOGO_PATH_MAX 1025
+
 vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 
   vo_instance_t *this;
   int            i;
+  char           pathname[LOGO_PATH_MAX]; 
+  pthread_attr_t pth_attrs;
+  int		 err;
+  gzFile        *fp;
+
 
   this = xine_xmalloc (sizeof (vo_instance_t)) ;
   this->driver                = driver;
@@ -863,8 +909,8 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
   this->display_img_buf_queue = vo_new_img_buf_queue ();
   this->video_loop_running    = 0;
   this->video_paused          = 0;          
-  this->pts_per_frame         = 0;
-  this->pts_per_half_frame    = 0;
+  this->pts_per_frame         = 6000;
+  this->pts_per_half_frame    = 3000;
   
   this->overlay_source        = video_overlay_new_instance();
   this->overlay_source->init (this->overlay_source);
@@ -884,6 +930,55 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 				img);
   }
 
+  /* 
+   * load xine logo
+   */
+  
+  snprintf (pathname, LOGO_PATH_MAX, "%s/xine_logo.zyuy2", XINE_SKINDIR);
+    
+  if ((fp = gzopen (pathname, "rb")) != NULL) {
+    
+    this->logo_w = gzread_i16 (fp);
+    this->logo_h = gzread_i16 (fp);
+    
+    printf ("video_out: loading logo %d x %d pixels, yuy2\n",
+	    this->logo_w, this->logo_h);
+    
+    this->logo_yuy2 = malloc (this->logo_w * this->logo_h *2);
+    
+    gzread (fp, this->logo_yuy2, this->logo_w * this->logo_h *2);
+    
+    gzclose (fp);
+  }
+
+  /*
+   * start video output thread
+   *
+   * this thread will alwys be running, displaying the
+   * logo when "idle" thus making it possible to have
+   * osd when not playing a stream
+   */
+
+  this->video_loop_running   = 1;
+  this->decoder_started_flag = 0;
+  this->video_opened         = 0;
+
+  pthread_attr_init(&pth_attrs);
+  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+
+  if ((err = pthread_create (&this->video_thread,
+			     &pth_attrs, video_out_loop, this)) != 0) {
+
+    printf (_("video_out: can't create thread (%s)\n"), 
+	    strerror(err));
+    /* FIXME: how does this happen ? */
+    printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
+    exit(1);
+  } else
+    LOG_MSG(this->xine, _("video_out : thread created\n"));
+
   return this;
 }
+
+
 

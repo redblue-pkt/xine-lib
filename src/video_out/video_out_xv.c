@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.89 2002/01/22 01:43:13 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.90 2002/01/24 23:09:54 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1036,17 +1036,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     area = (x11_rectangle_t *) data;
     xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
     break;
-
-  case GUI_DATA_EX_LOGO_VISIBILITY:
-
-    if (!data)
-      xv_clear_unused_output_area (this,
-				   this->window_xoffset,
-				   this->window_yoffset,
-				   this->window_width,
-				   this->window_height);
-    break;
-
 
   case GUI_DATA_EX_COMPLETION_EVENT: {
    

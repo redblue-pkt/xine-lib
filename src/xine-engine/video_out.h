@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.38 2002/01/15 20:22:44 jcdutton Exp $
+ * $Id: video_out.h,v 1.39 2002/01/24 23:09:54 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -170,6 +170,7 @@ struct vo_instance_s {
   vo_frame_t        *last_frame;
 
   int                video_loop_running;
+  int                video_opened;
   int                video_paused;
   pthread_t          video_thread;
 
@@ -182,6 +183,9 @@ struct vo_instance_s {
 
   int                decoder_started_flag;
   uint32_t           last_draw_vpts;
+
+  int                logo_w, logo_h;
+  uint8_t           *logo_yuy2;
 } ;
 
 /* constants for the get/set property functions */

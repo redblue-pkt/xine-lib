@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.51 2002/01/22 01:43:13 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.52 2002/01/24 23:09:53 guenter Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -88,7 +88,6 @@ typedef struct {
   int                screen_depth;
 
   int                video_win_visibility;
-  int                logo_visibility;
    
   syncfb_property_t props[VO_NUM_PROPERTIES];
 
@@ -455,13 +454,12 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
    static int prev_posx              = 0;
    static int prev_posy              = 0;
    static int prev_v_w_visibility    = 0;
-   static int prev_logo_visibility   = 0;
    
    XLockDisplay(this->display);
    
    XGetWindowAttributes(this->display, this->drawable, &window_attributes);
 
-   if(this->logo_visibility || !this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
+   if (!this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
      posx = posy = -1;
    else
      XTranslateCoordinates(this->display, this->drawable, window_attributes.root, 0, 0, &posx, &posy, &temp_window);
@@ -508,8 +506,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       prev_deinterlacing     != this->deinterlace_enabled  ||
       prev_posx              != posx                       ||
       prev_posy              != posy                       ||
-      prev_v_w_visibility    != this->video_win_visibility ||
-      prev_logo_visibility   != this->logo_visibility) {
+      prev_v_w_visibility    != this->video_win_visibility) {
       
       prev_output_width      = this->output_width;
       prev_output_height     = this->output_height;
@@ -521,7 +518,6 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       prev_posx              = posx;
       prev_posy              = posy;
       prev_v_w_visibility    = this->video_win_visibility;
-      prev_logo_visibility   = this->logo_visibility;
 	
       /*
        * configuring SyncFB module from this point on.
@@ -1089,17 +1085,6 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
   }
     break;
 
-  case GUI_DATA_EX_LOGO_VISIBILITY: {
-     this->logo_visibility = (int)(int *)data;
-
-     this->delivered_width      = 0;
-     this->delivered_height     = 0;
-     this->delivered_ratio_code = 0;
-
-     syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset, this->output_width, this->output_height);
-  }
-    break;
-	  
   default:
     return -1;
   }
@@ -1249,7 +1234,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->frame_height          = 0;
   this->frame_width           = 0;
   this->gc                    = XCreateGC (this->display, this->drawable, 0, NULL);
-  this->logo_visibility       = 0;
   this->output_height         = 0;
   this->output_width          = 0;
   this->output_xoffset        = 0;
