@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.120 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.121 2003/11/01 01:44:54 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -642,17 +642,20 @@ static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
       this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
     } else {
 
-      while ((pos + 6) < tag_header.size) {
+      while ((pos + 6) <= tag_header.size) {
         if (id3v22_parse_frame_header(this->input, &tag_frame_header)) {
           pos += 6;
           if (tag_frame_header.id && tag_frame_header.size) {
-            if ((pos + tag_frame_header.size) < tag_header.size) {
+            if ((pos + tag_frame_header.size) <= tag_header.size) {
               if (!id3v22_interp_frame(this, &tag_frame_header)) {
-                lprintf("invalid frame content\n");
+                xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                        "id2v22: invalid frame content\n");
               }
             } else {
-              lprintf("invalid frame header\n");
-              return 0;
+              xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                      "id3v22: invalid frame header\n");
+              this->input->seek (this->input, tag_header.size - pos, SEEK_CUR);
+              return 1;
             }
             pos += tag_frame_header.size;
           } else {
@@ -661,14 +664,16 @@ static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
             return 1;
           }
         } else {
-          lprintf("id3v2_parse_frame_header problem\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                  "id2v22: id3v2_parse_frame_header problem\n");
           return 0;
         }
       }
     }
     return 1;
   } else {
-    lprintf("id3v2_parse_header problem\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            "id3v22: id3v2_parse_header problem\n");
     return 0;
   }
 }
