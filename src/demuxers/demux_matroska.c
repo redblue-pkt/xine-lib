@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.3 2004/01/05 08:02:35 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.4 2004/01/05 19:39:10 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -53,10 +53,12 @@
 #include "ebml.h"
 #include "matroska.h"
 
-#define NUM_PREVIEW_BUFFERS    10
+#define NUM_PREVIEW_BUFFERS      10
 
-#define MAX_STREAMS           128
-#define MAX_FRAMES             32
+#define MAX_STREAMS             128
+#define MAX_FRAMES               32
+
+#define WRAP_THRESHOLD        90000
 
 typedef struct {
 
@@ -100,7 +102,9 @@ typedef struct {
   matroska_track_t    *video_track;
   matroska_track_t    *audio_track;
   matroska_track_t    *sub_track;
-    
+
+  int                  send_newpts;
+  int                  buf_flag_seek;
 } demux_matroska_t ;
 
 typedef struct {
@@ -112,6 +116,36 @@ typedef struct {
   xine_t           *xine;
 
 } demux_matroska_class_t;
+
+
+static void check_newpts (demux_matroska_t *this, int64_t pts,
+                          matroska_track_t *track) {
+  int64_t diff;
+
+  diff = pts - track->last_pts;
+
+  if (pts && (this->send_newpts || (track->last_pts && abs(diff)>WRAP_THRESHOLD)) ) {
+    int i;
+
+    lprintf ("sending newpts %lld\n", pts);
+
+    if (this->buf_flag_seek) {
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      _x_demux_control_newpts(this->stream, pts, 0);
+    }
+
+    this->send_newpts = 0;
+    for (i = 0; i < this->num_tracks; i++) {
+      this->tracks[i]->last_pts = 0;
+    }
+  }
+
+  if (pts)
+    track->last_pts = pts;
+
+}
 
 
 static int parse_info(demux_matroska_t *this) {
@@ -812,6 +846,8 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
           (int64_t)this->timecode_scale * (int64_t)90 /
           (int64_t)1000000;
     lprintf("pts: %lld\n", pts);
+
+    check_newpts(this, pts, track);
 
     if (this->preview_mode) {
       this->preview_sent++;
