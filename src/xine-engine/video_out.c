@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.115 2002/12/06 01:38:22 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.116 2002/12/06 17:16:40 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -442,7 +442,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->vpts      = 0;
   dupl->duration  = img->duration;
 
-  vo_frame_driver_copy(dupl);
+  /* delay frame copying for now, we might not even need it (eg. frame will be discarded) */
+  /* vo_frame_driver_copy(dupl); */
   
   return dupl;
 }
@@ -495,7 +496,9 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 #endif
 	  vo_frame_dec_lock( this->img_backup );
 	}
+#ifdef LOG
 	printf("video_out: possible still frame (old)\n");
+#endif
 
 	this->img_backup = img;
 	
@@ -580,7 +583,9 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     }
 
     if (this->img_backup) {
+#ifdef LOG
       printf("video_out: freeing frame backup\n");
+#endif
       vo_frame_dec_lock( this->img_backup );
       this->img_backup = NULL;
     }
@@ -595,8 +600,9 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 	
       /*printf ("video_out: possible still frame (fifosize = %d)\n",
 	      this->stream->video_fifo->size(this->stream->video_fifo));*/
+/*#ifdef LOG*/
       printf ("video_out: possible still frame\n");
-        
+/*#endif*/
       this->img_backup = duplicate_frame (this, img);
     }
     pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
@@ -620,9 +626,8 @@ static void overlay_and_display_frame (vos_t *this,
 	  img->vpts);
 #endif
 
-  /* no, this is not were copy() is usually called (eg. rgb conversion).
-   * it's just to catch special cases were a frame that would
-   * be dropped was held for still and later displayed.
+  /* no, this is not were copy() is usually called.
+   * it's just to catch special cases like late or duplicated frames.
    */
   if( img->copy && !img->copy_called )
     vo_frame_driver_copy(img);
