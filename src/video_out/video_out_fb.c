@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.8 2002/03/17 16:53:24 richwareham Exp $
+ * $Id: video_out_fb.c,v 1.9 2002/03/25 03:08:38 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -66,17 +66,41 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 
+#define LOG
+
 typedef struct fb_frame_s {
   vo_frame_t         vo_frame;
 
   int                width, height;
-  int                rgb_width, rgb_height;
-
-  uint8_t           *rgb_dst;
-  int                stripe_inc;
-
+  int                ratio_code;
   int                format;
+  int                flags;
 
+  int                user_ratio;
+  
+  /* 
+   * "ideal" size of this frame :
+   * width/height corrected by aspect ratio
+   */
+
+  int                ideal_width, ideal_height;
+  
+  /*
+   * "output" size of this frame:
+   * this is finally the ideal size "fitted" into the
+   * gui size while maintaining the aspect ratio
+   */
+  int                output_width, output_height;
+  
+  double             ratio_factor;/* ideal/rgb size must fulfill: height = width * ratio_factor  */
+
+  uint8_t           *chunk[3]; /* mem alloc by xmalloc_aligned           */
+
+  yuv2rgb_t         *yuv2rgb; /* yuv2rgb converter set up for this frame */
+  uint8_t           *rgb_dst;
+  int                yuv_stride;
+  int                stripe_height, stripe_inc;
+  
   int                bytes_per_line;
   uint8_t           *data;
 } fb_frame_t;
@@ -95,30 +119,21 @@ typedef struct fb_driver_s {
   int		   scaling_disabled;
   int              depth, bpp, bytes_per_pixel;
   int              expecting_event;
-  uint8_t	  *fast_rgb;
-
-  yuv2rgb_t       *yuv2rgb;
+  
+  int                yuv2rgb_mode;
+  int                yuv2rgb_swap;
+  int                yuv2rgb_gamma;
+  uint8_t           *yuv2rgb_cmap;
+  yuv2rgb_factory_t *yuv2rgb_factory;
 
   vo_overlay_t    *overlay;
 
   /* size / aspect ratio calculations */
-  int              delivered_width;      /* everything is set up for these frame dimensions    */
-  int              delivered_height;     /* the dimension as they come from the decoder        */
-  int              delivered_ratio_code;
-  int              delivered_flags;
-  double           ratio_factor;	 /* output frame must fulfill: height = width * ratio_factor  */
-  double	   output_scale_factor;	 /* additional scale factor for the output frame */
-  int              output_width;         /* frames will appear in this size (pixels) on screen */
-  int              output_height;
-  int              stripe_height;
-  int              yuv_width;            /* width/height yuv2rgb is configured for */
-  int              yuv_height;
-  int              yuv_stride;
-
   int              user_ratio;
+  double	   output_scale_factor;	 /* additional scale factor for the output frame */
 
-  int		   last_frame_rgb_width; /* size of scaled rgb output img gui */
-  int		   last_frame_rgb_height; /* has most recently adopted to */
+  int		   last_frame_output_width; /* size of scaled rgb output img gui */
+  int		   last_frame_output_height; /* has most recently adopted to */
 
   int              gui_width;		 /* size of gui window */
   int              gui_height;
@@ -127,9 +142,6 @@ typedef struct fb_driver_s {
 
   /* display anatomy */
   double           display_ratio;        /* given by visual parameter from init function */
-
-  /* profiler */
-  int		   prof_yuv2rgb;
 
 } fb_driver_t;
 
@@ -148,38 +160,32 @@ static uint32_t fb_get_capabilities (vo_driver_t *this_gen) {
 
 static void fb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
-  fb_driver_t *this = (fb_driver_t *) vo_img->driver;
-
-  xine_profiler_start_count (this->prof_yuv2rgb);
 
   if (frame->format == IMGFMT_YV12) {
-    this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
-				src[0], src[1], src[2]);
+    frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,
+				 src[0], src[1], src[2]);
   } else {
 
-    this->yuv2rgb->yuy22rgb_fun (this->yuv2rgb, frame->rgb_dst,
-				 src[0]);
+    frame->yuv2rgb->yuy22rgb_fun (frame->yuv2rgb, frame->rgb_dst,
+				  src[0]);
 				 
   }
   
-  xine_profiler_stop_count (this->prof_yuv2rgb);
-
   frame->rgb_dst += frame->stripe_inc; 
 }
 
 static void fb_frame_field (vo_frame_t *vo_img, int which_field) {
 
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
-  fb_driver_t *this = (fb_driver_t *) vo_img->driver;
-
+  
   switch (which_field) {
   case VO_TOP_FIELD:
     frame->rgb_dst    = (uint8_t *)frame->data;
-    frame->stripe_inc = 2*this->stripe_height * frame->bytes_per_line;
+    frame->stripe_inc = 2*frame->stripe_height * frame->bytes_per_line;
     break;
   case VO_BOTTOM_FIELD:
     frame->rgb_dst    = (uint8_t *)frame->data + frame->bytes_per_line ;
-    frame->stripe_inc = 2*this->stripe_height * frame->bytes_per_line;
+    frame->stripe_inc = 2*frame->stripe_height * frame->bytes_per_line;
     break;
   case VO_BOTH_FIELDS:
     frame->rgb_dst    = (uint8_t *)frame->data;
@@ -190,7 +196,6 @@ static void fb_frame_field (vo_frame_t *vo_img, int which_field) {
 static void fb_frame_dispose (vo_frame_t *vo_img) {
 
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
-  /* fb_driver_t *this = (fb_driver_t *) vo_img->instance->driver; */
 
   if (frame->data) {
      free(frame->data);
@@ -201,6 +206,7 @@ static void fb_frame_dispose (vo_frame_t *vo_img) {
 
 
 static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
+  fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame ;
 
   frame = (fb_frame_t *) malloc (sizeof (fb_frame_t));
@@ -222,44 +228,33 @@ static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.dispose = fb_frame_dispose;
   frame->vo_frame.driver  = this_gen;
   
+  /*
+   * colorspace converter for this frame
+   */
+
+  frame->yuv2rgb = this->yuv2rgb_factory->create_converter (this->yuv2rgb_factory);
+  
   return (vo_frame_t *) frame;
 }
 
-static void fb_calc_output_size (fb_driver_t *this) {
 
-  double image_ratio, desired_ratio;
-  double corr_factor, x_factor, y_factor;
-  int ideal_width, ideal_height;
-  int dest_width, dest_height;
-
-  /*
-   * aspect ratio calculation
-   */
-
-  if (this->delivered_width == 0 && this->delivered_height == 0)
-    return; /* ConfigureNotify/VisibilityNotify, no decoder output size known */
+static void fb_compute_ideal_size (fb_driver_t *this, fb_frame_t *frame) {
 
   if (this->scaling_disabled) {
-    /* quick hack to allow testing of unscaled yuv2rgb conversion routines */
-    this->output_width   = this->delivered_width;
-    this->output_height  = this->delivered_height;
-    this->ratio_factor   = 1.0;
 
-    
-    /*
-    this->calc_dest_size (this->user_data,
-			  this->output_width, this->output_height,
-			  &dest_width, &dest_height);
-    */
-   
+    frame->ideal_width   = frame->width;
+    frame->ideal_height  = frame->height;
+    frame->ratio_factor  = 1.0;
+
   } else {
+    
+    double image_ratio, desired_ratio, corr_factor;
 
-    image_ratio =
-	(double) this->delivered_width / (double) this->delivered_height;
+    image_ratio = (double) frame->width / (double) frame->height;
 
-    switch (this->user_ratio) {
+    switch (frame->user_ratio) {
     case ASPECT_AUTO:
-      switch (this->delivered_ratio_code) {
+      switch (frame->ratio_code) {
       case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
 	desired_ratio = 16.0 /9.0;
 	break;
@@ -274,7 +269,7 @@ static void fb_calc_output_size (fb_driver_t *this) {
 	printf ("video_out_fb: invalid ratio, using 4:3\n");
       default:
 	printf ("video_out_fb: unknown aspect ratio (%d) in stream => using 4:3\n",
-		this->delivered_ratio_code);
+		frame->ratio_code);
       case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
 	desired_ratio = 4.0 / 3.0;
 	break;
@@ -294,78 +289,57 @@ static void fb_calc_output_size (fb_driver_t *this) {
       desired_ratio = 4.0 / 3.0;
     }
 
-    this->ratio_factor = this->display_ratio * desired_ratio;
+    frame->ratio_factor = this->display_ratio * desired_ratio;
 
-    /*
-     * calc ideal output frame size
-     */
-
-    corr_factor = this->ratio_factor / image_ratio ;
+    corr_factor = frame->ratio_factor / image_ratio ;
 
     if (fabs(corr_factor - 1.0) < 0.005) {
-      ideal_width  = this->delivered_width;
-      ideal_height = this->delivered_height;
-    }
-    else if (corr_factor >= 1.0) {
-      ideal_width  = this->delivered_width * corr_factor + 0.5;
-      ideal_height = this->delivered_height;
-    }
-    else {
-      ideal_width  = this->delivered_width;
-      ideal_height = this->delivered_height / corr_factor + 0.5;
-    }
+      frame->ideal_width  = frame->width;
+      frame->ideal_height = frame->height;
 
-    /* little hack to zoom mpeg1 / other small streams  by default*/
-    if ( this->zoom_mpeg1 && (this->delivered_width<400)) {
-      ideal_width  *= 2;
-      ideal_height *= 2;
-    }
-
-    if (fabs(this->output_scale_factor - 1.0) > 0.005) {
-      ideal_width  *= this->output_scale_factor;
-      ideal_height *= this->output_scale_factor;
-    }
-
-    /* yuv2rgb_mmx prefers "width%8 == 0" */
-    /* but don't change if it would introduce scaling */
-    if( ideal_width != this->delivered_width ||
-        ideal_height != this->delivered_height )
-      ideal_width &= ~7;
-    
-    /*
-    this->calc_dest_size (this->user_data,
-			  ideal_width, ideal_height,
-			  &dest_width, &dest_height);
-    */
-    dest_width = this->gui_width;
-    dest_height = this->gui_width;
-
-    /*
-     * make the frames fit into the given destination area
-     */
-
-    x_factor = (double) dest_width  / (double) ideal_width;
-    y_factor = (double) dest_height / (double) ideal_height;
-
-    if ( x_factor < y_factor ) {
-      this->output_width   = (double) ideal_width  * x_factor ;
-      this->output_height  = (double) ideal_height * x_factor ;
     } else {
-      this->output_width   = (double) ideal_width  * y_factor ;
-      this->output_height  = (double) ideal_height * y_factor ;
-    }
 
+      if (corr_factor >= 1.0) {
+	frame->ideal_width  = frame->width * corr_factor + 0.5;
+	frame->ideal_height = frame->height;
+      } else {
+	frame->ideal_width  = frame->width;
+	frame->ideal_height = frame->height / corr_factor + 0.5;
+      }
+
+    }
+  }
+}
+
+static void fb_compute_rgb_size (fb_driver_t *this, fb_frame_t *frame) {
+
+  double x_factor, y_factor;
+
+  /*
+   * make the frame fit into the given destination area
+   */
+  
+  x_factor = (double) this->gui_width  / (double) frame->ideal_width;
+  y_factor = (double) this->gui_height / (double) frame->ideal_height;
+  
+  if ( x_factor < y_factor ) {
+    frame->output_width   = (double) frame->ideal_width  * x_factor ;
+    frame->output_height  = (double) frame->ideal_height * x_factor ;
+  } else {
+    frame->output_width   = (double) frame->ideal_width  * y_factor ;
+    frame->output_height  = (double) frame->ideal_height * y_factor ;
   }
 
-  printf("video_out_fb: "
-	 "frame source %d x %d => screen output %d x %d%s\n",
-	 this->delivered_width, this->delivered_height,
-	 this->output_width,    this->output_height,
-	 ( this->delivered_width != this->output_width
-	   || this->delivered_height != this->output_height
+#ifdef LOG
+  printf("video_out_fb: frame source %d x %d => screen output %d x %d%s\n",
+	 frame->width, frame->height,
+	 frame->output_width, frame->output_height,
+	 ( frame->width != frame->output_width
+	   || frame->height != frame->output_height
 	   ? ", software scaling"
 	   : "" )
 	 );
+#endif
 }
 
 static void fb_update_frame_format (vo_driver_t *this_gen,
@@ -375,38 +349,38 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
 
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
-  int setup_yuv = 0;
 
   flags &= VO_BOTH_FIELDS;
 
-  if ((width != this->delivered_width)
-      || (height != this->delivered_height)
-      || (ratio_code != this->delivered_ratio_code)
-      || (flags != this->delivered_flags)
-      || this->gui_changed) {
+  /* find out if we need to adapt this frame */
 
-    this->delivered_width      = width;
-    this->delivered_height     = height;
-    this->delivered_ratio_code = ratio_code;
-    this->delivered_flags      = flags;
-    this->gui_changed	       = 0;
-    
-    fb_calc_output_size (this);
+  if ((width != frame->width)
+      || (height != frame->height)
+      || (ratio_code != frame->ratio_code)
+      || (flags != frame->flags)
+      || (format != frame->format)
+      || (this->user_ratio != frame->user_ratio)
+      || this->gui_changed ) {
 
-    setup_yuv = 1;
-  }
+#ifdef LOG
+    printf ("video_out_fb: frame format (from decoder) has changed => adapt\n");
+#endif
 
-  if ((frame->rgb_width != this->output_width) 
-      || (frame->rgb_height != this->output_height)
-      || (frame->width != width)
-      || (frame->height != height)
-      || (frame->format != format)) {
+    frame->width      = width;
+    frame->height     = height;
+    frame->ratio_code = ratio_code;
+    frame->flags      = flags;
+    frame->format     = format;
+    frame->user_ratio = this->user_ratio;
+    this->gui_changed = 0;
 
-    int image_size;
+    fb_compute_ideal_size (this, frame);
+    fb_compute_rgb_size (this, frame);
+
 
     /*
     printf ("video_out_fb: updating frame to %d x %d\n",
-	    this->output_width,this->output_height);
+	    frame->output_width, frame->output_height);
     */
 
     /*
@@ -414,127 +388,122 @@ static void fb_update_frame_format (vo_driver_t *this_gen,
      */
 
     if (frame->data) {
-      if( frame->vo_frame.base[0] ) {
-        xine_free_aligned( frame->vo_frame.base[0] );
-        frame->vo_frame.base[0] = NULL;
+      if( frame->chunk[0] ) {
+        free( frame->chunk[0] );
+        frame->chunk[0] = NULL;
       }
-      if( frame->vo_frame.base[1] ) {
-        xine_free_aligned( frame->vo_frame.base[1] );
-        frame->vo_frame.base[1] = NULL;
+      if( frame->chunk[1] ) {
+        free( frame->chunk[1] );
+        frame->chunk[1] = NULL;
       }
-      if( frame->vo_frame.base[2] ) {
-        xine_free_aligned( frame->vo_frame.base[2] );
-        frame->vo_frame.base[2] = NULL;
+      if( frame->chunk[2] ) {
+        free( frame->chunk[2] );
+        frame->chunk[2] = NULL;
       }
       
       free (frame->data);
     }
 
 
-    frame->data = xine_xmalloc (this->output_width * this->output_height *
+    frame->data = xine_xmalloc (frame->output_width * frame->output_height *
                                 this->bytes_per_pixel );
     
     if (format == IMGFMT_YV12) {
-      image_size = width * height;
-      frame->vo_frame.base[0] = xine_xmalloc_aligned(16,image_size);
-      frame->vo_frame.base[1] = xine_xmalloc_aligned(16,image_size/4);
-      frame->vo_frame.base[2] = xine_xmalloc_aligned(16,image_size/4);
+      int image_size = frame->width * frame->height;
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, image_size,
+                                                      (void **)&frame->chunk[0]);
+      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, image_size/4,
+                                                      (void **)&frame->chunk[1]);
+      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, image_size/4, 
+                                                      (void **)&frame->chunk[2]);
     } else {
-      image_size = width * height;
-      frame->vo_frame.base[0] = xine_xmalloc_aligned(16,image_size*2);
+      int image_size = frame->width * frame->height;
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, image_size*2, 
+                                                      (void **)&frame->chunk[0]);
+      frame->chunk[1] = NULL;
+      frame->chunk[2] = NULL;
     }
     
     frame->format = format;
     frame->width  = width;
     frame->height = height;
 
-    frame->rgb_width  = this->output_width;
-    frame->rgb_height = this->output_height;
-    
-    frame->bytes_per_line = frame->rgb_width * this->bytes_per_pixel;
+    frame->stripe_height = 16 * frame->output_height / frame->height;
+    frame->bytes_per_line = frame->output_width * this->bytes_per_pixel;
+  
+    /* 
+     * set up colorspace converter
+     */
+
+    switch (flags) {
+    case VO_TOP_FIELD:
+    case VO_BOTTOM_FIELD:
+      frame->yuv2rgb->configure (frame->yuv2rgb,
+				 frame->width,
+				 16,
+				 frame->width*2,
+				 frame->width,
+				 frame->output_width,
+				 frame->stripe_height,
+				 frame->bytes_per_line*2);
+      frame->yuv_stride = frame->bytes_per_line*2;
+      break;
+    case VO_BOTH_FIELDS:
+      frame->yuv2rgb->configure (frame->yuv2rgb,
+				 frame->width,
+				 16,
+				 frame->width,
+				 frame->width/2,
+				 frame->output_width,
+				 frame->stripe_height,
+				 frame->bytes_per_line);
+      frame->yuv_stride = frame->bytes_per_line;
+      break;
+    }
   }
 
-  if (frame->data) {
-    this->stripe_height = 16 * this->output_height / this->delivered_height;
+  /*
+   * reset dest pointers
+   */
 
-    frame->rgb_dst    = (uint8_t *)frame->data;
+  if (frame->data) {
     switch (flags) {
     case VO_TOP_FIELD:
       frame->rgb_dst    = (uint8_t *)frame->data;
-      frame->stripe_inc = 2 * this->stripe_height * frame->bytes_per_line;
+      frame->stripe_inc = 2 * frame->stripe_height * frame->bytes_per_line;
       break;
     case VO_BOTTOM_FIELD:
       frame->rgb_dst    = (uint8_t *)frame->data + frame->bytes_per_line ;
-      frame->stripe_inc = 2 * this->stripe_height * frame->bytes_per_line;
+      frame->stripe_inc = 2 * frame->stripe_height * frame->bytes_per_line;
       break;
     case VO_BOTH_FIELDS:
       frame->rgb_dst    = (uint8_t *)frame->data;
-      frame->stripe_inc = this->stripe_height * frame->bytes_per_line;
+      frame->stripe_inc = frame->stripe_height * frame->bytes_per_line;
       break;
-    }
-
-    if (flags == VO_BOTH_FIELDS) {
-      if (this->yuv_stride != frame->bytes_per_line)
-	setup_yuv = 1;
-    } else {	/* VO_TOP_FIELD, VO_BOTTOM_FIELD */
-      if (this->yuv_stride != (frame->bytes_per_line*2))
-	setup_yuv = 1;
-    }
-
-    if (setup_yuv 
-	|| (this->yuv_height != this->stripe_height) 
-	|| (this->yuv_width != this->output_width)) {
-      switch (flags) {
-      case VO_TOP_FIELD:
-      case VO_BOTTOM_FIELD:
-	yuv2rgb_setup (this->yuv2rgb,
-		       this->delivered_width,
-		       16,
-		       this->delivered_width*2,
-		       this->delivered_width,
-		       this->output_width,
-		       this->stripe_height,
-		       frame->bytes_per_line*2);
-	this->yuv_stride = frame->bytes_per_line*2;
-	break;
-      case VO_BOTH_FIELDS:
-	yuv2rgb_setup (this->yuv2rgb,
-		       this->delivered_width,
-		       16,
-		       this->delivered_width,
-		       this->delivered_width/2,
-		       this->output_width,
-		       this->stripe_height,
-		       frame->bytes_per_line);
-	this->yuv_stride = frame->bytes_per_line;
-	break;
-      }
-      this->yuv_height = this->stripe_height;
-      this->yuv_width  = this->output_width;
     }
   }
 }
 
-static void fb_overlay_clut_yuv2rgb(fb_driver_t  *this, vo_overlay_t *overlay)
-{
+static void fb_overlay_clut_yuv2rgb(fb_driver_t  *this, vo_overlay_t *overlay,
+				    fb_frame_t *frame) {
   int i;
   clut_t* clut = (clut_t*) overlay->color;
   if (!overlay->rgb_clut) {
     for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
       *((uint32_t *)&clut[i]) =
-                   this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
-                   clut[i].y, clut[i].cb, clut[i].cr);
+	frame->yuv2rgb->yuv2rgb_single_pixel_fun (frame->yuv2rgb,
+						  clut[i].y, clut[i].cb, clut[i].cr);
     }
-  overlay->rgb_clut++;
+    overlay->rgb_clut++;
   }
   if (!overlay->clip_rgb_clut) {
     clut = (clut_t*) overlay->clip_color;
     for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
       *((uint32_t *)&clut[i]) =
-                   this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
-                   clut[i].y, clut[i].cb, clut[i].cr);
+	frame->yuv2rgb->yuv2rgb_single_pixel_fun(frame->yuv2rgb,
+						 clut[i].y, clut[i].cb, clut[i].cr);
     }
-  overlay->clip_rgb_clut++;
+    overlay->clip_rgb_clut++;
   }
 }
 
@@ -545,29 +514,33 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_o
   /* Alpha Blend here */
    if (overlay->rle) {
      if( !overlay->rgb_clut || !overlay->clip_rgb_clut)
-       fb_overlay_clut_yuv2rgb(this,overlay);
+       fb_overlay_clut_yuv2rgb(this,overlay,frame);
 
      switch(this->bpp) {
        case 16:
         blend_rgb16( (uint8_t *)frame->data, overlay,
-		     frame->rgb_width, frame->rgb_height,
-		     this->delivered_width, this->delivered_height);
+		     frame->output_width, frame->output_height,
+		     frame->width, frame->height);
         break;
        case 24:
         blend_rgb24( (uint8_t *)frame->data, overlay,
-		     frame->rgb_width, frame->rgb_height,
-		     this->delivered_width, this->delivered_height);
+		     frame->output_width, frame->output_height,
+		     frame->width, frame->height);
         break;
        case 32:
         blend_rgb32( (uint8_t *)frame->data, overlay,
-		     frame->rgb_width, frame->rgb_height,
-		     this->delivered_width, this->delivered_height);
+		     frame->output_width, frame->output_height,
+		     frame->width, frame->height);
         break;
        default:
 	/* It should never get here */
 	break;
      }        
    }
+}
+
+static int fb_redraw_needed (vo_driver_t *this_gen) {
+  return 0;
 }
 
 static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
@@ -579,39 +552,28 @@ static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   int             y;
   uint8_t	*dst, *src;
 
-  if ( (frame->rgb_width != this->last_frame_rgb_width)
-       || (frame->rgb_height != this->last_frame_rgb_height) ) {
+  if ( (frame->output_width != this->last_frame_output_width)
+       || (frame->output_height != this->last_frame_output_height) ) {
 
-    /*
-    xprintf (VIDEO, "video_out_fb: requesting dest size of %d x %d \n",
-             frame->rgb_width, frame->rgb_height);
-    */
-    /*
-    this->request_dest_size (this->user_data,
-      		       frame->rgb_width, frame->rgb_height, 
-      		       &this->dest_x, &this->dest_y, 
-      		       &this->gui_width, &this->gui_height);
-    */
-    
-    this->last_frame_rgb_width    = frame->rgb_width;
-    this->last_frame_rgb_height   = frame->rgb_height;
+    this->last_frame_output_width    = frame->output_width;
+    this->last_frame_output_height   = frame->output_height;
 
     printf ("video_out_fb: gui size %d x %d, frame size %d x %d\n",
             this->gui_width, this->gui_height,
-            frame->rgb_width, frame->rgb_height);
+            frame->output_width, frame->output_height);
     
     memset(this->video_mem, 0, this->gui_linelength * this->gui_height );
 
   }
     
-  xoffset  = (this->gui_width - frame->rgb_width) / 2;
-  yoffset  = (this->gui_height - frame->rgb_height) / 2;
+  xoffset  = (this->gui_width - frame->output_width) / 2;
+  yoffset  = (this->gui_height - frame->output_height) / 2;
 
   dst = this->video_mem + yoffset * this->gui_linelength +
         xoffset * this->bytes_per_pixel;
   src = frame->data;
    
-  for( y = 0; y < frame->rgb_height; y++ ) {
+  for( y = 0; y < frame->output_height; y++ ) {
     xine_fast_memcpy( dst, src, frame->bytes_per_line );
     src += frame->bytes_per_line;
     dst += this->gui_linelength;
@@ -627,7 +589,7 @@ static int fb_get_property (vo_driver_t *this_gen, int property) {
   if ( property == VO_PROP_ASPECT_RATIO) {
     return this->user_ratio ;
   } else if ( property == VO_PROP_BRIGHTNESS) {
-    return yuv2rgb_get_gamma(this->yuv2rgb);
+    return this->yuv2rgb_gamma;
   } else {
     printf ("video_out_fb: tried to get unsupported property %d\n", property);
   }
@@ -666,8 +628,10 @@ static int fb_set_property (vo_driver_t *this_gen,
     printf("video_out_fb: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));
   } else if ( property == VO_PROP_BRIGHTNESS) {
-    yuv2rgb_set_gamma(this->yuv2rgb,value);
 
+    this->yuv2rgb_gamma = value;
+    this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, value);
+    
     printf("video_out_fb: gamma changed to %d\n",value);
   } else {
     printf ("video_out_fb: tried to set unsupported property %d\n", property);
@@ -736,8 +700,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   memset (this, 0, sizeof(fb_driver_t));
 
   this->config		    = config;
-  this->output_width	    = 0;
-  this->output_height	    = 0;
   this->output_scale_factor = 1.0;
   this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
 						     "Zoom small video formats to double size",
@@ -752,8 +714,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
    */
   this->scaling_disabled    = getenv("VIDEO_OUT_NOSCALE") != NULL;
 
-  this->prof_yuv2rgb	    = xine_profiler_allocate_slot ("fb yuv2rgb convert");
-
   this->vo_driver.get_capabilities     = fb_get_capabilities;
   this->vo_driver.alloc_frame          = fb_alloc_frame;
   this->vo_driver.update_frame_format  = fb_update_frame_format;
@@ -764,6 +724,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = fb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = fb_gui_data_exchange;
   this->vo_driver.exit                 = fb_exit;
+  this->vo_driver.redraw_needed        = fb_redraw_needed;
 
   device_name = config->register_string (config, "video.fb_device", "/dev/fb0",
 					  "framebuffer device", NULL, NULL, NULL);
@@ -803,8 +764,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     return NULL;
   }
   
-  if( fix.visual != FB_VISUAL_TRUECOLOR || fix.type != FB_TYPE_PACKED_PIXELS ) {
-    printf("video_out_fb: only packed truecolor is supported.\n");
+  if( (fix.visual != FB_VISUAL_TRUECOLOR && fix.visual != FB_VISUAL_DIRECTCOLOR) || fix.type != FB_TYPE_PACKED_PIXELS ) {
+    printf("video_out_fb: only packed truecolor/directcolor is supported (%d).\n",fix.visual);
     printf("              check 'fbset -i' or try 'fbset -depth 16'\n");
     free(this);
     return NULL;
@@ -817,7 +778,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     
   this->gui_width   = var.xres;
   this->gui_height  = var.yres;
-  this->display_ratio = 1.0;  
+  this->display_ratio = 1.0;
+  this->user_ratio          = ASPECT_AUTO;
+  
 
   /*
    *
@@ -857,6 +820,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   switch (fix.visual) {
   case FB_VISUAL_TRUECOLOR:
+  case FB_VISUAL_DIRECTCOLOR:
     switch (this->depth) {
     case 24:
       if (this->bpp == 32) {
@@ -903,19 +867,23 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->video_mem = (char *) mmap(0, this->mem_size, PROT_READ | PROT_WRITE,
                                   MAP_SHARED, this->fd, 0);
 
-                                  
-                                 
-  this->yuv2rgb = yuv2rgb_init (mode, 0, this->fast_rgb);
-  yuv2rgb_set_gamma(this->yuv2rgb, config->register_range (config, "video.fb_gamma", 0,
-							   -100, 100, "gamma correction for FB driver",
-							   NULL, NULL, NULL));
+  this->yuv2rgb_mode  = mode;
+  this->yuv2rgb_swap  = 0;
+  this->yuv2rgb_gamma = config->register_range (config, "video.fb_gamma", 0,
+						-100, 100, 
+						"gamma correction for fb driver",
+						NULL, NULL, NULL);
 
+  this->yuv2rgb_factory = yuv2rgb_factory_init (mode, this->yuv2rgb_swap, 
+						this->yuv2rgb_cmap);
+  this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, this->yuv2rgb_gamma);
+                                  
   printf ("video_out_fb: warning, xine's framebuffer driver is EXPERIMENTAL\n");
   return &this->vo_driver;
 }
 
 static vo_info_t vo_info_fb = {
-  4,
+  5,
   "fb",
   "xine video output plugin using linux framebuffer device",
   VISUAL_TYPE_FB,
