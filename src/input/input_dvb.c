@@ -773,7 +773,7 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
     } /* read the status from the frontend... it appears that event.status isn't correct for some FE's */ 
     ioctl(this->fd_frontend, FE_READ_STATUS, &event.status);
     lock_tries++;
-    if(lock_tries>5) { /* try to get lock for a few seconds */
+    if(lock_tries>15) { /* try to get lock for a few seconds */
       break;
     }
   }
