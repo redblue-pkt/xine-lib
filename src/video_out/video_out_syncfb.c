@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.18 2001/11/03 13:57:34 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.19 2001/11/03 14:46:05 richwareham Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -299,6 +299,9 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
       this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_BLOCK_REQUEST | SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_OFFSET;
+      if(this->deinterlace_enabled) {
+	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE;
+      }
 
       this->syncfb_config.src_palette = this->palette;
    
@@ -681,6 +684,8 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       printf("video_out_syncfb: VO_PROP_INTERLACED(%d)\n",
 	     this->props[property].value);
       this->deinterlace_enabled = value;
+      syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset,
+				  this->output_width, this->output_height);
       break;
    case VO_PROP_ASPECT_RATIO:
       if(value>=NUM_ASPECT_RATIOS)
