@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.132 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: metronom.c,v 1.133 2003/12/29 16:26:57 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -424,6 +424,19 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
     pthread_mutex_lock(&this->master->lock);
     pthread_mutex_unlock(&this->lock);
     
+    if (!this->discontinuity_handled_count) {
+      /* we are not initialized yet */
+      if (this->master->video_vpts > this->master->audio_vpts)
+        this->video_vpts = this->audio_vpts = this->master->video_vpts;
+      else
+        this->video_vpts = this->audio_vpts = this->master->audio_vpts;
+      /* when being attached to the first master, do not drift into
+       * his vpts values but adopt at once */
+      this->force_audio_jump = 1;
+      this->force_video_jump = 1;
+      this->discontinuity_handled_count++;
+    }
+    
     this->vpts_offset = this->master->vpts_offset;
     this->av_offset   = this->master->av_offset;
     
@@ -568,6 +581,19 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
     
     pthread_mutex_lock(&this->master->lock);
     pthread_mutex_unlock(&this->lock);
+    
+    if (!this->discontinuity_handled_count) {
+      /* we are not initialized yet */
+      if (this->master->video_vpts > this->master->audio_vpts)
+        this->video_vpts = this->audio_vpts = this->master->video_vpts;
+      else
+        this->video_vpts = this->audio_vpts = this->master->audio_vpts;
+      /* when being attached to the first master, do not drift into
+       * his vpts values but adopt at once */
+      this->force_audio_jump = 1;
+      this->force_video_jump = 1;
+      this->discontinuity_handled_count++;
+    }
     
     this->vpts_offset = this->master->vpts_offset;
     
@@ -725,15 +751,7 @@ static void metronom_set_master(metronom_t *this, metronom_t *master) {
   /* someone might currently be copying values from the old master,
    * so we need his lock too */
   if (old_master) pthread_mutex_lock(&old_master->lock);
-  
   this->master = master;
-  if (!old_master) {
-    /* when being attached to the first master, do not drift into
-     * his vpts values but adopt at once */
-    this->force_video_jump = 1;
-    this->force_audio_jump = 1;
-  }
-  
   if (old_master) pthread_mutex_unlock(&old_master->lock);
   pthread_mutex_unlock(&this->lock);
 }
