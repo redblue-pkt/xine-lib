@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.15 2003/10/08 03:18:58 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.16 2003/10/19 20:58:27 f1rmb Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -284,6 +284,11 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
 
   cfg = xine->config;
 
+  /* 
+   * We don't need to register config options, post plugins have 
+   * their own method for configuration purpose 
+   */
+  /*
   class->init_param.method = 
     cfg->register_enum (cfg, "post.tvtime_method", 1, enum_methods,
     param_descr.parameter[0].description, 
@@ -313,6 +318,17 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
     cfg->register_bool (cfg, "post.tvtime_cheap_mode", 0,
     param_descr.parameter[7].description,
     NULL, 10, NULL, NULL);
+  */
+
+  /* Some default values */
+  class->init_param.method                     = 1; /* First (plugin) method available */
+  class->init_param.enabled                    = 1;
+  class->init_param.pulldown                   = 1; /* vektor */
+  class->init_param.framerate_mode             = 0; /* full */
+  class->init_param.judder_correction          = 1; 
+  class->init_param.use_progressive_frame_flag = 1;
+  class->init_param.chroma_filter              = 0;
+  class->init_param.cheap_mode                 = 0;
 
   return &class->class;
 }
