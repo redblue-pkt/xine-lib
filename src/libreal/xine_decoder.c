@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2002/11/20 11:57:44 mroi Exp $
+ * $Id: xine_decoder.c,v 1.3 2002/11/22 03:38:08 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -54,6 +54,8 @@ typedef struct {
   unsigned long (*rvyuv_transform)(char*, char*,unsigned long*,unsigned long*,void*);
 } real_class_t;
 
+#define BUF_SIZE       32768
+#define CHUNK_TAB_SIZE 64
 
 typedef struct realdec_decoder_s {
   video_decoder_t  video_decoder;
@@ -65,6 +67,14 @@ typedef struct realdec_decoder_s {
   void            *context;
 
   int              width, height;
+
+  uint8_t          chunk_buffer[BUF_SIZE];
+  int              chunk_buffer_size;
+
+  int              num_chunks;
+  uint32_t         chunk_tab[CHUNK_TAB_SIZE];
+
+  uint64_t         pts;
 
 } realdec_decoder_t;
 
@@ -83,11 +93,11 @@ typedef struct {
 #define DISPLAY_WIDTH  320
 #define DISPLAY_HEIGHT 256
 
-void hexdump (char *buf, int length) {
+static void hexdump (char *buf, int length) {
 
   int i;
 
-  printf ("pnm: ascii contents>");
+  printf ("libreal: ascii contents>");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
@@ -98,14 +108,14 @@ void hexdump (char *buf, int length) {
   }
   printf ("\n");
 
-  printf ("pnm: complete hexdump of package follows:\npnm:  ");
+  printf ("libreal: complete hexdump of package follows:\nlibreal:  ");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
     printf ("%02x", c);
 
     if ((i % 16) == 15)
-      printf ("\npnm: ");
+      printf ("\nlibreal: ");
 
     if ((i % 2) == 1)
       printf (" ");
@@ -143,6 +153,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     init_data.w = BE_16(&buf->content[12]);
     init_data.h = BE_16(&buf->content[14]);
 
+    this->width  = init_data.w;
+    this->height = init_data.h;
+
     init_data.subformat = BE_32(&buf->content[26]);
     init_data.format    = BE_32(&buf->content[30]);
 
@@ -167,6 +180,12 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 			       this->width,this->height};
       unsigned long cmsg_data[3]={0x24,1+((init_data.subformat>>16)&7),
 				  (unsigned long) &cmsg24};
+
+      printf ("libreal: cmsg24:\n");
+      hexdump (cmsg24, sizeof (cmsg24));
+      printf ("libreal: cmsg_data:\n");
+      hexdump (cmsg_data, sizeof (cmsg_data));
+
       cls->rvyuv_custom_message (cmsg_data, this->context);
 
       printf ("libreal: special setup for rv30 done\n");
@@ -182,53 +201,92 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
   } else if (this->context) {
 
-    int            result;
-    vo_frame_t    *img;
-    void          *data = buf->content;
-    dp_hdr_t      *dp_hdr = (dp_hdr_t*)data;
-    unsigned char *dp_data = ((unsigned char*)data)+sizeof(dp_hdr_t);
-    uint32_t      *extra = (uint32_t*)(((char*)data)+dp_hdr->chunktab);
-    unsigned long  transform_out[5];
-    unsigned long  transform_in[6]={
-      dp_hdr->len,	     /* length of the packet (sub-packets appended) */
-      0,		     /* unknown, seems to be unused  */
-      dp_hdr->chunks,	     /* number of sub-packets - 1    */
-      (unsigned long) extra, /* table of sub-packet offsets  */
-      0,		     /* unknown, seems to be unused  */
-      dp_hdr->timestamp      /* timestamp (the integer value from the stream) */
-    };
+    if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
 
-    img = this->stream->video_out->get_frame (this->stream->video_out,
-					      /* this->av_picture.linesize[0],  */
-					      this->width,
-					      this->height,
-					      42, 
-					      XINE_IMGFMT_YV12,
-					      VO_BOTH_FIELDS);
+      if (this->num_chunks>0) {
 
-    img->pts       = 0; /* FIXME */
-    img->duration  = 3000; /* FIXME */
-    img->bad_frame = 0;
+	int            result;
+	vo_frame_t    *img;
 
-    printf ("libreal: decoding:\n");
-    hexdump (data, buf->size);
+	unsigned long  transform_out[5];
+	unsigned long  transform_in[6]={
+	  this->chunk_buffer_size,/* length of the packet (sub-packets appended) */
+	  0,		          /* unknown, seems to be unused  */
+	  this->num_chunks-1,	  /* number of sub-packets - 1    */
+	  this->chunk_tab,        /* table of sub-packet offsets  */
+	  0,	   	          /* unknown, seems to be unused  */
+	  this->pts               /* timestamp (the integer value from the stream) */
+	};
 
-    result = cls->rvyuv_transform (dp_data, 
-				   img->base[0], 
-				   transform_in,
-				   transform_out, 
-				   this->context);
+	printf ("libreal: got %d chunks in buffer and new frame is starting\n",
+		this->num_chunks);
 
-    /* xine_fast_memcpy (dy, sy, this->bih.biWidth); */
+	this->chunk_tab[0]      = this->num_chunks;
 
-    img->draw(img, this->stream);
-    img->free(img);
+	img = this->stream->video_out->get_frame (this->stream->video_out,
+						  /* this->av_picture.linesize[0],  */
+						  this->width,
+						  this->height,
+						  42, 
+						  XINE_IMGFMT_YV12,
+						  VO_BOTH_FIELDS);
+	
+	img->pts       = 0; /* FIXME */
+	img->duration  = 3000; /* FIXME */
+	img->bad_frame = 0;
+	
+	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
+	hexdump (this->chunk_buffer, this->chunk_buffer_size);
 
-  } else {
-    /*
-    real_decode_data (&this->real, buf->content, buf->content + buf->size,
-		       buf->pts);
-    */
+	printf ("libreal: transform_in:\n");
+	hexdump (transform_in, 6*4);
+	
+	result = cls->rvyuv_transform (this->chunk_buffer, 
+				       img->base[0], 
+				       transform_in,
+				       transform_out, 
+				       this->context);
+
+	printf ("libreal: decoding result: %d\n", result);
+	
+	/* xine_fast_memcpy (dy, sy, this->bih.biWidth); */
+	
+	img->draw(img, this->stream);
+	img->free(img);
+	
+      }
+
+      /* new frame starting */
+
+      printf ("libreal: new frame starting (%d bytes)\n", buf->size);
+
+      memcpy (this->chunk_buffer, buf->content, buf->size);
+
+      this->chunk_buffer_size = buf->size;
+      this->chunk_tab[1]      = 0;
+      this->num_chunks        = 1;
+
+      if (buf->pts)
+	this->pts = buf->pts;
+      else
+	this->pts = 0;
+    } else {
+
+      /* buffer another fragment */
+
+      printf ("libreal: another fragment (%d chunks in buffer)\n", 
+	      this->num_chunks);
+      
+      memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
+
+      this->num_chunks++;
+      this->chunk_tab[this->num_chunks]  = this->chunk_buffer_size;
+      this->chunk_buffer_size           += buf->size;
+
+      if (buf->pts)
+	this->pts = buf->pts;
+
+    }
   }
 
 #ifdef LOG
@@ -283,7 +341,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this->stream                            = stream;
   this->cls                               = cls;
 
-  this->context = 0;
+  this->context    = 0;
+  this->num_chunks = 0;
 
   return &this->video_decoder;
 }

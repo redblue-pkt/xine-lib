@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.11 2002/11/20 11:57:41 mroi Exp $
+ * $Id: demux_real.c,v 1.12 2002/11/22 03:38:07 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,12 +73,6 @@ typedef struct {
 } real_packet;
 
 typedef struct {
-  int             num;
-  int32_t         buf_type ;
-  fifo_buffer_t  *fifo;
-} stream_info_t;
-
-typedef struct {
 
   demux_plugin_t       demux_plugin;
 
@@ -98,22 +92,17 @@ typedef struct {
   int                  packet_count;
   int                  bitrate;
 
-  unsigned int         video_type;
-  unsigned int         audio_type;
-
-  unsigned int         video_width;
-  unsigned int         video_height;
-  unsigned int         audio_channels;
-  unsigned int         audio_sample_rate;
-  unsigned int         audio_bits;
-
-  int                  num_streams;
-  stream_info_t        streams[MAX_STREAMS];
+  int                  video_stream_num;
+  uint32_t             video_buf_type;
+  int                  audio_stream_num;
+  uint32_t             audio_buf_type;
 
   unsigned int         current_data_chunk_packet_count;
   unsigned int         next_data_chunk_offset;
 
   char                 last_mrl[1024];
+
+  int                  old_seqnum;
 } demux_real_t ;
 
 typedef struct {
@@ -201,12 +190,12 @@ static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
   mdpr->stream_name_size=data[32];
   mdpr->stream_name=malloc(sizeof(char)*(mdpr->stream_name_size+1));
   memcpy(mdpr->stream_name, &data[33], mdpr->stream_name_size);
-  mdpr->stream_name[mdpr->stream_name_size]=0;
+  mdpr->stream_name[(int)mdpr->stream_name_size]=0;
   
   mdpr->mime_type_size=data[33+mdpr->stream_name_size];
   mdpr->mime_type=malloc(sizeof(char)*(mdpr->mime_type_size+1));
   memcpy(mdpr->mime_type, &data[34+mdpr->stream_name_size], mdpr->mime_type_size);
-  mdpr->mime_type[mdpr->mime_type_size]=0;
+  mdpr->mime_type[(int)mdpr->mime_type_size]=0;
   
   mdpr->type_specific_len=BE_32(&data[34+mdpr->stream_name_size+mdpr->mime_type_size]);
   mdpr->type_specific_data=malloc(sizeof(char)*(mdpr->type_specific_len));
@@ -237,6 +226,7 @@ typedef struct dp_hdr_s {
   uint32_t chunktab;	/* offset to chunk offset array */
 } dp_hdr_t;
 
+#if 0
 static void send_real_buf (demux_real_t *this, uint32_t timestamp, int len, 
 			   fifo_buffer_t *fifo,
 			   uint32_t buf_type, uint32_t decoder_flags) {
@@ -253,7 +243,7 @@ static void send_real_buf (demux_real_t *this, uint32_t timestamp, int len,
 
   buf->content = buf->mem;
 
-  hdr = buf->content;
+  hdr = (dp_hdr_t *) buf->content;
   hdr->chunks    = 1;
   hdr->timestamp = timestamp;
   hdr->len       = len;
@@ -271,7 +261,7 @@ static void send_real_buf (demux_real_t *this, uint32_t timestamp, int len,
   fifo->put (fifo, buf);  
 
 }
-
+#endif
 
 static void real_parse_headers (demux_real_t *this) {
 
@@ -346,14 +336,12 @@ static void real_parse_headers (demux_real_t *this) {
 
 	/* detect streamtype */
 
-	this->streams[this->num_streams].num = mdpr->stream_number;
-
 	if (!strncmp (mdpr->type_specific_data+4, "VIDORV20", 8)) {
 
 	  buf_element_t *buf;
 
-	  this->streams[this->num_streams].buf_type = BUF_VIDEO_RV20;
-	  this->streams[this->num_streams].fifo     = this->video_fifo;
+	  this->video_stream_num = mdpr->stream_number;
+	  this->video_buf_type   = BUF_VIDEO_RV20;
 
 	  printf ("demux_real: RV20 video detected\n");
 
@@ -379,8 +367,8 @@ static void real_parse_headers (demux_real_t *this) {
 
 	  buf_element_t *buf;
 
-	  this->streams[this->num_streams].buf_type = BUF_VIDEO_RV30;
-	  this->streams[this->num_streams].fifo     = this->video_fifo;
+	  this->video_stream_num = mdpr->stream_number;
+	  this->video_buf_type   = BUF_VIDEO_RV30;
 
 	  printf ("demux_real: RV30 video detected\n");
 
@@ -405,8 +393,8 @@ static void real_parse_headers (demux_real_t *this) {
 	} else if ((mdpr->type_specific_len>61) 
 		   && (!strncmp (mdpr->type_specific_data+57, "sipr", 4))) {
 
-	  this->streams[this->num_streams].buf_type = BUF_AUDIO_SIPRO;
-	  this->streams[this->num_streams].fifo     = this->audio_fifo;
+	  this->audio_stream_num = mdpr->stream_number;
+	  this->audio_buf_type   = BUF_AUDIO_SIPRO;
 
 	  printf ("demux_real: sipro audio detected\n");
 
@@ -416,11 +404,8 @@ static void real_parse_headers (demux_real_t *this) {
 
 	  printf ("demux_real: codec not recognized\n");
 
-	  this->streams[this->num_streams].buf_type = 0;
-	  this->streams[this->num_streams].fifo     = NULL;
 	}
 
-	this->num_streams++;
 	free (mdpr);
 
       } else if (chunk_type == CONT_TAG) {
@@ -491,13 +476,24 @@ static void real_parse_headers (demux_real_t *this) {
   }
 }
 
+static int stream_read_char (demux_real_t *this) {
+  uint8_t ret;
+  this->input->read (this->input, &ret, 1);
+  return ret;
+}
+
+static int stream_read_word (demux_real_t *this) {
+  uint16_t ret;
+  this->input->read (this->input, (char *) &ret, 2);
+  return BE_16(&ret);
+}
+
 static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   demux_real_t   *this = (demux_real_t *) this_gen;
   char            preamble[PREAMBLE_SIZE];
   unsigned char   data_chunk_header[DATA_CHUNK_HEADER_SIZE];
   char            header[DATA_PACKET_HEADER_SIZE];
-  int             stream_num,i;
   int             stream, size, keyframe;
   uint32_t        timestamp;
   int64_t         pts;
@@ -523,25 +519,234 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 	  stream, size, offset, pts, keyframe ? ", keyframe" : "");
 #endif
 
-  stream_num = -1;
+  if (stream == this->video_stream_num) {
 
-  for (i=0; i<this->num_streams; i++) {
+    int            vpkg_header, vpkg_length, vpkg_offset;
+    int            vpkg_seqnum = -1;
+    int            vpkg_subseq = 0;
+    buf_element_t *buf;
+    int            n;
 
-    if (this->streams[i].num == stream) 
-      stream_num = i;
-  }
+    printf ("demux_real: video chunk detected.\n");
 
-  if (stream_num >= 0) {
+    /* sub-demuxer */
 
-    printf ("demux_real: buf type is %08x\n", this->streams[stream_num].buf_type);
+    while (size > 2) {
 
+      /*
+       * read packet header
+       * bit 7: 1=last block in block chain
+       * bit 6: 1=short header (only one block?)
+       */
+
+      vpkg_header = stream_read_char (this); size--;
+      printf ("demux_real: hdr: %02x (size=%d)\n", vpkg_header, size);
+
+      if (0x40==(vpkg_header&0xc0)) {
+	/*
+	 * seems to be a very short header
+	 * 2 bytes, purpose of the second byte yet unknown
+	 */
+	 int bummer;
+
+	 bummer = stream_read_char (this); size--;
+	 printf ("demux_real: bummer == %02X\n",bummer);
+
+	 vpkg_offset = 0;
+	 vpkg_length = size;
+
+      } else {
+
+	if (0==(vpkg_header & 0x40)) {
+	  /* sub-seqnum (bits 0-6: number of fragment. bit 7: ???) */
+	  vpkg_subseq = stream_read_char (this); size--;
+
+	  printf ("demux_real: subseq: %02X ", vpkg_subseq);
+	  vpkg_subseq &= 0x7f;
+	}
+
+	/*
+	 * size of the complete packet
+	 * bit 14 is always one (same applies to the offset)
+	 */
+	vpkg_length = stream_read_word (this); size -= 2;
+	printf ("demux_real: l: %02X %02X ", vpkg_length>>8, vpkg_length&0xff);
+	if (!(vpkg_length&0xC000)) {
+	  vpkg_length <<= 16;
+	  vpkg_length |=  stream_read_word (this);
+	  printf ("demux_real: l+: %02X %02X ",
+		  (vpkg_length>>8)&0xff,vpkg_length&0xff);
+	  size-=2;
+	} else
+	  vpkg_length &= 0x3fff;
+
+	/*
+	 * offset of the following data inside the complete packet
+	 * Note: if (hdr&0xC0)==0x80 then offset is relative to the
+	 * _end_ of the packet, so it's equal to fragment size!!!
+	 */
+
+	vpkg_offset = stream_read_word (this); size -= 2;
+	printf ("demux_real: o: %02X %02X ",
+		vpkg_offset>>8,vpkg_offset&0xff);
+
+	if (!(vpkg_offset&0xC000)) {
+	  vpkg_offset <<= 16;
+	  vpkg_offset |=  stream_read_word (this);
+	  printf ("demux_real: o+: %02X %02X ",
+		  (vpkg_offset>>8)&0xff,vpkg_offset&0xff);
+	  size -= 2;
+	} else
+	  vpkg_offset &= 0x3fff;
+
+	vpkg_seqnum = stream_read_char (this); size--;
+	printf ("demux_real: seq: %02X ", vpkg_seqnum);
+      }
+
+      printf ("demux_real: vpkg seqnum=%d, offset=%d, length=%d\n",
+	      vpkg_seqnum, vpkg_offset, vpkg_length);
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+      buf->content       = buf->mem;
+      buf->pts           = timestamp;
+      buf->input_pos     = 0 ; /* FIXME */
+      buf->input_time    = 0 ; /* FIXME */
+      buf->type          = this->video_buf_type;
+      buf->decoder_flags = 0;
+      
+
+      if (this->old_seqnum>=0) {
+	
+      
+	printf ("demux_real: we have an incomplete packet (oldseq=%d new=%d)\n",
+		this->old_seqnum, vpkg_seqnum);
+	/*  we have an incomplete packet: */
+	if (this->old_seqnum != vpkg_seqnum) {
+
+	  /* this fragment is for new packet, close the old one */
+
+	  printf ("demux_real: closing probably incomplete packet\n");
+
+	  /* ds_add_packet(ds,dp); */
+	  this->old_seqnum = -1;
+
+	  buf->decoder_flags |= BUF_FLAG_FRAME_START;
+
+	} else {
+
+	  /*  append data to it! */
+
+	  if (0x80==(vpkg_header&0xc0)){
+
+	    /* stream_read(demuxer->stream, dp_data+dp_hdr->len, vpkg_offset); */
+	    n = this->input->read (this->input, buf->content, vpkg_offset);
+
+	    buf->size = vpkg_offset;
+
+	    if (n<vpkg_offset) {
+	      buf->free_buffer(buf);
+	      this->status = DEMUX_FINISHED;
+	      return this->status;
+	    }
+
+	    this->video_fifo->put (this->video_fifo, buf);  
+
+	    size -= vpkg_offset;
+
+	    /* we know that this is the last fragment -> we can close the packet! */
+
+	    /* ds_add_packet(ds,dp); */
+	    this->old_seqnum = -1;
+
+	    continue;
+	  }
+
+	  /* non-last fragment: */
+
+	  /* stream_read(demuxer->stream, dp_data+dp_hdr->len, size); */
+	  n = this->input->read (this->input, buf->content, size);
+
+	  if (n<vpkg_offset) {
+	    buf->free_buffer (buf);
+	    this->status = DEMUX_FINISHED;
+	    return this->status;
+	  }
+
+	  this->video_fifo->put (this->video_fifo, buf);  
+
+	  size=0;
+	  break; /* no more fragments in this chunk! */
+	}
+      }
+      
+      if (0x00 == (vpkg_header&0xc0)) {
+
+	printf ("demux_real: first fragment, %d bytes\n", size);
+
+	/* first fragment: */
+	this->input->seek (this->input, size, SEEK_CUR);
+	/* stream_read(demuxer->stream, dp_data, size); */
+	/* ds->asf_packet=dp; */
+	this->old_seqnum = vpkg_seqnum;
+	size=0;
+
+	n = this->input->read (this->input, buf->content, size);
+
+	buf->size = size;
+
+	if (n<size) {
+	  buf->free_buffer (buf);
+	  this->status = DEMUX_FINISHED;
+	  return this->status;
+	}
+
+	buf->decoder_flags |= BUF_FLAG_FRAME_START;
+
+	this->video_fifo->put (this->video_fifo, buf);  
+
+	break;
+      }
+
+      printf ("demux_real: whole packet, %d bytes\n", vpkg_length);
+
+      /* whole packet (not fragmented): */
+      size -= vpkg_length;
+
+      /* stream_read(demuxer->stream, dp_data, vpkg_length); */
+
+      n = this->input->read (this->input, buf->content, vpkg_length);
+
+      buf->size = vpkg_length;
+
+      if (n<vpkg_length) {
+	buf->free_buffer (buf);
+	this->status = DEMUX_FINISHED;
+	return this->status;
+      }
+
+      buf->decoder_flags |= BUF_FLAG_FRAME_START;
+      
+      this->video_fifo->put (this->video_fifo, buf);  
+
+      /* ds_add_packet(ds,dp); */
+
+    } /* while(len>2) */
+    /*
     send_real_buf (this, timestamp, size, 
 		   this->streams[stream_num].fifo,
 		   this->streams[stream_num].buf_type,
-		   0 /* FIXME */);
-  } else
+		   0 );
+    */
+  } else if (stream == this->audio_stream_num) {
+    this->input->seek(this->input, size, SEEK_CUR);
+  } else {
+
+    /* discard */
+
     this->input->seek(this->input, size, SEEK_CUR);
 
+  }
   this->current_data_chunk_packet_count--;
 
   /* check if it's time to reload */
@@ -586,8 +791,6 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
   this->audio_fifo = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
-
-  this->num_streams = 0;
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
@@ -733,6 +936,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
+this->old_seqnum = -1;
+
   return &this->demux_plugin;
 }
 
@@ -760,7 +965,7 @@ static void class_dispose (demux_class_t *this_gen) {
   free (this);
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+static void *init_class (xine_t *xine, void *data) {
 
   demux_real_class_t     *this;
 
@@ -784,6 +989,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 17, "real", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 17, "real", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
