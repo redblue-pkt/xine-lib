@@ -33,6 +33,15 @@ mpeg2_mc_t mpeg2_mc;
 
 void mpeg2_mc_init (uint32_t mm_accel)
 {
+#ifdef LIBMPEG2_MLIB
+    if (mm_accel & MM_ACCEL_MLIB) {
+#ifdef LOG
+	fprintf (stderr, "Using mediaLib for motion compensation\n");
+#endif
+	mpeg2_mc = mpeg2_mc_mlib;
+    }
+#endif
+
 #ifdef ARCH_X86
     if (mm_accel & MM_ACCEL_X86_MMXEXT) {
 #ifdef LOG
@@ -59,12 +68,12 @@ void mpeg2_mc_init (uint32_t mm_accel)
 	mpeg2_mc = mpeg2_mc_altivec;
     } else
 #endif
-#ifdef LIBMPEG2_MLIB
-    if (mm_accel & MM_ACCEL_MLIB) {
+#ifdef ARCH_SPARC
+    if (mm_accel & MM_ACCEL_SPARC_VIS) {
 #ifdef LOG
-	fprintf (stderr, "Using mlib for motion compensation\n");
+	fprintf (stderr, "Using VIS for motion compensation\n");
 #endif
-	mpeg2_mc = mpeg2_mc_mlib;
+	mpeg2_mc = mpeg2_mc_vis;
     } else
 #endif
     {

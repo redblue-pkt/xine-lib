@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.85 2004/04/25 17:43:58 manfredtremmel Exp $
+ * $Id: xineutils.h,v 1.86 2004/04/28 00:38:09 komadori Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -98,6 +98,11 @@ extern "C" {
 /* powerpc accelerations and features */
 #define MM_ACCEL_PPC_ALTIVEC    0x04000000
 #define MM_ACCEL_PPC_CACHE32    0x02000000
+
+/* SPARC accelerations */
+
+#define MM_ACCEL_SPARC_VIS      0x01000000
+#define MM_ACCEL_SPARC_VIS2     0x00800000
 
 /* x86 compat defines */
 #define MM_MMX                  MM_ACCEL_X86_MMX

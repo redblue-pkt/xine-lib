@@ -140,68 +140,115 @@ static void sigill_handler (int n) {
 }
 #endif /* ARCH_X86 */
 
-#if defined (ARCH_PPC) && defined (ENABLE_ALTIVEC)
+#if defined(ARCH_PPC) && defined(ENABLE_ALTIVEC)
 static sigjmp_buf jmpbuf;
 static volatile sig_atomic_t canjump = 0;
 
 static void sigill_handler (int sig)
 {
-    if (!canjump) {
-	signal (sig, SIG_DFL);
-	raise (sig);
-    }
+  if (!canjump) {
+    signal (sig, SIG_DFL);
+    raise (sig);
+  }
 
-    canjump = 0;
-    siglongjmp (jmpbuf, 1);
+  canjump = 0;
+  siglongjmp (jmpbuf, 1);
 }
 
 static uint32_t arch_accel (void)
 {
-    /* FIXME: Autodetect cache line size via AUX ELF vector or otherwise */
-    uint32_t flags = MM_ACCEL_PPC_CACHE32;
+  /* FIXME: Autodetect cache line size via AUX ELF vector or otherwise */
+  uint32_t flags = MM_ACCEL_PPC_CACHE32;
 
-    signal (SIGILL, sigill_handler);
-    if (sigsetjmp (jmpbuf, 1)) {
-      signal (SIGILL, SIG_DFL);
-      return flags;
-    }
-
-    canjump = 1;
-
-    __asm__ volatile ("mtspr 256, %0\n\t"
-		  "vand %%v0, %%v0, %%v0"
-		  :
-		  : "r" (-1));
-
+  signal (SIGILL, sigill_handler);
+  if (sigsetjmp (jmpbuf, 1)) {
     signal (SIGILL, SIG_DFL);
-    return flags|MM_ACCEL_PPC_ALTIVEC;
+    return flags;
+  }
+
+  canjump = 1;
+  __asm__ volatile ("mtspr 256, %0\n\t"
+                    "vand %%v0, %%v0, %%v0"
+                    :
+                    : "r" (-1));
+
+  signal (SIGILL, SIG_DFL);
+  return flags|MM_ACCEL_PPC_ALTIVEC;
 }
 #endif /* ARCH_PPC */
+
+#if defined(ARCH_SPARC) && defined(ENABLE_VIS)
+static sigjmp_buf jmpbuf;
+static volatile sig_atomic_t canjump = 0;
+
+static void sigill_handler (int sig)
+{
+  if (!canjump) {
+    signal(sig, SIG_DFL);
+    raise(sig);
+  }
+
+  canjump = 0;
+  siglongjmp(jmpbuf, 1);
+}
+
+static uint32_t arch_accel (void)
+{
+  uint32_t flags = 0;
+
+  signal(SIGILL, sigill_handler);
+  if (sigsetjmp(jmpbuf, 1)) {
+    signal(SIGILL, SIG_DFL);
+    return flags;
+  }
+
+  canjump = 1;
+ 
+  /* pdist %f0, %f0, %f0 */
+  __asm__ __volatile__(".word\t0x81b007c0");
+                                                                                
+  canjump = 0;
+  flags |= MM_ACCEL_SPARC_VIS;
+
+  if (sigsetjmp(jmpbuf, 1)) {
+    signal(SIGILL, SIG_DFL);
+    return flags;
+  }
+                                                                                
+  canjump = 1;
+                                                                                
+  /* edge8n %g0, %g0, %g0 */
+  __asm__ __volatile__(".word\t0x81b00020");
+                                                                                
+  canjump = 0;
+  flags |= MM_ACCEL_SPARC_VIS2;
+                                                                                
+  signal(SIGILL, SIG_DFL);
+  return flags;
+}
+#endif /* ARCH_SPARC */
 
 uint32_t xine_mm_accel (void)
 {
   static int initialized = 0;
-  static uint32_t accel;
+  static uint32_t accel = 0;
 
   if (!initialized) {
-#if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
-    accel = arch_accel ();
-#elif defined (HAVE_MLIB)
+#ifdef HAVE_MLIB
 #ifdef MLIB_LAZYLOAD
     void *hndl;
 
-    if ((hndl = dlopen("libmlib.so.2", RTLD_LAZY | RTLD_GLOBAL | RTLD_NODELETE)) == NULL) {
-      accel = 0;
-    }
-    else {
+    if ((hndl = dlopen("libmlib.so.2", RTLD_LAZY | RTLD_GLOBAL | RTLD_NODELETE)) != NULL) {
       dlclose(hndl);
-      accel = MM_ACCEL_MLIB;
+      accel |= MM_ACCEL_MLIB;
     }
 #else
-    accel = MM_ACCEL_MLIB;
+    accel |= MM_ACCEL_MLIB;
 #endif
-#else
-    accel = 0;
+#endif
+
+#if defined(ARCH_X86) || (defined(ARCH_PPC) && defined(ENABLE_ALTIVEC)) || (defined(ARCH_SPARC) && defined(ENABLE_VIS))
+    accel |= arch_accel();
 #endif
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)

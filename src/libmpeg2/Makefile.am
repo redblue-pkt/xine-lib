@@ -20,6 +20,7 @@ xineplug_decode_mpeg2_la_SOURCES = \
 	motion_comp_altivec.c \
 	motion_comp_mmx.c \
 	motion_comp_mlib.c \
+	motion_comp_vis.c \
 	slice.c \
 	slice_xvmc.c \
 	stats.c \

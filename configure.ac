@@ -1660,6 +1660,7 @@ case "$host_or_hostalias" in
     DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions $DEBUG_CFLAGS"
 
     AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
+    AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
     ;;
 
   sparc-*-solaris*)
@@ -1690,7 +1691,9 @@ case "$host_or_hostalias" in
 
 	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+
         AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
+        AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
     else
 	case `uname -m` in
 	sun4c) cpu_cflags="-xarch=v7 -xchip=ultra2" ;;

@@ -35,6 +35,7 @@ xine-lib (1-rc4)
   * engine improvement to handle unknown frame rate correctly
   * all config entries have help strings now
   * seeking support for matroska files
+  * libmpeg2 now has native VIS motion compensation routines on SPARC
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
