@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.150 2003/03/26 01:25:16 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.151 2003/03/26 01:37:55 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -34,6 +34,7 @@
 #include <string.h>
 #include <zlib.h>
 #include <pthread.h>
+#include <assert.h>
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
