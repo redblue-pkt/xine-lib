@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "contrib/pthreads" /I "../src/xine-engine" /I "../include" /I "contrib/timer" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 /nologo /dll /machine:I386 /out:"Release/bin/plugins/xineplug_decode_ff.so"
+# ADD LINK32 avcodec.lib /nologo /dll /machine:I386 /out:"Release/bin/plugins/xineplug_decode_ff.so" /libpath:"Release"
 
 !ELSEIF  "$(CFG)" == "xineplug_decode_ff - Win32 Debug"
 
@@ -71,7 +71,8 @@ LINK32=link.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I ".." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "contrib/pthreads" /I "../src/xine-engine" /I "../include" /I "contrib/timer" /I "../src" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /D "SIMPLE_IDCT" /D "HAVE_AV_CONFIG_H" /D "RUNTIME_CPUDETECT" /D "USE_FASTMEMCPY" /D "CONFIG_RISKY" /D "CONFIG_DECODERS" /D "XINE_MPEG_ENCODER" /FD /GZ /c
+# SUBTRACT CPP /X /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -81,7 +82,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 /nologo /dll /debug /machine:I386 /out:"Debug/bin/plugins/xineplug_decode_ff.so" /pdbtype:sept
+# ADD LINK32 avcodec.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/plugins/xineplug_decode_ff.so" /pdbtype:sept /libpath:"Debug"
 
 !ENDIF 
 
@@ -94,16 +95,16 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\src\libffmpeg\libavcodec\huffyuv.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\src\libffmpeg\xine_decoder.c
 # End Source File
 # End Group
 # Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\xine_plugin.def
+# End Source File
 # End Group
 # End Target
 # End Project

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.76 2003/12/21 14:14:39 mroi Exp $
+ * $Id: xineutils.h,v 1.77 2003/12/26 18:37:59 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -589,7 +589,7 @@ typedef	union {
    but causes compiler warning with libxineutils
 */
 #ifdef _MSC_VER
-void __declspec( dllimport ) *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
+__declspec( dllimport ) extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
 #else
 extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
 #endif

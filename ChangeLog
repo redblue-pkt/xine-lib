@@ -7,6 +7,7 @@ xine-lib (1-rc3a)
   * deinterlace fixes (detect mpeg1 as progressive and correct handling
     of top_field_first)
   * ogg/ogm demuxer fixes for big endian machines
+  * update win32 port, working ffmpeg decode plugin
 
 xine-lib (1-rc3)
   * fix dvd menu blending when using tvtime plugin (yuy2 blend)

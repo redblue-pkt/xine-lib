@@ -40,10 +40,11 @@ RSC=rc.exe
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
+# PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I ".." /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "contrib/dirent" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdnav" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS." /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -53,7 +54,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
+# ADD LINK32 libdvdnav.lib /nologo /dll /machine:I386 /out:"Release/bin/plugins/xineplug_inp_dvd.so" /libpath:"Release\libdvdnav"
+# SUBTRACT LINK32 /incremental:yes
 
 !ELSEIF  "$(CFG)" == "xineplug_inp_dvd - Win32 Debug"
 
@@ -80,7 +82,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libdvdnav.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/plugins/xineplug_inp_dvd.so" /pdbtype:sept /libpath:"Debug\libdvdnav" /libpath:"lib"
+# ADD LINK32 libdvdnav.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/plugins/xineplug_inp_dvd.so" /pdbtype:sept /libpath:"Debug\libdvdnav"
 
 !ENDIF 
 
@@ -109,7 +111,7 @@ SOURCE=..\src\input\media_helper.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\xineplug_inp.def
+SOURCE=.\xine_plugin.def
 # End Source File
 # End Group
 # End Target

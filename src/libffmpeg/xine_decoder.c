@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.146 2003/12/16 01:57:31 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.147 2003/12/26 18:37:59 valtri Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -47,9 +47,27 @@
 #include "metronom.h"
 #include "xineutils.h"
 
+#ifdef _MSC_VER
+/* ffmpeg has own definitions of those types */
+#  undef int8_t
+#  undef uint8_t
+#  undef int16_t
+#  undef uint16_t
+#  undef int32_t
+#  undef uint32_t
+#  undef int64_t
+#  undef uint64_t
+#endif
+
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
 #include "libavcodec/libpostproc/postprocess.h"
+
+#ifdef _MSC_VER
+#  undef malloc
+#  undef free
+#  undef realloc
+#endif
 
 #define ENABLE_DIRECT_RENDERING
 
@@ -427,7 +445,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
     if (current == NULL)
       return ;
 
-    lprintf ("looking for sequence header... %02x\n", code);  
+    lprintf ("looking for sequence header... %02x\n", code);
   
     /* mpeg2_stats (code, this->chunk_buffer); */
     
@@ -732,7 +750,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int codec_type;
-  
+
   lprintf ("processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
 	   buf->type, buf, buf->decoder_flags);
 

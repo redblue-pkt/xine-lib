@@ -21,12 +21,9 @@ xine_get_homedir
 xine_chomp
 xine_usec_sleep
 
-init_yuv_conversion
-init_yuv_planes
-free_yuv_planes
-
 xine_hexdump
 
+xine_list_new
 xine_list_free
 xine_list_is_empty
 xine_list_first_content
@@ -264,3 +261,23 @@ _x_meta_info_get
 _x_meta_info_get_public
 
 _x_get_current_info
+
+init_yuv_conversion
+init_yuv_planes
+free_yuv_planes
+yuv444_to_yuy2
+yuv9_to_yv12
+yuv411_to_yv12
+yv12_to_yuy2
+yuy2_to_yv12
+y_r_table
+y_g_table
+y_b_table
+u_r_table
+u_g_table
+u_b_table
+v_r_table
+v_g_table
+v_b_table
+
+

@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_ASF_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_ASF_EXPORTS" /D "XINE_COMPILE" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I ".." /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_ASF_EXPORTS" /D "XINE_COMPILE" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -97,12 +97,12 @@ LINK32=link.exe
 SOURCE=..\src\demuxers\demux_asf.c
 # End Source File
 # End Group
-# Begin Group "Dll Defs"
+# Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\xineplug_dmx_asf.def
+SOURCE=.\xine_plugin.def
 # End Source File
 # End Group
 # End Target

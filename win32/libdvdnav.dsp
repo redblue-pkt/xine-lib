@@ -45,7 +45,7 @@ LINK32=link.exe
 # ADD LINK32 /machine:IX86
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "." /I ".." /I "..\..\libdvdcss\src" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "include" /I "../src/xine-utils" /I "contrib/dirent" /I "contrib/pthreads" /I "contrib/timer" /I "../src/input/libdvdcss/src" /I ".." /I "../src" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -53,12 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
-# Begin Special Build Tool
-SOURCE="$(InputPath)"
-PostBuild_Desc=Create libdvdnav Install Files
-PostBuild_Cmds=scripts\libdvdnav_install.bat Release
-# End Special Build Tool
+# ADD LIB32 /nologo /out:"Release\libdvdnav\libdvdnav.lib"
 
 !ELSEIF  "$(CFG)" == "libdvdnav - Win32 Debug"
 

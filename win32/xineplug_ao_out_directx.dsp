@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_AO_OUT_DIRECTX_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_AO_OUT_DIRECTX_EXPORTS" /D "XINE_COMPILE" /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "." /I ".." /I "contrib/pthreads" /I "contrib/timer" /I "../include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_AO_OUT_DIRECTX_EXPORTS" /D "XINE_COMPILE" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -102,7 +102,7 @@ SOURCE=..\src\audio_out\audio_directx_out.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\xineplug_ao_out.def
+SOURCE=.\xine_plugin.def
 # End Source File
 # End Group
 # End Target
