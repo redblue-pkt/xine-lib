@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.30 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: buffer.c,v 1.31 2003/10/14 22:16:32 tmattern Exp $
  *
  *
  * contents:
@@ -72,8 +72,12 @@ static void buffer_pool_free (buf_element_t *element) {
 static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
 
   buf_element_t *buf;
+  int i;
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
+
+  for(i = 0; this->alloc_cb[i]; i++)
+    this->alloc_cb[i](this, this->alloc_cb_data[i]);
 
   /* we always keep one free buffer for emergency situations like
    * decoder flushes that would need a buffer in buffer_pool_try_alloc() */
@@ -336,6 +340,25 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
 }
 
 /*
+ * Register an "alloc" callback
+ */
+static void fifo_register_alloc_cb (fifo_buffer_t *this,
+                                    void (*cb)(fifo_buffer_t *this,
+                                               void *data_cb),
+                                    void *data_cb) {
+  int i;
+  pthread_mutex_lock(&this->mutex);
+  for(i = 0; this->alloc_cb[i]; i++)
+    ;
+  if( i != BUF_MAX_CALLBACKS-1 ) {
+    this->alloc_cb[i] = cb;
+    this->alloc_cb_data[i] = data_cb;
+    this->alloc_cb[i+1] = NULL;
+  }
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
  * Register a "put" callback
  */
 static void fifo_register_put_cb (fifo_buffer_t *this,
@@ -372,6 +395,25 @@ static void fifo_register_get_cb (fifo_buffer_t *this,
     this->get_cb_data[i] = data_cb;
     this->get_cb[i+1] = NULL;
   }
+  pthread_mutex_unlock(&this->mutex);
+}
+
+/*
+ * Unregister an "alloc" callback
+ */
+static void fifo_unregister_alloc_cb (fifo_buffer_t *this,
+                                      void (*cb)(fifo_buffer_t *this,
+                                                 void *data_cb) ) {
+  int i,j;
+  pthread_mutex_lock(&this->mutex);
+  for(i = 0; this->alloc_cb[i]; i++) {
+    if( this->alloc_cb[i] == cb ) {
+      for(j = i; this->alloc_cb[j]; j++) {
+        this->alloc_cb[j] = this->alloc_cb[j+1];
+        this->alloc_cb_data[j] = this->alloc_cb_data[j+1];
+      }
+    }
+  }  
   pthread_mutex_unlock(&this->mutex);
 }
 
@@ -427,21 +469,23 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   this = xine_xmalloc (sizeof (fifo_buffer_t));
 
-  this->first             = NULL;
-  this->last              = NULL;
-  this->fifo_size         = 0;
-  this->put               = fifo_buffer_put;
-  this->insert            = fifo_buffer_insert;
-  this->get               = fifo_buffer_get;
-  this->clear             = fifo_buffer_clear;
-  this->size		  = fifo_buffer_size;
-  this->num_free          = fifo_buffer_num_free;
-  this->data_size	  = fifo_buffer_data_size;
-  this->dispose		  = fifo_buffer_dispose;
-  this->register_get_cb   = fifo_register_get_cb;
-  this->register_put_cb   = fifo_register_put_cb;
-  this->unregister_get_cb = fifo_unregister_get_cb;
-  this->unregister_put_cb = fifo_unregister_put_cb;
+  this->first               = NULL;
+  this->last                = NULL;
+  this->fifo_size           = 0;
+  this->put                 = fifo_buffer_put;
+  this->insert              = fifo_buffer_insert;
+  this->get                 = fifo_buffer_get;
+  this->clear               = fifo_buffer_clear;
+  this->size                = fifo_buffer_size;
+  this->num_free            = fifo_buffer_num_free;
+  this->data_size           = fifo_buffer_data_size;
+  this->dispose             = fifo_buffer_dispose;
+  this->register_alloc_cb   = fifo_register_alloc_cb;
+  this->register_get_cb     = fifo_register_get_cb;
+  this->register_put_cb     = fifo_register_put_cb;
+  this->unregister_alloc_cb = fifo_unregister_alloc_cb;
+  this->unregister_get_cb   = fifo_unregister_get_cb;
+  this->unregister_put_cb   = fifo_unregister_put_cb;
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);
 
@@ -486,8 +530,10 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
     buffer_pool_free (buf);
   }
+  this->alloc_cb[0]              = NULL;
   this->get_cb[0]                = NULL;
   this->put_cb[0]                = NULL;
+  this->alloc_cb_data[0]         = NULL;
   this->get_cb_data[0]           = NULL;
   this->put_cb_data[0]           = NULL;
   return this;

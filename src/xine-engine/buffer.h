@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.120 2003/08/05 15:20:00 mroi Exp $
+ * $Id: buffer.h,v 1.121 2003/10/14 22:16:32 tmattern Exp $
  *
  *
  * contents:
@@ -467,8 +467,11 @@ struct fifo_buffer_s
   /* the same as put but insert at the head of the fifo */
   void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);
 
+  /* callbacks */
+  void (*register_alloc_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, void *), void *cb_data);
   void (*register_put_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
   void (*register_get_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *), void *cb_data);
+  void (*unregister_alloc_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, void *));
   void (*unregister_put_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *));
   void (*unregister_get_cb) (fifo_buffer_t *fifo, void (*cb)(fifo_buffer_t *fifo, buf_element_t *buf, void *));
 
@@ -479,11 +482,13 @@ struct fifo_buffer_s
   pthread_mutex_t  buffer_pool_mutex;
   pthread_cond_t   buffer_pool_cond_not_empty;
   int              buffer_pool_num_free;
-  int		   buffer_pool_capacity;
-  int		   buffer_pool_buf_size;
+  int              buffer_pool_capacity;
+  int              buffer_pool_buf_size;
   void            *buffer_pool_base; /*used to free mem chunk */
+  void           (*alloc_cb[BUF_MAX_CALLBACKS])(fifo_buffer_t *fifo, void *data_cb);
   void           (*put_cb[BUF_MAX_CALLBACKS])(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
   void           (*get_cb[BUF_MAX_CALLBACKS])(fifo_buffer_t *fifo, buf_element_t *buf, void *data_cb);
+  void            *alloc_cb_data[BUF_MAX_CALLBACKS];
   void            *put_cb_data[BUF_MAX_CALLBACKS];
   void            *get_cb_data[BUF_MAX_CALLBACKS];
 } ;
