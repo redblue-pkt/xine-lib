@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.5 2003/12/05 15:54:56 f1rmb Exp $
+ * $Id: audio_none_out.c,v 1.6 2003/12/08 11:34:37 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -186,7 +186,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   /* config_values_t *config = class->config; */
   none_driver_t    *this;
 
-  lprintf ("audio_none_out: open_plugin called\n");
+  lprintf ("open_plugin called\n");
 
   this = (none_driver_t *) xine_xmalloc (sizeof (none_driver_t));
 
@@ -234,7 +234,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   none_class_t        *this;
 
-  lprintf ("audio_none_out: init class\n");
+  lprintf ("init class\n");
 
   this = (none_class_t *) xine_xmalloc (sizeof (none_class_t));
 
