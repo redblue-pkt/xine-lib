@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.177 2003/11/15 15:04:35 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.178 2003/11/16 00:59:24 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -169,6 +169,7 @@ typedef struct{
   video_index_t     video_idx;
   xine_bmiheader   *bih;
   off_t             movi_start;
+  off_t             movi_end;
 
   int               palette_count;
   palette_entry_t   palette[256];
@@ -638,7 +639,8 @@ do {			\
 static avi_t *AVI_init(demux_avi_t *this) {
 
   avi_t *AVI;
-  int i, j, n, idx_type;
+  int i, j, idx_type;
+  uint32_t n;
   uint8_t *hdrl_data;
   int hdrl_len = 0;
   off_t ioff;
@@ -676,19 +678,37 @@ static avi_t *AVI_init(demux_avi_t *this) {
   hdrl_data = NULL;
 
   while(1) {
+    off_t next_chunk;
 
     /* Keep track of the last place we tried to read something. */
     this->idx_grow.nexttagoffset = this->input->get_current_pos(this->input);
 
-    if (this->input->read(this->input, data,8) != 8 )
+    if (this->input->read(this->input, data,8) != 8 ) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      "failed to read 8 bytes at pos %lld\n",
+              this->idx_grow.nexttagoffset);
       break; /* We assume it's EOF */
+    }
 
     n = LE_32(data + 4);
     n = PAD_EVEN(n);
-
+    next_chunk = this->idx_grow.nexttagoffset + 8 + n;
+    
+    if (n == 0) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      "invalid chunk length (0 byte)\n");
+      break;
+    }
+    
+    lprintf("chunk: %c%c%c%c, size: %lld\n",
+            data[0], data[1], data[2], data[3], (int64_t)n);
+    
     if(strncasecmp(data,"LIST",4) == 0) {
       if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ);
       n -= 4;
+      
+      lprintf("  chunk: %c%c%c%c\n",
+              data[0], data[1], data[2], data[3]);
 
       if(strncasecmp(data,"hdrl",4) == 0) {
 
@@ -700,16 +720,14 @@ static avi_t *AVI_init(demux_avi_t *this) {
           ERR_EXIT(AVI_ERR_READ);
 
       } else if(strncasecmp(data,"movi",4) == 0)  {
-
+        
         AVI->movi_start = this->input->get_current_pos(this->input);
+        AVI->movi_end = AVI->movi_start + n - 1;
 
         if (this->streaming)
           /* stop reading here, we can't seek back */
           break;
-        this->input->seek(this->input, n, SEEK_CUR);
-      } else
-        this->input->seek(this->input, n, SEEK_CUR);
-
+      }
     } else if(strncasecmp(data,"idx1",4) == 0 ||
               strncasecmp(data,"iddx",4) == 0) {
 
@@ -730,9 +748,12 @@ static avi_t *AVI_init(demux_avi_t *this) {
         AVI->n_idx = AVI->max_idx = 0;
         break; /* EOF */
       }
-
-    } else
-      this->input->seek(this->input, n, SEEK_CUR);
+    }    
+    if (next_chunk != this->input->seek(this->input, next_chunk, SEEK_SET)) {
+      xine_log (this->stream->xine, XINE_LOG_MSG,
+                _("demux_avi: failed to seek to the next chunk (pos %lld)\n"),
+                next_chunk);
+    }
   }
 
   /* Interpret the header list */
@@ -1651,7 +1672,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
     video_pts = start_time * 90;
     idx_grow(this, start_time_stopper, &video_pts);
   }
-
+  
   if (start_pos || start_time)
     max_pos = this->avi->video_idx.video_frames - 1;
   else
