@@ -34,6 +34,8 @@
  * unicode stuff        : (C) 2003 by Frantisek Dvorak
  */
 
+#include <sys/param.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +52,16 @@
 #include <freetype/ftglyph.h>
 #endif
 
-#define MAX(a, b) ((a) > (b)? (a) : (b))
+/* we want UCS-2 encoding in the machine endian */
+#if BYTE_ORDER == BIG_ENDIAN
+#  define UCS2_ENCODING "UCS-2BE"
+#else
+#  define UCS2_ENCODING "UCS-2LE"
+#endif
+
+#ifndef MAX
+#  define MAX (a, b) ((a) > (b)? (a) : (b))
+#endif
 
 #define f266ToInt(x)            (((x)+32)>>6)   /* round fractional fixed point */
                                                 /* coordinates are in 26.6 pixels (i.e. 1/64th of pixels)*/
@@ -173,7 +184,7 @@ uint16_t generate_unicodes_list(item_t **list, char **pages, int number) {
   /* process all given codepages */
   for (page = 0; page < number; page++) {
     /* prepare encoding */
-    if ((cd = iconv_open("UCS-2", pages[page])) == (iconv_t)-1) {
+    if ((cd = iconv_open(UCS2_ENCODING, pages[page])) == (iconv_t)-1) {
       printf("Unsupported encoding \"%s\"\n", pages[page]);
       continue;
     }
