@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.137 2002/10/16 14:19:40 guenter Exp $
+ * $Id: video_out_xv.c,v 1.138 2002/10/16 21:11:50 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -98,7 +98,7 @@ typedef struct {
 
 struct xv_driver_s {
 
-  xine_vo_driver_t        vo_driver;
+  xine_vo_driver_t   vo_driver;
 
   config_values_t   *config;
 
@@ -135,6 +135,13 @@ struct xv_driver_s {
 
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 };
+
+typedef struct {
+  config_values_t   *config;
+  XvPortID           xv_port;
+  XvAdaptorInfo     *adaptor_info;
+  unsigned int       adaptor_num;
+} xv_class_t;
 
 int gX11Fail;
 
@@ -763,7 +770,8 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
 			this->props[property].atom,
 			&this->props[property].value);
 
-    this->props[property].entry->num_value = this->props[property].value;
+    if (this->props[property].entry)
+      this->props[property].entry->num_value = this->props[property].value;
 
     return this->props[property].value;
   } else {
@@ -981,7 +989,9 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
 static void xv_check_capability (xv_driver_t *this,
 				 uint32_t capability,
 				 int property, XvAttribute attr,
-				 int base_id, char *str_prop) {
+				 int base_id, char *str_prop,
+				 char *config_name,
+				 char *config_desc) {
 
   int          int_default;
   cfg_entry_t *entry;
@@ -1004,30 +1014,30 @@ static void xv_check_capability (xv_driver_t *this,
   printf ("video_out_xv: port attribute %s value is %d\n",
 	  str_prop, int_default);
 
-  sprintf (this->scratch, "video.%s", str_prop);
+  if (config_name) {
+    /* is this a boolean property ? */
+    if ((attr.min_value == 0) && (attr.max_value == 1)) {
+      this->config->register_bool (this->config, config_name, int_default,
+				   config_desc,
+				   NULL, 10, xv_property_callback, &this->props[property]);
+      
+    } else {
+      this->config->register_range (this->config, config_name, int_default,
+				    this->props[property].min, this->props[property].max,   
+				    config_desc, 
+				    NULL, 10, xv_property_callback, &this->props[property]);
+    }
+    
+    entry = this->config->lookup_entry (this->config, this->scratch);
+    
+    this->props[property].entry = entry;
+  
+    xv_set_property (&this->vo_driver, property, entry->num_value);
 
-  /* is this a boolean property ? */
-  if ((attr.min_value == 0) && (attr.max_value == 1)) {
-    this->config->register_bool (this->config, this->scratch, int_default,
-				 _("Xv property"),
-				 NULL, 10, xv_property_callback, &this->props[property]);
-  
-  } else {
-    this->config->register_range (this->config, this->scratch, int_default,
-				  this->props[property].min, this->props[property].max,   
-				  _("Xv property"), 
-				  NULL, 10, xv_property_callback, &this->props[property]);
-  }
-  
-  entry = this->config->lookup_entry (this->config, this->scratch);
-  
-  this->props[property].entry = entry;
-  
-  xv_set_property (&this->vo_driver, property, entry->num_value);
-
-  if (capability == VO_CAP_COLORKEY) {
-    this->use_colorkey = 1;
-    this->colorkey = entry->num_value;
+    if (capability == VO_CAP_COLORKEY) {
+      this->use_colorkey = 1;
+      this->colorkey = entry->num_value;
+    }
   }
 }
 
@@ -1064,22 +1074,221 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
 }
 
 
-static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
+static void *open_plugin (void *class_gen, xine_stream_t *stream, 
+			  const void *visual_gen) {
 
-  config_values_t      *config = xine->config;
+  xv_class_t           *class = (xv_class_t *) class_gen;
+  config_values_t      *config = class->config;
   xv_driver_t          *this;
+  int                   i, formats;
   Display              *display = NULL;
-  unsigned int          adaptor_num, adaptors, i, j, formats;
-  unsigned int          ver,rel,req,ev,err;
-  XvPortID              xv_port;
   XvAttribute          *attr;
-  XvAdaptorInfo        *adaptor_info;
   XvImageFormatValues  *fo;
   int                   nattr;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XColor                dummy;
   XvImage              *myimage;
   XShmSegmentInfo       myshminfo;
+  XvPortID              xv_port = class->xv_port;
+
+  display = visual->display;
+
+  printf ("video_out_xv: open_plugin\n");
+
+  this = malloc (sizeof (xv_driver_t));
+
+  if (!this) {
+    printf ("video_out_xv: malloc failed\n");
+    return NULL;
+  }
+
+  memset (this, 0, sizeof(xv_driver_t));
+
+  this->display           = visual->display;
+  this->overlay           = NULL;
+  this->screen            = visual->screen;
+  this->xv_port           = class->xv_port;
+  this->config            = config;
+  
+  vo_scale_init (&this->sc, 1, 0 );
+  this->sc.frame_output_cb   = visual->frame_output_cb;
+  this->sc.user_data         = visual->user_data;
+  
+  this->drawable          = visual->d;
+  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->capabilities      = 0;
+  this->expecting_event   = 0;
+  this->use_shm           = 1;
+  this->deinterlace_method = 0;
+  this->deinterlace_frame.image = NULL;
+  this->use_colorkey      = 0;
+  this->colorkey          = 0;
+  this->x11_old_error_handler = NULL;
+
+  XAllocNamedColor (this->display,
+		    DefaultColormap(this->display, this->screen),
+		    "black", &this->black, &dummy);
+
+  this->vo_driver.get_capabilities     = xv_get_capabilities;
+  this->vo_driver.alloc_frame          = xv_alloc_frame;
+  this->vo_driver.update_frame_format  = xv_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_blend        = xv_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.display_frame        = xv_display_frame;
+  this->vo_driver.get_property         = xv_get_property;
+  this->vo_driver.set_property         = xv_set_property;
+  this->vo_driver.get_property_min_max = xv_get_property_min_max;
+  this->vo_driver.gui_data_exchange    = xv_gui_data_exchange;
+  this->vo_driver.exit                 = xv_exit;
+  this->vo_driver.redraw_needed        = xv_redraw_needed;
+
+  /*
+   * init properties
+   */
+
+  for (i=0; i<VO_NUM_PROPERTIES; i++) {
+    this->props[i].value = 0;
+    this->props[i].min   = 0;
+    this->props[i].max   = 0;
+    this->props[i].atom  = None;
+    this->props[i].entry = NULL;
+    this->props[i].this  = this;
+  }
+
+  this->props[VO_PROP_INTERLACED].value     = 0;
+  this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
+  this->props[VO_PROP_ZOOM_X].value    = 100;
+  this->props[VO_PROP_ZOOM_Y].value    = 100;
+
+  /*
+   * check this adaptor's capabilities
+   */
+
+  attr = XvQueryPortAttributes(display, xv_port, &nattr);
+  if(attr && nattr) {
+    int k;
+
+    for(k = 0; k < nattr; k++) {
+      if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
+	if(!strcmp(attr[k].name, "XV_HUE")) {
+	  xv_check_capability (this, VO_CAP_HUE,
+			       VO_PROP_HUE, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
+			       NULL, NULL);
+
+	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
+	  xv_check_capability (this, VO_CAP_SATURATION,
+			       VO_PROP_SATURATION, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
+			       NULL, NULL);
+
+	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
+	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
+			       VO_PROP_BRIGHTNESS, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_BRIGHTNESS",
+			       NULL, NULL);
+
+	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
+	  xv_check_capability (this, VO_CAP_CONTRAST,
+			       VO_PROP_CONTRAST, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_CONTRAST",
+			       NULL, NULL);
+
+	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
+	  xv_check_capability (this, VO_CAP_COLORKEY,
+			       VO_PROP_COLORKEY, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
+			       "video.xv_colorkey", 
+			       _("Colorkey used for Xv video overlay"));
+	  
+	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
+	  xv_check_capability (this, VO_CAP_AUTOPAINT_COLORKEY,
+			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
+			       class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
+			       "video.xv_autopaint_colorkey",
+			       _("Make Xv autopaint it's colorket"));
+
+	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
+	  int xv_filter;
+	  /* This setting is specific to Permedia 2/3 cards. */
+	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
+					      attr[k].min_value, attr[k].max_value,
+					      _("bilinear scaling mode (permedia 2/3)"),
+					      NULL, 10, xv_update_XV_FILTER, this);
+	  config->update_num(config,"video.XV_FILTER",xv_filter);
+	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
+	  int xv_double_buffer;
+	  xv_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
+						    _("double buffer to sync video to the retrace"),
+						    NULL, 10, xv_update_XV_DOUBLE_BUFFER, this);
+	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
+	}
+      }
+    }
+    XFree(attr);
+  } else {
+    printf("video_out_xv: no port attributes defined.\n");
+  }
+
+  /*
+   * FIXME: move to class dispose
+   * XvFreeAdaptorInfo (class->adaptor_info); 
+   */
+
+  /*
+   * check supported image formats
+   */
+
+  fo = XvListImageFormats(display, this->xv_port, (int*)&formats);
+
+  this->xv_format_yv12 = 0;
+  this->xv_format_yuy2 = 0;
+  
+  for(i = 0; i < formats; i++) {
+#ifdef LOG
+    printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
+	    fo[i].id, (char*)&fo[i].id,
+	    (fo[i].format == XvPacked) ? "packed" : "planar");
+#endif
+    if (fo[i].id == XINE_IMGFMT_YV12)  {
+      this->xv_format_yv12 = fo[i].id;
+      this->capabilities |= VO_CAP_YV12;
+      printf("video_out_xv: this adaptor supports the yv12 format.\n");
+    } else if (fo[i].id == XINE_IMGFMT_YUY2) {
+      this->xv_format_yuy2 = fo[i].id;
+      this->capabilities |= VO_CAP_YUY2;
+      printf("video_out_xv: this adaptor supports the yuy2 format.\n");
+    }
+  }
+
+  /*
+   * try to create a shared image
+   * to find out if MIT shm really works, using supported format
+   */
+  myimage = create_ximage (this, &myshminfo, 100, 100, 
+			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
+  dispose_ximage (this, &myshminfo, myimage);
+
+  this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
+						    deinterlace_methods, 
+						    _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
+						    NULL, 10, xv_update_deinterlace, this);
+  this->deinterlace_enabled = 0;
+
+  return &this->vo_driver;
+}
+
+static void *init_class (xine_t *xine, void *visual_gen) {
+
+  x11_visual_t      *visual = (x11_visual_t *) visual_gen;
+  xv_class_t        *this;
+  Display           *display = NULL;
+  unsigned int       adaptors, j;
+  unsigned int       ver,rel,req,ev,err;
+  XvPortID           xv_port;
+  XvAdaptorInfo     *adaptor_info;
+  unsigned int       adaptor_num;
 
   display = visual->display;
 
@@ -1134,181 +1343,18 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
             "colorspace conversion and scaling.\n", xv_port,
             adaptor_info[adaptor_num].name);
 
+
   /*
-   * from this point on, nothing should go wrong anymore; so let's start initializing this driver
+   * from this point on, nothing should go wrong anymore
    */
+  this = (xv_class_t *) malloc (sizeof (xv_class_t));
 
-  this = malloc (sizeof (xv_driver_t));
-
-  if (!this) {
-    printf ("video_out_xv: malloc failed\n");
-    return NULL;
-  }
-
-  memset (this, 0, sizeof(xv_driver_t));
-
-  this->config            = config;
-  this->display           = visual->display;
-  this->overlay           = NULL;
-  this->screen            = visual->screen;
-  
-  vo_scale_init (&this->sc, 1, 0 );
-  this->sc.frame_output_cb   = visual->frame_output_cb;
-  this->sc.user_data         = visual->user_data;
-  
-  this->drawable          = visual->d;
-  this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
+  this->config            = xine->config;
   this->xv_port           = xv_port;
-  this->capabilities      = 0;
-  this->expecting_event   = 0;
-  this->use_shm           = 1;
-  this->deinterlace_method = 0;
-  this->deinterlace_frame.image = NULL;
-  this->use_colorkey      = 0;
-  this->colorkey          = 0;
-  this->x11_old_error_handler = NULL;
+  this->adaptor_info      = adaptor_info;
+  this->adaptor_num       = adaptor_num;
 
-  XAllocNamedColor(this->display,
-		   DefaultColormap(this->display, this->screen),
-		   "black", &this->black, &dummy);
-
-  this->vo_driver.get_capabilities     = xv_get_capabilities;
-  this->vo_driver.alloc_frame          = xv_alloc_frame;
-  this->vo_driver.update_frame_format  = xv_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
-  this->vo_driver.overlay_blend        = xv_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
-  this->vo_driver.display_frame        = xv_display_frame;
-  this->vo_driver.get_property         = xv_get_property;
-  this->vo_driver.set_property         = xv_set_property;
-  this->vo_driver.get_property_min_max = xv_get_property_min_max;
-  this->vo_driver.gui_data_exchange    = xv_gui_data_exchange;
-  this->vo_driver.exit                 = xv_exit;
-  this->vo_driver.redraw_needed        = xv_redraw_needed;
-
-  /*
-   * init properties
-   */
-
-  for (i=0; i<VO_NUM_PROPERTIES; i++) {
-    this->props[i].value = 0;
-    this->props[i].min   = 0;
-    this->props[i].max   = 0;
-    this->props[i].atom  = None;
-    this->props[i].entry = NULL;
-    this->props[i].this  = this;
-  }
-
-  this->props[VO_PROP_INTERLACED].value     = 0;
-  this->sc.user_ratio = this->props[VO_PROP_ASPECT_RATIO].value   = ASPECT_AUTO;
-  this->props[VO_PROP_ZOOM_X].value    = 100;
-  this->props[VO_PROP_ZOOM_Y].value    = 100;
-
-  /*
-   * check this adaptor's capabilities
-   */
-
-  attr = XvQueryPortAttributes(display, xv_port, &nattr);
-  if(attr && nattr) {
-    int k;
-
-    for(k = 0; k < nattr; k++) {
-      if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
-	if(!strcmp(attr[k].name, "XV_HUE")) {
-	  xv_check_capability (this, VO_CAP_HUE,
-			       VO_PROP_HUE, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_HUE");
-
-	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
-	  xv_check_capability (this, VO_CAP_SATURATION,
-			       VO_PROP_SATURATION, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_SATURATION");
-
-	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
-	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
-			       VO_PROP_BRIGHTNESS, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_BRIGHTNESS");
-
-	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
-	  xv_check_capability (this, VO_CAP_CONTRAST,
-			       VO_PROP_CONTRAST, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_CONTRAST");
-
-	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
-	  xv_check_capability (this, VO_CAP_COLORKEY,
-			       VO_PROP_COLORKEY, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_COLORKEY");
-	  
-	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
-	  xv_check_capability (this, VO_CAP_AUTOPAINT_COLORKEY,
-			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
-			       adaptor_info[adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY");
-
-	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
-	  int xv_filter;
-	  /* This setting is specific to Permedia 2/3 cards. */
-	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
-					      attr[k].min_value, attr[k].max_value,
-					      _("bilinear scaling mode (permedia 2/3)"),
-					      NULL, 10, xv_update_XV_FILTER, this);
-	  config->update_num(config,"video.XV_FILTER",xv_filter);
-	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
-	  int xv_double_buffer;
-	  xv_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
-						    _("double buffer to sync video to the retrace"),
-						    NULL, 10, xv_update_XV_DOUBLE_BUFFER, this);
-	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
-	}
-      }
-    }
-    XFree(attr);
-  } else {
-    printf("video_out_xv: no port attributes defined.\n");
-  }
-
-  XvFreeAdaptorInfo (adaptor_info);
-
-  /*
-   * check supported image formats
-   */
-
-  fo = XvListImageFormats(display, this->xv_port, (int*)&formats);
-
-  this->xv_format_yv12 = 0;
-  this->xv_format_yuy2 = 0;
-  
-  for(i = 0; i < formats; i++) {
-#ifdef LOG
-    printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
-	    fo[i].id, (char*)&fo[i].id,
-	    (fo[i].format == XvPacked) ? "packed" : "planar");
-#endif
-    if (fo[i].id == XINE_IMGFMT_YV12)  {
-      this->xv_format_yv12 = fo[i].id;
-      this->capabilities |= VO_CAP_YV12;
-      printf("video_out_xv: this adaptor supports the yv12 format.\n");
-    } else if (fo[i].id == XINE_IMGFMT_YUY2) {
-      this->xv_format_yuy2 = fo[i].id;
-      this->capabilities |= VO_CAP_YUY2;
-      printf("video_out_xv: this adaptor supports the yuy2 format.\n");
-    }
-  }
-
-  /*
-   * try to create a shared image
-   * to find out if MIT shm really works, using supported format
-   */
-  myimage = create_ximage (this, &myshminfo, 100, 100, 
-			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
-  dispose_ximage (this, &myshminfo, myimage);
-
-  this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
-						    deinterlace_methods, 
-						    _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
-						    NULL, 10, xv_update_deinterlace, this);
-  this->deinterlace_enabled = 0;
-
-  return &this->vo_driver;
+  return this;
 }
 
 static vo_info_t vo_info_xv = {
@@ -1328,7 +1374,7 @@ vo_info_t *get_video_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 9, "xv", XINE_VERSION_CODE, &vo_info_xv, init_video_out_plugin },
+  { PLUGIN_VIDEO_OUT, 10, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
