@@ -42,6 +42,8 @@
 
 #define BUFSIZE 1024
 
+#define DEFAULT_HTTP_PORT 80
+
 static uint32_t xine_debug;
 
 typedef struct {
@@ -52,14 +54,29 @@ typedef struct {
   config_values_t *config;
 
   off_t            curpos;
-  
-  char             buf[BUFSIZE];              
-  char             mrlbuf[BUFSIZE];              
+  off_t            contentlength;
+    
+  char             buf[BUFSIZE];
+  char             mrlbuf[BUFSIZE];
+  char             proxybuf[BUFSIZE];
 
+  char             auth[BUFSIZE];
+  char             proxyauth[BUFSIZE];
+  
+  char            *user;
+  char            *password;
+  char            *host;
+  int              port;
+  char            *filename;
+  
+  char            *proxyuser;
+  char            *proxypassword;
+  char            *proxyhost;
+  int              proxyport;
 } http_input_plugin_t;
 
 
-static int host_connect_attempt(struct in_addr ia, int port) {
+static int http_plugin_host_connect_attempt(struct in_addr ia, int port) {
 
   int                s;
   struct sockaddr_in sin;
@@ -84,7 +101,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   return s;
 }
 
-static int host_connect(const char *host, int port) {
+static int http_plugin_host_connect(const char *host, int port) {
   struct hostent *h;
   int i;
   int s;
@@ -97,8 +114,8 @@ static int host_connect(const char *host, int port) {
 	
   for(i=0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
-    memcpy(&ia, h->h_addr_list[i],4);
-    s=host_connect_attempt(ia, port);
+    memcpy(&ia, h->h_addr_list[i], 4);
+    s=http_plugin_host_connect_attempt(ia, port);
     if(s != -1)
       return s;
   }
@@ -107,46 +124,245 @@ static int host_connect(const char *host, int port) {
   return -1;
 }
 
+static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
+    char** host, int *port, char **filename) {
+  char   *start = NULL;
+  char   *authcolon = NULL;
+  char	 *at = NULL;
+  char	 *portcolon = NULL;
+  char   *slash = NULL;
+  
+  if (user != NULL)
+    *user = NULL;
+  
+  if (password != NULL)
+    *password = NULL;
+  
+  if (host != NULL)
+    *host = NULL;
+  
+  if (filename != NULL)
+    *filename = NULL;
+  
+  if (port != NULL)
+    *port = 0;
+  
+  start = strstr(urlbuf, "://");
+  if (start != NULL)
+    start += 3;
+  else
+    start = urlbuf;
+  
+  at = strchr(start, '@');
+  slash = strchr(start, '/');
+  
+  if (at != NULL && slash != NULL && at > slash)
+    at = NULL;
+  
+  if (at != NULL)
+  {
+    authcolon = strchr(start, ':');
+    if(authcolon != NULL && authcolon > at)
+      authcolon = NULL;
+    
+    portcolon = strchr(at, ':');
+  } else
+    portcolon = strchr(start, ':');
+  
+  if (portcolon != NULL && slash != NULL && portcolon > slash)
+    portcolon = NULL;
+  
+  if (at != NULL)
+  {
+    *at = '\0';
+    
+    if (user != NULL)
+      *user = start;
+    
+    if (authcolon != NULL)
+    {
+      *authcolon = '\0';
+      
+      if (password != NULL)
+      	*password = authcolon + 1;
+    }
+    
+    if (host != NULL)
+      *host = at + 1;
+  } else
+    if (host != NULL)
+      *host = start;
+  
+  if (slash != 0)
+  {
+    *slash = '\0';
+    
+    if (filename != NULL)
+      *filename = slash + 1;
+  } else
+    *filename = urlbuf + strlen(urlbuf);
+  
+  if (portcolon != NULL)
+  {
+    *portcolon = '\0';
+    
+    if (port != NULL)
+      *port = atoi(portcolon + 1);
+  }
+  
+  return 0;
+}
+
+static int http_plugin_basicauth (const char *user, const char *password,
+    char* dest, int len) {
+  static char *enctable="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+  char        *tmp;
+  char        *sptr;
+  char        *dptr;
+  int          totlen;
+  int          enclen;
+  int          count;
+  
+  totlen = strlen (user) + 1;
+  if(password != NULL)
+    totlen += strlen (password);
+  
+  enclen = ((totlen + 2) / 3 ) * 4 + 1;
+  
+  if (len < enclen)
+    return -1;
+  
+  tmp = malloc (sizeof(char) * (totlen + 1));
+  strcpy (tmp, user);
+  strcat (tmp, ":");
+  if (password != NULL)
+    strcat (tmp, password);  
+  
+  count = strlen(tmp);
+  sptr = tmp;
+  dptr = dest;
+  while (count >= 3) {
+    dptr[0] = enctable[(sptr[0] & 0xFC) >> 2];
+    dptr[1] = enctable[((sptr[0] & 0x3) << 4) | ((sptr[1] & 0xF0) >> 4)];
+    dptr[2] = enctable[((sptr[1] & 0x0F) << 2) | ((sptr[2] & 0xC0) >> 6)];
+    dptr[3] = enctable[sptr[2] & 0x3F];
+    count -= 3;
+    sptr += 3;
+    dptr += 4;
+  }
+  
+  if (count > 0) {
+    dptr[0] = enctable[(sptr[0] & 0xFC) >> 2];
+    dptr[1] = enctable[(sptr[0] & 0x3) << 4];
+    dptr[2] = '=';
+    
+    if (count > 1) {
+      dptr[1] = enctable[((sptr[0] & 0x3) << 4) | ((sptr[1] & 0xF0) >> 4)];
+      dptr[2] = enctable[(sptr[1] & 0x0F) << 2];
+    }
+    
+    dptr[3] = '=';
+    dptr += 4;
+  }
+  
+  dptr[0] = '\0';
+  
+  free(tmp);
+  return 0;
+}
+
 static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  char   *filename, *host;
-  char   *pstr;
-  int     port = 80;
-  int     done,len;
+  char	 *proxy;
+  int     done,len,linenum;
 
-  strncpy(this->mrlbuf, mrl, 1024);
+  strncpy (this->mrlbuf, mrl, BUFSIZE);
   this->mrl = mrl;
 
-  /* parse url */
-
-  if (!strncasecmp (this->mrlbuf, "http:",5))
-    host = (char *) &this->mrlbuf[7];
-  else
+  if (strncasecmp (this->mrlbuf, "http://", 7))
     return 0;
 
-  if (! (filename = strchr (host, '/')) )
-    return 0;
-
-  *filename=0;
-  filename++;
-    
-  printf ("input_http: opening >%s< on host >%s<\n", filename, host);
+  this->proxybuf[0] = '\0';
+  proxy = getenv("http_proxy");
   
-  pstr=strrchr(host, ':');
-  if (pstr) {
-    *pstr++=0;
-    sscanf(pstr,"%d", &port);
+  if (proxy != NULL)
+  {
+    strncpy(this->proxybuf, proxy, BUFSIZE);
+    
+    if (http_plugin_parse_url (this->proxybuf, &this->proxyuser,
+	&this->proxypassword, &this->proxyhost, &this->proxyport, NULL))
+      return 0;
+    
+    if (this->proxyport == 0)
+      this->proxyport = DEFAULT_HTTP_PORT;
+    
+    if (this->proxyuser != NULL)
+      if (http_plugin_basicauth (this->proxyuser, this->proxypassword,
+	  this->proxyauth, BUFSIZE))
+	return 0;
   }
+  
+  if(http_plugin_parse_url (this->mrlbuf, &this->user, &this->password,
+      &this->host, &this->port, &this->filename))
+    return 0;
 
-  this->fh = host_connect(host, port);
+  if(this->port == 0)
+    this->port = DEFAULT_HTTP_PORT;
+
+  if (this->user != NULL)
+    if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE))
+      return 0;
+
+  printf ("input_http: opening >/%s< on host >%s<", this->filename, this->host);
+  if(proxy != NULL)
+    printf (" via proxy >%s<", this->proxyhost);
+  
+  printf ("\n");
+  
+  if (proxy != NULL)
+    this->fh = http_plugin_host_connect (this->proxyhost, this->proxyport);
+  else
+    this->fh = http_plugin_host_connect (this->host, this->port);
+
   this->curpos = 0;
 
   if (this->fh == -1) {
     return 0;
   }
 
-  sprintf (this->buf, "GET http://%s:%d/%s  HTTP/1.0\r\n\r\n", host,port,filename);
+  if (proxy != NULL)
+    if (this->port != DEFAULT_HTTP_PORT)
+      sprintf (this->buf, "GET http://%s:%d/%s HTTP/1.0\015\012",
+	  this->host, this->port, this->filename);
+    else
+      sprintf (this->buf, "GET http://%s/%s HTTP/1.0\015\012",
+	  this->host, this->filename);
+  else
+    sprintf (this->buf, "GET /%s HTTP/1.0\015\012", this->filename);
+  
+  if (this->port != DEFAULT_HTTP_PORT)
+    sprintf (this->buf + strlen(this->buf), "Host: %s:%d\015\012",
+	this->host, this->port);
+  else
+    sprintf (this->buf + strlen(this->buf), "Host: %s\015\012",
+	this->host);
+  
+  if (this->proxyuser != NULL)
+    sprintf (this->buf + strlen(this->buf), "Proxy-Authorization: Basic %s\015\012",
+	this->proxyauth);
+  
+  if (this->user != NULL)
+    sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
+	this->auth);
+  
+  sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
+      VERSION);
+  
+  strcat (this->buf, "Accept: */*\015\012");
+
+  strcat (this->buf, "\015\012");
+
   if (write (this->fh, this->buf, strlen(this->buf)) != strlen(this->buf)) {
     printf ("input_http: couldn't send request\n");
     return 0 ;
@@ -156,7 +372,8 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 	  this->buf);
 
   /* read and parse reply */
-  done = 0; len = 0;
+  done = 0; len = 0; linenum = 0;
+  this->contentlength = 0;
 
   while (!done) {
 
@@ -176,19 +393,68 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
       }
     }
 
-    if (this->buf[len] == '\n') {
+    if (this->buf[len] == '\012') {
 
-      this->buf[len] = 0;
+      this->buf[len] = '\0';
+      len--;
+      
+      if (len >= 0 && this->buf[len] == '\015') {
+	this->buf[len] = '\0';
+	len--;
+      }
 
+      linenum++;
+      
       printf ("input_http: answer: >%s<\n", this->buf);
 
-      if (len == 1)
+      if (linenum == 1)
+      {
+        int httpver, httpsub, httpcode;
+	char httpstatus[BUFSIZE];
+
+	if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
+	    &httpcode, httpstatus) != 4)
+	{
+      	  printf ("input_http: invalid http answer\n");
+	  return 0;
+	}
+	
+	if (httpcode >= 300 && httpcode < 400) {
+      	  printf ("input_http: 3xx redirection not implemented: >%d %s<\n",
+	      httpcode, httpstatus);
+	  return 0;
+	}
+	if (httpcode < 200 || httpcode >= 300) {
+      	  printf ("input_http: http status not 2xx: >%d %s<\n", httpcode,
+	      httpstatus);
+	  return 0;
+	}
+      } else {
+	if (this->contentlength == 0) {
+	  off_t contentlength;
+	  
+	  if (sscanf(this->buf, "Content-Length: %ld", &contentlength) == 1) {
+      	    printf ("input_http: content length = %ld bytes\n", contentlength);
+	    this->contentlength = contentlength;
+	  }
+        }
+	
+	if (!strncasecmp(this->buf, "Location: ", 10))
+	{
+      	  printf ("input_http: Location redirection not implemented\n");
+	  return 0;
+	}
+      }
+      
+      if (len == -1)
 	done = 1;
       else
 	len = 0;
     } else
       len ++;
   }
+
+  printf ("input_http: end of headers\n");
 
   return 1;
 }
@@ -217,6 +483,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     }
     
     num_bytes += n;
+    this->curpos += n;
   }
   return num_bytes;
 }
@@ -254,6 +521,7 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
       break;
     }
     total_bytes += num_bytes;
+    this->curpos += num_bytes;
   }
 
   if (buf != NULL)
@@ -266,8 +534,9 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
 }
 
 static off_t http_plugin_get_length (input_plugin_t *this_gen) {
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
-  return 0;
+  return this->contentlength;
 }
 
 static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
