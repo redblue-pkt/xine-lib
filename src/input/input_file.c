@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.42 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: input_file.c,v 1.43 2002/04/16 14:26:46 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -284,7 +284,7 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
   else
     filename = this->mrl;
 
-  subtitle = strrchr (filename, ':');
+  subtitle = strrchr (filename, '%');
   if (subtitle) {
     *subtitle = 0;
     subtitle++;
