@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.10 2001/07/24 16:10:14 joachim_koenig Exp $
+ * $Id: video_out_syncfb.c,v 1.11 2001/07/24 16:52:01 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -731,6 +731,8 @@ printf("set property %d value %d\n",property,value);
 	break;
   case VO_PROP_INTERLACED:
         if (value != _mga_priv.interlaced) {
+	  if (value > 1)
+            value = 0;
           _mga_priv.interlaced = value;
           _mga_priv.user_ratio_changed = 1;
           mga_set_image_format (_mga_priv.image_width, _mga_priv.image_height, _mga_priv.ratio, _mga_priv.fourcc_format);
@@ -784,6 +786,8 @@ static int mga_get_property (vo_driver_t *this, int property) {
         return _mga_priv.bright_current;
   case VO_PROP_ASPECT_RATIO:
         return _mga_priv.user_ratio;
+  case VO_PROP_INTERLACED:
+        return _mga_priv.interlaced;
   default:
         return 0;
   }
