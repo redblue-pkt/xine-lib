@@ -1018,10 +1018,6 @@ dnl Where scripts will/should be installed.
 eval XINE_SCRIPTPATH="${datadir}/xine/scripts"
 AC_SUBST(XINE_SCRIPTPATH)
 
-dnl Where desktops icons will/should be installed.
-eval XINE_DESKTOPPATH="${datadir}/xine/desktop"
-AC_SUBST(XINE_DESKTOPPATH)
-
 
 dnl ---------------------------------------------
 dnl Some informations about xine-lib compilation

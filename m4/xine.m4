@@ -73,7 +73,6 @@ AC_ARG_ENABLE(xinetest,
              sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
       xine_data_dir=`$XINE_CONFIG $xine_config_args --datadir`
       xine_script_dir=`$XINE_CONFIG $xine_config_args --scriptdir`
-      xine_desktop_dir=`$XINE_CONFIG $xine_config_args --desktopdir`
       xine_plugin_dir=`$XINE_CONFIG $xine_config_args --plugindir`
       xine_locale_dir=`$XINE_CONFIG $xine_config_args --localedir`
       dnl    if test "x$enable_xinetest" = "xyes" ; then

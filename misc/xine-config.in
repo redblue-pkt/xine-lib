@@ -20,7 +20,6 @@ Options:
 	[--plugindir]
 	[--datadir]
 	[--scriptdir]
-	[--desktopdir]
 	[--localedir]
 EOF
 	exit $1
@@ -74,9 +73,6 @@ while test $# -gt 0; do
     --scriptdir)
       echo_scriptdir=yes
       ;;
-    --desktopdir)
-      echo_desktopdir=yes
-      ;;
     --localedir)
       echo_localedir=yes
       ;;
@@ -114,9 +110,6 @@ if test "$echo_datadir" = "yes"; then
 fi      
 if test "$echo_scriptdir" = "yes"; then
       echo "@XINE_SCRIPTPATH@"
-fi
-if test "$echo_desktopdir" = "yes"; then
-      echo "@XINE_DESKTOPPATH@"
 fi
 if test "$echo_localedir" = "yes"; then
       echo "@XINE_LOCALEPATH@"

@@ -193,8 +193,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc README TODO AUTHORS COPYING ChangeLog
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
-%{_libdir}/xine/plugins/*
-%{_datadir}/xine/skins/*
+%{_libdir}/xine/plugins/%{version}/*
 %{_datadir}/xine/fonts/*
 %{_mandir}/man1/*
 %{_datadir}/locale/*
