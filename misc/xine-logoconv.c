@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ static void save_image (char *oldname, ImlibImage *img) {
   if (extension)
     *extension = 0;
 
-  snprintf (filename, 1023, "%s.zyuy2", oldname);
+  snprintf (filename, 1023, "%s.yv12.gz", oldname);
 
   if (!(fp = gzopen (filename ,"w"))) {
     printf ("failed to create file '%s'\n", filename);
@@ -89,7 +89,7 @@ static void save_image (char *oldname, ImlibImage *img) {
   wr16 (fp, h);
 
   /*
-   * convert yuv to yuy2 
+   * convert yuv to yv12 
    */
 
   for (py=0; py<h; py++) {
@@ -121,10 +121,38 @@ static void save_image (char *oldname, ImlibImage *img) {
       cv = v + 128.0;
 
       gzwrite (fp, &cy, 1);
-      if ((px-1) % 2)
-	gzwrite (fp, &cv, 1);
-      else
-	gzwrite (fp, &cu, 1);
+    }
+  }
+
+  for (py=0; py<h; py+=2) {
+    printf (".");
+    for (px=0; px<w; px+=2) {
+
+      double r, g, b;
+      double y, u, v;
+      unsigned char cy,cu,cv;
+
+#ifdef WORDS_BIGENDIAN
+      r = img->rgb_data[(px+py*w)*3];
+      g = img->rgb_data[(px+py*w)*3+1];
+      b = img->rgb_data[(px+py*w)*3+2];
+#else
+      r = img->rgb_data[(px+py*w)*3+2];
+      g = img->rgb_data[(px+py*w)*3+1];
+      b = img->rgb_data[(px+py*w)*3];
+#endif
+
+      y = (LUMARED*r) + (LUMAGREEN*g) + (LUMABLUE*b);
+      //      u = (b-y) / (2 - 2*LUMABLUE);
+      //      v = (r-y) / (2 - 2*LUMABLUE);
+      u = (b-y) / (2 - 2*LUMABLUE);
+      v = (r-y) / (2 - 2*LUMABLUE);
+
+      cy = y;
+      cu = u + 128.0;
+      cv = v + 128.0;
+
+      gzwrite (fp, &cu, 1);
 
       /*
       printf ("%f %f %f => %f %f %f\n",r,g,b,y,u,v);
@@ -133,6 +161,42 @@ static void save_image (char *oldname, ImlibImage *img) {
     }
   }
 
+  for (py=0; py<h; py+=2) {
+    printf (".");
+    for (px=0; px<w; px+=2) {
+
+      double r, g, b;
+      double y, u, v;
+      unsigned char cy,cu,cv;
+
+#ifdef WORDS_BIGENDIAN
+      r = img->rgb_data[(px+py*w)*3];
+      g = img->rgb_data[(px+py*w)*3+1];
+      b = img->rgb_data[(px+py*w)*3+2];
+#else
+      r = img->rgb_data[(px+py*w)*3+2];
+      g = img->rgb_data[(px+py*w)*3+1];
+      b = img->rgb_data[(px+py*w)*3];
+#endif
+
+      y = (LUMARED*r) + (LUMAGREEN*g) + (LUMABLUE*b);
+      //      u = (b-y) / (2 - 2*LUMABLUE);
+      //      v = (r-y) / (2 - 2*LUMABLUE);
+      u = (b-y) / (2 - 2*LUMABLUE);
+      v = (r-y) / (2 - 2*LUMABLUE);
+
+      cy = y;
+      cu = u + 128.0;
+      cv = v + 128.0;
+
+      gzwrite (fp, &cv, 1);
+
+      /*
+      printf ("%f %f %f => %f %f %f\n",r,g,b,y,u,v);
+      */
+
+    }
+  }
   printf ("\ndone.\n");
   gzclose(fp);
 }

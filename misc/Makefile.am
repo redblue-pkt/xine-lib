@@ -2,10 +2,10 @@ SUBDIRS = fonts
 
 EXTRA_DIST = autogen.sh upload.pl SlackBuild.in SlackBuild build_rpms.sh \
 	xine-lib.spec.in xine-lib.spec \
-	xine_logo.png xine_logo.zyuy2 xine-fontconv.c
+	xine_logo.png xine_logo.yv12.gz xine-fontconv.c
 
 datadir = $(XINE_SKINDIR)
-data_DATA = xine_logo.png xine_logo.zyuy2
+data_DATA = xine_logo.png xine_logo.yv12.gz
 
 bin_SCRIPTS = xine-config
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.94 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: video_out.c,v 1.95 2002/05/01 20:38:19 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -77,7 +77,7 @@ typedef struct {
   char                     *logo_pathname;
   pthread_mutex_t           logo_mutex;
   int                       logo_w, logo_h;
-  uint8_t                  *logo_yuy2;
+  uint8_t                  *logo_yv12;
 
   video_overlay_instance_t *overlay_source;
   int                       overlay_enabled;
@@ -95,66 +95,6 @@ struct img_buf_fifo_s {
   pthread_mutex_t    mutex;
   pthread_cond_t     not_empty;
 } ;
-
-/*
- * Logo related functions + config callback.
- */
-static uint16_t gzread_i16(gzFile *fp) {
-  uint16_t ret;
-  ret = gzgetc(fp) << 8 ;
-  ret |= gzgetc(fp);
-  return ret;
-}
-
-static int _load_logo_file(vos_t *this) {
-  gzFile *fp;
-  int     retval = 0;
-
-  pthread_mutex_lock(&this->logo_mutex);
-
-  if((fp = gzopen (this->logo_pathname, "rb")) != NULL) {
-
-    if(this->logo_yuy2)
-      free (this->logo_yuy2);
-
-    this->logo_w = gzread_i16 (fp);
-    this->logo_h = gzread_i16 (fp);
-#ifdef LOG    
-    printf ("video_out: loading logo %d x %d pixels, yuy2\n",
-	    this->logo_w, this->logo_h);
-#endif
-
-    this->logo_yuy2 = malloc (this->logo_w * this->logo_h *2);
-
-    gzread (fp, this->logo_yuy2, this->logo_w * this->logo_h *2);
-    gzclose (fp);
-
-    this->backup_is_logo = 0;
-
-    retval = 1;
-  }
-
-  pthread_mutex_unlock(&this->logo_mutex);
-  return retval;
-}
-
-static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
-  vos_t            *this = (vos_t *) data;
-  char              default_logo[2048];
-  
-  this->logo_pathname = cfg->str_value;
-
-  if(!_load_logo_file(this)) {
-#ifdef LOG
-    printf("_load_logo_file() failed, reload default\n");
-#endif
-    snprintf(default_logo, 2048, "%s/xine_logo.zyuy2", XINE_SKINDIR);
-    cfg->config->update_string(cfg->config, cfg->key, default_logo);
-  }
-}
-/*
- * End of logo.
- */
 
 static img_buf_fifo_t *vo_new_img_buf_queue () {
 
@@ -483,12 +423,12 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       pthread_mutex_lock(&this->logo_mutex);
 
       this->img_backup = vo_get_frame (&this->vo, this->logo_w, this->logo_h,
-				       42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+				       42, IMGFMT_YV12, VO_BOTH_FIELDS);
 
       this->img_backup->duration       = 3000;
       
-      xine_fast_memcpy(this->img_backup->base[0], this->logo_yuy2,
-		       this->logo_w*this->logo_h*2);
+      xine_fast_memcpy(this->img_backup->base[0], this->logo_yv12,
+		       this->logo_w*this->logo_h*3/2);
       
       pthread_mutex_unlock(&this->logo_mutex);
       this->backup_is_logo = 1;
@@ -872,8 +812,8 @@ static void vo_exit (vo_instance_t *this_gen) {
   free (this->display_img_buf_queue);
 
   pthread_mutex_lock(&this->logo_mutex);
-  if(this->logo_yuy2)
-    free(this->logo_yuy2);
+  if (this->logo_yv12)
+    free (this->logo_yv12);
   pthread_mutex_unlock(&this->logo_mutex);
   pthread_mutex_destroy(&this->logo_mutex);
 
@@ -898,6 +838,66 @@ static void vo_enable_overlay (vo_instance_t *this_gen, int overlay_enabled) {
   vos_t      *this = (vos_t *) this_gen;
   this->overlay_enabled = overlay_enabled;
 }
+
+/*
+ * Logo related functions + config callback.
+ */
+static uint16_t gzread_i16(gzFile *fp) {
+  uint16_t ret;
+  ret = gzgetc(fp) << 8 ;
+  ret |= gzgetc(fp);
+  return ret;
+}
+
+static int _load_logo_file(vos_t *this) {
+  gzFile *fp;
+  int     retval = 0;
+
+  pthread_mutex_lock(&this->logo_mutex);
+
+  if ((fp = gzopen (this->logo_pathname, "rb")) != NULL) {
+
+    if (this->logo_yv12)
+      free (this->logo_yv12);
+
+    this->logo_w = gzread_i16 (fp);
+    this->logo_h = gzread_i16 (fp);
+#ifdef LOG    
+    printf ("video_out: loading logo %d x %d pixels, yv12\n",
+	    this->logo_w, this->logo_h);
+#endif
+
+    this->logo_yv12 = malloc (this->logo_w * this->logo_h *3/2);
+
+    gzread (fp, this->logo_yv12, this->logo_w * this->logo_h *3/2);
+    gzclose (fp);
+
+    this->backup_is_logo = 0;
+
+    retval = 1;
+  }
+
+  pthread_mutex_unlock(&this->logo_mutex);
+  return retval;
+}
+
+#ifdef LOGO_CONFIG_OPTION
+static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
+  vos_t            *this = (vos_t *) data;
+  char              default_logo[2048];
+  
+  this->logo_pathname = cfg->str_value;
+
+  if(!_load_logo_file(this)) {
+#ifdef LOG
+    printf("_load_logo_file() failed, reload default\n");
+#endif
+    snprintf(default_logo, 2048, "%s/xine_logo.yv12.gz", XINE_SKINDIR);
+    cfg->config->update_string(cfg->config, cfg->key, default_logo);
+  }
+}
+
+#endif
 
 vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 
@@ -973,12 +973,17 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 
     pthread_mutex_init(&this->logo_mutex, NULL);
 
-    snprintf(default_logo, 2048, "%s/xine_logo.zyuy2", XINE_SKINDIR);
+#ifdef LOGO_CONFIG_OPTION
+    snprintf(default_logo, 2048, "%s/xine_logo.yv12.gz", XINE_SKINDIR);
     
     this->logo_pathname = config->register_string(config, "video.logo_file", default_logo,
 						  "logo displayed in video output window", NULL,
 						  _logo_change_cb, (void *) this);
-    
+#else
+    this->logo_pathname = malloc (2048);
+    snprintf (this->logo_pathname, 2048, "%s/xine_logo.yv12.gz", XINE_SKINDIR);
+#endif
+
     _load_logo_file(this);
   }
 
