@@ -804,3 +804,99 @@ fi
 
 chmod +x libtool-nofpic
 
+dnl
+dnl Some infos:
+dnl
+dnl Video plugins
+echo "xine-lib summary:"
+echo "----------------"
+echo " * video driver plugins:"
+if test x"$no_x" != "xyes"; then
+  echo "   - XShm (X11 shared memory)"
+  echo "   - SyncFB (for Matrox G200/G400 cards)"
+  dnl Xv
+  if test x$ac_have_xv = "xyes"; then
+    if test x$xv_lib="xlibXv.a"; then
+      echo "   - Xv (XVideo *static*)"
+    else
+      echo "   - Xv (XVideo *shared*)"
+    fi
+  fi
+fi
+if test x$no_aalib != "xyes"; then
+  echo "   - aa (Ascii ART)"
+fi
+if test x"$have_dxr3" = "xyes"; then
+  if test x"$have_fame" = "xyes"; then
+    echo "   - dxr3enc"
+  fi
+  echo "   - dxr3"
+fi
+echo ""
+
+dnl Audio plugins
+echo " * audio driver plugins:"
+if test x"$have_ossaudio" = "xyes"; then
+  echo "   - oss (Open Sound System)"
+fi
+if test x"$no_alsa" != "xyes"; then
+  if test x"$have_alsa05" = "xyes"; then
+    echo "   - alsa05 (Alsa 0.5.x)"
+  fi
+  if test x"$have_alsa09" = "xyes"; then
+    echo "   - alsa09 (Alsa 0.9.x)"
+  fi
+fi
+if test x"$no_esd" != "xyes"; then
+  echo "   - esd (Enlightened Sound Daemon)"
+fi
+if test x"$no_arts" != "xyes"; then
+  echo "   - arts ()"
+fi
+if test x"$have_sunaudio" = "xyes"; then
+  echo "   - sun ()"
+fi
+if test "x$am_cv_have_irixal" = xyes; then
+  echo "   - irixal (Irix audio library)"
+fi
+echo ""
+
+dnl Decoders
+echo " * decoder plugins:"
+echo "   - a52             - dts"
+echo "   - mpeg2           - spu"
+echo "   - ffmpeg          - mad"
+echo "   - vfill           - divx4"
+if test x"$no_oggvorbis" = "xno"; then
+  echo "   - vorbis"
+fi
+if test x"$have_dxr3" = "xyes"; then
+  echo "   - dxr3"
+fi
+if test x"$enable_w32dll" = "xyes"; then
+  echo "   - w32dll"
+fi
+echo ""
+
+dnl Demuxers
+echo " * demultiplexer plugins:"
+echo "   - avi           - mpeg"
+echo "   - mpeg_block    - mpeg_audio"
+echo "   - mpeg_elem     - mpeg_pes"
+echo "   - mpeg_ts       - qt"
+echo "   - asf"
+if test x"$no_oggvorbis" = "xno"; then
+  echo "   - ogg"
+fi
+echo ""
+
+dnl Input
+echo " * input plugins:"
+echo "   - file          - net"
+echo "   - stdin         - rtp"
+echo "   - http"
+if test x"$have_cdrom_ioctls" = "xyes"; then
+  echo "   - dvd"
+  echo "   - vcd"
+fi
+echo "---"
