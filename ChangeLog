@@ -21,6 +21,7 @@ xine-lib (1-beta5)
   * win32 loader bugfixes (most notably indeo, quicktime and wmv9)
   * FFT post plugin improvements
   * 'Qclp' Qualcomm PureVoice audio decoing via Quicktime DLL
+  * libdvdnav updated to 0.1.5: miscellaneous fixes
 
 xine-lib (1-beta4)
   * http input fixes
