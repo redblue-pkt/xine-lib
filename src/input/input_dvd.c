@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.39 2001/12/10 12:56:54 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.40 2001/12/16 13:38:42 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -318,7 +318,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
 #endif
 
   if( encrypted ) {
-    printf("\ninput_dvd: Sorry, Xine doesn't play encrypted DVDs. The legal status of CSS\n"
+    printf("\ninput_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
            "           decryption is unclear and we will not provide such code.\n\n");
     return 0;
   }
@@ -800,8 +800,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = dvd_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = dvd_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
+  this->input_plugin.is_branch_possible= NULL;
+  /* disable branch until we fix the problems branching from 
+     menu vob to video vob
   this->input_plugin.is_branch_possible= dvd_plugin_is_branch_possible;
-
+  */
+  
   this->device = config->register_string(config, "input.dvd_device", DVD,
 					 "path to your local dvd device file",
 					 NULL, device_change_cb, (void *)this);
