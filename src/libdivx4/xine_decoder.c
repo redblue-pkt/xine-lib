@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2002/06/03 13:31:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.36 2002/06/04 15:39:05 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -87,8 +87,6 @@ typedef struct divx4_decoder_s {
   int               decoder_ok;
 
   xine_bmiheader    bih;
-  long		    biWidth;
-  long		    biHeight;
   unsigned char     *buf;
   int               size;
   int               bufsize;
@@ -114,11 +112,6 @@ typedef struct divx4_decoder_s {
 
 #define VIDEOBUFSIZE 128*1024
 
-static unsigned long str2ulong(void *data) {
-
-  unsigned char *str = data;
-  return ( str[0] | (str[1]<<8) | (str[2]<<16) | (str[3]<<24) );
-}
 
 static char* decore_retval(int ret)
 {
@@ -232,8 +225,6 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
 #endif
 
   memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
-  this->biWidth = str2ulong(&this->bih.biWidth);
-  this->biHeight = str2ulong(&this->bih.biHeight);
   this->video_step = buf->decoder_info[1];
 
   codec_type = buf->type & 0xFFFF0000;
@@ -264,8 +255,8 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
   }
 
   /* setup decoder; inspired by avifile's plugin */
-  param.x_dim=this->biWidth;
-  param.y_dim=this->biHeight;
+  param.x_dim=this->bih.biWidth;
+  param.y_dim=this->bih.biHeight;
   param.time_incr = 15; /* no idea what this does */
 
   param.build_number=0;
@@ -300,14 +291,14 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
   src_offset = 0;
   dst_offset = 0;
   if (pict.stride_y == img->width) {
-    xine_fast_memcpy(img->base[0]+dst_offset, pict.y, this->biWidth*this->biHeight);
-    dst_offset += this->biWidth * this->biHeight;
+    xine_fast_memcpy(img->base[0]+dst_offset, pict.y, this->bih.biWidth*this->bih.biHeight);
+    dst_offset += this->bih.biWidth * this->bih.biHeight;
   }
   else { /* copy line by line */
-    for (i=0; i<this->biHeight; i++) {
-      xine_fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->biWidth);
+    for (i=0; i<this->bih.biHeight; i++) {
+      xine_fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->bih.biWidth);
       src_offset += pict.stride_y;
-      dst_offset += this->biWidth;
+      dst_offset += this->bih.biWidth;
     }
   }
 
@@ -319,16 +310,16 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
   src_offset = 0;
   dst_offset = 0;
   if (pict.stride_uv == img->width>>1) {
-    xine_fast_memcpy(img->base[1]+dst_offset, pict.u, (this->biWidth*this->biHeight)/4);
-    xine_fast_memcpy(img->base[2]+dst_offset, pict.v, (this->biWidth*this->biHeight)/4);
-    dst_offset += (this->biWidth*this->biHeight)/4;
+    xine_fast_memcpy(img->base[1]+dst_offset, pict.u, (this->bih.biWidth*this->bih.biHeight)/4);
+    xine_fast_memcpy(img->base[2]+dst_offset, pict.v, (this->bih.biWidth*this->bih.biHeight)/4);
+    dst_offset += (this->bih.biWidth*this->bih.biHeight)/4;
   }
   else {
-    for (i=0; i<this->biHeight>>1; i++) {
-      xine_fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->biWidth/2);
-      xine_fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->biWidth/2);
+    for (i=0; i<this->bih.biHeight>>1; i++) {
+      xine_fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->bih.biWidth/2);
+      xine_fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->bih.biWidth/2);
       src_offset += pict.stride_uv;
-      dst_offset += this->biWidth/2;
+      dst_offset += this->bih.biWidth/2;
     }
   } 
      
@@ -336,8 +327,8 @@ static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img,
      with slices of 16 lines. Too bad we can't set the y,u and v
      stride values (because then we wouldn't need the first copy) */
   if (img->copy && img->bad_frame == 0) {
-    int height = this->biHeight;
-    int stride = this->biWidth;
+    int height = this->bih.biHeight;
+    int stride = this->bih.biWidth;
     uint8_t* src[3];
 	  
     src[0] = img->base[0];
@@ -445,8 +436,8 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
-    img = this->video_out->get_frame (this->video_out, this->biWidth,
-				      this->biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, 
+    img = this->video_out->get_frame (this->video_out, this->bih.biWidth,
+				      this->bih.biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, 
 				      IMGFMT_YV12, 
 				      VO_BOTH_FIELDS);
 
@@ -460,7 +451,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     frame.bmp=&pict; /* decore will set ptrs to internal y,u&v buffers */
     frame.length=this->size;
     frame.render_flag=1;
-    frame.stride=this->biWidth;
+    frame.stride=this->bih.biWidth;
 
     if(this->use_311_compat)
       ret = this->decore((unsigned long)this, DEC_OPT_FRAME_311, &frame, 0);

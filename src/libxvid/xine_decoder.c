@@ -100,10 +100,8 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	/* initialize data describing video stream */
 	bih = (xine_bmiheader *) buf->content;
 	this->frame_duration = buf->decoder_info[1];
-	/* FIXME: is BITMAPINFOHEADER always little-endian? ffmpeg plugin uses */
-	/* weird way to ensure correct endianess */
-	this->frame_width = le2me_32 (bih->biWidth);
-	this->frame_height = le2me_32 (bih->biHeight);
+	this->frame_width = bih->biWidth;
+	this->frame_height = bih->biHeight;
 	
 	/* initialize decoder */
 	if (this->xvid_handle) {
