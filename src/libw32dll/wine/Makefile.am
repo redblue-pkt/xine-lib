@@ -2,9 +2,7 @@ EXTRA_DIST = stubs.s wrapper.S
 
 noinst_LTLIBRARIES = $(wine_lib)
 
-## we need to override CFLAGS, so don't use AM_CFLAGS
-##
-CFLAGS = $(X_CFLAGS) -fno-omit-frame-pointer \
+AM_CFLAGS = $(X_CFLAGS) -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\"@w32_path@\" -I$(srcdir)/.. -D__WINE__ \
 	-Ddbg_printf=__vprintf -DTRACE=__vprintf -fno-omit-frame-pointer

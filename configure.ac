@@ -1211,6 +1211,7 @@ dnl Output configuration files
 dnl ---------------------------------------------
 AC_CONFIG_FILES([
 Makefile
+debian/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/man/en/Makefile

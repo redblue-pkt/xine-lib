@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.5 2002/12/17 16:44:10 jkeil Exp $
+** $Id: common.h,v 1.6 2003/01/31 01:20:27 storri Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -96,7 +96,7 @@ typedef float float32_t;
 #else
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
 #include <stdio.h>

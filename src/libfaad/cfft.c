@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: cfft.c,v 1.3 2002/12/16 18:59:54 miguelfreitas Exp $
+** $Id: cfft.c,v 1.4 2003/01/31 01:20:26 storri Exp $
 **/
 
 /*
@@ -548,3 +548,4 @@ void cfftu(cfft_info *cfft)
 
     if (cfft) free(cfft);
 }
+
