@@ -8,6 +8,7 @@
   * mms input plugin cleanup/bugfixes/improvements
   * syncfb and sdl vo plugins ported
   * quicktime binary-only codec support (highly experimental)
+  * dmo wmv9 binary codec support
   * MNG demuxer added
 
 xine-lib (1-beta0)
