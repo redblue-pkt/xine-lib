@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.153 2004/01/11 15:54:23 jstembridge Exp $
+ * $Id: xine_internal.h,v 1.154 2004/02/12 18:19:00 mroi Exp $
  *
  */
 
@@ -89,6 +89,8 @@ extern "C" {
 
 #define XINE_STREAM_INFO_MAX 99
 
+typedef struct xine_ticket_s xine_ticket_t;
+
 /*
  * the "big" xine struct, holding everything together
  */
@@ -111,6 +113,61 @@ struct xine_s {
   pthread_mutex_t            streams_lock;
   
   metronom_clock_t          *clock;
+
+#ifdef XINE_ENGINE_INTERNAL
+  xine_ticket_t             *port_ticket;
+#endif
+};
+
+/*
+ * xine thread tickets
+ */
+
+struct xine_ticket_s {
+
+  /* the ticket owner must assure to check for ticket revocation in
+   * intervals of finite length; this means that you must release
+   * the ticket before any operation that might block
+   *
+   * you must never write to this member directly
+   */  
+  int    ticket_revoked;
+  
+  /* apply for a ticket; between acquire and relese of an irrevocable
+   * ticket (be sure to pair them properly!), it is guaranteed that you
+   * will never be blocked by ticket revocation */
+  void (*acquire)(xine_ticket_t *self, int irrevocable);
+  
+  /* give a ticket back */
+  void (*release)(xine_ticket_t *self, int irrevocable);
+  
+  /* renew a ticket, when it has been revoked, see ticket_revoked above;
+   * irrevocable must be set to one, if your thread might have acquired
+   * irrevocable tickets you don't know of; set it to zero only when
+   * you know that this is impossible */
+  void (*renew)(xine_ticket_t *self, int irrevocable);
+  
+#ifdef XINE_ENGINE_INTERNAL
+  /* allow handing out new tickets */
+  void (*issue)(xine_ticket_t *self, int atomic);
+  
+  /* revoke all tickets and deny new ones;
+   * a pair of atomic revoke and issue cannot be interrupted by another
+   * revocation or by other threads acquiring tickets */
+  void (*revoke)(xine_ticket_t *self, int atomic);
+  
+  void (*dispose)(xine_ticket_t *self);
+  
+  pthread_mutex_t lock;
+  pthread_mutex_t revoke_lock;
+  pthread_cond_t  issued;
+  pthread_cond_t  revoked;
+  int             tickets_granted;
+  int             irrevocable_tickets;
+  int             pending_revocations;
+  int             atomic_revoke;
+  pthread_t       atomic_revoker_thread;
+#endif
 };
 
 /*
@@ -264,14 +321,6 @@ struct xine_stream_s {
   
   int                        err;
   
-  /* on-the-fly port rewiring */
-  xine_video_port_t         *next_video_port;
-  xine_audio_port_t         *next_audio_port;
-  pthread_mutex_t            next_video_port_lock;
-  pthread_mutex_t            next_audio_port_lock;
-  pthread_cond_t             next_video_port_wired;
-  pthread_cond_t             next_audio_port_wired;
-
   broadcaster_t             *broadcaster;
 #endif
 };

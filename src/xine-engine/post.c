@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.21 2004/01/07 19:52:43 mroi Exp $
+ * $Id: post.c,v 1.22 2004/02/12 18:19:12 mroi Exp $
  */
  
 /*
@@ -56,7 +56,7 @@ static uint32_t post_video_get_capabilities(xine_video_port_t *port_gen) {
 static void post_video_open(xine_video_port_t *port_gen, xine_stream_t *stream) {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   
-  _x_post_rewire_video(port);
+  _x_post_rewire(port->post);
   _x_post_inc_usage(port);
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   port->original_port->open(port->original_port, stream);
@@ -72,7 +72,7 @@ static vo_frame_t *post_video_get_frame(xine_video_port_t *port_gen, uint32_t wi
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t *frame;
   
-  _x_post_rewire_video(port);
+  _x_post_rewire(port->post);
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
@@ -188,25 +188,20 @@ static int post_video_rewire(xine_post_out_t *output_gen, void *data) {
   post_out_t        *output     = (post_out_t *)output_gen;
   xine_video_port_t *new_port   = (xine_video_port_t *)data;
   post_video_port_t *input_port = (post_video_port_t *)output->user_data;
+  post_plugin_t     *this       = output->post;
   
   if (!new_port)
     return 0;
-  pthread_mutex_lock(&input_port->next_port_lock);
-  pthread_mutex_lock(&input_port->usage_lock);
-  input_port->next_port = new_port;
-  while (input_port->next_port) {
-    if (input_port->usage_count == 0) {
-      /* we can safely rewire right here, the plugin is not in use */
-      input_port->original_port = new_port;
-      input_port->next_port = NULL;
-    }
-    pthread_mutex_unlock(&input_port->usage_lock);
-    if (input_port->next_port)
-      pthread_cond_wait(&input_port->next_port_wire, &input_port->next_port_lock);
-    pthread_mutex_lock(&input_port->usage_lock);
-  }
-  pthread_mutex_unlock(&input_port->usage_lock);
-  pthread_mutex_unlock(&input_port->next_port_lock);
+  
+  this->running_ticket->revoke(this->running_ticket, 1);
+  
+  new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  input_port->original_port->close(input_port->original_port,
+    (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  input_port->original_port = new_port;
+  
+  this->running_ticket->issue(this->running_ticket, 1);
+  
   return 1;
 }
 
@@ -237,8 +232,6 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
   port->new_manager                  = &port->manager_storage;
   port->post                         = post;
   
-  pthread_mutex_init(&port->next_port_lock, NULL);
-  pthread_cond_init(&port->next_port_wire, NULL);
   pthread_mutex_init(&port->usage_lock, NULL);
   pthread_mutex_init(&port->free_frames_lock, NULL);
   
@@ -265,22 +258,6 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
   }
   
   return port;
-}
-
-
-void _x_post_rewire_video(post_video_port_t *port) {
-  if (port->next_port) {
-    pthread_mutex_lock(&port->next_port_lock);
-    if (port->next_port) {
-      port->next_port->open(port->next_port, (port->stream == POST_NULL_STREAM) ? NULL : port->stream);
-      port->original_port->close(port->original_port, (port->stream == POST_NULL_STREAM) ? NULL : port->stream);
-      port->original_port = port->next_port;
-      port->next_port = NULL;
-      pthread_mutex_unlock(&port->next_port_lock);
-      pthread_cond_broadcast(&port->next_port_wire);
-    } else
-      pthread_mutex_unlock(&port->next_port_lock);
-  }
 }
 
 
@@ -630,7 +607,7 @@ static int post_audio_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
   int result;
   
-  _x_post_rewire_audio(port);
+  _x_post_rewire(port->post);
   _x_post_inc_usage(port);
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   result = port->original_port->open(port->original_port, stream, bits, rate, mode);
@@ -649,7 +626,7 @@ static audio_buffer_t *post_audio_get_buffer(xine_audio_port_t *port_gen) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
   audio_buffer_t *buf;
   
-  _x_post_rewire_audio(port);
+  _x_post_rewire(port->post);
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   buf = port->original_port->get_buffer(port->original_port);
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
@@ -723,25 +700,21 @@ static int post_audio_rewire(xine_post_out_t *output_gen, void *data) {
   post_out_t        *output     = (post_out_t *)output_gen;
   xine_audio_port_t *new_port   = (xine_audio_port_t *)data;
   post_audio_port_t *input_port = (post_audio_port_t *)output->user_data;
+  post_plugin_t     *this       = output->post;
   
   if (!new_port)
     return 0;
-  pthread_mutex_lock(&input_port->next_port_lock);
-  pthread_mutex_lock(&input_port->usage_lock);
-  input_port->next_port = new_port;
-  while (input_port->next_port) {
-    if (input_port->usage_count == 0) {
-      /* we can safely rewire right here, the plugin is not in use */
-      input_port->original_port = new_port;
-      input_port->next_port = NULL;
-    }
-    pthread_mutex_unlock(&input_port->usage_lock);
-    if (input_port->next_port)
-      pthread_cond_wait(&input_port->next_port_wire, &input_port->next_port_lock);
-    pthread_mutex_lock(&input_port->usage_lock);
-  }
-  pthread_mutex_unlock(&input_port->usage_lock);
-  pthread_mutex_unlock(&input_port->next_port_lock);
+  
+  this->running_ticket->revoke(this->running_ticket, 1);
+  
+  new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream,
+    input_port->bits, input_port->rate, input_port->mode);
+  input_port->original_port->close(input_port->original_port,
+    (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  input_port->original_port = new_port;
+  
+  this->running_ticket->issue(this->running_ticket, 1);
+  
   return 1;
 }
 
@@ -767,8 +740,6 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
   port->original_port             = original;
   port->post                      = post;
   
-  pthread_mutex_init(&port->next_port_lock, NULL);
-  pthread_cond_init(&port->next_port_wire, NULL);
   pthread_mutex_init(&port->usage_lock, NULL);
   
   if (input) {
@@ -794,23 +765,6 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
   }
   
   return port;
-}
-
-
-void _x_post_rewire_audio(post_audio_port_t *port) {
-  if (port->next_port) {
-    pthread_mutex_lock(&port->next_port_lock);
-    if (port->next_port) {
-      port->next_port->open(port->next_port, (port->stream == POST_NULL_STREAM) ? NULL : port->stream,
-        port->bits, port->rate, port->mode);
-      port->original_port->close(port->original_port, (port->stream == POST_NULL_STREAM) ? NULL : port->stream);
-      port->original_port = port->next_port;
-      port->next_port = NULL;
-      pthread_mutex_unlock(&port->next_port_lock);
-      pthread_cond_broadcast(&port->next_port_wire);
-    } else
-      pthread_mutex_unlock(&port->next_port_lock);
-  }
 }
 
 
@@ -865,6 +819,9 @@ int _x_post_dispose(post_plugin_t *this) {
     
     free(this->xine_post.audio_input);
     free(this->xine_post.video_input);
+    /* these were allocated in the plugin loader */
+    free(this->input_ids);
+    free(this->output_ids);
     
     for (input = xine_list_first_content(this->input); input;
          input = xine_list_next_content(this->input)) {
@@ -874,8 +831,6 @@ int _x_post_dispose(post_plugin_t *this) {
 	  post_video_port_t *port = (post_video_port_t *)input->data;
 	  vo_frame_t *first, *second;
 	  
-	  pthread_mutex_destroy(&port->next_port_lock);
-	  pthread_cond_destroy(&port->next_port_wire);
 	  pthread_mutex_destroy(&port->usage_lock);
 	  pthread_mutex_destroy(&port->free_frames_lock);
 	  
@@ -893,8 +848,6 @@ int _x_post_dispose(post_plugin_t *this) {
 	{
 	  post_audio_port_t *port = (post_audio_port_t *)input->data;
 	  
-	  pthread_mutex_destroy(&port->next_port_lock);
-	  pthread_cond_destroy(&port->next_port_wire);
 	  pthread_mutex_destroy(&port->usage_lock);
 	  
 	  free(port);
@@ -921,6 +874,12 @@ int _x_post_dispose(post_plugin_t *this) {
     
     xine_list_free(this->input);
     xine_list_free(this->output);
+    
+    /* since the plugin loader does not know, when the plugin gets disposed,
+     * we have to handle the reference counter here */
+    pthread_mutex_lock(&this->xine->plugin_catalog->lock);
+    ((plugin_node_t *)this->node)->ref--;
+    pthread_mutex_unlock(&this->xine->plugin_catalog->lock);
     
     return 1;
   }

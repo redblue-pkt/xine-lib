@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.119 2004/01/09 01:26:34 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.120 2004/02/12 18:19:12 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -51,6 +51,7 @@ static void *audio_decoder_loop (void *stream_gen) {
   buf_element_t   *last_header = NULL;
   int              replaying_headers = 0;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
+  xine_ticket_t   *running_ticket = stream->xine->port_ticket;
   int              running = 1;
   int              prof_audio_decode = -1;
   uint32_t         buftype_unknown = 0;
@@ -59,36 +60,26 @@ static void *audio_decoder_loop (void *stream_gen) {
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
 
+  running_ticket->acquire(running_ticket, 0);
+  
   while (running) {
 
     lprintf ("audio_loop: waiting for package...\n");  
 
-    if( !replaying_headers )
+    if( !replaying_headers ) {
+      running_ticket->release(running_ticket, 0);
       buf = stream->audio_fifo->get (stream->audio_fifo);
+      running_ticket->acquire(running_ticket, 0);
+    }
 
     lprintf ("audio_loop: got package pts = %lld, type = %08x\n", buf->pts, buf->type); 
 
     _x_extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
     stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
-      
-    /* check for a new port to use */
-    if (stream->next_audio_port) {
-      uint32_t bits, rate;
-      int mode;
-      
-      /* noone is allowed to modify the next port from now on */
-      pthread_mutex_lock(&stream->next_audio_port_lock);
-      if (stream->audio_out->status(stream->audio_out, stream, &bits, &rate, &mode)) {
-        /* register our stream at the new output port */
-        stream->next_audio_port->open(stream->next_audio_port, stream, bits, rate, mode);
-        stream->audio_out->close(stream->audio_out, stream);
-      }
-      stream->audio_out = stream->next_audio_port;
-      stream->next_audio_port = NULL;
-      pthread_mutex_unlock(&stream->next_audio_port_lock);
-      pthread_cond_broadcast(&stream->next_audio_port_wired);
-    }
-
+    
+    if (running_ticket->ticket_revoked)
+      running_ticket->renew(running_ticket, 0);
+    
     switch (buf->type) {
       
     case BUF_CONTROL_HEADERS_DONE:
@@ -112,7 +103,9 @@ static void *audio_decoder_loop (void *stream_gen) {
 	stream->audio_type = 0;
       }
       
+      running_ticket->release(running_ticket, 0);
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
+      running_ticket->acquire(running_ticket, 0);
       
       buftype_unknown = 0;
       break;
@@ -186,17 +179,23 @@ static void *audio_decoder_loop (void *stream_gen) {
     case BUF_CONTROL_DISCONTINUITY:
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+      
+      running_ticket->release(running_ticket, 0);
       stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_RELATIVE, buf->disc_off);
+      running_ticket->acquire(running_ticket, 0);
       break;
 
     case BUF_CONTROL_NEWPTS:
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+      
+      running_ticket->release(running_ticket, 0);
       if (buf->decoder_flags & BUF_FLAG_SEEK) {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSEEK, buf->disc_off);
       } else {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_ABSOLUTE, buf->disc_off);
       }
+      running_ticket->acquire(running_ticket, 0);
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
@@ -396,6 +395,8 @@ static void *audio_decoder_loop (void *stream_gen) {
     }
   }
 
+  running_ticket->release(running_ticket, 0);
+  
   return NULL;
 }
 
@@ -461,9 +462,6 @@ void _x_audio_decoder_shutdown (xine_stream_t *stream) {
     
   stream->audio_fifo->dispose (stream->audio_fifo);
   stream->audio_fifo = NULL;
-
-  /* wakeup any rewire operations */
-  pthread_cond_broadcast(&stream->next_audio_port_wired);
 }
 
 int _x_get_audio_channel (xine_stream_t *stream) {

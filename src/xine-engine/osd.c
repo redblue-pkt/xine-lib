@@ -48,6 +48,8 @@
 #define LOG
 */
 
+#define XINE_ENGINE_INTERNAL
+
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
@@ -173,14 +175,20 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
 static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
      
   osd_renderer_t *this = osd->renderer;
+  video_overlay_manager_t *ovl_manager;
   rle_elem_t rle, *rle_p=0;
   int x, y, spare;
   uint8_t *c;
 
   lprintf("osd=%p vpts=%lld\n", osd, vpts);
+  
+  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+  
+  ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
       
   if( osd->handle < 0 ) {
-    if( (osd->handle = this->video_overlay->get_handle(this->video_overlay,0)) == -1 ) {
+    if( (osd->handle = ovl_manager->get_handle(ovl_manager, 0)) == -1 ) {
+      this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
       return 0;
     }
   }
@@ -258,9 +266,11 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   
     this->event.event_type = OVERLAY_EVENT_SHOW;
     this->event.vpts = vpts;
-    this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
+    ovl_manager->add_event(ovl_manager, (void *)&this->event);
   }
   pthread_mutex_unlock (&this->osd_mutex);  
+  
+  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
   
   return 1;
 }
@@ -286,6 +296,7 @@ static int osd_show_unscaled (osd_object_t *osd, int64_t vpts) {
 static int osd_hide (osd_object_t *osd, int64_t vpts) {     
 
   osd_renderer_t *this = osd->renderer;
+  video_overlay_manager_t *ovl_manager;
   
   lprintf("osd=%p vpts=%lld\n",osd, vpts);
     
@@ -301,7 +312,11 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
    
   this->event.event_type = OVERLAY_EVENT_HIDE;
   this->event.vpts = vpts;
-  this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
+  
+  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+  ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
+  ovl_manager->add_event(ovl_manager, (void *)&this->event);
+  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
 
   pthread_mutex_unlock (&this->osd_mutex);  
   
@@ -1211,6 +1226,7 @@ static void osd_preload_fonts (osd_renderer_t *this, char *path) {
 static void osd_free_object (osd_object_t *osd_to_close) {
      
   osd_renderer_t *this = osd_to_close->renderer;
+  video_overlay_manager_t *ovl_manager;
   osd_object_t *osd, *last;
 
   if( osd_to_close->handle >= 0 ) {
@@ -1222,8 +1238,12 @@ static void osd_free_object (osd_object_t *osd_to_close) {
     memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
     this->event.event_type = OVERLAY_EVENT_FREE_HANDLE;
     this->event.vpts = 0;
-    this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
-  
+    
+    this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+    ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
+    ovl_manager->add_event(ovl_manager, (void *)&this->event);
+    this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+    
     osd_to_close->handle = -1; /* handle will be freed */
   }
   
@@ -1314,9 +1334,11 @@ static uint32_t osd_get_capabilities (osd_object_t *osd) {
   capabilities |= XINE_OSD_CAP_FREETYPE2;
 #endif
 
+  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 0);
   if( this->stream->video_out->get_capabilities(this->stream->video_out) &
       VO_CAP_UNSCALED_OVERLAY)
     capabilities |= XINE_OSD_CAP_UNSCALED;
+  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 0);
  
   return capabilities; 
 }
@@ -1326,13 +1348,12 @@ static uint32_t osd_get_capabilities (osd_object_t *osd) {
  * initialize the osd rendering engine
  */
 
-osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, xine_stream_t *stream ) {
+osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
 
   osd_renderer_t *this;
   char str[1024];
 
   this = xine_xmalloc(sizeof(osd_renderer_t)); 
-  this->video_overlay = video_overlay;
   this->stream = stream;
   this->event.object.overlay = xine_xmalloc( sizeof(vo_overlay_t) );
 

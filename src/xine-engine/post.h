@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.17 2004/01/07 19:52:43 mroi Exp $
+ * $Id: post.h,v 1.18 2004/02/12 18:19:12 mroi Exp $
  *
  * post plugin definitions
  *
@@ -97,14 +97,30 @@ struct post_plugin_s {
   /* has dispose been called */
   int                 dispose_pending;
   
-  /* plugins don't have to care for the stuff below */
+  /* plugins don't have to init the stuff below */
+  
+  /* 
+   * the running ticket
+   *
+   * the plugin must assure to check for ticket revocation in
+   * intervals of finite length; this means that you must release
+   * the ticket before any operation that might block;
+   * note that all port functions are safe in this respect
+   *
+   * the running ticket is assigned to you by the engine
+   */
+  xine_ticket_t      *running_ticket;
+  
+  /* this is needed by the engine to decrement the reference counter
+   * on disposal of the plugin, but since this is useful, we expose it */
+  xine_t             *xine;
   
   /* used when the user requests a list of all inputs/outputs */
   const char        **input_ids;
   const char        **output_ids;
 
   /* used by plugin loader */
-  void *node;
+  void               *node;
 };
 
 /* helper function to initialize a post_plugin_t */
@@ -156,13 +172,6 @@ struct post_video_port_s {
   
   /* the original port to call its functions from inside yours */
   xine_video_port_t        *original_port;
-  
-  /* when we are rewiring, next port points to the new port */
-  xine_video_port_t        *next_port;
-  
-  /* rewiring synchronization */
-  pthread_mutex_t           next_port_lock;
-  pthread_cond_t            next_port_wire;
   
   /* if you want to decide yourself, whether a given frame should
    * be intercepted, fill in this function; get_frame() acts as
@@ -232,11 +241,6 @@ struct post_video_port_s {
 post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port,
 						post_in_t **input, post_out_t **output);
 
-/* this will execute pending rewire operations, calling this at the beginning
- * of decoder-called functions like get_frame() and open() is a good idea
- * (if you do not intercept get_frame() or open(), this will be done automatically) */
-void _x_post_rewire_video(post_video_port_t *port);
-
 /* use this to decorate and to undecorate a frame so that its functions
  * can be replaced with own implementations, decoration is usually done in
  * get_frame(), undecoration in frame->free() */
@@ -288,13 +292,6 @@ struct post_audio_port_s {
   /* the original port to call its functions from inside yours */
   xine_audio_port_t *original_port;
   
-  /* when we are rewiring, next port points to the new port */
-  xine_audio_port_t *next_port;
-  
-  /* rewiring synchronization */
-  pthread_mutex_t    next_port_lock;
-  pthread_cond_t     next_port_wire;
-  
   /* usage counter: how many objects are floating around that need
    * these pointers to exist */
   int                usage_count;
@@ -325,11 +322,24 @@ struct post_audio_port_s {
 post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port,
 						post_in_t **input, post_out_t **output);
 
-/* this will execute pending rewire operations, calling this at the beginning
+
+/* this will allow pending rewire operations, calling this at the beginning
  * of decoder-called functions like get_buffer() and open() is a good idea
  * (if you do not intercept get_buffer() or open(), this will be done automatically) */
-void _x_post_rewire_audio(post_audio_port_t *port);
+static inline void _x_post_rewire(post_plugin_t *post) {
+  if (post->running_ticket->ticket_revoked)
+    post->running_ticket->renew(post->running_ticket, 1);
+}
 
+/* with these functions you can switch interruptions like rewiring or engine pausing
+ * off for a block of code; use this only when really necessary */
+static inline void _x_post_lock(post_plugin_t *post) {
+  post->running_ticket->acquire(post->running_ticket, 1);
+}
+static inline void _x_post_unlock(post_plugin_t *post) {
+  post->running_ticket->release(post->running_ticket, 1);
+  _x_post_rewire(post);
+}
 
 /* the standard disposal operation; returns 1 if the plugin is really
  * disposed and you should free everything you malloc()ed yourself */
@@ -354,7 +364,6 @@ do {                                                               \
   pthread_mutex_lock(&(port)->usage_lock);                         \
   (port)->usage_count--;                                           \
   if ((port)->usage_count == 0) {                                  \
-    pthread_cond_broadcast(&(port)->next_port_wire);               \
     if ((port)->post->dispose_pending) {                           \
       pthread_mutex_unlock(&(port)->usage_lock);                   \
       (port)->post->dispose((port)->post);                         \

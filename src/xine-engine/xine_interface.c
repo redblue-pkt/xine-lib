@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.77 2004/01/23 09:26:16 andruil Exp $
+ * $Id: xine_interface.c,v 1.78 2004/02/12 18:19:12 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -361,33 +361,45 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
 
   case XINE_PARAM_AUDIO_VOLUME:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_MIXER_VOL, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_AUDIO_MUTE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_MUTE_VOL, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
     
   case XINE_PARAM_AUDIO_COMPR_LEVEL:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_COMPRESSOR, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
     
   case XINE_PARAM_AUDIO_AMP_LEVEL:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_AUDIO_AMP_MUTE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP_MUTE, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_AUDIO_CLOSE_DEVICE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_CLOSE_DEVICE, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_EQ_30HZ:
@@ -400,10 +412,12 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_EQ_4000HZ:
   case XINE_PARAM_EQ_8000HZ:
   case XINE_PARAM_EQ_16000HZ:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, 
 				       param - XINE_PARAM_EQ_30HZ + AO_PROP_EQ_30HZ, 
 				       value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_VERBOSITY:
@@ -419,7 +433,9 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     stream->video_out->set_property(stream->video_out, param, value);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_IGNORE_VIDEO:
@@ -449,54 +465,81 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     
   default:
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
-  }
+  }  
 }
 
 int xine_get_param (xine_stream_t *stream, int param) {
+  int ret;
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    return stream->xine->clock->speed;
+    ret = stream->xine->clock->speed;
+    break;
 
   case XINE_PARAM_AV_OFFSET:
-    return stream->metronom->get_option (stream->metronom, METRONOM_AV_OFFSET);
+    ret = stream->metronom->get_option (stream->metronom, METRONOM_AV_OFFSET);
+    break;
   
   case XINE_PARAM_SPU_OFFSET:
-    return stream->metronom->get_option (stream->metronom, METRONOM_SPU_OFFSET);
+    ret = stream->metronom->get_option (stream->metronom, METRONOM_SPU_OFFSET);
+    break;
 
   case XINE_PARAM_AUDIO_CHANNEL_LOGICAL:
-    return stream->audio_channel_user;
+    ret = stream->audio_channel_user;
+    break;
 
   case XINE_PARAM_SPU_CHANNEL:
-    return stream->spu_channel_user;
+    ret = stream->spu_channel_user;
+    break;
 
   case XINE_PARAM_VIDEO_CHANNEL:
-    return stream->video_channel;
+    ret = stream->video_channel;
+    break;
 
   case XINE_PARAM_AUDIO_VOLUME:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-    return stream->audio_out->get_property (stream->audio_out, AO_PROP_MIXER_VOL);
+      ret = -1;
+    else
+      ret = stream->audio_out->get_property (stream->audio_out, AO_PROP_MIXER_VOL);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
 
   case XINE_PARAM_AUDIO_MUTE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-    return stream->audio_out->get_property (stream->audio_out, AO_PROP_MUTE_VOL);
+      ret = -1;
+    else
+      ret = stream->audio_out->get_property (stream->audio_out, AO_PROP_MUTE_VOL);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
 
   case XINE_PARAM_AUDIO_COMPR_LEVEL:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-    return stream->audio_out->get_property (stream->audio_out, AO_PROP_COMPRESSOR);
+      ret = -1;
+    else
+      ret = stream->audio_out->get_property (stream->audio_out, AO_PROP_COMPRESSOR);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
 
   case XINE_PARAM_AUDIO_AMP_LEVEL:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-    return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+      ret = -1;
+    else
+      ret = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
 
   case XINE_PARAM_AUDIO_AMP_MUTE:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-    return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP_MUTE);
+      ret = -1;
+    else
+      ret = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP_MUTE);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
 
   case XINE_PARAM_EQ_30HZ:
   case XINE_PARAM_EQ_60HZ:
@@ -508,15 +551,18 @@ int xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_EQ_4000HZ:
   case XINE_PARAM_EQ_8000HZ:
   case XINE_PARAM_EQ_16000HZ:
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
     if (!stream->audio_out)
-      return -1;
-
-    return stream->audio_out->get_property (stream->audio_out, 
-					    param - XINE_PARAM_EQ_30HZ + AO_PROP_EQ_30HZ);
+      ret = -1;
+    else
+      ret=  stream->audio_out->get_property (stream->audio_out, 
+					     param - XINE_PARAM_EQ_30HZ + AO_PROP_EQ_30HZ);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
     break;
 
   case XINE_PARAM_VERBOSITY:
-    return stream->xine->verbosity;
+    ret = stream->xine->verbosity;
+    break;
 
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
@@ -528,32 +574,40 @@ int xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
-    return stream->video_out->get_property(stream->video_out, param);
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
+    ret = stream->video_out->get_property(stream->video_out, param);
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 0);  
+    break;
   
   case XINE_PARAM_IGNORE_VIDEO:
-    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_VIDEO);
+    ret = _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_VIDEO);
+    break;
     
   case XINE_PARAM_IGNORE_AUDIO:
-    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_AUDIO);
+    ret = _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_AUDIO);
+    break;
   
   case XINE_PARAM_IGNORE_SPU:
-    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_SPU);
+    ret = _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_SPU);
+    break;
 
   case XINE_PARAM_METRONOM_PREBUFFER:
-    return stream->metronom->get_option(stream->metronom, METRONOM_PREBUFFER);
+    ret = stream->metronom->get_option(stream->metronom, METRONOM_PREBUFFER);
+    break;
   
   case XINE_PARAM_BROADCASTER_PORT:
     if( stream->broadcaster )
-      return _x_get_broadcaster_port(stream->broadcaster);
+      ret = _x_get_broadcaster_port(stream->broadcaster);
     else
-      return 0;
+      ret = 0;
     break;
 
   default:
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
+    ret = 0;
   }
 
-  return 0;
+  return ret;
 }
 
 uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {

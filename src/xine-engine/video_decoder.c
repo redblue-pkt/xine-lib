@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.142 2003/12/05 15:55:05 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.143 2004/02/12 18:19:12 mroi Exp $
  *
  */
 
@@ -62,6 +62,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
   buf_element_t   *buf;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
+  xine_ticket_t   *running_ticket = stream->xine->port_ticket;
   int              running = 1;
   int              streamtype;
   int              prof_video_decode = -1;
@@ -73,34 +74,24 @@ static void *video_decoder_loop (void *stream_gen) {
   if (prof_spu_decode == -1)
     prof_spu_decode = xine_profiler_allocate_slot ("spu decoder");
 
+  running_ticket->acquire(running_ticket, 0);
+  
   while (running) {
 
     lprintf ("getting buffer...\n");  
 
+    running_ticket->release(running_ticket, 0);
     buf = stream->video_fifo->get (stream->video_fifo);
+    running_ticket->acquire(running_ticket, 0);
+    
     _x_extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
     stream->video_decoder_extra_info->seek_count = stream->video_seek_count;
     
     lprintf ("got buffer 0x%08x\n", buf->type);      
     
-    /* check for a new port to use */
-    if (stream->next_video_port) {
-      int64_t img_duration;
-      int width, height;
-      
-      /* noone is allowed to modify the next port from now on */
-      pthread_mutex_lock(&stream->next_video_port_lock);
-      if (stream->video_out->status(stream->video_out, stream, &width, &height, &img_duration)) {
-        /* register our stream at the new output port */
-        stream->next_video_port->open(stream->next_video_port, stream);
-        stream->video_out->close(stream->video_out, stream);
-      }
-      stream->video_out = stream->next_video_port;
-      stream->next_video_port = NULL;
-      pthread_mutex_unlock(&stream->next_video_port_lock);
-      pthread_cond_broadcast(&stream->next_video_port_wired);
-    }
-
+    if (running_ticket->ticket_revoked)
+      running_ticket->renew(running_ticket, 0);
+    
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_HEADERS_DONE:
       pthread_mutex_lock (&stream->counter_lock);
@@ -122,8 +113,10 @@ static void *video_decoder_loop (void *stream_gen) {
         stream->spu_track_map_entries = 0;
       }
       
+      running_ticket->release(running_ticket, 0);
       stream->metronom->handle_video_discontinuity (stream->metronom, 
 						    DISC_STREAMSTART, 0);
+      running_ticket->acquire(running_ticket, 0);
       
       buftype_unknown = 0;
       break;
@@ -231,7 +224,9 @@ static void *video_decoder_loop (void *stream_gen) {
         stream->video_decoder_plugin->discontinuity (stream->video_decoder_plugin);
       }
       
+      running_ticket->release(running_ticket, 0);
       stream->metronom->handle_video_discontinuity (stream->metronom, DISC_RELATIVE, buf->disc_off);
+      running_ticket->acquire(running_ticket, 0);
 
       break;
     
@@ -245,11 +240,13 @@ static void *video_decoder_loop (void *stream_gen) {
         stream->video_decoder_plugin->discontinuity (stream->video_decoder_plugin);
       }
       
+      running_ticket->release(running_ticket, 0);
       if (buf->decoder_flags & BUF_FLAG_SEEK) {
 	stream->metronom->handle_video_discontinuity (stream->metronom, DISC_STREAMSEEK, buf->disc_off);
       } else {
 	stream->metronom->handle_video_discontinuity (stream->metronom, DISC_ABSOLUTE, buf->disc_off);
       }
+      running_ticket->acquire(running_ticket, 0);
     
       break;
       
@@ -378,6 +375,8 @@ static void *video_decoder_loop (void *stream_gen) {
     buf->free_buffer (buf);
   }
 
+  running_ticket->release(running_ticket, 0);
+  
   return NULL;
 }
 
@@ -455,7 +454,4 @@ void _x_video_decoder_shutdown (xine_stream_t *stream) {
   
   stream->video_fifo->dispose (stream->video_fifo);
   stream->video_fifo = NULL;
-
-  /* wakeup any rewire operations */
-  pthread_cond_broadcast(&stream->next_video_port_wired);
 }

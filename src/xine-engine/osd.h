@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.23 2003/12/09 00:02:36 f1rmb Exp $
+ * $Id: osd.h,v 1.24 2004/02/12 18:19:12 mroi Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -215,7 +215,6 @@ struct osd_renderer_s {
   /* private stuff */
 
   pthread_mutex_t             osd_mutex;
-  video_overlay_manager_t    *video_overlay;
   video_overlay_event_t       event;
   osd_object_t               *osds;          /* instances of osd */
   osd_font_t                 *fonts;         /* loaded fonts */
@@ -228,7 +227,7 @@ struct osd_renderer_s {
 /*
  *   initialize the osd rendering engine
  */
-osd_renderer_t *_x_osd_renderer_init( video_overlay_manager_t *video_overlay, xine_stream_t *stream );
+osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream );
 
 
 /*
