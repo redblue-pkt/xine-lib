@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.87 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.88 2002/04/11 14:04:47 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -886,7 +886,10 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
     this->last_scr         = 0;
     this->nav_last_end_pts = 0;
     this->ignore_scr_discont = 0;
-
+/* FIXME: Preview mode disabled to make DVD still pictures work at the beginning of DVDs.
+          This is a quick and dirty fix, because I don't yet understand the need to preview mode.
+ */
+/***********************************
     if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
       int num_buffers = NUM_PREVIEW_BUFFERS;
@@ -900,6 +903,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
         num_buffers --;
       }
     }
+**********************************/
     this->status = DEMUX_FINISHED;
   }
   
