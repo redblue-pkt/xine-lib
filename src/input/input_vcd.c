@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.32 2001/12/09 18:11:34 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.33 2001/12/10 12:56:54 f1rmb Exp $
  *
  */
 
@@ -115,6 +115,15 @@ typedef struct {
 /* ***************************************************************** */
 /*                        Private functions                          */
 /* ***************************************************************** */
+/*
+ * Callback for configuratoin changes.
+ */
+static void device_change_cb(void *data, cfg_entry_t *cfg) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) data;
+  
+  this->device = strdup(cfg->str_value);
+}
+
 #if defined (__linux__) || defined(__sun)
 static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   int i;
@@ -1136,7 +1145,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this->device = config->register_string(config, "input.vcd_device", CDROM,
 					 "path to your local vcd device file",
-					 NULL, NULL, NULL);
+					 NULL, device_change_cb, (void *)this);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.38 2001/12/09 18:11:34 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.39 2001/12/10 12:56:54 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -98,6 +98,21 @@ typedef struct {
 /* ***************************************************************** */
 /*                        Private functions                          */
 /* ***************************************************************** */
+/*
+ * Callbacks for configuratoin changes.
+ */
+static void device_change_cb(void *data, cfg_entry_t *cfg) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) data;
+  
+  this->device = strdup(cfg->str_value);
+}
+
+static void rawdevice_change_cb(void *data, cfg_entry_t *cfg) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) data;
+  
+  this->raw_device = strdup(cfg->str_value);
+}
+
 static int openDrive (dvd_input_plugin_t *this) {
   
   this->dvd_fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ );
@@ -789,10 +804,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this->device = config->register_string(config, "input.dvd_device", DVD,
 					 "path to your local dvd device file",
-					 NULL, NULL, NULL);
+					 NULL, device_change_cb, (void *)this);
   this->raw_device = config->register_string(config, "input.dvd_raw_device", RDVD,
 					     "path to a raw device set up for dvd access",
-					     NULL, NULL, NULL);
+					     NULL, rawdevice_change_cb, (void*)this);
 #ifdef __sun
   check_solaris_vold_device(this);
 #endif
