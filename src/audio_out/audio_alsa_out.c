@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.72 2002/07/03 07:50:20 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.73 2002/07/03 07:54:27 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -118,6 +118,9 @@ static void *ao_alsa_handle_event_thread(void *data) {
   pthread_exit(NULL);
 }
 
+/*
+ * Get and convert volume to percent value
+ */
 static int ao_alsa_get_percent_from_volume(long val, long min, long max)
 {
   int range = max - min;
@@ -130,6 +133,9 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max)
   return tmp;
 }
 
+/*
+ * Convert percent value to volume and set
+ */
 static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 {
   int range = max - min;
@@ -377,23 +383,35 @@ __close:
   return 0;
 }
 
+/*
+ * Return the number of audio channels
+ */
 static int ao_alsa_num_channels(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->num_channels;
 }
 
+/*
+ * Return the number of bytes per frame
+ */
 static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->bytes_per_frame;
 }
 
+/*
+ * Return gap tolerance (in pts)
+ */
 static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
 {
   return GAP_TOLERANCE;
 }
 
+/*
+ * Return the delay. is frames measured by looking at pending samples
+ */
 static int ao_alsa_delay (ao_driver_t *this_gen) 
 {
   snd_pcm_status_t  *pcm_stat;
@@ -409,6 +427,9 @@ static int ao_alsa_delay (ao_driver_t *this_gen)
   return delay;
 }
 
+/*
+ * Handle over/under-run
+ */
 static void xrun(alsa_driver_t *this) 
 {
   snd_pcm_status_t *status;
@@ -433,6 +454,9 @@ static void xrun(alsa_driver_t *this)
   }
 }
 
+/*
+ * Write audio data to output buffer (blocking)
+ */
 static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
   snd_pcm_sframes_t result;
@@ -451,13 +475,15 @@ static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
     }
     if (result > 0) {
       number_of_frames -= result;
-      /* FIXME: maybe not *2 as int16 */
       buffer += result * this->bytes_per_frame;
     }
   }
   return 1; /* audio samples were processed ok */
 }
 
+/*
+ * This is called when the decoder no longer uses the audio
+ */
 static void ao_alsa_close(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
@@ -466,11 +492,17 @@ static void ao_alsa_close(ao_driver_t *this_gen)
   this->has_pause_resume = 0; /* This is set at open time */
 }
 
+/*
+ * Find out what output modes + capatilities are supported
+ */
 static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->capabilities;
 }
 
+/*
+ * Shut down audio output driver plugin and free all resources allocated
+ */
 static void ao_alsa_exit(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
@@ -495,6 +527,9 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
   free (this);
 }
 
+/*
+ * Get a property of audio driver
+ */
 static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int err;
@@ -537,7 +572,7 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
 }
 
 /*
- *
+ * Set a property of audio driver
  */
 static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
@@ -607,7 +642,9 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
   return ~value;
 }
 
-
+/*
+ * Misc control operations
+ */
 static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int result;
@@ -670,7 +707,9 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-
+/*
+ * Initialize mixer
+ */
 static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->config;
@@ -859,6 +898,9 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
 }
 
+/*
+ * Initialize plugin
+ */
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   alsa_driver_t *this;
