@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.33 2001/12/14 15:26:47 f1rmb Exp $
+ * $Id: input_file.c,v 1.34 2001/12/14 17:39:29 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -839,13 +839,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrls_allocated_entries = 0;
 
   {
-    char *pwd;
     char current_dir[PATH_MAX + 1];
     
-    if((pwd = getenv("PWD")) == NULL)
-      snprintf(current_dir, 1, "%s", ".");
-    else
-      snprintf(current_dir, PATH_MAX, "%s", pwd);
+    if(getcwd(current_dir, sizeof(current_dir)) == NULL)
+      strcpy(current_dir, ".");
 
     this->origin_path = config->register_string(this->config, "input.file_origin_path",
 						current_dir, "origin path to grab file mrls",
