@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.117 2003/05/26 17:00:12 tchamp Exp $
+ * $Id: demux_asf.c,v 1.118 2003/05/27 15:20:01 jstembridge Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1686,8 +1686,10 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
       printf("demux_asf: video stream_id: %d, audio stream_id: %d\n",
 	     this->video_stream_id, this->audio_stream_id);
 
-    asf_send_audio_header(this, this->audio_stream);
-    asf_send_video_header(this, this->video_stream);
+    if(this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO])
+      asf_send_audio_header(this, this->audio_stream);
+    if(this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+      asf_send_video_header(this, this->video_stream);
 #ifdef LOG
     printf ("demux_asf: send header done\n");
 #endif
