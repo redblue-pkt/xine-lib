@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.64 2002/01/08 01:04:30 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.65 2002/01/14 00:34:22 guenter Exp $
  *
  */
 
@@ -194,7 +194,6 @@ static void *video_out_loop (void *this_gen) {
   static int	     prof_spu_blend = -1;
   sigset_t           vo_mask;
   
-  uint32_t           last_draw_vpts = 0;
   int                flush_sent = 0;
 
   /* printf ("%d video_out start\n", getpid());  */
@@ -205,7 +204,8 @@ static void *video_out_loop (void *this_gen) {
     prof_spu_blend = xine_profiler_allocate_slot ("spu blend");
 
   img_backup    = NULL;
-
+  this->last_draw_vpts = 0;
+  
   /*
    * set up timer signal
    */
@@ -265,18 +265,18 @@ static void *video_out_loop (void *this_gen) {
 
     /* update timer for inactivity flush */
     if( img ) {
-      last_draw_vpts = cur_pts;
+      this->last_draw_vpts = cur_pts;
     } else {
       /* start timer when decoder receives the first packet */
-      if( !last_draw_vpts && this->decoder_started_flag )
-        last_draw_vpts = cur_pts;
+      if( !this->last_draw_vpts && this->decoder_started_flag )
+        this->last_draw_vpts = cur_pts;
         
-      if( last_draw_vpts && (cur_pts - last_draw_vpts) > (8 * this->pts_per_frame) ) {
+      if( this->last_draw_vpts && (cur_pts - this->last_draw_vpts) > (8 * this->pts_per_frame) ) {
 #ifdef VIDEO_OUT_LOG
         printf("video_out : sending decoder flush due to inactivity\n");
 #endif
         video_out_send_decoder_flush( this->xine->video_fifo );
-        last_draw_vpts = cur_pts;
+        this->last_draw_vpts = cur_pts;
         flush_sent = 1;
       }
     }
@@ -745,6 +745,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   this->num_frames_delivered++;
 
   cur_vpts = this->metronom->get_current_time(this->metronom);
+  this->last_draw_vpts = cur_vpts;
   
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / this->pts_per_frame + 3) * 2;

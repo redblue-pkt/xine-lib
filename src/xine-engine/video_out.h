@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.36 2002/01/10 12:20:17 jcdutton Exp $
+ * $Id: video_out.h,v 1.37 2002/01/14 00:34:22 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -181,7 +181,7 @@ struct vo_instance_s {
   int                num_frames_discarded;
 
   int                decoder_started_flag;
-  int                still_counter;/* still_counter>8 => still frames will be generated */
+  uint32_t           last_draw_vpts;
 } ;
 
 /* constants for the get/set property functions */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.53 2001/12/01 13:10:53 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.54 2002/01/14 00:34:22 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -141,7 +141,8 @@ static int ao_oss_open(ao_driver_t *this_gen,
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int tmp;
 
-  printf ("audio_oss_out: ao_open rate=%d, mode=%d\n", rate, mode);
+  printf ("audio_oss_out: ao_open rate=%d, mode=%d, dev=%s\n", 
+	  rate, mode, this->audio_dev);
 
   if ( (mode & this->capabilities) == 0 ) {
     printf ("audio_oss_out: unsupported mode %08x\n", mode);
@@ -596,6 +597,9 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   /*
    * open that device
    */
+
+  printf ("audio_oss_out: using device >%s<\n",
+	  this->audio_dev);
 
   audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
 

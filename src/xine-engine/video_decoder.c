@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.69 2002/01/05 18:14:27 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.70 2002/01/14 00:34:22 guenter Exp $
  *
  */
 
@@ -188,7 +188,6 @@ void *video_decoder_loop (void *this_gen) {
       this->metronom->expect_video_discontinuity (this->metronom);
 
       this->video_in_discontinuity = 0;
-      this->video_out->still_counter = 0;
       break;
     
     case BUF_VIDEO_FILL:

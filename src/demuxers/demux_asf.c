@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.19 2002/01/06 00:25:56 guenter Exp $
+ * $Id: demux_asf.c,v 1.20 2002/01/14 00:34:22 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1005,7 +1005,7 @@ static void *demux_asf_loop (void *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
-  /* printf ("demux_asf: demux loop starting...\n"); */
+  printf ("demux_asf: demux loop starting...\n"); 
 
   this->send_end_buffers = 1;
 
