@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.5 2004/02/03 19:42:02 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.6 2004/02/09 22:11:30 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -51,7 +51,8 @@
 
 #define VIDEOBUFSIZE        (128*1024)
 #define SLICE_BUFFER_SIZE   (1194*1024)
-#define RV10_CHUNK_TAB_SIZE 128
+
+#define SLICE_OFFSET_SIZE   128
 
 #define ENABLE_DIRECT_RENDERING
 
@@ -78,6 +79,8 @@ struct ff_video_decoder_s {
   int               bufsize;
   int               size;
   int               skipframes;
+  
+  int               slice_offset_size;
 
   AVFrame           *av_frame;
   AVCodecContext    *context;
@@ -221,7 +224,6 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,    this->context->width);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,   this->context->height);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
 
   this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -834,7 +836,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
       /* init package containing bih */
       memcpy ( &this->bih, buf->content, sizeof(xine_bmiheader) );
-      this->video_step = buf->decoder_info[1];
 
       init_video_codec (this, (xine_bmiheader *) buf->content );
             
@@ -849,9 +850,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         this->video_step =  
           90000.0 / ((double) BE_16(&buf->content[22]) + 
                      ((double) BE_16(&buf->content[24]) / 65536.0));
+                     
+        _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
+                           this->video_step);
 
         this->context->sub_id = BE_32(&buf->content[30]);
-        this->context->slice_offset = xine_xmalloc(sizeof(int)*RV10_CHUNK_TAB_SIZE);
+
+        this->context->slice_offset = xine_xmalloc(sizeof(int)*SLICE_OFFSET_SIZE);
+        this->slice_offset_size     = SLICE_OFFSET_SIZE;
         break;
       default:
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -893,8 +899,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     } else if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
     
-      /* FIXME: Check bounds of this->context->slice_offset */
       this->context->slice_count = buf->decoder_info[2]+1;
+      
+      if(this->context->slice_count > this->slice_offset_size) {
+        this->context->slice_offset = realloc(this->context->slice_offset,
+                                              sizeof(int)*this->context->slice_count);
+        this->slice_offset_size = this->context->slice_count;
+      }
+      
       for(i = 0; i < this->context->slice_count; i++)
         this->context->slice_offset[i] = 
           ((uint32_t *) buf->decoder_info_ptr[2])[(2*i)+1];
@@ -916,8 +928,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   }
    
-  if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
     this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
   
   if (this->decoder_ok && this->size) {
   
