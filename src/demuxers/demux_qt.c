@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.144 2003/02/16 05:10:23 tmmm Exp $
+ * $Id: demux_qt.c,v 1.145 2003/02/16 16:49:39 tmmm Exp $
  *
  */
 
@@ -2258,7 +2258,13 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   this->qt->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine(this->stream);
+
+  /*
+   * do only flush if already running (seeking).
+   * otherwise decoder_config is flushed too.
+   */
+  if(this->stream->demux_thread_running)
+    xine_demux_flush_engine(this->stream);
 
   return this->status;
 }
@@ -2407,7 +2413,8 @@ static char *get_extensions (demux_class_t *this_gen) {
 
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "video/quicktime: mov,qt: Quicktime animation;"
-         "video/x-quicktime: mov,qt: Quicktime animation;";
+         "video/x-quicktime: mov,qt: Quicktime animation;"
+         "application/x-quicktimeplayer: qtl: Quicktime list";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
