@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.11 2001/05/03 23:26:42 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.12 2001/05/04 10:14:54 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -140,6 +140,16 @@ static void xv_display_cursor(vo_driver_t *this_gen, int value) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
   
   XDefineCursor(this->display, this->window, this->cursor[value]);
+}
+
+/* Hide/Show output window */
+static void xv_display_window(vo_driver_t *this_gen, int value) {
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  if(value == 1)
+    XMapRaised (this->display, this->window);
+  else
+    XUnmapWindow (this->display, this->window);
 }
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
@@ -605,25 +615,29 @@ static int xv_set_property (vo_driver_t *this_gen,
   } else {
     /* FIXME: implement these props */
     switch (property) {
-      case VO_PROP_WINDOW_VISIBLE:
-	printf("VO_PROP_WINDOW_VISIBLE(%d)\n", value);
+    case VO_PROP_WINDOW_VISIBLE:
+      this->props[property].value = value;
+      xv_display_window(this_gen, this->props[property].value);
       break;
-      case VO_PROP_CURSOR_VISIBLE:
-	xv_display_cursor(this_gen, value);
+    case VO_PROP_CURSOR_VISIBLE:
+      this->props[property].value = value;
+      xv_display_cursor(this_gen, this->props[property].value);
       break;
-      case VO_PROP_FULLSCREEN:
-	printf("VO_PROP_FULLSCREEN(%d)\n", value);
+    case VO_PROP_FULLSCREEN:
+      this->props[property].value = value;
+      xv_setup_window(this);
       break;
-      case VO_PROP_INTERLACED:
-	printf("VO_PROP_INTERLACED(%d)\n", value);
+    case VO_PROP_INTERLACED:
+      this->props[property].value = value;
+      printf("VO_PROP_INTERLACED(%d)\n", this->props[property].value);
       break;
-      case VO_PROP_ASPECT_RATIO:
-	printf("VO_PROP_ASPECT_RATIO(%d)\n", value);
+    case VO_PROP_ASPECT_RATIO:
+      this->props[property].value = value;
+      printf("VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
       break;
     }
-    this->props[property].value = value;
   }
-
+  
   return value;
 }
 
