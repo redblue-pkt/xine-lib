@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2004/06/01 21:48:37 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.35 2004/11/29 23:02:31 tmattern Exp $
  *
  */
 
@@ -111,6 +111,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
         this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
         this->bits_per_sample = 16;
         this->faac_cfg->useOldADTSFormat = 0;
+        this->faac_cfg->dontUpSampleImplicitSBR = 1;
         faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
       }
   
@@ -204,7 +205,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     
         this->num_channels = this->faac_finfo.channels;
         this->rate = this->faac_finfo.samplerate;
-      
+	
         lprintf("faacDecDecode() returned rate=%ld channels=%d used=%d\n",
                 this->rate, this->num_channels, used);
       
