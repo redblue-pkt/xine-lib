@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.95 2002/02/25 01:23:41 guenter Exp $
+ * $Id: video_out_xv.c,v 1.96 2002/02/26 00:55:34 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -384,8 +384,9 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     char *data;
 
-    data = malloc (width * height * 3/2);
-
+    /* This cause segfault with remote display */
+    /* data = malloc (width * height * 3/2); */
+    data = malloc (width * height * 2);
     image = XvCreateImage (this->display, this->xv_port,
 			   xv_format, data, width, height);
 
