@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.144 2003/09/04 13:56:23 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.145 2003/09/13 16:15:38 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1680,7 +1680,7 @@ static void ao_flush (xine_audio_port_t *this_gen) {
     this->flush_audio_driver++;
     
     /* do not try this in paused mode */
-    while( this->flush_audio_driver ) {
+    while( this->flush_audio_driver && !this->audio_paused) {
       struct timeval  tv;
       struct timespec ts;
 

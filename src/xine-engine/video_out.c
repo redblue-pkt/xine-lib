@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.170 2003/09/05 14:39:46 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.171 2003/09/13 16:15:38 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1438,7 +1438,7 @@ static void vo_flush (xine_video_port_t *this_gen) {
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
    
     /* do not try this in paused mode */
-    while(1) {
+    while(this->clock->speed != XINE_SPEED_PAUSE) {
       pthread_mutex_lock(&this->display_img_buf_queue->mutex);
       img = this->display_img_buf_queue->first;
       pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
