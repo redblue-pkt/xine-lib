@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.78 2002/04/01 12:09:10 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.79 2002/04/07 12:09:38 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -325,6 +325,10 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
     this->in_discontinuity = 30;
     break;
   }
+  
+  this->discontinuity_handled_count++;
+  pthread_cond_signal (&this->video_discontinuity_reached);
+
   pthread_mutex_unlock (&this->lock);
 }
 
@@ -436,6 +440,14 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   }
     
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
+  while ( this->audio_discontinuity_count >
+	  this->discontinuity_handled_count ) {
+
+    printf ("metronom: waiting for in_discontinuity update #%d\n", 
+	    this->audio_discontinuity_count);
+
+    pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
+  }
 
   this->audio_samples = 0;
   this->audio_drift_step = 0;
@@ -699,6 +711,7 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   this->video_drift               = 0;
   this->video_drift_step          = 0;
   this->video_discontinuity_count = 0;
+  this->discontinuity_handled_count = 0;
   pthread_cond_init (&this->video_discontinuity_reached, NULL);
 
   /* initialize audio stuff */
