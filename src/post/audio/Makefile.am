@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+noinst_HEADERS = dsp.h  filter.h  window.h
+
 libdir = $(XINE_PLUGINDIR)/post
 
 lib_LTLIBRARIES = xineplug_post_audio_filter_upmix.la
