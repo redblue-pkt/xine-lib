@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.89 2004/05/16 14:04:13 tmattern Exp $
+ * $Id: input_http.c,v 1.90 2004/05/27 03:44:45 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -393,11 +393,14 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   n = nlen - num_bytes;
 
   if (n) {
-    if (http_plugin_read_int (this, &buf[num_bytes], n) != n)
-      return -1;
+    int read_bytes;
+    read_bytes = http_plugin_read_int (this, &buf[num_bytes], n);
+    
+    if (read_bytes < 0)
+      return read_bytes;
 
-    num_bytes += n;
-    this->curpos += n;
+    num_bytes += read_bytes;
+    this->curpos += read_bytes;
   }
 
   return num_bytes;
