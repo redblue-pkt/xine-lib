@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.48 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: demux_mpeg.c,v 1.49 2002/02/09 07:13:22 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -185,8 +185,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
       return ;
     }
     buf->type      = BUF_AUDIO_A52 + track;
-    buf->PTS       = pts;
-    buf->SCR       = scr;
+    buf->pts       = pts;
+    buf->scr       = scr;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -235,8 +235,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
       return ;
     }
     buf->type      = BUF_AUDIO_MPEG + track;
-    buf->PTS       = pts;
-    buf->SCR       = scr;
+    buf->pts       = pts;
+    buf->scr       = scr;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -280,8 +280,8 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
       return ;
     }
     buf->type = BUF_VIDEO_MPEG;
-    buf->PTS  = pts;
-    buf->SCR  = scr;
+    buf->pts  = pts;
+    buf->scr  = scr;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -392,8 +392,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
       return ;
     }
     buf->type      = BUF_AUDIO_MPEG + track ;
-    buf->PTS       = pts;
-    buf->SCR       = scr;
+    buf->pts       = pts;
+    buf->scr       = scr;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -415,8 +415,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, uint32_t scr)
       return ;
     }
     buf->type = BUF_VIDEO_MPEG;
-    buf->PTS  = pts;
-    buf->SCR  = scr;
+    buf->pts  = pts;
+    buf->scr  = scr;
     if (this->preview_mode)
       buf->decoder_info[0] = 0;
     else
@@ -516,14 +516,14 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
       buf_element_t *buf;
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_AVSYNC_RESET;
-      buf->SCR  = scr;
+      buf->type = BUF_CONTROL_DISCONTINUITY;
+      buf->scr  = scr;
       this->video_fifo->put (this->video_fifo, buf);
 
       if (this->audio_fifo) {
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	buf->type = BUF_CONTROL_AVSYNC_RESET;
-	buf->SCR  = scr;
+	buf->type = BUF_CONTROL_DISCONTINUITY;
+	buf->scr  = scr;
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
     }

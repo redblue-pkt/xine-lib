@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.32 2002/01/15 17:30:51 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.33 2002/02/09 07:13:24 guenter Exp $
  *
  *
  * contents:
@@ -65,12 +65,10 @@ extern "C" {
 #define BUF_CONTROL_START         0x01000000
 #define BUF_CONTROL_END           0x01010000
 #define BUF_CONTROL_QUIT          0x01020000
-#define BUF_CONTROL_DISCONTINUITY 0x01030000 /* deprecated */
+#define BUF_CONTROL_DISCONTINUITY 0x01030000 /* former AVSYNC_RESET */
 #define BUF_CONTROL_NOP           0x01040000
 #define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
 #define BUF_CONTROL_SPU_CHANNEL   0x01060000
-#define BUF_CONTROL_AVSYNC_RESET  0x01070000
-#define BUF_CONTROL_FLUSH         0x01080000
 
 /* video buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -90,7 +88,6 @@ extern "C" {
 #define BUF_VIDEO_ATIVCR2	0x020c0000
 #define BUF_VIDEO_I263		0x020d0000
 #define BUF_VIDEO_RV10		0x020e0000
-#define BUF_VIDEO_FILL		0x020f0000
 #define BUF_VIDEO_RGB		0x02100000
 #define BUF_VIDEO_YUY2		0x02110000
 #define BUF_VIDEO_JPEG		0x02120000
@@ -142,13 +139,13 @@ struct buf_element_s {
   buf_element_t        *next;
 
   unsigned char        *mem;
-  unsigned char        *content; /* start of raw content in pMem (without header etc) */
+  unsigned char        *content;   /* start of raw content in pMem (without header etc) */
 
-  int32_t               size ;   /* size of _content_ */
+  int32_t               size ;     /* size of _content_ */
   int32_t               max_size;        
   uint32_t              type;
-  uint32_t              PTS;     /* presentation time stamp, used for a/v sync */
-  uint32_t              SCR;     /* system clock reference, used for discont. detection */
+  int64_t               pts;       /* presentation time stamp, used for a/v sync */
+  int64_t               scr;       /* system clock reference, used for discont. detection */
   off_t                 input_pos; /* remember where this buf came from in the input source */
   int                   input_time;/* time offset in seconds from beginning of stream       */
   uint32_t              decoder_info[4]; /* additional decoder flags and other dec-spec. stuff */

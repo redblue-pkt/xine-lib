@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.21 2002/02/03 23:26:08 guenter Exp $
+ * $Id: demux_asf.c,v 1.22 2002/02/09 07:13:22 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -701,8 +701,8 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
       buf->input_pos  = 0 ;
       buf->input_time = 0 ;
     }
-    buf->PTS        = timestamp * 90;
-    buf->SCR        = timestamp * 90;
+    buf->pts        = timestamp * 90;
+    buf->scr        = timestamp * 90;
     buf->type       = stream->buf_type;
     buf->size       = bufsize;
     timestamp       = 0;
@@ -774,9 +774,9 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
             buf->input_time = 0 ;
           }
           
-          buf->PTS        = stream->timestamp * 90 + stream->ts_per_kbyte * 
+          buf->pts        = stream->timestamp * 90 + stream->ts_per_kbyte * 
                             (p-stream->buffer) / 1024; 
-          buf->SCR        = buf->PTS;
+          buf->scr        = buf->pts;
           buf->type       = stream->buf_type;
           buf->size       = bufsize;
           

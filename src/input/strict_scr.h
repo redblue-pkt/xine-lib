@@ -29,7 +29,7 @@ typedef struct strictscr_s {
   scr_plugin_t     scr;
 
   struct timeval   cur_time;
-  uint32_t         cur_pts;
+  int64_t          cur_pts;
   double           speed_factor;
 
   int              adjustable;

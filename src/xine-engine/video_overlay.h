@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.4 2002/01/05 19:09:55 jcdutton Exp $
+ * $Id: video_overlay.h,v 1.5 2002/02/09 07:13:24 guenter Exp $
  *
  */
 
@@ -32,33 +32,33 @@
 #define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{ (_cb), (_cr), (_y) }
 #endif
 
-#define MAX_OBJECTS 50
-#define MAX_EVENTS 50
-#define MAX_SHOWING 5
+#define MAX_OBJECTS   50
+#define MAX_EVENTS    50
+#define MAX_SHOWING    5
 
-#define EVENT_NULL 0
-#define EVENT_SHOW_SPU 1
-#define EVENT_HIDE_SPU 2
-#define EVENT_HIDE_MENU 3
-#define EVENT_MENU_SPU 4
-#define EVENT_MENU_BUTTON 5
-#define EVENT_DELETE_RESOURCE 6 /* Maybe release handle will do this */
-#define EVENT_SHOW_OSD 7 /* Not yet implemented */
-#define EVENT_FREE_HANDLE 8 /* Frees a handle, previous allocated via get_handle */
+#define EVENT_NULL             0
+#define EVENT_SHOW_SPU         1
+#define EVENT_HIDE_SPU         2
+#define EVENT_HIDE_MENU        3
+#define EVENT_MENU_SPU         4
+#define EVENT_MENU_BUTTON      5
+#define EVENT_DELETE_RESOURCE  6 /* Maybe release handle will do this */
+#define EVENT_SHOW_OSD         7 /* Not yet implemented */
+#define EVENT_FREE_HANDLE      8 /* Frees a handle, previous allocated via get_handle */
 
 typedef struct video_overlay_object_s {
-  int32_t	 handle; /* Used to match Show and Hide events. */
-  uint32_t	 object_type; /* 0=Subtitle, 1=Menu */
-  uint32_t       pts;         /* Needed for Menu button compares */
-  vo_overlay_t  *overlay;  /* The image data. */
+  int32_t	 handle;       /* Used to match Show and Hide events. */
+  uint32_t	 object_type;  /* 0=Subtitle, 1=Menu */
+  uint32_t       pts;          /* Needed for Menu button compares */
+  vo_overlay_t  *overlay;      /* The image data. */
   uint32_t       palette_type; /* 1 Y'CrCB, 2 R'G'B' */
-  uint32_t	*palette; /* If NULL, no palette contained in this event. */
+  uint32_t	*palette;      /* If NULL, no palette contained in this event. */
 } video_overlay_object_t;
 
 /* This will hold all details of an event item, needed for event queue to function */
 typedef struct video_overlay_event_s {
   uint32_t	 event_type;  /* Show SPU, Show OSD, Hide etc. */
-  uint32_t	 vpts;  /* Time when event will action. 0 means action now */
+  uint32_t	 vpts;        /* Time when event will action. 0 means action now */
 /* Once video_out blend_yuv etc. can take rle_elem_t with Colour, blend and length information.
  * we can remove clut and blend from this structure.
  * This will allow for many more colours for OSD.

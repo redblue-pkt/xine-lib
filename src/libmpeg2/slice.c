@@ -968,7 +968,7 @@ do {								\
 	    NEEDBITS (bit_buf, bits, bit_ptr);			\
 	    continue;						\
 	default:	/* end of slice, or error */		\
-	    return;						\
+	    return (mba >= picture->last_mba);			\
 	}							\
     }								\
     DUMPBITS (bit_buf, bits, tab->len);				\
@@ -1497,15 +1497,15 @@ do {									\
 	    dest[2] += 4 * stride;					\
 	} while (0);							\
 	if (! (picture->mpeg1))						\
-	    return;							\
+	    return (mba >= picture->last_mba);				\
 	picture->v_offset += 16;					\
 	if (picture->v_offset >= picture->coded_picture_height)		\
-	    return;							\
+	    return 1;							\
 	offset = 0;							\
     }									\
 } while (0)
 
-void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
+int slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 {
 #define bit_buf (picture->bitstream_buf)
 #define bits (picture->bitstream_bits)
@@ -1515,8 +1515,10 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
     uint8_t * dest[3];
     int offset;
     uint8_t ** forward_ref[2];
+    int mba;
 
     stride = picture->coded_picture_width;
+    mba = (code-1) * (stride >> 4);
     offset = (code - 1) * stride * 4;
     picture->v_offset = (code - 1) * 16;
 
@@ -1592,6 +1594,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     GET_MACROBLOCK_ADDRESS_INCREMENT (offset);
+    mba += offset;
     offset <<= 4;
 
     while (1) {
@@ -1744,6 +1747,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 		picture->dc_dct_pred[2] = 1 << (picture->intra_dc_precision+7);
 	}
 
+	mba++;
 	offset += 16;
 	CHECK_DISPLAY;
 
@@ -1764,6 +1768,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 		    else
 			MOTION (motion_fi_zero, MACROBLOCK_MOTION_FORWARD);
 
+		    mba++;
 		    offset += 16;
 		    CHECK_DISPLAY;
 		} while (--mba_inc);
@@ -1776,6 +1781,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 		    else
 			MOTION (motion_fi_reuse, macroblock_modes);
 
+		    mba++;
 		    offset += 16;
 		    CHECK_DISPLAY;
 		} while (--mba_inc);
@@ -1785,4 +1791,7 @@ void slice_process (picture_t * picture, uint8_t code, uint8_t * buffer)
 #undef bit_buf
 #undef bits
 #undef bit_ptr
+
+    return (mba >= picture->last_mba);
+
 }

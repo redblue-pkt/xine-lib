@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.9 2002/01/15 17:30:51 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.10 2002/02/09 07:13:24 guenter Exp $
  *
  *
  * contents:
@@ -211,13 +211,6 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_RV10,
-  ""
-},
-{
-  {
-    0
-  },
-  BUF_VIDEO_FILL,
   ""
 },
 {

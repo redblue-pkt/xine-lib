@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.4 2002/01/22 01:43:13 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.5 2002/02/09 07:13:24 guenter Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -154,7 +154,7 @@ static uint32_t fb_get_capabilities (vo_driver_t *this_gen) {
 
 static void fb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
-  fb_driver_t *this = (fb_driver_t *) vo_img->instance->driver;
+  fb_driver_t *this = (fb_driver_t *) vo_img->driver;
 
   xine_profiler_start_count (this->prof_yuv2rgb);
 
@@ -176,7 +176,7 @@ static void fb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 static void fb_frame_field (vo_frame_t *vo_img, int which_field) {
 
   fb_frame_t  *frame = (fb_frame_t *) vo_img ;
-  fb_driver_t *this = (fb_driver_t *) vo_img->instance->driver;
+  fb_driver_t *this = (fb_driver_t *) vo_img->driver;
 
   switch (which_field) {
   case VO_TOP_FIELD:
@@ -226,6 +226,7 @@ static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.copy    = fb_frame_copy;
   frame->vo_frame.field   = fb_frame_field; 
   frame->vo_frame.dispose = fb_frame_dispose;
+  frame->vo_frame.driver  = this_gen;
   
   return (vo_frame_t *) frame;
 }

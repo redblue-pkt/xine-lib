@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2002/01/15 20:22:43 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.56 2002/02/09 07:13:23 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -179,6 +179,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 //  spu_overlay_event_t   *event;
 //  spu_object_t  *object;
 //  vo_overlay_t  *overlay;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
   int pending = 1;
   this->cur_seq = &this->spu_stream_state[stream_id].ra_seq;
 
@@ -255,9 +256,10 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       //if (this->state.menu == 0) {
       if (1) {
         /* Subtitle */
-        if( this->menu_handle < 0 )
-          this->menu_handle = this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source,1);
-        
+        if( this->menu_handle < 0 ) {
+          this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+	}
+ 
         if( this->menu_handle < 0 ) {
           printf("libspudec: No video_overlay handles left for menu\n");
           return;
@@ -301,9 +303,10 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         */
       } else {
         /* Menu */
-        if( this->menu_handle < 0 )
-          this->menu_handle = this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source,1);
-        
+        if( this->menu_handle < 0 ) {
+          this->menu_handle = ovl_instance->get_handle (ovl_instance, 1);
+        }
+
         if( this->menu_handle < 0 ) {
           printf("libspudec: No video_overlay handles left for menu\n");
           return;
@@ -330,7 +333,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
                            + (this->state.delay*1000); 
         printf("libspudec: vpts current time estimation around discontinuity\n");
       }
-      this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)&this->event);
+      ovl_instance->add_event(ovl_instance, (void *)&this->event);
     } else {
       pending = 0;
     }
@@ -339,12 +342,13 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 }
 
 static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
-  uint8_t *p;
-  uint32_t packet_len;
-  uint32_t stream_id;
-  uint32_t header_len;
-  pci_t *pci;
-  dsi_t *dsi;
+  uint8_t                  *p;
+  uint32_t                  packet_len;
+  uint32_t                  stream_id;
+  uint32_t                  header_len;
+  pci_t                    *pci;
+  dsi_t                    *dsi;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
 
   p = buf->content;
   if (p[0] || p[1] || (p[2] != 1)) {
@@ -416,7 +420,7 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
     /* Hide menu spu between menus */
     printf("libspudec:nav:SHOULD HIDE SPU here\n");
     if( this->menu_handle < 0 ) {
-      this->menu_handle = this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source,1);
+      this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
     }
     if( this->menu_handle >= 0 ) {
       metronom_t *metronom = this->xine->metronom;
@@ -427,7 +431,7 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
          instead as an aproximation.
       */
       this->event.vpts = metronom->got_spu_packet(metronom, pci->pci_gi.vobu_s_ptm, 0, 0);
-      this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)&this->event);
+      ovl_instance->add_event(ovl_instance, (void *)&this->event);
     } else {
       printf("libspudec: No video_overlay handles left for menu\n");
     }
@@ -483,9 +487,9 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if ( this->spu_stream_state[stream_id].stream_filter == 0) 
     return;
 
-  if (buf->PTS) {
+  if (buf->pts) {
     metronom_t *metronom = this->xine->metronom;
-    uint32_t vpts = metronom->got_spu_packet(metronom, buf->PTS, 0, buf->SCR);
+    uint32_t vpts = metronom->got_spu_packet(metronom, buf->pts, 0, buf->scr);
     
     if (vpts < this->buf_pts) {
       /* FIXME: Don't do this yet, 
@@ -496,7 +500,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     this->spu_stream_state[stream_id].vpts = vpts; /* Show timer */
-    this->spu_stream_state[stream_id].pts = buf->PTS; /* Required to match up with NAV packets */
+    this->spu_stream_state[stream_id].pts = buf->pts; /* Required to match up with NAV packets */
   }
 
 /*  if (this->ra_complete) {
@@ -528,19 +532,20 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void spudec_close (spu_decoder_t *this_gen) {
-  spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
-  int i;
+  spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
+  int                       i;
+  video_overlay_instance_t *ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
   
   if( this->menu_handle >= 0 )
-    this->vo_out->overlay_source->free_handle(this->vo_out->overlay_source,
-                                              this->menu_handle);
+    ovl_instance->free_handle(ovl_instance,
+			      this->menu_handle);
   this->menu_handle = -1;
 
 
   for (i=0; i < MAX_STREAMS; i++) {
     if( this->spu_stream_state[i].overlay_handle >= 0 )
-      this->vo_out->overlay_source->free_handle(this->vo_out->overlay_source,
-                                                this->spu_stream_state[i].overlay_handle);
+      ovl_instance->free_handle(ovl_instance,
+				this->spu_stream_state[i].overlay_handle);
     this->spu_stream_state[i].overlay_handle = -1;
   }
 }
@@ -566,10 +571,14 @@ static void spudec_nextseq(spudec_decoder_t* this) {
 static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
   xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
+  video_overlay_instance_t *ovl_instance;
 
   if((!this) || (!event)) {
     return;
   }
+
+  if (this->vo_out)
+    ovl_instance = this->vo_out->get_overlay_instance (this->vo_out);
 
   switch (event->event.type) {
   case XINE_EVENT_SPU_BUTTON:
@@ -650,7 +659,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay_event->event_type = EVENT_HIDE_MENU;
       }
       overlay_event->vpts = 0; /* Activate it NOW */
-      this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)overlay_event);
+      ovl_instance->add_event (ovl_instance, (void *)overlay_event);
     }
     break;
   case XINE_EVENT_SPU_CLUT:

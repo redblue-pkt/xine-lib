@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.55 2002/01/15 20:35:24 jcdutton Exp $
+ * $Id: video_out_xshm.c,v 1.56 2002/02/09 07:13:24 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -349,7 +349,7 @@ static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
 
 static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
-  xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
+  xshm_driver_t *this = (xshm_driver_t *) vo_img->driver;
 
   xine_profiler_start_count (this->prof_yuv2rgb);
 
@@ -371,7 +371,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
 
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
-  xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
+  xshm_driver_t *this = (xshm_driver_t *) vo_img->driver;
 
   switch (which_field) {
   case VO_TOP_FIELD:
@@ -391,7 +391,7 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
 static void xshm_frame_dispose (vo_frame_t *vo_img) {
 
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
-  xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
+  xshm_driver_t *this = (xshm_driver_t *) vo_img->driver;
 
   if (frame->image) {
     XLockDisplay (this->display); 
@@ -417,13 +417,14 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
   /*
-   * supply required functions
+   * supply required functions/fields
    */
   
   frame->vo_frame.copy    = xshm_frame_copy;
   frame->vo_frame.field   = xshm_frame_field; 
   frame->vo_frame.dispose = xshm_frame_dispose;
-  
+  frame->vo_frame.driver  = this_gen;
+
   return (vo_frame_t *) frame;
 }
 

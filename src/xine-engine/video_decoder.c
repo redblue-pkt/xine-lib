@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.71 2002/01/25 00:35:46 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.72 2002/02/09 07:13:24 guenter Exp $
  *
  */
 
@@ -105,8 +105,8 @@ void *video_decoder_loop (void *this_gen) {
       this->spu_finished = 0;
 
       pthread_mutex_unlock (&this->finished_lock);
-
-      this->metronom->video_stream_start (this->metronom);
+ 
+      this->metronom->expect_video_discontinuity (this->metronom);
 
       break;
 
@@ -143,8 +143,6 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_END:
-
-      this->metronom->video_stream_end (this->metronom);
 
       if (this->cur_video_decoder_plugin) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
@@ -184,14 +182,7 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_DISCONTINUITY:
-      printf ("video_decoder: BUF_CONTROL_DISCONTINUITY is deprecated\n");
-      break;
-
-    case BUF_CONTROL_AVSYNC_RESET:
       printf ("video_decoder: discontinuity ahead\n");
-
-      if (this->cur_video_decoder_plugin) 
-	this->cur_video_decoder_plugin->flush (this->cur_video_decoder_plugin);
 
       this->video_in_discontinuity = 1;
 
@@ -200,14 +191,6 @@ void *video_decoder_loop (void *this_gen) {
       this->video_in_discontinuity = 0;
       break;
     
-    case BUF_VIDEO_FILL:
-      break;
-      
-    case BUF_CONTROL_FLUSH:
-      if (this->cur_video_decoder_plugin) 
-	this->cur_video_decoder_plugin->flush (this->cur_video_decoder_plugin);
-      break;
-
     case BUF_CONTROL_AUDIO_CHANNEL:
       {
 	xine_ui_event_t  ui_event;

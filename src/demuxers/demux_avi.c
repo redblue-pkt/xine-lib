@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.62 2002/01/24 22:55:51 guenter Exp $
+ * $Id: demux_avi.c,v 1.63 2002/02/09 07:13:22 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -751,8 +751,8 @@ static int demux_avi_next (demux_avi_t *this) {
 
     /* read audio */
 
-    buf->PTS    = audio_pts;
-    buf->SCR    = audio_pts;
+    buf->pts    = audio_pts;
+    buf->scr    = audio_pts;
     buf->size   = AVI_read_audio (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
 
     if (buf->size<0) {
@@ -778,8 +778,8 @@ static int demux_avi_next (demux_avi_t *this) {
 
     /* read video */
 
-    buf->PTS        = video_pts;
-    buf->SCR        = video_pts;
+    buf->pts        = video_pts;
+    buf->scr        = video_pts;
     buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_info[0]);
     buf->type       = this->avi->video_type;
     
@@ -807,7 +807,7 @@ static int demux_avi_next (demux_avi_t *this) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       
       buf->type    = BUF_SPU_TEXT;
-      buf->PTS     = video_pts;
+      buf->pts     = video_pts;
     
       buf->decoder_info[0] = 1;
       buf->decoder_info[1] = this->avi->video_posf;
@@ -923,7 +923,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   LOG_MSG(this->xine, _("demux_avi: video format = %s, audio format = 0x%lx\n"),
 	  this->avi->compressor, this->avi->a_fmt);
-  LOG_MSG(this->xine, _("demux_avi: video frame size %d x %d\n"),
+  LOG_MSG(this->xine, _("demux_avi: video frame size %ld x %ld\n"),
 	  this->avi->width, this->avi->height);
   this->no_audio = 0;
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.62 2002/01/22 01:55:12 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.63 2002/02/09 07:13:24 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -127,11 +127,11 @@ typedef struct w32a_decoder_s {
 
   unsigned char    *buf;
   int               size;   
-  uint32_t          pts;
-  uint32_t          scr;
+  int64_t           pts;
+  int64_t           scr;
   
   /* these are used for pts estimation */
-  uint32_t lastpts, sumpts, sumsize;
+  int64_t           lastpts, sumpts, sumsize;
 
   unsigned char    *outbuf;
   int               outsize;
@@ -633,8 +633,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biHeight, 
 					42, 
 					IMGFMT_YUY2,
-					this->video_step,
 					VO_BOTH_FIELDS);
+
+      img->duration = this->video_step;
 
       if (this->outfmt==IMGFMT_YUY2)
          img_buffer = img->base[0];
@@ -717,8 +718,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         }
       }
       
-      img->PTS = buf->PTS;
-      img->SCR = buf->SCR;
+      img->pts = buf->pts;
+      img->scr = buf->scr;
       if(ret || this->skipframes) {
         if( !this->skipframes )
 	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
@@ -976,8 +977,8 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 			       unsigned char *data, 
 			       uint32_t size, 
 			       int frame_end, 
-			       uint32_t pts,
-			       uint32_t scr) {
+			       int64_t pts,
+			       int64_t scr) {
 
   static ACMSTREAMHEADER ash;
   HRESULT hr;
@@ -1128,7 +1129,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     w32a_decode_audio (this, buf->content, buf->size,
 		       buf->decoder_info[0]==2, 
-		       buf->PTS, buf->SCR);
+		       buf->pts, buf->scr);
   }
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.14 2002/02/09 07:13:23 guenter Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -123,8 +123,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     /* printf("DTS first access unit=%u\n",audio_buffer->first_access_unit); */
     if (n == first_access_unit) {
-      audio_buffer->vpts       = buf->PTS;
-      audio_buffer->scr        = buf->SCR;
+      audio_buffer->vpts       = buf->pts;
+      audio_buffer->scr        = buf->scr;
     } else {
       audio_buffer->vpts       = 0;
       audio_buffer->scr        = 0;

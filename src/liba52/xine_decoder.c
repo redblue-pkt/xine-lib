@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.17 2002/02/09 07:13:23 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -50,8 +50,8 @@ int a52file;
 typedef struct a52dec_decoder_s {
   audio_decoder_t  audio_decoder;
 
-  uint32_t         pts;
-  uint32_t         last_pts;
+  int64_t          pts;
+  int64_t          last_pts;
 
   uint8_t          frame_buffer[3840];
   uint8_t         *frame_ptr;
@@ -457,14 +457,14 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->last_pts = buf->PTS;
   */
 
-  if (buf->PTS) 
-    this->pts = buf->PTS; 
+  if (buf->pts) 
+    this->pts = buf->pts; 
 
   
   while (current != end) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
-      a52dec_decode_frame (this, this->pts, buf->SCR);
+      a52dec_decode_frame (this, this->pts, buf->scr);
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif

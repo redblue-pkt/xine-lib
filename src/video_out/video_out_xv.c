@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.90 2002/01/24 23:09:54 guenter Exp $
+ * $Id: video_out_xv.c,v 1.91 2002/02/09 07:13:24 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -97,7 +97,6 @@ struct xv_driver_s {
   Display           *display;
   int                screen;
   Drawable           drawable;
-  unsigned int       xv_format_rgb;
   unsigned int       xv_format_yv12;
   unsigned int       xv_format_yuy2;
   XVisualInfo        vinfo;
@@ -184,7 +183,7 @@ static void xv_frame_field (vo_frame_t *vo_img, int which_field) {
 static void xv_frame_dispose (vo_frame_t *vo_img) {
 
   xv_frame_t  *frame = (xv_frame_t *) vo_img ;
-  xv_driver_t *this = (xv_driver_t *) vo_img->instance->driver;
+  xv_driver_t *this = (xv_driver_t *) vo_img->driver;
 
   if (frame->image) {
     XLockDisplay (this->display);
@@ -219,6 +218,8 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.copy    = NULL;
   frame->vo_frame.field   = xv_frame_field;
   frame->vo_frame.dispose = xv_frame_dispose;
+
+  frame->vo_frame.driver  = this_gen;
 
   return (vo_frame_t *) frame;
 }
@@ -257,9 +258,6 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
   switch (format) {
   case IMGFMT_YV12:
     xv_format = this->xv_format_yv12;
-    break;
-  case IMGFMT_RGB:
-    xv_format = this->xv_format_rgb;
     break;
   case IMGFMT_YUY2:
     xv_format = this->xv_format_yuy2;
@@ -842,10 +840,14 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
+  printf ("video_out_xv: xv_display_frame...\n");
+
   if (this->expecting_event) {
 
     frame->vo_frame.displayed (&frame->vo_frame);
     this->expecting_event--;
+
+    printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
 
   } else {
     xv_add_recent_frame (this, frame);
@@ -862,8 +864,12 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if (this->deinterlace_enabled && this->deinterlace_method)
       xv_deinterlace_frame (this);
 
+    printf ("video_out_xv: xv_display_frame... lock display...\n");
+
     XLockDisplay (this->display);
     
+    printf ("video_out_xv: xv_display_frame... lock display...locked\n");
+
     if (this->use_shm) {
       XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
@@ -887,6 +893,8 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     XUnlockDisplay (this->display);
     
   }
+
+  printf ("video_out_xv: xv_display_frame... done\n");
 }
 
 static int xv_get_property (vo_driver_t *this_gen, int property) {
@@ -1450,7 +1458,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->xv_format_yv12 = 0;
   this->xv_format_yuy2 = 0;
-  this->xv_format_rgb  = 0;
   
   for(i = 0; i < formats; i++) {
 #ifdef XV_LOG
@@ -1466,10 +1473,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
       this->xv_format_yuy2 = fo[i].id;
       this->capabilities |= VO_CAP_YUY2;
       printf("video_out_xv: this adaptor supports the yuy2 format.\n");
-    } else if (fo[i].id == IMGFMT_RGB) {
-      this->xv_format_rgb = fo[i].id;
-      this->capabilities |= VO_CAP_RGB;
-      printf("video_out_xv: this adaptor supports the rgb format.\n");
     }
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.52 2002/01/24 23:09:53 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.53 2002/02/09 07:13:24 guenter Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -327,10 +327,6 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       }	   
       break;
       
-    case IMGFMT_RGB:
-      printf("video_out_syncfb: error. (RGB565 not yet supported)\n");
-      break;
-      
     default:
       printf("video_out_syncfb: error. (unknown frame format)\n");
       break;
@@ -543,10 +539,6 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	    
 	  case IMGFMT_YUY2:
 	    this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
-	    break;
-	    
-	  case IMGFMT_RGB:
-	    this->syncfb_config.src_palette = VIDEO_PALETTE_RGB565;
 	    break;
 	    
 	  default:

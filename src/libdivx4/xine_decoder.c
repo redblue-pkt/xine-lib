@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.17 2002/02/09 07:13:23 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -394,9 +394,11 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_info[0] == 2)  { /* need to decode a frame */
     /* allocate image (taken from ffmpeg plugin) */
     img = this->video_out->get_frame (this->video_out, this->biWidth,
-        this->biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, IMGFMT_YV12, 
-        this->video_step, VO_BOTH_FIELDS);
+				      this->biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, 
+				      IMGFMT_YV12, 
+				      VO_BOTH_FIELDS);
 
+    img->duration = this->video_step;
     /* setup the decode frame parameters, as demonstrated by avifile.
        Old versions used DEC_YV12, but that was basically wrong and just
        happened to work with the Xv driver. Now DEC_USER is the only option.
@@ -422,7 +424,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     /* this again from ffmpeg plugin */
-    img->PTS = buf->PTS;
+    img->pts = buf->pts;
     img->draw(img);
     img->free(img);
       

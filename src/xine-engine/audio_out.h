@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.22 2001/11/27 00:00:35 jcdutton Exp $
+ * $Id: audio_out.h,v 1.23 2002/02/09 07:13:24 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -31,6 +31,9 @@ extern "C" {
 #if defined(XINE_COMPILE)
 #include "metronom.h"
 #include "configfile.h"
+#else
+#include <xine/metronom.h>
+#include <xine/configfile.h>
 #endif
 
 
@@ -133,8 +136,8 @@ struct audio_buffer_s {
   int                mem_size;
   int                num_frames;
 
-  uint32_t           vpts;
-  uint32_t           scr;
+  int64_t            vpts;
+  int64_t            scr;
   uint32_t           frame_header_count;
   uint32_t           first_access_unit;
 };
@@ -191,7 +194,7 @@ struct ao_instance_s {
   int32_t         output_frame_rate, input_frame_rate;
   double          frame_rate_factor;
   uint32_t        num_channels;
-  uint32_t        last_audio_vpts;
+  int64_t         last_audio_vpts;
   int             resample_conf;
   int             force_rate;           /* force audio output rate to this value if non-zero */
   int             do_resample;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.6 2002/02/09 07:13:24 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -41,7 +41,7 @@
 typedef struct vorbis_decoder_s {
   audio_decoder_t   audio_decoder;
 
-  uint32_t          pts;
+  int64_t           pts;
 
   ao_instance_t    *audio_out;
   int               output_sampling_rate;
@@ -204,12 +204,12 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	}
       }
 
-      audio_buffer->vpts       = buf->PTS;
+      audio_buffer->vpts       = buf->pts;
       audio_buffer->num_frames = bout;
 
       this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
-      buf->PTS=0;
+      buf->pts=0;
       vorbis_synthesis_read(&this->vd,bout);
     }
   }

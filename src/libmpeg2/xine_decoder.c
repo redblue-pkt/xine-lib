@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.21 2002/02/09 07:13:23 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -36,69 +36,74 @@
 #include "buffer.h"
 #include "xine_internal.h"
 
+#define LOG
+
 
 typedef struct mpeg2dec_decoder_s {
   video_decoder_t  video_decoder;
   mpeg2dec_t       mpeg2;
   vo_instance_t   *video_out;
-  /*int              mpeg_file;*/ /* debugging purposes only */
+  pthread_mutex_t  lock; /* mutex for async flush */
 } mpeg2dec_decoder_t;
 
 static int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
   return ((buf_type & 0xFFFF0000) == BUF_VIDEO_MPEG) ;
 }
 
-
 static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+  printf ("libmpeg2: init \n");
   mpeg2_init (&this->mpeg2, video_out);
   video_out->open(video_out);
   this->video_out = video_out;
-
-  /* debugging purposes */
-  /*this->mpeg_file = open ("/tmp/video.mpv",O_CREAT | O_WRONLY | O_TRUNC, 0644);*/
+  pthread_mutex_init (&this->lock, NULL);
 }
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+  printf ("libmpeg2: decode_data...\n");
+
+  pthread_mutex_lock (&this->lock);
+
   if (buf->decoder_info[0] == 0) {
     mpeg2_find_sequence_header (&this->mpeg2, buf->content, buf->content + buf->size);
   } else {
     
-    /* debugging purposes */
-    /* write (this->mpeg_file, buf->content, buf->size); */
-
     mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
-		       buf->PTS, buf->SCR);
-    
-    this->video_out->decoder_started(this->video_out);  
+		       buf->pts, buf->scr);
   }
 
+  pthread_mutex_unlock (&this->lock);
+
+  printf ("libmpeg2: decode_data...done\n");
 }
 
 static void mpeg2dec_flush (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+  pthread_mutex_lock (&this->lock);
+  printf ("libmpeg2: flush\n");
+
   mpeg2_flush (&this->mpeg2);
 
+  pthread_mutex_unlock (&this->lock);
 }
 
 static void mpeg2dec_close (video_decoder_t *this_gen) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
+  printf ("libmpeg2: close\n");
+
   mpeg2_close (&this->mpeg2);
 
   this->video_out->close(this->video_out);
 
-  /* debugging purposes */
-  /*
-  close (this->mpeg_file);
-  this->mpeg_file = -1;
-  */
+  pthread_mutex_destroy (&this->lock);
+
 }
 
 static char *mpeg2dec_get_id(void) {

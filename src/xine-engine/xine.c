@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.102 2002/02/01 09:59:08 f1rmb Exp $
+ * $Id: xine.c,v 1.103 2002/02/09 07:13:24 guenter Exp $
  *
  * top-level xine functions
  *
@@ -159,7 +159,7 @@ void xine_stop_internal (xine_t *this) {
 
   this->metronom->set_speed (this->metronom, SPEED_NORMAL);
   this->speed      = SPEED_NORMAL;
-  this->video_out->video_paused = 0;
+
   if( this->audio_out )
     this->audio_out->audio_paused = 0;
 
@@ -298,11 +298,6 @@ int xine_play (xine_t *this, char *mrl,
 	this->cur_input_plugin->stop(this->cur_input_plugin);
     }
 
-    /* this will make output threads discard about everything
-       (seeking should be faster!) */
-    this->metronom->adjust_clock(this->metronom,
-				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
-
     this->status = XINE_STOP;
   }
 
@@ -373,7 +368,7 @@ int xine_play (xine_t *this, char *mrl,
     strncpy (this->cur_mrl, mrl, 1024);
     
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-    this->video_out->video_paused = 0;
+
     if( this->audio_out )
       this->audio_out->audio_paused = 0;
     this->speed = SPEED_NORMAL;
@@ -504,7 +499,7 @@ xine_t *xine_init (vo_driver_t *vo,
   this->video_out = vo_new_instance (vo, this);
   video_decoder_init (this);
 
-  this->osd_renderer = osd_renderer_init( this->video_out->overlay_source, config );
+  this->osd_renderer = osd_renderer_init (this->video_out->get_overlay_instance (this->video_out), config );
   
   this->osd = this->osd_renderer->new_object (this->osd_renderer, 300, 100);
   this->osd_renderer->set_font (this->osd, "cetus", 24);
@@ -704,7 +699,6 @@ void xine_set_speed (xine_t *this, int speed) {
 
   this->metronom->set_speed (this->metronom, speed);
 
-  this->video_out->video_paused = (speed == SPEED_PAUSE);
   /* see coment on audio_out loop about audio_paused */
   if( this->audio_out )
     this->audio_out->audio_paused = (speed != SPEED_NORMAL) + 

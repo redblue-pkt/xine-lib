@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.25 2002/01/28 17:28:39 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.26 2002/02/09 07:13:23 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -249,10 +249,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->biHeight,
 					42, 
 					IMGFMT_YV12,
-					this->video_step,
 					VO_BOTH_FIELDS);
 
-      img->PTS = buf->PTS;
+      img->pts      = buf->pts;
+      img->duration = this->video_step;
       if (len<0 || this->skipframes) {
 	if( !this->skipframes )
 	  printf ("ffmpeg: error decompressing frame\n");

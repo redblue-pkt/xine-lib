@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.39 2001/12/24 12:36:19 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.40 2002/02/09 07:13:24 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -237,7 +237,6 @@ static void *ao_loop (void *this_gen) {
   audio_buffer_t *buf;
   int32_t         gap;
   int             delay;
-  uint8_t        *data;
   uint32_t        cur_time;
   int             num_output_frames ;
   int             paused_wait;
@@ -474,7 +473,7 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
   if ( buf->vpts<this->last_audio_vpts) {
 
     /* reject buffer */
-    printf ("audio_out: rejected buffer vpts=%d, last_audio_vpts=%d\n", 
+    printf ("audio_out: rejected buffer vpts=%lld, last_audio_vpts=%lld\n", 
 	    buf->vpts, this->last_audio_vpts);
 
     fifo_append (this->free_fifo, buf);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.4 2002/01/23 23:27:10 f1rmb Exp $
+ * $Id: video_out_opengl.c,v 1.5 2002/02/09 07:13:24 guenter Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -231,7 +231,7 @@ static uint32_t opengl_get_capabilities (vo_driver_t *this_gen) {
 
 static void opengl_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   opengl_frame_t  *frame = (opengl_frame_t *) vo_img ;
-  opengl_driver_t *this = (opengl_driver_t *) vo_img->instance->driver;
+  opengl_driver_t *this = (opengl_driver_t *) vo_img->driver;
 
 /*fprintf (stderr, "*** frame_copy\n"); */
   xine_profiler_start_count (this->prof_yuv2rgb);
@@ -301,12 +301,13 @@ static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
   /*
-   * supply required functions
+   * supply required functions/fields
    */
   
   frame->vo_frame.copy    = opengl_frame_copy;
   frame->vo_frame.field   = opengl_frame_field; 
   frame->vo_frame.dispose = opengl_frame_dispose;
+  frame->vo_frame.driver  = this_gen;
   
   return (vo_frame_t *) frame;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2002/01/08 16:47:56 cvogler Exp $
+ * $Id: xine_decoder.c,v 1.12 2002/02/09 07:13:23 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -791,14 +791,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   } else {
 
-    uint32_t    pts, pts_end;
-    int32_t     pts_factor;
+    int64_t     pts, pts_end;
+    int64_t     pts_factor;
     int         frame_num;
     subtitle_t *subtitle;
 
     subtitle = NULL;
 
-    pts       = buf->PTS;
+    pts       = buf->pts;
     pts_end   = pts;
     frame_num = buf->decoder_info[1];
 
@@ -820,7 +820,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       if (subtitle->start > frame_num)
 	return;
 
+      /* FIXME FIXME FIXME 
       pts_factor = this->xine->metronom->get_video_rate (this->xine->metronom);
+      */
+      pts_factor = 3000;
 
       pts += this->xine->metronom->video_wrap_offset;
 

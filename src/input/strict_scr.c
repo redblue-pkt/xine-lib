@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: strict_scr.c,v 1.1 2002/01/10 21:42:50 guenter Exp $
+ * $Id: strict_scr.c,v 1.2 2002/02/09 07:13:23 guenter Exp $
  *
  * scr plugin that may not allow others to adjust it (used for streaming)
  */
@@ -70,7 +70,7 @@ static int strictscr_set_speed (scr_plugin_t *scr, int speed) {
   return speed;
 }
 
-static void strictscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
+static void strictscr_adjust (scr_plugin_t *scr, int64_t vpts) {
 
   strictscr_t *this = (strictscr_t*) scr;
   struct   timeval tv;
@@ -88,7 +88,7 @@ static void strictscr_adjust (scr_plugin_t *scr, uint32_t vpts) {
   }
 }
 
-static void strictscr_start (scr_plugin_t *scr, uint32_t start_vpts) {
+static void strictscr_start (scr_plugin_t *scr, int64_t start_vpts) {
   strictscr_t *this = (strictscr_t*) scr;
 
   pthread_mutex_lock (&this->lock);
@@ -99,11 +99,11 @@ static void strictscr_start (scr_plugin_t *scr, uint32_t start_vpts) {
   pthread_mutex_unlock (&this->lock);
 }
 
-static uint32_t strictscr_get_current (scr_plugin_t *scr) {
+static int64_t strictscr_get_current (scr_plugin_t *scr) {
   strictscr_t *this = (strictscr_t*) scr;
 
   struct   timeval tv;
-  uint32_t pts;
+  int64_t  pts;
   double   pts_calc; 
   pthread_mutex_lock (&this->lock);
 
@@ -139,4 +139,4 @@ strictscr_t* strictscr_init () {
 
   return this;
 }
- 
+

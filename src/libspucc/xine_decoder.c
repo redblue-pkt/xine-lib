@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2002/01/07 23:04:26 cvogler Exp $
+ * $Id: xine_decoder.c,v 1.4 2002/02/09 07:13:23 guenter Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -276,7 +276,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       
       if(this->cc_cfg.can_cc) {
 	decode_cc(this->ccdec, buf->content, buf->size,
-		  buf->PTS, buf->SCR);
+		  buf->pts, buf->scr);
       }
     }
     pthread_mutex_unlock(&this->cc_mutex);

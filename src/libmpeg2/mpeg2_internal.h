@@ -91,6 +91,9 @@ typedef struct picture_s {
 
     /* what type of picture this is (I, P, B, D) */
     int picture_coding_type;
+
+    int vbv_delay;
+    int low_delay;
 	
     /* picture coding extension stuff */
 	
@@ -107,6 +110,8 @@ typedef struct picture_s {
     int q_scale_type;
     /* bool to use different vlc tables */
     int intra_vlc_format;
+    /* last macroblock in the picture */
+    int last_mba;
     /* used for DMV MC */
     int top_field_first;
 
@@ -132,11 +137,10 @@ typedef struct picture_s {
     /* this is a temporary interface, we will build a better one later. */
     int aspect_ratio_information;
     int frame_rate_code;
-    int frame_duration;
     int progressive_sequence;
     int repeat_first_field;
     int progressive_frame;
-    int bitrate;
+    /*int bitrate; */
     uint32_t frame_centre_horizontal_offset;
     uint32_t frame_centre_vertical_offset;
     uint32_t video_format;
@@ -222,7 +226,7 @@ extern mc_functions_t mc_functions_altivec;
 extern mc_functions_t mc_functions_mlib;
 
 /* slice.c */
-void slice_process (picture_t *picture, uint8_t code, uint8_t * buffer);
+int slice_process (picture_t *picture, uint8_t code, uint8_t * buffer);
 
 /* stats.c */
 void stats_header (uint8_t code, uint8_t * buffer);

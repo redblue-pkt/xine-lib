@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.75 2002/02/01 13:01:57 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.76 2002/02/09 07:13:23 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -202,7 +202,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       scr |= (p[6] & 0xFF) <<  7;
       scr |= (p[7] & 0xFE) >>  1;
 
-      buf->SCR = scr;
+      buf->scr = scr;
 
       /* mux_rate */
 
@@ -234,7 +234,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       scr += ( (p[8] & 0x03 << 7) | (p[9] & 0xFE >> 1) );
       */
 
-      buf->SCR = scr;
+      buf->scr = scr;
 
       /* mux_rate */
 
@@ -294,14 +294,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 #endif
 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = BUF_CONTROL_AVSYNC_RESET;
-      buf->SCR  = scr;
+      buf->type = BUF_CONTROL_DISCONTINUITY;
+      buf->scr  = scr;
       this->video_fifo->put (this->video_fifo, buf);
 
       if (this->audio_fifo) {
 	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-	buf->type = BUF_CONTROL_AVSYNC_RESET;
-	buf->SCR  = scr;
+	buf->type = BUF_CONTROL_DISCONTINUITY;
+	buf->scr  = scr;
 	this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
@@ -315,7 +315,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_SPU_NAV;
-    buf->PTS       = 0;   /* NAV packets do not have PES values */
+    buf->pts       = 0;   /* NAV packets do not have PES values */
     buf->input_pos = this->input->get_current_pos(this->input);
     this->video_fifo->put (this->video_fifo, buf);
     return ;
@@ -424,7 +424,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->content   = p+1;
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_PACKAGE + spu_id;
-      buf->PTS       = PTS;
+      buf->pts       = PTS;
       buf->input_pos = this->input->get_current_pos(this->input);
       
       this->video_fifo->put (this->video_fifo, buf);    
@@ -445,7 +445,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       } else {
         buf->type      = BUF_AUDIO_A52 + track;
       }
-      buf->PTS       = PTS;
+      buf->pts       = PTS;
 
       buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -505,7 +505,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->content   = p+pcm_offset;
       buf->size      = packet_len-pcm_offset;
       buf->type      = BUF_AUDIO_LPCM_BE + track;
-      buf->PTS       = PTS;
+      buf->pts       = PTS;
 
       buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -522,7 +522,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_VIDEO_MPEG;
-    buf->PTS       = PTS;
+    buf->pts       = PTS;
 
     buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -538,7 +538,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_AUDIO_MPEG + track;
-    buf->PTS       = PTS;
+    buf->pts       = PTS;
 
     buf->input_pos = this->input->get_current_pos(this->input);
 

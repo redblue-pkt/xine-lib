@@ -99,7 +99,6 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 
   int                s;
   struct sockaddr_in sin;
-  fd_set             wfd;
 
   s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s==-1) {

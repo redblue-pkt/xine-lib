@@ -131,39 +131,7 @@ int header_process_sequence_header (picture_t * picture, uint8_t * buffer)
     /* this is not used by the decoder */
     picture->aspect_ratio_information = buffer[3] >> 4;
     picture->frame_rate_code = buffer[3] & 15;
-
-    switch (picture->frame_rate_code) {
-    case 1: /* 23.976 fps */
-      picture->frame_duration = 3913;
-      break;
-    case 2: /* 24 fps */
-      picture->frame_duration = 3750;
-      break;
-    case 3: /* 25 fps */
-      picture->frame_duration = 3600;
-      break;
-    case 4: /* 29.97 fps */
-      picture->frame_duration = 3003;
-      break;
-    case 5: /* 30 fps */
-      picture->frame_duration = 3000;
-      break;
-    case 6: /* 50 fps */
-      picture->frame_duration = 1800;
-      break;
-    case 7: /* 59.94 fps */
-      picture->frame_duration = 1525;
-      break;
-    case 8: /* 60 fps */
-      picture->frame_duration = 1509;
-      break;
-    default:
-      /* printf ("invalid/unknown frame rate code : %d \n",
-              picture->frame_rate_code); */
-      picture->frame_duration = 3000;
-    }
-
-    picture->bitrate = (buffer[4]<<10)|(buffer[5]<<2)|(buffer[6]>>6);
+    /* picture->bitrate = (buffer[4]<<10)|(buffer[5]<<2)|(buffer[6]>>6); */
 
     if (buffer[7] & 2) {
 	for (i = 0; i < 64; i++)
@@ -194,6 +162,7 @@ int header_process_sequence_header (picture_t * picture, uint8_t * buffer)
     /* picture->alternate_scan = 0; */
     picture->picture_structure = FRAME_PICTURE;
     /* picture->second_field = 0; */
+    picture->last_mba = ((width * height) >> 8) - 1;
 
     return 0;
 }
@@ -209,9 +178,13 @@ static int header_process_sequence_extension (picture_t * picture,
     /* this is not used by the decoder */
     picture->progressive_sequence = (buffer[1] >> 3) & 1;
 
+    picture->low_delay = buffer[5] & 0x80;
+
     if (picture->progressive_sequence)
 	picture->coded_picture_height =
 	    (picture->coded_picture_height + 31) & ~31;
+
+    printf ("libmpeg2: low_delay : %d\n", picture->low_delay);
 
 /*
     printf ("libmpeg2: sequence extension+5 : %08x (%d)\n",
@@ -422,6 +395,8 @@ int header_process_group_of_pictures (picture_t * picture, uint8_t * buffer) {
 int header_process_picture_header (picture_t *picture, uint8_t * buffer)
 {
     picture->picture_coding_type = (buffer [1] >> 3) & 7;
+    picture->vbv_delay = ((buffer[1] << 13) | (buffer[2] << 5) |
+			  (buffer[3] >> 3)) & 0xffff;
 
     /* forward_f_code and backward_f_code - used in mpeg1 only */
     picture->f_motion.f_code[1] = (buffer[3] >> 2) & 1;
@@ -437,3 +412,5 @@ int header_process_picture_header (picture_t *picture, uint8_t * buffer)
 
     return 0;
 }
+
+

@@ -34,6 +34,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <inttypes.h>
 
 #include "video_out.h"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.13 2002/02/09 07:13:23 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -37,7 +37,7 @@
 typedef struct mad_decoder_s {
   audio_decoder_t   audio_decoder;
 
-  uint32_t          pts;
+  int64_t           pts;
 
   struct mad_synth  synth; 
   struct mad_stream stream;
@@ -225,12 +225,12 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 
 	  audio_buffer->num_frames = pcm->length;
-	  audio_buffer->vpts       = buf->PTS;
-	  audio_buffer->scr        = buf->SCR;
+	  audio_buffer->vpts       = buf->pts;
+	  audio_buffer->scr        = buf->scr;
 
 	  this->audio_out->put_buffer (this->audio_out, audio_buffer);
 
-	  buf->PTS = 0;
+	  buf->pts = 0;
 
 	}
 	/* printf ("libmad: decode worked\n"); */
