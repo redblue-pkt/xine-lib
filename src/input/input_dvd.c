@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.181 2004/06/13 21:28:56 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.182 2004/06/14 13:45:46 mroi Exp $
  *
  */
 
@@ -773,8 +773,6 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   }
   
   if (this->pg_length && this->pgc_length) {
-    int pos, length;
-    dvdnav_get_position(this->dvdnav, &pos, &length);
     switch (((dvd_input_class_t *)this->input_plugin.input_class)->seek_mode) {
     case 0: /* PGC based seeking */
       buf->extra_info->total_time = this->pgc_length / 90;
@@ -1771,6 +1769,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.182  2004/06/14 13:45:46  mroi
+ * since we do not store that in extra_info any more, this call is obsolete
+ *
  * Revision 1.181  2004/06/13 21:28:56  miguelfreitas
  * implement steps 1, 2, 3 and 4 of the seeking proposal:
  * http://article.gmane.org/gmane.comp.video.xine.devel/9532
