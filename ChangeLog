@@ -12,6 +12,7 @@
   * dmo wmv9 binary codec support
   * MNG demuxer added
   * raw dv demuxer added
+  * many FLI/FLC fixes
   
 xine-lib (1-beta0)
   * fix decoder priority configuration
