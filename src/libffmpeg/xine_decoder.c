@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2002/07/15 21:42:33 esnel Exp $
+ * $Id: xine_decoder.c,v 1.50 2002/07/30 20:13:09 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -194,6 +194,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
     this->buf = malloc( VIDEOBUFSIZE );
     this->bufsize = VIDEOBUFSIZE;
+    this->size = 0;
     
     this->skipframes = 0;
     
@@ -354,7 +355,10 @@ static void ff_flush (video_decoder_t *this_gen) {
 }
 
 static void ff_reset (video_decoder_t *this_gen) {
-  /* seems to handle seeking quite nicelly without any code here */
+  ff_decoder_t *this = (ff_decoder_t *) this_gen;
+
+  /* invalidate buffer on seek */
+  this->size = 0;
 }
 
 static void ff_close (video_decoder_t *this_gen) {
