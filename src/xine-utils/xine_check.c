@@ -463,6 +463,15 @@ xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
     return hc;
   }
 
+  if (!adaptor_info) {
+    set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, "video_out_xv: No adaptors found.\n");
+    dlclose(x11_handle);
+#ifndef HAVE_XV_STATIC
+    dlclose(xv_handle);
+#endif
+    return hc;
+  }
+
   img_formats = xvlistimageformats (dpy, adaptor_info->base_id, &formats);
 
   for(i = 0; i < formats; i++) {
