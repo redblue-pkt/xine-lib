@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.149 2004/04/26 17:50:12 mroi Exp $
+ * $Id: video_decoder.c,v 1.150 2004/07/06 22:53:23 miguelfreitas Exp $
  *
  */
 
@@ -181,6 +181,25 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_END:
+      
+      /*
+       * wait the output fifos to run dry before sending the notification event
+       * to the frontend. this test is only valid if there is only a single
+       * stream attached to the current output port.
+       */
+      while(1) {
+        int num_bufs, num_streams;
+        
+        running_ticket->acquire(running_ticket, 0);
+        num_bufs = stream->video_out->get_property(stream->video_out, VO_PROP_BUFS_IN_FIFO);
+        num_streams = stream->video_out->get_property(stream->video_out, VO_PROP_NUM_STREAMS);
+        running_ticket->release(running_ticket, 0);
+        
+        if( num_bufs > 0 && num_streams == 1 )
+          xine_usec_sleep (10000);
+        else
+          break;
+      }
 
       /* wait for audio to reach this marker, if necessary */
 
@@ -208,9 +227,6 @@ static void *video_decoder_loop (void *stream_gen) {
           
       pthread_mutex_unlock (&stream->counter_lock);
 
-      /* set engine status, send frontend notification event */
-      _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
-
       /* Wake up xine_play if it's waiting for a frame */
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag) {
@@ -218,6 +234,9 @@ static void *video_decoder_loop (void *stream_gen) {
         pthread_cond_broadcast(&stream->first_frame_reached);
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
+      
+      /* set engine status, send frontend notification event */
+      _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
       break;
 
     case BUF_CONTROL_QUIT:

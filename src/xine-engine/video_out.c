@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.202 2004/07/05 17:13:37 mroi Exp $
+ * $Id: video_out.c,v 1.203 2004/07/06 22:53:23 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1239,6 +1239,7 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
 static int vo_get_property (xine_video_port_t *this_gen, int property) {
   vos_t *this = (vos_t *) this_gen;
+  xine_stream_t *cur;
   int ret;
 
   switch (property) {
@@ -1248,6 +1249,15 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
     
   case VO_PROP_BUFS_IN_FIFO:
     ret = this->video_loop_running ? this->display_img_buf_queue->num_buffers : -1;
+    break;
+  
+  case VO_PROP_NUM_STREAMS:
+    ret = 0;
+    pthread_mutex_lock(&this->streams_lock);
+    for (cur = xine_list_first_content(this->streams); cur;
+         cur = xine_list_next_content(this->streams))
+      ret++;
+    pthread_mutex_unlock(&this->streams_lock);
     break;
   
   /*

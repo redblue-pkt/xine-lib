@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.71 2004/06/19 20:07:15 mroi Exp $
+ * $Id: audio_out.h,v 1.72 2004/07/06 22:53:23 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -323,7 +323,8 @@ int _x_ao_mode2channels( int mode );
 #define AO_PROP_EQ_16000HZ     16 /* equalizer */
 #define AO_PROP_CLOSE_DEVICE   17 /* force closing audio device */
 #define AO_PROP_AMP_MUTE       18 /* amplifier mute */
-#define AO_NUM_PROPERTIES      19
+#define AO_PROP_NUM_STREAMS    19 /* read-only */
+#define AO_NUM_PROPERTIES      20
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0

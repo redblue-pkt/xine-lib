@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.181 2004/06/27 13:33:57 mroi Exp $
+ * $Id: audio_out.c,v 1.182 2004/07/06 22:53:22 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1582,6 +1582,7 @@ static uint32_t ao_get_capabilities (xine_audio_port_t *this_gen) {
 
 static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   aos_t *this = (aos_t *) this_gen;
+  xine_stream_t *cur;
   int ret;
 
   switch (property) {
@@ -1591,6 +1592,15 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   
   case AO_PROP_BUFS_IN_FIFO:
     ret = this->audio_loop_running ? this->out_fifo->num_buffers : -1;
+    break;
+  
+  case AO_PROP_NUM_STREAMS:
+    ret = 0;
+    pthread_mutex_lock(&this->streams_lock);
+    for (cur = xine_list_first_content(this->streams); cur;
+         cur = xine_list_next_content(this->streams))
+      ret++;
+    pthread_mutex_unlock(&this->streams_lock);
     break;
   
   case AO_PROP_AMP:
