@@ -31,8 +31,9 @@
 #include "demuxers/demux.h"
 #include "buffer.h"
 
+/*
 #define LOG
-
+*/
 
 /* internal use only - called from demuxers on seek/stop
  * warning: after clearing decoders fifos an absolute discontinuity
@@ -57,6 +58,11 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
     buf->type            = BUF_CONTROL_RESET_DECODER;
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
+      
+  /* on seeking we must wait decoder fifos to process before doing flush. 
+   * otherwise we flush too early (before the old data has left decoders)
+   */
+  xine_demux_control_headers_done (stream);
 
   if (stream->video_out) {
     stream->video_out->flush(stream->video_out);
@@ -65,11 +71,6 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
   }
-  
-  /* FIXME: Messing with the clock is bad as long as the clock is global to all streams.
-   * But it is currently the best solution to have good seeking performance. */
-  stream->xine->clock->adjust_clock(stream->xine->clock,
-    stream->xine->clock->get_current_time(stream->xine->clock) + 30 * 90000 );
 }
 
 
@@ -92,10 +93,21 @@ void xine_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t fla
   }
 }
 
+/* sync with decoder fifos, making sure everything gets processed */
 void xine_demux_control_headers_done (xine_stream_t *stream) {
 
+  int header_count_audio;
+  int header_count_video;
   buf_element_t *buf;
-      
+
+  pthread_mutex_lock (&stream->counter_lock);
+  if (stream->audio_fifo)
+    header_count_audio = stream->header_count_audio + 1;
+  else
+    header_count_audio = 0;
+
+  header_count_video = stream->header_count_video + 1;
+  
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_HEADERS_DONE;
   stream->video_fifo->put (stream->video_fifo, buf);
@@ -105,6 +117,18 @@ void xine_demux_control_headers_done (xine_stream_t *stream) {
     buf->type = BUF_CONTROL_HEADERS_DONE;
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
+
+  while ((stream->header_count_audio<header_count_audio) || 
+	 (stream->header_count_video<header_count_video)) {
+#ifdef LOG
+    printf ("xine: waiting for headers.\n");
+#endif
+    pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
+  }
+#ifdef LOG
+  printf ("xine: headers processed.\n");
+#endif
+  pthread_mutex_unlock (&stream->counter_lock);
 }
 
 void xine_demux_control_start( xine_stream_t *stream ) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.201 2002/12/21 16:13:43 miguelfreitas Exp $
+ * $Id: xine.c,v 1.202 2002/12/22 23:30:29 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -134,7 +134,7 @@ static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
      * samples from the sound driver
      */
     if (speed != XINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
-      stream->audio_out->flush(stream->audio_out);
+      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
 
     stream->audio_out->control(stream->audio_out,
 			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
@@ -380,8 +380,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
 
 static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 
-  int header_count_audio;
-  int header_count_video;
   char *stream_setup;
 
 #ifdef LOG
@@ -644,9 +642,11 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
     /* remove buffered samples from the sound device driver */
-    if (stream->audio_out)
+    /* why? */
+    /*if (stream->audio_out)
       stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS);
-
+    */
+    
     stream->status = XINE_STATUS_STOP;
 
     printf ("xine: return from xine_open_internal\n");
@@ -654,23 +654,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     return 0;
   }
   
-  pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_fifo)
-    header_count_audio = stream->header_count_audio + 1;
-  else
-    header_count_audio = 0;
-
-  header_count_video = stream->header_count_video + 1;
-  
   xine_demux_control_headers_done (stream);
-
-  while ((stream->header_count_audio<header_count_audio) || 
-	 (stream->header_count_video<header_count_video)) {
-    printf ("xine: waiting for headers.\n");
-    pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
-  }
-  printf ("xine: headers processed.\n");
-  pthread_mutex_unlock (&stream->counter_lock);
 
 #ifdef LOG
   printf ("xine: xine_open_internal done\n");

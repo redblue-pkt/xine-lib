@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.91 2002/12/21 16:12:25 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.92 2002/12/22 23:30:29 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -524,11 +524,32 @@ static void *ao_loop (void *this_gen) {
     }
 
     if (this->flush_audio_driver) {
+      audio_buffer_t *buf;
+      int             num_buffers;
 #ifdef LOG
       printf ("audio_out: flush audio driver\n");
 #endif
+      pthread_mutex_lock (&this->out_fifo->mutex);
+
+      num_buffers = this->out_fifo->num_buffers;
+
+      printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
+
+      while ( num_buffers-- ) {
+        buf = fifo_remove_int (this->out_fifo);
+        fifo_append (this->free_fifo, buf);
+      }
+      
+      pthread_mutex_unlock (&this->out_fifo->mutex);
+      
+      if (in_buf) {
+        fifo_append (this->free_fifo, in_buf);
+        in_buf = NULL;
+      }
+      
       this->control(this, AO_CTRL_FLUSH_BUFFERS);
       this->flush_audio_driver = 0;
+      continue;
     }
 
     /* 
@@ -862,20 +883,8 @@ static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_st
 	  pts, buf->vpts);
 #endif
 
-  if ( buf->vpts + AO_MAX_GAP < this->last_audio_vpts) {
-
-    /* reject buffer */
-    printf ("audio_out: rejected buffer vpts=%lld, last_audio_vpts=%lld\n", 
-	    buf->vpts, this->last_audio_vpts);
-
-    fifo_append (this->free_fifo, buf);
-
-  } else {
-
-    fifo_append (this->out_fifo, buf);
-    this->last_audio_vpts = buf->vpts;
-
-  }
+  fifo_append (this->out_fifo, buf);
+  this->last_audio_vpts = buf->vpts;
 
 #ifdef LOG
   printf ("audio_out: ao_put_buffer done\n");
@@ -1042,31 +1051,18 @@ static int ao_control (xine_audio_port_t *this, int cmd, ...) {
 
 static void ao_flush (xine_audio_port_t *this) {
   audio_buffer_t *buf;
-  int            i, num_buffers;
 
-  pthread_mutex_lock (&this->out_fifo->mutex);
-  pthread_mutex_lock (&this->free_fifo->mutex);
-
-  num_buffers = this->out_fifo->num_buffers;
-
-  printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
-
-  for (i = 0; i < num_buffers; i++) {
-    buf = fifo_remove_int (this->out_fifo);
-    fifo_append_int (this->free_fifo, buf);
+  if( this->audio_loop_running ) {
+    this->flush_audio_driver = 1;
+    
+    buf = fifo_remove (this->free_fifo);
+    buf->num_frames = 0;
+    fifo_append (this->out_fifo, buf);
+  
+    /* do not try this in paused mode */
+    while( this->flush_audio_driver )
+      xine_usec_sleep (20000); /* pthread_cond_t could be used here */
   }
-
-  /* 
-   * make sure ao_loop can savely quit
-   */
-
-  buf = fifo_remove_int (this->free_fifo);
-  buf->num_frames = 0;
-  fifo_append_int (this->out_fifo, buf);
-
-  this->flush_audio_driver = 1;
-  pthread_mutex_unlock (&this->free_fifo->mutex);
-  pthread_mutex_unlock (&this->out_fifo->mutex);
 }
 
 xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {

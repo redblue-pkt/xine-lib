@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.123 2002/12/22 15:02:07 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.124 2002/12/22 23:30:29 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -63,6 +63,7 @@ typedef struct {
   vo_frame_t               *last_frame;
   vo_frame_t               *img_backup;
   int                       redraw_needed;
+  int                       flush_frames;
   
   int                       video_loop_running;
   int                       video_opened;
@@ -477,56 +478,67 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 
   diff = 1000000; /* always enter the while-loop */
 
-  while (img && (diff > img->duration)) {
+  while (img && (diff > img->duration || this->flush_frames)) {
     pts = img->vpts;
     diff = cur_vpts - pts;
       
-    if (diff > img->duration) {
+    if (diff > img->duration || this->flush_frames) {
   
-      /* do not print this message in stop/exit (scr is adjusted to force
-       * discarding audio and video frames)
-       */
-      if( diff < 20 * 90000 )
+      if( !this->flush_frames ) {
         xine_log(this->xine, XINE_LOG_MSG,
 	         _("video_out: throwing away image with pts %lld because "
 		   "it's too old (diff : %lld).\n"), pts, diff);
 
-      this->num_frames_discarded++;
-
+        this->num_frames_discarded++;
+      }
+      
       img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
   
       extra_info_merge( img->stream->current_extra_info, img->extra_info );
 
-      /*
-       * last frame? back it up for 
-       * still frame creation
-       */
-
-      if (!this->display_img_buf_queue->first) {
-	  
-	if (this->img_backup) {
-#ifdef LOG
-	  printf("video_out: overwriting frame backup\n");
-#endif
-	  vo_frame_dec_lock( this->img_backup );
-	}
-#ifdef LOG
-	printf("video_out: possible still frame (old)\n");
-#endif
-
-	this->img_backup = img;
+      /* when flushing frames, keep the first one as backup */
+      if( this->flush_frames ) {
+        
+        if (!this->img_backup) {
+	  this->img_backup = img;
 	
-	/* wait 4 frames before drawing this one. 
-	   this allow slower systems to recover. */
-	this->redraw_needed = 4; 
+	  this->redraw_needed = 1;
+        } else {
+	  vo_frame_dec_lock( img );
+        }     
+           
       } else {
-	vo_frame_dec_lock( img );
-      }
+        /*
+         * last frame? back it up for 
+         * still frame creation
+         */
+        
+        if (!this->display_img_buf_queue->first) {
+	  
+	  if (this->img_backup) {
+#ifdef LOG
+	    printf("video_out: overwriting frame backup\n");
+#endif
+	    vo_frame_dec_lock( this->img_backup );
+	  }
+#ifdef LOG
+	  printf("video_out: possible still frame (old)\n");
+#endif
+
+	  this->img_backup = img;
 	
+	  /* wait 4 frames before drawing this one. 
+	     this allow slower systems to recover. */
+	  this->redraw_needed = 4; 
+        } else {
+	  vo_frame_dec_lock( img );
+        }
+      }
       img = this->display_img_buf_queue->first;
     }
   }
-
+  this->flush_frames = 0;
+  
   pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 }
 
@@ -737,6 +749,8 @@ static void *video_out_loop (void *this_gen) {
   vos_t             *this = (vos_t *) this_gen;
   int64_t            frame_duration, next_frame_vpts;
   int64_t            usec_to_sleep;
+ 
+  /* nice(-2); */
     
   /*
    * here it is - the heart of xine (or rather: one of the hearts
@@ -886,6 +900,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   vos_t      *this = (vos_t *) this_gen;
 
   this->video_opened = 1;
+  this->flush_frames = 0;
   this->last_delivery_pts = 0;
   if (!this->overlay_enabled && stream->spu_channel_user > -2)
     /* enable overlays if our new stream might want to show some */
@@ -1012,28 +1027,16 @@ static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled)
  */
 static void vo_flush (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
-  vo_frame_t *img, *first;
-  int        i, num_buffers;
 
-  pthread_mutex_lock (&this->display_img_buf_queue->mutex);
-  num_buffers = this->display_img_buf_queue->num_buffers;
-  /* we keep the first frame so that we have something to display when
-   * seeking wildly around, but we schedule it in the past, so that it
-   * will expire immediately and does not block anything */
-  first = this->display_img_buf_queue->first;
-  if (first) {
-    vo_frame_inc_lock(first);
-    first->vpts -= 30 * 90000;
+  if( this->video_loop_running ) {
+    pthread_mutex_lock(&this->display_img_buf_queue->mutex);
+    this->flush_frames = 1;
+    pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
+   
+    /* do not try this in paused mode */
+    while(this->flush_frames)
+      xine_usec_sleep (20000); /* pthread_cond_t could be used here */
   }
-  printf ("video_out: flush fifo (%d buffers)\n", num_buffers);
-  for (i = 0; i < num_buffers; i++) {
-    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
-    vo_frame_dec_lock( img );
-  }
-  if (first)
-    vo_append_to_img_buf_queue_int(this->display_img_buf_queue, first);
-  this->redraw_needed = 1;
-  pthread_mutex_unlock (&this->display_img_buf_queue->mutex);
 }
 
 
