@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.115 2002/05/07 19:20:16 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.116 2002/05/19 10:35:18 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1448,10 +1448,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   /*
    * try to create a shared image
-   * to find out if MIT shm really works
+   * to find out if MIT shm really works, using supported format
    */
-
-  myimage = create_ximage (this, &myshminfo, 100, 100, IMGFMT_YV12);
+  myimage = create_ximage (this, &myshminfo, 100, 100, 
+			   (this->xv_format_yv12 != 0) ? IMGFMT_YV12 : IMGFMT_YUY2);
   dispose_ximage (this, &myshminfo, myimage);
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
