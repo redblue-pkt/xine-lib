@@ -10,7 +10,7 @@ static int  ***small_font_chars;
 static int    *small_font_width;
 static int    *small_font_height;
 
-void gfont_load () {
+void gfont_load (void) {
 	unsigned char *gfont;
 	unsigned int i = 0, j = 0;
 	unsigned int nba = 0;

@@ -22,7 +22,7 @@ void    ifs_update (guint32 * buffer, guint32 * back, int width, int height,
 										int increment);
 
 // free all ifs's data.
-void    release_ifs ();
+void    release_ifs (void);
 
 
 /* DONT USE !!! deprecated

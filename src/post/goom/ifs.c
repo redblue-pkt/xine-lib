@@ -537,7 +537,7 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 /***************************************************************/
 
 void
-release_ifs ()
+release_ifs (void)
 {
 	if (Root != NULL) {
 		(void) free ((void *) Root);

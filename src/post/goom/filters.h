@@ -40,7 +40,7 @@ ZoomFilterData;
 #define SPEEDWAY_MODE 9
 
 void    pointFilter (guint32 * pix1, Color c,
-										 float t1, float t2, float t3, float t4, guint32 cycle);
+		     float t1, float t2, float t3, float t4, guint32 cycle);
 
 /* filtre de zoom :
  * le contenu de pix1 est copie dans pix2.
@@ -49,11 +49,10 @@ void    pointFilter (guint32 * pix1, Color c,
  */
 
 void    zoomFilterFastRGB (guint32 * pix1,
-													 guint32 * pix2,
-													 ZoomFilterData * zf,
-													 guint32 resx, guint32 resy,
-
-													 int switchIncr, float switchMult);
+			   guint32 * pix2,
+			   ZoomFilterData * zf,
+			   guint32 resx, guint32 resy,
+			   int switchIncr, float switchMult);
 
 
 /* filtre sin :

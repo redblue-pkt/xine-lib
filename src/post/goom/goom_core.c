@@ -926,7 +926,7 @@ guint32 * goom_update (gint16 data[2][512],
 }
 
 void
-goom_close ()
+goom_close (void)
 {
 	if (pixel != NULL)
 		free (pixel);

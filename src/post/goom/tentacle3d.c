@@ -15,13 +15,13 @@ static float cycle = 0.0f;
 static grid3d *grille[nbgrid];
 static float *vals;
 
-void tentacle_free () {
+void tentacle_free (void) {
 	/* TODO : un vrai FREE GRID!! */
 	free (vals);
 //	free (grille);
 }
 
-void tentacle_new () {
+void tentacle_new (void) {
 	int tmp;
 
 	v3d center = {0,-17.0,0};

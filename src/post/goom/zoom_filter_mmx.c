@@ -13,7 +13,7 @@
 /* faire : a / sqrtperte <=> a >> PERTEDEC */
 #define PERTEDEC 4
 
-int zoom_filter_mmx_supported () {
+int zoom_filter_mmx_supported (void) {
 	return (xine_mm_accel() & MM_ACCEL_X86_MMX);
 }
 

@@ -33,7 +33,7 @@ void  goom_set_resolution (guint32 resx, guint32 resy, int cinemascope);
 guint32 * goom_update ( gint16 data[2][512], int forceMode, float fps,
 											char *songTitle, char *message);
 
-void     goom_close ();
+void     goom_close (void);
 
 void    goom_set_font (int ***chars, int *width, int *height);
 

@@ -20,7 +20,7 @@
 
 //#define MMX_TRACE
 
-int zoom_filter_xmmx_supported () {
+int zoom_filter_xmmx_supported (void) {
 	return (xine_mm_accel() & MM_ACCEL_X86_MMXEXT);
 }
 
