@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.144 2004/06/20 15:04:19 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.145 2004/07/14 23:29:09 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1355,7 +1355,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_front_device",
-				       "plug:front:0",
+				       "plug:front:default",
 				       _("device used for stereo output"),
 				       _("xine will use this alsa device to output "
 				         "stereo sound.\nSee the alsa documentation "
@@ -1364,7 +1364,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround40_device",
-				       "plug:surround40:0",
+				       "plug:surround40:default",
 				       _("device used for 4-channel output"),
 				       _("xine will use this alsa device to output "
 				         "4 channel (4.0) surround sound.\nSee the "
@@ -1374,7 +1374,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround51_device",
-				       "plug:surround51:0",
+				       "plug:surround51:default",
 				       _("device used for 5.1-channel output"),
 				       _("xine will use this alsa device to output "
 				         "5 channel plus LFE (5.1) surround sound.\n"
