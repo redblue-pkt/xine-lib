@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.129 2003/02/20 16:01:57 mroi Exp $
+ * $Id: input_dvd.c,v 1.130 2003/02/26 20:45:18 mroi Exp $
  *
  */
 
@@ -628,6 +628,19 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	/* return NULL to indicate end of stream */
 	return NULL;
       }
+    case DVDNAV_WAIT:
+      {
+	int buffers = this->stream->video_fifo->size(this->stream->video_fifo);
+	if (this->stream->audio_fifo)
+	  buffers += this->stream->audio_fifo->size(this->stream->audio_fifo);
+	/* we wait until the fifos are empty, ... well, we allow one remaining buffer,
+	 * because a flush might be in progress. */
+	if (buffers <= 1)
+	  dvdnav_wait_skip(this->dvdnav);
+	else
+	  xine_usec_sleep(50000);
+      }
+      break;
     default:
       printf("input_dvd: FIXME: Unknown event (%i)\n", event);
       break;
@@ -1556,6 +1569,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.130  2003/02/26 20:45:18  mroi
+ * adjust input_dvd to handle DVDNAV_WAIT events properly
+ * (that is: wait for the fifos to become empty)
+ *
  * Revision 1.129  2003/02/20 16:01:57  mroi
  * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
  * quoting the ChangeLog:
