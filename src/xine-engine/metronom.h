@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.10 2001/08/25 07:12:16 guenter Exp $
+ * $Id: metronom.h,v 1.11 2001/09/12 22:18:47 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -121,6 +121,13 @@ struct metronom_s {
   int32_t (*get_av_offset) (metronom_t *this);
 
   /*
+   * tell metronom to expect a pts discontinuity
+   */
+
+  void (*expect_audio_discontinuity) (metronom_t *this);
+  void (*expect_video_discontinuity) (metronom_t *this);
+
+  /*
    * system clock reference (SCR) functions
    */
 
@@ -205,6 +212,8 @@ struct metronom_s {
   int             video_stream_running;
   int             audio_stream_starting;
   int             audio_stream_running;
+  int             video_discontinuity;
+  int             audio_discontinuity;
   pthread_cond_t  video_started;
   pthread_cond_t  audio_started;
   pthread_cond_t  video_ended;

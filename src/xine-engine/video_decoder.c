@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.49 2001/09/11 09:03:51 jkeil Exp $
+ * $Id: video_decoder.c,v 1.50 2001/09/12 22:18:47 guenter Exp $
  *
  */
 
@@ -91,7 +91,7 @@ void *video_decoder_loop (void *this_gen) {
       pthread_mutex_lock (&this->xine_lock);
       this->video_finished = 0;
       this->spu_finished = 0;
-/* FIXME: I don't think we need spu_track_map. */
+      /* FIXME: I don't think we need spu_track_map. */
       for (i=0 ; i<50; i++)
         this->spu_track_map[0] = 0;
 
@@ -170,6 +170,13 @@ void *video_decoder_loop (void *this_gen) {
       }
       
       running = 0;
+      break;
+
+    case BUF_CONTROL_DISCONTINUITY:
+      this->metronom->expect_video_discontinuity (this->metronom);
+      break;
+
+    case BUF_CONTROL_NOP:
       break;
 
     default:

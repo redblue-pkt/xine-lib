@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.12 2001/09/10 03:04:48 guenter Exp $
+ * $Id: buffer.h,v 1.13 2001/09/12 22:18:47 guenter Exp $
  *
  *
  * contents:
@@ -60,10 +60,14 @@ extern "C" {
 
 /* control buffer types */
 
-#define BUF_CONTROL_BASE     0x01000000
-#define BUF_CONTROL_START    0x01000000
-#define BUF_CONTROL_END      0x01010000
-#define BUF_CONTROL_QUIT     0x01020000
+#define BUF_CONTROL_BASE          0x01000000
+#define BUF_CONTROL_START         0x01000000
+#define BUF_CONTROL_END           0x01010000
+#define BUF_CONTROL_QUIT          0x01020000
+#define BUF_CONTROL_DISCONTINUITY 0x01030000
+#define BUF_CONTROL_NOP           0x01040000
+#define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
+#define BUF_CONTROL_SPU_CHANNEL   0x01060000
 
 /* video buffer types:  */
 
