@@ -766,13 +766,6 @@ static int config_flags = -1;
 #endif
 }
 
-static void abort_mmx_missing(void)
-{
-  printf("deinterlace: Fatal error, MMX instruction set needed!\n");
-  /* FIXME: is it possible to call some "nicer" xine exit function? */
-  abort();
-}
-
 /* generic YUV deinterlacer
    pdst -> pointer to destination bitmap
    psrc -> array of pointers to source bitmaps ([0] = most recent)
@@ -791,7 +784,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
       if( check_for_mmx() )
         deinterlace_bob_yuv_mmx(pdst,psrc,width,height);
       else /* FIXME: provide an alternative? */
-        abort_mmx_missing();
+        xine_fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_WEAVE:
       if( check_for_mmx() )
@@ -800,7 +793,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
           xine_fast_memcpy(pdst,psrc[0],width*height);
       }
       else /* FIXME: provide an alternative? */
-        abort_mmx_missing();
+        xine_fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_GREEDY:
       if( check_for_mmx() )
@@ -809,13 +802,13 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
           xine_fast_memcpy(pdst,psrc[0],width*height);
       }
       else /* FIXME: provide an alternative? */
-        abort_mmx_missing();
+        xine_fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_ONEFIELD:
       if( check_for_mmx() )
         deinterlace_onefield_yuv_mmx(pdst,psrc,width,height);
       else /* FIXME: provide an alternative? */
-        abort_mmx_missing();
+        xine_fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_ONEFIELDXV:
       printf("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
