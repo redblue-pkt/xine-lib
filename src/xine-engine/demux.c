@@ -23,6 +23,7 @@
  * $id$ 
  */
 
+
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
@@ -57,6 +58,12 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
 
   buf_element_t *buf;
 
+  if (stream->video_out) {
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+  }
+  if (stream->audio_out) {
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+  }
   stream->video_fifo->clear(stream->video_fifo);
 
   if( stream->audio_fifo )
@@ -72,9 +79,6 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
     stream->audio_fifo->put (stream->audio_fifo, buf);
   }
       
-  if (stream->audio_out) {
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
-  }
   
   /* on seeking we must wait decoder fifos to process before doing flush. 
    * otherwise we flush too early (before the old data has left decoders)
@@ -83,6 +87,7 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
 
   if (stream->video_out) {
     stream->video_out->flush(stream->video_out);
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
   }
 
   if (stream->audio_out) {
