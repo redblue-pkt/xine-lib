@@ -21,8 +21,6 @@ srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 
-include $(top_srcdir)/misc/Makefile.common
-
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 datadir = @datadir@
@@ -195,6 +193,9 @@ Makefile: Makefile.in.in $(top_builddir)/config.status POTFILES.in
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@.in CONFIG_HEADERS= \
 	       $(SHELL) ./config.status
+
+debug:	 
+install-debug: install
 
 # Tell versions [3.59,3.63) of GNU make not to export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
