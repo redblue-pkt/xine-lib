@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.46 2001/08/23 21:40:05 guenter Exp $
+ * $Id: xine.c,v 1.47 2001/08/24 10:02:05 guenter Exp $
  *
  * top-level xine functions
  *
@@ -42,13 +42,6 @@
 #include "video_out.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
-#include "libac3/ac3.h"
-#include "libmpg123/mpg123.h"
-#include "libmpg123/mpglib.h"
-#include "libmpeg2/mpeg2.h"
-#ifdef ARCH_X86
-#include "libw32dll/w32codec.h"
-#endif
 #include "libspudec/spu_decoder_api.h"
 /* TODO: who uses spu_decoder.h ? */
 #include "spu_decoder.h"
