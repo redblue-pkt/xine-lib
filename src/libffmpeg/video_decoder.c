@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.15 2004/04/26 17:50:07 mroi Exp $
+ * $Id: video_decoder.c,v 1.16 2004/05/09 14:22:54 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -782,9 +782,20 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
   {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"} };
 
+static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
+  if (size > this->bufsize) {
+    this->bufsize = size + size / 2;
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"), 
+	    this->bufsize);
+    this->buf = realloc(this->buf, this->bufsize);
+  }
+}
+
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int i, codec_type;
+  uint8_t *ffbuf = NULL;
 
   lprintf ("processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
            buf->type, buf, buf->decoder_flags);
@@ -907,18 +918,20 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
   } else {
-  
-    if( this->size + buf->size > this->bufsize ) {
-      this->bufsize = this->size + 2 * buf->size;
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              _("ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"), 
-              this->bufsize);
-      this->buf = realloc( this->buf, this->bufsize );
+
+    if ((this->size == 0) && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+      /* buf contains a full frame */
+      /* no memcpy needed */
+      ffbuf = buf->content;
+      this->size = buf->size;
+      lprintf("no memcpy needed to accumulate data\n");
+    } else {
+      ff_check_bufsize(this, this->size + buf->size);
+      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+      this->size += buf->size;
+      ffbuf = this->buf;
+      lprintf("accumulate data into this->buf\n");
     }
-
-    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-    this->size += buf->size;
-
   }
    
   if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
@@ -975,12 +988,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
           got_picture = 1;
         } else
           len = avcodec_decode_video (this->context, this->av_frame,
-                                      &got_picture, &this->buf[offset],
+                                      &got_picture, &ffbuf[offset],
                                       this->size);
-        if (len<0) {
+        if (len < 0) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
                    "ffmpeg_video_dec: error decompressing frame\n");
-          this->size=0;
+          this->size = 0;
           return;
         }
 
@@ -992,9 +1005,11 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                   "ffmpeg_video_dec: didn't get a picture, %d bytes left\n", 
                   this->size);
 
-          if (this->size>0)
-            memmove (this->buf, &this->buf[offset], this->size);
-
+          if (this->size > 0) {
+	    ff_check_bufsize(this, offset + this->size);
+	    memmove (this->buf, &ffbuf[offset], this->size);
+	    ffbuf = this->buf;
+	  }
           return;
         }
 
