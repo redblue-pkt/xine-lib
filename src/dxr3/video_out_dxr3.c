@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.25 2002/06/12 15:09:08 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.26 2002/06/14 13:34:43 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1115,7 +1115,8 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
       /* fill video window with keycolor */
       XLockDisplay(this->display);
       XSetForeground(this->display, this->gc, this->color.pixel);
-      XFillRectangle(this->display, this->win, this->gc, 0, 0, this->width, this->height);
+      XFillRectangle(this->display, this->win, this->gc,
+        win_off_x, win_off_y, this->width, this->height);
       XUnlockDisplay(this->display);
       this->need_redraw = 0;
       
