@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.127 2002/10/26 02:32:52 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.128 2002/10/26 10:02:42 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1088,7 +1088,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
  
   switch (stream->content_detection_method) {
 
-  case XINE_DEMUX_CONTENT_STRATEGY: {
+  case METHOD_BY_CONTENT: {
 
     if(((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
@@ -1139,7 +1139,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
   break;
 
-  case XINE_DEMUX_EXTENSION_STRATEGY: {
+  case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
 
     mrl = input->get_mrl (input);
