@@ -192,7 +192,8 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
     }
   }
   
-  if ((code == mpeg2dec->xvmc_last_slice_code + 1) &&
+  if (((code == mpeg2dec->xvmc_last_slice_code + 1) || 
+       (code == mpeg2dec->xvmc_last_slice_code)) &&
       code <= mpeg2dec->xxmc_mb_pic_height) {
 
     /*
@@ -220,6 +221,7 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
 	 * went well, tell libmpeg2 that we are ready. 
 	 */
 
+      mpeg2dec->xvmc_last_slice_code = code;
       mpeg2_xxmc_vld_frame_complete(mpeg2dec,picture,code); 
       return;
     } else {
@@ -228,7 +230,7 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
 	 * Keep track of slices.
 	 */ 
 
-	mpeg2dec->xvmc_last_slice_code++;
+	mpeg2dec->xvmc_last_slice_code = code;
       }
 
     } else  {
@@ -259,7 +261,6 @@ void mpeg2_xxmc_vld_frame_complete(mpeg2dec_t *mpeg2dec, picture_t *picture, int
       return;
     }
     xxmc->decoded = 1;
-    mpeg2dec->xvmc_last_slice_code++;
     if (picture->picture_structure == 3 || picture->second_field) {
       if (xxmc->result == 0) 
 	frame->bad_frame = 0;

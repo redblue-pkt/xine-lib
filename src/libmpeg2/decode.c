@@ -276,38 +276,40 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	mpeg2dec->in_slice = 0;
     
     if (is_frame_done && picture->current_frame != NULL) {
-
-      /*
-       * This frame completion code will move to a separate libmpeg2_accel.c file?
-       * int libmpeg2_accel_frame_completion(mpeg2dec_t *, picture_t *, int);
-       */
-
-      if (mpeg2dec->frame_format == XINE_IMGFMT_XXMC) {
-	xine_xxmc_t *xxmc = (xine_xxmc_t *) 
-	  picture->current_frame->accel_data;
-	switch(picture->current_frame->format) {
-	case XINE_IMGFMT_XXMC:
-	  switch(xxmc->acceleration) {
-	  case XINE_XVMC_ACCEL_VLD:
-	    mpeg2_xxmc_vld_frame_complete(mpeg2dec, picture, code);
-	    break;
-	  case XINE_XVMC_ACCEL_IDCT:
-	  case XINE_XVMC_ACCEL_MOCOMP:
-	    xxmc->decoded = !picture->current_frame->bad_frame;
-	    xxmc->proc_xxmc_flush( picture->current_frame );
-	    break;
-	  default:
-	    break;
-	  }
-	default:
-	  break;
+	
+	/*
+	 * This frame completion code will move to a separate libmpeg2_accel.c file?
+	 * int libmpeg2_accel_frame_completion(mpeg2dec_t *, picture_t *, int);
+	 */
+	
+	if (mpeg2dec->frame_format == XINE_IMGFMT_XXMC) {
+	    xine_xxmc_t *xxmc = (xine_xxmc_t *) 
+		picture->current_frame->accel_data;
+	    if (!xxmc->decoded) {
+		switch(picture->current_frame->format) {
+		case XINE_IMGFMT_XXMC:
+		    switch(xxmc->acceleration) {
+		    case XINE_XVMC_ACCEL_VLD:
+			mpeg2_xxmc_vld_frame_complete(mpeg2dec, picture, code);
+			break;
+		    case XINE_XVMC_ACCEL_IDCT:
+		    case XINE_XVMC_ACCEL_MOCOMP:
+			xxmc->decoded = !picture->current_frame->bad_frame;
+			xxmc->proc_xxmc_flush( picture->current_frame );
+			break;
+		    default:
+			break;
+		    }
+		default:
+		    break;
+		}
+	    }
 	}
-      }
-
-      /*
-       * End of frame completion code.
-       */
-
+	
+	/*
+	 * End of frame completion code.
+	 */
+	
 
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {

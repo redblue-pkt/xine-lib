@@ -1707,8 +1707,9 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
     if (1 == code) {
       mpeg2dec->xvmc_last_slice_code = 0;
     }
-    if (code != mpeg2dec->xvmc_last_slice_code + 1)
-      return;
+    if ((code != mpeg2dec->xvmc_last_slice_code + 1) &&
+	(code != mpeg2dec->xvmc_last_slice_code))
+	return;
     
     bitstream_init (picture, buffer);
 
@@ -1936,7 +1937,7 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
 	    default:	/* end of slice, or error */
 		if (mpeg2_cpu_state_restore)
 		    mpeg2_cpu_state_restore (&cpu_state);
-		mpeg2dec->xvmc_last_slice_code++;
+		mpeg2dec->xvmc_last_slice_code = code;
 		return;
 	    }
 	}
@@ -2036,7 +2037,7 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
 	    }
 	}
     }
-    mpeg2dec->xvmc_last_slice_code++;
+    mpeg2dec->xvmc_last_slice_code = code;
 #undef bit_buf
 #undef bits
 #undef bit_ptr
