@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.95 2004/07/25 17:11:59 mroi Exp $
+ * $Id: input_file.c,v 1.96 2004/09/02 19:56:42 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,7 +47,7 @@
 
 #define MAXFILES      65535
 
-#ifndef _MSC_VER
+#ifndef WIN32
 /* MS needs O_BINARY to open files, for everyone else,
  * make sure it doesn't get in the way */
 #  define O_BINARY  0

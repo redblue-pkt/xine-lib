@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.17 2004/05/02 19:40:47 mroi Exp $
+ * $Id: video_out_directx.c,v 1.18 2004/09/02 19:56:42 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -181,8 +181,8 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = DirectDrawCreate( 0, &ddobj, 0 );
   if( result != DD_OK )
     {
-      Error( 0, "DirectDrawCreate : error %i", result );
-      xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : DirectDrawCreate : error %i\n", result );
+      Error( 0, "DirectDrawCreate : error %ld", result );
+      xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : DirectDrawCreate : error %ld\n", result );
       return 0;
     }
 
@@ -857,7 +857,6 @@ static void win32_frame_dispose( vo_frame_t * vo_frame )
 
 static vo_frame_t * win32_alloc_frame( vo_driver_t * vo_driver )
 {
-  win32_driver_t *win32_driver = (win32_driver_t *)vo_driver;
   win32_frame_t  *win32_frame;
 
   win32_frame = ( win32_frame_t * ) xine_xmalloc( sizeof( win32_frame_t ) );
@@ -1084,10 +1083,10 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
   DisplayFrame( win32_driver );
 
   /* tag our frame as displayed */
-  if((win32_driver->current != NULL) && (win32_driver->current != vo_frame)) {
+  if((win32_driver->current != NULL) && ((vo_frame_t *)win32_driver->current != vo_frame)) {
     vo_frame->free(&win32_driver->current->vo_frame);
   }
-  win32_driver->current = vo_frame;  
+  win32_driver->current = (win32_frame_t *)vo_frame;
 }
 
 static void win32_overlay_blend( vo_driver_t * vo_driver, vo_frame_t * vo_frame, vo_overlay_t * vo_overlay )
@@ -1142,12 +1141,12 @@ static int win32_gui_data_exchange( vo_driver_t * vo_driver, int data_type, void
 
 static int win32_redraw_needed(vo_driver_t* this_gen)
 {
-  win32_driver_t  *win32_driver = (win32_driver_t *) this_gen;
-
   int ret = 0;
 
   /* TC - May need to revisit this! */
 #ifdef TC  
+  win32_driver_t  *win32_driver = (win32_driver_t *) this_gen;
+
   if( _x_vo_scale_redraw_needed( &win32_driver->sc ) ) {
     win32_gui_data_exchange(this_gen, GUI_WIN32_MOVED_OR_RESIZED, 0);    
     ret = 1;
@@ -1177,7 +1176,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *wi
   /* Make sure that the DirectX drivers are available and present! */
   /* Not complete yet */
 
-  win32_driver->win32_visual			= win32_visual;
+  win32_driver->win32_visual			= (win32_visual_t *)win32_visual;
   win32_driver->vo_driver.get_capabilities	= win32_get_capabilities;
   win32_driver->vo_driver.alloc_frame		= win32_alloc_frame ;
   win32_driver->vo_driver.update_frame_format	= win32_update_frame_format;

@@ -1627,7 +1627,7 @@ case "$host_or_hostalias" in
 	  ;;
 	*-*-cygwin) 
           enable_w32dll="no" 
-          LIBS="$LIBS @INTLLIBS@"
+          LIBS="$LIBS @INTLLIBS@ -lkernel32"
 	  ;;
 	esac
     else

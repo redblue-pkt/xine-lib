@@ -51,9 +51,9 @@
 
 #define LOG_MEDIA_EJECT
 
+#ifndef WIN32
 static int media_umount_media(const char *device)
 {
-#ifndef WIN32
   pid_t pid;
   int status;
 
@@ -73,10 +73,8 @@ static int media_umount_media(const char *device)
   } while(1);
   
   return -1;
-#else
-  return 0;
-#endif
 } 
+#endif
 
 int media_eject_media (xine_t *xine, const char *device)
 {

@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.11 2004/04/10 14:53:43 mroi Exp $
+ * $Id: audio_directx_out.c,v 1.12 2004/09/02 19:56:40 valtri Exp $
  */
 
 /*
@@ -119,11 +119,12 @@ typedef struct {
  * 
  * ------------------------------------------- */
 
-boolean		CreateDirectSound( ao_directx_t * ao_directx );
-void		DestroyDirectSound( ao_directx_t * ao_directx );
-boolean		CreateSoundBuffer( ao_directx_t * ao_directx );
-void		DestroySoundBuffer( ao_directx_t * ao_directx );
-uint32_t	FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * samples );
+void       Error( HWND hwnd, LPSTR szfmt, ... );
+boolean    CreateDirectSound( ao_directx_t * ao_directx );
+void       DestroyDirectSound( ao_directx_t * ao_directx );
+boolean    CreateSoundBuffer( ao_directx_t * ao_directx );
+void       DestroySoundBuffer( ao_directx_t * ao_directx );
+uint32_t   FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * samples );
 
 /* Display formatted error message in 
  * popup message box. */
@@ -370,10 +371,10 @@ void DestroySoundBuffer( ao_directx_t * ao_directx )
 
 uint32_t FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * samples )
 {
-  uint8_t *	buff_pointer;	/* pointer inside circular buffer */
-  uint32_t	buff_length;	/* bytes locked by pointer */
-  uint32_t	half_size;	/* half our sound buffer size */
-  uint32_t	result;		/* error result */
+  uint8_t *     buff_pointer;   /* pointer inside circular buffer */
+  DWORD         buff_length;    /* bytes locked by pointer */
+  uint32_t      half_size;      /* half our sound buffer size */
+  uint32_t      result;         /* error result */
 
 #ifdef LOG
   if ((void*)samples != (void*)0)
@@ -396,8 +397,8 @@ uint32_t FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * s
 
       result = IDirectSoundBuffer_Lock( ao_directx->dsbuffer,
 					0, 0,
-					&buff_pointer, &buff_length,
-					0, 0, DSBLOCK_ENTIREBUFFER );
+					(LPVOID *)&buff_pointer, &buff_length,
+					NULL, 0, DSBLOCK_ENTIREBUFFER );
       if( result  != DS_OK )
 	{
 	  Error( 0, "IDirectSoundBuffer_Lock : could not lock sound buffer" );
@@ -439,7 +440,7 @@ uint32_t FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * s
 
       result = IDirectSoundBuffer_Lock( ao_directx->dsbuffer,
 					0, half_size,
-					&buff_pointer, &buff_length,
+					(LPVOID *)&buff_pointer, &buff_length,
 					0, 0, 0 );
       if( result  != DS_OK )
 	{
@@ -473,7 +474,7 @@ uint32_t FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * s
 
       result = IDirectSoundBuffer_Lock( ao_directx->dsbuffer,
 					half_size, half_size,
-					&buff_pointer, &buff_length,
+					(LPVOID *)&buff_pointer, &buff_length,
 					0, 0, 0 );
       if( result  != DS_OK )
 	{
@@ -509,8 +510,6 @@ uint32_t FillSoundBuffer( ao_directx_t * ao_directx, int code, unsigned char * s
  * ----------------------------------------- */
 
 static int ao_directx_control(ao_driver_t *this_gen, int cmd, ...) {
-  ao_directx_t  *ao_directx = ( ao_directx_t * ) this_gen;
-
   switch (cmd) 
     {
 
@@ -594,7 +593,6 @@ static int ao_directx_bytes_per_frame( ao_driver_t * ao_driver )
 
 static int ao_directx_get_gap_tolerance( ao_driver_t * ao_driver )
 {
-  ao_directx_t  *ao_directx = ( ao_directx_t * ) ao_driver;
   return 5000;
 }
 
@@ -710,7 +708,6 @@ static void ao_directx_close( ao_driver_t * ao_driver )
 
 static uint32_t ao_directx_get_capabilities( ao_driver_t * ao_driver )
 {
-  ao_directx_t  *ao_directx = ( ao_directx_t * ) ao_driver;
   return AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
 }
 
@@ -739,7 +736,6 @@ static void ao_directx_exit( ao_driver_t * ao_driver )
 
 static int ao_directx_get_property( ao_driver_t * ao_driver, int property )
 {
-  ao_directx_t  *ao_directx = ( ao_directx_t * ) ao_driver;
   return 0;
 }
 

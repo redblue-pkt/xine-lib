@@ -921,9 +921,9 @@ static void osd_free_encoding(osd_object_t *osd) {
  * ""   ... locale encoding
  */
 static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
+#ifdef HAVE_ICONV
   char *enc;
 
-#ifdef HAVE_ICONV
   osd_free_encoding(osd);
 
   lprintf("osd=%p, encoding=%s\n", osd, encoding ? (encoding[0] ? encoding : "locale") : "no conversion");

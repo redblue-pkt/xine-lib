@@ -38,7 +38,7 @@
 #define _SYS_UNISTD_H_
 
 #ifndef inline
-#define inline __inline
+#  define inline __inline
 #endif
 
 #define mkdir( A, B )	_mkdir( A )
@@ -48,15 +48,15 @@
 # define S_ISDIR(m) ((m) & _S_IFDIR)
 #endif
 
-#ifndef S_ISDIR
+#ifndef S_ISREG
 #  define S_ISREG(m) ((m) & _S_IFREG)
 #endif
 
-#ifndef S_ISDIR
+#ifndef S_ISBLK
 #  define S_ISBLK(m) 0
 #endif
 
-#ifndef S_ISDIR
+#ifndef S_ISCHR
 #  define S_ISCHR(m) 0
 #endif
 
@@ -87,7 +87,6 @@
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 
-// FIXME : I dont remember why this is here
-#define readlink
+#define readlink(PATH, BUF, BUFSIZ) 0
 
 #endif

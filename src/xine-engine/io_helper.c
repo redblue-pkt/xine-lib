@@ -73,7 +73,7 @@ static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int p
   }
 #else
   {
-	int non_block = 1;
+	unsigned long non_block = 1;
 	int rc;
 
     rc = ioctlsocket(s, FIONBIO, &non_block);
@@ -249,7 +249,7 @@ int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec) {
     socklen_t len = sizeof(int);
     int err;
     
-    if ((getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len)) == -1) {
+    if ((getsockopt(fd, SOL_SOCKET, SO_ERROR, (void *)&err, &len)) == -1) {
       _x_message(stream, XINE_MSG_CONNECTION_REFUSED, _("failed to get status of socket"), strerror(errno), NULL);
       return XIO_ERROR;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.31 2004/09/01 18:19:51 valtri Exp $
+ * $Id: utils.c,v 1.32 2004/09/02 19:56:42 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -49,6 +49,9 @@
 #include <libgen.h>
 #endif
 
+#ifdef __CYGWIN__
+#include <windows.h>
+#endif
 
 typedef struct {
   char                    *language;     /* name of the locale */

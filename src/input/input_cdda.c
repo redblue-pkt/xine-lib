@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.64 2004/08/27 19:33:20 valtri Exp $
+ * $Id: input_cdda.c,v 1.65 2004/09/02 19:56:42 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -861,6 +861,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 #define _BUFSIZ 300
 
 
+#ifndef WIN32
 static int parse_url (char *urlbuf, char** host, int *port) {
   char   *start = NULL;
   char   *portcolon = NULL;
@@ -895,6 +896,7 @@ static int parse_url (char *urlbuf, char** host, int *port) {
 
   return 0;
 }
+#endif
 
 static int network_command( xine_stream_t *stream, int socket, char *data_buf, char *msg, ...)
 {
@@ -1814,10 +1816,9 @@ static void _cdda_free_cddb_info(cdda_input_plugin_t *this) {
 
 static int cdda_open(cdda_input_plugin_t *this_gen,
 					 char *cdda_device, cdrom_toc *toc, int *fdd) {
-
+#ifndef WIN32
   int fd = -1;
 
-#ifndef WIN32
   if ( !cdda_device ) return -1;
  
   *fdd = -1;
@@ -2025,7 +2026,7 @@ static int cdda_close(cdda_input_plugin_t *this_gen) {
   this_gen->h_device_handle = NULL;
   if( this_gen->hASPI )
       FreeLibrary( (HMODULE)this_gen->hASPI );
-  this_gen->hASPI = NULL;
+  this_gen->hASPI = (long)NULL;
 #endif /* WIN32 */
 
   return 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.161 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.162 2004/09/02 19:56:41 valtri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -255,8 +255,8 @@ static int get_guid_id (demux_asf_t *this, GUID g) {
   }
   
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	  "demux_asf: unknown GUID: 0x%x, 0x%x, 0x%x, "
-	  "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
+	  "demux_asf: unknown GUID: 0x%" PRIx32 ", 0x%" PRIx16 ", 0x%" PRIx16 ", "
+	  "{ 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 " }\n",
 	  g.Data1, g.Data2, g.Data3,
 	  g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
 
