@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.136 2004/05/04 22:26:13 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.137 2004/05/05 22:37:46 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -370,6 +370,13 @@ static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
 
   buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
 
+  if (this->cur_frame.length > buf->max_size) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_mpgaudio: frame size is greater than fifo buffer size\n");
+    buf->free_buffer(buf);
+    return 0;
+  }
+  
   /* the decoder needs the frame header */
   memcpy(buf->mem, frame_header, 4);
 
