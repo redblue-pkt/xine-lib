@@ -29,6 +29,7 @@ xine-lib (1-rc6)
   * next stage of MINGW port - engine library compiles now
   * Improved DVD MRL handling.
   * Improved Transport stream handling.
+  * Fixed wrong, very bright overlays on some DVDs [bug #1018193]
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris

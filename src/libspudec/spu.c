@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.79 2004/08/19 10:34:00 mroi Exp $
+ * $Id: spu.c,v 1.80 2004/09/03 12:28:24 mroi Exp $
  *
  */
 
@@ -109,7 +109,6 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
  */
     if(p[0] == 0x00) {
 #ifdef LOG_NAV
-      int btngr_ns = 0, btn_ns = 0;
       printf("libspudec:nav_PCI\n");
 #endif
       navRead_PCI(&pci, p+1);
@@ -128,10 +127,10 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       printf("btngr%d_dsp_ty    0x%02x\n", 2, pci.hli.hl_gi.btngr2_dsp_ty);
       printf("btngr%d_dsp_ty    0x%02x\n", 3, pci.hli.hl_gi.btngr3_dsp_ty);
       //navPrint_PCI(&pci); 
-      navPrint_PCI_GI(&pci.pci_gi);
-      navPrint_NSML_AGLI(&pci.nsml_agli);
+      //navPrint_PCI_GI(&pci.pci_gi);
+      //navPrint_NSML_AGLI(&pci.nsml_agli);
       //navPrint_HLI(&pci.hli);
-      navPrint_HL_GI(&pci.hli.hl_gi, & btngr_ns, & btn_ns);
+      //navPrint_HL_GI(&pci.hli.hl_gi, & btngr_ns, & btn_ns);
 #endif
     }
 
@@ -426,7 +425,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       }
 
 #ifdef LOG_DEBUG
-      /* spudec_print_overlay( &this->overlay ); */
+      spudec_print_overlay( &this->overlay );
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
 #endif
       pthread_mutex_lock(&this->nav_pci_lock);
@@ -669,9 +668,9 @@ static void spudec_do_commands(xine_t *xine, spudec_state_t *state, spudec_seq_t
       ovl->width  = (((buf[2] & 0x0f) << 8) | buf[3]) - ovl->x + 1; 
       ovl->height = (((buf[5] & 0x0f) << 8) | buf[6]) - ovl->y + 1;
       ovl->clip_top    = -1;
-      ovl->clip_bottom = ovl->height - 1;
-      ovl->clip_left   = 0;
-      ovl->clip_right  = ovl->width - 1;
+      ovl->clip_bottom = -1;
+      ovl->clip_left   = -1;
+      ovl->clip_right  = -1;
 
 #ifdef LOG_DEBUG
       printf ("spu: \tx = %d y = %d width = %d height = %d\n",
