@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.43 2001/10/03 17:15:43 jkeil Exp $
+ * $Id: audio_decoder.c,v 1.44 2001/10/05 01:56:57 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -83,9 +83,9 @@ void *audio_decoder_loop (void *this_gen) {
 	this->cur_audio_decoder_plugin = NULL;
       }
       
-      pthread_mutex_lock (&this->xine_lock);
+      pthread_mutex_lock (&this->finished_lock);
       this->audio_finished = 0;
-      pthread_mutex_unlock (&this->xine_lock);
+      pthread_mutex_unlock (&this->finished_lock);
       
       for (i=0 ; i<50; i++)
 	this->audio_track_map[0] = 0;
@@ -105,18 +105,17 @@ void *audio_decoder_loop (void *this_gen) {
 	this->cur_audio_decoder_plugin = NULL;
       }
       
-      pthread_mutex_lock (&this->xine_lock);
+      pthread_mutex_lock (&this->finished_lock);
 
       if (!this->audio_finished && (buf->decoder_info[0]==0)) {
-	this->audio_finished = 1;
-      
-	if (this->video_finished) {
-	  pthread_mutex_unlock (&this->xine_lock);
-	  xine_notify_stream_finished (this);
-	} else
-	  pthread_mutex_unlock (&this->xine_lock);
-      } else
-	pthread_mutex_unlock (&this->xine_lock);
+        this->audio_finished = 1;
+
+        if (this->video_finished) {
+          xine_notify_stream_finished (this);
+        }
+      }
+
+      pthread_mutex_unlock (&this->finished_lock);
 
       break;
       

@@ -1,6 +1,6 @@
 /* 
  * Copyright (C) 2000-2001 the xine project
- * 
+ *
  * This file is part of xine, a unix video player.
  * 
  * xine is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.53 2001/10/03 17:15:44 jkeil Exp $
+ * $Id: video_decoder.c,v 1.54 2001/10/05 01:56:57 miguelfreitas Exp $
  *
  */
 
@@ -91,11 +91,11 @@ void *video_decoder_loop (void *this_gen) {
         this->cur_spu_decoder_plugin = NULL;
       }
 
-      pthread_mutex_lock (&this->xine_lock);
+      pthread_mutex_lock (&this->finished_lock);
       this->video_finished = 0;
       this->spu_finished = 0;
 
-      pthread_mutex_unlock (&this->xine_lock);
+      pthread_mutex_unlock (&this->finished_lock);
 
       this->metronom->video_stream_start (this->metronom);
 
@@ -144,20 +144,19 @@ void *video_decoder_loop (void *this_gen) {
         this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
         this->cur_spu_decoder_plugin = NULL;
       }
+      pthread_mutex_lock (&this->finished_lock);
       this->spu_finished = 1;
-      pthread_mutex_lock (&this->xine_lock);
-      
+
       if (!this->video_finished && (buf->decoder_info[0]==0)) {
 
-	this->video_finished = 1;
-	
-	if (this->audio_finished) {
-	  pthread_mutex_unlock (&this->xine_lock);
-	  xine_notify_stream_finished (this);
-	} else
-	  pthread_mutex_unlock (&this->xine_lock);
-      } else
-	pthread_mutex_unlock (&this->xine_lock);
+        this->video_finished = 1;
+
+        if (this->audio_finished) {
+          xine_notify_stream_finished (this);
+        }
+      }
+
+      pthread_mutex_unlock (&this->finished_lock);
 
       break;
 
@@ -170,7 +169,7 @@ void *video_decoder_loop (void *this_gen) {
         this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
         this->cur_spu_decoder_plugin = NULL;
       }
-      
+
       running = 0;
       break;
 

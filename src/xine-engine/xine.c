@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.62 2001/10/03 15:16:02 jkeil Exp $
+ * $Id: xine.c,v 1.63 2001/10/05 01:56:57 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -60,12 +60,12 @@
 uint32_t   xine_debug;
 
 void xine_notify_stream_finished (xine_t *this) {
-  
+
   xine_stop (this);
 
   if (this->stream_end_cb)
     this->stream_end_cb (this->status);
-  
+
 }
 
 void xine_stop (xine_t *this) {
@@ -87,7 +87,7 @@ void xine_stop (xine_t *this) {
 
   this->status = XINE_STOP;
   printf ("xine_stop: stopping demuxer\n");
-  
+
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
@@ -98,13 +98,13 @@ void xine_stop (xine_t *this) {
     /*
      * If we set it to NULL, xine_eject() will not work after
      * a xine_stop() call.
-     * 
+     *
      * this->cur_input_plugin = NULL;
      */
   }
 
   printf ("xine_stop: done\n");
-  
+
   pthread_mutex_unlock (&this->xine_lock);
 }
 
@@ -135,7 +135,7 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
 					stages[s]) == DEMUX_CAN_HANDLE) {
 	
 	this->cur_demuxer_plugin = this->demuxer_plugins[i];
-	
+
 	return 1;
       }
     }
@@ -286,7 +286,7 @@ void xine_play (xine_t *this, char *mrl,
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
     this->audio_mute = 0;
     this->speed = SPEED_NORMAL;
-  }    
+  }
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -315,7 +315,7 @@ void xine_exit (xine_t *this) {
   printf ("xine_exit: try to get lock...\n");
 
   pthread_mutex_lock (&this->xine_lock);
-  
+
   this->metronom->set_speed (this->metronom, SPEED_NORMAL);
   this->speed  = SPEED_NORMAL;
   this->status = XINE_STOP;
@@ -405,15 +405,17 @@ xine_t *xine_init (vo_driver_t *vo,
 
   this->stream_end_cb   = stream_end_cb;
   this->get_next_mrl_cb = get_next_mrl_cb;
-  this->branched_cb     = branched_cb;  
+  this->branched_cb     = branched_cb;
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
   /*
-   * init lock
+   * init locks
    */
 
   pthread_mutex_init (&this->xine_lock, NULL);
+
+  pthread_mutex_init (&this->finished_lock, NULL);
 
   /*
    * create a metronom
@@ -424,9 +426,9 @@ xine_t *xine_init (vo_driver_t *vo,
   /*
    * load input and demuxer plugins
    */
-  
+
   load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
-  
+
   this->demux_strategy  = config->lookup_int (config, "demux_strategy", 0);
 
   load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
@@ -617,7 +619,7 @@ int xine_get_current_time (xine_t *this) {
 
 int xine_get_stream_length (xine_t *this) {
 
-  if(this->cur_demuxer_plugin) 
+  if(this->cur_demuxer_plugin)
     return this->cur_demuxer_plugin->get_stream_length (this->cur_demuxer_plugin);
 
   return 0;
