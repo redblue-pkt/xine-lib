@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.7 2002/07/05 17:32:01 mroi Exp $
+ * $Id: demux_roq.c,v 1.8 2002/07/07 00:41:24 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -115,7 +115,6 @@ static void *demux_roq_loop (void *this_gen) {
       }
       chunk_type = LE_16(&preamble[0]);
       chunk_size = LE_32(&preamble[2]);
-//printf ("loading chunk type %X, %X bytes\n", chunk_type, chunk_size);
 
       /* if the chunk is an audio chunk, route it to the audio fifo */
       if ((chunk_type == RoQ_SOUND_MONO) || (chunk_type == RoQ_SOUND_STEREO)) {
@@ -343,6 +342,7 @@ static int demux_roq_start (demux_plugin_t *this_gen,
     if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
       RoQ_CHUNK_PREAMBLE_SIZE) {
       this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
       return this->status;
     }
 
@@ -411,6 +411,7 @@ static int demux_roq_start (demux_plugin_t *this_gen,
       this->input->seek(this->input, 8, SEEK_SET);
     } else {
       this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
       return this->status;
     }
 
