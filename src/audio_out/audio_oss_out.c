@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.39 2001/09/28 10:19:08 jkeil Exp $
+ * $Id: audio_oss_out.c,v 1.40 2001/09/30 23:12:05 heikos Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -96,6 +96,7 @@
 #endif
 
 static int checked_getoptr = 0;
+static int use_getodelay = 0;
 
 typedef struct oss_driver_s {
 
@@ -274,6 +275,19 @@ static int ao_oss_open(ao_driver_t *this_gen,
     checked_getoptr = 1;
   }
 
+  /*
+   * check if SNDCTL_DSP_GETODELAY works. if so, using it is preferred.
+   */
+  if ( this->audio_has_realtime && checked_getoptr ) {
+    count_info info;
+    int ret = ioctl(this->audio_fd, SNDCTL_DSP_GETODELAY, &info);
+    if ( ret != -1 && errno != EINVAL ) {
+      printf("audio_oss_out: using SNDCTL_DSP_GETODELAY\n");
+      use_getodelay = 1;
+    }
+  }
+
+
   return this->output_sample_rate;
 }
 
@@ -305,14 +319,17 @@ static int ao_oss_delay(ao_driver_t *this_gen)
   int           bytes_left;
 
   if (this->audio_has_realtime) {
-    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    if (use_getodelay) {
+      ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
+    } else {
+      ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+      
+      bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
+      
+      if (bytes_left<=0) /* buffer ran dry */
+	bytes_left = 0;
+    }
 
-    /* calc delay */
-
-    bytes_left = this->bytes_in_buffer - info.bytes;
-
-    if (bytes_left<=0) /* buffer ran dry */
-      bytes_left = 0;
   } else {
     bytes_left = this->static_delay;
   }
