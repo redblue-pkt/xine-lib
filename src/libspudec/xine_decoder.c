@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.70 2002/07/05 17:32:03 mroi Exp $
+ * $Id: xine_decoder.c,v 1.71 2002/07/06 16:36:43 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -247,7 +247,8 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 #ifdef LOG_NAV
         fprintf(stderr, "libspudec:Button Overlay\n");
 #endif
-        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, but->show-1, overlay );
+        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, but->show-1,
+	                           overlay, &this->overlay );
         pthread_mutex_unlock(&this->nav_pci_lock);
       } else {
         fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.14 2002/04/24 13:42:17 jcdutton Exp $
+ * $Id: spu.h,v 1.15 2002/07/06 16:36:43 mroi Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -119,6 +119,7 @@ typedef struct spudec_decoder_s {
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
 void spudec_process( spudec_decoder_t *this, uint32_t stream_id);
 void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
-void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode, vo_overlay_t * overlay );
+void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
+                                vo_overlay_t * overlay, vo_overlay_t * base );
 
 #endif

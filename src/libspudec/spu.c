@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.39 2002/04/24 20:26:07 jcdutton Exp $
+ * $Id: spu.c,v 1.40 2002/07/06 16:36:43 mroi Exp $
  *
  */
 
@@ -70,7 +70,8 @@
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
 void spudec_process( spudec_decoder_t *this, uint32_t stream_id);
 void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
-void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode, vo_overlay_t * overlay );
+void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
+                                vo_overlay_t * overlay, vo_overlay_t * base );
 static void spudec_do_commands (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_discover_clut (spudec_state_t *state, vo_overlay_t *ovl);
@@ -335,7 +336,8 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #ifdef LOG_BUTTON
         fprintf(stderr, "libspudec:Full Overlay\n");
 #endif
-        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0, &this->overlay );
+        spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0, &this->overlay,
+                                   &this->overlay);
       } else {
       /* Subtitle and not a menu button */
         int i;
@@ -824,7 +826,8 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
 	  ovl->clip_trans[0], ovl->clip_trans[1], ovl->clip_trans[2], ovl->clip_trans[3]);
   return;
 } 
-void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode, vo_overlay_t * overlay ) {
+void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
+                                vo_overlay_t * overlay, vo_overlay_t * base ) {
   btni_t *button_ptr;
   int i;
 
@@ -843,10 +846,13 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
   }
   /* FIXME:Only the first grouping of buttons are used at the moment */
   button_ptr = &nav_pci->hli.btnit[button-1];
-  overlay->clip_left = button_ptr->x_start;
-  overlay->clip_top  = button_ptr->y_start;
-  overlay->clip_right = button_ptr->x_end;
-  overlay->clip_bottom = button_ptr->y_end;
+  /* button areas in the nav packet are in screen coordinates,
+   * overlay clipping areas are in overlay coordinates;
+   * therefore we must substract the display coordinates of the underlying overlay */
+  overlay->clip_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
+  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
+  overlay->clip_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
+  overlay->clip_bottom = (button_ptr->y_end   > base->y) ? (button_ptr->y_end   - base->y) : 0;
   if(button_ptr->btn_coln != 0) {
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: normal button clut\n");
