@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.26 2002/04/23 06:48:59 esnel Exp $
+ * $Id: demux_qt.c,v 1.27 2002/04/23 13:17:35 esnel Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -1220,9 +1220,14 @@ static int quicktime_udta_delete(quicktime_udta_t *udta)
     {
       free(udta->info);
     }
-  
-  quicktime_udta_init(udta);
-  
+
+  udta->copyright = 0;
+  udta->copyright_len = 0;
+  udta->name = 0;
+  udta->name_len = 0;
+  udta->info = 0;
+  udta->info_len = 0;
+
   return 0;
 }
 
@@ -2656,6 +2661,8 @@ static int quicktime_trak_init_audio(quicktime_t *file,
 static int quicktime_trak_delete(quicktime_trak_t *trak)
 {
   quicktime_tkhd_delete(&(trak->tkhd));
+  quicktime_edts_delete(&(trak->edts));
+  quicktime_mdia_delete(&(trak->mdia));
   return 0;
 }
 
@@ -3883,6 +3890,11 @@ static void *demux_qt_loop (void *this_gen) {
 static void demux_qt_close (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
+
+  if (this->qt)
+    quicktime_close (this->qt);
+
+  pthread_mutex_destroy (&this->mutex);
   free (this);
 
 #ifdef DBG_QT
