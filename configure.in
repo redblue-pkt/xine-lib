@@ -69,15 +69,6 @@ SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
 AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
 
-
-dnl
-dnl Store and reset CFLAGS
-dnl
-cflags_set=${CFLAGS+set}
-cflags_saved="$CFLAGS"
-CFLAGS=""
-
-
 dnl
 AC_CANONICAL_SYSTEM
 dnl AC_CANONICAL_HOST
@@ -160,8 +151,11 @@ AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AM_TYPE_PTRDIFF_T
 
+dnl
+dnl debug cflags
+dnl
 AC_SUBST(DEBUG_CFLAGS)
-dnl AC_SUBST(GLOBAL_CFLAGS)
+DEBUG_CFLAGS="$CFLAGS -g -DEBUG"
 
 dnl
 dnl threads
@@ -169,8 +163,8 @@ dnl
 case "$host" in
   *-*-freebsd*)
     THREAD_LIBS="-L/usr/local/lib -pthread"
-    THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
-    CFLAGS="-L/usr/local/lib $THREAD_CFLAGS"
+    CFLAGS="$CFLAGS -L/usr/local/lib -I/usr/local/include -D_THREAD_SAFE"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -L/usr/local/lib -I/usr/local/include -D_THREAD_SAFE"
     CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
     ;;
   *)
@@ -180,7 +174,6 @@ case "$host" in
     ;;
 esac
 AC_SUBST(THREAD_LIBS)
-AC_SUBST(THREAD_CFLAGS)
 
 dnl
 dnl dynamic linker
@@ -438,6 +431,14 @@ AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_oggvorbis" = "xno"])
 
 
 dnl
+dnl XviD libs.
+dnl
+
+AM_PATH_XVID(no_xvid=no, AC_MSG_RESULT([*** All of XviD dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])
+
+
+dnl
 dnl OSS style audio interface
 dnl
 AC_MSG_CHECKING(for OSS audio support)
@@ -588,16 +589,16 @@ AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
 
 dnl Common cflags for all platforms
-COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+CFLAGS="$CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+DEBUG_CFLAGS="$DEBUG_CFLAGS $wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 
 enable_w32dll="no"
 enable_ffmmx="no"
 
-
 case "$host_or_hostalias" in
   i386-*-freebsd*)
     CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
-    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
+    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
     AC_DEFINE(FPM_INTEL)
@@ -788,15 +789,8 @@ case "$host_or_hostalias" in
 esac
 
 
-CFLAGS="$CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
-dnl
-dnl Some CFLAGS was previously defined, use them too.
-dnl
-if test "$cflags_set" = "set"; then
-  CFLAGS="$cflags_saved $CFLAGS"
-fi
-
-DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS -g -DDEBUG"
+CFLAGS="$CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
+DEBUG_CFLAGS="$DEBUG_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
 
 AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
 if test x"$enable_w32dll" = "xyes"; then
@@ -950,6 +944,7 @@ src/libsputext/Makefile
 src/libspucc/Makefile
 src/libvfill/Makefile
 src/libvorbis/Makefile
+src/libxvid/Makefile
 src/libdivx4/Makefile
 src/xine-utils/Makefile
 src/input/Makefile
@@ -1072,6 +1067,9 @@ echo "   - vfill           - divx4"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi
+if test x"$no_xvid" = "xno"; then
+  echo "   - xvid"
+fi
 if test x"$have_dxr3" = "xyes"; then
   echo "   - dxr3"
 fi
@@ -1104,3 +1102,4 @@ if test x"$have_cdrom_ioctls" = "xyes"; then
   echo "   - cda"
 fi
 echo "---"
+
