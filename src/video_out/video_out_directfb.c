@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.13 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_directfb.c,v 1.14 2002/09/05 20:44:42 mroi Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -507,7 +507,7 @@ typedef struct {
   IDirectFBDisplayLayer *video_layer;
 } dfb_visual_info_t;
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   directfb_driver_t      *this;
   dfb_visual_info_t      *visual_info = (dfb_visual_info_t*)visual_gen;

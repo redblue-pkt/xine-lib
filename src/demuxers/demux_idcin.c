@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.7 2002/09/04 23:31:07 guenter Exp $
+ * $Id: demux_idcin.c,v 1.8 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -587,7 +587,7 @@ static char *demux_idcin_get_mimetypes(void) {
   return NULL;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_idcin_t *this;
 
   if (iface != 10) {

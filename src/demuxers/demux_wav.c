@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.9 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_wav.c,v 1.10 2002/09/05 20:44:39 mroi Exp $
  *
  */
 
@@ -461,7 +461,7 @@ static int demux_wav_get_stream_length (demux_plugin_t *this_gen) {
   return (int)(this->data_size / this->wave->nAvgBytesPerSec);
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_wav_t *this;
 

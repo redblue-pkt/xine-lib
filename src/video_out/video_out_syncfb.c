@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.77 2002/09/04 23:31:12 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.78 2002/09/05 20:44:42 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -803,7 +803,7 @@ static void syncfb_exit(xine_vo_driver_t *this_gen)
   close(this->fd);
 }
 
-xine_vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
+static void *init_video_out_plugin(config_values_t *config, void *visual_gen)
 {
    syncfb_driver_t*  this;
    Display*          display = NULL; 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.11 2002/09/04 23:31:12 guenter Exp $
+ * $Id: video_out_vidix.c,v 1.12 2002/09/05 20:44:42 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -661,7 +661,7 @@ static void vidix_exit (vo_driver_t *this_gen) {
   vdlClose(this->vidix_handler);
 }
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   vidix_driver_t          *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;

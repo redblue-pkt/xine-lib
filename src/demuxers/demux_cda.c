@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.21 2002/07/05 17:31:59 mroi Exp $
+ * $Id: demux_cda.c,v 1.22 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -290,7 +290,7 @@ static int demux_cda_get_stream_length (demux_plugin_t *this_gen) {
 /*
  *
  */
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_cda_t *this;
   
   if (iface != 10) {

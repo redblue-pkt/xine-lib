@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.74 2002/09/05 20:19:48 guenter Exp $
+ * $Id: input_dvd.c,v 1.75 2002/09/05 20:44:39 mroi Exp $
  *
  */
 
@@ -768,7 +768,7 @@ static buf_element_t *dvdnav_plugin_read_block (input_plugin_t *this_gen,
       break;
      case DVDNAV_HOP_CHANNEL:
        {
-       //flush_buffers(this);
+       flush_buffers(this);
        break;
        }
      case DVDNAV_NAV_PACKET:
@@ -1227,9 +1227,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	goto __audio_success;
       }
       
-      /* FIXME: where is xine_get_audio_channel now? */
-      /* channel = (int8_t) xine_get_audio_channel(this->xine); */
-      channel = 0;
+      channel = (int8_t) xine_get_audio_channel(this->xine);
       /*  printf("input_dvd: ********* AUDIO CHANNEL = %d\n", channel); */
       channel = dvdnav_get_audio_logical_stream(this->dvdnav, channel);
       if(channel != -1) {
@@ -1239,15 +1237,11 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
 	} 
 	else {
-      /* FIXME: where is xine_get_audio_channel now? */
-/*	  sprintf(data, "%3i", xine_get_audio_channel(this->xine)); */
-	  sprintf(data, "%3i", 0); 
+	  sprintf(data, "%3i", xine_get_audio_channel(this->xine));
 	}
       } 
       else {
-      /* FIXME: where is xine_get_audio_channel now? */
-/*	channel = xine_get_audio_channel(this->xine); */
-        channel = 0;
+	channel = xine_get_audio_channel(this->xine);
 	sprintf(data, "%3i", channel);
       }
       
@@ -1272,9 +1266,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	goto __spu_success;
       }
 
-      /* FIXME: where is xine_get_spu_channel now? */
-      /* channel = (int8_t) xine_get_spu_channel(this->xine);*/
-      channel = 0;
+      channel = (int8_t) xine_get_spu_channel(this->xine);
       /*  printf("input_dvd: ********* SPU CHANNEL = %i\n", channel); */
       if(channel == -1)
 	channel = dvdnav_get_spu_logical_stream(this->dvdnav, this->xine->spu_channel);
@@ -1288,14 +1280,11 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
 	} 
 	else {
-	  /* sprintf(data, "%3i", xine_get_spu_channel(this->xine));*/
-	  sprintf(data, "%3i", 0);
+	  sprintf(data, "%3i", xine_get_spu_channel(this->xine));
 	}
       } 
       else {
-      /* FIXME: where is xine_get_spu_channel now? */
-/*	channel = xine_get_spu_channel(this->xine); */
-        channel = 0;
+	channel = xine_get_spu_channel(this->xine);
 	if(channel == -1)
 	  sprintf(data, "%3s", "off");
 	else
@@ -1395,7 +1384,7 @@ check_solaris_vold_device(dvdnav_input_plugin_t *this)
 }
 #endif
 
-void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_input_plugin (xine_t *xine, void *data) {
   dvdnav_input_plugin_t *this;
   config_values_t *config = xine->config;
   void *dvdcss;
@@ -1508,6 +1497,10 @@ void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.75  2002/09/05 20:44:39  mroi
+ * make all the plugin init functions static
+ * (geez this was a job)
+ *
  * Revision 1.74  2002/09/05 20:19:48  guenter
  * use xine_mrl_t instead of mrl_t in input plugins, implement more configfile functions
  *

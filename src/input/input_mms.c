@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.16 2002/09/04 23:31:08 guenter Exp $
+ * $Id: input_mms.c,v 1.17 2002/09/05 20:44:39 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -284,7 +284,7 @@ static void mms_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
-void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_input_plugin (xine_t *xine, void *data) {
 
   mms_input_plugin_t *this;
   config_values_t    *config;

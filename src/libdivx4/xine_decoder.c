@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2002/09/04 23:31:09 guenter Exp $
+ * $Id: xine_decoder.c,v 1.42 2002/09/05 20:44:39 mroi Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -546,7 +546,7 @@ static void divx4_dispose(video_decoder_t *this_gen) {
 
 /* This is pretty generic. I took the liberty to increase the
    priority over that of libffmpeg :-) */
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   divx4_decoder_t *this ;
   char *libdecore_name;

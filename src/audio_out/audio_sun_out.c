@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.21 2002/09/04 23:31:07 guenter Exp $
+ * $Id: audio_sun_out.c,v 1.22 2002/09/05 20:44:38 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -650,7 +650,7 @@ static int ao_sun_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-ao_driver_t *init_audio_out_plugin (config_values_t *config) {
+static void *init_audio_out_plugin (config_values_t *config) {
 
   sun_driver_t	  *this;
   char            *devname;

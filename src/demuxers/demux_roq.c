@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.11 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_roq.c,v 1.12 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -524,7 +524,7 @@ static char *demux_roq_get_mimetypes(void) {
 }
 
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_roq_t *this;
 
   if (iface != 10) {

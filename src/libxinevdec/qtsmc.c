@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.2 2002/09/04 23:31:11 guenter Exp $
+ * $Id: qtsmc.c,v 1.3 2002/09/05 20:44:42 mroi Exp $
  */
 
 #include <stdio.h>
@@ -677,7 +677,7 @@ static void qtsmc_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   qtsmc_decoder_t *this ;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.129 2002/09/04 23:31:12 guenter Exp $
+ * $Id: video_out_xv.c,v 1.130 2002/09/05 20:44:42 mroi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1052,7 +1052,7 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
 }
 
 
-void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
+static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
 
   config_values_t      *config = xine->config;
   xv_driver_t          *this;

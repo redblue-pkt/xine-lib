@@ -20,7 +20,7 @@
  * General description and author credits go here...
  * 
  * Leave the following line intact for when the decoder is committed to CVS:
- * $Id: foovideo.c,v 1.4 2002/09/01 20:45:50 tmmm Exp $
+ * $Id: foovideo.c,v 1.5 2002/09/05 20:44:41 mroi Exp $
  */
 
 #include <stdio.h>
@@ -256,7 +256,7 @@ static void foovideo_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   foovideo_decoder_t *this ;
 

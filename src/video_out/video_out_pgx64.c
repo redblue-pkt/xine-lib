@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.2 2002/09/04 00:37:53 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.3 2002/09/05 20:44:42 mroi Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -645,7 +645,7 @@ static void pgx64_exit(pgx64_driver_t *this)
   close(this->fbfd);
 }
 
-pgx64_driver_t* init_video_out_plugin(config_values_t *config, void *visual_gen) {
+static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
   pgx64_driver_t *this;
   char *devname;
   int fbfd;

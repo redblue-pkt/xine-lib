@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.48 2002/09/05 20:19:49 guenter Exp $
+ * $Id: input_vcd.c,v 1.49 2002/09/05 20:44:39 mroi Exp $
  *
  */
 
@@ -1135,7 +1135,7 @@ static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
 /*
  *
  */
-void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_input_plugin (xine_t *xine, void *data) {
 
   vcd_input_plugin_t *this;
   config_values_t    *config;

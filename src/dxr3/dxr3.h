@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3.h,v 1.3 2002/06/12 12:22:34 f1rmb Exp $
+ * $Id: dxr3.h,v 1.4 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifndef HAVE_DXR3_H
@@ -34,7 +34,7 @@
 #define CONF_HELP _("The device file of the dxr3 mpeg decoder card control device.")
 
 /* image format used by dxr3_decoder to tag undecoded mpeg data */
-#define IMGFMT_MPEG (('G'<<24)|('E'<<16)|('P'<<8)|'M')
+#define XINE_IMGFMT_DXR3 (('3'<<24)|('R'<<16)|('X'<<8)|'D')
 
 #endif
 

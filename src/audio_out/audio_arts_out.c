@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.14 2002/09/04 23:31:07 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.15 2002/09/05 20:44:38 mroi Exp $
  */
 
 /* required for swab() */
@@ -298,7 +298,7 @@ static int ao_arts_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 }
 
 
-void *init_audio_out_plugin (xine_t *xine, void *data) {
+static void *init_audio_out_plugin (xine_t *xine, void *data) {
 
   /* config_values_t *config = xine->config; */
   arts_driver_t   *this;

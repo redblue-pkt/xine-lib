@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.53 2002/09/05 12:52:24 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.54 2002/09/05 20:44:39 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -63,8 +63,7 @@
 #define LOG_OVR 0
 
 
-/* plugin initialization functions */
-vo_info_t         *get_video_out_plugin_info();
+/* plugin initialization function */
 static void       *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen);
 
 
@@ -377,6 +376,7 @@ static void *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen)
   return &this->vo_driver;
 }
 
+
 static uint32_t dxr3_get_capabilities(xine_vo_driver_t *this_gen)
 {
   return VO_CAP_YV12 | VO_CAP_YUY2 |
@@ -409,7 +409,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
   dxr3_driver_t *this = (dxr3_driver_t *)frame_gen->driver;
   
-  if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_frame_copy)
+  if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_frame_copy)
     this->enc->on_frame_copy(this, frame, src);
 }
 
@@ -437,7 +437,7 @@ static void dxr3_update_frame_format(xine_vo_driver_t *this_gen, vo_frame_t *fra
   /* update the overlay window co-ords if required */
   dxr3_overlay_update(this);
 
-  if (format == IMGFMT_MPEG) { /* talking to dxr3 decoder */
+  if (format == XINE_IMGFMT_DXR3) { /* talking to dxr3 decoder */
     /* a bit of a hack. we must release the em8300_mv fd for
      * the dxr3 decoder plugin */
     if (this->fd_video >= 0) {
@@ -570,7 +570,7 @@ static void dxr3_update_frame_format(xine_vo_driver_t *this_gen, vo_frame_t *fra
       for (i = 0; i < image_size; i += 2) /* Y */
         *(frame->real_base[0] + i) = 16;
 
-    } else { /* IMGFMT_YV12 */
+    } else { /* XINE_IMGFMT_YV12 */
       int image_size_y, image_size_u, image_size_v;
       
       /* calculate pitches and sizes including black bars */
@@ -620,7 +620,7 @@ static void dxr3_overlay_begin(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   
   /* special treatment is only necessary for mpeg frames */
-  if (frame_gen->format != IMGFMT_MPEG) return;
+  if (frame_gen->format != XINE_IMGFMT_DXR3) return;
   
   if (!this->spu_enc) this->spu_enc = dxr3_spu_encoder_init();
   
@@ -636,7 +636,7 @@ static void dxr3_overlay_begin(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
 static void dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
   vo_overlay_t *overlay)
 {
-  if (frame_gen->format != IMGFMT_MPEG) {
+  if (frame_gen->format != XINE_IMGFMT_DXR3) {
     dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
     
     if (overlay->rle) {
@@ -645,7 +645,7 @@ static void dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
       else
         blend_yuy2(frame->vo_frame.base[0], overlay, frame->vo_frame.width, frame->vo_frame.height);
     }
-  } else { /* IMGFMT_MPEG */
+  } else { /* XINE_IMGFMT_DXR3 */
     dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
     if (!this->spu_enc->need_reencode) return;
     /* FIXME: we only handle the last overlay because previous ones are simply overwritten */
@@ -660,7 +660,7 @@ static void dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
   char tmpstr[128];
   ssize_t written;
   
-  if (frame_gen->format != IMGFMT_MPEG) return;
+  if (frame_gen->format != XINE_IMGFMT_DXR3) return;
   if (!this->spu_enc->need_reencode) return;
   
   dxr3_spu_encode(this->spu_enc);
@@ -760,7 +760,7 @@ static void dxr3_display_frame(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
     dxr3_set_property(this_gen, VO_PROP_ZOOM_X, -1);
   }
   
-  if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_display_frame) {
+  if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_display_frame) {
     if (this->need_update) {
       /* we cannot do this earlier, because vo_frame.duration is only valid here */
       if (this->enc && this->enc->on_update_format)

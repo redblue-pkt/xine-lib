@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2002/09/04 23:31:09 guenter Exp $
+ * $Id: xine_decoder.c,v 1.33 2002/09/05 20:44:40 mroi Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -197,7 +197,7 @@ static void lpcm_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   lpcm_decoder_t *this ;
 

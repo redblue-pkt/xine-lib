@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.2 2002/09/04 23:31:11 guenter Exp $
+ * $Id: wc3video.c,v 1.3 2002/09/05 20:44:42 mroi Exp $
  */
 
 #include <stdio.h>
@@ -530,7 +530,7 @@ static void wc3video_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   wc3video_decoder_t *this ;
 

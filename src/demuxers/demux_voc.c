@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.3 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_voc.c,v 1.4 2002/09/05 20:44:39 mroi Exp $
  *
  */
 
@@ -452,7 +452,7 @@ static int demux_voc_get_stream_length (demux_plugin_t *this_gen) {
   return this->running_time;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_voc_t *this;
 

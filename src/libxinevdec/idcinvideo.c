@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.3 2002/09/04 23:31:11 guenter Exp $
+ * $Id: idcinvideo.c,v 1.4 2002/09/05 20:44:41 mroi Exp $
  */
 
 #include <stdio.h>
@@ -387,7 +387,7 @@ static void idcinvideo_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   idcinvideo_decoder_t *this ;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.72 2002/09/04 23:31:07 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.73 2002/09/05 20:44:38 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -611,7 +611,7 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-void *init_audio_out_plugin (xine_t *xine, void *data) {
+static void *init_audio_out_plugin (xine_t *xine, void *data) {
 
   config_values_t *config = xine->config;
   oss_driver_t    *this;

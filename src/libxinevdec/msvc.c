@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.9 2002/09/04 23:31:11 guenter Exp $
+ * $Id: msvc.c,v 1.10 2002/09/05 20:44:41 mroi Exp $
  */
 
 #include <stdlib.h>
@@ -345,7 +345,7 @@ static void msvc_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   msvc_decoder_t *this ;
 

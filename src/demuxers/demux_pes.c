@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.35 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_pes.c,v 1.36 2002/09/05 20:44:39 mroi Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -594,7 +594,7 @@ static int demux_pes_get_stream_length (demux_plugin_t *this_gen) {
   return 0; /* FIXME: implement */
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   demux_pes_t     *this;
 

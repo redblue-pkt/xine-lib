@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.91 2002/09/04 23:31:10 guenter Exp $
+ * $Id: w32codec.c,v 1.92 2002/09/05 20:44:41 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1301,7 +1301,7 @@ static void init_routine(void) {
   w32v_init_rgb_ycc();
 }
 
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   w32v_decoder_t *this ;
   config_values_t *cfg;
@@ -1339,7 +1339,7 @@ static void w32a_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   w32a_decoder_t *this ;
   config_values_t *cfg;

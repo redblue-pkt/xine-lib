@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.7 2002/09/04 23:31:07 guenter Exp $
+ * $Id: demux_fli.c,v 1.8 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -401,7 +401,7 @@ static char *demux_fli_get_mimetypes(void) {
   return NULL;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_fli_t *this;
 
   if (iface != 10) {

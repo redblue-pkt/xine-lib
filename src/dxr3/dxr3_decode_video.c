@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.13 2002/09/05 12:52:24 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.14 2002/09/05 20:44:39 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -325,7 +325,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     /* pretend like we have decoded a frame */
     img = this->video_out->get_frame (this->video_out,
       this->width, this->height, this->aspect,
-      IMGFMT_MPEG, VO_BOTH_FIELDS);
+      XINE_IMGFMT_DXR3, VO_BOTH_FIELDS);
     img->pts       = buf->pts;
     img->bad_frame = 0;
     img->duration  = get_duration(this);

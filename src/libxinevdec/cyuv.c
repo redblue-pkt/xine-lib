@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.6 2002/09/04 23:31:11 guenter Exp $
+ * $Id: cyuv.c,v 1.7 2002/09/05 20:44:41 mroi Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -232,7 +232,7 @@ static void cyuv_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   cyuv_decoder_t *this ;
 

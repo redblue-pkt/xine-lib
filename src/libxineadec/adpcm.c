@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.13 2002/09/04 23:31:10 guenter Exp $
+ * $Id: adpcm.c,v 1.14 2002/09/05 20:44:41 mroi Exp $
  */
 
 #include <stdio.h>
@@ -1134,7 +1134,7 @@ static void adpcm_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   adpcm_decoder_t *this ;
 

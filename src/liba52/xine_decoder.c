@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2002/09/04 23:31:08 guenter Exp $
+ * $Id: xine_decoder.c,v 1.31 2002/09/05 20:44:39 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -534,7 +534,7 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   a52dec_decoder_t *this ;
   config_values_t *cfg;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.13 2002/09/04 23:31:12 guenter Exp $
+ * $Id: video_out_sdl.c,v 1.14 2002/09/05 20:44:42 mroi Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -429,7 +429,7 @@ static void sdl_exit (xine_vo_driver_t *this_gen) {
   SDL_QuitSubSystem (SDL_INIT_VIDEO);
 }
 
-xine_vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   sdl_driver_t          *this;
   const SDL_VideoInfo * vidInfo;

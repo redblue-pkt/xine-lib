@@ -685,7 +685,7 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 
-void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_input_plugin (xine_t *xine, void *data) {
 
   http_input_plugin_t *this;
   config_values_t    *config;

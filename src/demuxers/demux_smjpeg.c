@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.11 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_smjpeg.c,v 1.12 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -553,7 +553,7 @@ static char *demux_smjpeg_get_mimetypes(void) {
   return NULL;
 }
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_smjpeg_t *this;
 
   if (iface != 10) {

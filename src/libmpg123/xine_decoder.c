@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2002/06/12 12:22:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.9 2002/09/05 20:44:40 mroi Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -101,7 +101,7 @@ static char *mpgdec_get_id(void) {
   return "mpgdec";
 }
 
-audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *cfg) {
+static void *init_audio_decoder_plugin (int iface_version, config_values_t *cfg) {
 
   mpgdec_decoder_t *this ;
 

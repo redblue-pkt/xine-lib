@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.76 2002/09/04 23:31:07 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.77 2002/09/05 20:44:38 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -426,6 +426,7 @@ static int ao_alsa_delay (xine_ao_driver_t *this_gen)
   /* snd_pcm_status_dump(pcm_stat, jcd_out);  */
   delay=snd_pcm_status_get_delay( pcm_stat );
   /* printf("audio_alsa_out:delay:delay=%ld\n",delay); */
+  if (delay < 0) delay = 0;
   return delay;
 }
 
@@ -901,7 +902,7 @@ static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
 /*
  * Initialize plugin
  */
-void *init_audio_out_plugin (xine_t *xine, void *data) {
+static void *init_audio_out_plugin (xine_t *xine, void *data) {
 
   config_values_t     *config = xine->config;
   alsa_driver_t       *this;

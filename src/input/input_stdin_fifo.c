@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.29 2002/09/04 23:31:08 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.30 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -347,7 +347,7 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
 }
 
 
-void *init_input_plugin (xine_t *xine, void *data) {
+static void *init_input_plugin (xine_t *xine, void *data) {
 
   stdin_input_plugin_t *this;
   config_values_t      *config;

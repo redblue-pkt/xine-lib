@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.54 2002/09/04 23:31:07 guenter Exp $
+ * $Id: demux_asf.c,v 1.55 2002/09/05 20:44:39 mroi Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1439,7 +1439,7 @@ static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
   return this->length;
 }
 
-void *init_demuxer_plugin (xine_t *xine, void *data) {
+static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
   demux_asf_t     *this;
 

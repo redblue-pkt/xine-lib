@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.4 2002/09/04 23:31:08 guenter Exp $
+ * $Id: demux_wc3movie.c,v 1.5 2002/09/05 20:44:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -591,7 +591,7 @@ static char *demux_mve_get_mimetypes(void) {
 }
 
 
-demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mve_t *this;
 
   if (iface != 10) {

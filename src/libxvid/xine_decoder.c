@@ -210,7 +210,7 @@ static void xvid_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
     xvid_decoder_t *this;
     XVID_INIT_PARAM xinit;
     

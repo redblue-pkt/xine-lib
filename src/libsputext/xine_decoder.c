@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2002/09/04 23:31:10 guenter Exp $
+ * $Id: xine_decoder.c,v 1.40 2002/09/05 20:44:41 mroi Exp $
  *
  * code based on mplayer module:
  *
@@ -1046,7 +1046,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   free (this_gen);
 }
 
-spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
   static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };

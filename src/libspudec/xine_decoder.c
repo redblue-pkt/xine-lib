@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.73 2002/09/04 23:31:10 guenter Exp $
+ * $Id: xine_decoder.c,v 1.74 2002/09/05 20:44:41 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -297,7 +297,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   free (this);
 }
 
-spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
+static void *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   spudec_decoder_t *this ;
 

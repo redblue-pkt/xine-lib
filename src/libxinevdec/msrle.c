@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.5 2002/09/04 23:31:11 guenter Exp $
+ * $Id: msrle.c,v 1.6 2002/09/05 20:44:41 mroi Exp $
  */
 
 #include <stdio.h>
@@ -340,7 +340,7 @@ static void msrle_dispose (video_decoder_t *this_gen) {
  * plugins for the same buffer types to coexist peacefully. The higher the
  * priority number, the more precedence a decoder has. E.g., 9 beats 1.
  */
-void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 
   msrle_decoder_t *this ;
 
