@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.138 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.139 2004/06/21 16:19:40 mroi Exp $
  *
  *
  * contents:
@@ -442,7 +442,7 @@ struct buf_element_s {
 
 #define SPU_DVD_SUBTYPE_CLUT		1
 #define SPU_DVD_SUBTYPE_PACKAGE		2
-#define SPU_DVD_SUBTYPE_SUBP_CONTROL	3
+/* FIXME: number 3 is unused */
 #define SPU_DVD_SUBTYPE_NAV		4
 
 /* In a BUF_SPECIAL_SPU_DVB_DESCRIPTOR

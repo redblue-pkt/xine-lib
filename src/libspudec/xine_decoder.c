@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.106 2004/04/09 15:01:47 mroi Exp $
+ * $Id: xine_decoder.c,v 1.107 2004/06/21 16:19:41 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -101,15 +101,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
  
-  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_SUBP_CONTROL ) {
-    /* FIXME: I don't think SUBP_CONTROL is used any more */
-    int i;
-    uint32_t *subp_control = (uint32_t*) buf->content;
-    for (i = 0; i < 32; i++) {
-      this->spudec_stream_state[i].stream_filter = subp_control[i]; 
-    }
-    return;
-  }
   if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV ) {
 #ifdef LOG_DEBUG
     printf("libspudec:got nav packet 1\n");
@@ -127,9 +118,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   printf("libspudec:got buffer type = %x\n", buf->type);
 #endif
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)  /* skip preview data */
-    return;
-
-  if ( this->spudec_stream_state[stream_id].stream_filter == 0) 
     return;
 
   if (buf->pts) {
@@ -343,7 +331,6 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   this->output_open = 0;
   this->last_event_vpts = 0;
   for (i=0; i < MAX_STREAMS; i++) {
-    this->spudec_stream_state[i].stream_filter = 1; /* So it works with non-navdvd plugins */
     this->spudec_stream_state[i].ra_seq.complete = 1;
     this->spudec_stream_state[i].overlay_handle = -1;
   }

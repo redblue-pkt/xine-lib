@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.25 2004/04/09 15:01:47 mroi Exp $
+ * $Id: spu.h,v 1.26 2004/06/21 16:19:41 mroi Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -91,7 +91,6 @@ typedef struct {
 
 typedef struct spudec_stream_state_s {
   spudec_seq_t        ra_seq;
-  uint32_t         stream_filter;
   spudec_state_t      state;
   int64_t          vpts;
   int64_t          pts;

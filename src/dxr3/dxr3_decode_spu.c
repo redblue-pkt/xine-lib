@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.46 2004/04/10 15:29:57 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.47 2004/06/21 16:19:40 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -98,8 +98,6 @@ static void    dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, i
 
 /* plugin structures */
 typedef struct dxr3_spu_stream_state_s {
-  uint32_t                 stream_filter;
-  
   int                      spu_length;
   int                      spu_ctrl;
   int                      spu_end;
@@ -219,10 +217,8 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   }
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
   
-  for (i = 0; i < MAX_SPU_STREAMS; i++) {
-    this->spu_stream_state[i].stream_filter = 1;
+  for (i = 0; i < MAX_SPU_STREAMS; i++)
     this->spu_stream_state[i].spu_length = 0;
-  }
   
   this->menu                          = 0;
   this->button_filter                 = 1;
@@ -270,7 +266,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
        buf->decoder_info[1] != BUF_SPECIAL_SPU_DVD_SUBTYPE )
     return;
 
-  if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT ) {
+  if (buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT) {
     llprintf(LOG_SPU, "BUF_SPU_CLUT\n");
     if (buf->content[0] == 0)  /* cheap endianess detection */
       dxr3_swab_clut((int *)buf->content);
@@ -284,16 +280,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     return;
   }
-  if( buf->decoder_info[2] == SPU_DVD_SUBTYPE_SUBP_CONTROL ) {
-    /* FIXME: is BUF_SPU_SUBP_CONTROL used anymore? */
-    int i;
-    uint32_t *subp_control = (uint32_t *)buf->content;
-    
-    for (i = 0; i < MAX_SPU_STREAMS; i++)
-      this->spu_stream_state[i].stream_filter = subp_control[i];
-    return;
-  }
-  if( buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV ) {
+  if (buf->decoder_info[2] == SPU_DVD_SUBTYPE_NAV) {
     uint8_t *p = buf->content;
     
     llprintf(LOG_BTN, "got NAV packet\n");
@@ -409,10 +396,6 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   /* filter unwanted streams */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     llprintf(LOG_SPU, "Dropping SPU channel %d. Preview data\n", stream_id);
-    return;
-  }
-  if (state->stream_filter == 0) {
-    llprintf(LOG_SPU, "Dropping SPU channel %d. Stream filtered\n", stream_id);
     return;
   }
   if (this->anamorphic && !this->dxr3_vo->widescreen_enabled &&
