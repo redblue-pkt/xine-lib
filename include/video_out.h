@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.4 2001/04/20 18:01:55 guenter Exp $
+ * $Id: video_out.h,v 1.5 2001/04/23 00:34:59 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -269,12 +269,3 @@ vo_instance_t *vo_init (char *driver_name);
 char *vo_get_available_drivers ();
 
 #endif
-
-
-
-
-
-
-
-
-

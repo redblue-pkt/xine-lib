@@ -30,8 +30,8 @@ typedef struct mpeg2dec_s {
     uint32_t shift;
     int is_display_initialized;
     int is_sequence_needed;
-    int drop_flag;
-    int drop_frame;
+    int frames_to_drop, drop_frame;
+    int skip_slices;
     int in_slice;
 
     /* the maximum chunk size is determined by vbv_buffer_size */
@@ -46,8 +46,6 @@ typedef struct mpeg2dec_s {
 
     uint32_t pts;
 
-    /* ONLY for 0.2.0 release - will not stay there later */
-    int frame_rate_code;
 } mpeg2dec_t ;
 
 
@@ -55,7 +53,7 @@ typedef struct mpeg2dec_s {
 
 
 /* initialize mpegdec with a opaque user pointer */
-void mpeg2_init (mpeg2dec_t * mpeg2dec, uint32_t mm_accel,
+void mpeg2_init (mpeg2dec_t * mpeg2dec, 
 		 vo_instance_t * output);
 
 /* destroy everything which was allocated, shutdown the output */
@@ -63,5 +61,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec);
 
 int mpeg2_decode_data (mpeg2dec_t * mpeg2dec,
 		       uint8_t * data_start, uint8_t * data_end, uint32_t pts);
+
+void decode_free_image_buffers (mpeg2dec_t * mpeg2dec) ;
 
 void mpeg2_drop (mpeg2dec_t * mpeg2dec, int flag);

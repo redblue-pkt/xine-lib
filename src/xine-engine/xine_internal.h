@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.6 2001/04/22 02:42:49 guenter Exp $
+ * $Id: xine_internal.h,v 1.7 2001/04/23 00:34:59 guenter Exp $
  *
  */
 
@@ -44,6 +44,10 @@
 
 /*
  * generic xine video decoder plugin interface
+ *
+ * for a dynamic plugin make sure you provide this function call:
+ * video_decoder_t *init_video_decoder_plugin (int iface_version,  
+ *                                             config_values_t *cfg);
  */
 
 typedef struct video_decoder_s video_decoder_t;
@@ -60,7 +64,7 @@ struct video_decoder_s {
 
   void (*release_img_buffers) (video_decoder_t *this);
 
-  void (*close) (void);
+  void (*close) (video_decoder_t *this);
 
 };
 
@@ -105,6 +109,8 @@ typedef struct xine_s {
   /* private : */
 
   metronom_t                *metronom;
+  
+  config_values_t           *config;
 
   input_plugin_t             input_plugins[INPUT_PLUGIN_MAX];
   int                        num_input_plugins;
@@ -165,10 +171,10 @@ config_values_t *config_file_init (char *filename);
  *
  */
 
-xine_t *xine_init (vo_instance_t *vo, 
+xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config, int demux_strategy, uint32_t debug_lvl) ;
+		   config_values_t *config);
 
 /*
  * open a stream and play it

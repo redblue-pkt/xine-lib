@@ -118,6 +118,7 @@ typedef struct picture_s {
     struct vo_frame_s * current_frame;
     struct vo_frame_s * forward_reference_frame;
     struct vo_frame_s * backward_reference_frame;
+    struct vo_frame_s * throwaway_frame;
 
     int second_field;
 

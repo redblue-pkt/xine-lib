@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.4 2001/04/22 00:31:44 guenter Exp $
+ * $Id: xine.c,v 1.5 2001/04/23 00:34:59 guenter Exp $
  *
  * top-level xine functions
  *
@@ -412,17 +412,17 @@ static void xine_pause (xine_t *this) {
 /*
  *
  */
-xine_t *xine_init (vo_instance_t *vo, 
+xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
 		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config, int demux_strategy, uint32_t debug_lvl) {
+		   config_values_t *config) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
   int err;
 
   this->status_callback = gui_status_callback;
-  this->demux_strategy  = demux_strategy;
-  xine_debug            = debug_lvl;
+  this->config          = config;
+  xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
 #ifdef TEST_FILE
   gTestFile = open ("/tmp/test.mp3", O_WRONLY | O_CREAT, 0644); 
@@ -441,23 +441,38 @@ xine_t *xine_init (vo_instance_t *vo,
   buffer_pool_init (2000, 4096);
 
   /*
-   * init demuxer
+   * create a metronom
+   */
+
+  this->metronom = metronom_init ();
+
+  /*
+   * load input and demuxer plugins
    */
   
+  load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
+  
+  printf ("xine_init: input plugins loaded\n");
+
+  this->demux_strategy  = config->lookup_int (config, "demux_strategy", 0);
+
   load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
 
   this->audio_channel = 0;
   this->spu_channel   = -1;
   this->cur_input_pos = 0;
 
-  printf ("xine_init: demuxer initialized\n");
+  printf ("xine_init: demuxer plugins loaded\n");
 
   /*
    * init and start decoder threads
    */
 
+  this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
-  this->mBufAudio = audio_decoder_init (ao);
+
+  this->audio_out = ao;
+  audio_decoder_init (this);
 
   /*
    * init SPU decoder
@@ -466,14 +481,6 @@ xine_t *xine_init (vo_instance_t *vo,
   this->spu_fifo   = fifo_buffer_new ();
   spudec_init(NULL); 
 
-  /*
-   * load input plugins
-   */
-  
-  load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
-  
-  printf ("xine_init: plugins loaded\n");
-  
   return this;
 }
 
@@ -527,15 +534,6 @@ void xine_select_spu_channel (xine_t *this, int nChannel) {
 /*
  *
  */
-input_plugin_t* xine_get_input_plugin_list (xine_t *this, int *nInputPlugins) {
-
-  *nInputPlugins = this->num_input_plugins;
-  return this->input_plugins;
-}
-
-/*
- *
- */
 int xine_get_current_position (xine_t *this) {
 
   off_t len;
@@ -566,3 +564,4 @@ int xine_get_status(xine_t *this) {
 
   return this->status;
 }
+

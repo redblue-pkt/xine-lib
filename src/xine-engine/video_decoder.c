@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.4 2001/04/22 02:42:49 guenter Exp $
+ * $Id: video_decoder.c,v 1.5 2001/04/23 00:34:59 guenter Exp $
  *
  */
 
@@ -43,7 +43,7 @@ void *video_decoder_loop (void *this_gen) {
     switch (buf->type) {
     case BUF_CONTROL_START:
       if (this->video_cur_decoder) {
-	this->video_cur_decoder->close ();
+	this->video_cur_decoder->close (this->video_cur_decoder);
 	this->video_cur_decoder = NULL;
       }
 
@@ -62,7 +62,7 @@ void *video_decoder_loop (void *this_gen) {
 	if (this->video_cur_decoder != decoder) {
 
 	  if (this->video_cur_decoder) 
-	    this->video_cur_decoder->close ();
+	    this->video_cur_decoder->close (this->video_cur_decoder);
 
 	  this->video_cur_decoder = decoder;
 	  this->video_cur_decoder->init (this->video_cur_decoder, this->video_out);
@@ -76,7 +76,7 @@ void *video_decoder_loop (void *this_gen) {
 
     case BUF_CONTROL_END:
       if (this->video_cur_decoder) {
-	this->video_cur_decoder->close ();
+	this->video_cur_decoder->close (this->video_cur_decoder);
 	this->video_cur_decoder = NULL;
       }
 
@@ -94,7 +94,7 @@ void *video_decoder_loop (void *this_gen) {
 
     case BUF_CONTROL_QUIT:
       if (this->video_cur_decoder) {
-	this->video_cur_decoder->close ();
+	this->video_cur_decoder->close (this->video_cur_decoder);
 	this->video_cur_decoder = NULL;
       }
       running = 0;
