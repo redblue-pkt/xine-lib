@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.141 2004/08/27 21:07:31 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.142 2004/09/01 12:52:34 hadess Exp $
  *
  *
  * contents:
@@ -166,6 +166,7 @@ extern "C" {
 #define BUF_VIDEO_BITPLANE	0x024A0000 /* Amiga typical picture and animation format */
 #define BUF_VIDEO_BITPLANE_BR1	0x024B0000 /* the same with Bytrun compression 1 */
 #define BUF_VIDEO_FLV1		0x024C0000
+#define BUF_VIDEO_H264		0x024D0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.83 2004/08/27 18:36:06 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.84 2004/09/01 12:52:34 hadess Exp $
  *
  *
  * contents:
@@ -630,6 +630,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_ASV2,
   "ASV v2 Video"
+},
+{
+  {
+    meFOURCC('a','v','c','1'),
+    0
+  },
+  BUF_VIDEO_H264,
+  "Apple Video Codec (H264)"
 },
 { { 0 }, 0, "last entry" }
 };
