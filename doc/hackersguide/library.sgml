@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 
   /* load xine config file and init xine */
   xine = xine_new();
-  sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
+  snprintf(configfile, sizeof(configfile), "%s%s", xine_get_homedir(), "/.xine/config");
   xine_config_load(xine, configfile);
   xine_init(xine);
   
