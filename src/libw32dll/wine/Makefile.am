@@ -4,11 +4,11 @@ noinst_LTLIBRARIES = $(wine_lib)
 
 ##
 ##
-CFLAGS = @GLOBAL_CFLAGS@@BUILD_LIB_STATIC@ @X_CFLAGS@ -fno-omit-frame-pointer \
+CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\"@w32_path@\"
 
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ @BUILD_LIB_STATIC@ @X_CFLAGS@ -fno-omit-frame-pointer \
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ @X_CFLAGS@ -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\\\"@w32_path@\\\"
 

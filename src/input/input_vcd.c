@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.13 2001/07/10 21:07:55 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.14 2001/07/16 19:36:00 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,16 +32,19 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
-#if defined (__linux__)
-#include <linux/config.h> /* Check for DEVFS */
-#include <linux/cdrom.h>
-#elif defined (__FreeBSD__)
-#include <sys/cdio.h>
-#include <sys/cdrio.h>
-#elif defined (__sun)
-#include <sys/cdio.h>
-#else
-#error "you need to add cdrom / VCD support for your platform to input_vcd"
+#ifdef HAVE_LINUX_CDROM_H
+# include <linux/config.h> /* Check for DEVFS */
+# include <linux/cdrom.h>
+#endif
+#ifdef HAVE_SYS_CDIO_H
+# include <sys/cdio.h>
+/* TODO: not clean yet */
+# if defined (__FreeBSD__)
+#  include <sys/cdrio.h>
+# endif
+#endif
+#if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO)
+#error "you need to add cdrom / VCD support for your platform to input_vcd and configure.in"
 #endif
 
 #include "xine_internal.h"

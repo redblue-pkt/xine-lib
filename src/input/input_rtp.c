@@ -147,13 +147,13 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   }
   /* multicast ? */
   if ((ntohl(sin.sin_addr.s_addr) >> 28) == 0xe) {
-#if defined (__linux__)
+#ifdef HAVE_IP_MREQN
     struct ip_mreqn mreqn;
     
     mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
     mreqn.imr_address.s_addr = INADDR_ANY;
     mreqn.imr_ifindex = 0;
-#elif defined (__FreeBSD__) || defined(__sun)
+#else
     struct ip_mreq mreqn;
     
     mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;

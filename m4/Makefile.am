@@ -6,7 +6,7 @@ m4datadir = @ACLOCAL_DIR@
 m4data_DATA = xine.m4
 endif
 
-EXTRA_DIST = _xine.m4 alsa.m4 arts.m4 esd.m4 xine.m4 aa.m4
+EXTRA_DIST = _xine.m4 alsa.m4 arts.m4 esd.m4 xine.m4 aa.m4 irixal.m4
 
 debug:
 

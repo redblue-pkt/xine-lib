@@ -811,7 +811,9 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
 
 yuv2rgb_t *yuv2rgb_init (int mode) {
 
+#ifdef ARCH_X86
   uint32_t mm = mm_accel();
+#endif
   yuv2rgb_t *this = xmalloc (sizeof (yuv2rgb_t));
 
 

@@ -79,13 +79,6 @@ AC_SUBST(STATIC)
 
 
 dnl
-dnl Build all libs as static
-dnl
-BUILD_LIB_STATIC="-static"
-AC_SUBST(BUILD_LIB_STATIC)
-
-
-dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
 AC_C_BIGENDIAN
@@ -274,12 +267,33 @@ AC_MSG_RESULT($have_sunaudio)
 AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
 
 dnl
+dnl IRIX style audio interface
+dnl
+AM_PATH_IRIXAL(0,
+	AC_DEFINE(HAVE_IRIXAL),
+	AC_MSG_RESULT(*** All of IRIX AL dependent parts will be disabled ***))
+AM_CONDITIONAL(HAVE_IRIXAL, test "x$have_irixal" = xyes)
+
+dnl
 dnl Solaris kstat kernel statistics
 dnl
 AC_CHECK_LIB(kstat, kstat_open,
 	KSTAT_LIBS=-lkstat
 	AC_DEFINE(HAVE_KSTAT))
 AC_SUBST(KSTAT_LIBS)
+
+dnl
+dnl cdrom ioctls
+dnl
+AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
+AM_CHECK_CDROM_IOCTLS(AC_DEFINE(HAVE_CDROM_IOCTLS),
+	AC_MSG_RESULT(*** DVD and (S)VCD support will be disabled ***))
+AM_CONDITIONAL(HAVE_CDROM_IOCTLS, test x"$have_cdrom_ioctls" = "xyes")
+
+dnl
+dnl ip_mreqn
+dnl
+AC_CHECK_IP_MREQN
 
 dnl
 dnl Some extra checks.
@@ -298,16 +312,19 @@ AC_TRY_CFLAGS("-fno-strict-aliasing", f_nsa="-fno-strict-aliasing", f_nsa="")
 AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
 AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
 
+dnl Flags not supported by all *cc* variants
+AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
+
 dnl Common cflags for all platforms
-COMMON_CFLAGS="-Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 
 enable_w32dll="no"
 
 case $host in
   i386-*-freebsd*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS"
-    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS -DDEBUG"
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS"
+    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
 
@@ -402,13 +419,17 @@ case $host in
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
         DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
         ;;
+    mips-*)
+	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+	;;
     *) echo "$host is not currently supported by xine"; exit 1;;
     esac
-
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS"
-    DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS -g -DDEBUG"
     ;;
 esac
+
+GLOBAL_CFLAGS="$GLOBAL_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
+DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS -g -DDEBUG"
 
 AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
 if test x"$enable_w32dll" = "xyes"; then

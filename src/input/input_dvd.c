@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.13 2001/07/10 21:07:55 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.14 2001/07/16 19:36:00 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,21 +27,23 @@
 #include <dlfcn.h>
 #include <stdio.h>
 #include <fcntl.h>
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) \
-	|| defined(__sun)
-# include <sys/cdio.h>
-#elif defined(__linux__)
-#include <linux/config.h> /* Check for DEVFS */
-# include <linux/cdrom.h>
-#else
-# error "Need the DVD ioctls"
-#endif
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+
+#ifdef HAVE_SYS_CDIO_H
+# include <sys/cdio.h>
+#endif
+#ifdef HAVE_LINUX_CDROM_H
+# include <linux/config.h> /* Check for DEVFS */
+# include <linux/cdrom.h>
+#endif
+#if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO)
+#error "you need to add cdrom / VCD support for your platform to input_vcd and configure.in"
+#endif
 
 #include "xine_internal.h"
 #include "monitor.h"
@@ -348,7 +350,7 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
 
   if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
 
-#if defined (__linux__)
+#if defined (HAVE_LINUX_CDROM_H)
     if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
       switch(status) {
       case CDS_TRAY_OPEN:
@@ -371,8 +373,15 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
       return 0;
     }
 
-#elif defined (__NetBSD__) || defined (__OpenBSD__) || defined (__FreeBSD__)
+#elif defined (HAVE_CDIO_H)
 
+# if defined (__sun)
+    status = 0;
+    if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
+      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+    }
+
+# else
     if (ioctl(fd, CDIOCALLOW) == -1) {
       perror("ioctl(cdromallow)");
     } else {
@@ -380,13 +389,7 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
         perror("ioctl(cdromeject)");
       }
     }
-
-#elif defined(__sun)
-
-    status = 0;
-    if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
-    }
+# endif
 
 #endif
 

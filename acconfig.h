@@ -17,6 +17,9 @@
 /* Define this if you're running Sparc architecture */
 #undef __sparc__ 
 
+/* Define this if you're running Mips architecture */
+#undef __mips__ 
+
 /* Define this if you have mlib installed */
 #undef HAVE_MLIB
 
@@ -56,11 +59,18 @@
 /* Define this if you have a usable Sun sound interface available */
 #undef HAVE_SUNAUDIO
 
+/* Define this if you have a usable IRIX al interface available */
+#undef HAVE_IRIXAL
+
+/* Define this if you have ARTS (libartsc) installed */
+#undef HAVE_ARTS
+
 /* Define this if you have kernel statistics available via kstat interface */
 #undef HAVE_KSTAT
 
-/* Define this if you have ARTS (libartsc) installed */
-#undef HAVE_ARTS
+/* Define this if you have CDROM ioctls */
+#undef HAVE_CDROM_IOCTLS
 
-/* Define this if you have ARTS (libartsc) installed */
-#undef HAVE_ARTS
+/* Define this if you have ip_mreqn in netinet/in.h */
+#undef HAVE_IP_MREQN
+

@@ -128,3 +128,51 @@ AC_DEFUN([AC_COMPILE_CHECK_SIZEOF],
     AC_TRY_COMPILE([],[switch (0) case 0: case (sizeof ($1) == $2):;],[],
         [AC_MSG_ERROR([can not build a default inttypes.h])])
     AC_MSG_RESULT([yes])])
+
+
+dnl AM_CHECK_CDROM_IOCTLS ([ACTION-IF-YES], [ACTION-IF-NO])
+dnl check for CDROM_DRIVE_STATUS in ioctl.h
+AC_DEFUN([AM_CHECK_CDROM_IOCTLS],
+         [AC_CACHE_CHECK([if cdrom ioctls are available],
+	     [am_cv_have_cdrom_ioctls],
+             [AC_EGREP_HEADER([CDROM_DRIVE_STATUS],[sys/ioctl.h],
+	        am_cv_have_cdrom_ioctls=yes,
+                [AC_EGREP_HEADER([CDIOCALLOW],[sys/ioctl.h],
+		   am_cv_have_cdrom_ioctls=yes,
+                   [AC_EGREP_CPP(we_have_cdrom_ioctls,[
+#include <sys/ioctl.h>
+#ifdef HAVE_SYS_CDIO_H
+#  include <sys/cdio.h>
+#endif
+#ifdef HAVE_LINUX_CDROM_H
+#  include <linux/cdrom.h>
+#endif
+#if defined(CDROM_DRIVE_STATUS) || defined(CDIOCALLOW)
+  we_have_cdrom_ioctls
+#endif
+],
+                   am_cv_have_cdrom_ioctls=yes,
+		   am_cv_have_cdrom_ioctls=no
+          )])])])
+          have_cdrom_ioctls=$am_cv_have_cdrom_ioctls
+          if test "x$have_cdrom_ioctls" = xyes ; then
+            ifelse([$1], , :, [$1])
+          else
+            ifelse([$2], , :, [$2])
+          fi
+])
+
+
+dnl AC_CHECK_IP_MREQN
+dnl check for struct ip_mreqn in netinet/in.h
+AC_DEFUN([AC_CHECK_IP_MREQN],
+         [AC_CACHE_CHECK([for ip_mreqn],[ac_cv_have_ip_mreqn],
+            [AC_EGREP_HEADER([ip_mreqn],[netinet/in.h],
+	        ac_cv_have_ip_mreqn=yes,ac_cv_have_ip_mreqn=no)
+          ])
+          have_ip_mreqn=$ac_cv_have_ip_mreqn
+          if test "x$have_ip_mreqn" = xyes ; then
+             AC_DEFINE(HAVE_IP_MREQN)
+          fi
+])
+
