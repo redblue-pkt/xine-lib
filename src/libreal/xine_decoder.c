@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2002/12/07 01:55:36 guenter Exp $
+ * $Id: xine_decoder.c,v 1.14 2002/12/10 19:47:02 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -183,10 +183,14 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   case BUF_VIDEO_RV20:
     if (!load_syms_linux (this, "drv2.so.6.0"))
       return 0;
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      = strdup ("RV 20");
     break;
   case BUF_VIDEO_RV30:
     if (!load_syms_linux (this, "drv3.so.6.0"))
       return 0;
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      = strdup ("RV 30");
     break;
   default:
     printf ("libreal: error, i don't handle buf type 0x%08x\n",
@@ -200,6 +204,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   this->width  = init_data.w;
   this->height = init_data.h;
   
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->width;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->height;
+
   init_data.subformat = BE_32(&buf->content[26]);
   init_data.format    = BE_32(&buf->content[30]);
   
@@ -308,6 +315,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  this->last_pts = this->pts;
 
 	img->duration  = this->duration; 
+	this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->duration;
 	img->bad_frame = 0;
 	
 #ifdef LOG

@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.20 2002/12/08 21:43:51 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.21 2002/12/10 19:47:30 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,6 +106,8 @@ typedef struct {
 
   int                  old_seqnum;
   int                  packet_size_cur;
+
+  off_t                avg_bitrate;
 
   int64_t              last_pts[2];
   int                  send_newpts;
@@ -308,9 +310,15 @@ static void real_parse_headers (demux_real_t *this) {
 
       if (chunk_type == PROP_TAG) {
 
-        this->packet_count = BE_32(&chunk_buffer[18]);
-        this->duration = BE_32(&chunk_buffer[22]);
-        this->data_start = BE_32(&chunk_buffer[34]);
+        this->packet_count  = BE_32(&chunk_buffer[18]);
+        this->duration      = BE_32(&chunk_buffer[22]);
+        this->data_start    = BE_32(&chunk_buffer[34]);
+	this->avg_bitrate   = BE_32(&chunk_buffer[6]); 
+
+	if (this->avg_bitrate<1)
+	  this->avg_bitrate = 1;
+
+	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->avg_bitrate;
 
       } else if (chunk_type == MDPR_TAG) {
 
@@ -484,6 +492,8 @@ static void real_parse_headers (demux_real_t *this) {
     
 	    this->video_fifo->put (this->video_fifo, buf);  
 	
+	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+
 	  } else if (!strncmp (mdpr->type_specific_data+4, "VIDORV30", 8)) {
 
 	    buf_element_t *buf;
@@ -513,6 +523,8 @@ static void real_parse_headers (demux_real_t *this) {
     
 	    this->video_fifo->put (this->video_fifo, buf);  
 	
+	    this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
+
 	  }  else {
 
 #ifdef LOG
@@ -790,8 +802,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
       buf->content       = buf->mem;
       buf->pts           = timestamp;
-      buf->input_pos     = 0 ; /* FIXME */
-      buf->input_time    = 0 ; /* FIXME */
+      buf->input_pos     = this->input->get_current_pos (this->input);
+      buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
       buf->type          = this->video_buf_type;
       
       check_newpts (this, pts, PTS_VIDEO, 0);
@@ -870,8 +882,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
     buf->content       = buf->mem;
     buf->pts           = timestamp;
-    buf->input_pos     = 0 ; /* FIXME */
-    buf->input_time    = 0 ; /* FIXME */
+    buf->input_pos     = this->input->get_current_pos (this->input);
+    buf->input_time    = buf->input_pos * 8 / this->avg_bitrate ; 
     buf->type          = this->audio_buf_type;
     buf->decoder_flags = 0;
     buf->size          = size;
@@ -952,6 +964,9 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
   this->last_pts[0]   = 0;
   this->last_pts[1]   = 0;
+
+  this->avg_bitrate   = 1;
+
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
