@@ -42,7 +42,6 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
 #ifdef ARCH_X86
-
   int Line;
   uint64_t *YVal1;
   uint64_t *YVal2;
@@ -60,8 +59,9 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   uint64_t qwEdgeDetect;
   uint64_t qwThreshold;
-  const uint64_t Mask = 0xfefefefefefefefe;
-  const uint64_t YMask = 0x00ff00ff00ff00ff;
+
+  static uint8_t YMask[] ATTR_ALIGN(8) = {0xff,0,0xff,0,0xff,0,0xff,0};
+  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
 
   qwEdgeDetect = EdgeDetect;
   qwEdgeDetect += (qwEdgeDetect << 48) + (qwEdgeDetect << 32) + (qwEdgeDetect << 16);
@@ -113,16 +113,15 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
       // get intensities in mm3 - 4
       movq_r2r ( mm0, mm3 );
+      pand_m2r ( *YMask, mm3 );
       movq_r2r ( mm1, mm4 );
+      pand_m2r ( *YMask, mm4 );
       movq_r2r ( mm2, mm5 );
-
-      pand_m2r ( *&YMask, mm3 );
-      pand_m2r ( *&YMask, mm4 );
-      pand_m2r ( *&YMask, mm5 );
+      pand_m2r ( *YMask, mm5 );
 
       // get average in mm0
-      pand_m2r ( *&Mask, mm0 );
-      pand_m2r ( *&Mask, mm2 );
+      pand_m2r ( *Mask, mm0 );
+      pand_m2r ( *Mask, mm2 );
       psrlw_i2r ( 01, mm0 );
       psrlw_i2r ( 01, mm2 );
       paddw_r2r ( mm2, mm0 );
@@ -205,14 +204,14 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   long SpatialTolerance = 600;
   long SimilarityThreshold = 25;
 
-  const uint64_t YMask    = 0x00ff00ff00ff00ff;
-
   int n;
 
   uint64_t qwSpatialTolerance;
   uint64_t qwTemporalTolerance;
   uint64_t qwThreshold;
-  const uint64_t Mask = 0xfefefefefefefefe;
+
+  static uint8_t YMask[] ATTR_ALIGN(8) = {0xff,0,0xff,0,0xff,0,0xff,0};
+  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
 
 
   // Make sure we have all the data we need.
@@ -283,14 +282,14 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       movq_r2r ( mm1, mm4 );       // mm4 = intensity(O)
       movq_r2r ( mm2, mm6 );       // mm6 = intensity(E2)
 
-      pand_m2r ( *&YMask, mm3 );
-      pand_m2r ( *&YMask, mm4 );
-      pand_m2r ( *&YMask, mm6 );
+      pand_m2r ( *YMask, mm3 );
+      pand_m2r ( *YMask, mm4 );
+      pand_m2r ( *YMask, mm6 );
 
       // Average E1 and E2 for interpolated bobbing.
       // leave result in mm0
-      pand_m2r ( *&Mask, mm0 ); // mm0 = E1 with lower chroma bit stripped off
-      pand_m2r ( *&Mask, mm2 ); // mm2 = E2 with lower chroma bit stripped off
+      pand_m2r ( *Mask, mm0 ); // mm0 = E1 with lower chroma bit stripped off
+      pand_m2r ( *Mask, mm2 ); // mm2 = E2 with lower chroma bit stripped off
       psrlw_i2r ( 01, mm0 );    // mm0 = E1 / 2
       psrlw_i2r ( 01, mm2 );    // mm2 = E2 / 2
       paddb_r2r ( mm2, mm0 );
@@ -326,7 +325,7 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
       movq_m2r ( *&qwTemporalTolerance, mm3 );
       movq_m2r ( *YVal4++, mm5 ); // mm5 = Oold
-      pand_m2r ( *&YMask, mm5 );
+      pand_m2r ( *YMask, mm5 );
       psubsw_r2r ( mm4, mm5 );  // mm5 = Oold - O
       psraw_i2r ( 1, mm5 ); // XXX
       pmullw_r2r ( mm5, mm5 );  // mm5 = (Oold - O) ^ 2
@@ -393,14 +392,14 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   uint8_t* pOddLines = psrc[0]+width;
   uint8_t* pPrevLines;
 
-  const uint64_t ShiftMask = 0xfefefefefefefefe;
+  static uint8_t ShiftMask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
 
   int LineLength = width;
   int SourcePitch = width * 2;
   int IsOdd = 1;
   long GreedyMaxComb = 15;
-  uint64_t MaxComb;
-  uint64_t i;
+  static uint8_t MaxComb[8] ATTR_ALIGN(8);
+  int i;
 
   if ( psrc[0] == NULL || psrc[1] == NULL )
     return 0;
@@ -411,12 +410,12 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     pPrevLines = psrc[1];
 
 
-	i = GreedyMaxComb;			// How badly do we let it weave? 0-255
-	MaxComb = i << 56 | i << 48 | i << 40 | i << 32 | i << 24 | i << 16 | i << 8 | i;
+  for( i = 0; i < 8; i++ )
+    MaxComb[i] = GreedyMaxComb; // How badly do we let it weave? 0-255
 
 
-	// copy first even line no matter what, and the first odd line if we're
-	// processing an EVEN field. (note diff from other deint rtns.)
+  // copy first even line no matter what, and the first odd line if we're
+  // processing an EVEN field. (note diff from other deint rtns.)
   memcpy(pdst, pEvenLines, LineLength); //DL0
   if (!IsOdd)
     memcpy(pdst + LineLength, pOddLines, LineLength); //DL1
@@ -449,7 +448,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 // field (i.e., that info->IsOdd is true).  Assume the obvious for even lines..
 
     while( LoopCtr-- )
-		{
+    {
       movq_m2r ( *L1++, mm1 );
       movq_m2r ( *L2++, mm2 );
       movq_m2r ( *L3++, mm3 );
@@ -458,70 +457,70 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       // average L1 and L3 leave result in mm4
       movq_r2r ( mm1, mm4 );	// L1
 
-      pand_m2r ( *&ShiftMask, mm4 );
+      pand_m2r ( *ShiftMask, mm4 );
       psrlw_i2r ( 01, mm4 );
       movq_r2r ( mm3, mm5 );  // L3
-      pand_m2r ( *&ShiftMask, mm5 );
+      pand_m2r ( *ShiftMask, mm5 );
       psrlw_i2r ( 01, mm5 );
       paddb_r2r ( mm5, mm4 );  // the average, for computing comb
 
       // get abs value of possible L2 comb
-			movq_r2r	( mm2, mm7 );				// L2
-			psubusb_r2r ( mm4, mm7 );				// L2 - avg
-			movq_r2r ( mm4, mm5 );				// avg
-			psubusb_r2r ( mm2, mm5 );				// avg - L2
-			por_r2r ( mm7, mm5 );				// abs(avg-L2)
-			movq_r2r ( mm4, mm6 );     // copy of avg for later
+      movq_r2r	( mm2, mm7 );				// L2
+      psubusb_r2r ( mm4, mm7 );				// L2 - avg
+      movq_r2r ( mm4, mm5 );				// avg
+      psubusb_r2r ( mm2, mm5 );				// avg - L2
+      por_r2r ( mm7, mm5 );				// abs(avg-L2)
+      movq_r2r ( mm4, mm6 );     // copy of avg for later
 
       // get abs value of possible LP2 comb
-			movq_r2r ( mm0, mm7 );				// LP2
-			psubusb_r2r ( mm4, mm7 );				// LP2 - avg
-			psubusb_r2r ( mm0, mm4 );				// avg - LP2
-			por_r2r ( mm7, mm4 );				// abs(avg-LP2)
+      movq_r2r ( mm0, mm7 );				// LP2
+      psubusb_r2r ( mm4, mm7 );				// LP2 - avg
+      psubusb_r2r ( mm0, mm4 );				// avg - LP2
+      por_r2r ( mm7, mm4 );				// abs(avg-LP2)
 
       // use L2 or LP2 depending upon which makes smaller comb
-			psubusb_r2r ( mm5, mm4 );				// see if it goes to zero
-			psubusb_r2r ( mm5, mm5 );				// 0
-			pcmpeqb_r2r ( mm5, mm4 );				// if (mm4=0) then FF else 0
-			pcmpeqb_r2r ( mm4, mm5 );				// opposite of mm4
+      psubusb_r2r ( mm5, mm4 );				// see if it goes to zero
+      psubusb_r2r ( mm5, mm5 );				// 0
+      pcmpeqb_r2r ( mm5, mm4 );				// if (mm4=0) then FF else 0
+      pcmpeqb_r2r ( mm4, mm5 );				// opposite of mm4
 
       // if Comb(LP2) <= Comb(L2) then mm4=ff, mm5=0 else mm4=0, mm5 = 55
-			pand_r2r ( mm2, mm5 );				// use L2 if mm5 == ff, else 0
-			pand_r2r ( mm0, mm4 );				// use LP2 if mm4 = ff, else 0
-			por_r2r ( mm5, mm4 );				// may the best win
+      pand_r2r ( mm2, mm5 );				// use L2 if mm5 == ff, else 0
+      pand_r2r ( mm0, mm4 );				// use LP2 if mm4 = ff, else 0
+      por_r2r ( mm5, mm4 );				// may the best win
 
       // Now lets clip our chosen value to be not outside of the range
       // of the high/low range L1-L3 by more than abs(L1-L3)
       // This allows some comb but limits the damages and also allows more
       // detail than a boring oversmoothed clip.
 
-			movq_r2r ( mm1, mm2 );				// copy L1
-			psubusb_r2r ( mm3, mm2 );				// - L3, with saturation
-			paddusb_r2r ( mm3, mm2 );                // now = Max(L1,L3)
+      movq_r2r ( mm1, mm2 );				// copy L1
+      psubusb_r2r ( mm3, mm2 );				// - L3, with saturation
+      paddusb_r2r ( mm3, mm2 );                // now = Max(L1,L3)
 
-			pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
-			psubusb_r2r ( mm1, mm7 );				// - L1
-			paddusb_r2r ( mm7, mm3 );				// add, may sat at fff..
-			psubusb_r2r ( mm7, mm3 );				// now = Min(L1,L3)
+      pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
+      psubusb_r2r ( mm1, mm7 );				// - L1
+      paddusb_r2r ( mm7, mm3 );				// add, may sat at fff..
+      psubusb_r2r ( mm7, mm3 );				// now = Min(L1,L3)
 
       // allow the value to be above the high or below the low by amt of MaxComb
-			paddusb_m2r ( *&MaxComb, mm2 );			// increase max by diff
-			psubusb_m2r ( *&MaxComb, mm3 );			// lower min by diff
+      paddusb_m2r ( *MaxComb, mm2 );			// increase max by diff
+      psubusb_m2r ( *MaxComb, mm3 );			// lower min by diff
 
-			psubusb_r2r ( mm3, mm4 );				// best - Min
-			paddusb_r2r ( mm3, mm4 );				// now = Max(best,Min(L1,L3)
+      psubusb_r2r ( mm3, mm4 );				// best - Min
+      paddusb_r2r ( mm3, mm4 );				// now = Max(best,Min(L1,L3)
 
-			pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
-			psubusb_r2r ( mm4, mm7 );				// - Max(best,Min(best,L3)
-			paddusb_r2r ( mm7, mm2 );				// add may sat at FFF..
-			psubusb_r2r ( mm7, mm2 );				// now = Min( Max(best, Min(L1,L3), L2 )=L2 clipped
+      pcmpeqb_r2r ( mm7, mm7 );				// all ffffffff
+      psubusb_r2r ( mm4, mm7 );				// - Max(best,Min(best,L3)
+      paddusb_r2r ( mm7, mm2 );				// add may sat at FFF..
+      psubusb_r2r ( mm7, mm2 );				// now = Min( Max(best, Min(L1,L3), L2 )=L2 clipped
 
-		  movq_r2m ( mm2, *Dest++ );        // move in our clipped best
+      movq_r2m ( mm2, *Dest++ );        // move in our clipped best
 
-		}
-	}
+    }
+  }
 
-	// Copy last odd line if we're processing an Odd field.
+  // Copy last odd line if we're processing an Odd field.
   if (IsOdd)
   {
     memcpy(pdst + (height * 2 - 1) * LineLength,
