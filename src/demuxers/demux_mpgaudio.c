@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.95 2003/03/09 12:18:01 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.96 2003/03/18 13:31:25 hadess Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -44,6 +44,7 @@
 */
 
 #define NUM_PREVIEW_BUFFERS  10
+#define SNIFF_BUFFER_LENGTH 1024
 
 #define WRAP_THRESHOLD       120000
 
@@ -97,11 +98,11 @@ const int tabsel_123[2][3][16] = {
      {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,} }
 };
 
-/* sampling rate frequency table */
-const long freqs[9] = {
-                  44100, 48000, 32000,
-                  22050, 24000, 16000 ,
-                  11025 , 12000 , 8000 };
+static int frequencies[2][3] = {
+	{ 44100, 48000, 32000 },
+	{ 22050, 24000, 16000 }
+};
+
 
 static int mpg123_head_check(unsigned long head) {
   if ((head & 0xffe00000) != 0xffe00000)
@@ -122,6 +123,133 @@ static int mpg123_head_check(unsigned long head) {
     return 0;
   
   return 1;
+}
+
+/* Return length of an MP3 frame using potential 32-bit header value.  See
+ * "http://www.dv.co.yu/mpgscript/mpeghdr.htm" for details on the header
+ * format.
+ *
+ * NOTE: As an optimization and because they are rare, this returns 0 for
+ * version 2.5 or free format MP3s.
+ */
+static size_t
+get_mp3_frame_length (unsigned long mp3_header)
+{
+  int ver = 4 - ((mp3_header >> 19) & 3u);
+  int br = (mp3_header >> 12) & 0xfu;
+  int srf = (mp3_header >> 10) & 3u;
+
+  /* are frame sync and layer 3 bits set? */
+  if (((mp3_header & 0xffe20000ul) == 0xffe20000ul)
+    /* good version? */
+      && ((ver == 1) || (ver == 2))
+      /* good bitrate index (not free or invalid)? */
+      && (br > 0) && (br < 15)
+      /* good sampling rate frequency index? */
+      && (srf != 3)
+      /* not using reserved emphasis value? */
+      && ((mp3_header & 3u) != 2)) {
+
+    /* then this is most likely the beginning of a valid frame */
+    size_t length = (size_t) tabsel_123[ver - 1][2][br] * 144000;
+    length /= frequencies[ver - 1][srf];
+    return length += ((mp3_header >> 9) & 1u) - 4;
+  }
+  return 0;
+}
+
+static unsigned long
+get_4_byte_value (const unsigned char *bytes)
+{
+  unsigned long value = 0;
+  int count;
+
+  for (count = 0; count < 4; ++count) {
+    value <<= 8;
+    value |= *bytes++;
+  }
+  return value;
+}
+
+static unsigned char *
+demux_mpgaudio_read_buffer_header (input_plugin_t *input)
+{
+  int count;
+  uint8_t buf[MAX_PREVIEW_SIZE];
+  unsigned char *retval;
+
+  if(!input)
+    return 0;
+
+  if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+    input->seek(input, 0, SEEK_SET);
+
+    count = input->read(input, buf, SNIFF_BUFFER_LENGTH);
+    if (count < SNIFF_BUFFER_LENGTH)
+    {
+      free (buf);
+      return NULL;
+    }
+  } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
+    input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+  } else {
+    return NULL;
+  }
+
+  retval = xine_xmalloc (SNIFF_BUFFER_LENGTH);
+  memcpy (retval, buf, SNIFF_BUFFER_LENGTH);
+
+  return retval;
+}
+
+/* Scan through the first SNIFF_BUFFER_LENGTH bytes of the
+ * buffer to find a potential 32-bit MP3 frame header. */
+static int _sniff_buffer_looks_like_mp3 (input_plugin_t *input)
+{
+  unsigned long mp3_header;
+  int offset;
+  unsigned char *buf;
+
+  buf = demux_mpgaudio_read_buffer_header (input);
+  if (buf == NULL)
+    return 0;
+
+  mp3_header = 0;
+  for (offset = 0; offset < SNIFF_BUFFER_LENGTH; offset++) {
+    size_t length;
+
+    mp3_header <<= 8;
+    mp3_header |= buf[offset];
+    mp3_header &= 0xfffffffful;
+
+    length = get_mp3_frame_length (mp3_header);
+
+    if (length != 0) {
+      /* Since one frame is available, is there another frame
+       * just to be sure this is more likely to be a real MP3
+       * buffer? */
+      offset += 1 + length;
+
+      if (offset + 4 > SNIFF_BUFFER_LENGTH)
+      {
+        free (buf);
+	return 0;
+      }
+
+      mp3_header = get_4_byte_value (&buf[offset]);
+      length = get_mp3_frame_length (mp3_header);
+
+      if (length != 0) {
+        free (buf);
+	return 1;
+      }
+      break;
+    }
+  }
+
+  free (buf);
+
+  return 0;
 }
 
 struct id3v1_tag_s {
@@ -552,7 +680,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (!ok)
 	return NULL;
 
-    } else if (!mpg123_head_check(head)) {
+    } else if (!mpg123_head_check(head) &&
+		    !_sniff_buffer_looks_like_mp3 (input)) {
 #ifdef LOG
       printf ("demux_mpgaudio: head_check failed\n");
 #endif
