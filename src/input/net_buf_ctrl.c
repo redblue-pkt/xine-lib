@@ -28,6 +28,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/********** logging **********/
+#define LOG_MODULE "net_buf_ctrl"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "net_buf_ctrl.h"
 
 #define DEFAULT_LOW_WATER_MARK     1
@@ -37,9 +44,6 @@
 
 #define FIFO_PUT                   0
 #define FIFO_GET                   1
-/*
-#define LOG
-*/
 
 struct nbc_s {
 
@@ -70,6 +74,9 @@ struct nbc_s {
   int64_t          video_br;
   int64_t          audio_br;
 
+  int              video_in_disc;
+  int              audio_in_disc;
+
   pthread_mutex_t  mutex;
 };
 
@@ -89,9 +96,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 }
 
 static void nbc_set_speed_pause (xine_stream_t *stream) {
-#ifdef LOG
-      printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
-#endif
+  lprintf("\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
   if (stream->audio_out)
@@ -99,9 +104,7 @@ static void nbc_set_speed_pause (xine_stream_t *stream) {
 }
 
 static void nbc_set_speed_normal (xine_stream_t *stream) {
-#ifdef LOG
-      printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
-#endif
+  lprintf("\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
   if (stream->audio_out)
@@ -113,14 +116,22 @@ void nbc_check_buffers (nbc_t *this) {
 }
 
 static void display_stats (nbc_t *this) {
+  char *buffering[2] = {"   ", "buf"};
+  char *enabled[2]   = {"off", "on "};
 
-  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
-    printf("net_buf_ctrl: vff=%3d%% aff=%3d%% vf=%4.1fs af=%4.1fs vbr=%4lld abr=%4lld b=%1d e=%1d\r",
-           this->video_fifo_fill, this->audio_fifo_fill,
+  if (this->stream->xine->verbosity >= 2) {
+    printf("net_buf_ctrl: vid %3d%% %4.1fs %4lldkbps %1d, "\
+           "aud %3d%% %4.1fs %4lldkbps %1d, %s %s\r",
+           this->video_fifo_fill,
            (float)(this->video_fifo_length / 1000),
+           this->video_br / 1000,
+           this->video_in_disc,
+           this->audio_fifo_fill,
            (float)(this->audio_fifo_length / 1000),
-           this->video_br / 1000, this->audio_br / 1000,
-           this->buffering, this->enabled
+           this->audio_br / 1000,
+           this->audio_in_disc,
+           buffering[this->buffering],
+           enabled[this->enabled]
           );
     fflush(stdout);
   }
@@ -140,7 +151,6 @@ static void nbc_compute_fifo_length(nbc_t *this,
   int fifo_free, fifo_fill;
   int64_t video_br, audio_br;
   int has_video, has_audio;
-  int64_t pts_diff = 0;
 
   has_video = this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO];
   has_audio = this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO];
@@ -158,24 +168,14 @@ static void nbc_compute_fifo_length(nbc_t *this,
       this->video_br = video_br;
       this->video_fifo_length = (8000 * this->video_fifo_size) / this->video_br;
     } else {
-      if (buf->pts) {
+      if (buf->pts && (this->video_in_disc == 0)) {
         if (action == FIFO_PUT) {
-          pts_diff = buf->pts - this->video_last_pts;
-          if ((pts_diff >= 0) && (pts_diff < WRAP_THRESHOLD)) {
-            this->video_last_pts = buf->pts;
-          } else {
-            /* discontinuity detected */
-#ifdef LOG
-            printf("\nnet_buf_ctrl: nbc_compute_fifo_length: video discontinuity: %lld\n", pts_diff);
-#endif
-            this->video_last_pts = buf->pts;
-            /* smooth the discontinuity */
-            this->video_first_pts = buf->pts - 90 * this->video_fifo_length;
-          }
+          this->video_last_pts = buf->pts;
           if (this->video_first_pts == 0) {
             this->video_first_pts = buf->pts;
           }
         } else {
+          /* GET */
           this->video_first_pts = buf->pts;
         }
         this->video_fifo_length = (this->video_last_pts - this->video_first_pts) / 90;
@@ -183,6 +183,9 @@ static void nbc_compute_fifo_length(nbc_t *this,
           this->video_br = 8000 * (this->video_fifo_size / this->video_fifo_length);
         else
           this->video_br = 0;
+      } else {
+        if (this->video_br)
+          this->video_fifo_length = (8000 * this->video_fifo_size) / this->video_br;
       }
     }
   } else {
@@ -193,24 +196,14 @@ static void nbc_compute_fifo_length(nbc_t *this,
       this->audio_br = audio_br;
       this->audio_fifo_length = (8000 * this->audio_fifo_size) / this->audio_br;
     } else {
-      if (buf->pts) {
+      if (buf->pts && (this->audio_in_disc == 0)) {
         if (action == FIFO_PUT) {
-          pts_diff = buf->pts - this->audio_last_pts;
-          if ((pts_diff >= 0) && (pts_diff < WRAP_THRESHOLD)) {
-            this->audio_last_pts = buf->pts;
-          } else {
-            /* discontinuity detected */
-#ifdef LOG
-            printf("\nnet_buf_ctrl: nbc_compute_fifo_length: audio discontinuity: %lld\n", pts_diff);
-#endif
-            this->audio_last_pts = buf->pts;
-            /* smooth the discontinuity */
-            this->audio_first_pts = buf->pts  - 90 * this->audio_fifo_length;
-          }
+          this->audio_last_pts = buf->pts;
           if (!this->audio_first_pts) {
             this->audio_first_pts = buf->pts;
           }
         } else {
+          /* GET */
           this->audio_first_pts = buf->pts;
         }
         this->audio_fifo_length = (this->audio_last_pts - this->audio_first_pts) / 90;
@@ -218,7 +211,30 @@ static void nbc_compute_fifo_length(nbc_t *this,
           this->audio_br = 8000 * (this->audio_fifo_size / this->audio_fifo_length);
         else
           this->audio_br = 0;
+      } else {
+        if (this->audio_br)
+          this->audio_fifo_length = (8000 * this->audio_fifo_size) / this->audio_br;
       }
+    }
+  }
+}
+
+/* Alloc callback */
+static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
+  nbc_t *this = (nbc_t*)this_gen;
+
+  if (this->buffering) {
+
+    /* restart playing if one fifo is full (to avoid deadlock) */
+    if (fifo->buffer_pool_num_free <= 1) {
+      this->progress = 100;
+      report_progress (this->stream, 100);
+      this->buffering = 0;
+
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+        printf("\nnet_buf_ctrl: nbc_alloc_cb: stops buffering\n");
+
+      nbc_set_speed_normal(this->stream);
     }
   }
 }
@@ -226,31 +242,19 @@ static void nbc_compute_fifo_length(nbc_t *this,
 /* Put callback
  * the fifo mutex is locked */
 static void nbc_put_cb (fifo_buffer_t *fifo, 
-			buf_element_t *buf, void *this_gen) {
+                        buf_element_t *buf, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
   int64_t progress = 0;
   int64_t video_p = 0;
   int64_t audio_p = 0;
   int has_video, has_audio;
-  uint32_t buf_major_mask;
 
   pthread_mutex_lock(&this->mutex);
 
-  /* stop buffering at the end of the stream */
-  if ((buf->decoder_flags & BUF_FLAG_END_USER) ||
-      (buf->decoder_flags & BUF_FLAG_END_STREAM)) {
-    this->enabled = 0;
-    if (this->buffering) {
-      this->buffering = 0;
-      nbc_set_speed_normal(this->stream);
-    }
-  }
+  if ((buf->type & BUF_MAJOR_MASK) != BUF_CONTROL_BASE) {
 
-  /* do nothing if we are at the end of the stream */
-  if (!this->enabled) {
-
-    buf_major_mask = buf->type & BUF_MAJOR_MASK;
-    if ((buf_major_mask == BUF_VIDEO_BASE) || (buf_major_mask == BUF_AUDIO_BASE)) {
+    /* do nothing if we are at the end of the stream */
+    if (!this->enabled) {
       /* a new stream starts */
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
         printf("\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
@@ -265,75 +269,105 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
       nbc_set_speed_pause(this->stream);
       this->progress = 0;
       report_progress (this->stream, progress);
-
-    } else {
-      display_stats(this);
-      pthread_mutex_unlock(&this->mutex);
-      return;
     }
-  }
 
-  nbc_compute_fifo_length(this, fifo, buf, FIFO_PUT);
+    nbc_compute_fifo_length(this, fifo, buf, FIFO_PUT);
 
-  if (this->buffering) {
+    if (this->buffering) {
 
-    has_video = this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO];
-    has_audio = this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO];
-    /* restart playing if :
-     *   - one fifo is full (to avoid deadlock)
-     *   - high_water_mark is reached by all fifos
-     * do not restart if has_video and has_audio are false to avoid
-     * a yoyo effect at the beginning of the stream when these values
-     * are not yet known.
-     * 
-     * be sure that the next buffer_pool_alloc() call will not deadlock,
-     * we need at least 2 buffers (see buffer.c)
-     */
-    if ((fifo->buffer_pool_num_free <= 2) ||
-        (((!has_video) || (this->video_fifo_length > this->high_water_mark)) &&
-         ((!has_audio) || (this->audio_fifo_length > this->high_water_mark)) &&
-         (has_video || has_audio))) {
+      has_video = this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO];
+      has_audio = this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO];
+      /* restart playing if high_water_mark is reached by all fifos
+       * do not restart if has_video and has_audio are false to avoid
+       * a yoyo effect at the beginning of the stream when these values
+       * are not yet known.
+       * 
+       * be sure that the next buffer_pool_alloc() call will not deadlock,
+       * we need at least 2 buffers (see buffer.c)
+       */
+      if ((((!has_video) || (this->video_fifo_length > this->high_water_mark)) &&
+           ((!has_audio) || (this->audio_fifo_length > this->high_water_mark)) &&
+           (has_video || has_audio))) {
 
-      this->progress = 100;
-      report_progress (this->stream, 100);
-      this->buffering = 0;
+        this->progress = 100;
+        report_progress (this->stream, 100);
+        this->buffering = 0;
 
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-        printf("\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+          printf("\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
 
-      nbc_set_speed_normal(this->stream);
+        nbc_set_speed_normal(this->stream);
 
-    } else {
-      /*  compute the buffering progress
-       *    50%: video
-       *    50%: audio */
-      video_p = ((this->video_fifo_length * 50) / this->high_water_mark);
-      if (video_p > 50) video_p = 50;
-      audio_p = ((this->audio_fifo_length * 50) / this->high_water_mark);
-      if (audio_p > 50) audio_p = 50;
-
-      if ((has_video) && (has_audio)) {
-        progress = video_p + audio_p;
-      } else if (has_video) {
-        progress = 2 * video_p;
       } else {
-        progress = 2 * audio_p;
-      }
+        /*  compute the buffering progress
+         *    50%: video
+         *    50%: audio */
+        video_p = ((this->video_fifo_length * 50) / this->high_water_mark);
+        if (video_p > 50) video_p = 50;
+        audio_p = ((this->audio_fifo_length * 50) / this->high_water_mark);
+        if (audio_p > 50) audio_p = 50;
 
-      /* if the progress can't be computed using the fifo length,
-         use the number of buffers */
-      if (!progress) {
-        video_p = this->video_fifo_fill;
-        audio_p = this->audio_fifo_fill;
-        progress = (video_p > audio_p) ? video_p : audio_p;
-      }
+        if ((has_video) && (has_audio)) {
+          progress = video_p + audio_p;
+        } else if (has_video) {
+          progress = 2 * video_p;
+        } else {
+          progress = 2 * audio_p;
+        }
 
-      if (progress > this->progress) {
-        report_progress (this->stream, progress);
-        this->progress = progress;
+        /* if the progress can't be computed using the fifo length,
+           use the number of buffers */
+        if (!progress) {
+          video_p = this->video_fifo_fill;
+          audio_p = this->audio_fifo_fill;
+          progress = (video_p > audio_p) ? video_p : audio_p;
+        }
+
+        if (progress > this->progress) {
+          report_progress (this->stream, progress);
+          this->progress = progress;
+        }
       }
     }
+  } else {
+
+    switch (buf->type) {
+      case BUF_CONTROL_NOP:
+      case BUF_CONTROL_END:
+
+        /* end of stream :
+         *   - disable the nbc
+         *   - unpause the engine if buffering
+         */
+        if ((buf->decoder_flags & BUF_FLAG_END_USER) ||
+            (buf->decoder_flags & BUF_FLAG_END_STREAM)) {
+          this->enabled = 0;
+          if (this->buffering) {
+            this->buffering = 0;
+            this->progress = 100;
+            report_progress (this->stream, this->progress);
+
+            if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+              printf("\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+
+            nbc_set_speed_normal(this->stream);
+          }
+        }
+        break;
+
+      case BUF_CONTROL_NEWPTS:
+        /* discontinuity management */
+        if (fifo == this->video_fifo) {
+          this->video_in_disc++;
+          printf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
+        } else {
+          this->audio_in_disc++;
+          printf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
+        }
+        break;
+    }
   }
+
   display_stats(this);
   pthread_mutex_unlock(&this->mutex);
 }
@@ -343,41 +377,58 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
 static void nbc_get_cb (fifo_buffer_t *fifo,
 			buf_element_t *buf, void *this_gen) {
   nbc_t *this = (nbc_t*)this_gen;
-  int other_fifo_free;
   pthread_mutex_lock(&this->mutex);
 
-  nbc_compute_fifo_length(this, fifo, buf, FIFO_GET);
+  if ((buf->type & BUF_MAJOR_MASK) != BUF_CONTROL_BASE) {
 
-  if (!this->enabled) {
-    display_stats(this);
-    pthread_mutex_unlock(&this->mutex);
-    return;
-  }
+    nbc_compute_fifo_length(this, fifo, buf, FIFO_GET);
 
-  if (!this->buffering) {
+    if (this->enabled) {
 
-    /* start buffering if one fifo is empty */
-    if (fifo->fifo_size == 0) {
-      if (fifo == this->video_fifo) {
-        other_fifo_free = this->audio_fifo_free;
+      if (!this->buffering) {
+        /* start buffering if one fifo is empty
+         */
+        int has_video = this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO];
+        int has_audio = this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO];
+        if (fifo->fifo_size == 0 && 
+            (((fifo == this->video_fifo) && has_video) ||
+             ((fifo == this->audio_fifo) && has_audio))) {
+          int other_fifo_free;
+
+          if (fifo == this->video_fifo) {
+            other_fifo_free = this->audio_fifo_free;
+          } else {
+            other_fifo_free = this->video_fifo_free;
+          }
+
+          /* Don't pause if the other fifo is full because the next
+             put() will restart the engine */
+          if (other_fifo_free > 2) {
+            this->buffering = 1;
+            this->progress  = 0;
+            report_progress (this->stream, 0);
+
+            if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+              printf("\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
+                     this->video_fifo_fill, this->audio_fifo_fill);
+            nbc_set_speed_pause(this->stream);
+          }
+        }
       } else {
-        other_fifo_free = this->video_fifo_free;
-      }
-
-      /* Don't pause if the other fifo is full because the next
-         put() will restart the engine */
-      if (other_fifo_free > 2) {
-        this->buffering = 1;
-        this->progress  = 0;
-        report_progress (this->stream, 0);
-
-        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-          printf("\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
         nbc_set_speed_pause(this->stream);
       }
     }
   } else {
-    nbc_set_speed_pause(this->stream);
+    /* discontinuity management */
+    if (buf->type == BUF_CONTROL_NEWPTS) {
+      if (fifo == this->video_fifo) {
+        this->video_in_disc--;
+        printf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
+      } else {
+        this->audio_in_disc--;
+        printf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
+      }
+    }
   }
   display_stats(this);
   pthread_mutex_unlock(&this->mutex);
@@ -389,9 +440,7 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   fifo_buffer_t *video_fifo = stream->video_fifo;
   fifo_buffer_t *audio_fifo = stream->audio_fifo;
 
-#ifdef LOG
-        printf("net_buf_ctrl: nbc_init\n");
-#endif
+  lprintf("net_buf_ctrl: nbc_init\n");
   pthread_mutex_init (&this->mutex, NULL);
 
   this->stream              = stream;
@@ -416,11 +465,15 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   this->audio_fifo_size     = 0;
   this->video_br            = 0;
   this->audio_br            = 0;
+  this->video_in_disc       = 0;
+  this->audio_in_disc       = 0;
 
+  video_fifo->register_alloc_cb(video_fifo, nbc_alloc_cb, this);
   video_fifo->register_put_cb(video_fifo, nbc_put_cb, this);
   video_fifo->register_get_cb(video_fifo, nbc_get_cb, this);
 
   if (audio_fifo) {
+    audio_fifo->register_alloc_cb(audio_fifo, nbc_alloc_cb, this);
     audio_fifo->register_put_cb(audio_fifo, nbc_put_cb, this);
     audio_fifo->register_get_cb(audio_fifo, nbc_get_cb, this);
   }
@@ -432,14 +485,14 @@ void nbc_close (nbc_t *this) {
   fifo_buffer_t *video_fifo = this->stream->video_fifo;
   fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
 
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close\n");
-#endif
+  lprintf("\nnet_buf_ctrl: nbc_close\n");
 
+  video_fifo->unregister_alloc_cb(video_fifo, nbc_alloc_cb);
   video_fifo->unregister_put_cb(video_fifo, nbc_put_cb);
   video_fifo->unregister_get_cb(video_fifo, nbc_get_cb);
 
   if (audio_fifo) {
+    audio_fifo->unregister_alloc_cb(audio_fifo, nbc_alloc_cb);
     audio_fifo->unregister_put_cb(audio_fifo, nbc_put_cb);
     audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
   }
@@ -455,9 +508,7 @@ void nbc_close (nbc_t *this) {
   pthread_mutex_unlock(&this->mutex);
 
   free (this);
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close: done\n");
-#endif
+  lprintf("\nnet_buf_ctrl: nbc_close: done\n");
 }
 
 
@@ -466,6 +517,7 @@ void nbc_set_high_water_mark(nbc_t *this, int value) {
   Deprecated
   this->high_water_mark = value;
 */
+  printf("\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
 }
 
 void nbc_set_low_water_mark(nbc_t *this, int value) {
@@ -473,4 +525,5 @@ void nbc_set_low_water_mark(nbc_t *this, int value) {
   Deprecated
   this->low_water_mark = value;
 */
+  printf("\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
 }
