@@ -259,4 +259,7 @@ Contributions
   Claire Griffin <claire@comedia.com>
     demux_ts fixes for ATSC streams
 
+  Staszek Pasko <staszek@evopolska.com>
+    binary index search for avi demuxer
+
     (let us know if we've forgotten anyone)
