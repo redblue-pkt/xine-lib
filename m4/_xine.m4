@@ -25,29 +25,6 @@ AC_DEFUN([AC_C_ALWAYS_INLINE],
     fi])
 
 dnl
-dnl Check for divx4.
-dnl AC_CHECK_DIVX4([ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]])
-AC_DEFUN([AC_CHECK_DIVX4],
-  [
-
-    AC_CHECK_HEADER(decore.h,
-                    [ no_divx4=no;
-	              AC_CHECK_LIB(divxdecore, decore, 
-				   [ no_divx4=no; DIVX4_LIBS="$DIVX4_LIBS -ldivxdecore" ], 
-			           no_divx4=yes)
-                    ], no_divx4=yes)
-
-    AC_SUBST(DIVX4_LIBS)
-
-    if test x"$no_divx4" = "xno" ; then
-       ifelse([$1], , :, [$1])
-    else
-       ifelse([$2], , :, [$2])
-    fi
-
-])
-
-dnl
 dnl Check for minimum version of libtool
 dnl AC_PREREQ_LIBTOOL([MINIMUM VERSION],[ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]])
 AC_DEFUN([AC_PREREQ_LIBTOOL],

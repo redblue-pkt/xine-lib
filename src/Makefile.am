@@ -1,10 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
 # Order is important be careful changing SUBDIRS
-#SUBDIRS = \
-#	libdivx4 \
-#	libxvid
-
 SUBDIRS = \
 	xine-utils \
 	xine-engine \

@@ -697,6 +697,7 @@ dnl ---------------------------------------------
 AC_MSG_CHECKING(for Libstk)
 dnl do some actual testing here
 if test x$PKG_CONFIG = xno ; then
+  AC_MSG_RESULT(no)
   echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
   echo "*** All of LIBSTK dependent parts will be disabled"
 else
@@ -705,7 +706,9 @@ else
         LIBSTK_CFLAGS=`$PKG_CONFIG --cflags libstk`
         LIBSTK_LIBS=`$PKG_CONFIG --libs libstk`
         have_stk="yes"
+        AC_MSG_RESULT(yes)
     else
+        AC_MSG_RESULT(no)
         AC_MSG_RESULT([*** All of Libstk dependent parts will be disabled ***])
     fi
 fi
@@ -750,6 +753,7 @@ AC_LANG_RESTORE()
 if test x$have_directx = xyes ; then
   AC_MSG_RESULT(yes)
 else
+  AC_MSG_RESULT(no)
   AC_MSG_RESULT(*** All DirectX dependent parts will be disabled ***)
 fi
 
@@ -837,14 +841,6 @@ AC_CHECK_PROG(DEPMOD, depmod, depmod, no, $PATH:/sbin)
 
 
 dnl ---------------------------------------------
-dnl Check for divx4
-dnl ---------------------------------------------
-
-dnl AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All DIVX4 dependent parts will be disabled ***))
-dnl AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
-
-
-dnl ---------------------------------------------
 dnl Ogg/Vorbis libs.
 dnl ---------------------------------------------
 
@@ -887,14 +883,6 @@ dnl ---------------------------------------------
 AM_PATH_LIBFLAC([],
 	AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
-
-
-dnl ---------------------------------------------
-dnl XviD libs.
-dnl ---------------------------------------------
-dnl abandonware
-dnl AM_PATH_XVID([], AC_MSG_RESULT([*** All XviD dependent parts will be disabled ***]))
-dnl AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
 
 
 dnl ---------------------------------------------
@@ -2146,9 +2134,6 @@ echo "     - On2 VP3         - DV"
 echo "     - 8BPS            - Duck TrueMotion v1"
 echo "     - ATI VCR1        - Flash Video"
 echo "     - ZLIB            - MSZH"
-dnl if test x"$no_xvid" = "xno"; then
-dnl  echo "   - xvid"
-dnl fi
 if test x"$have_dxr3" = "xyes"; then
   echo "   - dxr3_video"
 fi

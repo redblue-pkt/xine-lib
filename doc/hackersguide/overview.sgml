@@ -131,16 +131,6 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><filename>libdivx4</filename></term>
-     <listitem>
-      <para>
-       Video decoder plugin using libdivx4linux if it is installed.
-       Currently unmaintained and soon to be discontinued if noone cares to take over.
-      </para>
-      <para></para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
      <term><filename>libdts</filename> (imported)</term>
      <listitem>
       <para>
@@ -255,17 +245,6 @@
          </listitem>
         </varlistentry>
        </variablelist>
-      </para>
-      <para></para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><filename>libmpg123</filename> (imported)</term>
-     <listitem>
-      <para>
-       An MPEG audio decoder plugin baseg on mpg123 code. This plugin is disabled
-       because it is unmaintained. Some people said, it was faster than the libmad
-       decoder. But if noone starts to fix it, it will disappear soon.
       </para>
       <para></para>
      </listitem>
@@ -401,18 +380,6 @@
      <listitem>
       <para>
        xine's decoder pack of additional video decoders.
-      </para>
-      <para></para>
-     </listitem>
-    </varlistentry>
-    <varlistentry>
-     <term><filename>libxvid</filename></term>
-     <listitem>
-      <para>
-       A xine decoder plugin for the xvid library,
-       which has to be installed separately. This plugin is
-       unmaintained and unless someone cares to update it, it will
-       be moved to the attic soon.
       </para>
       <para></para>
      </listitem>
