@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2001/07/23 07:48:42 guenter Exp $
+ * $Id: xine_decoder.c,v 1.19 2001/07/23 23:15:16 f1rmb Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -38,7 +38,10 @@
 
 #define FRAME_SIZE 4096+512
 
+#undef DEBUG_AC3
+#ifdef DEBUG_AC3
 int ac3file; 
+#endif
 
 typedef struct ac3dec_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -171,8 +174,9 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
   for (i = 0; i<8; i++)
     this->ac3_flags_map[i] |= AC3_ADJUST_LEVEL;
 */
+#ifdef DEBUG_AC3
   ac3file = open ("test.ac3", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
-
+#endif
 }
 
 static inline int16_t blah (int32_t i)
@@ -357,7 +361,9 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
       ac3dec_decode_frame (this, this->pts);
+#ifdef DEBUG_AC3
       write (ac3file, this->frame_buffer, this->frame_length);
+#endif
       this->pts = 0;
       this->sync_todo = 7;
       this->syncword  = 0;
@@ -429,7 +435,9 @@ void ac3dec_close (audio_decoder_t *this_gen) {
 
   this->output_open = 0;
 
+#ifdef DEBUG_AC3
   close (ac3file); 
+#endif
 }
 
 static char *ac3dec_get_id(void) {
