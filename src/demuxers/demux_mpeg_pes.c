@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.3 2003/07/01 15:48:31 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.4 2003/07/01 16:04:53 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -133,27 +133,6 @@ static int32_t parse_IEC14496_FlexMux_stream(demux_mpeg_pes_t *this, uint8_t *p,
 static int32_t parse_program_stream_directory(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf);
 static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf);
 
-
-/* OK, i think demux_mpeg_pes discontinuity handling demands some
-   explanation:
-   
-   - The preferred discontinuity handling/detection for DVD is based on
-   NAV packets information. Most of the time it will provide us very
-   accurate and reliable information.
-   
-   - Has been shown that sometimes a DVD discontinuity may happen before
-   a new NAV packet arrives (seeking?). To avoid sending wrong PTS to
-   decoders we _used_ to check for SCR discontinuities. Unfortunately
-   some VCDs have very broken SCR values causing false triggering.
-   
-   - To fix the above problem (also note that VCDs don't have NAV
-   packets) we fallback to the same PTS-based wrap detection as used
-   in demux_mpeg. The only trick is to not send discontinuity information
-   if NAV packets have already done the job.
-   
-   [Miguel 02-05-2002]
-*/
-
 static void check_newpts( demux_mpeg_pes_t *this, int64_t pts, int video )
 {
   int64_t diff;
@@ -247,6 +226,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       buf->free_buffer (buf);
       return;
     } else if (this->stream_id < 0xB9) {
+      /* FIXME: This should only be tested for after a seek. */
       buf->free_buffer (buf);
       return;
     }
@@ -501,11 +481,9 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
 
 static int32_t parse_program_stream_system_header(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   /* program stream system header */
-
-  int32_t header_len;
-
-  header_len = (p[4] << 8) | p[5];
-  return 6 + header_len;
+  /* FIXME: Implement */
+  buf->free_buffer (buf);
+  return 6 + this->packet_len;
 }
 
 static int32_t parse_private_stream_2(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
@@ -811,11 +789,10 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 #ifdef LOG
         printf ("demux_mpeg_pes: A52 PACK put on fifo\n");
 #endif
-        return this->packet_len + result;
       } else {
 	buf->free_buffer(buf);
-        return this->packet_len + result;
       }
+      return this->packet_len + result;
       
     } else if ((p[0]&0xf0) == 0xa0) {
 
@@ -878,11 +855,10 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 #ifdef LOG
         printf ("demux_mpeg_pes: LPCM PACK put on fifo\n");
 #endif
-        return this->packet_len + result;
       } else {
 	buf->free_buffer(buf);
-        return this->packet_len + result;
       }
+      return this->packet_len + result;
       
     }
     /* Some new streams have been encountered.
@@ -941,6 +917,8 @@ static int32_t parse_audio_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
 #ifdef LOG
     printf ("demux_mpeg_pes: MPEG Audio PACK put on fifo\n");
 #endif
+  } else {
+    buf->free_buffer(buf);
   }
 
   return this->packet_len + result;
@@ -1454,7 +1432,6 @@ static void class_dispose (demux_class_t *this_gen) {
 static void *init_plugin (xine_t *xine, void *data) {
 
   demux_mpeg_pes_class_t     *this;
-  printf("MPEG_PES INIT called\n");
   this         = xine_xmalloc (sizeof (demux_mpeg_pes_class_t));
   this->config = xine->config;
   this->xine   = xine;
