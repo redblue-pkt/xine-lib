@@ -2,6 +2,12 @@
 #ifndef HAVE_YUV2RGB_H
 #define HAVE_YUV2RGB_h
 
+#include "config.h"
+
+#ifdef HAVE_MLIB
+#include <mlib_video.h>
+#endif
+
 #include <inttypes.h>
 
 typedef struct yuv2rgb_s yuv2rgb_t;
@@ -22,7 +28,6 @@ typedef void (*yuy22rgb_fun_t) (yuv2rgb_t *this, uint8_t * image, uint8_t * p);
 
 typedef uint32_t (*yuv2rgb_single_pixel_fun_t) (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v);
 
-
 /*
  * modes supported - feel free to implement yours
  */
@@ -41,7 +46,6 @@ typedef uint32_t (*yuv2rgb_single_pixel_fun_t) (yuv2rgb_t *this, uint8_t y, uint
 #define MODE_PALETTE 12
 
 struct yuv2rgb_s {
-
   /*
    * configure converter for scaling factors
    */
@@ -86,7 +90,7 @@ struct yuv2rgb_s {
   int               rgb_stride;
   int               slice_height, slice_offset;
   int               step_dx, step_dy;
-  int               do_scale;
+  int               do_scale, swapped;
 
   uint8_t          *y_buffer;
   uint8_t          *u_buffer;
@@ -94,6 +98,14 @@ struct yuv2rgb_s {
   void	           *y_chunk;
   void	           *u_chunk;
   void	           *v_chunk;
+
+#ifdef HAVE_MLIB
+  uint8_t          *mlib_buffer;
+  uint8_t          *mlib_resize_buffer;
+  void	           *mlib_chunk;
+  void	           *mlib_resize_chunk;
+  mlib_filter      mlib_filter_type;
+#endif
 
   void            **table_rV;
   void            **table_gU;
@@ -103,7 +115,6 @@ struct yuv2rgb_s {
 
   uint8_t          *cmap;
   scale_line_func_t scale_line;  
-
 } ;
 
 /*
@@ -111,7 +122,6 @@ struct yuv2rgb_s {
  */
 
 struct yuv2rgb_factory_s {
-
   yuv2rgb_t* (*create_converter) (yuv2rgb_factory_t *this);
 
   /* 
@@ -146,7 +156,6 @@ struct yuv2rgb_factory_s {
   yuv2rgb_fun_t               yuv2rgb_fun;
   yuy22rgb_fun_t              yuy22rgb_fun;
   yuv2rgb_single_pixel_fun_t  yuv2rgb_single_pixel_fun;
-
 };
 
 yuv2rgb_factory_t *yuv2rgb_factory_init (int mode, int swapped, uint8_t *colormap);

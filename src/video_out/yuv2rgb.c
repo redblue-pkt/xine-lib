@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.50 2004/03/03 20:09:15 mroi Exp $
+ * $Id: yuv2rgb.c,v 1.51 2004/04/11 12:25:35 komadori Exp $
  */
 
 #include "config.h"
@@ -60,8 +60,8 @@ const int32_t Inverse_Table_6_9[8][4] = {
 };
 
 
-static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
-
+static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk)
+{
   char *pMem;
 
   pMem = xine_xmalloc (size+alignment);
@@ -75,7 +75,8 @@ static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 }
 
 
-static int yuv2rgb_next_slice (yuv2rgb_t *this, uint8_t **dest) {
+static int yuv2rgb_next_slice (yuv2rgb_t *this, uint8_t **dest)
+{
   int y0, y1;
 
   if (dest == NULL) {
@@ -100,11 +101,14 @@ static int yuv2rgb_next_slice (yuv2rgb_t *this, uint8_t **dest) {
   }
 }
 
-static void yuv2rgb_dispose (yuv2rgb_t *this) {
-
+static void yuv2rgb_dispose (yuv2rgb_t *this)
+{
   free (this->y_chunk);
   free (this->u_chunk);
   free (this->v_chunk);
+#ifdef HAVE_MLIB
+  free (this->mlib_chunk);
+#endif
   free (this);
 }
 
@@ -143,7 +147,17 @@ static int yuv2rgb_configure (yuv2rgb_t *this,
     this->v_buffer = this->v_chunk = NULL;
   }
 
-  
+#ifdef HAVE_MLIB
+  if (this->mlib_chunk) {
+    free (this->mlib_chunk);
+    this->mlib_buffer = this->mlib_chunk = NULL;
+  }
+  if (this->mlib_resize_chunk) {
+    free (this->mlib_resize_chunk);
+    this->mlib_resize_buffer = this->mlib_resize_chunk = NULL;
+  }
+#endif
+
   this->step_dx = source_width  * 32768 / dest_width;
   this->step_dy = source_height * 32768 / dest_height;
 /*
@@ -185,10 +199,22 @@ static int yuv2rgb_configure (yuv2rgb_t *this,
     this->v_buffer = my_malloc_aligned (16, (dest_width+1)/2, &this->v_chunk);
     if (!this->v_buffer)
       return 0;
+
+#if HAVE_MLIB
+    /* Only need these if we are resizing and in mlib code */
+    this->mlib_buffer = my_malloc_aligned (16, source_width*source_height*4, &this->mlib_chunk);
+    if (!this->mlib_buffer)
+      return 0;
+    /* Only need this one if we are 24 bit */
+    if((rgb_stride / dest_width) == 3) {
+      this->mlib_resize_buffer = my_malloc_aligned (16, dest_width*dest_height*4, &this->mlib_resize_chunk);
+      if (!this->mlib_resize_buffer)
+      return 0;
+    }
+#endif	
   }
   return 1;
 }
-
 
 static void scale_line_gen (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
@@ -3121,12 +3147,19 @@ static void yuy22rgb_c_init (yuv2rgb_factory_t *this)
 static yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
 
   yuv2rgb_t *this = xine_xmalloc (sizeof (yuv2rgb_t));
-  
+
+  this->swapped			 = factory->swapped;
   this->cmap                     = factory->cmap;
 
   this->y_chunk = this->y_buffer = NULL;
   this->u_chunk = this->u_buffer = NULL;
   this->v_chunk = this->v_buffer = NULL;
+
+#ifdef HAVE_MLIB
+  this->mlib_chunk = this->mlib_buffer = NULL;
+  this->mlib_resize_chunk = this->mlib_resize_buffer = NULL;
+  this->mlib_filter_type = MLIB_BILINEAR;
+#endif
 
   this->table_rV                 = factory->table_rV;
   this->table_gU                 = factory->table_gU;

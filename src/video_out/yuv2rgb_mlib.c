@@ -30,291 +30,140 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+
+#include <mlib_algebra.h>
 #include <mlib_video.h>
 
 #include "attributes.h"
 #include "xineutils.h"
 #include "yuv2rgb.h"
 
+#define	MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-static void scale_line (uint8_t *source, uint8_t *dest,
-			int width, int step) {
+static void mlib_yuv420_rgb24(yuv2rgb_t *this,
+			      uint8_t * image, uint8_t * py,
+			      uint8_t * pu, uint8_t * pv)
+{
+  int src_height = MIN(this->slice_height, this->source_height-this->slice_offset) &~ 1;
+  int dst_height;
 
-  unsigned p1;
-  unsigned p2;
-  int dx;
+  dst_height = this->next_slice(this, &image);
+  if (this->do_scale) {
+    mlib_u8 *resize_buffer = this->mlib_resize_buffer;
+    mlib_s32 resize_stride = this->dest_width << 2;
 
-  p1 = *source++;
-  p2 = *source++;
-  dx = 0;
+    mlib_VideoColorYUV420seq_to_ARGBint((mlib_u32*)this->mlib_buffer,
+    					py, pu, pv, py, 0,
+					this->source_width,
+					src_height,
+					this->source_width<<2,
+					this->y_stride,
+					this->uv_stride);
+    mlib_VideoColorResizeABGR((mlib_u32*)resize_buffer,
+			      (mlib_u32*)this->mlib_buffer,
+			      this->dest_width,dst_height,resize_stride,
+			      this->source_width, src_height,this->source_width<<2,
+			      this->mlib_filter_type);
 
-  while (width) {
-
-    /*
-    printf ("scale_line, width = %d\n", width);
-    printf ("scale_line, dx = %d, p1 = %d, p2 = %d\n", dx, p1, p2);
-    */
- 
-    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
-
-    dx += step;
-    while (dx > 32768) {
-      dx -= 32768;
-      p1 = p2;
-      p2 = *source++;
+    while(dst_height--) {
+      mlib_VideoColorABGR2RGB(image, resize_buffer, this->dest_width);
+      image += this->rgb_stride;
+      resize_buffer += resize_stride;
     }
-
-    dest ++;
-    width --;
+  } else {
+    mlib_VideoColorYUV2RGB420(image, py, pu, pv,
+			      this->source_width,
+			      dst_height,
+			      this->rgb_stride,
+			      this->y_stride,
+			      this->uv_stride);
   }
 }
-			
 
-
-static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
+static void mlib_yuv420_argb32(yuv2rgb_t *this,
 			       uint8_t * image, uint8_t * py,
 			       uint8_t * pu, uint8_t * pv)
 {
+  int src_height = MIN(this->slice_height, this->source_height-this->slice_offset) &~ 1;
   int dst_height;
-  int dy;
-  mlib_status mlib_stat;
 
+  dst_height = this->next_slice(this, &image);
   if (this->do_scale) {
-    dy = 0;
-    dst_height = this->next_slice (this, &image);
-
-    /* mlib needs an even YUV2 width. */
-    _x_assert((this->dest_width&1) == 0);
-
-    for (;;) {
-      scale_line (pu, this->u_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pu += this->uv_stride;
-
-      scale_line (pv, this->v_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pv += this->uv_stride;
-
-      scale_line (py, this->y_buffer, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-      scale_line (py, this->y_buffer + this->dest_width, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-	
-      mlib_stat = mlib_VideoColorYUV2RGB420(image,
-					    this->y_buffer, 
-					    this->u_buffer,
-					    this->v_buffer,
-					    this->dest_width & ~1, 2,
-					    this->rgb_stride,
-					    this->dest_width,
-					    this->dest_width >> 1);
-      dy += this->step_dy;
-      image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*6);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
-
-      dy += this->step_dy;
-      image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*3);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
-    }
+    mlib_VideoColorYUV420seq_to_ARGBint((mlib_u32*)this->mlib_buffer,
+    					py, pu, pv, py, 0,
+					this->source_width,
+					src_height,
+					this->source_width<<2,
+					this->y_stride,
+					this->uv_stride);
+	mlib_VideoColorResizeABGR((mlib_u32*)image,
+				  (mlib_u32*)this->mlib_buffer,
+				  this->dest_width,dst_height,this->rgb_stride,
+				  this->source_width, src_height,this->source_width<<2,
+				  this->mlib_filter_type);
   } else {
-    this->next_slice (this, &image);
+    mlib_VideoColorYUV420seq_to_ARGBint((mlib_u32*)image,
+    					py, pu, pv, py, 0,
+					this->source_width,
+					dst_height,
+					this->rgb_stride,
+					this->y_stride,
+					this->uv_stride);
+  }
 
-    mlib_stat = mlib_VideoColorYUV2RGB420(image, py, pu, pv,
-					  this->source_width,
-					  this->slice_height,
-					  this->rgb_stride,
-					  this->y_stride,
-					  this->uv_stride);
+  if (this->swapped) {
+    while (dst_height--) {
+      mlib_VectorReverseByteOrder_U32((mlib_u32*)image, this->dest_width);
+      image += this->rgb_stride;
+    }
   }
 }
 
-static void mlib_yuv420_argb32 (yuv2rgb_t *this,
-				uint8_t * image, uint8_t * py,
-				uint8_t * pu, uint8_t * pv)
+static void mlib_yuv420_abgr32(yuv2rgb_t *this,
+			       uint8_t * image, uint8_t * py,
+			       uint8_t * pu, uint8_t * pv)
 {
+  int src_height = MIN(this->slice_height, this->source_height-this->slice_offset) &~ 1;
   int dst_height;
-  int dy;
-  mlib_status mlib_stat;
 
+  dst_height = this->next_slice (this, &image);
   if (this->do_scale) {
-    dy = 0;
-    dst_height = this->next_slice (this, &image);
+    mlib_VideoColorYUV420seq_to_ABGRint((mlib_u32*)this->mlib_buffer,
+    					py, pu, pv, py, 0,
+					this->source_width,
+					src_height,
+					this->source_width<<2,
+					this->y_stride,
+					this->uv_stride);
+    mlib_VideoColorResizeABGR((mlib_u32*)image,
+			      (mlib_u32*)this->mlib_buffer,
+			      this->dest_width,dst_height,this->rgb_stride,
+			      this->source_width, src_height, this->source_width<<2,
+			      this->mlib_filter_type);
+  }
+  else {
+    mlib_VideoColorYUV420seq_to_ABGRint((mlib_u32*)image,
+    					py, pu, pv, py, 0,
+					this->source_width,
+					dst_height,
+					this->rgb_stride,
+					this->y_stride,
+					this->uv_stride);
+  }
 
-    /* mlib needs an even YUV2 width */
-    _x_assert((this->dest_width&1) == 0);
-
-    for (;;) {
-      scale_line (pu, this->u_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pu += this->uv_stride;
-
-      scale_line (pv, this->v_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pv += this->uv_stride;
-
-      scale_line (py, this->y_buffer, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-      scale_line (py, this->y_buffer + this->dest_width, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-	
-      mlib_stat = mlib_VideoColorYUV2ARGB420(image,
-					     this->y_buffer, 
-					     this->u_buffer,
-					     this->v_buffer,
-					     this->dest_width & ~1, 2,
-					     this->rgb_stride,
-					     this->dest_width,
-					     this->dest_width >> 1);
-      dy += this->step_dy;
+  if (this->swapped) {
+    while (dst_height--) {
+      mlib_VectorReverseByteOrder_U32((mlib_u32*)image, this->dest_width);
       image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*8);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-      
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
-
-      dy += this->step_dy;
-      image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*4);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
     }
-  } else {
-    this->next_slice (this, &image);
-
-    mlib_stat = mlib_VideoColorYUV2ARGB420(image, py, pu, pv,
-					   this->source_width,
-					   this->slice_height,
-					   this->rgb_stride,
-					   this->y_stride,
-					   this->uv_stride);
   }
 }
 
-static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
-				uint8_t * image, uint8_t * py,
-				uint8_t * pu, uint8_t * pv)
+void yuv2rgb_init_mlib (yuv2rgb_factory_t *this)
 {
-  int dst_height;
-  int dy;
-  mlib_status mlib_stat;
-
-  if (this->do_scale) {
-    dy = 0;
-    dst_height = this->next_slice (this, &image);
-
-    /* mlib needs an even YUV2 width */
-    _x_assert((this->dest_width&1) == 0);
-
-    for (;;) {
-      scale_line (pu, this->u_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pu += this->uv_stride;
-
-      scale_line (pv, this->v_buffer,
-		  this->dest_width >> 1, this->step_dx);
-      pv += this->uv_stride;
-
-      scale_line (py, this->y_buffer, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-      scale_line (py, this->y_buffer + this->dest_width, 
-		  this->dest_width, this->step_dx);
-      py += this->y_stride;
-	
-      mlib_stat = mlib_VideoColorYUV2ABGR420(image,
-					     this->y_buffer, 
-					     this->u_buffer,
-					     this->v_buffer,
-					     this->dest_width & ~1, 2,
-					     this->rgb_stride,
-					     this->dest_width,
-					     this->dest_width >> 1);
-      dy += this->step_dy;
-      image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*8);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
-
-      dy += this->step_dy;
-      image += this->rgb_stride;
-      
-      while (--dst_height > 0 && dy < 32768) {
-	memcpy (image, (uint8_t*)image-this->rgb_stride, this->dest_width*4);
-	dy += this->step_dy;
-	image += this->rgb_stride;
-      }
-
-      if (dst_height <= 0)
-	break;
-
-      dy -= 32768;
-    }
-  } else {
-    this->next_slice (this, &image);
-
-    mlib_stat = mlib_VideoColorYUV2ABGR420(image, py, pu, pv,
-					   this->source_width,
-					   this->slice_height,
-					   this->rgb_stride,
-					   this->y_stride,
-					   this->uv_stride);
-  }
-}
-
-
-void yuv2rgb_init_mlib (yuv2rgb_factory_t *this) {
-
-  if (this->swapped) return; /*no swapped pixel output upto now*/
-
   switch (this->mode) {
   case MODE_24_RGB:
+    if (this->swapped) break;
     this->yuv2rgb_fun = mlib_yuv420_rgb24;
     break;
   case MODE_32_RGB:
@@ -325,6 +174,5 @@ void yuv2rgb_init_mlib (yuv2rgb_factory_t *this) {
     break;
   }
 }
-
 
 #endif	/* HAVE_MLIB */
