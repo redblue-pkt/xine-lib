@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.196 2004/12/12 22:01:03 mroi Exp $
+ * $Id: demux_qt.c,v 1.197 2005/01/02 17:25:22 mroi Exp $
  *
  */
 
@@ -2984,7 +2984,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mov qt mp4";
+  return "mov qt mp4 m4a";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
