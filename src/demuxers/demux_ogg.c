@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.17 2002/03/23 22:39:11 guenter Exp $
+ * $Id: demux_ogg.c,v 1.18 2002/03/27 15:30:16 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -212,13 +212,13 @@ static void *demux_ogg_loop (void *this_gen) {
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
     this->video_fifo->put (this->video_fifo, buf);
     
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
+      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
@@ -259,14 +259,13 @@ static void demux_ogg_stop (demux_plugin_t *this_gen) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
-
+  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 }

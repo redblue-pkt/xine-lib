@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.39 2002/03/23 21:57:30 guenter Exp $
+ * $Id: demux_ts.c,v 1.40 2002/03/27 15:30:16 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1148,13 +1148,13 @@ static void *demux_ts_loop(void *gen_this) {
   this->status = DEMUX_FINISHED;
   buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 0; /* stream finished */
+  buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
   this->fifoVideo->put(this->fifoVideo, buf);
 
   if (this->fifoAudio) {
     buf = this->fifoAudio->buffer_pool_alloc(this->fifoAudio);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
     this->fifoAudio->put(this->fifoAudio, buf);
   }
   pthread_exit(NULL);
@@ -1355,13 +1355,13 @@ static void demux_ts_stop(demux_plugin_t *this_gen)
 
   buf = this->fifoVideo->buffer_pool_alloc (this->fifoVideo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
+  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
   this->fifoVideo->put (this->fifoVideo, buf);
 
   if (this->fifoAudio) {
     buf = this->fifoAudio->buffer_pool_alloc (this->fifoAudio);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
     this->fifoAudio->put (this->fifoAudio, buf);
   }
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.20 2002/03/11 12:31:24 guenter Exp $
+ * $Id: demux_pes.c,v 1.21 2002/03/27 15:30:16 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -311,13 +311,13 @@ static void *demux_pes_loop (void *this_gen) {
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 0; /* stream finished */
+    buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
     this->video_fifo->put (this->video_fifo, buf);
 
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
-      buf->decoder_info[0] = 0; /* stream finished */
+      buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
@@ -359,13 +359,13 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type            = BUF_CONTROL_END;
-  buf->decoder_info[0] = 1; /* forced */
+  buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type            = BUF_CONTROL_END;
-    buf->decoder_info[0] = 1; /* forced */
+    buf->decoder_flags   = BUF_FLAG_END_USER; /* user finished */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
 
