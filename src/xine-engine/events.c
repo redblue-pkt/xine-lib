@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.13 2002/10/23 11:44:31 jcdutton Exp $
+ * $Id: events.c,v 1.14 2002/10/26 16:15:24 mroi Exp $
  *
  * Event handling functions
  *
@@ -70,8 +70,6 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
 
   xine_event_queue_t *queue;
 
-  gettimeofday (&event->tv, NULL);
-
   pthread_mutex_lock (&stream->event_queues_lock);
 
   queue = (xine_event_queue_t *)xine_list_first_content (stream->event_queues);
@@ -90,6 +88,7 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
     } else {
       cevent->data = NULL;
     }
+    gettimeofday (&cevent->tv, NULL);
     
     pthread_mutex_lock (&queue->lock);
     xine_list_append_content (queue->events, cevent);
