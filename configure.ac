@@ -1004,7 +1004,7 @@ dnl AC_ARG_ENABLE(vcdo,[  --disable-vcdo         Do not compile old VCD plugin],
 dnl
 enable_vcdo="yes"
 
-AC_ARG_WITH(internal-vcdnav,[  --with-internal-vcdlibs  Force using internal libcdio/libvcd/libvcdinfo ],
+AC_ARG_WITH(internal-vcdlibs,[  --with-internal-vcdlibs  Force using internal libcdio/libvcd/libvcdinfo ],
             [external_vcdnav="no"], [external_vcdnav="yes"])
 
 if test x"$enable_vcd" = "xyes"; then
