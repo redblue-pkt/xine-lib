@@ -601,9 +601,18 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   
   mpeg2_discontinuity(mpeg2dec);
   
-  if( !picture->mpeg1 ) 
+  if( !picture->mpeg1 ) {
     mpeg2dec->is_wait_for_ip_frames = 2;
-  else {
+
+    /* mark current frames as bad so they won't make to screen */
+    if ( picture->current_frame )
+      picture->current_frame->bad_frame=1;
+    if (picture->forward_reference_frame )
+      picture->forward_reference_frame->bad_frame=1;
+    if (picture->backward_reference_frame)
+      picture->backward_reference_frame->bad_frame=1;
+
+  } else {
     /* to free reference frames one also needs to fix slice.c to 
      * abort when they are NULL. unfortunately it seems to break
      * DVD menus.
