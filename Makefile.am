@@ -62,6 +62,9 @@ release-check: misc/relchk.sh
 	@./autogen.sh && $(SHELL) misc/relchk.sh
 	@mv -f .cvsversion.tmp .cvsversion
 
+slackbuild:
+	@(cd misc && $(MAKE) SlackBuild) && \
+	 CONFIG_OPT="--with-included-dvdnav" PREFIX="/usr" misc/SlackBuild
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 
