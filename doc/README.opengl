@@ -1,0 +1,44 @@
+Please Note:
+
+The 'opengl' output plugin is still in alpha stage.
+Expect crashes and strange behaviour.
+Most times it seems to run fine, though.
+
+
+Startup
+-------
+
+Start xine with '-V opengl'.  Note that xine might choose a visual with a
+different color depth than you would prefer.  Choose an appropriate visual
+with 'glxinfo' and select it with '-V opengl --visual xyz' in this case.
+
+
+Known Problems
+--------------
+
+* Sometimes I only see a black screen and no image
+* Sometimes xine crashes when changing the stream or the position in the stream
+
+  This seems to relate to some race conditions that are still present
+  in the current code. This will change in time.
+
+  Jun. 25, 2002: I think this issue is resolved now.  If you still encounter
+  any problems, please let me know.  Otherwise I will remove this statement
+  in the future.
+
+* There is a (small) memory leak
+
+  This is known and - unfortunately - cannot be resolved right now.
+  Background: The output plugin does not get notified, when the XWindow
+  is destroyed. But even when it would be notified, this wouldn't help,
+  as the OpenGL context could only be destroyed by the render thread.
+
+* Expose events just display a black image when playback is paused.
+
+  This is known and cannot be resolved right now.
+  Background: The OpenGL context can only be used by the render thread and
+  not by the GUI thread. I tried to use a second context within the same
+  drawable, but this destabilized the plugin to an unusable state.
+
+
+Matthias Hopf <mat@mshopf.de>

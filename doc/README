@@ -1,32 +1,55 @@
+xine-lib/doc/README
 
-   ----------------------
-            xine
-   ----------------------
+This directory contains documentation for xine-lib (the xine engine).
+Parts of this documentation are targeted towards end-users, other parts
+toward developers.
 
-     a free video player
+Some frontends (e.g. xine-ui) may come with additional, frontend-specific
+documentation. The documents in this directory try to talk about xine
+engine features common to all frontends.
 
----------------
-Build from CVS
----------------
+faq/
+  contains the xine engine FAQ
 
-  1). Run autogen.sh: ./autogen.sh (this will configure xine-lib to install
-      to /usr/local/lib). You can change this location and other flags.
-      Look at ./configure --help for more options.
+README.config_en
+  details about xine engine config options 
 
-  2). Configure xine-lib running "./configure <configure flags>" if
-      necessary.
+README.freebsd
+  hints on running xine on FreeBSD
 
-  3). Run "make" to start building an optimized version.
-  
-      OR
-  
-      Run "make debug" to start building a debug version.
+README.irix
+  hints on running xine on IRIX
 
-  4) Run "make install" to install xine-lib to the desired directory.
-     If nothing was done this directory should be /usr/local/lib.
+README.opengl
+  how to use xine's OpenGL video output
 
-  5) Ensure that the desired directory path, e.g. /usr/local/lib, is
-     in ld.so.conf. If not enter it and re-run ldconfig:
+README.solaris
+  hints on running xine on Solaris
 
-     ldconfig -v
+README.syncfb
+  information about xine's SyncFB video output plugin
 
+README.tvmode
+  how to get tv output working
+
+README.dvb
+  instructions on how to get DVB (DigitalTV) working in xine
+
+README.dxr3
+README.dxr3_pl
+  instructions on how to get use the DXR3 (hollywood+) in xine
+
+README.mrl
+  defines exactly what MRLs (media resource locators) are
+
+README.plugins
+  information about plugin concepts in xine for developers
+
+man/
+  contains some general manpages about xine-lib
+
+hackersguide/
+  contains the xine hacker's guide for developers
+
+dvb_channels
+  sample channel file for DVB 

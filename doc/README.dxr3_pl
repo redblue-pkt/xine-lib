@@ -1,0 +1,319 @@
+
+   ----------------------
+            xine
+   ----------------------
+
+   wolny odtwarzacz wideo
+
+
+Wstêp
+=====
+
+Ta dokumantacja jest przeznaczona dla u¿ytkowników dekodera dxr3
+firmy Creative Labs lub Sigma Designs.
+
+Ta wersja xine domy¶lnie zawiera wtyczkê dla wsparcia wspomnianych
+dekoderów sprzêtowych. Brakuj±cym elementem jest modu³ j±dra systemu.
+Ten modu³ jest dostêpny na stronie g³ównej projektu dxr3/hw+ pod
+adresem
+
+	http://dxr3.sourceforge.net/
+
+Ró¿ne formaty dystrybucji (skompresowane, RPMy) s± wyszczególnione
+pod adresem
+
+	http://dxr3.sourceforge.net/download.html
+
+Poniewa¿ konfiguracja sterownika dxr3/hw+ jest nieco skomplikowane,
+proszê zagl±dn±æ do dokumentu HOWTO:
+
+	http://dxr3.sourceforge.net/howto.html
+
+Wtyczka xine dxr3 wymaga przynajmniej wersji
+
+	em8300-0.8.1 sterownika kernela linuxa
+	
+
+Kompilacja
+==========
+
+Bardzo wa¿nym jest skompilowanie i zainstalowanie sterwonika
+(modu³u) dxr3/hw+ *przed* kompilacj± xine-lib. Nie zachowanie
+wspomnianej zasady spowoduje wy³±czenie obs³ugi dxr3 z ostrze¿eniem
+przez skryp ./configure.
+
+W celu aktywacji wtyczkê, plik em8300.h musi byæ dostêpny
+w katalogu /usr/src/linux/include/linux. Je¶li masz niestandardowy
+katalog ¼róde³ j±dra linuxa np. /usr/src/linux-2.4.5, musisz
+podaæ go jako parametr:
+
+./configure --with-linux-path=/usr/src/linux-2.4.5
+
+Wtyczka dxr3 xine
+=================
+
+S± dwa sposoby u¿ycia karty dxr3 przez xine.
+
+1. dekodowanie i wy¶wietlanie mpeg-1/mpeg-2 (DVD, VCD, ...).
+
+Jest to normalne u¿ytkowanie. Zamiast dekodowaæ mpeg programowo,
+xine ustawia wy¶wietlanie (TV albo overlay) i wysy³a dane mpeg
+poprzez sterownik j±dra do dekodera mpeg na karcie dxr3 bardzo
+podobnie do odtwarzacza windowsowego który prawdopodobnie otrzyma³e¶
+wraz z kart±. W tym trybie, powiniene¶ u¿ywaæ wtyczkê dekodera dxr3
+razem z wtyczk± wyj¶cia obrazu dxr3.
+
+xine powinno wybraæ wtyczkê dekodera dxr3 automatycznie gdy
+napotka strumieñ mpeg, lecz jest mo¿liwe ¿e nie u¿yje automatycznie
+wtyczki wyj¶cia obrazu dxr3. W takim przypadku, wystartuj xine
+z opcj± "-V dxr3" aby zdefiniowaæ wtyczkê wyj¶cia obrazu dxr3. Je¶li
+u¿yjesz innej wtyczki wyj¶cia obrazu, jak Xv lub XShm, xine nie
+bêdzie móg³ u¿yæ dekoduj±cych w³asno¶ci sprzêtu dxr3 i u¿yje
+zamiast tego biblioteki libmpeg2.
+
+         Oto uproszczony opis tego co dzieje siê gdy odtwarzasz
+dvd z pomoc± xine u¿ywaj±cego sterownika wyj¶cia obrazu dxr3:
+
+DVD -> podzia³ obrazu i d¼wiêku mpeg oraz strumieni d¼wiêku
+-> wysy³anie obrazu mpeg do dxr3 -> obraz pojawia siê na ekranie
+
+2. wy¶wietlanie obrazu nie-mpeg na sprzêcie dxr3.
+
+Obraz nie-mpeg mo¿e byæ avi, quicktime, windows-media-files lub
+cokolwiek xine mo¿e odkodowaæ.
+
+Ta opcja musi byæ wkompilowana i wymaga wspieranego kodera mpeg.
+W tym momencie istniej± dwa:
+- libfame z fame.sourceforge.net (bardzo szybki, dobrej jako¶ci)
+- librte (versja 0.4) z zapping.sourceforge.net (szybki, bardzo
+dobrej jako¶ci)
+Je¶li ./configure znajdzie jeden albo obydwa, wkompiluje
+wsparcie dla kodowania do sterownika dxr3.
+
+Aby u¿yæ tego sterownika dla wyj¶cia obrazu zamiast, powiedzmy,
+Xv, wystartuj xine z linii poleceñ z opcj± "-V dxr3", np.
+$ xine -V dxr3 my_movie.avi
+
+W przeciwieñstwie do przypadku 1), gdzie karta wykonuje
+dekodowanie obrazu, tutaj xine wykonuje dekodowanie programowo,
+jak zwykle i wysy³a zdekompresowany obraz do sterownika wyj¶cia
+obrazu. Sterownik wyj¶cia dxr3 zakodowywuje, w czasie
+rzeczywistym, ten obraz jako wewnêtrzn± ramke mpeg-1 i wysy³a
+to do dekodera mpeg na karcie.
+
+U¿ywaj±c tego triku, mo¿emy wy¶wietliæ dowolny format obrazu
+poprzez wyj¶cie TV karty dxr3. Sprytne, nie? Jedyn± wad± tego
+rozwi±zania jest wymagana dodatkowa moc do przeliczenia tego
+odkodowania i zakodowania obrazu w czasie rzeczywistym
+programowo. Wymagana moc procesora zale¿y oczywi¶cie od
+rozdzielczo¶ci formatu ¼ród³a, ale wed³ug regu³y kciuka
+zalecany jest system z 128 MB pamiêci RAM i P-III/Athlonem
+taktowanym zegarem 800 MHz.
+
+Oto opis tego co dzieje siê gdy odgrywasz plik avi w ten
+sposób (porównaj do poprzedniego opisu!)
+
+-> oddzielenie strumienia obrazu i d¼wiêku -> dekodowanie
+strumienia obrazu -> zakodowywanie obrazu jako mpeg-1 ->
+wysy³anie strumienia mpeg-1 do dxr3 -> obraz wy¶wietlany
+na ekranie.
+
+konfiguracja xine
+=================
+
+xine posiada wiele opcji konfiguracyjnych w $HOME/.xine/config
+(zobacz równie¿ doc/README.config_en)
+
+dxr3.devicename:
+        /dev/em8300-0 ¦cie¿ka bezwzglêdna do urz±dzenia dxr3.
+
+dxr3.preferred_tvmode:
+	default U¿yj obecnych ustawieñ sterownika
+	ntsc    NTSC 60Hz
+	pal     PAL 50Hz
+	pal60   PAL 60Hz
+	
+dxr3.videoout_mode:
+        letterboxed overlay
+                wyj¶cie obrazu overlay na monitorze VGA z opcj±
+                prze³±czania "w locie" do trybu TV. (patrz
+                'W³a¶ciwo¶æ VGA overlay' poni¿ej). Overlay
+                bêdzie wy¶wietlany z czarnymi brzegami je¶li
+                obraz jest anamorficzny. To mo¿e byæ u¿yteczne
+                w rzadkim przypadku napisów które poprawnie
+                s± wy¶wietlane tylko w trybie letterbox.
+                Dobrym tego przyk³adem s± animowane
+                sylwetki komentatorów w "Ghostbusters".
+        widescreen overlay
+                wyj¶cie obrazu overlay na monitorze VGA z
+                opcj± prze³±czania w locie do trybu TV
+                (patrz 'W³a¶ciwo¶æ VGA overlay' poni¿ej).
+                Najpopularniejszy wariant trybu overlay dxr3.
+        letterboxed tv
+                wysy³a obraz tylko do wyj¶cia TV karty.
+                To jest tryb u¿ywany dla standardowego
+                telewizora 4:3. Anamorficzne proporcje bêd±
+                wy¶wietlane letterboxed, materia³ pan&scan
+                bêdzie mia³ obraz obciêty.
+        widescreen tv
+                wysy³a obraz tylko do wyj¶cia TV karty. To
+                jest tryb przeznaczony dla telewizorów 16:9.
+                Zawarto¶æ anamorficzna i pan&scan wype³ni obraz
+                ale bêdziesz musia³ ustawiæ proporcje TV rêcznie.
+
+dxr3_keycolor: (tylko w trybie overlay)
+	0x80a040 Szesnastkowa warto¶æ RGB koloru kluczowego.
+                 Nie powinna byæ zmieniana.
+
+dxr3.color_interval: (tylko w trybie overlay)
+	50.0	Zakres tolerancji dla koloru kluczowego. Wy¿sza warto¶æ
+                pozwala na wiêkszy zakres kolorów kluczowych. U¿ywane
+                do korekcji b³êdów w wy¶wietlaniu kolorów na wyj¶ciu VGA.
+                Mniejsza warto¶æ jest zalecana aby nie u¿ywaæ "b³êdnych"
+                kolorów do trybu overlay. Rozs±dny zakres to 20.0 - 200.0
+
+dxr3.scr_priority:
+	10	Priorytet wtyczki dxr3 scr. <5 oznacza ¿e czasomierz
+                systemowy ma byæ u¿yty. >5 narzuca u¿ycie dxr3 jako
+                ¼ród³o synchronizacji. Je¶li tego nie rozumiesz
+                pozostaw ustawienia domy¶lne.
+
+dxr3.decoder_priority:
+        10      Priorytet wtyczki dekodera dxr3. <5 oznacza ¿e sprzêtowe
+                dekodowanie bêdzie wy³±czone i bêdzie u¿yte zamiast tego
+                libmpeg2. W ten sposób jakikolwiek materia³ wideo,
+                w³±czaj±c w to mpeg bêdzie przechodzi³ przez programowe
+                dekodowanie i ponowne kodowanie do mpeg.
+
+dxr3.contrast:
+dxr3.brightness:
+dxr3.saturation:
+        500     Nie powinno byæ potrzebne zmienianie rêczne. U¿yj xine
+                do regulacji. Zakres 100 - 900
+
+dxr3.alt_play_mode:
+         1      W³±cz lub wy³±cza rozszerzony tryb bufora dostêpnego
+                przynajmniej na czê¶ci kart. Znacz±ce polepszenie
+                by³o zaobserwowane z zak³uconymi strumieniami przerywanymi
+                pauzami.
+
+dxr3.sync_every_frame:
+         0      Próbuje ustawiæ znaczniki czasu synchronizacji dla ka¿dej
+                ramki. Zazwyczaj nie jest to wymagane, nawet je¶li
+                sychrnonizacyjne znaczniki czasu s± ustawiane od czasu
+                czasu.       
+
+dxr3.correct_durations:
+         0      W³±cza ma³y automat który koryguje czas trwania ramki
+                niektórych strumieni mpeg z b³êdnymi kodekami framerate.
+                Obecnie zosta³a zaimplementowana korekta dla ntsc b³êdnie
+                nazwana jako strumieñ pal. W³±czaj tylko kiedy spotkasz
+                taki strumieñ.
+
+video.driver:
+	dxr3    Sterownik obrazu dxr3 robi ca³± niezbêdn± konfiguracjê
+                karty i kodowanie do mpeg gdy odtwarzany jest strumieñ
+                nie-mpeg (patrz wy¿ej)
+
+audio.driver:
+	oss	wyj¶cie em8300 audio jest dostêpne jako zwyk³e urz±dzenie
+                OSS. Sterownik audio musi wiêc byæ ustawione na oss.
+                Mo¿e byæ równie¿ ustawione przy u¿yciu "-A oss" jako
+                opcji w lini poleceñ.
+
+audio.oss_device_num:
+        0-16	komputery z zainstalowan± kart± dxr3 czêsto maj± równie¿
+                zainstaloan± kartê d¼wiêkow±. Je¶li odtwarzanie d¼wiêku
+                odbywa siê za pomoc± b³êdnego urz±dzenia, wymagane
+                urz±dzenie mo¿e byæ ustawione za pomoc± tej opcji.
+
+Poni¿sze ustawienia dotycz± tylko czê¶ci koduj±cej do mpeg:
+
+dxr3.enc_alt_play_mode:
+        1       Patrz na dxr3.alt_play_mode. Ró¿nica polega na tym
+                ¿e ta jest u¿ywana w trybie kodowania.
+
+dxr3.enc_swap_fields:
+        0       Zamienia parzyste pola z nieparzystymi obrazu. W³±cz
+                tê opcjê dla materia³ów które generuj± pionowe skakanie
+                obrazu na ekranie.
+
+dxr3.enc_add_bars:
+        1       Dodaj czarne pasy gdy obraz ma proporcje nie obs³ugiwane
+                przez kartê. Jest wymagane do utrzymania prawid³owych
+                proporcji.
+
+dxr3.encoder:
+                Program koduj±cy który ma byæ u¿yty.
+                Zale¿nie od tego co zosta³o wkompilowane mo¿e byæ "fame"
+                lub "rte". Wed³ug regu³y kciuka, powiniene¶ spróbowaæ
+                najpierw rte poniewa¿ daje on lepsz± jako¶æ obrazu. Je¶li
+                masz za du¿o opuszczonych ramek, prze³±cz na "fame" i
+                znajd¼ optymalne ustawienie fame_quality (patrz ni¿ej)
+                dla Twojego systemu.
+
+dxr3.fame_quality: (tylko koder libfame)
+       0-100    Ustawienie jako¶ci kodowania mpeg1 przez fame. Ni¿sza
+                warto¶æ jest szybsza ale daje znacz±ce zniekszta³cenia
+                Wy¿sza jest lepsza ale wolniejsza. Warto¶ci pomiêdzy
+                0 a 100, 90 jest dobr± warto¶ci± pocz±tkow±.
+
+dxr3.rte_bitrate: (tylko koder rte)
+       1000-20000 Bitrate w kbit/s wyj¶cia kodera librte. Ni¿sza warto¶æ
+                jest szybsza, ale ró¿nica nie jest tak du¿a jak w
+                ustawieniach libfame. Je¶li masz za du¿o opuszczonych
+                ramek, lepiej u¿yj kodera libfame.
+
+Zalecane jest uruchomienie XINE przynajmniej raz przed edycj±
+pliku konfiguracyjnego, poniewa¿ wszystkie opcje s± zapisywane w
+pliku .xinerc i maj± swoj± domy¶ln± warto¶æ. Xine mo¿na zmusiæ do
+u¿ycia sterownika dxr3 u¿ywaj±c opcji "-V dxr3" w lini poleceñ.
+Je¶li domy¶lne ustawienia sterownika s± b³êdne - trzeba poprawiæ
+jedynie warto¶æ opcji tvmode.
+
+Funkcjonalno¶æ zoom (tylko TVout)
+=================================
+Przyciskaj±c klawisz 'z' w³±cza inn± specyficzn± dla trybu
+wyj¶cia TV które powiêksza centraln± czê¶æ obrazu 16:9 aby
+wy¶wietliæ du¿o mniejsze (albo wogóle) czarne pasy na dole i
+górze. To obcina obraz na lewo i prawo aby zachowaæ odpowiednie
+proporcje. U¿yj SHIFT-z aby wy³±czyæ.
+
+Funkcjonalno¶æ prze³±czania trybu TV
+====================================
+Naci¶niêcie kombinacji CTRL-o prze³±cza pomiêdzy trybami TV pal,
+pal60, i NTSC. Wybrany format bêdzie dzia³a³ tylko do koñca
+aktualnej sesji xine, przy starcie tryb TV bedzie ustawione
+z powrotem do warto¶ci w .xine/config
+
+Funkcjonalno¶æ VGA overlay
+==========================
+
+W poprzednich wersjach xine, trzeba by³o u¿ywaæ dxr3view by u¿ywaæ
+mechanizmu em8300 overlay. Teraz od wersji 0.5, mo¿na odtwarzaæ w trybie
+em8300 overlay bezbo¶rednio w oknie video xine.
+
+Pierwszy pomys³ i poprawnie pracuj±cy kod przyszed³ od Mike Lampard
+<mjl@datafast.net.au>. Chwa³a mu za t± now± funkcjonalno¶æ.
+
+W celu aktywacji, "dxr3_tvmode" musi byæ ustawiony na "overlay".
+Ale to nie zadzia³a dopóki stary dxr3view te¿ bêdzie uruchomiony
+(po prostu sprawd¼). Przed pierwszym u¿yciem, musisz uruchomiæ "autocal".
+To zachowa parametry trybu overlay w pliku "~/.overlay". Wiêcej informacji
+równie¿ w HOWTO dxr3.
+
+Rzuæ równie¿ okiem na wy¿ej opisane opcje xinerc dxr3_keycolor i
+dxr3_color_interval.
+
+
+--- 
+Wersja tego pliku:
+$Id: README.dxr3_pl,v 1.1 2003/01/05 13:11:53 guenter Exp $
+
+*********************************
+* T³umaczenie: Bart³omiej Muryn *
+* Uwagi do t³umaczenia proszê   *
+* przesy³aæ na adres            *
+*      _4ever_@irc.pl           *
+*********************************
+

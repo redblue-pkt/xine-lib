@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.127 2002/12/27 19:14:41 mroi Exp $
+ * $Id: video_out.c,v 1.128 2003/01/05 13:11:55 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
