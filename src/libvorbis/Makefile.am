@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@ @VORBIS_CFLAGS@
+CFLAGS = @CFLAGS@ $(VORBIS_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -15,11 +15,11 @@ endif
 lib_LTLIBRARIES = $(vorbis_module)
 
 xineplug_decode_vorbis_la_SOURCES = xine_decoder.c
-xineplug_decode_vorbis_la_LIBADD = @VORBIS_LIBS@
+xineplug_decode_vorbis_la_LIBADD = $(VORBIS_LIBS)
 xineplug_decode_vorbis_la_LDFLAGS = -avoid-version -module
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @OGG_CFLAGS@ @VORBIS_CFLAGS@"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(OGG_CFLAGS) $(VORBIS_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

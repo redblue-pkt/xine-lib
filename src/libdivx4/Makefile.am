@@ -2,8 +2,6 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@
-
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)

@@ -2,8 +2,6 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@ 
-
 lib_LTLIBRARIES = libxineutils.la
 
 libxineutils_la_SOURCES = utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c

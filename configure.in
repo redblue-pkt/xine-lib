@@ -40,23 +40,23 @@ AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR)
 AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR)
 AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB)
 
-## this is only for pre-1.0 releases (ie with unstable interface)
+dnl this is only for pre-1.0 releases (ie with unstable interface)
 LT_RELEASE=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB
 LT_CURRENT=0
 LT_REVISION=0
 LT_AGE=0
 
-## non-devel releases should not use LT_RELEASE but something like this:
-##
-## LT_REVISION=$XINE_SUB
-## LT_CURRENT=`expr $XINE_MAJOR + $XINE_MINOR`
-## LT_AGE=$XINE_MINOR
-##
-## !! This only works if subminor releases don't have any interface changes,
-## !! minor releases _only add_ interfaces and major releases remove at least
-## !! one interface
-## otherwise, the LT_* variables must be set according to
-## <info:(libtool)Updating version info>
+dnl non-devel releases should not use LT_RELEASE but something like this:
+dnl
+dnl LT_REVISION=$XINE_SUB
+dnl LT_CURRENT=`expr $XINE_MAJOR + $XINE_MINOR`
+dnl LT_AGE=$XINE_MINOR
+dnl
+dnl !! This only works if subminor releases don't have any interface changes,
+dnl !! minor releases _only add_ interfaces and major releases remove at least
+dnl !! one interface
+dnl otherwise, the LT_* variables must be set according to
+dnl <info:(libtool)Updating version info>
 
 AC_SUBST(LT_RELEASE)
 AC_SUBST(LT_CURRENT)
@@ -70,12 +70,20 @@ AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
 
 
-##
+dnl
+dnl Store and reset CFLAGS
+dnl
+cflags_set=${CFLAGS+set}
+cflags_saved="$CFLAGS"
+CFLAGS=""
+
+
+dnl
 AC_CANONICAL_SYSTEM
 dnl AC_CANONICAL_HOST
 
 
-##
+dnl
 AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE)
 
 
@@ -153,7 +161,7 @@ AC_TYPE_SIZE_T
 AM_TYPE_PTRDIFF_T
 
 AC_SUBST(DEBUG_CFLAGS)
-AC_SUBST(GLOBAL_CFLAGS)
+dnl AC_SUBST(GLOBAL_CFLAGS)
 
 dnl
 dnl threads
@@ -162,7 +170,7 @@ case "$host" in
   *-*-freebsd*)
     THREAD_LIBS="-L/usr/local/lib -pthread"
     THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
-    CFLAGS="$CFLAGS -L/usr/local/lib $THREAD_CFLAGS"
+    CFLAGS="-L/usr/local/lib $THREAD_CFLAGS"
     CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
     ;;
   *)
@@ -566,8 +574,7 @@ enable_ffmmx="no"
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS"
+    CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
@@ -594,7 +601,8 @@ case "$host_or_hostalias" in
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
 	dnl add x86 specific gcc CFLAGS
-	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
 
 	if test x"$sarchopt" != "xno"; then
@@ -629,7 +637,7 @@ case "$host_or_hostalias" in
 	    esac
 
 	    if test x"$archopt_val" != x; then
-		GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$archopt_val"
+		CFLAGS="$CFLAGS $sarchopt=$archopt_val"
 		DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$archopt_val"
 	    fi
 	    ]
@@ -647,7 +655,7 @@ case "$host_or_hostalias" in
     	enable_ffmmx="yes"
     else
 	dnl add x86 specific cc CFLAGS
-	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O"
+	CFLAGS="$CFLAGS -O"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     	AC_DEFINE(FPM_64BIT)
     fi
@@ -657,26 +665,26 @@ case "$host_or_hostalias" in
     ;;
 
   alphaev56-*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
+    CFLAGS="$CFLAGS -O3 -mcpu=ev56 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
     AC_DEFINE(FPM_64BIT)
     ;;
 
   alpha*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
+    CFLAGS="$CFLAGS -O3 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
     AC_DEFINE(FPM_64BIT)
     ;;
 
   ppc-*-linux* | powerpc-*) 
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+    CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_PPC)
     AC_DEFINE(ARCH_PPC)
     
     if test x$enable_altivec = xyes; then
         AC_DEFINE(ENABLE_ALTIVEC)
-        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -Wa,-m7400"
+        CFLAGS="$CFLAGS -Wa,-m7400"
     fi
     ;;
 
@@ -685,7 +693,7 @@ case "$host_or_hostalias" in
     sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
     sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
     esac
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+    CFLAGS="$CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 
     AC_DEFINE(FPM_SPARC)
@@ -707,30 +715,30 @@ case "$host_or_hostalias" in
 	cc_debug_cflags="-O"
     	AC_DEFINE(FPM_64BIT)		dnl use portable version with non-gcc
     fi
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $cc_optimize_cflags"
+    CFLAGS="$CFLAGS $cc_optimize_cflags"
     DEBUG_CFLAGS="$DEBUG_CFLAGS $cc_debug_cflags"
     ;;
 
   mips-*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_MIPS)
     ;;
 
   m68k-*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O2"
+    CFLAGS="$CFLAGS -O2"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_DEFAULT)
     ;;
 
   ia64-*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_64BIT)
     ;;
 
   s390-*)
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_DEFAULT)
     ;;
@@ -751,14 +759,21 @@ case "$host_or_hostalias" in
     echo "(sleeping one minute so you can read this...)"
     sleep 60
 
-    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE(FPM_DEFAULT)
     ;;
 esac
 
 
-GLOBAL_CFLAGS="$GLOBAL_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
+CFLAGS="$CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS"
+dnl
+dnl Some CFLAGS was previously defined, use them too.
+dnl
+if test "$cflags_set" = "set"; then
+  CFLAGS="$cflags_saved $CFLAGS"
+fi
+
 DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS $ARTS_CFLAGS $IRIXAL_CFLAGS -g -DDEBUG"
 
 AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")

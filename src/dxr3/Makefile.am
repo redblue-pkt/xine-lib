@@ -1,4 +1,4 @@
-CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ $(LINUX_INCLUDE)
+CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LINUX_INCLUDE)
 
 EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c
 

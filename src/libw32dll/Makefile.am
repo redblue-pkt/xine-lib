@@ -1,4 +1,4 @@
-CFLAGS = @GLOBAL_CFLAGS@ -I$(srcdir)/wine
+CFLAGS = @CFLAGS@ -I$(srcdir)/wine
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ -I$(srcdir)/wine
 

@@ -2,9 +2,6 @@
 # the videofill plugin
 #
 
-CFLAGS = @GLOBAL_CFLAGS@
-DEBUG_CFLAGS = @DEBUG_CFLAGS@
-
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_vfill.la

@@ -2,11 +2,11 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-#CFLAGS = @GLOBAL_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+#CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
-# we must not use GLOBAL_CFLAGS here, gcc optimizations produce
+# we must not use CFLAGS here, gcc optimizations produce
 # bad code if we do so.
-CFLAGS = -O2 @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+CFLAGS = -O2 $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
 ASFLAGS =
 
@@ -35,7 +35,7 @@ noinst_HEADERS = dsputil_mmx_avg.h  mmx.h
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
-	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
