@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.19 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.20 2002/12/31 20:15:51 esnel Exp $
  */
 
 #include <stdio.h>
@@ -50,7 +50,8 @@
 /* memory bit stream */
 typedef struct bit_buffer_s {
   uint8_t	*buffer;
-  uint32_t	 bitpos;
+  unsigned int	 bitpos;
+  unsigned int	 length;
 } bit_buffer_t;
 
 /* variable length (bit) code */
@@ -579,11 +580,23 @@ static vlc_code_t inter_mean_table_5[292] = {
 static uint32_t get_bits (bit_buffer_t *bitbuf, int count) {
   uint32_t result;
 
-  /* load 32 bits of data (byte-aligned) */
-  result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
+  /* avoid buffer overflow */
+  if ((bitbuf->bitpos + 24) >= bitbuf->length) {
+    int i;
 
-  /* compensate for sub-byte offset */
-  result <<= (bitbuf->bitpos & 0x7);
+    /* load upto 24 bits of data on sub-byte offset */
+    result = 0;
+
+    for (i=(bitbuf->bitpos & ~0x7); i < bitbuf->length; i+=8) {
+      result |= bitbuf->buffer[i >> 3] << (24 + (bitbuf->bitpos - i));
+    }
+  } else {
+    /* load 32 bits of data (byte-aligned) */
+    result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
+
+    /* compensate for sub-byte offset */
+    result <<= (bitbuf->bitpos & 0x7);
+  }
 
   /* flush num bits */
   bitbuf->bitpos += count;
@@ -1135,7 +1148,7 @@ static int decode_frame_header (bit_buffer_t *bitbuf, svq1_t *svq1) {
   return 0;
 }
 
-static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
+static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer, int length) {
   bit_buffer_t	bitbuf;
   uint8_t      *current, *previous;
   int		result, i, x, y, width, height;
@@ -1144,6 +1157,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
   /* initialize bit buffer */
   bitbuf.buffer	= buffer;
   bitbuf.bitpos	= 0;
+  bitbuf.length	= 8*length;
 
   /* decode frame header */
   svq1->frame_code = get_bits (&bitbuf, 22);
@@ -1162,7 +1176,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
 
   result = decode_frame_header (&bitbuf, svq1);
 
-  if (result != 0)
+  if (result != 0 || bitbuf.bitpos > bitbuf.length)
     return result;
 
   /* check frame size (changed?) */
@@ -1222,7 +1236,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
 	for (x=0; x < width; x+=16) {
 	  result = decode_svq1_block (&bitbuf, &current[x], width, 1);
 
-	  if (result != 0)
+	  if (result != 0 || bitbuf.bitpos > bitbuf.length)
 	    return result;
 	}
 
@@ -1237,7 +1251,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
 	  result = decode_delta_block (&bitbuf, &current[x], previous,
 				       width, svq1->motion, x, y);
 
-	  if (result != 0)
+	  if (result != 0 || bitbuf.bitpos > bitbuf.length)
 	    return result;
 	}
 
@@ -1306,14 +1320,16 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       vo_frame_t *img;
       int	  result;
 
-      result = svq1_decode_frame (this->svq1, this->buf);
+      result = svq1_decode_frame (this->svq1, this->buf, this->size);
 
       if (this->svq1->width > 0 && this->svq1->height > 0) {
 
 	img = this->stream->video_out->get_frame (this->stream->video_out,
-					  this->svq1->width,
-					  this->svq1->height,
-					  XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+						  this->svq1->width,
+						  this->svq1->height,
+						  XINE_VO_ASPECT_DONT_TOUCH,
+						  XINE_IMGFMT_YV12,
+						  VO_BOTH_FIELDS);
 
 	img->duration	= this->video_step;
 	img->pts	= buf->pts;
