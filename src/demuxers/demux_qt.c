@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.122 2002/11/29 18:38:02 tmmm Exp $
+ * $Id: demux_qt.c,v 1.123 2002/12/04 04:07:08 tmmm Exp $
  *
  */
 
@@ -250,7 +250,6 @@ typedef struct {
   unsigned int audio_vbr;    /* flag to indicate if audio is VBR */
   void *audio_decoder_config;
   int audio_decoder_config_len;
-  unsigned int *audio_sample_size_table;
 
   qt_atom video_codec;
   unsigned int video_type;
@@ -1525,8 +1524,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
       info->audio_decoder_config = sample_tables[i].decoder_config;
       info->audio_decoder_config_len = sample_tables[i].decoder_config_len;
-
-      info->audio_sample_size_table = sample_tables[i].sample_size_table;
     }
   }
   debug_frame_table("  qt: finished building frame tables, merging into one...\n");
@@ -1885,15 +1882,6 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
       if (!remaining_sample_bytes) {
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-#if 0
-        if( this->qt->audio_sample_size_table ) {
-          buf->decoder_flags |= BUF_FLAG_SPECIAL;
-          buf->decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE;
-          buf->decoder_info[3] = (uint32_t)
-            &this->qt->audio_sample_size_table[this->qt->frames[i].official_byte_count];
-        }
-#endif
       }
 
       this->audio_fifo->put(this->audio_fifo, buf);
