@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.25 2003/01/31 19:38:28 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.26 2003/01/31 19:57:32 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -429,6 +429,9 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
 #endif
   
   if( this->vidix_started ) {
+#ifdef LOG
+    printf("video_out_vidix: overlay off\n");
+#endif
     vdlPlaybackOff(this->vidix_handler);
   }
 
@@ -491,6 +494,9 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   apitch = this->vidix_play.dest.pitch.u-1;
   this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
      
+#ifdef LOG
+  printf("video_out_vidix: overlay on\n");
+#endif  
   vdlPlaybackOn(this->vidix_handler);
   this->vidix_started = 1;
 }
@@ -594,7 +600,9 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 || (frame->height != this->sc.delivered_height)
 	 || (frame->ratio_code != this->sc.delivered_ratio_code) 
 	 || (frame->format != this->delivered_format ) ) {
+#ifdef LOG
 	 printf("video_out_vidix: change frame format\n");
+#endif
       
       this->sc.delivered_width      = frame->width;
       this->sc.delivered_height     = frame->height;
@@ -683,7 +691,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.hue = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      printf("video_out_vidix:\n");
+      printf("video_out_vidix: can't set hue: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_SATURATION ) {
@@ -691,7 +699,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.saturation = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      printf("video_out_vidix:\n");
+      printf("video_out_vidix: can't set saturation: %s\n", strerror(err));
   }
     
   if ( property == VO_PROP_BRIGHTNESS ) {
@@ -699,7 +707,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.brightness = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      printf("video_out_vidix:\n");
+      printf("video_out_vidix: can't set brightness: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_CONTRAST ) {
@@ -707,7 +715,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.contrast = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-        printf("video_out_vidix:\n");
+        printf("video_out_vidix: can't set contrast: %s\n", strerror(err));
   }
   }
     
