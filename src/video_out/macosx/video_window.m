@@ -89,6 +89,14 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return self;
 }
 
+- (void) dealloc
+{
+    [xineView release];
+
+    [super dealloc];
+}
+
+
 - (XineOpenGLView *) xineView {
     return xineView;
 }
@@ -210,6 +218,39 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [self initTextures];
 
     return self;
+}
+
+- (id) initWithCoder:(NSCoder *)coder
+{
+    [super initWithCoder:coder];
+
+    self = [self initWithFrame:[self frame]];
+    return self;
+}
+
+- (void) encodeWithCoder:(NSCoder *)coder
+{
+    [super encodeWithCoder:coder];
+}
+
+
+- (void) dealloc {
+    if (texture_buffer)
+        free (texture_buffer);
+
+    if (fullScreenContext) {
+        [NSOpenGLContext clearCurrentContext];
+        [fullScreenContext clearDrawable];
+        [fullScreenContext release];
+    }
+
+    if (currentContext) {
+        [NSOpenGLContext clearCurrentContext];
+        [currentContext clearDrawable];
+        [currentContext release];
+    }
+
+    [super dealloc];
 }
 
 - (void) reshape {

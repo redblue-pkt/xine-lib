@@ -38,7 +38,6 @@ typedef enum {
     BOOL                           initDone;
     BOOL                           isFullScreen;
     XineVideoWindowFullScreenMode  fullscreen_mode;
-    NSOpenGLContext *              opengl_context;
     NSOpenGLContext *              fullScreenContext;
     NSOpenGLContext *              currentContext;
 }
