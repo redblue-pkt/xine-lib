@@ -196,7 +196,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 					     picture->coded_picture_height,
 					     picture->aspect_ratio_information,
 					     IMGFMT_YV12,
-					     picture->frame_duration);
+					     picture->frame_duration,
+					     VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
 	    picture->forward_reference_frame->PTS = 0;
 	    picture->forward_reference_frame->bFrameBad = 1;
 	    picture->backward_reference_frame =
@@ -205,7 +206,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 					     picture->coded_picture_height,
 					     picture->aspect_ratio_information,
 					     IMGFMT_YV12,
-					     picture->frame_duration);
+					     picture->frame_duration,
+					     VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
 	    picture->backward_reference_frame->PTS = 0;
 	    picture->backward_reference_frame->bFrameBad = 1;
 
@@ -245,7 +247,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
 						     IMGFMT_YV12,
-						     picture->frame_duration);
+						     picture->frame_duration,
+						     picture->picture_structure);
 		else {
 		    picture->current_frame =
 		        mpeg2dec->output->get_frame (mpeg2dec->output,
@@ -253,7 +256,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
 						     IMGFMT_YV12,
-						     picture->frame_duration);
+						     picture->frame_duration,
+						     (VO_PREDICTION_FLAG | picture->picture_structure));
 		    picture->forward_reference_frame->free (picture->forward_reference_frame);
 
 		    picture->forward_reference_frame =
@@ -263,9 +267,6 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		picture->current_frame->bFrameBad = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
 		mpeg2dec->pts = 0;
-		picture->current_frame->field(picture->current_frame, 
-					      picture->picture_structure);
-
 	    }
 	}
 
@@ -413,7 +414,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				       picture->coded_picture_height,
 				       picture->aspect_ratio_information,
 				       IMGFMT_YV12,
-				       picture->frame_duration);
+				       picture->frame_duration,
+				       VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
 	picture->forward_reference_frame->PTS = 0;
 	picture->forward_reference_frame->bFrameBad = 1;
 	picture->backward_reference_frame =
@@ -422,7 +424,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				       picture->coded_picture_height,
 				       picture->aspect_ratio_information,
 				       IMGFMT_YV12,
-				       picture->frame_duration);
+				       picture->frame_duration,
+				       VO_PREDICTION_FLAG | VO_BOTH_FIELDS);
 	picture->backward_reference_frame->PTS = 0;
 	picture->backward_reference_frame->bFrameBad = 1;
 	    

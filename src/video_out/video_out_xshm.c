@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.22 2001/07/20 15:59:29 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.23 2001/07/24 12:57:30 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -66,7 +66,6 @@ typedef struct xshm_frame_s {
 
   int                width, height;
   int                rgb_width, rgb_height;
-  int                ratio_code;
 
   XImage            *image;
   uint8_t           *rgb_dst;
@@ -74,6 +73,8 @@ typedef struct xshm_frame_s {
   XShmSegmentInfo    shminfo;
 
   int                format;
+
+  uint8_t           *chunk[3]; /* mem alloc by xmalloc_aligned */
 } xshm_frame_t;
 
 typedef struct xshm_driver_s {
@@ -103,19 +104,24 @@ typedef struct xshm_driver_s {
   int              delivered_width;      /* everything is set up for these frame dimensions    */
   int              delivered_height;     /* the dimension as they come from the decoder        */
   int              delivered_ratio_code;
+  int              delivered_flags;
   double           ratio_factor; /* output frame must fullfill: height = width * ratio_factor  */
   int              output_width;         /* frames will appear in this size (pixels) on screen */
   int              output_height;
   int              output_xoffset;
   int              output_yoffset;
   int              stripe_height;
+  int              yuv_width;            /* width/height yuv2rgb is configured for */
+  int              yuv_height;
+  int              yuv_stride;
 
   int              user_ratio;
 
-  int              dest_width;           /* size of image gui has most recently adopted to     */
+  int              dest_width;           /* size of image gui has most recently adopted to */
   int              dest_height;
   int              gui_width;           /* size of gui window */
   int              gui_height;
+  int              gui_size_changed;
   int              dest_x;
   int              dest_y;
 
@@ -162,6 +168,20 @@ static void x11_DeInstallXErrorHandler (xshm_driver_t *this)
 {
   XSetErrorHandler (NULL);
   XFlush (this->display);
+}
+
+static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
+
+  void *pMem;
+
+  pMem = xmalloc (size+alignment);
+
+  *chunk = pMem;
+
+  while ((int) pMem % alignment)
+    pMem++;
+
+  return pMem;
 }
 
 /*
@@ -295,6 +315,8 @@ static void dispose_ximage (xshm_driver_t *this,
 
   } else {
 
+    free (myimage->data);
+
     XDestroyImage (myimage);
 
   }
@@ -359,32 +381,15 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
   switch (which_field) {
-  case 1:
+  case VO_TOP_FIELD:
     frame->rgb_dst    = frame->image->data;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
-    yuv2rgb_setup (this->yuv2rgb,
-		   this->delivered_width,
-		   16,
-		   this->delivered_width*2,
-		   this->delivered_width,
-		   this->output_width,
-		   this->stripe_height,
-		   frame->image->bytes_per_line*2);
-
     break;
-  case 2:
+  case VO_BOTTOM_FIELD:
     frame->rgb_dst    = frame->image->data + frame->image->bytes_per_line ;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
-    yuv2rgb_setup (this->yuv2rgb,
-		   this->delivered_width,
-		   16,
-		   this->delivered_width*2,
-		   this->delivered_width,
-		   this->output_width,
-		   this->stripe_height,
-		   frame->image->bytes_per_line*2);
     break;
-  case 3:
+  case VO_BOTH_FIELDS:
     frame->rgb_dst    = frame->image->data;
     break;
   }
@@ -432,7 +437,7 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
 static void xshm_calc_output_size (xshm_driver_t *this) {
 
   double image_ratio, desired_ratio;
-  double corr_factor;
+  double corr_factor, x_factor, y_factor;
   int ideal_width, ideal_height;
   int dest_width, dest_height;
 
@@ -492,7 +497,6 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     desired_ratio = 4.0 / 3.0;
   }
 
-  /* this->ratio_factor = display_ratio * desired_ratio / image_ratio ;  */
   this->ratio_factor = this->display_ratio * desired_ratio;
 
   /*
@@ -521,57 +525,60 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   this->calc_dest_size (ideal_width, ideal_height, 
 			&dest_width, &dest_height);
 
-
   /*
    * make the frames fit into the given destination area
    */
 
-  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
-
-    this->output_width   = dest_width ;
-    this->output_height  = (double) dest_width / this->ratio_factor ;
-    this->output_xoffset = 0;
-    this->output_yoffset = (dest_height - this->output_height) / 2;
-
+  x_factor = (double) dest_width / (double) ideal_width;
+  y_factor = (double) dest_height / (double) ideal_height;
+  
+  if ( x_factor < y_factor ) { 
+    this->output_width   = (double) ideal_width * x_factor ;
+    this->output_height  = (double) ideal_height * x_factor ;
   } else {
-    
-    this->output_width    = (double) dest_height * this->ratio_factor ;
-    this->output_height   = dest_height;
-
-    this->output_xoffset  = (dest_width - this->output_width) / 2;
-    this->output_yoffset  = 0;
-
+    this->output_width   = (double) ideal_width * y_factor ;
+    this->output_height  = (double) ideal_height * y_factor ;
   } 
+
+  this->output_xoffset = (dest_width - this->output_width) / 2;
+  this->output_yoffset = (dest_height - this->output_height) / 2;
 }
 
 static void xshm_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
-				      int ratio_code, int format) {
+				      int ratio_code, int format, int flags) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
+  int setup_yuv = 0;
+
+  flags &= VO_BOTH_FIELDS;
+
+  if ((width != this->delivered_width)
+      || (height != this->delivered_height)
+      || (ratio_code != this->delivered_ratio_code)
+      || (flags != this->delivered_flags)
+      || this->gui_size_changed) {
+
+    this->delivered_width      = width;
+    this->delivered_height     = height;
+    this->delivered_ratio_code = ratio_code;
+    this->delivered_flags      = flags;
+    this->gui_size_changed     = 0;
+    
+    xshm_calc_output_size (this);
+
+    setup_yuv = 1;
+  }
 
   if ((frame->rgb_width != this->output_width) 
       || (frame->rgb_height != this->output_height)
       || (frame->width != width)
       || (frame->height != height)
-      || (frame->ratio_code != ratio_code)
-      || (frame->format != format)
-      || (frame->width != this->delivered_width)
-      || (frame->height != this->delivered_height)) {
+      || (frame->format != format)) {
 
     int image_size;
-
-    if ((frame->width != this->delivered_width)
-	|| (frame->height != this->delivered_height)
-	|| (frame->ratio_code != ratio_code)) {
-      this->delivered_width      = width;
-      this->delivered_height     = height;
-      this->delivered_ratio_code = ratio_code;
-
-      xshm_calc_output_size (this);
-    }
 
     this->stripe_height = 16 * this->output_height / this->delivered_height;
 
@@ -590,8 +597,18 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
       dispose_ximage (this, &frame->shminfo, frame->image);
 
-      /* FIXME: free yuv (base) memory !!!!! */
-
+      if (frame->chunk[0]){
+	free (frame->chunk[0]);
+	frame->chunk[0] = NULL;
+      }
+      if (frame->chunk[1]) {
+	free (frame->chunk[1]);
+	frame->chunk[1] = NULL;
+      }
+      if (frame->chunk[2]) {
+	free (frame->chunk[2]);
+	frame->chunk[2] = NULL;
+      }
 
       frame->image = NULL;
     }
@@ -603,12 +620,12 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     if (format == IMGFMT_YV12) {
       image_size = width * height;
-      frame->vo_frame.base[0] = xmalloc_aligned(16,image_size);
-      frame->vo_frame.base[1] = xmalloc_aligned(16,image_size/4);
-      frame->vo_frame.base[2] = xmalloc_aligned(16,image_size/4);
+      frame->vo_frame.base[0] = my_malloc_aligned(16,image_size, &frame->chunk[0]);
+      frame->vo_frame.base[1] = my_malloc_aligned(16,image_size/4, &frame->chunk[1]);
+      frame->vo_frame.base[2] = my_malloc_aligned(16,image_size/4, &frame->chunk[2]);
     } else {
       image_size = width * height;
-      frame->vo_frame.base[0] = xmalloc_aligned(16,image_size*2);
+      frame->vo_frame.base[0] = my_malloc_aligned(16,image_size*2, &frame->chunk[0]);
     }
     
     frame->format = format;
@@ -617,34 +634,71 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     frame->rgb_width  = this->output_width;
     frame->rgb_height = this->output_height;
-
-    frame->ratio_code = ratio_code;
-  
-    yuv2rgb_setup (this->yuv2rgb,
-		   this->delivered_width,
-		   16,
-		   this->delivered_width,
-		   this->delivered_width/2,
-		   this->output_width,
-		   this->stripe_height,
-		   frame->image->bytes_per_line);
-
   }
 
   if (frame->image) {
     frame->rgb_dst    = frame->image->data;
-    frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
+    switch (flags) {
+    case VO_TOP_FIELD:
+      frame->rgb_dst    = frame->image->data;
+      frame->stripe_inc = 2 * this->stripe_height * frame->image->bytes_per_line;
+      break;
+    case VO_BOTTOM_FIELD:
+      frame->rgb_dst    = frame->image->data + frame->image->bytes_per_line ;
+      frame->stripe_inc = 2 * this->stripe_height * frame->image->bytes_per_line;
+      break;
+    case VO_BOTH_FIELDS:
+      frame->rgb_dst    = frame->image->data;
+      frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
+      break;
+    }
+
+    if ( (flags == VO_BOTH_FIELDS) 
+	 && (this->yuv_stride != frame->image->bytes_per_line) ) {
+      setup_yuv = 1;
+    } else if (this->yuv_stride != (frame->image->bytes_per_line*2)) {
+      setup_yuv = 1;
+    }
+
+    if (setup_yuv 
+	|| (this->yuv_height != this->stripe_height) 
+	|| (this->yuv_width != this->output_width)) {
+      switch (flags) {
+      case VO_TOP_FIELD:
+      case VO_BOTTOM_FIELD:
+	yuv2rgb_setup (this->yuv2rgb,
+		       this->delivered_width,
+		       16,
+		       this->delivered_width*2,
+		       this->delivered_width,
+		       this->output_width,
+		       this->stripe_height,
+		       frame->image->bytes_per_line*2);
+	this->yuv_stride = frame->image->bytes_per_line*2;
+	break;
+      case VO_BOTH_FIELDS:
+	yuv2rgb_setup (this->yuv2rgb,
+		       this->delivered_width,
+		       16,
+		       this->delivered_width,
+		       this->delivered_width/2,
+		       this->output_width,
+		       this->stripe_height,
+		       frame->image->bytes_per_line);
+	this->yuv_stride = frame->image->bytes_per_line;
+	break;
+      }
+      this->yuv_height = this->stripe_height;
+      this->yuv_width  = this->output_width;
+    }
   }
 }
 
-/*
- *
- */
 static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
-// Alpha Blend here
+  /* Alpha Blend here */
    if (overlay->data) {
      switch(this->bpp) {
        case 16:
@@ -677,6 +731,10 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     if ( (frame->width != this->dest_width)
 	 || (frame->height != this->dest_height) ) {
+
+      printf ("requesting dest size of %d x %d \n",
+	      frame->rgb_width, frame->rgb_height);
+
       
       this->request_dest_size (frame->rgb_width, frame->rgb_height, 
 			       &this->dest_x, &this->dest_y, 
@@ -685,8 +743,15 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       this->dest_width = frame->width;
       this->dest_height = frame->height;
 
-      this->output_xoffset  = (frame->rgb_width - this->gui_width) / 2;
-      this->output_yoffset  = (frame->rgb_height - this->gui_height) / 2;
+      this->output_xoffset  = (this->gui_width - frame->rgb_width) / 2;
+      this->output_yoffset  = (this->gui_height - frame->rgb_height) / 2;
+
+      printf ("gui size : %d x %d, frame size : %d x %d => offset %d, %d\n",
+	      this->gui_width, this->gui_height,
+	      frame->rgb_width, frame->rgb_height,
+	      this->output_xoffset,
+	      this->output_yoffset);
+
     }
     
     XLockDisplay (this->display);
@@ -766,40 +831,11 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
-  x11_rectangle_t *area; 
-  int              gui_width, gui_height;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
-    area = (x11_rectangle_t *) data;
-
-    gui_width = area->w;
-    gui_height = area->h;
-
-    if ( (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
-
-      /*
-       * make the frames fit into the given destination area
-       */
-
-      /*FIXME: not stable yet */
-      if ( ((double) gui_width / this->ratio_factor) < gui_height ) {
-	
-	this->output_width   = gui_width ;
-	this->output_height  = (double) gui_width / this->ratio_factor ;
-      } else {
-	
-	this->output_width    = (double) gui_height * this->ratio_factor ;
-	this->output_height   = gui_height;
-      } 
-      
-      this->gui_width = gui_width;
-      this->gui_height = gui_height;
-
-      printf ("video_out_xshm: new output size: %d x %d\n",
-	      gui_width, gui_height);
-    }
+    this->gui_size_changed = 1;
 
     break;
   case GUI_DATA_EX_COMPLETION_EVENT: {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.10 2001/07/17 15:20:44 guenter Exp $
+ * $Id: video_out_aa.c,v 1.11 2001/07/24 12:57:30 guenter Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -107,7 +107,7 @@ static void aa_dispose_frame (vo_frame_t *vo_img) {
 }
 
 static void aa_frame_field (vo_frame_t *vo_img, int which_field) {
-  /* FIXME: field picture based streams will go wrong with aa */
+  /* nothing to be done here */
 }
 
 
@@ -126,7 +126,7 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
 
 static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 				    uint32_t width, uint32_t height, 
-				    int ratio_code, int format) {
+				    int ratio_code, int format, int flags) {
 
   int image_size;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.35 2001/07/22 11:29:56 guenter Exp $
+ * $Id: video_out.c,v 1.36 2001/07/24 12:57:30 guenter Exp $
  *
  */
 
@@ -383,7 +383,8 @@ static void vo_open (vo_instance_t *this) {
 
 static vo_frame_t *vo_get_frame (vo_instance_t *this,
 				 uint32_t width, uint32_t height,
-				 int ratio, int format, uint32_t duration) {
+				 int ratio, int format, uint32_t duration,
+				 int flags) {
 
   vo_frame_t *img;
 
@@ -408,7 +409,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   /* let driver ensure this image has the right format */
 
-  this->driver->update_frame_format (this->driver, img, width, height, ratio, format);
+  this->driver->update_frame_format (this->driver, img, width, height, ratio, format, flags);
 
   pthread_mutex_unlock (&img->mutex);
   

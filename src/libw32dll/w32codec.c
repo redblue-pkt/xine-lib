@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.11 2001/07/17 19:37:21 guenter Exp $
+ * $Id: w32codec.c,v 1.12 2001/07/24 12:57:29 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -311,7 +311,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biHeight, 
 					42, 
 					this->outfmt /*IMGFMT_YUY2*/,
-					this->video_step);
+					this->video_step,
+					VO_BOTH_FIELDS);
 
       ret = ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME, 
 			 &this->bih, this->buf,

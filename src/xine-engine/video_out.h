@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.13 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: video_out.h,v 1.14 2001/07/24 12:57:30 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -111,10 +111,12 @@ struct vo_instance_s {
    *          ratio      == aspect ration information
    *          format     == FOURCC descriptor of image format
    *          duration   == frame duration in 1/90000 sec
+   *          flags      == field/prediction flags
    */
   vo_frame_t* (*get_frame) (vo_instance_t *this, uint32_t width, 
 			    uint32_t height, int ratio_code, 
-			    int format, uint32_t duration);
+			    int format, uint32_t duration,
+			    int flags);
   
   /* overlay stuff */
   vo_overlay_t* (*get_overlay) (vo_instance_t *this);
@@ -172,6 +174,13 @@ struct vo_instance_s {
 #define ASPECT_FULL        2 /* 4:3  */
 #define ASPECT_DVB         3 /* 1:2  */
 
+/* get_frame flags */
+
+#define VO_TOP_FIELD       1
+#define VO_BOTTOM_FIELD    2
+#define VO_BOTH_FIELDS     (VO_TOP_FIELD | VO_BOTTOM_FIELD)
+#define VO_PREDICTION_FLAG 4
+
 /* video driver capabilities */
 
 /* driver copies image (i.e. converts it to 
@@ -216,7 +225,7 @@ struct vo_driver_s {
    */
   void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
 			       uint32_t width, uint32_t height, 
-			       int ratio_code, int format);
+			       int ratio_code, int format, int flags);
 
   /* display a given frame */
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
