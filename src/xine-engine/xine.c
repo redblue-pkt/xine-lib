@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.194 2002/11/20 11:57:49 mroi Exp $
+ * $Id: xine.c,v 1.195 2002/11/22 16:23:59 mroi Exp $
  *
  * top-level xine functions
  *
@@ -198,10 +198,12 @@ void xine_stop (xine_stream_t *stream) {
   
   /*
    * stream will make output threads discard about everything
-   * am i abusing of xine architeture? :)
    */
-  stream->xine->clock->adjust_clock (stream->xine->clock,
-    stream->xine->clock->get_current_time(stream->xine->clock) + 30 * 90000 );
+  if (stream->audio_out)
+    stream->audio_out->flush(stream->audio_out);
+    
+  if (stream->video_out)
+    stream->video_out->flush(stream->video_out);
   
   pthread_mutex_unlock (&stream->frontend_lock);
 }

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.118 2002/11/20 11:57:42 mroi Exp $
+ * $Id: input_dvd.c,v 1.119 2002/11/22 16:23:58 mroi Exp $
  *
  */
 
@@ -790,9 +790,6 @@ static void flush_buffers(dvd_input_plugin_t *this) {
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
   }
-
-  this->stream->xine->clock->adjust_clock(this->stream->xine->clock,
-    this->stream->xine->clock->get_current_time(this->stream->xine->clock) + 30 * 90000 );
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -1664,6 +1661,11 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.119  2002/11/22 16:23:58  mroi
+ * do not play with the clock any more, we have dedicated flush functions for that now
+ * (This should fix Daniels MP3 problems, since the end of one stream would
+ * have adjusted the global clock thus affecting all other streams.)
+ *
  * Revision 1.118  2002/11/20 11:57:42  mroi
  * engine modifications to allow post plugin layer:
  * * new public output interface xine_{audio,video}_port_t instead of
