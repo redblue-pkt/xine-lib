@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.12 2002/03/24 14:15:37 guenter Exp $
+ * $Id: xineutils.h,v 1.13 2002/04/27 14:35:39 richwareham Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -565,7 +565,7 @@ void xine_probe_fast_memcpy(config_values_t *config);
 
 		      /* Debugging/Monitoring */
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__) 
+#if (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__)) && !defined(__cplusplus)
 #define xlerror(...) do {                                                     \
         printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
         printf(__VA_ARGS__);                                                     \
@@ -713,7 +713,9 @@ static inline char *_x_strsep(char **stringp, const char *delim) {
 static inline void _x_setenv(const char *name, const char *val, int _xx)
 {
   int len  = strlen(name) + strlen(val) + 2;
-  char *env = malloc(len);
+  char *env;
+  
+  env = (char*)malloc(len);
 
   if (env != NULL) {
     strcpy(env, name);
