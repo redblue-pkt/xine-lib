@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.27 2002/10/29 02:57:59 guenter Exp $
+ * $Id: xine_interface.c,v 1.28 2002/11/01 01:10:01 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -446,7 +446,10 @@ int  xine_get_param (xine_stream_t *stream, int param) {
 
     /* printf ("xine_interface: %d [%d %d]\n", v, min_v, max_v); */
 
-    return (v-min_v) * 65535 / range_v;
+    if (range_v > 0)
+      return (v-min_v) * 65535 / range_v;
+    else 
+      return 0;
   }
     break;
 
