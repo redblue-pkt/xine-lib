@@ -93,6 +93,11 @@ typedef struct {
   int              shoutcast_metaint;
   off_t            shoutcast_pos;
   char            *shoutcast_songtitle;
+
+  /* scratch buffer for forward seeking */
+
+  char             seek_buf[BUFSIZE];
+
   
 } http_input_plugin_t;
 
@@ -585,16 +590,17 @@ static off_t http_plugin_get_current_pos (input_plugin_t *this_gen){
 static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
+  /* only realtive forward-seeking is implemented */
+
   if ((origin == SEEK_CUR) && (offset >= 0)) {
-    char *tmp;
-    assert((tmp = malloc(1024)) != NULL);
-    for (;((int)offset) - 1024 > 0; offset -= 1024) {
-      this->curpos += http_plugin_read(this_gen, tmp, 1024);
+
+    for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+      this->curpos += http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
     }
-    this->curpos += http_plugin_read(this_gen, tmp, offset);
+
+    this->curpos += http_plugin_read (this_gen, this->seek_buf, offset);
   }
 
-  /* dummy implementation: don't seek, just return current position */
   return this->curpos;
 }
 

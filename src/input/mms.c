@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.13 2002/10/28 00:50:01 guenter Exp $
+ * $Id: mms.c,v 1.14 2002/12/01 00:36:00 guenter Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -971,8 +971,8 @@ int mms_read (mms_t *this, char *data, int len) {
 
       bytes_left = this->asf_header_len - this->asf_header_read ;
 
-      if (len < bytes_left)
-	n = len;
+      if ((len-total) < bytes_left)
+	n = len-total;
       else
 	n = bytes_left;
 
@@ -998,8 +998,8 @@ int mms_read (mms_t *this, char *data, int len) {
       }
       
 
-      if (len<bytes_left)
-	n = len;
+      if ((len-total)<bytes_left)
+	n = len-total;
       else
 	n = bytes_left;
 
