@@ -24,7 +24,7 @@
 ## begin configuration ######################################################
 
 $UPLOAD_HOST  = "xine.sourceforge.net";
-$UPLOAD_PATH  = "/home/groups/xine/htdocs";
+$UPLOAD_PATH  = "/home/groups/x/xi/xine/htdocs";
 $INDEX_FILE   = "download.html";
 $FILE_SUBDIR  = "files";
 $TMP_DIR      = "/tmp/xine-upload.$$";
