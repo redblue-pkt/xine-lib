@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.17 2004/01/22 21:36:45 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.18 2004/02/03 21:37:12 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -678,6 +678,10 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV10)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV20)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV30)) {
+      lprintf("MATROSKA_CODEC_ID_V_REAL_RV30\n");
+      track->buf_type = BUF_VIDEO_RV30;
+      track->handle_content = handle_realvideo;
+      init_mode = INIT_STD_VIDEO;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV40)) {
     
       lprintf("MATROSKA_CODEC_ID_V_REAL_RV40\n");
@@ -714,10 +718,18 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_14_4)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_28_8)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_COOK)) {
+      lprintf("MATROSKA_CODEC_ID_A_REAL_COOK\n");
+      track->buf_type = BUF_AUDIO_COOK;
+      init_mode = INIT_STD_AUDIO;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_SIPR)) {
+      lprintf("MATROSKA_CODEC_ID_A_REAL_SIPR\n");
+      track->buf_type = BUF_AUDIO_SIPRO;
+      init_mode = INIT_STD_AUDIO;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_RALF)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_ATRC)) {
-
+      lprintf("MATROSKA_CODEC_ID_A_REAL_ATRC\n");
+      track->buf_type = BUF_AUDIO_ATRK;
+      init_mode = INIT_STD_AUDIO;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_TEXT_UTF8) ||
                !strcmp(track->codec_id, MATROSKA_CODEC_ID_S_UTF8)) {
       lprintf("MATROSKA_CODEC_ID_S_TEXT_UTF8\n");
