@@ -21,7 +21,7 @@
 /*
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.39 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_snd.c,v 1.40 2004/10/18 18:20:32 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -114,6 +114,16 @@ static int open_snd_file(demux_snd_t *this) {
       this->audio_bytes_per_second = this->audio_channels *
         this->audio_sample_rate;
       break;
+    
+    case 2:
+      this->audio_type = BUF_AUDIO_LPCM_BE;
+      this->audio_bits = 8;
+      this->audio_frames = this->data_size / 
+        (this->audio_channels * this->audio_bits / 8);
+      this->audio_block_align = PCM_BLOCK_ALIGN;
+      this->audio_bytes_per_second = this->audio_channels *
+        (this->audio_bits / 8) * this->audio_sample_rate;
+      break;
 
     case 3:
       this->audio_type = BUF_AUDIO_LPCM_BE;
@@ -193,6 +203,13 @@ static int demux_snd_send_chunk(demux_plugin_t *this_gen) {
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
+    /* convert 8-bit signed -> unsigned */
+    if (this->audio_bits == 8) {
+      int i;
+      for (i = 0; i < buf->size; i++)
+        buf->content[i] += 0x80;
+    }
+    
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   return this->status;
