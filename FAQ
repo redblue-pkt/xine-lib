@@ -4,8 +4,12 @@
    ----------------------
 
 
-please note: this FAQ covers xine version 0.5 and newer
+scope of this FAQ
+-----------------
 
+this FAQ covers xine version 0.5 and newer, it covers both xine-lib 
+(the xine engine and default plugins) and xine-ui (xlib and console
+user interface implementations).
 
 
 how do I build this beast?
@@ -135,7 +139,7 @@ Perhaps your hardware is simply to slow - see "xine drops a
 lot of frames" below for speed tips.
 
 
-Where should I put the windows codec dlls for xine?
+where should I put the windows codec dlls for xine?
 ---------------------------------------------------
 
 xine uses 
@@ -255,7 +259,7 @@ speed optimizing options. A few point you should check:
   ln -s /dev/raw1 /dev/rdvd
 
 
-Now how do I get this Xv extension to work?
+now how do I get this Xv extension to work?
 -------------------------------------------
 
 First you need to install/use XFree 4.x. Once you got that you have to
@@ -267,23 +271,34 @@ nvidia cards : www.nvidia.com (the've got binary drivers)
 ATI cards    : GATOS www.linuxvideo.org/gatos/
 i815         : the latest xfree 4.x code supports these
 3dfx (voodoo): the latest xfree 4.x code supports these
+savage       : http://www.probo.com/timr/savage40.html
 
 
-The AC3 via S/PDIF does not work with my soundcard
----------------------------------------------------
+can xine produce 4-/5-channel surround audio output?
+----------------------------------------------------
 
-The AC3 via S/PDIF is supported by ALSA only for soundcards
-with Trident 4DWaveNX and YMF chips. So if you have a
-soundcard with one of these chips use
+yep, xine can do that using OSS or ALSA drivers, provided that
+the driver supports it. On startup xine tells you what modes are
+supported by your audio driver, e.g:
 
-xine -S -A alsa 
+audio_oss_out : supported modes are mono stereo (4-channel not enabled in .xiner
+c) (ac3-pass-through not enabled in .xinerc)
 
-The -S switch disables the internal AC3 decoder. For very 
-slow machines you could improve video playback (without
-sound) when you start xine as
+on this machine 4-channel surround would be possible. However,
+since xine cannot detect if there are actually speakers connected
+to the additional channels, you'll have to manually enable this mode
+in your ~/.xinerc:
 
-xine -S -A null
+four_channel:1
 
+
+what about ac3 output via spdif to an external ac3 decoder?
+-----------------------------------------------------------
+
+xine can do that too. Pretty much the same story as for 4-/5-channel
+surround here, you'll have to enable it in your ~/.xinerc:
+
+ac3_pass_through:1
 
 
 where and how do I get the latest development version?
@@ -300,7 +315,7 @@ cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co xine-ui
 
 
 
-How do I use the dvd plugin?
+how do I use the dvd plugin?
 ----------------------------
 
 First of all:
@@ -347,14 +362,14 @@ ln -s hdc dvd
 should do the job.
 
 
-The aspect ratio is wrong!
+the aspect ratio is wrong!
 --------------------------
 
 Try pressing "A" to toggle the aspect ratio
 
 
 
-How do I play streams from STDIN ?
+how do I play streams from STDIN ?
 ----------------------------------
 
 use something like
@@ -366,7 +381,7 @@ or, if you've got an mpeg-2 stream use
 cat stream.vob | xine stdin://mpeg2
 
 
-How do I change the skin?
+how do I change the skin?
 -------------------------
 
 Run xine at least once - it should write it's config file
@@ -374,7 +389,7 @@ Run xine at least once - it should write it's config file
 the line "skin:default" to mach the skin you would like to use.
 
 
-How can I change color/brightness/contrast?
+how can I change color/brightness/contrast?
 -------------------------------------------
 
 At the moment this is only supported on some Xv drivers. You'll find
@@ -388,7 +403,7 @@ the values and possible ranges depend on your Xv driver so you'll have
 to experiment a bit to get a good picture.
 
 
-Some parts of my X Desktop get transparent when xine plays the video!
+some parts of my X Desktop get transparent when xine plays the video!
 ---------------------------------------------------------------------
 
 Looks like some colors on your GUI match the colorkey Xv uses. You can
@@ -400,7 +415,7 @@ to your ~/.xinerc where you can change the color that's used by xine
 for the video overlay.
 
 
-I get no sound, but "audio driver 'oss' failed, using null driver instead."
+i get no sound, but "audio driver 'oss' failed, using null driver instead."
 ---------------------------------------------------------------------------
 
 First of all, make sure that your OSS Audio drivers are working (ie you can
@@ -428,7 +443,7 @@ i have problems when using xine on FreeBSD, Solaris
 check out the the corresponding README files in the doc directory
 
 
-I think I found a bug!
+i think I found a bug!
 ----------------------
 
 xine is still under heavy developement. Please be patient.
