@@ -763,7 +763,9 @@ int MPV_encode_init(AVCodecContext *avctx)
     if (MPV_common_init(s) < 0)
         return -1;
     
+#ifdef CONFIG_ENCODERS_FULL
     ff_init_me(s);
+#endif
 
 #ifdef CONFIG_ENCODERS
 #ifdef CONFIG_RISKY
@@ -1550,8 +1552,10 @@ int MPV_encode_picture(AVCodecContext *avctx,
         if (s->out_format == FMT_MJPEG)
             mjpeg_picture_trailer(s);
         
+#ifdef CONFIG_ENCODERS_FULL
         if(s->flags&CODEC_FLAG_PASS1)
             ff_write_pass1_stats(s);
+#endif
 
         for(i=0; i<4; i++){
             avctx->error[i] += s->current_picture_ptr->error[i];
@@ -3137,6 +3141,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     /* Estimate motion for every MB */
     s->mb_intra=0; //for the rate distoration & bit compare functions
     if(s->pict_type != I_TYPE){
+#ifdef CONFIG_ENCODERS_FULL
         if(s->pict_type != B_TYPE){
             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
                 s->me.pre_pass=1;
@@ -3174,6 +3179,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     ff_estimate_p_frame_motion(s, mb_x, mb_y);
             }
         }
+#endif
     }else /* if(s->pict_type == I_TYPE) */{
         /* I-Frame */
         //FIXME do we need to zero them?
@@ -3208,6 +3214,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
     }
 
+#ifdef CONFIG_ENCODERS_FULL
     if(!s->umvplus){
         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
@@ -3232,6 +3239,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
         }
     }
+#endif
     
     if (s->fixed_qscale) 
         s->frame_qscale = s->current_picture.quality;

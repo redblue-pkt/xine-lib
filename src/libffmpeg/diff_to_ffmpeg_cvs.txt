@@ -542,7 +542,7 @@ retrieving revision 1.61
 diff -u -r1.61 mjpeg.c
 --- libavcodec/mjpeg.c	23 May 2003 16:04:24 -0000	1.61
 +++ libavcodec/mjpeg.c	23 May 2003 18:18:53 -0000
-@@ -1135,7 +1160,7 @@
+@@ -1471,7 +1471,7 @@
  	    4bytes	field_size
  	    4bytes	field_size_less_padding
  	*/
@@ -558,7 +558,7 @@ retrieving revision 1.31
 diff -u -r1.31 mpegvideo.c
 --- libavcodec/mpegvideo.c	9 May 2003 23:54:05 -0000	1.31
 +++ libavcodec/mpegvideo.c	25 May 2003 18:29:52 -0000
-@@ -761,7 +761,9 @@
+@@ -763,7 +763,9 @@
      if (MPV_common_init(s) < 0)
          return -1;
      
@@ -568,7 +568,7 @@ diff -u -r1.31 mpegvideo.c
  
  #ifdef CONFIG_ENCODERS
  #ifdef CONFIG_RISKY
-@@ -1437,8 +1439,10 @@
+@@ -1550,8 +1552,10 @@
          if (s->out_format == FMT_MJPEG)
              mjpeg_picture_trailer(s);
          
@@ -579,7 +579,7 @@ diff -u -r1.31 mpegvideo.c
  
          for(i=0; i<4; i++){
              avctx->error[i] += s->current_picture_ptr->error[i];
-@@ -3014,6 +3018,7 @@
+@@ -3137,6 +3141,7 @@
      /* Estimate motion for every MB */
      s->mb_intra=0; //for the rate distoration & bit compare functions
      if(s->pict_type != I_TYPE){
@@ -587,7 +587,7 @@ diff -u -r1.31 mpegvideo.c
          if(s->pict_type != B_TYPE){
              if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
                  s->me.pre_pass=1;
-@@ -3051,6 +3056,7 @@
+@@ -3174,6 +3179,7 @@
                      ff_estimate_p_frame_motion(s, mb_x, mb_y);
              }
          }
@@ -595,7 +595,7 @@ diff -u -r1.31 mpegvideo.c
      }else /* if(s->pict_type == I_TYPE) */{
          /* I-Frame */
          //FIXME do we need to zero them?
-@@ -3085,6 +3091,7 @@
+@@ -3208,6 +3214,7 @@
  //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
      }
  
@@ -603,7 +603,7 @@ diff -u -r1.31 mpegvideo.c
      if(!s->umvplus){
          if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
              s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
-@@ -3109,6 +3116,7 @@
+@@ -3232,6 +3239,7 @@
              ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
          }
      }
