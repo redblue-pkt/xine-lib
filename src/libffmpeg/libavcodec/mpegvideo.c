@@ -33,6 +33,8 @@
 //#undef NDEBUG
 //#include <assert.h>
 
+#define CONFIG_RISKY
+
 static void encode_picture(MpegEncContext *s, int picture_number);
 static void dct_unquantize_mpeg1_c(MpegEncContext *s, 
                                    DCTELEM *block, int n, int qscale);
