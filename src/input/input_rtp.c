@@ -71,7 +71,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/sockio.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -80,6 +79,10 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <net/if.h>
+
+#ifdef __sun
+#  include <sys/sockio.h>
+#endif
 
 #define LOG_MODULE "input_rtp"
 #define LOG_VERBOSE
