@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.86 2002/09/18 10:03:07 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.87 2002/09/19 11:23:40 mroi Exp $
  *
  */
 
@@ -385,10 +385,6 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
     
-  memset(&region_entry, 0, sizeof(xine_cfg_entry_t));
-  memset(&lang_entry, 0, sizeof(xine_cfg_entry_t));
-  memset(&cache_entry, 0, sizeof(xine_cfg_entry_t));
-
   trace_print("Called\n");
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
    
@@ -1277,7 +1273,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
     if(this && this->xine && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
-	sprintf(data, "%s", "nav");
+	sprintf(data, "%s", "menu");
 	goto __audio_success;
       }
       
@@ -1316,7 +1312,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
     if(this && this->xine && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
-	sprintf(data, "%3s", "none");
+	sprintf(data, "%s", "none");
 	goto __spu_success;
       }
 
@@ -1340,7 +1336,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
       else {
 	channel = xine_get_spu_channel(this->xine);
 	if(channel == -1)
-	  sprintf(data, "%3s", "none");
+	  sprintf(data, "%s", "none");
 	else
 	  sprintf(data, "%3i", channel);
       }
@@ -1551,6 +1547,10 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.87  2002/09/19 11:23:40  mroi
+ * - memset not needed any more
+ * - tweak language output
+ *
  * Revision 1.86  2002/09/18 10:03:07  jcdutton
  * Fix a seg fault.
  *
