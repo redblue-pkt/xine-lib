@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.59 2004/04/28 00:14:13 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.60 2004/04/28 21:01:28 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -450,9 +450,31 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     repaint_output_area(this);
     this->chromakey_regen_needed = 1;
 
+    DGA_DRAW_LOCK(this->dgadraw, -1);
+    dgavis = DGA_VIS_FULLY_OBSCURED;
+    cliprects = dga_draw_clipinfo(this->dgadraw);
+
+    wx0 = this->vo_scale.gui_win_x + this->vo_scale.output_xoffset;
+    wy0 = this->vo_scale.gui_win_y + this->vo_scale.output_yoffset;
+    wx1 = wx0 + this->vo_scale.output_width;
+    wy1 = wy0 + this->vo_scale.output_height;
+
+    while ((cy0 = *cliprects++) != DGA_Y_EOL) {
+      cy1 = *cliprects++;
+      while ((cx0 = *cliprects++) != DGA_X_EOL) {
+        cx1 = *cliprects++;
+
+        if (((cx0 >= wx0) && (cy0 >= wy0)) || ((cx1 <= wx1) && (cy1 <= wy1))) {
+          dgavis = DGA_VIS_PARTIALLY_OBSCURED;
+        }
+        if ((cx0 <= wx0) && (cy0 <= wy0) && (cx1 >= wx1) && (cy1 >= wy1)) {
+          dgavis = DGA_VIS_UNOBSCURED;
+        }
+      }
+    }
+    DGA_DRAW_UNLOCK(this->dgadraw);
+
     vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
-    vregs[OVERLAY_SCALE_CNTL] = 0;
-    vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
     vregs[SCALER_H_COEFF0] = le2me_32(SCALER_H_COEFF0_DEFAULT);
     vregs[SCALER_H_COEFF1] = le2me_32(SCALER_H_COEFF1_DEFAULT);
     vregs[SCALER_H_COEFF2] = le2me_32(SCALER_H_COEFF2_DEFAULT);
@@ -471,28 +493,6 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
 
-    wx0 = this->vo_scale.gui_win_x + this->vo_scale.output_xoffset;
-    wy0 = this->vo_scale.gui_win_y + this->vo_scale.output_yoffset;
-    wx1 = wx0 + this->vo_scale.output_width;
-    wy1 = wy0 + this->vo_scale.output_height;
-
-    DGA_DRAW_LOCK(this->dgadraw, -1);
-    dgavis = DGA_VIS_FULLY_OBSCURED;
-    cliprects = dga_draw_clipinfo(this->dgadraw);
-    while ((cy0 = *cliprects++) != DGA_Y_EOL) {
-      cy1 = *cliprects++;
-      while ((cx0 = *cliprects++) != DGA_X_EOL) {
-        cx1 = *cliprects++;
-
-        if (((cx0 >= wx0) && (cy0 >= wy0)) || ((cx1 <= wx1) && (cy1 <= wy1))) {
-          dgavis = DGA_VIS_PARTIALLY_OBSCURED;
-        }
-        if ((cx0 <= wx0) && (cy0 <= wy0) && (cx1 >= wx1) && (cy1 >= wy1)) {
-          dgavis = DGA_VIS_UNOBSCURED;
-        }
-      }
-    }
-
     if ((dgavis == DGA_VIS_UNOBSCURED) && !this->chromakey_en) {
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
@@ -500,11 +500,16 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
       vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
     }
+    else {
+      vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
+    }
 
     if (dgavis != DGA_VIS_FULLY_OBSCURED) {
       vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
     }
-    DGA_DRAW_UNLOCK(this->dgadraw);
+    else {
+      vregs[OVERLAY_SCALE_CNTL] = 0;
+    }
   }
 
   if (this->buf_mode == BUF_MODE_MULTI) {
