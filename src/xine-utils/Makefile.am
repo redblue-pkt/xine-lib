@@ -24,8 +24,6 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmlparser.c
 
 libxineutils_la_LIBADD = $(THREAD_LIBS)
-libxineutils_la_LDFLAGS =  \
-	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 
 include_HEADERS = attributes.h \
