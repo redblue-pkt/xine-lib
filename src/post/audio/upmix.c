@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: upmix.c,v 1.3 2004/05/16 02:56:35 jcdutton Exp $
+ * $Id: upmix.c,v 1.4 2004/05/16 14:44:42 jcdutton Exp $
  *
  */
 
@@ -158,9 +158,10 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
   this->channels = _x_ao_mode2channels(mode);
   /* FIXME: Handle all desired output formats */
-  if (capabilities & AO_CAP_MODE_5_1CHANNEL) {
+  if ((capabilities & AO_CAP_MODE_5_1CHANNEL) && (capabilities & AO_CAP_32BITS)) {
     this->channels_out=6;
     mode = AO_CAP_MODE_5_1CHANNEL;
+    bits = 32; /* Upmix to Floats */
   } else {
     this->channels_out=2;
   }
@@ -204,36 +205,74 @@ static void upmix_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream 
   _x_post_dec_usage(port);
 }
 
-static int upmix_frames_2to51_16bit(uint8_t *dst8, uint8_t *src8, int num_frames, af_sub_t *sub) {
-  int16_t *dst=(int16_t *)dst8;
-  int16_t *src=(int16_t *)src8;
-
-  int frame;
-  int bytes_per_sample=1; /* Actually int16 per sample here */
+static int upmix_frames_2to51_any_to_float(uint8_t *dst8, uint8_t *src8, int num_frames, int step_channel_in, af_sub_t *sub) {
+  float *dst=(float *)dst8;
+  int16_t *src16=(int16_t *)src8;
+  float *src_float=(float *)src8;
   int src_num_channels=2;
   int dst_num_channels=6;
   int src_frame;
   int dst_frame;
+  int32_t sample24;
   float sample;
-  int32_t sum;
+  float left;
+  float right;
+  float sum;
+  int frame;
+  int src_units_per_sample=1; 
+  if (step_channel_in == 3) src_units_per_sample=step_channel_in; /* Special handling for 24 bit 3byte input */
   
   for (frame=0;frame < num_frames; frame++) {
-    dst_frame=frame*dst_num_channels*bytes_per_sample;
-    src_frame=frame*src_num_channels*bytes_per_sample;
-    dst[dst_frame] = src[src_frame];
-    dst[dst_frame+(1*bytes_per_sample)] = src[src_frame+(1*bytes_per_sample)];
+    dst_frame=frame*dst_num_channels;
+    src_frame=frame*src_num_channels*src_units_per_sample;
+    switch (step_channel_in) {
+    case 1:
+      left = src8[src_frame];
+      left = (left - 128 ) / 128; /* FIXME: Need to verify this is correct */
+      right = src8[src_frame+1];
+      right = (right - 128) / 128;
+      break;
+    case 2:
+      left = (1.0/SHRT_MAX)*((float)src16[src_frame]);
+      right = (1.0/SHRT_MAX)*((float)src16[src_frame+1]);
+      break;
+    case 3:
+#ifdef WORDS_BIGENDIAN
+      sample24 = (src8[src_frame] << 24) | (src8[src_frame+1] << 16) | ( src8[src_frame+2] << 8);
+#else
+      sample24 = (src8[src_frame] << 8) | (src8[src_frame+1] << 16) | ( src8[src_frame+2] << 24);
+#endif
+      left = (1.0/INT32_MAX)*((float)sample24);
+#ifdef WORDS_BIGENDIAN
+      sample24 = (src8[src_frame+3] << 24) | (src8[src_frame+4] << 16) | ( src8[src_frame+5] << 8);
+#else
+      sample24 = (src8[src_frame+3] << 8) | (src8[src_frame+4] << 16) | ( src8[src_frame+5] << 24);
+#endif
+      right = (1.0/INT32_MAX)*((float)sample24);
+      break;
+    case 4:
+      left = src_float[src_frame];
+      right = src_float[src_frame+1];
+      break;
+    default:
+      left = right = 0.0;
+    }
+
+    dst[dst_frame] = left;
+    dst[dst_frame+1] = right;
     /* try a bit of dolby */
     /* FIXME: Dobly surround is a bit more complicated than this, but this is a start. */
-    dst[dst_frame+(2*bytes_per_sample)] = (src[src_frame] - src[src_frame+(1*bytes_per_sample)]) / 2;
-    dst[dst_frame+(3*bytes_per_sample)] = (src[src_frame] - src[src_frame+(1*bytes_per_sample)]) / 2;
-    sum = ((int32_t)src[src_frame] + (int32_t)src[src_frame+(1*bytes_per_sample)]) / 2;
-    dst[dst_frame+(4*bytes_per_sample)] = (int16_t)sum;
+    dst[dst_frame+2] = (left - right) / 2;
+    dst[dst_frame+3] = (left - right) / 2;
+    sum = (left + right) / 2;
+    dst[dst_frame+4] = sum;
     /* Create the LFE channel using a low pass filter */
     /* filter feature ported from mplayer */
-    sample = (1.0/SHRT_MAX)*((float)sum);
+    sample = sum;
     IIR(sample * sub->k, sub->w[0], sub->q[0], sample);
     IIR(sample , sub->w[1], sub->q[1], sample);
-    dst[dst_frame+(5*bytes_per_sample)] = (int16_t)(sample * SHRT_MAX);
+    dst[dst_frame+5] = sample;
+
   }
   return frame;
 }
@@ -243,15 +282,10 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
   
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_upmix_t *this = (post_plugin_upmix_t *)port->post;
-  vo_frame_t         *frame;
-  int16_t *data;
-  int8_t *data8;
-  int samples_used = 0;
-  int64_t pts = buf->vpts;
-  int i, j;
   int src_step_frame;
   int dst_step_frame;
-  int step_channel;
+  int step_channel_in;
+  int step_channel_out;
   uint8_t *data8src;
   uint8_t *data8dst;
   int num_bytes;
@@ -270,13 +304,14 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       /* FIXME: The audio buffer should contain this info.
        *        We should not have to get it from the open call.
        */
-      this->buf->format.bits = port->bits;
+      this->buf->format.bits = 32; /* Upmix to floats */
       this->buf->format.rate = port->rate;
       this->buf->format.mode = AO_CAP_MODE_5_1CHANNEL;
       _x_extra_info_merge( this->buf->extra_info, buf->extra_info); 
-      step_channel = this->buf->format.bits>>3;
-      dst_step_frame = this->channels_out*step_channel;
-      src_step_frame = this->channels*step_channel;
+      step_channel_in = port->bits>>3;
+      step_channel_out = this->buf->format.bits>>3;
+      dst_step_frame = this->channels_out*step_channel_out;
+      src_step_frame = this->channels*step_channel_in;
       num_bytes=(buf->num_frames-num_frames_processed)*dst_step_frame;
       if (num_bytes > this->buf->mem_size) {
         num_bytes = this->buf->mem_size;
@@ -285,7 +320,7 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       data8src=(int8_t*)buf->mem;
       data8src+=num_frames_processed*src_step_frame;
       data8dst=(int8_t*)this->buf->mem;
-      num_frames_done = upmix_frames_2to51_16bit(data8dst, data8src, num_frames, this->sub);
+      num_frames_done = upmix_frames_2to51_any_to_float(data8dst, data8src, num_frames, step_channel_in, this->sub);
       this->buf->num_frames = num_frames_done;
       num_frames_processed+= num_frames_done;
       /* pass data to original port */
@@ -387,7 +422,8 @@ static void *upmix_init_plugin(xine_t *xine, void *data)
 }
 
 /* plugin catalog information */
-post_info_t upmix_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
+/* post_info_t upmix_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION }; */
+post_info_t upmix_special_info = { XINE_POST_TYPE_AUDIO_FILTER };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
