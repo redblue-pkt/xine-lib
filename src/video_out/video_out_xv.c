@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.208 2004/12/12 22:01:29 mroi Exp $
+ * $Id: video_out_xv.c,v 1.209 2004/12/20 23:09:20 hadess Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -944,8 +944,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     /* XExposeEvent * xev = (XExposeEvent *) data; */
 
     if (this->cur_frame) {
-
-      xv_redraw_needed (this_gen);
 
       XLockDisplay (this->display);
 
