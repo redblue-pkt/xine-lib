@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.21 2004/07/18 21:42:26 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.22 2004/07/20 00:31:37 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -48,7 +48,7 @@
 #define SHORT_PLUGIN_NAME "VCD"
 #define MRL_PREFIX "vcd://"
 #define MRL_PREFIX_LEN strlen(MRL_PREFIX)
-#define DEVICE_MAX_LEN 1024
+#define MAX_DEVICE_LEN 1024
 
 #define xine_config_entry_t xine_cfg_entry_t
 
@@ -290,7 +290,7 @@ static bool
 vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 {
 
-  char              mrl[1024];
+  char mrl[strlen(MRL_PREFIX)+MAX_DEVICE_LEN+strlen("@E")+10];
   vcdplayer_input_t *player;
   unsigned int n, i=0;
   unsigned int num_entries;
@@ -353,7 +353,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   /* Record MRL's for tracks */
   for (n=1; n<=player->num_tracks; n++) { 
     memset(&mrl, 0, sizeof (mrl));
-    sprintf(mrl, "%s%s@T%u", MRL_PREFIX, vcd_device, n);
+    sprintf(mrl, "%s%s@T%2u", MRL_PREFIX, vcd_device, n);
     vcd_add_mrl_slot(class, mrl, player->track[n-1].size, &i);
   }
     
@@ -364,7 +364,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   if (num_entries > 0) {
     for (n=0; n<num_entries; n++) { 
       memset(&mrl, 0, sizeof (mrl));
-      sprintf(mrl, "%s%s@E%u", MRL_PREFIX, vcd_device, n);
+      sprintf(mrl, "%s%s@E%4u", MRL_PREFIX, vcd_device, n);
       vcd_add_mrl_slot(class, mrl, player->entry[n].size, &i);
     }
   }
@@ -376,7 +376,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
       uint16_t ofs = vcdinf_get_lot_offset(vcdinfo_get_lot(player->vcd), n);
       if (ofs != PSD_OFS_DISABLED || player->show_rejected) {
         memset(&mrl, 0, sizeof (mrl));
-        sprintf(mrl, "%s%s@P%u%s", MRL_PREFIX, vcd_device, n+1, 
+        sprintf(mrl, "%s%s@P%4u%s", MRL_PREFIX, vcd_device, n+1, 
                 ofs == PSD_OFS_DISABLED ? "*" : "");
         vcd_add_mrl_slot(class, mrl, 0, &i);
         class->mrl_segment_offset++;
@@ -408,7 +408,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
       }
 
       memset(&mrl, 0, sizeof (mrl));
-      sprintf(mrl, "%s%s@%c%u", MRL_PREFIX, vcd_device, c, n);
+      sprintf(mrl, "%s%s@%c%4u", MRL_PREFIX, vcd_device, c, n);
       vcd_add_mrl_slot(class, mrl, player->segment[n].size, &i);
     }
   }
@@ -499,7 +499,7 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
     {
       /* No device/file given, so use the default device and try again. */
       if (NULL == default_vcd_device) return false;
-      strncpy(device_str, default_vcd_device, DEVICE_MAX_LEN);
+      strncpy(device_str, default_vcd_device, MAX_DEVICE_LEN);
       if (p[0] == '@') p++;
       count = sscanf (p, "%1[EePpSsTt]%u", type_str, &num);
       type_str[0] = toupper(type_str[0]);
@@ -791,7 +791,7 @@ static xine_mrl_t **
 vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
                     int *num_files) {
 
-  char             intended_vcd_device[DEVICE_MAX_LEN+1]= { '\0', };
+  char             intended_vcd_device[MAX_DEVICE_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
 
   vcd_input_class_t *class = (vcd_input_class_t *) this_gen;
@@ -923,7 +923,7 @@ vcd_class_get_description (input_class_t *this_gen)
 static char *
 vcd_class_get_identifier (input_class_t *this_gen) {
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
-  return strdup(SHORT_PLUGIN_NAME);
+  return SHORT_PLUGIN_NAME;
 }
 
 /* 
@@ -1453,7 +1453,7 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 {
   vcd_input_class_t  *class = (vcd_input_class_t *) class_gen;
 
-  char intended_vcd_device[DEVICE_MAX_LEN+1]= { '\0', };
+  char intended_vcd_device[MAX_DEVICE_LEN+1]= { '\0', };
   vcdinfo_itemid_t itemid;
   char *check_mrl=NULL;
   bool used_default;
