@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.25 2002/03/16 20:53:49 guenter Exp $
+ * $Id: demux_asf.c,v 1.26 2002/03/17 00:05:03 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -112,7 +112,11 @@ typedef struct demux_asf_s {
 
   /* packet filling */
   int               packet_size_left;
-  int64_t           duration;
+
+  /* frame rate calculations */
+
+  int64_t           last_video_pts;
+  int32_t           frame_duration;
   
   /* only for reading */
   int               packet_padsize;
@@ -583,6 +587,7 @@ static int asf_get_packet(demux_asf_t *this) {
 
   int timestamp, hdr_size;
   uint32_t sig = 0;
+  int duration;
 
   hdr_size = 11;
 
@@ -612,7 +617,7 @@ static int asf_get_packet(demux_asf_t *this) {
     hdr_size++;
   }
   timestamp = get_le32(this);
-  this->duration += get_le16(this) * 90; /* duration */
+  duration  = get_le16(this) ; /* duration */
   if (this->packet_flags & 0x01) {
     this->nb_frames = get_byte(this); /* nb_frames */
     hdr_size++;
@@ -725,13 +730,24 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     /* test if whole packet read */
     if (stream->frag_offset == payload_size) {
-      if (this->duration) {
+
+      if ( (buf->type & BUF_MAJOR_MASK) == BUF_VIDEO_BASE) {
+	if (buf->pts && this->last_video_pts) 
+	  this->frame_duration = (3*this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
+	
+	/*
+	printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
+	*/
+
+	this->last_video_pts = buf->pts;
+
 	buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
-	buf->decoder_info[0] = this->duration;
+	buf->decoder_info[0] = this->frame_duration;
       } else
 	buf->decoder_flags   = BUF_FLAG_FRAME_END;
+
       stream->frag_offset = 0;
-      this->duration = 0;
+
     } else 
       buf->decoder_flags   = 0;
 
@@ -746,7 +762,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
   buf_element_t *buf;
 
   /*
-  printf("asf_send_buffer seq=%d frag_offset=%d frag_len=%d\n",
+    printf("asf_send_buffer seq=%d frag_offset=%d frag_len=%d\n",
     seq, frag_offset, frag_len );
   */
   
@@ -760,65 +776,73 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
     } else {
       /* cannot continue current packet: free it */
       if( stream->frag_offset )
-      {
-        int bufsize;
-        uint8_t *p;
+	{
+	  int bufsize;
+	  uint8_t *p;
                
-        if (stream->fifo == this->audio_fifo && 
-            this->reorder_h > 1 && this->reorder_w > 1 ) {
-          asf_reorder(this,stream->buffer,stream->frag_offset);
-        }
-        
-        p = stream->buffer;
-        while( stream->frag_offset ) {
-          if ( stream->frag_offset < stream->fifo->buffer_pool_buf_size )
-            bufsize = stream->frag_offset;
-          else
-            bufsize = stream->fifo->buffer_pool_buf_size;
-
-          buf = stream->fifo->buffer_pool_alloc (stream->fifo);
-          buf->content = buf->mem;
-          xine_fast_memcpy (buf->content, p, bufsize);
-
-          if (stream->fifo == this->video_fifo) {
-            buf->input_pos  = this->input->get_current_pos (this->input);
-	    if (this->rate)
-	      buf->input_time = buf->input_pos / this->rate;
-	    else
-	      buf->input_time = 0;
-          } else {
-            buf->input_pos  = 0 ;
-            buf->input_time = 0 ;
-          }
-          
-          buf->pts        = stream->timestamp * 90 + stream->ts_per_kbyte * 
-                            (p-stream->buffer) / 1024; 
-
-	  if (buf->pts && this->send_discontinuity) {
-	    this->send_discontinuity = 0;
-	    asf_send_discontinuity (this, buf->pts);
+	  if (stream->fifo == this->audio_fifo && 
+	      this->reorder_h > 1 && this->reorder_w > 1 ) {
+	    asf_reorder(this,stream->buffer,stream->frag_offset);
 	  }
+        
+	  p = stream->buffer;
+	  while( stream->frag_offset ) {
+	    if ( stream->frag_offset < stream->fifo->buffer_pool_buf_size )
+	      bufsize = stream->frag_offset;
+	    else
+	      bufsize = stream->fifo->buffer_pool_buf_size;
 
-          buf->type       = stream->buf_type;
-          buf->size       = bufsize;
+	    buf = stream->fifo->buffer_pool_alloc (stream->fifo);
+	    buf->content = buf->mem;
+	    xine_fast_memcpy (buf->content, p, bufsize);
+
+	    if (stream->fifo == this->video_fifo) {
+	      buf->input_pos  = this->input->get_current_pos (this->input);
+	      if (this->rate)
+		buf->input_time = buf->input_pos / this->rate;
+	      else
+		buf->input_time = 0;
+	    } else {
+	      buf->input_pos  = 0 ;
+	      buf->input_time = 0 ;
+	    }
           
-          stream->frag_offset -= bufsize;
-          p+=bufsize;
+	    buf->pts        = stream->timestamp * 90 + stream->ts_per_kbyte * 
+	      (p-stream->buffer) / 1024; 
+
+	    if (buf->pts && this->send_discontinuity) {
+	      this->send_discontinuity = 0;
+	      asf_send_discontinuity (this, buf->pts);
+	    }
+
+	    buf->type       = stream->buf_type;
+	    buf->size       = bufsize;
           
-          /* test if whole packet read */
-          if ( !stream->frag_offset ) {
-	    if (this->duration) {
-	      buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
-	      buf->decoder_info[0] = this->duration;
-	    } else
-	      buf->decoder_flags   = BUF_FLAG_FRAME_END;
-	    this->duration = 0;
-          } else 
-	    buf->decoder_flags = 0;
+	    stream->frag_offset -= bufsize;
+	    p+=bufsize;
+          
+	    /* test if whole packet read */
+	    if ( !stream->frag_offset ) {
+
+	      if ( (buf->type & BUF_MAJOR_MASK) == BUF_VIDEO_BASE) {
+		if (buf->pts && this->last_video_pts) 
+		  this->frame_duration = (3* this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
+
+		printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
+	
+		this->last_video_pts = buf->pts;
+
+		buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
+		buf->decoder_info[0] = this->frame_duration;
+	      } else
+		buf->decoder_flags   = BUF_FLAG_FRAME_END;
+
+	    } else 
+	      buf->decoder_flags = 0;
 	  
-          stream->fifo->put (stream->fifo, buf);
-        }
-      }
+	    stream->fifo->put (stream->fifo, buf);
+	  }
+	}
       
       stream->frag_offset = 0;
       if (frag_offset != 0) {
@@ -850,8 +874,8 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
   }
   
   /*
-  printf ("demux_asf: read %d bytes :", frag_len);
-  hexdump (buf->content, frag_len, this->xine);
+    printf ("demux_asf: read %d bytes :", frag_len);
+    hexdump (buf->content, frag_len, this->xine);
   */
 }
 
@@ -1162,7 +1186,8 @@ static void demux_asf_start (demux_plugin_t *this_gen,
   this->packet_size              = 0;
   this->seqno                    = 0;
   this->send_discontinuity       = 1;
-  this->duration                 = 0;
+  this->last_video_pts           = 0;
+  this->frame_duration           = 3000;
   
   if (this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE)
     this->input->seek (this->input, 0, SEEK_SET);
