@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.31 2003/02/21 19:54:52 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.32 2003/02/23 01:15:59 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -214,7 +214,7 @@ static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
            this->vidix_play.offset.v);
 
    for(h = 0; h < (frame->height / 2); h++) {
-     for(w = 0; w < frame->width; w++) {
+     for(w = 0; w < (frame->width / 2); w++) {
        dst8[2*w+0] = cb[w];
        dst8[2*w+1] = cr[w];
      }
