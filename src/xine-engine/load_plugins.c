@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.168 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.169 2003/12/14 23:21:19 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -465,10 +465,10 @@ static void collect_plugins(xine_t *this, char *path){
 #endif
 
 	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
-
+	    char *error = dlerror();
 	    /* too noisy -- but good to catch unresolved references */
 	    xprintf(this, XINE_VERBOSITY_LOG, 
-		    _("load_plugins: cannot open plugin lib %s:\n%s\n"), str, dlerror());
+		    _("load_plugins: cannot open plugin lib %s:\n%s\n"), str, error);
 
 	  } else {
 
