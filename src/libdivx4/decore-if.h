@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decore-if.h,v 1.1 2001/10/14 00:43:06 guenter Exp $ 
+ * $Id: decore-if.h,v 1.2 2001/10/27 04:30:39 hrm Exp $ 
  *
  * This file documents the interface for the decore() function
  * in libdivxdecore. In case of problems, it is recommended you compare
@@ -56,6 +56,7 @@ extern "C" {
 #define DEC_OPT_FRAME		5
 #define DEC_OPT_FRAME_311	6
 #define DEC_OPT_SETPP2		7
+#define DEC_OPT_VERSION		8
 
 /* decore() return values. */
 #define DEC_OK			0

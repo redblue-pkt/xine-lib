@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/10/20 22:18:59 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/10/27 04:30:39 hrm Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -80,6 +80,8 @@ typedef struct divx4_decoder_s {
   unsigned char     buf[128*1024];
   int               size;
   decoreFunc        decore; /* ptr to decore function in libdivxdecore */
+  /* version as reported by decore with GET_OPT_VERSION command */
+  int		    version;
   /* whether to decode MSMPEG4_V3 format
      (aka divx ;-) and divx 3.11-- thank god they dropped the smileys 
      with divx4)
@@ -88,14 +90,6 @@ typedef struct divx4_decoder_s {
   /* postprocessing level; currently valid values 0-6 (internally 0-100)
      set by divx4_postproc in .xinerc */
   int		    postproc;
-  /* what output format we ask of decore()
-     supported at the moment:
-     DEC_YV12, copied straight into image buffer by decore(), 
-     fast but perhaps risky.
-     DEC_USER, decore() returns pointers to internal y,u,v buffers, 
-     and we copy the data ourselves. Not optimised, so probably slower.
-     It seems that OpenDivx likes this better. */
-  int		    decore_format; 
   /* can we handle 311 format? No easy way to find out (divx4linux can,
      OpenDivx cannot, so the user can set it in .xinerc. If 0, can_handle
      only returns MPEG4, yielding 311 to ffmpeg */
@@ -110,13 +104,137 @@ static unsigned long str2ulong(void *data) {
 
 static char* decore_retval(int ret)
 {
+  static char buf[128];
   switch (ret) {
   case DEC_OK: return "DEC_OK";
   case DEC_MEMORY: return "DEC_MEMORY";
   case DEC_BAD_FORMAT: return "DEC_BAD_FORMAT";
   case DEC_EXIT: return "DEC_EXIT";
   }
-  return "[Unknown code]";	
+  sprintf(buf, "[Unknown code %d]", ret);
+  return buf;	
+}
+
+/* helper function to initialize decore */
+static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
+{
+  DEC_PARAM param; /* for init                   */
+  DEC_SET setpp;   /* for setting postproc level */
+  int ret, codec_type;
+
+  memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
+  this->biWidth = str2ulong(&this->bih.biWidth);
+  this->biHeight = str2ulong(&this->bih.biHeight);
+  this->video_step = buf->decoder_info[1];
+
+  codec_type = buf->type & 0xFFFF0000;
+
+  /* do we need divx 3.11 compatibility mode? */
+  switch (buf->type & 0xFFFF0000) {
+  case BUF_VIDEO_MSMPEG4_V12:
+  case BUF_VIDEO_MSMPEG4_V3:
+    this->use_311_compat = 1;
+    break;
+  case BUF_VIDEO_MPEG4 :
+    this->use_311_compat = 0;
+    break;
+  default:
+    printf ("divx4: unknown video format (buftype: 0x%08X)\n",
+      buf->type & 0xFFFF0000);
+  }
+
+  /* setup decoder; inspired by avifile's plugin */
+  param.x_dim=this->biWidth;
+  param.y_dim=this->biHeight;
+  param.time_incr = 15; /* no idea what this does */
+  param.output_format=DEC_USER;
+  memset(&param.buffers, 0, sizeof(param.buffers));
+
+  ret = this->decore((unsigned long)this, DEC_OPT_INIT, &param, &this->bih);
+  if (ret != DEC_OK) {
+    printf("divx4: decore DEC_OPT_INIT command returned %s.\n", decore_retval(ret));
+    return 0;
+  }
+
+  /* multiply postproc level by 10 for internal consumption */
+  printf("divx4: Setting post processing level to %d (see ~/.xinerc)\n"
+         "divx4: Valid range 0-6, reduce if you get frame drop\n", 
+         this->postproc); 
+  setpp.postproc_level=this->postproc*10;
+
+  ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
+  if (ret != DEC_OK)
+  {
+    printf("divx4: decore DEC_OPT_SETPP command returned %s.\n", decore_retval(ret));
+    /* perhaps not fatal, so we'll continue */
+  }
+
+  return 1;
+}
+
+/* helper function to copy data from decore's internal buffer to a vo frame */
+static inline void divx4_copy_frame(divx4_decoder_t *this, vo_frame_t *img, 
+	DEC_PICTURE pict)
+{      
+  /* We need to copy the yuv data from the decoder's internal buffers.
+     Y size is width*height, U and V width*height/4 */ 
+  int i;
+  int src_offset,dst_offset;
+
+  /* copy y data; use shortcut if stride_y equals width */
+  src_offset = 0;
+  dst_offset = 0;
+  if (pict.stride_y == img->width) {
+    fast_memcpy(img->base[0]+dst_offset, pict.y, this->biWidth*this->biHeight);
+    dst_offset += this->biWidth * this->biHeight;
+  }
+  else { /* copy line by line */
+    for (i=0; i<this->biHeight; i++) {
+      fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, this->biWidth);
+      src_offset += pict.stride_y;
+      dst_offset += this->biWidth;
+    }
+  }
+
+  /* same for u,v data, but at 1/4 resolution.
+     FIXME: Weird... I thought YV12 means order y-v-u, yet base[1] 
+     seems to be u and base[2] is v. */
+
+ /* copy u and v data */
+  src_offset = 0;
+  dst_offset = 0;
+  if (pict.stride_uv == img->width>>1) {
+    fast_memcpy(img->base[1]+dst_offset, pict.u, (this->biWidth*this->biHeight)/4);
+    fast_memcpy(img->base[2]+dst_offset, pict.v, (this->biWidth*this->biHeight)/4);
+    dst_offset += (this->biWidth*this->biHeight)/4;
+  }
+  else {
+    for (i=0; i<this->biHeight>>1; i++) {
+      fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, this->biWidth/2);
+      fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, this->biWidth/2);
+      src_offset += pict.stride_uv;
+      dst_offset += this->biWidth/2;
+    }
+  } 
+     
+  /* check for the copy function pointer. If set, we need to call it
+     with slices of 16 lines. Too bad we can't set the y,u and v
+     stride values (because then we wouldn't need the first copy) */
+  if (img->copy && img->bad_frame == 0) {
+    int height = this->biHeight;
+    int stride = this->biWidth;
+    uint8_t* src[3];
+	  
+    src[0] = img->base[0];
+    src[1] = img->base[1];
+    src[2] = img->base[2];
+    while ((height -= 16) >= 0) {
+      img->copy(img, src);
+      src[0] += 16 * stride;
+      src[1] +=  4 * stride;
+      src[2] +=  4 * stride;
+    }
+  }
 }
 
 static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
@@ -138,183 +256,65 @@ static void divx4_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   this->decoder_ok = 0;
 }
 
+
 static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
-  DEC_PARAM param; /* for init                   */
-  DEC_SET setpp;   /* for setting postproc level */
   DEC_FRAME frame; /* for getting a frame        */
   DEC_PICTURE pict;/* contains ptrs to the decoders internal yuv buffers */
+  vo_frame_t *img; /* video out frame */
   int ret;
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
-  if (buf->decoder_info[0] == 0) {
+  if (buf->decoder_info[0] == 0) { /* need to initialize */
+    this->decoder_ok = divx4_init_decoder(this, buf);
+    if (this->decoder_ok)
+      this->video_out->open (this->video_out);
+    return;
+  }
 
-    int codec_type;
+  if (! this->decoder_ok) /* don't try to do anything */
+    return;
 
-    memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
-    this->biWidth = str2ulong(&this->bih.biWidth);
-    this->biHeight = str2ulong(&this->bih.biHeight);
-    this->video_step = buf->decoder_info[1];
+  fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+  this->size += buf->size;
 
-    codec_type = buf->type & 0xFFFF0000;
+  if (buf->decoder_info[0] == 2)  { /* need to decode a frame */
+    /* allocate image (taken from ffmpeg plugin) */
+    img = this->video_out->get_frame (this->video_out, this->biWidth,
+        this->biHeight, XINE_ASPECT_RATIO_DONT_TOUCH, IMGFMT_YV12, 
+        this->video_step, VO_BOTH_FIELDS);
 
-    /* do we need divx 3.11 compatibility mode? */
-    switch (buf->type & 0xFFFF0000) {
-    case BUF_VIDEO_MSMPEG4_V12:
-    case BUF_VIDEO_MSMPEG4_V3:
-      this->use_311_compat = 1;
-      break;
-    case BUF_VIDEO_MPEG4 :
-      this->use_311_compat = 0;
-      break;
-    default:
-      printf ("divx4: unknown video format (buftype: 0x%08X)\n",
-	      buf->type & 0xFFFF0000);
-    }
+    /* setup the decode frame parameters, as demonstrated by avifile.
+       Old versions used DEC_YV12, but that was basically wrong and just
+       happened to work with the Xv driver. Now DEC_USER is the only option.
+    */
+    frame.bitstream=this->buf;
+    frame.bmp=&pict; /* decore will set ptrs to internal y,u&v buffers */
+    frame.length=this->size;
+    frame.render_flag=1;
+    frame.stride=this->biWidth;
 
-    /* setup decoder; inspired by avifile's plugin */
-    param.x_dim=this->biWidth;
-    param.y_dim=this->biHeight;
-    param.time_incr = 15; /* no idea what this does */
-    /* FIXME: the decoder can also supply RGB data, and my avifile experience
-       is that it's far preferable over generic yuv conversion. Would this
-       be interesting for the XShm crowd, lacking a YUV overlay? */
-    param.output_format=this->decore_format;
-    memset(&param.buffers, 0, sizeof(param.buffers));
-
-    ret = this->decore((unsigned long)this, DEC_OPT_INIT, &param, &this->bih);
-    if (ret != DEC_OK) {
-	printf("divx4: decore DEC_OPT_INIT command returned %s.\n", decore_retval(ret));
-	return;
-    }
-
-    /* multiply postproc level by 10 for internal consumption */
-    printf("divx4: Setting post processing level to %d (see ~/.xinerc)\n"
-	   "divx4: Valid range 0-6, reduce if you get frame drop\n", 
-	   this->postproc); 
-    setpp.postproc_level=this->postproc*10;
-
-    ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
-    if (ret != DEC_OK)
-    {
-	printf("divx4: decore DEC_OPT_SETPP command returned %s.\n", decore_retval(ret));
-	/* perhaps not fatal, so we'll continue */
-    }
-
-    this->decoder_ok = 1;
-    this->video_out->open (this->video_out);
-
-  } else if (this->decoder_ok) {
-
-    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-
-    this->size += buf->size;
-
-    if (buf->decoder_info[0] == 2)  { /* what does this mean? */
-      /* allocate image (taken from ffmpeg plugin) */
-      vo_frame_t *img;
-      img = this->video_out->get_frame (this->video_out,
-					/* this->av_picture.linesize[0],  */
-					this->biWidth,
-					this->biHeight,
-					42, 
-					IMGFMT_YV12,
-					this->video_step,
-					VO_BOTH_FIELDS);
-
-      /*
-	setup the decode frame parameters, as demonstrated by avifile.
-	If decore format is DEC_YV12, I assume here that the layout of 
-        base[] is flat, i.e. that base[0], [1] and [2] all point inside the same
-	contiguous bit of memory. It seems to work for the Xv driver
-	but I don't not know if this is always acceptable. Use DEC_USER if this
-        causes problems (configurable via .xinerc). Also, OpenDivx seems to
-        prefer DEC_USER.
-      */
-      frame.bitstream= (void*)this->buf;
-
-      if (this->decore_format == DEC_USER)
-        frame.bmp=&pict; /* decore will set ptrs to internal y,u&v buffers */
-      else
-        frame.bmp=img->base[0]; /* YV12: assume y,u & v buffers are contiguous */
-
-      frame.length=this->size;
-      frame.render_flag=1;
-      frame.stride=this->biWidth;
-
-      if(this->use_311_compat)
-	ret = this->decore((unsigned long)this, DEC_OPT_FRAME_311, &frame, 0);
-      else
-	ret = this->decore((unsigned long)this, DEC_OPT_FRAME, &frame, 0);
-
-      if (ret != DEC_OK) {
-	printf("divx4: decore DEC_OPT_FRAME command returned %s.\n", decore_retval(ret));
-	img->bad_frame = 1; /* better skip this one */
-      }
-      else if (this->decore_format == DEC_USER)
-      {
-        /* We need to copy the yuv data from the decoder's internal buffers.
-           Y size is width*height, U and V width*height/4 */ 
-        int i;
-        int src_offset,dst_offset;
-        /* shortcut if stride_y equals width */
-        if (pict.stride_y == img->width) {
-          fast_memcpy(img->base[0], pict.y, img->width*img->height);
-        }
-        else { /* copy line by line */
-	  src_offset=dst_offset = 0;
-          for (i=0; i<img->height; i++) {
-            fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, img->width);
-            src_offset += pict.stride_y;
-            dst_offset += img->width;
-          }
-        }
-        /* same for u,v data, but at 1/4 resolution.
-           FIXME: Weird... I thought YV12 means order y-v-u, yet base[1] 
-           seems to be u and base[2] is v. */
-        if (pict.stride_uv == img->width>>1) {
-          fast_memcpy(img->base[1], pict.u, (img->width*img->height)>>2);
-          fast_memcpy(img->base[2], pict.v, (img->width*img->height)>>2);
-        }
-        else {
-	  src_offset=dst_offset = 0;
-          for (i=0; i<img->height>>1; i++) {
-            fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, img->width>>1);
-            fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, img->width>>1);
-            src_offset += pict.stride_uv;
-            dst_offset += img->width>>1;
-	  }
-        } 
-      }
-
-      /* more video-out voodoo:
-	 some sort of copy operation, looks like. Straight from the ffmpeg
-	 plugin. The XShm driver seems to need it, the Xv one does not. */
-      if (img->copy && img->bad_frame == 0) {
-	int height = abs(this->biHeight);
-	int stride = this->biWidth;
-	uint8_t* src[3];
-	  
-	src[0] = img->base[0];
-	src[1] = img->base[1];
-	src[2] = img->base[2];
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * stride;
-	  src[1] +=  4 * stride;
-	  src[2] +=  4 * stride;
-	}
-      }
-
-
-      /* this again from ffmpeg plugin */
-      img->PTS = buf->PTS;
-      img->draw(img);
-      img->free(img);
+    if(this->use_311_compat)
+      ret = this->decore((unsigned long)this, DEC_OPT_FRAME_311, &frame, 0);
+    else
+      ret = this->decore((unsigned long)this, DEC_OPT_FRAME, &frame, 0);
       
-      this->size = 0;
+    if (ret != DEC_OK) {
+      printf("divx4: decore DEC_OPT_FRAME command returned %s.\n", 
+        decore_retval(ret));
+      img->bad_frame = 1; /* better skip this one */
     }
+    else {
+      divx4_copy_frame(this, img, pict);
+    }
+
+    /* this again from ffmpeg plugin */
+    img->PTS = buf->PTS;
+    img->draw(img);
+    img->free(img);
+      
+    this->size = 0;
   }
 }
 
@@ -345,6 +345,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   char *libdecore_name;
   void *libdecore_handle;
   decoreFunc libdecore_func = 0;
+  int version;
 
   if (iface_version != 2) {
     printf( "divx4: plugin doesn't support plugin API version %d.\n"
@@ -363,13 +364,39 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   if (libdecore_handle)
     libdecore_func = dlsym(libdecore_handle, "decore"); 
   if (! libdecore_func) {
+/* This message caused some people to think there was a problem with xine
     printf("divx4: could not find decore function in library \"%s\"\n"
            "divx4: system returned \"%s\"\n"
            "divx4: libdivxdecore unavailable; this plugin will be disabled.\n", 
            libdecore_name, dlerror()); 
+*/
     return NULL;
   }
-  printf("divx4: successfully opened \"%s\"\n", libdecore_name);
+
+  /* allow override of version checking by user */
+  version = cfg->lookup_int(cfg, "divx4_forceversion", 0);
+  if (version) {
+    /* this dangerous stuff warrants an extra warning */
+    printf("divx4: assuming libdivxdecore version is %d\n", version);
+  }
+  else {
+    /* default behaviour: ask decore, fake handle 123 */
+    version = libdecore_func(123, DEC_OPT_VERSION, 0, 0);
+    if (version < 100) { /* must be an error code */
+      printf("divx4: libdivxdecore failed to return version number (returns %s)\n)",
+	     decore_retval(version));
+      version = -1;
+    }
+  }
+
+  /* now check the version */
+  if (version < 20010800) { /* august 2001 and later are ok. */
+    printf("divx4: libdivxdecore version \"%d\" too old. Need 20010800 or later\n", version);
+    /* bye bye */
+    return 0; 
+  }  
+  printf("divx4: successfully opened decore library \"%s\", version %d\n", 
+         libdecore_name, version);
 
   this = (divx4_decoder_t *) malloc (sizeof (divx4_decoder_t));
 
@@ -382,9 +409,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.priority            = cfg->lookup_int(cfg, "divx4_priority", 4); 
   this->decore = libdecore_func;
   this->postproc 			  = cfg->lookup_int(cfg, "divx4_postproc", 3);
-  this->decore_format			  = cfg->lookup_int(cfg, "divx4_decoreformat", 1);
   this->can_handle_311			  = cfg->lookup_int(cfg, "divx4_msmpeg4v3", 1);
   this->size				  = 0;
+  this->version				  = version;
 
   /* at the moment availabe values are 0-6, but future versions may support
      higher levels. Internally, postproc is multiplied by 10 and values 
@@ -392,17 +419,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   if (this->postproc > 10) this->postproc=10;
   if (this->postproc < 0) this->postproc=0;
 
-  /* translate the decore_format value to the internal constant, correct if
-     an illegal value was given. 
-     This might someday be extended to allow for RGB output from the decoder */
-  if (this->decore_format == 0) this->decore_format = DEC_YV12;
-  else if (this->decore_format == 1) this->decore_format = DEC_USER;
-  else {
-    printf("divx4: Illegal value %d for divx4_decoreformat, using 1.\n"
-           "divx4: Valid are 0 (YV12, faster) and 1 (USER, safer). No quality difference.\n",
-           this->decore_format);
-    this->decore_format = DEC_USER;
-  }
   return (video_decoder_t *) this;
 }
 
