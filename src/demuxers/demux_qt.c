@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.177 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.178 2004/02/29 17:55:28 tmmm Exp $
  *
  */
 
@@ -100,10 +100,15 @@ typedef unsigned int qt_atom;
 #define RAW_FOURCC  QT_ATOM('r', 'a', 'w', ' ')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
+#define META_ATOM QT_ATOM('m', 'e', 't', 'a')
 #define NAM_ATOM QT_ATOM(0xA9, 'n', 'a', 'm')
 #define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
 #define DES_ATOM QT_ATOM(0xA9, 'd', 'e', 's')
 #define CMT_ATOM QT_ATOM(0xA9, 'c', 'm', 't')
+#define ALB_ATOM QT_ATOM(0xA9, 'a', 'l', 'b')
+#define GEN_ATOM QT_ATOM(0xA9, 'g', 'e', 'n')
+#define ART_ATOM QT_ATOM(0xA9, 'A', 'R', 'T')
+#define TOO_ATOM QT_ATOM(0xA9, 't', 'o', 'o')
 
 #define RMDA_ATOM QT_ATOM('r', 'm', 'd', 'a')
 #define RDRF_ATOM QT_ATOM('r', 'd', 'r', 'f')
@@ -301,7 +306,10 @@ typedef struct {
   int               audio_trak;
   int seek_flag;  /* this is set to indicate that a seek has just occurred */
 
+  char              *artist;
   char              *name;
+  char              *album;
+  char              *genre;
   char              *copyright;
   char              *description;
   char              *comment;
@@ -566,7 +574,10 @@ static qt_info *create_qt_info(void) {
   info->video_trak = -1;
   info->audio_trak = -1;
 
+  info->artist = NULL;
   info->name = NULL;
+  info->album = NULL;
+  info->genre = NULL;
   info->copyright = NULL;
   info->description = NULL;
   info->comment = NULL;
@@ -612,7 +623,10 @@ static void free_qt_info(qt_info *info) {
       free(info->references);
     }
     free(info->base_mrl);
+    free(info->artist);
     free(info->name);
+    free(info->album);
+    free(info->genre);
     free(info->copyright);
     free(info->description);
     free(info->comment);
@@ -658,6 +672,46 @@ static int is_qt_file(input_plugin_t *qt_file) {
         return 0;
     return 1;
   }
+}
+
+/* parse out a meta data atom */
+static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
+  int i;
+  unsigned int meta_atom_size = BE_32(&meta_atom[0]);
+  qt_atom current_atom;
+  int string_size;
+
+  for (i = 0; i < meta_atom_size - 4; i++) {
+    current_atom = BE_32(&meta_atom[i]);
+
+    if (current_atom == ART_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->artist = xine_xmalloc(string_size);
+      strncpy(info->artist, &meta_atom[i + 20], string_size - 1);
+      info->artist[string_size - 1] = 0;
+    } else if (current_atom == NAM_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->name = xine_xmalloc(string_size);
+      strncpy(info->name, &meta_atom[i + 20], string_size - 1);
+      info->name[string_size - 1] = 0;
+    } else if (current_atom == ALB_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->album = xine_xmalloc(string_size);
+      strncpy(info->album, &meta_atom[i + 20], string_size - 1);
+      info->album[string_size - 1] = 0;
+    } else if (current_atom == GEN_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->genre = xine_xmalloc(string_size);
+      strncpy(info->genre, &meta_atom[i + 20], string_size - 1);
+      info->genre[string_size - 1] = 0;
+    } else if (current_atom == TOO_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->comment = xine_xmalloc(string_size);
+      strncpy(info->comment, &meta_atom[i + 20], string_size - 1);
+      info->comment[string_size - 1] = 0;
+    }
+  }
+
 }
 
 /* fetch interesting information from the movie header atom */
@@ -1761,12 +1815,20 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       }
       i += BE_32(&moov_atom[i - 4]) - 4;
 
+    } else if (current_atom == META_ATOM) {
+
+      parse_meta_atom(info, &moov_atom[i - 4]);
+      if (info->last_error != QT_OK)
+        return;
+      i += BE_32(&moov_atom[i - 4]) - 4;
+
     } else if (current_atom == NAM_ATOM) {
 
       string_size = BE_16(&moov_atom[i + 4]) + 1;
       info->name = realloc (info->name, string_size);
       strncpy(info->name, &moov_atom[i + 8], string_size - 1);
       info->name[string_size - 1] = 0;
+      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == CPY_ATOM) {
 
@@ -1774,6 +1836,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->copyright = realloc (info->copyright, string_size);
       strncpy(info->copyright, &moov_atom[i + 8], string_size - 1);
       info->copyright[string_size - 1] = 0;
+      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == DES_ATOM) {
 
@@ -1781,6 +1844,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->description = realloc (info->description, string_size);
       strncpy(info->description, &moov_atom[i + 8], string_size - 1);
       info->description[string_size - 1] = 0;
+      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == CMT_ATOM) {
 
@@ -1788,6 +1852,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->comment = realloc (info->comment, string_size);
       strncpy(info->comment, &moov_atom[i + 8], string_size - 1);
       info->comment[string_size - 1] = 0;
+      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == RMDA_ATOM) {
 
@@ -1798,7 +1863,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
       parse_reference_atom(&info->references[info->reference_count - 1],
         &moov_atom[i - 4], info->base_mrl);
-
+      i += BE_32(&moov_atom[i - 4]) - 4;
     }
   }
   debug_atom_load("  qt: finished parsing moov atom\n");
@@ -2408,7 +2473,9 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   }
 
   /* copy over the meta information like artist and title */
-  if (this->qt->copyright)
+  if (this->qt->artist)
+    _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->qt->artist);
+  else if (this->qt->copyright)
     _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->qt->copyright);
   if (this->qt->name)
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->name);
@@ -2416,6 +2483,10 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->description);
   if (this->qt->comment)
     _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->qt->comment);
+  if (this->qt->album)
+    _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, this->qt->album);
+  if (this->qt->genre)
+    _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, this->qt->genre);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);
