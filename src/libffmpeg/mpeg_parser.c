@@ -20,7 +20,7 @@
  * Simple MPEG-ES parser/framer by Thibaut Mattern (tmattern@noos.fr)
  *   based on libmpeg2 decoder.
  *
- * $Id: mpeg_parser.c,v 1.1 2004/07/18 00:50:02 tmattern Exp $
+ * $Id: mpeg_parser.c,v 1.2 2004/07/18 17:36:25 tmattern Exp $
  */
 #define LOG_MODULE "mpeg_parser"
 #define LOG_VERBOSE
@@ -162,16 +162,34 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
 
   case 0xb3:     /* sequence_header_code */
     {
-      int value;      
+      int value;
+      int width;
+      int height;
+      
       if (parser->is_sequence_needed) {
         parser->is_sequence_needed = 0;
       }
+      
+      if ((buffer[6] & 0x20) != 0x20) {
+        lprintf("Invalid sequence: missing marker_bit\n");
+        parser->has_sequence = 0;
+        break;  /* missing marker_bit */
+      }
+
       value = (buffer[0] << 16) |
               (buffer[1] << 8)  |
                buffer[2];
-      parser->width  = ((value >> 12) + 15) & ~15;
-      parser->height = ((value & 0xfff) + 15) & ~15;
+      width  = ((value >> 12) + 15) & ~15;
+      height = ((value & 0xfff) + 15) & ~15;
       
+      if ((width > 1920) || (height > 1152)) {
+        lprintf("Invalid sequence: width=%d, height=%d\n", width, height);
+        parser->has_sequence = 0;
+        break;  /* size restrictions for MP@HL */
+      }
+
+      parser->width  = width;
+      parser->height = height;
       parser->rate_code = buffer[3] & 15;
       parser->aspect_ratio_info = buffer[3] >> 4;
       
@@ -216,7 +234,6 @@ static inline uint8_t *copy_chunk (mpeg_parser_t *parser,
 
   shift = parser->shift;
   chunk_ptr = parser->chunk_ptr;
-  parser->chunk_start = chunk_ptr;
 
   limit = current + (parser->chunk_buffer + BUFFER_SIZE - chunk_ptr);
   if (limit > end)
@@ -237,6 +254,7 @@ static inline uint8_t *copy_chunk (mpeg_parser_t *parser,
         return NULL;
       } else {
         /* we filled the chunk buffer without finding a start code */
+        lprintf("Buffer full\n");
         parser->code = 0xb4;        /* sequence_error_code */
         parser->chunk_ptr = parser->chunk_buffer;
         return current;
@@ -269,6 +287,7 @@ uint8_t *mpeg_parser_decode_data (mpeg_parser_t *parser,
       parser->chunk_buffer[2] = 0x01;
       parser->chunk_buffer[3] = parser->code;
       parser->chunk_ptr += 4;
+      parser->chunk_start = parser->chunk_ptr;
       parser->has_sequence = 0;
     }
     
@@ -279,6 +298,7 @@ uint8_t *mpeg_parser_decode_data (mpeg_parser_t *parser,
       return NULL;
     ret = parse_chunk (parser, code, parser->chunk_start,
                        parser->chunk_ptr - parser->chunk_start - 4);
+    parser->chunk_start = parser->chunk_ptr;
     if (ret == 1) {
       if (parser->has_sequence) {
         parser->frame_aspect_ratio = get_aspect_ratio(parser);
