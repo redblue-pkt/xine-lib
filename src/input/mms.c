@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.31 2003/10/08 05:33:28 valtri Exp $
+ * $Id: mms.c,v 1.32 2003/10/11 20:42:38 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -53,6 +53,13 @@
 #include <langinfo.h>
 #endif
 
+/********** logging **********/
+#define LOG_MODULE "libmms"
+#define LOG_VERBOSE
+/*
+#define LOG 
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 
@@ -61,9 +68,6 @@
 #include "mms.h"
 #include "../demuxers/asfheader.h"
 
-/*
-#define LOG
-*/
 
 /* 
  * mms specific types 
@@ -114,9 +118,11 @@ struct mms_s {
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
   uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
+  int           bandwidth;
   
   int           has_audio;
   int           has_video;
+  int           live_flag;
 };
 
 
@@ -131,60 +137,20 @@ static void put_32 (mms_t *this, uint32_t value) {
   this->scmd_len += 4;
 }
 
-static uint32_t get_64 (uint8_t *buffer, int offset) {
-
-  uint64_t ret;
-
-  ret = ((uint64_t)buffer[offset]) |
-        ((uint64_t)buffer[offset + 1] << 8) |
-        ((uint64_t)buffer[offset + 2] << 16) |
-        ((uint64_t)buffer[offset + 2] << 24) |
-        ((uint64_t)buffer[offset + 2] << 32) |
-        ((uint64_t)buffer[offset + 2] << 40) |
-        ((uint64_t)buffer[offset + 2] << 48) |
-        ((uint64_t)buffer[offset + 2] << 56);
-
-  return ret;
-}
-
-static uint32_t get_32 (uint8_t *buffer, int offset) {
-
-  uint32_t ret;
-
-  ret = buffer[offset] |
-        buffer[offset + 1] << 8 |
-        buffer[offset + 2] << 16 |
-        buffer[offset + 3] << 24 ;
-
-  return ret;
-}
-
-static uint16_t get_16 (unsigned char *buffer, int offset) {
-
-  uint16_t ret;
-
-  ret = buffer[offset] |
-        buffer[offset + 1] << 8;
-
-  return ret;
-}
-
 static int get_guid (unsigned char *buffer, int offset) {
   int i;
   GUID g;
   
-  g.Data1 = get_32(buffer, offset);
-  g.Data2 = get_16(buffer, offset + 4);
-  g.Data3 = get_16(buffer, offset + 6);
+  g.Data1 = LE_32(buffer + offset);
+  g.Data2 = LE_16(buffer + offset + 4);
+  g.Data3 = LE_16(buffer + offset + 6);
   for(i = 0; i < 8; i++) {
     g.Data4[i] = buffer[offset + 8 + i];
   }
   
   for (i = 1; i < GUID_END; i++) {
     if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
-#ifdef LOG
-      printf ("libmms: GUID: %s\n", guids[i].name);
-#endif
+      lprintf ("GUID: %s\n", guids[i].name);
       return i;
     }
   }
@@ -193,7 +159,7 @@ static int get_guid (unsigned char *buffer, int offset) {
           "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
           g.Data1, g.Data2, g.Data3,
           g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], 
-		  g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
+          g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
   return GUID_ERROR;
 }
 
@@ -206,17 +172,16 @@ static int send_data (int s, char *buf, int len) {
 
     n = write (s, &buf[total], len - total);
 
-#ifdef LOG
-    printf ("mms: sending data, %d of %d\n", n, len);
-#endif
+    lprintf ("sending data, %d of %d\n", n, len);
 
     if (n > 0)
       total += n;
     else if (n < 0) {
       if ((timeout>0) && ((errno == EAGAIN) || (errno == EINPROGRESS))) {
-	sleep (1); timeout--;
-      } else
-	return -1;
+        sleep (1); timeout--;
+      } else {
+        return -1;
+      }
     }
   }
   return total;
@@ -247,7 +212,7 @@ static int send_command (mms_t *this, int command, uint32_t switches,
   /* memcpy (&cmd->buf[48], data, length); */
 
   if (send_data (this->s, this->scmd, length+48) != (length+48)) {
-    printf ("libmms: send error\n");
+    lprintf ("send error\n");
     return 0;
   }
 
@@ -258,14 +223,14 @@ static int send_command (mms_t *this, int command, uint32_t switches,
 
   printf ("\nlibmms: ***************************************************\ncommand sent, %d bytes\n", length + 48);
 
-  printf ("start sequence %08x\n", get_32 (this->scmd,  0));
-  printf ("command id     %08x\n", get_32 (this->scmd,  4));
-  printf ("length         %8x \n", get_32 (this->scmd,  8));
-  printf ("len8           %8x \n", get_32 (this->scmd, 16));
-  printf ("sequence #     %08x\n", get_32 (this->scmd, 20));
-  printf ("len8  (II)     %8x \n", get_32 (this->scmd, 32));
-  printf ("dir | comm     %08x\n", get_32 (this->scmd, 36));
-  printf ("switches       %08x\n", get_32 (this->scmd, 40));
+  printf ("start sequence %08x\n", LE_32 (this->scmd + 0));
+  printf ("command id     %08x\n", LE_32 (this->scmd + 4));
+  printf ("length         %8x \n", LE_32 (this->scmd +  8));
+  printf ("len8           %8x \n", LE_32 (this->scmd + 16));
+  printf ("sequence #     %08x\n", LE_32 (this->scmd + 20));
+  printf ("len8  (II)     %8x \n", LE_32 (this->scmd + 32));
+  printf ("dir | comm     %08x\n", LE_32 (this->scmd + 36));
+  printf ("switches       %08x\n", LE_32 (this->scmd + 40));
 
   printf ("ascii contents>");
   for (i = 48; i < (length + 48); i += 2) {
@@ -341,14 +306,14 @@ static void print_answer (char *data, int len) {
 
   printf ("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\nanswer received, %d bytes\n", len);
 
-  printf ("start sequence %08x\n", get_32 (data, 0));
-  printf ("command id     %08x\n", get_32 (data, 4));
-  printf ("length         %8x \n", get_32 (data, 8));
-  printf ("len8           %8x \n", get_32 (data, 16));
-  printf ("sequence #     %08x\n", get_32 (data, 20));
-  printf ("len8  (II)     %8x \n", get_32 (data, 32));
-  printf ("dir | comm     %08x\n", get_32 (data, 36));
-  printf ("switches       %08x\n", get_32 (data, 40));
+  printf ("start sequence %08x\n", LE_32 (data + 0));
+  printf ("command id     %08x\n", LE_32 (data + 4));
+  printf ("length         %8x \n", LE_32 (data + 8));
+  printf ("len8           %8x \n", LE_32 (data + 16));
+  printf ("sequence #     %08x\n", LE_32 (data + 20));
+  printf ("len8  (II)     %8x \n", LE_32 (data + 32));
+  printf ("dir | comm     %08x\n", LE_32 (data + 36));
+  printf ("switches       %08x\n", LE_32 (data + 40));
 
   for (i = 48; i < len; i += 2) {
     unsigned char c = data[i];
@@ -361,7 +326,6 @@ static void print_answer (char *data, int len) {
   }
   printf ("\n");
 #endif
-
 }  
 
 /*
@@ -377,41 +341,39 @@ static int get_answer (mms_t *this) {
 
     len = xio_tcp_read (this->stream, this->s, this->buf, 12);
     if (len < 0) {
-      printf ("\nlibmms: get_answer: read error\n");
+      lprintf ("get_answer: read error\n");
       return 0;
     } else if (len != 12) {
-      printf ("\nlibmms: get_answer: end of stream\n");
+      lprintf ("get_answer: end of stream\n");
       return 0;
     }
 
-    length = get_32 (this->buf, 8);
+    length = LE_32 (this->buf + 8);
 
-#ifdef LOG
-    printf ("\n\npacket length: %d\n", length);
-#endif
+    lprintf ("packet length: %d\n", length);
     if (length > (BUF_SIZE - 12)) {
-      printf ("libmms: get_answer: invalid packet length: %d\n", length);
+      lprintf ("get_answer: invalid packet length: %d\n", length);
       return 0;
     }
     
-    len = xio_tcp_read (this->stream, this->s, this->buf+12, length+4) ;
+    len = xio_tcp_read (this->stream, this->s, this->buf + 12, length + 4) ;
     if (len < 0) {
-      printf ("\nlibmms: get_answer: read error\n");
+      lprintf ("get_answer: read error\n");
       return 0;
     } else if (len != (length + 4)) {
-      printf ("\nlibmms: get_answer: end of stream\n");
+      lprintf ("get_answer: end of stream\n");
       return 0;
     }
     
     len += 12;
     print_answer (this->buf, len);
 
-    command = get_32 (this->buf, 36) & 0xFFFF;
+    command = LE_32 (this->buf + 36) & 0xFFFF;
 
     /* reply to a ping command */
     if (command == 0x1b) {
       if (!send_command (this, 0x1b, 0, 0, 0)) {
-        printf("libmms: failed to send command 0x1b\n");
+        lprintf("failed to send command 0x1b\n");
         return 0;
       }
     }
@@ -431,10 +393,10 @@ static int get_header (mms_t *this) {
 
     len = xio_tcp_read (this->stream, this->s, pre_header, 8) ;
     if (len < 0) {
-      printf ("\nlibmms: get_header: read error\n");
+      lprintf ("get_header: read error\n");
       return 0;
     } else if (len != 8) {
-      printf ("\nlibmms: get_header: end of stream\n");
+      lprintf ("get_header: end of stream\n");
       return 0;
     }
 
@@ -445,29 +407,28 @@ static int get_header (mms_t *this) {
         printf ("libmms: pre_header[%d] = %02x (%d)\n",
                 i, pre_header[i], pre_header[i]);
     }
+    printf ("libmms: asf header packet detected, len=%d\n",
+            pre_header[7] << 8 | pre_header[6]);
 #endif    
 
-    if (pre_header[4] == 0x02) {
+    if ((pre_header[4] == 0x02) || (pre_header[4] == 0xff)){
       
       uint32_t packet_len;
       
       packet_len = (pre_header[7] << 8 | pre_header[6]) - 8;
 
-#ifdef LOG    
-      printf ("libmms: asf header packet detected, len=%d\n",
-	      packet_len);
-#endif
+      lprintf ("asf header packet detected, len=%d\n", packet_len);
       if (packet_len > (ASF_HEADER_LEN - this->asf_header_len)) {
-        printf ("libmms: get_header: invalid packet length: %d\n", packet_len);
+        lprintf ("get_header: invalid packet length: %d\n", packet_len);
         return 0;
       }
       
       len = xio_tcp_read (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
       if (len < 0) {
-        printf ("\nlibmms: get_header: read error\n");
+        lprintf ("get_header: read error\n");
         return 0;
       } else if (len != packet_len) {
-        printf ("\nlibmms: get_header: end of stream\n");
+        lprintf ("get_header: end of stream\n");
         return 0;
       }
 
@@ -476,9 +437,7 @@ static int get_header (mms_t *this) {
       if ( (this->asf_header[this->asf_header_len - 1] == 1) 
            && (this->asf_header[this->asf_header_len - 2] == 1)) {
 
-#ifdef LOG
-        printf ("libmms: get header packet finished\n");
-#endif
+        lprintf ("get header packet finished\n");
         return 1;
       } 
 
@@ -489,50 +448,44 @@ static int get_header (mms_t *this) {
 
       len = xio_tcp_read (this->stream, this->s, (uint8_t *) &packet_len, 4);
       if (len < 0) {
-        printf ("\nlibmms: get_header: read error\n");
+        lprintf ("get_header: read error\n");
         return 0;
       } else if (len != 4) {
-        printf ("\nlibmms: get_header: end of stream\n");
+        lprintf ("get_header: end of stream\n");
         return 0;
       }
       
-      packet_len = get_32 ((uint8_t *)&packet_len, 0) + 4;
+      packet_len = LE_32 ((uint8_t *)&packet_len + 0) + 4;
       
-#ifdef LOG    
-      printf ("command packet detected, len=%d\n",
-	      packet_len);
-#endif
+      lprintf ("command packet detected, len=%d\n", packet_len);
+
       if (packet_len > (BUF_SIZE)) {
-        printf ("libmms: get_header: invalid packet length: %d\n", packet_len);
+        lprintf ("get_header: invalid packet length: %d\n", packet_len);
         return 0;
       }
       
       len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
       if (len < 0) {
-        printf ("\nlibmms: get_header: read error\n");
+        lprintf ("get_header: read error\n");
         return 0;
       } else if (len != packet_len) {
-        printf ("\nlibmms: get_header: end of stream\n");
+        lprintf ("get_header: end of stream\n");
         return 0;
       }
       
-      command = get_32 (this->buf, 24) & 0xFFFF;
-#ifdef LOG    
-      printf ("command: %02x\n", command);
-#endif
+      command = LE_32 (this->buf + 24) & 0xFFFF;
+      lprintf ("command: %02x\n", command);
       
       /* reply to a ping command */
       if (command == 0x1b) {
         if (!send_command (this, 0x1b, 0, 0, 0)) {
-          printf("libmms: failed to send command 0x1b\n");
+          lprintf("libmms: failed to send command 0x1b\n");
           return 0;
         }
       }
     }
 
-#ifdef LOG
-    printf ("mms: get header packet succ\n");
-#endif
+    lprintf ("mms: get header packet succ\n");
   }
 
   return 1;
@@ -543,7 +496,7 @@ static void interp_header (mms_t *this) {
   int i;
 
   this->packet_length = 0;
-
+  this->num_stream_ids = 0;
   /*
    * parse header
    */
@@ -556,19 +509,17 @@ static void interp_header (mms_t *this) {
     guid = get_guid(this->asf_header, i);
     i += 16;
         
-    length = get_64(this->asf_header, i);
+    length = LE_64(this->asf_header + i);
     i += 8;
 
     switch (guid) {
     
       case GUID_ASF_FILE_PROPERTIES:
 
-        this->packet_length = get_32(this->asf_header, i + 92 - 24);
-        this->file_length   = get_32(this->asf_header, i + 40 - 24);
-#ifdef LOG    
-        printf ("libmms: file object, packet length = %d (%d)\n",
-                this->packet_length, get_32(this->asf_header, i + 96 - 24));
-#endif
+        this->packet_length = LE_32(this->asf_header + i + 92 - 24);
+        this->file_length   = LE_32(this->asf_header + i + 40 - 24);
+        lprintf ("file object, packet length = %d (%d)\n",
+                 this->packet_length, LE_32(this->asf_header + i + 96 - 24));
         break;
 
       case GUID_ASF_STREAM_PROPERTIES:
@@ -596,11 +547,9 @@ static void interp_header (mms_t *this) {
               type = ASF_STREAM_TYPE_UNKNOWN;
           }
 
-          stream_id = get_16(this->asf_header, i + 48);
+          stream_id = LE_16(this->asf_header + i + 48);
 
-#ifdef LOG    
-          printf ("libmms: stream object, stream id: %d\n", stream_id);
-#endif
+          lprintf ("stream object, stream id: %d\n", stream_id);
           this->stream_types[stream_id] = type;
           this->stream_ids[this->num_stream_ids] = stream_id;
           this->num_stream_ids++;
@@ -610,40 +559,30 @@ static void interp_header (mms_t *this) {
 
       case GUID_ASF_STREAM_BITRATE_PROPERTIES:
         {
-          uint16_t streams = get_16(this->asf_header, i);
+          uint16_t streams = LE_16(this->asf_header + i);
           uint16_t stream_id;
           int j;
 
-#ifdef LOG    
-          printf ("libmms: stream bitrate properties\n");
-#endif
+          lprintf ("stream bitrate properties\n");
+          lprintf ("streams %d\n", streams); 
 
-#ifdef LOG    
-          printf ("libmms: streams %d\n", streams); 
-#endif
           for(j = 0; j < streams; j++) {
-            stream_id = get_16(this->asf_header, i + 2 + j * 6);
-#ifdef LOG    
-            printf ("libmms: stream id %d\n", stream_id); 
-#endif
-            this->bitrates[stream_id] = get_32(this->asf_header, i + 4 + j * 6);
+            stream_id = LE_16(this->asf_header + i + 2 + j * 6);
+            lprintf ("stream id %d\n", stream_id); 
+            this->bitrates[stream_id] = LE_32(this->asf_header + i + 4 + j * 6);
             this->bitrates_pos[stream_id] = i + 4 + j * 6;
-            printf ("libmms: stream id %d, bitrate %d\n", stream_id, 
-                    this->bitrates[stream_id]);
+            lprintf ("stream id %d, bitrate %d\n", stream_id, 
+                     this->bitrates[stream_id]);
           }
         }
         break;
     
       default:
-#ifdef LOG    
-        printf ("libmms: unknown object\n");
-#endif
+        lprintf ("unknown object\n");
         break;
     }
 
-#ifdef LOG    
-    printf ("libmms: length    : %lld\n", length);
-#endif
+    lprintf ("length    : %lld\n", length);
 
     if (length > 24) {
       i += length - 24;
@@ -706,9 +645,7 @@ static int mms_parse_url(mms_t *this) {
   _host = _url;
   
   /* extract hostname */
-#ifdef LOG
-  printf ("libmms: extracting host name \n");
-#endif
+  lprintf ("extracting host name \n");
   hostend = strchr(_host, '/');
 /*
   if ((!hostend) || (strlen(hostend) <= 1)) {
@@ -717,9 +654,7 @@ static int mms_parse_url(mms_t *this) {
   }
 */
   if (!hostend) {
-#ifdef LOG
-    printf ("libmms: no trailing /\n");
-#endif
+    lprintf ("no trailing /\n");
     hostend = _host + strlen(_host);
   } else {
     *hostend++ = '\0';
@@ -746,14 +681,12 @@ static int mms_tcp_connect(mms_t *this) {
   /* 
    * try to connect 
    */
-#ifdef LOG
-  printf("libmms: try to connect to %s on port %d \n", this->host, this->port);
-#endif
+  lprintf("try to connect to %s on port %d \n", this->host, this->port);
   this->s = xio_tcp_connect (this->stream, this->host, this->port);
 
   
   if (this->s == -1) {
-    printf ("libmms: failed to connect '%s'\n", this->host);
+    lprintf ("failed to connect '%s'\n", this->host);
     return 1;
   }
 
@@ -767,10 +700,7 @@ static int mms_tcp_connect(mms_t *this) {
   if (res != XIO_READY) {
     return 1;
   }
-#ifdef LOG
-  printf ("libmms: connected\n");
-#endif
-
+  lprintf ("libmms: connected\n");
   return 0;
 }
 
@@ -787,16 +717,9 @@ static void mms_gen_guid(char guid[]) {
 }
 
 /*
- * TODO: error messages
- *       network timing request
+ * return 0 on error
  */
-mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
-  mms_t  *this;
-#ifdef USE_ICONV
-  iconv_t url_conv;
-#else
-  int     url_conv = 0;
-#endif
+int static mms_choose_best_streams(mms_t *this) {
   int     i;
   int     video_stream = 0;
   int     audio_stream = 0;
@@ -806,145 +729,11 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   int     stream_id;
   int     bandwitdh_left;
   int     res;
- 
-  if (!url)
-    return NULL;
-
-  this = (mms_t*) xine_xmalloc (sizeof (mms_t));
-
-  this->stream          = stream;
-  this->url             = strdup (url);
-  this->host            = NULL;
-  this->path            = NULL;
-  this->file            = NULL;
-  this->s               = -1;
-  this->seq_num         = 0;
-  this->scmd_body       = &this->scmd[CMD_HEADER_LEN];
-  this->asf_header_len  = 0;
-  this->asf_header_read = 0;
-  this->num_stream_ids  = 0;
-  this->packet_length   = 0;
-  this->buf_size        = 0;
-  this->buf_read        = 0;
-  this->has_audio       = 0;
-  this->has_video       = 0;
-
-  report_progress (stream, 0);
-
-  this->port = MMS_PORT;
-  if (mms_parse_url(this)) {
-    goto fail;
-  }
-  
-  if (mms_tcp_connect(this)) {
-    goto fail;
-  }
-  
-  report_progress (stream, 30);
-
-  
-#ifdef LOG
-  printf ("libmms: url=%s\nlibmms:   host=%s\nlibmms:   "
-          "path=%s\nlibmms:   file=%s\n", url, host, path, file);
-#endif
-
-#ifdef USE_ICONV
-  url_conv = string_utf16_open();
-#endif
-  /*
-   * let the negotiations begin...
-   */
-
-  /* command 0x1 */
-  mms_gen_guid(this->guid);
-  sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
-    this->guid, this->host);
-  string_utf16 (url_conv, this->scmd_body, this->str, strlen(this->str) + 2);
-
-  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8)) {
-    printf("libmms: failed to send command 0x01\n");
-    goto fail;
-  }
-  
-  if ((res = get_answer (this)) != 0x01) {
-    printf("libmms: unexpected response: %02x (0x01)\n", res);
-    goto fail;
-  }
-  
-  report_progress (stream, 40);
-
-  /* TODO: insert network timing rquest here */
-  /* command 0x2 */
-  string_utf16 (url_conv, &this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
-  memset (this->scmd_body, 0, 8);
-  if (!send_command (this, 2, 0, 0, 28 * 2 + 8)) {
-    printf("libmms: failed to send command 0x02\n");
-    goto fail;
-  }
-
-  switch (res = get_answer (this)) {
-    case 0x02:
-      /* protocol accepted */
-      break;
-    case 0x03:
-      printf("libmms: protocol failed\n");
-      goto fail;
-      break;
-    default:
-      printf("libmms: unexpected response: %02x (0x02 or 0x03)\n", res);
-      goto fail;
-  }
-
-  report_progress (stream, 50);
-
-  /* command 0x5 */
-  string_utf16 (url_conv, &this->scmd_body[8], this->path, strlen(this->path));
-  memset (this->scmd_body, 0, 8);
-  if (!send_command (this, 5, 0, 0, strlen(this->path) * 2 + 12))
-    goto fail;
-
-  switch (res = get_answer (this)) {
-    case 0x06:
-      /* no authentication required */
-      break;
-    case 0x1A:
-      /* authentication request, not yet supported */
-      printf("libmms: authentication request, not yet supported\n");
-      goto fail;
-      break;
-    default:
-      printf("libmms: unexpected response: %02x (0x06 or 0x1A)\n", res);
-      goto fail;
-  }
-
-  report_progress (stream, 60);
-
-  /* command 0x15 */
-  memset (this->scmd_body, 0, 40);
-  this->scmd_body[32] = 2;
-
-  if (!send_command (this, 0x15, 1, 0, 40)) {
-    printf("libmms: failed to send command 0x15\n");
-    goto fail;
-  }
-
-  if ((res = get_answer (this)) != 0x11) {
-    printf("libmms: unexpected response: %02x (0x11)\n", res);
-    goto fail;
-  }
-
-  this->num_stream_ids = 0;
-
-  if (!get_header (this))
-    goto fail;
-
-  interp_header (this);
-
-  report_progress (stream, 70);
 
   /* command 0x33 */
   /* choose the best quality for the audio stream */
   /* i've never seen more than one audio stream */
+  lprintf("num_stream_ids=%d\n", this->num_stream_ids);
   for (i = 0; i < this->num_stream_ids; i++) {
     stream_id = this->stream_ids[i];
     switch (this->stream_types[stream_id]) {
@@ -960,13 +749,11 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   }
   
   /* choose a video stream adapted to the user bandwidth */
-  bandwitdh_left = bandwidth - max_arate;
+  bandwitdh_left = this->bandwidth - max_arate;
   if (bandwitdh_left < 0) {
     bandwitdh_left = 0;
   }
-#ifdef LOG
-  printf("libmms: bandwitdh %d, left %d\n", bandwidth, bandwitdh_left);
-#endif
+  lprintf("libmms: bandwitdh %d, left %d\n", this->bandwidth, bandwitdh_left);
 
   min_bw_left = bandwitdh_left;
   for (i = 0; i < this->num_stream_ids; i++) {
@@ -1002,8 +789,8 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
     }
   }
     
-  printf("libmms: audio stream %d, video stream %d\n", audio_stream, video_stream);
-  
+  lprintf("selected streams: audio %d, video %d\n", audio_stream, video_stream);
+  lprintf("disabling other streams\n");
   memset (this->scmd_body, 0, 40);
   for (i = 1; i < this->num_stream_ids; i++) {
     this->scmd_body [ (i - 1) * 6 + 2 ] = 0xFF;
@@ -1015,7 +802,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
       this->scmd_body [ (i - 1) * 6 + 6 ] = 0x00;
       this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
     } else {
-      printf("libmms: disabling stream %d\n", this->stream_ids[i]);
+      lprintf("disabling stream %d\n", this->stream_ids[i]);
       this->scmd_body [ (i - 1) * 6 + 6 ] = 0x02;
       this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
       
@@ -1030,30 +817,175 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   if (!send_command (this, 0x33, this->num_stream_ids, 
                      0xFFFF | this->stream_ids[0] << 16, 
                      this->num_stream_ids * 6 + 2)) {
-    printf("libmms: failed to send command 0x33\n");
-    goto fail;
+    lprintf("failed to send command 0x33\n");
+    return 0;
   }
 
   if ((res = get_answer (this)) != 0x21) {
-    printf("libmms: unexpected response: %02x (0x21)\n", res);
+    lprintf("unexpected response: %02x (0x21)\n", res);
+  }
+
+  return 1;
+}
+
+/*
+ * TODO: error messages
+ *       network timing request
+ */
+mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
+#ifdef USE_ICONV
+  iconv_t url_conv;
+#else
+  int     url_conv = 0;
+#endif
+  mms_t  *this;
+  int     i;
+  int     res;
+ 
+  if (!url)
+    return NULL;
+
+  this = (mms_t*) xine_xmalloc (sizeof (mms_t));
+
+  this->stream          = stream;
+  this->url             = strdup (url);
+  this->host            = NULL;
+  this->port            = MMS_PORT;
+  this->path            = NULL;
+  this->file            = NULL;
+  this->s               = -1;
+  this->seq_num         = 0;
+  this->scmd_body       = &this->scmd[CMD_HEADER_LEN];
+  this->asf_header_len  = 0;
+  this->asf_header_read = 0;
+  this->num_stream_ids  = 0;
+  this->packet_length   = 0;
+  this->buf_size        = 0;
+  this->buf_read        = 0;
+  this->has_audio       = 0;
+  this->has_video       = 0;
+  this->bandwidth       = bandwidth;
+
+  report_progress (stream, 0);
+  if (mms_parse_url(this)) {
+    goto fail;
+  }
+  
+  if (mms_tcp_connect(this)) {
+    goto fail;
+  }
+  report_progress (stream, 30);
+  
+#ifdef USE_ICONV
+  url_conv = string_utf16_open();
+#endif
+  /*
+   * let the negotiations begin...
+   */
+
+  /* command 0x1 */
+  mms_gen_guid(this->guid);
+  sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
+    this->guid, this->host);
+  string_utf16 (url_conv, this->scmd_body, this->str, strlen(this->str) + 2);
+
+  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8)) {
+    lprintf("failed to send command 0x01\n");
+    goto fail;
+  }
+  
+  if ((res = get_answer (this)) != 0x01) {
+    lprintf("unexpected response: %02x (0x01)\n", res);
+    goto fail;
+  }
+  
+  report_progress (stream, 40);
+
+  /* TODO: insert network timing rquest here */
+  /* command 0x2 */
+  string_utf16 (url_conv, &this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
+  memset (this->scmd_body, 0, 8);
+  if (!send_command (this, 2, 0, 0, 28 * 2 + 8)) {
+    lprintf("failed to send command 0x02\n");
     goto fail;
   }
 
+  switch (res = get_answer (this)) {
+    case 0x02:
+      /* protocol accepted */
+      break;
+    case 0x03:
+      lprintf("protocol failed\n");
+      goto fail;
+      break;
+    default:
+      lprintf("unexpected response: %02x (0x02 or 0x03)\n", res);
+      goto fail;
+  }
+
+  report_progress (stream, 50);
+
+  /* command 0x5 */
+  string_utf16 (url_conv, &this->scmd_body[8], this->path, strlen(this->path));
+  memset (this->scmd_body, 0, 8);
+  if (!send_command (this, 5, 0, 0, strlen(this->path) * 2 + 12))
+    goto fail;
+
+  switch (res = get_answer (this)) {
+    case 0x06:
+      /* no authentication required */
+      this->live_flag = ((this->buf[62] == 0) && (this->buf[63] == 2));
+      break;
+    case 0x1A:
+      /* authentication request, not yet supported */
+      lprintf("authentication request, not yet supported\n");
+      goto fail;
+      break;
+    default:
+      lprintf("unexpected response: %02x (0x06 or 0x1A)\n", res);
+      goto fail;
+  }
+
+  report_progress (stream, 60);
+
+  /* command 0x15 */
+  memset (this->scmd_body, 0, 40);
+  this->scmd_body[32] = 2;
+
+  if (!send_command (this, 0x15, 1, 0, 40)) {
+    lprintf("failed to send command 0x15\n");
+    goto fail;
+  }
+
+  if ((res = get_answer (this)) != 0x11) {
+    lprintf("unexpected response: %02x (0x11)\n", res);
+    goto fail;
+  }
+
+  this->num_stream_ids = 0;
+
+  if (!get_header (this))
+    goto fail;
+
+  interp_header (this);
 
   report_progress (stream, 70);
 
+  if (!mms_choose_best_streams(this))
+    goto fail;
+
+  report_progress (stream, 80);
+
   /* command 0x07 */
   memset (this->scmd_body, 0, 40);
-
   for (i = 8; i < 16; i++)
     this->scmd_body[i] = 0xFF;
-
   this->scmd_body[20] = 0x04;
 
   if (!send_command (this, 0x07, 1, 
-		     0xFFFF | this->stream_ids[0] << 16, 
-		     24)) {
-    printf("libmms: failed to send command 0x07\n");
+      0xFFFF | this->stream_ids[0] << 16, 
+      24)) {
+    lprintf("failed to send command 0x07\n");
     goto fail;
   }
 
@@ -1063,12 +995,10 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   string_utf16_close(url_conv);
 #endif
 
-#ifdef LOG
-  printf(" mms_connect: passed\n" );
-#endif
+  lprintf("mms_connect: passed\n" );
   return this;
 
- fail:
+fail:
   if (this->s != -1)
     close (this->s);
   if (this->url)
@@ -1088,12 +1018,12 @@ static int get_media_packet (mms_t *this) {
   unsigned char  pre_header[8];
   off_t len;
   
-  len = xine_read_abort (this->stream, this->s, pre_header, 8) ;
+  len = xio_tcp_read (this->stream, this->s, pre_header, 8) ;
   if (len < 0) {
-    printf ("\nlibmms: get_media_packet: read error\n");
+    lprintf ("get_media_packet: read error\n");
     return 0;
   } else if (len != 8) {
-    printf ("\nlibmms: get_media_packet: end of stream\n");
+    lprintf ("get_media_packet: end of stream\n");
     return 0;
   }
 
@@ -1102,7 +1032,7 @@ static int get_media_packet (mms_t *this) {
     int i;
     for (i = 0; i < 8; i++)
       printf ("pre_header[%d] = %02x (%d)\n",
-	      i, pre_header[i], pre_header[i]);
+              i, pre_header[i], pre_header[i]);
   }
 #endif
 
@@ -1112,21 +1042,18 @@ static int get_media_packet (mms_t *this) {
 
     packet_len = (pre_header[7] << 8 | pre_header[6]) - 8;
 
-#ifdef LOG
-    printf ("asf media packet detected, len=%d\n",
-	    packet_len);
-#endif
+    lprintf ("asf media packet detected, len=%d\n", packet_len);
     if (packet_len > (BUF_SIZE)) {
-      printf ("libmms: get_media_packet: invalid packet length: %d\n", packet_len);
+      lprintf ("get_media_packet: invalid packet length: %d\n", packet_len);
       return 0;
     }
 
-    len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+    len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
     if (len < 0) {
-      printf ("\nlibmms: get_media_packet: read error\n");
+      lprintf ("get_media_packet: read error\n");
       return 0;
     } else if (len != packet_len) {
-      printf ("\nlibmms: get_media_packet: end of stream\n");
+      lprintf ("get_media_packet: end of stream\n");
       return 0;
     }
 
@@ -1139,68 +1066,90 @@ static int get_media_packet (mms_t *this) {
     uint32_t packet_len;
     int command;
 
-    len = xine_read_abort (this->stream, this->s, (uint8_t *)&packet_len, 4);
+    this->buf_size = 0;
+    len = xio_tcp_read (this->stream, this->s, (uint8_t *)&packet_len, 4);
     if (len < 0) {
-      printf ("\nlibmms: get_media_packet: read error\n");
+      lprintf ("get_media_packet: read error\n");
       return 0;
     } else if (len != 4) {
-      printf ("\nlibmms: get_media_packet: end of stream\n");
+      lprintf ("get_media_packet: end of stream\n");
       return 0;
     }
 
-    packet_len = get_32 ((uint8_t *)&packet_len, 0) + 4;
+    packet_len = LE_32 ((uint8_t *)&packet_len) + 4;
 
-#ifdef LOG
-    printf ("command packet detected, len=%d\n",
-	    packet_len);
-#endif
+    lprintf ("command packet detected, len=%d\n", packet_len);
     if (packet_len > (BUF_SIZE)) {
-      printf ("libmms: get_media_packet: invalid packet length: %d\n", packet_len);
+      lprintf ("get_media_packet: invalid packet length: %d\n", packet_len);
       return 0;
     }
 
-    len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+    len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
     if (len < 0) {
-      printf ("\nlibmms: get_media_packet: read error\n");
+      lprintf ("\nlibmms: get_media_packet: read error\n");
       return 0;
     } else if (len != packet_len) {
-      printf ("\nlibmms: get_media_packet: end of stream\n");
+      lprintf ("\nlibmms: get_media_packet: end of stream\n");
       return 0;
     }
 
-    if ( (pre_header[7] != 0xb0) || (pre_header[6] != 0x0b)
-	 || (pre_header[5] != 0xfa) || (pre_header[4] != 0xce) ) {
+    if ( (pre_header[7] != 0xb0) || (pre_header[6] != 0x0b) ||
+         (pre_header[5] != 0xfa) || (pre_header[4] != 0xce) ) {
 
-      printf ("missing signature\n");
-      abort();
-
+      lprintf ("libmms: missing signature\n");
+      return 0;
     }
 
-    command = get_32 (this->buf, 24) & 0xFFFF;
+    command = LE_32 (this->buf + 24) & 0xFFFF;
 
-#ifdef LOG
-    printf ("command: %02x\n", command);
-#endif
+    lprintf ("command: %02x\n", command);
 
-    if (command == 0x1b) 
+    if (command == 0x1b) {
       send_command (this, 0x1b, 0, 0, 0);
-    else if (command == 0x1e) {
+    } else if (command == 0x1e) {
+      lprintf ("end of the current stream.\n");
 
-      printf ("libmms: everything done. Thank you for downloading a media file containing proprietary and patentend technology.\n");
+      /* might be followed by a new stream cmd 0x20 */
+      if (!this->live_flag)
+        return 0;
 
-      return 0;
+    } else if (command == 0x20) {
+
+      lprintf ("libmms: new stream.\n");
+      /* asf header */
+      if (!get_header (this)) {
+        lprintf ("libmms: bad header\n");
+        return 0;
+      }
+
+      interp_header (this);
+
+      if (!mms_choose_best_streams(this))
+        return 0;
+
+      /* command 0x07 */
+      memset (this->scmd_body, 0, 40);
+      memset (this->scmd_body + 8, 0xFF, 8);
+      this->scmd_body[20] = 0x04;
+
+      if (!send_command (this, 0x07, 1, 
+          0xFFFF | this->stream_ids[0] << 16, 
+          24)) {
+        lprintf("failed to send command 0x07\n");
+        return 0;
+      }
+
     } else if (command != 0x05) {
-      printf ("unknown command %02x\n", command);
-      abort();
+      lprintf ("unknown command %02x\n", command);
+      return 0;
     }
   }
 
-#ifdef LOG
-  printf ("get media packet succ\n");
-#endif
+  lprintf ("get media packet succ\n");
 
   return 1;
 }
+
 
 int mms_peek_header (mms_t *this, char *data, int maxsize) {
 
@@ -1219,9 +1168,8 @@ int mms_read (mms_t *this, char *data, int len) {
 
   while (total < len) {
 
-#ifdef LOG
-    printf ("libmms: read, got %d / %d bytes\n", total, len);
-#endif
+    /* not really usefull, even in debug mode */
+    lprintf ("libmms: read, got %d / %d bytes\n", total, len);
 
     if (this->asf_header_read < this->asf_header_len) {
       int n, bytes_left ;
@@ -1229,9 +1177,9 @@ int mms_read (mms_t *this, char *data, int len) {
       bytes_left = this->asf_header_len - this->asf_header_read ;
 
       if ((len-total) < bytes_left)
-	n = len-total;
+        n = len-total;
       else
-	n = bytes_left;
+        n = bytes_left;
 
       memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
 
@@ -1244,21 +1192,21 @@ int mms_read (mms_t *this, char *data, int len) {
       bytes_left = this->buf_size - this->buf_read;
 
       while (!bytes_left) {
-	
-	this->buf_read = 0;
 
-	if (!get_media_packet (this)) {
-	  printf ("libmms: get_media_packet failed\n");
-	  return total;
-	}
-	bytes_left = this->buf_size - this->buf_read;
+        this->buf_read = 0;
+
+        if (!get_media_packet (this)) {
+          lprintf ("get_media_packet failed\n");
+          return total;
+        }
+        bytes_left = this->buf_size - this->buf_read;
       }
       
 
       if ((len-total)<bytes_left)
-	n = len-total;
+        n = len-total;
       else
-	n = bytes_left;
+        n = bytes_left;
 
       memcpy (&data[total], &this->buf[this->buf_read], n);
 
