@@ -37,6 +37,7 @@ endif
 
 lib_LTLIBRARIES = $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la \
+	xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_audio.la \
 	xineplug_dmx_film.la \
 	xineplug_dmx_qt.la \
@@ -59,9 +60,9 @@ xineplug_dmx_mpeg_block_la_SOURCES = demux_mpeg_block.c
 xineplug_dmx_mpeg_block_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
-#xineplug_dmx_mpeg_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
+xineplug_dmx_mpeg_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
 xineplug_dmx_mpeg_audio_la_LIBADD = -lm $(top_builddir)/src/xine-engine/libxine.la

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.123 2002/10/22 07:36:05 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.124 2002/10/23 10:08:48 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1093,7 +1093,7 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-                        /*
+  /*
    * find input plugin
    */
 
