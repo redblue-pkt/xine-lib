@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.147 2003/02/17 17:53:23 tmmm Exp $
+ * $Id: demux_qt.c,v 1.148 2003/02/19 03:07:55 tmmm Exp $
  *
  */
 
@@ -1727,11 +1727,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     if (audio_trak)
       xine_demux_control_newpts(this->stream, 
         audio_trak->frames[audio_trak->current_frame].pts, 
-        audio_trak->frames[audio_trak->current_frame].pts ? BUF_FLAG_SEEK : 0);
+        BUF_FLAG_SEEK);
     else
       xine_demux_control_newpts(this->stream, 
         video_trak->frames[video_trak->current_frame].pts, 
-        video_trak->frames[video_trak->current_frame].pts ? BUF_FLAG_SEEK : 0);
+        BUF_FLAG_SEEK);
   }
 
   /* Decide the trak from which to dispatch a frame. Policy: Dispatch
