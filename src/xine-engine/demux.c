@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.54 2004/12/19 20:24:31 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.55 2005/02/10 11:33:31 mroi Exp $ 
  */
 
 
@@ -139,7 +139,14 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
 
   int header_count_audio;
   int header_count_video;
-  buf_element_t *buf;
+  buf_element_t *buf_video, *buf_audio;
+
+  /* we use demux_action_pending to wake up sleeping spu decoders */
+  stream->demux_action_pending = 1;
+  
+  /* allocate the buffers before grabbing the lock to prevent cyclic wait situations */
+  buf_video = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
+  buf_audio = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
 
   pthread_mutex_lock (&stream->counter_lock);
 
@@ -155,16 +162,11 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
     header_count_audio = 0;
   }
   
-  /* we use demux_action_pending to wake up sleeping spu decoders */
-  stream->demux_action_pending = 1;
-  
-  buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
-  buf->type = BUF_CONTROL_HEADERS_DONE;
-  stream->video_fifo->put (stream->video_fifo, buf);
+  buf_video->type = BUF_CONTROL_HEADERS_DONE;
+  stream->video_fifo->put (stream->video_fifo, buf_video);
 
-  buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
-  buf->type = BUF_CONTROL_HEADERS_DONE;
-  stream->audio_fifo->put (stream->audio_fifo, buf);
+  buf_audio->type = BUF_CONTROL_HEADERS_DONE;
+  stream->audio_fifo->put (stream->audio_fifo, buf_audio);
 
   while ((stream->header_count_audio < header_count_audio) || 
          (stream->header_count_video < header_count_video)) {
