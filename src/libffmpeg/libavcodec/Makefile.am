@@ -4,7 +4,7 @@
 
 SUBDIRS = armv4l i386 mlib alpha
 
-EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c 
+EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c wmv2.c
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
@@ -42,7 +42,6 @@ libavcodec_la_SOURCES = \
 	svq1.c \
 	utils.c \
 	wmadec.c 
-#	wmv2.c
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \
