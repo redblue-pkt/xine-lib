@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.6 2004/02/09 22:11:30 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.7 2004/02/14 19:52:41 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1001,8 +1001,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
         lprintf ("got a picture\n");
 
-        this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
-            (double) this->context->width / (double) this->context->height;
+        if(av_cmp_q(this->context->sample_aspect_ratio, (AVRational){0,0})) {
+          this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
+              (double)this->context->width / (double)this->context->height;
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  
+                             this->aspect_ratio*10000);
+        }
 
         if(!this->av_frame->opaque) {
           img = this->stream->video_out->get_frame (this->stream->video_out,
