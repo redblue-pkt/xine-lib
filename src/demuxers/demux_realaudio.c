@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.30 2004/03/14 21:37:52 jstembridge Exp $
+ * $Id: demux_realaudio.c,v 1.31 2004/03/14 22:10:15 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -199,14 +199,11 @@ static int open_ra_file(demux_ra_t *this) {
 static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
-  buf_element_t *buf = NULL;
-  unsigned int remaining_sample_bytes;
   off_t current_file_pos;
   int64_t current_pts;
 
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-  remaining_sample_bytes = this->block_align;
   current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
 
@@ -217,36 +214,12 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
     this->seek_flag = 0;
   }
 
-  while (remaining_sample_bytes) {
-    if(!this->audio_fifo){
-      this->status = DEMUX_FINISHED;
-      break;
-    }
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type = this->audio_type;
-    buf->extra_info->input_pos = current_file_pos;
-    buf->extra_info->input_length = this->data_size;
-    buf->extra_info->input_time = current_pts / 90;
-    buf->pts = current_pts;
-
-    if (remaining_sample_bytes > buf->max_size)
-      buf->size = buf->max_size;
-    else
-      buf->size = remaining_sample_bytes;
-    remaining_sample_bytes -= buf->size;
-
-    if (this->input->read(this->input, buf->content, buf->size) !=
-      buf->size) {
-      buf->free_buffer(buf);
-      this->status = DEMUX_FINISHED;
-      break;
-    }
-
-    if (!remaining_sample_bytes)
-      buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-    this->audio_fifo->put (this->audio_fifo, buf);
+  if(_x_demux_read_send_data(this->audio_fifo, this->input, this->block_align, 
+                             current_pts, this->audio_type, 0, current_file_pos, 
+                             this->data_size, current_pts / 90, 0, 0) < 0) {
+    this->status = DEMUX_FINISHED;                           
   }
+  
   return this->status;
 }
 
