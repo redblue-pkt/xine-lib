@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.21 2001/10/24 15:53:23 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.22 2001/10/27 17:33:28 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -249,8 +249,19 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
 
-	/* Ignore videofill packets */
-	if (buf->type == BUF_VIDEO_FILL) return;
+	/* Increment vpts for videofill packets to keep in sync with audio...
+	   fixes issues with the Matrix etc... */
+	if(buf->type == BUF_VIDEO_FILL) {
+		int vpts;
+		static int videofill_count=0;
+	/*	pthread_mutex_lock  (&this->video_decoder.metronom->lock); */
+		videofill_count += this->video_decoder.metronom->pts_per_frame + 
+			this->video_decoder.metronom->video_pts_delta; 
+	/*	pthread_mutex_unlock  (&this->video_decoder.metronom->lock);*/			
+		vpts = this->video_decoder.metronom->got_video_frame(
+			this->video_decoder.metronom, videofill_count);
+	return;
+	}
 
 	/* The dxr3 does not need the preview-data */
 	if (buf->decoder_info[0] == 0) return;
