@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.16 2002/11/20 11:57:39 mroi Exp $
+ * $Id: audio_arts_out.c,v 1.17 2002/11/25 22:02:12 guenter Exp $
  */
 
 /* required for swab() */
@@ -41,7 +41,7 @@
 #include "xineutils.h"
 #include "audio_out.h"
 
-#define AO_OUT_ARTS_IFACE_VERSION 4
+#define AO_OUT_ARTS_IFACE_VERSION 6
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
@@ -72,23 +72,28 @@ typedef struct arts_driver_s {
 
 } arts_driver_t;
 
+typedef struct {
+  audio_driver_class_t driver_class;
+
+  config_values_t *config;
+} arts_class_t;
+
 /*
  * Software stereo volume control.....
  * Igor Mokrushin <igor@avtomir.ru>
  */
-static void ao_arts_volume(void *buffer, int length, int left, int right)
-{
-       int i,v;
-       short *data = (short *)buffer;
-
-       if (right == -1) right = left;
-
-       for (i=0; i < length << 1; i+=2) {
-           v=(int) ((*(data) * left) / 100);
-           *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
-           v=(int) ((*(data) * right) / 100);
-           *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
-       }
+static void ao_arts_volume(void *buffer, int length, int left, int right) {
+  int i,v;
+  short *data = (short *)buffer;
+  
+  if (right == -1) right = left;
+  
+  for (i=0; i < length << 1; i+=2) {
+    v=(int) ((*(data) * left) / 100);
+    *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+    v=(int) ((*(data) * right) / 100);
+    *(data++)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
+  }
 }
 /* End volume control */
 
@@ -177,7 +182,8 @@ static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
   arts_driver_t *this = (arts_driver_t *) this_gen;
   int size = num_frames * this->bytes_per_frame;
 
-  ao_arts_volume(data, size / sizeof(short), this->mixer.vol_scale, this->mixer.vol_scale);
+  ao_arts_volume(data, size / sizeof(short), this->mixer.vol_scale, 
+		 this->mixer.vol_scale); 
   arts_write(this->audio_stream, data, size );
 
   return 1;
@@ -222,9 +228,6 @@ static void ao_arts_exit(ao_driver_t *this_gen)
   free (this);
 }
 
-/*
- *
- */
 static int ao_arts_get_property (ao_driver_t *this_gen, int property) {
 
   arts_driver_t *this = (arts_driver_t *) this_gen;
@@ -243,9 +246,6 @@ static int ao_arts_get_property (ao_driver_t *this_gen, int property) {
   return 0;
 }
 
-/*
- *
- */
 static int ao_arts_set_property (ao_driver_t *this_gen, int property, int value) {
 
   arts_driver_t *this = (arts_driver_t *) this_gen;
@@ -276,9 +276,6 @@ static int ao_arts_set_property (ao_driver_t *this_gen, int property, int value)
   return ~value;
 }
 
-/*
- *
- */
 static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   /*arts_driver_t *this = (arts_driver_t *) this_gen;*/
 
@@ -297,27 +294,30 @@ static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
+static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, 
+				 const void *data) {
 
-static void *init_audio_out_plugin (xine_t *xine, void *data) {
+  /* arts_class_t     *class = (arts_class_t *) class_gen; */
+  /* config_values_t *config = class->config; */
+  arts_driver_t    *this;
+  int		    rc;
 
-  /* config_values_t *config = xine->config; */
-  arts_driver_t   *this;
-  int		   rc;
+  printf ("audio_arts_out: open_plugin called\n");
 
   this = (arts_driver_t *) malloc (sizeof (arts_driver_t));
 
   rc = arts_init();
-  if(rc < 0) {
-	  fprintf(stderr,"audio_arts_out: arts_init failed: %s\n",arts_error_text(rc));
-	  return NULL;
+  if (rc < 0) {
+    printf ("audio_arts_out: arts_init failed: %s\n", arts_error_text(rc));
+    return NULL;
   }
   
   /*
    * set volume control
    */
-  this->mixer.mute = 0;
+  this->mixer.mute      = 0;
   this->mixer.vol_scale = 60;
-  this->mixer.v_mixer = 0;
+  this->mixer.v_mixer   = 0;
   
   /*
    * set capabilities
@@ -330,7 +330,7 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   printf ("stereo ");
   printf ("\n");
 
-  this->sample_rate = 0;
+  this->sample_rate  = 0;
   this->audio_stream = NULL;
 
   this->ao_driver.get_capabilities    = ao_arts_get_capabilities;
@@ -346,18 +346,49 @@ static void *init_audio_out_plugin (xine_t *xine, void *data) {
   this->ao_driver.get_gap_tolerance   = ao_arts_get_gap_tolerance;
   this->ao_driver.control	      = ao_arts_ctrl;
 
+  return &this->ao_driver;
+}
+
+/*
+ * class functions
+ */
+
+static char* get_identifier (audio_driver_class_t *this_gen) {
+  return "arts";
+}
+
+static char* get_description (audio_driver_class_t *this_gen) {
+  return _("xine audio output plugin using kde artsd");
+}
+
+static void dispose_class (audio_driver_class_t *this_gen) {
+
+  arts_class_t *this = (arts_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  arts_class_t        *this;
+
+  printf ("audio_arts_out: init class\n");
+
+  this = (arts_class_t *) malloc (sizeof (arts_class_t));
+
+  this->driver_class.open_plugin     = open_plugin;
+  this->driver_class.get_identifier  = get_identifier;
+  this->driver_class.get_description = get_description;
+  this->driver_class.dispose         = dispose_class;
+
+  this->config = xine->config;
+
   return this;
 }
 
 static ao_info_t ao_info_arts = {
-  "xine audio output plugin using arts-compliant audio devices/drivers",
   5
 };
-
-ao_info_t *get_audio_out_plugin_info() {
-  ao_info_arts.description = _("xine audio output plugin using arts-compliant audio devices/drivers");
-  return &ao_info_arts;
-}
 
 /*
  * exported plugin catalog entry
@@ -365,7 +396,7 @@ ao_info_t *get_audio_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_OUT_ARTS_IFACE_VERSION, "arts", XINE_VERSION_CODE, &ao_info_arts, init_audio_out_plugin },
+  { PLUGIN_AUDIO_OUT, AO_OUT_ARTS_IFACE_VERSION, "arts", XINE_VERSION_CODE, &ao_info_arts, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

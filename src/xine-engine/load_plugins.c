@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.115 2002/11/23 10:56:23 mroi Exp $
+ * $Id: load_plugins.c,v 1.116 2002/11/25 22:02:15 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -971,8 +971,10 @@ static ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
   if (!node->plugin_class)
     node->plugin_class = _load_plugin_class (this, node->filename, node->info, data);
 
-  if (!node->plugin_class)
+  if (!node->plugin_class) {
+    printf ("load_plugins: failed to load plugin class %s\n", node->info->id);
     return NULL;
+  }
 
   driver = ((audio_driver_class_t *)node->plugin_class)->open_plugin(node->plugin_class, data);
 

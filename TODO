@@ -24,7 +24,6 @@ required for 1.0
 - faad decoder plugin
 - opengl video output plugin
 - esd audio output plugin (guenter)
-- arts audio output plugin
 - irix audio output plugin (matthias)
 - null audio plugin (or fix null video out)
 - input_dvd: detect errors, display useful error messages (guenter)

@@ -31,9 +31,9 @@ endif
 #irixal_module = xineplug_ao_out_irixal.la
 #endif
 
-#if HAVE_ARTS
-#arts_module = xineplug_ao_out_arts.la
-#endif
+if HAVE_ARTS
+arts_module = xineplug_ao_out_arts.la
+endif
 
 ##
 # IMPORTANT:
@@ -43,7 +43,8 @@ endif
 #
 lib_LTLIBRARIES = $(oss_module) \
 	$(alsa_module) \
-	$(sun_module)
+	$(sun_module) \
+	$(arts_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -71,9 +72,9 @@ xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 #xineplug_ao_out_irixal_la_LIBADD = $(IRIXAL_LIBS)
 #xineplug_ao_out_irixal_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
-#xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
-#xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
+xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
+xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = \
 	audio_alsa_out.h \
