@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.82 2002/09/05 22:18:52 mroi Exp $
+ * $Id: demux_qt.c,v 1.83 2002/09/21 17:22:21 tmmm Exp $
  *
  */
 
@@ -1414,6 +1414,59 @@ static void *demux_qt_loop (void *this_gen) {
   return NULL;
 }
 
+static int demux_qt_send_headers (demux_qt_t *this) {
+
+  pthread_mutex_lock (&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* create the QT structure */
+  if ((this->qt = create_qt_info()) == NULL) {
+    pthread_mutex_unlock(&this->mutex);
+    this->status = DEMUX_FINISHED;
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* open the QT file */
+  if (open_qt_file(this->qt, this->input) != QT_OK) {
+    pthread_mutex_unlock(&this->mutex);
+    this->status = DEMUX_FINISHED;
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  this->bih.biWidth = this->qt->video_width;
+  this->bih.biHeight = this->qt->video_height;
+
+  this->bih.biCompression = this->qt->video_codec;
+  this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
+
+  /* hack: workaround a fourcc clash! 'mpg4' is used by MS and Sorenson
+   * mpeg4 codecs (they are not compatible).
+   */
+  if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
+    this->qt->video_type = BUF_VIDEO_MPEG4;
+    
+  if( !this->qt->video_type )
+    xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
+
+  this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
+    
+  if( !this->qt->audio_type && this->qt->audio_codec )
+    xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
+
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_qt_open(demux_plugin_t *this_gen,
                          input_plugin_t *input, int stage) {
 
@@ -1426,7 +1479,10 @@ static int demux_qt_open(demux_plugin_t *this_gen,
     if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
       return DEMUX_CANNOT_HANDLE;
 
-    return is_qt_file(input);
+    if (is_qt_file(input))
+      return demux_qt_send_headers(this);
+
+    return DEMUX_CANNOT_HANDLE;
   }
   break;
 
@@ -1451,8 +1507,8 @@ static int demux_qt_open(demux_plugin_t *this_gen,
       while(*m == ' ' || *m == '\t') m++;
 
       if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
+        if (is_qt_file(input))
+          return demux_qt_send_headers(this);
       }
     }
     return DEMUX_CANNOT_HANDLE;
@@ -1469,8 +1525,6 @@ static int demux_qt_open(demux_plugin_t *this_gen,
 }
 
 static int demux_qt_start (demux_plugin_t *this_gen,
-                            fifo_buffer_t *video_fifo,
-                            fifo_buffer_t *audio_fifo,
                             off_t start_pos, int start_time) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
   buf_element_t *buf;
@@ -1480,50 +1534,16 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
     this->waiting_for_keyframe = 0;
 
-    /* create the QT structure */
-    if ((this->qt = create_qt_info()) == NULL) {
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    /* open the QT file */
-    if (open_qt_file(this->qt, this->input) != QT_OK) {
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    this->bih.biWidth = this->qt->video_width;
-    this->bih.biHeight = this->qt->video_height;
-
-    this->bih.biCompression = this->qt->video_codec;
-    this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
-
-    /* hack: workaround a fourcc clash! 'mpg4' is used by MS and Sorenson
-     * mpeg4 codecs (they are not compatible).
-     */
-    if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
-      this->qt->video_type = BUF_VIDEO_MPEG4;
-    
-    if( !this->qt->video_type )
-      xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
-
-    this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
-    
-    if( !this->qt->audio_type && this->qt->audio_codec )
-      xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
-
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
       (this->qt->compressed_header) ? "compressed header, " : "",
       this->qt->duration / this->qt->time_scale / 60,
       this->qt->duration / this->qt->time_scale % 60);
     if (this->qt->video_codec)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
         *((char *)&this->qt->video_codec + 0),
         *((char *)&this->qt->video_codec + 1),
@@ -1532,7 +1552,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
         this->bih.biWidth,
         this->bih.biHeight);
     if (this->qt->audio_codec)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
         *((char *)&this->qt->audio_codec + 0),
         *((char *)&this->qt->audio_codec + 1),
@@ -1719,7 +1739,7 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_qt_close (demux_plugin_t *this_gen) {
+static void demux_qt_dispose (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
   free_qt_info(this->qt);
@@ -1767,7 +1787,7 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_qt_start;
   this->demux_plugin.seek              = demux_qt_seek;
   this->demux_plugin.stop              = demux_qt_stop;
-  this->demux_plugin.close             = demux_qt_close;
+  this->demux_plugin.dispose           = demux_qt_dispose;
   this->demux_plugin.get_status        = demux_qt_get_status;
   this->demux_plugin.get_identifier    = demux_qt_get_id;
   this->demux_plugin.get_stream_length = demux_qt_get_stream_length;
@@ -1785,6 +1805,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "mov", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "mov", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

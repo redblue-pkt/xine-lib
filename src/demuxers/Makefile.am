@@ -34,9 +34,10 @@ endif
 #	xineplug_dmx_vqa.la xineplug_dmx_voc.la \
 #	xineplug_dmx_aiff.la xineplug_dmx_snd.la
 
-lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
+lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(qt_modules) xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la xineplug_dmx_mpeg.la \
-	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la
+	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
+	xineplug_dmx_film.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
@@ -71,9 +72,9 @@ xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module
 #xineplug_dmx_mpeg_ts_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
-#xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
-#xineplug_dmx_qt_la_LIBADD = -lz $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
+xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_qt_la_LIBADD = -lz $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_dmx_asf_la_SOURCES = demux_asf.c
 xineplug_dmx_asf_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
@@ -83,9 +84,9 @@ xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module
 #xineplug_dmx_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_dmx_cda_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_film_la_SOURCES = demux_film.c
-#xineplug_dmx_film_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_film_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_film_la_SOURCES = demux_film.c
+xineplug_dmx_film_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_film_la_LDFLAGS = -avoid-version -module
 
 #xineplug_dmx_roq_la_SOURCES = demux_roq.c
 #xineplug_dmx_roq_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.25 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_film.c,v 1.26 2002/09/21 17:22:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -111,9 +111,11 @@ typedef struct {
   int                  total_time;
 } demux_film_t ;
 
-/* returns 1 if FILM file was opened successfully */
-static int open_film_file(demux_film_t *film)
-{
+/* Open a FILM file
+ * This function is called from the _open() function of this demuxer.
+ * It returns 1 if FILM file was opened successfully. */
+static int open_film_file(demux_film_t *film) {
+
   unsigned char *film_header;
   unsigned int film_header_size;
   unsigned char scratch[16];
@@ -138,13 +140,8 @@ static int open_film_file(demux_film_t *film)
   /* reset the file */
   film->input->seek(film->input, 0, SEEK_SET);
 
-  /* get the signature, header length and file version */
+  /* get the header length and file version */
   if (film->input->read(film->input, scratch, 16) != 16) {
-    return 0;
-  }
-  if (BE_32(&scratch[0]) != FILM_TAG) {
-    xine_log(film->xine, XINE_LOG_FORMAT,
-      _("demux_film: This is not a FILM file (why was it sent to this demuxer?\n"));
     return 0;
   }
 
@@ -172,7 +169,7 @@ static int open_film_file(demux_film_t *film)
 
     /* sanity check the chunk size */
     if (i + chunk_size > film_header_size) {
-      xine_log(film->xine, XINE_LOG_FORMAT,
+      xine_log(film->xine, XINE_LOG_MSG,
         _("invalid FILM chunk size\n"));
       return 0;
     }
@@ -250,7 +247,7 @@ static int open_film_file(demux_film_t *film)
       break;
 
     default:
-      xine_log(film->xine, XINE_LOG_FORMAT,
+      xine_log(film->xine, XINE_LOG_MSG,
         _("unrecognized FILM chunk\n"));
       return 0;
     }
@@ -487,6 +484,25 @@ static void *demux_film_loop (void *this_gen) {
   return NULL;
 }
 
+static int demux_film_send_headers(demux_film_t *this) {
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
                           int stage) {
 
@@ -505,7 +521,8 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
       return DEMUX_CANNOT_HANDLE;
     }
     if (strncmp(sig, "FILM", 4) == 0)
-      return DEMUX_CAN_HANDLE;
+      if (open_film_file(this))
+        return demux_film_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -532,10 +549,9 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        if (open_film_file(this))
+          return demux_film_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -551,8 +567,6 @@ static int demux_film_open(demux_plugin_t *this_gen, input_plugin_t *input,
 }
 
 static int demux_film_start (demux_plugin_t *this_gen,
-                             fifo_buffer_t *video_fifo,
-                             fifo_buffer_t *audio_fifo,
                              off_t start_pos, int start_time) {
 
   demux_film_t *this = (demux_film_t *) this_gen;
@@ -563,17 +577,9 @@ static int demux_film_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    /* open the FILM file */
-    if (!open_film_file(this)) {
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
 
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"),
       this->version[0],
       this->version[1],
@@ -582,7 +588,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
       this->total_time / 60,
       this->total_time % 60);
     if (this->video_type)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"),
         (this->video_codec >> 24) & 0xFF,
         (this->video_codec >> 16) & 0xFF,
@@ -592,7 +598,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
         this->bih.biHeight,
         this->frequency);
     else {
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_film: unknown video codec %c%c%c%c\n"),
         (this->video_codec >> 24) & 0xFF,
         (this->video_codec >> 16) & 0xFF,
@@ -602,7 +608,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
       return DEMUX_FINISHED;
     }
     if (this->audio_type)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_film: %d Hz, %d-bit %s%s PCM audio\n"),
         this->sample_rate,
         this->audio_bits,
@@ -643,7 +649,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
     this->thread_running = 1;
 
     this->current_sample = 0;
-    this->last_sample = 0;
+    this->last_sample = 0xFFFFFFFE;
 
     if ((err = pthread_create (&this->thread, NULL, demux_film_loop, this)) != 0) {
       printf ("demux_film: can't create new thread (%s)\n", strerror(err));
@@ -753,7 +759,7 @@ static void demux_film_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_film_close (demux_plugin_t *this_gen) {
+static void demux_film_dispose (demux_plugin_t *this_gen) {
   demux_film_t *this = (demux_film_t *) this_gen;
 
   pthread_mutex_destroy (&this->mutex);
@@ -800,7 +806,7 @@ static void *init_demuxer_plugin(xine_t *xine, void* data) {
   this->demux_plugin.start             = demux_film_start;
   this->demux_plugin.seek              = demux_film_seek;
   this->demux_plugin.stop              = demux_film_stop;
-  this->demux_plugin.close             = demux_film_close;
+  this->demux_plugin.dispose           = demux_film_dispose;
   this->demux_plugin.get_status        = demux_film_get_status;
   this->demux_plugin.get_identifier    = demux_film_get_id;
   this->demux_plugin.get_stream_length = demux_film_get_stream_length;
@@ -818,6 +824,6 @@ static void *init_demuxer_plugin(xine_t *xine, void* data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "film", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "film", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
