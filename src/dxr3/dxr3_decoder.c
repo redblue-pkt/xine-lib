@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.46 2001/12/17 22:28:33 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.47 2001/12/19 01:53:43 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -704,12 +704,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	if ( this->spu_stream_state[stream_id].stream_filter == 0) return;
 
 	if (buf->PTS) {
+/*
 		int vpts;
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			printf("dxr3: spu setpts failed (%s)\n", strerror(errno));
+*/
 	}
 
         if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
