@@ -588,12 +588,15 @@ int main(int argc, char *argv[]) {
   printf("Prepared %d unicode values.\n", count);
 #endif
 
-  render_font (face, argv[2], 16, thickness, unicodes);
-  render_font (face, argv[2], 20, thickness, unicodes);
-  render_font (face, argv[2], 24, thickness, unicodes);
-  render_font (face, argv[2], 32, thickness, unicodes);
-  render_font (face, argv[2], 48, thickness, unicodes);
-  render_font (face, argv[2], 64, thickness, unicodes);
+  if (count) {
+    render_font (face, argv[2], 16, thickness, unicodes);
+    render_font (face, argv[2], 20, thickness, unicodes);
+    render_font (face, argv[2], 24, thickness, unicodes);
+    render_font (face, argv[2], 32, thickness, unicodes);
+    render_font (face, argv[2], 48, thickness, unicodes);
+    render_font (face, argv[2], 64, thickness, unicodes);
+  } else 
+    printf("No font generated\n");
 
   list_free(unicodes);
 
