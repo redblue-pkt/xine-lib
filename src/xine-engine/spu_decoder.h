@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.h,v 1.4 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: spu_decoder.h,v 1.5 2002/03/31 20:38:43 jcdutton Exp $
  */
 #ifndef HAVE_SPU_OUT_H
 #define HAVE_SPU_OUT_H
@@ -77,7 +77,7 @@ struct spu_functions_s {
 
   void (*write_spu_data)(spu_functions_t *this,
 			   int16_t* spu_data, uint32_t num_samples, 
-			   uint32_t pts);
+			   int64_t pts);
 
   /*
    * this is called when the decoder no longer uses the spu

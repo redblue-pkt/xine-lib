@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.6 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: mpglib.h,v 1.7 2002/03/31 20:38:41 jcdutton Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
@@ -51,7 +51,7 @@ typedef struct mpstr {
   ao_instance_t *ao_output;
   unsigned char   osspace[8192];
 
-  uint32_t        pts;
+  int64_t        pts;
 } mpgaudio_t;
 
 #ifndef BOOL
@@ -67,7 +67,7 @@ mpgaudio_t  *mpg_audio_init (ao_instance_t *ao_output);
 void mpg_audio_reset (mpgaudio_t *mp);
 
 void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
-			    uint32_t pts);
+			    int64_t pts);
 
 void mpg_audio_close (mpgaudio_t *mp);
 

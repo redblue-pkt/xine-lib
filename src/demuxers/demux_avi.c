@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.71 2002/03/27 15:30:16 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.72 2002/03/31 20:38:40 jcdutton Exp $
  *
  * demultiplexer for avi streams
  *
@@ -740,7 +740,7 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
   return nr;
 }
 
-static uint32_t get_audio_pts (demux_avi_t *this, int track, long posc, long posb) {
+static int64_t get_audio_pts (demux_avi_t *this, int track, long posc, long posb) {
 
   if (this->avi->audio[track]->dwSampleSize==0)
     return posc * (double) this->avi->audio[track]->dwScale_audio / 
@@ -751,7 +751,7 @@ static uint32_t get_audio_pts (demux_avi_t *this, int track, long posc, long pos
       this->avi->audio[track]->dwRate_audio * 90000.0;
 }
 
-static uint32_t get_video_pts (demux_avi_t *this, long pos) {
+static int64_t get_video_pts (demux_avi_t *this, long pos) {
   return pos * (double) this->avi->dwScale / this->avi->dwRate * 90000.0;
 }
 
@@ -759,7 +759,7 @@ static uint32_t get_video_pts (demux_avi_t *this, long pos) {
 static int demux_avi_next (demux_avi_t *this) {
   int i;
   buf_element_t *buf = NULL;
-  uint32_t       audio_pts, video_pts;
+  int64_t       audio_pts, video_pts;
   int do_read_video = 0;
 
   if (this->avi->video_frames <= this->avi->video_posf)

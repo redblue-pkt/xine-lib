@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2001/12/11 15:30:06 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.7 2002/03/31 20:38:41 jcdutton Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -40,7 +40,7 @@
 typedef struct mpgdec_decoder_s {
   audio_decoder_t  audio_decoder;
 
-  uint32_t         pts;
+  int64_t         pts;
 
   mpgaudio_t      *mpg;
 

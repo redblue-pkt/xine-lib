@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.83 2002/03/24 19:23:47 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.84 2002/03/31 20:38:40 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -85,7 +85,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   uint8_t       *p;
   int            bMpeg1=0;
   uint32_t       header_len;
-  int64_t        PTS;
+  int64_t        pts;
   uint32_t       packet_len;
   uint32_t       stream_id;
   int64_t        scr = this->last_scr;
@@ -395,21 +395,21 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       packet_len -=2;
     }
 
-    PTS = 0; 
+    pts = 0; 
     if ((p[0] & 0xf0) == 0x20) {
-      PTS  = (p[ 0] & 0x0E) << 29 ;
-      PTS |=  p[ 1]         << 22 ;
-      PTS |= (p[ 2] & 0xFE) << 14 ;
-      PTS |=  p[ 3]         <<  7 ;
-      PTS |= (p[ 4] & 0xFE) >>  1 ;
+      pts  = (p[ 0] & 0x0E) << 29 ;
+      pts |=  p[ 1]         << 22 ;
+      pts |= (p[ 2] & 0xFE) << 14 ;
+      pts |=  p[ 3]         <<  7 ;
+      pts |= (p[ 4] & 0xFE) >>  1 ;
       p   += 5;
       packet_len -=5;
     } else if ((p[0] & 0xf0) == 0x30) {
-      PTS  = (p[ 0] & 0x0E) << 29 ;
-      PTS |=  p[ 1]         << 22 ;
-      PTS |= (p[ 2] & 0xFE) << 14 ;
-      PTS |=  p[ 3]         <<  7 ;
-      PTS |= (p[ 4] & 0xFE) >>  1 ;
+      pts  = (p[ 0] & 0x0E) << 29 ;
+      pts |=  p[ 1]         << 22 ;
+      pts |= (p[ 2] & 0xFE) << 14 ;
+      pts |=  p[ 3]         <<  7 ;
+      pts |= (p[ 4] & 0xFE) >>  1 ;
       /* DTS decoding code is working, but not used in xine
 	 DTS  = (p[ 5] & 0x0E) << 29 ;
 	 DTS |=  p[ 6]         << 22 ;
@@ -434,20 +434,20 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       this->warned = 1;
     }
 
-    if (p[7] & 0x80) { /* PTS avail */
+    if (p[7] & 0x80) { /* pts avail */
 
-      PTS  = (p[ 9] & 0x0E) << 29 ;
-      PTS |=  p[10]         << 22 ;
-      PTS |= (p[11] & 0xFE) << 14 ;
-      PTS |=  p[12]         <<  7 ;
-      PTS |= (p[13] & 0xFE) >>  1 ;
+      pts  = (p[ 9] & 0x0E) << 29 ;
+      pts |=  p[10]         << 22 ;
+      pts |= (p[11] & 0xFE) << 14 ;
+      pts |=  p[12]         <<  7 ;
+      pts |= (p[13] & 0xFE) >>  1 ;
 
 #ifdef LOG
-      printf ("demux_mpeg_block: pts = %lld\n", PTS);
+      printf ("demux_mpeg_block: pts = %lld\n", pts);
 #endif
 
     } else
-      PTS = 0;
+      pts = 0;
 
     /* code is working but not used in xine
        if (p[7] & 0x40) {  
@@ -481,7 +481,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->content   = p+1;
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_PACKAGE + spu_id;
-      buf->pts       = PTS;
+      buf->pts       = pts;
       buf->input_pos = this->input->get_current_pos(this->input);
       
       this->video_fifo->put (this->video_fifo, buf);    
@@ -502,7 +502,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       } else {
         buf->type      = BUF_AUDIO_A52 + track;
       }
-      buf->pts       = PTS;
+      buf->pts       = pts;
 
       buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -562,7 +562,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->content   = p+pcm_offset;
       buf->size      = packet_len-pcm_offset;
       buf->type      = BUF_AUDIO_LPCM_BE + track;
-      buf->pts       = PTS;
+      buf->pts       = pts;
 
       buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -579,7 +579,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_VIDEO_MPEG;
-    buf->pts       = PTS;
+    buf->pts       = pts;
 
     buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -595,7 +595,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_AUDIO_MPEG + track;
-    buf->pts       = PTS;
+    buf->pts       = pts;
 
     buf->input_pos = this->input->get_current_pos(this->input);
 
@@ -664,7 +664,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   int            is_mpeg1=0;
   off_t          pos, last_pos;
   off_t          step;
-  int64_t        PTS, last_PTS;
+  int64_t        pts, last_pts;
   int            rate;
   int            count;
   int            stream_id;
@@ -674,7 +674,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     return 0;
 
   last_pos = 0;
-  last_PTS = 0;
+  last_pts = 0;
   rate     = 0;
   step     = this->input->get_length (this->input) / 10;
   step     = (step / this->blocksize) * this->blocksize;
@@ -711,7 +711,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     }
 
     stream_id  = p[3];
-    PTS = 0; 
+    pts = 0; 
 
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
       pos += (off_t) this->blocksize;
@@ -735,47 +735,47 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 	}
 
 	if ( ((p[0] & 0xf0) == 0x20) || ((p[0] & 0xf0) == 0x30) ) {
-	  PTS  = (p[ 0] & 0x0E) << 29 ;
-	  PTS |=  p[ 1]         << 22 ;
-	  PTS |= (p[ 2] & 0xFE) << 14 ;
-	  PTS |=  p[ 3]         <<  7 ;
-	  PTS |= (p[ 4] & 0xFE) >>  1 ;
+	  pts  = (p[ 0] & 0x0E) << 29 ;
+	  pts |=  p[ 1]         << 22 ;
+	  pts |= (p[ 2] & 0xFE) << 14 ;
+	  pts |=  p[ 3]         <<  7 ;
+	  pts |= (p[ 4] & 0xFE) >>  1 ;
 	} 
       }
     } else { /* mpeg 2 */
       
-      if (p[7] & 0x80) { /* PTS avail */
+      if (p[7] & 0x80) { /* pts avail */
 	
-	PTS  = (p[ 9] & 0x0E) << 29 ;
-	PTS |=  p[10]         << 22 ;
-	PTS |= (p[11] & 0xFE) << 14 ;
-	PTS |=  p[12]         <<  7 ;
-	PTS |= (p[13] & 0xFE) >>  1 ;
+	pts  = (p[ 9] & 0x0E) << 29 ;
+	pts |=  p[10]         << 22 ;
+	pts |= (p[11] & 0xFE) << 14 ;
+	pts |=  p[12]         <<  7 ;
+	pts |= (p[13] & 0xFE) >>  1 ;
 	
       } else
-	PTS = 0;
+	pts = 0;
     }
 
-    if (PTS) {
+    if (pts) {
 
 
-      if ( (pos>last_pos) && (PTS>last_PTS) ) {
+      if ( (pos>last_pos) && (pts>last_pts) ) {
 	int cur_rate;
       
-	cur_rate = ((pos - last_pos)*90000) / ((PTS - last_PTS) * 50);
+	cur_rate = ((pos - last_pos)*90000) / ((pts - last_pts) * 50);
 	
 	rate = (count * rate + cur_rate) / (count+1);
 
 	count ++;
 	
 	/*
-	printf ("demux_mpeg_block: stream_id %02x, pos: %lld, PTS: %d, cur_rate = %d, overall rate : %d\n", 
-		stream_id, pos, PTS, cur_rate, rate); 
+	printf ("demux_mpeg_block: stream_id %02x, pos: %lld, pts: %d, cur_rate = %d, overall rate : %d\n", 
+		stream_id, pos, pts, cur_rate, rate); 
 	*/
       }
 
       last_pos = pos;
-      last_PTS = PTS;
+      last_pts = pts;
       pos += step;
     } else
       pos += (off_t) this->blocksize;

@@ -131,9 +131,9 @@ typedef struct {
  */
 typedef struct {
   xine_event_t     event;
-  uint8_t          *buffer;
+  uint8_t         *buffer;
   uint32_t         buf_len;
-  uint32_t         pts;
+  int64_t          pts;
   uint32_t         scr;
 } xine_closed_caption_event_t;
 

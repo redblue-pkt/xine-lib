@@ -57,11 +57,11 @@ struct spu_decoder_s {
 typedef struct spu_button_s spu_button_t;
 struct spu_button_s {
   uint32_t show;
-  uint8_t color[4];
-  uint8_t trans[4];
+  uint8_t  color[4];
+  uint8_t  trans[4];
   uint16_t left, right;
   uint16_t top, bottom;
-  uint32_t pts;
+  int64_t  pts;
   uint32_t buttonN;
 };
 
