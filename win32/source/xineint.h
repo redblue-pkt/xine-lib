@@ -21,7 +21,6 @@
  * by Matthew Grooms <elon@altavista.com>
  */
 
-#include "video_out_win32.h"
 #ifdef XINE_COMPILE
 #  include "configfile.h"
 #  include "xine.h"

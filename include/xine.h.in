@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.113 2003/12/31 23:29:06 jcdutton Exp $
+ * $Id: xine.h.in,v 1.114 2004/01/03 20:23:19 valtri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -52,6 +52,11 @@ extern "C" {
 #include <inttypes.h>
 #include <sys/time.h>
 #include <time.h>
+
+#ifdef WIN32
+#  include <windows.h>
+#  include <windowsx.h>
+#endif
 
 /* This enables some experimental features. These are not part of the
  * official libxine API, so use them only, if you absolutely need them.
@@ -1091,6 +1096,33 @@ typedef struct {
   void             *user_data;
 
 } fb_visual_t;
+
+#ifdef WIN32
+/*
+ * this is the visual data struct any win32 gui should supply
+ * (pass this to init_video_out_plugin or the xine_load_video_output_plugin
+ * utility function)
+ */
+
+typedef struct {
+
+  HWND      WndHnd;     /* handle of window associated with primary surface */
+  HINSTANCE HInst;      /* handle of windows application instance */
+  RECT      WndRect;    /* rect of window client points translated to screen 
+                         * cooridnates */
+  int       FullScreen; /* is window fullscreen */
+  HBRUSH    Brush;      /* window brush for background color */
+  COLORREF  ColorKey;   /* window brush color key */
+
+} win32_visual_t;
+
+/*
+ * constants for gui_data_exchange's data_type parameter
+ */
+
+#define GUI_WIN32_MOVED_OR_RESIZED	0
+
+#endif /* WIN32 */
 
 /*
  * "type" constants for xine_port_send_gui_data(...)
