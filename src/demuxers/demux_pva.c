@@ -21,7 +21,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.5 2003/01/19 07:10:51 tmmm Exp $
+ * $Id: demux_pva.c,v 1.6 2003/01/26 15:56:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 

@@ -21,7 +21,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.3 2003/01/10 11:57:18 miguelfreitas Exp $
+ * $Id: demux_str.c,v 1.4 2003/01/26 15:56:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 

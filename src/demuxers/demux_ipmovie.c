@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.5 2003/01/17 16:52:35 miguelfreitas Exp $
+ * $Id: demux_ipmovie.c,v 1.6 2003/01/26 15:56:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 

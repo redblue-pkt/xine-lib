@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.3 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_aud.c,v 1.4 2003/01/26 15:56:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,7 +42,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 

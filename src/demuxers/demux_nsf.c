@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.8 2003/01/18 14:57:50 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.9 2003/01/26 15:56:21 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 

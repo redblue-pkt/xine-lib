@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.157 2003/01/23 16:12:04 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.158 2003/01/26 15:56:21 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 

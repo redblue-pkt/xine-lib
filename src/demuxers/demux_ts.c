@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.76 2003/01/16 22:25:54 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.77 2003/01/26 15:56:21 tmmm Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -132,8 +132,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
 #include <string.h>
 
 #include "xine_internal.h"
