@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.35 2003/09/21 12:29:59 hadess Exp $
+ * $Id: input_cdda.c,v 1.36 2003/10/31 17:28:05 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2476,6 +2476,13 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   toc = init_cdrom_toc();
 
   fd = -1;
+  
+  if (!ip)
+    /* we need an instance pointer to store all the details about the
+     * device we are going to open; but it is possible that this function
+     * gets called, before a plugin instance has been created;
+     * let's create a dummy instance in such a condition */
+    ip = (cdda_input_plugin_t *)xine_xmalloc(sizeof(cdda_input_plugin_t));
 
 #ifndef WIN32
   if( strchr(this->cdda_device,':') ) {
@@ -2488,6 +2495,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
   if (fd == -1) {
     if (cdda_open(ip, this->cdda_device, toc, &fd) == -1) {
+      if (ip != this->ip) free(ip);
       return NULL;
     }
   }
@@ -2505,8 +2513,10 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
   cdda_close(ip);  
   
-  if ( err < 0 )
+  if ( err < 0 ) {
+    if (ip != this->ip) free(ip);
     return NULL;
+  }
   
   num_tracks = toc->last_track - toc->first_track;
   if (toc->ignore_last_track)
@@ -2519,6 +2529,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   *num_files = toc->last_track - toc->first_track + 1;
 
   free_cdrom_toc(toc);
+  if (ip != this->ip) free(ip);
   return this->autoplaylist;
 }
 
