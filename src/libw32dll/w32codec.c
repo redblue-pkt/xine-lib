@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.68 2002/03/22 21:57:16 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.69 2002/04/01 18:01:17 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -599,6 +599,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   printf ("w32codec: processing packet type = %08x, buf->decoder_flags=%08x\n", 
 	  buf->type, buf->decoder_flags);
 #endif
+  
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     if ( buf->type & 0xff )
@@ -1194,6 +1197,9 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+  
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     /* init package containing bih */
 

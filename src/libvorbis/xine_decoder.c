@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2002/02/09 07:13:24 guenter Exp $
+ * $Id: xine_decoder.c,v 1.7 2002/04/01 18:00:13 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -100,6 +100,9 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   printf ("vorbisdecoder: before buf=%08x content=%08x op=%08x packet=%08x\n",
 	  buf, buf->content, op, op->packet);
   */
+  
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
 
   /* if (buf->decoder_info[0] >0) { */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2002/03/17 19:11:10 guenter Exp $
+ * $Id: xine_decoder.c,v 1.29 2002/04/01 17:59:47 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -137,6 +137,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   printf ("ffmpeg: processing packet type = %08x, buf : %d, buf->decoder_flags=%08x\n", 
 	  buf->type, buf, buf->decoder_flags);
 #endif
+
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 

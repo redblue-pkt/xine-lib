@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2002/03/11 12:31:25 guenter Exp $
+ * $Id: xine_decoder.c,v 1.16 2002/04/01 17:59:41 miguelfreitas Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -104,6 +104,10 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
   if (!this->output_open) 
     return;
+
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+
   number_of_frames = buf->decoder_info[1];  /* Number of frames  */
   first_access_unit = buf->decoder_info[2]; /* First access unit */
 
