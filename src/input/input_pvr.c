@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.24 2003/05/15 17:46:22 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.25 2003/06/25 00:28:41 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -189,6 +189,7 @@ typedef struct {
                    
   pvrscr_t           *scr;
   int                 scr_tunning;
+  int                 speed_before_pause;
     
   uint32_t            session;		/* session number used to identify the pvr file */
   int                 new_session;      /* force going to realtime for new sessions */
@@ -462,8 +463,11 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     
     /* buffer is empty. pause it for a while */
     this->scr_tunning = -2; /* marked as paused */
-    pvrscr_speed_tunning(this->scr, 0.0);
-    this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 2 );
+    pvrscr_speed_tunning(this->scr, 1.0);
+    this->speed_before_pause = speed;
+    this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_PAUSE);
+    if( this->stream->audio_out )
+      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 2 );
 #ifdef SCRLOG
     printf("input_pvr: buffer empty, pausing playback\n" );
 #endif
@@ -475,7 +479,9 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
       this->scr_tunning = 0;
       
       pvrscr_speed_tunning(this->scr, 1.0 );
-      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
+      this->stream->xine->clock->set_speed ( this->stream->xine->clock, this->speed_before_pause);
+      if( this->stream->audio_out )
+        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
 #ifdef SCRLOG
       printf("input_pvr: resuming playback\n" );
 #endif
@@ -679,7 +685,8 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
      
     if( speed > XINE_SPEED_NORMAL ) {
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
-      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
+      if( this->stream->audio_out )
+        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
     }
     
     if( this->play_fd != -1 ) {
@@ -707,7 +714,9 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     if( this->rec_fd == -1 )
       return 1;
 
-    if( this->play_fd == -1 || (this->play_blk - this->page_block[this->play_page]) >= BLOCKS_PER_PAGE ) {
+    if( this->play_fd == -1 || 
+        ((this->play_blk - this->page_block[this->play_page]) >= BLOCKS_PER_PAGE) ||
+        (this->rec_page > this->play_page && this->play_blk >= this->page_block[this->play_page+1]) ) {
       
        if(this->play_fd == -1) {
 #ifdef LOG
@@ -1182,6 +1191,9 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     printf("input_pvr: thread died, aborting\n");
     return NULL;  
   }
+
+  if( this->scr_tunning == -2 )
+    speed = this->speed_before_pause;
 
   if( this->pvr_play_paused )
     speed = XINE_SPEED_PAUSE;
