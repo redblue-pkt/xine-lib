@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.104 2005/01/05 21:48:05 dsalt Exp $
+ * $Id: input_http.c,v 1.105 2005/01/13 19:37:15 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,6 +99,9 @@ typedef struct {
   int              shoutcast_metaint;
   off_t            shoutcast_pos;
   char            *shoutcast_songtitle;
+
+  /* NSV */
+  int              is_nsv;
 
   /* scratch buffer for forward seeking */
 
@@ -323,7 +326,7 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
             strncat(data.str, songtitle, sizeof(data.str) - len - 3);
           } else {
             strncpy(data.str, songtitle, sizeof(data.str));
-          }  
+          }
           data.str[sizeof(data.str) - 1] = '\0';
           data.str_len = strlen(data.str) + 1;
 
@@ -472,13 +475,14 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
       /* metadata interval (in byte) */
       if (sscanf(this->buf, "icy-metaint:%d", &this->shoutcast_metaint) == 1) {
         lprintf("shoutcast_metaint: %d\n", this->shoutcast_metaint);
+        this->shoutcast_mode = 1;
       }
 
       /* content type */
       if (!strncasecmp(this->buf, TAG_CONTENT_TYPE, sizeof(TAG_CONTENT_TYPE) - 1)) {
         if (!strncasecmp(this->buf + sizeof(TAG_CONTENT_TYPE) - 1, "video/nsv", 9)) {
           lprintf("shoutcast nsv detected\n");
-          this->shoutcast_mode = 2;
+          this->is_nsv = 1;
         } else {
           lprintf("shoutcast mp3 detected\n");
         }
@@ -495,7 +499,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
   this->shoutcast_pos = 0;
   
   /* NSV resync */
-  if (this->shoutcast_mode == 2) {
+  if (this->is_nsv) {
     uint8_t c;
     int pos = 0;
     int read_bytes = 0;
@@ -935,23 +939,21 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   /* Trivial shoutcast detection */
   this->shoutcast_metaint = 0;
   this->shoutcast_songtitle = NULL;
+  this->shoutcast_mode = 0;
   if (shoutcast) {
-    this->shoutcast_mode = 1;
     if (!read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "can't read shoutcast header\n");
       return 0;
     }
-  } else {
-    this->shoutcast_mode = 0;
   }
 
   /*
    * fill preview buffer
    */
   this->preview_size = MAX_PREVIEW_SIZE;
-  if (this->shoutcast_mode == 2) {
+  if (this->is_nsv) {
     /* the first 3 chars are "NSV" */
     this->preview_size = http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3);
   } else {
