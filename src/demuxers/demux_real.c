@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.86 2004/01/25 21:19:20 jstembridge Exp $
+ * $Id: demux_real.c,v 1.87 2004/01/26 19:40:12 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -726,23 +726,18 @@ unknown:
        * the type specific data for the audio stream */
       if(buf->type == BUF_AUDIO_AAC) {
         int version = BE_16(mdpr->type_specific_data + 4);
-        int offset;
         
-        /* Does AAC with type specific data version 4 even exist? */
-        if(version == 4) {
-          buf->decoder_info[1] = BE_16(mdpr->type_specific_data + 48);
-          buf->decoder_info[2] = BE_16(mdpr->type_specific_data + 52);
-          buf->decoder_info[3] = BE_16(mdpr->type_specific_data + 54);
-       
-          offset = 67;
-        } else {
-          buf->decoder_info[1] = BE_16(mdpr->type_specific_data + 54);
-          buf->decoder_info[2] = BE_16(mdpr->type_specific_data + 58);
-          buf->decoder_info[3] = BE_16(mdpr->type_specific_data + 60);
-
-          offset = 74;        
+        if(version != 5) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "unsupported audio header version for AAC: %d\n", version);
+          buf->free_buffer(buf);
+          goto unsupported;
         }
         
+        buf->decoder_info[1] = BE_16(mdpr->type_specific_data + 54);
+        buf->decoder_info[2] = BE_16(mdpr->type_specific_data + 58);
+        buf->decoder_info[3] = BE_16(mdpr->type_specific_data + 60);
+
         buf->decoder_flags |= BUF_FLAG_STDHEADER;
         buf->content        = NULL;
         buf->size           = 0;
@@ -754,11 +749,11 @@ unknown:
         buf->type                = this->audio_stream->buf_type;
         buf->decoder_flags       = BUF_FLAG_FRAME_END | BUF_FLAG_SPECIAL;
         buf->decoder_info[1]     = BUF_SPECIAL_DECODER_CONFIG;
-        buf->decoder_info[2]     = BE_32(mdpr->type_specific_data + offset) - 1;
+        buf->decoder_info[2]     = BE_32(mdpr->type_specific_data + 74) - 1;
         buf->decoder_info_ptr[2] = buf->content;
         buf->size                = 0;
                         
-        memcpy(buf->content, mdpr->type_specific_data + offset + 5,
+        memcpy(buf->content, mdpr->type_specific_data + 79,
                buf->decoder_info[2]);
 
       } else {
@@ -772,6 +767,7 @@ unknown:
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
+unsupported:
     /* Set meta info */
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
