@@ -1,6 +1,5 @@
 Makefile
 Makefile.in
-acinclude.m4
 aclocal.m4
 configure
 config.guess
@@ -17,7 +16,5 @@ libtool-nofpic
 ltmain.sh
 missing
 mkinstalldirs
-stamp-h
-stamp-h.in
 stamp-h1
 *.cache
