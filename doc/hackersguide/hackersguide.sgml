@@ -187,6 +187,86 @@
     </para>
   </sect1>
   <sect1>
+    <title>Object oriented programming in c</title>
+    <para>
+    xine uses a lot of design principles normally found in 
+    object oriented designs. As xine is written in c, a few
+    basic principles shall be explained here on how xine
+    is object oriented anyway.
+    </para>
+    <para>
+    classes are structs containing (ideally only) object pointers in xine.
+    Example:
+    <programlisting>
+    typedef struct my_stack_s my_class_t;
+
+    struct my_stack_s {
+      /* method "push" with one parameter and no return value*/
+      void (*push) (my_stack_t *this, int i);
+
+      /* method "add" with no parameters and no return value */
+      void (*add) (my_stack_t *this);
+
+      /* method "pop" with no parameters (except "this") and a return value */
+      int (*pop) (my_stack_t *this);
+    } ;
+
+    /* constructor */
+    my_class_t *new_my_stack (...);
+    </programlisting>
+
+    to implement such a "class", frequently "private" member variables
+    can be added:
+
+    <programlisting>
+    typedef struct {
+       my_stack_t    stack; /* public part */
+
+       /* private part follows here */
+       int           values[MAX_STACK_SIZE]; 
+       int           stack_size;
+    } intstack_t;
+    </programlisting>
+
+    each method is implemented as a static method (static to prevent
+    namespace pollution). The "this" pointer needs to be cast to the
+    private pointer type to gain access to the private member variables.
+
+    Implementation of the "push" method follows:
+    <programlisting>
+    static void push (my_stack_t *this_gen, int i) {
+       intstack_t *this = (intstack_t *) this_gen;
+    }
+    </programlisting>
+
+    Finally the contructor mallocs() the data structs (private variant)
+    and fills in function pointers and default values. Usually the
+    constructor is the only public (i.e. non-static) function in the module:
+
+    <programlisting>
+    my_stack_t *new_my_stack (...) {
+      intstack_t *this;
+
+      /* alloc memory */
+      this = malloc (sizeof (intstack_t));
+      
+      /* fill in methods */
+      this->push = push;
+      this->add  = add;
+      this->pop  = pop;
+
+      /* init data fields */
+      this->stack_size = 0;
+
+      /* cast & return */
+
+      return (my_stack_t *) this;
+    }
+    </programlisting>
+
+    </para>   
+  </sect1>
+  <sect1>
     <title>Library interfaces</title>
     <para></para>
   </sect1>
@@ -242,9 +322,6 @@
     You'll find exact definitions of public functions and plugin structs
     in the appropriate header files (e.g. demux/demux.h, input/input_plugin.h,
     xine-engine/video_out.h,...).
-    </para>
-    <para>
-    The public
     </para>
     <para>
     Most plugins will need some additional "private" data fields.
@@ -419,7 +496,9 @@ struct demux_plugin_s
     </listitem>
     <listitem> 
       <para>
-      use expressive variable and function names on all public interfaces.
+      use expressive variable and function identifiers on all public interfaces.
+      use underscores to seperate words in identifiers, not uppercase
+      letters (my_function_name is ok, myFunctionName is not ok).
       </para>
     </listitem>
     <listitem> 
