@@ -1,6 +1,6 @@
 The xine engine FAQ
 
-Copyright © 2001-2003 by the xine project team
+Copyright © 2001-2003 the xine project team
 
 -------------------------------------------------------------------------------
 
@@ -37,7 +37,6 @@ Table of Contents
             it!
        
     Can I install xine in my home directory (without being root) ?
-     
    
 3. Playback of various stream types
    
@@ -160,7 +159,9 @@ If you simply want a media/dvd player, you'll need to install xine-lib first
 and then choose and install a player frontend like xine-ui or gxine.
 
 Other modules in CVS: xine-plugin a mozilla browser plugin for streaming media
-playback using xine, xine-www the xine project website sources.
+playback using xine (at the time of this writing unmaintained and somewhat
+obsoleted by gxine's browser plugin), xine-www the xine project website
+sources.
 
 -------------------------------------------------------------------------------
 
@@ -186,7 +187,7 @@ The xine project does not provide pre-compiled binaries for legal reasons (some
 parts of xine may be covered by patents in some countries). Some OS projects/
 vendors (e.g. debian, freebsd, ...) offer binaries for their distributions -
 please contact them for further info. You can also find links to third parties
-providing xine RPMs on the xine homepage.
+providing xine RPMs on the xine homepage : http://xine.sf.net/index.php/about
 
 See the next chapter of this FAQ for instructions on how to build xine from
 source.
@@ -358,8 +359,8 @@ Xv library on your system, e.g. ls /usr/X11R6/lib/libXv* should give you some
           /usr/X11R6/lib/libXv.so.1
         
 
-Alternatively you need to have libtool 1.4 or newer installed. If not and you
-only got libXv.a you can create the shared versions yourself:
+Alternatively you need to have libtool 1.4 or newer installed, then libXv.a is
+sufficient. Otherwise you can create the shared versions yourself:
           ld --whole-archive -shared -o libXv.so.1 libXv.a
           ln -s libXv.so.1 libXv.so
           ldconfig
@@ -406,8 +407,6 @@ and do a
       $ ./configure --prefix=$HOME/usr
       $ make install
     
--------------------------------------------------------------------------------
-
 -------------------------------------------------------------------------------
 
 Chapter 3. Playback of various stream types
@@ -660,6 +659,14 @@ optimizing options. A few things you should check (in order of importance):
     You can enable DMA mode with the following command:
                   hdparm -d1 device_of_your_drive_that_supplies_video_data
             
+    In some cases where this fails it helps to specify the dma mode to use, for
+    example:
+                  hdparm -d1 -X 66 device_of_your_drive_that_supplies_video_data
+            
+    In RedHat 8.0 an additional entry in /etc/modules.conf
+              options ide-cd dma=1
+            
+    should help (reboot for this change to take effect).
    
     More information about this may be found here: http://oreilly.linux.com/pub
     /a/linux/2000/06/29/hdparm.html
@@ -946,6 +953,9 @@ are some hints for individual gfx chips:
   * SiliconMotion: certain controllers (more info needed!) have Xv support in
     Xfree 4.x
    
+  * Matrox: G200 or newer (but not Parhelia) have Xv support in XFree 4.x. For
+    parhelia, use the binary only drivers available from matrox' website.
+   
 -------------------------------------------------------------------------------
 
 Some parts of my X Desktop get transparent when xine plays the video!
@@ -1075,7 +1085,7 @@ You probably don't have /dev/dvd (check that). If so, simply create a link /dev
         ln -s hdc dvd
       
 ...should do the job. Also make sure you have read access on the device the
-symlink points to.
+symlink points to. See the dvd playback section for more information.
 
 -------------------------------------------------------------------------------
 

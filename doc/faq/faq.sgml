@@ -17,7 +17,7 @@
 
   <title>General questions about xine and this document</title>
 
-  <sect1>
+  <sect1 id="about">
 
     <title>What is the xine engine?</title>
 
@@ -30,7 +30,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="scope">
     
     <title> What's the aim and scope of this text? </title>
 
@@ -41,7 +41,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="wheretogethelp">
 
     <title> My question is not yet covered here - where can I ask for help? </title>
 
@@ -70,7 +70,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="modules">
 
     <title> What are those xine-lib, xine-ui, gxine, ... modules in cvs for? </title>
 
@@ -105,13 +105,15 @@
 
     <para>
       Other modules in CVS: <filename>xine-plugin</filename> a mozilla browser plugin
-      for streaming media playback using xine, <filename>xine-www</filename> the
+      for streaming media playback using xine (at the time of this writing 
+      unmaintained and somewhat obsoleted by gxine's browser plugin), 
+      <filename>xine-www</filename> the
       xine project website sources.
     </para>
 
   </sect1>
 
-  <sect1>
+  <sect1 id="cvs">
 
     <title> Where and how do I get the latest development version? </title>
 
@@ -137,7 +139,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="binaries">
 
     <title> Where can I find pre-compiled binaries, e.g. RPMs? </title>
 
@@ -147,7 +149,8 @@
       Some OS projects/vendors (e.g. debian, freebsd, ...) offer binaries
       for their distributions - please contact them for further info.
       You can also find links to third parties providing xine RPMs on
-      the xine homepage.
+      the xine homepage :
+      <ulink url="http://xine.sf.net/index.php/about">http://xine.sf.net/index.php/about</ulink>
     </para>
     
     <para>
@@ -163,7 +166,7 @@
 
   <title> Building and installing xine from source </title>
 
-  <sect1>
+  <sect1 id="buildrequirements">
 
     <title> What do I need to compile everything properly? </title>
 
@@ -209,7 +212,7 @@
 
     <title> How do I compile xine? </title>
 
-    <sect2>
+    <sect2 id="simplebuildinstr">
     
       <title> Simple build instructions for beginners </title>
 
@@ -248,7 +251,7 @@
 
     </sect2>    
 
-    <sect2>
+    <sect2 id="completebuildinstr">
     
       <title> Complete build instructions </title>
 
@@ -288,7 +291,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="rpmbuild">
 
     <title> Making your own RPM packages (xine-lib, xine-ui) </title>
 
@@ -325,7 +328,7 @@
     
   </sect1>
 
-  <sect1>
+  <sect1 id="cflags">
 
     <title> Can I provide additional CFLAGS for compilation? </title>
 
@@ -345,7 +348,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="athlonflags">
 
     <title> Are there binaries for my AMD K7 (Athlon (TM) ) available? Can I build them? </title>
 
@@ -370,7 +373,7 @@
 
     <title> Build problems: xine engine (xine-lib) </title>
 
-    <sect2>
+    <sect2 id="doesntcompile">
 
       <title> The package doesn't compile at all! </title>
 
@@ -389,7 +392,7 @@
       </para>
 
     </sect2>
-    <sect2>
+    <sect2 id="xvpluginfailstobuild">
 
       <title> The Xv video-out plugin fails to compile! </title>
 
@@ -406,8 +409,8 @@
       </para>
     
       <para>
-        Alternatively you need to have libtool 1.4 or newer installed. If not
-        and you only got libXv.a you can create the shared versions yourself:
+        Alternatively you need to have libtool 1.4 or newer installed, then 
+	libXv.a is sufficient. Otherwise you can create the shared versions yourself:
         <programlisting>
           ld --whole-archive -shared -o libXv.so.1 libXv.a
           ln -s libXv.so.1 libXv.so
@@ -427,7 +430,7 @@
 
     <title> Build problems: frontend (gxine/xine-ui/...) </title>
 
-    <sect2>
+    <sect2 id="xinelibnotfound">
 
       <title> I have installed xine-lib but the frontend complains about not finding it!</title>
 
@@ -449,7 +452,7 @@
     </sect2>
   </sect1>
 
-  <sect1>
+  <sect1 id="nonrootbuild">
 
     <title> Can I install xine in my home directory (without being root) ? </title>
 
@@ -479,19 +482,6 @@
     </programlisting>
   </sect1>
 
-  <sect1>
-
-    <title> </title>
-
-    <para>
-    </para>
-    
-    <para>
-    </para>
-
-  </sect1>
-
-
 </chapter>
 
 <chapter id="playback">
@@ -502,7 +492,7 @@
 
     <title>DVD Playback with xine</title>
 
-    <sect2>
+    <sect2 id="dvdplayback">
 
       <title>How do I play back DVDs with xine?</title>
   
@@ -582,7 +572,7 @@
 
     </sect2>
 
-    <sect2>
+    <sect2 id="dvdlongwait">
        <title> DVD playback works, but it takes a long time until playback starts </title>
        <para>
          This points to a region code problem. Some versions of libdvdcss can play
@@ -605,7 +595,7 @@
        </para>
     </sect2>    
 
-    <sect2>
+    <sect2 id="regionset">
        <title>  I have problems setting up my RPC-2 drive for the right region! </title>
        <para>
          You can download a tool to set the region code of RPC-Drives here:
@@ -622,7 +612,7 @@
     </sect2>    
   </sect1>
 
-  <sect1>
+  <sect1 id="vcdsupport">
 
     <title> Can I watch Video CDs (VCDs)? SVCDS ? CD-i?</title>
 
@@ -647,7 +637,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="quicktime">
 
     <title> Can I watch Quicktime (.mov, .mp4) files using xine? </title>
 
@@ -679,7 +669,7 @@
 
     <title> Real Network files/streams </title>
     
-    <sect2>
+    <sect2 id="realfileplayback">
       <title> Can I watch Real (.rm, .ram) files using xine ? </title>
 
       <para>
@@ -704,7 +694,7 @@
 
     </sect2>
 
-    <sect2>
+    <sect2 id="realnetworkstreams">
       <title> What about (live) network streams (pnm://, rtsp:// style urls) ? </title>
 
       <para>
@@ -724,7 +714,7 @@
   
   </sect1>
 
-  <sect1>
+  <sect1 id="wmv">
 
     <title> Can I watch Windows Media (.asf/.wmv) files using xine? </title>
 
@@ -749,7 +739,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="dvb">
 
     <title> Can I watch Digital TV (Digital Video Broadcast) using xine ? </title>
 
@@ -761,7 +751,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="stdin">
 
     <title>How do I play streams from STDIN?</title>
     
@@ -773,7 +763,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="avisubtitles">
 
     <title> How can I watch files with external AVI subtitles?</title>
     
@@ -793,7 +783,7 @@
 
   <title> Running xine </title>
   
-  <sect1>
+  <sect1 id="speedup">
 
     <title>I have a lot of dropped frames - what can I do?</title>
     
@@ -873,6 +863,16 @@
 	    <programlisting>
               hdparm -d1 device_of_your_drive_that_supplies_video_data
 	    </programlisting>
+	    In some cases where this fails it helps to specify the dma mode
+	    to use, for example:
+	    <programlisting>
+              hdparm -d1 -X 66 device_of_your_drive_that_supplies_video_data
+	    </programlisting>
+	    In RedHat 8.0 an additional entry in /etc/modules.conf
+	    <programlisting>
+	      options ide-cd dma=1
+	    </programlisting> 
+	    should help (reboot for this change to take effect).
 	  </para>
 	  <para>
             More information about this may be found here:
@@ -1000,7 +1000,7 @@
 
   </sect1>
 
-  <sect1>
+  <sect1 id="ports">
 
     <title>I have problems when using xine on FreeBSD, Solaris, ... !</title>
     
@@ -1010,7 +1010,7 @@
   </sect1>
 
 
-  <sect1>
+  <sect1 id="aaxine">
 
     <title> What is aalib? How do I use it in xine? </title>
     
@@ -1032,7 +1032,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="configoptions">
 
     <title>What do all these <filename>~/.xine/config</filename> (<filename>~/.gxine/config</filename>) entries mean?</title>
     
@@ -1050,7 +1050,7 @@
 
   <title> Audio related questions </title>
   
-  <sect1>
+  <sect1 id="audiodrivers">
 
     <title>What audio drivers does xine support? OSS? Alsa? Arts? Esd?</title>
     
@@ -1062,7 +1062,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="compressor">
 
     <title> When I'm watching a movie, the sound effects are much higher volume than the voices</title>
     
@@ -1096,7 +1096,7 @@
 
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="noaudio">
 
     <title> When I play this stream, xine shows video but there's no audio!</title>
     
@@ -1117,7 +1117,7 @@
       a test stream available somewhere for developers to download and try.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="surroundsound">
 
     <title>Can xine produce 4-/5-channel surround audio output?</title>
     
@@ -1154,7 +1154,7 @@
       </programlisting>
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="spdif">
 
     <title>What about ac3 output via spdif to an external ac3 decoder?</title>
     
@@ -1168,7 +1168,7 @@
       </programlisting>
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="volumecontrol">
 
     <title>Changing the volume with the GUI control has no effect! What's up!?</title>
     
@@ -1186,7 +1186,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="stuttering">
     <title> Audio is stuttering and i see a lot of "metronom: fixing sound card drift by -2115 pts" on the console output </title>
 
     <para>
@@ -1213,7 +1213,7 @@
 <chapter id="video">
 
   <title> Video related questions </title>
-  <sect1>
+  <sect1 id="novideo">
 
     <title>I can hear the audio - but I don't see a picture!</title>
     
@@ -1227,7 +1227,7 @@
     </para>
   </sect1>
 
-  <sect1>
+  <sect1 id="xvextension">
 
     <title>How can I make xine use the Xv extension and what drivers do I need?</title>
     
@@ -1323,10 +1323,16 @@
 	    SiliconMotion: certain controllers (more info needed!) have Xv support in Xfree 4.x
 	  </para>
 	</listitem>
+        <listitem>
+	  <para> 
+	    Matrox: G200 or newer (but not Parhelia) have Xv support in XFree 4.x.
+	    For parhelia, use the binary only drivers available from matrox' website.
+	  </para>
+	</listitem>
       </itemizedlist>
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="colorkey">
 
     <title>Some parts of my X Desktop get transparent when xine plays the video!</title>
     
@@ -1340,7 +1346,7 @@
       by xine for the video overlay.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="aspectratio">
 
     <title>The aspect ratio of the video is wrong!</title>
     
@@ -1348,7 +1354,7 @@
     Try pressing "a" to change the aspect ratio.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="discardedskipped">
 
     <title>What is the difference between discarded and skipped frames?</title>
     
@@ -1384,7 +1390,7 @@
       never see frames skipped (they would be all discarded).
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="contrastbrightnesssaturation">
 
     <title>My xine is runing in black and white! / I only get a gray video output!</title>
     
@@ -1404,7 +1410,7 @@
     </para>
   </sect1>
   
-  <sect1>
+  <sect1 id="videodriver">
 
     <title>Which is the best video driver to use?</title>
     
@@ -1443,7 +1449,7 @@
 <chapter id="errors">
 
   <title> Error Messages: What they mean and what you can do</title>
-  <sect1>
+  <sect1 id="audiodrivererr">
 
     <title>Starting xine fails with complains about audio drivers/devices!</title>
     
@@ -1466,7 +1472,7 @@
       </programlisting>
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="novideoportfound">
 
     <title>"no video port found"</title>
     
@@ -1484,7 +1490,7 @@
       </programlisting>
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="unabletoopendvddrive">
 
     <title>"Unable to open dvd drive (/dev/dvd)" </title>
     
@@ -1497,9 +1503,11 @@
       </programlisting>
        ...should do the job. Also make sure you have read access on
        the device the symlink points to.
+       See the <link linkend="dvdplayback">dvd playback section</link>
+       for more information.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="demuxerror0000">
 
     <title>"demux error! 00 00 00 (should be 0x000001)"</title>
     
@@ -1518,7 +1526,7 @@
       for the right region (see above).
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="ossfailed">
 
     <title>"audio driver 'oss' failed, using null driver instead"</title>
     
@@ -1563,7 +1571,7 @@
       however you will loose the ability to do four/five channel audio output.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="throwingawarimage">
 
     <title>"video_out: throwing away image with pts xxx because it's too old"</title>
     
@@ -1575,7 +1583,7 @@
       DMA enabled. 
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="novideopluginavailable">
 
     <title>"No video plugin available to decode 'xxxxxx'."</title>
     
@@ -1590,7 +1598,7 @@
       quicktime codecs (see above).
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="demuxerfailedtostart">
 
     <title>"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</title>
     
@@ -1598,7 +1606,7 @@
       You probably don't have the win32 dll needed to decode this file.
     </para>
   </sect1>
-  <sect1>
+  <sect1 id="xinecrashed">
 
     <title>xine just crashed on me - i didn't get any error message</title>
     
@@ -1670,3 +1678,4 @@
   </sect1>
 </chapter>
 
+</book>
