@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.15 2003/02/17 03:19:58 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.16 2003/02/19 02:08:40 tmmm Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -324,9 +324,18 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_AUDIO_QDESIGN1:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','C');
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+      strdup("QDesign Music Codec v1 (QT DLL)");
     break;
   case BUF_AUDIO_QDESIGN2:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','2');
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+      strdup("QDesign Music Codec v2 (QT DLL)");
+    break;
+  case BUF_AUDIO_QCLP:
+    this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','c','l','p');
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+      strdup("Qualcomm Purevoice Codec (QT DLL)");
     break;
   default:
     printf ("qt_audio: fourcc for buftype %08x ?\n", buf->type);
@@ -355,7 +364,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
     return;
   }
 
-  if (buf->decoder_info[2] > 0x48) {
+  if ((buf->decoder_info[2] > 0x48) && (buf->decoder_info[2] != 0x74)) {
     error = this->SoundConverterSetInfo (this->myConverter,
 					 FOUR_CHAR_CODE('w','a','v','e'),
 					 ((unsigned char *)buf->decoder_info_ptr[2]) + 0x48);
@@ -641,7 +650,10 @@ static void *qta_init_class (xine_t *xine, void *data) {
 }
 
 static uint32_t audio_types[] = { 
-  BUF_AUDIO_QDESIGN1, BUF_AUDIO_QDESIGN2, 0
+  BUF_AUDIO_QDESIGN1,
+  BUF_AUDIO_QDESIGN2,
+  BUF_AUDIO_QCLP,
+  0
 };
 
 static decoder_info_t qta_dec_info = {
@@ -1008,6 +1020,10 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
     memcpy (&this->bih, buf->content, sizeof (xine_bmiheader));
+
+    /* video decoder only handles SVQ3 at this point */
+    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] =
+      strdup("Sorenson Video 3 (QT DLL)");
 
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
 #ifdef LOG 
