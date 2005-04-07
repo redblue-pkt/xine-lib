@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.47 2005/04/06 16:12:02 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.48 2005/04/07 17:04:16 mshopf Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -53,9 +53,12 @@
 /* We are not legacy, but we provide our own glext.h */
 #define GL_GLEXT_LEGACY 1
 #include <GL/gl.h>
-#include <GL/glx.h>
-#include <GL/glu.h>
 #include "glext.h"
+
+#ifndef _WIN32
+#  include <GL/glx.h>
+#endif
+#include <GL/glu.h>
 
 #include "xine.h"
 #include "video_out.h"
@@ -68,19 +71,23 @@
 
 
 #ifndef LOG
-#define CHECKERR(a) ((void)0)
-#define CLEARERR(a) ((void)0)
+#  define CHECKERR(a) ((void)0)
+#  define CLEARERR(a) ((void)0)
 #else
-#define CHECKERR(a) do { int i = glGetError (); if (i != GL_NO_ERROR) fprintf (stderr, "   *** %s: 0x%x = %s\n", a, i, gluErrorString (i)); } while (0)
-#define CLEARERR(a) do { glGetError (); } while (0)
+#  define CHECKERR(a) do { int i = glGetError (); if (i != GL_NO_ERROR) fprintf (stderr, "   *** %s: 0x%x = %s\n", a, i, gluErrorString (i)); } while (0)
+#  define CLEARERR(a) do { glGetError (); } while (0)
 #endif
 
-#if     defined (_WIN32)
-#define getaddr(x) wglGetProcAddress(x)
+#ifdef _WIN32
+#  define getaddr(x) wglGetProcAddress(x)
 #else
+#  ifdef GLX_ARB_get_proc_address
 /* !@#$% ARB. What on earth drove them to nuke that definition in 1.4?!? */
 extern void *glXGetProcAddressARB(const GLubyte *procName);
-#define getaddr(x) glXGetProcAddressARB(x)
+#    define getaddr(x) glXGetProcAddressARB(x)
+#  else
+#    define getaddr(x) NULL
+#  endif
 #endif
 
 
@@ -666,19 +673,18 @@ static void render_help_check_exts (opengl_driver_t *this) {
       fprintf (stderr, "video_out_opengl: compiled for BGRA output, but missing extension.\n");
     if ( (this->has_texobj   = render_help_verify_ext (this, "GL_EXT_texture_object")) ) {
       this->glGenTexturesEXT_   = getaddr ("glGenTexturesEXT"); /* TODO: use for alloc */
-      _x_assert (this->glGenTexturesEXT_);
       this->glBindTextureEXT_   = getaddr ("glBindTextureEXT");
-      _x_assert (this->glBindTextureEXT_);
+      if (! this->glGenTexturesEXT_ || ! this->glBindTextureEXT_)
+	  this->has_texobj = 0;
     }
     if ( (this->has_fragprog = render_help_verify_ext (this, "GL_ARB_fragment_program")) ) {
       this->glBindProgramARB_   = getaddr ("glBindProgramARB");
-      _x_assert (this->glBindProgramARB_);
       this->glGenProgramsARB_   = getaddr ("glGenProgramsARB");
-      _x_assert (this->glGenProgramsARB_);
       this->glProgramStringARB_ = getaddr ("glProgramStringARB");
-      _x_assert (this->glProgramStringARB_);
       this->glProgramEnvParameter4fARB_ = getaddr ("glProgramEnvParameter4fARB");
-      _x_assert (this->glProgramEnvParameter4fARB_);
+      if (! this->glBindProgramARB_   || ! this->glGenProgramsARB_ ||
+	  ! this->glProgramStringARB_ || ! this->glProgramEnvParameter4fARB_)
+	  this->has_fragprog = 0;
     }
     this->has_pixbufobj = render_help_verify_ext (this, "GL_ARB_pixel_buffer_object");
   }
