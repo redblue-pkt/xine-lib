@@ -32,6 +32,10 @@ xine-lib (1.0.1)
   * Win32 port updates: cross compilation of VCD, external ffmpeg with MSVC
   * fixed pthread leak
   * fixed onefield_xv deprecated deinterlace method
+  * multiple slice-per-rows (HDTV) fixes in the libmpeg2 code, particularly 
+    regarding VLD XvMC.
+  * cleaned up hardware acceleration hooks in libmpeg2.
+  * fixed X include path searching while configure detects XvMC support.
 
 xine-lib (1.0)
   * unbreak DXR3 plugin
