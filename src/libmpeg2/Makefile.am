@@ -23,7 +23,8 @@ xineplug_decode_mpeg2_la_SOURCES = \
 	slice_xvmc.c \
 	slice_xvmc_vld.c \
 	stats.c \
-	xine_decoder.c
+	xine_decoder.c \
+	libmpeg2_accel.c
 
 xineplug_decode_mpeg2_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

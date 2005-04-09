@@ -21,6 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef MPEG2_INTERNAL_H
+#define MPEG2_INTERNAL_H
+
 #include "video_out.h"
 #include "accel_xvmc.h"
 
@@ -288,3 +291,4 @@ void mpeg2_slice (picture_t * picture, int code, uint8_t * buffer);
 void mpeg2_stats (int code, uint8_t * buffer);
 
 
+#endif

@@ -24,6 +24,8 @@
 #ifndef MPEG2_H
 #define MPEG2_H
 
+#include "libmpeg2_accel.h"
+
 typedef struct mpeg2dec_s {
     xine_video_port_t * output;
     uint32_t frame_format;
@@ -59,8 +61,8 @@ typedef struct mpeg2dec_s {
     
     /* a spu decoder for possible closed captions */
     spu_decoder_t *cc_dec;
-    int xvmc_last_slice_code;
-    unsigned xxmc_mb_pic_height;
+    mpeg2dec_accel_t accel;
+
 } mpeg2dec_t ;
 
 

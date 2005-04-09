@@ -22,7 +22,7 @@
  */
 
 #ifndef _XVMC_H
-#include "mpeg2.h"
+#include "libmpeg2_accel.h"
 
 /* slice_xvmc.c */
 
@@ -30,7 +30,7 @@ extern uint8_t mpeg2_scan_alt_ptable[64] ATTR_ALIGN(16);
 extern uint8_t mpeg2_scan_norm_ptable[64] ATTR_ALIGN(16);
 extern uint8_t mpeg2_scan_orig_ptable[64] ATTR_ALIGN(16);
 
-void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint8_t * buffer);
+void mpeg2_xvmc_slice (mpeg2dec_accel_t *accel, picture_t * picture, int code, uint8_t * buffer);
 void xvmc_setup_scan_ptable( void );
 
 #endif

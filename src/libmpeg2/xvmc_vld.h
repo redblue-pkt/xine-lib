@@ -23,12 +23,10 @@
 #include "accel_xvmc.h"
 #include "xvmc.h"
 
-extern void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, 
-			      int code, uint8_t *buffer); 
-extern void mpeg2_xxmc_choose_coding(mpeg2dec_t *mpeg2dec, picture_t *picture, 
-				     double aspect_ratio, int flags); 
-
-extern void mpeg2_xxmc_vld_frame_complete(mpeg2dec_t *mpeg2dec, picture_t *picture, int code);
+extern void mpeg2_xxmc_slice( mpeg2dec_accel_t *accel, picture_t *picture, 
+			      int code, uint8_t *buffer, uint32_t chunk_size, 
+			      uint8_t *chunk_buffer); 
+extern void mpeg2_xxmc_vld_frame_complete(mpeg2dec_accel_t *accel, picture_t *picture, int code);
 
 
 #endif

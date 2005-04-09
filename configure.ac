@@ -567,6 +567,8 @@ AC_ARG_WITH(xxmc-lib, AC_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the Xv
 	libXXXX.so for the xxmc plugin.]),xxmc_stub="$withval", 
 	xxmc_stub="XvMCW")
 saved_libs="$LIBS"
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -I$x_includes"
 XXMC_LIB="-L$xxmc_path -l$xxmc_stub"
 AC_MSG_CHECKING(whether to enable the xxmc plugin with vld extensions)
 AC_MSG_RESULT()
@@ -589,6 +591,7 @@ else
       ac_have_xxmc="no",
     fi  
 fi
+
 if test x$ac_have_xxmc = "xyes"; then
   AC_CHECK_HEADERS($x_includes/X11/extensions/vldXvMC.h,
      [ac_have_vldxvmc_h="yes"],
@@ -682,7 +685,7 @@ if test x$ac_have_xvmc = "xyes"; then
 else
   AC_MSG_RESULT([*** Disabling old xvmc plugin due to above errors.])
 fi
-
+CPPFLAGS="$saved_CPPFLAGS"
 LIBS="$saved_libs"
 fi
 AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")

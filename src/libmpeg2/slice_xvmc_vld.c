@@ -45,53 +45,10 @@ static uint8_t alternate_scan [64] ATTR_ALIGN(16) =
     53,61,22,30,7,15,23,31,38,46,54,62,39,47,55,63
 };
 
+void mpeg2_xxmc_slice( mpeg2dec_accel_t *accel, picture_t *picture, 
+		       int code, uint8_t *buffer, uint32_t chunk_size, 
+		       uint8_t *chunk_buffer)
 
-
-
-void mpeg2_xxmc_choose_coding(mpeg2dec_t *mpeg2dec, picture_t *picture,
-			      double aspect_ratio, int flags) 
-{
-  int
-    decoder_format = mpeg2dec->frame_format; 
-
-  if (picture->current_frame) {
-    if (XINE_IMGFMT_XXMC == decoder_format) {
-      xine_xxmc_t *xxmc = (xine_xxmc_t *) 
-	picture->current_frame->accel_data;
-      
-      /*
-       * Make a request for acceleration type and mpeg coding from
-       * the output plugin.
-       */
-      
-      xxmc->fallback_format = XINE_IMGFMT_YV12;
-      xxmc->acceleration = XINE_XVMC_ACCEL_VLD| XINE_XVMC_ACCEL_IDCT
-	| XINE_XVMC_ACCEL_MOCOMP ;
-
-      /*
-       * Standard MOCOMP / IDCT XvMC implementation for interlaced streams 
-       * is buggy. The bug is inherited from the old XvMC driver. Don't use it until
-       * it has been fixed. (A volunteer ?)
-       */
-
-      if ( picture->picture_structure != 3 ) {
-	xxmc->acceleration &= ~( XINE_XVMC_ACCEL_IDCT | XINE_XVMC_ACCEL_MOCOMP );
-      } 
-
-      xxmc->mpeg = (picture->mpeg1) ? XINE_XVMC_MPEG_1:XINE_XVMC_MPEG_2;
-      xxmc->proc_xxmc_update_frame (picture->current_frame->driver, 
-				    picture->current_frame,
-				    picture->coded_picture_width,
-				    picture->coded_picture_height,
-				    aspect_ratio,
-				    XINE_IMGFMT_XXMC,flags);
-    }
-  }
-}
-  
-
-void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
-		       uint8_t *buffer) 
 {
   vo_frame_t
     *frame = picture->current_frame;
@@ -108,8 +65,10 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
   float
     ms_per_slice;
 
-  if (1 == code) {
+  if (1 == code && accel->xvmc_last_slice_code != 1) {
     frame->bad_frame = 1;
+    accel->slices_per_row = 1;
+    accel->row_slice_count = 1;
 
     /*
      * Check that first field went through OK. Otherwise,
@@ -117,17 +76,17 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
      */
     
     if (picture->second_field) {
-      mpeg2dec->xvmc_last_slice_code = (xxmc->decoded) ? 0 : -1;
+      accel->xvmc_last_slice_code = (xxmc->decoded) ? 0 : -1;
       xxmc->decoded = 0;
     } else {
-      mpeg2dec->xvmc_last_slice_code = 0;
+      accel->xvmc_last_slice_code = 0;
     }
 
     mb_frame_height =
       (!(picture->mpeg1) && (picture->progressive_sequence)) ?
       2*((picture->coded_picture_height+31) >> 5) :
       (picture->coded_picture_height+15) >> 4;
-    mpeg2dec->xxmc_mb_pic_height = (picture->picture_structure == FRAME_PICTURE ) ?
+    accel->xxmc_mb_pic_height = (picture->picture_structure == FRAME_PICTURE ) ?
       mb_frame_height : mb_frame_height >> 1;
 
     ms_per_slice = 1000. / (90000. * mb_frame_height) * frame->duration;
@@ -188,13 +147,12 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
     xxmc->proc_xxmc_begin( frame ); 
     if (xxmc->result != 0) {
       xxmc->proc_xxmc_flush( frame );
-      mpeg2dec->xvmc_last_slice_code=-1;
+      accel->xvmc_last_slice_code=-1;
     }
   }
   
-  if (((code == mpeg2dec->xvmc_last_slice_code + 1) || 
-       (code == mpeg2dec->xvmc_last_slice_code)) &&
-      code <= mpeg2dec->xxmc_mb_pic_height) {
+  if (((code == accel->xvmc_last_slice_code + 1) || 
+       (code == accel->xvmc_last_slice_code))) {
 
     /*
      * Send this slice to the output plugin. May stall for a long
@@ -202,65 +160,61 @@ void mpeg2_xxmc_slice( mpeg2dec_t *mpeg2dec, picture_t *picture, int code,
      */
 
     frame->bad_frame = 1;
-    xxmc->slice_data_size = mpeg2dec->chunk_size;
-    xxmc->slice_data = mpeg2dec->chunk_buffer;
+    xxmc->slice_data_size = chunk_size;
+    xxmc->slice_data = chunk_buffer;
     xxmc->slice_code = code;
     
     xxmc->proc_xxmc_slice( frame );       
     if (xxmc->result != 0) {
 	xxmc->proc_xxmc_flush( frame );
-	mpeg2dec->xvmc_last_slice_code=-1;
+	accel->xvmc_last_slice_code=-1;
 	return;
     }
-    
-    if (code == mpeg2dec->xxmc_mb_pic_height) {
+    /*
+     * Keep track of slices.
+     */ 
 
-	/*
-	 * We've encountered the last slice of this frame.
-	 * Release the decoder for a new frame and, if all
-	 * went well, tell libmpeg2 that we are ready. 
-	 */
+    accel->row_slice_count = (accel->xvmc_last_slice_code == code) ? 
+      accel->row_slice_count + 1 : 1;
+    accel->slices_per_row = (accel->row_slice_count > accel->slices_per_row) ? 
+      accel->row_slice_count:accel->slices_per_row;
+    accel->xvmc_last_slice_code = code;
 
-      mpeg2dec->xvmc_last_slice_code = code;
-      mpeg2_xxmc_vld_frame_complete(mpeg2dec,picture,code); 
-      return;
-    } else {
-
-	/*
-	 * Keep track of slices.
-	 */ 
-
-	mpeg2dec->xvmc_last_slice_code = code;
-      }
-
-    } else  {
+  } else  {
 
     /*
      * An error has occured.
      */
 
     lprintf("libmpeg2: VLD XvMC: Slice error.\n");
-    mpeg2dec->xvmc_last_slice_code = -1;
+    accel->xvmc_last_slice_code = -1;
     xxmc->proc_xxmc_flush( frame );
     return;
   }
 }
 
-void mpeg2_xxmc_vld_frame_complete(mpeg2dec_t *mpeg2dec, picture_t *picture, int code) 
+void mpeg2_xxmc_vld_frame_complete(mpeg2dec_accel_t *accel, picture_t *picture, int code) 
 {
   vo_frame_t
     *frame = picture->current_frame;
   xine_xxmc_t 
     *xxmc = (xine_xxmc_t *) frame->accel_data;
   
-  if (xxmc->decoded) return;
-  xxmc->proc_xxmc_flush( frame );
-  if (xxmc->result) {
-    mpeg2dec->xvmc_last_slice_code=-1;
-    return;
-  }
-  if (mpeg2dec->xvmc_last_slice_code >= 1) {
+  if (xxmc->decoded || (accel->xvmc_last_slice_code == -1)) return;
+
+  if ((code != 0xff) || ((accel->xvmc_last_slice_code == 
+			  accel->xxmc_mb_pic_height) && 
+			 accel->slices_per_row == accel->row_slice_count)) {
+
+    xxmc->proc_xxmc_flush( frame );
+    
+    if (xxmc->result) {
+      accel->xvmc_last_slice_code=-1;
+      frame->bad_frame = 1;
+      return;
+    }
     xxmc->decoded = 1;
+    accel->xvmc_last_slice_code = 0;
     if (picture->picture_structure == 3 || picture->second_field) {
       if (xxmc->result == 0) 
 	frame->bad_frame = 0;
