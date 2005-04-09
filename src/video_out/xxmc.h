@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.6 2004/11/24 16:11:10 mroi Exp $
+ * $Id: xxmc.h,v 1.7 2005/04/09 11:47:43 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -204,6 +204,8 @@ struct xxmc_driver_s {
   uint32_t           capabilities;
   xxmc_frame_t       *recent_frames[VO_NUM_RECENT_FRAMES];
   xxmc_frame_t       *cur_frame;
+  int                cur_field;
+  int                bob;
   x11osd             *xoverlay;
   int                xv_xoverlay_type;
   int                xoverlay_type;

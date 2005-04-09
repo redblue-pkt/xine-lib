@@ -13,14 +13,25 @@
 and installing Xine's xxmc plugin.</a>
     <ol>
       <li><a href="#mozTocId69222">Background</a></li>
-      <li><a href="#mozTocId160476">Needed drivers and libs</a></li>
-      <li><a href="#mozTocId849061">Configuring and installing</a></li>
+      <li><a href="#mozTocId160476">Needed drivers and
+libs</a></li>
+      <li><a href="#mozTocId849061">Configuring and
+installing</a></li>
       <li><a href="#mozTocId197304">Running the plugin</a>
         <ol>
-          <li><a href="#mozTocId437541">General</a></li>
-          <li><a href="#mozTocId374228">Caveats</a></li>
+          <li><a href="#mozTocId437541">General
+            </a></li>
+          <li><a href="#mozTocId374228">Caveats
+            </a></li>
           <li><a href="#mozTocId6059">Optimizing</a></li>
           <li><a href="#mozTocId769361">Deinterlacing</a></li>
+        </ol>
+      </li>
+      <li><a href="#mozTocId974751">Chips supporting XvMC acceleration
+using the xxmc module.</a>
+        <ol>
+          <li><a href="#mozTocId803345">VIA Unichrome / Pro</a></li>
+          <li><a href="#mozTocId951553">Nvidia</a></li>
         </ol>
       </li>
       <li><a href="#mozTocId615875">FAQ</a></li>
@@ -31,7 +42,8 @@ and installing Xine's xxmc plugin.</a>
 The xine xxmc plugin supports playback with <br>
 <ul>
   <li>Standard XvMC, as supported by many Nvidia chips.</li>
-  <li>VLD XvMC, as supported by the VIA CLE266 chip, up to 1024x1024.<br>
+  <li>VLD XvMC, as supported by the VIA Unichrome / Pro chips, up to
+1024x1024.<br>
   </li>
   <li>Standard Xv. The xxmc plugin will fall back to Xv if any of the
 above fails.</li>
@@ -62,7 +74,8 @@ or <span style="font-family: monospace;">/usr/X11R6/lib/X11/XvMCConfig</span>
 and try to load the hardware-specific library mentioned in that file.
 If you downloaded the XvMC wrapper from the unichrome site, the default
 XvMCConfig will make the XvMC wrapper try to load the Nvidia XvMC
-driver. If you want to use it with the VIA CLE266 chip, you will have
+driver. If you want to use it with the VIA Unichrome /Pro chips, you
+will have
 to edit the XvMCConfig file to contain the single word<br>
 <br>
 <span style="font-family: monospace;">libviaXvMC.so.1<br>
@@ -110,7 +123,8 @@ back to plain Xv for these streams. Hopefully this will be fixed in the
 not too distant future.<br>
 <br>
 <h3><a name="mozTocId6059" class="mozTocH3"></a>Optimizing</h3>
-If you are running VLD XvMC on the CLE266 there are some options that
+If you are running VLD XvMC on the VIA Unichrome / Pros there are some
+options that
 may affect performance:<br>
 <br>
 <span style="font-family: monospace;">video.device.unichrome_cpu_save:1</span><br>
@@ -146,10 +160,35 @@ run a hardware accelerated stream, Interlacing will be toggled by
 pressing "i". If the xxmc plugin has fallen back to Xv and software
 decoding, post plugins will take care of deinterlacing. <br>
 <br>
-BOB deinterlacing for XvMC accelerated streams will be implemented in
-the near future. That means alternating between the top- and bottom
-fields of the frame at twice the original frame-rate.<br>
+BOB deinterlacing (alternating between top and bottom field at double
+the frame-rate) for XvMC accelerated streams is available as an
+experimental feature. It is activated using the config option<br>
 <br>
+<span style="font-family: monospace;">video.device.xvmc_bob_deinterlacing:1<br>
+<br>
+</span>If this option is enabled, The xxmc plugin will use bob as
+deinterlacing method when deinterlace is toggled pressing "i". To get
+the best results from this method, the screen update frequency should
+be a multiple of double the frame rate. For example, if the frame-rate
+is 25Hz, Your screen update frequency should be 50Hz or 100Hz. I have
+been able to get reasonable results using a 75Hz update frequency,
+however.<br>
+<h2><a class="mozTocH2" name="mozTocId974751"></a>Chips supporting XvMC
+acceleration using the xxmc module.</h2>
+<h3><a class="mozTocH3" name="mozTocId803345"></a>VIA Unichrome / Pro</h3>
+<ul>
+  <li>CLE266: up to 1024x1024.</li>
+  <li>K8M/N800: up to 1024x1024. Use Unichrome X drivers &gt;= r31.</li>
+  <li>CN400: HDTV capable. Driver support is under development.</li>
+  <li>PM8X0: HDTV capable. Driver support is under development.<br>
+  </li>
+</ul>
+<h3><a class="mozTocH3" name="mozTocId951553"></a>Nvidia</h3>
+<ul>
+  <li>Quadro FX 1000 (IDCT / Mocomp)</li>
+  <li>Please help me fill in here.<br>
+  </li>
+</ul>
 <h2><a name="mozTocId615875" class="mozTocH2"></a>FAQ</h2>
 Q: The xxmc plugin is not enabled when I configure xine-lib<br>
 A: Check that you have installed the XvMC wrapper, and that you've run

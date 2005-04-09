@@ -1,4 +1,5 @@
 xine-lib (1.1)
+  * Experimental bob deinterlacing support in the xxmc module
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

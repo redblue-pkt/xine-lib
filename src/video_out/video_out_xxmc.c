@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.12 2005/02/22 18:31:58 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.13 2005/04/09 11:47:43 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -39,6 +39,7 @@
 
 
 #include "xxmc.h"
+#include <unistd.h>
 
 static int gX11Fail;
 static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame);
@@ -1458,6 +1459,7 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   xxmc_driver_t  *this  = (xxmc_driver_t *) this_gen;
   xxmc_frame_t   *frame = (xxmc_frame_t *) frame_gen;
   xine_xxmc_t *xxmc = &frame->xxmc_data;
+  int first_field;
 
   /*
    * queue frames (deinterlacing)
@@ -1493,6 +1495,10 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
    * ask for offset and output size
    */
 
+  first_field = (frame->vo_frame.top_field_first) ? XVMC_TOP_FIELD : XVMC_BOTTOM_FIELD;
+  first_field = (this->bob) ? first_field : XVMC_TOP_FIELD;
+  this->cur_field = (this->deinterlace_enabled) ? first_field : XVMC_FRAME_PICTURE;
+
   xxmc_redraw_needed (this_gen);
   if (frame->format == XINE_IMGFMT_XXMC) {
     XVMCLOCKDISPLAY( this->display );
@@ -1502,9 +1508,24 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 		    this->sc.displayed_width, this->sc.displayed_height,
 		    this->sc.output_xoffset, this->sc.output_yoffset,
 		    this->sc.output_width, this->sc.output_height, 
-		    ((this->deinterlace_enabled) ? 
-		     XVMC_TOP_FIELD : XVMC_FRAME_PICTURE));
+		    this->cur_field);
     XVMCUNLOCKDISPLAY( this->display );
+    if (this->deinterlace_enabled && this->bob) {
+      unsigned 
+	ms_per_field = 500 * frame->vo_frame.duration / 90000 - 2;
+      
+      usleep(ms_per_field*1000);
+      this->cur_field = (frame->vo_frame.top_field_first) ? XVMC_BOTTOM_FIELD : XVMC_TOP_FIELD;
+
+      XVMCLOCKDISPLAY( this->display );
+      XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
+		      this->sc.displayed_xoffset, this->sc.displayed_yoffset,
+		      this->sc.displayed_width, this->sc.displayed_height,
+		      this->sc.output_xoffset, this->sc.output_yoffset,
+		      this->sc.output_width, this->sc.output_height, 
+		      this->cur_field);
+      XVMCUNLOCKDISPLAY( this->display );
+    }      
   } else {
     XLockDisplay (this->display);
     if (this->use_shm) {
@@ -1699,7 +1720,7 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
 			this->sc.displayed_width, this->sc.displayed_height,
 			this->sc.output_xoffset, this->sc.output_yoffset,
 			this->sc.output_width, this->sc.output_height, 
-			((this->deinterlace_enabled) ? XVMC_TOP_FIELD : XVMC_FRAME_PICTURE)); 
+			this->cur_field); 
 	XVMCUNLOCKDISPLAY( this->display );
       } else {
 	XLockDisplay (this->display);
@@ -1948,6 +1969,12 @@ static void xxmc_update_nvidia_fix(void *this_gen, xine_cfg_entry_t *entry) {
   xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
 
   this->reverse_nvidia_palette = entry->num_value;
+}
+
+static void xxmc_update_bob(void *this_gen, xine_cfg_entry_t *entry) {
+  xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
+
+  this->bob = entry->num_value;
 }
 
 
@@ -2412,7 +2439,16 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			   _("There's a bug in NVIDIA's XvMC lib that makes red OSD colors\n"
 			     "look blue and vice versa. This option provides a workaround.\n"),
 			   10, xxmc_update_nvidia_fix, this);
+  this->bob =
+    config->register_bool (config, "video.device.xvmc_bob_deinterlacing", 0,
+			   _("Use bob as accelerated deinterlace method."),
+			   _("When interlacing is enabled for hardware accelerated frames,\n"
+			     "Alternate between top and bottom field at double the frame rate.\n"),
+			   10, xxmc_update_bob, this);
+
   this->deinterlace_enabled = 0;
+  this->cur_field = XVMC_FRAME_PICTURE;
+
 #ifdef HAVE_VLDXVMC
   printf("video_out_xxmc: Unichrome CPU saving is %s.\n",
 	 (this->cpu_save_enabled) ? "on":"off"); 
