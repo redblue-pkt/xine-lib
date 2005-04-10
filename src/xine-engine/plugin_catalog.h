@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.18 2005/02/12 18:30:46 valtri Exp $
+ * $Id: plugin_catalog.h,v 1.19 2005/04/10 09:31:17 tmattern Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -61,17 +61,10 @@ typedef struct {
 } plugin_node_t ;
 
 struct plugin_catalog_s {
-  xine_list_t     *input;
-  xine_list_t     *demux;
-  xine_list_t     *spu;
-  xine_list_t     *audio;
-  xine_list_t     *video;
-  xine_list_t     *aout;
-  xine_list_t     *vout;
-  xine_list_t     *post;
+  xine_list_t     *plugin_lists[PLUGIN_TYPE_MAX];
   
-  xine_list_t     *cache;
-  xine_list_t     *file;
+  xine_list_t     *cache_list;
+  xine_list_t     *file_list;
 
   plugin_node_t   *audio_decoder_map[DECODER_MAX][PLUGINS_PER_TYPE];
   plugin_node_t   *video_decoder_map[DECODER_MAX][PLUGINS_PER_TYPE];

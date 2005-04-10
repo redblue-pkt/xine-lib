@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.202 2005/03/09 22:24:20 tmattern Exp $
+ * $Id: load_plugins.c,v 1.203 2005/04/10 09:31:17 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -90,6 +90,17 @@ static void remove_segv_handler(void){
 #endif
 #endif /* 0 */
 
+
+static int plugin_iface_versions[] = {
+  INPUT_PLUGIN_IFACE_VERSION,
+  DEMUXER_PLUGIN_IFACE_VERSION,
+  AUDIO_DECODER_IFACE_VERSION,
+  VIDEO_DECODER_IFACE_VERSION,
+  SPU_DECODER_IFACE_VERSION,
+  AUDIO_OUT_IFACE_VERSION,
+  VIDEO_OUT_DRIVER_IFACE_VERSION,
+  POST_PLUGIN_IFACE_VERSION 
+};
 
 static void _build_list_typed_plugins(plugin_catalog_t **catalog, xine_list_t *type) {
   plugin_node_t    *node;
@@ -168,7 +179,7 @@ static void map_decoders (xine_t *this) {
    * map audio decoders
    */
 
-  node = xine_list_first_content (this->plugin_catalog->audio);
+  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
   while (node) {
 
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
@@ -200,14 +211,14 @@ static void map_decoders (xine_t *this) {
       type++;
     }
 
-    node = xine_list_next_content (this->plugin_catalog->audio);
+    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
   }
 
   /*
    * map video decoders
    */
 
-  node = xine_list_first_content (this->plugin_catalog->video);
+  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
   while (node) {
 
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
@@ -238,14 +249,14 @@ static void map_decoders (xine_t *this) {
       type++;
     }
 
-    node = xine_list_next_content (this->plugin_catalog->video);
+    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
   }
 
   /*
    * map spu decoders
    */
 
-  node = xine_list_first_content (this->plugin_catalog->spu);
+  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
   while (node) {
 
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
@@ -277,7 +288,7 @@ static void map_decoders (xine_t *this) {
       type++;
     }
 
-    node = xine_list_next_content (this->plugin_catalog->spu);
+    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
   }
 }
 
@@ -291,7 +302,7 @@ static plugin_info_t *_get_cached_info (xine_t *this,
 					char *filename, off_t filesize, time_t filemtime,
 					plugin_info_t *previous_info) {
   plugin_node_t *node;
-  xine_list_t *list = this->plugin_catalog->cache;
+  xine_list_t *list = this->plugin_catalog->cache_list;
 
   _x_assert(this);
   
@@ -492,19 +503,16 @@ static void _insert_node (xine_t *this,
 static plugin_catalog_t *_new_catalog(void){
 
   plugin_catalog_t *catalog;
+  int i;
 
   catalog = xine_xmalloc(sizeof(plugin_catalog_t));
-  catalog->input = xine_list_new();
-  catalog->demux = xine_list_new();
-  catalog->spu   = xine_list_new();
-  catalog->audio = xine_list_new();
-  catalog->video = xine_list_new();
-  catalog->aout  = xine_list_new();
-  catalog->vout  = xine_list_new();
-  catalog->post  = xine_list_new();
 
-  catalog->cache = xine_list_new();
-  catalog->file  = xine_list_new();
+  for (i = 0; i < PLUGIN_TYPE_MAX; i++) {
+    catalog->plugin_lists[i] = xine_list_new();
+  }
+
+  catalog->cache_list = xine_list_new();
+  catalog->file_list  = xine_list_new();
   pthread_mutex_init (&catalog->lock, NULL);
 
   return catalog;
@@ -533,43 +541,19 @@ static void _register_plugins_internal(xine_t *this, plugin_file_t *file, plugin
 	xine_log (this, XINE_LOG_PLUGIN,
 		  _("load_plugins: plugin limit reached, static plugin could not be loaded\n"));
     } else {
-      switch (info->type & PLUGIN_TYPE_MASK){
-      case PLUGIN_INPUT:
-	_insert_node (this, this->plugin_catalog->input, file, info,
-		      INPUT_PLUGIN_IFACE_VERSION);
-	break;
-      case PLUGIN_DEMUX:
-	_insert_node (this, this->plugin_catalog->demux, file, info,
-		      DEMUXER_PLUGIN_IFACE_VERSION);
-	break;
-      case PLUGIN_AUDIO_DECODER:
-	_insert_node (this, this->plugin_catalog->audio, file, info,
-		      AUDIO_DECODER_IFACE_VERSION);
-	this->plugin_catalog->decoder_count++;
-	break;
-      case PLUGIN_VIDEO_DECODER:
-	_insert_node (this, this->plugin_catalog->video, file, info,
-		      VIDEO_DECODER_IFACE_VERSION);
-	this->plugin_catalog->decoder_count++;
-	break;
-      case PLUGIN_SPU_DECODER:
-	_insert_node (this, this->plugin_catalog->spu, file, info,
-		      SPU_DECODER_IFACE_VERSION);
-	this->plugin_catalog->decoder_count++;
-	break;
-      case PLUGIN_AUDIO_OUT:
-	_insert_node (this, this->plugin_catalog->aout, file, info,
-		      AUDIO_OUT_IFACE_VERSION);
-	break;
-      case PLUGIN_VIDEO_OUT:
-	_insert_node (this, this->plugin_catalog->vout, file, info,
-		      VIDEO_OUT_DRIVER_IFACE_VERSION);
-	break;
-      case PLUGIN_POST:
-	_insert_node (this, this->plugin_catalog->post, file, info,
-		      POST_PLUGIN_IFACE_VERSION);
-	break;
-      default:
+      int plugin_type = info->type & PLUGIN_TYPE_MASK;
+
+      if ((plugin_type > 0) && (plugin_type <= PLUGIN_TYPE_MAX)) {
+	_insert_node (this, this->plugin_catalog->plugin_lists[plugin_type - 1], file, info,
+		      plugin_iface_versions[plugin_type - 1]);
+
+	if ((plugin_type == PLUGIN_AUDIO_DECODER) ||
+	    (plugin_type == PLUGIN_VIDEO_DECODER) ||
+	    (plugin_type == PLUGIN_SPU_DECODER)) {
+	  this->plugin_catalog->decoder_count++;
+	}
+      } else {
+
 	if (file)
 	  xine_log (this, XINE_LOG_PLUGIN,
 		    _("load_plugins: unknown plugin type %d in %s\n"),
@@ -661,7 +645,6 @@ static void collect_plugins(xine_t *this, char *path){
             )
 	    break;
 
-	  plugin_name = str;
 	  lib = NULL;
 
 	  /* get the first plugin_info_t */
@@ -684,7 +667,7 @@ static void collect_plugins(xine_t *this, char *path){
 	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
 	      plugin_file_t *file;
 
-	      file = _insert_file(this, this->plugin_catalog->file, str, &statbuffer, lib);
+	      file = _insert_file(this, this->plugin_catalog->file_list, str, &statbuffer, lib);
 
 	      _register_plugins_internal(this, file, info);
 	    }
@@ -845,15 +828,11 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
 }
 
 static void load_required_plugins(xine_t *this) {
+  int i;
 
-  _load_required_plugins (this, this->plugin_catalog->input);
-  _load_required_plugins (this, this->plugin_catalog->demux);
-  _load_required_plugins (this, this->plugin_catalog->spu);
-  _load_required_plugins (this, this->plugin_catalog->audio);
-  _load_required_plugins (this, this->plugin_catalog->video);
-  _load_required_plugins (this, this->plugin_catalog->aout);
-  _load_required_plugins (this, this->plugin_catalog->vout);
-  _load_required_plugins (this, this->plugin_catalog->post);
+  for (i = 0; i < PLUGIN_TYPE_MAX; i++) {
+    _load_required_plugins (this, this->plugin_catalog->plugin_lists[i]);
+  }
 }
 
 
@@ -1115,18 +1094,14 @@ static void save_catalog (xine_t *this) {
   free (dirfile);
 
   if( (fp = fopen(cachefile,"w")) != NULL ) {
+    int i;
   
     fprintf(fp, "# this file is automatically created by xine, do not edit.\n\n");
     fprintf(fp, "cache_catalog_version=%d\n\n", CACHE_CATALOG_VERSION);
-    
-    save_plugin_list (fp, this->plugin_catalog->input);
-    save_plugin_list (fp, this->plugin_catalog->demux);
-    save_plugin_list (fp, this->plugin_catalog->spu);
-    save_plugin_list (fp, this->plugin_catalog->audio);
-    save_plugin_list (fp, this->plugin_catalog->video);
-    save_plugin_list (fp, this->plugin_catalog->aout);
-    save_plugin_list (fp, this->plugin_catalog->vout);
-    save_plugin_list (fp, this->plugin_catalog->post);
+
+    for (i = 0; i < PLUGIN_TYPE_MAX; i++) {
+      save_plugin_list (fp, this->plugin_catalog->plugin_lists[i]);
+    }
     fclose(fp);
   }
   free(cachefile);
@@ -1146,7 +1121,7 @@ static void load_cached_catalog (xine_t *this) {
   sprintf(cachefile, "%s/%s", xine_get_homedir(), relname);
   
   if( (fp = fopen(cachefile,"r")) != NULL ) {
-    load_plugin_list (fp, this->plugin_catalog->cache);
+    load_plugin_list (fp, this->plugin_catalog->cache_list);
     fclose(fp);
   }
   free(cachefile);
@@ -1230,7 +1205,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
   pthread_mutex_lock (&catalog->lock);
 
-  node = xine_list_first_content (catalog->input);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
     input_plugin_t   *plugin;
 
@@ -1243,7 +1218,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
       return plugin;
     }
 
-    node = xine_list_next_content (stream->xine->plugin_catalog->input);
+    node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1290,7 +1265,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 
     pthread_mutex_lock (&catalog->lock);
 
-    node = xine_list_first_content (catalog->demux);
+    node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
 
     while (node) {
       demux_plugin_t *plugin;
@@ -1307,7 +1282,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 	return plugin;
       }
 
-      node = xine_list_next_content (stream->xine->plugin_catalog->demux);
+      node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_DEMUX - 1]);
     }
 
     pthread_mutex_unlock (&catalog->lock);
@@ -1350,7 +1325,7 @@ demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *
   demux_plugin_t    *plugin;
 
   pthread_mutex_lock(&catalog->lock);
-  node = xine_list_first_content(catalog->demux);
+  node = xine_list_first_content(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   stream->content_detection_method = METHOD_EXPLICIT;
 
   while (node) {
@@ -1365,7 +1340,7 @@ demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *
 	return plugin;
       }
     }
-    node = xine_list_next_content(catalog->demux);
+    node = xine_list_next_content(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   pthread_mutex_unlock(&catalog->lock);
@@ -1403,7 +1378,7 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
 
     pthread_mutex_lock (&catalog->lock);
 
-    node = xine_list_first_content (catalog->demux);
+    node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
 
     while (node) {
 
@@ -1427,7 +1402,7 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
         }
       }
 
-      node = xine_list_next_content (stream->xine->plugin_catalog->demux);
+      node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_DEMUX - 1]);
     }
 
     pthread_mutex_unlock (&catalog->lock);
@@ -1477,7 +1452,7 @@ const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
   pthread_mutex_lock (&catalog->lock);
 
   catalog->ids[0] = NULL;
-  node = xine_list_first_content (catalog->input);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
     input_class_t *ic;
 
@@ -1495,7 +1470,7 @@ const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
 	catalog->ids[i] = node->info->id;
       }
     }
-    node = xine_list_next_content (catalog->input);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1514,7 +1489,7 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
   pthread_mutex_lock (&catalog->lock);
 
   catalog->ids[0] = NULL;
-  node = xine_list_first_content (catalog->input);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
     input_class_t *ic;
     
@@ -1532,7 +1507,7 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
 	catalog->ids[i] = node->info->id;
       }
     }
-    node = xine_list_next_content (catalog->input);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1579,7 +1554,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
   
   pthread_mutex_lock (&catalog->lock);
 
-  node = xine_list_first_content (catalog->vout);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
   while (node) {
 
     vo_info = node->info->special_info;
@@ -1601,7 +1576,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
       }
     }
 
-    node = xine_list_next_content (catalog->vout);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1630,7 +1605,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
 
   pthread_mutex_lock (&catalog->lock);
 
-  node = xine_list_first_content (catalog->vout);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
   while (node) {
 
     vo_info = node->info->special_info;
@@ -1638,7 +1613,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
       driver = _load_video_driver (this, node, NULL);
       break;
     }
-    node = xine_list_next_content (catalog->vout);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1661,7 +1636,7 @@ const char *const *xine_list_audio_output_plugins (xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->aout);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_AUDIO_OUT - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -1671,7 +1646,7 @@ const char *const *xine_list_video_output_plugins (xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->vout);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -1711,7 +1686,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
 
   driver = NULL;
 
-  node = xine_list_first_content (this->plugin_catalog->aout);
+  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_OUT - 1]);
   while (node) {
 
     ao_info = node->info->special_info;
@@ -1728,7 +1703,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
       }
     }
 
-    node = xine_list_next_content (this->plugin_catalog->aout);
+    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_OUT - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -1784,7 +1759,7 @@ char **xine_get_autoplay_mrls (xine_t *this, const char *plugin_id,
 
   catalog = this->plugin_catalog;
 
-  node = xine_list_first_content (catalog->input);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
 
     if (!strcasecmp (node->info->id, plugin_id)) {
@@ -1800,7 +1775,7 @@ char **xine_get_autoplay_mrls (xine_t *this, const char *plugin_id,
 	return ic->get_autoplay_list (ic, num_mrls);
       }
     }
-    node = xine_list_next_content (catalog->input);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
   return NULL;
 }
@@ -1816,7 +1791,7 @@ xine_mrl_t **xine_get_browse_mrls (xine_t *this, const char *plugin_id,
 
   catalog = this->plugin_catalog;
 
-  node = xine_list_first_content (catalog->input);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
 
     if (!strcasecmp (node->info->id, plugin_id)) {
@@ -1832,7 +1807,7 @@ xine_mrl_t **xine_get_browse_mrls (xine_t *this, const char *plugin_id,
 	return ic->get_dir (ic, start_mrl, num_mrls);
       }
     }
-    node = xine_list_next_content (catalog->input);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
   return NULL;
 }
@@ -2030,16 +2005,12 @@ static void _unload_unref_plugins(xine_t *this, xine_list_t *list) {
 
 void xine_plugins_garbage_collector(xine_t *self) {
   plugin_catalog_t *catalog = self->plugin_catalog;
+  int i;
 
   pthread_mutex_lock (&catalog->lock);
-  _unload_unref_plugins(self, self->plugin_catalog->input);
-  _unload_unref_plugins(self, self->plugin_catalog->demux);
-  _unload_unref_plugins(self, self->plugin_catalog->spu);
-  _unload_unref_plugins(self, self->plugin_catalog->audio);
-  _unload_unref_plugins(self, self->plugin_catalog->video);
-  _unload_unref_plugins(self, self->plugin_catalog->aout);
-  _unload_unref_plugins(self, self->plugin_catalog->vout);
-  _unload_unref_plugins(self, self->plugin_catalog->post);
+  for(i = 0; i < PLUGIN_TYPE_MAX; i++) {
+    _unload_unref_plugins(self, self->plugin_catalog->plugin_lists[i]);
+  } 
 
 #ifdef LOG
   {
@@ -2051,14 +2022,9 @@ void xine_plugins_garbage_collector(xine_t *self) {
       if (file->ref) {
 	printf("\n  file %s referenced %d time(s)\n", file->filename, file->ref);
 
-	_display_file_plugin_list (self->plugin_catalog->input, file);
-	_display_file_plugin_list (self->plugin_catalog->demux, file);
-	_display_file_plugin_list (self->plugin_catalog->spu, file);
-	_display_file_plugin_list (self->plugin_catalog->audio, file);
-	_display_file_plugin_list (self->plugin_catalog->video, file);
-	_display_file_plugin_list (self->plugin_catalog->aout, file);
-	_display_file_plugin_list (self->plugin_catalog->vout, file);
-	_display_file_plugin_list (self->plugin_catalog->post, file);
+	for(i = 0; i < PLUGIN_TYPE_MAX; i++) {
+	  _display_file_plugin_list (self->plugin_catalog->plugin_lists[i], file)
+	}
       }
       file = xine_list_next_content(self->plugin_catalog->file);
     }
@@ -2144,7 +2110,7 @@ const char *const *xine_list_demuxer_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->demux);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2154,7 +2120,7 @@ const char *const *xine_list_input_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->input);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_INPUT - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2164,7 +2130,7 @@ const char *const *xine_list_spu_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->spu);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2174,7 +2140,7 @@ const char *const *xine_list_audio_decoder_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->audio);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2184,7 +2150,7 @@ const char *const *xine_list_video_decoder_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->video);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2194,7 +2160,7 @@ const char *const *xine_list_post_plugins(xine_t *xine) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   
   pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->post);
+  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_POST - 1]);
   pthread_mutex_unlock (&catalog->lock);
 
   return catalog->ids;
@@ -2208,11 +2174,11 @@ const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
   pthread_mutex_lock (&catalog->lock);
 
   i = 0;
-  node = xine_list_first_content (catalog->post);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_POST - 1]);
   while (node) {
     if (((post_info_t *)node->info->special_info)->type == type)
       catalog->ids[i++] = node->info->id;
-    node = xine_list_next_content (catalog->post);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_POST - 1]);
   }
   catalog->ids[i] = NULL;
 
@@ -2223,7 +2189,7 @@ const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
 #define GET_PLUGIN_DESC(NAME,TYPE,CATITEM) \
   const char *xine_get_##NAME##_plugin_description (xine_t *this, const char *plugin_id) { \
     plugin_catalog_t *catalog = this->plugin_catalog;			\
-    plugin_node_t    *node = xine_list_first_content (catalog->CATITEM); \
+    plugin_node_t    *node = xine_list_first_content (catalog->plugin_lists[CATITEM - 1]); \
     while (node) {							\
       if (!strcasecmp (node->info->id, plugin_id)) {			\
 	TYPE##_class_t *ic = (TYPE##_class_t *) node->plugin_class;	\
@@ -2235,19 +2201,19 @@ const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
 	}								\
 	return ic->get_description(ic);					\
       }									\
-      node = xine_list_next_content (catalog->CATITEM);			\
+      node = xine_list_next_content (catalog->plugin_lists[CATITEM]);			\
     }									\
     return NULL;							\
   }
 
-GET_PLUGIN_DESC (input,		input,		input)
-GET_PLUGIN_DESC (demux,		demux,		demux)
-GET_PLUGIN_DESC (spu,		spu_decoder,	spu)
-GET_PLUGIN_DESC (audio,		audio_decoder,	audio)
-GET_PLUGIN_DESC (video,		video_decoder,	video)
-GET_PLUGIN_DESC (audio_driver,	audio_driver,	aout)
-GET_PLUGIN_DESC (video_driver,	video_driver,	vout)
-GET_PLUGIN_DESC (post,		post,		post)
+GET_PLUGIN_DESC (input,		input,		PLUGIN_INPUT)
+GET_PLUGIN_DESC (demux,		demux,		PLUGIN_DEMUX)
+GET_PLUGIN_DESC (spu,		spu_decoder,	PLUGIN_SPU_DECODER)
+GET_PLUGIN_DESC (audio,		audio_decoder,	PLUGIN_AUDIO_DECODER)
+GET_PLUGIN_DESC (video,		video_decoder,	PLUGIN_VIDEO_DECODER)
+GET_PLUGIN_DESC (audio_driver,	audio_driver,	PLUGIN_AUDIO_OUT)
+GET_PLUGIN_DESC (video_driver,	video_driver,	PLUGIN_VIDEO_OUT)
+GET_PLUGIN_DESC (post,		post,		PLUGIN_POST)
 
 xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 			    xine_audio_port_t **audio_target,
@@ -2260,7 +2226,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
   
   pthread_mutex_lock(&catalog->lock);
   
-  node = xine_list_first_content(catalog->post);
+  node = xine_list_first_content(catalog->plugin_lists[PLUGIN_POST - 1]);
   while (node) {
     
     if (strcmp(node->info->id, name) == 0) {
@@ -2330,7 +2296,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
       }
     }
     
-    node = xine_list_next_content(catalog->post);
+    node = xine_list_next_content(catalog->plugin_lists[PLUGIN_POST - 1]);
   }
   
   pthread_mutex_unlock(&catalog->lock);
@@ -2362,7 +2328,7 @@ char *xine_get_file_extensions (xine_t *self) {
   /* calc length of output */
 
   len = 0; 
-  node = xine_list_first_content (catalog->demux);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   while (node) {
     demux_class_t *cls;
     char          *exts;
@@ -2374,14 +2340,14 @@ char *xine_get_file_extensions (xine_t *self) {
       if((exts = cls->get_extensions(cls)) && strlen(exts))
 	len += strlen(exts) + 1;
     }
-    node = xine_list_next_content (catalog->demux);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   /* create output */
   str = malloc (len); /* '\0' space is already counted in the previous loop */
   pos = 0;
 
-  node = xine_list_first_content (catalog->demux);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   while (node) {
     demux_class_t *cls;
     char          *e;
@@ -2404,7 +2370,7 @@ char *xine_get_file_extensions (xine_t *self) {
 	}
       }
     }
-    node = xine_list_next_content (catalog->demux);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   str[pos] = 0;
@@ -2428,7 +2394,7 @@ char *xine_get_mime_types (xine_t *self) {
 
   /* calc length of output */
 
-  len = 0; node = xine_list_first_content (catalog->demux);
+  len = 0; node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   while (node) {
     demux_class_t *cls;
     char *s;
@@ -2441,7 +2407,7 @@ char *xine_get_mime_types (xine_t *self) {
       if (s)
 	len += strlen(s);
     }
-    node = xine_list_next_content (catalog->demux);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   /* create output */
@@ -2449,7 +2415,7 @@ char *xine_get_mime_types (xine_t *self) {
   str = malloc (len+1);
   pos = 0;
 
-  node = xine_list_first_content (catalog->demux);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   while (node) {
     demux_class_t *cls;
     char *s;
@@ -2467,7 +2433,7 @@ char *xine_get_mime_types (xine_t *self) {
 	pos += l;
       }
     }
-    node = xine_list_next_content (catalog->demux);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   str[pos] = 0;
@@ -2497,7 +2463,7 @@ char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
   
   pthread_mutex_lock (&catalog->lock);
 
-  node = xine_list_first_content (catalog->demux);
+  node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   while (node && !id) {
     demux_class_t *cls;
 
@@ -2518,7 +2484,7 @@ char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
 	free(mime_demux);
       }
     }
-    node = xine_list_next_content (catalog->demux);
+    node = xine_list_next_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -2595,16 +2561,12 @@ void _x_dispose_plugins (xine_t *this) {
   if(this->plugin_catalog) {
     int i;
 
-    dispose_plugin_list (this->plugin_catalog->input);
-    dispose_plugin_list (this->plugin_catalog->demux);
-    dispose_plugin_list (this->plugin_catalog->spu);
-    dispose_plugin_list (this->plugin_catalog->audio);
-    dispose_plugin_list (this->plugin_catalog->video);
-    dispose_plugin_list (this->plugin_catalog->aout);
-    dispose_plugin_list (this->plugin_catalog->vout);
-    dispose_plugin_list (this->plugin_catalog->post);
-    dispose_plugin_list (this->plugin_catalog->cache);
-    dispose_plugin_file_list (this->plugin_catalog->file);
+    for (i = 0; i < PLUGIN_TYPE_MAX; i++) {
+      dispose_plugin_list (this->plugin_catalog->plugin_lists[i]);
+    }
+
+    dispose_plugin_list (this->plugin_catalog->cache_list);
+    dispose_plugin_file_list (this->plugin_catalog->file_list);
 
     for (i = 0; this->plugin_catalog->prio_desc[i]; i++)
       free(this->plugin_catalog->prio_desc[i]);

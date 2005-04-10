@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.17 2005/02/13 14:24:25 tmattern Exp $
+ * $Id: xine_plugin.h,v 1.18 2005/04/10 09:31:16 tmattern Exp $
  *
  * generic plugin definitions
  *
@@ -34,7 +34,9 @@
 #define PLUGIN_SPU_DECODER    5
 #define PLUGIN_AUDIO_OUT      6
 #define PLUGIN_VIDEO_OUT      7
-#define PLUGIN_POST           8   
+#define PLUGIN_POST           8
+
+#define PLUGIN_TYPE_MAX       PLUGIN_POST           
 
 /* this flag may be or'ed with type in order to force preloading the plugin.
  * very useful to register config items on xine initialization.
