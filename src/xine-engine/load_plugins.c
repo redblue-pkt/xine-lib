@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.203 2005/04/10 09:31:17 tmattern Exp $
+ * $Id: load_plugins.c,v 1.204 2005/04/10 16:23:05 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -148,7 +148,7 @@ static int get_decoder_priority(xine_t *this, plugin_node_t *node) {
   cfg_entry_t *entry;
   char key[80];
 
-  sprintf(key, "engine.decoder_priorities.%s", node->info->id);
+  snprintf(key, sizeof(key) - 1, "engine.decoder_priorities.%s", node->info->id);
   
   entry = this->config->lookup_entry(this->config, key);
   
@@ -159,137 +159,70 @@ static int get_decoder_priority(xine_t *this, plugin_node_t *node) {
     return ((decoder_info_t *)node->info->special_info)->priority;
 }
 
+static void map_decoder_list (xine_t *this,
+			      xine_list_t *decoder_list,
+			      plugin_node_t *decoder_map[DECODER_MAX][PLUGINS_PER_TYPE]) {
+  int i;
+  plugin_node_t *node;
+
+  /* init */
+  for (i = 0; i < DECODER_MAX; i++) {
+    decoder_map[i][0] = NULL;
+  }
+
+  /*
+   * map decoders
+   */
+  node = xine_list_first_content (decoder_list);
+  while (node) {
+
+    int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
+    int priority = get_decoder_priority(this, node);
+
+    lprintf ("mapping decoder %s\n", node->info->id);
+
+    while (type && (*type)) {
+
+      int pos;
+      int streamtype = ((*type)>>16) & 0xFF;
+
+      lprintf ("load_plugins: decoder handles stream type %02x, priority %d\n", streamtype, priority);
+
+      /* find the right place based on the priority */
+      for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
+	if (!decoder_map[streamtype][pos] ||
+	    priority > get_decoder_priority(this, decoder_map[streamtype][pos]))
+	  break;
+
+      /* shift the decoder list for this type by one to make room for new decoder */
+      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
+        decoder_map[streamtype][i] = decoder_map[streamtype][i - 1];
+
+      /* insert new decoder */
+      decoder_map[streamtype][pos] = node;
+
+      lprintf("decoder inserted in decoder map at %d\n", pos);
+
+      type++;
+    }
+
+    node = xine_list_next_content (decoder_list);
+  }
+}
+
 static void map_decoders (xine_t *this) {
 
   plugin_catalog_t *catalog = this->plugin_catalog;
-  plugin_node_t    *node;
-  int               i, pos;
 
   lprintf ("map_decoders\n");
-
-  /* clean up */
-
-  for (i=0; i<DECODER_MAX; i++) {
-    catalog->audio_decoder_map[i][0]=NULL;
-    catalog->video_decoder_map[i][0]=NULL;
-    catalog->spu_decoder_map[i][0]=NULL;
-  }
 
   /*
    * map audio decoders
    */
+  map_decoder_list(this, catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1], catalog->audio_decoder_map);
+  map_decoder_list(this, catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1], catalog->video_decoder_map);
+  map_decoder_list(this, catalog->plugin_lists[PLUGIN_SPU_DECODER - 1], catalog->spu_decoder_map);
 
-  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
-  while (node) {
-
-    int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
-    int priority = get_decoder_priority(this, node);
-
-    lprintf ("mapping decoder %s\n", node->info->id);
-
-    while (type && (*type)) {
-
-      int streamtype = ((*type)>>16) & 0xFF;
-
-      lprintf ("load_plugins: decoder handles stream type %02x, priority %d\n", streamtype, priority);
-
-      /* find the right place based on the priority */
-      for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
-	if (!catalog->audio_decoder_map[streamtype][pos] ||
-	    priority > get_decoder_priority(this, catalog->audio_decoder_map[streamtype][pos]))
-	  break;
-
-      /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
-        catalog->audio_decoder_map[streamtype][i] = catalog->audio_decoder_map[streamtype][i - 1];
-
-      /* insert new decoder */
-      catalog->audio_decoder_map[streamtype][pos] = node;
-
-      lprintf("decoder inserted in decoder map at %d\n", pos);
-
-      type++;
-    }
-
-    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
-  }
-
-  /*
-   * map video decoders
-   */
-
-  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
-  while (node) {
-
-    int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
-    int priority = get_decoder_priority(this, node);
-
-    lprintf ("mapping decoder %s\n", node->info->id);
-
-    while (type && (*type)) {
-
-      int streamtype = ((*type)>>16) & 0xFF;
-
-      lprintf ("load_plugins: decoder handles stream type %02x, priority %d\n", streamtype, priority);
-
-      /* find the right place based on the priority */
-      for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
-	if (!catalog->video_decoder_map[streamtype][pos] ||
-	    priority > get_decoder_priority(this, catalog->video_decoder_map[streamtype][pos]))
-	  break;
-
-      /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
-        catalog->video_decoder_map[streamtype][i] = catalog->video_decoder_map[streamtype][i - 1];
-
-      /* insert new decoder */
-      catalog->video_decoder_map[streamtype][pos] = node;
-      lprintf("decoder inserted in decoder map at %d\n", pos);
-
-      type++;
-    }
-
-    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
-  }
-
-  /*
-   * map spu decoders
-   */
-
-  node = xine_list_first_content (this->plugin_catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
-  while (node) {
-
-    int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
-    int priority = get_decoder_priority(this, node);
-
-    lprintf ("mapping decoder %s\n", node->info->id);
-
-    while (type && (*type)) {
-
-      int streamtype = ((*type)>>16) & 0xFF;
-
-      lprintf ("load_plugins: decoder handles stream type %02x, priority %d\n", streamtype, priority);
-
-      /* find the right place based on the priority */
-      for (pos = 0; pos < PLUGINS_PER_TYPE; pos++)
-	if (!catalog->spu_decoder_map[streamtype][pos] ||
-	    get_decoder_priority(this, catalog->spu_decoder_map[streamtype][pos]) <= priority)
-	  break;
-
-      /* shift the decoder list for this type by one to make room for new decoder */
-      for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
-        catalog->spu_decoder_map[streamtype][i] = catalog->spu_decoder_map[streamtype][i - 1];
-
-      /* insert new decoder */
-      catalog->spu_decoder_map[streamtype][pos] = node;
-
-      lprintf("decoder inserted in decoder map at %d\n", pos);
-
-      type++;
-    }
-
-    node = xine_list_next_content (this->plugin_catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
-  }
 }
 
 /* Decoder priority callback */
@@ -304,8 +237,6 @@ static plugin_info_t *_get_cached_info (xine_t *this,
   plugin_node_t *node;
   xine_list_t *list = this->plugin_catalog->cache_list;
 
-  _x_assert(this);
-  
   node = xine_list_first_content (list);
   while (node) {
     if( !previous_info &&
@@ -366,7 +297,6 @@ static void _insert_node (xine_t *this,
   char               desc[100];
   int                i;
 
-  _x_assert(this);
   _x_assert(list);
   _x_assert(info);
   if (info->API != api_version) {
@@ -426,13 +356,13 @@ static void _insert_node (xine_t *this,
     decoder_new->supported_types = types;
     priority = decoder_new->priority = decoder_old->priority;
     
-    sprintf(key, "engine.decoder_priorities.%s", info->id);
-    sprintf(desc, _("priority for %s decoder"), info->id);
+    snprintf(key, sizeof(key) - 1, "engine.decoder_priorities.%s", info->id);
+    snprintf(desc, sizeof(desc) - 1, _("priority for %s decoder"), info->id);
     /* write the description on the heap because the config system
      * does not strdup() it, so we have to provide a different pointer
      * for each decoder */
     for (i = 0; catalog->prio_desc[i]; i++);
-    catalog->prio_desc[i] = (char *)malloc((strlen(desc) + 1) * sizeof(char));
+    catalog->prio_desc[i] = malloc(strlen(desc) + 1);
     strcpy(catalog->prio_desc[i], desc);
     this->config->register_num (this->config,
 				key,
