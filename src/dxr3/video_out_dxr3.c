@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.107 2005/01/18 21:33:33 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.108 2005/04/10 09:36:13 tmattern Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -299,8 +299,8 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #endif
   /* check, if ffmpeg plugin is available by looking through plugin
    * catalog; catalog mutex is already locked here, since this is open_plugin() */
-  for (node = xine_list_first_content(class->xine->plugin_catalog->video); node;
-       node = xine_list_next_content(class->xine->plugin_catalog->video))
+  for (node = xine_list_first_content(class->xine->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER]); node;
+       node = xine_list_next_content(class->xine->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER]))
     if (strcasecmp(node->info->id, "ffmpegvideo") == 0) {
       available_encoders[encoder++] = "libavcodec";
 #if LOG_VID
