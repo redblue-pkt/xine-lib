@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.204 2005/04/10 16:23:05 tmattern Exp $
+ * $Id: load_plugins.c,v 1.205 2005/04/13 19:07:17 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -2118,22 +2118,22 @@ const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
 
 #define GET_PLUGIN_DESC(NAME,TYPE,CATITEM) \
   const char *xine_get_##NAME##_plugin_description (xine_t *this, const char *plugin_id) { \
-    plugin_catalog_t *catalog = this->plugin_catalog;			\
+    plugin_catalog_t *catalog = this->plugin_catalog;					   \
     plugin_node_t    *node = xine_list_first_content (catalog->plugin_lists[CATITEM - 1]); \
-    while (node) {							\
-      if (!strcasecmp (node->info->id, plugin_id)) {			\
-	TYPE##_class_t *ic = (TYPE##_class_t *) node->plugin_class;	\
-	if (!ic) {							\
-	  if (_load_plugin_class (this, node, NULL))			\
-	    ic = node->plugin_class;					\
-	  else								\
-	    return NULL;						\
-	}								\
-	return ic->get_description(ic);					\
-      }									\
-      node = xine_list_next_content (catalog->plugin_lists[CATITEM]);			\
-    }									\
-    return NULL;							\
+    while (node) {									   \
+      if (!strcasecmp (node->info->id, plugin_id)) {					   \
+	TYPE##_class_t *ic = (TYPE##_class_t *) node->plugin_class;			   \
+	if (!ic) {									   \
+	  if (_load_plugin_class (this, node, NULL))					   \
+	    ic = node->plugin_class;							   \
+	  else										   \
+	    return NULL;								   \
+	}										   \
+	return ic->get_description(ic);							   \
+      }											   \
+      node = xine_list_next_content (catalog->plugin_lists[CATITEM - 1]); 		   \
+    }											   \
+    return NULL;									   \
   }
 
 GET_PLUGIN_DESC (input,		input,		PLUGIN_INPUT)
