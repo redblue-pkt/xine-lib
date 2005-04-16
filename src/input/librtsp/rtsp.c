@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.18 2004/07/25 17:13:54 mroi Exp $
+ * $Id: rtsp.c,v 1.19 2005/04/16 07:10:51 tmmm Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -218,6 +218,7 @@ static int rtsp_get_answers(rtsp_t *s) {
   unsigned int answer_seq;
   char **answer_ptr=s->answers;
   int code;
+  int ans_count = 0;
   
   answer=rtsp_get(s);
   if (!answer)
@@ -268,7 +269,7 @@ static int rtsp_get_answers(rtsp_t *s) {
     }
     *answer_ptr=answer;
     answer_ptr++;
-  } while (strlen(answer)!=0);
+  } while ((strlen(answer)!=0) && (++ans_count < MAX_FIELDS));
   
   s->cseq++;
   
