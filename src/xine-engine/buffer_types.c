@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.94 2005/03/26 20:29:47 tmmm Exp $
+ * $Id: buffer_types.c,v 1.95 2005/04/16 23:38:09 hadess Exp $
  *
  *
  * contents:
@@ -85,7 +85,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_MPEG4,
-  "ISO-MPEG4/OpenDivx format"
+  "ISO-MPEG4/OpenDivx"
 },
 {
   {
@@ -94,7 +94,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_XVID,
-  "XviD format"
+  "XviD"
 },
 {
   {
@@ -102,7 +102,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_DIVX5,
-  "DivX 5 format"
+  "DivX 5"
 },
 {
   {
@@ -110,7 +110,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_CINEPAK,
-  "Cinepak format"
+  "Cinepak"
 },
 {
   {
@@ -140,7 +140,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_MSMPEG4_V1,
-  "Microsoft MPEG-4 format v1"
+  "Microsoft MPEG-4 v1"
 },
 {
   {
@@ -153,7 +153,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_MSMPEG4_V2,
-  "Microsoft MPEG-4 format v2"
+  "Microsoft MPEG-4 v2"
 },
 {
   {
@@ -173,7 +173,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_MSMPEG4_V3,
-  "Microsoft MPEG-4 format v3"
+  "Microsoft MPEG-4 v3"
 },
 {
   {
@@ -189,13 +189,20 @@ static video_db_t video_db[] = {
     meFOURCC('d', 'm', 'b', '1'),
     meFOURCC('M', 'J', 'P', 'G'),
     meFOURCC('m', 'j', 'p', 'a'),
-    meFOURCC('m', 'j', 'p', 'b'),
     meFOURCC('A', 'V', 'R', 'n'),
     meFOURCC('A', 'V', 'D', 'J'),
     0
   },
   BUF_VIDEO_MJPEG,
-  "motion jpeg format"
+  "Motion JPEG"
+},
+{
+  {
+    meFOURCC('m', 'j', 'p', 'b'),
+    0
+  },
+  BUF_VIDEO_MJPEG_B,
+  "Motion JPEG B"
 },
 {
   {
@@ -204,7 +211,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_IV50,
-  "Indeo Video 5.0 format"
+  "Indeo Video 5.0"
 },
 {
   {
@@ -213,7 +220,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_IV41,
-  "Indeo Video 4.1 format"
+  "Indeo Video 4.1"
 },
 {
   {
@@ -222,7 +229,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_IV32,
-  "Indeo Video 3.2 format"
+  "Indeo Video 3.2"
 },
 {
   {
@@ -231,7 +238,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_IV31,
-  "Indeo Video 3.1 format"
+  "Indeo Video 3.1"
 },
 {
   {
@@ -239,7 +246,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_ATIVCR1,
-  "ATI VCR1 format"
+  "ATI VCR1"
 },
 {
   {
@@ -247,7 +254,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_ATIVCR2,
-  "ATI VCR2 format"
+  "ATI VCR2"
 },
 {
   {
@@ -259,7 +266,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_I263,
-  "I263 format"
+  "I263"
 },
 {
   {
@@ -289,7 +296,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_JPEG,
-  "jpeg"
+  "JPEG"
 },
 {
   {
@@ -349,7 +356,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_VP31,
-  "On2 VP3.1 Codec"
+  "On2 VP3.1"
 },
 {
   {
@@ -368,7 +375,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_H263,
-  "H263 format"
+  "H263"
 },
 {
   {
@@ -377,7 +384,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_CYUV,
-  "Creative YUV format"
+  "Creative YUV"
 },
 {
   {
@@ -394,7 +401,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_RPZA,
-  "Apple Quicktime Video (RPZA)"
+  "Apple Quicktime (RPZA)"
 },
 {
   {
@@ -433,7 +440,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_PGVV,
-  "Radius Studio Codec"
+  "Radius Studio"
 },
 {
   {
@@ -465,7 +472,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_GREY,
-  "Raw greyscale"
+  "Raw Greyscale"
 },
 {
   {
@@ -576,7 +583,7 @@ static video_db_t video_db[] = {
     0,
   },
   BUF_VIDEO_THEORA,
-  "OggTheora Video"
+  "Ogg Theora"
 },
 {
   {
@@ -584,7 +591,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_VP5,
-  "On2 VP5 Codec"
+  "On2 VP5"
 },
 {
   {
@@ -594,7 +601,7 @@ static video_db_t video_db[] = {
     0
   },
   BUF_VIDEO_VP6,
-  "On2 VP6 Codec"
+  "On2 VP6"
 },
 {
   {

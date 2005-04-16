@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.146 2005/01/14 15:29:47 jstembridge Exp $
+ * $Id: buffer.h,v 1.147 2005/04/16 23:38:09 hadess Exp $
  *
  *
  * contents:
@@ -168,6 +168,7 @@ extern "C" {
 #define BUF_VIDEO_BITPLANE_BR1	0x024B0000 /* the same with Bytrun compression 1 */
 #define BUF_VIDEO_FLV1		0x024C0000
 #define BUF_VIDEO_H264		0x024D0000
+#define BUF_VIDEO_MJPEG_B	0x024E0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 

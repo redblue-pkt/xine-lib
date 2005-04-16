@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.39 2004/12/16 19:26:34 tmattern Exp $
+ * $Id: video_decoder.c,v 1.40 2005/04/16 23:38:09 hadess Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -671,6 +671,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_3IVX,        CODEC_ID_MPEG4,     "ISO MPEG-4 (3ivx, ffmpeg)"},
   {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_MJPEG_B,      CODEC_ID_MJPEGB,    "Motion JPEG B (ffmpeg"},
   {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
   {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
   {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
@@ -1292,6 +1293,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_DIVX5, 
   BUF_VIDEO_3IVX,
   BUF_VIDEO_MJPEG,
+  BUF_VIDEO_MJPEG_B,
   BUF_VIDEO_H263,
   BUF_VIDEO_RV10,
   BUF_VIDEO_RV20,
