@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.35 2005/02/09 20:18:17 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.36 2005/04/17 14:55:35 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1698,8 +1698,8 @@ vcd_init (xine_t *xine, void *data)
                             "media.vcd.autoplay",
                             VCDPLAYER_AUTOPLAY_PBC,
                             (char **) autoplay_modes,
-                            _("default type to use on VCD autoplay"),
-_("The play unit to use when none is specified in an MRL, e.g. "
+                            _("VCD default type to use on autoplay"),
+_("The VCD play unit to use when none is specified in an MRL, e.g. "
                             "vcd:// or vcd:///dev/dvd:"),
                             10, 
                             vcd_default_autoplay_cb, class);
@@ -1709,7 +1709,7 @@ _("The play unit to use when none is specified in an MRL, e.g. "
       strdup (config->register_string(config, 
                               "media.vcd.device",
                               "",
-          _("default CD drive used for VCD when none given"),
+          _("CD-ROM drive used for VCD when none given"),
 _("What to use if no drive specified. If the setting is empty, xine will scan for CD drives."), 
                               20,
                               vcd_default_dev_changed_cb, 
@@ -1720,8 +1720,8 @@ _("What to use if no drive specified. If the setting is empty, xine will scan fo
                             "media.vcd.length_reporting",
                             VCDPLAYER_SLIDER_LENGTH_AUTO, 
                             (char **) length_reporting_modes,
-                            _("position slider range"),
-_("The range the stream playback position slider represents when playing."),
+                            _("VCD position slider range"),
+_("range that the stream playback position slider represents playing a VCD."),
                             10, 
                             vcd_slider_length_cb, NULL);
 
@@ -1729,7 +1729,7 @@ _("The range the stream playback position slider represents when playing."),
     my_vcd.player.readahead = 
       config->register_bool(config, "vcd.use_readahead",
                             (int) false,
-                            _("Do we use read-ahead caching?"),
+                            _("VCD read-ahead caching?"),
                             _("Class "
                               "may lead to jerky playback on low-end "
                               "machines."),
@@ -1740,7 +1740,7 @@ _("The range the stream playback position slider represents when playing."),
     config->register_bool(config, 
                         "media.vcd.autoadvance",
                         (int) true,
-                        _("automatically advance track/entry"),
+                        _("automatically advance VCD track/entry"),
 _("If enabled, we should automatically advance to the next entry or track. Used only when playback control (PBC) is disabled."),
                         10, 
                         vcd_autoadvance_cb, 
@@ -1750,7 +1750,7 @@ _("If enabled, we should automatically advance to the next entry or track. Used 
     config->register_bool(config, 
                         "media.vcd.show_rejected",
                         (int) false,
-                        _("show 'rejected' LIDs"),
+                        _("show 'rejected' VCD LIDs"),
 _("Some playback list IDs (LIDs) are marked not showable, "
 "but you can see them in the MRL list if this is set. Rejected entries "
 "are marked with an asterisk (*) appended to the MRL."),
@@ -1762,10 +1762,24 @@ _("Some playback list IDs (LIDs) are marked not showable, "
     strdup(config->register_string(config,
                           "media.vcd.title_format",
                           "%F - %I %N%L%S, disk %c of %C - %v %A",
-                          _("format string for display banner"),
-_("Format used in the GUI Title. Similar to the Unix date "
-"command. Format specifiers start with a percent sign. Specifiers are "
-"%A, %C, %c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, and %%."),
+                          _("VCD format string for display banner"),
+_("VCD format used in the GUI Title. Similar to the Unix date "
+"command. Format specifiers start with a percent sign. Specifiers are:\n"
+" %A : The album information\n"
+" %C : The VCD volume count - the number of CD's in the collection.\n"
+" %c : The VCD volume num - the number of the CD in the collection.\n"
+" %F : The VCD Format, e.g. VCD 1.0, VCD 1.1, VCD 2.0, or SVCD\n"
+" %I : The current entry/segment/playback type, e.g. ENTRY, TRACK, ...\n"
+" %L : The playlist ID prefixed with \" LID\" if it exists\n"
+" %N : The current number of the above - a decimal number\n"
+" %P : The publisher ID\n"
+" %p : The preparer ID\n"
+" %S : If we are in a segment (menu), the kind of segment\n"
+" %T : The track number\n"
+" %V : The volume set ID\n"
+" %v : The volume ID\n"
+"      A number between 1 and the volume count.\n"
+" %% : a %\n"),
                           20,
                           vcd_title_format_changed_cb,
                           NULL));
@@ -1774,10 +1788,11 @@ _("Format used in the GUI Title. Similar to the Unix date "
     strdup(config->register_string(config,
                           "media.vcd.comment_format",
                           "%P - Track %T",
-                          _("format string for stream comment field"),
-_("Format used in the GUI Title. Similar to the Unix date "
+                          _("VCD format string for stream comment field"),
+_("VCD format used in the GUI Title. Similar to the Unix date "
 "command. Format specifiers start with a percent sign. Specifiers are "
-"%A, %C, %c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, and %%."),
+"%A, %C, %c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, and %%.\n"
+"See the help for the title_format for the meanings of these."),
                           20,
                           vcd_comment_format_changed_cb,
                           NULL));
@@ -1786,8 +1801,21 @@ _("Format used in the GUI Title. Similar to the Unix date "
   config->register_num(config, 
                        "media.vcd.debug",
                        0,
-                       _("debug flag mask"),
-                       _("This integer is a debugging mask when interpreted in binary."),
+                       _("VCD debug flag mask"),
+_("For tracking down bugs in the VCD plugin. Mask values are:\n"
+"   1: Meta information\n"
+"   2: input (keyboard/mouse) events\n"
+"   4: MRL parsing\n"
+"   8: Calls from external routines\n"
+"  16: routine calls\n"
+"  32: LSN changes\n"
+"  64: Playback control\n"
+" 128: Debugging from CDIO\n"
+" 256: Seeks to set location\n"
+" 512: Seeks to find current location\n"
+"1024: Still-frame\n"
+"2048: Debugging from VCDINFO\n"
+),
                         20,
                         vcd_debug_cb, 
                         class); 
