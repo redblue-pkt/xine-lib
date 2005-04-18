@@ -89,6 +89,15 @@
 #endif
 #define MIN(a,b) ( (a) < (b) ) ? (a) : (b)
 
+
+#if (FREETYPE_MAJOR > 2) || \
+    (FREETYPE_MAJOR == 2 && FREETYPE_MINOR > 1) || \
+    (FREETYPE_MAJOR == 2 && FREETYPE_MINOR == 1 && FREETYPE_PATCH >= 3)
+#  define KERNING_DEFAULT FT_KERNING_DEFAULT
+#else
+#  define KERNING_DEFAULT ft_kerning_default
+#endif
+
 typedef struct osd_fontchar_s {
   uint16_t code;
   uint16_t width;
@@ -1052,7 +1061,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       /* add kerning relative to the previous letter */
       if (use_kerning && previous && i) {
         FT_Vector delta;
-        FT_Get_Kerning(osd->ft2->face, previous, i, FT_KERNING_DEFAULT, &delta);
+        FT_Get_Kerning(osd->ft2->face, previous, i, KERNING_DEFAULT, &delta);
         x1 += delta.x / 64;
       }
       previous = i;
@@ -1218,7 +1227,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       /* kerning add the relative to the previous letter */
       if (use_kerning && previous && i) {
         FT_Vector delta;
-        FT_Get_Kerning(osd->ft2->face, previous, i, FT_KERNING_DEFAULT, &delta);
+        FT_Get_Kerning(osd->ft2->face, previous, i, KERNING_DEFAULT, &delta);
         *width += delta.x / 64;
       }
       previous = i;
