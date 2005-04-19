@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.147 2005/04/16 23:38:09 hadess Exp $
+ * $Id: buffer.h,v 1.148 2005/04/19 17:04:52 tmmm Exp $
  *
  *
  * contents:
@@ -169,6 +169,14 @@ extern "C" {
 #define BUF_VIDEO_FLV1		0x024C0000
 #define BUF_VIDEO_H264		0x024D0000
 #define BUF_VIDEO_MJPEG_B	0x024E0000
+#define BUF_VIDEO_H261		0x024F0000
+#define BUF_VIDEO_AASC		0x02500000
+#define BUF_VIDEO_LOCO		0x02510000
+#define BUF_VIDEO_QDRW		0x02520000
+#define BUF_VIDEO_QPEG		0x02530000
+#define BUF_VIDEO_ULTI		0x02540000
+#define BUF_VIDEO_WNV1		0x02550000
+#define BUF_VIDEO_XL		0x02560000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
