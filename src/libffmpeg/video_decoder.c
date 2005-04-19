@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.40 2005/04/16 23:38:09 hadess Exp $
+ * $Id: video_decoder.c,v 1.41 2005/04/19 05:22:53 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -706,7 +706,16 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
   {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
   {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
-  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"} };
+  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"},
+  {BUF_VIDEO_H261,        CODEC_ID_H261,       "H.261 (ffmpeg)"},
+  {BUF_VIDEO_AASC,        CODEC_ID_AASC,       "Autodesk Video (ffmpeg)"},
+  {BUF_VIDEO_LOCO,        CODEC_ID_LOCO,       "LOCO (ffmpeg)"},
+  {BUF_VIDEO_QDRW,        CODEC_ID_QDRAW,      "QuickDraw (ffmpeg)"},
+  {BUF_VIDEO_QPEG,        CODEC_ID_QPEG,       "Q-Team QPEG (ffmpeg)"},
+  {BUF_VIDEO_TSCC,        CODEC_ID_TSCC,       "TechSmith Video (ffmpeg)"},
+  {BUF_VIDEO_ULTI,        CODEC_ID_ULTI,       "IBM UltiMotion (ffmpeg)"},
+  {BUF_VIDEO_WNV1,        CODEC_ID_WNV1,       "Winnow Video (ffmpeg)"},
+  {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"} };
 
 static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
   if (size > this->bufsize) {
@@ -1330,6 +1339,15 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_FLV1,
   BUF_VIDEO_QTRLE,
   BUF_VIDEO_H264,
+  BUF_VIDEO_H261,
+  BUF_VIDEO_AASC,
+  BUF_VIDEO_LOCO,
+  BUF_VIDEO_QDRW,
+  BUF_VIDEO_QPEG,
+  BUF_VIDEO_TSCC,
+  BUF_VIDEO_ULTI,
+  BUF_VIDEO_WNV1,
+  BUF_VIDEO_XL,
   0 
 };
 
