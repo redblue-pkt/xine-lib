@@ -37,9 +37,11 @@
 
 // Experimental vertical filters
 #define V_X1_FILTER	0x0200			// 512
+#define V_A_DEBLOCK	0x0400
 
 // Experimental horizontal filters
 #define H_X1_FILTER	0x2000			// 8192
+#define H_A_DEBLOCK	0x4000
 
 /// select between full y range (255-0) or standart one (234-16)
 #define FULL_Y_RANGE	0x8000			// 32768
@@ -158,3 +160,11 @@ typedef struct PPContext{
 } PPContext;
 
 
+static inline void linecpy(void *dest, void *src, int lines, int stride)
+{
+	if (stride > 0) {
+		memcpy(dest, src, lines*stride);
+	} else {
+		memcpy(dest+(lines-1)*stride, src+(lines-1)*stride, -lines*stride);
+	}
+}

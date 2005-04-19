@@ -127,6 +127,23 @@ static int pcm_encode_init(AVCodecContext *avctx)
         break;
     }
     
+    switch(avctx->codec->id) {
+    case CODEC_ID_PCM_S16LE:
+    case CODEC_ID_PCM_S16BE:
+    case CODEC_ID_PCM_U16LE:
+    case CODEC_ID_PCM_U16BE:
+        avctx->block_align = 2 * avctx->channels;
+        break;
+    case CODEC_ID_PCM_S8:
+    case CODEC_ID_PCM_U8:
+    case CODEC_ID_PCM_MULAW:
+    case CODEC_ID_PCM_ALAW:
+        avctx->block_align = avctx->channels;
+        break;
+    default:
+        break;
+    }
+
     avctx->coded_frame= avcodec_alloc_frame();
     avctx->coded_frame->key_frame= 1;
     
@@ -281,6 +298,9 @@ static int pcm_decode_frame(AVCodecContext *avctx,
 
     samples = data;
     src = buf;
+
+    if(buf_size > AVCODEC_MAX_AUDIO_FRAME_SIZE/2)
+        buf_size = AVCODEC_MAX_AUDIO_FRAME_SIZE/2;
 
     switch(avctx->codec->id) {
     case CODEC_ID_PCM_S16LE:

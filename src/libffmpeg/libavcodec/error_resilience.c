@@ -652,7 +652,7 @@ void ff_er_add_slice(MpegEncContext *s, int startx, int starty, int endx, int en
  
     s->error_status_table[start_xy] |= VP_START;
 
-    if(start_xy > 0 && s->avctx->thread_count <= 1){
+    if(start_xy > 0 && s->avctx->thread_count <= 1 && s->avctx->skip_top*s->mb_width < start_i){
         int prev_status= s->error_status_table[ s->mb_index2xy[start_i - 1] ];
         
         prev_status &= ~ VP_START;
@@ -661,31 +661,34 @@ void ff_er_add_slice(MpegEncContext *s, int startx, int starty, int endx, int en
 }
 
 void ff_er_frame_end(MpegEncContext *s){
-    int i, mb_x, mb_y, error, error_type;
+    int i, mb_x, mb_y, error, error_type, dc_error, mv_error, ac_error;
     int distance;
     int threshold_part[4]= {100,100,100};
     int threshold= 50;
     int is_intra_likely;
+    int size = s->b8_stride * 2 * s->mb_height;
+    Picture *pic= s->current_picture_ptr;
     
-    if(!s->error_resilience || s->error_count==0) return;
+    if(!s->error_resilience || s->error_count==0 || 
+       s->error_count==3*s->mb_width*(s->avctx->skip_top + s->avctx->skip_bottom)) return;
 
-    av_log(s->avctx, AV_LOG_INFO, "concealing errors\n");
-    
     if(s->current_picture.motion_val[0] == NULL){
-        int size = s->b8_stride * 2 * s->mb_height;
-        Picture *pic= s->current_picture_ptr;
-        
         av_log(s->avctx, AV_LOG_ERROR, "Warning MVs not available\n");
             
         for(i=0; i<2; i++){
             pic->ref_index[i]= av_mallocz(size * sizeof(uint8_t));
-            pic->motion_val_base[i]= av_mallocz((size+2) * 2 * sizeof(uint16_t));
-            pic->motion_val[i]= pic->motion_val_base[i]+2;
+            pic->motion_val_base[i]= av_mallocz((size+4) * 2 * sizeof(uint16_t));
+            pic->motion_val[i]= pic->motion_val_base[i]+4;
         }
         pic->motion_subsample_log2= 3;
         s->current_picture= *s->current_picture_ptr;
     }
     
+    for(i=0; i<2; i++){
+        if(pic->ref_index[i])
+            memset(pic->ref_index[i], 0, size * sizeof(uint8_t));
+    }
+
     if(s->avctx->debug&FF_DEBUG_ER){
         for(mb_y=0; mb_y<s->mb_height; mb_y++){
             for(mb_x=0; mb_x<s->mb_width; mb_x++){
@@ -816,6 +819,17 @@ void ff_er_frame_end(MpegEncContext *s){
         }
     }
 #endif
+
+    dc_error= ac_error= mv_error=0;
+    for(i=0; i<s->mb_num; i++){
+        const int mb_xy= s->mb_index2xy[i];
+        error= s->error_status_table[mb_xy];
+        if(error&DC_ERROR) dc_error ++;
+        if(error&AC_ERROR) ac_error ++;
+        if(error&MV_ERROR) mv_error ++;
+    }
+    av_log(s->avctx, AV_LOG_INFO, "concealing %d DC, %d AC, %d MV errors\n", dc_error, ac_error, mv_error);
+
     is_intra_likely= is_intra_more_likely(s);
 
     /* set unknown mb-type to most likely */

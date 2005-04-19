@@ -32,6 +32,7 @@
  */
 
 #include "avcodec.h"
+#include "bitstream.h"
 #include "dsputil.h"
 
 /* size of blocks */
@@ -182,7 +183,7 @@ static void init_coef_vlc(VLC *vlc,
     const uint16_t *p;
     int i, l, j, level;
 
-    init_vlc(vlc, 9, n, table_bits, 1, 1, table_codes, 4, 4);
+    init_vlc(vlc, 9, n, table_bits, 1, 1, table_codes, 4, 4, 0);
 
     run_table = av_malloc(n * sizeof(uint16_t));
     level_table = av_malloc(n * sizeof(uint16_t));
@@ -208,7 +209,8 @@ static int wma_decode_init(AVCodecContext * avctx)
     int i, flags1, flags2;
     float *window;
     uint8_t *extradata;
-    float bps1, high_freq, bps;
+    float bps1, high_freq;
+    volatile float bps;
     int sample_rate1;
     int coef_vlc_table;
     
@@ -492,13 +494,13 @@ static int wma_decode_init(AVCodecContext * avctx)
 #endif
         init_vlc(&s->hgain_vlc, 9, sizeof(hgain_huffbits), 
                  hgain_huffbits, 1, 1,
-                 hgain_huffcodes, 2, 2);
+                 hgain_huffcodes, 2, 2, 0);
     }
 
     if (s->use_exp_vlc) {
         init_vlc(&s->exp_vlc, 9, sizeof(scale_huffbits), 
                  scale_huffbits, 1, 1,
-                 scale_huffcodes, 4, 4);
+                 scale_huffcodes, 4, 4, 0);
     } else {
         wma_lsp_to_curve_init(s, s->frame_len);
     }
@@ -702,7 +704,12 @@ static int wma_decode_block(WMADecodeContext *s)
     int n, v, a, ch, code, bsize;
     int coef_nb_bits, total_gain, parse_exponents;
     float window[BLOCK_MAX_SIZE * 2];
+// XXX: FIXME!! there's a bug somewhere which makes this mandatory under altivec
+#ifdef HAVE_ALTIVEC
+    volatile int nb_coefs[MAX_CHANNELS] __attribute__((aligned(16)));
+#else
     int nb_coefs[MAX_CHANNELS];
+#endif
     float mdct_norm;
 
 #ifdef TRACE

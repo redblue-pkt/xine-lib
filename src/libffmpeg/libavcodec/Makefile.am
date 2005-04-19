@@ -17,11 +17,13 @@ noinst_LTLIBRARIES = libavcodec.la
 libavcodec_la_SOURCES = \
 	4xm.c \
 	8bps.c \
+	aasc.c \
 	adpcm.c \
+	alac.c \
 	asv1.c \
+	bitstream.c \
 	cabac.c \
 	cinepak.c \
-	common.c \
 	cyuv.c \
 	dpcm.c \
 	dsputil.c \
@@ -33,9 +35,11 @@ libavcodec_la_SOURCES = \
 	flicvideo.c \
 	fft.c \
 	golomb.c \
+	h261.c \
 	h263.c \
 	h263dec.c \
 	h264.c \
+	h264idct.c \
 	huffyuv.c \
 	idcinvideo.c \
 	imgconvert.c \
@@ -46,6 +50,7 @@ libavcodec_la_SOURCES = \
 	jfdctint.c \
 	jrevdct.c \
 	lcl.c \
+	loco.c \
 	mdct.c \
 	mace.c \
 	mem.c \
@@ -57,21 +62,27 @@ libavcodec_la_SOURCES = \
 	msmpeg4.c \
 	msrle.c \
 	msvideo1.c \
-	opts.c \
 	parser.c \
 	pcm.c \
+	qdrw.c \
+	qpeg.c \
 	qtrle.c \
 	ra144.c \
 	ra288.c \
+	rangecoder.c \
 	ratecontrol.c \
 	rational.c \
 	roqvideo.c \
 	rpza.c \
 	rv10.c \
+	shorten.c \
 	simple_idct.c \
 	smc.c \
+	snow.c \
 	svq1.c \
+	tscc.c \
 	truemotion1.c \
+	ulti.c \
 	utils.c \
 	vcr1.c \
 	vmdav.c \
@@ -79,7 +90,9 @@ libavcodec_la_SOURCES = \
 	vp3dsp.c \
 	vqavideo.c \
 	wmadec.c \
-	xan.c
+	wnv1.c \
+	xan.c \
+	xl.c
 
 libavcodec_la_LDFLAGS = \
 	$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
@@ -92,6 +105,7 @@ libavcodec_la_LDFLAGS = \
 
 noinst_HEADERS = \
 	avcodec.h \
+	bitstream.h \
 	bswap.h \
 	cabac.h \
 	common.h \
@@ -103,6 +117,7 @@ noinst_HEADERS = \
 	imgconvert_template.h \
 	indeo3data.h \
 	integer.h \
+	h261data.h \
 	h263data.h \
 	h264data.h \
 	mpeg4data.h \
@@ -114,11 +129,13 @@ noinst_HEADERS = \
 	msmpeg4data.h \
 	ra144.h \
 	ra288.h \
+	rangecoder.h \
 	rational.h \
 	simple_idct.h \
 	sp5x.h \
 	svq1_cb.h \
 	svq1_vlc.h \
 	truemotion1data.h \
+	ulti_cb.h \
 	vp3data.h \
 	wmadata.h

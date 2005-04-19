@@ -125,7 +125,7 @@ static void smc_decode_stream(SmcContext *s)
             chunk_size, s->size);
 
     chunk_size = s->size;
-    total_blocks = (s->avctx->width * s->avctx->height) / (4 * 4);
+    total_blocks = ((s->avctx->width + 3) / 4) * ((s->avctx->height + 3) / 4);
 
     /* traverse through the blocks */
     while (total_blocks) {
@@ -447,10 +447,6 @@ static int smc_decode_frame(AVCodecContext *avctx,
                              uint8_t *buf, int buf_size)
 {
     SmcContext *s = (SmcContext *)avctx->priv_data;
-
-    /* no supplementary picture */
-    if (buf_size == 0)
-        return 0;
 
     s->buf = buf;
     s->size = buf_size;

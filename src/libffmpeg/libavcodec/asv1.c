@@ -63,7 +63,7 @@ static const uint8_t scantab[64]={
 };
 
 
-static const uint8_t reverse[256]={
+const uint8_t ff_reverse[256]={
 0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,0x50,0xD0,0x30,0xB0,0x70,0xF0,
 0x08,0x88,0x48,0xC8,0x28,0xA8,0x68,0xE8,0x18,0x98,0x58,0xD8,0x38,0xB8,0x78,0xF8,
 0x04,0x84,0x44,0xC4,0x24,0xA4,0x64,0xE4,0x14,0x94,0x54,0xD4,0x34,0xB4,0x74,0xF4,
@@ -137,29 +137,29 @@ static void init_vlcs(ASV1Context *a){
 
         init_vlc(&ccp_vlc, VLC_BITS, 17, 
                  &ccp_tab[0][1], 2, 1,
-                 &ccp_tab[0][0], 2, 1);
+                 &ccp_tab[0][0], 2, 1, 1);
         init_vlc(&dc_ccp_vlc, VLC_BITS, 8, 
                  &dc_ccp_tab[0][1], 2, 1,
-                 &dc_ccp_tab[0][0], 2, 1);
+                 &dc_ccp_tab[0][0], 2, 1, 1);
         init_vlc(&ac_ccp_vlc, VLC_BITS, 16, 
                  &ac_ccp_tab[0][1], 2, 1,
-                 &ac_ccp_tab[0][0], 2, 1);
+                 &ac_ccp_tab[0][0], 2, 1, 1);
         init_vlc(&level_vlc,  VLC_BITS, 7, 
                  &level_tab[0][1], 2, 1,
-                 &level_tab[0][0], 2, 1);
+                 &level_tab[0][0], 2, 1, 1);
         init_vlc(&asv2_level_vlc, ASV2_LEVEL_VLC_BITS, 63, 
                  &asv2_level_tab[0][1], 2, 1,
-                 &asv2_level_tab[0][0], 2, 1);
+                 &asv2_level_tab[0][0], 2, 1, 1);
     }
 }
 
 //FIXME write a reversed bitstream reader to avoid the double reverse
 static inline int asv2_get_bits(GetBitContext *gb, int n){
-    return reverse[ get_bits(gb, n) << (8-n) ];
+    return ff_reverse[ get_bits(gb, n) << (8-n) ];
 }
 
 static inline void asv2_put_bits(PutBitContext *pb, int n, int v){
-    put_bits(pb, n, reverse[ v << (8-n) ]);
+    put_bits(pb, n, ff_reverse[ v << (8-n) ]);
 }
 
 static inline int asv1_get_level(GetBitContext *gb){
@@ -339,8 +339,13 @@ static inline int decode_mb(ASV1Context *a, DCTELEM block[6][64]){
     return 0;
 }
 
-static inline void encode_mb(ASV1Context *a, DCTELEM block[6][64]){
+static inline int encode_mb(ASV1Context *a, DCTELEM block[6][64]){
     int i;
+    
+    if(a->pb.buf_end - a->pb.buf - (put_bits_count(&a->pb)>>3) < 30*16*16*3/2/8){
+        av_log(a->avctx, AV_LOG_ERROR, "encoded frame too large\n");
+        return -1;
+    }
 
     if(a->avctx->codec_id == CODEC_ID_ASV1){
         for(i=0; i<6; i++)
@@ -349,6 +354,7 @@ static inline void encode_mb(ASV1Context *a, DCTELEM block[6][64]){
         for(i=0; i<6; i++)
             asv2_encode_block(a, block[i]);
     }
+    return 0;
 }
 
 static inline void idct_put(ASV1Context *a, int mb_x, int mb_y){
@@ -403,11 +409,6 @@ static int decode_frame(AVCodecContext *avctx,
     AVFrame * const p= (AVFrame*)&a->picture;
     int mb_x, mb_y;
 
-    /* special case for last picture */
-    if (buf_size == 0) {
-        return 0;
-    }
-
     if(p->data[0])
         avctx->release_buffer(avctx, p);
 
@@ -426,7 +427,7 @@ static int decode_frame(AVCodecContext *avctx,
     else{
         int i;
         for(i=0; i<buf_size; i++)
-            a->bitstream_buffer[i]= reverse[ buf[i] ];
+            a->bitstream_buffer[i]= ff_reverse[ buf[i] ];
     }
 
     init_get_bits(&a->gb, a->bitstream_buffer, buf_size*8);
@@ -527,7 +528,7 @@ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size,
     else{
         int i;
         for(i=0; i<4*size; i++)
-            buf[i]= reverse[ buf[i] ];
+            buf[i]= ff_reverse[ buf[i] ];
     }
     
     return size*4;
@@ -573,7 +574,7 @@ static int decode_init(AVCodecContext *avctx){
     }
 
     p->qstride= a->mb_width;
-    p->qscale_table= av_mallocz( p->qstride * a->mb_height);
+    p->qscale_table= av_malloc( p->qstride * a->mb_height);
     p->quality= (32*scale + a->inv_qscale/2)/a->inv_qscale;
     memset(p->qscale_table, p->quality, p->qstride*a->mb_height);
 

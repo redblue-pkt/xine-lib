@@ -55,6 +55,8 @@ struct ImgReSampleContext {
     uint8_t *line_buf;
 };
 
+void av_build_filter(int16_t *filter, double factor, int tap_count, int phase_count, int scale, int type);
+
 static inline int get_phase(int pos)
 {
     return ((pos) >> (POS_FRAC_BITS - PHASE_BITS)) & ((1 << PHASE_BITS) - 1);
@@ -540,39 +542,6 @@ static void component_resample(ImgReSampleContext *s,
     }
 }
 
-/* XXX: the following filter is quite naive, but it seems to suffice
-   for 4 taps */
-static void build_filter(int16_t *filter, float factor)
-{
-    int ph, i, v;
-    float x, y, tab[NB_TAPS], norm, mult;
-
-    /* if upsampling, only need to interpolate, no filter */
-    if (factor > 1.0)
-        factor = 1.0;
-
-    for(ph=0;ph<NB_PHASES;ph++) {
-        norm = 0;
-        for(i=0;i<NB_TAPS;i++) {
-            
-            x = M_PI * ((float)(i - FCENTER) - (float)ph / NB_PHASES) * factor;
-            if (x == 0)
-                y = 1.0;
-            else
-                y = sin(x) / x;
-            tab[i] = y;
-            norm += y;
-        }
-
-        /* normalize so that an uniform color remains the same */
-        mult = (float)(1 << FILTER_BITS) / norm;
-        for(i=0;i<NB_TAPS;i++) {
-            v = (int)(tab[i] * mult);
-            filter[ph * NB_TAPS + i] = v;
-        }
-    }
-}
-
 ImgReSampleContext *img_resample_init(int owidth, int oheight,
                                       int iwidth, int iheight)
 {
@@ -591,6 +560,8 @@ ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
 
     s = av_mallocz(sizeof(ImgReSampleContext));
     if (!s)
+        return NULL;
+    if((unsigned)owidth >= UINT_MAX / (LINE_BUF_HEIGHT + NB_TAPS))
         return NULL;
     s->line_buf = av_mallocz(owidth * (LINE_BUF_HEIGHT + NB_TAPS));
     if (!s->line_buf) 
@@ -617,10 +588,10 @@ ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
     s->h_incr = ((iwidth - leftBand - rightBand) * POS_FRAC) / s->pad_owidth;
     s->v_incr = ((iheight - topBand - bottomBand) * POS_FRAC) / s->pad_oheight; 
 
-    build_filter(&s->h_filters[0][0], (float) s->pad_owidth  / 
-            (float) (iwidth - leftBand - rightBand));
-    build_filter(&s->v_filters[0][0], (float) s->pad_oheight / 
-            (float) (iheight - topBand - bottomBand));
+    av_build_filter(&s->h_filters[0][0], (float) s->pad_owidth  / 
+            (float) (iwidth - leftBand - rightBand), NB_TAPS, NB_PHASES, 1<<FILTER_BITS, 0);
+    av_build_filter(&s->v_filters[0][0], (float) s->pad_oheight / 
+            (float) (iheight - topBand - bottomBand), NB_TAPS, NB_PHASES, 1<<FILTER_BITS, 0);
 
     return s;
 fail:
@@ -657,21 +628,7 @@ void img_resample_close(ImgReSampleContext *s)
 }
 
 #ifdef TEST
-
-void *av_mallocz(int size)
-{
-    void *ptr;
-    ptr = malloc(size);
-    memset(ptr, 0, size);
-    return ptr;
-}
-
-void av_free(void *ptr)
-{
-    /* XXX: this test should not be needed on most libcs */
-    if (ptr)
-        free(ptr);
-}
+#include <stdio.h>
 
 /* input */
 #define XSIZE 256
@@ -698,11 +655,11 @@ static void dump_filter(int16_t *filter)
     int i, ph;
 
     for(ph=0;ph<NB_PHASES;ph++) {
-        printf("%2d: ", ph);
+        av_log(NULL, AV_LOG_INFO, "%2d: ", ph);
         for(i=0;i<NB_TAPS;i++) {
-            printf(" %5.2f", filter[ph * NB_TAPS + i] / 256.0);
+            av_log(NULL, AV_LOG_INFO, " %5.2f", filter[ph * NB_TAPS + i] / 256.0);
         }
-        printf("\n");
+        av_log(NULL, AV_LOG_INFO, "\n");
     }
 }
 
@@ -766,20 +723,20 @@ int main(int argc, char **argv)
         fact = factors[i];
         xsize = (int)(XSIZE * fact);
         ysize = (int)((YSIZE - 100) * fact);
-        s = img_resample_full_init(xsize, ysize, XSIZE, YSIZE, 50 ,50, 0, 0);
-        printf("Factor=%0.2f\n", fact);
+        s = img_resample_full_init(xsize, ysize, XSIZE, YSIZE, 50 ,50, 0, 0, 0, 0, 0, 0);
+        av_log(NULL, AV_LOG_INFO, "Factor=%0.2f\n", fact);
         dump_filter(&s->h_filters[0][0]);
         component_resample(s, img1, xsize, xsize, ysize,
                            img + 50 * XSIZE, XSIZE, XSIZE, YSIZE - 100);
         img_resample_close(s);
 
-        sprintf(buf, "/tmp/out%d.pgm", i);
+        snprintf(buf, sizeof(buf), "/tmp/out%d.pgm", i);
         save_pgm(buf, img1, xsize, ysize);
     }
 
     /* mmx test */
 #ifdef HAVE_MMX
-    printf("MMX test\n");
+    av_log(NULL, AV_LOG_INFO, "MMX test\n");
     fact = 0.72;
     xsize = (int)(XSIZE * fact);
     ysize = (int)(YSIZE * fact);
@@ -793,10 +750,10 @@ int main(int argc, char **argv)
     component_resample(s, img2, xsize, xsize, ysize,
                        img, XSIZE, XSIZE, YSIZE);
     if (memcmp(img1, img2, xsize * ysize) != 0) {
-        fprintf(stderr, "mmx error\n");
+        av_log(NULL, AV_LOG_ERROR, "mmx error\n");
         exit(1);
     }
-    printf("MMX OK\n");
+    av_log(NULL, AV_LOG_INFO, "MMX OK\n");
 #endif
     return 0;
 }
