@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.157 2005/02/13 22:14:17 holstsn Exp $
+ * $Id: video_decoder.c,v 1.158 2005/04/19 17:42:30 hadess Exp $
  *
  */
 
@@ -404,13 +404,14 @@ static void *video_decoder_loop (void *stream_gen) {
         update_spu_decoder(stream, buf->type);
 
         /* update track map */
-        
+
         i = 0;
         while ( (i<stream->spu_track_map_entries) && (stream->spu_track_map[i]<buf->type) ) 
           i++;
         
         if ( (i==stream->spu_track_map_entries)
              || (stream->spu_track_map[i] != buf->type) ) {
+          xine_event_t  ui_event;
 
           j = stream->spu_track_map_entries;
 
@@ -423,6 +424,10 @@ static void *video_decoder_loop (void *stream_gen) {
           }
           stream->spu_track_map[i] = buf->type;
           stream->spu_track_map_entries++;
+
+	  ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
+	  ui_event.data_length = 0;
+	  xine_event_send (stream, &ui_event);
         }
 
         if (stream->spu_channel_user >= 0) {

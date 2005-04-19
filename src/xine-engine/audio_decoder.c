@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.133 2004/12/16 13:59:06 mroi Exp $
+ * $Id: audio_decoder.c,v 1.134 2005/04/19 17:42:29 hadess Exp $
  *
  *
  * functions that implement audio decoding
@@ -255,7 +255,8 @@ static void *audio_decoder_loop (void *stream_gen) {
         
         if ( (i==stream->audio_track_map_entries) 
 	     || (stream->audio_track_map[i] != buf->type) ) {
-          
+          xine_event_t  ui_event;
+
           j = stream->audio_track_map_entries;
 
           if (j >= 50)
@@ -267,6 +268,10 @@ static void *audio_decoder_loop (void *stream_gen) {
           }
           stream->audio_track_map[i] = buf->type;
           stream->audio_track_map_entries++;
+
+	  ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
+	  ui_event.data_length = 0;
+	  xine_event_send (stream, &ui_event);
         }
 
 	/* find out which audio type to decode */
