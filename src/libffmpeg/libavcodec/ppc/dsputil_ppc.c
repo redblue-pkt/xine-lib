@@ -62,8 +62,18 @@ static unsigned char* perfname[] = {
   "put_no_rnd_pixels16_xy2_altivec",
   "hadamard8_diff8x8_altivec",
   "hadamard8_diff16_altivec",
+  "avg_pixels8_xy2_altivec",
   "clear_blocks_dcbz32_ppc",
-  "clear_blocks_dcbz128_ppc"
+  "clear_blocks_dcbz128_ppc",
+  "put_h264_chroma_mc8_altivec",
+  "avg_h264_chroma_mc8_altivec",
+  "put_h264_qpel16_h_lowpass_altivec",
+  "avg_h264_qpel16_h_lowpass_altivec",
+  "put_h264_qpel16_v_lowpass_altivec",
+  "avg_h264_qpel16_v_lowpass_altivec",
+  "put_h264_qpel16_hv_lowpass_altivec",
+  "avg_h264_qpel16_hv_lowpass_altivec",
+  ""
 };
 #include <stdio.h>
 #endif
@@ -131,7 +141,7 @@ POWERPC_PERF_START_COUNT(powerpc_clear_blocks_dcbz32, 1);
       ((unsigned long*)blocks)[3] = 0L;
       i += 16;
     }
-    for ( ; i < sizeof(DCTELEM)*6*64 ; i += 32) {
+    for ( ; i < sizeof(DCTELEM)*6*64-31 ; i += 32) {
 #ifndef __MWERKS__
       asm volatile("dcbz %0,%1" : : "b" (blocks), "r" (i) : "memory");
 #else
@@ -227,6 +237,9 @@ long check_dcbzl_effect(void)
 }
 #endif
 
+
+void dsputil_h264_init_ppc(DSPContext* c, AVCodecContext *avctx);
+
 void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
 {
     // Common optimizations whether Altivec is available or not
@@ -241,8 +254,10 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
   default:
     break;
   }
-  
+
 #ifdef HAVE_ALTIVEC
+  dsputil_h264_init_ppc(c, avctx);
+  
     if (has_altivec()) {
         mm_flags |= MM_ALTIVEC;
         
@@ -268,10 +283,8 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
         /* the two functions do the same thing, so use the same code */
         c->put_no_rnd_pixels_tab[0][0] = put_pixels16_altivec;
         c->avg_pixels_tab[0][0] = avg_pixels16_altivec;
-// next one disabled as it's untested.
-#if 0
         c->avg_pixels_tab[1][0] = avg_pixels8_altivec;
-#endif /* 0 */
+	c->avg_pixels_tab[1][3] = avg_pixels8_xy2_altivec;
         c->put_pixels_tab[1][3] = put_pixels8_xy2_altivec;
         c->put_no_rnd_pixels_tab[1][3] = put_no_rnd_pixels8_xy2_altivec;
         c->put_pixels_tab[0][3] = put_pixels16_xy2_altivec;
@@ -279,7 +292,7 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
         
 	c->gmc1 = gmc1_altivec;
 
-#if (__GNUC__ * 100 + __GNUC_MINOR__ >= 330)
+#ifdef CONFIG_DARWIN // ATM gcc-3.3 and gcc-3.4 fail to compile these in linux...
 	c->hadamard8_diff[0] = hadamard8_diff16_altivec;
 	c->hadamard8_diff[1] = hadamard8_diff8x8_altivec;
 #endif
@@ -311,10 +324,10 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
           {
 	    for (j = 0; j < POWERPC_NUM_PMC_ENABLED ; j++)
 	      {
-		perfdata[j][i][powerpc_data_min] = (unsigned long long)0xFFFFFFFFFFFFFFFF;
-		perfdata[j][i][powerpc_data_max] = (unsigned long long)0x0000000000000000;
-		perfdata[j][i][powerpc_data_sum] = (unsigned long long)0x0000000000000000;
-		perfdata[j][i][powerpc_data_num] = (unsigned long long)0x0000000000000000;
+		perfdata[j][i][powerpc_data_min] = 0xFFFFFFFFFFFFFFFFULL;
+		perfdata[j][i][powerpc_data_max] = 0x0000000000000000ULL;
+		perfdata[j][i][powerpc_data_sum] = 0x0000000000000000ULL;
+		perfdata[j][i][powerpc_data_num] = 0x0000000000000000ULL;
 	      }
 	  }
         }
