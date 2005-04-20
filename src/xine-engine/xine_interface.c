@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.87 2004/12/20 21:22:22 mroi Exp $
+ * $Id: xine_interface.c,v 1.88 2005/04/20 11:19:35 holstsn Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -440,7 +440,6 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_ZOOM_X:
   case XINE_PARAM_VO_ZOOM_Y:
-  case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
   case XINE_PARAM_VO_CROP_LEFT:
   case XINE_PARAM_VO_CROP_RIGHT:
@@ -477,7 +476,8 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
     
   default:
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+	     "xine_interface: unknown or deprecated stream param %d set\n", param);
   }  
 }
 
@@ -589,7 +589,6 @@ int xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_ZOOM_X:
   case XINE_PARAM_VO_ZOOM_Y:
-  case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
   case XINE_PARAM_VO_CROP_LEFT:
   case XINE_PARAM_VO_CROP_RIGHT:
@@ -624,7 +623,8 @@ int xine_get_param (xine_stream_t *stream, int param) {
     break;
 
   default:
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+	     "xine_interface: unknown or deprecated stream param %d requested\n", param);
     ret = 0;
   }
 
@@ -681,7 +681,7 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
   
   default:
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
-	     "xine_interface: error, unknown stream info (%d) requested\n", info);
+	     "xine_interface: unknown or deprecated stream info %d requested\n", info);
   }
   return 0;
 }
