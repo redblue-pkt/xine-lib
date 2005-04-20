@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.95 2005/04/16 23:38:09 hadess Exp $
+ * $Id: buffer_types.c,v 1.96 2005/04/20 01:04:35 tmmm Exp $
  *
  *
  * contents:
@@ -651,6 +651,65 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_H264,
   "Advanced Video Coding (H264)"
+},
+{
+  {
+    meFOURCC('A','A','S','C'),
+    0
+  },
+  BUF_VIDEO_AASC,
+  "Autodesk Animator Studio Codec"
+},
+{
+  {
+    meFOURCC('q','d','r','w'),
+    0
+  },
+  BUF_VIDEO_QDRW,
+  "QuickDraw"
+},
+{
+  {
+    meFOURCC('L','O','C','O'),
+    0
+  },
+  BUF_VIDEO_LOCO,
+  "LOCO"
+},
+{
+  {
+    meFOURCC('U','L','T','I'),
+    0
+  },
+  BUF_VIDEO_ULTI,
+  "IBM UltiMotion"
+},
+{
+  {
+    meFOURCC('W','N','V','1'),
+    0
+  },
+  BUF_VIDEO_WNV1,
+  "Winnow Video"
+},
+{
+  {
+    meFOURCC('P','I','X','L'),
+    meFOURCC('X','I','X','L'),
+    0
+  },
+  BUF_VIDEO_XL,
+  "Miro/Pinnacle VideoXL"
+},
+{
+  {
+    meFOURCC('Q','P','E','G'),
+    meFOURCC('Q','1','.','0'),
+    meFOURCC('Q','1','.','1'),
+    0
+  },
+  BUF_VIDEO_QPEG,
+  "Q-Team QPEG Video"
 },
 { { 0 }, 0, "last entry" }
 };
