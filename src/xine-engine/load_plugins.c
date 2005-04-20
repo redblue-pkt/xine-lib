@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.205 2005/04/13 19:07:17 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.206 2005/04/20 17:08:56 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -148,7 +148,7 @@ static int get_decoder_priority(xine_t *this, plugin_node_t *node) {
   cfg_entry_t *entry;
   char key[80];
 
-  snprintf(key, sizeof(key) - 1, "engine.decoder_priorities.%s", node->info->id);
+  snprintf(key, sizeof(key), "engine.decoder_priorities.%s", node->info->id);
   
   entry = this->config->lookup_entry(this->config, key);
   
@@ -356,8 +356,8 @@ static void _insert_node (xine_t *this,
     decoder_new->supported_types = types;
     priority = decoder_new->priority = decoder_old->priority;
     
-    snprintf(key, sizeof(key) - 1, "engine.decoder_priorities.%s", info->id);
-    snprintf(desc, sizeof(desc) - 1, _("priority for %s decoder"), info->id);
+    snprintf(key, sizeof(key), "engine.decoder_priorities.%s", info->id);
+    snprintf(desc, sizeof(desc), _("priority for %s decoder"), info->id);
     /* write the description on the heap because the config system
      * does not strdup() it, so we have to provide a different pointer
      * for each decoder */
