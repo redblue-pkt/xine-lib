@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.48 2005/04/07 17:04:16 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.49 2005/04/21 17:37:41 mshopf Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -50,15 +50,45 @@
 #include <ctype.h>
 #include <pthread.h>
 
-/* We are not legacy, but we provide our own glext.h */
-#define GL_GLEXT_LEGACY 1
+/* defines for debugging extensions only */
+/* #define GL_GLEXT_LEGACY */
 #include <GL/gl.h>
-#include "glext.h"
-
-#ifndef _WIN32
-#  include <GL/glx.h>
+/* #undef  GL_GLEXT_LEGACY */
+#ifdef HAVE_GLU
+#  include <GL/glu.h>
 #endif
-#include <GL/glu.h>
+
+/*
+ * *Sigh*
+ * glext.h really makes a lot of trouble, so we are providing our own.
+ * It has been created from the original one from
+ * http://oss.sgi.com/projects/ogl-sample/registry/ with
+ * perl -ne 's/\bGL_\B/MYGL_/g;s/\bgl\B/mygl/g;s/\b__gl\B/__mygl/g;s/\bPFNGL\B/PFNMYGL/g;print' glext.h >myglext.h
+ */
+#define GLchar MYGLChar
+#define GLintptr MYGLintptr
+#define GLsizeiptr MYGLsizeiptr
+#define GLintptrARB MYGLintptrARB
+#define GLsizeiptrARB MYGLsizeiptrARB
+#define GLcharARB MYGLcharARB
+#define GLhandleARB MYGLhandleARB
+#define GLhalfARB MYGLhalfARB
+#define GLhalfNV MYGLhalfNV
+#include "myglext.h"
+
+#if defined (_WIN32)
+#  define WIN32_LEAN_AND_MEAN
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif /* NOMINMAX */
+#  include <windows.h>
+#elif defined (__APPLE__)
+#  include <GL/glx.h>
+#  include <mach-o/dyld.h>
+#else
+#  include <GL/glx.h>
+#  include <dlfcn.h>
+#endif
 
 #include "xine.h"
 #include "video_out.h"
@@ -70,24 +100,14 @@
 #include "x11osd.h"
 
 
-#ifndef LOG
-#  define CHECKERR(a) ((void)0)
-#  define CLEARERR(a) ((void)0)
-#else
-#  define CHECKERR(a) do { int i = glGetError (); if (i != GL_NO_ERROR) fprintf (stderr, "   *** %s: 0x%x = %s\n", a, i, gluErrorString (i)); } while (0)
-#  define CLEARERR(a) do { glGetError (); } while (0)
-#endif
-
-#ifdef _WIN32
-#  define getaddr(x) wglGetProcAddress(x)
-#else
-#  ifdef GLX_ARB_get_proc_address
-/* !@#$% ARB. What on earth drove them to nuke that definition in 1.4?!? */
-extern void *glXGetProcAddressARB(const GLubyte *procName);
-#    define getaddr(x) glXGetProcAddressARB(x)
+#ifdef LOG
+#  ifdef HAVE_GLU
+#    define CHECKERR(a) do { int i = glGetError (); if (i != GL_NO_ERROR) fprintf (stderr, "   *** %s: 0x%x = %s\n", a, i, gluErrorString (i)); } while (0)
 #  else
-#    define getaddr(x) NULL
+#    define CHECKERR(a) do { int i = glGetError (); if (i != GL_NO_ERROR) fprintf (stderr, "   *** %s: 0x%x\n", a, i); } while (0)
 #  endif
+#else
+#  define CHECKERR(a) ((void)0)
 #endif
 
 
@@ -114,6 +134,7 @@ extern void *glXGetProcAddressARB(const GLubyte *procName);
 #  define YUV_SWAP_MODE      0
 #endif
 
+#define MY_PI                3.1415926
 #define MY_2PI               6.2831853
 
 
@@ -169,18 +190,18 @@ typedef struct {
   int                fprog;
   int                tex_width, tex_height; /* independend of frame */
   /* OpenGL capabilities */
-  const GLubyte     *gl_exts;
+  const GLubyte     *gl_exts;	/* extension string - NULL if uninitialized */
   int                has_bgra;
   int                has_texobj;            /* TODO: use */
   int                has_fragprog;
   int                has_pixbufobj;
   /* OpenGL extensions */
-  PFNGLBINDPROGRAMARBPROC          glBindProgramARB_;
-  PFNGLGENPROGRAMSARBPROC          glGenProgramsARB_;
-  PFNGLPROGRAMSTRINGARBPROC        glProgramStringARB_;
-  PFNGLPROGRAMENVPARAMETER4FARBPROC glProgramEnvParameter4fARB_;
-  PFNGLGENTEXTURESEXTPROC          glGenTexturesEXT_;
-  PFNGLBINDTEXTUREEXTPROC          glBindTextureEXT_;
+  PFNMYGLBINDPROGRAMARBPROC          glBindProgramARB;
+  PFNMYGLGENPROGRAMSARBPROC          glGenProgramsARB;
+  PFNMYGLPROGRAMSTRINGARBPROC        glProgramStringARB;
+  PFNMYGLPROGRAMENVPARAMETER4FARBPROC glProgramEnvParameter4fARB;
+  PFNMYGLGENTEXTURESEXTPROC          glGenTexturesEXT;
+  PFNMYGLBINDTEXTUREEXTPROC          glBindTextureEXT;
   
   int                yuv2rgb_brightness;
   int                yuv2rgb_contrast;
@@ -276,8 +297,8 @@ static void render_tex2dtiled (opengl_driver_t *this, opengl_frame_t *frame) {
   /* Draw quads */
   for (i = 0, ya = y1; i <= ny; i++, ya += yn) {
     for (j = 0, xa = x1; j <= nx; j++, xa += xn) {
-      if (this->glBindTextureEXT_)
-        this->glBindTextureEXT_ (GL_TEXTURE_2D, i*(nx+1)+j+1);
+      if (this->glBindTextureEXT)
+        this->glBindTextureEXT (GL_TEXTURE_2D, i*(nx+1)+j+1);
       txb = (float) (j == nx ? frame_w - j*(tex_w-2)+1 : (tex_w-1)) / tex_w;
       tyb = (float) (i == ny ? frame_h - i*(tex_h-2)+1 : (tex_h-1)) / tex_h;
       xb  = (j == nx ? x2 : xa + xn);
@@ -428,8 +449,8 @@ static int render_help_image_tex (opengl_driver_t *this, int new_w, int new_h,
     
     if (tex_w != this->tex_width || tex_h != this->tex_height) {
       char *tmp = calloc (tex_w * tex_h, 4); /* 4 enough until RGBA */
-      if (this->glBindTextureEXT_)
-        this->glBindTextureEXT_ (GL_TEXTURE_2D, 0);
+      if (this->glBindTextureEXT)
+        this->glBindTextureEXT (GL_TEXTURE_2D, 0);
       glTexParameteri (GL_TEXTURE_2D,  GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri (GL_TEXTURE_2D,  GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexImage2D (GL_TEXTURE_2D, 0, glformat, tex_w, tex_h,
@@ -467,7 +488,8 @@ static int render_help_image_tiledtex (opengl_driver_t *this,
     
     if (tex_w != this->tex_width || tex_h != this->tex_height) {
       char *tmp = calloc (tex_w * tex_h, 4); /* 4 enough until RGBA */
-      this->glBindTextureEXT_ (GL_TEXTURE_2D, 1);
+      if (this->glBindTextureEXT)
+        this->glBindTextureEXT (GL_TEXTURE_2D, 1);
       /* allocate and figure out maximum texture size */
       do {
         glTexImage2D (GL_TEXTURE_2D, 0, glformat, tex_w, tex_h,
@@ -489,8 +511,8 @@ static int render_help_image_tiledtex (opengl_driver_t *this,
 	err = 1;
       if (! err) {
         for (i = 1; i <= num; i++) {
-          if (this->glBindTextureEXT_)
-            this->glBindTextureEXT_ (GL_TEXTURE_2D, i);
+          if (this->glBindTextureEXT)
+            this->glBindTextureEXT (GL_TEXTURE_2D, i);
           glTexParameteri (GL_TEXTURE_2D,  GL_TEXTURE_MAG_FILTER, GL_LINEAR);
           glTexParameteri (GL_TEXTURE_2D,  GL_TEXTURE_MIN_FILTER, GL_LINEAR);
           glTexImage2D (GL_TEXTURE_2D, 0, glformat, tex_w, tex_h,
@@ -550,7 +572,8 @@ static int render_image_tiledtex (opengl_driver_t *this, opengl_frame_t *frame) 
   glPixelStorei (GL_UNPACK_ROW_LENGTH, frame_w);
   for (i = 0; i <= ny; i++) {
     for (j = 0; j <= nx; j++) {
-      this->glBindTextureEXT_ (GL_TEXTURE_2D, i*(nx+1)+j+1);
+      if (this->glBindTextureEXT)
+        this->glBindTextureEXT (GL_TEXTURE_2D, i*(nx+1)+j+1);
       /* TODO: asynchronous texture upload (ARB_pixel_buffer_object) */
       /* gets a bit ugly in order not to address data above frame->rgb */
       glTexSubImage2D (GL_TEXTURE_2D, 0, (j==0), (i==0),
@@ -580,6 +603,8 @@ static int render_image_fp_yuv (opengl_driver_t *this, opengl_frame_t *frame) {
   int w2 = frame->width/2, h2 = frame->height/2;
   int i, ret;
 
+  if (! this->has_fragprog)
+    return 0;
   if (frame->format != XINE_IMGFMT_YV12) {
       fprintf (stderr, "Fragment program only supported for YV12 data\n");
       return 0;
@@ -604,11 +629,11 @@ static int render_image_fp_yuv (opengl_driver_t *this, opengl_frame_t *frame) {
 		     GL_LUMINANCE, GL_UNSIGNED_BYTE, tmp);
     CHECKERR ("clean-texsubimage");
     free (tmp);
-    this->glProgramEnvParameter4fARB_ (GL_FRAGMENT_PROGRAM_ARB, 0,
-				       1.0                      / this->tex_width,
-				       (float)(frame->height+2) / this->tex_height,
-				       (float)(w2+1)            / this->tex_width,
-				       0);
+    this->glProgramEnvParameter4fARB (MYGL_FRAGMENT_PROGRAM_ARB, 0,
+				      1.0                     /this->tex_width,
+				      (float)(frame->height+2)/this->tex_height,
+				      (float)(w2+1)           /this->tex_width,
+				      0);
   }
   /* Load texture */
   CHECKERR ("pre-texsubimage");
@@ -660,34 +685,103 @@ static int render_help_verify_ext (opengl_driver_t *this, char *ext) {
     }
   }
   xprintf (this->xine, XINE_VERBOSITY_LOG,
-	   "video_out_opengl: extension: %s %s\n", ext,
+	   "video_out_opengl: extension %s: %s\n", ext,
 	   ret ? "OK" : "missing");
   return ret;
 }
 
-static void render_help_check_exts (opengl_driver_t *this) {
-  if (! this->gl_exts) {
-    this->gl_exts  = glGetString (GL_EXTENSIONS);
-    this->has_bgra = render_help_verify_ext (this, "GL_EXT_bgra");
-    if (! this->has_bgra && RGB_TEXTURE_FORMAT == GL_BGRA)
-      fprintf (stderr, "video_out_opengl: compiled for BGRA output, but missing extension.\n");
-    if ( (this->has_texobj   = render_help_verify_ext (this, "GL_EXT_texture_object")) ) {
-      this->glGenTexturesEXT_   = getaddr ("glGenTexturesEXT"); /* TODO: use for alloc */
-      this->glBindTextureEXT_   = getaddr ("glBindTextureEXT");
-      if (! this->glGenTexturesEXT_ || ! this->glBindTextureEXT_)
-	  this->has_texobj = 0;
-    }
-    if ( (this->has_fragprog = render_help_verify_ext (this, "GL_ARB_fragment_program")) ) {
-      this->glBindProgramARB_   = getaddr ("glBindProgramARB");
-      this->glGenProgramsARB_   = getaddr ("glGenProgramsARB");
-      this->glProgramStringARB_ = getaddr ("glProgramStringARB");
-      this->glProgramEnvParameter4fARB_ = getaddr ("glProgramEnvParameter4fARB");
-      if (! this->glBindProgramARB_   || ! this->glGenProgramsARB_ ||
-	  ! this->glProgramStringARB_ || ! this->glProgramEnvParameter4fARB_)
-	  this->has_fragprog = 0;
-    }
-    this->has_pixbufobj = render_help_verify_ext (this, "GL_ARB_pixel_buffer_object");
+/* Return the address of a linked function */
+static void *getdladdr(const GLubyte *funcName) {
+
+#if defined(_WIN32)
+  return NULL;
+
+#elif defined(__APPLE__)
+  char temp = xine_xmalloc (strlen (funcName) + 2);
+  void *res = NULL;
+  temp[0] = '_'; /* Mac OS X prepends an underscore on function names */
+  strcpy (temp+1, funcName);
+  if (NSIsSymbolNameDefined (temp)) {
+    NSSymbol symbol = NSLookupAndBindSymbol (temp);
+    res = NSAddressOfSymbol (symbol);
   }
+  free (temp);
+  return res;
+
+#elif defined (__sun) || defined (__sgi)
+   static void *handle = dlopen (NULL, RTLD_LAZY);
+   return dlsym (handle, funcName);
+    
+#else /* all other Un*xes */
+  return dlsym (0, funcName);
+
+#endif
+}
+
+/* Return the address of the specified OpenGL extension function */
+static void *getaddr(const char *funcName) {
+
+#if defined(_WIN32)
+  return (void*) wglGetProcAddress (funcName);
+
+#else
+  void * (*MYgetProcAddress) (const GLubyte *);
+  void *res;
+
+  /* Try to get address of extension via glXGetProcAddress[ARB], if that
+   * fails try to get the address of a linked function */
+  MYgetProcAddress = getdladdr ("glXGetProcAddress");
+  if (! MYgetProcAddress)
+    MYgetProcAddress = getdladdr ("glXGetProcAddressARB");
+  if (! MYgetProcAddress)
+    MYgetProcAddress = getdladdr;
+
+  res = MYgetProcAddress (funcName);
+  if (! res)
+    fprintf (stderr, "Cannot find address for OpenGL extension function '%s',\n"
+	     "which should be available according to extension specs.\n",
+	     funcName);
+  return res;
+
+#endif
+}
+
+static void render_help_check_exts (opengl_driver_t *this) {
+  static int num_tests = 0;
+
+  if (this->gl_exts)
+    return;
+
+  this->gl_exts  = glGetString (GL_EXTENSIONS);
+  if (! this->gl_exts) {
+    if (++num_tests > 10) {
+      fprintf (stderr, "video_out_opengl: Cannot find OpenGL extensions (tried multiple times).\n");
+      this->gl_exts = "";
+    }
+  } else
+    num_tests = 0;
+  if (! this->gl_exts)
+    xprintf (this->xine, XINE_VERBOSITY_NONE, "video_out_opengl: No extensions found - assuming bad visual, testing later.\n");
+
+  this->has_bgra = render_help_verify_ext (this, "GL_EXT_bgra");
+  if (! this->has_bgra && RGB_TEXTURE_FORMAT == GL_BGRA && this->gl_exts)
+    fprintf (stderr, "video_out_opengl: compiled for BGRA output, but missing extension.\n");
+  if ( (this->has_texobj   = render_help_verify_ext (this, "GL_EXT_texture_object")) ) {
+    this->glGenTexturesEXT   = getaddr ("glGenTexturesEXT"); /* TODO: use for alloc */
+    this->glBindTextureEXT   = getaddr ("glBindTextureEXT");
+    if (! this->glGenTexturesEXT || ! this->glBindTextureEXT)
+      this->has_texobj = 0;
+  }
+  if ( (this->has_fragprog = render_help_verify_ext (this, "GL_ARB_fragment_program")) ) {
+    this->glBindProgramARB   = getaddr ("glBindProgramARB");
+    this->glGenProgramsARB   = getaddr ("glGenProgramsARB");
+    this->glProgramStringARB = getaddr ("glProgramStringARB");
+    this->glProgramEnvParameter4fARB = getaddr ("glProgramEnvParameter4fARB");
+    if (! this->glBindProgramARB   || ! this->glGenProgramsARB ||
+	! this->glProgramStringARB || ! this->glProgramEnvParameter4fARB)
+      this->has_fragprog = 0;
+  }
+  this->has_pixbufobj = render_help_verify_ext (this, "GL_ARB_pixel_buffer_object");
 }
 
 static int render_help_setup_tex (opengl_driver_t *this) {
@@ -699,6 +793,17 @@ static int render_help_setup_tex (opengl_driver_t *this) {
   CHECKERR ("post-tex_setup");
   return 1;
 }
+
+#ifndef HAVE_GLU
+#define gluPerspective myGluPerspective
+static void myGluPerspective (GLdouble fovy, GLdouble aspect,
+		       GLdouble zNear, GLdouble zFar) {
+  double ymax = zNear * tan(fovy * M_PI / 360.0);
+  double ymin = -ymax;
+  glFrustum (ymin * aspect, ymax * aspect, ymin, ymax, zNear, zFar);
+}
+#endif
+
 
 static int render_setup_2d (opengl_driver_t *this) {
   render_help_check_exts (this);
@@ -724,8 +829,8 @@ static int render_setup_2d (opengl_driver_t *this) {
   glDisable    (GL_TEXTURE_2D);
   CHECKERR ("post-en/disable");
   glHint       (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-  glDisable    (GL_FRAGMENT_PROGRAM_ARB);
-  CLEARERR ();
+  glDisable    (MYGL_FRAGMENT_PROGRAM_ARB);
+  glGetError   ();
   return 1;
 }
 
@@ -735,7 +840,6 @@ static int render_setup_tex2d (opengl_driver_t *this) {
   ret &= render_help_setup_tex (this);
   return ret;
 }
-
 static int render_setup_3d (opengl_driver_t *this) {
   render_help_check_exts (this);
   if (this->gui_width > 0 && this->gui_height > 0) {
@@ -759,8 +863,8 @@ static int render_setup_3d (opengl_driver_t *this) {
   glDisable    (GL_TEXTURE_2D);
   glHint       (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
   CHECKERR ("post-3dfrustum_setup");
-  glDisable    (GL_FRAGMENT_PROGRAM_ARB);
-  CLEARERR ();
+  glDisable    (MYGL_FRAGMENT_PROGRAM_ARB);
+  glGetError   ();
   return 1;
 }
 
@@ -839,18 +943,18 @@ static int render_setup_fp_yuv (opengl_driver_t *this) {
   if (! this->has_fragprog)
     return 0;
   if (this->fprog == -1)
-    this->glGenProgramsARB_ (1, &this->fprog);
-  this->glBindProgramARB_   (GL_FRAGMENT_PROGRAM_ARB, this->fprog);
-  this->glProgramStringARB_ (GL_FRAGMENT_PROGRAM_ARB,
-			     GL_PROGRAM_FORMAT_ASCII_ARB,
-			     strlen (fragprog_yuv), fragprog_yuv);
-  glGetIntegerv             (GL_PROGRAM_ERROR_POSITION_ARB, &errorpos);
+    this->glGenProgramsARB (1, &this->fprog);
+  this->glBindProgramARB   (MYGL_FRAGMENT_PROGRAM_ARB, this->fprog);
+  this->glProgramStringARB (MYGL_FRAGMENT_PROGRAM_ARB,
+			    MYGL_PROGRAM_FORMAT_ASCII_ARB,
+			    strlen (fragprog_yuv), fragprog_yuv);
+  glGetIntegerv             (MYGL_PROGRAM_ERROR_POSITION_ARB, &errorpos);
   if (errorpos != -1)
     xprintf (this->xine, XINE_VERBOSITY_NONE,
 	     "video_out_opengl: fragprog_yuv errorpos %d begining with '%.20s'. Ask a wizard.\n",
 	     errorpos, fragprog_yuv+errorpos);
 
-  glEnable (GL_FRAGMENT_PROGRAM_ARB);
+  glEnable (MYGL_FRAGMENT_PROGRAM_ARB);
   CHECKERR ("fragprog");
   return ret;
 }
@@ -951,7 +1055,10 @@ static void *render_run (opengl_driver_t *this) {
 	if (changed)
 	  ret = (render->image) (this, frame);
 	(render->display) (this, frame);
-	glXSwapBuffers(this->display, this->drawable);
+	if (this->render_double_buffer)
+	  glXSwapBuffers(this->display, this->drawable);
+	else
+	  glFlush ();
 	/* Note: no glFinish() - work concurrently to the graphics pipe */
 	CHECKERR ("post-render");
 	XUnlockDisplay (this->display);
@@ -959,7 +1066,7 @@ static void *render_run (opengl_driver_t *this) {
           xprintf (this->xine, XINE_VERBOSITY_NONE,
 	           "video_out_opengl: rendering '%s' failed, switching to fallback\n",
 	           render->name);
-	  if (render->fallback != -1)
+	  if (render->fallback != -1 && this->gl_exts)
 	    this->config->update_num (this->config, "video.output.opengl_renderer", render->fallback);
 	}
       }
@@ -983,13 +1090,14 @@ static void *render_run (opengl_driver_t *this) {
 	}
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT
 		 | GL_STENCIL_BUFFER_BIT);
+	glFlush ();
 	CHECKERR ("post-clean");
 	XUnlockDisplay (this->display);
 	if (! ret) {
           xprintf (this->xine, XINE_VERBOSITY_NONE,
 	           "video_out_opengl: rendering '%s' failed, switching to fallback\n",
 	           render->name);
-	  if (render->fallback != -1)
+	  if (render->fallback != -1 && this->gl_exts)
 	    this->config->update_num (this->config, "video.output.opengl_renderer", render->fallback);
 	}
       }
@@ -1007,7 +1115,7 @@ static void *render_run (opengl_driver_t *this) {
           xprintf (this->xine, XINE_VERBOSITY_NONE,
 	           "video_out_opengl: setup of '%s' failed, switching to fallback\n",
 	           render->name);
-	  if (render->fallback != -1)
+	  if (render->fallback != -1 && this->gl_exts)
 	    this->config->update_num (this->config, "video.output.opengl_renderer", render->fallback);
 	}
 	XUnlockDisplay (this->display);
@@ -1017,6 +1125,7 @@ static void *render_run (opengl_driver_t *this) {
 
     case RENDER_CREATE:
       this->render_action = RENDER_SETUP;
+      this->gl_exts       = NULL;
       _x_assert (this->vinfo);
       _x_assert (! this->context);
       XLockDisplay (this->display);
@@ -1585,20 +1694,17 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 
   case XINE_GUI_SEND_SELECT_VISUAL:
 
-    if (! this->context) {
-      pthread_mutex_lock   (&this->render_action_mutex);
-      this->render_action = RENDER_VISUAL;
-      pthread_cond_signal  (&this->render_action_cond);
-      pthread_cond_wait    (&this->render_return_cond,
-			    &this->render_action_mutex);
-      pthread_mutex_unlock (&this->render_action_mutex);
-      *(XVisualInfo**)data = this->vinfo;
-    }
+    pthread_mutex_lock   (&this->render_action_mutex);
+    this->render_action = RENDER_VISUAL;
+    pthread_cond_signal  (&this->render_action_cond);
+    pthread_cond_wait    (&this->render_return_cond,
+			  &this->render_action_mutex);
+    pthread_mutex_unlock (&this->render_action_mutex);
+    *(XVisualInfo**)data = this->vinfo;
     break;
 
   case XINE_GUI_SEND_WILL_DESTROY_DRAWABLE:
 
-    /* TODO: this event is yet to be implemented in the gui */
     pthread_mutex_lock   (&this->render_action_mutex);
     this->render_action = RENDER_RELEASE;
     pthread_cond_signal  (&this->render_action_cond);
