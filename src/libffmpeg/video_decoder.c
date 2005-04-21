@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.42 2005/04/21 21:40:17 tmattern Exp $
+ * $Id: video_decoder.c,v 1.43 2005/04/21 21:54:01 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -690,6 +690,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_3IVX,        CODEC_ID_MPEG4,     "ISO MPEG-4 (3ivx, ffmpeg)"},
   {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_MJPEG_B,     CODEC_ID_MJPEGB,    "Motion JPEG B (ffmpeg"},
   {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
   {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
   {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
@@ -724,7 +725,16 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
   {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
   {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
-  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"} };
+  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"},
+  {BUF_VIDEO_H261,        CODEC_ID_H261,       "H.261 (ffmpeg)"},
+  {BUF_VIDEO_AASC,        CODEC_ID_AASC,       "Autodesk Video (ffmpeg)"},
+  {BUF_VIDEO_LOCO,        CODEC_ID_LOCO,       "LOCO (ffmpeg)"},
+  {BUF_VIDEO_QDRW,        CODEC_ID_QDRAW,      "QuickDraw (ffmpeg)"},
+  {BUF_VIDEO_QPEG,        CODEC_ID_QPEG,       "Q-Team QPEG (ffmpeg)"},
+  {BUF_VIDEO_TSCC,        CODEC_ID_TSCC,       "TechSmith Video (ffmpeg)"},
+  {BUF_VIDEO_ULTI,        CODEC_ID_ULTI,       "IBM UltiMotion (ffmpeg)"},
+  {BUF_VIDEO_WNV1,        CODEC_ID_WNV1,       "Winnow Video (ffmpeg)"},
+  {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"} };
 
 static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
   if (size > this->bufsize) {
@@ -1381,6 +1391,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_DIVX5, 
   BUF_VIDEO_3IVX,
   BUF_VIDEO_MJPEG,
+  BUF_VIDEO_MJPEG_B,
   BUF_VIDEO_H263,
   BUF_VIDEO_RV10,
   BUF_VIDEO_RV20,
@@ -1417,6 +1428,15 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_FLV1,
   BUF_VIDEO_QTRLE,
   BUF_VIDEO_H264,
+  BUF_VIDEO_H261,
+  BUF_VIDEO_AASC,
+  BUF_VIDEO_LOCO,
+  BUF_VIDEO_QDRW,
+  BUF_VIDEO_QPEG,
+  BUF_VIDEO_TSCC,
+  BUF_VIDEO_ULTI,
+  BUF_VIDEO_WNV1,
+  BUF_VIDEO_XL,
   0 
 };
 
