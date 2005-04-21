@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.55 2005/01/18 23:25:34 tmattern Exp $
+ * $Id: mms.c,v 1.56 2005/04/21 19:02:43 mroi Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -583,9 +583,13 @@ static void interp_asf_header (mms_t *this) {
           lprintf ("stream object, stream id: %d, type: %d, encrypted: %d\n",
                    stream_id, type, encrypted);
           
-          this->stream_types[stream_id] = type;
-          this->stream_ids[this->num_stream_ids] = stream_id;
-          this->num_stream_ids++;
+          if (this->num_stream_ids < ASF_MAX_NUM_STREAMS && stream_id < ASF_MAX_NUM_STREAMS) {
+            this->stream_types[stream_id] = type;
+            this->stream_ids[this->num_stream_ids] = stream_id;
+            this->num_stream_ids++;
+          } else {
+            lprintf ("too many streams, skipping\n");
+          }
       
         }
         break;
