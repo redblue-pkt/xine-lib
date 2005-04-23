@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.145 2004/12/16 13:59:07 mroi Exp $
+ * $Id: w32codec.c,v 1.146 2005/04/23 02:02:28 tmmm Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1089,6 +1089,12 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, 
       "Windows Media Audio v3 (win32)");
     return "wma9dmod.dll";
+  case BUF_AUDIO_WMALL:
+    this->driver_type = DRIVER_DMO;
+    this->guid=&wma3_clsid;
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, 
+      "Windows Media Audio Lossless (win32)");
+    return "wma9dmod.dll";
   case BUF_AUDIO_WMAV:
     this->driver_type = DRIVER_DMO;
     this->guid=&wmav_clsid;
@@ -1703,6 +1709,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_WMAV1, BUF_AUDIO_WMAV2, BUF_AUDIO_WMAV3, BUF_AUDIO_MSADPCM, 
   BUF_AUDIO_MSIMAADPCM, BUF_AUDIO_MSGSM, BUF_AUDIO_IMC, BUF_AUDIO_LH,
   BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723, BUF_AUDIO_WMAV,
+  BUF_AUDIO_WMALL,
   0
  };
 
