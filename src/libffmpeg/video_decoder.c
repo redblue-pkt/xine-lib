@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.44 2005/04/22 21:09:28 tmattern Exp $
+ * $Id: video_decoder.c,v 1.45 2005/04/24 13:44:23 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -108,6 +108,7 @@ struct ff_video_decoder_s {
   
   int               output_format;
   yuv_planes_t      yuv;
+  int               cs_convert_init;
   AVPaletteControl  palette_control;
 };
 
@@ -242,25 +243,16 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
 
   this->skipframes = 0;
   
-  if((this->context->pix_fmt == PIX_FMT_RGBA32) ||
-     (this->context->pix_fmt == PIX_FMT_RGB565) ||
-     (this->context->pix_fmt == PIX_FMT_RGB555) ||
-     (this->context->pix_fmt == PIX_FMT_BGR24) ||
-     (this->context->pix_fmt == PIX_FMT_RGB24) ||
-     (this->context->pix_fmt == PIX_FMT_PAL8)) {
-    this->output_format = XINE_IMGFMT_YUY2;
-    init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
-  } else {
-    this->output_format = XINE_IMGFMT_YV12;
+  /* enable direct rendering by default */
+  this->output_format = XINE_IMGFMT_YV12;
 #ifdef ENABLE_DIRECT_RENDERING
-    if( this->codec->capabilities & CODEC_CAP_DR1 ) {
-      this->context->get_buffer = get_buffer;
-      this->context->release_buffer = release_buffer;
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              _("ffmpeg_video_dec: direct rendering enabled\n"));
-    }
-#endif
+  if( this->codec->capabilities & CODEC_CAP_DR1 ) {
+    this->context->get_buffer = get_buffer;
+    this->context->release_buffer = release_buffer;
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("ffmpeg_video_dec: direct rendering enabled\n"));
   }
+#endif
 
   /* flag for interlaced streams */
   this->frame_flags = 0;
@@ -1067,7 +1059,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
                                     &got_picture, &chunk_buf[offset],
                                     this->size);
 	lprintf("consumed size: %d\n", len);
-        if ((len < 0) || (len > this->size)) {
+        if ((len <= 0) || (len > this->size)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
                     "ffmpeg_video_dec: error decompressing frame\n");
           this->size = 0;
@@ -1088,7 +1080,22 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
       if (got_picture && this->av_frame->data[0]) {
         /* got a picture, draw it */
         if(!this->av_frame->opaque) {
-          /* indirect rendering */
+	  /* indirect rendering */
+
+	  /* initialize the colorspace converter */
+	  if (!this->cs_convert_init) {
+	    if ((this->context->pix_fmt == PIX_FMT_RGBA32) ||
+	        (this->context->pix_fmt == PIX_FMT_RGB565) ||
+	        (this->context->pix_fmt == PIX_FMT_RGB555) ||
+	        (this->context->pix_fmt == PIX_FMT_BGR24) ||
+	        (this->context->pix_fmt == PIX_FMT_RGB24) ||
+	        (this->context->pix_fmt == PIX_FMT_PAL8)) {
+	      this->output_format = XINE_IMGFMT_YUY2;
+	      init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
+	    }
+	    this->cs_convert_init = 1;
+	  }
+
           img = this->stream->video_out->get_frame (this->stream->video_out,
                                                     this->bih.biWidth,
                                                     this->bih.biHeight,
@@ -1127,6 +1134,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
                         this->av_frame->pict_type);
 
         } else if (!this->av_frame->opaque) {
+	  /* colorspace conversion or copy */
           ff_convert_frame(this, img);
         }
 
@@ -1195,41 +1203,41 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     } else {
   
-    /* decode */
+      /* decode */
 
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
-      this->video_step = buf->decoder_info[0];
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
-    }
+      if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+	this->video_step = buf->decoder_info[0];
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+      }
     
-    if (buf->decoder_flags & BUF_FLAG_ASPECT) {
-      this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, 
+      if (buf->decoder_flags & BUF_FLAG_ASPECT) {
+	this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, 
                         this->aspect_ratio*10000);
-    }
+      }
 
-    /* aspect ratio */
-    if(!this->bih.biWidth || !this->bih.biHeight) {
-      this->bih.biWidth = this->context->width;
-      this->bih.biHeight = this->context->height;
-      this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
-      set_stream_info(this);
-    }
-    if(av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
-      this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
+      /* aspect ratio */
+      if(!this->bih.biWidth || !this->bih.biHeight) {
+	this->bih.biWidth = this->context->width;
+	this->bih.biHeight = this->context->height;
+	this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
+	set_stream_info(this);
+      }
+      if(av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
+	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
           (double)this->bih.biWidth / (double)this->bih.biHeight;
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  
-                          this->aspect_ratio*10000);
-    }
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  
+			   this->aspect_ratio*10000);
+      }
 
-    if (buf->pts)
-      this->pts = buf->pts;
+      if (buf->pts)
+	this->pts = buf->pts;
 
-    if (this->is_mpeg12) {
-      ff_handle_mpeg12_buffer(this, buf);
-    } else {
-      ff_handle_buffer(this, buf);
-    }
+      if (this->is_mpeg12) {
+	ff_handle_mpeg12_buffer(this, buf);
+      } else {
+	ff_handle_buffer(this, buf);
+      }
 
     }
   }
