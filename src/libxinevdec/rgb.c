@@ -30,7 +30,7 @@
  * One more catch: Raw RGB from a Microsoft file is upside down. This is 
  * indicated by a negative height parameter.
  * 
- * $Id: rgb.c,v 1.29 2004/12/16 13:59:12 mroi Exp $
+ * $Id: rgb.c,v 1.30 2005/04/24 13:37:34 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -39,13 +39,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define LOG_MODULE "rgb"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "xineutils.h"
 #include "bswap.h"
-
-#define VIDEOBUFSIZE 128*1024
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -129,19 +132,24 @@ static void rgb_decode_data (video_decoder_t *this_gen,
     if (this->height < 0) {
       this->upside_down = 1;
       this->height = -this->height;
-    } else
+    } else {
       this->upside_down = 0;
+    }
     this->ratio = (double)this->width/(double)this->height;
 
     this->bit_depth = bih->biBitCount;
     if (this->bit_depth > 32)
       this->bit_depth &= 0x1F;
     /* round this number up in case of 15 */
+    lprintf("width = %d, height = %d, bit_depth = %d\n", this->width, this->height, this->bit_depth);
+
     this->bytes_per_pixel = (this->bit_depth + 1) / 8;
 
     if (this->buf)
       free (this->buf);
-    this->bufsize = VIDEOBUFSIZE;
+
+    /* minimal buffer size */
+    this->bufsize = this->width * this->height * this->bytes_per_pixel;
     this->buf = xine_xmalloc(this->bufsize);
     this->size = 0;
 
@@ -160,7 +168,6 @@ static void rgb_decode_data (video_decoder_t *this_gen,
       this->bufsize = this->size + 2 * buf->size;
       this->buf = realloc (this->buf, this->bufsize);
     }
-
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
@@ -175,6 +182,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
       img->duration  = this->video_step;
       img->pts       = buf->pts;
       img->bad_frame = 0;
+
 
       /* iterate through each row */
       buf_ptr = 0;
@@ -230,6 +238,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
           }
         }
       } else {
+
         for (row_ptr = 0; row_ptr < this->yuv_planes.row_width * this->yuv_planes.row_count; row_ptr += this->yuv_planes.row_width) {
           pixels_left = 0;
           for (pixel_ptr = 0; pixel_ptr < this->width; pixel_ptr++) {
