@@ -16,7 +16,7 @@ dnl   XINE_SUB += 1; continue with XINE_LT_* values below
 dnl
 XINE_MAJOR=1
 XINE_MINOR=0
-XINE_SUB=0
+XINE_SUB=1
 
 if test $XINE_SUB -eq 0 ; then
   XINE_SUBPART="";
@@ -49,9 +49,9 @@ dnl    are platform dependent
 dnl  * in Linux, the library will be named
 dnl    libname.so.(XINE_LT_CURRENT - XINE_LT_AGE).XINE_LT_AGE.XINE_LT_REVISION
 
-XINE_LT_CURRENT=12
-XINE_LT_REVISION=1
-XINE_LT_AGE=11
+XINE_LT_CURRENT=13
+XINE_LT_REVISION=0
+XINE_LT_AGE=12
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
@@ -126,6 +126,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_AWK
 AC_C_INLINE
+AC_CHECK_TOOL(LDD_R, ldd -r, :)
 
 
 dnl ---------------------------------------------
@@ -418,12 +419,12 @@ AC_ARG_ENABLE(ipv6,
 		enable_ipv6=$enableval,
 		enable_ipv6=no)
 
-echo -n "IPv6 is "
+echo -n "*** IPv6 is "
 if test x$enable_ipv6 = xyes; then
     CFLAGS="-DENABLE_IPV6 $CFLAGS"
-    echo "enabled"
+    echo "enabled ***"
 else
-    echo "disabled"
+    echo "disabled ***"
 fi
 
 
@@ -718,6 +719,7 @@ AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disa
 fi
 
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
+
 
 dnl ---------------------------------------------
 dnl Checks for Color AsCii Art library
@@ -2062,7 +2064,7 @@ if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   AC_DEFINE(XINE_FONTDIR,[exec_path_append_subdir("fonts")],[Define this to osd fonts dir location])
   AC_DEFINE(XINE_LOCALEDIR,[exec_path_append_subdir("locale")],[Path where catalog files will be.])
   dnl prefix in xine-config
-  XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
+  XINE_PREFIX="\`dirname \$0\`/.."
 else
   dnl installation directories
   XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
@@ -2077,9 +2079,9 @@ else
   AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
   AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
   dnl prefix in xine-config
-  XINE_CONFIG_PREFIX="${prefix}"
+  XINE_PREFIX="${prefix}"
 fi
-AC_SUBST(XINE_CONFIG_PREFIX)
+AC_SUBST(XINE_PREFIX)
 AC_SUBST(XINE_PLUGINPATH)
 AC_SUBST(XINE_FONTPATH)
 AC_SUBST(XINE_LOCALEPATH)
