@@ -1,3 +1,10 @@
+xine-lib (1.0.1-0) unstable; urgency=high
+
+  * new upstream release
+    * fixes MMST and RTSP vulnerabilities (CAN-2005-1195, closes #305343)
+
+ -- Siggi Langauf <siggi@debian.org>  Mon, 25 Apr 2005 19:05:02 +0200
+
 xine-lib (1.0-1) unstable; urgency=high
 
   * new upstream release
