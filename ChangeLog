@@ -39,6 +39,7 @@ xine-lib (1.0.1)
   * Experimental bob deinterlacing support in the xxmc module
   * improved plugin loader to allow plugin garbage collection and more
     flexible plugin linking
+  * support for Windows Media Audio Lossless
 
 xine-lib (1.0)
   * unbreak DXR3 plugin
