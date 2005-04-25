@@ -54,6 +54,12 @@ Currently, best practice to get a release out looks like this:
 
 3) Versioning
 
+   You should already know by now, from which branch of CVS the release is
+   going to be made. The current scheme is to have a stable branch from
+   which the subminor releases like 1.0.1, 1.0.2,... are made and an
+   unstable branch in CVS head, which is going to become the next minor
+   (1.1) or major (2.0) xine-lib version.
+   
    Make sure you know
    - what the new release should be called
      (the "marketing version" part of the tarball name, for example)
