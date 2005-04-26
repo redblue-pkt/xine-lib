@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.45 2005/04/24 13:44:23 tmattern Exp $
+ * $Id: video_decoder.c,v 1.46 2005/04/26 20:23:13 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -79,6 +79,7 @@ struct ff_video_decoder_s {
   int64_t           pts;
   int               video_step;
   int               decoder_ok;
+  int               decoder_init_mode;
 
   xine_bmiheader    bih;
   unsigned char    *buf;
@@ -108,6 +109,8 @@ struct ff_video_decoder_s {
   
   int               output_format;
   yuv_planes_t      yuv;
+  int               yuv_init;
+
   int               cs_convert_init;
   AVPaletteControl  palette_control;
 };
@@ -202,7 +205,89 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
 }
 #endif
 
+static const ff_codec_t ff_video_lookup[] = {
+  {BUF_VIDEO_MSMPEG4_V1,  CODEC_ID_MSMPEG4V1, "Microsoft MPEG-4 v1 (ffmpeg)"},
+  {BUF_VIDEO_MSMPEG4_V2,  CODEC_ID_MSMPEG4V2, "Microsoft MPEG-4 v2 (ffmpeg)"},
+  {BUF_VIDEO_MSMPEG4_V3,  CODEC_ID_MSMPEG4V3, "Microsoft MPEG-4 v3 (ffmpeg)"},
+  {BUF_VIDEO_WMV7,        CODEC_ID_WMV1,      "MS Windows Media Video 7 (ffmpeg)"},
+  {BUF_VIDEO_WMV8,        CODEC_ID_WMV2,      "MS Windows Media Video 8 (ffmpeg)"},
+  {BUF_VIDEO_MPEG4,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
+  {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (XviD, ffmpeg)"},
+  {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (DivX5, ffmpeg)"},
+  {BUF_VIDEO_3IVX,        CODEC_ID_MPEG4,     "ISO MPEG-4 (3ivx, ffmpeg)"},
+  {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
+  {BUF_VIDEO_MJPEG_B,     CODEC_ID_MJPEGB,    "Motion JPEG B (ffmpeg"},
+  {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
+  {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
+  {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
+  {BUF_VIDEO_RV20,        CODEC_ID_RV20,      "Real Video 2.0 (ffmpeg)"},
+  {BUF_VIDEO_IV31,        CODEC_ID_INDEO3,    "Indeo Video 3.1 (ffmpeg)"},
+  {BUF_VIDEO_IV32,        CODEC_ID_INDEO3,    "Indeo Video 3.2 (ffmpeg)"},
+  {BUF_VIDEO_SORENSON_V1, CODEC_ID_SVQ1,      "Sorenson Video 1 (ffmpeg)"},
+  {BUF_VIDEO_SORENSON_V3, CODEC_ID_SVQ3,      "Sorenson Video 3 (ffmpeg)"},
+  {BUF_VIDEO_DV,          CODEC_ID_DVVIDEO,   "DV (ffmpeg)"},
+  {BUF_VIDEO_HUFFYUV,     CODEC_ID_HUFFYUV,   "HuffYUV (ffmpeg)"},
+  {BUF_VIDEO_VP31,        CODEC_ID_VP3,       "On2 VP3.1 (ffmpeg)"},
+  {BUF_VIDEO_4XM,         CODEC_ID_4XM,       "4X Video (ffmpeg)"},
+  {BUF_VIDEO_CINEPAK,     CODEC_ID_CINEPAK,   "Cinepak (ffmpeg)"},
+  {BUF_VIDEO_MSVC,        CODEC_ID_MSVIDEO1,  "Microsoft Video 1 (ffmpeg)"},
+  {BUF_VIDEO_MSRLE,       CODEC_ID_MSRLE,     "Microsoft RLE (ffmpeg)"},
+  {BUF_VIDEO_RPZA,        CODEC_ID_RPZA,      "Apple Quicktime Video/RPZA (ffmpeg)"},
+  {BUF_VIDEO_CYUV,        CODEC_ID_CYUV,      "Creative YUV (ffmpeg)"},
+  {BUF_VIDEO_ROQ,         CODEC_ID_ROQ,       "Id Software RoQ (ffmpeg)"},
+  {BUF_VIDEO_IDCIN,       CODEC_ID_IDCIN,     "Id Software CIN (ffmpeg)"},
+  {BUF_VIDEO_WC3,         CODEC_ID_XAN_WC3,   "Xan (ffmpeg)"},
+  {BUF_VIDEO_VQA,         CODEC_ID_WS_VQA,    "Westwood Studios VQA (ffmpeg)"},
+  {BUF_VIDEO_INTERPLAY,   CODEC_ID_INTERPLAY_VIDEO, "Interplay MVE (ffmpeg)"},
+  {BUF_VIDEO_FLI,         CODEC_ID_FLIC,      "FLIC Video (ffmpeg)"},
+  {BUF_VIDEO_8BPS,        CODEC_ID_8BPS,      "Planar RGB (ffmpeg)"},
+  {BUF_VIDEO_SMC,         CODEC_ID_SMC,       "Apple Quicktime Graphics/SMC (ffmpeg)"},
+  {BUF_VIDEO_DUCKTM1,     CODEC_ID_TRUEMOTION1,"Duck TrueMotion v1 (ffmpeg)"},
+  {BUF_VIDEO_VMD,         CODEC_ID_VMDVIDEO,   "Sierra VMD Video (ffmpeg)"},
+  {BUF_VIDEO_ZLIB,        CODEC_ID_ZLIB,       "ZLIB Video (ffmpeg)"},
+  {BUF_VIDEO_MSZH,        CODEC_ID_MSZH,       "MSZH Video (ffmpeg)"},
+  {BUF_VIDEO_ASV1,        CODEC_ID_ASV1,       "ASV v1 Video (ffmpeg)"},
+  {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
+  {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
+  {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
+  {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
+  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"},
+  {BUF_VIDEO_H261,        CODEC_ID_H261,       "H.261 (ffmpeg)"},
+  {BUF_VIDEO_AASC,        CODEC_ID_AASC,       "Autodesk Video (ffmpeg)"},
+  {BUF_VIDEO_LOCO,        CODEC_ID_LOCO,       "LOCO (ffmpeg)"},
+  {BUF_VIDEO_QDRW,        CODEC_ID_QDRAW,      "QuickDraw (ffmpeg)"},
+  {BUF_VIDEO_QPEG,        CODEC_ID_QPEG,       "Q-Team QPEG (ffmpeg)"},
+  {BUF_VIDEO_TSCC,        CODEC_ID_TSCC,       "TechSmith Video (ffmpeg)"},
+  {BUF_VIDEO_ULTI,        CODEC_ID_ULTI,       "IBM UltiMotion (ffmpeg)"},
+  {BUF_VIDEO_WNV1,        CODEC_ID_WNV1,       "Winnow Video (ffmpeg)"},
+  {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"},
+  {BUF_VIDEO_MPEG,        CODEC_ID_MPEG1VIDEO, "MPEG 1/2 (ffmpeg)"} };
+
+
 static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
+  int i;
+
+  /* find the decoder */
+  this->codec = NULL;
+
+  for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
+    if(ff_video_lookup[i].type == codec_type) {
+      this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
+      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
+                            ff_video_lookup[i].name);
+      break;
+    }
+
+  if (!this->codec) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+            _("ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"),
+            codec_type);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
+    return;
+  }
+
+  lprintf("lavc decoder found\n");
 
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv. 
@@ -232,6 +317,8 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
     return;
   }
+
+  lprintf("lavc decoder opened\n");
 
   this->decoder_ok = 1;
   
@@ -346,18 +433,12 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
   /*
    * init codec
    */
-  if (!this->decoder_ok) {
+  if (this->decoder_init_mode) {
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, 
                           "mpeg-1 (ffmpeg)");
 
-    this->codec = avcodec_find_decoder (CODEC_ID_MPEG1VIDEO); 
-    if (!this->codec) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
-               _("avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n"));
-      _x_abort();
-    }
-    
     init_video_codec (this, BUF_VIDEO_MPEG);
+    this->decoder_init_mode = 0;
   }
   
   /* frame format change */
@@ -669,65 +750,6 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
   }
 }
 
-
-static const ff_codec_t ff_video_lookup[] = {
-  {BUF_VIDEO_MSMPEG4_V1,  CODEC_ID_MSMPEG4V1, "Microsoft MPEG-4 v1 (ffmpeg)"},
-  {BUF_VIDEO_MSMPEG4_V2,  CODEC_ID_MSMPEG4V2, "Microsoft MPEG-4 v2 (ffmpeg)"},
-  {BUF_VIDEO_MSMPEG4_V3,  CODEC_ID_MSMPEG4V3, "Microsoft MPEG-4 v3 (ffmpeg)"},
-  {BUF_VIDEO_WMV7,        CODEC_ID_WMV1,      "MS Windows Media Video 7 (ffmpeg)"},
-  {BUF_VIDEO_WMV8,        CODEC_ID_WMV2,      "MS Windows Media Video 8 (ffmpeg)"},
-  {BUF_VIDEO_MPEG4,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
-  {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (XviD, ffmpeg)"},
-  {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (DivX5, ffmpeg)"},
-  {BUF_VIDEO_3IVX,        CODEC_ID_MPEG4,     "ISO MPEG-4 (3ivx, ffmpeg)"},
-  {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
-  {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
-  {BUF_VIDEO_MJPEG_B,     CODEC_ID_MJPEGB,    "Motion JPEG B (ffmpeg"},
-  {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
-  {BUF_VIDEO_H263,        CODEC_ID_H263,      "H.263 (ffmpeg)"},
-  {BUF_VIDEO_RV10,        CODEC_ID_RV10,      "Real Video 1.0 (ffmpeg)"},
-  {BUF_VIDEO_RV20,        CODEC_ID_RV20,      "Real Video 2.0 (ffmpeg)"},
-  {BUF_VIDEO_IV31,        CODEC_ID_INDEO3,    "Indeo Video 3.1 (ffmpeg)"},
-  {BUF_VIDEO_IV32,        CODEC_ID_INDEO3,    "Indeo Video 3.2 (ffmpeg)"},
-  {BUF_VIDEO_SORENSON_V1, CODEC_ID_SVQ1,      "Sorenson Video 1 (ffmpeg)"},
-  {BUF_VIDEO_SORENSON_V3, CODEC_ID_SVQ3,      "Sorenson Video 3 (ffmpeg)"},
-  {BUF_VIDEO_DV,          CODEC_ID_DVVIDEO,   "DV (ffmpeg)"},
-  {BUF_VIDEO_HUFFYUV,     CODEC_ID_HUFFYUV,   "HuffYUV (ffmpeg)"},
-  {BUF_VIDEO_VP31,        CODEC_ID_VP3,       "On2 VP3.1 (ffmpeg)"},
-  {BUF_VIDEO_4XM,         CODEC_ID_4XM,       "4X Video (ffmpeg)"},
-  {BUF_VIDEO_CINEPAK,     CODEC_ID_CINEPAK,   "Cinepak (ffmpeg)"},
-  {BUF_VIDEO_MSVC,        CODEC_ID_MSVIDEO1,  "Microsoft Video 1 (ffmpeg)"},
-  {BUF_VIDEO_MSRLE,       CODEC_ID_MSRLE,     "Microsoft RLE (ffmpeg)"},
-  {BUF_VIDEO_RPZA,        CODEC_ID_RPZA,      "Apple Quicktime Video/RPZA (ffmpeg)"},
-  {BUF_VIDEO_CYUV,        CODEC_ID_CYUV,      "Creative YUV (ffmpeg)"},
-  {BUF_VIDEO_ROQ,         CODEC_ID_ROQ,       "Id Software RoQ (ffmpeg)"},
-  {BUF_VIDEO_IDCIN,       CODEC_ID_IDCIN,     "Id Software CIN (ffmpeg)"},
-  {BUF_VIDEO_WC3,         CODEC_ID_XAN_WC3,   "Xan (ffmpeg)"},
-  {BUF_VIDEO_VQA,         CODEC_ID_WS_VQA,    "Westwood Studios VQA (ffmpeg)"},
-  {BUF_VIDEO_INTERPLAY,   CODEC_ID_INTERPLAY_VIDEO, "Interplay MVE (ffmpeg)"},
-  {BUF_VIDEO_FLI,         CODEC_ID_FLIC,      "FLIC Video (ffmpeg)"},
-  {BUF_VIDEO_8BPS,        CODEC_ID_8BPS,      "Planar RGB (ffmpeg)"},
-  {BUF_VIDEO_SMC,         CODEC_ID_SMC,       "Apple Quicktime Graphics/SMC (ffmpeg)"},
-  {BUF_VIDEO_DUCKTM1,     CODEC_ID_TRUEMOTION1,"Duck TrueMotion v1 (ffmpeg)"},
-  {BUF_VIDEO_VMD,         CODEC_ID_VMDVIDEO,   "Sierra VMD Video (ffmpeg)"},
-  {BUF_VIDEO_ZLIB,        CODEC_ID_ZLIB,       "ZLIB Video (ffmpeg)"},
-  {BUF_VIDEO_MSZH,        CODEC_ID_MSZH,       "MSZH Video (ffmpeg)"},
-  {BUF_VIDEO_ASV1,        CODEC_ID_ASV1,       "ASV v1 Video (ffmpeg)"},
-  {BUF_VIDEO_ASV2,        CODEC_ID_ASV2,       "ASV v2 Video (ffmpeg)"},
-  {BUF_VIDEO_ATIVCR1,     CODEC_ID_VCR1,       "ATI VCR-1 (ffmpeg)"},
-  {BUF_VIDEO_FLV1,        CODEC_ID_FLV1,       "Flash Video (ffmpeg)"},
-  {BUF_VIDEO_QTRLE,       CODEC_ID_QTRLE,      "Apple Quicktime Animation/RLE (ffmpeg)"},
-  {BUF_VIDEO_H264,        CODEC_ID_H264,       "H.264/AVC (ffmpeg)"},
-  {BUF_VIDEO_H261,        CODEC_ID_H261,       "H.261 (ffmpeg)"},
-  {BUF_VIDEO_AASC,        CODEC_ID_AASC,       "Autodesk Video (ffmpeg)"},
-  {BUF_VIDEO_LOCO,        CODEC_ID_LOCO,       "LOCO (ffmpeg)"},
-  {BUF_VIDEO_QDRW,        CODEC_ID_QDRAW,      "QuickDraw (ffmpeg)"},
-  {BUF_VIDEO_QPEG,        CODEC_ID_QPEG,       "Q-Team QPEG (ffmpeg)"},
-  {BUF_VIDEO_TSCC,        CODEC_ID_TSCC,       "TechSmith Video (ffmpeg)"},
-  {BUF_VIDEO_ULTI,        CODEC_ID_ULTI,       "IBM UltiMotion (ffmpeg)"},
-  {BUF_VIDEO_WNV1,        CODEC_ID_WNV1,       "Winnow Video (ffmpeg)"},
-  {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"} };
-
 static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
   if (size > this->bufsize) {
     this->bufsize = size + size / 2;
@@ -746,10 +768,15 @@ static void ff_handle_preview_buffer (ff_video_decoder_t *this, buf_element_t *b
   codec_type = buf->type & 0xFFFF0000;
   if (codec_type == BUF_VIDEO_MPEG)
     this->is_mpeg12 = 1;
+
+  if (this->decoder_init_mode && !this->is_mpeg12) {
+    init_video_codec(this, codec_type);
+    init_postprocess(this);
+    this->decoder_init_mode = 0;
+  }
 }
 
 static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
-  int i;
 
   lprintf ("header buffer\n");
 
@@ -763,25 +790,6 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
     lprintf ("header complete\n");
     codec_type = buf->type & 0xFFFF0000;
-
-    /* init codec */
-    this->codec = NULL;
-
-    for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
-      if(ff_video_lookup[i].type == codec_type) {
-        this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
-        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
-                              ff_video_lookup[i].name);
-        break;
-      }
-
-    if (!this->codec) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
-              _("ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"),
-              codec_type);
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
-      return;
-    }
 
     if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 
@@ -812,6 +820,9 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
         this->context->slice_offset = xine_xmalloc(sizeof(int)*SLICE_OFFSET_SIZE);
         this->slice_offset_size     = SLICE_OFFSET_SIZE;
+
+	lprintf("w=%d, h=%d\n", this->bih.biWidth, this->bih.biHeight);
+
         break;
       default:
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -819,9 +830,6 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
         return;
       }
     }
-
-    init_video_codec(this, codec_type);
-    init_postprocess(this);
 
     /* reset accumulator */
     this->size = 0;
@@ -861,6 +869,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
     AVPaletteControl *decoder_palette;
     
     lprintf("BUF_SPECIAL_PALETTE\n");
+    this->context->palctrl = &this->palette_control;
     decoder_palette = (AVPaletteControl *)this->context->palctrl;
     demuxer_palette = (palette_entry_t *)buf->decoder_info_ptr[2];
 
@@ -886,7 +895,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
     for(i = 0; i < this->context->slice_count; i++)
       this->context->slice_offset[i] = 
         ((uint32_t *) buf->decoder_info_ptr[2])[(2*i)+1];
-  
+
   }
 }
 
@@ -923,6 +932,9 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     if (this->mpeg_parser.has_sequence) {
       ff_handle_mpeg_sequence(this, &this->mpeg_parser);
     }
+
+    if (!this->decoder_ok)
+      return;
     
     if (flush) {
       lprintf("flush lavc buffers\n");
@@ -1009,10 +1021,25 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
   uint8_t *chunk_buf;
 
-  lprintf("handler_buffer\n");
+  lprintf("handle_buffer\n");
 
-  if (!this->decoder_ok)
-    return;
+  if (!this->decoder_ok) {
+    if (this->decoder_init_mode) {
+      int codec_type = buf->type & 0xFFFF0000;
+
+      /* init ffmpeg decoder */
+      init_video_codec(this, codec_type);
+      init_postprocess(this);
+      this->decoder_init_mode = 0;
+    } else {
+      return;
+    }
+  }
+
+  if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
+    lprintf("BUF_FLAG_FRAME_START\n");
+    this->size = 0;
+  }
 
   /* data accumulation */
   if ((this->size == 0) &&
@@ -1044,7 +1071,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     /* pad input data */
     chunk_buf[this->size] = 0;
 
-    while (this->size > 0){
+    while (this->size > 0) {
       
       /* DV frames can be completely skipped */
       if( codec_type == BUF_VIDEO_DV && this->skipframes ) {
@@ -1092,6 +1119,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 	        (this->context->pix_fmt == PIX_FMT_PAL8)) {
 	      this->output_format = XINE_IMGFMT_YUY2;
 	      init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
+	      this->yuv_init = 1;
 	    }
 	    this->cs_convert_init = 1;
 	  }
@@ -1186,7 +1214,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
            buf->type, buf->size, buf->decoder_flags);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-
+  
     ff_handle_preview_buffer(this, buf);
 
   } else {
@@ -1286,11 +1314,7 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if(this->context && this->context->extradata)
     free(this->context->extradata);
 
-  if((this->context) && 
-   ((this->context->pix_fmt == PIX_FMT_RGBA32) ||
-    (this->context->pix_fmt == PIX_FMT_RGB565) ||
-    (this->context->pix_fmt == PIX_FMT_RGB555) ||
-    (this->context->pix_fmt == PIX_FMT_PAL8)))
+  if(this->yuv_init)
     free_yuv_planes(&this->yuv);
   
   if( this->context )
@@ -1330,21 +1354,22 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->stream                            = stream;
   this->class                             = (ff_video_class_t *) class_gen;
 
-  this->av_frame        = avcodec_alloc_frame();
-  this->context         = avcodec_alloc_context();
-  this->context->opaque = this;
-  this->context->palctrl = &this->palette_control;
+  this->av_frame          = avcodec_alloc_frame();
+  this->context           = avcodec_alloc_context();
+  this->context->opaque   = this;
+  this->context->palctrl  = NULL;
   
-  this->decoder_ok    = 0;
-  this->buf           = xine_xmalloc(VIDEOBUFSIZE + FF_INPUT_BUFFER_PADDING_SIZE);
-  this->bufsize       = VIDEOBUFSIZE;
+  this->decoder_ok        = 0;
+  this->decoder_init_mode = 1;
+  this->buf               = xine_xmalloc(VIDEOBUFSIZE + FF_INPUT_BUFFER_PADDING_SIZE);
+  this->bufsize           = VIDEOBUFSIZE;
 
-  this->is_mpeg12    = 0;
-  this->aspect_ratio = 0;
+  this->is_mpeg12         = 0;
+  this->aspect_ratio      = 0;
 
-  this->pp_quality  = 0;
-  this->pp_context  = NULL;
-  this->pp_mode     = NULL;
+  this->pp_quality        = 0;
+  this->pp_context        = NULL;
+  this->pp_mode           = NULL;
   
   mpeg_parser_init(&this->mpeg_parser);
 
