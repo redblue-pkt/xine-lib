@@ -40,6 +40,7 @@ xine-lib (1.0.1)
   * improved plugin loader to allow plugin garbage collection and more
     flexible plugin linking
   * support for Windows Media Audio Lossless
+  * fixed xxmc / xvmc mocomp / IDCT rendering errors caused by the big update. 
 
 xine-lib (1.0)
   * unbreak DXR3 plugin

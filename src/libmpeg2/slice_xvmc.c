@@ -1663,7 +1663,8 @@ static inline int slice_xvmc_init (picture_t * picture, int code)
     picture->limit_y = height - 16;
 
     //TODO conversion to signed format signed format
-    if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
+    if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL &&
+       !(picture->mc->xvmc_accel & SIGNED_INTRA)) {
       //Motion Comp only unsigned intra
       // original:
       picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
@@ -1920,7 +1921,8 @@ void mpeg2_xvmc_slice (mpeg2dec_accel_t *accel, picture_t * picture, int code, u
 					 picture->pitches[2]); // cc2 croma
 	    }
 
-            if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
+            if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL &&
+	       !(picture->mc->xvmc_accel & SIGNED_INTRA)) {
 	        // original:
 	        picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
 		    picture->dc_dct_pred[2] = 128 << picture->intra_dc_precision;
@@ -1977,7 +1979,8 @@ void mpeg2_xvmc_slice (mpeg2dec_accel_t *accel, picture_t * picture, int code, u
 	mba_inc += mba->mba;
 	if (mba_inc) {
 	    //TODO  conversion to signed format signed format
-          if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
+          if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL &&
+	     !(picture->mc->xvmc_accel & SIGNED_INTRA)) {
 	    // original:
 	    picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
 	      picture->dc_dct_pred[2] = 128 << picture->intra_dc_precision;

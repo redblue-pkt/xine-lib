@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.13 2005/04/09 11:47:43 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.14 2005/04/26 09:03:05 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -42,7 +42,8 @@
 #include <unistd.h>
 
 static int gX11Fail;
-static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame);
+static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame, 
+			       int init_macroblocks);
 static void dispose_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 			    XvImage *myimage);
 
@@ -409,7 +410,7 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
   this->format = original->format;
   this->ratio = original->ratio;
   
-  xxmc_frame_updates(driver,this); 
+  xxmc_frame_updates(driver,this,0); 
 
   /*
    * Allocate a dummy subpicture and copy using 
@@ -962,7 +963,8 @@ static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame,
 }
 
 static void xxmc_frame_updates(xxmc_driver_t *driver, 
-			       xxmc_frame_t *frame)
+			       xxmc_frame_t *frame, 
+			       int init_macroblocks)
 {
   xine_xxmc_t *xxmc = &frame->xxmc_data;
 
@@ -1009,6 +1011,13 @@ static void xxmc_frame_updates(xxmc_driver_t *driver,
     break;
   default:
     xxmc->xvmc.macroblocks->xvmc_accel = 0;
+  }
+
+  if (init_macroblocks) {
+    driver->macroblocks.num_blocks = 0;
+    driver->macroblocks.macroblockptr = driver->macroblocks.macroblockbaseptr;
+    driver->macroblocks.xine_mc.blockptr = 
+      driver->macroblocks.xine_mc.blockbaseptr;
   }
 
   xxmc->proc_xxmc_flush = xvmc_flush;
@@ -1121,7 +1130,7 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
     } 
 
     if (this->contextActive) 
-      xxmc_frame_updates(this, frame);
+      xxmc_frame_updates(this, frame, 1);
 
     xxmc_do_update_frame_xv(this_gen, frame_gen, width, height, ratio, 
 			    xxmc->fallback_format, flags);

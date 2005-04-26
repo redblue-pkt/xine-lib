@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.21 2005/02/22 18:31:55 totte67 Exp $
+ * $Id: video_out_xvmc.c,v 1.22 2005/04/26 09:03:04 totte67 Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -786,6 +786,12 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
   }
 
   xvmc->macroblocks = (xine_macroblocks_t *)&this->macroblocks;
+  this->macroblocks.num_blocks = 0;
+  this->macroblocks.macroblockptr = this->macroblocks.macroblockbaseptr;
+  this->macroblocks.xine_mc.blockptr = 
+    this->macroblocks.xine_mc.blockbaseptr;
+
+  
   if( flags & VO_NEW_SEQUENCE_FLAG ) {
     xvmc_set_context (this, width, height, ratio, format, flags,
                       xvmc->macroblocks);
