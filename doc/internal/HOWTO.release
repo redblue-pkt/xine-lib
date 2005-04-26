@@ -102,7 +102,7 @@ hands.
 7) Tag the release: cvs tag -R xine-1_2_3-release
    (this would be the tag for xine-lib-1.2.3, for example)
 
-8) upload the tarball to ftp:/upload.sf.net/incoming
+8) upload the tarball to ftp://upload.sf.net/incoming
    note: you can start the upload while CVS is tagging
 
 9) Write release notes: Read through the ChangeLog, try to look at any
