@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.46 2005/04/26 20:23:13 tmattern Exp $
+ * $Id: video_decoder.c,v 1.47 2005/04/26 21:11:35 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -299,10 +299,6 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
   this->context->stream_codec_tag = this->context->codec_tag = 
     _x_stream_info_get(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC);
 
-  /* some decoders (eg. dv) do not know the pix_fmt until they decode the
-   * first frame. setting to -1 avoid enabling DR1 for them.
-   */
-  this->context->pix_fmt = -1;
 
   /* Some codecs (eg rv10) copy flags in init so it's necessary to set
    * this flag here in case we are going to use direct rendering */
@@ -885,6 +881,8 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
   
     lprintf("BUF_SPECIAL_RV_CHUNK_TABLE\n");
     this->context->slice_count = buf->decoder_info[2]+1;
+
+    lprintf("slice_count=%d\n", this->context->slice_count);
     
     if(this->context->slice_count > this->slice_offset_size) {
       this->context->slice_offset = realloc(this->context->slice_offset,
@@ -892,10 +890,11 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
       this->slice_offset_size = this->context->slice_count;
     }
     
-    for(i = 0; i < this->context->slice_count; i++)
+    for(i = 0; i < this->context->slice_count; i++) {
       this->context->slice_offset[i] = 
         ((uint32_t *) buf->decoder_info_ptr[2])[(2*i)+1];
-
+      lprintf("slice_offset[%d]=%d\n", i, this->context->slice_offset[i]);
+    }
   }
 }
 
@@ -1019,7 +1018,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 }
 
 static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
-  uint8_t *chunk_buf;
+  uint8_t *chunk_buf = this->buf;
 
   lprintf("handle_buffer\n");
 
@@ -1042,22 +1041,23 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
   }
 
   /* data accumulation */
-  if ((this->size == 0) &&
-      ((buf->size + FF_INPUT_BUFFER_PADDING_SIZE) < buf->max_size) && 
-      (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
-    /* buf contains a complete frame */
-    /* no memcpy needed */
-    chunk_buf = buf->content;
-    this->size = buf->size;
-    lprintf("no memcpy needed to accumulate data\n");
-  } else {
-    /* copy */
-    ff_check_bufsize(this, this->size + buf->size + FF_INPUT_BUFFER_PADDING_SIZE);
-    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
-
-    chunk_buf = this->buf;
-    this->size += buf->size;
-    lprintf("accumulate data into this->buf\n");
+  if (buf->size > 0) {
+    if ((this->size == 0) &&
+	((buf->size + FF_INPUT_BUFFER_PADDING_SIZE) < buf->max_size) && 
+	(buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+      /* buf contains a complete frame */
+      /* no memcpy needed */
+      chunk_buf = buf->content;
+      this->size = buf->size;
+      lprintf("no memcpy needed to accumulate data\n");
+    } else {
+      /* copy */
+      ff_check_bufsize(this, this->size + buf->size + FF_INPUT_BUFFER_PADDING_SIZE);
+      xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+      
+      this->size += buf->size;
+      lprintf("accumulate data into this->buf\n");
+    }
   }
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
