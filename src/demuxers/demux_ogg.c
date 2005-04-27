@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.163 2005/02/14 06:25:59 conrad Exp $
+ * $Id: demux_ogg.c,v 1.164 2005/04/27 17:56:07 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -226,7 +226,10 @@ static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos )
     granuleshift = this->si[stream_num]->granuleshift;
     iframe = granulepos >> granuleshift;
     pframe = granulepos - (iframe << granuleshift);
-    return 1+((iframe+pframe) * this->si[stream_num]->factor / this->si[stream_num]->quotient);
+    if (this->si[stream_num]->quotient)
+      return 1+((iframe+pframe) * this->si[stream_num]->factor / this->si[stream_num]->quotient);
+    else
+      return 0;
   } else if (this->si[stream_num]->quotient)
     return 1+(granulepos * this->si[stream_num]->factor / this->si[stream_num]->quotient);
   else
@@ -1139,9 +1142,14 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
     this->num_video_streams++;
 
     this->si[stream_num]->factor = (int64_t) 90000 * (int64_t) this->t_info.fps_denominator;
+
+    if (!this->t_info.fps_numerator) {
+      this->t_info.fps_numerator = 1;   /* FIXME: default value ? */
+    }
     this->si[stream_num]->quotient = this->t_info.fps_numerator;
 
-    this->frame_duration = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
+    this->frame_duration = ((int64_t) 90000*this->t_info.fps_denominator);
+    this->frame_duration /= this->t_info.fps_numerator;
 
     this->si[stream_num]->granuleshift = intlog(this->t_info.keyframe_frequency_force-1);
 
@@ -1151,13 +1159,15 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->t_info.frame_width);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->t_info.frame_height);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
-                       ((int64_t) 90000 * this->t_info.fps_denominator) / this->t_info.fps_numerator);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->frame_duration);
 
     /*currently aspect_nominator and -denumerator are 0?*/
-    if (this->t_info.aspect_denominator)
-      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,
-                         ((int64_t) this->t_info.aspect_numerator * 10000) / this->t_info.aspect_denominator);
+    if (this->t_info.aspect_denominator) {
+      int64_t ratio = ((int64_t) this->t_info.aspect_numerator * 10000);
+
+      ratio /= this->t_info.aspect_denominator;
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, ratio);
+    }
 
     lprintf ("decoded theora header \n");
     lprintf ("frameduration %d\n",this->frame_duration);
