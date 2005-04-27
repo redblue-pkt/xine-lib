@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.36 2005/04/17 14:55:35 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.37 2005/04/27 23:28:42 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -77,7 +77,6 @@
 
 #include "vcdplayer.h"
 #include "vcdio.h"
-
 
 /* A xine define. */
 #ifndef BUF_DEMUX_BLOCK
@@ -909,7 +908,7 @@ static int
 vcd_class_eject_media (input_class_t *this_gen) 
 {
   int ret;
-  CdIo *cdio=vcdinfo_get_cd_image(my_vcd.player.vcd);
+  CdIo_t *cdio=vcdinfo_get_cd_image(my_vcd.player.vcd);
   
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
   if (NULL == cdio) return 0;
@@ -1685,7 +1684,7 @@ vcd_init (xine_t *xine, void *data)
       enumeration vcdplayer_autoplay_t in vcdplayer.h. 
     */
     static const char *autoplay_modes[] = 
-      { "track", "entry", "segment",  "playlist", NULL };
+      { "MPEG track", "entry", "segment",  "playback-control item", NULL };
     
     /*Note: these labels have to be listed in the same order as the
       enumeration vcdplayer_slider_length_t in vcdplayer.h. 

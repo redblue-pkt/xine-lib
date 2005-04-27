@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.15 2005/01/08 15:12:42 rockyb Exp $
+  $Id: vcdplayer.c,v 1.16 2005/04/27 23:28:41 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -467,7 +467,7 @@ _vcdplayer_set_entry(vcdplayer_t *p_vcdplayer, unsigned int num)
 
     _vcdplayer_set_origin(p_vcdplayer);
 
-    dbg_print(INPUT_DBG_LSN, "LSN: %u, track_end LSN: %u\n", 
+    dbg_print((INPUT_DBG_LSN|INPUT_DBG_PBC), "LSN: %u, track_end LSN: %u\n", 
               p_vcdplayer->i_lsn, p_vcdplayer->track_end_lsn);
   }
 }
@@ -909,7 +909,7 @@ vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf,
   */
 
   {
-    CdIo *p_img = vcdinfo_get_cd_image(p_vcdplayer->vcd);
+    CdIo_t *p_img = vcdinfo_get_cd_image(p_vcdplayer->vcd);
     typedef struct {
       uint8_t subheader	[CDIO_CD_SUBHEADER_SIZE];
       uint8_t data	[M2F2_SECTOR_SIZE];
