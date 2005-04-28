@@ -95,9 +95,6 @@ binary-arch: build install
 	#use this dh_install line, and remove debian/tmp/ from *.install!
 	#dh_install --autodest --sourcedir=debian/tmp --list-missing
 	dh_install --autodest
-	# correct locations of some documentation files (bug 303463)
-	mv debian/libxine1/usr/share/doc/xine debian/libxine1/usr/share/doc/libxine1
-	mv debian/libxine-dev/usr/share/doc/xine debian/libxine-dev/usr/share/doc/libxine-dev
 	dh_installdocs
 	dh_installchangelogs -k ChangeLog
 	dh_link
