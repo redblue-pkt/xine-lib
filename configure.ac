@@ -560,15 +560,20 @@ dnl Check if we can enable the xxmc plugin.
 dnl
 if test x$no_x = "x"; then
 
+
 AC_ARG_WITH(xxmc-path, AC_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
 	xxmc plugin are  installed. Defalts to the default X library path.]),
 	xxmc_path="$withval", xxmc_path="$x_libraries")
 AC_ARG_WITH(xxmc-lib, AC_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the XvMC library 
 	libXXXX.so for the xxmc plugin.]),xxmc_stub="$withval", 
 	xxmc_stub="XvMCW")
+
 saved_libs="$LIBS"
 saved_CPPFLAGS="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS -I$x_includes"
+if test x$x_includes != "x"; then
+	CPPFLAGS="$CPPFLAGS -I$x_includes"
+fi
+
 XXMC_LIB="-L$xxmc_path -l$xxmc_stub"
 AC_MSG_CHECKING(whether to enable the xxmc plugin with vld extensions)
 AC_MSG_RESULT()
@@ -593,7 +598,7 @@ else
 fi
 
 if test x$ac_have_xxmc = "xyes"; then
-  AC_CHECK_HEADERS($x_includes/X11/extensions/vldXvMC.h,
+  AC_CHECK_HEADERS(X11/extensions/vldXvMC.h,
      [ac_have_vldxvmc_h="yes"],
      ac_have_xxmc="no",)
   if test "x$ac_have_vldxvmc_h" = "xyes"; then
@@ -623,7 +628,7 @@ if test x$ac_have_xxmc = "xno"; then
   fi
 fi
 if test x$ac_have_xxmc = "xyes"; then
-  AC_CHECK_HEADERS($x_includes/X11/extensions/XvMC.h,,
+  AC_CHECK_HEADERS(X11/extensions/XvMC.h,,
      ac_have_xxmc="no",)
 fi
 if test x$ac_have_xxmc = "xyes"; then
@@ -676,7 +681,7 @@ else
     fi  
 fi
 if test x$ac_have_xvmc = "xyes"; then
-  AC_CHECK_HEADERS($x_includes/X11/extensions/XvMC.h,,
+  AC_CHECK_HEADERS(X11/extensions/XvMC.h,,
      ac_have_xvmc="no",)
 fi
 if test x$ac_have_xvmc = "xyes"; then
