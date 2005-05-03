@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
-# $Id: autogen.sh,v 1.16 2004/10/08 20:22:29 mroi Exp $
+# $Id: autogen.sh,v 1.17 2005/05/03 18:44:29 dsalt Exp $
 #
 # Maintained by Stephen Torri <storri@users.sourceforge.net>
 #
@@ -297,6 +297,6 @@ case "$1" in
     run_autoheader
     run_automake
     run_autoconf
-    run_configure $@
+    run_configure "$@"
     ;;
 esac
