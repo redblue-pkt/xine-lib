@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.22 2005/04/26 09:03:04 totte67 Exp $
+ * $Id: video_out_xvmc.c,v 1.23 2005/05/03 19:25:11 totte67 Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -790,8 +790,6 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
   this->macroblocks.macroblockptr = this->macroblocks.macroblockbaseptr;
   this->macroblocks.xine_mc.blockptr = 
     this->macroblocks.xine_mc.blockbaseptr;
-
-  
   if( flags & VO_NEW_SEQUENCE_FLAG ) {
     xvmc_set_context (this, width, height, ratio, format, flags,
                       xvmc->macroblocks);
@@ -849,7 +847,7 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
       blend_yuv(frame->vo_frame.base, overlay, 
 		frame->width, frame->height, frame->vo_frame.pitches,
                 &this->alphablend_extra_data);
-    else
+    else if (frame->format != XINE_IMGFMT_XVMC)
       blend_yuy2(frame->vo_frame.base[0], overlay, 
 		 frame->width, frame->height, frame->vo_frame.pitches[0],
                  &this->alphablend_extra_data);

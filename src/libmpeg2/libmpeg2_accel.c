@@ -75,7 +75,7 @@ libmpeg2_accel_new_sequence(mpeg2dec_accel_t *accel, uint32_t frame_format, pict
 
 int
 libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format, 
-			 picture_t *picture, double ratio)
+			 picture_t *picture, double ratio, uint32_t flags)
 {  
   if (picture->current_frame) {
     if (XINE_IMGFMT_XXMC == frame_format) {
@@ -98,7 +98,7 @@ libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format,
        */
 
       if ( picture->picture_structure != 3 ) {
-	xxmc->acceleration &= ~( XINE_XVMC_ACCEL_IDCT | XINE_XVMC_ACCEL_MOCOMP );
+	xxmc->acceleration &= ~( /* XINE_XVMC_ACCEL_IDCT | */ XINE_XVMC_ACCEL_MOCOMP );
       } 
 
       xxmc->mpeg = (picture->mpeg1) ? XINE_XVMC_MPEG_1:XINE_XVMC_MPEG_2;
@@ -107,7 +107,7 @@ libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format,
 				    picture->coded_picture_width,
 				    picture->coded_picture_height,
 				    ratio,
-				    XINE_IMGFMT_XXMC, picture->picture_structure);
+				    XINE_IMGFMT_XXMC, flags);
     }
   }
   return 0;
@@ -150,6 +150,29 @@ int
 libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, 
 		     int code, char * buffer, uint32_t chunk_size, uint8_t *chunk_buffer)
 {
+  /*
+   * Don't reference frames of other formats. They are invalid. This may happen if the 
+   * xxmc plugin suddenly falls back to software decoding.
+   */
+
+  if (( picture->current_frame->picture_coding_type == XINE_PICT_P_TYPE ) ||
+      ( picture->current_frame->picture_coding_type == XINE_PICT_B_TYPE )) {
+    if (! picture->forward_reference_frame) return 1;
+    if (picture->forward_reference_frame->format != picture->current_frame->format) {
+      picture->v_offset = 0;
+      return 1;
+    }
+  }
+
+  if ( picture->current_frame->picture_coding_type == XINE_PICT_B_TYPE ) {
+    if (! picture->backward_reference_frame) return 1;
+    if (picture->backward_reference_frame->format != picture->current_frame->format) {
+      picture->v_offset = 0;
+      return 1;
+    }
+  }
+      
+
   switch( frame_format ) {
   case XINE_IMGFMT_XXMC:
     {

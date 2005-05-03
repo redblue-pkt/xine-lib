@@ -4,6 +4,8 @@ xine-lib (1.0.2)
   * fixed xxmc / xvmc mocomp / IDCT rendering errors caused by the big update. 
   * support --enable-fpic with recent versions of gcc
   * clip goom fps value to >= 1 [bug #1193783]
+  * fixed xvmc plugin segfault when it tried software blending on nonexistant xv image.
+  * cleaned up libmpeg2 behaviour on xxmc plugin abrupt software fallback
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

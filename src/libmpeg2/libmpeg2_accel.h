@@ -38,7 +38,7 @@ typedef struct {
 
 extern int libmpeg2_accel_discontinuity(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture);
 extern int libmpeg2_accel_new_sequence(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture);
-extern int libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, double ratio);
+extern int libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, double ratio, uint32_t flags);
 extern void libmpeg2_accel_frame_completion(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, int code);
 
 extern int libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, 

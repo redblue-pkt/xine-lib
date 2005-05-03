@@ -508,7 +508,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     mpeg2dec->frame_format,
 						     flags);
 		    libmpeg2_accel_new_frame( &mpeg2dec->accel, mpeg2dec->frame_format,
-					      picture, ratio);
+					      picture, ratio, flags);
 		} else {
                     ratio = get_aspect_ratio(mpeg2dec);
 		    picture->current_frame =
@@ -520,7 +520,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     flags);
 
 		    libmpeg2_accel_new_frame( &mpeg2dec->accel, mpeg2dec->frame_format,
-					      picture, ratio);
+					      picture, ratio, flags);
 
 		    if (picture->forward_reference_frame &&
 		        picture->forward_reference_frame != picture->backward_reference_frame)
@@ -664,6 +664,7 @@ void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec) {
   if( !picture )
     return;
   
+  mpeg2dec->in_slice = 0;
   mpeg2dec->pts = 0;  
   if ( picture->current_frame )
     picture->current_frame->pts = 0;
