@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.56 2004/12/12 22:01:26 mroi Exp $
+ * $Id: xine_goom.c,v 1.57 2005/05/03 01:31:13 dsalt Exp $
  *
  * GOOM post plugin.
  *
@@ -145,9 +145,13 @@ static void fps_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   
   if(class->ip) {
     post_plugin_goom_t *this = class->ip;
+
+    if (cfg->num_value < 1)
+      cfg->num_value = 1;
+
     this->fps = cfg->num_value;
 
-    if(this->sample_rate && this->fps)
+    if(this->sample_rate)
       this->samples_per_frame = this->sample_rate / this->fps;
   }
 }
