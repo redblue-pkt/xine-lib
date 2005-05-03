@@ -1590,6 +1590,7 @@ dnl dummy
 ASFLAGS="$ASFLAGS"
 AC_SUBST(ASFLAGS)
  
+INLINE_FUNCTIONS=-finline-functions
 
 if test "$GCC" = yes; then
     dnl
@@ -1639,6 +1640,17 @@ if test "$GCC" = yes; then
     AC_TRY_COMPILE([#include <string.h>],[int a; memset(&a, 0, sizeof(int));],
 	[AC_MSG_RESULT(yes); CFLAGS="-Wpointer-arith $SAVE_CFLAGS"],
 	[AC_MSG_RESULT(no);  CFLAGS="$SAVE_CFLAGS"]);
+
+    dnl gcc 3.3.5 (at least) is known to be buggy wrt optimisation and
+    dnl -finline-functions. Use -fno-inline-functions for gcc < 3.4.0.
+
+    AC_MSG_CHECKING(for gcc 3.4.0 or later)
+    newGCC="`"$CC" -dumpversion |
+	     awk 'BEGIN { FS = "." };
+		  1 { if (($1 * 10000 + $2 * 100 + $3) >= 30400) { print "yes" } }'
+	    `"
+    AC_MSG_RESULT(${newGCC:-no - assuming bugginess in -finline-functions})
+    test "$newGCC" = yes || INLINE_FUNCTIONS=-fno-inline-functions
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -1659,7 +1671,7 @@ enable_armv4l="no"
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
-    CFLAGS="-pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
+    CFLAGS="-pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
     AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
     AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
@@ -1694,7 +1706,8 @@ case "$host_or_hostalias" in
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
 	dnl add x86 specific gcc CFLAGS
-	CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
+	CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
+	
 
 	DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
 
@@ -1810,7 +1823,7 @@ case "$host_or_hostalias" in
   *darwin*)
     HOST_OS_DARWIN=1
     AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
-    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
+    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
     DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     
     dnl avoid ppc compilation crash
@@ -1834,7 +1847,7 @@ case "$host_or_hostalias" in
     ;;
 
   ppc-*-linux* | powerpc-*) 
-    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
+    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
     DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     dnl avoid ppc compilation crash
     AS="$CC"
@@ -1859,8 +1872,8 @@ case "$host_or_hostalias" in
     ;;
     esac
 
-    CFLAGS="-O3 $cpu_cflags -funroll-loops -finline-functions $CFLAGS"
-    DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops -finline-functions $DEBUG_CFLAGS"
+    CFLAGS="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
+    DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $DEBUG_CFLAGS"
 
     AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
@@ -1892,8 +1905,8 @@ case "$host_or_hostalias" in
 	*)     cpu_cflags= ;;
 	esac
 
-	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -finline-functions"
-	cc_debug_cflags="-O $cpu_cflags -funroll-loops -finline-functions"
+	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
+	cc_debug_cflags="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
 
         AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
         AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
@@ -1947,7 +1960,7 @@ case "$host_or_hostalias" in
     ;;
 
   x86_64-*)
-    CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
+    CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
     DEBUG_CFLAGS="-O0 -g $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
     AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
@@ -1961,7 +1974,7 @@ case "$host_or_hostalias" in
 
   armv4l-*-linux*)
     CFLAGS="-O2 -fsigned-char -ffast-math -mcpu=strongarm1100 -fomit-frame-pointer -fthread-jumps -fregmove $CFLAGS"
-    dnl    CFLAGS="-O1 -fforce-mem -fforce-addr -fthread-jumps -fcse-follow-jumps -fcse-skip-blocks -fexpensive-optimizations -fregmove -fschedule-insns2 -finline-functions -fsigned-char -fomit-frame-pointer -march=armv4 -mtune=strongarm $CFLAGS"
+    dnl    CFLAGS="-O1 -fforce-mem -fforce-addr -fthread-jumps -fcse-follow-jumps -fcse-skip-blocks -fexpensive-optimizations -fregmove -fschedule-insns2 $INLINE_FUNCTIONS -fsigned-char -fomit-frame-pointer -march=armv4 -mtune=strongarm $CFLAGS"
     DEBUG_CFLAGS="-O2 $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_ARM,,[Define to select libmad fixed point arithmetic implementation])
     enable_armv4l="yes"
