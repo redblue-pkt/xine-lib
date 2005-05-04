@@ -10,6 +10,8 @@ xine-lib (1.0.2)
   * fix xxmc plugin wanting to change vld xvmc context when stream changes from
     non-interlaced to interlaced [bug #1194350]
   * speed up xx44 alphablending of large transparent areas
+  * stop libmpeg2 XvMC IDCT / MOCOMP attempting software motion compensation
+    [bug #1194754]
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

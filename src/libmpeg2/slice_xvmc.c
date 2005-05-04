@@ -1122,33 +1122,6 @@ static inline void slice_xvmc_non_intra_DCT (picture_t * picture, uint8_t * dest
     picture->mc->blockptr += 64;
 }
 
-#define MOTION(table,ref,motion_x,motion_y,size,y)			      \
-  if(!picture->mc->xvmc_accel) {                                              \
-    pos_x = 2 * picture->offset + motion_x;				      \
-    pos_y = 2 * picture->v_offset + motion_y + 2 * y;			      \
-    if ((pos_x > picture->limit_x) || (pos_y > picture->limit_y_ ## size))    \
-	return;								      \
-    xy_half = ((pos_y & 1) << 1) | (pos_x & 1);				      \
-    table[xy_half] (picture->dest[0] + y * picture->pitches[0] +	      \
-		    picture->offset, ref[0] + (pos_x >> 1) +		      \
-		    (pos_y >> 1) * picture->pitches[0], picture->pitches[0],  \
-		    size);						      \
-    motion_x /= 2;	motion_y /= 2;					      \
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);			      \
-    table[4+xy_half] (picture->dest[1] + y/2 * picture->pitches[1] +	      \
-		      (picture->offset >> 1), ref[1] +			      \
-		      (((picture->offset + motion_x) >> 1) +		      \
-		       ((((picture->v_offset + motion_y) >> 1) + y/2) *	      \
-		        picture->pitches[1])), picture->pitches[1], size/2);  \
-    table[4+xy_half] (picture->dest[2] + y/2 * picture->pitches[2] +	      \
-		      (picture->offset >> 1), ref[2] +			      \
-		      (((picture->offset + motion_x) >> 1) +		      \
-		       ((((picture->v_offset + motion_y) >> 1) + y/2) *	      \
-		        picture->pitches[2])), picture->pitches[2], size/2);  \
-    }    
-
-#define MOTION_FIELD(table,ref,motion_x,motion_y,dest_field,op,src_field)     \
-
 static void motion_mp1 (picture_t * picture, motion_t * motion,
 			void (** table) (uint8_t *, uint8_t *, int, int))
 {
@@ -1156,7 +1129,6 @@ static void motion_mp1 (picture_t * picture, motion_t * motion,
 #define bits (picture->bitstream_bits)
 #define bit_ptr (picture->bitstream_ptr)
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half;
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     motion_x = (motion->pmv[0][0] +
@@ -1174,7 +1146,6 @@ static void motion_mp1 (picture_t * picture, motion_t * motion,
 				    motion->f_code[0] + motion->f_code[1]);
     motion->pmv[0][1] = motion_y;
 
-    MOTION (table, motion->ref[0], motion_x, motion_y, 16, 0);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1187,7 +1158,6 @@ static void motion_fr_frame (picture_t * picture, motion_t * motion,
 #define bits (picture->bitstream_bits)
 #define bit_ptr (picture->bitstream_ptr)
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half;
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     motion_x = motion->pmv[0][0] + get_xvmc_motion_delta (picture,
@@ -1201,7 +1171,6 @@ static void motion_fr_frame (picture_t * picture, motion_t * motion,
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
 
-    MOTION (table, motion->ref[0], motion_x, motion_y, 16, 0);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1233,8 +1202,6 @@ static void motion_fr_field (picture_t * picture, motion_t * motion,
     /* motion_y = bound_motion_vector (motion_y, motion->f_code[1]); */
     motion->pmv[0][1] = motion_y << 1;
 
-    //    MOTION_FIELD (table, motion->ref[0], motion_x, motion_y, 0, & ~1, field);
-
     NEEDBITS (bit_buf, bits, bit_ptr);
     field = UBITS (bit_buf, 1);
     //TODO look at field select need bob  (weave ok)
@@ -1252,7 +1219,6 @@ static void motion_fr_field (picture_t * picture, motion_t * motion,
     /* motion_y = bound_motion_vector (motion_y, motion->f_code[1]); */
     motion->pmv[1][1] = motion_y << 1;
 
-    //    MOTION_FIELD (table, motion->ref[0], motion_x, motion_y, 1, & ~1, field);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1264,8 +1230,7 @@ static void motion_fr_dmv (picture_t * picture, motion_t * motion,
 #define bit_buf (picture->bitstream_buf)
 #define bits (picture->bitstream_bits)
 #define bit_ptr (picture->bitstream_ptr)
-    int motion_x, motion_y, dmv_x, dmv_y;
-    unsigned int xy_half, offset;
+    int motion_x, motion_y;
 
     // TODO field select ?? possible need to be 0
     picture->XvMC_mv_field_sel[0][0] = picture->XvMC_mv_field_sel[1][0] = 0;
@@ -1276,56 +1241,12 @@ static void motion_fr_dmv (picture_t * picture, motion_t * motion,
     motion_x = bound_motion_vector (motion_x, motion->f_code[0]);
     motion->pmv[1][0] = motion->pmv[0][0] = motion_x;
     NEEDBITS (bit_buf, bits, bit_ptr);
-    dmv_x = get_xvmc_dmv (picture);
 
     motion_y = (motion->pmv[0][1] >> 1) + get_xvmc_motion_delta (picture,
 							    motion->f_code[1]);
     /* motion_y = bound_motion_vector (motion_y, motion->f_code[1]); */
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y << 1;
-    dmv_y = get_xvmc_dmv (picture);
 
-    //    m = picture->top_field_first ? 1 : 3;
-    //    other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
-    //    other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y - 1;
-    //    MOTION_FIELD (mpeg2_mc.put, motion->ref[0], other_x, other_y, 0, | 1, 0);
-
-    //    m = picture->top_field_first ? 3 : 1;
-    //    other_x = ((motion_x * m + (motion_x > 0)) >> 1) + dmv_x;
-    //    other_y = ((motion_y * m + (motion_y > 0)) >> 1) + dmv_y + 1;
-    //    MOTION_FIELD (mpeg2_mc.put, motion->ref[0], other_x, other_y, 1, & ~1, 0);
-
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
-    offset = (picture->offset + (motion_x >> 1) +
-	      (picture->v_offset + (motion_y & ~1)) * picture->pitches[0]);
-    mpeg2_mc.avg[xy_half]
-	(picture->dest[0] + picture->offset,
-	 motion->ref[0][0] + offset, 2 * picture->pitches[0], 8);
-    mpeg2_mc.avg[xy_half]
-	(picture->dest[0] + picture->pitches[0] + picture->offset,
-	 motion->ref[0][0] + picture->pitches[0] + offset,
-	 2 * picture->pitches[0], 8);
-    motion_x /= 2;	motion_y /= 2;
-    xy_half = ((motion_y & 1) << 1) | (motion_x & 1);
-    offset = (((picture->offset + motion_x) >> 1) +
-	      (((picture->v_offset >> 1) + (motion_y & ~1)) *
-	       picture->pitches[1]));
-    mpeg2_mc.avg[4+xy_half]
-	(picture->dest[1] + (picture->offset >> 1),
-	 motion->ref[0][1] + offset, 2 * picture->pitches[1], 4);
-    mpeg2_mc.avg[4+xy_half]
-	(picture->dest[1] + picture->pitches[1] + (picture->offset >> 1),
-	 motion->ref[0][1] + picture->pitches[1] + offset,
-	 2 * picture->pitches[1], 4);
-    offset = (((picture->offset + motion_x) >> 1) +
-	      (((picture->v_offset >> 1) + (motion_y & ~1)) *
-	       picture->pitches[2]));
-    mpeg2_mc.avg[4+xy_half]
-	(picture->dest[2] + (picture->offset >> 1),
-	 motion->ref[0][2] + offset, 2 * picture->pitches[2], 4);
-    mpeg2_mc.avg[4+xy_half]
-	(picture->dest[2] + picture->pitches[2] + (picture->offset >> 1),
-	 motion->ref[0][2] + picture->pitches[2] + offset,
-	 2 * picture->pitches[2], 4);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1335,12 +1256,10 @@ static void motion_reuse (picture_t * picture, motion_t * motion,
 			  void (** table) (uint8_t *, uint8_t *, int, int))
 {
     int motion_x, motion_y;
-    unsigned int pos_x, pos_y, xy_half;
 
     motion_x = motion->pmv[0][0];
     motion_y = motion->pmv[0][1];
 
-    MOTION (table, motion->ref[0], motion_x, motion_y, 16, 0);
 }
 
 /* like motion_frame, but parsing without actual motion compensation */
@@ -1377,7 +1296,6 @@ static void motion_fi_field (picture_t * picture, motion_t * motion,
 #define bit_ptr (picture->bitstream_ptr)
     int motion_x, motion_y;
     uint8_t ** ref_field;
-    unsigned int pos_x, pos_y, xy_half;
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     ref_field = motion->ref2[UBITS (bit_buf, 1)];
@@ -1398,7 +1316,6 @@ static void motion_fi_field (picture_t * picture, motion_t * motion,
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
 
-    MOTION (table, ref_field, motion_x, motion_y, 16, 0);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1412,7 +1329,6 @@ static void motion_fi_16x8 (picture_t * picture, motion_t * motion,
 #define bit_ptr (picture->bitstream_ptr)
     int motion_x, motion_y;
     uint8_t ** ref_field;
-    unsigned int pos_x, pos_y, xy_half;
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     ref_field = motion->ref2[UBITS (bit_buf, 1)];
@@ -1433,7 +1349,6 @@ static void motion_fi_16x8 (picture_t * picture, motion_t * motion,
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[0][1] = motion_y;
 
-    MOTION (table, ref_field, motion_x, motion_y, 8, 0);
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     ref_field = motion->ref2[UBITS (bit_buf, 1)];
@@ -1454,7 +1369,6 @@ static void motion_fi_16x8 (picture_t * picture, motion_t * motion,
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion_y;
 
-    MOTION (table, ref_field, motion_x, motion_y, 8, 8);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
@@ -1466,8 +1380,7 @@ static void motion_fi_dmv (picture_t * picture, motion_t * motion,
 #define bit_buf (picture->bitstream_buf)
 #define bits (picture->bitstream_bits)
 #define bit_ptr (picture->bitstream_ptr)
-    int motion_x, motion_y, other_x, other_y;
-    unsigned int pos_x, pos_y, xy_half;
+    int motion_x, motion_y;
 
     NEEDBITS (bit_buf, bits, bit_ptr);
     motion_x = motion->pmv[0][0] + get_xvmc_motion_delta (picture,
@@ -1475,24 +1388,20 @@ static void motion_fi_dmv (picture_t * picture, motion_t * motion,
     motion_x = bound_motion_vector (motion_x, motion->f_code[0]);
     motion->pmv[1][0] = motion->pmv[0][0] = motion_x;
     NEEDBITS (bit_buf, bits, bit_ptr);
-    other_x = ((motion_x + (motion_x > 0)) >> 1) + get_xvmc_dmv (picture);
 
     motion_y = motion->pmv[0][1] + get_xvmc_motion_delta (picture,
 						     motion->f_code[1]);
     motion_y = bound_motion_vector (motion_y, motion->f_code[1]);
     motion->pmv[1][1] = motion->pmv[0][1] = motion_y;
-    other_y = (((motion_y + (motion_y > 0)) >> 1) + get_xvmc_dmv (picture) +
-	       picture->dmv_offset);
 
     // TODO field select may need to do something here for bob  (weave ok)
     picture->XvMC_mv_field_sel[0][0] = picture->XvMC_mv_field_sel[1][0] = 0;
 
-    MOTION (mpeg2_mc.put, motion->ref[0], motion_x, motion_y, 16, 0);
-    MOTION (mpeg2_mc.avg, motion->ref[1], other_x, other_y, 16, 0);
 #undef bit_buf
 #undef bits
 #undef bit_ptr
 }
+
 
 static void motion_fi_conceal (picture_t * picture)
 {
