@@ -1639,7 +1639,10 @@ static int xx44_paletteIndex(xx44_palette_t *p, int color, uint32_t clut)
 
 static void memblend_xx44(uint8_t *mem,uint8_t val, register size_t size, uint8_t mask)
 {
-  register uint8_t masked_val = val & mask;
+  register uint8_t 
+    masked_val;
+
+  if (0 == (masked_val = val & mask)) return;
 
   while(size--) {
     if ((*mem & mask) <= masked_val ) *mem = val;
