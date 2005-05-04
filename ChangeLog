@@ -7,6 +7,8 @@ xine-lib (1.0.2)
   * fixed xvmc plugin segfault when it tried software blending on nonexistant xv image.
   * cleaned up libmpeg2 behaviour on xxmc plugin abrupt software fallback
   * use -fno-inline-functions with gcc < 3.4.0 (bug known to be in 3.3.5)
+  * fix xxmc plugin wanting to change vld xvmc context when stream changes from
+    non-interlaced to interlaced [bug #1194350]
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

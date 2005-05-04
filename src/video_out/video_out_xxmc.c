@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.14 2005/04/26 09:03:05 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.15 2005/05/04 04:27:20 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -348,6 +348,8 @@ static void xxmc_xvmc_free_subpicture(xxmc_driver_t *this, XvMCSubpicture *sub)
   pthread_mutex_unlock(&handler->mutex);
 
 }
+
+
 
 /*
  * Here follows a number of callback function.
@@ -700,7 +702,6 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 static void xxmc_dispose_context(xxmc_driver_t *driver)
 {
   if (driver->contextActive) {
-   
     if (driver->xvmc_accel & (XINE_XVMC_ACCEL_MOCOMP | XINE_XVMC_ACCEL_IDCT)) {
       xvmc_macroblocks_t *macroblocks = &driver->macroblocks;
 
@@ -1108,6 +1109,45 @@ static void xxmc_do_update_frame_xv(vo_driver_t *this_gen,
   frame->vo_frame.format = frame->format;
 }
 
+/*
+ * Check if we need to change XvMC context due to a
+ * acceleration request change.
+ */
+
+static int xxmc_accel_update(xxmc_driver_t *driver,
+			     uint32_t last_request,
+			     uint32_t new_request)
+{
+  int k;
+
+  /*
+   * Same acceleration request. No need to change.
+   */ 
+
+  if (last_request == new_request) return 0;
+
+  /*
+   * Current acceleration not valid. Change.
+   */
+
+  if ((driver->xvmc_accel & new_request) == 0) return 1;
+
+  /*
+   * Test for a higher acceleration level.
+   */
+
+  for (k = 0; k < NUM_ACCEL_PRIORITY; ++k) {
+    if (last_request & accel_priority[k]) return 0;
+    if (new_request & accel_priority[k]) return 1;
+  }
+
+  /* 
+   * Should never get here.
+   */
+
+  return 0;
+}
+
 
 static void xxmc_do_update_frame(vo_driver_t *this_gen,
 				 vo_frame_t *frame_gen,
@@ -1121,13 +1161,17 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
     xine_xxmc_t *xxmc = &frame->xxmc_data;
 
     xvmc_context_writer_lock( &this->xvmc_lock);
-    if ((this->last_accel_request != xxmc->acceleration) ||
-	(this->xvmc_mpeg != xxmc->mpeg) ||
-	(this->xvmc_width != width) ||
-	(this->xvmc_height != height)) {
-      this->last_accel_request = xxmc->acceleration;
-      xxmc_xvmc_update_context(this, frame, width, height);
-    } 
+    if ( flags & VO_NEW_SEQUENCE_FLAG ) {
+      if (xxmc_accel_update(this, this->last_accel_request, xxmc->acceleration) ||
+	  (this->xvmc_mpeg != xxmc->mpeg) ||
+	  (this->xvmc_width != width) ||
+	  (this->xvmc_height != height)) {
+	this->last_accel_request = xxmc->acceleration;
+	xxmc_xvmc_update_context(this, frame, width, height);
+      } else {
+	this->last_accel_request = xxmc->acceleration;
+      }
+    }
 
     if (this->contextActive) 
       xxmc_frame_updates(this, frame, 1);
