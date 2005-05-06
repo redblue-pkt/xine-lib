@@ -17,7 +17,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000409
 #define FFMPEG_VERSION         "0.4.9-pre1"
-#define LIBAVCODEC_BUILD       4752
+#define LIBAVCODEC_BUILD       4754
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -28,6 +28,7 @@ extern "C" {
 
 #define AV_NOPTS_VALUE int64_t_C(0x8000000000000000)
 #define AV_TIME_BASE 1000000
+#define AV_TIME_BASE_Q (AVRational){1, AV_TIME_BASE}
 
 /* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
  * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
@@ -114,6 +115,7 @@ enum CodecID {
     CODEC_ID_LOCO,
     CODEC_ID_WNV1,
     CODEC_ID_AASC,
+    CODEC_ID_INDEO2,
 
     /* various pcm "codecs" */
     CODEC_ID_PCM_S16LE= 0x10000,
@@ -212,6 +214,7 @@ enum CodecType {
  * to run on the IBM VGA graphics adapter use 6-bit palette components.
  */
 enum PixelFormat {
+    PIX_FMT_NONE= -1,
     PIX_FMT_YUV420P,   ///< Planar YUV 4:2:0 (1 Cr & Cb sample per 2x2 Y samples)
     PIX_FMT_YUV422,    ///< Packed pixel, Y0 Cb Y1 Cr 
     PIX_FMT_RGB24,     ///< Packed pixel, 3 bytes per pixel, RGBRGB...
@@ -447,8 +450,8 @@ typedef struct AVPanScan{
     int pict_type;\
 \
     /**\
-     * presentation timestamp in AV_TIME_BASE (=micro seconds currently) (time when frame should be shown to user)\
-     * if AV_NOPTS_VALUE then the frame_rate will be used as reference\
+     * presentation timestamp in time_base units (time when frame should be shown to user)\
+     * if AV_NOPTS_VALUE then frame_rate = 1/time_base will be assumed\
      * - encoding: MUST be set by user\
      * - decoding: set by lavc\
      */\
@@ -726,13 +729,11 @@ typedef struct AVCodecContext {
     
     /* video only */
     /**
-     * frames per sec multiplied by frame_rate_base.
-     * for variable fps this is the precission, so if the timestamps 
-     * can be specified in msec precssion then this is 1000*frame_rate_base
+     * time base in which the timestamps are specified.
      * - encoding: MUST be set by user
-     * - decoding: set by lavc. 0 or the frame_rate if available
+     * - decoding: set by lavc.
      */
-    int frame_rate;
+    AVRational time_base;
     
     /**
      * picture width / height.
@@ -1426,15 +1427,6 @@ typedef struct AVCodecContext {
     int me_range;
 
     /**
-     * frame_rate_base.
-     * for variable fps this is 1
-     * - encoding: set by user.
-     * - decoding: set by lavc.
-     * @todo move this after frame_rate
-     */
-
-    int frame_rate_base;
-    /**
      * intra quantizer bias.
      * - encoding: set by user.
      * - decoding: unused
@@ -1697,14 +1689,14 @@ typedef struct AVCodecContext {
      int nsse_weight;
 
     /**
-     * number of macroblock rows at the top which are skiped.
+     * number of macroblock rows at the top which are skipped.
      * - encoding: unused
      * - decoding: set by user
      */
      int skip_top;
 
     /**
-     * number of macroblock rows at the bottom which are skiped.
+     * number of macroblock rows at the bottom which are skipped.
      * - encoding: unused
      * - decoding: set by user
      */
@@ -2026,6 +2018,7 @@ extern AVCodec wnv1_decoder;
 extern AVCodec aasc_decoder;
 extern AVCodec alac_decoder;
 extern AVCodec ws_snd1_decoder;
+extern AVCodec indeo2_decoder;
 
 /* pcm codecs */
 #define PCM_CODEC(id, name) \
@@ -2247,6 +2240,11 @@ int64_t av_rescale(int64_t a, int64_t b, int64_t c);
  * a simple a*b/c isnt possible as it can overflow
  */
 int64_t av_rescale_rnd(int64_t a, int64_t b, int64_t c, enum AVRounding);
+
+/**
+ * rescale a 64bit integer by 2 rational numbers.
+ */
+int64_t av_rescale_q(int64_t a, AVRational bq, AVRational cq);
 
 /* frame parsing */
 typedef struct AVCodecParserContext {

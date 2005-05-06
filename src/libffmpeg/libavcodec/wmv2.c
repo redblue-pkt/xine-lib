@@ -68,7 +68,7 @@ static int encode_ext_header(Wmv2Context *w){
         
     init_put_bits(&pb, s->avctx->extradata, s->avctx->extradata_size);
 
-    put_bits(&pb, 5, s->avctx->frame_rate / s->avctx->frame_rate_base); //yes 29.97 -> 29
+    put_bits(&pb, 5, s->avctx->time_base.den / s->avctx->time_base.num); //yes 29.97 -> 29
     put_bits(&pb, 11, FFMIN(s->bit_rate/1024, 2047));
     
     put_bits(&pb, 1, w->mspel_bit=1);
@@ -474,7 +474,7 @@ s->picture_number++; //FIXME ?
 //        return wmv2_decode_j_picture(w); //FIXME
 
     if(w->j_type){
-        av_log(s->avctx, AV_LOG_ERROR, "J-type picture isnt supported\n");
+        av_log(s->avctx, AV_LOG_ERROR, "J-type picture is not supported\n");
         return -1;
     }
 
@@ -723,7 +723,7 @@ static int wmv2_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
             s->mv_type = MV_TYPE_16X16;
             s->mv[0][0][0] = 0;
             s->mv[0][0][1] = 0;
-            s->mb_skiped = 1;
+            s->mb_skipped = 1;
             w->hshift=0;
             return 0;
         }
@@ -760,6 +760,7 @@ static int wmv2_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
         wmv2_pred_motion(w, &mx, &my);
         
         if(cbp){
+            s->dsp.clear_blocks(s->block[0]);
             if(s->per_mb_rl_table){
                 s->rl_table_index = decode012(&s->gb);
                 s->rl_chroma_table_index = s->rl_table_index;
@@ -802,6 +803,7 @@ static int wmv2_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
             s->rl_chroma_table_index = s->rl_table_index;
         }
     
+        s->dsp.clear_blocks(s->block[0]);
         for (i = 0; i < 6; i++) {
             if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1, NULL) < 0)
 	    {

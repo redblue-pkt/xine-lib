@@ -282,9 +282,6 @@ static int dpcm_decode_frame(AVCodecContext *avctx,
             }
         }
         break;
-
-    default:
-        break;
     }
 
     *data_size = out * sizeof(short);

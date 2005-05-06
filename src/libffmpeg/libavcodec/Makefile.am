@@ -43,6 +43,7 @@ libavcodec_la_SOURCES = \
 	huffyuv.c \
 	idcinvideo.c \
 	imgconvert.c \
+	indeo2.c \
 	indeo3.c \
 	integer.c \
 	interplayvideo.c \
@@ -115,6 +116,7 @@ noinst_HEADERS = \
 	fastmemcpy.h \
 	golomb.h \
 	imgconvert_template.h \
+	indeo2data.h \
 	indeo3data.h \
 	integer.h \
 	h261data.h \
