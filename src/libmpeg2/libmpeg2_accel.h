@@ -41,8 +41,8 @@ extern int libmpeg2_accel_new_sequence(mpeg2dec_accel_t *accel, uint32_t frame_f
 extern int libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, double ratio, uint32_t flags);
 extern void libmpeg2_accel_frame_completion(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, int code);
 
-extern int libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, 
-				int code, char * buffer, uint32_t chunk_size, uint8_t *chunk_buffer);
+extern int libmpeg2_accel_slice(mpeg2dec_accel_t *accel, picture_t *picture, int code, 
+				char * buffer, uint32_t chunk_size, uint8_t *chunk_buffer);
 extern void libmpeg2_accel_scan( mpeg2dec_accel_t *accel, uint8_t *scan_norm, uint8_t *scan_alt);
 
 #endif

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xvmc_vld.c,v 1.3 2005/05/04 04:27:20 totte67 Exp $
+ * $Id: xvmc_vld.c,v 1.4 2005/05/06 07:42:21 totte67 Exp $
  *
  * xvmc_vld.c, X11 decoding accelerated video extension interface for xine
  *
@@ -92,24 +92,14 @@ void xvmc_vld_frame(struct vo_frame_s *this_gen)
   }      
   qmx.load_chroma_intra_quantiser_matrix = 0;    
   qmx.load_chroma_non_intra_quantiser_matrix = 0;
-  xvmc_context_reader_lock( &driver->xvmc_lock );
-  if ( (!xxmc_xvmc_surface_valid( driver, cf->xvmc_surf)) ||
-       ((ctl.picture_coding_type == XVMC_P_PICTURE || 
-	 ctl.picture_coding_type == XVMC_B_PICTURE) && 
-	!xxmc_xvmc_surface_valid( driver, fs )) || 
-       ((ctl.picture_coding_type == XVMC_B_PICTURE) && 
-	!xxmc_xvmc_surface_valid( driver, bs )) ) {
-    cf->xxmc_data.result = 128;
-    xvmc_context_reader_unlock( &driver->xvmc_lock );    
-    return;
-  }
+
   XVMCLOCKDISPLAY( driver->display );
   XvMCLoadQMatrix(driver->display, &driver->context, &qmx);	   
+  
   while((cf->xxmc_data.result =
 	 XvMCBeginSurface(driver->display, &driver->context, cf->xvmc_surf,
 			  fs, bs, &ctl)));
   XVMCUNLOCKDISPLAY( driver->display );
-  xvmc_context_reader_unlock( &driver->xvmc_lock );
   driver->cpu_saver = 0.;
 }
 
@@ -120,12 +110,6 @@ void xvmc_vld_slice(vo_frame_t *this_gen)
   xxmc_driver_t
     *driver = (xxmc_driver_t *) cf->vo_frame.driver;
 
-  xvmc_context_reader_lock( &driver->xvmc_lock );
-  if ( ! xxmc_xvmc_surface_valid( driver, cf->xvmc_surf)) {
-    cf->xxmc_data.result = 128;
-    xvmc_context_reader_unlock( &driver->xvmc_lock );    
-    return;
-  }
   XVMCLOCKDISPLAY( driver->display );
   cf->xxmc_data.result =
     XvMCPutSlice2(driver->display,&driver->context,cf->xxmc_data.slice_data,
@@ -138,7 +122,6 @@ void xvmc_vld_slice(vo_frame_t *this_gen)
    */
 
   XVMCUNLOCKDISPLAY( driver->display );
-  xvmc_context_reader_unlock( &driver->xvmc_lock );    
   if (driver->cpu_save_enabled) {
     driver->cpu_saver += 1.;
     if (driver->cpu_saver >= cf->xxmc_data.sleep) {

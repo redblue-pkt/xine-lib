@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.15 2005/05/04 04:27:20 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.16 2005/05/06 07:42:21 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -31,7 +31,7 @@
  *
  * overlay support by James Courtier-Dutton <James@superbug.demon.co.uk> - July 2001
  * X11 unscaled overlay support by Miguel Freitas - Nov 2003
- * XvMC VLD implementation by Thomas Hellström - August-Oct 2004
+ * XvMC VLD implementation by Thomas Hellström - 2004, 2005.
  * XvMC merge by Thomas Hellström - Sep 2004
  *
  */
@@ -40,6 +40,7 @@
 
 #include "xxmc.h"
 #include <unistd.h>
+
 
 static int gX11Fail;
 static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame, 
@@ -349,10 +350,60 @@ static void xxmc_xvmc_free_subpicture(xxmc_driver_t *this, XvMCSubpicture *sub)
 
 }
 
+/*
+ * Callback used by decoder to check that surfaces are still valid,
+ * and to lock the context so that it won't get destroyed during 
+ * decoding.
+ */
 
+
+static int xxmc_lock_and_validate_surfaces(vo_frame_t *cur_frame,
+					   vo_frame_t *fw_frame,
+					   vo_frame_t *bw_frame,
+					   unsigned pc_type)
+{
+  xxmc_driver_t 
+    *driver = (xxmc_driver_t *) cur_frame->driver;
+  xxmc_frame_t 
+    *frame;
+
+  xvmc_context_reader_lock( &driver->xvmc_lock );
+
+  switch(pc_type) {
+  case XINE_PICT_B_TYPE:
+    frame = (xxmc_frame_t *) bw_frame;
+    if (!xxmc_xvmc_surface_valid( driver, frame->xvmc_surf)) break;
+    /* fall through */
+  case XINE_PICT_P_TYPE:
+    frame = (xxmc_frame_t *) fw_frame;
+    if (!xxmc_xvmc_surface_valid( driver, frame->xvmc_surf)) break;
+    /* fall through */
+  default:
+    frame = (xxmc_frame_t *) cur_frame;
+    if (!xxmc_xvmc_surface_valid( driver, frame->xvmc_surf)) break;
+    return 0;
+  }
+  
+  xvmc_context_reader_unlock( &driver->xvmc_lock );
+  return -1;
+}
 
 /*
- * Here follows a number of callback function.
+ * Callback for decoder. Decoding temporarily halted. Release the context.
+ */
+
+static void xxmc_unlock_surfaces(vo_driver_t *this_gen)
+{
+  xxmc_driver_t 
+    *driver = (xxmc_driver_t *) this_gen;
+  
+  xvmc_context_reader_unlock( &driver->xvmc_lock );
+}
+
+/*
+ * Callback for decoder. 
+ * Check that the surface is vaid and 
+ * flush outstanding rendering requests on this surface.
  */
 
 static void xvmc_flush(vo_frame_t *this_gen) 
@@ -380,12 +431,12 @@ static void xvmc_flush(vo_frame_t *this_gen)
 }
 
 
-
 /*
  * Callback function for the VO-loop to duplicate frame data.
  * YV12 and YUY2 formats are taken care of in the xine-engine.
+ * This one only deals with hardware surfaces and duplicates them
+ * using a call to XvMCBlendSubpicture2 with a blank subpicture.
  */
-
 
 static void xxmc_duplicate_frame_data(vo_frame_t *this_gen, 
 				      vo_frame_t *original) 
@@ -731,6 +782,13 @@ static void xxmc_dispose_context(xxmc_driver_t *driver)
   }
 }
 
+/*
+ * Find a suitable XvMC Context according to the acceleration request
+ * passed to us in the xxmc variable, and to the acceleration type
+ * priority set up in this plugin. Result is returned in 
+ * driver->xvmc_cur_cap.
+ */
+
 static int xxmc_find_context(xxmc_driver_t *driver, xine_xxmc_t *xxmc,
 			     unsigned width, unsigned height)
 {
@@ -990,28 +1048,38 @@ static void xxmc_frame_updates(xxmc_driver_t *driver,
   if (frame->xvmc_surf == NULL) {
     if (NULL == (frame->xvmc_surf = 
 		 xxmc_xvmc_alloc_surface( driver, &driver->context))) {
-      printf("video_out_xxmc: ERROR: Accelerated surface allocation failed.\n"
-	     "video_out_xxmc: You are probably out of framebuffer memory.\n"
-	     "video_out_xxmc: Falling back to software decoding.\n");
+      fprintf(stderr, "video_out_xxmc: ERROR: Accelerated surface allocation failed.\n"
+	      "video_out_xxmc: You are probably out of framebuffer memory.\n"
+	      "video_out_xxmc: Falling back to software decoding.\n");
       driver->xvmc_accel = 0;
       xxmc_dispose_context( driver );
       return;
     }        
-  }
+    xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
+    xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ?
+      0 : XINE_VO_SIGNED_INTRA;
+    switch(driver->xvmc_accel) {
+    case XINE_XVMC_ACCEL_IDCT:
+      xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
+      break;
+    case XINE_XVMC_ACCEL_MOCOMP:
+      xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL;
+      break;
+    default:
+      xxmc->xvmc.macroblocks->xvmc_accel = 0;
+    }
 
-  xxmc->acceleration = driver->xvmc_accel;
-  xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
-  xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ?
-    0 : XINE_VO_SIGNED_INTRA;
-  switch(driver->xvmc_accel) {
-  case XINE_XVMC_ACCEL_IDCT:
-    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
-    break;
-  case XINE_XVMC_ACCEL_MOCOMP:
-    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL;
-    break;
-  default:
-    xxmc->xvmc.macroblocks->xvmc_accel = 0;
+
+    xxmc->proc_xxmc_flush = xvmc_flush;
+    xxmc->proc_xxmc_lock_valid = xxmc_lock_and_validate_surfaces;
+    xxmc->proc_xxmc_unlock = xxmc_unlock_surfaces;
+    
+    xxmc->xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
+    frame->vo_frame.proc_duplicate_frame_data = xxmc_duplicate_frame_data;
+#ifdef HAVE_VLDXVMC
+    xxmc->proc_xxmc_begin = xvmc_vld_frame;
+    xxmc->proc_xxmc_slice = xvmc_vld_slice;
+#endif
   }
 
   if (init_macroblocks) {
@@ -1020,15 +1088,7 @@ static void xxmc_frame_updates(xxmc_driver_t *driver,
     driver->macroblocks.xine_mc.blockptr = 
       driver->macroblocks.xine_mc.blockbaseptr;
   }
-
-  xxmc->proc_xxmc_flush = xvmc_flush;
-  xxmc->xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
-  frame->vo_frame.proc_duplicate_frame_data = xxmc_duplicate_frame_data;
-#ifdef HAVE_VLDXVMC
-  xxmc->proc_xxmc_begin = xvmc_vld_frame;
-  xxmc->proc_xxmc_slice = xvmc_vld_slice;
-#endif
-
+  xxmc->acceleration = driver->xvmc_accel;
 }
 
 
@@ -1110,7 +1170,7 @@ static void xxmc_do_update_frame_xv(vo_driver_t *this_gen,
 }
 
 /*
- * Check if we need to change XvMC context due to a
+ * Check if we need to change XvMC context due to an
  * acceleration request change.
  */
 
@@ -1133,7 +1193,7 @@ static int xxmc_accel_update(xxmc_driver_t *driver,
   if ((driver->xvmc_accel & new_request) == 0) return 1;
 
   /*
-   * Test for a higher acceleration level.
+   * Test for possible use of a higher acceleration level.
    */
 
   for (k = 0; k < NUM_ACCEL_PRIORITY; ++k) {

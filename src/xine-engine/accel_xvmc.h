@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: accel_xvmc.h,v 1.2 2004/10/12 07:40:23 totte67 Exp $
+ * $Id: accel_xvmc.h,v 1.3 2005/05/06 07:42:21 totte67 Exp $
  *
  *
  * Common acceleration definitions for XvMC. 
@@ -100,6 +100,14 @@ typedef struct xine_xxmc_s {
   void (*proc_xxmc_begin) (vo_frame_t *vo_img);
   void (*proc_xxmc_slice) (vo_frame_t *vo_img);
   void (*proc_xxmc_flush) (vo_frame_t *vo_img);
+
+  /*
+   * For thread-safety only.
+   */
+
+  int  (*proc_xxmc_lock_valid) (vo_frame_t *cur_frame, vo_frame_t *fw_frame, 
+				vo_frame_t *bw_frame,unsigned pc_type);
+  void (*proc_xxmc_unlock) (vo_driver_t *this_gen);
 } xine_xxmc_t;
 
   /*
@@ -143,8 +151,6 @@ typedef struct xine_xxmc_s {
 #define XINE_MACROBLOCK_MOTION_FORWARD 8
 #define XINE_MACROBLOCK_QUANT 16
 #define XINE_MACROBLOCK_DCT_TYPE_INTERLACED 32
-
-
 
 #ifdef __cplusplus
 }

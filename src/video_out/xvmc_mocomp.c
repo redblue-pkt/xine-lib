@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xvmc_mocomp.c,v 1.3 2005/02/22 18:31:59 totte67 Exp $
+ * $Id: xvmc_mocomp.c,v 1.4 2005/05/06 07:42:21 totte67 Exp $
  *
  * XvMC image support by Jack Kelliher
  */
@@ -110,7 +110,6 @@ void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
   int                   top_field_first     = current_frame->top_field_first;
   int                   picture_coding_type = current_frame->picture_coding_type;
 
-  xvmc_context_reader_lock( &this->xvmc_lock );
   mbs->macroblockptr->x = x;
   mbs->macroblockptr->y = y;
   
@@ -253,9 +252,6 @@ void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
     mbs->macroblockptr    = mbs->macroblockbaseptr;
     mbs->xine_mc.blockptr = mbs->xine_mc.blockbaseptr;
   }
-
-  xvmc_context_reader_unlock( &this->xvmc_lock );
-
 }
 
 

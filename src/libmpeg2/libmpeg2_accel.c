@@ -147,8 +147,8 @@ libmpeg2_accel_frame_completion(mpeg2dec_accel_t * accel, uint32_t frame_format,
 
 
 int 
-libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *picture, 
-		     int code, char * buffer, uint32_t chunk_size, uint8_t *chunk_buffer)
+libmpeg2_accel_slice(mpeg2dec_accel_t *accel, picture_t *picture, int code, char * buffer, 
+		     uint32_t chunk_size, uint8_t *chunk_buffer)
 {
   /*
    * Don't reference frames of other formats. They are invalid. This may happen if the 
@@ -172,12 +172,20 @@ libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *
     }
   }
       
+  switch( picture->current_frame->format ) {
 
-  switch( frame_format ) {
   case XINE_IMGFMT_XXMC:
     {
       xine_xxmc_t *xxmc = (xine_xxmc_t *) 
 	picture->current_frame->accel_data;
+      
+      if ( xxmc->proc_xxmc_lock_valid( picture->current_frame,
+				       picture->forward_reference_frame,
+				       picture->backward_reference_frame,
+				       picture->current_frame->picture_coding_type)) {
+	picture->v_offset = 0;
+	return 1;
+      }
       
       switch(picture->current_frame->format) {
       case XINE_IMGFMT_XXMC:
@@ -198,11 +206,14 @@ libmpeg2_accel_slice(mpeg2dec_accel_t *accel, uint32_t frame_format, picture_t *
 	mpeg2_slice (picture, code, buffer);
 	break;
       }
+      xxmc->proc_xxmc_unlock(picture->current_frame->driver);
       break;
     }
+
   case XINE_IMGFMT_XVMC:
     mpeg2_xvmc_slice (accel, picture, code, buffer);
     break;
+
   default:
     mpeg2_slice (picture, code, buffer);
     break;

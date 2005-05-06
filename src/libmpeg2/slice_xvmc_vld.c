@@ -146,7 +146,6 @@ void mpeg2_xxmc_slice( mpeg2dec_accel_t *accel, picture_t *picture,
     vft->backward_reference_frame = picture->backward_reference_frame;
     xxmc->proc_xxmc_begin( frame ); 
     if (xxmc->result != 0) {
-      xxmc->proc_xxmc_flush( frame );
       accel->xvmc_last_slice_code=-1;
     }
   }
@@ -164,9 +163,9 @@ void mpeg2_xxmc_slice( mpeg2dec_accel_t *accel, picture_t *picture,
     xxmc->slice_data = chunk_buffer;
     xxmc->slice_code = code;
     
-    xxmc->proc_xxmc_slice( frame );       
+    xxmc->proc_xxmc_slice( frame );
+    
     if (xxmc->result != 0) {
-	xxmc->proc_xxmc_flush( frame );
 	accel->xvmc_last_slice_code=-1;
 	return;
     }
@@ -188,7 +187,6 @@ void mpeg2_xxmc_slice( mpeg2dec_accel_t *accel, picture_t *picture,
 
     lprintf("libmpeg2: VLD XvMC: Slice error.\n");
     accel->xvmc_last_slice_code = -1;
-    xxmc->proc_xxmc_flush( frame );
     return;
   }
 }
@@ -200,7 +198,11 @@ void mpeg2_xxmc_vld_frame_complete(mpeg2dec_accel_t *accel, picture_t *picture, 
   xine_xxmc_t 
     *xxmc = (xine_xxmc_t *) frame->accel_data;
   
-  if (xxmc->decoded || (accel->xvmc_last_slice_code == -1)) return;
+  if (xxmc->decoded) return;
+  if (accel->xvmc_last_slice_code == -1) {
+    xxmc->proc_xxmc_flush( frame );
+    return;
+  }
 
   if ((code != 0xff) || ((accel->xvmc_last_slice_code == 
 			  accel->xxmc_mb_pic_height) && 

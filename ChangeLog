@@ -12,6 +12,8 @@ xine-lib (1.0.2)
   * speed up xx44 alphablending of large transparent areas
   * stop libmpeg2 XvMC IDCT / MOCOMP attempting software motion compensation
     [bug #1194754]
+  * improve xxmc cpu-usage for IDCT / MOCOMP acceleration through better locking
+    [bug #1195282]
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

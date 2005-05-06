@@ -573,8 +573,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  printf("slice target %08x past %08x future %08x\n",picture->current_frame,picture->forward_reference_frame,picture->backward_reference_frame);
 	  fflush(stdout);
 #endif
-	  libmpeg2_accel_slice(&mpeg2dec->accel, mpeg2dec->frame_format, picture, code, buffer, 
-			       mpeg2dec->chunk_size, mpeg2dec->chunk_buffer);
+	  libmpeg2_accel_slice(&mpeg2dec->accel, picture, code, buffer, mpeg2dec->chunk_size, 
+			       mpeg2dec->chunk_buffer);
 	  if( picture->v_offset > picture->limit_y ) { 
 	    picture->current_frame->bad_frame = 0;
 	  }

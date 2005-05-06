@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.7 2005/04/09 11:47:43 totte67 Exp $
+ * $Id: xxmc.h,v 1.8 2005/05/06 07:42:21 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -178,8 +178,8 @@ typedef struct context_lock_s {
 #define XVMCLOCKDISPLAY(display) 	  
 #define XVMCUNLOCKDISPLAY(display) 
 #else
-#define XVMCLOCKDISPLAY(display) XLockDisplay(display);	  
-#define XVMCUNLOCKDISPLAY(display) XUnlockDisplay(display);
+#define XVMCLOCKDISPLAY(display) XLockDisplay(display)					
+#define XVMCUNLOCKDISPLAY(display) XUnlockDisplay(display)
 #endif 
 
 struct xxmc_driver_s {
