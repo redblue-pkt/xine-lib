@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.20 2004/12/12 22:01:09 mroi Exp $
+ * $Id: xine_encoder.c,v 1.21 2005/05/06 04:22:51 tmmm Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -196,13 +196,13 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->gop_size = 0; /*intra frames only */
   this->context->me_method = ME_ZERO; /*motion estimation type*/
   
-  this->context->frame_rate = 90000;
+  this->context->time_base.den = 90000;
   if (frame->vo_frame.duration > 90000 / 24)
-    this->context->frame_rate_base = 90000 / 24;
+    this->context->time_base.num = 90000 / 24;
   else if (frame->vo_frame.duration < 90000 / 60)
-    this->context->frame_rate_base = 90000 / 60;
+    this->context->time_base.num = 90000 / 60;
   else
-    this->context->frame_rate_base = frame->vo_frame.duration;
+    this->context->time_base.num = frame->vo_frame.duration;
   /* ffmpeg can complain about illegal framerates, but since this seems no
    * problem for the DXR3, we just tell ffmpeg to be more lax with */
   this->context->strict_std_compliance = -1;
