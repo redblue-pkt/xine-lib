@@ -371,6 +371,8 @@ static inline int w_c(void *v, uint8_t * pix1, uint8_t * pix2, int line_size, in
     assert(s>=0); 
     
     return s>>2;
+#else
+    return 0;
 #endif
 }
 

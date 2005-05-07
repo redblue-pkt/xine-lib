@@ -415,3 +415,14 @@
 +#endif /* #if 0 */
          break;
  #endif
+--- libavcodec/dsputil.c	6 May 2005 04:19:18 -0000	1.38
++++ libavcodec/dsputil.c	7 May 2005 16:24:36 -0000
+@@ -371,6 +371,8 @@
+     assert(s>=0); 
+     
+     return s>>2;
++#else
++    return 0;
+ #endif
+ }
+ 
