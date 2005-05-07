@@ -49,7 +49,7 @@
 
 static pciinfo_t pci_info;
 
-static void *pm3_reg_base;
+void *pm3_reg_base;
 static void *pm3_mem;
 
 static int pm3_vidmem = PM3_VIDMEM;
@@ -288,7 +288,7 @@ compute_scale_factor(int* src_w, int* dst_w,
 static void
 pm3_setup_overlay(vidix_playback_t *info)
 {
-    int shrink, zoom;
+    u_int shrink, zoom;
     int format = 0;
     int filter = 0;
     int sw = src_w;
@@ -494,7 +494,7 @@ pm3_setup_bydma(vidix_dma_t *dma, struct pm3_bydma_frame *bdf)
 {
     u_int size = dma->size;
     u_int pages = (size + page_size-1) / page_size;
-    long baddr[pages];
+    unsigned long baddr[pages];
     u_int i;
     uint32_t dest;
 
