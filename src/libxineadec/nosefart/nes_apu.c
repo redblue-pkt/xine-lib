@@ -20,7 +20,7 @@
 ** nes_apu.c
 **
 ** NES APU emulation
-** $Id: nes_apu.c,v 1.3 2004/12/12 06:55:59 athp Exp $
+** $Id: nes_apu.c,v 1.4 2005/05/07 09:11:39 valtri Exp $
 */
 
 #include <string.h>
@@ -1011,10 +1011,13 @@ void apu_process(void *buffer, int num_samples)
          accum = -0x8000;
 
       /* signed 16-bit output, unsigned 8-bit */
-      if (16 == apu->sample_bits)
-         *((int16 *) buffer)++ = (int16) accum;
-      else
-         *((uint8 *) buffer)++ = (accum >> 8) ^ 0x80;
+      if (16 == apu->sample_bits) {
+         *((int16 *) buffer) = (int16) accum; 
+         buffer = (int16 *) buffer + 1;
+      } else {
+         *((uint8 *) buffer) = (accum >> 8) ^ 0x80; 
+         buffer = (int8 *) buffer + 1;
+      }
    }
 
    /* resync cycle counter */
@@ -1154,6 +1157,10 @@ int32 apu_getcyclerate(void)
 
 /*
 ** $Log: nes_apu.c,v $
+** Revision 1.4  2005/05/07 09:11:39  valtri
+** *BUGFIX*
+** gcc4 patches from Dams Nadé (livna.org) and Keenan Pepper.
+**
 ** Revision 1.3  2004/12/12 06:55:59  athp
 ** Code cleanups and elimination of some compiler warnings; patch courtesy of AL13N
 **

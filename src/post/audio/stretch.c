@@ -19,7 +19,7 @@
  *
  * Time stretch by a given factor, optionally preserving pitch
  *
- * $Id: stretch.c,v 1.5 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: stretch.c,v 1.6 2005/05/07 09:11:39 valtri Exp $
  *
  */
 
@@ -476,7 +476,7 @@ static void stretch_process_fragment( post_audio_port_t *port,
     memcpy( outbuf->mem, data_out, 
             outbuf->num_frames * this->bytes_per_frame );
     num_frames_out -= outbuf->num_frames;
-    (uint8_t *)data_out += outbuf->num_frames * this->bytes_per_frame;
+    data_out = (uint8_t *)data_out + outbuf->num_frames * this->bytes_per_frame;
                 
     outbuf->vpts        = this->pts;
     this->pts           = 0;
@@ -587,7 +587,7 @@ static void stretch_port_put_buffer (xine_audio_port_t *port_gen,
     memcpy( (uint8_t *)this->audiofrag + this->num_frames * this->bytes_per_frame,
             data_in, frames_to_copy * this->bytes_per_frame );
     
-    (uint8_t *)data_in += frames_to_copy * this->bytes_per_frame;
+    data_in = (uint8_t *)data_in + frames_to_copy * this->bytes_per_frame;
     this->num_frames += frames_to_copy;
     buf->num_frames -= frames_to_copy;
 

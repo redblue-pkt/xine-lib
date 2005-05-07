@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.28 2004/10/17 19:14:30 mroi Exp $
+ * $Id: post.c,v 1.29 2005/05/07 09:11:39 valtri Exp $
  */
  
 /*
@@ -241,7 +241,7 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
     if (!*input) return port;
     (*input)->xine_in.name = "video in";
     (*input)->xine_in.type = XINE_POST_DATA_VIDEO;
-    (xine_video_port_t *)(*input)->xine_in.data = &port->new_port;
+    (*input)->xine_in.data = &port->new_port;
     (*input)->post = post;
     xine_list_append_content(post->input, *input);
   }
@@ -251,7 +251,7 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
     if (!*output) return port;
     (*output)->xine_out.name = "video out";
     (*output)->xine_out.type = XINE_POST_DATA_VIDEO;
-    (xine_video_port_t **)(*output)->xine_out.data = &port->original_port;
+    (*output)->xine_out.data = &port->original_port;
     (*output)->xine_out.rewire = post_video_rewire;
     (*output)->post = post;
     (*output)->user_data = port;
@@ -718,7 +718,7 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     if (!*input) return port;
     (*input)->xine_in.name = "audio in";
     (*input)->xine_in.type = XINE_POST_DATA_AUDIO;
-    (xine_audio_port_t *)(*input)->xine_in.data = &port->new_port;
+    (*input)->xine_in.data = &port->new_port;
     (*input)->post = post;
     xine_list_append_content(post->input, *input);
   }
@@ -728,7 +728,7 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     if (!*output) return port;
     (*output)->xine_out.name = "audio out";
     (*output)->xine_out.type = XINE_POST_DATA_AUDIO;
-    (xine_audio_port_t **)(*output)->xine_out.data = &port->original_port;
+    (*output)->xine_out.data = &port->original_port;
     (*output)->xine_out.rewire = post_audio_rewire;
     (*output)->post = post;
     (*output)->user_data = port;

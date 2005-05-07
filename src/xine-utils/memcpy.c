@@ -218,8 +218,8 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
         "movntps %%xmm2, 32(%1)\n"
         "movntps %%xmm3, 48(%1)\n"
         :: "r" (from), "r" (to) : "memory");
-        ((const unsigned char *)from)+=64;
-        ((unsigned char *)to)+=64;
+        from = ((const unsigned char *)from) + 64;
+        to = ((unsigned char *)to) + 64;
       }
     else
       /*
@@ -241,8 +241,8 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
         "movntps %%xmm2, 32(%1)\n"
         "movntps %%xmm3, 48(%1)\n"
         :: "r" (from), "r" (to) : "memory");
-        ((const unsigned char *)from)+=64;
-        ((unsigned char *)to)+=64;
+        from = ((const unsigned char *)from) + 64;
+        to = ((unsigned char *)to) + 64;
       }
     /* since movntq is weakly-ordered, a "sfence"
      * is needed to become ordered again. */
@@ -296,8 +296,8 @@ static void * mmx_memcpy(void * to, const void * from, size_t len)
       "movq %%mm6, 48(%1)\n"
       "movq %%mm7, 56(%1)\n"
       :: "r" (from), "r" (to) : "memory");
-      ((const unsigned char *)from)+=64;
-      ((unsigned char *)to)+=64;
+      from = ((const unsigned char *)from) + 64;
+      to = ((unsigned char *)to) + 64;
     }
     __asm__ __volatile__ ("emms":::"memory");
   }
@@ -363,8 +363,8 @@ static void * mmx2_memcpy(void * to, const void * from, size_t len)
       "movntq %%mm6, 48(%1)\n"
       "movntq %%mm7, 56(%1)\n"
       :: "r" (from), "r" (to) : "memory");
-      ((const unsigned char *)from)+=64;
-      ((unsigned char *)to)+=64;
+      from = ((const unsigned char *)from) + 64;
+      to = ((unsigned char *)to) + 64;
     }
      /* since movntq is weakly-ordered, a "sfence"
      * is needed to become ordered again. */

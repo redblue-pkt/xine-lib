@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.25 2005/01/23 23:01:13 jstembridge Exp $
+ * $Id: color.c,v 1.26 2005/05/07 09:11:40 valtri Exp $
  */
 
 #include "xine_internal.h"
@@ -495,8 +495,8 @@ static void vscale_chroma_line (unsigned char *dst, int pitch,
 
   /* process blocks of 4 pixels */
   for (x=0; x < (width / 4); x++) {
-    n1  = *(((unsigned int *) src1)++);
-    n2  = *(((unsigned int *) src2)++);
+    n1  = *(((unsigned int *) src1)); src1 = ((unsigned int *) src1) + 1;
+    n2  = *(((unsigned int *) src2)); src2 = ((unsigned int *) src2) + 1;
     n3  = (n1 & 0xFF00FF00) >> 8;
     n4  = (n2 & 0xFF00FF00) >> 8;
     n1 &= 0x00FF00FF;
