@@ -117,6 +117,7 @@ dnl ---------------------------------------------
 dnl Save CFLAGS, AC_ISC_POSIX set some unwanted default CFLAGS
 saved_CFLAGS="$CFLAGS"
 AC_ISC_POSIX
+AC_PATH_MAGIC
 CFLAGS="$saved_CFLAGS"
 AC_PROG_CC
 AC_HEADER_STDC
@@ -281,7 +282,7 @@ case $host in
  echo 'int i;' > conftest.$ac_ext
  xine_cv_cc_64bit_output=no
  if AC_TRY_EVAL(ac_compile); then
- case `/usr/bin/file conftest.$ac_objext` in
+ case `"$MAGIC_CMD" conftest.$ac_objext` in
  *"ELF 64"*)
    xine_cv_cc_64bit_output=yes
    ;;
