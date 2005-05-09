@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.49 2005/04/21 17:37:41 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.50 2005/05/09 06:55:22 athp Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -697,7 +697,7 @@ static void *getdladdr(const GLubyte *funcName) {
   return NULL;
 
 #elif defined(__APPLE__)
-  char temp = xine_xmalloc (strlen (funcName) + 2);
+  char *temp = xine_xmalloc (strlen (funcName) + 2);
   void *res = NULL;
   temp[0] = '_'; /* Mac OS X prepends an underscore on function names */
   strcpy (temp+1, funcName);
