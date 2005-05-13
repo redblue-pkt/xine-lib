@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.25 2005/02/07 23:58:58 tmattern Exp $
+ * $Id: input_gnome_vfs.c,v 1.26 2005/05/13 14:33:09 hadess Exp $
  */
 
 
@@ -256,11 +256,33 @@ static int
 gnomevfs_plugin_open (input_plugin_t *this_gen )
 {
 	gnomevfs_input_t *this = (gnomevfs_input_t *) this_gen;
+	GnomeVFSResult res;
 
 	D("gnomevfs_klass_open: opening '%s'", this->mrl);
-	if (gnome_vfs_open_uri (&this->fh, this->uri, GNOME_VFS_OPEN_READ) != GNOME_VFS_OK)
+	res = gnome_vfs_open_uri (&this->fh, this->uri, GNOME_VFS_OPEN_READ | GNOME_VFS_OPEN_RANDOM);
+	if (res != GNOME_VFS_OK)
 	{
-		D("gnomevfs_klass_open: failed to open '%s'", this->mrl);
+		int err;
+
+		D("gnomevfs_klass_open: failed to open '%s': %s (%d)", this->mrl, gnome_vfs_result_to_string (res), res);
+		switch (res) {
+		case GNOME_VFS_ERROR_HOST_NOT_FOUND:
+			err = XINE_MSG_UNKNOWN_HOST;
+			break;
+		case GNOME_VFS_ERROR_NOT_FOUND:
+			err = XINE_MSG_FILE_NOT_FOUND;
+			break;
+		case GNOME_VFS_ERROR_ACCESS_DENIED:
+			err = XINE_MSG_PERMISSION_ERROR;
+			break;
+		default:
+			err = XINE_MSG_NO_ERROR;
+		}
+
+		if (err != XINE_MSG_NO_ERROR) {
+			D("gnomevfs_klass_open: sending error %d", err);
+			_x_message(this->stream, err, this->mrl, NULL);
+		}
 		return 0;
 	}
 
@@ -275,7 +297,7 @@ gnomevfs_klass_dispose (input_class_t *this_gen)
 	g_free (this);
 }
 
-static char * ignore_scheme[] = { "cdda", "http", "file" };
+static char * ignore_scheme[] = { "cdda", "file" };
 
 static input_plugin_t *
 gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
@@ -333,11 +355,12 @@ static void
 
 	xprintf (xine, XINE_VERBOSITY_DEBUG, "gnome_vfs init_input_class\n");
 
-	if (gnome_vfs_initialized () == FALSE)
-		if (gnome_vfs_init () == FALSE) {
-			xprintf (xine, XINE_VERBOSITY_DEBUG, "Couldn't initialise gnome-vfs\n");
-			return NULL;
-		}
+	/* Don't initialise gnome-vfs, only gnome-vfs enabled applications
+	 * should be using it */
+	if (gnome_vfs_initialized () == FALSE) {
+		xprintf (xine, XINE_VERBOSITY_DEBUG, "gnome-vfs not initialised\n");
+		return NULL;
+	}
 
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
@@ -355,9 +378,13 @@ static void
 	return (input_class_t *) this;
 }
 
+static input_info_t input_info_gnomevfs = {
+	100                       /* priority */
+};
+
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT | PLUGIN_NO_UNLOAD, 16, "gnomevfs", XINE_VERSION_CODE, NULL,
-		init_input_class },
+	{ PLUGIN_INPUT | PLUGIN_NO_UNLOAD, 16, "gnomevfs", XINE_VERSION_CODE,
+		&input_info_gnomevfs, init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
