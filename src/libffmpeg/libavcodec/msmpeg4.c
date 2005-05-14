@@ -59,9 +59,7 @@
 static uint32_t v2_dc_lum_table[512][2];
 static uint32_t v2_dc_chroma_table[512][2];
 
-static inline void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n);
-static inline int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
-                                       int n, int coded, const uint8_t *scantable);
+static void msmpeg4_encode_dc(MpegEncContext * s, int level, int n, int *dir_ptr);
 static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr);
 static int msmpeg4_decode_motion(MpegEncContext * s, 
                                  int *mx_ptr, int *my_ptr);
@@ -536,6 +534,129 @@ static inline void handle_slices(MpegEncContext *s){
     }
 }
 
+/* Encoding of a block. Very similar to MPEG4 except for a different
+   escape coding (same as H263) and more vlc tables.
+ */
+static inline void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n)
+{
+    int level, run, last, i, j, last_index;
+    int last_non_zero, sign, slevel;
+    int code, run_diff, dc_pred_dir;
+    const RLTable *rl;
+    const uint8_t *scantable;
+
+    if (s->mb_intra) {
+        set_stat(ST_DC);
+        msmpeg4_encode_dc(s, block[0], n, &dc_pred_dir);
+        i = 1;
+        if (n < 4) {
+            rl = &rl_table[s->rl_table_index];
+        } else {
+            rl = &rl_table[3 + s->rl_chroma_table_index];
+        }
+        run_diff = 0;
+        scantable= s->intra_scantable.permutated;
+        set_stat(ST_INTRA_AC);
+    } else {
+        i = 0;
+        rl = &rl_table[3 + s->rl_table_index];
+        if(s->msmpeg4_version<=2)
+            run_diff = 0;
+        else
+            run_diff = 1;
+        scantable= s->inter_scantable.permutated;
+        set_stat(ST_INTER_AC);
+    }
+
+    /* recalculate block_last_index for M$ wmv1 */
+    if(s->msmpeg4_version>=4 && s->block_last_index[n]>0){
+        for(last_index=63; last_index>=0; last_index--){
+            if(block[scantable[last_index]]) break;
+        }
+        s->block_last_index[n]= last_index;
+    }else
+        last_index = s->block_last_index[n];
+    /* AC coefs */
+    last_non_zero = i - 1;
+    for (; i <= last_index; i++) {
+	j = scantable[i];
+	level = block[j];
+	if (level) {
+	    run = i - last_non_zero - 1;
+	    last = (i == last_index);
+	    sign = 0;
+	    slevel = level;
+	    if (level < 0) {
+		sign = 1;
+		level = -level;
+	    }
+
+            if(level<=MAX_LEVEL && run<=MAX_RUN){
+                s->ac_stats[s->mb_intra][n>3][level][run][last]++;
+            }
+#if 0
+else
+    s->ac_stats[s->mb_intra][n>3][40][63][0]++; //esc3 like
+#endif
+            code = get_rl_index(rl, last, run, level);
+            put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
+            if (code == rl->n) {
+                int level1, run1;
+
+                level1 = level - rl->max_level[last][run];
+                if (level1 < 1) 
+                    goto esc2;
+                code = get_rl_index(rl, last, run, level1);
+                if (code == rl->n) {
+                esc2:
+                    put_bits(&s->pb, 1, 0);
+                    if (level > MAX_LEVEL)
+                        goto esc3;
+                    run1 = run - rl->max_run[last][level] - run_diff;
+                    if (run1 < 0)
+                        goto esc3;
+                    code = get_rl_index(rl, last, run1, level);
+                    if (code == rl->n) {
+                    esc3:
+                        /* third escape */
+                        put_bits(&s->pb, 1, 0);
+                        put_bits(&s->pb, 1, last);
+                        if(s->msmpeg4_version>=4){
+                            if(s->esc3_level_length==0){
+                                s->esc3_level_length=8;
+                                s->esc3_run_length= 6;
+                                if(s->qscale<8)
+                                    put_bits(&s->pb, 6, 3);
+                                else
+                                    put_bits(&s->pb, 8, 3);
+                            }
+                            put_bits(&s->pb, s->esc3_run_length, run);
+                            put_bits(&s->pb, 1, sign);
+                            put_bits(&s->pb, s->esc3_level_length, level);
+                        }else{
+                            put_bits(&s->pb, 6, run);
+                            put_bits(&s->pb, 8, slevel & 0xff);
+                        }
+                    } else {
+                        /* second escape */
+                        put_bits(&s->pb, 1, 1);
+                        put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
+                        put_bits(&s->pb, 1, sign);
+                    }
+                } else {
+                    /* first escape */
+                    put_bits(&s->pb, 1, 1);
+                    put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
+                    put_bits(&s->pb, 1, sign);
+                }
+            } else {
+                put_bits(&s->pb, 1, sign);
+            }
+	    last_non_zero = i;
+	}
+    }
+}
+
 void msmpeg4_encode_mb(MpegEncContext * s, 
                        DCTELEM block[6][64],
                        int motion_x, int motion_y)
@@ -912,129 +1033,6 @@ static void msmpeg4_encode_dc(MpegEncContext * s, int level, int n, int *dir_ptr
         if (level != 0) {
             put_bits(&s->pb, 1, sign);
         }
-    }
-}
-
-/* Encoding of a block. Very similar to MPEG4 except for a different
-   escape coding (same as H263) and more vlc tables.
- */
-static inline void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n)
-{
-    int level, run, last, i, j, last_index;
-    int last_non_zero, sign, slevel;
-    int code, run_diff, dc_pred_dir;
-    const RLTable *rl;
-    const uint8_t *scantable;
-
-    if (s->mb_intra) {
-        set_stat(ST_DC);
-        msmpeg4_encode_dc(s, block[0], n, &dc_pred_dir);
-        i = 1;
-        if (n < 4) {
-            rl = &rl_table[s->rl_table_index];
-        } else {
-            rl = &rl_table[3 + s->rl_chroma_table_index];
-        }
-        run_diff = 0;
-        scantable= s->intra_scantable.permutated;
-        set_stat(ST_INTRA_AC);
-    } else {
-        i = 0;
-        rl = &rl_table[3 + s->rl_table_index];
-        if(s->msmpeg4_version<=2)
-            run_diff = 0;
-        else
-            run_diff = 1;
-        scantable= s->inter_scantable.permutated;
-        set_stat(ST_INTER_AC);
-    }
-
-    /* recalculate block_last_index for M$ wmv1 */
-    if(s->msmpeg4_version>=4 && s->block_last_index[n]>0){
-        for(last_index=63; last_index>=0; last_index--){
-            if(block[scantable[last_index]]) break;
-        }
-        s->block_last_index[n]= last_index;
-    }else
-        last_index = s->block_last_index[n];
-    /* AC coefs */
-    last_non_zero = i - 1;
-    for (; i <= last_index; i++) {
-	j = scantable[i];
-	level = block[j];
-	if (level) {
-	    run = i - last_non_zero - 1;
-	    last = (i == last_index);
-	    sign = 0;
-	    slevel = level;
-	    if (level < 0) {
-		sign = 1;
-		level = -level;
-	    }
-
-            if(level<=MAX_LEVEL && run<=MAX_RUN){
-                s->ac_stats[s->mb_intra][n>3][level][run][last]++;
-            }
-#if 0
-else
-    s->ac_stats[s->mb_intra][n>3][40][63][0]++; //esc3 like
-#endif
-            code = get_rl_index(rl, last, run, level);
-            put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
-            if (code == rl->n) {
-                int level1, run1;
-
-                level1 = level - rl->max_level[last][run];
-                if (level1 < 1) 
-                    goto esc2;
-                code = get_rl_index(rl, last, run, level1);
-                if (code == rl->n) {
-                esc2:
-                    put_bits(&s->pb, 1, 0);
-                    if (level > MAX_LEVEL)
-                        goto esc3;
-                    run1 = run - rl->max_run[last][level] - run_diff;
-                    if (run1 < 0)
-                        goto esc3;
-                    code = get_rl_index(rl, last, run1, level);
-                    if (code == rl->n) {
-                    esc3:
-                        /* third escape */
-                        put_bits(&s->pb, 1, 0);
-                        put_bits(&s->pb, 1, last);
-                        if(s->msmpeg4_version>=4){
-                            if(s->esc3_level_length==0){
-                                s->esc3_level_length=8;
-                                s->esc3_run_length= 6;
-                                if(s->qscale<8)
-                                    put_bits(&s->pb, 6, 3);
-                                else
-                                    put_bits(&s->pb, 8, 3);
-                            }
-                            put_bits(&s->pb, s->esc3_run_length, run);
-                            put_bits(&s->pb, 1, sign);
-                            put_bits(&s->pb, s->esc3_level_length, level);
-                        }else{
-                            put_bits(&s->pb, 6, run);
-                            put_bits(&s->pb, 8, slevel & 0xff);
-                        }
-                    } else {
-                        /* second escape */
-                        put_bits(&s->pb, 1, 1);
-                        put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
-                        put_bits(&s->pb, 1, sign);
-                    }
-                } else {
-                    /* first escape */
-                    put_bits(&s->pb, 1, 1);
-                    put_bits(&s->pb, rl->table_vlc[code][1], rl->table_vlc[code][0]);
-                    put_bits(&s->pb, 1, sign);
-                }
-            } else {
-                put_bits(&s->pb, 1, sign);
-            }
-	    last_non_zero = i;
-	}
     }
 }
 
@@ -1482,185 +1480,6 @@ static int msmpeg4v2_decode_motion(MpegEncContext * s, int pred, int f_code)
     return val;
 }
 
-static int msmpeg4v12_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
-{
-    int cbp, code, i;
-    
-    if (s->pict_type == P_TYPE) {
-        if (s->use_skip_mb_code) {
-            if (get_bits1(&s->gb)) {
-                /* skip mb */
-                s->mb_intra = 0;
-                for(i=0;i<6;i++)
-                    s->block_last_index[i] = -1;
-                s->mv_dir = MV_DIR_FORWARD;
-                s->mv_type = MV_TYPE_16X16;
-                s->mv[0][0][0] = 0;
-                s->mv[0][0][1] = 0;
-                s->mb_skipped = 1;
-                return 0;
-            }
-        }
-
-        if(s->msmpeg4_version==2)
-            code = get_vlc2(&s->gb, v2_mb_type_vlc.table, V2_MB_TYPE_VLC_BITS, 1);
-        else
-            code = get_vlc2(&s->gb, v1_inter_cbpc_vlc.table, V1_INTER_CBPC_VLC_BITS, 3);
-        if(code<0 || code>7){
-            av_log(s->avctx, AV_LOG_ERROR, "cbpc %d invalid at %d %d\n", code, s->mb_x, s->mb_y);
-            return -1;
-        }
-
-        s->mb_intra = code >>2;
-    
-        cbp = code & 0x3;
-    } else {
-        s->mb_intra = 1;
-        if(s->msmpeg4_version==2)
-            cbp= get_vlc2(&s->gb, v2_intra_cbpc_vlc.table, V2_INTRA_CBPC_VLC_BITS, 1);
-        else
-            cbp= get_vlc2(&s->gb, v1_intra_cbpc_vlc.table, V1_INTRA_CBPC_VLC_BITS, 1);
-        if(cbp<0 || cbp>3){
-            av_log(s->avctx, AV_LOG_ERROR, "cbpc %d invalid at %d %d\n", cbp, s->mb_x, s->mb_y);
-            return -1;
-        }
-    }
-
-    if (!s->mb_intra) {
-        int mx, my, cbpy;
-        
-        cbpy= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
-        if(cbpy<0){
-            av_log(s->avctx, AV_LOG_ERROR, "cbpy %d invalid at %d %d\n", cbp, s->mb_x, s->mb_y);
-            return -1;
-        }
-
-        cbp|= cbpy<<2;
-        if(s->msmpeg4_version==1 || (cbp&3) != 3) cbp^= 0x3C;
-        
-        h263_pred_motion(s, 0, 0, &mx, &my);
-        mx= msmpeg4v2_decode_motion(s, mx, 1);
-        my= msmpeg4v2_decode_motion(s, my, 1);
-        
-        s->mv_dir = MV_DIR_FORWARD;
-        s->mv_type = MV_TYPE_16X16;
-        s->mv[0][0][0] = mx;
-        s->mv[0][0][1] = my;
-    } else {
-        if(s->msmpeg4_version==2){
-            s->ac_pred = get_bits1(&s->gb);
-            cbp|= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1)<<2; //FIXME check errors
-        } else{
-            s->ac_pred = 0;
-            cbp|= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1)<<2; //FIXME check errors
-            if(s->pict_type==P_TYPE) cbp^=0x3C;
-        }
-    }
-
-    s->dsp.clear_blocks(s->block[0]);
-    for (i = 0; i < 6; i++) {
-        if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1, NULL) < 0)
-	{
-             av_log(s->avctx, AV_LOG_ERROR, "\nerror while decoding block: %d x %d (%d)\n", s->mb_x, s->mb_y, i);
-             return -1;
-	}
-    }
-    return 0;
-}
-
-static int msmpeg4v34_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
-{
-    int cbp, code, i;
-    uint8_t *coded_val;
-    uint32_t * const mb_type_ptr= &s->current_picture.mb_type[ s->mb_x + s->mb_y*s->mb_stride ];
-
-    if (s->pict_type == P_TYPE) {
-        set_stat(ST_INTER_MB);
-        if (s->use_skip_mb_code) {
-            if (get_bits1(&s->gb)) {
-                /* skip mb */
-                s->mb_intra = 0;
-                for(i=0;i<6;i++)
-                    s->block_last_index[i] = -1;
-                s->mv_dir = MV_DIR_FORWARD;
-                s->mv_type = MV_TYPE_16X16;
-                s->mv[0][0][0] = 0;
-                s->mv[0][0][1] = 0;
-                s->mb_skipped = 1;
-                *mb_type_ptr = MB_TYPE_SKIP | MB_TYPE_L0 | MB_TYPE_16x16;
-
-                return 0;
-            }
-        }
-        
-        code = get_vlc2(&s->gb, mb_non_intra_vlc[DEFAULT_INTER_INDEX].table, MB_NON_INTRA_VLC_BITS, 3);
-        if (code < 0)
-            return -1;
-	//s->mb_intra = (code & 0x40) ? 0 : 1;
-	s->mb_intra = (~code & 0x40) >> 6;
-            
-        cbp = code & 0x3f;
-    } else {
-        set_stat(ST_INTRA_MB);
-        s->mb_intra = 1;
-        code = get_vlc2(&s->gb, ff_msmp4_mb_i_vlc.table, MB_INTRA_VLC_BITS, 2);
-        if (code < 0)
-            return -1;
-        /* predict coded block pattern */
-        cbp = 0;
-        for(i=0;i<6;i++) {
-            int val = ((code >> (5 - i)) & 1);
-            if (i < 4) {
-                int pred = coded_block_pred(s, i, &coded_val);
-                val = val ^ pred;
-                *coded_val = val;
-            }
-            cbp |= val << (5 - i);
-        }
-    }
-
-    if (!s->mb_intra) {
-        int mx, my;
-//printf("P at %d %d\n", s->mb_x, s->mb_y);
-        if(s->per_mb_rl_table && cbp){
-            s->rl_table_index = decode012(&s->gb);
-            s->rl_chroma_table_index = s->rl_table_index;
-        }
-        set_stat(ST_MV);
-        h263_pred_motion(s, 0, 0, &mx, &my);
-        if (msmpeg4_decode_motion(s, &mx, &my) < 0)
-            return -1;
-        s->mv_dir = MV_DIR_FORWARD;
-        s->mv_type = MV_TYPE_16X16;
-        s->mv[0][0][0] = mx;
-        s->mv[0][0][1] = my;
-        *mb_type_ptr = MB_TYPE_L0 | MB_TYPE_16x16;
-    } else {
-//printf("I at %d %d %d %06X\n", s->mb_x, s->mb_y, ((cbp&3)? 1 : 0) +((cbp&0x3C)? 2 : 0), show_bits(&s->gb, 24));
-        set_stat(ST_INTRA_MB);
-        s->ac_pred = get_bits1(&s->gb);
-        *mb_type_ptr = MB_TYPE_INTRA;
-        if(s->inter_intra_pred){
-            s->h263_aic_dir= get_vlc2(&s->gb, inter_intra_vlc.table, INTER_INTRA_VLC_BITS, 1);
-//            printf("%d%d %d %d/", s->ac_pred, s->h263_aic_dir, s->mb_x, s->mb_y);
-        }
-        if(s->per_mb_rl_table && cbp){
-            s->rl_table_index = decode012(&s->gb);
-            s->rl_chroma_table_index = s->rl_table_index;
-        }
-    }
-
-    s->dsp.clear_blocks(s->block[0]);
-    for (i = 0; i < 6; i++) {
-        if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1, NULL) < 0)
-	{
-	    av_log(s->avctx, AV_LOG_ERROR, "\nerror while decoding block: %d x %d (%d)\n", s->mb_x, s->mb_y, i);
-	    return -1;
-	}
-    }
-    
-    return 0;
-}
 //#define ERROR_DETAILS
 static inline int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                               int n, int coded, const uint8_t *scan_table)
@@ -1908,6 +1727,186 @@ static inline int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
     }
     if(s->msmpeg4_version>=4 && i>0) i=63; //FIXME/XXX optimize
     s->block_last_index[n] = i;
+    
+    return 0;
+}
+
+static int msmpeg4v12_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
+{
+    int cbp, code, i;
+    
+    if (s->pict_type == P_TYPE) {
+        if (s->use_skip_mb_code) {
+            if (get_bits1(&s->gb)) {
+                /* skip mb */
+                s->mb_intra = 0;
+                for(i=0;i<6;i++)
+                    s->block_last_index[i] = -1;
+                s->mv_dir = MV_DIR_FORWARD;
+                s->mv_type = MV_TYPE_16X16;
+                s->mv[0][0][0] = 0;
+                s->mv[0][0][1] = 0;
+                s->mb_skipped = 1;
+                return 0;
+            }
+        }
+
+        if(s->msmpeg4_version==2)
+            code = get_vlc2(&s->gb, v2_mb_type_vlc.table, V2_MB_TYPE_VLC_BITS, 1);
+        else
+            code = get_vlc2(&s->gb, v1_inter_cbpc_vlc.table, V1_INTER_CBPC_VLC_BITS, 3);
+        if(code<0 || code>7){
+            av_log(s->avctx, AV_LOG_ERROR, "cbpc %d invalid at %d %d\n", code, s->mb_x, s->mb_y);
+            return -1;
+        }
+
+        s->mb_intra = code >>2;
+    
+        cbp = code & 0x3;
+    } else {
+        s->mb_intra = 1;
+        if(s->msmpeg4_version==2)
+            cbp= get_vlc2(&s->gb, v2_intra_cbpc_vlc.table, V2_INTRA_CBPC_VLC_BITS, 1);
+        else
+            cbp= get_vlc2(&s->gb, v1_intra_cbpc_vlc.table, V1_INTRA_CBPC_VLC_BITS, 1);
+        if(cbp<0 || cbp>3){
+            av_log(s->avctx, AV_LOG_ERROR, "cbpc %d invalid at %d %d\n", cbp, s->mb_x, s->mb_y);
+            return -1;
+        }
+    }
+
+    if (!s->mb_intra) {
+        int mx, my, cbpy;
+        
+        cbpy= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1);
+        if(cbpy<0){
+            av_log(s->avctx, AV_LOG_ERROR, "cbpy %d invalid at %d %d\n", cbp, s->mb_x, s->mb_y);
+            return -1;
+        }
+
+        cbp|= cbpy<<2;
+        if(s->msmpeg4_version==1 || (cbp&3) != 3) cbp^= 0x3C;
+        
+        h263_pred_motion(s, 0, 0, &mx, &my);
+        mx= msmpeg4v2_decode_motion(s, mx, 1);
+        my= msmpeg4v2_decode_motion(s, my, 1);
+        
+        s->mv_dir = MV_DIR_FORWARD;
+        s->mv_type = MV_TYPE_16X16;
+        s->mv[0][0][0] = mx;
+        s->mv[0][0][1] = my;
+    } else {
+        if(s->msmpeg4_version==2){
+            s->ac_pred = get_bits1(&s->gb);
+            cbp|= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1)<<2; //FIXME check errors
+        } else{
+            s->ac_pred = 0;
+            cbp|= get_vlc2(&s->gb, cbpy_vlc.table, CBPY_VLC_BITS, 1)<<2; //FIXME check errors
+            if(s->pict_type==P_TYPE) cbp^=0x3C;
+        }
+    }
+
+    s->dsp.clear_blocks(s->block[0]);
+    for (i = 0; i < 6; i++) {
+        if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1, NULL) < 0)
+	{
+             av_log(s->avctx, AV_LOG_ERROR, "\nerror while decoding block: %d x %d (%d)\n", s->mb_x, s->mb_y, i);
+             return -1;
+	}
+    }
+    return 0;
+}
+
+static int msmpeg4v34_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
+{
+    int cbp, code, i;
+    uint8_t *coded_val;
+    uint32_t * const mb_type_ptr= &s->current_picture.mb_type[ s->mb_x + s->mb_y*s->mb_stride ];
+
+    if (s->pict_type == P_TYPE) {
+        set_stat(ST_INTER_MB);
+        if (s->use_skip_mb_code) {
+            if (get_bits1(&s->gb)) {
+                /* skip mb */
+                s->mb_intra = 0;
+                for(i=0;i<6;i++)
+                    s->block_last_index[i] = -1;
+                s->mv_dir = MV_DIR_FORWARD;
+                s->mv_type = MV_TYPE_16X16;
+                s->mv[0][0][0] = 0;
+                s->mv[0][0][1] = 0;
+                s->mb_skipped = 1;
+                *mb_type_ptr = MB_TYPE_SKIP | MB_TYPE_L0 | MB_TYPE_16x16;
+
+                return 0;
+            }
+        }
+        
+        code = get_vlc2(&s->gb, mb_non_intra_vlc[DEFAULT_INTER_INDEX].table, MB_NON_INTRA_VLC_BITS, 3);
+        if (code < 0)
+            return -1;
+	//s->mb_intra = (code & 0x40) ? 0 : 1;
+	s->mb_intra = (~code & 0x40) >> 6;
+            
+        cbp = code & 0x3f;
+    } else {
+        set_stat(ST_INTRA_MB);
+        s->mb_intra = 1;
+        code = get_vlc2(&s->gb, ff_msmp4_mb_i_vlc.table, MB_INTRA_VLC_BITS, 2);
+        if (code < 0)
+            return -1;
+        /* predict coded block pattern */
+        cbp = 0;
+        for(i=0;i<6;i++) {
+            int val = ((code >> (5 - i)) & 1);
+            if (i < 4) {
+                int pred = coded_block_pred(s, i, &coded_val);
+                val = val ^ pred;
+                *coded_val = val;
+            }
+            cbp |= val << (5 - i);
+        }
+    }
+
+    if (!s->mb_intra) {
+        int mx, my;
+//printf("P at %d %d\n", s->mb_x, s->mb_y);
+        if(s->per_mb_rl_table && cbp){
+            s->rl_table_index = decode012(&s->gb);
+            s->rl_chroma_table_index = s->rl_table_index;
+        }
+        set_stat(ST_MV);
+        h263_pred_motion(s, 0, 0, &mx, &my);
+        if (msmpeg4_decode_motion(s, &mx, &my) < 0)
+            return -1;
+        s->mv_dir = MV_DIR_FORWARD;
+        s->mv_type = MV_TYPE_16X16;
+        s->mv[0][0][0] = mx;
+        s->mv[0][0][1] = my;
+        *mb_type_ptr = MB_TYPE_L0 | MB_TYPE_16x16;
+    } else {
+//printf("I at %d %d %d %06X\n", s->mb_x, s->mb_y, ((cbp&3)? 1 : 0) +((cbp&0x3C)? 2 : 0), show_bits(&s->gb, 24));
+        set_stat(ST_INTRA_MB);
+        s->ac_pred = get_bits1(&s->gb);
+        *mb_type_ptr = MB_TYPE_INTRA;
+        if(s->inter_intra_pred){
+            s->h263_aic_dir= get_vlc2(&s->gb, inter_intra_vlc.table, INTER_INTRA_VLC_BITS, 1);
+//            printf("%d%d %d %d/", s->ac_pred, s->h263_aic_dir, s->mb_x, s->mb_y);
+        }
+        if(s->per_mb_rl_table && cbp){
+            s->rl_table_index = decode012(&s->gb);
+            s->rl_chroma_table_index = s->rl_table_index;
+        }
+    }
+
+    s->dsp.clear_blocks(s->block[0]);
+    for (i = 0; i < 6; i++) {
+        if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1, NULL) < 0)
+	{
+	    av_log(s->avctx, AV_LOG_ERROR, "\nerror while decoding block: %d x %d (%d)\n", s->mb_x, s->mb_y, i);
+	    return -1;
+	}
+    }
     
     return 0;
 }
