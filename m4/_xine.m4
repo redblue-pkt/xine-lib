@@ -2,6 +2,7 @@ dnl AC_C_ALWAYS_INLINE
 dnl Define inline to something appropriate, including the new always_inline
 dnl attribute from gcc 3.1
 dnl Thanks to Michel LESPINASSE <walken@zoy.org>
+dnl __inline__ "check" added by Darren Salt
 AC_DEFUN([AC_C_ALWAYS_INLINE],
     [AC_C_INLINE
     if test x"$GCC" = x"yes" -a x"$ac_cv_c_inline" = x"inline"; then
@@ -22,7 +23,26 @@ AC_DEFUN([AC_C_ALWAYS_INLINE],
             ])
             AC_DEFINE_UNQUOTED([inline],[inline __attribute__ ((__always_inline__))])
         fi
-    fi])
+	ac_cv_c___inline__=''
+    else
+	# FIXME: test the compiler to see if it supports __inline__
+	#	 instead of assuming that if it isn't gcc, it doesn't
+	case "$ac_cv_c_inline" in
+	    yes)
+		ac_cv_c___inline__=inline
+		;;
+	    inline|__inline__)
+		ac_cv_c___inline__=''
+		;;
+	    *)
+		ac_cv_c___inline__="$ac_cv_c_inline"
+		;;
+	esac
+    fi
+    if test x"$ac_cv_c___inline__" != x; then
+	AC_DEFINE_UNQUOTED([__inline__],[$ac_cv_c___inline__],[Define if the compiler doesn't recognise __inline__])
+    fi
+])
 
 dnl
 dnl Check for minimum version of libtool
