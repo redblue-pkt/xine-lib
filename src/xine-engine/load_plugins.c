@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.206 2005/04/20 17:08:56 mroi Exp $
+ * $Id: load_plugins.c,v 1.207 2005/05/14 15:41:15 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1132,20 +1132,19 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
   xine_t           *xine = stream->xine;
   plugin_catalog_t *catalog = xine->plugin_catalog;
   plugin_node_t    *node;
+  input_plugin_t   *plugin = NULL;
 
   pthread_mutex_lock (&catalog->lock);
 
   node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
-    input_plugin_t   *plugin;
 
     if (!node->plugin_class && !_load_plugin_class(xine, node, NULL))
-      return NULL;
+      break;
     if ((plugin = ((input_class_t *)node->plugin_class)->get_instance(node->plugin_class, stream, mrl))) {
       inc_node_ref(node);
       plugin->node = node;
-      pthread_mutex_unlock (&catalog->lock);
-      return plugin;
+      break;
     }
 
     node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_INPUT - 1]);
@@ -1153,7 +1152,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
   pthread_mutex_unlock (&catalog->lock);
 
-  return NULL;
+  return plugin;
 }
 
 
@@ -1176,6 +1175,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
   int               i;
   int               methods[3];
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
+  demux_plugin_t   *plugin = NULL;
 
   methods[0] = method1;
   methods[1] = method2;
@@ -1187,7 +1187,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
   }
 
   i = 0;
-  while (methods[i] != -1) {
+  while (methods[i] != -1 && !plugin) {
 
     plugin_node_t *node;
 
@@ -1198,18 +1198,16 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
     node = xine_list_first_content (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
 
     while (node) {
-      demux_plugin_t *plugin;
 
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "load_plugins: probing demux '%s'\n", node->info->id);
 
       if (!node->plugin_class && !_load_plugin_class(stream->xine, node, NULL))
-	return NULL;
+	break;
 
       if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	inc_node_ref(node);
 	plugin->node = node;
-	pthread_mutex_unlock (&catalog->lock);
-	return plugin;
+	break;
       }
 
       node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_DEMUX - 1]);
@@ -1220,7 +1218,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
     i++;
   }
 
-  return NULL;
+  return plugin;
 }
 
 demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) {
@@ -1252,7 +1250,7 @@ demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *
 
   plugin_catalog_t  *catalog = stream->xine->plugin_catalog;
   plugin_node_t     *node;
-  demux_plugin_t    *plugin;
+  demux_plugin_t    *plugin = NULL;
 
   pthread_mutex_lock(&catalog->lock);
   node = xine_list_first_content(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
@@ -1261,20 +1259,19 @@ demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *
   while (node) {
     if (strcasecmp(node->info->id, name) == 0) {
       if (!node->plugin_class && !_load_plugin_class(stream->xine, node, NULL))
-	return NULL;
+	break;
 
       if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	inc_node_ref(node);
 	plugin->node = node;
-	pthread_mutex_unlock (&catalog->lock);
-	return plugin;
+	break;
       }
     }
     node = xine_list_next_content(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   }
 
   pthread_mutex_unlock(&catalog->lock);
-  return NULL;
+  return plugin;
 }
 
 /*
@@ -1293,14 +1290,14 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
   xine_t           *xine = stream->xine;
   plugin_catalog_t *catalog = xine->plugin_catalog;
   plugin_node_t    *last_demux = NULL;
-  demux_plugin_t   *plugin;
+  demux_plugin_t   *plugin = NULL;
 
   methods[0] = METHOD_BY_CONTENT;
   methods[1] = METHOD_BY_EXTENSION;
   methods[2] = -1;
 
   i = 0;
-  while (methods[i] != -1) {
+  while (methods[i] != -1 && !plugin) {
 
     plugin_node_t *node;
 
@@ -1320,15 +1317,14 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
 	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
 		"load_plugin: probing '%s' (method %d)...\n", node->info->id, stream->content_detection_method );
 	if (!node->plugin_class && !_load_plugin_class(xine, node, NULL))
-	  return NULL;
+	  break;
 
         if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	  xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
 		   "load_plugins: using demuxer '%s' (instead of '%s')\n", node->info->id, last_demux_name);
 	  inc_node_ref(node);
 	  plugin->node = node;
-	  pthread_mutex_unlock (&catalog->lock);
-	  return plugin;
+	  break;
         }
       }
 
@@ -1339,6 +1335,9 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
 
     i++;
   }
+
+  if( plugin )
+    return plugin;
 
   if( !last_demux )
     return NULL;
@@ -1747,6 +1746,7 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
   plugin_node_t    *node;
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
+  video_decoder_t  *vd = NULL;
 
   lprintf ("looking for video decoder for streamtype %02x\n", stream_type);
 
@@ -1754,13 +1754,10 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
 
   for (i = 0; i < PLUGINS_PER_TYPE; i++) {
 
-    video_decoder_t *vd=NULL;
-
     node = catalog->video_decoder_map[stream_type][i];
 
     if (!node) {
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      break;
     }
 
     if (!node->plugin_class && !_load_plugin_class (stream->xine, node, NULL)) {
@@ -1784,8 +1781,7 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
           "load_plugins: plugin %s will be used for video streamtype %02x.\n", 
           node->info->id, stream_type);
       
-      pthread_mutex_unlock (&catalog->lock);
-      return vd;
+      break;
     } else {
       /* remove non working plugin from catalog */
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1799,7 +1795,7 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
   }
 
   pthread_mutex_unlock (&catalog->lock);
-  return NULL;
+  return vd;
 }
 
 void _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
@@ -1821,6 +1817,7 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
   plugin_node_t    *node;
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
+  audio_decoder_t  *ad = NULL;
 
   lprintf ("looking for audio decoder for streamtype %02x\n", stream_type);
 
@@ -1828,13 +1825,10 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
 
   for (i = 0; i < PLUGINS_PER_TYPE; i++) {
 
-    audio_decoder_t *ad;
-
     node = catalog->audio_decoder_map[stream_type][i];
 
     if (!node) {
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      break;
     }
 
     if (!node->plugin_class && !_load_plugin_class (stream->xine, node, NULL)) {
@@ -1857,8 +1851,7 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
           "load_plugins: plugin %s will be used for audio streamtype %02x.\n", 
           node->info->id, stream_type);
-      pthread_mutex_unlock (&catalog->lock);
-      return ad;
+      break;
     } else {
       /* remove non working plugin from catalog */
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1872,7 +1865,7 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
   }
 
   pthread_mutex_unlock (&catalog->lock);
-  return NULL;
+  return ad;
 }
 
 void _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
@@ -1970,19 +1963,18 @@ spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
   plugin_node_t    *node;
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
+  spu_decoder_t    *sd = NULL;
 
   lprintf ("looking for spu decoder for streamtype %02x\n", stream_type);
 
   pthread_mutex_lock (&catalog->lock);
 
   for (i = 0; i < PLUGINS_PER_TYPE; i++) {
-    spu_decoder_t *sd;
 
     node = catalog->spu_decoder_map[stream_type][i];
 
     if (!node) {
-      pthread_mutex_unlock (&catalog->lock);
-      return NULL;
+      break;
     }
 
     if (!node->plugin_class && !_load_plugin_class (stream->xine, node, NULL)) {
@@ -2005,8 +1997,7 @@ spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
           "load_plugins: plugin %s will be used for spu streamtype %02x.\n", 
           node->info->id, stream_type);
-      pthread_mutex_unlock (&catalog->lock);
-      return sd;
+      break;
     } else {
       /* remove non working plugin from catalog */
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
@@ -2020,7 +2011,7 @@ spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
   }
 
   pthread_mutex_unlock (&catalog->lock);
-  return NULL;
+  return sd;
 }
 
 void _x_free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
@@ -2150,6 +2141,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 			    xine_video_port_t **video_target) {
   plugin_catalog_t *catalog = xine->plugin_catalog;
   plugin_node_t    *node;
+  post_plugin_t    *post = NULL;
   
   if( !name )
     return NULL;
@@ -2160,13 +2152,11 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
   while (node) {
     
     if (strcmp(node->info->id, name) == 0) {
-      post_plugin_t *post;
       
       if (!node->plugin_class && !_load_plugin_class(xine, node, NULL)) {
         xprintf(xine, XINE_VERBOSITY_DEBUG,
 		"load_plugins: requested post plugin %s failed to load\n", name);
-	pthread_mutex_unlock(&catalog->lock);
-	return NULL;
+	break;
       }
       
       post = ((post_class_t *)node->plugin_class)->open_plugin(node->plugin_class,
@@ -2181,7 +2171,6 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 	post->xine = xine;
 	post->node = node;
 	inc_node_ref(node);
-	pthread_mutex_unlock(&catalog->lock);
 	
 	/* init the lists of announced connections */
 	i = 0;
@@ -2217,12 +2206,11 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 	/* copy the post plugin type to the public part */
 	post->xine_post.type = ((post_info_t *)node->info->special_info)->type;
 	
-	return &post->xine_post;
+	break;
       } else {
         xprintf(xine, XINE_VERBOSITY_DEBUG,
 		"load_plugins: post plugin %s failed to instantiate itself\n", name);
-	pthread_mutex_unlock(&catalog->lock);
-	return NULL;
+	break;
       }
     }
     
@@ -2231,8 +2219,12 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
   
   pthread_mutex_unlock(&catalog->lock);
   
-  xprintf(xine, XINE_VERBOSITY_DEBUG, "load_plugins: no post plugin named %s found\n", name);
-  return NULL;
+  if(post)
+    return &post->xine_post;
+  else {
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "load_plugins: no post plugin named %s found\n", name);
+    return NULL;
+  }
 }
 
 void xine_post_dispose(xine_t *xine, xine_post_t *post_gen) {
