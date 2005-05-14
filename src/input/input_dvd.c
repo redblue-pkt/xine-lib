@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.198 2005/02/07 23:58:57 tmattern Exp $
+ * $Id: input_dvd.c,v 1.199 2005/05/14 16:11:44 miguelfreitas Exp $
  *
  */
 
@@ -196,7 +196,9 @@ typedef struct {
   /* Flags */
   int               opened;       /* 1 if the DVD device is already open */
   int               seekable;     /* are we seekable? */
-  
+  int               mode;         /* MODE_NAVIGATE / MODE_TITLE */
+  int               tt, pr;       /* title / chapter */
+        
   /* xine specific variables */
   const char       *current_dvd_device; /* DVD device currently open */
   char             *mrl;          /* Current MRL                     */
@@ -229,6 +231,7 @@ typedef struct {
   int32_t             seek_mode;
   int32_t             language;
   int32_t             region;
+  int32_t             play_single_chapter;
 
   char               *filelist[MAX_DIR_ENTRIES];
 
@@ -322,6 +325,15 @@ static void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
 
+static void play_single_chapter_cb(void *this_gen, xine_cfg_entry_t *entry) {
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+
+  if(!class)
+   return;
+
+  class->play_single_chapter = entry->num_value;
+}
+
 static void send_mouse_enter_leave_event(dvd_input_plugin_t *this, int direction) {
 
   if(direction && this->mouse_in)
@@ -347,7 +359,7 @@ static void send_mouse_enter_leave_event(dvd_input_plugin_t *this, int direction
     this->mouse_buttonN = -1;
 }
  
-static void update_title_display(dvd_input_plugin_t *this) {
+static int update_title_display(dvd_input_plugin_t *this) {
   char ui_title[MAX_STR_LEN + 1];
   xine_event_t uevent;
   xine_ui_data_t data;
@@ -355,11 +367,20 @@ static void update_title_display(dvd_input_plugin_t *this) {
   size_t ui_str_length=0;
 
   if(!this || !(this->stream)) 
-   return;
-  
+   return 0;
+
   /* Set title/chapter display */
 
   dvdnav_current_title_info(this->dvdnav, &tt, &pr);
+  if( this->mode == MODE_TITLE ) {
+    if( (((dvd_input_class_t *)this->input_plugin.input_class)->play_single_chapter ) ) {
+      if( (this->tt && this->tt != tt) ||
+          (this->pr && this->pr != pr) )
+        return 0;
+    }
+    this->tt = tt;
+    this->pr = pr;
+  }
  
   if(tt >= 1) { 
     int num_angle = 0, cur_angle = 0;
@@ -399,6 +420,8 @@ static void update_title_display(dvd_input_plugin_t *this) {
   memcpy(data.str, ui_title, strlen(ui_title) + 1);
   data.str_len = strlen(ui_title) + 1;
   xine_event_send(this->stream, &uevent);
+
+  return 1;
 }
 
 static void dvd_plugin_dispose (input_plugin_t *this_gen) {
@@ -698,7 +721,12 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	event.data_length = 0;
 	xine_event_send(this->stream, &event);
 	
-	update_title_display(this);
+	if( !update_title_display(this) ) {
+	  if (buf->mem != block) dvdnav_free_cache_block(this->dvdnav, block);
+	  buf->free_buffer(buf);
+	  /* return NULL to indicate end of stream */
+	  return NULL;
+        }
 	
 	this->pg_length  = cell_event->pg_length;
 	this->pgc_length = cell_event->pgc_length;
@@ -1415,9 +1443,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   
   char                  *locator;
   char                  *title_part;
-  int                    mode;
   xine_event_t           event;
-  xine_cfg_entry_t       region_entry, lang_entry, cache_entry;
+  xine_cfg_entry_t       region_entry, lang_entry, cfg_entry;
   
   trace_print("Called\n");
 
@@ -1428,9 +1455,9 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
    * the MRL for ?title=<title>&part=<part> stuff and to expand 
    * escaped characters properly */
   
-  mode = dvd_parse_mrl(this, &locator, &title_part);
+  this->mode = dvd_parse_mrl(this, &locator, &title_part);
   
-  if (mode == MODE_FAIL) {
+  if (this->mode == MODE_FAIL) {
     /* opening failed and we have nothing left to try */
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
     _x_message(this->stream, XINE_MSG_READ_ERROR,
@@ -1453,15 +1480,20 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   
   /* Set cache usage */
   if (xine_config_lookup_entry(this->stream->xine, "media.dvd.readahead",
-			       &cache_entry))
-    read_ahead_cb(class, &cache_entry);
+			       &cfg_entry))
+    read_ahead_cb(class, &cfg_entry);
   
   /* Set seek mode */
   if (xine_config_lookup_entry(this->stream->xine, "media.dvd.seek_behaviour",
-			       &cache_entry))
-    seek_mode_cb(class, &cache_entry);  
+			       &cfg_entry))
+    seek_mode_cb(class, &cfg_entry);  
 
-  if (mode == MODE_TITLE) {
+  /* Set single chapter mode */
+  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.play_single_chapter",
+			       &cfg_entry))
+    play_single_chapter_cb(class, &cfg_entry);
+
+  if (this->mode == MODE_TITLE) {
     char *delimiter;
     int tt, pr;
     int titles, parts;
@@ -1666,6 +1698,7 @@ static void *init_class (xine_t *xine, void *data) {
   void                *dvdcss;
   static char         *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
   static char         *seek_modes[] = {"seek in program chain", "seek in program", NULL};
+  static char         *play_single_chapter_modes[] = {"entire dvd", "one chapter", NULL};
 
   trace_print("Called\n");
 #ifdef INPUT_DEBUG
@@ -1801,6 +1834,16 @@ static void *init_class (xine_t *xine, void *data) {
 			  "seeking will span a DVD program, which is a navigational unit representing "
 			  "a chapter of the current feature"),
 			20, seek_mode_cb, this);
+  config->register_enum(config, "media.dvd.play_single_chapter", 0,
+			play_single_chapter_modes,
+			_("play mode when title/chapter is given"),
+			_("You can configure the behaviour when playing a dvd from a given "
+			  "title/chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n\n"
+			  "entire dvd\n"
+			  "play the entire dvd starting on the specified position.\n\n"
+			  "one chapter\n"
+			  "play just the specified title/chapter and then stop"),
+			20, play_single_chapter_cb, this);
 
 #ifdef __sun
   check_solaris_vold_device(this);
