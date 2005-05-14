@@ -16,6 +16,7 @@ xine-lib (1.0.2)
     [bug #1195282]
   * gcc4 build patches [bug #1175002]
   * don't assume that file is in /usr/bin (build fix) [bug #1195539]
+  * plugin loader fixes - could cause xine to lock up hard on startup [bug #1196819]
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
