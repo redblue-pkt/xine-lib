@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.207 2005/05/14 15:41:15 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.208 2005/05/14 16:00:40 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -42,6 +42,7 @@
 
 #define LOG_MODULE "load_plugins"
 #define LOG_VERBOSE
+
 /*
 #define LOG
 */
@@ -60,9 +61,10 @@
 #include "xineutils.h"
 #include "compat.h"
 
+#if 0
+
 static char *plugin_name;
 
-#if 0
 #if DONT_CATCH_SIGSEGV
 
 #define install_segv_handler()
@@ -1139,14 +1141,14 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
   node = xine_list_first_content (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   while (node) {
 
-    if (!node->plugin_class && !_load_plugin_class(xine, node, NULL))
-      break;
-    if ((plugin = ((input_class_t *)node->plugin_class)->get_instance(node->plugin_class, stream, mrl))) {
-      inc_node_ref(node);
-      plugin->node = node;
-      break;
+    if (node->plugin_class || _load_plugin_class(xine, node, NULL)) {
+      if ((plugin = ((input_class_t *)node->plugin_class)->get_instance(node->plugin_class, stream, mrl))) {
+        inc_node_ref(node);
+        plugin->node = node;
+        break;
+      }
     }
-
+    
     node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_INPUT - 1]);
   }
 
@@ -1201,13 +1203,12 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "load_plugins: probing demux '%s'\n", node->info->id);
 
-      if (!node->plugin_class && !_load_plugin_class(stream->xine, node, NULL))
-	break;
-
-      if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
-	inc_node_ref(node);
-	plugin->node = node;
-	break;
+      if (node->plugin_class || _load_plugin_class(stream->xine, node, NULL)) {
+        if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+	  inc_node_ref(node);
+	  plugin->node = node;
+	  break;
+        }
       }
 
       node = xine_list_next_content (stream->xine->plugin_catalog->plugin_lists[PLUGIN_DEMUX - 1]);
@@ -1258,13 +1259,12 @@ demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *
 
   while (node) {
     if (strcasecmp(node->info->id, name) == 0) {
-      if (!node->plugin_class && !_load_plugin_class(stream->xine, node, NULL))
-	break;
-
-      if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
-	inc_node_ref(node);
-	plugin->node = node;
-	break;
+      if (node->plugin_class || _load_plugin_class(stream->xine, node, NULL)) {
+        if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+	  inc_node_ref(node);
+	  plugin->node = node;
+	  break;
+        }
       }
     }
     node = xine_list_next_content(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
@@ -1316,15 +1316,14 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
       } else {
 	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
 		"load_plugin: probing '%s' (method %d)...\n", node->info->id, stream->content_detection_method );
-	if (!node->plugin_class && !_load_plugin_class(xine, node, NULL))
-	  break;
-
-        if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
-	  xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
-		   "load_plugins: using demuxer '%s' (instead of '%s')\n", node->info->id, last_demux_name);
-	  inc_node_ref(node);
-	  plugin->node = node;
-	  break;
+	if (node->plugin_class || _load_plugin_class(xine, node, NULL)) {
+          if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+	    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+		     "load_plugins: using demuxer '%s' (instead of '%s')\n", node->info->id, last_demux_name);
+	    inc_node_ref(node);
+	    plugin->node = node;
+	    break;
+          }
         }
       }
 
@@ -1935,7 +1934,7 @@ void xine_plugins_garbage_collector(xine_t *self) {
     _unload_unref_plugins(self, self->plugin_catalog->plugin_lists[i]);
   } 
 
-#ifdef LOG
+#if 0
   {
     plugin_file_t *file;
 
