@@ -38,20 +38,6 @@
 #include "pulldown.h"
 #include "tvtime.h"
 
-/* use tvtime_t */
-#define pulldown_alg this->pulldown_alg
-#define curmethod this->curmethod
-
-#define last_topdiff this->last_topdiff
-#define last_botdiff this->last_botdiff
-
-#define pdoffset this->pdoffset
-#define pderror this->pderror
-#define pdlastbusted this->pdlastbusted
-#define filmmode this->filmmode
-
-
-
 /**
  * This is how many frames to wait until deciding if the pulldown phase
  * has changed or if we've really found a pulldown sequence.  This is
@@ -147,8 +133,8 @@ static void pulldown_merge_fields( uint8_t *output,
     }
 }
 
-
-static void calculate_pulldown_score_vektor( tvtime_t *this, uint8_t *curframe,
+static void calculate_pulldown_score_vektor( tvtime_t *tvtime,
+                                             uint8_t *curframe,
                                              uint8_t *lastframe,
                                              int instride,
                                              int frame_height,
@@ -156,23 +142,23 @@ static void calculate_pulldown_score_vektor( tvtime_t *this, uint8_t *curframe,
 {
     int i;
 
-    last_topdiff = 0;
-    last_botdiff = 0;
+    tvtime->last_topdiff = 0;
+    tvtime->last_botdiff = 0;
 
     for( i = 0; i < frame_height; i++ ) {
 
         if( i > 40 && (i & 3) == 0 && i < frame_height - 40 ) {
-            last_topdiff += diff_factor_packed422_scanline( curframe + (i*instride),
-                                                            lastframe + (i*instride), width );
-            last_botdiff += diff_factor_packed422_scanline( curframe + (i*instride) + instride,
-                                                            lastframe + (i*instride) + instride,
-                                                            width );
+            tvtime->last_topdiff += diff_factor_packed422_scanline( curframe + (i*instride),
+                                                                    lastframe + (i*instride), width );
+            tvtime->last_botdiff += diff_factor_packed422_scanline( curframe + (i*instride) + instride,
+                                                                    lastframe + (i*instride) + instride,
+                                                                    width );
         }
     }
 }
 
 
-int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
+int tvtime_build_deinterlaced_frame( tvtime_t *tvtime, uint8_t *output,
                                              uint8_t *curframe,
                                              uint8_t *lastframe,
                                              uint8_t *secondlastframe,
@@ -184,64 +170,59 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
 {
     int i;
 
-    if( pulldown_alg != PULLDOWN_VEKTOR ) {
+    if( tvtime->pulldown_alg != PULLDOWN_VEKTOR ) {
         /* If we leave vektor pulldown mode, lose our state. */
-        filmmode = 0;
+        tvtime->filmmode = 0;
     }
 
-    if( pulldown_alg == PULLDOWN_VEKTOR ) {
+    if( tvtime->pulldown_alg == PULLDOWN_VEKTOR ) {
         /* Make pulldown phase decisions every top field. */
         if( !bottom_field ) {
             int predicted;
 
-            predicted = pdoffset << 1;
+            predicted = tvtime->pdoffset << 1;
             if( predicted > PULLDOWN_SEQ_DD ) predicted = PULLDOWN_SEQ_AA;
 
-            /**
-             * Old algorithm:
-            pdoffset = determine_pulldown_offset_history( last_topdiff, last_botdiff, 1, &realbest );
-            if( pdoffset & predicted ) { pdoffset = predicted; } else { pdoffset = realbest; }
-             */
-
-            calculate_pulldown_score_vektor( this, curframe, lastframe, instride, frame_height, width );
-
-            pdoffset = determine_pulldown_offset_short_history_new( last_topdiff, last_botdiff, 1, predicted );
-            //pdoffset = determine_pulldown_offset_history_new( last_topdiff, last_botdiff, 1, predicted );
+            calculate_pulldown_score_vektor( tvtime, curframe, lastframe,
+                                             instride, frame_height, width );
+            tvtime->pdoffset = determine_pulldown_offset_short_history_new( tvtime->last_topdiff,
+                                                                            tvtime->last_botdiff,
+                                                                            1, predicted );
 
             /* 3:2 pulldown state machine. */
-            if( !pdoffset ) {
+            if( !tvtime->pdoffset ) {
                 /* No pulldown offset applies, drop out of pulldown immediately. */
-                pdlastbusted = 0;
-                pderror = PULLDOWN_ERROR_WAIT;
-            } else if( pdoffset != predicted ) {
-                if( pdlastbusted ) {
-                    pdlastbusted--;
-                    pdoffset = predicted;
+                tvtime->pdlastbusted = 0;
+                tvtime->pderror = PULLDOWN_ERROR_WAIT;
+            } else if( tvtime->pdoffset != predicted ) {
+                if( tvtime->pdlastbusted ) {
+                    tvtime->pdlastbusted--;
+                    tvtime->pdoffset = predicted;
                 } else {
-                    pderror = PULLDOWN_ERROR_WAIT;
+                    tvtime->pderror = PULLDOWN_ERROR_WAIT;
                 }
             } else {
-                if( pderror ) {
-                    pderror--;
+                if( tvtime->pderror ) {
+                    tvtime->pderror--;
                 }
 
-                if( !pderror ) {
-                    pdlastbusted = PULLDOWN_ERROR_THRESHOLD;
+                if( !tvtime->pderror ) {
+                    tvtime->pdlastbusted = PULLDOWN_ERROR_THRESHOLD;
                 }
             }
 
 
-            if( !pderror ) {
-                // We're in pulldown, reverse it.
-                if( !filmmode ) {
+            if( !tvtime->pderror ) {
+                /* We're in pulldown, reverse it. */
+                if( !tvtime->filmmode ) {
                     printf( "Film mode enabled.\n" );
-                    filmmode = 1;
+                    tvtime->filmmode = 1;
                 }
 
-                if( pulldown_drop( pdoffset, 0 ) )
+                if( pulldown_drop( tvtime->pdoffset, 0 ) )
                   return 0;
 
-                if( pulldown_source( pdoffset, 0 ) ) {
+                if( pulldown_source( tvtime->pdoffset, 0 ) ) {
                     pulldown_merge_fields( output, curframe, curframe + instride,
                                            width, frame_height, instride*2, outstride );
                 } else {
@@ -251,16 +232,16 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
 
                 return 1;
             } else {
-                if( filmmode ) {
+                if( tvtime->filmmode ) {
                     printf( "Film mode disabled.\n" );
-                    filmmode = 0;
+                    tvtime->filmmode = 0;
                 }
             }
-        } else if( !pderror ) {
-            if( pulldown_drop( pdoffset, 1 ) )
+        } else if( !tvtime->pderror ) {
+            if( pulldown_drop( tvtime->pdoffset, 1 ) )
                 return 0;
 
-            if( pulldown_source( pdoffset, 1 ) ) {
+            if( pulldown_source( tvtime->pdoffset, 1 ) ) {
                 pulldown_merge_fields( output, curframe, lastframe + instride,
                                        width, frame_height, instride*2, outstride );
             } else {
@@ -272,14 +253,14 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
         }
     }
 
-    if( !curmethod->scanlinemode ) {
+    if( !tvtime->curmethod->scanlinemode ) {
         deinterlace_frame_data_t data;
 
         data.f0 = curframe;
         data.f1 = lastframe;
         data.f2 = secondlastframe;
 
-        curmethod->deinterlace_frame( output, outstride, &data, bottom_field, second_field,
+        tvtime->curmethod->deinterlace_frame( output, outstride, &data, bottom_field, second_field,
                                       width, frame_height );
 
     } else {
@@ -338,7 +319,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
                 data.bb3 = (i > 1) ? (secondlastframe + (instride*3)) : (secondlastframe + instride);
             }
 
-            curmethod->interpolate_scanline( output, &data, width );
+            tvtime->curmethod->interpolate_scanline( output, &data, width );
 
             output += outstride;
             scanline++;
@@ -368,7 +349,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             }
 
             /* Copy a scanline. */
-            curmethod->copy_scanline( output, &data, width );
+            tvtime->curmethod->copy_scanline( output, &data, width );
             curframe += instride * 2;
             lastframe += instride * 2;
             secondlastframe += instride * 2;
@@ -390,7 +371,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
 }
 
 
-int tvtime_build_copied_field( tvtime_t *this, uint8_t *output,
+int tvtime_build_copied_field( tvtime_t *tvtime, uint8_t *output,
                                        uint8_t *curframe,
                                        int bottom_field,
                                        int width,
@@ -438,26 +419,26 @@ int tvtime_build_copied_field( tvtime_t *this, uint8_t *output,
 
 tvtime_t *tvtime_new_context(void)
 {
-  tvtime_t *this;
+  tvtime_t *tvtime;
 
-  this = malloc(sizeof(tvtime_t));
+  tvtime = malloc(sizeof(tvtime_t));
 
-  pulldown_alg = PULLDOWN_NONE;
+  tvtime->pulldown_alg = PULLDOWN_NONE;
 
-  curmethod = NULL;
+  tvtime->curmethod = NULL;
 
-  tvtime_reset_context(this);
+  tvtime_reset_context(tvtime);
 
-  return this;
+  return tvtime;
 }
 
-void tvtime_reset_context( tvtime_t *this )
+void tvtime_reset_context( tvtime_t *tvtime )
 {
-  last_topdiff = 0;
-  last_botdiff = 0;
+  tvtime->last_topdiff = 0;
+  tvtime->last_botdiff = 0;
 
-  pdoffset = PULLDOWN_SEQ_AA;
-  pderror = PULLDOWN_ERROR_WAIT;
-  pdlastbusted = 0;
-  filmmode = 0;
+  tvtime->pdoffset = PULLDOWN_SEQ_AA;
+  tvtime->pderror = PULLDOWN_ERROR_WAIT;
+  tvtime->pdlastbusted = 0;
+  tvtime->filmmode = 0;
 }

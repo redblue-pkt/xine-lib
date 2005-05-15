@@ -49,19 +49,30 @@ static void copy_scanline( uint8_t *output,
 
 static deinterlace_method_t linearmethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "Linear Interpolation",
     "Linear",
+/*
+    "Television: Full resolution",
+    "TelevisionFull",
+*/
     1,
-    0,
-    0,
     0,
     0,
     1,
     deinterlace_scanline_linear,
     copy_scanline,
     0,
-    0
+    0,
+    { "Expands each field independently without",
+      "blurring or copying in time.  Use this if you",
+      "want TV-quality with low CPU, and you have",
+      "configured your monitor to run at the refresh",
+      "rate of the video signal.",
+      "",
+      "Full resolution mode expands each field",
+      "to full size for high quality fullscreen use.",
+      "",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

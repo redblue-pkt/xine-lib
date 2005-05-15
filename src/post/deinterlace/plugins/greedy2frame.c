@@ -51,39 +51,28 @@ static int GreedyTwoFrameThreshold2 = 8;
 #include "greedy2frame_template.c"
 #undef IS_SSE
 
-static deinterlace_setting_t settings[] =
-{
-    {
-        "Greedy 2 Frame Luma Threshold",
-        SETTING_SLIDER,
-        &GreedyTwoFrameThreshold,
-        4, 0, 128, 1,
-        0
-    },
-    {
-        "Greedy 2 Frame Chroma Threshold",
-        SETTING_SLIDER,
-        &GreedyTwoFrameThreshold2,
-        8, 0, 128, 1,
-        0
-    }
-};
-
 static deinterlace_method_t greedymethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "Greedy - 2-frame (DScaler)",
     "Greedy2Frame",
     4,
     MM_ACCEL_X86_MMXEXT,
     0,
-    2,
-    settings,
     0,
     0,
     0,
     DeinterlaceGreedy2Frame_SSE,
-    1
+    1,
+    { "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

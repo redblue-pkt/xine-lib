@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2002 Billy Biggs <vektor@dumbterm.net>.
+ * Copyright (C) 2002, 2005 Billy Biggs <vektor@dumbterm.net>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,6 @@
 extern "C" {
 #endif
 
-#define DEINTERLACE_PLUGIN_API_VERSION 0x00000004
-
 /**
  * Our deinterlacer plugin API is modeled after DScaler's.  This module
  * represents the API that all deinterlacer plugins must export, and
@@ -38,20 +36,9 @@ extern "C" {
  * to iterate through available plugins and select an appropriate one.
  */
 
-typedef struct deinterlace_setting_s deinterlace_setting_t;
 typedef struct deinterlace_method_s deinterlace_method_t;
 typedef struct deinterlace_scanline_data_s deinterlace_scanline_data_t;
 typedef struct deinterlace_frame_data_s deinterlace_frame_data_t;
-
-/**
- * Callback for setting change notification.
- */
-typedef void (*setting_onchange_t)(deinterlace_setting_t *);
-
-/**
- * Interface for plugin initialization.
- */
-typedef void (*deinterlace_plugin_init_t)( void );
 
 /**
  * There are two scanline functions that every deinterlacer plugin
@@ -125,51 +112,21 @@ typedef void (*deinterlace_frame_t)( uint8_t *output, int outstride,
 
 
 /**
- * Plugin settings can be any of the following.
- */
-typedef enum
-{
-    SETTING_ONOFF,
-    SETTING_YESNO,
-    SETTING_ITEMFROMLIST,
-    SETTING_SLIDER
-} setting_type_t;
-
-/**
- * Each setting provides a pointer to the value, the min, max, default
- * and step increment, and if it's not 0, a function to be called
- * when the parameter is updated.
- */
-struct deinterlace_setting_s
-{
-    const char *name;
-    setting_type_t type;
-    int *value;
-    int defvalue;
-    int minvalue;
-    int maxvalue;
-    int stepvalue;
-    setting_onchange_t onchange;
-};
-
-/**
  * This structure defines the deinterlacer plugin.
  */
 struct deinterlace_method_s
 {
-    int version;
     const char *name;
     const char *short_name;
     int fields_required;
     int accelrequired;
     int doscalerbob;
-    int numsettings;
-    deinterlace_setting_t *settings;
     int scanlinemode;
     deinterlace_interp_scanline_t interpolate_scanline;
     deinterlace_copy_scanline_t copy_scanline;
     deinterlace_frame_t deinterlace_frame;
     int delaysfield; /* delays output by one field relative to input */
+    const char *description[ 10 ];
 };
 
 /**
@@ -186,11 +143,6 @@ int get_num_deinterlace_methods( void );
  * Returns the specified method in the list.
  */
 deinterlace_method_t *get_deinterlace_method( int i );
-
-/**
- * Loads a deinterlace plugin from the given file.
- */
-void register_deinterlace_plugin( const char *filename );
 
 /**
  * Builds the usable method list.

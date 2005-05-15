@@ -51,19 +51,26 @@ static void copy_scanline( uint8_t *output,
 
 static deinterlace_method_t doublemethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "Line Doubler",
     "LineDoubler",
     1,
-    0,
-    0,
     0,
     0,
     1,
     deinterlace_scanline_double,
     copy_scanline,
     0,
-    0
+    0,
+    { "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

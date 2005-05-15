@@ -90,6 +90,9 @@ static void deinterlace_line( uint8_t *dst, uint8_t *lum_m4,
     }
     emms();
 #else
+    /**
+     * C implementation.
+     */
     int sum;
 
     for(;size > 0;size--) {
@@ -109,19 +112,11 @@ static void deinterlace_line( uint8_t *dst, uint8_t *lum_m4,
 #endif
 }
 
-
-/**
- * The commented-out method below that uses the bottom_field member is more
- * like the filter as specified in the MPEG2 spec, but it doesn't seem to
- * have the desired effect.
- */
-
 static void deinterlace_scanline_vfir( uint8_t *output,
                                        deinterlace_scanline_data_t *data,
                                        int width )
 {
     deinterlace_line( output, data->tt1, data->t0, data->m1, data->b0, data->bb1, width*2 );
-    // blit_packed422_scanline( output, data->m1, width );
 }
 
 static void copy_scanline( uint8_t *output,
@@ -129,21 +124,17 @@ static void copy_scanline( uint8_t *output,
                            int width )
 {
     blit_packed422_scanline( output, data->m0, width );
-    /*
-    if( data->bottom_field ) {
-        deinterlace_line( output, data->tt2, data->t1, data->m2, data->b1, data->bb2, width*2 );
-    } else {
-        deinterlace_line( output, data->tt0, data->t1, data->m0, data->b1, data->bb0, width*2 );
-    }
-    */
 }
 
 
 static deinterlace_method_t vfirmethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "ffmpeg: Vertical Blend",
     "Vertical",
+/*
+    "Blur: Vertical",
+    "BlurVertical",
+*/
     1,
 #ifdef ARCH_X86
     MM_ACCEL_X86_MMXEXT,
@@ -151,13 +142,21 @@ static deinterlace_method_t vfirmethod =
     0,
 #endif
     0,
-    0,
-    0,
     1,
     deinterlace_scanline_vfir,
     copy_scanline,
     0,
-    0
+    0,
+    { "Avoids flicker by blurring consecutive frames",
+      "of input.  Use this if you want to run your",
+      "monitor at an arbitrary refresh rate and not",
+      "use much CPU, and are willing to sacrifice",
+      "detail.",
+      "",
+      "Vertical mode blurs favouring the most recent",
+      "field for less visible trails.  From the",
+      "deinterlacer filter in ffmpeg.",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

@@ -306,28 +306,38 @@ static void deinterlace_scanline_linear_blend2_mmxext( uint8_t *output,
 
 static deinterlace_method_t linearblendmethod_mmxext =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "mplayer: Linear Blend",
     "LinearBlend",
     2,
     MM_ACCEL_X86_MMXEXT,
     0,
-    0,
-    0,
     1,
     deinterlace_scanline_linear_blend_mmxext,
     deinterlace_scanline_linear_blend2_mmxext,
     0,
-    0
+    0,
+    { "Avoids flicker by blurring consecutive frames",
+      "of input.  Use this if you want to run your",
+      "monitor at an arbitrary refresh rate and not",
+      "use much CPU, and are willing to sacrifice",
+      "detail.",
+      "",
+      "Temporal mode evenly blurs content for least",
+      "flicker, but with visible trails on fast motion.",
+      "From the linear blend deinterlacer in mplayer.",
+      "" }
 };
 
 #endif
 
 static deinterlace_method_t linearblendmethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "mplayer: Linear Blend",
     "LinearBlend",
+/*
+    "Blur: Temporal",
+    "BlurTemporal",
+*/
     2,
 #ifdef ARCH_X86
     MM_ACCEL_X86_MMX,
@@ -335,13 +345,21 @@ static deinterlace_method_t linearblendmethod =
     0,
 #endif
     0,
-    0,
-    0,
     1,
     deinterlace_scanline_linear_blend,
     deinterlace_scanline_linear_blend2,
     0,
-    0
+    0,
+    { "Avoids flicker by blurring consecutive frames",
+      "of input.  Use this if you want to run your",
+      "monitor at an arbitrary refresh rate and not",
+      "use much CPU, and are willing to sacrifice",
+      "detail.",
+      "",
+      "Temporal mode evenly blurs content for least",
+      "flicker, but with visible trails on fast motion.",
+      "From the linear blend deinterlacer in mplayer.",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

@@ -87,21 +87,6 @@ deinterlace_method_t *get_deinterlace_method( int i )
     return cur->method;
 }
 
-void register_deinterlace_plugin( const char *filename )
-{
-    void *handle = dlopen( filename, RTLD_NOW );
-
-    if( !handle ) {
-        printf( "deinterlace: Can't load plugin '%s': %s\n", filename, dlerror() );
-    } else {
-        deinterlace_plugin_init_t plugin_init;
-        plugin_init = (deinterlace_plugin_init_t) dlsym( handle, "deinterlace_plugin_init" );
-        if( plugin_init ) {
-            plugin_init();
-        }
-    }
-}
-
 void filter_deinterlace_methods( int accel, int fields_available )
 {
     methodlist_item_t *prev = 0;

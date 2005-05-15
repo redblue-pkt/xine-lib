@@ -163,32 +163,40 @@ static void deinterlace_greedy_packed422_scanline_mmxext( uint8_t *output,
 #endif
 }
 
-static deinterlace_setting_t settings[] =
-{
-    {
-        "Greedy Max Comb",
-        SETTING_SLIDER,
-        &GreedyMaxComb,
-        15, 0, 255, 1,
-        0
-    }
-};
+/**
+ * The greedy deinterlacer introduces a one-field delay on the input.
+ * From the diagrams in deinterlace.h, the field being deinterlaced is
+ * always t-1.  For this reason, our copy_scanline method is used for
+ * deinterlace_method_t's interpolate_scanline function, and the real
+ * work is done in deinterlace_method_t's copy_scanline function.
+ */
 
 static deinterlace_method_t greedymethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "DScaler: Greedy - Low motion",
     "Greedy",
+/*
+    "Motion Adaptive: Simple Detection",
+    "AdaptiveSimple",
+*/
     3,
     MM_ACCEL_X86_MMXEXT,
     0,
     1,
-    settings,
-    1,
     copy_scanline,
     deinterlace_greedy_packed422_scanline_mmxext,
     0,
-    1
+    1,
+    { "Uses heuristics to detect motion in the input",
+      "frames and reconstruct image detail where",
+      "possible.  Use this for high quality output",
+      "even on monitors set to an arbitrary refresh",
+      "rate.",
+      "",
+      "Simple detection uses linear interpolation",
+      "where motion is detected, using a two-field",
+      "buffer.  This is the Greedy: Low Motion",
+      "deinterlacer from DScaler." }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

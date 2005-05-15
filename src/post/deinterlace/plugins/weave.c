@@ -51,19 +51,26 @@ static void copy_scanline( uint8_t *output,
 
 static deinterlace_method_t weavemethod =
 {
-    DEINTERLACE_PLUGIN_API_VERSION,
     "Weave Last Field",
     "Weave",
     2,
-    0,
-    0,
     0,
     0,
     1,
     deinterlace_scanline_weave,
     copy_scanline,
     0,
-    0
+    0,
+    { "Only updates the most recent field",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "" }
 };
 
 #ifdef BUILD_TVTIME_PLUGINS
