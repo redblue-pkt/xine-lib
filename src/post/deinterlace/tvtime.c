@@ -223,7 +223,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *tvtime, uint8_t *output,
                   return 0;
 
                 if( pulldown_source( tvtime->pdoffset, 0 ) ) {
-                    pulldown_merge_fields( output, curframe, curframe + instride,
+                    pulldown_merge_fields( output, lastframe, lastframe + instride,
                                            width, frame_height, instride*2, outstride );
                 } else {
                     pulldown_merge_fields( output, curframe, lastframe + instride,

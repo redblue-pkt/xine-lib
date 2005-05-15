@@ -51,6 +51,38 @@
  * Bot 4 : Drop
  * Top 5 : Drop
  * Bot 5 : Show
+ *
+ *   A A   1
+ *   A B   2
+ *   B C   4
+ *   C C   8
+ *   D D   16
+ *
+ *  D D A A A B B C C C D D A A A +------------
+ * [       ]
+ * [* *  ]                        | 1    top      AA
+ *   [  * *]                      | 0 AA bottom   AA
+ *
+ *     [       ]
+ *     [* *  ]                    | 1    top      AB
+ *       [* *  ]                  | 1 AB bottom   AB
+ *
+ *         [       ]
+ *         [  * *]                | 0    top      BC
+ *           [* *  ]              | 1 BC bottom   BC 
+ *
+ *             [       ]
+ *             [  * *]            | 0    top      CC
+ *               [  * *]          | 0 CC bottom   CC 
+ *
+ *                 [       ]
+ *                 [* *  ]        | 1    top      DD
+ *                   [  * *]      | 0 DD bottom   DD 
+ *
+ *
+ *                     [* *  ]    | 1    top      AA
+ *                       [  * *]  | 0 AA bottom   AA
+ *
  */
 
 /* Offset                  1     2     3      4      5   */
@@ -550,11 +582,19 @@ void diff_factor_packed422_frame( pulldown_metrics_t *peak, pulldown_metrics_t *
 
 int pulldown_source( int action, int bottom_field )
 {
-    if( action == PULLDOWN_SEQ_AB || action == PULLDOWN_SEQ_BC ) {
+    if( action == PULLDOWN_SEQ_AA ) {
+        return !bottom_field;
+    } else if( action == PULLDOWN_SEQ_AB ) {
+        return 1;
+    } else if( action == PULLDOWN_SEQ_BC ) {
         return bottom_field;
-    } else {
+    } else if( action == PULLDOWN_SEQ_CC ) {
+        return 0;
+    } else if( action == PULLDOWN_SEQ_DD ) {
         return !bottom_field;
     }
+
+    return 0;
 }
 
 int pulldown_drop( int action, int bottom_field )

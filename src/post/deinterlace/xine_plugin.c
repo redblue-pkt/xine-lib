@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.37 2004/09/29 18:30:37 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.38 2005/05/15 02:41:03 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -550,8 +550,7 @@ static int deinterlace_build_output_field(
   int force24fps;
             
   force24fps = this->judder_correction && !this->cheap_mode &&
-               ( (this->pulldown == PULLDOWN_DALIAS) ||
-                 (this->pulldown == PULLDOWN_VEKTOR && this->tvtime->filmmode) );
+               ( this->pulldown == PULLDOWN_VEKTOR && this->tvtime->filmmode );
   
   if( this->tvtime->curmethod->doscalerbob ) {
     scaler = 2;

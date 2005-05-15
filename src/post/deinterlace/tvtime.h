@@ -33,8 +33,7 @@
 enum {
     PULLDOWN_NONE = 0,
     PULLDOWN_VEKTOR = 1, /* vektor's adaptive pulldown detection. */
-    PULLDOWN_DALIAS = 2, /* Using dalias's pulldown detection */
-    PULLDOWN_MAX = 4,
+    PULLDOWN_MAX = 2,
 };
 
 enum
