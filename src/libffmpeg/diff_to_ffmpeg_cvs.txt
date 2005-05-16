@@ -4314,3 +4314,85 @@
                               int P[10][2], int src_index, int ref_index, int16_t (*last_mv)[2], 
                               int ref_mv_scale, int size, int h)
  {
+--- libavcodec/snow.c	2005-05-16 15:44:13.826812894 +0100	1.2
++++ libavcodec/snow.c	2005-05-16 15:46:47.555438283 +0100
+@@ -2033,6 +2033,7 @@
+ #define P_MV1 P[9]
+ #define FLAG_QPEL   1 //must be 1
+ 
++#ifdef CONFIG_ENCODERS
+ static int encode_q_branch(SnowContext *s, int level, int x, int y){
+     uint8_t p_buffer[1024];
+     uint8_t i_buffer[1024];
+@@ -2259,6 +2260,7 @@
+         return score;
+     }
+ }
++#endif
+ 
+ static void decode_q_branch(SnowContext *s, int level, int x, int y){
+     const int w= s->b_width << s->block_max_depth;
+@@ -2312,6 +2314,7 @@
+     }
+ }
+ 
++#ifdef CONFIG_ENCODERS
+ static void encode_blocks(SnowContext *s){
+     int x, y;
+     int w= s->b_width;
+@@ -2327,6 +2330,7 @@
+         }
+     }
+ }
++#endif
+ 
+ static void decode_blocks(SnowContext *s){
+     int x, y;
+@@ -3335,6 +3339,7 @@
+     }
+ }
+ 
++#ifdef CONFIG_ENCODERS
+ static int encode_init(AVCodecContext *avctx)
+ {
+     SnowContext *s = avctx->priv_data;
+@@ -3396,6 +3401,7 @@
+     s->chroma_v_shift= 1;
+     return 0;
+ }
++#endif
+ 
+ static int frame_start(SnowContext *s){
+    AVFrame tmp;
+@@ -3421,6 +3427,7 @@
+     return 0;
+ }
+ 
++#ifdef CONFIG_ENCODERS
+ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
+     SnowContext *s = avctx->priv_data;
+     RangeCoder * const c= &s->c;
+@@ -3615,6 +3622,7 @@
+     
+     return ff_rac_terminate(c);
+ }
++#endif
+ 
+ static void common_end(SnowContext *s){
+     int plane_index, level, orientation;
+@@ -3638,6 +3646,7 @@
+     }
+ }
+ 
++#ifdef CONFIG_ENCODERS
+ static int encode_end(AVCodecContext *avctx)
+ {
+     SnowContext *s = avctx->priv_data;
+@@ -3647,6 +3656,7 @@
+ 
+     return 0;
+ }
++#endif
+ 
+ static int decode_init(AVCodecContext *avctx)
+ {

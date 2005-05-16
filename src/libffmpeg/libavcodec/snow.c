@@ -2033,6 +2033,7 @@ static inline void init_ref(MotionEstContext *c, uint8_t *src[3], uint8_t *ref[3
 #define P_MV1 P[9]
 #define FLAG_QPEL   1 //must be 1
 
+#ifdef CONFIG_ENCODERS
 static int encode_q_branch(SnowContext *s, int level, int x, int y){
     uint8_t p_buffer[1024];
     uint8_t i_buffer[1024];
@@ -2259,6 +2260,7 @@ static int encode_q_branch(SnowContext *s, int level, int x, int y){
         return score;
     }
 }
+#endif
 
 static void decode_q_branch(SnowContext *s, int level, int x, int y){
     const int w= s->b_width << s->block_max_depth;
@@ -2312,6 +2314,7 @@ static void decode_q_branch(SnowContext *s, int level, int x, int y){
     }
 }
 
+#ifdef CONFIG_ENCODERS
 static void encode_blocks(SnowContext *s){
     int x, y;
     int w= s->b_width;
@@ -2327,6 +2330,7 @@ static void encode_blocks(SnowContext *s){
         }
     }
 }
+#endif
 
 static void decode_blocks(SnowContext *s){
     int x, y;
@@ -3335,6 +3339,7 @@ static void calculate_vissual_weight(SnowContext *s, Plane *p){
     }
 }
 
+#ifdef CONFIG_ENCODERS
 static int encode_init(AVCodecContext *avctx)
 {
     SnowContext *s = avctx->priv_data;
@@ -3396,6 +3401,7 @@ static int encode_init(AVCodecContext *avctx)
     s->chroma_v_shift= 1;
     return 0;
 }
+#endif
 
 static int frame_start(SnowContext *s){
    AVFrame tmp;
@@ -3421,6 +3427,7 @@ static int frame_start(SnowContext *s){
     return 0;
 }
 
+#ifdef CONFIG_ENCODERS
 static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
     SnowContext *s = avctx->priv_data;
     RangeCoder * const c= &s->c;
@@ -3615,6 +3622,7 @@ STOP_TIMER("pred-conv")}
     
     return ff_rac_terminate(c);
 }
+#endif
 
 static void common_end(SnowContext *s){
     int plane_index, level, orientation;
@@ -3638,6 +3646,7 @@ static void common_end(SnowContext *s){
     }
 }
 
+#ifdef CONFIG_ENCODERS
 static int encode_end(AVCodecContext *avctx)
 {
     SnowContext *s = avctx->priv_data;
@@ -3647,6 +3656,7 @@ static int encode_end(AVCodecContext *avctx)
 
     return 0;
 }
+#endif
 
 static int decode_init(AVCodecContext *avctx)
 {
