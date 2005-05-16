@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.48 2005/05/06 04:22:51 tmmm Exp $
+ * $Id: video_decoder.c,v 1.49 2005/05/16 20:49:43 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -148,10 +148,10 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
     return avcodec_default_get_buffer(context, av_frame);
   }
   
-  if((width != context->width) || (height != context->height)) {
+  if((width != this->bih.biWidth) || (height != this->bih.biHeight)) {
     if(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CROP) {
-      this->crop_right = width - context->width;
-      this->crop_bottom = height - context->height;
+      this->crop_right = width - this->bih.biWidth;
+      this->crop_bottom = height - this->bih.biHeight;
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
               _("ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"));
