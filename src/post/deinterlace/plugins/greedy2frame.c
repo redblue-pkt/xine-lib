@@ -51,7 +51,7 @@ static int GreedyTwoFrameThreshold2 = 8;
 #include "greedy2frame_template.c"
 #undef IS_SSE
 
-static deinterlace_method_t greedymethod =
+static deinterlace_method_t greedy2framemethod =
 {
     "Greedy - 2-frame (DScaler)",
     "Greedy2Frame",
@@ -75,12 +75,8 @@ static deinterlace_method_t greedymethod =
       "" }
 };
 
-#ifdef BUILD_TVTIME_PLUGINS
-void deinterlace_plugin_init( void )
-#else
-void greedy2frame_plugin_init( void )
-#endif
+deinterlace_method_t *greedy2frame_get_method( void )
 {
-    register_deinterlace_method( &greedymethod );
+    return &greedy2framemethod;
 }
 

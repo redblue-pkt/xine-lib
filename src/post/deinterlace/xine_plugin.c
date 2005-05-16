@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.38 2005/05/15 02:41:03 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.39 2005/05/16 01:39:02 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -302,24 +302,16 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
 
   setup_speedy_calls(xine_mm_accel(),0);
 
-  linear_plugin_init();
-  linearblend_plugin_init();
-  greedy_plugin_init();
-  greedy2frame_plugin_init();
-  weave_plugin_init();
-  double_plugin_init();
-  vfir_plugin_init();
+  register_deinterlace_method( linear_get_method() );
+  register_deinterlace_method( linearblend_get_method() );
+  register_deinterlace_method( greedy_get_method() );
+  register_deinterlace_method( greedy2frame_get_method() );
+  register_deinterlace_method( weave_get_method() );
+  register_deinterlace_method( double_get_method() );
+  register_deinterlace_method( vfir_get_method() );
+  register_deinterlace_method( scalerbob_get_method() );
 
-  scalerbob_plugin_init();
 
-  /*
-  dscaler_greedyh_plugin_init();
-  dscaler_twoframe_plugin_init();
-
-  dscaler_videobob_plugin_init();
-  dscaler_videoweave_plugin_init();
-  dscaler_tomsmocomp_plugin_init();
-  */
   filter_deinterlace_methods( config_flags, 5 /*fieldsavailable*/ );
   if( !get_num_deinterlace_methods() ) {
       xprintf(xine, XINE_VERBOSITY_LOG, 

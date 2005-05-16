@@ -1,24 +1,22 @@
 /**
- * Linear blend deinterlacing plugin.  The algorithm for this filter is based
- * on the mythtv sources, which took it from the mplayer sources.
+ * Linear blend deinterlacing plugin.  The idea for this algorithm came
+ * from the linear blend deinterlacer which originated in the mplayer
+ * sources.
  *
- * The file is postprocess_template.c in mplayer, and is
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- *  Copyright (C) 2001-2002 Michael Niedermayer (michaelni@gmx.at)
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
+ * Lesser General Public License for more details.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -362,16 +360,13 @@ static deinterlace_method_t linearblendmethod =
       "" }
 };
 
-#ifdef BUILD_TVTIME_PLUGINS
-void deinterlace_plugin_init( void )
-#else
-void linearblend_plugin_init( void )
-#endif
+deinterlace_method_t *linearblend_get_method( void )
 {
 #ifdef ARCH_X86
     if( xine_mm_accel() & MM_ACCEL_X86_MMXEXT )
-      register_deinterlace_method( &linearblendmethod_mmxext );
+      return &linearblendmethod_mmxext;
     else
 #endif
-      register_deinterlace_method( &linearblendmethod );
+      return &linearblendmethod;
 }
+

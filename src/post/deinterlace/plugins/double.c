@@ -73,12 +73,7 @@ static deinterlace_method_t doublemethod =
       "" }
 };
 
-#ifdef BUILD_TVTIME_PLUGINS
-void deinterlace_plugin_init( void )
-#else
-void double_plugin_init( void )
-#endif
+deinterlace_method_t *double_get_method( void )
 {
-    register_deinterlace_method( &doublemethod );
+    return &doublemethod;
 }
-
