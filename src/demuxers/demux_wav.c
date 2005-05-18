@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.60 2004/06/14 19:15:36 hadess Exp $
+ * $Id: demux_wav.c,v 1.61 2005/05/18 09:02:26 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -119,6 +119,11 @@ static int open_wav_file(demux_wav_t *this) {
   this->audio_type = _x_formattag_to_buf_audio(this->wave->wFormatTag);
   if(!this->audio_type) {
     this->audio_type = BUF_AUDIO_UNKNOWN;
+  }
+
+  if (this->wave->nChannels <= 0) {
+    free (this->wave);
+    return 0;
   }
 
   /* traverse through the chunks to find the 'data' chunk */
