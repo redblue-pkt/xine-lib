@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.37 2005/04/27 23:28:42 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.38 2005/05/20 02:01:35 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -62,6 +62,7 @@
 #include <cdio/logging.h>
 #include <cdio/iso9660.h>
 #include <cdio/cd_types.h>
+#include <cdio/version.h>
 
 /* libvcd includes */
 #include <libvcd/files.h>
@@ -181,7 +182,9 @@ vcd_get_default_device(vcd_input_class_t *class, bool log_msg_if_fail)
     }
     class->vcd_device = strdup(cd_drives[0]);
     cdio_free_device_list(cd_drives);
+#if LIBCDIO_VERSION_NUM <= 72
     free(cd_drives);
+#endif
   }
   return true;
 }
