@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2005/05/21 15:02:08 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.40 2005/05/21 15:20:31 jstembridge Exp $
  *
  */
 
@@ -219,7 +219,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     
       /* estimate bitrate */
       this->total_time += (1000*this->faac_finfo.samples/(this->rate*this->num_channels));
-      this->total_data += used;
+      this->total_data += 8*used;
 
       if ((this->total_time > LONG_MAX) || (this->total_data > LONG_MAX)) {
         this->total_time >>= 2;
@@ -228,7 +228,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
 
       if (this->total_time)
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
-                           8000*this->total_data/this->total_time);
+                           1000*(this->total_data/this->total_time));
 
       decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
 
