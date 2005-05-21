@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2005/05/21 14:09:54 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.39 2005/05/21 15:02:08 jstembridge Exp $
  *
  */
 
@@ -72,6 +72,9 @@ typedef struct faad_decoder_s {
   uint32_t         ao_cap_mode; 
    
   int              output_open;
+
+  unsigned long    total_time;
+  unsigned long    total_data;
 } faad_decoder_t;
 
 
@@ -214,6 +217,19 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         faad_open_output( this );
       }
     
+      /* estimate bitrate */
+      this->total_time += (1000*this->faac_finfo.samples/(this->rate*this->num_channels));
+      this->total_data += used;
+
+      if ((this->total_time > LONG_MAX) || (this->total_data > LONG_MAX)) {
+        this->total_time >>= 2;
+        this->total_data >>= 2;
+      }
+
+      if (this->total_time)
+        _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+                           8000*this->total_data/this->total_time);
+
       decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
 
       lprintf("decoded %d/%d output %ld\n",
@@ -389,6 +405,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->max_audio_src_size = 0;
   this->dec_config         = NULL;
   this->dec_config_size    = 0;
+  this->total_time         = 0;
+  this->total_data         = 0;
 
   this->rate               = 44100;
 
