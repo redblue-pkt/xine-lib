@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2003 the xine project
+ * Copyright (C) 2001-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -18,10 +18,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * Raw AAC File Demuxer by Mike Melanson (melanson@pcisys.net)
- * This demuxer presently only detects a raw AAC file by the extension 
- * '.aac'. Then it shovels buffer-sized chunks over to the AAC decoder.
+ * This demuxer detects ADIF and ADTS headers in AAC files.
+ * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.6 2005/05/21 09:50:32 jstembridge Exp $
+ * $Id: demux_aac.c,v 1.7 2005/05/21 14:13:04 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -275,11 +275,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 }
 
 static char *get_description (demux_class_t *this_gen) {
-  return "Raw AAC demux plugin";
+  return "ADIF/ADTS AAC demux plugin";
 }
 
 static char *get_identifier (demux_class_t *this_gen) {
-  return "Raw AAC";
+  return "AAC";
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
