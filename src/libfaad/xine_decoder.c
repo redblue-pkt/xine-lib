@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2004/12/16 13:59:10 mroi Exp $
+ * $Id: xine_decoder.c,v 1.38 2005/05/21 14:09:54 jstembridge Exp $
  *
  */
 
@@ -298,6 +298,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                
         if( faad_open_dec(this) )
           return;
+
+        this->raw_mode = 0;
       }
     }
                                                
