@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.109 2005/02/07 23:58:58 tmattern Exp $
+ * $Id: input_http.c,v 1.110 2005/05/21 16:16:35 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -850,23 +850,27 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
         if (!strncasecmp(this->buf, TAG_ICY_NAME, sizeof(TAG_ICY_NAME) - 1)) {
           _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM,
                            (this->buf + sizeof(TAG_ICY_NAME) - 1 +
-                            (*(this->buf + sizeof(TAG_ICY_NAME)) == ' ')));
+                            (*(this->buf + sizeof(TAG_ICY_NAME) - 1) == ' ')));
           _x_meta_info_set(this->stream, XINE_META_INFO_TITLE,
                            (this->buf + sizeof(TAG_ICY_NAME) - 1 +
-                            (*(this->buf + sizeof(TAG_ICY_NAME)) == ' ')));
+                            (*(this->buf + sizeof(TAG_ICY_NAME) - 1) == ' ')));
         }
         
         if (!strncasecmp(this->buf, TAG_ICY_GENRE, sizeof(TAG_ICY_GENRE) - 1)) {
           _x_meta_info_set(this->stream, XINE_META_INFO_GENRE,
                           (this->buf + sizeof(TAG_ICY_GENRE) - 1 +
-                           (*(this->buf + sizeof(TAG_ICY_GENRE)) == ' ')));
+                           (*(this->buf + sizeof(TAG_ICY_GENRE) - 1) == ' ')));
         }
         
         /* icy-notice1 is always the same */
         if (!strncasecmp(this->buf, TAG_ICY_NOTICE2, sizeof(TAG_ICY_NOTICE2) - 1)) {
+          char *end;
+          if((end = strstr(this->buf, "<BR>")))
+            *end = '\0';
+
           _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT,
                            (this->buf + sizeof(TAG_ICY_NOTICE2) - 1 +
-                            (*(this->buf + sizeof(TAG_ICY_NOTICE2)) == ' ')));
+                            (*(this->buf + sizeof(TAG_ICY_NOTICE2) - 1) == ' ')));
         }
   
         /* metadata interval (in byte) */
