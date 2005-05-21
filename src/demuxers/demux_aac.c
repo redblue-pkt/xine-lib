@@ -21,7 +21,7 @@
  * This demuxer presently only detects a raw AAC file by the extension 
  * '.aac'. Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.5 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux_aac.c,v 1.6 2005/05/21 09:50:32 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+#define LOG_MODULE "demux_aac"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -61,6 +67,60 @@ typedef struct {
   demux_class_t     demux_class;
 } demux_aac_class_t;
 
+
+static int open_aac_file(demux_aac_t *this) {
+  int i;
+  uint8_t peak[MAX_PREVIEW_SIZE];
+  uint16_t syncword = 0;
+
+  /* Check for an ADIF header - should be at the start of the file */
+  if (_x_demux_read_header(this->input, peak, 4) != 4)
+      return 0;
+
+  if ((peak[0] == 'A') && (peak[1] == 'D') &&
+      (peak[2] == 'I') && (peak[3] == 'F')) {
+    lprintf("found ADIF header\n");
+    return 1;
+  }
+
+  /* Look for an ADTS header - might not be at the start of the file */
+  if (_x_demux_read_header(this->input, peak, MAX_PREVIEW_SIZE) != 
+      MAX_PREVIEW_SIZE)
+    return 0;
+
+  for (i=0; i<MAX_PREVIEW_SIZE; i++) {
+    if ((syncword & 0xfff6) == 0xfff0) {
+      this->data_start = i - 2;
+      lprintf("found ADTS header at offset %d\n", i-2);
+      break;
+    }
+
+    syncword = (syncword << 8) | peak[i];
+  }
+
+  /* Look for second ADTS header to confirm it's really aac */
+  if (i<MAX_PREVIEW_SIZE-3) {
+    int frame_size = ((peak[this->data_start+3] & 0x03) << 11) |
+                      (peak[this->data_start+4] << 3) |
+                     ((peak[this->data_start+5] & 0xe0) >> 5);
+
+    lprintf("first frame size %d\n", frame_size);
+
+    if ((this->data_start+frame_size < MAX_PREVIEW_SIZE-1) &&
+        (peak[this->data_start+frame_size] == 0xff) &&
+        ((peak[this->data_start+frame_size+1] & 0xf6) == 0xf0)) {
+      lprintf("found second ADTS header\n");
+
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+
+      this->input->seek(this->input, this->data_start, SEEK_SET);
+      return 1;
+    }
+  }
+
+  return 0;
+}
 
 static int demux_aac_send_chunk(demux_plugin_t *this_gen) {
   demux_aac_t *this = (demux_aac_t *) this_gen;
@@ -185,8 +245,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->status = DEMUX_FINISHED;
   switch (stream->content_detection_method) {
 
-  case METHOD_BY_EXTENSION:
-  case METHOD_EXPLICIT: {
+  case METHOD_BY_EXTENSION: {
     char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
@@ -197,12 +256,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
   }
-  break;
+  /* Falling through is intended */
 
   case METHOD_BY_CONTENT:
-    free (this);
-    return NULL;
-  break;
+  case METHOD_EXPLICIT:
+    if (!open_aac_file(this)) {
+      free (this);
+      return NULL;
+    }
+    break;
 
   default:
     free (this);
