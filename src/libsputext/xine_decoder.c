@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.88 2004/12/22 21:29:26 mroi Exp $
+ * $Id: xine_decoder.c,v 1.89 2005/05/23 17:13:35 f1rmb Exp $
  *
  */
 
@@ -150,6 +150,7 @@ static void update_output_size (sputext_decoder_t *this) {
   unscaled = this->class->use_unscaled &&
              (this->stream->video_out->get_capabilities(this->stream->video_out) &
               VO_CAP_UNSCALED_OVERLAY);
+
   if( unscaled != this->unscaled ) {
     this->unscaled = unscaled;
     this->width = 0; /* force update */
@@ -174,7 +175,7 @@ static void update_output_size (sputext_decoder_t *this) {
         this->height = this->stream->video_out->get_property(this->stream->video_out,
                                                              VO_PROP_WINDOW_HEIGHT);
 
-        if( this->width && this->height && this->img_duration ) {
+        if(!this->osd || (this->width && this->height && this->img_duration)) {
           this->renderer = this->stream->osd_renderer;
           
           update_font_size (this, 1);
@@ -190,7 +191,7 @@ static void update_output_size (sputext_decoder_t *this) {
       this->stream->video_out->status(this->stream->video_out, NULL,
                                       &this->width, &this->height, &this->img_duration );
                                       
-      if( this->width && this->height && this->img_duration ) {
+      if(!this->osd || ( this->width && this->height && this->img_duration)) {
         this->renderer = this->stream->osd_renderer;
         
         update_font_size (this, 1);
