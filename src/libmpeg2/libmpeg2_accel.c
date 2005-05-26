@@ -98,6 +98,7 @@ libmpeg2_accel_new_frame(mpeg2dec_accel_t *accel, uint32_t frame_format,
        */
 
       if ( picture->picture_structure != 3 ) {
+	picture->top_field_first = (picture->picture_structure == 1);
 	xxmc->acceleration &= ~( XINE_XVMC_ACCEL_IDCT |  XINE_XVMC_ACCEL_MOCOMP );
       } 
 
