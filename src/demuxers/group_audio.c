@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.17 2005/02/06 15:26:19 tmattern Exp $
+ * $Id: group_audio.c,v 1.18 2005/05/26 22:09:23 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,6 +53,10 @@ demuxer_info_t demux_info_aiff = {
 
 demuxer_info_t demux_info_cdda = {
   10                       /* priority */
+};
+
+demuxer_info_t demux_info_dts = {
+  0                        /* priority */
 };
 
 demuxer_info_t demux_info_flac = {
@@ -104,6 +108,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 26, "aud",       XINE_VERSION_CODE, &demux_info_aud,       demux_aud_init_plugin },
   { PLUGIN_DEMUX, 26, "aiff",      XINE_VERSION_CODE, &demux_info_aiff,      demux_aiff_init_plugin },
   { PLUGIN_DEMUX, 26, "cdda",      XINE_VERSION_CODE, &demux_info_cdda,      demux_cdda_init_plugin },
+  { PLUGIN_DEMUX, 26, "dts",       XINE_VERSION_CODE, &demux_info_dts,       demux_dts_init_plugin },
   { PLUGIN_DEMUX, 26, "flac",      XINE_VERSION_CODE, &demux_info_flac,      demux_flac_init_plugin },
   { PLUGIN_DEMUX, 26, "mp3",       XINE_VERSION_CODE, &demux_info_mpgaudio,  demux_mpgaudio_init_class },
   { PLUGIN_DEMUX, 26, "mpc",       XINE_VERSION_CODE, &demux_info_mpc,       demux_mpc_init_plugin },
