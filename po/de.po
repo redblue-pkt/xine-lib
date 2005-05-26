@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: http://sourceforge.net/tracker/?"
 "atid=109655&group_id=9655\n"
 "POT-Creation-Date: 2005-04-24 12:10+0200\n"
-"PO-Revision-Date: 2005-02-12 12:40+0200\n"
+"PO-Revision-Date: 2005-05-26 09:15+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -909,13 +909,16 @@ msgstr ""
 
 #: src/video_out/video_out_xxmc.c:2444
 msgid "Use bob as accelerated deinterlace method."
-msgstr ""
+msgstr "Benutze BOB als beschleunigte Deinterlacingmethode."
 
 #: src/video_out/video_out_xxmc.c:2445
 msgid ""
 "When interlacing is enabled for hardware accelerated frames,\n"
 "Alternate between top and bottom field at double the frame rate.\n"
 msgstr ""
+"Wenn Interlacing bei hardwarebeschleunigter Ausgabe aktiviert ist,\n"
+"alterniere zwischen oberer und unterer Hälfte bei doppelter "
+"Bildwiederholrate.\n"
 
 #: src/video_out/video_out_xxmc.c:2499 src/video_out/video_out_xv.c:1580
 msgid "xine video output plugin using the MIT X video extension"
@@ -1275,7 +1278,6 @@ msgid "OpenGL renderer"
 msgstr "OpenGL Renderer"
 
 #: src/video_out/video_out_opengl.c:1891
-#, fuzzy
 msgid ""
 "The OpenGL plugin provides several render modules:\n"
 "\n"
@@ -1305,10 +1307,20 @@ msgid ""
 msgstr ""
 "Das OpenGL Plugin bietet verschiedene Render-Modelle:\n"
 "\n"
-"2D_Textures\n"
-"Dieses Modell lädt die Bildr als 2D Textur und rendert ein texturierten "
+"2D_Tex_Tragprog\n"
+"Dieses Modul lädt die Bilder als YUV 2D-Textur und rendert einen "
+"texturierten Streifen mit Hilfe von Fragmentprogrammen zur Rekonstruktion "
+"von RGB.\n"
+"Dies ist die beste und schnellste Methode bei modernen Grafikkarten.\n"
+"\n"
+"2D_Tex\n"
+"Dieses Modell lädt die Bilder als 2D-Textur und rendert einen texturierten "
 "Streifen.\n"
-"Dies ist normalerweise die schnellste Methode.\n"
+"\n"
+"2D_Tex_Tiles\n"
+"Dieses Modell lädt die Bilder als mehrere 2D-Texturen und rendert "
+"texturierte Streifen.\n"
+"Deshalb funktioniert diese Methode auch mit kleineren Texturgrößen.\n"
 "\n"
 "Image_Pipeline\n"
 "Dieses Modul benutzt glDraw() zum Rendern der Bilder.\n"
@@ -1344,9 +1356,8 @@ msgstr ""
 "Es sollte keine Leistungseinbußen haben."
 
 #: src/video_out/video_out_opengl.c:1967
-#, fuzzy
 msgid "xine video output plugin using the OpenGL 3D graphics API"
-msgstr "xine Videoausgabe mit OpenGL - TNG"
+msgstr "xine Videoausgabe mit OpenGL 3D Grafikschnittstelle"
 
 #: src/demuxers/demux_mpc.c:212
 msgid "demux_mpc: frame too big for buffer"
@@ -1766,23 +1777,20 @@ msgid "The above message had unknown vcdimager log level"
 msgstr "Die vorherige Nachricht hat einen unbekannten Log-Level"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1701
-#, fuzzy
 msgid "VCD default type to use on autoplay"
-msgstr "Standardtyp für die Benuztung bei automatischer VCD-Wiedergabe"
+msgstr "Standardlaufwerk für VCD bei automatischer Wiedergabe"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1702
-#, fuzzy
 msgid ""
 "The VCD play unit to use when none is specified in an MRL, e.g. vcd:// or "
 "vcd:///dev/dvd:"
 msgstr ""
-"Welches Wiedergabegerät benutzt werden soll, falls keins in der MRL "
-"angegeben ist (z.B. vcd:// oder vcd:///dev/dvd:)"
+"Das zu benutzende Laufwerk, wenn keins in der MRL angegeben ist (z.B. vcd:// "
+"oder vcd:///dev/dvd:)"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1712
-#, fuzzy
 msgid "CD-ROM drive used for VCD when none given"
-msgstr "Zu benutzendes Standard CD-Laufwerk, wenn keins angegeben ist"
+msgstr "Standard CD-ROM-Laufwerk für VCD, wenn keins angegeben wird"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1713
 msgid ""
@@ -1793,29 +1801,26 @@ msgstr ""
 "Einstellung leer ist, wird xine nach CD-Laufwerken suchen."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1723
-#, fuzzy
 msgid "VCD position slider range"
-msgstr "Positiver Schieberbereich"
+msgstr "VCD Positionierungsbereich"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1724
-#, fuzzy
 msgid ""
 "range that the stream playback position slider represents playing a VCD."
-msgstr "Der Bereich, den der Positionsschieber bei Wiedergabe repräsentiert."
+msgstr ""
+"Der Bereich, den der Positionsschieber bei Wiedergabe von VCDs repräsentiert."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1732
-#, fuzzy
 msgid "VCD read-ahead caching?"
-msgstr "Vorauseilendes Caching benutzen"
+msgstr "Vorauseilendes Caching für VCDs benutzen?"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1733
 msgid "Class may lead to jerky playback on low-end machines."
 msgstr "Kann zu ruckliger Wiedergabe auf leistungsschwachen Rechnern führen."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1743
-#, fuzzy
 msgid "automatically advance VCD track/entry"
-msgstr "Automatisch Spur/Eintrag weiterschalten"
+msgstr "Automatisch Spur/Eintrag weiterschalten bei VCDs"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1744
 msgid ""
@@ -1827,9 +1832,8 @@ msgstr ""
 "aktiviert ist."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1753
-#, fuzzy
 msgid "show 'rejected' VCD LIDs"
-msgstr "'Ablegehnte' LIDs anzeigen"
+msgstr "'Ablegehnte' VCD LIDs anzeigen"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1754
 msgid ""
@@ -1842,9 +1846,8 @@ msgstr ""
 "Ende der MRL gekennzeichnet."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1765
-#, fuzzy
 msgid "VCD format string for display banner"
-msgstr "Formatvorlage für Fenstertitle"
+msgstr "Formatvorlage für Fenstertitle bei VCDs"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1766
 msgid ""
@@ -1866,28 +1869,44 @@ msgid ""
 "      A number between 1 and the volume count.\n"
 " %% : a %\n"
 msgstr ""
+"VCD Formatvorlage für Fenstertitel. Ähnlich dem Unix date-Befehl. "
+"Formatangaben starten mit einem Prozentzeichen. Formatangaben sind:\n"
+" %A : Die Album iNformation\n"
+" %C : Die VCD Serienlänge - Die Anzahl der CDs in der Serie.\n"
+" %c : Die VCD Seriennummer - Die Nummer der CD in der Serie.\n"
+" %F : Das VCD Format, z.B. VCD 1.0, VCD 1.1, VCD 2.0, oder SVCD\n"
+" %I : Der momentane Typ des Eintrags/Segments/Wiedergabetyps, z.B. ENTRY, "
+"TRACK, ...\n"
+" %L : Die Playlist-ID mit \" LID\" vorangestellt, falls es existiert\n"
+" %N : Die momentane Nummer des Eintrags/Segemnts - eine Dezimalzahl\n"
+" %P : Die Herausgeber-ID\n"
+" %p : Die Hersteller-ID\n"
+" %S : Falls in einem Segment (Menu), der Typ des Segments\n"
+" %T : Die Tracknummer\n"
+" %V : The volume set ID\n"
+" %v : The volume ID\n"
+"      Eine Nummer zwischen 1 und der Serienlänge.\n"
+" %% : ein %\n"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1791
-#, fuzzy
 msgid "VCD format string for stream comment field"
-msgstr "Formatvorlage für Datenstrom-Kommentarfeld."
+msgstr "Formatvorlage für Kommentarfeld eines VCD Datenstroms."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1792
-#, fuzzy
 msgid ""
 "VCD format used in the GUI Title. Similar to the Unix date command. Format "
 "specifiers start with a percent sign. Specifiers are %A, %C, %c, %F, %I, %L, "
 "%N, %P, %p, %S, %T, %V, %v, and %%.\n"
 "See the help for the title_format for the meanings of these."
 msgstr ""
-"Format für den GUI-Titel. Ähnlich dem UNIX-date-Kommando starten "
-"Formatfelder mit einem Prozentzeichen. Formatfelder sind %A, %C, %c, %F, %I, "
-"%L, %N, %P, %p, %S, %T, %V, %v, and %%."
+"Das selbe Format wie für Fenstertitel. Ähnlich dem Unix date-Befehl. "
+"Formatangaben starten mit einem Prozentzeichen. Formatfelder sind %A, %C, %"
+"c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, und %%.\n"
+"Siehe Hilfe für title_format bezüglich deren Bedeutung."
 
 #: src/input/vcd/xineplug_inp_vcd.c:1804
-#, fuzzy
 msgid "VCD debug flag mask"
-msgstr "Bitfeld für Fehlersuche"
+msgstr "Bitfeld für VCD Fehlersuche"
 
 #: src/input/vcd/xineplug_inp_vcd.c:1805
 msgid ""
@@ -1905,6 +1924,19 @@ msgid ""
 "1024: Still-frame\n"
 "2048: Debugging from VCDINFO\n"
 msgstr ""
+"Um Fehler im VCD-Plugin zu finden. Die Maskenwerte sind:\n"
+"   1: Metainformationen\n"
+"   2: Eingabe (Tastatur/Maus) Ereignisse\n"
+"   4: MRL Analyse\n"
+"   8: Aufruf von externen Routinen\n"
+"  16: Aufruf von Routinen\n"
+"  32: LSN Änderungen\n"
+"  64: Wiedergabekontrolle\n"
+" 128: Debugging von CDIO\n"
+" 256: Positionierungen zum Setzen der Position\n"
+" 512: Positionierungen, um momentane Position zu finden\n"
+"1024: Standbilder\n"
+"2048: Debugging von VCDINFO\n"
 
 #: src/input/vcd/vcdio.c:217
 msgid "SEEK_CUR not implemented for non-zero offset"
@@ -4709,9 +4741,8 @@ msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: Plugin %s gefunden\n"
 
 #: src/xine-engine/load_plugins.c:462
-#, fuzzy
 msgid "load_plugins: static plugin found\n"
-msgstr "load_plugins: Plugin %s gefunden\n"
+msgstr "load_plugins: statisches Plugin gefunden\n"
 
 #: src/xine-engine/load_plugins.c:469
 #, c-format
@@ -4719,9 +4750,10 @@ msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr "load_plugins: Plugingrenze erreicht, %s konnte nicht geladen werden\n"
 
 #: src/xine-engine/load_plugins.c:472
-#, fuzzy
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
-msgstr "load_plugins: Plugingrenze erreicht, %s konnte nicht geladen werden\n"
+msgstr ""
+"load_plugins: Plugingrenze erreicht, statisches Plugin konnte nicht geladen "
+"werden\n"
 
 #: src/xine-engine/load_plugins.c:489
 #, c-format
@@ -4729,9 +4761,9 @@ msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr "load_plugins: Unbekannter Plugintyp %d in %s\n"
 
 #: src/xine-engine/load_plugins.c:493
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: unknown statically linked plugin type %d\n"
-msgstr "load_plugins: Unbekannter Plugintyp %d in %s\n"
+msgstr "load_plugins: Unbekannter statisch eingebundener Plugintyp %d\n"
 
 #: src/xine-engine/load_plugins.c:552
 #, c-format
@@ -4799,12 +4831,12 @@ msgstr ""
 "Audiotreiber.\n"
 
 #: src/xine-engine/load_plugins.c:1927
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: Kann Pluginbibliothek %s nicht öffnen:\n"
+"load_plugins: Kann Pluginbibliothek %s nicht entladen:\n"
 "%s\n"
 
 #: src/xine-engine/vo_scale.c:393
