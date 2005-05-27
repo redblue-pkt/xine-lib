@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.40 2005/05/27 15:22:52 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.41 2005/05/27 16:35:27 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -32,6 +32,7 @@
 #include "xine_internal.h"
 #include "post.h"
 #include "xineutils.h"
+#include "xine_buffer.h"
 #include <pthread.h>
 
 #include "tvtime.h"
@@ -59,6 +60,8 @@ typedef struct post_plugin_deinterlace_s post_plugin_deinterlace_t;
 static char *enum_methods[MAX_NUM_METHODS];
 static char *enum_pulldown[] = { "none", "vektor", NULL };
 static char *enum_framerate[] = { "full", "half_top", "half_bottom", NULL };
+
+static void *help_string;
 
 /*
  * this is the struct used by "parameters api" 
@@ -196,7 +199,7 @@ static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
-static char * get_help (void) {
+static char * get_static_help (void) {
   return _("Advanced tvtime/deinterlacer plugin with pulldown detection\n"
            "This plugin aims to provide deinterlacing mechanisms comparable "
            "to high quality progressive DVD players and so called "
@@ -244,12 +247,14 @@ static char * get_help (void) {
            "systems to try deinterlace algorithms, in a tradeoff between quality "
            "and cpu usage.\n"
            "\n"
+           "* Uses several algorithms from tvtime and dscaler projects.\n"
            "Deinterlacing methods: (Not all methods are available for all plataforms)\n"
            "\n"
-           "(FIXME: explain each method, check tvtime/dscaler docs... i fell lazy)\n"
-           "\n"
-           "* Uses several algorithms from tvtime and dscaler projects.\n"
            );
+}
+
+static char * get_help (void) {
+  return (char *)help_string;
 }
 
 static xine_post_api_t post_api = {
@@ -319,12 +324,34 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
       return NULL;
   }
 
+  help_string = xine_buffer_init(1024);
+  xine_buffer_strcat( help_string, get_static_help() );
+
   enum_methods[0] = "use_vo_driver";
   for(i = 0; i < get_num_deinterlace_methods(); i++ ) {
-    enum_methods[i+1] = (char *)get_deinterlace_method(i)->short_name;
+    int j, desc_len;
+    deinterlace_method_t *method;
+
+    method = get_deinterlace_method(i);
+    
+    enum_methods[i+1] = (char *)method->short_name;
+    xine_buffer_strcat( help_string, (char *)method->short_name );
+    xine_buffer_strcat( help_string, ":\n" );
+
+    desc_len = 0;
+    for(j = 0; j < sizeof(method->description)/sizeof(method->description[0]); j++ ) {
+      if( strlen(method->description[j]) )
+        desc_len = j+1;
+    }
+
+    for(j = 0; j < desc_len; j++ ) {
+      xine_buffer_strcat( help_string, (char *)method->description[j] );
+      xine_buffer_strcat( help_string, "\n" );
+    }
+    xine_buffer_strcat( help_string, "---\n" );
   }
   enum_methods[i+1] = NULL;
-
+  
 
   /* Some default values */
   class->init_param.method                     = 1; /* First (plugin) method available */
@@ -403,6 +430,7 @@ static char *deinterlace_get_description(post_class_t *class_gen)
 
 static void deinterlace_class_dispose(post_class_t *class_gen)
 {
+  xine_buffer_free(help_string);
   free(class_gen);
 }
 
