@@ -37,6 +37,8 @@
 #include "speedtools.h"
 #include "speedy.h"
 
+#if defined (ARCH_X86) || defined (ARCH_X86_64)
+
 #include "greedyhmacros.h"
 
 #define MAXCOMB_DEFAULT          5
@@ -72,12 +74,14 @@ static unsigned int GreedyMotionSense = MOTIONSENSE_DEFAULT;
 #undef IS_MMX
 #undef FUNCT_NAME
 
+#endif
 
 static void deinterlace_frame_di_greedyh( uint8_t *output, int outstride,
                                           deinterlace_frame_data_t *data,
                                           int bottom_field, int second_field,
                                           int width, int height )
 {
+#if defined (ARCH_X86) || defined (ARCH_X86_64)
     if( xine_mm_accel() & MM_ACCEL_X86_MMXEXT ) {
         greedyh_filter_sse( output, outstride, data,
                             bottom_field, second_field,
@@ -91,6 +95,7 @@ static void deinterlace_frame_di_greedyh( uint8_t *output, int outstride,
                             bottom_field, second_field,
                             width, height );
     }
+#endif
 }
 
 
