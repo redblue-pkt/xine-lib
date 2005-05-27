@@ -1,7 +1,9 @@
 xine-lib (1.1)
   * allow playing just a single title/chapter from dvd (useful for extracting audio -
     check media.dvd.play_single_chapter)
-    
+  * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)
+  * added help for most deinterlace methods
+        
 xine-lib (1.0.2)
   * fixed xxmc / xvmc mocomp / IDCT rendering errors caused by the big update. 
   * support --enable-fpic with recent versions of gcc
