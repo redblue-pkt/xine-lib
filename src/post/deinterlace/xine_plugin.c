@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.39 2005/05/16 01:39:02 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.40 2005/05/27 15:22:52 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -310,7 +310,7 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
   register_deinterlace_method( double_get_method() );
   register_deinterlace_method( vfir_get_method() );
   register_deinterlace_method( scalerbob_get_method() );
-
+  register_deinterlace_method( dscaler_greedyh_get_method() );
 
   filter_deinterlace_methods( config_flags, 5 /*fieldsavailable*/ );
   if( !get_num_deinterlace_methods() ) {

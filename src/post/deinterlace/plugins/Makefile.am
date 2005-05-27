@@ -1,8 +1,25 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/post/deinterlace
+# plugins/Makefile.am distributes the plugins that come with tvtime.
+# Copyright (C) 2002, 2003, 2004  Billy Biggs
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or (at
+# your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-EXTRA_DIST = greedy2frame_template.c
+EXTRA_DIST = greedy2frame_template.c greedyh.asm x86-64_macros.inc
+
+AM_CPPFLAGS = -I$(top_srcdir)/src/post/deinterlace
 
 libdir = $(XINE_PLUGINDIR)/post
 
@@ -16,8 +33,10 @@ libdeinterlaceplugins_la_SOURCES = \
 	vfir.c \
 	weave.c \
 	greedy2frame.c \
-	scalerbob.c
+	scalerbob.c \
+	kdetv_greedyh.c
+#	kdetv_tomsmocomp.c
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
 libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = plugins.h
+noinst_HEADERS = plugins.h greedyhmacros.h
