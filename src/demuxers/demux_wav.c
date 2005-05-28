@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.61 2005/05/18 09:02:26 hadess Exp $
+ * $Id: demux_wav.c,v 1.62 2005/05/28 09:34:53 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,14 +159,6 @@ static int open_wav_file(demux_wav_t *this) {
         chunk_preamble[2] == 0x1f &&
         chunk_preamble[3] == 0x4e ) {
       this->audio_type = BUF_AUDIO_DNET;
-    }
-    if (chunk_preamble[0] == 0xff &&
-        chunk_preamble[1] == 0x1f &&
-        chunk_preamble[2] == 0x00 &&
-        chunk_preamble[3] == 0xe8 &&
-        chunk_preamble[4] == 0xf1 &&    /* DTS standard document was wrong here! */
-        chunk_preamble[5] == 0x07 ) {   /* DTS standard document was wrong here! */
-      this->audio_type = BUF_AUDIO_DTS; /* DTS but in 14bit format. */
     }
 #if 0
     printf("Preamble=%02x %02x %02x %02x %02x %02x\n",
