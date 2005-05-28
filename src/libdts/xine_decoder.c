@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.60 2004/12/16 13:59:10 mroi Exp $
+ * $Id: xine_decoder.c,v 1.61 2005/05/28 10:41:17 jstembridge Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -225,33 +225,33 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
       }
     } else {
       /* Software decode */
-      int       i, dts_flags;
+      int       i, dts_output_flags;
       int16_t  *int_samples = audio_buffer->mem;
       int       number_of_dts_blocks;
 
       level_t   level = 1.0;
       sample_t *samples;
 
-      this->have_lfe = this->dts_flags & DTS_LFE;
-      dts_flags = this->dts_flags_map[this->dts_flags & DTS_CHANNEL_MASK];
-      if (this->have_lfe)
-        if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
-          output_mode = AO_CAP_MODE_5_1CHANNEL;
-          dts_flags |= DTS_LFE;
-        } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
-          output_mode = AO_CAP_MODE_4_1CHANNEL;
-          dts_flags |= DTS_LFE;
-        } else {
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: WHAT DO I DO!!!\n");
-          output_mode = this->ao_flags_map[dts_flags & DTS_CHANNEL_MASK];
-        }
-      else
-        output_mode = this->ao_flags_map[dts_flags & DTS_CHANNEL_MASK];
+      dts_output_flags = this->dts_flags_map[this->dts_flags & DTS_CHANNEL_MASK];
 
-      if(dts_frame(this->dts_state, data_in, &dts_flags, &level, 0)) {
+      if(dts_frame(this->dts_state, data_in, &dts_output_flags, &level, 0)) {
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: dts_frame error\n");
         return;
       }
+
+      this->have_lfe = dts_output_flags & DTS_LFE;
+      if (this->have_lfe)
+        if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+          output_mode = AO_CAP_MODE_5_1CHANNEL;
+        } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
+          output_mode = AO_CAP_MODE_4_1CHANNEL;
+        } else {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: WHAT DO I DO!!!\n");
+          output_mode = this->ao_flags_map[dts_output_flags & DTS_CHANNEL_MASK];
+        }
+      else
+        output_mode = this->ao_flags_map[dts_output_flags & DTS_CHANNEL_MASK];
+
       if (!this->output_open) {
         this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
                                                 this->bits_per_sample, 
