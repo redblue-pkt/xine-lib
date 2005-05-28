@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.74 2005/05/28 11:07:22 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.75 2005/05/28 11:24:35 jstembridge Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -557,9 +557,12 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                   _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 1.0");
                   break;
                 default:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52");
                   break;
               }
+
+              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->a52_bit_rate);
+              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->a52_sample_rate);
             }
           }
           break;
