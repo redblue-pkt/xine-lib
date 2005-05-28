@@ -11,6 +11,7 @@ noinst_LTLIBRARIES = libavcodec_mmx.la
 
 libavcodec_mmx_src = \
 	cputest.c \
+	dsputil_h264_template_mmx.c \
 	dsputil_mmx.c \
 	fdct_mmx.c \
 	fft_sse.c \
