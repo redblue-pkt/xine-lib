@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.73 2004/12/16 13:59:10 mroi Exp $
+ * $Id: xine_decoder.c,v 1.74 2005/05/28 11:07:22 jstembridge Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -529,30 +529,37 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 a52_sample_rate_old != this->a52_sample_rate ||
 		a52_bit_rate_old    != this->a52_bit_rate) {
 
-              if (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) && (this->a52_flags & A52_LFE))
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.1");
-              else if ((((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) && (this->a52_flags & A52_LFE)) ||
-                       (((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R) && (this->a52_flags & A52_LFE)))
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.1");
-              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F2R) 
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.0");
-              else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F2R) ||
-                       ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F1R))
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.0");
-              else if (((this->a52_flags & A52_CHANNEL_MASK) == A52_2F1R) ||
-                       ((this->a52_flags & A52_CHANNEL_MASK) == A52_3F))
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 3.0");
-              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_STEREO)
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (stereo)");
-              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_DOLBY)
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (dolby)");
-              else if ((this->a52_flags & A52_CHANNEL_MASK) == A52_MONO)
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 1.0");
-              else
-                _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52");
-
-              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->a52_bit_rate);
-              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->a52_sample_rate);
+              switch (this->a52_flags & A52_CHANNEL_MASK) {
+                case A52_3F2R:
+                  if (this->a52_flags & A52_LFE)
+                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.1");
+                  else
+                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.0");
+                  break;
+                case A52_3F1R:
+                case A52_2F2R:
+                  if (this->a52_flags & A52_LFE)
+                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.1");
+                  else
+                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.0");
+                  break;
+                case A52_2F1R:
+                case A52_3F:
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 3.0");
+                  break;
+                case A52_STEREO:
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (stereo)");
+                  break;
+                case A52_DOLBY:
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (dolby)");
+                  break;
+                case A52_MONO:
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 1.0");
+                  break;
+                default:
+                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS");
+                  break;
+              }
             }
           }
           break;
