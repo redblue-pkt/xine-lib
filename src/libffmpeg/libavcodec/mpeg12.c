@@ -195,7 +195,7 @@ static int find_frame_rate_index(MpegEncContext *s){
     for(i=1;i<14;i++) {
         int64_t n0= 1001LL/frame_rate_tab[i].den*frame_rate_tab[i].num*s->avctx->time_base.num;
         int64_t n1= 1001LL*s->avctx->time_base.den;
-        if(s->avctx->strict_std_compliance >= 0 && i>=9) break;
+        if(s->avctx->strict_std_compliance > FF_COMPLIANCE_INOFFICIAL && i>=9) break;
 
         d = ABS(n0 - n1);
         if(d < dmin){
@@ -217,7 +217,7 @@ static int encode_init(AVCodecContext *avctx)
         return -1;
 
     if(find_frame_rate_index(s) < 0){
-        if(s->strict_std_compliance >=0){
+        if(s->strict_std_compliance > FF_COMPLIANCE_EXPERIMENTAL){
             av_log(avctx, AV_LOG_ERROR, "MPEG1/2 does not support %d/%d fps\n", avctx->time_base.den, avctx->time_base.num);
             return -1;
         }else{
@@ -460,8 +460,8 @@ void mpeg1_encode_picture_header(MpegEncContext *s, int picture_number)
         put_bits(&s->pb, 1, s->intra_vlc_format);
         put_bits(&s->pb, 1, s->alternate_scan);
         put_bits(&s->pb, 1, s->repeat_first_field);
-        put_bits(&s->pb, 1, s->chroma_420_type=1);
         s->progressive_frame = s->progressive_sequence;
+        put_bits(&s->pb, 1, s->chroma_420_type=s->progressive_frame);
         put_bits(&s->pb, 1, s->progressive_frame);
         put_bits(&s->pb, 1, 0); //composite_display_flag
     }
@@ -2075,7 +2075,10 @@ static int mpeg_decode_postinit(AVCodecContext *avctx){
     {
     
         if (s1->mpeg_enc_ctx_allocated) {
+            ParseContext pc= s->parse_context;
+            s->parse_context.buffer=0;
             MPV_common_end(s);
+            s->parse_context= pc;
         }
 
 	if( (s->width == 0 )||(s->height == 0))
@@ -2613,6 +2616,7 @@ static int mpeg_decode_slice(Mpeg1Context *s1, int mb_y,
                     s->current_picture.motion_val[dir][xy + 1][1] = motion_y;
                     s->current_picture.ref_index [dir][xy    ]=
                     s->current_picture.ref_index [dir][xy + 1]= s->field_select[dir][i];
+                    assert(s->field_select[dir][i]==0 || s->field_select[dir][i]==1);
                 }
                 xy += wrap;
             }

@@ -2653,9 +2653,9 @@ void mpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
     
     if(s->pict_type==I_TYPE){
         if(!(s->flags&CODEC_FLAG_GLOBAL_HEADER)){
-            if(s->strict_std_compliance < 2) //HACK, the reference sw is buggy
+            if(s->strict_std_compliance < FF_COMPLIANCE_VERY_STRICT) //HACK, the reference sw is buggy
                 mpeg4_encode_visual_object_header(s);
-            if(s->strict_std_compliance < 2 || picture_number==0) //HACK, the reference sw is buggy
+            if(s->strict_std_compliance < FF_COMPLIANCE_VERY_STRICT || picture_number==0) //HACK, the reference sw is buggy
                 mpeg4_encode_vol_header(s, 0, 0);
         }
         if(!(s->workaround_bugs & FF_BUG_MS))
@@ -2670,6 +2670,7 @@ void mpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
     put_bits(&s->pb, 16, VOP_STARTCODE);	/* vop header */
     put_bits(&s->pb, 2, s->pict_type - 1);	/* pict type: I = 0 , P = 1 */
 
+    assert(s->time>=0);
     time_div= s->time/s->avctx->time_base.den;
     time_mod= s->time%s->avctx->time_base.den;
     time_incr= time_div - s->last_time_base;
@@ -5801,8 +5802,8 @@ static int decode_vop_header(MpegEncContext *s, GetBitContext *gb){
         time_incr++;
 
     check_marker(gb, "before time_increment");
-    
-    if(s->time_increment_bits==0){
+
+    if(s->time_increment_bits==0 || !(show_bits(gb, s->time_increment_bits+1)&1)){
         av_log(s->avctx, AV_LOG_ERROR, "hmm, seems the headers are not complete, trying to guess time_increment_bits\n");
 
         for(s->time_increment_bits=1 ;s->time_increment_bits<16; s->time_increment_bits++){
@@ -5849,7 +5850,7 @@ static int decode_vop_header(MpegEncContext *s, GetBitContext *gb){
     
     s->current_picture_ptr->pts= (s->time + s->avctx->time_base.num/2) / s->avctx->time_base.num;
     if(s->avctx->debug&FF_DEBUG_PTS)
-        av_log(s->avctx, AV_LOG_DEBUG, "MPEG4 PTS: %lld\n", s->current_picture_ptr->pts);
+        av_log(s->avctx, AV_LOG_DEBUG, "MPEG4 PTS: %Ld\n", s->current_picture_ptr->pts);
 
     check_marker(gb, "before vop_coded");
     

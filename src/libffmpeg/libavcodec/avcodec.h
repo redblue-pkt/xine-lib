@@ -17,7 +17,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000409
 #define FFMPEG_VERSION         "0.4.9-pre1"
-#define LIBAVCODEC_BUILD       4754
+#define LIBAVCODEC_BUILD       4755
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -116,6 +116,7 @@ enum CodecID {
     CODEC_ID_WNV1,
     CODEC_ID_AASC,
     CODEC_ID_INDEO2,
+    CODEC_ID_FRAPS,
 
     /* various pcm "codecs" */
     CODEC_ID_PCM_S16LE= 0x10000,
@@ -178,6 +179,7 @@ enum CodecID {
     CODEC_ID_SHORTEN,
     CODEC_ID_ALAC,
     CODEC_ID_WESTWOOD_SND1,
+    CODEC_ID_GSM,    
     
     CODEC_ID_OGGTHEORA= 0x16000, 
     
@@ -961,7 +963,12 @@ typedef struct AVCodecContext {
      * - decoding: unused
      */
     int strict_std_compliance;
-    
+#define FF_COMPLIANCE_VERY_STRICT   2 ///< strictly conform to a older more strict version of the spec or reference software
+#define FF_COMPLIANCE_STRICT        1 ///< strictly conform to all the things in the spec no matter what consequences
+#define FF_COMPLIANCE_NORMAL        0
+#define FF_COMPLIANCE_INOFFICIAL   -1 ///< allow inofficial extensions
+#define FF_COMPLIANCE_EXPERIMENTAL -2 ///< allow non standarized experimental things
+
     /**
      * qscale offset between ip and b frames.
      * if > 0 then the last p frame quantizer will be used (q= lastp_q*factor+offset)
@@ -1179,6 +1186,8 @@ typedef struct AVCodecContext {
 #define FF_IDCT_SH4          9
 #define FF_IDCT_SIMPLEARM    10
 #define FF_IDCT_H264         11
+#define FF_IDCT_VP3          12
+#define FP_IDCT_IPP          13
 
     /**
      * slice count.
@@ -2019,6 +2028,10 @@ extern AVCodec aasc_decoder;
 extern AVCodec alac_decoder;
 extern AVCodec ws_snd1_decoder;
 extern AVCodec indeo2_decoder;
+extern AVCodec vorbis_decoder;
+extern AVCodec fraps_decoder;
+extern AVCodec libgsm_encoder;
+extern AVCodec libgsm_decoder;
 
 /* pcm codecs */
 #define PCM_CODEC(id, name) \
@@ -2358,6 +2371,8 @@ extern void av_log_set_callback(void (*)(void*, int, const char*, va_list));
                    (((uint8_t*)(x))[1] << 8) | \
                     ((uint8_t*)(x))[0])
 #endif
+
+extern unsigned int av_xiphlacing(unsigned char *s, unsigned int v);
 
 /* unused static macro */
 #if defined(__GNUC__) && !defined(DEBUG)

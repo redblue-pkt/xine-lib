@@ -906,12 +906,12 @@ int MPV_encode_init(AVCodecContext *avctx)
     }
 
     if(avctx->codec_id == CODEC_ID_MJPEG || avctx->codec_id == CODEC_ID_LJPEG){
-        if(avctx->strict_std_compliance>=0 && avctx->pix_fmt != PIX_FMT_YUVJ420P){
+        if(avctx->strict_std_compliance>FF_COMPLIANCE_INOFFICIAL && avctx->pix_fmt != PIX_FMT_YUVJ420P){
             av_log(avctx, AV_LOG_ERROR, "colorspace not supported in jpeg\n");
             return -1;
         }
     }else{
-        if(avctx->strict_std_compliance>=0 && avctx->pix_fmt != PIX_FMT_YUV420P){
+        if(avctx->strict_std_compliance>FF_COMPLIANCE_INOFFICIAL && avctx->pix_fmt != PIX_FMT_YUV420P){
             av_log(avctx, AV_LOG_ERROR, "colorspace not supported\n");
             return -1;
         }
@@ -1073,6 +1073,11 @@ int MPV_encode_init(AVCodecContext *avctx)
         return -1;
     }
         
+    if(avctx->b_frame_strategy && (avctx->flags&CODEC_FLAG_PASS2)){
+        av_log(avctx, AV_LOG_ERROR, "b_frame_strategy must be 0 on the second pass");
+        return -1;
+    }
+
     i= ff_gcd(avctx->time_base.den, avctx->time_base.num);
     if(i > 1){
         av_log(avctx, AV_LOG_INFO, "removing common factors from framerate\n");
@@ -1099,7 +1104,7 @@ int MPV_encode_init(AVCodecContext *avctx)
         
     avcodec_get_chroma_sub_sample(avctx->pix_fmt, &chroma_h_shift, &chroma_v_shift);
 
-    if(s->avctx->time_base.den > (1<<16)-1){
+    if(avctx->codec_id == CODEC_ID_MPEG4 && s->avctx->time_base.den > (1<<16)-1){
         av_log(avctx, AV_LOG_ERROR, "timebase not supported by mpeg 4 standard\n");
         return -1;        
     }
@@ -1784,7 +1789,7 @@ void ff_print_debug_info(MpegEncContext *s, AVFrame *pict){
                     else if(IS_16X8(mb_type))
                         av_log(s->avctx, AV_LOG_DEBUG, "-");
                     else if(IS_8X16(mb_type))
-                        av_log(s->avctx, AV_LOG_DEBUG, "¦");
+                        av_log(s->avctx, AV_LOG_DEBUG, "|");
                     else if(IS_INTRA(mb_type) || IS_16X16(mb_type))
                         av_log(s->avctx, AV_LOG_DEBUG, " ");
                     else
@@ -2214,7 +2219,7 @@ static void select_input_picture(MpegEncContext *s){
                                                s->input_picture[i-1]->data[0], s->linesize) + 1;
                     }
                 }
-                for(i=0; i<s->max_b_frames; i++){
+                for(i=0; i<s->max_b_frames+1; i++){
                     if(s->input_picture[i]==NULL || s->input_picture[i]->b_frame_score - 1 > s->mb_num/40) break;
                 }
                                 
@@ -5442,7 +5447,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
         for(i=1;i<64;i++){
             int j= s->dsp.idct_permutation[i];
 
-            s->intra_matrix[j] = clip_uint8((ff_mpeg1_default_intra_matrix[i] * s->qscale) >> 3);
+            s->intra_matrix[j] = clip_uint8((ff_mpeg1_default_intra_matrix[i] * s->qscale) >> 3) & 0xFF;
         }
         convert_matrix(&s->dsp, s->q_intra_matrix, s->q_intra_matrix16, 
                        s->intra_matrix, s->intra_quant_bias, 8, 8, 1);
