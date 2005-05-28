@@ -19,7 +19,7 @@
  *
  * Raw DTS Demuxer by James Stembridge (jstembridge@gmail.com)
  *
- * $Id: demux_dts.c,v 1.1 2005/05/26 22:09:23 jstembridge Exp $
+ * $Id: demux_dts.c,v 1.2 2005/05/28 09:29:46 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,10 +78,18 @@ static const int dts_sample_rates[] =
 static int open_dts_file(demux_dts_t *this) {
   int i, offset = 0;
   uint32_t syncword = 0;
+  int peak_size;
   uint8_t peak[MAX_PREVIEW_SIZE];
 
-  if (_x_demux_read_header(this->input, peak, MAX_PREVIEW_SIZE) != 
-      MAX_PREVIEW_SIZE)
+  lprintf("open_dts_file\n");
+
+  /* block based demuxer (i.e. cdda) will only allow reads in block
+   * sized pieces */
+  peak_size = this->input->get_blocksize(this->input);
+  if (!peak_size)
+    peak_size = MAX_PREVIEW_SIZE;
+
+  if (_x_demux_read_header(this->input, peak, peak_size) != peak_size)
     return 0;
 
   /* Check for wav header, as we'll handle DTS with a wav header shoved
@@ -105,7 +113,7 @@ static int open_dts_file(demux_dts_t *this) {
 
     /* Find the data chunk */
     offset = 20 + LE_32(&peak[16]);
-    while (offset < MAX_PREVIEW_SIZE-8) {
+    while (offset < peak_size-8) {
       unsigned int chunk_tag = LE_32(&peak[offset]);
       unsigned int chunk_size = LE_32(&peak[offset+4]);
 
@@ -119,7 +127,7 @@ static int open_dts_file(demux_dts_t *this) {
   }
 
   /* Look for a valid DTS syncword */
-  for (i=offset; i < MAX_PREVIEW_SIZE; i++) {
+  for (i=offset; i<peak_size; i++) {
     /* 14 bits and little endian bitstream */
     if ((syncword == 0xff1f00e8) && 
         ((peak[i] & 0xf0) == 0xf0) && (peak[i+1] == 0x07)) {
@@ -131,7 +139,7 @@ static int open_dts_file(demux_dts_t *this) {
     syncword = (syncword << 8) | peak[i];
   }
 
-  if (i < MAX_PREVIEW_SIZE-9) {
+  if (i < peak_size-9) {
     unsigned int nblks, fsize, sfreq;
 
     /* 14 bits and little endian bitstream */
@@ -171,6 +179,7 @@ static int demux_dts_send_chunk (demux_plugin_t *this_gen) {
   off_t current_stream_pos;
   int64_t audio_pts;
   int frame_number;
+  uint32_t blocksize;
 
   current_stream_pos = this->input->get_current_pos(this->input) - 
                        this->data_start;
@@ -186,8 +195,19 @@ static int demux_dts_send_chunk (demux_plugin_t *this_gen) {
     this->seek_flag = 0;
   }
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->size = this->input->read(this->input, buf->content, this->frame_size);
+  blocksize = this->input->get_blocksize(this->input);
+  if (blocksize) {
+    buf = this->input->read_block(this->input, this->audio_fifo,
+                                  blocksize);
+    if (!buf) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+  } else {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->size = this->input->read(this->input, buf->content, 
+                                  this->frame_size);
+  }
 
   if (buf->size == 0) {
     buf->free_buffer(buf);
