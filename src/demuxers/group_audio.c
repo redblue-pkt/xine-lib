@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.18 2005/05/26 22:09:23 jstembridge Exp $
+ * $Id: group_audio.c,v 1.19 2005/05/28 09:41:23 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,11 +52,11 @@ demuxer_info_t demux_info_aiff = {
 };
 
 demuxer_info_t demux_info_cdda = {
-  10                       /* priority */
+  6                        /* priority */
 };
 
 demuxer_info_t demux_info_dts = {
-  0                        /* priority */
+  8                        /* priority */
 };
 
 demuxer_info_t demux_info_flac = {
@@ -92,7 +92,7 @@ demuxer_info_t demux_info_vox = {
 };
 
 demuxer_info_t demux_info_wav = {
-  10                       /* priority */
+  6                        /* priority */
 };
 
 #ifdef HAVE_MODPLUG
