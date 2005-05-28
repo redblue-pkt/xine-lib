@@ -23,6 +23,8 @@ xine-lib (1.0.2)
   * don't assume that file is in /usr/bin (build fix) [bug #1195539]
   * plugin loader fixes - could cause xine to lock up hard on startup [bug #1196819]
   * Fix xxmc bob deinterlacing for field-coded interlaced streams
+  * Fix LE_64/BE_64 macros on non-x86 plataforms. may fixes issues with some
+    demuxers like avi, asf and ogg.
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
