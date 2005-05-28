@@ -2,6 +2,7 @@ xine-lib (1.1)
   * allow playing just a single title/chapter from dvd (useful for extracting audio -
     check media.dvd.play_single_chapter)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)
+  * new quality deinterlacer from dscaler: TomsMoComp (Tom's Motion Compensated)
   * added help for most deinterlace methods
         
 xine-lib (1.0.2)
