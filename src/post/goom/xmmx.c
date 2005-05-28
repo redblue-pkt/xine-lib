@@ -242,7 +242,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
 		++loop;
 	}
 /*#ifdef HAVE_ATHLON*/
-	__asm__ __volatile__ ("femms\n");
+	__asm__ __volatile__ ("emms\n");
 /*#else
 	emms();
 #endif*/
@@ -393,7 +393,7 @@ void draw_line_xmmx (Pixel *data, int x1, int y1, int x2, int y2, int col, int s
 		}
 	}
 end_of_line:
-	__asm__ __volatile__ ("femms\n"); 
+	__asm__ __volatile__ ("emms\n"); 
 }
 
 #endif
