@@ -43,3 +43,24 @@
  YY_DECL
  	{
  	register yy_state_type yy_current_state;
+diff -u -3 -p -r1.4 -r1.5
+--- xmmx.c	2 May 2005 21:13:43 -0000	1.4
++++ xmmx.c	28 May 2005 12:20:37 -0000	1.5
+@@ -242,7 +242,7 @@ void zoom_filter_xmmx (int prevX, int pr
+ 		++loop;
+ 	}
+ /*#ifdef HAVE_ATHLON*/
+-	__asm__ __volatile__ ("femms\n");
++	__asm__ __volatile__ ("emms\n");
+ /*#else
+ 	emms();
+ #endif*/
+@@ -393,7 +393,7 @@ void draw_line_xmmx (Pixel *data, int x1
+ 		}
+ 	}
+ end_of_line:
+-	__asm__ __volatile__ ("femms\n"); 
++	__asm__ __volatile__ ("emms\n"); 
+ }
+ 
+ #endif
