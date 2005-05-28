@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.71 2005/02/07 23:58:57 tmattern Exp $
+ * $Id: input_cdda.c,v 1.72 2005/05/28 09:26:59 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2098,24 +2098,15 @@ static uint32_t cdda_plugin_get_capabilities (input_plugin_t *this_gen) {
 
 static off_t cdda_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
 
-  /* only allow reading in block-sized chunks */
-
-  return 0;
-}
-
-static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
-  off_t nlen) {
-
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
-  buf_element_t *buf;
-  unsigned char frame_data[CD_RAW_FRAME_SIZE];
   int err = 0;
 
-  if (nlen != CD_RAW_FRAME_SIZE)
-    return NULL;
+  /* only allow reading in block-sized chunks */
+  if (len != CD_RAW_FRAME_SIZE)
+    return 0;
 
   if (this->current_frame > this->last_frame)
-    return NULL;
+    return 0;
 
   /* populate frame cache */
   if( this->cache_first == -1 ||
@@ -2143,16 +2134,28 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   }
 
   if( err < 0 )
-    return NULL;
+    return 0;
     
-  memcpy(frame_data, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
+  memcpy(buf, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
   this->current_frame++;
+
+  return CD_RAW_FRAME_SIZE;
+}
+
+static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
+  off_t nlen) {
+
+  buf_element_t *buf;
 
   buf = fifo->buffer_pool_alloc(fifo);
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
-  buf->size = CD_RAW_FRAME_SIZE;
-  memcpy(buf->mem, frame_data, CD_RAW_FRAME_SIZE);
+
+  buf->size = cdda_plugin_read(this_gen, buf->content, nlen);
+  if (buf->size == 0) {
+    buf->free_buffer(buf);
+    buf = NULL;
+  }
 
   return buf;
 }
