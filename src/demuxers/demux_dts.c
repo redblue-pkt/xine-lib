@@ -19,7 +19,7 @@
  *
  * Raw DTS Demuxer by James Stembridge (jstembridge@gmail.com)
  *
- * $Id: demux_dts.c,v 1.2 2005/05/28 09:29:46 jstembridge Exp $
+ * $Id: demux_dts.c,v 1.3 2005/05/28 11:41:26 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,6 +47,7 @@
 #include "group_audio.h"
 
 #define DATA_TAG 0x61746164
+#define PEAK_SIZE 7056        /* 3 raw cd frames */
 
 typedef struct {
   demux_plugin_t       demux_plugin;
@@ -78,19 +79,35 @@ static const int dts_sample_rates[] =
 static int open_dts_file(demux_dts_t *this) {
   int i, offset = 0;
   uint32_t syncword = 0;
-  int peak_size;
-  uint8_t peak[MAX_PREVIEW_SIZE];
+  int peak_size = 0;
+  uint32_t blocksize;
+  uint8_t peak[PEAK_SIZE];
 
   lprintf("open_dts_file\n");
 
   /* block based demuxer (i.e. cdda) will only allow reads in block
    * sized pieces */
-  peak_size = this->input->get_blocksize(this->input);
-  if (!peak_size)
+  blocksize = this->input->get_blocksize(this->input);
+  if (blocksize && INPUT_IS_SEEKABLE(this->input)) {
+    int read;
+
+    this->input->seek(this->input, 0, SEEK_SET);
+    while (peak_size < PEAK_SIZE) {
+      read = this->input->read(this->input, &peak[peak_size], blocksize);
+      if (read)
+        peak_size += read;
+      else
+        break;
+    }
+    this->input->seek(this->input, 0, SEEK_SET);
+  } else {
     peak_size = MAX_PREVIEW_SIZE;
 
-  if (_x_demux_read_header(this->input, peak, peak_size) != peak_size)
-    return 0;
+    if (_x_demux_read_header(this->input, peak, peak_size) != peak_size)
+      return 0;
+  }
+
+  lprintf("peak size: %d\n", peak_size);
 
   /* Check for wav header, as we'll handle DTS with a wav header shoved
    * on the front for CD burning */
