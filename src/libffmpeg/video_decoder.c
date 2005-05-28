@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.49 2005/05/16 20:49:43 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.50 2005/05/28 02:27:50 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -263,6 +263,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_WNV1,        CODEC_ID_WNV1,       "Winnow Video (ffmpeg)"},
   {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"},
   {BUF_VIDEO_RT21,        CODEC_ID_INDEO2,     "Indeo/RealTime 2 (ffmpeg)"},
+  {BUF_VIDEO_FPS1,        CODEC_ID_FRAPS,      "Fraps (ffmpeg)"},
   {BUF_VIDEO_MPEG,        CODEC_ID_MPEG1VIDEO, "MPEG 1/2 (ffmpeg)"} };
 
 
@@ -1478,6 +1479,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_WNV1,
   BUF_VIDEO_XL,
   BUF_VIDEO_RT21,
+  BUF_VIDEO_FPS1,
   0 
 };
 

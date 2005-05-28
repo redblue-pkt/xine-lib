@@ -33,6 +33,7 @@ libavcodec_la_SOURCES = \
 	faandct.c \
 	flac.c \
 	flicvideo.c \
+	fraps.c \
 	fft.c \
 	golomb.c \
 	h261.c \

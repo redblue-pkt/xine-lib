@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.162 2005/05/06 04:22:50 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.163 2005/05/28 02:27:50 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -126,6 +126,7 @@ void avcodec_register_all(void)
     register_avcodec(&wnv1_decoder);
     register_avcodec(&xl_decoder);
     register_avcodec(&indeo2_decoder);
+    register_avcodec(&fraps_decoder);
 }
 
 void init_once_routine(void) {
