@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.62 2005/05/28 11:07:22 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.63 2005/05/28 11:22:05 jstembridge Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -67,9 +67,6 @@ typedef struct {
   int64_t          pts;
 
   int              audio_caps;  
-  uint32_t         rate;
-  uint32_t         bits_per_sample;
-  uint32_t         number_of_channels;
   int              sync_state;
   int              ac5_length, ac5_pcm_length, frame_todo;
   uint32_t         syncdword;
@@ -157,8 +154,7 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
       /* SPDIF digital output */
       if (!this->output_open) {
         this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
-                                                            this->bits_per_sample, 
-                                                            this->rate,
+                                                            16, this->dts_sample_rate, 
                                                             AO_CAP_MODE_AC5));
       }
       
@@ -253,10 +249,9 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
         output_mode = this->ao_flags_map[dts_output_flags & DTS_CHANNEL_MASK];
 
       if (!this->output_open) {
-        this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
-                                                this->bits_per_sample, 
-                                                this->rate,
-                                                output_mode));
+        this->output_open = this->stream->audio_out->open (this->stream->audio_out, this->stream,
+                                                           16, this->dts_sample_rate, 
+                                                           output_mode);
       }
       
       if (!this->output_open) 
@@ -410,7 +405,6 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 old_dts_sample_rate != this->dts_sample_rate ||
 		old_dts_bit_rate    != this->dts_bit_rate) {
 
-              this->rate = this->dts_sample_rate;
               switch (this->dts_flags & DTS_CHANNEL_MASK) {
                 case DTS_3F2R:
                   if (this->dts_flags & DTS_LFE)
@@ -432,7 +426,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 case DTS_STEREO:
                   _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 2.0 (stereo)");
                   break;
-                case DTS_MONO
+                case DTS_MONO:
                   _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 1.0");
                   break;
                 default:
@@ -571,9 +565,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->stream        = stream;
   this->class         = class_gen;
   this->output_open   = 0;
-  this->rate          = 48000;
-  this->bits_per_sample=16;
-  this->number_of_channels=2;
+
   return &this->audio_decoder;
 }
 
