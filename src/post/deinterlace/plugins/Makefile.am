@@ -17,7 +17,16 @@ include $(top_srcdir)/misc/Makefile.common
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-EXTRA_DIST = greedy2frame_template.c greedyh.asm x86-64_macros.inc
+EXTRA_DIST = greedy2frame_template.c greedyh.asm \
+	tomsmocomp/SearchLoop0A.inc tomsmocomp/SearchLoopBottom.inc \
+	tomsmocomp/SearchLoopEdgeA.inc tomsmocomp/SearchLoopEdgeA8.inc \
+	tomsmocomp/SearchLoopOddA.inc tomsmocomp/SearchLoopOddA2.inc \
+	tomsmocomp/SearchLoopOddA6.inc tomsmocomp/SearchLoopOddAH.inc \
+	tomsmocomp/SearchLoopOddAH2.inc tomsmocomp/SearchLoopTop.inc \
+	tomsmocomp/SearchLoopVA.inc tomsmocomp/SearchLoopVAH.inc \
+	tomsmocomp/StrangeBob.inc tomsmocomp/TomsMoCompAll.inc \
+	tomsmocomp/TomsMoCompAll2.inc tomsmocomp/WierdBob.inc \
+	tomsmocomp/tomsmocompmacros.h x86-64_macros.inc
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/post/deinterlace
 
@@ -34,8 +43,8 @@ libdeinterlaceplugins_la_SOURCES = \
 	weave.c \
 	greedy2frame.c \
 	scalerbob.c \
-	kdetv_greedyh.c
-#	kdetv_tomsmocomp.c
+	kdetv_greedyh.c \
+	kdetv_tomsmocomp.c
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
 libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

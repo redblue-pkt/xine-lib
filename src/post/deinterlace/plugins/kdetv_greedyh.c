@@ -114,7 +114,7 @@ static deinterlace_method_t greedymethod =
     0,
     0,
     deinterlace_frame_di_greedyh,
-    1,
+    0,
     { "Uses heuristics to detect motion in the input",
       "frames and reconstruct image detail where",
       "possible.  Use this for high quality output",

@@ -130,7 +130,7 @@ static void copy_scanline( uint8_t *output,
 
 static deinterlace_method_t vfirmethod =
 {
-    "ffmpeg: Vertical Blend",
+    "Vertical Blend (ffmpeg)",
     "Vertical",
 /*
     "Blur: Vertical",

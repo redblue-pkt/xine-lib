@@ -53,7 +53,7 @@ static int GreedyTwoFrameThreshold2 = 8;
 
 static deinterlace_method_t greedy2framemethod =
 {
-    "Greedy - 2-frame (DScaler)",
+    "Greedy 2-frame (DScaler)",
     "Greedy2Frame",
     4,
     MM_ACCEL_X86_MMXEXT,

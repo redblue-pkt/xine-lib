@@ -304,7 +304,7 @@ static void deinterlace_scanline_linear_blend2_mmxext( uint8_t *output,
 
 static deinterlace_method_t linearblendmethod_mmxext =
 {
-    "mplayer: Linear Blend",
+    "Linear Blend (mplayer)",
     "LinearBlend",
     2,
     MM_ACCEL_X86_MMXEXT,
@@ -330,7 +330,7 @@ static deinterlace_method_t linearblendmethod_mmxext =
 
 static deinterlace_method_t linearblendmethod =
 {
-    "mplayer: Linear Blend",
+    "Linear Blend (mplayer)",
     "LinearBlend",
 /*
     "Blur: Temporal",

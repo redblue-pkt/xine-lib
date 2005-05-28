@@ -174,7 +174,7 @@ static void deinterlace_greedy_packed422_scanline_mmxext( uint8_t *output,
 
 static deinterlace_method_t greedymethod =
 {
-    "DScaler: Greedy - Low motion",
+    "Greedy - Low motion (DScaler)",
     "Greedy",
 /*
     "Motion Adaptive: Simple Detection",
