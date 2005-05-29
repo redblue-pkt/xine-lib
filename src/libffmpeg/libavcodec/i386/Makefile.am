@@ -11,7 +11,6 @@ noinst_LTLIBRARIES = libavcodec_mmx.la
 
 libavcodec_mmx_src = \
 	cputest.c \
-	dsputil_h264_template_mmx.c \
 	dsputil_mmx.c \
 	fdct_mmx.c \
 	fft_sse.c \
@@ -27,6 +26,7 @@ libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
 EXTRA_DIST = \
 	$(libavcodec_mmx_dummy) \
 	$(libavcodec_mmx_src) \
+	dsputil_h264_template_mmx.c \
 	mpegvideo_mmx_template.c
 
 if HAVE_FFMMX
