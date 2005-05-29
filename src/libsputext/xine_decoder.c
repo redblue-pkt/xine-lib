@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.89 2005/05/23 17:13:35 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.90 2005/05/29 10:18:23 valtri Exp $
  *
  */
 
@@ -133,14 +133,13 @@ static void update_font_size (sputext_decoder_t *this, int force_update) {
     if( this->osd )
       this->renderer->free_object (this->osd);
 
-    if(this->renderer) {
-      this->osd = this->renderer->new_object (this->renderer, 
-                                              this->width,
-                                              SUB_MAX_TEXT * this->line_height);
+    lprintf("new osd object, width %d, height %d*%d\n", this->width, SUB_MAX_TEXT, this->line_height);
+    this->osd = this->renderer->new_object (this->renderer, 
+                                            this->width,
+                                            SUB_MAX_TEXT * this->line_height);
 
-      this->renderer->set_font (this->osd, this->class->font, this->font_size);
-      this->renderer->set_position (this->osd, 0, y);
-    }
+    this->renderer->set_font (this->osd, this->class->font, this->font_size);
+    this->renderer->set_position (this->osd, 0, y);
   }
 }
 
@@ -175,7 +174,7 @@ static void update_output_size (sputext_decoder_t *this) {
         this->height = this->stream->video_out->get_property(this->stream->video_out,
                                                              VO_PROP_WINDOW_HEIGHT);
 
-        if(!this->osd || (this->width && this->height && this->img_duration)) {
+        if(!this->osd || (this->width && this->height)) {
           this->renderer = this->stream->osd_renderer;
           
           update_font_size (this, 1);
@@ -191,7 +190,7 @@ static void update_output_size (sputext_decoder_t *this) {
       this->stream->video_out->status(this->stream->video_out, NULL,
                                       &this->width, &this->height, &this->img_duration );
                                       
-      if(!this->osd || ( this->width && this->height && this->img_duration)) {
+      if(!this->osd || ( this->width && this->height)) {
         this->renderer = this->stream->osd_renderer;
         
         update_font_size (this, 1);
@@ -707,6 +706,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
       this->width = this->height = 0;
       this->started = 1;
+
+      update_output_size( this );      
     }
 
     if( this->started ) {
@@ -721,8 +722,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         return;
       }
 
-      update_output_size( this );
-      
       if( this->osd ) {
         
         /* try to use frame number mode */
