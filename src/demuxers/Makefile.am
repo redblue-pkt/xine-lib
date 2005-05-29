@@ -122,7 +122,7 @@ xineplug_dmx_audio_la_SOURCES = group_audio.c demux_aud.c demux_aiff.c \
 				demux_realaudio.c demux_snd.c demux_voc.c \
 				demux_vox.c demux_wav.c demux_ac3.c id3.c \
 				demux_aac.c demux_mod.c demux_flac.c \
-				demux_mpc.c demux_dts.c
+				demux_mpc.c demux_dts.c demux_shn.c
 xineplug_dmx_audio_la_LIBADD = $(XINE_LIB) $(LIBMODPLUG_LIBS)
 xineplug_dmx_audio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

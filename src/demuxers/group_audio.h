@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: group_audio.h,v 1.7 2005/05/26 22:09:23 jstembridge Exp $
+ * $Id: group_audio.h,v 1.8 2005/05/29 19:20:48 jstembridge Exp $
  */
 
 #ifndef HAVE_GROUP_AUDIO_H
@@ -36,6 +36,7 @@ void *demux_mpgaudio_init_class (xine_t *xine, void *data);
 void *demux_mpc_init_plugin (xine_t *xine, void *data);
 void *demux_nsf_init_plugin (xine_t *xine, void *data);
 void *demux_realaudio_init_plugin (xine_t *xine, void *data);
+void *demux_shn_init_plugin (xine_t *xine, void *data);
 void *demux_snd_init_plugin (xine_t *xine, void *data);
 void *demux_voc_init_plugin (xine_t *xine, void *data);
 void *demux_vox_init_plugin (xine_t *xine, void *data);

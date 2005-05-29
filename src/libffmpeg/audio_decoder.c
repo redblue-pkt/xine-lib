@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 the xine project
+ * Copyright (C) 2001-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.14 2005/04/19 05:22:52 tmmm Exp $
+ * $Id: audio_decoder.c,v 1.15 2005/05/29 19:20:49 jstembridge Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -100,6 +100,7 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_XAN_DPCM,   CODEC_ID_XAN_DPCM,       "Origin Xan DPCM (ffmpeg)"},
   {BUF_AUDIO_VMD,        CODEC_ID_VMDAUDIO,       "Sierra VMD Audio (ffmpeg)"},
   {BUF_AUDIO_FLAC,       CODEC_ID_FLAC,           "FLAC (ffmpeg)"},
+  {BUF_AUDIO_SHORTEN,    CODEC_ID_SHORTEN,        "Shorten (ffmpeg)"},
   {BUF_AUDIO_ALAC,       CODEC_ID_ALAC,           "ALAC (ffmpeg)"} };
 
 
@@ -436,6 +437,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_SMJPEG_IMA,
   BUF_AUDIO_FLAC,
   BUF_AUDIO_ALAC,
+  BUF_AUDIO_SHORTEN,
   /* BUF_AUDIO_MPEG, */
   0
 };
