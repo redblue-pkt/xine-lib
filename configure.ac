@@ -1036,6 +1036,65 @@ AM_PATH_LIBFLAC([],
 	AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
 
+dnl ---------------------------------------------
+dnl External version of a52dec
+dnl ---------------------------------------------
+
+AC_ARG_WITH(external-a52dec, AC_HELP_STRING([--with-external-a52dec], [use external a52dec library (not recommended)]),
+            [external_a52dec="$withval"], [external_a52dec="no"])
+
+have_a52="no"
+
+if test x"$external_a52dec" = "xyes"; then
+  have_a52="yes"
+  AC_CHECK_HEADERS([a52dec/a52.h a52dec/a52_internal.h],, have_a52="no",
+[
+  #ifdef HAVE_SYS_TYPES_H
+  # include <sys/types.h>
+  #endif
+  #ifdef HAVE_INTTYPES_H
+  # include <inttypes.h>
+  #endif
+  #ifdef HAVE_STDINT_H
+  # include <stdint.h>
+  #endif
+
+  #include <a52dec/a52.h>
+])
+  SAVE_LIBS="$LIBS"
+  AC_CHECK_LIB([a52], [a52_init],, have_a52="no", [-lm])
+  LIBS="$SAVE_LIBS"
+
+  if test "x$have_a52" = "xno"; then
+    AC_MSG_RESULT([*** no usable version of a52dec found, using internal copy ***])
+  fi
+else
+  AC_MSG_RESULT([Use included a52dec support])
+fi
+
+AM_CONDITIONAL(EXTERNAL_A52DEC, test x"$have_a52" = "xyes")
+
+dnl ---------------------------------------------
+dnl External version of libmad
+dnl ---------------------------------------------
+
+AC_ARG_WITH(external-libmad, AC_HELP_STRING([--with-external-libmad], [use external libmad library (not recommended)]),
+            [external_libmad="$withval"], [external_libmad="no"])
+
+have_mad="no"
+if test x"$external_libmad" = "xyes"; then
+  PKG_CHECK_MODULES(LIBMAD, [mad], have_mad=yes, have_mad=no)
+  AC_CHECK_HEADERS([mad.h])
+  AC_SUBST(LIBMAD_LIBS)
+  AC_SUBST(LIBMAD_CFLAGS)
+  if test "x$have_mad" = "xno"; then
+    AC_MSG_RESULT([*** no usable version of libmad found, using internal copy ***])
+  fi
+else
+  AC_MSG_RESULT([Use included libmad support])
+fi
+
+AM_CONDITIONAL(EXTERNAL_LIBMAD, test x"$have_mad" = "xyes")
 
 dnl ---------------------------------------------
 dnl MNG libs.
@@ -2416,7 +2475,7 @@ echo "   - interplay mve - psx str"
 echo "   - ws aud        - pva"
 echo "   - vox           - nsf"
 echo "   - nsv           - 4xm"
-echo "   - ac3           - aac"
+echo "                   - aac"
 echo "   - iff           - matroska"
 echo "   - vmd           - flv"
 if test x"$enable_asf" = "xyes"; then
@@ -2430,6 +2489,11 @@ if test x"$have_libmng" = "xyes"; then
 fi
 if test x"$have_modplug" = x"yes"; then
   echo "   - mod"
+fi
+if test x"$have_a52" = x"yes"; then
+  echo "   - ac3 (external library)"
+else
+  echo "   - ac3 (internal library)"
 fi
 echo ""
 

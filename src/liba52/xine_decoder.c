@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.75 2005/05/28 11:24:35 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.76 2005/05/29 00:47:48 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -28,6 +28,8 @@
 #endif
 /* avoid compiler warnings */
 #define _BSD_SOURCE 1
+
+#include <config.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -46,8 +48,19 @@
 
 #include "xine_internal.h"
 #include "audio_out.h"
-#include "a52.h"
-#include "a52_internal.h"
+
+#ifdef HAVE_A52DEC_A52_H
+# include <a52dec/a52.h>
+#else
+# include "a52.h"
+#endif
+
+#ifdef HAVE_A52DEC_A52_INTERNAL_H
+# include <a52dec/a52_internal.h>
+#else
+# include "a52_internal.h"
+#endif
+
 #include "buffer.h"
 #include "xineutils.h"
 

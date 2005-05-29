@@ -17,13 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2004/12/16 13:59:11 mroi Exp $
+ * $Id: xine_decoder.c,v 1.54 2005/05/29 00:47:48 miguelfreitas Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
 
 #include <stdlib.h>
 #include <string.h>
+#include <config.h>
+
+#ifdef HAVE_MAD_H
+#include <mad.h>
+#endif
 
 #define LOG_MODULE "mad_decoder"
 #define LOG_VERBOSE

@@ -547,5 +547,8 @@ Keenan Pepper <keenanpepper@gmail.com>
 
 Dams Nadé <anvil@livna.org>
   gcc4 patches
+
+Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>
+  build system improvements, LE_64/BE_64 macro fixes
       
 (let us know if we've forgotten anyone)

@@ -8,7 +8,10 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_mad.la
 
-xineplug_decode_mad_la_SOURCES = \
+if EXTERNAL_LIBMAD
+internal_sources =
+else
+internal_sources = \
 	bit.c \
 	fixed.c \
 	frame.c \
@@ -18,10 +21,19 @@ xineplug_decode_mad_la_SOURCES = \
 	stream.c \
 	synth.c \
 	timer.c \
-	version.c \
-	xine_decoder.c
+	version.c
+endif
 
+xineplug_decode_mad_la_SOURCES = \
+	xine_decoder.c \
+	$(internal_sources)
+
+if EXTERNAL_LIBMAD
+xineplug_decode_mad_la_LIBADD = $(XINE_LIB) $(LIBMAD_LIBS)
+xineplug_decode_mad_la_CFLAGS = $(LIBMAD_CFLAGS)
+else
 xineplug_decode_mad_la_LIBADD = $(XINE_LIB)
+endif
 xineplug_decode_mad_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = \
