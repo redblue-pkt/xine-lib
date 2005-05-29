@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.26 2005/05/13 14:33:09 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.27 2005/05/29 12:29:42 hadess Exp $
  */
 
 
@@ -283,6 +283,13 @@ gnomevfs_plugin_open (input_plugin_t *this_gen )
 			D("gnomevfs_klass_open: sending error %d", err);
 			_x_message(this->stream, err, this->mrl, NULL);
 		}
+		return 0;
+	}
+
+	if (gnomevfs_plugin_get_length (this_gen) == 0) {
+		_x_message(this->stream, XINE_MSG_FILE_EMPTY, this->mrl, NULL);
+		xine_log (this->stream->xine, XINE_LOG_MSG,
+				_("input_file: File empty: >%s<\n"), this->mrl);
 		return 0;
 	}
 

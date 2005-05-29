@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.100 2005/02/07 23:58:57 tmattern Exp $
+ * $Id: input_file.c,v 1.101 2005/05/29 12:29:42 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -288,6 +288,13 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
 
       return 0;
     }
+  }
+
+  if (file_plugin_get_length (this_gen) == 0) {
+      _x_message(this->stream, XINE_MSG_FILE_EMPTY, this->mrl, NULL);
+      xine_log (this->stream->xine, XINE_LOG_MSG,
+		_("input_file: File empty: >%s<\n"), this->mrl);
+      return 0;
   }
 
   return 1;
