@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.50 2005/05/28 02:27:50 tmmm Exp $
+ * $Id: video_decoder.c,v 1.51 2005/05/30 16:01:52 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1210,7 +1210,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-  AVRational avr00 = {0, 0};
+  AVRational avr00 = {0, 1};
 
   lprintf ("processing packet type = %08x, len = %d, decoder_flags=%08x\n", 
            buf->type, buf->size, buf->decoder_flags);
