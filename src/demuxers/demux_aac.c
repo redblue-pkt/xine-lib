@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.7 2005/05/21 14:13:04 jstembridge Exp $
+ * $Id: demux_aac.c,v 1.8 2005/05/30 12:08:49 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -168,12 +168,7 @@ static void demux_aac_send_headers(demux_plugin_t *this_gen) {
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_AAC;
-    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    buf->decoder_info[0] = 0;
-    /* this is a guess at the correct parameters */
-    buf->decoder_info[1] = 44100;
-    buf->decoder_info[2] = 16;
-    buf->decoder_info[3] = 2;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->content = NULL;
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);

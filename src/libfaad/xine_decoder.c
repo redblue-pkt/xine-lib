@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2005/05/21 15:20:31 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.41 2005/05/30 12:08:49 jstembridge Exp $
  *
  */
 
@@ -105,19 +105,6 @@ static int faad_open_dec( faad_decoder_t *this ) {
         lprintf( "faacDecInit2 returned rate=%ld channels=%d\n",
                  this->rate, this->num_channels );
     } else {
-      /* Set the default object type and samplerate */
-      /* This is useful for RAW AAC files */
-      this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
-      if( this->faac_cfg ) {
-        this->faac_cfg->defSampleRate = this->rate;
-        this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
-        this->bits_per_sample = 16;
-        this->faac_cfg->useOldADTSFormat = 0;
-        this->faac_cfg->dontUpSampleImplicitSBR = 1;
-        faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
-      }
-  
-
       used = faacDecInit(this->faac_dec, this->buf, this->size,
                         &this->rate, &this->num_channels);
         
@@ -141,6 +128,10 @@ static int faad_open_dec( faad_decoder_t *this ) {
       this->faac_dec = NULL;
     }
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+  } else {
+    /* stream/meta info */
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+      "AAC (libfaad)");
   }
   
   return this->faac_failed;
@@ -318,11 +309,6 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         this->raw_mode = 0;
       }
     }
-                                               
-    /* stream/meta info */
-    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
-      "AAC (libfaad)");
-
   } else {
 
     lprintf ("decoding %d data bytes...\n", buf->size);
@@ -408,7 +394,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->total_time         = 0;
   this->total_data         = 0;
 
-  this->rate               = 44100;
+  this->rate               = 0;
 
   return &this->audio_decoder;
 }
