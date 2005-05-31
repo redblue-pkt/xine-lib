@@ -1,5 +1,5 @@
 # For updating this file, look at the result of:
-#  head -3 po/POTFILES.in > /tmp/POTFILES.in && find src -name "*.[chy]" | xargs grep -l '[^A-Za-z_]_(' | grep -v src/xine-engine/xineintl.h >> /tmp/POTFILES.in && cp /tmp/POTFILES.in po/
+#  head -n 3 po/POTFILES.in > /tmp/POTFILES.in && find src -name "*.[chy]" | xargs grep -l '[^A-Za-z_]_(' | grep -v src/xine-engine/xineintl.h >> /tmp/POTFILES.in && cp /tmp/POTFILES.in po/
 
 src/libsputext/demux_sputext.c
 src/libsputext/xine_decoder.c

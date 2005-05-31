@@ -168,7 +168,7 @@ fi
 
 lastver=`grep 'href="files/xine-lib-' download.html \
           |sed -e 's|^.*href="files/xine-lib-||' -e 's|\.tar\.gz.*$||g' \
-          |head -1`
+          |head -n 1`
 
 echo "The last release has been $lastver."
 old_major=`echo $lastver|awk -F. '{print $1}'`
