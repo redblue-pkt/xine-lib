@@ -43,8 +43,8 @@ libdeinterlaceplugins_la_SOURCES = \
 	weave.c \
 	greedy2frame.c \
 	scalerbob.c \
-	kdetv_greedyh.c \
 	kdetv_tomsmocomp.c
+#  kdetv_greedyh.c \
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
 libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
