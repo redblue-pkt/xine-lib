@@ -1,9 +1,21 @@
-xine-lib (1.0.1-0) unstable; urgency=high
+xine-lib (1.0.1-2) unstable; urgency=high
+
+  * add debian/watch file for uscan.
+
+ -- Xxx Xxx <xxx@xxx.xx>  Fri, 03 Jun 2005 00:00:00 +0000
+
+xine-lib (1.0.1-1) unstable; urgency=high
 
   * new upstream release
     * fixes MMST and RTSP vulnerabilities (CAN-2005-1195, closes #305343)
+    * presumably fixes Ogg/Vorbis/Theora audio sync (closes: #301901)
+    * fixes typo in xine-check subsystem (closes: #292341)
+  * build-depends on libsdl1.2 (closes: #297435)
+  * allow installing libxine1-dev with slang1-utf8-dev (closes: #304865)
+  * moved documentation to policy compliant directories (closes: #303463)
+  * made Vorbis and Theora hard dependancies (workaround closes: #288331)
 
- -- Siggi Langauf <siggi@debian.org>  Mon, 25 Apr 2005 19:05:02 +0200
+ -- Siggi Langauf <siggi@localhost.localdomain>  Wed, 27 Apr 2005 12:41:46 +0200
 
 xine-lib (1.0-1) unstable; urgency=high
 
@@ -93,7 +105,7 @@ xine-lib (1-rc3c-1) unstable; urgency=low
     - includes workaround for XV_HUE bug on NVidia cards (closes: #238433)
   * build-depends on libpng-dev for PNG support (closes: #240524)
   * build-depends on libfreetype6-dev for TTF support (closes: #242031)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Wed,  7 Apr 2004 23:58:08 +0200
 
 xine-lib (1-rc3b-1) unstable; urgency=low
@@ -149,7 +161,7 @@ xine-lib (1-rc1-1) unstable; urgency=high
     * doesn't link static libXv any more (closes: #210650)
     * ALSA driver doesn't block on busy device any more (closes: #211304)
   * suggesting libartsc0 (I have a bad feeling about this, closes: #203961)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Sun,  5 Oct 2003 11:28:06 +0200
 
 xine-lib (1-rc0a-1) unstable; urgency=low
@@ -168,11 +180,10 @@ xine-lib (1-rc0-1) unstable; urgency=low
     * includes liba52 fix (closes: #196327)
     * resets decoder priorities if an old config file is found (closes: 193303)
   * libxine-dev depends on libfreetype6-dev (closes: #195738)
-    
+
  -- Siggi Langauf <siggi@debian.org>  Fri,  1 Aug 2003 08:55:22 +0200
 
 xine-lib (1-beta12-1) unstable; urgency=low
-
 
   * new upstream version
     * ALSA plugin opens audio device in non-blocking mode (closes: #177877)
@@ -204,7 +215,7 @@ xine-lib (1-beta9-1) unstable; urgency=low
 
   * New upstream release
   * correct demuxer should be used since 1-beta8 (closes: #180011)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Sun, 23 Mar 2003 21:15:42 +0100
 
 xine-lib (1-beta8-1) unstable; urgency=low
@@ -234,7 +245,7 @@ xine-lib (1-beta4-3) unstable; urgency=low
   * fixed Replaces: xine-dvdnav, so apt should do the transition smoothly
     (closes: #175790)
   * downgraded GNOME recommendation to suggestion (closes: #179523)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Wed, 19 Feb 2003 04:29:21 +0100
 
 xine-lib (1-beta4-2) unstable; urgency=low
@@ -262,7 +273,7 @@ xine-lib (1-beta2-4) unstable; urgency=low
 
   * removed HPPA compiler hacks (3.2 is now default, and it choked anyway...)
   * removed DXR3 support (closes: #175392, reopens: #117170)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Wed,  8 Jan 2003 21:49:25 +0100
 
 xine-lib (1-beta2-3) unstable; urgency=high
@@ -285,7 +296,7 @@ xine-lib (1-beta2-1) unstable; urgency=low
   * new upstream release
   * on HPPA: working around a compiler bug by explicit build-depend on
     gcc-3.2 (closes: #174813)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Thu,  2 Jan 2003 00:43:42 +0100
 
 xine-lib (1-beta1-1) unstable; urgency=low
@@ -295,7 +306,7 @@ xine-lib (1-beta1-1) unstable; urgency=low
   * doesn't segfault with any of my VCDs (closes: #173424)
   * supports WMV8 codecs (binary DLL only) (closes: #163363)
   * should build with dxr3 support (closes: #117170)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Tue, 24 Dec 2002 18:07:17 +0100
 
 xine-lib (1-beta0-1) unstable; urgency=low
@@ -348,7 +359,7 @@ xine-lib (0.9.11-1) unstable; urgency=low
 
   * new upstream release
     - pads Xv images, so width % 4 == 0 (closes: #134997)
-  
+
  -- Siggi Langauf <siggi@debian.org>  Thu, 20 Jun 2002 00:11:37 +0200
 
 xine-lib (0.9.10-2) unstable; urgency=high
@@ -411,7 +422,7 @@ xine-lib (0.9.7-2) unstable; urgency=low
   * officially support s390, thanks to Gerhard Tonn (closes: #123805)
   * subtitles other than the first one re-enabled
   * improved antialiasinf on OSD fonts
-  
+
  -- Siggi Langauf <siggi@flake.langauf.de>  Sun, 16 Dec 2001 13:00:14 +0100
 
 xine-lib (0.9.7-1) unstable; urgency=low
@@ -477,7 +488,6 @@ xine-lib (0.9.2-1) unstable; urgency=high
 
  -- Siggi Langauf <siggi@debian.org>  Mon, 15 Oct 2001 21:14:12 +0200
 
-  
 xine-lib (0.9.1-1.1) unstable; urgency=low
 
   * NMU.
@@ -494,8 +504,7 @@ xine-lib (0.9.1-1.1) unstable; urgency=low
   * Fixed typo in src/video_out/deinterlace.c.  Closes: #112748.
 
  -- Jeff Licquia <jlicquia@progeny.com>  Tue,  9 Oct 2001 09:55:23 -0600
-  
-  
+
 xine-lib (0.9.1-1) unstable; urgency=low
 
   * new upstream release (mostly bugfix release, new deinterlacer)
@@ -539,12 +548,10 @@ xine-lib (0.5.1-1) unstable; urgency=low
   * new upstream version
     (0.5.0-1 never made it into the archive)
 
- -- Siggi Langauf <siggi@debian.org>  Mon, 27 Aug 2001 10:04:17 +0200  
-  
+ -- Siggi Langauf <siggi@debian.org>  Mon, 27 Aug 2001 10:04:17 +0200
+
 xine-lib (0.5.0-1) unstable; urgency=low
 
   * Initial Release of the new xine-lib/xine-ui based xine.
 
  -- Siggi Langauf <siggi@debian.org>  Sun,  5 Aug 2001 20:26:31 +0200
-
-
