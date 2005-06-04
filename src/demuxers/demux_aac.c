@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.9 2005/06/04 10:59:36 jstembridge Exp $
+ * $Id: demux_aac.c,v 1.10 2005/06/04 13:49:25 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -126,16 +126,25 @@ static int open_aac_file(demux_aac_t *this) {
 static int demux_aac_send_chunk(demux_plugin_t *this_gen) {
   demux_aac_t *this = (demux_aac_t *) this_gen;
   int bytes_read;
+  off_t current_pos, length;
+  uint32_t bitrate;
 
   buf_element_t *buf = NULL;
 
   /* just load an entire buffer from wherever the audio happens to be */
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type = BUF_AUDIO_AAC;
-  if( this->input->get_length (this->input) )
-    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                     65535 / this->input->get_length (this->input) );
   buf->pts = 0;
+
+  length = this->input->get_length(this->input);
+  current_pos = this->input->get_current_pos(this->input);
+  bitrate = _x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
+
+  if (length)
+    buf->extra_info->input_normpos = (int)((double) current_pos * 65535/length);
+
+  if (bitrate)
+    buf->extra_info->input_time = (8*current_pos) / (bitrate/1000);
 
   bytes_read = this->input->read(this->input, buf->content, buf->max_size);
   if (bytes_read == 0) {
