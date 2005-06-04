@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2003 the xine project
+ * Copyright (C) 2001-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.17 2005/06/04 12:05:28 jstembridge Exp $
+ * $Id: demux_ac3.c,v 1.18 2005/06/04 20:29:16 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +37,12 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#define LOG_MODULE "demux_ac3"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
@@ -44,7 +50,8 @@
 #include "bswap.h"
 #include "group_audio.h"
 
-#define AC3_PREAMBLE_BYTES 5
+#define DATA_TAG 0x61746164
+#define PEAK_SIZE 7056        /* 3 raw cd frames */
 
 typedef struct {
   demux_plugin_t       demux_plugin;
@@ -60,9 +67,10 @@ typedef struct {
   int                  frame_size;
   int                  running_time;
 
-  /* This hack indicates that 2 bytes (0x0B77) have already been consumed
-   * from a non-seekable stream during the detection phase. */
-  int                  first_non_seekable_frame;
+  off_t                data_start;
+
+  uint32_t             buf_type;
+
 } demux_ac3_t;
 
 typedef struct {
@@ -119,42 +127,144 @@ static const struct frmsize_s frmsizecod_tbl[64] =
 
 /* returns 1 if the AC3 file was opened successfully, 0 otherwise */
 static int open_ac3_file(demux_ac3_t *this) {
-  unsigned char preamble[AC3_PREAMBLE_BYTES];
+  int i;
+  int offset = 0;
+  int peak_size = 0;
+  int spdif_mode = 0;
+  uint32_t syncword = 0;
+  uint32_t blocksize;
+  uint8_t peak[PEAK_SIZE];
 
-  /* check if the sync mark matches up */
-  if (_x_demux_read_header(this->input, preamble, AC3_PREAMBLE_BYTES) !=
-      AC3_PREAMBLE_BYTES)
+  lprintf("open_ac3_file\n");
+
+  /* block based demuxer (i.e. cdda) will only allow reads in block
+  * sized pieces */
+  blocksize = this->input->get_blocksize(this->input);
+  if (blocksize && INPUT_IS_SEEKABLE(this->input)) {
+    int read;
+
+    this->input->seek(this->input, 0, SEEK_SET);
+    while (peak_size < PEAK_SIZE) {
+      read = this->input->read(this->input, &peak[peak_size], blocksize);
+      if (read)
+        peak_size += read;
+      else
+        break;
+    }
+    this->input->seek(this->input, 0, SEEK_SET);
+  } else {
+    peak_size = MAX_PREVIEW_SIZE;
+
+    if (_x_demux_read_header(this->input, peak, peak_size) != peak_size)
+      return 0;
+  }
+
+  lprintf("peak size: %d\n", peak_size);
+
+  /* Check for wav header, as we'll handle AC3 with a wav header shoved
+  * on the front for CD burning */
+  if ((peak[0]  == 'R') && (peak[1]  == 'I') && (peak[2]  == 'F') && 
+       (peak[3]  == 'F') && (peak[8]  == 'W') && (peak[9]  == 'A') &&
+       (peak[10] == 'V') && (peak[11] == 'E') && (peak[12] == 'f') &&
+       (peak[13] == 'm') && (peak[14] == 't') && (peak[15] == ' ')) {
+    /* Check this looks like a cd audio wav */
+    unsigned int audio_type;
+    xine_waveformatex *wave = (xine_waveformatex *) &peak[20];
+
+    _x_waveformatex_le2me(wave);
+    audio_type = _x_formattag_to_buf_audio(wave->wFormatTag);
+
+    if ((audio_type != BUF_AUDIO_LPCM_LE) || (wave->nChannels != 2) ||
+         (wave->nSamplesPerSec != 44100) || (wave->wBitsPerSample != 16))
+      return 0;
+
+    lprintf("looks like a cd audio wav file\n");
+
+    /* Find the data chunk */
+    offset = 20 + LE_32(&peak[16]);
+    while (offset < peak_size-8) {
+      unsigned int chunk_tag = LE_32(&peak[offset]);
+      unsigned int chunk_size = LE_32(&peak[offset+4]);
+
+      if (chunk_tag == DATA_TAG) {
+        offset += 8;
+        lprintf("found the start of the data at offset %d\n", offset);
+        break;
+      } else
+        offset += chunk_size;
+    }
+  }
+
+  /* Look for a valid AC3 sync word */
+  for (i=offset; i<peak_size; i++) {
+    if ((syncword & 0xffff) == 0x0b77) {
+      this->data_start = i-2;
+      lprintf("found AC3 syncword at offset %d\n", i-2);
+      break;
+    }
+
+    if ((syncword == 0x72f81f4e) && (peak[i] == 0x01)) {
+      spdif_mode = 1;
+      this->data_start = i+4;
+      lprintf("found AC3 SPDIF header at offset %d\n", i-4);
+      break;
+    }
+
+    syncword = (syncword << 8) | peak[i];
+  }
+
+  if (i >= peak_size-2)
     return 0;
 
-  if ((preamble[0] != 0x0B) ||
-      (preamble[1] != 0x77))
-    return 0;
-
-  /* file is qualified; skip over the header bytes in the stream */
-  this->input->seek(this->input, AC3_PREAMBLE_BYTES, SEEK_SET);
-
-  this->sample_rate = preamble[4] >> 6;
-  if (this->sample_rate > 2)
-    return 0;
-
-  this->frame_size = 
-    frmsizecod_tbl[preamble[4] & 0x3F].frm_size[this->sample_rate] * 2;
-
-  /* convert the sample rate to a more useful number */
-  if (this->sample_rate == 0)
-    this->sample_rate = 48000;
-  else if (this->sample_rate == 1)
+  if (spdif_mode) {
     this->sample_rate = 44100;
-  else
-    this->sample_rate = 32000;
+    this->frame_size = 256*6*4;
+    this->buf_type = BUF_AUDIO_DNET;
+  } else {
+    int fscod, frmsizecod;
 
-  this->running_time = this->input->get_length(this->input);
+    fscod = peak[this->data_start+4] >> 6;
+    frmsizecod = peak[this->data_start+4] & 0x3F;
+
+    if ((fscod > 2) || (frmsizecod > 37))
+      return 0;
+
+    this->frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] * 2;
+
+    /* convert the sample rate to a more useful number */
+    switch (fscod) {
+      case 0:
+        this->sample_rate = 48000;
+        break;
+      case 1:
+        this->sample_rate = 44100;
+        break;
+      default:
+        this->sample_rate = 32000;
+        break;
+    }
+
+    /* Look for a second sync word */
+    if ((this->data_start+this->frame_size+1 >= peak_size) ||
+        (peak[this->data_start+this->frame_size] != 0x0b) ||
+        (peak[this->data_start+this->frame_size + 1] != 0x77)) {
+      return 0;
+    }
+
+    lprintf("found second AC3 sync word\n");
+
+    this->buf_type = BUF_AUDIO_A52;
+  }
+
+  this->running_time = this->input->get_length(this->input) -
+                       this->data_start;
   this->running_time /= this->frame_size;
   this->running_time *= (90000 / 1000) * (256 * 6);
   this->running_time /= this->sample_rate;
 
-  if (!INPUT_IS_SEEKABLE(this->input))
-    this->first_non_seekable_frame = 1;
+  lprintf("sample rate: %d\n", this->sample_rate);
+  lprintf("frame size: %d\n", this->frame_size);
+  lprintf("running time: %d\n", this->running_time);
 
   return 1;
 }
@@ -166,6 +276,7 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   off_t current_stream_pos;
   int64_t audio_pts;
   int frame_number;
+  uint32_t blocksize;
 
   current_stream_pos = this->input->get_current_pos(this->input);
   frame_number = current_stream_pos / this->frame_size;
@@ -188,15 +299,18 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
     this->seek_flag = 0;
   }
 
-  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  if (this->first_non_seekable_frame) {
-    this->first_non_seekable_frame = 0;
-    buf->content[0] = 0x0B;
-    buf->content[1] = 0x77;
-    buf->size = this->input->read(this->input, &buf->content[2],
-      this->frame_size);
+  blocksize = this->input->get_blocksize(this->input);
+  if (blocksize) {
+    buf = this->input->read_block(this->input, this->audio_fifo,
+                                  blocksize);
+    if (!buf) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
   } else {
-    buf->size = this->input->read(this->input, buf->content, this->frame_size);
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->size = this->input->read(this->input, buf->content, 
+                                  this->frame_size);
   }
 
   if (buf->size == 0) {
@@ -205,7 +319,13 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
     return this->status;
   }
 
-  buf->type = BUF_AUDIO_A52;
+  if (buf->size == 0) {
+    buf->free_buffer(buf);
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+
+  buf->type = this->buf_type;
   if( this->input->get_length (this->input) )
     buf->extra_info->input_normpos = (int)( (double) current_stream_pos * 
                                      65535 / this->input->get_length (this->input) );
@@ -237,7 +357,7 @@ static void demux_ac3_send_headers(demux_plugin_t *this_gen) {
   /* send init info to decoders */
   if (this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type = BUF_AUDIO_A52;
+    buf->type = this->buf_type;
     buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);

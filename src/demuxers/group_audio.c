@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.20 2005/05/29 19:20:48 jstembridge Exp $
+ * $Id: group_audio.c,v 1.21 2005/06/04 20:29:16 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,7 +40,7 @@ demuxer_info_t demux_info_aac = {
 };
 
 demuxer_info_t demux_info_ac3 = {
-  0                       /* priority */
+  8                       /* priority */
 };
 
 demuxer_info_t demux_info_aud = {
