@@ -19,7 +19,7 @@
  *
  * Raw DTS Demuxer by James Stembridge (jstembridge@gmail.com)
  *
- * $Id: demux_dts.c,v 1.5 2005/06/04 19:11:22 jstembridge Exp $
+ * $Id: demux_dts.c,v 1.6 2005/06/04 20:32:08 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -397,7 +397,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 }
 
 static char *get_description (demux_class_t *this_gen) {
-  return "Raw DTS file demux plugin";
+  return "Raw DTS demux plugin";
 }
 
 static char *get_identifier (demux_class_t *this_gen) {

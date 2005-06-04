@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.18 2005/06/04 20:29:16 jstembridge Exp $
+ * $Id: demux_ac3.c,v 1.19 2005/06/04 20:32:08 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -472,7 +472,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 }
 
 static char *get_description (demux_class_t *this_gen) {
-  return "Raw AC3 file demux plugin";
+  return "Raw AC3 demux plugin";
 }
 
 static char *get_identifier (demux_class_t *this_gen) {
