@@ -19,7 +19,7 @@
  *
  * Raw DTS Demuxer by James Stembridge (jstembridge@gmail.com)
  *
- * $Id: demux_dts.c,v 1.4 2005/06/04 19:10:18 jstembridge Exp $
+ * $Id: demux_dts.c,v 1.5 2005/06/04 19:11:22 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,9 +35,9 @@
 
 #define LOG_MODULE "demux_dts"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
