@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.16 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux_ac3.c,v 1.17 2005/06/04 12:05:28 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -138,7 +138,7 @@ static int open_ac3_file(demux_ac3_t *this) {
     return 0;
 
   this->frame_size = 
-    frmsizecod_tbl[preamble[4] & 0x3F].frm_size[this->sample_rate];
+    frmsizecod_tbl[preamble[4] & 0x3F].frm_size[this->sample_rate] * 2;
 
   /* convert the sample rate to a more useful number */
   if (this->sample_rate == 0)
@@ -150,7 +150,7 @@ static int open_ac3_file(demux_ac3_t *this) {
 
   this->running_time = this->input->get_length(this->input);
   this->running_time /= this->frame_size;
-  this->running_time *= (90000 / 1000) * (256 * 3);
+  this->running_time *= (90000 / 1000) * (256 * 6);
   this->running_time /= this->sample_rate;
 
   if (!INPUT_IS_SEEKABLE(this->input))
@@ -171,19 +171,16 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   frame_number = current_stream_pos / this->frame_size;
 
   /*
-   * Each frame represents 256 new audio samples according to the a52 spec.
+   * Each frame represents 256*6 new audio samples according to the a52 spec.
    * Thus, the pts computation should work something like:
    *
-   *   pts = frame #  *  256 samples        1 sec        90000 pts
-   *                     -----------  *  -----------  *  ---------
-   *                       1 frame       sample rate       1 sec
-   *
-   * For some reason, the computation only works out correctly
-   * assuming 256 * 3 = 768 samples/frame.
+   *   pts = frame #  *  256*6 samples        1 sec        90000 pts
+   *                     -------------  *  -----------  *  ---------
+   *                        1 frame        sample rate       1 sec
    */
   audio_pts = frame_number;
   audio_pts *= 90000;
-  audio_pts *= 256 * 3;
+  audio_pts *= 256 * 6;
   audio_pts /= this->sample_rate;
 
   if (this->seek_flag) {
