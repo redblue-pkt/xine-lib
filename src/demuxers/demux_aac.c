@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.8 2005/05/30 12:08:49 jstembridge Exp $
+ * $Id: demux_aac.c,v 1.9 2005/06/04 10:59:36 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -106,7 +106,8 @@ static int open_aac_file(demux_aac_t *this) {
 
     lprintf("first frame size %d\n", frame_size);
 
-    if ((this->data_start+frame_size < MAX_PREVIEW_SIZE-1) &&
+    if ((frame_size > 0) &&
+        (this->data_start+frame_size < MAX_PREVIEW_SIZE-1) &&
         (peak[this->data_start+frame_size] == 0xff) &&
         ((peak[this->data_start+frame_size+1] & 0xf6) == 0xf0)) {
       lprintf("found second ADTS header\n");
