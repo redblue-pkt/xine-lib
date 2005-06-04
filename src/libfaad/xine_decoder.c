@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2005/05/30 12:08:49 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.42 2005/06/04 14:12:54 jstembridge Exp $
  *
  */
 
@@ -121,6 +121,9 @@ static int faad_open_dec( faad_decoder_t *this ) {
       }
     }
   }
+  
+  if( !this->bits_per_sample )
+    this->bits_per_sample = 16;
   
   if( this->faac_failed ) {
     if( this->faac_dec ) {
@@ -291,9 +294,6 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 
  
-    if( !this->bits_per_sample )
-      this->bits_per_sample = 16;
-    
     if( buf->size > sizeof(xine_waveformatex) ) {
       xine_waveformatex *wavex = (xine_waveformatex *) buf->content;
 
