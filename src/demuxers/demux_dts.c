@@ -19,7 +19,7 @@
  *
  * Raw DTS Demuxer by James Stembridge (jstembridge@gmail.com)
  *
- * $Id: demux_dts.c,v 1.3 2005/05/28 11:41:26 jstembridge Exp $
+ * $Id: demux_dts.c,v 1.4 2005/06/04 19:10:18 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,9 +35,9 @@
 
 #define LOG_MODULE "demux_dts"
 #define LOG_VERBOSE
-/*
+
 #define LOG
-*/
+
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -144,7 +144,7 @@ static int open_dts_file(demux_dts_t *this) {
   }
 
   /* Look for a valid DTS syncword */
-  for (i=offset; i<peak_size; i++) {
+  for (i=offset; i<peak_size-1; i++) {
     /* 14 bits and little endian bitstream */
     if ((syncword == 0xff1f00e8) && 
         ((peak[i] & 0xf0) == 0xf0) && (peak[i+1] == 0x07)) {
