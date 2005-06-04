@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.104 2005/02/06 15:26:18 tmattern Exp $
+ * $Id: demux_real.c,v 1.105 2005/06/04 11:05:59 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1626,7 +1626,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "rm ram";
+  return "rm rmvb ram";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
