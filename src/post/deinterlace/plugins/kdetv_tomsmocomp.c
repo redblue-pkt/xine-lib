@@ -36,6 +36,7 @@
 #include "deinterlace.h"
 #include "speedtools.h"
 #include "speedy.h"
+#include "plugins.h"
 
 #if defined (ARCH_X86) || defined (ARCH_X86_64)
 

@@ -17,6 +17,21 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "x86-64_macros.inc"
+#include <mangle.h>
+
+#if !defined(MASKS_DEFINED)
+#define MASKS_DEFINED
+static const int64_t __attribute__((__used__)) YMask        = 0x00ff00ff00ff00ffull; // to keep only luma
+static const int64_t __attribute__((__used__)) UVMask       = 0xff00ff00ff00ff00ull; // to keep only chroma
+static const int64_t __attribute__((__used__)) ShiftMask    = 0xfefffefffefffeffull; // to avoid shifting chroma to luma
+static const int64_t __attribute__((__used__)) QW256        = 0x0100010001000100ull; // 4 256's
+
+static int64_t MaxComb;
+static int64_t MotionThreshold;
+static int64_t MotionSense;
+static int64_t QW256B;
+
+#endif
 
 static void FUNCT_NAME(uint8_t *output, int outstride,
                   deinterlace_frame_data_t *data,
@@ -25,16 +40,6 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
     int64_t i;
     int stride = (width*2);
     int InfoIsOdd = bottom_field;
-
-    // in tight loop some vars are accessed faster in local storage
-    int64_t YMask        = 0x00ff00ff00ff00ffull; // to keep only luma
-    int64_t UVMask       = 0xff00ff00ff00ff00ull; // to keep only chroma
-    int64_t ShiftMask    = 0xfefffefffefffeffull; // to avoid shifting chroma to luma
-    int64_t QW256        = 0x0100010001000100ull; // 4 256's
-
-    int64_t MaxComb;
-    int64_t MotionThreshold;
-    int64_t MotionSense;
 
     int Line;
     long LoopCtr;
@@ -49,7 +54,6 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
     unsigned char* L2P;					// ptr to prev Line2
     unsigned char* Dest = output;
 
-    int64_t QW256B;
     int64_t LastAvg=0;			//interp value from left qword
 
     // Set up our two parms that are actually evaluated for each pixel
@@ -61,7 +65,6 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
 
     i = GreedyMotionSense;		// scale to range of 0-257
     MotionSense = i << 48 | i << 32 | i << 16 | i;
-
     
     i = 0xffffffff - 256;
     QW256B =  i << 48 |  i << 32 | i << 16 | i;  // save a couple instr on PMINSW instruct.
@@ -105,20 +108,40 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
     for (Line = 0; Line < (FieldHeight - 1); ++Line) {
         LoopCtr = stride / 8 - 1; // there are LineLength / 8 qwords per line but do 1 less, adj at end of loop
 
+/* Hans-Dieter Kosch writes:
+ *
+ * >  The older compilers do not understand the syntax
+ * >  __asm__ ( "command %[name0]" : : [name0] "x"(arg0) )
+ * >  They only understand
+ * >  __asm__ ( "command %0" : : "x"(arg0) )
+ *
+ * now we define the arguments to make the asm code less ugly.
+ */
+#ifndef asmLastAvg
+#define asmLastAvg      "%0"
+#define asmL1           "%1"
+#define asmL3           "%2"
+#define asmL2P          "%3"
+#define asmL2           "%4"
+#define asmDest         "%5"
+#define asmLoopCtr      "%6"
+#define asmoldbx        "%7"
+#endif
+
         // For ease of reading, the comments below assume that we're operating on an odd
         // field (i.e., that InfoIsOdd is true).  Assume the obvious for even lines..
         __asm__ __volatile__
             (
              // save ebx (-fPIC)
-	     MOVX" %%"XBX", %[oldbx]\n\t"
+	     MOVX" %%"XBX", "asmoldbx"\n\t"
 
-             MOVX"  %[L1],          %%"XAX"\n\t"
+             MOVX"  "asmL1",          %%"XAX"\n\t"
              LEAX"  8(%%"XAX"),     %%"XBX"\n\t"    // next qword needed by DJR
-             MOVX"  %[L3],          %%"XCX"\n\t"
+             MOVX"  "asmL3",          %%"XCX"\n\t"
              SUBX"  %%"XAX",        %%"XCX"\n\t"    // carry L3 addr as an offset
-             MOVX"  %[L2P],         %%"XDX"\n\t"
-             MOVX"  %[L2],          %%"XSI"\n\t"
-             MOVX"  %[Dest],        %%"XDI"\n\t"    // DL1 if Odd or DL2 if Even
+             MOVX"  "asmL2P",         %%"XDX"\n\t"
+             MOVX"  "asmL2",          %%"XSI"\n\t"
+             MOVX"  "asmDest",        %%"XDI"\n\t"    // DL1 if Odd or DL2 if Even
 
              ".align 8\n\t"
              "1:\n\t"
@@ -129,15 +152,15 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
              "movq  (%%"XAX", %%"XCX"), %%mm3\n\t"  // L3, next odd row
              "movq  %%mm1,          %%mm6\n\t"      // L1 - get simple single pixel interp
              //	pavgb   mm6, mm3                    // use macro below
-             V_PAVGB ("%%mm6", "%%mm3", "%%mm4", "%[ShiftMask]")
+             V_PAVGB ("%%mm6", "%%mm3", "%%mm4", MANGLE(ShiftMask))
 
              // DJR - Diagonal Jaggie Reduction
              // In the event that we are going to use an average (Bob) pixel we do not want a jagged
              // stair step effect.  To combat this we avg in the 2 horizontally adjacen pixels into the
              // interpolated Bob mix. This will do horizontal smoothing for only the Bob'd pixels.
 
-             "movq  %[LastAvg],     %%mm4\n\t"      // the bob value from prev qword in row
-             "movq  %%mm6,          %[LastAvg]\n\t" // save for next pass
+             "movq  "asmLastAvg",   %%mm4\n\t"      // the bob value from prev qword in row
+             "movq  %%mm6,          "asmLastAvg"\n\t" // save for next pass
              "psrlq $48,            %%mm4\n\t"      // right justify 1 pixel
              "movq  %%mm6,          %%mm7\n\t"      // copy of simple bob pixel
              "psllq $16,            %%mm7\n\t"      // left justify 3 pixels
@@ -145,22 +168,22 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
 
              "movq  (%%"XBX"),      %%mm5\n\t"      // next horiz qword from L1
              //			pavgb   mm5, qword ptr[ebx+ecx] // next horiz qword from L3, use macro below
-             V_PAVGB ("%%mm5", "(%%"XBX",%%"XCX")", "%%mm7", "%[ShiftMask]")
+             V_PAVGB ("%%mm5", "(%%"XBX",%%"XCX")", "%%mm7", MANGLE(ShiftMask))
              "psllq $48,            %%mm5\n\t"      // left just 1 pixel
              "movq  %%mm6,          %%mm7\n\t"      // another copy of simple bob pixel
              "psrlq $16,            %%mm7\n\t"      // right just 3 pixels
              "por   %%mm7,          %%mm5\n\t"      // combine
              //			pavgb	mm4, mm5			// avg of forward and prev by 1 pixel, use macro
-             V_PAVGB ("%%mm4", "%%mm5", "%%mm5", "%[ShiftMask]")   // mm5 gets modified if MMX
+             V_PAVGB ("%%mm4", "%%mm5", "%%mm5", MANGLE(ShiftMask))   // mm5 gets modified if MMX
              //			pavgb	mm6, mm4			// avg of center and surround interp vals, use macro
-             V_PAVGB ("%%mm6", "%%mm4", "%%mm7", "%[ShiftMask]")
+             V_PAVGB ("%%mm6", "%%mm4", "%%mm7", MANGLE(ShiftMask))
 
              // Don't do any more averaging than needed for mmx. It hurts performance and causes rounding errors.
 #ifndef IS_MMX
              //          pavgb	mm4, mm6			// 1/4 center, 3/4 adjacent
-             V_PAVGB ("%%mm4", "%%mm6", "%%mm7", "%[ShiftMask]")
+             V_PAVGB ("%%mm4", "%%mm6", "%%mm7", MANGLE(ShiftMask))
              //    		pavgb	mm6, mm4			// 3/8 center, 5/8 adjacent
-             V_PAVGB ("%%mm6", "%%mm4", "%%mm7", "%[ShiftMask]")
+             V_PAVGB ("%%mm6", "%%mm4", "%%mm7", MANGLE(ShiftMask))
 #endif
 
              // get abs value of possible L2 comb
@@ -213,34 +236,34 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
              // pminub	mm5, mm3                    // now = Min(L1,L3), use macro
              V_PMINUB ("%%mm5", "%%mm3", "%%mm7")
              // allow the value to be above the high or below the low by amt of MaxComb
-             "psubusb %[MaxComb],   %%mm5\n\t"      // lower min by diff
-             "paddusb %[MaxComb],   %%mm2\n\t"      // increase max by diff
+             "psubusb "MANGLE(MaxComb)", %%mm5\n\t"      // lower min by diff
+             "paddusb "MANGLE(MaxComb)", %%mm2\n\t"      // increase max by diff
              // pmaxub	mm4, mm5                    // now = Max(best,Min(L1,L3) use macro
              V_PMAXUB ("%%mm4", "%%mm5")
              // pminub	mm4, mm2                    // now = Min( Max(best, Min(L1,L3), L2 )=L2 clipped
              V_PMINUB ("%%mm4", "%%mm2", "%%mm7")
 
              // Blend weave pixel with bob pixel, depending on motion val in mm0
-             "psubusb %[MotionThreshold], %%mm0\n\t"// test Threshold, clear chroma change >>>??
-             "pmullw  %[MotionSense], %%mm0\n\t"    // mul by user factor, keep low 16 bits
-             "movq    %[QW256], %%mm7\n\t"
+             "psubusb "MANGLE(MotionThreshold)", %%mm0\n\t"// test Threshold, clear chroma change >>>??
+             "pmullw  "MANGLE(MotionSense)", %%mm0\n\t"    // mul by user factor, keep low 16 bits
+             "movq   "MANGLE(QW256)", %%mm7\n\t"
 #ifdef IS_SSE
              "pminsw  %%mm7,        %%mm0\n\t"      // max = 256
 #else
-             "paddusw %[QW256B],    %%mm0\n\t"      // add, may sat at fff..
-             "psubusw %[QW256B],    %%mm0\n\t"      // now = Min(L1,256)
+             "paddusw "MANGLE(QW256B)", %%mm0\n\t"      // add, may sat at fff..
+             "psubusw "MANGLE(QW256B)", %%mm0\n\t"      // now = Min(L1,256)
 #endif
              "psubusw %%mm0,        %%mm7\n\t"      // so the 2 sum to 256, weighted avg
              "movq    %%mm4,        %%mm2\n\t"      // save weave chroma info before trashing
-             "pand    %[YMask],     %%mm4\n\t"      // keep only luma from calc'd value
+             "pand   "MANGLE(YMask)", %%mm4\n\t"      // keep only luma from calc'd value
              "pmullw  %%mm7,        %%mm4\n\t"      // use more weave for less motion
-             "pand    %[YMask],     %%mm6\n\t"      // keep only luma from calc'd value
+             "pand   "MANGLE(YMask)", %%mm6\n\t"      // keep only luma from calc'd value
              "pmullw  %%mm0,        %%mm6\n\t"      // use more bob for large motion
              "paddusw %%mm6,        %%mm4\n\t"      // combine
              "psrlw   $8,           %%mm4\n\t"      // div by 256 to get weighted avg
 
              // chroma comes from weave pixel
-             "pand    %[UVMask],    %%mm2\n\t"      // keep chroma
+             "pand   "MANGLE(UVMask)", %%mm2\n\t"      // keep chroma
              "por     %%mm4,        %%mm2\n\t"      // and combine
 
              V_MOVNTQ ("(%%"XDI")", "%%mm2")        // move in our clipped best, use macro
@@ -251,7 +274,7 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
              LEAX"    8(%%"XDX"),   %%"XDX"\n\t"
              LEAX"    8(%%"XDI"),   %%"XDI"\n\t"
              LEAX"    8(%%"XSI"),   %%"XSI"\n\t"
-             DECX"    %[LoopCtr]\n\t"
+             DECX"    "asmLoopCtr"\n\t"
              "jg      1b\n\t"                       // loop if not to last line
                                                     // note P-III default assumes backward branches taken
              "jl      1f\n\t"                       // done
@@ -259,26 +282,18 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
              "jmp     1b\n\t"
 
              "1:\n\t"
-	     MOVX" %[oldbx], %%"XBX"\n\t"
+	     MOVX" "asmoldbx", %%"XBX"\n\t"
 
              : /* no outputs */
 
-             : [LastAvg]         "m"(LastAvg),
-               [L1]              "m"(L1),
-               [L3]              "m"(L3),
-               [L2P]             "m"(L2P),
-               [L2]              "m"(L2),
-               [Dest]            "m"(Dest),
-               [ShiftMask]       "m"(ShiftMask),
-               [MaxComb]         "m"(MaxComb),
-               [MotionThreshold] "m"(MotionThreshold),
-               [MotionSense]     "m"(MotionSense),
-               [QW256B]          "m"(QW256B),
-               [YMask]           "m"(YMask),
-               [UVMask]          "m"(UVMask),
-               [LoopCtr]         "m"(LoopCtr),
-               [QW256]           "m"(QW256),
-	       [oldbx]           "m"(oldbx)
+             : "m"(LastAvg),
+               "m"(L1),
+               "m"(L3),
+               "m"(L2P),
+               "m"(L2),
+               "m"(Dest),
+               "m"(LoopCtr),
+               "m"(oldbx)
 
              : XAX, XCX, XDX, XSI, XDI,
 #ifdef ARCH_X86

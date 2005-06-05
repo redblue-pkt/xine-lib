@@ -21,6 +21,22 @@
 //  See www.eff.org for details
 /////////////////////////////////////////////////////////////////////////////
 
+#include <mangle.h>
+
+#if !defined(MASKS_DEFINED)
+#define MASKS_DEFINED
+static const int64_t __attribute__((__used__)) Max_Mov   = 0x0404040404040404ull;
+static const int64_t __attribute__((__used__)) DiffThres = 0x0f0f0f0f0f0f0f0full;
+static const int64_t __attribute__((__used__)) YMask     = 0x00ff00ff00ff00ffull; // keeps only luma
+static const int64_t __attribute__((__used__)) UVMask    = 0xff00ff00ff00ff00ull; // keeps only chroma
+static const int64_t __attribute__((__used__)) TENS      = 0x0a0a0a0a0a0a0a0aull;
+static const int64_t __attribute__((__used__)) FOURS     = 0x0404040404040404ull;
+static const int64_t __attribute__((__used__)) ONES      = 0x0101010101010101ull;
+static const int64_t __attribute__((__used__)) ShiftMask = 0xfefffefffefffeffull;
+static int64_t Min_Vals  = 0x0000000000000000ull;
+static int64_t Max_Vals  = 0x0000000000000000ull;
+#endif
+
 #ifndef TopFirst
 #define TopFirst IsOdd
 #endif

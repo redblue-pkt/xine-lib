@@ -18,7 +18,7 @@
             // Use the best weave if diffs less than 10 as that
             // means the image is still or moving cleanly
             // if there is motion we will clip which will catch anything
-            "psubusb "_FOURS", %%mm7\n\t"          // sets bits to zero if weave diff < 4
+            "psubusb "MANGLE(FOURS)", %%mm7\n\t"          // sets bits to zero if weave diff < 4
             "pxor    %%mm0, %%mm0\n\t"
             "pcmpeqb %%mm0, %%mm7\n\t"            // all ff where weave better, else 00
             "pcmpeqb %%mm7, %%mm0\n\t"            // all ff where bob better, else 00
@@ -28,10 +28,10 @@
 #else
             // Use the better of bob or weave
             //      pminub  mm4, TENS           // the most we care about
-            V_PMINUB ("%%mm4", _TENS, "%%mm0")   // the most we care about
+            V_PMINUB ("%%mm4", MANGLE(TENS), "%%mm0")   // the most we care about
             
             "psubusb %%mm4, %%mm7\n\t"            // foregive that much from weave est?
-            "psubusb "_FOURS", %%mm7\n\t"       // bias it a bit toward weave
+            "psubusb "MANGLE(FOURS)", %%mm7\n\t"       // bias it a bit toward weave
             "pxor    %%mm0, %%mm0\n\t"
             "pcmpeqb %%mm0, %%mm7\n\t"            // all ff where weave better, else 00
             "pcmpeqb %%mm7, %%mm0\n\t"            // all ff where bob better, else 00
@@ -42,9 +42,9 @@
             
             
                 //      pminub  mm0, Max_Vals       // but clip to catch the stray error
-                V_PMINUB ("%%mm0", _Max_Vals, "%%mm1") // but clip to catch the stray error
+                V_PMINUB ("%%mm0", MANGLE(Max_Vals), "%%mm1") // but clip to catch the stray error
                 //      pmaxub  mm0, Min_Vals
-                V_PMAXUB ("%%mm0", _Min_Vals)
+                V_PMAXUB ("%%mm0", MANGLE(Min_Vals))
                 
 #endif
 
@@ -54,11 +54,11 @@
 #ifdef USE_VERTICAL_FILTER
             "movq    %%mm0, %%mm1\n\t"
             //      pavgb   mm0, qword ptr["XBX"]
-            V_PAVGB ("%%mm0", "(%%"XBX")", "%%mm2", _ShiftMask)
+            V_PAVGB ("%%mm0", "(%%"XBX")", "%%mm2", MANGLE(ShiftMask))
             //      movntq  qword ptr["XAX"+"XDX"], mm0
             V_MOVNTQ ("(%"XAX", %%"XDX")", "%%mm0")
             //      pavgb   mm1, qword ptr["XBX"+"XCX"]
-            V_PAVGB ("%%mm1", "(%%"XBX", %%"XCX")", "%%mm2", _ShiftMask)
+            V_PAVGB ("%%mm1", "(%%"XBX", %%"XCX")", "%%mm2", MANGLE(ShiftMask))
             "addq   "_dst_pitchw", %%"XBX
             //      movntq  qword ptr["XAX"+"XDX"], mm1
             V_MOVNTQ ("(%%"XAX", %%"XDX")", "%%mm1")
@@ -79,22 +79,12 @@
 
         : "m"(pBob),
           "m"(src_pitch2),
-          "m"(ShiftMask),
           "m"(pDest),
           "m"(dst_pitchw),
           "m"(Last8),
           "m"(pSrc),
           "m"(pSrcP),
           "m"(pBobP),
-          "m"(DiffThres),
-          "m"(Min_Vals),
-          "m"(Max_Vals),
-          "m"(FOURS),
-          "m"(TENS),
-          "m"(ONES),
-          "m"(UVMask),
-          "m"(Max_Mov),
-          "m"(YMask),
           "m"(oldbx)
 
         : XAX, XCX, XDX, XSI, XDI,

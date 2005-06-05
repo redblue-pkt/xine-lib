@@ -28,7 +28,9 @@ EXTRA_DIST = greedy2frame_template.c greedyh.asm \
 	tomsmocomp/TomsMoCompAll2.inc tomsmocomp/WierdBob.inc \
 	tomsmocomp/tomsmocompmacros.h x86-64_macros.inc
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/post/deinterlace
+# libpostproc is here so we can use their nice mangle.h
+AM_CFLAGS = -I$(top_srcdir)/src/post/deinterlace \
+	-I$(top_srcdir)/src/libffmpeg/libavcodec/libpostproc
 
 libdir = $(XINE_PLUGINDIR)/post
 
@@ -43,8 +45,8 @@ libdeinterlaceplugins_la_SOURCES = \
 	weave.c \
 	greedy2frame.c \
 	scalerbob.c \
+	kdetv_greedyh.c \
 	kdetv_tomsmocomp.c
-#  kdetv_greedyh.c \
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
 libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

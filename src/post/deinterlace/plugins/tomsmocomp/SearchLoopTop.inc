@@ -6,17 +6,6 @@ const unsigned char* pSrc;
 const unsigned char* pBob;
 const unsigned char* pBobP;
 
-int64_t Max_Mov   = 0x0404040404040404ull; 
-int64_t DiffThres = 0x0f0f0f0f0f0f0f0full; 
-int64_t YMask     = 0x00ff00ff00ff00ffull; // keeps only luma
-int64_t UVMask    = 0xff00ff00ff00ff00ull; // keeps only chroma
-int64_t TENS      = 0x0a0a0a0a0a0a0a0aull; 
-int64_t FOURS     = 0x0404040404040404ull; 
-int64_t ONES      = 0x0101010101010101ull; 
-int64_t Min_Vals  = 0x0000000000000000ull;
-int64_t Max_Vals  = 0x0000000000000000ull;
-int64_t ShiftMask = 0xfefffefffefffeffull;
-
 // long is int32 on ARCH_368, int64 on ARCH_AMD64. Declaring it this way
 // saves a lot of xor's to delete 64bit garbage.
 
@@ -71,24 +60,17 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
 #ifndef _pBob
 #define _pBob       "%0"
 #define _src_pitch2 "%1"
-#define _ShiftMask  "%2"
-#define _pDest      "%3"
-#define _dst_pitchw "%4"
-#define _Last8      "%5"
-#define _pSrc       "%6"
-#define _pSrcP      "%7"
-#define _pBobP      "%8"
-#define _DiffThres  "%9"
-#define _Min_Vals   "%10"
-#define _Max_Vals   "%11"
-#define _FOURS      "%12"
-#define _TENS       "%13"
-#define _ONES       "%14"
-#define _UVMask     "%15"
-#define _Max_Mov    "%16"
-#define _YMask      "%17"
-#define _oldbx      "%18"
+#define _pDest      "%2"
+#define _dst_pitchw "%3"
+#define _Last8      "%4"
+#define _pSrc       "%5"
+#define _pSrcP      "%6"
+#define _pBobP      "%7"
+#define _oldbx      "%8"
 #endif
+
+        Min_Vals  = 0x0000000000000000ull;
+        Max_Vals  = 0x0000000000000000ull;
 
 	for (y=1; y < FldHeight-1; y++)
 	{
@@ -120,9 +102,9 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
              "movq	    (%%"XBX"),        %%mm0\n\t"
              "movq	    (%%"XBX", %%"XCX"), %%mm1\n\t" //, qword ptr["XBX"+"XCX"]
              "movq	    %%mm0,          %%mm2\n\t"
-             V_PAVGB ("%%mm2", "%%mm1", "%%mm3", _ShiftMask)		// halfway between
-             V_PAVGB ("%%mm0", "%%mm2", "%%mm3", _ShiftMask)		// 1/4 way
-             V_PAVGB ("%%mm1", "%%mm2", "%%mm3", _ShiftMask)		// 3/4 way
+             V_PAVGB ("%%mm2", "%%mm1", "%%mm3", MANGLE(ShiftMask))		// halfway between
+             V_PAVGB ("%%mm0", "%%mm2", "%%mm3", MANGLE(ShiftMask))		// 1/4 way
+             V_PAVGB ("%%mm1", "%%mm2", "%%mm3", MANGLE(ShiftMask))		// 3/4 way
              MOVX"		"_pDest",       %%"XDI"\n\t"
              MOVX"		"_dst_pitchw",  %%"XAX"\n\t"
              V_MOVNTQ	("(%%"XDI")", "%%mm0")
@@ -134,9 +116,9 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
              "movq	    (%%"XSI"), %%mm0\n\t"
              "movq	    (%%"XSI", %%"XCX"), %%mm1\n\t"    // qword ptr["XSI"+"XCX"]
              "movq	    %%mm0, %%mm2\n\t"
-             V_PAVGB ("%%mm2", "%%mm1", "%%mm3", _ShiftMask)		// halfway between
-             V_PAVGB ("%%mm0", "%%mm2", "%%mm3", _ShiftMask)		// 1/4 way
-             V_PAVGB ("%%mm1", "%%mm2", "%%mm3", _ShiftMask)		// 3/4 way
+             V_PAVGB ("%%mm2", "%%mm1", "%%mm3", MANGLE(ShiftMask))		// halfway between
+             V_PAVGB ("%%mm0", "%%mm2", "%%mm3", MANGLE(ShiftMask))		// 1/4 way
+             V_PAVGB ("%%mm1", "%%mm2", "%%mm3", MANGLE(ShiftMask))		// 3/4 way
              ADDX"		%%"XDX", %%"XDI"\n\t"						// last 8 bytes of dest
              V_MOVNTQ	("%%"XDI"", "%%mm0")
              V_MOVNTQ	("(%%"XDI", %%"XAX")", "%%mm1") // qword ptr["XDI"+"XAX"], mm1)
@@ -144,7 +126,7 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
 #else
              "movq	(%%"XBX"), %%mm0\n\t"
              //		pavgb	mm0, qword ptr["XBX"+"XCX"]
-             V_PAVGB ("%%mm0", "(%%"XBX", %%"XCX")", "%%mm2", _ShiftMask) // qword ptr["XBX"+"XCX"], mm2, ShiftMask)
+             V_PAVGB ("%%mm0", "(%%"XBX", %%"XCX")", "%%mm2", MANGLE(ShiftMask)) // qword ptr["XBX"+"XCX"], mm2, ShiftMask)
              MOVX"		"_pDest", %%"XDI"\n\t"
              V_MOVNTQ	("(%%"XDI")", "%%mm0")
 
@@ -153,7 +135,7 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
              LEAX"		(%%"XBX", %%"XDX"), %%"XSI"\n\t" //"XSI", ["XBX"+"XDX"]
              "movq	    (%%"XSI"), %%mm0\n\t"
              //		pavgb	mm0, qword ptr["XSI"+"XCX"]
-             V_PAVGB	("%%mm0", "(%%"XSI", %%"XCX")", "%%mm2", _ShiftMask) // qword ptr["XSI"+"XCX"], mm2, ShiftMask)
+             V_PAVGB	("%%mm0", "(%%"XSI", %%"XCX")", "%%mm2", MANGLE(ShiftMask)) // qword ptr["XSI"+"XCX"], mm2, ShiftMask)
              V_MOVNTQ	("(%%"XDI", %%"XDX")", "%%mm0") // qword ptr["XDI"+"XDX"], mm0)
 #endif
              // now loop and get the middle qwords

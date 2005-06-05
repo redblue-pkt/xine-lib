@@ -1,5 +1,5 @@
 /*****************************************************************************
-** $Id: greedy2frame_template.c,v 1.7 2004/04/09 02:57:06 miguelfreitas Exp $
+** $Id: greedy2frame_template.c,v 1.8 2005/06/05 16:00:06 miguelfreitas Exp $
 ******************************************************************************
 ** Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 ** port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,9 @@
 ** CVS Log
 **
 ** $Log: greedy2frame_template.c,v $
+** Revision 1.8  2005/06/05 16:00:06  miguelfreitas
+** quite some hacks for gcc 2.95 compatibility
+**
 ** Revision 1.7  2004/04/09 02:57:06  miguelfreitas
 ** tvtime deinterlacing algorithms assumed top_field_first=1
 ** top_field_first=0 (aka bottom_field_first) should now work as expected
@@ -93,14 +96,7 @@
   static int64_t qwGreedyTwoFrameThreshold;
 #endif
 
-#if !defined(MANGLE)
-#    if defined(__MINGW32__) || defined(__CYGWIN__) || \
-        defined(__OS2__) || (defined (__OpenBSD__) && !defined(__ELF__))
-#        define MANGLE(a) "_" #a
-#    else
-#        define MANGLE(a) #a
-#    endif
-#endif
+#include <mangle.h>
 
 #if defined(IS_SSE)
 static void DeinterlaceGreedy2Frame_SSE(uint8_t *output, int outstride, 
