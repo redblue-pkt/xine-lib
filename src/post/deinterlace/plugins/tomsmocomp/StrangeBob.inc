@@ -283,14 +283,14 @@
 		V_PMAXUB ("%%mm6", "%%mm2")
 
         "psubusb %%mm3, %%mm2\n\t"			// maybe decrease it to 0000.. if no surround motion
-		"movq	%%mm2, "MANGLE(Min_Vals)"\n\t"
+//		"movq	%%mm2, "MANGLE(Min_Vals)"\n\t"
 
 		"movq	%%mm0, %%mm2\n\t"
 		V_PMAXUB ("%%mm2", "%%mm1")
 //		pminub	%%mm6, %%mm2			// clip our current results so far to be below this
 		V_PMINUB ("%%mm6", "%%mm2", "%%mm4")
         "paddusb %%mm3, %%mm2\n\t"			// maybe increase it to ffffff if no surround motion
-		"movq	%%mm2, "MANGLE(Max_Vals)"\n\t"
+//		"movq	%%mm2, "MANGLE(Max_Vals)"\n\t"
 #endif
 			
 		"movq	%%mm0, %%mm2\n\t"						

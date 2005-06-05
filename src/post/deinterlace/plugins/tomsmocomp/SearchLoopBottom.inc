@@ -42,9 +42,9 @@
             
             
                 //      pminub  mm0, Max_Vals       // but clip to catch the stray error
-                V_PMINUB ("%%mm0", MANGLE(Max_Vals), "%%mm1") // but clip to catch the stray error
+//                V_PMINUB ("%%mm0", MANGLE(Max_Vals), "%%mm1") // but clip to catch the stray error
                 //      pmaxub  mm0, Min_Vals
-                V_PMAXUB ("%%mm0", MANGLE(Min_Vals))
+//                V_PMAXUB ("%%mm0", MANGLE(Min_Vals))
                 
 #endif
 

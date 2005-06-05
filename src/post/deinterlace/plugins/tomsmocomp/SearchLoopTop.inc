@@ -69,9 +69,6 @@ long		dst_pitchw = dst_pitch; // local stor so asm can ref
 #define _oldbx      "%8"
 #endif
 
-        Min_Vals  = 0x0000000000000000ull;
-        Max_Vals  = 0x0000000000000000ull;
-
 	for (y=1; y < FldHeight-1; y++)
 	{
           // pretend it's indented -->>
