@@ -299,7 +299,12 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
 #ifdef ARCH_X86
                "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)",
 #endif
+#ifdef ARCH_X86_64
+/* the following clobber list causes trouble for gcc 2.95. it shouldn't be
+ * an issue as, afaik, mmx registers map to the existing fp registers.
+ */
                "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7",
+#endif
                "memory", "cc"
             );
 
