@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.34 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.35 2005/06/09 17:46:15 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -987,7 +987,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
         track->video_track = (matroska_video_track_t *)xine_xmalloc(sizeof(matroska_video_track_t));
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_video_track(this, track->video_track))
+        if ((elem.len > 0) && !parse_video_track(this, track->video_track))
           return 0;
       break;
       
@@ -998,7 +998,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
         track->audio_track = (matroska_audio_track_t *)xine_xmalloc(sizeof(matroska_audio_track_t));
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_audio_track(this, track->audio_track))
+        if ((elem.len > 0) && !parse_audio_track(this, track->audio_track))
           return 0;
       break;
         
@@ -1208,7 +1208,7 @@ static int parse_tracks(demux_matroska_t *this) {
         lprintf("TrackEntry\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_track_entry(this, this->tracks[this->num_tracks]))
+        if ((elem.len > 0) && !parse_track_entry(this, this->tracks[this->num_tracks]))
           return 0;
         this->num_tracks++;
       }
@@ -1311,7 +1311,7 @@ static int parse_cue_point(demux_matroska_t *this) {
         lprintf("CueTrackPosition\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_cue_trackposition(this, &track_num, &pos))
+        if ((elem.len > 0) && !parse_cue_trackposition(this, &track_num, &pos))
           return 0;
         break;
       default:
@@ -1371,7 +1371,7 @@ static int parse_cues(demux_matroska_t *this) {
         lprintf("CuePoint\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_cue_point(this))
+        if ((elem.len > 0) && !parse_cue_point(this))
           return 0;
         break;
       default:
@@ -1800,7 +1800,7 @@ static int parse_cluster(demux_matroska_t *this) {
         lprintf("blockgroup\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_block_group(this, timecode, duration))
+        if ((elem.len > 0) && !parse_block_group(this, timecode, duration))
           return 0;
         break;
       case MATROSKA_ID_CL_BLOCK:
@@ -1908,7 +1908,7 @@ static int parse_seek_entry(demux_matroska_t *this) {
 static int parse_seekhead(demux_matroska_t *this) {
   ebml_parser_t *ebml = this->ebml;
   int next_level = 2;
-  
+
   while (next_level == 2) {
     ebml_elem_t elem;
     
@@ -1920,7 +1920,7 @@ static int parse_seekhead(demux_matroska_t *this) {
         lprintf("Seek Entry\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_seek_entry(this))
+        if ((elem.len > 0) && !parse_seek_entry(this))
           return 0;
         break;
       default:
@@ -1965,28 +1965,28 @@ static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
         lprintf("SeekHead\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_seekhead(this))
+        if ((elem.len > 0) && !parse_seekhead(this))
           return 0;
         break;
       case MATROSKA_ID_INFO:
         lprintf("Info\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_info(this))
+        if ((elem.len > 0) && !parse_info(this))
           return 0;
         break;
       case MATROSKA_ID_TRACKS:
         lprintf("Tracks\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_tracks(this))
+        if ((elem.len > 0) && !parse_tracks(this))
           return 0;
         break;
       case MATROSKA_ID_CHAPTERS:
         lprintf("Chapters\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_chapters(this))
+        if ((elem.len > 0) && !parse_chapters(this))
           return 0;
         break;
       case MATROSKA_ID_CLUSTER:
@@ -1999,21 +1999,21 @@ static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
         lprintf("Cues\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_cues(this))
+        if ((elem.len > 0) && !parse_cues(this))
           return 0;
         break;
       case MATROSKA_ID_ATTACHMENTS:
         lprintf("Attachments\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_attachments(this))
+        if ((elem.len > 0) && !parse_attachments(this))
           return 0;
         break;
       case MATROSKA_ID_TAGS:
         lprintf("Tags\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if (!parse_tags(this))
+        if ((elem.len > 0) && !parse_tags(this))
           return 0;
         break;
       default:
