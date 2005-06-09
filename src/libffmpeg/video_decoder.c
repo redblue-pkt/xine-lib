@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.53 2005/06/06 21:29:11 tmattern Exp $
+ * $Id: video_decoder.c,v 1.54 2005/06/09 19:33:47 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -119,7 +119,7 @@ struct ff_video_decoder_s {
 static void set_stream_info(ff_video_decoder_t *this) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->bih.biWidth);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio*10000);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio * 10000);
 }
 
 #ifdef ENABLE_DIRECT_RENDERING
@@ -130,10 +130,13 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   int width  = context->width;
   int height = context->height;
         
-  if(!this->bih.biWidth || !this->bih.biHeight) {
+  if (!this->bih.biWidth || !this->bih.biHeight) {
     this->bih.biWidth = width;
     this->bih.biHeight = height;
+  }
+  if (this->aspect_ratio == 0) {
     this->aspect_ratio = (double)width / (double)height;
+    lprintf("default aspect ratio: %f\n", this->aspect_ratio);
     set_stream_info(this);
   }
   
@@ -268,6 +271,7 @@ static const ff_codec_t ff_video_lookup[] = {
 
 
 static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
+  AVRational avr00 = {0, 1};
   int i;
 
   /* find the decoder */
@@ -319,10 +323,23 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
   lprintf("lavc decoder opened\n");
 
   this->decoder_ok = 1;
-  
-  this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
-  set_stream_info(this);
+  if ((codec_type != BUF_VIDEO_MPEG) &&
+      (codec_type != BUF_VIDEO_DV)) {
+
+    if (!this->bih.biWidth || !this->bih.biHeight) {
+      this->bih.biWidth = this->context->width;
+      this->bih.biHeight = this->context->height;
+    }
+
+    /* aspect ratio provided by ffmpeg, override previous setting */
+    if (av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
+      this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
+	(double)this->bih.biWidth / (double)this->bih.biHeight;
+      lprintf("ffmpeg aspect ratio: %f\n", this->aspect_ratio);
+    }
+    set_stream_info(this);
+  }
 
   this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -449,6 +466,7 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
     this->bih.biWidth  = parser->width;
     this->bih.biHeight = parser->height;
     this->aspect_ratio   = parser->frame_aspect_ratio;
+    lprintf("mpeg seq aspect ratio: %f\n", this->aspect_ratio);
     set_stream_info(this);
 
     event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
@@ -817,7 +835,7 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
         this->context->sub_id = BE_32(&this->buf[30]);
 
         this->context->slice_offset = xine_xmalloc(sizeof(int)*SLICE_OFFSET_SIZE);
-        this->slice_offset_size     = SLICE_OFFSET_SIZE;
+        this->slice_offset_size = SLICE_OFFSET_SIZE;
 
 	lprintf("w=%d, h=%d\n", this->bih.biWidth, this->bih.biHeight);
 
@@ -1126,6 +1144,12 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 	    this->cs_convert_init = 1;
 	  }
 
+	  if (this->aspect_ratio == 0) {
+	    this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
+	    lprintf("default aspect ratio: %f\n", this->aspect_ratio);
+	    set_stream_info(this);
+	  }
+
           img = this->stream->video_out->get_frame (this->stream->video_out,
                                                     this->bih.biWidth,
                                                     this->bih.biHeight,
@@ -1210,7 +1234,6 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-  AVRational avr00 = {0, 1};
 
   lprintf ("processing packet type = %08x, len = %d, decoder_flags=%08x\n", 
            buf->type, buf->size, buf->decoder_flags);
@@ -1219,13 +1242,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->video_step = buf->decoder_info[0];
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
   }
-  
-  if (buf->decoder_flags & BUF_FLAG_ASPECT) {
-    this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, 
-		       this->aspect_ratio*10000);
-  }  
-
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
   
@@ -1243,24 +1259,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       ff_handle_header_buffer(this, buf);
 
+      if (buf->decoder_flags & BUF_FLAG_ASPECT) {
+	this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+	lprintf("aspect ratio: %f\n", this->aspect_ratio);
+      }  
+
     } else {
 
       /* decode */
-
-      /* aspect ratio */
-      if(!this->bih.biWidth || !this->bih.biHeight) {
-	this->bih.biWidth = this->context->width;
-	this->bih.biHeight = this->context->height;
-	this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
-	set_stream_info(this);
-      }
-      if(av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
-	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
-          (double)this->bih.biWidth / (double)this->bih.biHeight;
-	_x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  
-			   this->aspect_ratio*10000);
-      }
-
       if (buf->pts)
 	this->pts = buf->pts;
 
