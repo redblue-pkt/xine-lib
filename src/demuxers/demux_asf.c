@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.169 2005/02/06 15:26:00 tmattern Exp $
+ * $Id: demux_asf.c,v 1.170 2005/06/09 20:33:46 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -97,6 +97,10 @@ typedef struct {
 
   int                 payload_size;
 
+  /* palette handling */
+  int               palette_count;
+  palette_entry_t   palette[256];
+  
 } asf_stream_t;
 
 typedef struct demux_asf_s {
@@ -360,10 +364,24 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   buf->decoder_info[0] = 0;
   buf->size = asf_stream->bih_size;
   memcpy (buf->content, bih, buf->size);
-  buf->type = this->streams[stream].buf_type ;
+  buf->type = this->streams[stream].buf_type;
 
   this->video_fifo->put (this->video_fifo, buf);
 
+
+  /* send off the palette, if there is one */
+  if (asf_stream->palette_count) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    "demux_asf: stream %d, palette : %d entries\n", stream, asf_stream->palette_count);
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
+    buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+    buf->decoder_info[2] = asf_stream->palette_count;
+    buf->decoder_info_ptr[2] = &asf_stream->palette;
+    buf->size = 0;
+    buf->type = this->streams[stream].buf_type;
+    this->video_fifo->put (this->video_fifo, buf);
+  }
 }
 
 static int asf_read_header (demux_asf_t *this) {
@@ -534,6 +552,7 @@ static int asf_read_header (demux_asf_t *this) {
             uint16_t i;
             uint32_t width;
             uint32_t height;
+	    int j;
 
             width = get_le32(this); /* width */
             height = get_le32(this); /* height */
@@ -564,6 +583,31 @@ static int asf_read_header (demux_asf_t *this) {
               this->streams[this->num_streams].stream_id    = stream_id;
               this->streams[this->num_streams].frag_offset  = 0;
               this->streams[this->num_streams].defrag       = 0;
+
+	      /* load the palette, if there is one */
+	      asf_stream->palette_count = asf_stream->bih->biClrUsed;
+
+	      lprintf ("palette_count: %d\n", asf_stream->palette_count);
+	      if (asf_stream->palette_count > 256) {
+		lprintf ("number of colors exceeded 256 (%d)", asf_stream->palette_count);
+		asf_stream->palette_count = 256;
+	      }
+	      if ((asf_stream->bih_size - sizeof(xine_bmiheader)) >= (asf_stream->palette_count * 4)) {
+		/* load the palette from the end of the strf chunk */
+		for (j = 0; j < asf_stream->palette_count; j++) {
+		  asf_stream->palette[j].b = *((uint8_t *)asf_stream->bih + sizeof(xine_bmiheader) + j * 4 + 0);
+		  asf_stream->palette[j].g = *((uint8_t *)asf_stream->bih + sizeof(xine_bmiheader) + j * 4 + 1);
+		  asf_stream->palette[j].r = *((uint8_t *)asf_stream->bih + sizeof(xine_bmiheader) + j * 4 + 2);
+		}
+	      } else {
+		/* generate a greyscale palette */
+		asf_stream->palette_count = 256;
+		for (j = 0; j < asf_stream->palette_count; j++) {
+		  asf_stream->palette[j].r = j;
+		  asf_stream->palette[j].g = j;
+		  asf_stream->palette[j].b = j;
+		}
+	      }
 
             } else
               xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1304,7 +1348,7 @@ static int asf_parse_packet_compressed_payload(demux_asf_t *this,
 
   *timestamp = frag_offset;
   if (*timestamp)
-  	*timestamp -= this->preroll;
+    *timestamp -= this->preroll;
 
   frag_offset = 0;
   get_byte (this); s_hdr_size += 1;
