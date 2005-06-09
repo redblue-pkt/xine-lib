@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.16 2005/05/06 07:42:21 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.17 2005/06/09 21:06:02 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -1221,16 +1221,14 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
     xine_xxmc_t *xxmc = &frame->xxmc_data;
 
     xvmc_context_writer_lock( &this->xvmc_lock);
-    if ( flags & VO_NEW_SEQUENCE_FLAG ) {
-      if (xxmc_accel_update(this, this->last_accel_request, xxmc->acceleration) ||
-	  (this->xvmc_mpeg != xxmc->mpeg) ||
-	  (this->xvmc_width != width) ||
-	  (this->xvmc_height != height)) {
-	this->last_accel_request = xxmc->acceleration;
-	xxmc_xvmc_update_context(this, frame, width, height);
-      } else {
-	this->last_accel_request = xxmc->acceleration;
-      }
+    if (xxmc_accel_update(this, this->last_accel_request, xxmc->acceleration) ||
+	(this->xvmc_mpeg != xxmc->mpeg) ||
+	(this->xvmc_width != width) ||
+	(this->xvmc_height != height)) {
+      this->last_accel_request = xxmc->acceleration;
+      xxmc_xvmc_update_context(this, frame, width, height);
+    } else {
+      this->last_accel_request = xxmc->acceleration;
     }
 
     if (this->contextActive) 
