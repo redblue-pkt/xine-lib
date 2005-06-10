@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.54 2005/06/09 19:33:47 tmattern Exp $
+ * $Id: video_decoder.c,v 1.55 2005/06/10 22:40:41 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -104,6 +104,7 @@ struct ff_video_decoder_s {
   int               is_mpeg12;
 
   double            aspect_ratio;
+  int               aspect_ratio_prio;
   int               frame_flags;
   int               crop_right, crop_bottom;
   
@@ -133,11 +134,13 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   if (!this->bih.biWidth || !this->bih.biHeight) {
     this->bih.biWidth = width;
     this->bih.biHeight = height;
-  }
-  if (this->aspect_ratio == 0) {
-    this->aspect_ratio = (double)width / (double)height;
-    lprintf("default aspect ratio: %f\n", this->aspect_ratio);
-    set_stream_info(this);
+
+    if (this->aspect_ratio_prio == 0) {
+      this->aspect_ratio = (double)width / (double)height;
+      this->aspect_ratio_prio = 1;
+      lprintf("default aspect ratio: %f\n", this->aspect_ratio);
+      set_stream_info(this);
+    }
   }
   
   avcodec_align_dimensions(context, &width, &height);
@@ -271,7 +274,6 @@ static const ff_codec_t ff_video_lookup[] = {
 
 
 static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
-  AVRational avr00 = {0, 1};
   int i;
 
   /* find the decoder */
@@ -332,12 +334,7 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
       this->bih.biHeight = this->context->height;
     }
 
-    /* aspect ratio provided by ffmpeg, override previous setting */
-    if (av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
-      this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
-	(double)this->bih.biWidth / (double)this->bih.biHeight;
-      lprintf("ffmpeg aspect ratio: %f\n", this->aspect_ratio);
-    }
+
     set_stream_info(this);
   }
 
@@ -465,7 +462,8 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
 
     this->bih.biWidth  = parser->width;
     this->bih.biHeight = parser->height;
-    this->aspect_ratio   = parser->frame_aspect_ratio;
+    this->aspect_ratio = parser->frame_aspect_ratio;
+    this->aspect_ratio_prio = 2;
     lprintf("mpeg seq aspect ratio: %f\n", this->aspect_ratio);
     set_stream_info(this);
 
@@ -1039,6 +1037,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
 static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
   uint8_t *chunk_buf = this->buf;
+  AVRational avr00 = {0, 1};
 
   lprintf("handle_buffer\n");
 
@@ -1124,6 +1123,17 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         }
       }
 
+      /* aspect ratio provided by ffmpeg, override previous setting */
+      if ((this->aspect_ratio_prio < 2) &&
+	  av_cmp_q(this->context->sample_aspect_ratio, avr00)) {
+
+	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
+	  (double)this->bih.biWidth / (double)this->bih.biHeight;
+	this->aspect_ratio_prio = 2;
+	lprintf("ffmpeg aspect ratio: %f\n", this->aspect_ratio);
+	set_stream_info(this);
+      }
+
       if (got_picture && this->av_frame->data[0]) {
         /* got a picture, draw it */
         if(!this->av_frame->opaque) {
@@ -1144,8 +1154,9 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 	    this->cs_convert_init = 1;
 	  }
 
-	  if (this->aspect_ratio == 0) {
+	  if (this->aspect_ratio_prio == 0) {
 	    this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
+	    this->aspect_ratio_prio = 1;
 	    lprintf("default aspect ratio: %f\n", this->aspect_ratio);
 	    set_stream_info(this);
 	  }
@@ -1260,8 +1271,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       ff_handle_header_buffer(this, buf);
 
       if (buf->decoder_flags & BUF_FLAG_ASPECT) {
-	this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
-	lprintf("aspect ratio: %f\n", this->aspect_ratio);
+	if (this->aspect_ratio_prio < 3) {
+	  this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+	  this->aspect_ratio_prio = 3;
+	  lprintf("aspect ratio: %f\n", this->aspect_ratio);
+	  set_stream_info(this);
+	}
       }  
 
     } else {
