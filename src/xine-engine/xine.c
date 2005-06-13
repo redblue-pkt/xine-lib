@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.312 2005/03/06 11:08:40 tmattern Exp $
+ * $Id: xine.c,v 1.313 2005/06/13 00:32:13 miguelfreitas Exp $
  */
 
 /*
@@ -624,7 +624,12 @@ void _x_flush_events_queues (xine_stream_t *stream) {
     pthread_mutex_lock (&queue->lock);
     pthread_mutex_unlock (&stream->event_queues_lock);
 
-    if (queue->listener_thread != NULL) {
+    /* we might have been called from the very same function that
+     * processes events, therefore waiting here would cause deadlock.
+     * check only queues with listener threads which are not
+     * currently executing their callback functions.
+     */
+    if (queue->listener_thread != NULL && !queue->callback_running) {
       while (!xine_list_is_empty (queue->events)) {
         pthread_cond_wait (&queue->events_processed, &queue->lock);
       }

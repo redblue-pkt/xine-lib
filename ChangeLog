@@ -30,6 +30,8 @@ xine-lib (1.0.2)
   * add a new error message when a file we tried to play is an empty
   (zero-sized) file
   * be more POSIX-compliant (head, tail) (build fix)
+  * fixed deadlock when libxine was called from the event listener thread and
+    tried to flush all pending events.
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 

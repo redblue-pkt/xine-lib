@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.164 2005/02/09 20:03:21 tmattern Exp $
+ * $Id: xine_internal.h,v 1.165 2005/06/13 00:32:15 miguelfreitas Exp $
  *
  */
 
@@ -182,6 +182,7 @@ struct xine_event_queue_s {
   xine_stream_t             *stream;
   pthread_t                 *listener_thread;
   xine_event_listener_cb_t   callback;
+  int                        callback_running;
   void                      *user_data;
 };
 

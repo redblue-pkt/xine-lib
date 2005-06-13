@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.26 2004/04/16 16:34:22 hadess Exp $
+ * $Id: events.c,v 1.27 2005/06/13 00:32:12 miguelfreitas Exp $
  *
  * Event handling functions
  *
@@ -116,6 +116,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
   queue->events = xine_list_new ();
   queue->stream = stream;
   queue->listener_thread = NULL;
+  queue->callback_running = 0;
 
   pthread_mutex_lock (&stream->event_queues_lock);
   xine_list_append_content (stream->event_queues, queue);
@@ -200,7 +201,9 @@ static void *listener_loop (void *queue_gen) {
     if (event->type == XINE_EVENT_QUIT)
       running = 0;
 
+    queue->callback_running = 1;
     queue->callback (queue->user_data, event);
+    queue->callback_running = 0;
 
     xine_event_free (event);
 
