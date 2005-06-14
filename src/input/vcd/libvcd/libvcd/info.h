@@ -482,7 +482,7 @@ extern "C" {
     Return a string containing the VCD publisher id with trailing
     blanks removed, or NULL if there is some problem in getting this.
   */
-  const char * vcdinfo_get_publisher_id(const vcdinfo_obj_t *obj);
+  char * vcdinfo_get_publisher_id(const vcdinfo_obj_t *obj);
   
   /**
    \fn vcdinfo_get_return_offset(const vcdinfo_obj_t *obj);

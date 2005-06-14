@@ -1,5 +1,5 @@
 /*
-    $Id: info.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
+    $Id: info.c,v 1.4 2005/06/14 17:17:45 rockyb Exp $
 
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -59,7 +59,7 @@
 #include <stddef.h>
 #include <errno.h>
 
-static const char _rcsid[] = "$Id: info.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
+static const char _rcsid[] = "$Id: info.c,v 1.4 2005/06/14 17:17:45 rockyb Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80
@@ -1040,7 +1040,7 @@ vcdinfo_get_psd_x_size (const vcdinfo_obj_t *obj)
    Return a string containing the VCD publisher id with trailing
    blanks removed, or NULL if there is some problem in getting this.
 */
-const char *
+char *
 vcdinfo_get_publisher_id(const vcdinfo_obj_t *obj)
 {
   if ( NULL == obj ) return (NULL);
