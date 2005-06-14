@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.6 2005/01/08 15:12:42 rockyb Exp $
+  $Id: vcdio.c,v 1.7 2005/06/14 17:27:12 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -68,7 +68,7 @@
 int
 vcdio_close(vcdplayer_t *p_vcdplayer) 
 {
-  p_vcdplayer->opened = false;
+  p_vcdplayer->b_opened = false;
 
   FREE_AND_NULL(p_vcdplayer->psz_source);
   FREE_AND_NULL(p_vcdplayer->track);
@@ -93,7 +93,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
 
   dbg_print(INPUT_DBG_CALL, "called with %s\n", intended_vcd_device);
 
-  if ( p_vcdplayer->opened ) {
+  if ( p_vcdplayer->b_opened ) {
     if ( strcmp(intended_vcd_device, p_vcdplayer->psz_source)==0 ) {
       /* Already open and the same device, so do nothing */
       return true;
@@ -111,25 +111,19 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
   p_vcdinfo = p_vcdplayer->vcd;
 
   p_vcdplayer->psz_source = strdup(intended_vcd_device);
-  p_vcdplayer->opened     = true;
+  p_vcdplayer->b_opened   = true;
   p_vcdplayer->i_lids     = vcdinfo_get_num_LIDs(p_vcdinfo);
+  p_vcdplayer->vcd_format = vcdinfo_get_format_version(p_vcdinfo);
   p_vcdplayer->i_still    = 0;
 
   if (vcdinfo_read_psd (p_vcdinfo)) {
 
     vcdinfo_visit_lot (p_vcdinfo, false);
 
-#if FIXED
-    /* 
-       We need to change libvcdinfo to be more robust when there are 
-       problems reading the extended PSD. Given that area-highlighting and 
-       selection features in the extended PSD haven't been implemented,
-       it's best then to not try to read this at all.
-     */
-    if (vcdinfo_get_psd_x_size(p_vcdinfo))
-      vcdinfo_visit_lot (p_vcdinfo, true);
-#endif 
-
+    if (VCD_TYPE_VCD2 == p_vcdplayer->vcd_format &&
+        vcdinfo_get_psd_x_size(p_vcdinfo)) {
+        vcdinfo_visit_lot (p_vcdinfo, true);
+    }
   }
 
   /* 

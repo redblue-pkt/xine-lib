@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.16 2005/04/27 23:28:41 rockyb Exp $
+  $Id: vcdplayer.c,v 1.17 2005/06/14 17:27:13 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -532,20 +532,30 @@ vcdplayer_play_single_item(vcdplayer_t *p_vcdplayer, vcdinfo_itemid_t itemid)
       if (itemid.num >= i_segs) return;
       _vcdplayer_set_segment(p_vcdplayer, itemid.num);
       
-      switch (segtype)
-        {
-        case VCDINFO_FILES_VIDEO_NTSC_STILL:
-        case VCDINFO_FILES_VIDEO_NTSC_STILL2:
-        case VCDINFO_FILES_VIDEO_PAL_STILL:
-        case VCDINFO_FILES_VIDEO_PAL_STILL2:
-          /* Note that we are reading a still frame but haven't
-             got to the end.
-           */
-          p_vcdplayer->i_still = STILL_READING;
+      switch (segtype) {
+      case VCDINFO_FILES_VIDEO_NTSC_STILL:
+      case VCDINFO_FILES_VIDEO_NTSC_STILL2:
+      case VCDINFO_FILES_VIDEO_PAL_STILL:
+      case VCDINFO_FILES_VIDEO_PAL_STILL2:
+        /* Note that we are reading a still frame but haven't
+           got to the end.
+        */
+        p_vcdplayer->i_still = STILL_READING;
+        break;
+      default:
+        /* */
+        switch (p_vcdplayer->vcd_format) {
+        case VCD_TYPE_VCD:
+        case VCD_TYPE_VCD11:
+        case VCD_TYPE_VCD2:
+          /* aspect ratio for VCD's is known to be 4:3 for any 
+             type of VCD's */
+          p_vcdplayer->set_aspect_ratio(1);
           break;
-        default:
-          p_vcdplayer->i_still = 0;
+        default: ;
         }
+        p_vcdplayer->i_still = 0;
+      }
       
       break;
     }
@@ -868,7 +878,7 @@ vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
 
 
 /*!
-  Read nlen bytes into buf and return the status back.
+  Read i_len bytes into buf and return the status back.
 
   This routine is a bit complicated because on reaching the end of 
   a track or entry we may automatically advance to the item, or 
@@ -876,7 +886,7 @@ vcdplayer_non_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
 */
 vcdplayer_read_status_t
 vcdplayer_read (vcdplayer_t *p_vcdplayer, uint8_t *p_buf, 
-                const off_t nlen) 
+                const off_t i_len) 
 {
 
   if ( p_vcdplayer->i_lsn >= p_vcdplayer->end_lsn ) {

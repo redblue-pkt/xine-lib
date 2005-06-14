@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.8 2005/02/20 17:04:58 mroi Exp $
+  $Id: vcdplayer.h,v 1.9 2005/06/14 17:27:13 rockyb Exp $
 
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -24,6 +24,7 @@
 
 #ifdef HAVE_VCDNAV
 #include <libvcd/info.h>
+#include <libvcd/version.h>
 #else
 #include "libvcd/info.h"
 #endif
@@ -108,9 +109,8 @@ typedef int (*generic_fn)();
 /* Value when we have yet to finish reading blocks of a frame. */
 #define STILL_READING          -5
 
-typedef struct vcdplayer_input_s {
+typedef struct vcdplayer_s {
   void             *user_data;  /* environment. Passed to called routines. */
-  int32_t           buttonN;
   vcdinfo_obj_t     *vcd;       /* Pointer to libvcd structures. */
 
   /*------------------------------------------------------------------
@@ -134,6 +134,9 @@ typedef struct vcdplayer_input_s {
 
   /* Function to force a redisplay. */
   void (*force_redisplay) (void); 
+
+  /* Function to set aspect ratio. */
+  void (*set_aspect_ratio) (int); 
 
   /* Function to update title of selection. */
   void (*update_title) ();
@@ -184,8 +187,9 @@ typedef struct vcdplayer_input_s {
     (S)VCD Medium information
    ---------------------------------------------------------------*/
   char         *psz_source; /* VCD device currently open */
-  bool          opened;     /* true if initialized */
-
+  bool          b_opened;   /* true if initialized */
+  vcd_type_t    vcd_format; /* VCD 2.0, 1,1, SVCD, HQVCD? */
+  
   track_t       i_tracks;   /* # of playable MPEG tracks. This is 
                                 generally one less than the number
                                 of CD tracks as the first CD track
@@ -300,6 +304,10 @@ vcdplayer_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin);
  */
 void 
 vcdplayer_send_button_update(vcdplayer_t *p_vcdplayer, int mode);
+
+int 
+vcdinfo_get_area_selection(const vcdinfo_obj_t *p_vcdinfo, 
+                           lid_t lid, int x, int y);
 
 #endif /* _VCDPLAYER_H_ */
 /* 
