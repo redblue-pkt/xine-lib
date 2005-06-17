@@ -927,4 +927,11 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       mpeg2dec->cc_dec->decode_data(mpeg2dec->cc_dec, &buf);
     }
   }
+  /* check Active Format Description ETSI TS 101 154 V1.5.1 */
+  else if (buffer[0] == 0x44 && buffer[1] == 0x54 && buffer[2] == 0x47 && buffer[3] == 0x31)
+  {
+    int afd = (buffer[4] & 0x40) ? (buffer[5] & 0x0f) : -1;
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_AFD, afd);
+    
+  }
 }

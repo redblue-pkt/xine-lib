@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.141 2005/05/29 12:29:42 hadess Exp $
+ * $Id: xine.h.in,v 1.142 2005/06/17 22:33:01 dsalt Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -895,6 +895,26 @@ const char *xine_get_meta_info   (xine_stream_t *stream, int info);
 #define XINE_STREAM_INFO_AUDIO_MODE        26
 #define XINE_STREAM_INFO_SKIPPED_FRAMES    27 /* for 1000 frames delivered */
 #define XINE_STREAM_INFO_DISCARDED_FRAMES  28 /* for 1000 frames delivered */
+#define XINE_STREAM_INFO_VIDEO_AFD         29
+
+/* possible values for XINE_STREAM_INFO_VIDEO_AFD */
+#define XINE_VIDEO_AFD_NOT_PRESENT         -1
+#define XINE_VIDEO_AFD_RESERVED_0          0
+#define XINE_VIDEO_AFD_RESERVED_1          1
+#define XINE_VIDEO_AFD_BOX_16_9_TOP        2
+#define XINE_VIDEO_AFD_BOX_14_9_TOP        3
+#define XINE_VIDEO_AFD_BOX_GT_16_9_CENTRE  4
+#define XINE_VIDEO_AFD_RESERVED_5          5
+#define XINE_VIDEO_AFD_RESERVED_6          6
+#define XINE_VIDEO_AFD_RESERVED_7          7
+#define XINE_VIDEO_AFD_SAME_AS_FRAME       8
+#define XINE_VIDEO_AFD_4_3_CENTRE          9
+#define XINE_VIDEO_AFD_16_9_CENTRE         10
+#define XINE_VIDEO_AFD_14_9_CENTRE         11
+#define XINE_VIDEO_AFD_RESERVED_12         12
+#define XINE_VIDEO_AFD_4_3_PROTECT_14_9    13
+#define XINE_VIDEO_AFD_16_9_PROTECT_14_9   14
+#define XINE_VIDEO_AFD_16_9_PROTECT_4_3    15
 
 /* xine_get_meta_info */
 #define XINE_META_INFO_TITLE               0
