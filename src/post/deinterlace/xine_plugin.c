@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.44 2005/06/05 16:00:06 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.45 2005/06/17 22:36:43 dsalt Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -585,7 +585,12 @@ static int deinterlace_build_output_field(
     frame->width, frame->height / scaler, frame->ratio, yuy2_frame->format,
     frame->flags | VO_BOTH_FIELDS);
   pthread_mutex_lock (&this->lock);
-    
+
+  deinterlaced_frame->crop_left   = frame->crop_left;
+  deinterlaced_frame->crop_right  = frame->crop_right;
+  deinterlaced_frame->crop_top    = frame->crop_top;
+  deinterlaced_frame->crop_bottom = frame->crop_bottom;
+
   _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
     
   if( skip > 0 && !this->pulldown ) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.29 2005/05/07 09:11:39 valtri Exp $
+ * $Id: post.c,v 1.30 2005/06/17 22:36:48 dsalt Exp $
  */
  
 /*
@@ -420,7 +420,11 @@ void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
   to->drawn               = from->drawn;
   to->accel_data          = from->accel_data;
   to->stream              = from->stream;
-  
+  to->crop_left           = from->crop_left;
+  to->crop_right          = from->crop_right;
+  to->crop_top            = from->crop_top;
+  to->crop_bottom         = from->crop_bottom;
+
   if (to->extra_info != from->extra_info)
     _x_extra_info_merge(to->extra_info, from->extra_info);
 }
