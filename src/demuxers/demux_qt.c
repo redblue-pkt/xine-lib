@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.200 2005/03/06 07:18:04 tmmm Exp $
+ * $Id: demux_qt.c,v 1.201 2005/06/17 16:53:25 jstembridge Exp $
  *
  */
 
@@ -480,6 +480,8 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
   unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
   int unknown_atoms = 0;
 
+  off_t free_moov_offset = -1;
+  int64_t free_moov_size = 0;
 
   /* init the passed variables */
   *moov_offset = *moov_size = -1;
@@ -507,17 +509,17 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         ATOM_PREAMBLE_SIZE)
         break;
 
-      /* if there is a cmov, qualify this free atom as the moov atom */
+      /* if there is a cmov, qualify this free atom as the 'moov' atom
+       * if no actual 'moov' atom is found. */
       if ((BE_32(&atom_preamble[4]) == CMOV_ATOM) ||
           (BE_32(&atom_preamble[4]) == MVHD_ATOM)) {
         /* pos = current pos minus 2 atom preambles */
-        *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE * 2;
-        *moov_size = atom_size;
-        break;
-      } else {
-        /* otherwise, rewind the stream */
-        input->seek(input, -ATOM_PREAMBLE_SIZE, SEEK_CUR);
+        free_moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE * 2;
+        free_moov_size = atom_size;
       }
+
+      /* rewind the stream so we can keep looking */
+      input->seek(input, -ATOM_PREAMBLE_SIZE, SEEK_CUR);
     }
 
     /* if the moov atom is found, log the position and break from the loop */
@@ -562,6 +564,11 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
       atom_size -= ATOM_PREAMBLE_SIZE;
 
     input->seek(input, atom_size, SEEK_CUR);
+  }
+
+  if ((*moov_offset == -1) && (free_moov_offset != -1)) {
+    *moov_offset = free_moov_offset;
+    *moov_size = free_moov_size;
   }
 
   /* reset to the start of the stream on the way out */
