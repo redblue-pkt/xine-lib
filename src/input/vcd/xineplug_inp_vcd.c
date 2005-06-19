@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.39 2005/06/14 17:27:13 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.40 2005/06/19 03:47:45 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1177,13 +1177,8 @@ vcd_handle_events (void)
         {
           int i_selection;
 
-          /* mouse coordinates seem to be before aspect ratio is applied.
-             For now we're hacking to assume 4:3 which is generally correct.
-          */
-          const int16_t x_scaled = p_input->x * 3 / 4;
-
-          dbg_print(INPUT_DBG_EVENT, "Button to x: %d, scaled x: %d, y: %d\n", 
-                    p_input->x, x_scaled, p_input->y);
+          dbg_print(INPUT_DBG_EVENT, "Button to x: %d, y: %d\n", 
+                    p_input->x, p_input->y);
           
 #if LIBVCD_VERSION_NUM >= 23
           /* xine_dvd_send_button_update(this, 1); */
@@ -1193,8 +1188,10 @@ vcd_handle_events (void)
 
           i_selection = vcdinfo_get_area_selection(p_vcdplayer->vcd, 
                                                    p_vcdplayer->i_lid, 
-                                                   x_scaled, 
-                                                   p_input->y);
+                                                   p_input->x,
+                                                   p_input->y,
+                                                   p_vcdplayer->max_x,
+                                                   p_vcdplayer->max_y);
           dbg_print(INPUT_DBG_EVENT, "Selection is: %d\n", i_selection);
 
           if (vcdplayer_pbc_is_on(p_vcdplayer)) {

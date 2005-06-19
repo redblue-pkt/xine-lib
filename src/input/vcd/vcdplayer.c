@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.17 2005/06/14 17:27:13 rockyb Exp $
+  $Id: vcdplayer.c,v 1.18 2005/06/19 03:47:45 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -534,23 +534,59 @@ vcdplayer_play_single_item(vcdplayer_t *p_vcdplayer, vcdinfo_itemid_t itemid)
       
       switch (segtype) {
       case VCDINFO_FILES_VIDEO_NTSC_STILL:
-      case VCDINFO_FILES_VIDEO_NTSC_STILL2:
-      case VCDINFO_FILES_VIDEO_PAL_STILL:
-      case VCDINFO_FILES_VIDEO_PAL_STILL2:
+        p_vcdplayer->max_x = 704;
+        p_vcdplayer->max_y = 480;
         /* Note that we are reading a still frame but haven't
-           got to the end.
-        */
+           got to the end. */
+        p_vcdplayer->i_still = STILL_READING;
+        break;
+      case VCDINFO_FILES_VIDEO_NTSC_STILL2:
+        p_vcdplayer->max_x = 352;
+        p_vcdplayer->max_y = 240;
+        /* Note that we are reading a still frame but haven't
+           got to the end. */
+        p_vcdplayer->i_still = STILL_READING;
+        break;
+      case VCDINFO_FILES_VIDEO_PAL_STILL:
+        p_vcdplayer->max_x = 704;
+        p_vcdplayer->max_y = 576;
+        /* Note that we are reading a still frame but haven't
+           got to the end. */
+        p_vcdplayer->i_still = STILL_READING;
+        break;
+      case VCDINFO_FILES_VIDEO_PAL_STILL2:
+        p_vcdplayer->max_x = 352;
+        p_vcdplayer->max_y = 288;
+        /* Note that we are reading a still frame but haven't
+           got to the end. */
         p_vcdplayer->i_still = STILL_READING;
         break;
       default:
         /* */
         switch (p_vcdplayer->vcd_format) {
         case VCD_TYPE_VCD:
-        case VCD_TYPE_VCD11:
-        case VCD_TYPE_VCD2:
+          p_vcdplayer->max_x = 352;
+          p_vcdplayer->max_y = 240;
           /* aspect ratio for VCD's is known to be 4:3 for any 
              type of VCD's */
           p_vcdplayer->set_aspect_ratio(1);
+          break;
+        case VCD_TYPE_VCD11:
+        case VCD_TYPE_VCD2:
+          p_vcdplayer->max_x = 352;
+          switch(segtype) {
+          case VCDINFO_FILES_VIDEO_NTSC_MOTION:
+            p_vcdplayer->max_y = 240;
+            break;
+          case VCDINFO_FILES_VIDEO_PAL_MOTION:
+            p_vcdplayer->max_y = 288;
+          default:
+            p_vcdplayer->max_y = 289;
+          }
+          
+          p_vcdplayer->set_aspect_ratio(1);
+          /* aspect ratio for VCD's is known to be 4:3 for any 
+             type of VCD's */
           break;
         default: ;
         }

@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.9 2005/06/14 17:27:13 rockyb Exp $
+  $Id: vcdplayer.h,v 1.10 2005/06/19 03:47:45 rockyb Exp $
 
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -183,6 +183,9 @@ typedef struct vcdplayer_s {
   lsn_t      track_lsn;     /* LSN of start track origin of track we are in. */
   lsn_t      track_end_lsn; /* LSN of end of current track (if entry). */
 
+  uint16_t   max_x;         /* Largest screen x coordinate */
+  uint16_t   max_y;         /* Largest screen y coordinate */
+
   /*--------------------------------------------------------------
     (S)VCD Medium information
    ---------------------------------------------------------------*/
@@ -304,10 +307,6 @@ vcdplayer_seek (vcdplayer_t *p_vcdplayer, off_t offset, int origin);
  */
 void 
 vcdplayer_send_button_update(vcdplayer_t *p_vcdplayer, int mode);
-
-int 
-vcdinfo_get_area_selection(const vcdinfo_obj_t *p_vcdinfo, 
-                           lid_t lid, int x, int y);
 
 #endif /* _VCDPLAYER_H_ */
 /* 
