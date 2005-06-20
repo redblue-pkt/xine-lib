@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.40 2005/06/19 03:47:45 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.41 2005/06/20 02:17:41 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1216,29 +1216,29 @@ vcd_handle_events (void)
       if (my_vcd.stream) 
       {
         xine_input_data_t *p_input = p_event->data;
-        /* if (p_input->button == 1) */
-        {
-          dbg_print(INPUT_DBG_EVENT, "Move to x: %d, y: %d\n", 
-                    p_input->x, p_input->y);
-
-	  if ( dvdnav_mouse_select(p_vcdplayer, p_input->x, p_input->y) )
-          {
-            
-	    int32_t button = 1; /* FIXME: get the proper button. */
-	    
-	    /* dvdnav_get_current_highlight(this->dvdnav, &button); */
-	    
-	    if (my_vcd.i_mouse_button != button) {
-	      my_vcd.i_mouse_button = button;
-	      send_mouse_enter_leave_event(&my_vcd, true);
-	    }
-	    
-	  } else if (my_vcd.b_mouse_in) {
+#if LIBVCD_VERSION_NUM >= 23
+        int32_t i_selection = vcdinfo_get_area_selection(p_vcdplayer->vcd, 
+                                                         p_vcdplayer->i_lid, 
+                                                         p_input->x,
+                                                         p_input->y,
+                                                         p_vcdplayer->max_x,
+                                                         p_vcdplayer->max_y);
+        dbg_print(INPUT_DBG_EVENT, "Move to x: %d, y: %d\n", 
+                  p_input->x, p_input->y);
+        
+        if (my_vcd.i_mouse_button != i_selection) {
+          dbg_print(INPUT_DBG_EVENT, "Old selection: %d, selection: %d\n", 
+                    my_vcd.i_mouse_button, i_selection);
+          my_vcd.i_mouse_button = i_selection;
+          if (i_selection < 0) 
             send_mouse_enter_leave_event(&my_vcd, false);
-	    
-	  }
-          /* xine_dvd_send_button_update(this, 1); */
+          else 
+            send_mouse_enter_leave_event(&my_vcd, true);
         }
+#else
+      dbg_print(INPUT_DBG_EVENT, "Move to x: %d, y: %d\n", 
+                p_input->x, p_input->y);
+#endif
       }
       break;
     case XINE_EVENT_INPUT_UP:
