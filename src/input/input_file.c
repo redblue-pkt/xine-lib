@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.101 2005/05/29 12:29:42 hadess Exp $
+ * $Id: input_file.c,v 1.102 2005/06/21 09:59:49 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -241,6 +241,7 @@ static char *decode_uri (char *uri) {
 static int file_plugin_open (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
   char                *filename;
+  struct stat          sbuf;
 
   lprintf("file_plugin_open\n");
 
@@ -274,7 +275,7 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
     }
     else
       this->fh = open(this->mrl, O_RDONLY|O_BINARY);
-    
+
     if (this->fh == -1) {
       if (errno == EACCES) {
         _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
@@ -290,8 +291,15 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
     }
   }
 
+  /* don't check length of fifo */
+  if (fstat (this->fh, &sbuf) == 0) {
+    if (S_ISFIFO(sbuf.st_mode))
+      return 1;
+  }
+
   if (file_plugin_get_length (this_gen) == 0) {
       _x_message(this->stream, XINE_MSG_FILE_EMPTY, this->mrl, NULL);
+      close (this->fh);
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("input_file: File empty: >%s<\n"), this->mrl);
       return 0;
