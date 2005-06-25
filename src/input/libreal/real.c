@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.20 2004/12/15 12:53:46 miguelfreitas Exp $
+ * $Id: real.c,v 1.21 2005/06/25 13:21:30 siggi Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -489,9 +489,12 @@ rmff_header_t *real_parse_sdp(char *data, char **stream_rules, uint32_t bandwidt
       xine_buffer_strcat(*stream_rules, b);
     }
 
-    if (!desc->stream[i]->mlti_data) return NULL;
-
-    len=select_mlti_data(desc->stream[i]->mlti_data, desc->stream[i]->mlti_data_size, rulematches[0], &buf);
+    if (!desc->stream[i]->mlti_data) {
+     len = 0;
+     buf = NULL;
+    }
+    else
+      len=select_mlti_data(desc->stream[i]->mlti_data, desc->stream[i]->mlti_data_size, rulematches[0], &buf);
     
     header->streams[i]=rmff_new_mdpr(
 	desc->stream[i]->stream_id,

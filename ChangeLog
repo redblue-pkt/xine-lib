@@ -7,6 +7,8 @@ xine-lib (1.1)
   * added --with-external-a52dec and --with-external-libmad switches
         
 xine-lib (1.0.2)
+  * fixed playback of single-session Real RTSP streams, such as
+    rtsp://stream.samurai.fm/broadcast/live_hi.rm
   * fixed xxmc / xvmc mocomp / IDCT rendering errors caused by the big update. 
   * support --enable-fpic with recent versions of gcc
   * clip goom fps value to >= 1 [bug #1193783]
