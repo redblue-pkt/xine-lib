@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.41 2005/06/20 02:17:41 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.42 2005/06/26 05:20:29 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1177,8 +1177,11 @@ vcd_handle_events (void)
         {
           int i_selection;
 
-          dbg_print(INPUT_DBG_EVENT, "Button to x: %d, y: %d\n", 
-                    p_input->x, p_input->y);
+          dbg_print(INPUT_DBG_EVENT, 
+                    "Button to x: %d, y: %d, scaled x: %d, scaled y %d\n", 
+                    p_input->x, p_input->y,
+                    p_input->x * 255 / p_vcdplayer->max_x,
+                    p_input->y * 255 / p_vcdplayer->max_y);
           
 #if LIBVCD_VERSION_NUM >= 23
           /* xine_dvd_send_button_update(this, 1); */
