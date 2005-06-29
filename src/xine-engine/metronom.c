@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.141 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.142 2005/06/29 20:54:34 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -212,7 +212,7 @@ static void metronom_start_clock (metronom_clock_t *this, int64_t pts) {
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->start(*scr, pts);
   
-  this->speed = XINE_SPEED_NORMAL;
+  this->speed = XINE_FINE_SPEED_NORMAL;
 }
 
 
