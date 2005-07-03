@@ -5,6 +5,7 @@ xine-lib (1.1)
   * new quality deinterlacer from dscaler: TomsMoComp (Tom's Motion Compensated)
   * added help for most deinterlace methods
   * added --with-external-a52dec and --with-external-libmad switches
+  * new stream infos allows frontends to query current title/chapter/angle on dvds
         
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.199 2005/05/14 16:11:44 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.200 2005/07/03 20:31:28 miguelfreitas Exp $
  *
  */
 
@@ -365,6 +365,7 @@ static int update_title_display(dvd_input_plugin_t *this) {
   xine_ui_data_t data;
   int tt=-1, pr=-1;
   size_t ui_str_length=0;
+  int num_tt = 0;
 
   if(!this || !(this->stream)) 
    return 0;
@@ -381,27 +382,52 @@ static int update_title_display(dvd_input_plugin_t *this) {
     this->tt = tt;
     this->pr = pr;
   }
+
+  dvdnav_get_number_of_titles(this->dvdnav, &num_tt );
+
  
   if(tt >= 1) { 
     int num_angle = 0, cur_angle = 0;
+    int num_part = 0;
     /* no menu here */    
     /* Reflect angle info if appropriate */
+    dvdnav_get_number_of_parts(this->dvdnav, tt, &num_part);
     dvdnav_get_angle_info(this->dvdnav, &cur_angle, &num_angle);
     if(num_angle > 1) {
       snprintf(ui_title, MAX_STR_LEN,
                "Title %i, Chapter %i, Angle %i of %i",
                tt,pr,cur_angle, num_angle); 
+       _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_NUMBER,cur_angle);
+       _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_COUNT,num_angle);
     } else {
       snprintf(ui_title, MAX_STR_LEN, 
 	       "Title %i, Chapter %i",
 	       tt,pr);
+       _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_NUMBER,0);
+       _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_COUNT,0);
     }
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_NUMBER,tt);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_COUNT,num_tt);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_NUMBER,pr);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_COUNT,num_part);
   } else if (tt == 0 && dvdnav_menu_table[pr]) {
     snprintf(ui_title, MAX_STR_LEN,
              "DVD %s Menu",
              dvdnav_menu_table[pr]);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_NUMBER,tt);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_COUNT,num_tt);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_NUMBER,0);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_COUNT,0);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_NUMBER,0);
+     _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_COUNT,0);
   } else {
     strcpy(ui_title, "DVD Menu");
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_NUMBER,0);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_TITLE_COUNT,num_tt);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_NUMBER,0);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_CHAPTER_COUNT,0);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_NUMBER,0);
+    _x_stream_info_set(this->stream,XINE_STREAM_INFO_DVD_ANGLE_COUNT,0);
   }
   ui_str_length = strlen(ui_title);
   
