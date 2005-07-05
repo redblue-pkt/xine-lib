@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.50 2005/05/09 06:55:22 athp Exp $
+ * $Id: video_out_opengl.c,v 1.51 2005/07/05 11:10:31 mshopf Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -187,7 +187,7 @@ typedef struct {
   /* OpenGL state */
   GLXContext         context;
   XVisualInfo       *vinfo;
-  int                fprog;
+  GLuint             fprog;
   int                tex_width, tex_height; /* independend of frame */
   /* OpenGL capabilities */
   const GLubyte     *gl_exts;	/* extension string - NULL if uninitialized */
@@ -675,8 +675,8 @@ static int render_image_envtex (opengl_driver_t *this, opengl_frame_t *frame) {
 static int render_help_verify_ext (opengl_driver_t *this, char *ext) {
   int   ret = 0;
   int   l = strlen (ext);
-  const GLubyte *e;
-  for (e = this->gl_exts; e && *e; e = strchr (e, ' ')) {
+  const char *e;
+  for (e = (char *) this->gl_exts; e && *e; e = strchr (e, ' ')) {
     while (isspace (*e))
       e++;
     if (strncmp (e, ext, l) == 0 && (e[l] == 0 || e[l] == ' ')) {
@@ -691,7 +691,8 @@ static int render_help_verify_ext (opengl_driver_t *this, char *ext) {
 }
 
 /* Return the address of a linked function */
-static void *getdladdr(const GLubyte *funcName) {
+static void *getdladdr (const GLubyte *_funcName) {
+  const char *funcName = (const char *) _funcName;
 
 #if defined(_WIN32)
   return NULL;
@@ -719,10 +720,10 @@ static void *getdladdr(const GLubyte *funcName) {
 }
 
 /* Return the address of the specified OpenGL extension function */
-static void *getaddr(const char *funcName) {
+static void *getaddr (const char *funcName) {
 
 #if defined(_WIN32)
-  return (void*) wglGetProcAddress (funcName);
+  return (void*) wglGetProcAddress ((const GLubyte *) funcName);
 
 #else
   void * (*MYgetProcAddress) (const GLubyte *);
@@ -730,13 +731,13 @@ static void *getaddr(const char *funcName) {
 
   /* Try to get address of extension via glXGetProcAddress[ARB], if that
    * fails try to get the address of a linked function */
-  MYgetProcAddress = getdladdr ("glXGetProcAddress");
+  MYgetProcAddress = getdladdr ((const GLubyte *) "glXGetProcAddress");
   if (! MYgetProcAddress)
-    MYgetProcAddress = getdladdr ("glXGetProcAddressARB");
+    MYgetProcAddress = getdladdr ((const GLubyte *) "glXGetProcAddressARB");
   if (! MYgetProcAddress)
     MYgetProcAddress = getdladdr;
 
-  res = MYgetProcAddress (funcName);
+  res = MYgetProcAddress ((const GLubyte *) funcName);
   if (! res)
     fprintf (stderr, "Cannot find address for OpenGL extension function '%s',\n"
 	     "which should be available according to extension specs.\n",
@@ -756,7 +757,7 @@ static void render_help_check_exts (opengl_driver_t *this) {
   if (! this->gl_exts) {
     if (++num_tests > 10) {
       fprintf (stderr, "video_out_opengl: Cannot find OpenGL extensions (tried multiple times).\n");
-      this->gl_exts = "";
+      this->gl_exts = (const GLubyte *) "";
     }
   } else
     num_tests = 0;
