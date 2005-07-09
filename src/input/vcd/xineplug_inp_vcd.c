@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.42 2005/06/26 05:20:29 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.43 2005/07/09 02:03:08 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1353,7 +1353,7 @@ vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_files)
     return NULL;
   } else {
     unsigned int i;
-    int size;
+    int size = 0;
     vcdinfo_item_enum_t itemtype = 
       autoplay2itemtype[my_vcd.player.default_autoplay];
     
