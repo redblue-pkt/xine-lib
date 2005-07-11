@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.200 2005/07/03 20:31:28 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.201 2005/07/11 11:35:41 hadess Exp $
  *
  */
 
@@ -1493,6 +1493,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   }
   
   dvdnav_get_title_string(this->dvdnav, &this->dvd_name);
+  if(this->dvd_name)
+    _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->dvd_name);
   
   /* Set region code */
   if (xine_config_lookup_entry (this->stream->xine, "media.dvd.region", 
