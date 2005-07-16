@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.35 2005/06/09 17:46:15 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.36 2005/07/16 17:50:58 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -515,6 +515,80 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
 
     track->fifo->put (track->fifo, buf);
   }
+}
+
+
+static int aac_get_sr_index (uint32_t sample_rate) {
+  if (92017 <= sample_rate)
+    return 0;
+  else if (75132 <= sample_rate)
+    return 1;
+  else if (55426 <= sample_rate)
+    return 2;
+  else if (46009 <= sample_rate)
+    return 3;
+  else if (37566 <= sample_rate)
+    return 4;
+  else if (27713 <= sample_rate)
+    return 5;
+  else if (23004 <= sample_rate)
+    return 6;
+  else if (18783 <= sample_rate)
+    return 7;
+  else if (13856 <= sample_rate)
+    return 8;
+  else if (11502 <= sample_rate)
+    return 9;
+  else if (9391 <= sample_rate)
+    return 10;
+  else
+    return 11;
+}
+
+#define AAC_SYNC_EXTENSION_TYPE 0x02b7
+static void init_codec_aac(demux_matroska_t *this, matroska_track_t *track) {
+  matroska_audio_track_t *atrack = track->audio_track;
+  buf_element_t *buf;
+  int profile;
+  int sr_index;
+
+  /* Create a DecoderSpecificInfo for initialising libfaad */
+  sr_index = aac_get_sr_index(atrack->sampling_freq);
+  if (!strncmp (&track->codec_id[12], "MAIN", 4))
+    profile = 0;
+  else if (!strncmp (&track->codec_id[12], "LC", 2))
+    profile = 1;
+  else if (!strncmp (&track->codec_id[12], "SSR", 3))
+    profile = 2;
+  else
+    profile = 3;
+
+  buf = track->fifo->buffer_pool_alloc (track->fifo);
+
+  buf->size = 0;
+  buf->type = track->buf_type;
+  buf->pts = 0;
+
+  buf->decoder_flags = BUF_FLAG_SPECIAL|BUF_FLAG_HEADER;
+  buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
+  buf->decoder_info_ptr[2] = buf->mem;
+
+  buf->mem[0] = ((profile + 1) << 3) | ((sr_index & 0x0e) >> 1);
+  buf->mem[1] = ((sr_index & 0x01) << 7) | (atrack->channels << 3);
+
+  if (strstr(track->codec_id, "SBR") == NULL)
+    buf->decoder_info[2] = 2;
+  else {
+    /* HE-AAC (aka SBR AAC) */
+    sr_index = aac_get_sr_index(atrack->sampling_freq*2);
+    buf->mem[2] = AAC_SYNC_EXTENSION_TYPE >> 3;
+    buf->mem[3] = ((AAC_SYNC_EXTENSION_TYPE & 0x07) << 5) | 5;
+    buf->mem[4] = (1 << 7) | (sr_index << 3);
+
+    buf->decoder_info[2] = 5;
+  }
+
+  track->fifo->put(track->fifo, buf);
 }
 
 
@@ -1112,8 +1186,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
                         sizeof(MATROSKA_CODEC_ID_A_AAC - 1))) {
       lprintf("MATROSKA_CODEC_ID_A_AAC\n");
       track->buf_type = BUF_AUDIO_AAC;
-      init_codec = init_codec_audio;
-      
+      init_codec = init_codec_aac;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_14_4)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_28_8)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_REAL_COOK)) {
