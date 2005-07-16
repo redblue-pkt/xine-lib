@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_filters.h,v 1.1 2004/07/27 17:59:58 mroi Exp $
+ * $Id: audio_filters.h,v 1.2 2005/07/16 16:36:59 miguelfreitas Exp $
  *
  * catalog for audio filter plugins
  */
@@ -26,4 +26,5 @@
 
 
 void *upmix_init_plugin(xine_t *xine, void *data);
+void *upmix_mono_init_plugin(xine_t *xine, void *data);
 void *stretch_init_plugin(xine_t *xine, void *data);
