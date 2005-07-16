@@ -6,7 +6,8 @@ xine-lib (1.1)
   * added help for most deinterlace methods
   * added --with-external-a52dec and --with-external-libmad switches
   * new stream infos allows frontends to query current title/chapter/angle on dvds
-        
+  * new upmix_mono audio post plugin to convert mono to stereo
+          
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
     rtsp://stream.samurai.fm/broadcast/live_hi.rm
