@@ -1,13 +1,10 @@
 xine-lib (1.1)
-  * allow playing just a single title/chapter from dvd (useful for extracting audio -
-    check media.dvd.play_single_chapter)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)
   * new quality deinterlacer from dscaler: TomsMoComp (Tom's Motion Compensated)
   * added help for most deinterlace methods
-  * added --with-external-a52dec and --with-external-libmad switches
-  * new stream infos allows frontends to query current title/chapter/angle on dvds
-  * new upmix_mono audio post plugin to convert mono to stereo
-          
+  * ffmpeg update
+  * use ImageMagick to convert and display different type of images (png, jpg...)
+              
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
     rtsp://stream.samurai.fm/broadcast/live_hi.rm
@@ -37,6 +34,11 @@ xine-lib (1.0.2)
   * fixed deadlock when libxine was called from the event listener thread and
     tried to flush all pending events.
   * Added xine(5), documenting MRL syntax.
+  * allow playing just a single title/chapter from dvd (useful for extracting audio -
+    check media.dvd.play_single_chapter)
+  * new stream infos allows frontends to query current title/chapter/angle on dvds
+  * new upmix_mono audio post plugin to convert mono to stereo
+  * added --with-external-a52dec and --with-external-libmad switches
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
