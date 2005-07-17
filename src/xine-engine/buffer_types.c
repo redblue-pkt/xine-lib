@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.100 2005/05/28 02:25:46 tmmm Exp $
+ * $Id: buffer_types.c,v 1.101 2005/07/17 20:18:37 jstembridge Exp $
  *
  *
  * contents:
@@ -648,6 +648,7 @@ static video_db_t video_db[] = {
   {
     meFOURCC('a','v','c','1'),
     meFOURCC('h','2','6','4'),
+    meFOURCC('H','2','6','4'),
     0
   },
   BUF_VIDEO_H264,
