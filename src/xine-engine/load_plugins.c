@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.208 2005/05/14 16:00:40 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.209 2005/07/17 16:52:14 dsalt Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -525,18 +525,18 @@ static void collect_plugins(xine_t *this, char *path){
   dir = opendir(path);
   if (dir) {
     struct dirent *pEntry;
-    int path_len;
+    size_t path_len, str_size;
     char *str = NULL;
 
     path_len = strlen(path);
-    str = malloc(path_len * 2 + 2); /* +2 for '/' and '\0' */
+    str_size = path_len * 2 + 2; /* +2 for '/' and '\0' */
+    str = malloc(str_size);
     xine_fast_memcpy(str, path, path_len);
     str[path_len] = '/';
     str[path_len + 1] = '\0';
 
     while ((pEntry = readdir (dir)) != NULL) {
-      size_t str_size = 0;
-      size_t new_str_size = 0;
+      size_t new_str_size;
       void *lib = NULL;
       plugin_info_t *info = NULL;
       
