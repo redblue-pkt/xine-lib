@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.30 2005/06/17 22:36:48 dsalt Exp $
+ * $Id: post.c,v 1.31 2005/07/17 20:22:24 jstembridge Exp $
  */
  
 /*
@@ -424,6 +424,7 @@ void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
   to->crop_right          = from->crop_right;
   to->crop_top            = from->crop_top;
   to->crop_bottom         = from->crop_bottom;
+  to->ratio               = from->ratio;
 
   if (to->extra_info != from->extra_info)
     _x_extra_info_merge(to->extra_info, from->extra_info);
