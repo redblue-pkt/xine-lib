@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.105 2005/06/04 11:05:59 jstembridge Exp $
+ * $Id: demux_real.c,v 1.106 2005/07/17 23:11:44 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -781,8 +781,6 @@ static int demux_real_parse_references( demux_real_t *this) {
   int             len, i, j;
   int             alternative = 0;
   int             comment = 0;
-  xine_mrl_reference_data_t *data;
-  xine_event_t    uevent;
 
 
   lprintf("parsing references\n");
@@ -831,15 +829,8 @@ static int demux_real_parse_references( demux_real_t *this) {
       buf[j]='\0';
       lprintf("reference [%s] found\n", &buf[i]);
 
-      uevent.type = XINE_EVENT_MRL_REFERENCE;
-      uevent.stream = this->stream;
-      uevent.data_length = strlen(&buf[i])+sizeof(xine_mrl_reference_data_t);
-      data = malloc(uevent.data_length);
-      uevent.data = data;
-      strcpy(data->mrl, &buf[i]);
-      data->alternative = alternative;
-      xine_event_send(this->stream, &uevent);
-      free(data);
+      _x_demux_send_mrl_reference (this->stream, alternative,
+                                   &buf[i], NULL, 0, 0);
 
       i = j;
     }

@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.57 2005/03/20 18:41:55 tmattern Exp $ 
+ * $Id: demux.c,v 1.58 2005/07/17 23:11:45 dsalt Exp $ 
  */
 
 
@@ -599,4 +599,50 @@ int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input,
   }
   
   return 0;
+}
+
+/*
+ * Helper function for sending MRL reference events
+ */
+void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
+				  const char *mrl, const char *title,
+				  int start_time, int duration)
+{
+  xine_event_t event;
+  union {
+    xine_mrl_reference_data_ext_t *e;
+    xine_mrl_reference_data_t *b;
+  } data;
+  int mrl_len = strlen (mrl);
+
+  if (!title)
+    title = "";
+
+  /* extended MRL reference event */
+
+  event.stream = stream;
+  event.data_length = offsetof (xine_mrl_reference_data_ext_t, mrl) +
+                      mrl_len + strlen (title) + 2;
+  data.e = event.data = malloc (event.data_length);
+    
+  data.e->alternative = alternative;
+  data.e->start_time = start_time;
+  data.e->duration = duration;
+  strcpy (data.e->mrl, mrl);
+  strcpy (data.e->mrl + mrl_len + 1, title ? title : "");
+
+  event.type = XINE_EVENT_MRL_REFERENCE_EXT;
+  xine_event_send (stream, &event);
+
+  /* plain MRL reference event */
+
+  event.data_length = offsetof (xine_mrl_reference_data_t, mrl) + mrl_len + 1;
+
+  /*data.b->alternative = alternative;*/
+  strcpy (data.b->mrl, mrl);
+
+  event.type = XINE_EVENT_MRL_REFERENCE;
+  xine_event_send (stream, &event);
+
+  free (data.e);
 }

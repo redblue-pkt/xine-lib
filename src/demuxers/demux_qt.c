@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.201 2005/06/17 16:53:25 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.202 2005/07/17 23:11:44 dsalt Exp $
  *
  */
 
@@ -2193,8 +2193,6 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   qt_trak *audio_trak = NULL;
   int dispatch_audio;  /* boolean for deciding which trak to dispatch */
   int64_t pts_diff;
-  xine_event_t uevent;
-  xine_mrl_reference_data_t *data;
 
   /* if this is DRM-protected content, finish playback before it even
    * tries to start */
@@ -2206,18 +2204,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   /* check if it's time to send a reference up to the UI */
   if (this->qt->chosen_reference != -1) {
 
-    uevent.type = XINE_EVENT_MRL_REFERENCE;
-    uevent.stream = this->stream;
-    uevent.data_length = 
-      strlen(this->qt->references[this->qt->chosen_reference].url) +
-      sizeof(xine_mrl_reference_data_t);
-    data = malloc(uevent.data_length);
-    uevent.data = data;
-    strcpy(data->mrl, this->qt->references[this->qt->chosen_reference].url);
-    data->alternative = 0;
-    xine_event_send(this->stream, &uevent);
-    free(data);
-
+    _x_demux_send_mrl_reference (this->stream, 0,
+                                 this->qt->references[this->qt->chosen_reference].url,
+                                 NULL, 0, 0);
     this->status = DEMUX_FINISHED;
     return this->status;
   }

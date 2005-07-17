@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.170 2005/06/09 20:33:46 tmattern Exp $
+ * $Id: demux_asf.c,v 1.171 2005/07/17 23:11:44 dsalt Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1536,8 +1536,6 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
   int             buf_used = 0;
   int             len;
   char           *href = NULL;
-  xine_mrl_reference_data_t *data;
-  xine_event_t    uevent;
   char           *mrl;
   int             free_href = 0;
 
@@ -1588,15 +1586,7 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
     }
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: http ref: %s\n", href);
-    uevent.type = XINE_EVENT_MRL_REFERENCE;
-    uevent.stream = this->stream;
-    uevent.data_length = strlen(href) + sizeof(xine_mrl_reference_data_t);
-    data = malloc(uevent.data_length);
-    uevent.data = data;
-    strcpy(data->mrl, href);
-    data->alternative = 0;
-    xine_event_send(this->stream, &uevent);
-    free(data);
+    _x_demux_send_mrl_reference (this->stream, 0, mrl, NULL, 0, 0);
     
     if (free_href)
       free(href);
@@ -1618,8 +1608,6 @@ static int demux_asf_parse_asf_references( demux_asf_t *this) {
   int             buf_size = 0;
   int             buf_used = 0;
   int             len;
-  xine_mrl_reference_data_t *data;
-  xine_event_t    uevent;
   int             i;
 
   /* read file to memory.
@@ -1654,21 +1642,36 @@ static int demux_asf_parse_asf_references( demux_asf_t *this) {
     }
 
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf ref: %s\n", ptr);
-    uevent.type = XINE_EVENT_MRL_REFERENCE;
-    uevent.stream = this->stream;
-    uevent.data_length = strlen(ptr) + sizeof(xine_mrl_reference_data_t);
-    data = malloc(uevent.data_length);
-    uevent.data = data;
-    strcpy(data->mrl, ptr);
-    data->alternative = 0;
-    xine_event_send(this->stream, &uevent);
-    free(data);
+    _x_demux_send_mrl_reference (this->stream, 0, ptr, NULL, 0, 0);
   }
 
   free (buf);
 
   this->status = DEMUX_FINISHED;
   return this->status;
+}
+
+
+/* .asx playlist parser helper functions */
+static uint32_t asx_get_time_value (const xml_node_t *node)
+{
+  const char *value = xml_parser_get_property (node, "VALUE");
+
+  if (value)
+  {
+    int hours, minutes;
+    double seconds;
+
+    if (sscanf (value, "%d:%d:%lf", &hours, &minutes, &seconds) == 3)
+      return hours * 3600000 + minutes * 60000 + seconds;
+
+    if (sscanf (value, "%d:%lf", &minutes, &seconds) == 3)
+      return minutes * 60000 + seconds * 1000;
+
+    /* FIXME: single element is minutes or seconds? */
+  }
+
+  return 0; /* value not found */
 }
 
 /*
@@ -1680,10 +1683,7 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
   int             buf_size = 0;
   int             buf_used = 0;
   int             len;
-  xine_mrl_reference_data_t *data;
-  xine_event_t    uevent;
   xml_node_t     *xml_tree, *asx_entry, *asx_ref;
-  xml_property_t *asx_prop;
   int             result;
 
 
@@ -1711,75 +1711,108 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
     goto failure;
 
   if(!strcasecmp(xml_tree->name, "ASX")) {
+    /* Attributes: VERSION, PREVIEWMODE, BANNERBAR
+     * Child elements: ABSTRACT, AUTHOR, BASE, COPYRIGHT, DURATION, ENTRY,
+                       ENTRYREF, MOREINFO, PARAM, REPEAT, TITLE
+     */
 
-    asx_prop = xml_tree->props;
+    const char *version = xml_parser_get_property (xml_tree, "VERSION");
 
-    while((asx_prop) && (strcasecmp(asx_prop->name, "VERSION")))
-      asx_prop = asx_prop->next;
-
-    if(asx_prop) {
+    if (version) {
       int  version_major, version_minor = 0;
 
-      if((((sscanf(asx_prop->value, "%d.%d", &version_major, &version_minor)) == 2) ||
-          ((sscanf(asx_prop->value, "%d", &version_major)) == 1)) &&
-         ((version_major == 3) && (version_minor == 0))) {
+      if((sscanf (version, "%d.%d", &version_major, &version_minor) == 2 ||
+          sscanf (version, "%d", &version_major) == 1) &&
+         (version_major == 3 && version_minor == 0))
+      {
+        const char *base_href = NULL;
 
-        asx_entry = xml_tree->child;
-        while(asx_entry) {
-          if((!strcasecmp(asx_entry->name, "ENTRY")) ||
-             (!strcasecmp(asx_entry->name, "ENTRYREF"))) {
-            char *href   = NULL;
+        for (asx_entry = xml_tree->child; asx_entry; asx_entry = asx_entry->next)
+        {
+          const char *ref_base_href = base_href;
 
-            asx_ref = asx_entry->child;
-            if (!asx_ref && !strcasecmp(asx_entry->name, "ENTRYREF")) {
-              for(asx_prop = asx_entry->props; asx_prop; asx_prop = asx_prop->next)
+          if (!strcasecmp (asx_entry->name, "ENTRY"))
+          {
+            /* Attributes: CLIENTSKIP, SKIPIFREF
+             * Child elements: ABSTRACT, AUTHOR, BASE, COPYRIGHT, DURATION,
+                               ENDMARKER, MOREINFO, PARAM, REF, STARTMARKER,
+                               STARTTIME, TITLE
+             */
+            const char *href = NULL;
+            const char *title = NULL;
+            uint32_t start_time = -1;
+            uint32_t duration = -1;
 
-                if(!strcasecmp(asx_prop->name, "HREF")) {
+            for (asx_ref = asx_entry->child; asx_ref; asx_ref = asx_ref->next)
+            {
+              if (!strcasecmp(asx_ref->name, "REF"))
+              {
+                xml_node_t *asx_sub;
+                /* Attributes: HREF
+                 * Child elements: DURATION, ENDMARKER, STARTMARKER, STARTTIME
+                 */
 
-                    href = asx_prop->value;
+                /* FIXME: multiple REFs => alternative streams
+                 * (and per-ref start times and durations?).
+                 * Just the one title, though.
+                 */
+                href = xml_parser_get_property (asx_ref, "HREF");
 
-                    if(href)
-                      break;
-                }
-            }
-
-            while(asx_ref) {
-
-              if(!strcasecmp(asx_ref->name, "REF")) {
-
-                for(asx_prop = asx_ref->props; asx_prop; asx_prop = asx_prop->next) {
-
-                  if(!strcasecmp(asx_prop->name, "HREF")) {
-
-                    if(!href)
-                      href = asx_prop->value;
-                  }
-                  if(href)
-                    break;
+                for (asx_sub = asx_ref->child; asx_sub; asx_sub = asx_sub->next)
+                {
+                  if (!strcasecmp (asx_sub->name, "STARTTIME"))
+                    start_time = asx_get_time_value (asx_sub);
+                  else if (!strcasecmp (asx_sub->name, "DURATION"))
+                    duration = asx_get_time_value (asx_sub);
                 }
               }
-              asx_ref = asx_ref->next;
+
+              else if (!strcasecmp (asx_ref->name, "TITLE"))
+              {
+                if (!title)
+                  title = asx_ref->data;
+              }
+
+              else if (!strcasecmp (asx_ref->name, "STARTTIME"))
+              {
+                if (start_time < 0) 
+                  start_time = asx_get_time_value (asx_ref);
+              }
+
+              else if (!strcasecmp (asx_ref->name, "DURATION"))
+              {
+                if (duration < 0) 
+                  duration = asx_get_time_value (asx_ref);
+              }
+
+              else if (!strcasecmp (asx_ref->name, "BASE"))
+                /* Attributes: HREF */
+                ref_base_href = xml_parser_get_property (asx_entry, "HREF");
             }
 
-            if(href && strlen(href)) {
-              uevent.type = XINE_EVENT_MRL_REFERENCE;
-              uevent.stream = this->stream;
-              uevent.data_length = strlen(href)+sizeof(xine_mrl_reference_data_t);
-              data = malloc(uevent.data_length);
-              uevent.data = data;
-              strcpy(data->mrl, href);
-              data->alternative = 0;
-              xine_event_send(this->stream, &uevent);
-              free(data);
-            }
-            href = NULL;
+            /* FIXME: prepend ref_base_href to href */
+            if (href && *href)
+              _x_demux_send_mrl_reference (this->stream, 0, href, title,
+                                           start_time < 0 ? 0 : start_time,
+                                           duration < 0 ? -1 : duration);
           }
-          asx_entry = asx_entry->next;
+
+          else if (!strcasecmp (asx_entry->name, "ENTRYREF"))
+          {
+            /* Attributes: HREF, CLIENTBIND */
+            const char *href = xml_parser_get_property (asx_entry, "HREF");
+            if (href && *href)
+              _x_demux_send_mrl_reference (this->stream, 0, href, NULL, 0, -1);
+          }
+
+          else if (!strcasecmp (asx_entry->name, "BASE"))
+            /* Attributes: HREF */
+            base_href = xml_parser_get_property (asx_entry, "HREF");
         }
       }
       else
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		_("demux_asf: Wrong ASX version: %s\n"), asx_prop->value);
+		_("demux_asf: Wrong ASX version: %s\n"), version);
       
     }
     else

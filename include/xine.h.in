@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.143 2005/07/03 20:31:28 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.144 2005/07/17 23:11:33 dsalt Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1427,6 +1427,9 @@ void xine_config_reset (xine_t *self);
  *
  * to send events to every module listening you don't need
  * to register an event queue but simply call xine_event_send.
+ *
+ * front ends should listen for one of MRL_REFERENCE and MRL_REFERENCE_EXT
+ * since both will be sent for compatibility reasons
  */
 
 /* event types */
@@ -1438,10 +1441,12 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_AUDIO_LEVEL            6 /* report current audio level (l/r/mute) */
 #define XINE_EVENT_QUIT                   7 /* last event sent when stream is disposed */
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
-#define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
+#define XINE_EVENT_MRL_REFERENCE          9 /* (deprecated) demuxer->frontend: MRL reference(s) for the real stream */
 #define XINE_EVENT_UI_NUM_BUTTONS        10 /* number of buttons for interactive menus */
 #define XINE_EVENT_SPU_BUTTON            11 /* the mouse pointer enter/leave a button */
 #define XINE_EVENT_DROPPED_FRAMES        12 /* number of dropped frames is too high */
+#define XINE_EVENT_MRL_REFERENCE_EXT     13 /* demuxer->frontend: MRL reference(s) for the real stream */
+
 
 /* input events coming from frontend */
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101
@@ -1638,12 +1643,22 @@ typedef struct {
  * by events (they are the mrl references enclosed in 1). 1a is played after 
  * receiving the finished event from 1. note: 1b is usually ignored, it should
  * only be used in case 1a fails to open.
+ *
+ * An event listener which accepts XINE_EVENT_MRL_REFERENCE_EXT events
+ * *must* ignore XINE_EVENT_MRL_REFERENCE events.
  */
 typedef struct {
   int                 alternative; /* alternative playlist number, usually 0 */
   char                mrl[1]; /* might (will) be longer */
 } xine_mrl_reference_data_t;
 
+typedef struct {
+  int                 alternative; /* as above */
+  uint32_t            start_time, duration; /* milliseconds */
+  uint32_t            spare[20]; /* for future expansion */
+  const char          mrl[1]; /* might (will) be longer */
+/*const char          title[]; ** immediately follows MRL's terminating NUL */
+} xine_mrl_reference_data_ext_t;
 
 /* 
  * configuration options for video4linux-like input plugins
