@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2005/06/04 14:12:54 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.43 2005/07/17 19:34:08 jstembridge Exp $
  *
  */
 
@@ -69,6 +69,7 @@ typedef struct faad_decoder_s {
   unsigned long    rate;
   int              bits_per_sample; 
   unsigned char    num_channels; 
+  int              sbr;
   uint32_t         ao_cap_mode; 
    
   int              output_open;
@@ -82,6 +83,38 @@ static void faad_reset (audio_decoder_t *this_gen) {
 
   faad_decoder_t *this = (faad_decoder_t *) this_gen;
   this->size = 0;
+}
+
+static void faad_meta_info_set ( faad_decoder_t *this ) {
+  switch (this->num_channels) {
+    case 1:
+      if (this->faac_finfo.sbr == SBR_UPSAMPLED)
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                              "HE-AAC 1.0 (libfaad)");
+      else
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                              "AAC 1.0 (libfaad)");
+      break;
+    case 2:
+      /* check if this is downmixed 5.1 */
+      if (!this->faac_cfg || !this->faac_cfg->downMatrix) {
+        if (this->faac_finfo.sbr == SBR_UPSAMPLED)
+          _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                                "HE-AAC 2.0 (libfaad)");
+        else
+          _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                                "AAC 2.0 (libfaad)");
+        break;
+      }
+    case 6:
+      if (this->faac_finfo.sbr == SBR_UPSAMPLED)
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                              "HE-AAC 5.1 (libfaad)");
+      else
+        _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
+                              "AAC 5.1 (libfaad)");
+      break;
+  }
 }
 
 static int faad_open_dec( faad_decoder_t *this ) {
@@ -132,9 +165,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
     }
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
   } else {
-    /* stream/meta info */
-    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
-      "AAC (libfaad)");
+    faad_meta_info_set(this);
   }
   
   return this->faac_failed;
@@ -195,7 +226,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     } else {
       used = this->faac_finfo.bytesconsumed;
           
-      /* raw AAC parameters is only known after decoding the first frame */
+      /* raw AAC parameters might only be known after decoding the first frame */
       if( !this->dec_config &&
           (this->num_channels != this->faac_finfo.channels ||
            this->rate != this->faac_finfo.samplerate) ) {
@@ -209,6 +240,14 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         this->stream->audio_out->close (this->stream->audio_out, this->stream);
         this->output_open = 0;
         faad_open_output( this );
+
+        faad_meta_info_set( this );
+      }
+      
+      /* faad doesn't tell us about sbr until after the first frame */
+      if (this->sbr != this->faac_finfo.sbr) {
+        this->sbr = this->faac_finfo.sbr;
+        faad_meta_info_set( this );
       }
     
       /* estimate bitrate */
