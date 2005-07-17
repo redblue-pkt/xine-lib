@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.76 2005/02/07 18:53:17 tmattern Exp $
+ * $Id: configfile.c,v 1.77 2005/07/17 23:05:09 dsalt Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -814,6 +814,7 @@ static void config_update_string (config_values_t *this,
 
   cfg_entry_t *entry;
   char *str_free = NULL;
+  static pthread_mutex_t update_lock = PTHREAD_MUTEX_INITIALIZER;
 
   lprintf ("updating %s to %s\n", key, value);
 
@@ -840,6 +841,7 @@ static void config_update_string (config_values_t *this,
     return;
   }
 
+  pthread_mutex_lock (&update_lock);
   pthread_mutex_lock(&this->config_lock);
   if (value != entry->str_value) {
     str_free = entry->str_value;
@@ -850,14 +852,17 @@ static void config_update_string (config_values_t *this,
     xine_cfg_entry_t cb_entry;
 
     config_shallow_copy(&cb_entry, entry);
-    /* FIXME: find a solution which does not enter the callback with the lock acquired,
-     * but does also handle the char* leak- and race-free without unnecessary string copying */
+    free (str_free);
+    pthread_mutex_unlock (&this->config_lock);
+
     entry->callback (entry->callback_data, &cb_entry);
   }
-
-  if (str_free)
+  else
+  {
     free(str_free);
-  pthread_mutex_unlock(&this->config_lock);
+    pthread_mutex_unlock(&this->config_lock);
+  }
+  pthread_mutex_unlock (&update_lock);
 }
 
 /*
