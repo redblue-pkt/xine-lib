@@ -4,6 +4,9 @@ xine-lib (1.1)
   * added help for most deinterlace methods
   * ffmpeg update
   * use ImageMagick to convert and display different type of images (png, jpg...)
+  * improve ASX playlist parsing
+  * add an extended MRL reference event (MRL title, start time, play time):
+    needed for the ASX parser; deprecates plain MRL reference events.
               
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
@@ -39,6 +42,7 @@ xine-lib (1.0.2)
   * new stream infos allows frontends to query current title/chapter/angle on dvds
   * new upmix_mono audio post plugin to convert mono to stereo
   * added --with-external-a52dec and --with-external-libmad switches
+  * fix a locking bug which affects configuration callback functions
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
