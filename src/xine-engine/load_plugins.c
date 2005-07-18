@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.209 2005/07/17 16:52:14 dsalt Exp $
+ * $Id: load_plugins.c,v 1.210 2005/07/18 01:46:02 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -727,7 +727,8 @@ static void _dispose_plugin_class(plugin_node_t *node) {
       break;
     }
     node->plugin_class = NULL;
-    dec_file_ref(node->file);
+    if (node->file)
+      dec_file_ref(node->file);
   }
 }
 
