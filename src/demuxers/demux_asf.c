@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.171 2005/07/17 23:11:44 dsalt Exp $
+ * $Id: demux_asf.c,v 1.172 2005/07/18 01:28:21 dsalt Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1586,7 +1586,7 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
     }
     
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: http ref: %s\n", href);
-    _x_demux_send_mrl_reference (this->stream, 0, mrl, NULL, 0, 0);
+    _x_demux_send_mrl_reference (this->stream, 0, href, NULL, 0, 0);
     
     if (free_href)
       free(href);
@@ -1663,7 +1663,7 @@ static uint32_t asx_get_time_value (const xml_node_t *node)
     double seconds;
 
     if (sscanf (value, "%d:%d:%lf", &hours, &minutes, &seconds) == 3)
-      return hours * 3600000 + minutes * 60000 + seconds;
+      return hours * 3600000 + minutes * 60000 + seconds * 1000;
 
     if (sscanf (value, "%d:%lf", &minutes, &seconds) == 3)
       return minutes * 60000 + seconds * 1000;
