@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.8 2004/04/17 19:54:32 mroi Exp $
+ * $Id: planar.c,v 1.9 2005/07/18 18:02:51 jstembridge Exp $
  *
  * catalog for planar post plugins
  */
@@ -31,6 +31,9 @@ post_info_t invert_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *expand_init_plugin(xine_t *xine, void *);
 post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+
+extern void *fill_init_plugin(xine_t *xine, void*);
+post_info_t fill_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *eq_init_plugin(xine_t *xine, void *);
 post_info_t eq_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
@@ -53,6 +56,7 @@ post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST, 9, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
+  { PLUGIN_POST, 9, "fill", XINE_VERSION_CODE, &fill_special_info, &fill_init_plugin },
   { PLUGIN_POST, 9, "invert", XINE_VERSION_CODE, &invert_special_info, &invert_init_plugin },
   { PLUGIN_POST, 9, "eq", XINE_VERSION_CODE, &eq_special_info, &eq_init_plugin },
   { PLUGIN_POST, 9, "denoise3d", XINE_VERSION_CODE, &denoise3d_special_info, &denoise3d_init_plugin },
