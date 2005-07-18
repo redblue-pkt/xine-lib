@@ -423,7 +423,7 @@ inline static buf_element_t *alloc_aud_frame (v4l_input_plugin_t *this)
    
    pthread_mutex_unlock (&this->aud_frames_lock);
    
-   lprintf("alloc_vid_frame done\n");
+   lprintf("alloc_aud_frame done\n");
  
    return frame;
 }
@@ -992,7 +992,7 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
 {
 #ifdef HAVE_ALSA
   int mode = 0;
-
+  snd_pcm_uframes_t buf_size = (this->periodsize * this->periods) >> 2;
   lprintf("open_audio_capture_device\n");
 
   /* Allocate the snd_pcm_hw_params_t structure on the stack. */
@@ -1069,10 +1069,10 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
   
   /* Set buffersize */
   if (this->audio_capture &&
-      (snd_pcm_hw_params_set_buffer_size(this->pcm_handle, 
+      (snd_pcm_hw_params_set_buffer_size_near(this->pcm_handle, 
 					 this->pcm_hwparams,
-					 (this->periodsize * this->periods) >> 2) < 0)) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error setting PCM buffersize\n");
+					 &buf_size) < 0)) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_v4l: Error setting PCM buffer size to %d\n", (int)buf_size );
     this->audio_capture = 0;
   }
   
